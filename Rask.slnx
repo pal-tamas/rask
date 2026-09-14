@@ -88,6 +88,7 @@
         <Project Path="tests/Rask.Postgres.Tests/Rask.Postgres.Tests.csproj" />
         <Project Path="tests/Rask.SqlServer.Tests/Rask.SqlServer.Tests.csproj" />
         <Project Path="tests/Rask.Providers.E2E.Tests/Rask.Providers.E2E.Tests.csproj" />
+        <Project Path="tests/Rask.Server.E2E.Tests/Rask.Server.E2E.Tests.csproj" />
         <Project Path="tests/Rask.Site.E2E.Tests/Rask.Site.E2E.Tests.csproj" />
     <Project Path="tests/Rask.ScopedAssets.Fixture/Rask.ScopedAssets.Fixture.csproj" />
         <Project Path="tests/Rask.Generators.Tests/Rask.Generators.Tests.csproj" />

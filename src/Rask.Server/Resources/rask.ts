@@ -335,14 +335,31 @@ import "../../Rask.Core/Resources/rask-events.js";
 
         socket.addEventListener("message", (e: MessageEvent) => onFrame(e.data));
 
+        // A socket that never opened, where HTTP is now the candidate, hands straight over. The network refused
+        // the upgrade: that is not a dropped connection, and waiting out the reconnect backoff first would only
+        // leave the page inert for nothing. Once per socket — one failure fires both `error` and `close`. If HTTP
+        // fails as well, its close goes through the ordinary backoff, so an outage still backs off.
+        let handedOver = false;
+        function failedBeforeOpen(): boolean {
+            chooser.wsFailedBeforeOpen();
+            if (handedOver || sessionExpired) return true;
+            if (reconnectTimer !== null || chooser.next() !== "http") return false;
+            handedOver = true;
+            connect();
+            return true;
+        }
+
         socket.addEventListener("close", (e: CloseEvent) => {
             clearTimeout(openTimeout);
-            if (opened) chooser.wsClosed(deliberateClose);
-            else chooser.wsFailedBeforeOpen();
+            if (opened) {
+                chooser.wsClosed(deliberateClose);
+            } else if (failedBeforeOpen()) {
+                return;
+            }
             scheduleReconnect(e.code);
         });
         socket.addEventListener("error", () => {
-            if (!opened) chooser.wsFailedBeforeOpen();
+            if (!opened && failedBeforeOpen()) return;
             scheduleReconnect();
         });
     }

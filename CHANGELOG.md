@@ -1311,7 +1311,9 @@ them until tagged releases begin.
   when the socket errors before opening, has not opened within 5 seconds, or is cut off within 5 seconds of
   opening three times running. It remembers HTTP (in `sessionStorage`) only once an HTTP stream has actually
   opened where the socket did not — a server that is merely mid-redeploy fails both, and a tab is never pinned
-  to the slower transport for that. A new tab tries the socket again.
+  to the slower transport for that. A new tab tries the socket again. A socket that is refused before it opens
+  hands over to HTTP at once, without waiting out the reconnect backoff, so a blocked network never shows the
+  page inert. See "When WebSockets are blocked" in `docs/render-modes.md` for the proxy and HTTP/2 notes.
 
   The guards are the socket's, applied per request because an HTTP request has no upgrade to have checked
   earlier: the host-only `Origin` check, and `SameSessionUser` on every POST. A stream carries a generation,

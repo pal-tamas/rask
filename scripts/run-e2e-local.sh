@@ -268,6 +268,15 @@ if [ "$build_status" -eq 0 ]; then
     | tee -a "$build_log" || build_status=$?
 fi
 
+if [ "$build_status" -eq 0 ]; then
+  # The Rask.Server journeys host their app IN this test process (Kestrel on a loopback port), so the
+  # MinVerSkip caveat above holds for them too: no out-of-process host has to resolve a version identity.
+  echo "==> Build the Rask.Server browser-journey project"
+  dotnet build tests/Rask.Server.E2E.Tests/Rask.Server.E2E.Tests.csproj \
+    -c Release -p:MinVerSkip=true --nologo 2>&1 \
+    | tee -a "$build_log" || build_status=$?
+fi
+
 if [ "$build_status" -ne 0 ]; then
   # .githooks/pre-push captures this same output and delivers the verdict itself when it is the caller
   # (RASK_GATE_WRAPPED=1) — a direct run gets the explanation here, a wrapped one is not told twice.
@@ -332,6 +341,19 @@ dotnet test tests/Rask.Site.E2E.Tests/bin/Release/net10.0/Rask.Site.E2E.Tests.dl
   --filter "$e2e_filter" \
   --logger "console;verbosity=normal"
 e2e_status=$?
+
+# Server-rendered live pages in a real browser — what the WebAssembly site above cannot exercise: the
+# runtime a Rask.Server app ships, its WebSocket, and the HTTP fallback for networks that refuse one.
+# Run even when the site suite failed, so one red run reports both; the first failure decides the exit.
+server_filter="${RASK_E2E_FILTER:-FullyQualifiedName~Rask.Server.E2E.Tests}"
+echo "==> Browser journey E2E (Rask.Server.E2E.Tests)"
+dotnet test tests/Rask.Server.E2E.Tests/bin/Release/net10.0/Rask.Server.E2E.Tests.dll \
+  --filter "$server_filter" \
+  --logger "console;verbosity=normal"
+server_status=$?
+if [ "$e2e_status" -eq 0 ]; then
+  e2e_status=$server_status
+fi
 set -e
 
 if [ "$e2e_status" -ne 0 ]; then
