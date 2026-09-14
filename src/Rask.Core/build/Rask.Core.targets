@@ -51,6 +51,12 @@
     -->
     <CompilerVisibleProperty Include="RaskStrayScopedJs"/>
     <CompilerVisibleProperty Include="RaskBuilderEntryInjection"/>
+    <!--
+      Whether this build carries the devtools (Debug only unless a project says otherwise — see
+      Rask.DevTools.targets). The generator writes each component's DescribeProps override only when it is true, so a
+      Release build emits no description of an app's own state and the devtools cost nothing there.
+    -->
+    <CompilerVisibleProperty Include="RaskDevTools"/>
     <!-- The language a catalog's keys are DEFINED in, and whose text is used when a translation is
          missing. Falls back to $(NeutralLanguage) and then to "en". -->
     <CompilerVisibleProperty Include="RaskNeutralLanguage"/>

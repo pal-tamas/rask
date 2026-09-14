@@ -203,7 +203,18 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 !p.GlobalOptions.TryGetValue("build_property.RaskBuilderEntryInjection", out var inject)
                 || !string.Equals(inject, "false", StringComparison.OrdinalIgnoreCase)));
 
+        // Whether this build carries the devtools. Opt-IN, unlike the switch above: absent means off, so a Release
+        // build — and any build that never asked for the tools — emits no description of an app's own state.
+        var devToolsOn = context.AnalyzerConfigOptionsProvider.Select(static (p, _) =>
+            p.GlobalOptions.TryGetValue("build_property.RaskDevTools", out var on)
+            && string.Equals(on, "true", StringComparison.OrdinalIgnoreCase));
+
         var componentHost = context.CompilationProvider.Select(static (c, _) => GetComponentHost(c));
+
+        // The host is combined in because the override's own modifier depends on it: `protected internal` is what
+        // Core and its friends write over its own virtual, and `protected` is what everyone else must write.
+        context.RegisterSourceOutput(grouped.Combine(devToolsOn).Combine(componentHost),
+            static (spc, t) => EmitPropsDescribers(spc, t.Left.Left, t.Left.Right, t.Right.SeesComponentInternals));
 
         context.RegisterSourceOutput(grouped.Combine(componentHost),
             static (spc, t) => EmitBuilderEntries(spc, t.Left, t.Right));
@@ -1624,6 +1635,12 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
 
         var declaresComponent =
             SymbolEqualityComparer.Default.Equals(component.ContainingAssembly, compilation.Assembly);
+
+        // A friend sees the internal half too, so it must spell an override of a `protected internal` member with
+        // both words — exactly as Core does. Core names about twenty of them (the hosts, the islands, Rask.Testing
+        // and their test projects), and writing `protected` alone in any of them is CS0507.
+        var seesComponentInternals =
+            declaresComponent || component.ContainingAssembly.GivesAccessTo(compilation.Assembly);
         var names = new SortedSet<string>(StringComparer.Ordinal);
         for (var t = component; t is not null; t = t.BaseType)
         {
@@ -1636,7 +1653,8 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             }
         }
 
-        return new ComponentHost(declaresComponent, assembly, new EquatableArray<string>(names.ToArray()));
+        return new ComponentHost(declaresComponent, assembly, new EquatableArray<string>(names.ToArray()),
+            seesComponentInternals);
     }
 
     private static void EmitBuilderEntries(
@@ -3509,6 +3527,136 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     // Re-deriving it on the consumer's side is not "harder" — it is impossible; re-deriving it from a
     // richer source would be a second copy free to drift. `required` props are skipped: metadata keeps
     // those, and the consumer reads them straight off the symbol.
+    // What a component tells the devtools about its own properties: one override per component, and only in a build
+    // that carries the tools. A Release build emits nothing here, which is why a shipped app neither describes its own
+    // state nor pays for the call — the base method is empty and the JIT drops it.
+    //
+    // Values are read BY NAME in generated code, never reflected over: reflection would be a trimming hazard in the
+    // one place a trimmed publish must survive intact, and it would run getters that do work. A sensitive property is
+    // decided at build time (IsSensitiveProp) and its value is not read at all, so it cannot reach a panel or a frame.
+    private static void EmitPropsDescribers(
+        SourceProductionContext spc, ImmutableArray<Candidate> candidates, bool devTools,
+        bool seesComponentInternals)
+    {
+        if (!devTools || candidates.IsDefaultOrEmpty)
+        {
+            return;
+        }
+
+        // The language's rule, not a choice: a `protected internal` member overridden where the internal half is NOT
+        // visible must be declared `protected` alone, and where it IS visible — Core itself and every friend Core
+        // names — it must keep both words. Writing one of them everywhere is CS0507 in half the compilations.
+        var modifier = seesComponentInternals ? "protected internal override" : "protected override";
+
+        var sb = new StringBuilder();
+        EmitGeneratedFileHeader(sb);
+        var wrote = false;
+
+        foreach (var c in DistinctByType(candidates))
+        {
+            // A generator cannot add a member to a type that is not partial, and a nested one would need its enclosing
+            // types re-opened — more than a description is worth. Both stay silent: the component still works, it just
+            // shows no props.
+            if (!c.IsPartial || IsNested(c))
+            {
+                continue;
+            }
+
+            // Its own, once each: the shared Element/Component surface is described by Core's own overrides, and a
+            // bound control's interface props are the same property seen twice.
+            var props = c.Properties
+                .Where(static p => !p.IsSharedSurfaceProp && !p.IsBoundInterfaceProp)
+                .GroupBy(static p => p.Name, StringComparer.Ordinal)
+                .Select(static g => g.First())
+                .OrderBy(static p => p.Name, StringComparer.Ordinal)
+                .ToList();
+            if (props.Count == 0)
+            {
+                continue;
+            }
+
+            wrote = true;
+            sb.AppendLine();
+            var hasNs = !string.IsNullOrEmpty(c.Namespace);
+            if (hasNs)
+            {
+                // Block-scoped: one file carries every component, and a file may hold only one file-scoped namespace.
+                sb.Append("namespace ").AppendLine(c.Namespace);
+                sb.AppendLine("{");
+            }
+
+            // The BARE type parameters: a type parameter's [DynamicallyAccessedMembers] belongs on the declaration that
+            // introduces it, and repeating it on a second partial declaration of the same type is CS0579.
+            sb.Append("partial class ").Append(c.TypeName).Append(c.TypeParameters)
+                .AppendLine(c.TypeParameterConstraints);
+            sb.AppendLine("{");
+            sb.AppendLine("    /// <inheritdoc />");
+            sb.AppendLine(
+                "    [global::System.ComponentModel.EditorBrowsable("
+                + "global::System.ComponentModel.EditorBrowsableState.Never)]");
+            sb.Append("    ").Append(modifier).AppendLine(
+                " void DescribeProps(global::Rask.Core.Diagnostics.DevTools.PropsDescriber describer)");
+            sb.AppendLine("    {");
+            sb.AppendLine("        base.DescribeProps(describer);");
+            foreach (var p in props)
+            {
+                var type = Unqualified(p.TypeFqn);
+                if (p.IsSensitive)
+                {
+                    sb.Append("        describer.AddRedacted(\"").Append(p.Name).Append("\", \"").Append(type)
+                        .AppendLine("\");");
+                    continue;
+                }
+
+                sb.Append("        describer.Add(\"").Append(p.Name).Append("\", \"").Append(type)
+                    .Append("\", global::Rask.Core.Diagnostics.DevTools.PropsDescriber.Format(this.")
+                    .Append(p.Escaped).AppendLine("));");
+            }
+
+            sb.AppendLine("    }");
+            sb.AppendLine("}");
+            if (hasNs)
+            {
+                sb.AppendLine("}");
+            }
+        }
+
+        if (wrote)
+        {
+            spc.AddSource("RaskPropsDescribers.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+        }
+    }
+
+    // A component declared inside another type: its fully qualified name still carries a '.' once the namespace and
+    // any type arguments are taken off.
+    private static bool IsNested(Candidate c)
+    {
+        var name = c.FullyQualifiedName;
+        if (name.StartsWith("global::", StringComparison.Ordinal))
+        {
+            name = name.Substring("global::".Length);
+        }
+
+        var generic = name.IndexOf('<');
+        if (generic >= 0)
+        {
+            name = name.Substring(0, generic);
+        }
+
+        if (!string.IsNullOrEmpty(c.Namespace) && name.StartsWith(c.Namespace + ".", StringComparison.Ordinal))
+        {
+            name = name.Substring(c.Namespace.Length + 1);
+        }
+
+        return name.IndexOf('.') >= 0;
+    }
+
+    // The type as a developer reads it in their own code, rather than as the compiler spells it.
+    private static string Unqualified(string typeFqn) =>
+        typeFqn.StartsWith("global::", StringComparison.Ordinal)
+            ? typeFqn.Substring("global::".Length)
+            : typeFqn;
+
     private static void EmitPublishedRequiredProperties(
         SourceProductionContext spc, ImmutableArray<Candidate> candidates)
     {
@@ -4154,7 +4302,11 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     private readonly record struct ComponentHost(
         bool DeclaresComponent,
         string AssemblyName,
-        EquatableArray<string> MemberNames);
+        EquatableArray<string> MemberNames,
+        // Whether the INTERNAL half of Component's `protected internal` members is visible here: true in Core
+        // itself and in every assembly Core names as a friend. It is not the same question as DeclaresComponent,
+        // and an override's modifier depends on this one.
+        bool SeesComponentInternals = false);
 
     /// <param name="InjectEntries">
     ///     RaskBuilderEntryInjection — whether this compilation's own entries are also injected into its own
@@ -4963,7 +5115,8 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                     prop.SetMethod?.IsInitOnly == true,
                     IsSharedSurfaceType(current),
                     HasDerivedSetter(prop),
-                    SummaryOf(prop)));
+                    SummaryOf(prop),
+                    IsSensitiveProp(prop)));
             }
         }
 
@@ -5438,6 +5591,51 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         return quote < 0 ? null : xml.Substring(start, quote - start);
     }
 
+    // DataType.Password. The enum member's VALUE is what reaches metadata, so that is what an attribute argument
+    // compares against; naming the member here is for the reader.
+    private const int PasswordDataType = 11;
+
+    // Words that say "secret" wherever they appear in a name: Password, ApiToken, ClientSecret, ApiKeyHeader.
+    private static readonly string[] SensitiveWords =
+        ["password", "passcode", "secret", "token", "apikey", "credential"];
+
+    // …and the short ones, matched whole. As substrings they would redact Pinned, Spinner and Session — hiding an
+    // ordinary value is its own kind of wrong, and a developer reading their own tree would not know why.
+    private static readonly string[] SensitiveNames = ["pin", "ssn"];
+
+    // Whether the devtools must never show a property's value. Decided from what the code says about it: the name
+    // developers already use for a secret, or an attribute that declares one — DataAnnotations' password field,
+    // WinForms' PasswordPropertyText (which an app may carry for a designer), and Identity's personal-data pair,
+    // whose whole purpose is to mark what must not be handed around.
+    //
+    // Deliberately a blunt rule, and deliberately at BUILD time. A value redacted later has already been read and
+    // has usually already crossed a wire; a description that was never written cannot leak. The cost of being
+    // wrong is a value a developer must read from their own code, which is where they were anyway.
+    private static bool IsSensitiveProp(IPropertySymbol prop)
+    {
+        foreach (var attribute in prop.GetAttributes())
+        {
+            var name = attribute.AttributeClass?.Name;
+            if (name is "PasswordPropertyTextAttribute" or "PersonalDataAttribute" or "ProtectedPersonalDataAttribute")
+            {
+                return true;
+            }
+
+            // [DataType(DataType.Password)] — the enum member's value, not its name, survives to metadata.
+            // Written without a slice pattern: this generator targets netstandard2.0, which has no System.Index.
+            if (name == "DataTypeAttribute"
+                && attribute.ConstructorArguments.Length > 0
+                && attribute.ConstructorArguments[0].Value is int dataType
+                && dataType == PasswordDataType)
+            {
+                return true;
+            }
+        }
+
+        return SensitiveWords.Any(word => prop.Name.Contains(word, StringComparison.OrdinalIgnoreCase))
+               || SensitiveNames.Any(name => string.Equals(prop.Name, name, StringComparison.OrdinalIgnoreCase));
+    }
+
     private readonly record struct PropInfo(
         string Name,
         string TypeFqn,
@@ -5458,7 +5656,11 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         bool HasDerivedSetter,
         // The property's own <summary>, carried onto the step or setter that sets it — see EmitDocComment.
         // Empty when the property has none, which is most of them today.
-        string Summary = "")
+        string Summary = "",
+        // Whether the devtools must never show this value: a password, a token, a personal detail. Decided HERE,
+        // where the symbol and its attributes are, so the description the build writes cannot carry the value at
+        // all — a panel that redacted on the way out would still have put it on the wire.
+        bool IsSensitive = false)
     {
         // The factory-parameter / property identifier, '@'-escaped when Name is a reserved keyword.
         public string Escaped => EscapeIdentifier(Name);

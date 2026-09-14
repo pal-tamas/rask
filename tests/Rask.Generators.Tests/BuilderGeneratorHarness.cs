@@ -14,11 +14,19 @@ internal static class BuilderGeneratorHarness
     internal static BuilderRun Run(string source) => Run(source, null);
 
     /// <summary>
+    ///     The same run with the devtools build property set, which is what gates the props describers. Absent
+    ///     means off, so every other test in this project runs with them off and pins that nothing is emitted.
+    /// </summary>
+    internal static BuilderRun Run(string source, bool devTools, string assemblyName = "TestAssembly") =>
+        Run(source, null, devTools, assemblyName);
+
+    /// <summary>
     ///     The same run with extra references — an emitted library compilation, for the cross-assembly
     ///     entry scan. The assembly name stays <c>TestAssembly</c>, which is what a library's
     ///     <c>InternalsVisibleTo</c> has to name for the friend path to be exercised.
     /// </summary>
-    internal static BuilderRun Run(string source, IEnumerable<MetadataReference>? extraReferences)
+    internal static BuilderRun Run(string source, IEnumerable<MetadataReference>? extraReferences,
+        bool devTools = false, string assemblyName = "TestAssembly")
     {
         var references = GeneratorDriverFixture.BuildReferences();
         if (extraReferences is not null)
@@ -28,7 +36,7 @@ internal static class BuilderGeneratorHarness
 
         var syntaxTree = CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest));
         var compilation = CSharpCompilation.Create(
-            "TestAssembly",
+            assemblyName,
             new[] { syntaxTree },
             references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
@@ -37,7 +45,7 @@ internal static class BuilderGeneratorHarness
         var driver = (CSharpGeneratorDriver)CSharpGeneratorDriver
             .Create(new ComponentFactoryGenerator())
             .WithUpdatedParseOptions(new CSharpParseOptions(LanguageVersion.Latest))
-            .WithUpdatedAnalyzerConfigOptions(new BuilderSurfaceOptionsProvider());
+            .WithUpdatedAnalyzerConfigOptions(new BuilderSurfaceOptionsProvider(devTools));
 
         var result = driver.RunGenerators(compilation).GetRunResult();
         return new BuilderRun(
@@ -100,19 +108,27 @@ internal static class BuilderGeneratorHarness
         return output.Substring(start, end - start);
     }
 
-    private sealed class BuilderSurfaceOptionsProvider : AnalyzerConfigOptionsProvider
+    private sealed class BuilderSurfaceOptionsProvider(bool devTools = false) : AnalyzerConfigOptionsProvider
     {
-        public override AnalyzerConfigOptions GlobalOptions { get; } = new Options();
+        public override AnalyzerConfigOptions GlobalOptions { get; } = new Options(devTools);
 
         public override AnalyzerConfigOptions GetOptions(SyntaxTree tree) => GlobalOptions;
 
         public override AnalyzerConfigOptions GetOptions(AdditionalText textFile) => GlobalOptions;
 
-        private sealed class Options : AnalyzerConfigOptions
+        private sealed class Options(bool devTools) : AnalyzerConfigOptions
         {
             public override bool TryGetValue(string key, out string value)
             {
                 if (key == "build_property.RaskBuilderSurface")
+                {
+                    value = "true";
+                    return true;
+                }
+
+                // Answered only when the run asked for it: the generator treats an absent property as off, and
+                // every other test in this project relies on that to stay free of props describers.
+                if (devTools && key == "build_property.RaskDevTools")
                 {
                     value = "true";
                     return true;
