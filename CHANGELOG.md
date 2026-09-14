@@ -608,6 +608,13 @@ them until tagged releases begin.
 
 ### Changed
 
+- **Release builds strip comments from scoped TypeScript's emitted JavaScript.** tsgo now runs with
+  `--removeComments` when `Configuration` is `Release`, which halves the scoped assets' gzipped size on rask.sh
+  (3,493 → 1,696 bytes); Debug keeps the comments for devtools. Override with `RaskScopedTsRemoveComments`.
+  Deliberately not a minifier: esbuild moves `export function NAME(` into a trailing `export { … }` clause,
+  which the registry does not match, so every scoped method would stop registering with a green build.
+  Changing either option, or `RaskScopedTsTarget`, on an already-built tree now recompiles; before, the
+  compile was judged up to date and the previous emit shipped.
 - **BREAKING: every Rask.Server page is live.** There is no render ladder any more: a page no longer decides
   from its own render whether it needs a session, there is no static page served without one, and a page never
   hands itself over to a WebAssembly bundle. `AddRask()` has nothing to choose — the GET creates the session,
