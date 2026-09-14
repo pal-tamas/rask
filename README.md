@@ -179,6 +179,7 @@ box to operate.
 | **[Getting started](docs/getting-started.md)** · **[Tutorial](docs/tutorial/00-overview.md)** | The UI end to end; then a whole product, one pillar per chapter |
 | **[Building components](docs/building-components.md)** · **[Routing](docs/routing.md)** · **[Forms](docs/forms.md)** | How markup is written, the URLs it answers, and the form pipeline |
 | **[The `rask` CLI](docs/cli.md)** · **[Deployment](docs/deployment.md)** | `new` / `dev` / `db` / `deploy`; Docker over SSH, auto-HTTPS, bare-VPS setup |
+| **[DevTools](docs/devtools.md)** | A panel in the page while you develop: the wire traffic and the component tree with props. Gone from every Release build |
 | **[Data](docs/data.md)** · **[CQRS](docs/cqrs.md)** · **[Auth](docs/authentication.md)** · **[Jobs](docs/jobs.md)** · **[File storage](docs/file-storage.md)** · **[SQLite](docs/sqlite.md)** | The database-backed pillars |
 | **[HTTP APIs](docs/api-endpoints.md)** | API controllers and minimal APIs, hosted properly and called through a client generated from them |
 | **[Migrating from Blazor](docs/migration-from-blazor.md)** · **[Diagnostics](docs/diagnostics.md)** | Day-to-day differences side by side; every RASK build error and its fix |

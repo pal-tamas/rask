@@ -75,6 +75,7 @@
         <Project Path="tests/Rask.DevTools.Tests/Rask.DevTools.Tests.csproj" />
         <Project Path="tests/Rask.DevTools.Fixture.Server/Rask.DevTools.Fixture.Server.csproj" />
         <Project Path="tests/Rask.DevTools.Fixture.Wasm/Rask.DevTools.Fixture.Wasm.csproj" />
+        <Project Path="tests/Rask.DevTools.Showcase/Rask.DevTools.Showcase.csproj" />
         <Project Path="tests/Rask.Ui.Tests/Rask.Ui.Tests.csproj" />
         <Project Path="tests/Rask.Data.Tests/Rask.Data.Tests.csproj" />
         <Project Path="tests/Rask.Blazor.Library.Fixture/Rask.Blazor.Library.Fixture.csproj" />

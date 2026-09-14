@@ -43,6 +43,8 @@ internal sealed partial class DevToolsOverviewPage(RouteState route, IDevToolsIn
             : DevToolsWireTab.Key(session + "-wire").Feed(feed);
 
         return Div.Class("flex flex-col gap-3")[
+            // Whichever tab is showing, so the Tree tab has a tree the moment it is picked.
+            DevToolsTreeWatcher.Key(session + "-watch").Feed(feed),
             Div.Role("tablist").Class("flex items-center gap-1")[
                 TabButton(Wire, "Wire"),
                 TabButton(Tree, "Tree")

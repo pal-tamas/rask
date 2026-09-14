@@ -6,6 +6,7 @@ using Markdig.Renderers.Html;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
 using Rask.Core;
+using Rask.Core.Live;
 
 namespace Rask.Site;
 
@@ -183,7 +184,20 @@ public sealed partial class Markdown : Component
         Split(source).Where(s => s.IsDemo).Select(s => s.Value).ToArray();
 
     private static string RenderHtml((string? SourcePath, string Text) doc) =>
-        HighlightCodeBlocks(RewriteLinks(global::Markdig.Markdown.ToHtml(doc.Text, Pipeline), doc.SourcePath));
+        HighlightCodeBlocks(RewriteImages(RewriteLinks(global::Markdig.Markdown.ToHtml(doc.Text, Pipeline), doc.SourcePath), doc.SourcePath));
+
+    // Every relative image, resolved like a link. A picture the site serves itself — one under src/Rask.Site/wwwroot,
+    // which is how a guide links it so GitHub can render it too — is served from the site; any other file is GitHub's
+    // raw copy, since a blob page is not an image. Lazy, because a guide's pictures are below its opening paragraphs.
+    internal static string RewriteImages(string html, string? sourcePath) =>
+        DocImageRegex().Replace(html, m =>
+        {
+            var target = DocLinks.Resolve(sourcePath, m.Groups["path"].Value);
+            var src = target.SitePath is { } sitePath
+                ? $"{LiveOptions.PathBase}/{sitePath}"
+                : $"{SiteIdentity.Repository}/raw/main/{target.RepositoryPath}";
+            return $"<img src=\"{src}\" loading=\"lazy\" decoding=\"async\"";
+        });
 
     // Markdig renders a fenced ```lang block as <pre><code class="language-{lang}">{HTML-encoded source}
     // </code></pre> with NO highlighting. Tokenize the known languages server-side with the shared
@@ -289,6 +303,10 @@ public sealed partial class Markdown : Component
     // not a bare "#fragment" — which needs no rewriting.
     [GeneratedRegex("href=\"(?![a-zA-Z][a-zA-Z0-9+.-]*:|/)(?<path>[^\"#]+)(?<frag>#[^\"]*)?\"")]
     private static partial Regex DocLinkRegex();
+
+    // Markdig's image output, <img src="path" — relative only: not a scheme, not rooted, not a data: URI.
+    [GeneratedRegex("<img src=\"(?![a-zA-Z][a-zA-Z0-9+.-]*:|/)(?<path>[^\"]+)\"")]
+    private static partial Regex DocImageRegex();
 
     // Markdig fenced-code output: <pre><code class="language-{info}">{HTML-encoded body}</code></pre>.
     // Non-greedy body; the body is HTML-encoded so a literal </code> can never appear inside it.

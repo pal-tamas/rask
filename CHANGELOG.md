@@ -595,9 +595,12 @@ them until tagged releases begin.
 
 - **The devtools panel shows the page's component tree.** A Tree tab beside Wire lists what the inspected page rendered,
   drawn with the kit's own `UiTree`: expandable, keyboard-navigable, and virtualized, so a page with thousands of
-  components costs the rows on screen. Each component keeps an id for as long as it lives, so the branches a developer
-  opened survive the page's next render. The snapshot is taken at the end of that render and only while the tab is
-  open — a page nobody is inspecting walks its tree exactly as before.
+  components costs the rows on screen. Components are nested the way they sit on the PAGE — a card's rows under the
+  card, even when the page that uses the card built them — and a "Show HTML tags" toggle adds the elements between
+  them, read from the same frames the diff reads. Each component and element keeps an id across renders, so the
+  branches a developer opened stay open. The tree is there the moment the tab opens: every render of an inspected
+  session leaves its walk in buffers that stop allocating once they fit the page, and the tree is built from them only
+  while a panel is open, including from the render the page was served with.
 
 - **The devtools tree says what each component was given.** Every row carries the component's own properties and
   their values, read by an override the build writes for each component rather than by reflection — so a trimmed
@@ -605,6 +608,14 @@ them until tagged releases begin.
   all. A property holding a secret is never read in the first place: one named for a password, a token, a secret or
   a credential, or marked `[DataType(DataType.Password)]`, `[PasswordPropertyText]`, `[PersonalData]` or
   `[ProtectedPersonalData]`, is written out as `••••` when the build writes the override.
+
+- **A DevTools guide, with pictures of the real panel.** [docs/devtools.md](docs/devtools.md) (live at
+  `/docs/guides/devtools`) covers turning the panel on, what keeps it out of a Release build, and the Wire and Tree
+  tabs. rask.sh is a Release build on a public origin, where the devtools never switch on, so the guide shows them in
+  screenshots: `scripts/capture-devtools-screenshots.sh` runs a showcase app in Development, drives the pill and the
+  panel in Chromium, and writes the WebP files the guide links. A guide can now show pictures at all: an image linked
+  where it lives under `src/Rask.Site/wwwroot` renders on GitHub, and the site and the guide's Markdown twin serve the
+  same file.
 
 ### Changed
 

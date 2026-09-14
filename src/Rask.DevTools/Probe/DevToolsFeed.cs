@@ -1,3 +1,6 @@
+using Rask.Core;
+using Rask.Core.Live;
+
 namespace Rask.DevTools.Probe;
 
 /// <summary>Which way a frame crossed the wire, from the inspected page's point of view.</summary>
@@ -38,6 +41,9 @@ internal sealed class DevToolsFeed
     /// <summary>How many wire events a feed keeps; the oldest go first.</summary>
     internal const int WireCapacity = 1000;
 
+    // How long a panel that opened between renders waits for a render in progress to let go of the page.
+    private static readonly TimeSpan CaptureWait = TimeSpan.FromMilliseconds(250);
+
     private readonly Lock _gate = new();
     private readonly DevToolsWireEvent[] _wire = new DevToolsWireEvent[WireCapacity];
     private int _wireStart;
@@ -51,6 +57,12 @@ internal sealed class DevToolsFeed
     // The last component tree, and how many panels are asking for one.
     private DevToolsComponentNode? _tree;
     private int _treeWatchers;
+
+    // The last render's walk, the gate it was written under, and the snapshotter whose ids the panel keys on. Set by the
+    // probe on the page's first render; a feed created before that has nothing to build from yet.
+    private readonly DevToolsTreeCapture _capture = new();
+    private volatile SemaphoreSlim? _captureGate;
+    private volatile DevToolsTreeSnapshotter? _snapshots;
 
     /// <summary>Raised after every recorded event, outside the lock. Subscribers must not block.</summary>
     internal event Action? Changed;
@@ -90,18 +102,88 @@ internal sealed class DevToolsFeed
         Changed?.Invoke();
     }
 
-    /// <summary>Whether a panel is showing this session's component tree, so the probe knows to snapshot one.</summary>
+    /// <summary>Whether a panel is showing this session's component tree, so the probe knows to build one.</summary>
     /// <remarks>
-    ///     A snapshot walks every component the page rendered, and the page renders whether or not anyone is looking. The
-    ///     count is what keeps that cost with the tab that asked for it: no open tree tab, no snapshot.
+    ///     The walk is captured on every render regardless — into buffers that stop allocating once they fit the page — so
+    ///     a panel that opens between renders has something to build from. Building the tree is the part that costs, and
+    ///     the count is what keeps that with the panel that asked for it: no open panel, no tree.
     /// </remarks>
     internal bool WantsTree => Volatile.Read(ref _treeWatchers) > 0;
 
-    /// <summary>Asks for a tree, until the returned token is disposed.</summary>
+    /// <summary>
+    ///     Asks for a tree, until the returned token is disposed. The first watcher gets one built from the page's last
+    ///     render straight away, rather than waiting for the page to render again.
+    /// </summary>
     internal IDisposable WatchTree()
     {
-        Interlocked.Increment(ref _treeWatchers);
+        // On the first watcher only, and whatever tree is already held: one kept from an earlier watch is stale.
+        if (Interlocked.Increment(ref _treeWatchers) == 1)
+        {
+            _ = BuildFromCaptureAsync();
+        }
+
         return new TreeWatch(this);
+    }
+
+    /// <summary>
+    ///     Records the walk the page just finished. Called by the probe from inside that render, under its gate; builds the
+    ///     tree there too when a panel is watching.
+    /// </summary>
+    internal void RecordWalk(
+        Component root, List<DevToolsWalkItem> items, FrameWriter? frames, SemaphoreSlim? gate,
+        DevToolsTreeSnapshotter snapshots)
+    {
+        _capture.Record(root, items, frames);
+        _captureGate = gate;
+        _snapshots = snapshots;
+
+        if (WantsTree && snapshots.Snapshot(_capture) is { } tree)
+        {
+            RecordTree(tree);
+        }
+    }
+
+    // A panel opened after the page's last render: build from that render's capture, under the same gate the render
+    // wrote it under. A render that holds the gate past the wait is about to record a tree of its own anyway.
+    private async Task BuildFromCaptureAsync()
+    {
+        if (_snapshots is not { } snapshots)
+        {
+            return;
+        }
+
+        var gate = _captureGate;
+        try
+        {
+            if (gate is not null && !await gate.WaitAsync(CaptureWait).ConfigureAwait(false))
+            {
+                return;
+            }
+        }
+        catch (ObjectDisposedException)
+        {
+            // The session ended between its last render and this panel opening; there is nothing left to show.
+            return;
+        }
+
+        try
+        {
+            if (snapshots.Snapshot(_capture) is { } tree)
+            {
+                RecordTree(tree);
+            }
+        }
+        finally
+        {
+            try
+            {
+                gate?.Release();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Disposed while the tree was built: nothing is waiting on it any more.
+            }
+        }
     }
 
     internal void RecordTree(DevToolsComponentNode root)

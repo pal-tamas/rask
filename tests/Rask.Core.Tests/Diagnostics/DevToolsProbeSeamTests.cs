@@ -181,6 +181,36 @@ public partial class DevToolsProbeSeamTests : global::Rask.Core.RaskMarkup, IDis
         Assert.Equal(RenderCause.State, rendering.Cause);
     }
 
+    // The page's nesting, which is what the Tree tab shows: `inner` is built outside `wrapper` and handed to it, the way
+    // an indexer's children are, and it still sits INSIDE wrapper on the page. Ownership would put it beside wrapper.
+    [Fact]
+    public void A_walked_component_names_the_component_it_was_rendered_inside()
+    {
+        var inner = new StubComponent(() => Span["x"]);
+        var wrapper = new StubComponent(() => Section[inner]);
+        var view = new StubComponent(() => Div[wrapper]);
+
+        view.RenderAsLiveRoot();
+
+        Assert.Same(wrapper, Assert.Single(_probe.Walks, w => ReferenceEquals(w.Component, inner)).Parent);
+        Assert.Same(view, Assert.Single(_probe.Walks, w => ReferenceEquals(w.Component, wrapper)).Parent);
+    }
+
+    [Fact]
+    public void A_replayed_component_names_the_component_it_was_replayed_inside()
+    {
+        var inner = new StubComponent(() => Span["x"]);
+        var wrapper = new StubComponent(() => Section[inner]);
+        var view = new StubComponent(() => Div[wrapper]);
+        RenderCapturingFrames(view);
+        _probe.Walks.Clear();
+
+        RenderCapturingFrames(view);
+
+        var replay = Assert.Single(_probe.Walks, w => w.Name == "replayed" && ReferenceEquals(w.Component, inner));
+        Assert.Same(wrapper, replay.Parent);
+    }
+
     [Fact]
     public void A_clean_component_replayed_from_captured_frames_is_reported_as_replayed_not_rendered()
     {
@@ -230,11 +260,19 @@ public partial class DevToolsProbeSeamTests : global::Rask.Core.RaskMarkup, IDis
         public void ComponentRendered(Component component, long startTimestamp) =>
             Events.Add(("rendered", component, null));
 
-        public void ComponentWalked(Component component, long startTimestamp, int frameStart, int frameEnd) =>
-            Events.Add(("walked", component, null));
+        public List<(string Name, Component Component, Component? Parent)> Walks { get; } = [];
 
-        public void ComponentReplayed(Component component, int frameStart, int frameEnd) =>
+        public void ComponentWalked(Component component, Component? parent, long startTimestamp, int frameStart, int frameEnd)
+        {
+            Events.Add(("walked", component, null));
+            Walks.Add(("walked", component, parent));
+        }
+
+        public void ComponentReplayed(Component component, Component? parent, int frameStart, int frameEnd)
+        {
             Events.Add(("replayed", component, null));
+            Walks.Add(("replayed", component, parent));
+        }
 
         public bool ObserveThrow(Component component, Exception exception)
         {

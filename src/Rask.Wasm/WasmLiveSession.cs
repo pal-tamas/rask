@@ -20,6 +20,8 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
 {
     private readonly SemaphoreSlim _lock = new(1, 1);
 
+    internal override SemaphoreSlim? DevToolsRenderGate => _lock;
+
     // Held so Dispose can unsubscribe symmetrically. The provider can outlive the session (it is a
     // separate service), so a dangling subscription would fire OnUserChanged on a disposed session
     // (disposed _lock → ObjectDisposedException). In the normal single-session-per-page lifetime
