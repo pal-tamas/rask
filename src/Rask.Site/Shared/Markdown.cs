@@ -42,7 +42,33 @@ public sealed partial class Markdown : Component
     {
         var builder = new MarkdownPipelineBuilder().UseAdvancedExtensions();
         builder.DocumentProcessed += StampGitHubHeadingIds;
+        builder.DocumentProcessed += DropCommentBlocks;
         return builder.Build();
+    }
+
+    // An HTML comment on its own in a doc is a note to whoever edits the Markdown (elements.md explains its
+    // MDN link table in one) — GitHub hides it, and the site shipped it in every page's body instead. Only a
+    // block that is nothing BUT one comment goes: a comment inside a fenced sample is a CodeBlock and is
+    // shown as code, and a comment block with markup after its `-->` keeps that markup.
+    private static void DropCommentBlocks(MarkdownDocument document)
+    {
+        var comments = document.Descendants<HtmlBlock>().Where(IsCommentOnly).ToList();
+        foreach (var block in comments)
+        {
+            block.Parent?.Remove(block);
+        }
+    }
+
+    private static bool IsCommentOnly(HtmlBlock block)
+    {
+        if (block.Type != HtmlBlockType.Comment)
+        {
+            return false;
+        }
+
+        var text = block.Lines.ToString().Trim();
+        var close = text.IndexOf("-->", StringComparison.Ordinal);
+        return close == text.Length - 3;
     }
 
     private static void StampGitHubHeadingIds(MarkdownDocument document)
@@ -182,7 +208,7 @@ public sealed partial class Markdown : Component
     internal static IReadOnlyList<string> DemoKeys(string source) =>
         Split(source).Where(s => s.IsDemo).Select(s => s.Value).ToArray();
 
-    private static string RenderHtml((string? SourcePath, string Text) doc) =>
+    internal static string RenderHtml((string? SourcePath, string Text) doc) =>
         HighlightCodeBlocks(RewriteLinks(global::Markdig.Markdown.ToHtml(doc.Text, Pipeline), doc.SourcePath));
 
     // Markdig renders a fenced ```lang block as <pre><code class="language-{lang}">{HTML-encoded source}

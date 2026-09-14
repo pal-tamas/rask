@@ -632,6 +632,9 @@ them until tagged releases begin.
   20 bytes gzipped; `HtmlSerializer` already writes none). `<script>`/`<style>` raw text is left untouched,
   as are conditional comments and comments marked `<!--!`, `@license` or `@preserve`. A comment on its own
   line takes the line with it, so no blank lines are left behind.
+- **rask.sh guides no longer ship the docs' editor notes.** A standalone HTML comment in a `docs/*.md` file
+  (hidden on GitHub) was rendered into the guide page's body; the site's Markdown renderer now drops it. A
+  comment shown as code — in a fenced sample or inline code — is still shown.
 - **Release builds strip comments from scoped TypeScript's emitted JavaScript.** tsgo now runs with
   `--removeComments` when `Configuration` is `Release`, which halves the scoped assets' gzipped size on rask.sh
   (3,493 → 1,696 bytes); Debug keeps the comments for devtools. Override with `RaskScopedTsRemoveComments`.
