@@ -2554,6 +2554,12 @@ public static partial class RaskEndpointExtensions
     // session is matched by anyone — the unguessable sessionId is the only authority then (the same
     // posture the WS handshake takes); an authenticated session requires the request to carry the
     // same authenticated identity.
+    //
+    // A signed-in principal with neither a NameIdentifier nor a Name claim has nothing to compare, and matches nobody
+    // (#1102). Comparing two such keys used to compare null with null, which is equal, so ANY keyless user passed as
+    // the owner of ANY other keyless user's session. Refused instead, and said once, because the app's sign-in is
+    // what has to change: a session whose owner carries no key cannot be reattached even by its owner, so its tab
+    // reloads on every reconnect until the principal gets one.
     internal static bool SameSessionUser(ClaimsPrincipal request, ClaimsPrincipal owner)
     {
         if (owner.Identity?.IsAuthenticated != true)
@@ -2566,8 +2572,31 @@ public static partial class RaskEndpointExtensions
             return false;
         }
 
-        return string.Equals(UserKey(request), UserKey(owner), StringComparison.Ordinal);
+        if (UserKey(owner) is not { } ownerKey || UserKey(request) is not { } requestKey)
+        {
+            ReportKeylessPrincipalOnce();
+            return false;
+        }
+
+        return string.Equals(requestKey, ownerKey, StringComparison.Ordinal);
     }
+
+    private static int _keylessPrincipalReported;
+
+    private static void ReportKeylessPrincipalOnce()
+    {
+        if (Interlocked.Exchange(ref _keylessPrincipalReported, 1) == 0)
+        {
+            RaskDiagnostics.Report(
+                RaskLogLevel.Warning, "Rask.Live",
+                "A signed-in user has neither a NameIdentifier nor a Name claim, so Rask cannot tell whether a "
+                + "reconnect, an upload or a download comes from the same user, and refuses it: the page reloads "
+                + "on every reconnect. Add a ClaimTypes.NameIdentifier (or ClaimTypes.Name) claim when signing in.");
+        }
+    }
+
+    /// <summary>Lets a test see the one-time keyless-principal warning again.</summary>
+    internal static void ResetKeylessPrincipalReportForTests() => Interlocked.Exchange(ref _keylessPrincipalReported, 0);
 
     // Whether a hello's principal may attach to a session that already exists (#1075). The owner may,
     // under the same rule the upload and download endpoints apply. So may the one principal an auth
