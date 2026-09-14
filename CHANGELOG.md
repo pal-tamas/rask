@@ -593,6 +593,13 @@ them until tagged releases begin.
   opened survive the page's next render. The snapshot is taken at the end of that render and only while the tab is
   open — a page nobody is inspecting walks its tree exactly as before.
 
+- **The devtools tree says what each component was given.** Every row carries the component's own properties and
+  their values, read by an override the build writes for each component rather than by reflection — so a trimmed
+  app describes as much as one running on the JIT, and a Release build carries no description of an app's state at
+  all. A property holding a secret is never read in the first place: one named for a password, a token, a secret or
+  a credential, or marked `[DataType(DataType.Password)]`, `[PasswordPropertyText]`, `[PersonalData]` or
+  `[ProtectedPersonalData]`, is written out as `••••` when the build writes the override.
+
 ### Changed
 
 - **BREAKING: every Rask.Server page is live.** There is no render ladder any more: a page no longer decides
