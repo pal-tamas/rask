@@ -16,24 +16,25 @@ public sealed partial class UiNavTab : Component
     {
         var active = Active == true;
 
-        var tab = NavLink
-            .Href(Href)
-            // -mb-px pulls the tab's own bottom border onto the bar's, so the active underline replaces the
-            // hairline rather than sitting above it.
-            .Class(
-                "-mb-px flex min-h-11 shrink-0 items-center whitespace-nowrap border-b-2 pb-2.5 pt-2.5 text-sm "
-                + "no-underline " + (active
-                    ? "border-ui-ink font-medium text-base-content"
-                    : "border-transparent opacity-60 hover:border-base-300 hover:text-base-content"));
+        // -mb-px pulls the tab's own bottom border onto the bar's, so the active underline replaces the
+        // hairline rather than sitting above it.
+        var classes =
+            "-mb-px flex min-h-11 shrink-0 items-center whitespace-nowrap border-b-2 pb-2.5 pt-2.5 text-sm "
+            + "no-underline " + (active
+                ? "border-ui-ink font-medium text-base-content"
+                : "border-transparent opacity-60 hover:border-base-300 hover:text-base-content");
 
         // Added only when it is true, rather than as one half of a ternary that has to yield a tuple either
         // way. The else branch of that shape ships a meaningless data-inactive on every inactive tab of
         // every page, and invites someone to start styling off it.
-        if (active)
+        // A generated route navigates inside the app; a string is an ordinary link, with no path base added (#1070).
+        if (Href.PageType is null)
         {
-            tab = tab.Attributes(("aria-current", "page"));
+            var link = A.Href(Href.ToString()).Class(classes);
+            return (active ? link.Attributes(("aria-current", "page")) : link)[Label];
         }
 
-        return tab[Label];
+        var tab = NavLink.Href(Href).Class(classes);
+        return (active ? tab.Attributes(("aria-current", "page")) : tab)[Label];
     }
 }

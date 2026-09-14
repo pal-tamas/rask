@@ -294,11 +294,13 @@ out-specified it.
 
 ## Buttons and links that go somewhere
 
-`UiButton.Href` and `UiLink.Href` take a `RouteUrl`. Hand them a **generated route** and they navigate
-inside the app, the way `NavLink` does: the anchor carries `data-rask-nav`, which the runtime intercepts
-and routes without reloading the page, and the deploy's path base, so a new tab or a copied link reaches
-the same page. Hand them a **string** and they are ordinary links the browser follows itself, which is
-what a URL that leaves the app wants.
+Every kit component that goes somewhere takes a `RouteUrl`: `UiButton.Href`, `UiLink.Href`,
+`UiCard.Href`, `UiStat.Href`, `UiNavTab.Href` and `UiBrand.Href`. All of them follow one rule. Hand one a
+**generated route** and it navigates inside the app, the way `NavLink` does. The anchor carries
+`data-rask-nav`, which the runtime intercepts and routes without reloading the page. It also carries the
+deploy's path base, so a new tab or a copied link reaches the same page. Hand one a **string** and it
+is an ordinary link the browser follows itself, written exactly as given. That is what a URL that
+leaves the app wants.
 
 ```csharp
 UiButton.Tone(UiTone.Primary).Href(Routes.CreateProduct())["New product"]    // stays in the app

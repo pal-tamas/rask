@@ -43,6 +43,47 @@ public partial class UiRoutePathBaseTests : global::Rask.Core.RaskMarkup
         Assert.Contains("href=\"/orders\"", UiLink.Href("/orders").Text("Orders").ToHtml(), StringComparison.Ordinal);
     });
 
+    // #1070: every kit component that takes a RouteUrl follows UiButton and UiLink. A generated route navigates in
+    // place; a string is an ordinary link, and gets neither the path base nor the runtime's interception.
+    public static TheoryData<string> LinkingComponents => ["UiStat", "UiCard", "UiNavTab", "UiBrand"];
+
+    [Theory]
+    [MemberData(nameof(LinkingComponents))]
+    public void A_routed_kit_link_carries_the_path_base_and_navigates_in_place(string component) =>
+        UnderPathBase("/shop", () =>
+        {
+            var html = Render(component, Orders);
+            Assert.Contains("href=\"/shop/orders\"", html, StringComparison.Ordinal);
+            Assert.Contains("data-rask-nav", html, StringComparison.Ordinal);
+        });
+
+    [Theory]
+    [MemberData(nameof(LinkingComponents))]
+    public void A_string_kit_link_is_an_ordinary_link_written_as_given(string component) =>
+        UnderPathBase("/shop", () =>
+        {
+            var html = Render(component, "https://status.example.test");
+            Assert.Contains("href=\"https://status.example.test\"", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("/shop", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("data-rask-nav", html, StringComparison.Ordinal);
+        });
+
+    [Fact]
+    public void An_active_string_tab_still_says_it_is_the_current_page() => UnderPathBase("/shop", () =>
+        Assert.Contains(
+            "aria-current=\"page\"",
+            UiNavTab.Label("Status").Href("https://status.example.test").Active(true).ToHtml(),
+            StringComparison.Ordinal));
+
+    private string Render(string component, RouteUrl href) => component switch
+    {
+        "UiStat" => UiStat.Value("OK").Label("Status").Href(href).ToHtml(),
+        "UiCard" => UiCard.Heading("Status").Href(href)[Span["body"]].ToHtml(),
+        "UiNavTab" => UiNavTab.Label("Status").Href(href).ToHtml(),
+        "UiBrand" => UiBrand.Label("Status").Href(href).ToHtml(),
+        _ => throw new ArgumentOutOfRangeException(nameof(component)),
+    };
+
     private static void UnderPathBase(string pathBase, Action assert)
     {
         var prior = LiveOptions.PathBase;

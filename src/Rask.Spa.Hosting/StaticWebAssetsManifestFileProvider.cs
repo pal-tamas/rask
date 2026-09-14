@@ -106,11 +106,12 @@ internal sealed class StaticWebAssetsManifestFileProvider : IFileProvider
         }
 
         var node = manifest.Root;
-        foreach (var segment in Split(subpath))
+        var segments = Split(subpath);
+        for (var depth = 0; depth < segments.Length; depth++)
         {
-            if (node.Children is not { } children || !children.TryGetValue(segment, out var next))
+            if (node.Children is not { } children || !children.TryGetValue(segments[depth], out var next))
             {
-                return MatchPattern(node, subpath, manifest);
+                return MatchPattern(node, segments.AsSpan(depth), manifest);
             }
 
             node = next;
@@ -121,23 +122,33 @@ internal sealed class StaticWebAssetsManifestFileProvider : IFileProvider
 
     /// <summary>
     ///     Content roots contributed wholesale (<c>_content/{Package}/**</c>) appear as a pattern rather
-    ///     than as enumerated children. Only <c>**</c> is ever emitted, so the remaining request path maps
-    ///     straight onto the root.
+    ///     than as enumerated children. Only <c>**</c> is ever emitted, so the part of the request path
+    ///     BELOW the node that carries the pattern maps straight onto the root.
     /// </summary>
-    private static Node? MatchPattern(Node node, string subpath, Manifest manifest)
+    /// <remarks>
+    ///     Below the node, not the whole path: a package's pattern sits on its <c>_content/{Package}</c> node with
+    ///     the package's <c>wwwroot</c> as its content root, so <c>_content/{Package}/x.css</c> is <c>{root}/x.css</c>.
+    ///     Joining the whole path looked for <c>{root}/_content/{Package}/x.css</c> and 404'd every such asset (#1091).
+    /// </remarks>
+    private static Node? MatchPattern(Node node, ReadOnlySpan<string> remaining, Manifest manifest)
     {
         if (node.Patterns is not { Length: > 0 } patterns)
         {
             return null;
         }
 
+        var relative = string.Join(Path.DirectorySeparatorChar, remaining);
         foreach (var pattern in patterns)
         {
             var root = manifest.ContentRoots[pattern.ContentRootIndex];
-            var candidate = Path.GetFullPath(Path.Combine(root, string.Join(Path.DirectorySeparatorChar, Split(subpath))));
+            var fullRoot = Path.GetFullPath(root);
+            var candidate = Path.GetFullPath(Path.Combine(fullRoot, relative));
 
-            // Never let a crafted path climb out of the content root.
-            if (!candidate.StartsWith(Path.GetFullPath(root), StringComparison.Ordinal) || !File.Exists(candidate))
+            // Never let a crafted path climb out of the content root. Compared against the root WITH its trailing
+            // separator: a bare prefix test admits a sibling that merely starts with the same name, so a root of
+            // `/app/wwwroot` let `../wwwroot-private/secret` through.
+            if (!candidate.StartsWith(Path.TrimEndingDirectorySeparator(fullRoot) + Path.DirectorySeparatorChar, StringComparison.Ordinal)
+                || !File.Exists(candidate))
             {
                 continue;
             }

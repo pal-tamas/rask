@@ -58,8 +58,14 @@ public sealed partial class UiStat : Component
 
         // A tile that leads somewhere is a link, so it is reachable by keyboard and says where it goes —
         // rather than a div with a click handler, which is neither.
-        return Href is { } href
-            ? NavLink.Href(href).Class($"{UiStyles.Card} block no-underline transition-colors hover:bg-base-200")[body]
-            : Div.Class(UiStyles.Card)[body];
+        // A generated route navigates inside the app; a string is an ordinary link, so an external status page gets
+        // neither the deploy's path base nor the in-app interception (#1070). The rule UiLink and UiButton follow.
+        const string linked = $"{UiStyles.Card} block no-underline transition-colors hover:bg-base-200";
+        return Href switch
+        {
+            null => Div.Class(UiStyles.Card)[body],
+            { PageType: null } url => A.Href(url.ToString()).Class(linked)[body],
+            { } route => NavLink.Href(route).Class(linked)[body],
+        };
     }
 }

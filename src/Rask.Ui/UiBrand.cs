@@ -20,15 +20,24 @@ public sealed partial class UiBrand : Component
     public UiIconName? Icon { get; set; }
 
     /// <inheritdoc />
-    protected override Component? Render() =>
-        NavLink
-            .Href(Href)
-            .Class(
-                "flex min-h-11 shrink-0 items-center gap-2 rounded-lg px-1.5 text-sm font-semibold tracking-tight "
-                + "text-base-content no-underline hover:bg-base-200 sm:min-h-0 sm:py-1.5")[
+    protected override Component? Render()
+    {
+        const string classes =
+            "flex min-h-11 shrink-0 items-center gap-2 rounded-lg px-1.5 text-sm font-semibold tracking-tight "
+            + "text-base-content no-underline hover:bg-base-200 sm:min-h-0 sm:py-1.5";
+
+        Component[] content =
+        [
             UiIcon.Name(Icon ?? UiIconName.Overview).Class("size-5 shrink-0"),
             // The wordmark is the first thing to go: on a phone the crumb beside it says where you are,
             // which is the part someone actually needs.
             Span.Class("hidden sm:inline")[Label]
         ];
+
+        // A generated route navigates inside the app; a string is an ordinary link — the path base is not added to
+        // it, so a brand pointing at "#" or at another site stays exactly that (#1070).
+        return Href.PageType is null
+            ? A.Href(Href.ToString()).Class(classes)[content]
+            : NavLink.Href(Href).Class(classes)[content];
+    }
 }

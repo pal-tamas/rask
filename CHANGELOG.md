@@ -1079,6 +1079,24 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A soft delete no longer overwrites a change someone else made.** `SoftDeleteInterceptor` turned a
+  `Remove` into a full update, which marked every property modified. The `UPDATE` that stamps `DeletedAt`
+  therefore wrote back every column the deleting context had loaded, and deleting a row another writer had
+  renamed since reverted the rename (#1055). The only defence was a version check, which a model without
+  `IVersioned` (or a `DeleteAsync(id, version: null)`) never had. The statement now sets `DeletedAt` and
+  the audit columns `UpdatedAt` and `Version`, and nothing else.
+- **Kit cards, stats, tabs and brands link to a plain URL as a plain link.** `UiStat`, `UiCard`, `UiNavTab`
+  and `UiBrand` took a `RouteUrl` but always rendered a `NavLink`. So a string such as
+  `https://status.example.test` was written as `/shophttps://status.example.test` on a sub-path deploy and
+  marked for in-app navigation (#1070). They now follow the rule `UiButton` and `UiLink` already did: a
+  generated route navigates in place with the path base, and a string is an ordinary link written as given.
+  The devtools panel's `UiBrand.Href("#")` was broken the same way under a path base.
+- **A referenced package's static web assets are found in Development.** The dev-manifest file provider
+  behind `UseRaskSpa()` joined the whole request path onto a `_content/{Package}` pattern's content root,
+  looking for `{root}/_content/{Package}/x.css` instead of `{root}/x.css` (#1091). It now maps only the part
+  of the path below the pattern's node. Its guard against climbing out of a content root compared paths by
+  bare prefix, so a root of `/app/wwwroot` also admitted `/app/wwwroot-private/…`; it now requires the
+  separator.
 - **The landing page's Counter.cs sample no longer flickers or shows a late scrollbar in Safari.** Hydration
   never touched it. The code was simply wider than its window at every desktop width: 510px of code in a
   496px box, or 525px in the fallback font a cold load paints first. So the `<pre>` was a horizontal

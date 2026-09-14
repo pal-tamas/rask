@@ -148,6 +148,42 @@ public sealed class StaticWebAssetsManifestFileProviderTests : IDisposable
         Assert.True(provider.GetFileInfo("one.txt").Exists);
     }
 
+    // #1091: a referenced package's assets are one `**` pattern on its `_content/{Package}` node, whose content root
+    // is the package's own wwwroot. The part of the path below that node is what maps onto the root.
+    [Fact]
+    public void A_pattern_below_the_root_maps_only_the_rest_of_the_path_onto_its_content_root()
+    {
+        var packageRoot = Seed("package-wwwroot", Path.Combine("css", "site.css"), ".site{}");
+        var provider = Provider(PatternManifest([packageRoot], ["_content", "Pkg"]));
+
+        var file = provider.GetFileInfo("_content/Pkg/css/site.css");
+
+        Assert.True(file.Exists);
+        Assert.Equal(Path.Combine(packageRoot, "css", "site.css"), file.PhysicalPath);
+    }
+
+    // The shape the SDK writes for the app's own wwwroot: the pattern on the root node, so the whole path maps.
+    [Fact]
+    public void A_pattern_on_the_root_maps_the_whole_path()
+    {
+        var appRoot = Seed("app-wwwroot", Path.Combine("img", "logo.svg"), "<svg/>");
+        var provider = Provider(PatternManifest([appRoot], []));
+
+        Assert.True(provider.GetFileInfo("img/logo.svg").Exists);
+    }
+
+    // A containment check by bare prefix admits any sibling whose name merely starts with the root's.
+    [Fact]
+    public void A_pattern_cannot_reach_a_sibling_directory_that_shares_the_roots_name_prefix()
+    {
+        var appRoot = Seed("wwwroot", "index.html", "<html></html>");
+        Seed("wwwroot-private", "secret.txt", "secret");
+        var provider = Provider(PatternManifest([appRoot], []));
+
+        Assert.False(provider.GetFileInfo("../wwwroot-private/secret.txt").Exists);
+        Assert.True(provider.GetFileInfo("index.html").Exists);
+    }
+
     private StaticWebAssetsManifestFileProvider Provider(string manifest) =>
         new(Write(manifest));
 
@@ -165,6 +201,29 @@ public sealed class StaticWebAssetsManifestFileProviderTests : IDisposable
         Directory.CreateDirectory(Path.GetDirectoryName(full)!);
         File.WriteAllText(full, content);
         return root;
+    }
+
+    /// <summary>A manifest whose only entry is a <c>**</c> pattern on the node at <paramref name="nodePath" />, as the SDK writes it.</summary>
+    private static string PatternManifest(string[] contentRoots, string[] nodePath)
+    {
+        var node = new Dictionary<string, object?>
+        {
+            ["Children"] = null,
+            ["Asset"] = null,
+            ["Patterns"] = new[] { new Dictionary<string, object?> { ["ContentRootIndex"] = 0, ["Pattern"] = "**", ["Depth"] = nodePath.Length } }
+        };
+
+        for (var i = nodePath.Length - 1; i >= 0; i--)
+        {
+            node = new Dictionary<string, object?>
+            {
+                ["Children"] = new Dictionary<string, object?> { [nodePath[i]] = node },
+                ["Asset"] = null,
+                ["Patterns"] = null
+            };
+        }
+
+        return JsonSerializer.Serialize(new Dictionary<string, object?> { ["ContentRoots"] = contentRoots, ["Root"] = node });
     }
 
     /// <summary>Builds the real manifest shape: content roots plus a path trie of assets.</summary>
