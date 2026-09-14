@@ -27,9 +27,9 @@ internal sealed partial class DevToolsLayout : Component
     /// <inheritdoc />
     protected override Component? Render()
     {
-        // Every router matches every mounted application's pages, so a live app session can navigate itself here over
-        // its own socket, past the admission its page handler runs. Only the panel's own shell provides the root marker;
-        // anywhere else the panel shows nothing of the session it names.
+        // A second line, behind the host's: a live app session that navigates here over its socket is sent to load the
+        // panel as a page (#1094), so the panel's admission runs. Should anything still render this layout outside the
+        // panel's own shell, which alone provides the root marker, it shows nothing of the session it names.
         if (!Context.Has<DevToolsPanelRoot>())
         {
             return UiAlert["The Rask DevTools panel opens only in its own frame. Open it from the page's Rask pill."];

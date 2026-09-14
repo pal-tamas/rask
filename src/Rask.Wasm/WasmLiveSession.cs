@@ -68,6 +68,10 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
             _userProvider.Changed -= OnUserChanged;
         }
 
+        // Same for the culture service, which is a root singleton here and outlives every session: left
+        // subscribed, the next language switch would re-render this disposed tree against _lock (#1093).
+        DetachCulture();
+
         ComponentLifecycle.DisposeComponentTree(View);
         _lock.Dispose();
     }

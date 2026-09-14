@@ -6,6 +6,7 @@ using Rask.Core.Components;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Server.Tests.Infrastructure;
+using Rask.TestSupport;
 
 namespace Rask.Server.Tests.Live;
 
@@ -248,8 +249,7 @@ public sealed class SessionResumeTests
         var (host, sessionId, token) = await StartAndCapture(seed: 2);
         using var _ = host;
         await host.Store.RemoveAsync(sessionId);
-        Assert.True(await WebSocketHelper.EventuallyAsync(
-            () => host.Store.ConnectedCount == 0, TimeSpan.FromSeconds(5)));
+        await WaitFor.True(() => host.Store.ConnectedCount == 0, TimeSpan.FromSeconds(5));
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId, resume = token });

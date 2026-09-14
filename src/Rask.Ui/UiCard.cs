@@ -54,8 +54,12 @@ public sealed partial class UiCard : Component
             Href is null ? "" : "block no-underline transition-colors hover:bg-base-200",
             Class);
 
-        return Href is { } href
-            ? NavLink.Href(href).Class(classes)[header, Children ?? []]
-            : Div.Class(classes)[header, Children ?? []];
+        // A generated route navigates inside the app; a string is an ordinary link, as on UiLink and UiButton (#1070).
+        return Href switch
+        {
+            null => Div.Class(classes)[header, Children ?? []],
+            { PageType: null } url => A.Href(url.ToString()).Class(classes)[header, Children ?? []],
+            { } route => NavLink.Href(route).Class(classes)[header, Children ?? []],
+        };
     }
 }

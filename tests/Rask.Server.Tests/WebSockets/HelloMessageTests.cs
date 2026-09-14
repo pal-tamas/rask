@@ -2,6 +2,7 @@ using System.Net.WebSockets;
 using System.Text.Json;
 using Rask.Core;
 using Rask.Server.Tests.Infrastructure;
+using Rask.TestSupport;
 
 namespace Rask.Server.Tests.WebSockets;
 
@@ -113,8 +114,7 @@ public class HelloMessageTests
 
         var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = first });
-        Assert.True(await WebSocketHelper.EventuallyAsync(
-            () => host.Store.ConnectedCount == 1, TimeSpan.FromSeconds(5)));
+        await WaitFor.True(() => host.Store.ConnectedCount == 1, TimeSpan.FromSeconds(5));
 
         await ws.SendJsonAsync(new { type = "hello", session = second });
 
@@ -124,9 +124,7 @@ public class HelloMessageTests
         Assert.Equal("hello", close.Value.Reason);
         // Answer the handshake so the server's CloseAsync returns now rather than at its 2 s deadline.
         await ws.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
-        Assert.True(await WebSocketHelper.EventuallyAsync(
-            () => host.Store.ConnectedCount == 0, TimeSpan.FromSeconds(5)));
-        Assert.Equal(0, host.Store.ConnectedCount);
+        await WaitFor.True(() => host.Store.ConnectedCount == 0, TimeSpan.FromSeconds(5));
         ws.Dispose();
     }
 
