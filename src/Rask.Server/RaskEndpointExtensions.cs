@@ -649,7 +649,7 @@ public static partial class RaskEndpointExtensions
             httpContext.Response.Headers.CacheControl = ShellCachePolicy.CacheControl;
             httpContext.Response.Headers.Pragma = ShellCachePolicy.Pragma;
 
-            await httpContext.Response.WriteAsync(content).ConfigureAwait(false);
+            await PageCompression.WriteAsync(httpContext, content, limits.CompressPageHtml).ConfigureAwait(false);
 
             // Schedule cleanup in case no WS ever connects for this session.
             // Browsers / probes can hit the catch-all for resources that don't

@@ -278,6 +278,7 @@ In the environment: `Rask__Live__MaxSessions=1000`.
 | `HandlerTimeout` | `0` (off) | Cancel a handler's `Component.CancellationToken` after this long. A handler that threads that token into its async work unwinds cleanly instead of pinning the render pipeline (cooperative — a token-ignoring handler can't be force-aborted). |
 | `ShutdownDrainTimeout` | `5 s` | Budget for the graceful shutdown drain: announce the shutdown, let in-flight handlers finish, close each socket with a real handshake, dispose the sessions. `0` disables the drain (abort immediately). See [Shutdown and redeploy](#shutdown-and-redeploy). |
 | `QuiescenceTimeout` | `5 s` | How long the initial `GET` waits for a page's async lifecycle work to settle before serving its HTML. `0` disables the wait. See [live pages](render-modes.md#the-initial-get-waits-for-your-data). |
+| `CompressPageHtml` | `true` | Serve the page document compressed — brotli, then gzip, HTTPS included. rask.sh's landing page is 78,525 bytes raw and 15,540 gzipped. Turn it off only if a page renders a long-lived secret; see [page compression](#page-compression). |
 
 ```jsonc
 {
@@ -301,6 +302,35 @@ builder.Services.AddRask(
     live   => live.MaxSessions = 1000,
     server => server.SessionGracePeriod = TimeSpan.FromSeconds(20));
 ```
+
+### Page compression
+
+The page handler compresses its own document, brotli or gzip, whichever the browser ranks higher in
+`Accept-Encoding`. You don't write anything to get it. Scoped CSS and TypeScript were already compressed
+by their own path. What remained was the page, and the page is the biggest thing the host serves. The
+cost at `CompressionLevel.Optimal` on that 78 KB page is 0.28 ms for brotli and 0.62 ms for gzip.
+
+**Only the page is compressed.** Rask adds no middleware and does not call `AddResponseCompression`.
+Your own endpoints, such as a JSON API, and your own `ResponseCompressionOptions` stay exactly as you set
+them.
+
+It is on for HTTPS too, which ASP.NET leaves off by default because of **BREACH**: compressing a response that
+holds a secret *and* reflects attacker-controlled input can leak that secret through the response size. Rask's
+own per-page secret is the session id in `data-rask-root`, and the attack gets nowhere with it: a new one is
+minted for every `GET`, so no two responses share a value to converge on. No antiforgery token is rendered
+either. **Application data is your call.** If a page renders a long-lived secret (an API key, a reset link,
+an account token) next to something a visitor controls, such as a search term or a query string, turn
+compression off:
+
+```csharp
+builder.Services.AddRask(configureServer: server => server.CompressPageHtml = false);
+```
+
+Or `"Rask": { "Server": { "CompressPageHtml": false } }`.
+
+An app that already runs `UseResponseCompression()`, or sits behind a proxy that compresses, keeps working.
+The page arrives with `Content-Encoding` already set, so the middleware or proxy passes it through rather
+than encoding it a second time.
 
 ### Shutdown and redeploy
 
