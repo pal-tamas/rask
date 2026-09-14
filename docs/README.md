@@ -57,8 +57,8 @@ in the [Tutorial](tutorial/00-overview.md); the reference for each is here.
 
 | Guide | What it covers |
 |-------|----------------|
-| [Data access (EF Core)](data-access.md) | EF Core + SQLite in a Server app: `IDbContextFactory`, loading in the lifecycle, vertical slices, a DDD aggregate + value objects, and the SQLite decimal gotcha. |
-| [Rask.Data](data.md) | The `Model<TId>` base + EF interceptors: audit stamps, transparent soft delete, optimistic concurrency, and domain events — via `AddRaskData()` + `ApplyRaskConventions()`. |
+| [Rask.Data](data.md) | Declare a `Model<TId>` and nothing else: reads off the type (`Product.Where(…)`), generated form models and writes (`Product.CreateAsync(model)`), audit stamps, soft delete, optimistic concurrency and domain events. |
+| [Data access (EF Core)](data-access.md) | Plain EF Core + SQLite with a `DbContext` of your own: `IDbContextFactory`, loading in the lifecycle, vertical slices, a DDD aggregate + value objects, and the SQLite decimal gotcha. |
 | [SQLite production pragmas](sqlite.md) | Production SQLite via `UseRaskSqlite` / `AddRaskSqlite` (standalone `Rask.SQLite`): WAL, `foreign_keys`, `busy_timeout` & friends applied on every connection open, plus Litestream backup. |
 | [CQRS](cqrs.md) | Source-generated, trim-safe queries / commands / notifications and pipeline behaviors via `AddRaskCqrs()` + `IDispatcher` (standalone `Rask.Cqrs`). |
 | [HTTP APIs](api-endpoints.md) | Ordinary API controllers and minimal API endpoints, hosted properly and callable without a URL: `AddRaskApi()` + `MapRaskApi()` map them and answer 404 with a problem document under `/api` — where the catch-all used to render the app with a 200 — and `Rask.Api.Client` generates one typed client per controller straight from the declaration, so a route renamed on the server breaks the call site at compile time instead of at 404 time. For when someone other than your own browser code has to call you; [CQRS](cqrs.md) is the answer when nobody does. |
