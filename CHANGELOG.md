@@ -1101,6 +1101,24 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A package built with Rask.Tailwind no longer ships its compiled sheet out of `obj/`.** The Tailwind props
+  declared the output stylesheet as `Content` whenever the file did not exist yet, so a project packed on a
+  clean clone, with the sheet compiled somewhere other than `wwwroot/`, shipped `content/obj/…css`, and every
+  consumer treated that build intermediate as its own content (#1090). The item is now declared only for a
+  served output under `wwwroot/`, and never packed. The CLI build gate fails any package carrying `obj/`
+  content.
+- **A meta-framework host with no Node process to supervise forwards from the moment it starts.** With
+  `SuperviseNode` off, readiness was set by the background loop, which the host starts after `StartAsync`
+  returns. So the first request after start could still be refused as not ready (#1092). It is now set in
+  `StartAsync`.
+- **Three by-hand gates ran no tests and reported success, and two tests failed gates they had nothing to do
+  with.** The watch, deploy and Linux dev-host scripts built and filtered `Rask.Cli.Tests` for classes that had
+  moved to `Rask.Cli.E2E.Tests`, and a filter matching nothing exits 0 (#1054). They now run the E2E project,
+  and a unit test fails any gate whose filter matches no type in the project it runs. The daisyUI delivery test
+  reported a slow engine as "wrote no stylesheet", and it could deadlock on its own undrained output (#1079).
+  It now drains while waiting, says when it timed out, and compiles once for both of its facts. The auth
+  claim-store tests turn SQLite pooling off, so a known pool-return race in Microsoft.Data.Sqlite can no
+  longer fail an unrelated push (#1087).
 - **File storage starts on the front-end and meta templates, and `rask new` puts it back on them.** `Rask.Storage`
   referenced `Rask.Core`, which travels only inside the hosts that render components. An app on the SPA or
   meta lane therefore crashed before `Main` with `FileNotFoundException: Rask.Core` the moment it called

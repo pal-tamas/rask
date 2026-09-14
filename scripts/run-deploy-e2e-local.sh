@@ -33,10 +33,10 @@ fi
 export RASK_DEPLOY_E2E=1
 
 echo "==> Build the CLI test project (Release)"
-dotnet build tests/Rask.Cli.Tests/Rask.Cli.Tests.csproj -c Release -m:1
+dotnet build tests/Rask.Cli.E2E.Tests/Rask.Cli.E2E.Tests.csproj -c Release -m:1
 
 echo "==> Deploy gate (real rask deploy against a container host)"
-dotnet test tests/Rask.Cli.Tests/Rask.Cli.Tests.csproj -c Release --no-build \
+dotnet test tests/Rask.Cli.E2E.Tests/Rask.Cli.E2E.Tests.csproj -c Release --no-build \
   --filter "FullyQualifiedName~DeployHostE2ETests" \
   --logger "console;verbosity=normal"
 

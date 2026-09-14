@@ -110,6 +110,13 @@ public sealed class InstanceClaimStoreTests
         });
     }
 
+    // Pooling off (#1087). A pooled connection's return runs SqliteConnection.Deactivate, which un-registers the
+    // EF_DECIMAL collation EF Core adds — and SQLite refuses that while a collected-but-unfinalized statement is still
+    // active, so the many-simultaneous-claims shape failed unrelated gates with "unable to delete/modify collation
+    // sequence due to active statements". A connection that is never pooled is never deactivated. What the tests
+    // assert is unchanged: every claim still contends for the one row on its own handle.
+    private const string PoolingOff = ";Pooling=False";
+
     private static IInstanceClaimStore Store(AuthHarness harness) =>
         harness.Services.GetRequiredService<IInstanceClaimStore>();
 
@@ -118,7 +125,7 @@ public sealed class InstanceClaimStoreTests
         var dbPath = Path.Combine(Path.GetTempPath(), $"rask-auth-claim-{Guid.NewGuid():N}.db");
         var services = new ServiceCollection();
         services.AddDbContextFactory<AuthDbContext>(o => o
-            .UseSqlite($"Data Source={dbPath}")
+            .UseSqlite($"Data Source={dbPath}{PoolingOff}")
             .AddInterceptors(interceptor));
 
         await using var provider = services.BuildServiceProvider();
