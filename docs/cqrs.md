@@ -7,7 +7,8 @@ the whole point: it publishes clean under the WASM/AOT trimmer, where a reflecti
 cannot. It is standalone — it depends only on `Microsoft.Extensions.DependencyInjection.Abstractions`
 and works in any .NET app, not just Rask.
 
-> Rask itself has no data layer and encourages **vertical slices** (see [data-access.md](data-access.md)).
+> Rask encourages **vertical slices**: a handler owns its own data access, through [`Rask.Data`](data.md)
+> or [plain EF Core](data-access.md), with no shared repository or service layer in between.
 > CQRS is the natural way to structure those slices: each slice owns its query/command and handler.
 > Reach for it when that structure earns its keep — a small app is fine calling services directly.
 

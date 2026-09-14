@@ -116,6 +116,12 @@ Ordinary builds compile without type-checking, so the inner loop stays fast; the
 in your test gate, where a failure is loud and attributable. Rask's own gate runs
 `tsgo --noEmit --strict` over every scoped file in the repository.
 
+A Release build also strips comments from the emitted JavaScript (`--removeComments`) — on rask.sh that
+halves the scoped assets' gzipped size — while Debug keeps them, since the emitted `.js` is what you read
+in devtools. `/*! … */` license headers are kept. `RaskScopedTsRemoveComments=true|false` overrides either way. It is not minified: a minifier
+rewrites `export function NAME(` into a trailing `export { … }` clause, and that line-start form is exactly
+how the registry finds the methods to put on `window.Rask[Name]`.
+
 Rask ships ambient declarations for its own browser globals (`window.DotNet`, `window.Rask`), so
 calling a `[JSInvokable]` needs no declaration of your own. For a third-party library, write a narrow
 `.d.ts` beside your code describing what you actually call — any `.d.ts` in the project is compiled

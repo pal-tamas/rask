@@ -768,6 +768,18 @@ public abstract partial class Component : RaskMarkup
     // allocations that the previous IEnumerable<KVP> shape forced on every render.
     protected virtual void WriteAttributes(StringBuilder sb) { }
 
+    /// <summary>
+    ///     Tells the devtools what this component's properties are. Machinery: an app neither calls nor writes this.
+    /// </summary>
+    /// <remarks>
+    ///     The build writes the override, one per component, and ONLY where the devtools are on — a Release build emits
+    ///     none of it, so a shipped app carries no description of its own state and pays nothing for this call. The
+    ///     default does nothing, which is what every component does in a build without the tools.
+    /// </remarks>
+    /// <param name="describer">Collects the description.</param>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    protected internal virtual void DescribeProps(Diagnostics.DevTools.PropsDescriber describer) { }
+
     // Emit one attribute with the standard space prefix. Null value → bare attribute
     // (e.g. `required`, `disabled`); non-null → name="encoded-value" with full HTML escaping
     // matching the prior HtmlSerializer behaviour. Fast-paths plain ASCII values through

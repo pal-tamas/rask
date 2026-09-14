@@ -77,6 +77,36 @@ public sealed partial class DevToolsTreeTabTests
         socket.Dispose();
     }
 
+    [Fact]
+    public async Task A_node_carries_the_props_its_component_was_given()
+    {
+        using var host = Host();
+        var (_, feed, socket, handlerId) = await LivePage(host);
+        using var watch = feed.WatchTree();
+
+        // The shape the client really sends for a click, so this drives the page's own dispatch path.
+        await socket.SendJsonAsync(new { id = handlerId, type = "click" });
+
+        var tree = await WaitForTree(feed, TimeSpan.FromSeconds(5));
+        Assert.NotNull(tree);
+
+        // Read back through the snapshot: the value the parent passed, by name. The override that reads it is
+        // written by the build and only when the build asks for the devtools — which this test project does.
+        var child = Nodes(tree!).Single(n => n.Type == nameof(DevToolsTestChild));
+        var caption = child.Props.Single(p => p.Name == nameof(DevToolsTestChild.Caption));
+        Assert.Equal("hello", caption.Value);
+        socket.Dispose();
+    }
+
+    private static IEnumerable<DevToolsComponentNode> Nodes(DevToolsComponentNode node)
+    {
+        yield return node;
+        foreach (var child in node.Children.SelectMany(Nodes))
+        {
+            yield return child;
+        }
+    }
+
     private static IEnumerable<string> Types(DevToolsComponentNode node)
     {
         yield return node.Type;
