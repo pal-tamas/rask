@@ -63,6 +63,10 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
     // devtools, so that package needs no reference to Rask.Server.
     internal virtual string? DevToolsSessionId => null;
 
+    // The gate this session's render walks run under, so Rask DevTools can read what the last walk left behind from
+    // another thread without reading it halfway through the next. Null where no such gate exists.
+    internal virtual SemaphoreSlim? DevToolsRenderGate => null;
+
     // The session's culture, read by LiveRenderContext at the top of every render walk. Resolved once in
     // the constructor rather than per walk: the service is scoped to this session, so the instance never
     // changes — only the culture inside it does.

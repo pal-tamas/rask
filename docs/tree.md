@@ -1,7 +1,7 @@
 # Tree
 
 `UiTree` shows a hierarchy a reader can open, walk with the keyboard and select from: a file tree, a
-navigation sidebar, an org chart, the component tree in Rask's own devtools.
+navigation sidebar, an org chart, the component tree in Rask's own [devtools](devtools.md).
 
 ```csharp
 UiTree.Roots(_files)

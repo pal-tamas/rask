@@ -10,6 +10,7 @@ using Microsoft.JSInterop.Infrastructure;
 using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Diagnostics;
+using Rask.Core.Diagnostics.DevTools;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Server.Authentication;
@@ -146,6 +147,9 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     public string Id { get; }
 
     internal override string? DevToolsSessionId => Id;
+
+    // The inner gate, not Lock: a render that runs mid-handler holds only this one.
+    internal override SemaphoreSlim? DevToolsRenderGate => _renderLock;
 
     public IServiceScope Scope { get; }
     public SemaphoreSlim Lock { get; } = new(1, 1);
@@ -462,6 +466,10 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     // deferred rotation.
     private string RenderRootWave(bool publishOnly)
     {
+        // The served render is this session's first walk, and the one a devtools panel opened before any interaction has
+        // to show — it reaches the page through the GET rather than through RenderTreeToHtml, which says so for the rest.
+        RaskDevToolsHook.Active?.WalkStarted(this, publishOnly);
+
         if (DiffMode == LiveDiffMode.DisabledFull)
         {
             return View.RenderAsLiveRoot(Services, publishOnly);
