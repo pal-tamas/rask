@@ -30,6 +30,8 @@ public sealed class StorageDbCollectionGuardTests
             "TemporaryUrlProtectorTests",
             "DiskBlobBackendTests",
             "StorageOptionsTests",
+            // Reads the compiled assembly's references: no EF.
+            "StorageCoreIndependenceTests",
             // Signing, HTTP requests against a recording handler, and options: no EF.
             "SigV4Tests",
             "S3BlobBackendTests",

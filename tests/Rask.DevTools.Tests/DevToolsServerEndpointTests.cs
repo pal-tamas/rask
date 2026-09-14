@@ -33,11 +33,25 @@ public sealed class DevToolsServerEndpointTests
     }
 
     [Fact]
+    public async Task Development_serves_the_panel_pages_script()
+    {
+        using var host = Host("Development");
+
+        var response = await host.Http.GetAsync(DevToolsServerEndpoints.PanelScriptPath);
+
+        response.EnsureSuccessStatusCode();
+        Assert.Equal("text/javascript", response.Content.Headers.ContentType?.MediaType);
+        // The attribute the panel's rows carry, a string literal, so it survives Release minification.
+        Assert.Contains("data-rask-devtools-at", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Outside_development_nothing_is_mapped()
     {
         using var host = Host("Production");
 
         Assert.Null(HostScriptEndpoint(host, DevToolsServerEndpoints.HostScriptPath));
+        Assert.Null(HostScriptEndpoint(host, DevToolsServerEndpoints.PanelScriptPath));
     }
 
     [Fact]

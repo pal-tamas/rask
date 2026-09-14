@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
-using Rask.Core.Live;
 using Rask.Storage.Serving;
 
 namespace Rask.Storage;
@@ -34,7 +33,7 @@ public static class RaskStorageEndpointExtensions
                           + "builder.Services.AddRaskStorage<AppDbContext>();");
         runtime.EndpointsMapped = true;
 
-        var group = endpoints.MapGroup(LiveOptions.PathBase + RoutePrefix.TrimEnd('/'));
+        var group = endpoints.MapGroup(RaskPathBase.Current + RoutePrefix.TrimEnd('/'));
         group.MapMethods("public/{id:guid}", ReadMethods, ServePublicAsync);
         group.MapMethods("{token:maxlength(" + TemporaryUrlProtector.MaxTokenChars + ")}", ReadMethods, ServeTemporaryAsync);
         group.AllowAnonymous();

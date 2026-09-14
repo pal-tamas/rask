@@ -14,15 +14,15 @@
 import {
     _raskDiscardFrameworkHeadMutations,
     _raskTagForeignHeadNodes,
-    ignoresFormattingText,
-    isFormattingText,
     morph,
     raskShouldSuppressChecked,
     raskShouldSuppressSelected,
-    isElement,
     raskShouldSuppressValue,
     reviveScript,
 } from "./rask-morph.js";
+import {_relevantNodeTypes, invisibleToFrameWalk, isElement, relevantChild, resolvePath} from "./rask-dom-path.js";
+
+export {resolvePath};
 
 /** A popover menu, plus the two pieces of state this module hangs on it. */
 interface PopoverMenu extends HTMLElement {
@@ -54,43 +54,6 @@ interface PopoverMenu extends HTMLElement {
 // a number that indexes into the optional payload-level "names" array — the server
 // interns names that appear 2+ times in the same payload to drop the duplicate
 // string bytes. resolveName() handles either form.
-// Comment nodes shift childNodes indices relative to the server's frame walk.
-// Filter to DOM-relevant nodes only (Element=1, Text=3, Doctype=10) so paths
-// match what FrameDiffer counts.
-const _relevantNodeTypes: Record<number, number> = {1: 1, 3: 1, 10: 1};
-
-// Whether `n` is a node the server's frame walk cannot see, and so must not be counted when
-// resolving a path under `parent`.
-//
-// These are the same two filters morph() applies when it pairs the two sides of a subtree, and for
-// the same reason: counting a node that is in no payload shifts every following sibling by one, so
-// the op lands on the node next door — or, when the miss is a text node an op cannot use, is dropped
-// in complete silence.
-//
-//  * `data-rask-managed` marks a node the BROWSER added (a library's injected <style>, the hot-reload
-//    pill). The server never emits the marker, so such a node appears in no frame walk.
-//  * Formatting whitespace inside <html>/<head> (see ignoresFormattingText): a document PARSED from
-//    HTML and a payload SERIALIZED by HtmlSerializer are allowed to disagree there. A shell served
-//    with a newline between `</head>` and `<body>` parses to [HEAD, #text, BODY] while the frame walk
-//    counts [HEAD, BODY], so BODY arrives as slot 1 and used to resolve to the newline.
-function invisibleToFrameWalk(parent: Node, n: Node): boolean {
-    if (isElement(n) && n.hasAttribute("data-rask-managed")) return true;
-    return isElement(parent) && ignoresFormattingText(parent) && isFormattingText(n);
-}
-
-function relevantChild(parent: Node | null, index: number): Node | null {
-    if (!parent || !parent.childNodes) return null;
-    let seen = 0;
-    for (const n of parent.childNodes) {
-        if (invisibleToFrameWalk(parent, n)) continue;
-        if (_relevantNodeTypes[n.nodeType]) {
-            if (seen === index) return n;
-            seen++;
-        }
-    }
-    return null;
-}
-
 // Like relevantChild but counts as if `skip` were already gone — the post-detach
 // coordinate the keyed differ uses for move targets. Lets us resolve the anchor
 // WITHOUT detaching the moving node, so the move can run as a single relocation.
@@ -124,15 +87,6 @@ function moveChildBefore(parent: MovableParent, node: Node, ref: Node | null): v
         }
     }
     parent.insertBefore(node, ref);
-}
-
-export function resolvePath(path: number[]): Node | null {
-    let node: Node | null = document;
-    for (const slot of path) {
-        node = relevantChild(node, slot);
-        if (!node) return null;
-    }
-    return node;
 }
 
 // Mirror selected attribute writes onto the matching IDL property. After user

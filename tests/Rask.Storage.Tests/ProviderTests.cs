@@ -108,15 +108,15 @@ public sealed class ProviderOptionsTests
         var options = new StorageOptions();
         StorageConfiguration.Apply(options, new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["Storage:Provider"] = "s3",
-            ["Storage:S3:ServiceUrl"] = "https://s3.us-east-1.amazonaws.com",
-            ["Storage:S3:Bucket"] = "uploads",
-            ["Storage:S3:Region"] = "eu-west-2",
-            ["Storage:S3:AccessKeyId"] = "AKID",
-            ["Storage:S3:SecretAccessKey"] = "SECRET",
-            ["Storage:S3:UsePathStyle"] = "false",
-            ["Storage:Azure:ConnectionString"] = "UseDevelopmentStorage=true",
-            ["Storage:Azure:Container"] = "files",
+            ["Rask:Storage:Provider"] = "s3",
+            ["Rask:Storage:S3:ServiceUrl"] = "https://s3.us-east-1.amazonaws.com",
+            ["Rask:Storage:S3:Bucket"] = "uploads",
+            ["Rask:Storage:S3:Region"] = "eu-west-2",
+            ["Rask:Storage:S3:AccessKeyId"] = "AKID",
+            ["Rask:Storage:S3:SecretAccessKey"] = "SECRET",
+            ["Rask:Storage:S3:UsePathStyle"] = "false",
+            ["Rask:Storage:Azure:ConnectionString"] = "UseDevelopmentStorage=true",
+            ["Rask:Storage:Azure:Container"] = "files",
         }).Build());
 
         Assert.Equal(StorageProvider.S3, options.Provider);
@@ -131,10 +131,10 @@ public sealed class ProviderOptionsTests
     }
 
     [Theory]
-    [InlineData(null, "uploads", "AKID", "SECRET", "Storage__S3__ServiceUrl")]
-    [InlineData("https://s3.example.com", "Up_Loads", "AKID", "SECRET", "Storage__S3__Bucket")]
-    [InlineData("https://s3.example.com", "uploads", null, "SECRET", "Storage__S3__AccessKeyId")]
-    [InlineData("https://s3.example.com", "uploads", "AKID", null, "Storage__S3__SecretAccessKey")]
+    [InlineData(null, "uploads", "AKID", "SECRET", "Rask__Storage__S3__ServiceUrl")]
+    [InlineData("https://s3.example.com", "Up_Loads", "AKID", "SECRET", "Rask__Storage__S3__Bucket")]
+    [InlineData("https://s3.example.com", "uploads", null, "SECRET", "Rask__Storage__S3__AccessKeyId")]
+    [InlineData("https://s3.example.com", "uploads", "AKID", null, "Rask__Storage__S3__SecretAccessKey")]
     public void An_incomplete_s3_configuration_names_the_missing_key(string? url, string bucket, string? key, string? secret, string named)
     {
         var options = S3(url, bucket, key, secret);
@@ -183,9 +183,9 @@ public sealed class ProviderOptionsTests
         services.AddLogging();
         services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["Storage:Provider"] = "Azure",
-            ["Storage:Azure:ConnectionString"] = "UseDevelopmentStorage=true",
-            ["Storage:Azure:Container"] = "files",
+            ["Rask:Storage:Provider"] = "Azure",
+            ["Rask:Storage:Azure:ConnectionString"] = "UseDevelopmentStorage=true",
+            ["Rask:Storage:Azure:Container"] = "files",
         }).Build());
         services.AddRaskStorage<StorageDbContext>();
         await using var provider = services.BuildServiceProvider();

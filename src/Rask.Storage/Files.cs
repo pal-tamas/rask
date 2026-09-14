@@ -3,8 +3,6 @@ using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Rask.Core.Forms;
-using Rask.Core.Live;
 using Rask.Storage.Backends;
 using Rask.Storage.Serving;
 using Rask.Storage.Upload;
@@ -20,19 +18,20 @@ internal sealed class Files<TContext>(IDbContextFactory<TContext> contextFactory
 
     private const int CopyBufferSize = 81920;
 
-    public Task<StoredFile> SaveAsync(RaskFile file, Action<SaveOptions>? configure = null,
-        CancellationToken cancellationToken = default)
+    public Task<StoredFile> SaveAsync(Func<long, CancellationToken, Stream> openRead, string name, long size,
+        Action<SaveOptions>? configure = null, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(file);
+        ArgumentNullException.ThrowIfNull(openRead);
+        ArgumentNullException.ThrowIfNull(name);
 
         // Refused before a byte is read. The copy below enforces the limit too, because a declared size is only a claim.
         var limit = runtime.Options.MaxFileSize;
-        if (file.Size > limit)
+        if (size > limit)
         {
-            throw FileRejectedException.TooLarge(file.Size, limit);
+            throw FileRejectedException.TooLarge(size, limit);
         }
 
-        return SaveFileAsync(file, configure, limit, cancellationToken);
+        return SaveOpenedAsync(openRead, name, configure, limit, cancellationToken);
     }
 
     public async Task<StoredFile> SaveAsync(Stream content, string name, Action<SaveOptions>? configure = null,
@@ -122,7 +121,7 @@ internal sealed class Files<TContext>(IDbContextFactory<TContext> contextFactory
     public string Url(Guid id) =>
         runtime.Options.PublicBaseUrl is { } baseUrl
             ? baseUrl + KeyLayout.KeyOf(runtime.Options.Prefix, id, isPublic: true)
-            : string.Concat(LiveOptions.PathBase, RaskStorageEndpointExtensions.RoutePrefix, "public/", id.ToString("N"));
+            : string.Concat(RaskPathBase.Current, RaskStorageEndpointExtensions.RoutePrefix, "public/", id.ToString("N"));
 
     public async Task<string?> TemporaryUrlAsync(Guid id, TimeSpan lifetime, CancellationToken cancellationToken = default)
     {
@@ -147,7 +146,7 @@ internal sealed class Files<TContext>(IDbContextFactory<TContext> contextFactory
             return signed;
         }
 
-        return string.Concat(LiveOptions.PathBase, RaskStorageEndpointExtensions.RoutePrefix,
+        return string.Concat(RaskPathBase.Current, RaskStorageEndpointExtensions.RoutePrefix,
             runtime.Protector.Protect(file.Id, lifetime));
     }
 
@@ -160,14 +159,15 @@ internal sealed class Files<TContext>(IDbContextFactory<TContext> contextFactory
         return options;
     }
 
-    private async Task<StoredFile> SaveFileAsync(RaskFile file, Action<SaveOptions>? configure, long limit,
-        CancellationToken cancellationToken)
+    private async Task<StoredFile> SaveOpenedAsync(Func<long, CancellationToken, Stream> openRead, string name,
+        Action<SaveOptions>? configure, long limit, CancellationToken cancellationToken)
     {
-        // The limit passed down is the storage limit: RaskFile's own default is 512 KB.
-        var content = file.OpenReadStream(limit, cancellationToken);
+        // The limit handed to the opener is the storage limit: an upload's own default (512 KB for RaskFile) would
+        // otherwise refuse anything larger, however high MaxFileSize is set.
+        var content = openRead(limit, cancellationToken);
         await using (content.ConfigureAwait(false))
         {
-            return await SaveCoreAsync(content, file.Name, Options(configure), cancellationToken).ConfigureAwait(false);
+            return await SaveCoreAsync(content, name, Options(configure), cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -265,7 +265,7 @@ internal sealed class Files<TContext>(IDbContextFactory<TContext> contextFactory
         {
             throw new InvalidOperationException(
                 $"Stored file {file.Id} was saved to {file.Provider}, but storage is configured for {runtime.Backend.Provider}. "
-                + $"Changing Storage__Provider does not move existing files: copy them across, or set it back to {file.Provider}.");
+                + $"Changing Rask__Storage__Provider does not move existing files: copy them across, or set it back to {file.Provider}.");
         }
     }
 

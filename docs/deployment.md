@@ -302,25 +302,25 @@ Two consequences worth knowing before an incident rather than during one:
 ### Uploaded files
 
 [`Rask.Storage`](file-storage.md) needs no variable from `rask deploy` to find the volume: with no
-`Storage__Disk__Root` set it writes to `/data/files` whenever `/data` exists, so uploads survive a redeploy
+`Rask__Storage__Disk__Root` set it writes to `/data/files` whenever `/data` exists, so uploads survive a redeploy
 the same way the database does. Where files go beyond that is configuration, passed with `--env` like any
 other variable, and the secrets among it are [remembered by name](secrets.md):
 
 | Variable | Effect |
 | --- | --- |
-| `Storage__Provider` | `Disk` (the default), `S3` or `Azure`. |
-| `Storage__MaxFileSize` | The largest file accepted, in bytes (default 52428800, 50 MB). |
-| `Storage__PublicBaseUrl` | An absolute `https` URL — a CDN or a public bucket domain — that public file links are built on. Unset, the app serves them itself. |
-| `Storage__Prefix` | A key prefix, so one bucket can hold several apps or environments (`shop-prod/`). |
-| `Storage__Disk__Root` | Where the disk provider writes; `/data/files` on the volume by default. |
-| `Storage__S3__ServiceUrl`, `__Bucket`, `__Region`, `__AccessKeyId`, `__SecretAccessKey`, `__SessionToken`, `__UsePathStyle` | An S3-compatible store: AWS S3, Cloudflare R2, Backblaze B2, MinIO, DigitalOcean Spaces, or Google Cloud Storage with HMAC keys. |
-| `Storage__Azure__ConnectionString`, `__Container` | Azure Blob Storage. |
+| `Rask__Storage__Provider` | `Disk` (the default), `S3` or `Azure`. |
+| `Rask__Storage__MaxFileSize` | The largest file accepted, in bytes (default 52428800, 50 MB). |
+| `Rask__Storage__PublicBaseUrl` | An absolute `https` URL — a CDN or a public bucket domain — that public file links are built on. Unset, the app serves them itself. |
+| `Rask__Storage__Prefix` | A key prefix, so one bucket can hold several apps or environments (`shop-prod/`). |
+| `Rask__Storage__Disk__Root` | Where the disk provider writes; `/data/files` on the volume by default. |
+| `Rask__Storage__S3__ServiceUrl`, `__Bucket`, `__Region`, `__AccessKeyId`, `__SecretAccessKey`, `__SessionToken`, `__UsePathStyle` | An S3-compatible store: AWS S3, Cloudflare R2, Backblaze B2, MinIO, DigitalOcean Spaces, or Google Cloud Storage with HMAC keys. |
+| `Rask__Storage__Azure__ConnectionString`, `__Container` | Azure Blob Storage. |
 
 ```bash
-rask deploy --env Storage__Provider=S3 \
-            --env Storage__S3__ServiceUrl=https://<account-id>.r2.cloudflarestorage.com \
-            --env Storage__S3__Bucket=shop-files --env Storage__S3__Region=auto \
-            --env Storage__S3__AccessKeyId=… --env Storage__S3__SecretAccessKey=…
+rask deploy --env Rask__Storage__Provider=S3 \
+            --env Rask__Storage__S3__ServiceUrl=https://<account-id>.r2.cloudflarestorage.com \
+            --env Rask__Storage__S3__Bucket=shop-files --env Rask__Storage__S3__Region=auto \
+            --env Rask__Storage__S3__AccessKeyId=… --env Rask__Storage__S3__SecretAccessKey=…
 ```
 
 The same two cautions as the log store apply, and the first is sharper here:
@@ -363,7 +363,12 @@ docker run --rm -p 8080:8080 myapp
 is configured, so the redirect **no-ops** — terminate TLS at your reverse proxy / ingress and forward
 plain HTTP to `8080`. Rask renders and events flow over a WebSocket, so make sure your proxy forwards
 the `Upgrade`/`Connection` headers (most do by default; for nginx set `proxy_set_header Upgrade` +
-`Connection "upgrade"` and HTTP/1.1). To host under a sub-path, pass `app.UseRask<App>(pathBase:
+`Connection "upgrade"` and HTTP/1.1). A browser that cannot get a socket through
+[falls back to plain HTTP](render-modes.md#when-websockets-are-blocked) on its own, over a long-lived
+`GET /_rask/stream/{session}`. nginx needs nothing for it — it honours the `X-Accel-Buffering: no` header Rask
+sends, and the 15-second heartbeat stays inside its default 60-second `proxy_read_timeout` — but a proxy that
+ignores both must not buffer that path, and must not compress `text/event-stream`. Serve over HTTP/2 where you
+can: a tab on the fallback holds one of HTTP/1.1's six connections per origin. To host under a sub-path, pass `app.UseRask<App>(pathBase:
 "/myapp")` and route `/myapp/*` to the container.
 
 **Caching in front of the app.** Every page is `Cache-Control: no-store, no-cache, must-revalidate,
@@ -374,7 +379,8 @@ Public content that should be cached belongs somewhere that renders without a se
 [prerendered WebAssembly site](prerendering.md), or a plain ASP.NET endpoint.
 
 Several instances behind a load balancer need **sticky sessions**: a page's state lives in the memory of the
-instance that rendered it, and its connection must reach that same instance.
+instance that rendered it, and its connection must reach that same instance — the socket, or on the HTTP
+fallback the stream and every `POST` beside it.
 
 ## A client-plus-host solution
 

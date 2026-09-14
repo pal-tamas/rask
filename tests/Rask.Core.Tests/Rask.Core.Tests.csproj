@@ -85,7 +85,7 @@
     a target's Inputs does not expand wildcards.
   -->
   <ItemGroup>
-    <_RaskNodeFixtureDependency Include="..\..\src\Rask.Core\Resources\**\*.ts"
+    <_RaskNodeFixtureDependency Include="..\..\src\Rask.Core\Resources\**\*.ts;..\..\src\Rask.Server\Resources\rask-http-transport.ts"
                                 Exclude="..\..\src\Rask.Core\Resources\**\*.d.ts"/>
   </ItemGroup>
 

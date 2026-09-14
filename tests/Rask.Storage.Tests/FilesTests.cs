@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Rask.Core.Live;
 
 namespace Rask.Storage.Tests;
@@ -15,7 +16,7 @@ public sealed class FilesTests
         await using var harness = new StorageHarness();
         var bytes = Samples.Png(4096);
 
-        var file = await harness.Files.SaveAsync(harness.Upload("../avatar.png", bytes, "text/html"));
+        var file = await harness.SaveUploadAsync(harness.Upload("../avatar.png", bytes, "text/html"));
 
         Assert.Equal("avatar.png", file.Name);
         Assert.Equal("image/png", file.ContentType); // sniffed; the browser said text/html
@@ -60,7 +61,7 @@ public sealed class FilesTests
         await using var harness = new StorageHarness(o => o.MaxFileSize = 100);
 
         var ex = await Assert.ThrowsAsync<FileRejectedException>(() =>
-            harness.Files.SaveAsync(harness.Upload("big.png", Samples.Png(101))));
+            harness.SaveUploadAsync(harness.Upload("big.png", Samples.Png(101))));
 
         Assert.Equal(FileRejection.TooLarge, ex.Reason);
         Assert.Equal(100, ex.Limit);
@@ -87,7 +88,7 @@ public sealed class FilesTests
     public async Task The_storage_limit_is_passed_to_the_upload_not_its_512KB_default()
     {
         await using var harness = new StorageHarness();
-        var file = await harness.Files.SaveAsync(harness.Upload("large.png", Samples.Png(600_000)));
+        var file = await harness.SaveUploadAsync(harness.Upload("large.png", Samples.Png(600_000)));
 
         Assert.Equal(600_000, file.Size);
     }
@@ -98,7 +99,7 @@ public sealed class FilesTests
         await using var harness = new StorageHarness(o => o.AllowedTypes.Add("image/*"));
 
         var ex = await Assert.ThrowsAsync<FileRejectedException>(() =>
-            harness.Files.SaveAsync(harness.Upload("photo.png", Samples.Html, "image/png")));
+            harness.SaveUploadAsync(harness.Upload("photo.png", Samples.Html, "image/png")));
 
         Assert.Equal(FileRejection.TypeNotAllowed, ex.Reason);
         Assert.Equal("text/html", ex.ContentType);
@@ -106,7 +107,7 @@ public sealed class FilesTests
         Assert.Equal(0, await harness.CountRowsAsync());
         Assert.Empty(harness.StoredPaths());
 
-        Assert.Equal("image/png", (await harness.Files.SaveAsync(harness.Upload("ok.png", Samples.Png()))).ContentType);
+        Assert.Equal("image/png", (await harness.SaveUploadAsync(harness.Upload("ok.png", Samples.Png()))).ContentType);
     }
 
     [Fact]
@@ -114,7 +115,7 @@ public sealed class FilesTests
     {
         await using var harness = new StorageHarness();
         var bytes = Samples.Png(1000);
-        var file = await harness.Files.SaveAsync(harness.Upload("a.png", bytes));
+        var file = await harness.SaveUploadAsync(harness.Upload("a.png", bytes));
 
         await using (var stream = await harness.Files.OpenReadAsync(file.Id))
         {
@@ -131,7 +132,7 @@ public sealed class FilesTests
     public async Task Delete_removes_the_row_then_the_bytes()
     {
         await using var harness = new StorageHarness();
-        var file = await harness.Files.SaveAsync(harness.Upload("a.png", Samples.Png()));
+        var file = await harness.SaveUploadAsync(harness.Upload("a.png", Samples.Png()));
 
         Assert.True(await harness.Files.DeleteAsync(file.Id));
 
@@ -166,7 +167,7 @@ public sealed class FilesTests
     public async Task A_temporary_url_on_disk_is_a_signed_app_route_that_opens_to_the_file()
     {
         await using var harness = new StorageHarness();
-        var file = await harness.Files.SaveAsync(harness.Upload("a.pdf", "%PDF-1.7\n"u8.ToArray()));
+        var file = await harness.SaveUploadAsync(harness.Upload("a.pdf", "%PDF-1.7\n"u8.ToArray()));
 
         var url = await harness.Files.TemporaryUrlAsync(file.Id, TimeSpan.FromMinutes(5));
 
@@ -195,6 +196,8 @@ public sealed class FilesTests
         await using var harness = new StorageHarness();
         try
         {
+            // Set on Rask.Core's side, read on Storage's through AppContext: this is what pins the two copies of the
+            // data name together (RaskPathBase.DataName, LiveOptions.PathBaseDataName).
             LiveOptions.PathBase = "/appA";
             Assert.StartsWith("/appA/_rask/files/public/", harness.Files.Url(Guid.NewGuid()));
         }
@@ -246,7 +249,7 @@ public sealed class StorageRegistrationTests
 
         // What a host does at startup: resolve every hosted service, then start each. The sweep takes the
         // runtime, so resolving it already builds and validates the options.
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        var ex = await Assert.ThrowsAsync<OptionsValidationException>(async () =>
         {
             foreach (var service in harness.Services.GetServices<IHostedService>())
             {
@@ -254,6 +257,7 @@ public sealed class StorageRegistrationTests
             }
         });
 
+        Assert.Contains("Rask:Storage", ex.Message);
         Assert.Contains("MaxFileSize", ex.Message);
     }
 

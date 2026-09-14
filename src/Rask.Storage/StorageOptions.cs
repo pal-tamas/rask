@@ -5,8 +5,8 @@ namespace Rask.Storage;
 
 /// <summary>
 /// Where files go and what is accepted. The provider and its settings, the size limit, the prefix and the public
-/// base URL can also come from configuration under <c>Storage</c> (<c>Storage__Provider</c>,
-/// <c>Storage__MaxFileSize</c>, <c>Storage__S3__Bucket</c>, …); code set here wins over configuration.
+/// base URL can also come from configuration under <c>Rask:Storage</c> (<c>Rask__Storage__Provider</c>,
+/// <c>Rask__Storage__MaxFileSize</c>, <c>Rask__Storage__S3__Bucket</c>, …); code set here wins over configuration.
 /// <see cref="AllowedTypes"/> and the sweep's timings are set in code.
 /// </summary>
 public sealed class StorageOptions
@@ -14,11 +14,11 @@ public sealed class StorageOptions
     /// <summary>The default <see cref="MaxFileSize"/>: 50 MB, the same as the server's upload limit.</summary>
     public const long DefaultMaxFileSize = 50 * 1024 * 1024;
 
-    /// <summary>Where the bytes go. Default <see cref="StorageProvider.Disk"/>. Configuration: <c>Storage__Provider</c>.</summary>
+    /// <summary>Where the bytes go. Default <see cref="StorageProvider.Disk"/>. Configuration: <c>Rask__Storage__Provider</c>.</summary>
     public StorageProvider Provider { get; set; } = StorageProvider.Disk;
 
     /// <summary>
-    /// The largest file accepted, in bytes. Default 50 MB. Configuration: <c>Storage__MaxFileSize</c>. The
+    /// The largest file accepted, in bytes. Default 50 MB. Configuration: <c>Rask__Storage__MaxFileSize</c>. The
     /// transport has its own limit too — raise the server's upload limit alongside this one.
     /// </summary>
     public long MaxFileSize { get; set; } = DefaultMaxFileSize;
@@ -32,7 +32,7 @@ public sealed class StorageOptions
     /// <summary>
     /// An absolute URL that public files are served from — a CDN or a public bucket domain — which
     /// <see cref="IFiles.Url"/> joins with the file's key. Unset, the app serves them itself.
-    /// Configuration: <c>Storage__PublicBaseUrl</c>. Prefer an origin other than the app's own.
+    /// Configuration: <c>Rask__Storage__PublicBaseUrl</c>. Prefer an origin other than the app's own.
     /// <para>
     /// Grant public read on <c>{Prefix}public/</c> only. Private files are kept under <c>{Prefix}private/</c>, and a
     /// private file's key is visible in its temporary URL — a policy covering both would make that link permanent.
@@ -43,7 +43,7 @@ public sealed class StorageOptions
     /// <summary>
     /// A key prefix, so one bucket can hold several apps (<c>"myapp/"</c>). Default empty. The orphan sweep
     /// only ever looks under it — and on S3 or Azure it deletes nothing until one is set, because a key's shape
-    /// alone cannot tell this app's orphans from another environment's files. Configuration: <c>Storage__Prefix</c>.
+    /// alone cannot tell this app's orphans from another environment's files. Configuration: <c>Rask__Storage__Prefix</c>.
     /// </summary>
     public string Prefix { get; set; } = "";
 
@@ -84,7 +84,7 @@ public sealed class StorageOptions
         if (MaxFileSize <= 0)
         {
             throw new InvalidOperationException(string.Create(CultureInfo.InvariantCulture,
-                $"StorageOptions.MaxFileSize is {MaxFileSize}; it must be a positive number of bytes (Storage__MaxFileSize)."));
+                $"StorageOptions.MaxFileSize is {MaxFileSize}; it must be a positive number of bytes (Rask__Storage__MaxFileSize)."));
         }
 
         if (OrphanGracePeriod < TimeSpan.FromMinutes(5))
@@ -134,7 +134,7 @@ public sealed class StorageOptions
         {
             throw new InvalidOperationException(string.Create(CultureInfo.InvariantCulture,
                 $"StorageOptions.MaxFileSize is {MaxFileSize} bytes, but one upload to {Provider} is limited to {singlePut} "
-                + $"and multipart upload is not supported. Lower it with o.MaxFileSize, or Storage__MaxFileSize."));
+                + $"and multipart upload is not supported. Lower it with o.MaxFileSize, or Rask__Storage__MaxFileSize."));
         }
     }
 
@@ -155,7 +155,7 @@ public sealed class StorageOptions
         {
             throw new InvalidOperationException(
                 $"The storage directory '{root}' is inside the web root '{webRootPath}', where the static-file middleware "
-                + "would serve uploads with none of Rask.Storage's checks. Point Storage__Disk__Root outside wwwroot.");
+                + "would serve uploads with none of Rask.Storage's checks. Point Rask__Storage__Disk__Root outside wwwroot.");
         }
     }
 
@@ -176,7 +176,7 @@ public sealed class StorageOptions
         {
             throw new InvalidOperationException(
                 $"StorageOptions.Prefix '{prefix}' can only use lowercase letters, digits, '.', '_', '-' and '/' between "
-                + "non-empty segments, like o.Prefix = \"myapp/\" (Storage__Prefix).");
+                + "non-empty segments, like o.Prefix = \"myapp/\" (Rask__Storage__Prefix).");
         }
 
         return trimmed;
@@ -196,7 +196,7 @@ public sealed class StorageOptions
         {
             throw new InvalidOperationException(
                 $"StorageOptions.PublicBaseUrl '{value}' must be an absolute https URL with no query or fragment, like "
-                + "o.PublicBaseUrl = \"https://files.example.com/\" (Storage__PublicBaseUrl). http is accepted only for localhost.");
+                + "o.PublicBaseUrl = \"https://files.example.com/\" (Rask__Storage__PublicBaseUrl). http is accepted only for localhost.");
         }
 
         var text = uri.GetLeftPart(UriPartial.Path);
@@ -241,7 +241,7 @@ public sealed class DiskStorageOptions
     /// <summary>
     /// The directory files are written under. Unset, it is <c>/data/files</c> when the <c>/data</c> deploy volume
     /// exists, and <c>storage/</c> under the content root otherwise. A relative path is resolved against the
-    /// content root. Configuration: <c>Storage__Disk__Root</c>.
+    /// content root. Configuration: <c>Rask__Storage__Disk__Root</c>.
     /// </summary>
     public string? Root { get; set; }
 }
@@ -258,29 +258,29 @@ public sealed class S3StorageOptions
     /// <summary>
     /// The service endpoint: <c>https://s3.us-east-1.amazonaws.com</c>,
     /// <c>https://&lt;account&gt;.r2.cloudflarestorage.com</c>, <c>https://s3.us-west-004.backblazeb2.com</c>,
-    /// <c>https://storage.googleapis.com</c>, or a MinIO address. Configuration: <c>Storage__S3__ServiceUrl</c>.
+    /// <c>https://storage.googleapis.com</c>, or a MinIO address. Configuration: <c>Rask__Storage__S3__ServiceUrl</c>.
     /// </summary>
     public Uri? ServiceUrl { get; set; }
 
-    /// <summary>The bucket. Configuration: <c>Storage__S3__Bucket</c>.</summary>
+    /// <summary>The bucket. Configuration: <c>Rask__Storage__S3__Bucket</c>.</summary>
     public string Bucket { get; set; } = "";
 
-    /// <summary>The signing region. Default <c>us-east-1</c>; Cloudflare R2 wants <c>auto</c>. Configuration: <c>Storage__S3__Region</c>.</summary>
+    /// <summary>The signing region. Default <c>us-east-1</c>; Cloudflare R2 wants <c>auto</c>. Configuration: <c>Rask__Storage__S3__Region</c>.</summary>
     public string Region { get; set; } = "us-east-1";
 
-    /// <summary>The access key id. Configuration: <c>Storage__S3__AccessKeyId</c>.</summary>
+    /// <summary>The access key id. Configuration: <c>Rask__Storage__S3__AccessKeyId</c>.</summary>
     public string? AccessKeyId { get; set; }
 
-    /// <summary>The secret access key. Configuration: <c>Storage__S3__SecretAccessKey</c> — pass it as a secret.</summary>
+    /// <summary>The secret access key. Configuration: <c>Rask__Storage__S3__SecretAccessKey</c> — pass it as a secret.</summary>
     public string? SecretAccessKey { get; set; }
 
-    /// <summary>An STS session token that pairs with a temporary access key. Configuration: <c>Storage__S3__SessionToken</c>.</summary>
+    /// <summary>An STS session token that pairs with a temporary access key. Configuration: <c>Rask__Storage__S3__SessionToken</c>.</summary>
     public string? SessionToken { get; set; }
 
     /// <summary>
     /// Whether the bucket is a path segment (<c>host/bucket/key</c>) rather than a subdomain
     /// (<c>bucket.host/key</c>). Default <c>true</c>, which R2, MinIO and most compatible stores require.
-    /// Configuration: <c>Storage__S3__UsePathStyle</c>.
+    /// Configuration: <c>Rask__Storage__S3__UsePathStyle</c>.
     /// </summary>
     public bool UsePathStyle { get; set; } = true;
 
@@ -289,26 +289,26 @@ public sealed class S3StorageOptions
         if (ServiceUrl is null || !ServiceUrl.IsAbsoluteUri || ServiceUrl.Scheme is not ("https" or "http"))
         {
             throw new InvalidOperationException(
-                "Storage__S3__ServiceUrl is required when Storage__Provider is S3: an absolute URL like "
+                "Rask__Storage__S3__ServiceUrl is required when Rask__Storage__Provider is S3: an absolute URL like "
                 + "https://s3.us-east-1.amazonaws.com, https://<account>.r2.cloudflarestorage.com or http://localhost:9000.");
         }
 
         if (!IsBucketName(Bucket))
         {
             throw new InvalidOperationException(
-                $"Storage__S3__Bucket '{Bucket}' is not a bucket name: 3 to 63 lowercase letters, digits, '.' and '-', "
+                $"Rask__Storage__S3__Bucket '{Bucket}' is not a bucket name: 3 to 63 lowercase letters, digits, '.' and '-', "
                 + "starting and ending with a letter or digit.");
         }
 
         if (string.IsNullOrWhiteSpace(Region))
         {
-            throw new InvalidOperationException("Storage__S3__Region is required, like us-east-1 (Cloudflare R2: auto).");
+            throw new InvalidOperationException("Rask__Storage__S3__Region is required, like us-east-1 (Cloudflare R2: auto).");
         }
 
         if (string.IsNullOrWhiteSpace(AccessKeyId) || string.IsNullOrWhiteSpace(SecretAccessKey))
         {
             throw new InvalidOperationException(
-                "Storage__S3__AccessKeyId and Storage__S3__SecretAccessKey are both required when Storage__Provider is S3. "
+                "Rask__Storage__S3__AccessKeyId and Rask__Storage__S3__SecretAccessKey are both required when Rask__Storage__Provider is S3. "
                 + "Pass the secret with rask deploy --env, never in appsettings.json.");
         }
 
@@ -316,7 +316,7 @@ public sealed class S3StorageOptions
         if (!UsePathStyle && ServiceUrl.Scheme == "https" && Bucket.Contains('.', StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
-                $"The bucket '{Bucket}' contains dots, which breaks TLS in virtual-host addressing. Set Storage__S3__UsePathStyle to true.");
+                $"The bucket '{Bucket}' contains dots, which breaks TLS in virtual-host addressing. Set Rask__Storage__S3__UsePathStyle to true.");
         }
     }
 
@@ -352,11 +352,11 @@ public sealed class AzureStorageOptions
     /// The storage account's connection string. With <c>AccountName</c> and <c>AccountKey</c>, temporary URLs are
     /// signed by Azure itself and downloads never pass through the app; with <c>BlobEndpoint</c> and
     /// <c>SharedAccessSignature</c> only, the app serves them. <c>UseDevelopmentStorage=true</c> targets Azurite.
-    /// Configuration: <c>Storage__Azure__ConnectionString</c> — pass it as a secret.
+    /// Configuration: <c>Rask__Storage__Azure__ConnectionString</c> — pass it as a secret.
     /// </summary>
     public string? ConnectionString { get; set; }
 
-    /// <summary>The container. Configuration: <c>Storage__Azure__Container</c>.</summary>
+    /// <summary>The container. Configuration: <c>Rask__Storage__Azure__Container</c>.</summary>
     public string Container { get; set; } = "";
 
     internal void Validate()
@@ -367,7 +367,7 @@ public sealed class AzureStorageOptions
         if (!IsContainerName(Container))
         {
             throw new InvalidOperationException(
-                $"Storage__Azure__Container '{Container}' is not a container name: 3 to 63 lowercase letters, digits and "
+                $"Rask__Storage__Azure__Container '{Container}' is not a container name: 3 to 63 lowercase letters, digits and "
                 + "single hyphens, starting and ending with a letter or digit.");
         }
     }

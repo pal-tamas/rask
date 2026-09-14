@@ -14,7 +14,7 @@ public sealed class SetCover(IFiles files)
 {
     public async Task HandleAsync(Post post, RaskFile upload, CancellationToken ct)
     {
-        var file = await files.SaveAsync(upload, o => o.Public = true, ct);
+        var file = await files.SaveAsync(upload.OpenReadStream, upload.Name, upload.Size, o => o.Public = true, ct);
         post.CoverId = file.Id;
     }
 }

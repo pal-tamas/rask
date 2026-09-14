@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Http;
-using Rask.Core.Forms;
 
 namespace Rask.Storage;
 
@@ -26,12 +25,24 @@ public interface IFiles
     /// Stores an upload and records it, returning the row. The content type is sniffed from the bytes; the
     /// browser's claim is ignored.
     /// </summary>
+    /// <remarks>
+    /// Takes the upload's opener rather than the upload, so it reads the same from a component's picked file
+    /// (<c>files.SaveAsync(file.OpenReadStream, file.Name, file.Size)</c>) as from anything else that can open a
+    /// size-limited stream — and so this package needs nothing from <c>Rask.Core</c>, which the SPA and meta lanes do
+    /// not have. <paramref name="openRead"/> is called once, with <see cref="StorageOptions.MaxFileSize"/> as the
+    /// limit, and the stream it returns is disposed.
+    /// </remarks>
+    /// <param name="openRead">Opens the content, given the largest size to accept.</param>
+    /// <param name="name">The display name, as the user's file was called.</param>
+    /// <param name="size">The declared size in bytes, checked before anything is read.</param>
+    /// <param name="configure">Per-save options, such as making the file public.</param>
+    /// <param name="cancellationToken">Cancels the save.</param>
     /// <exception cref="FileRejectedException">
     /// The file is larger than <see cref="StorageOptions.MaxFileSize"/>, or its content is not in
     /// <see cref="StorageOptions.AllowedTypes"/>. Nothing is stored.
     /// </exception>
-    Task<StoredFile> SaveAsync(RaskFile file, Action<SaveOptions>? configure = null,
-        CancellationToken cancellationToken = default);
+    Task<StoredFile> SaveAsync(Func<long, CancellationToken, Stream> openRead, string name, long size,
+        Action<SaveOptions>? configure = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Stores <paramref name="content"/> under the display name <paramref name="name"/> and records it. The

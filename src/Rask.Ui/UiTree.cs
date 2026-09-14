@@ -59,6 +59,11 @@ public sealed partial class UiTree<T, TKey> : Component
     private bool _hasCursor;
     private int _cursorHint;
     private bool _seeded;
+
+    // The controlled selection as the last render saw it, and the last one the tree itself reported: together they say
+    // whether a change came from the page (the cursor goes to it) or is the page handing back what the reader just did.
+    private TKey[]? _selectionSeen;
+    private IReadOnlyList<TKey>? _selectionReported;
     private bool _hovering;
     private TKey? _hovered;
 
@@ -167,6 +172,7 @@ public sealed partial class UiTree<T, TKey> : Component
         _index.Clear();
         var rows = UiTreeNav.Flatten(Roots, NodeKey, _children, expanded, _index);
         PruneIds();
+        FollowSelection(rows);
         var cursor = ResolveCursor(rows);
 
         return ItemSize is { } rowHeight ? Flat(rows, cursor, rowHeight) : Nested(rows, cursor);
@@ -524,8 +530,42 @@ public sealed partial class UiTree<T, TKey> : Component
         return CommitSelectionAsync([.. next]);
     }
 
+    // A selection the PAGE made — a search result, a picker, a link to a node — takes the cursor with it, which is what
+    // scrolls the node into view: the runtime follows aria-activedescendant. The first key the page added that is on a
+    // visible row wins; one inside a closed branch has no row to move to, so the page opens its ancestors in the same
+    // render. A selection the reader made, handed straight back by the page, leaves the cursor where the reader put it.
+    private void FollowSelection(List<UiTreeRow<T, TKey>> rows)
+    {
+        if (Selected is not { } selected || Mode == UiTreeSelection.None)
+        {
+            _selectionSeen = null;
+            return;
+        }
+
+        var previous = _selectionSeen;
+        _selectionSeen = [.. selected];
+        var reported = _selectionReported;
+        _selectionReported = null;
+
+        // On the first render there is no cursor to move: the cursor already starts on the first selected row.
+        if (previous is null || (reported is not null && reported.SequenceEqual(selected)))
+        {
+            return;
+        }
+
+        foreach (var key in selected)
+        {
+            if (!previous.Contains(key) && _index.TryGetValue(key, out var at))
+            {
+                MoveTo(rows, at);
+                return;
+            }
+        }
+    }
+
     private Task CommitSelectionAsync(IReadOnlyList<TKey> next)
     {
+        _selectionReported = next;
         if (Selected is null)
         {
             _selected.Clear();

@@ -32,11 +32,12 @@ public class ShutdownDrainTests
             Encoding.UTF8.GetString(LivePayload.ServerShutdownFrame));
     }
 
-    [Fact]
-    public async Task A_connected_client_is_told_the_server_is_going_away()
+    [Theory]
+    [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
+    public async Task A_connected_client_is_told_the_server_is_going_away(LiveTransportKind transport)
     {
         using var host = RaskTestHost.Create<TestApp>();
-        using var ws = await ConnectAsync(host);
+        await using var ws = await ConnectAsync(host, transport);
 
         await host.StopAsync();
 
@@ -59,6 +60,22 @@ public class ShutdownDrainTests
         Assert.NotNull(close);
         Assert.Equal(WebSocketCloseStatus.EndpointUnavailable, close.Value.Status);
         Assert.Equal("server-shutdown", close.Value.Reason);
+    }
+
+    [Theory]
+    [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
+    public async Task The_connection_ends_by_saying_the_server_is_going_away(LiveTransportKind transport)
+    {
+        // What the browser branches on once the frame is past: a socket's close description, or the stream's
+        // close event. An HTTP response that merely stops reads as a dropped link and backs off, so the stream
+        // must say it — and a drain that aborted instead would give no reason on either transport.
+        using var host = RaskTestHost.Create<TestApp>();
+        await using var ws = await ConnectAsync(host, transport);
+
+        await host.StopAsync();
+
+        Assert.Equal(LivePayload.ServerShutdownJson, await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2)));
+        Assert.Equal("server-shutdown", await ws.TryReceiveCloseReasonAsync(TimeSpan.FromSeconds(2)));
     }
 
     [Fact]
@@ -99,13 +116,15 @@ public class ShutdownDrainTests
         Assert.Equal(0, session.PendingHandlers);
     }
 
-    [Fact]
-    public async Task Sessions_are_disposed_by_the_time_the_stop_returns()
+    [Theory]
+    [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
+    public async Task Sessions_are_disposed_by_the_time_the_stop_returns(LiveTransportKind transport)
     {
         // Not "eventually, via container teardown" — the old path fired an unawaited RemoveAsync, so a
-        // component's async unmount raced process exit with nobody observing it.
+        // component's async unmount raced process exit with nobody observing it. A stream counts in the drain
+        // exactly as a socket does, so the stop waits for it too.
         using var host = RaskTestHost.Create<TestApp>();
-        using var ws = await ConnectAsync(host);
+        await using var ws = await ConnectAsync(host, transport);
         Assert.Equal(1, host.Store.Count);
 
         await host.StopAsync();
@@ -275,12 +294,20 @@ public class ShutdownDrainTests
         Assert.Null(await ws.TryReceiveCloseAsync(TimeSpan.FromSeconds(2)));
     }
 
+    private static async Task<ILiveTestConnection> ConnectAsync(RaskTestHost host, LiveTransportKind transport)
+    {
+        var sessionId = MarkupAssert.SessionId(await host.Http.GetStringAsync("/start"));
+        var connection = await LiveTestConnection.OpenAsync(host, transport, sessionId);
+        await WaitForAsync(() => host.Store.ConnectedCount > 0, TimeSpan.FromSeconds(2));
+        return connection;
+    }
+
     private static async Task<WebSocket> ConnectAsync(RaskTestHost host)
     {
         var sessionId = MarkupAssert.SessionId(await host.Http.GetStringAsync("/start"));
         var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await WaitForAsync(() => host.Store.ConnectedCount > 0, TimeSpan.FromSeconds(2));
         return ws;
     }
 

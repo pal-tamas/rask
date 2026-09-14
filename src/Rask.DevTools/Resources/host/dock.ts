@@ -27,10 +27,14 @@ export interface DockOptions {
     readonly frameDocument?: string | null;
     /** Called once, when the drawer first opens and its frame has been attached. */
     readonly onFrame?: (frame: HTMLIFrameElement) => void;
+    /** Called whenever the drawer closes, however it was closed. */
+    readonly onClose?: () => void;
 }
 
 export interface DockHandle {
     readonly element: HTMLElement;
+    /** The devtools' shadow root, where the page overlays are drawn beside the pill and the drawer. */
+    readonly shadow: ShadowRoot;
     isOpen(): boolean;
     toggle(): void;
     side(): Dock;
@@ -150,10 +154,12 @@ export function installDock(options: DockOptions): DockHandle {
         drawer.hidden = true;
         pill.setAttribute("aria-expanded", "false");
         pill.focus();
+        options.onClose?.();
     };
 
     const handle: DockHandle = {
         element,
+        shadow,
         isOpen: () => !drawer.hidden,
         toggle: () => (drawer.hidden ? open() : shut()),
         side: () => current,

@@ -5,7 +5,9 @@
 // Imported only by a Debug build on a page served from this machine — the C# decides both before importing it — and
 // never part of rask.wasm.js.
 
+import {createBridge, listenToPanel, type PanelBridge} from "./host/bridge.js";
 import {installDock} from "./host/dock.js";
+import {installOverlay} from "./host/overlay.js";
 import {CHANNEL, type FrameMessage} from "./rask-devtools-frame-protocol.js";
 
 let frameWindow: Window | null = null;
@@ -25,6 +27,7 @@ function postFrame(bytes: Uint8Array): void {
 export function install(frameDocument: string, onOpen: () => void, onEvent: (json: string) => void): void {
     if (window.__raskDevtoolsHost) return;
 
+    let bridge: PanelBridge | null = null;
     const dock = installDock({
         panelUrl: null,
         frameDocument,
@@ -32,25 +35,22 @@ export function install(frameDocument: string, onOpen: () => void, onEvent: (jso
             frameWindow = frame.contentWindow;
             onOpen();
         },
+        onClose: () => bridge?.closed(),
     });
+    const overlay = installOverlay(dock.shadow, dock.element);
+    // A srcdoc frame inherits this origin but may report "null", so the source is the check and no origin is named.
+    bridge = createBridge(dock, overlay, message => frameWindow?.postMessage(message, "*"));
     window.__raskDevtoolsHost = {version: 1, dock};
 
-    window.addEventListener("message", (e: MessageEvent) => {
-        // Only the panel frame this module created; anything else on the page speaking the same shape is ignored.
-        if (!frameWindow || e.source !== frameWindow) return;
-        const data = e.data as Partial<FrameMessage> | null;
-        if (!data || data.channel !== CHANNEL) return;
-
-        switch (data.kind) {
+    // Only the panel frame this module created; anything else on the page speaking the same shape is ignored.
+    listenToPanel(() => frameWindow, null, () => bridge, message => {
+        switch (message.kind) {
             case "ready":
                 ready = true;
                 for (const bytes of pending.splice(0)) postFrame(bytes);
                 break;
             case "event":
-                onEvent(JSON.stringify((data as {payload?: unknown}).payload ?? null));
-                break;
-            case "toggle":
-                dock.toggle();
+                onEvent(JSON.stringify(message.payload ?? null));
                 break;
         }
     });

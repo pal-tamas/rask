@@ -18,4 +18,10 @@ internal interface IDevToolsInspection
     ///     the panel's viewer owns it.
     /// </summary>
     DevToolsFeed? Open(string? sessionId, string? token);
+
+    /// <summary>
+    ///     The script the panel page loads to talk to the page that framed it, or null where the panel's frame already runs
+    ///     it (WASM, whose frame client carries it).
+    /// </summary>
+    string? PanelScriptUrl { get; }
 }

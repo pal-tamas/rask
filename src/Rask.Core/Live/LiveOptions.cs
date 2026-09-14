@@ -140,13 +140,28 @@ public static class LiveOptions
     public static bool? IsDevelopment { get; set; }
 
     /// <summary>
+    ///     The <see cref="AppContext" /> data name <see cref="PathBase" /> is also published under, for a package that
+    ///     must know the deploy's path base without referencing <c>Rask.Core</c>.
+    /// </summary>
+    /// <remarks>
+    ///     Rask.Storage is the reader: Core travels only inside the hosts that render components, so a battery that
+    ///     named this class could not start on the SPA or meta lanes (#1086). Keep the string in step with its copy
+    ///     there, which a Storage test pins.
+    /// </remarks>
+    internal const string PathBaseDataName = "Rask.PathBase";
+
+    /// <summary>
     ///     Active URL prefix (see <see cref="RaskLiveOptions.PathBase" />).
     ///     Always normalized: <c>""</c> or <c>"/segment"</c> (no trailing slash).
     /// </summary>
     public static string PathBase
     {
         get => _pathBase;
-        set => _pathBase = RaskPath.Normalize(value);
+        set
+        {
+            _pathBase = RaskPath.Normalize(value);
+            AppContext.SetData(PathBaseDataName, _pathBase);
+        }
     }
 }
 

@@ -4,78 +4,70 @@ using Microsoft.Extensions.Configuration;
 namespace Rask.Storage;
 
 /// <summary>
-/// Reads the <c>Storage</c> configuration section onto <see cref="StorageOptions"/>.
+/// Binds the <c>Rask:Storage</c> configuration section onto <see cref="StorageOptions"/>.
 /// </summary>
 /// <remarks>
+/// <para>
 /// Here, inside <c>AddRaskStorage</c>, rather than in the meta package's wiring: a scaffolded app calls
 /// <c>AddRaskStorage&lt;AppDbContext&gt;()</c> directly and never passes through that wiring, so a key read there
-/// would be silently ignored by every app <c>rask new</c> writes. Explicit keys, not <c>ConfigurationBinder</c>,
-/// so nothing here needs reflection. No message repeats a credential's value.
+/// would be silently ignored by every app <c>rask new</c> writes.
+/// </para>
+/// <para>
+/// The bind itself is the configuration binding source generator's, so nothing here needs reflection. What this adds
+/// in front of it is the handful of checks whose failure the binder would report badly or not at all: it accepts
+/// <c>"7"</c> for an enum, and it names neither the key nor the shape a bad number or URL should have. No message
+/// repeats a credential's value.
+/// </para>
 /// </remarks>
 internal static class StorageConfiguration
 {
+    /// <summary>The section every storage setting lives under (#1080), like every other Rask area.</summary>
+    internal const string SectionName = "Rask:Storage";
+
+    /// <summary>Binds the section of <paramref name="configuration"/> that storage reads. For tests and tooling.</summary>
     internal static void Apply(StorageOptions options, IConfiguration? configuration)
     {
-        if (configuration is null)
+        if (configuration is not null)
         {
-            return;
+            Bind(configuration.GetSection(SectionName), options);
         }
+    }
 
-        var section = configuration.GetSection("Storage");
-
-        if (section["Provider"] is { Length: > 0 } provider)
-        {
-            // Names only: Enum.TryParse would also accept "7".
-            if (!Enum.TryParse<StorageProvider>(provider, ignoreCase: true, out var parsed)
+    /// <summary>Checks the values the binder would misread, then binds <paramref name="section"/> onto <paramref name="options"/>.</summary>
+    internal static void Bind(IConfigurationSection section, StorageOptions options)
+    {
+        if (section["Provider"] is { Length: > 0 } provider
+            && (!Enum.TryParse<StorageProvider>(provider, ignoreCase: true, out var parsed)
                 || !Enum.IsDefined(parsed)
-                || int.TryParse(provider, NumberStyles.Integer, CultureInfo.InvariantCulture, out _))
-            {
-                throw new InvalidOperationException(
-                    $"Storage__Provider is '{provider}', which is not a storage provider. Use one of: "
-                    + string.Join(", ", Enum.GetNames<StorageProvider>()) + ".");
-            }
-
-            options.Provider = parsed;
-        }
-
-        if (section["MaxFileSize"] is { Length: > 0 } maxFileSize)
+                || int.TryParse(provider, NumberStyles.Integer, CultureInfo.InvariantCulture, out _)))
         {
-            if (!long.TryParse(maxFileSize, NumberStyles.Integer, CultureInfo.InvariantCulture, out var bytes))
-            {
-                throw new InvalidOperationException(
-                    $"Storage__MaxFileSize is '{maxFileSize}'; it must be a whole number of bytes, like 104857600.");
-            }
-
-            options.MaxFileSize = bytes;
+            // Names only: the binder would also accept "7", and a value that is no provider at all would surface as
+            // a conversion failure that lists nothing to choose from.
+            throw new InvalidOperationException(
+                $"Rask__Storage__Provider is '{provider}', which is not a storage provider. Use one of: "
+                + string.Join(", ", Enum.GetNames<StorageProvider>()) + ".");
         }
 
-        Set(section["PublicBaseUrl"], v => options.PublicBaseUrl = v);
-        Set(section["Prefix"], v => options.Prefix = v);
-        Set(section["Disk:Root"], v => options.Disk.Root = v);
-
-        if (section["S3:ServiceUrl"] is { Length: > 0 } serviceUrl)
+        if (section["MaxFileSize"] is { Length: > 0 } maxFileSize
+            && !long.TryParse(maxFileSize, NumberStyles.Integer, CultureInfo.InvariantCulture, out _))
         {
-            options.S3.ServiceUrl = Uri.TryCreate(serviceUrl, UriKind.Absolute, out var uri)
-                ? uri
-                : throw new InvalidOperationException(
-                    $"Storage__S3__ServiceUrl '{serviceUrl}' is not an absolute URL, like https://s3.us-east-1.amazonaws.com.");
+            throw new InvalidOperationException(
+                $"Rask__Storage__MaxFileSize is '{maxFileSize}'; it must be a whole number of bytes, like 104857600.");
         }
 
-        Set(section["S3:Bucket"], v => options.S3.Bucket = v);
-        Set(section["S3:Region"], v => options.S3.Region = v);
-        Set(section["S3:AccessKeyId"], v => options.S3.AccessKeyId = v);
-        Set(section["S3:SecretAccessKey"], v => options.S3.SecretAccessKey = v);
-        Set(section["S3:SessionToken"], v => options.S3.SessionToken = v);
-
-        if (section["S3:UsePathStyle"] is { Length: > 0 } pathStyle)
+        if (section["S3:ServiceUrl"] is { Length: > 0 } serviceUrl && !Uri.TryCreate(serviceUrl, UriKind.Absolute, out _))
         {
-            options.S3.UsePathStyle = bool.TryParse(pathStyle, out var value)
-                ? value
-                : throw new InvalidOperationException($"Storage__S3__UsePathStyle is '{pathStyle}'; use true or false.");
+            // The binder would turn this into a relative Uri without a word.
+            throw new InvalidOperationException(
+                $"Rask__Storage__S3__ServiceUrl '{serviceUrl}' is not an absolute URL, like https://s3.us-east-1.amazonaws.com.");
         }
 
-        Set(section["Azure:ConnectionString"], v => options.Azure.ConnectionString = v);
-        Set(section["Azure:Container"], v => options.Azure.Container = v);
+        if (section["S3:UsePathStyle"] is { Length: > 0 } pathStyle && !bool.TryParse(pathStyle, out _))
+        {
+            throw new InvalidOperationException($"Rask__Storage__S3__UsePathStyle is '{pathStyle}'; use true or false.");
+        }
+
+        section.Bind(options);
     }
 
     /// <summary>
@@ -94,13 +86,5 @@ internal static class StorageConfiguration
         options.Disk.Root = Directory.Exists(options.DataVolume)
             ? Path.GetFullPath(Path.Combine(options.DataVolume, "files"))
             : Path.GetFullPath(Path.Combine(contentRootPath, "storage"));
-    }
-
-    private static void Set(string? value, Action<string> assign)
-    {
-        if (value is { Length: > 0 })
-        {
-            assign(value);
-        }
     }
 }

@@ -27,6 +27,7 @@ own ("blazor", "react"). Map every new page to one:
 | Web Push from ASP.NET Core, VAPID | `webpush` |
 | PWA in C#, browser API (Geolocation, WebUSB, …) in C# | `pwa`, `apis/*` |
 | .NET One Person Framework | `one-person-framework`, `/` |
+| live server pages when a proxy blocks WebSockets, SSE fallback | `render-modes` |
 
 ## What is enforced (and where)
 

@@ -257,7 +257,7 @@ public sealed class S3BlobBackendTests : IDisposable
         var ex = await Assert.ThrowsAsync<HttpRequestException>(() => backend.DeleteAsync("ab/abcd", default));
 
         Assert.Contains("SignatureDoesNotMatch", ex.Message);
-        Assert.Contains("Storage__", ex.Message);
+        Assert.Contains("Rask__Storage__", ex.Message);
         Assert.DoesNotContain("AKID", ex.Message);
         Assert.DoesNotContain("SECRET", ex.Message);
         Assert.Equal(HttpStatusCode.Forbidden, ex.StatusCode);

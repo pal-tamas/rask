@@ -142,7 +142,7 @@ internal abstract class RemoteBlobBackend(HttpClient http, TimeProvider time) : 
             "RequestTimeTooSkewed" =>
                 " This server's clock is more than 15 minutes away from the storage service's; fix the clock (NTP).",
             "SignatureDoesNotMatch" or "InvalidAccessKeyId" or "AuthenticationFailed" or "AuthorizationFailure" =>
-                " Check the Storage__ credentials for this provider.",
+                " Check the Rask__Storage__ credentials for this provider.",
             "NoSuchBucket" or "ContainerNotFound" => " The bucket or container does not exist; create it first.",
             _ => "",
         };
