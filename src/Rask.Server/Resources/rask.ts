@@ -29,6 +29,12 @@ import {
 import { pollDevStatus, showDevError } from "../../Rask.Core/Resources/rask-deverror.js";
 import { showHotReloadPill } from "../../Rask.Core/Resources/rask-hotreload.js";
 import { setHost } from "../../Rask.Core/Resources/rask-host.js";
+import {
+    createTransportChooser,
+    openHttpConnection,
+    OPEN_TIMEOUT_MS,
+    type LiveConnection,
+} from "./rask-http-transport.js";
 
 import "../../Rask.Core/Resources/rask-api.js";
 import "../../Rask.Core/Resources/rask-events.js";
@@ -144,10 +150,27 @@ import "../../Rask.Core/Resources/rask-events.js";
         }
     }
 
+    function tabStorage(): Storage | null {
+        try {
+            return typeof sessionStorage === "undefined" ? null : sessionStorage;
+        } catch (e) {
+            return null;
+        }
+    }
+
     const proto = location.protocol === "https:" ? "wss:" : "ws:";
     const baseWsUrl = proto + "//" + location.host + prependBase("/rask/ws");
 
-    let ws: WebSocket | null = null;
+    // Which transport the next connection uses: a WebSocket, unless this tab has already proved it cannot have
+    // one (see createTransportChooser). Remembered per tab, so a network that blocks sockets costs one failed
+    // attempt per tab rather than one per reconnect.
+    const chooser = createTransportChooser(tabStorage(), () => Date.now());
+    let conn: LiveConnection | null = null;
+    // The HTTP connection, when that is what is open — the only transport that needs telling a tab has gone.
+    let httpConn: ReturnType<typeof openHttpConnection> | null = null;
+    // Set for closes the runtime asks for itself (a sign-in, an expired session). Those are never evidence that
+    // the network is dropping sockets.
+    let deliberateClose = false;
     const queue: string[] = [];
     let open = false;
     let attempt = 0;
@@ -226,141 +249,220 @@ import "../../Rask.Core/Resources/rask-events.js";
     connect();
 
     function connect() {
-        // Single-flight: never open a second socket while one is CONNECTING or OPEN. The online event
-        // and the Retry button both funnel here, and during the CONNECTING window `open` is still false,
-        // so without this guard they would spawn a duplicate session that double-dispatches every frame.
-        if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) {
+        // Single-flight: never open a second connection while one is connecting or open. The online event and
+        // the Retry button both funnel here, and while connecting `open` is still false, so without this guard
+        // they would spawn a duplicate session that double-dispatches every frame.
+        if (conn && (conn.isConnecting || conn.isOpen)) {
             return;
         }
 
-        ws = new WebSocket(baseWsUrl);
-        // Captured once: `ws` is reassigned on every reconnect, so a handler that read it later
-        // would be talking about whichever socket is current rather than the one it belongs to.
-        const socket = ws;
+        deliberateClose = false;
+        if (chooser.next() === "http") {
+            connectHttp();
+        } else {
+            connectWebSocket();
+        }
+    }
 
-        socket.addEventListener("open", () => {
-            open = true;
-            attempt = 0;
-            suppressEvents = false;
-            // The resume record rides along so a server that doesn't know this session can rebuild the
-            // page instead of telling us to reload. A server that DOES know it ignores the field
-            // entirely — the intact session is always the better outcome, and is what a normal
-            // reconnect within the grace period gets.
+    // Everything a connection does once it is open, whichever transport carries it. `sendHello` is the socket's:
+    // an HTTP stream names its session in the request that opened it, so there is no hello to send.
+    function onConnectionOpen(sendHello: ((hello: string) => void) | null): void {
+        open = true;
+        attempt = 0;
+        suppressEvents = false;
+        if (sendHello) {
+            // The resume record rides along so a server that doesn't know this session can rebuild the page
+            // instead of telling us to reload. A server that DOES know it ignores the field entirely — the intact
+            // session is always the better outcome, and is what a normal reconnect within the grace period gets.
             const hello: { type: string; session: string | null; resume?: string } =
                 {type: "hello", session: sessionId};
             if (resumeToken) hello.resume = resumeToken;
-            socket.send(JSON.stringify(hello));
-            for (const m of queue) socket.send(m);
-            queue.length = 0;
-            // Values the field restore put back into the DOM at boot, pushed to the server now that
-            // there is a socket to push them over — so the model ends up holding what the page shows
-            // rather than the pristine values it rendered. Sent after the hello, so the session exists.
-            for (const payload of pendingConverge) send(payload);
-            pendingConverge.length = 0;
-            // Auth reconnect completed — restore the default message for any future drop.
-            if (authInProgress) {
-                authInProgress = false;
-                setOverlayMessage(RECONNECT_MSG);
-            }
-            hideOverlay();
-        });
-
-        socket.addEventListener("message", (e: MessageEvent) => {
-            let data;
-            try {
-                data = JSON.parse(e.data);
-            } catch (err) {
-                return;
-            }
-            const devtools = window.__raskDevtoolsHook;
-            if (devtools) devtools.recv(data, new TextEncoder().encode(e.data).length);
-            // Once the session is known-gone, ignore any late frames still in flight — they would apply
-            // against a session the server has already discarded, flashing inconsistent UI before reload.
-            if (sessionExpired) {
-                return;
-            }
-            if (data.type === "session" && data.status === "unknown") {
-                // The server could not rebuild us — either we carried no record, or it refused the one
-                // we had (expired, issued to another user, or sealed under a key ring this host does not
-                // have). Drop it: replaying a record the server has already refused just fails again on
-                // every future reconnect, and keeps a stale page's state alive across the reload.
-                forgetResumeToken();
-                showSessionExpired();
-                return;
-            }
-            // Dev-only: the coordinator finished applying an edit and every session has repainted.
-            // Purely an indicator — the DOM was already updated by the render that preceded this
-            // frame, so it must NOT fall through to applyFullReply (which would morph the document
-            // against a payload that carries no html).
-            if (data.type === "hotReload") {
-                if (devMode && data.status === "applied") showHotReloadPill();
-                return;
-            }
-            // The server is shutting down (a redeploy, a restart). This frame only *announces* it — the
-            // close that follows drives what happens next, and deliberately so: the announcement's job is
-            // to make the drop expected, so the client can reconnect at once instead of walking the
-            // backoff ladder guessing whether the server is coming back. Whether the reconnect lands on a
-            // host that can rebuild this page, or on one that has never heard of it, is the server's
-            // answer to give — not something to pre-empt here with a reload.
-            //
-            // Carries no html, so like the hotReload frame it must NOT fall through to applyFullReply.
-            // Deliberately not dev-gated: production is exactly where this matters.
-            if (data.type === "shutdown") {
-                serverShuttingDown = true;
-                setInert(true);
-                if (overlayTimer !== null) {
-                    clearTimeout(overlayTimer);
-                    overlayTimer = null;
-                }
-                showOverlay();
-                setOverlayMessage(UPDATING_MSG);
-                setRetryButton(null);
-                return;
-            }
-            // Handler ack: resolve the slow-link pending bar. Handled synchronously here
-            // (not inside _renderQueue) so a CSS-gated deferred body swap can't keep the
-            // bar up after the round-trip has actually completed.
-            if (data.type === "ack") {
-                satisfySeq(data.seq);
-                return;
-            }
-            // A refreshed resume record rides the render payload rather than arriving as its own
-            // frame, so it appears on both shapes below. Taken here, before either is applied: it is
-            // pure bookkeeping, changes nothing on screen, and must not wait on the render queue —
-            // a drop between now and the paint should still leave us holding the newer record.
-            if (typeof data.resume === "string") rememberResumeToken(data.resume);
-            // A development fault the app survived. Like `resume` it rides the render payload rather
-            // than arriving as its own frame, and like it, it is applied here rather than inside either
-            // render path: the panel is a sibling of the app, so it must not wait on the render queue —
-            // and showing it before the repaint is right, since the repaint is what puts the app back on
-            // screen underneath it. Dev-gated twice: the server only sends it in development, and
-            // devMode is read off the document (#607).
-            if (data.devError) showDevError(data.devError);
-            // Diff-mode payload (kind:"diff"): apply ops directly against the live DOM.
-            // Both render paths chain through _renderQueue so a diff that defers its body
-            // for a scoped-CSS load (see applyDiffReply) can't be overtaken by the next
-            // message — paths in a later diff are computed against this render's output.
-            if (data.kind === "diff" && Array.isArray(data.ops)) {
-                _renderQueue = _renderQueue.then(
-                    () => { applyDiffReply(data); },
-                    () => { applyDiffReply(data); });
-                return;
-            }
-            _renderQueue = _renderQueue.then(
-                () => { applyFullReply(data); },
-                () => { applyFullReply(data); });
-        });
-
-        socket.addEventListener("close", scheduleReconnect);
-        socket.addEventListener("error", () => scheduleReconnect());
+            sendHello(JSON.stringify(hello));
+        }
+        for (const m of queue) conn!.send(m);
+        queue.length = 0;
+        // Values the field restore put back into the DOM at boot, pushed to the server now that there is a
+        // connection to push them over — so the model ends up holding what the page shows rather than the
+        // pristine values it rendered. Sent after the hello, so the session exists.
+        for (const payload of pendingConverge) send(payload);
+        pendingConverge.length = 0;
+        // Auth reconnect completed — restore the default message for any future drop.
+        if (authInProgress) {
+            authInProgress = false;
+            setOverlayMessage(RECONNECT_MSG);
+        }
+        hideOverlay();
     }
 
-    function scheduleReconnect(e?: CloseEvent): void {
+    function connectWebSocket(): void {
+        const socket = new WebSocket(baseWsUrl);
+        let opened = false;
+
+        // A socket that neither opens nor fails — a proxy that swallows the upgrade — would otherwise leave the
+        // page waiting for ever. Give up on it, and let the next attempt try HTTP.
+        const openTimeout = setTimeout(() => {
+            if (opened) return;
+            chooser.wsFailedBeforeOpen();
+            try {
+                socket.close();
+            } catch (e) {
+                // Already closing.
+            }
+        }, OPEN_TIMEOUT_MS);
+
+        conn = {
+            get isOpen() {
+                return socket.readyState === WebSocket.OPEN;
+            },
+            get isConnecting() {
+                return socket.readyState === WebSocket.CONNECTING;
+            },
+            send(message: string) {
+                socket.send(message);
+            },
+            close(code: number, reason: string) {
+                socket.close(code, reason);
+            },
+        };
+        httpConn = null;
+
+        socket.addEventListener("open", () => {
+            opened = true;
+            clearTimeout(openTimeout);
+            chooser.wsOpened();
+            onConnectionOpen((hello) => socket.send(hello));
+        });
+
+        socket.addEventListener("message", (e: MessageEvent) => onFrame(e.data));
+
+        socket.addEventListener("close", (e: CloseEvent) => {
+            clearTimeout(openTimeout);
+            if (opened) chooser.wsClosed(deliberateClose);
+            else chooser.wsFailedBeforeOpen();
+            scheduleReconnect(e.code);
+        });
+        socket.addEventListener("error", () => {
+            if (!opened) chooser.wsFailedBeforeOpen();
+            scheduleReconnect();
+        });
+    }
+
+    function connectHttp(): void {
+        const id = encodeURIComponent(sessionId ?? "");
+        const connection = openHttpConnection({
+            streamUrl: prependBase("/_rask/stream/" + id),
+            sendUrl: prependBase("/_rask/send/" + id),
+            leaveUrl: prependBase("/_rask/leave/" + id),
+            resumeToken,
+            onOpen: () => {
+                // The stream opened where a socket could not: this network blocks WebSockets. Remember it.
+                chooser.httpOpened();
+                onConnectionOpen(null);
+            },
+            onFrame: (text) => onFrame(text),
+            onClose: (code, _reason, opened) => {
+                // HTTP failing as well means the server was down, not that sockets are blocked.
+                if (!opened) chooser.httpFailedBeforeOpen();
+                scheduleReconnect(code);
+            },
+        });
+        conn = connection;
+        httpConn = connection;
+    }
+
+    // One frame from the server, whichever transport carried it.
+    function onFrame(raw: string): void {
+        let data;
+        try {
+            data = JSON.parse(raw);
+        } catch (err) {
+            return;
+        }
+        const devtools = window.__raskDevtoolsHook;
+        if (devtools) devtools.recv(data, new TextEncoder().encode(raw).length);
+        // Once the session is known-gone, ignore any late frames still in flight — they would apply
+        // against a session the server has already discarded, flashing inconsistent UI before reload.
+        if (sessionExpired) {
+            return;
+        }
+        if (data.type === "session" && data.status === "unknown") {
+            // The server could not rebuild us — either we carried no record, or it refused the one
+            // we had (expired, issued to another user, or sealed under a key ring this host does not
+            // have). Drop it: replaying a record the server has already refused just fails again on
+            // every future reconnect, and keeps a stale page's state alive across the reload.
+            forgetResumeToken();
+            showSessionExpired();
+            return;
+        }
+        // Dev-only: the coordinator finished applying an edit and every session has repainted.
+        // Purely an indicator — the DOM was already updated by the render that preceded this
+        // frame, so it must NOT fall through to applyFullReply (which would morph the document
+        // against a payload that carries no html).
+        if (data.type === "hotReload") {
+            if (devMode && data.status === "applied") showHotReloadPill();
+            return;
+        }
+        // The server is shutting down (a redeploy, a restart). This frame only *announces* it — the
+        // close that follows drives what happens next, and deliberately so: the announcement's job is
+        // to make the drop expected, so the client can reconnect at once instead of walking the
+        // backoff ladder guessing whether the server is coming back. Whether the reconnect lands on a
+        // host that can rebuild this page, or on one that has never heard of it, is the server's
+        // answer to give — not something to pre-empt here with a reload.
+        //
+        // Carries no html, so like the hotReload frame it must NOT fall through to applyFullReply.
+        // Deliberately not dev-gated: production is exactly where this matters.
+        if (data.type === "shutdown") {
+            serverShuttingDown = true;
+            setInert(true);
+            if (overlayTimer !== null) {
+                clearTimeout(overlayTimer);
+                overlayTimer = null;
+            }
+            showOverlay();
+            setOverlayMessage(UPDATING_MSG);
+            setRetryButton(null);
+            return;
+        }
+        // Handler ack: resolve the slow-link pending bar. Handled synchronously here
+        // (not inside _renderQueue) so a CSS-gated deferred body swap can't keep the
+        // bar up after the round-trip has actually completed.
+        if (data.type === "ack") {
+            satisfySeq(data.seq);
+            return;
+        }
+        // A refreshed resume record rides the render payload rather than arriving as its own
+        // frame, so it appears on both shapes below. Taken here, before either is applied: it is
+        // pure bookkeeping, changes nothing on screen, and must not wait on the render queue —
+        // a drop between now and the paint should still leave us holding the newer record.
+        if (typeof data.resume === "string") rememberResumeToken(data.resume);
+        // A development fault the app survived. Like `resume` it rides the render payload rather
+        // than arriving as its own frame, and like it, it is applied here rather than inside either
+        // render path: the panel is a sibling of the app, so it must not wait on the render queue —
+        // and showing it before the repaint is right, since the repaint is what puts the app back on
+        // screen underneath it. Dev-gated twice: the server only sends it in development, and
+        // devMode is read off the document (#607).
+        if (data.devError) showDevError(data.devError);
+        // Diff-mode payload (kind:"diff"): apply ops directly against the live DOM.
+        // Both render paths chain through _renderQueue so a diff that defers its body
+        // for a scoped-CSS load (see applyDiffReply) can't be overtaken by the next
+        // message — paths in a later diff are computed against this render's output.
+        if (data.kind === "diff" && Array.isArray(data.ops)) {
+            _renderQueue = _renderQueue.then(
+                () => { applyDiffReply(data); },
+                () => { applyDiffReply(data); });
+            return;
+        }
+        _renderQueue = _renderQueue.then(
+            () => { applyFullReply(data); },
+            () => { applyFullReply(data); });
+    }
+
+    function scheduleReconnect(code?: number): void {
         if (reconnectTimer !== null || sessionExpired) return;
         // Close code 1001 is "going away" — the drain's own close handshake. It is the belt to the
         // shutdown frame's braces: if the frame was missed (sent while this socket was mid-render, say),
         // the close status still identifies a deployment. An aborted socket is 1006, which is not this.
-        // `error` passes a plain Event with no code, hence the feature test.
+        // `error` carries no code, and neither does an HTTP stream that simply dropped.
         //
         // A known redeploy earns exactly ONE immediate retry, not a reload. Under a blue-green swap the
         // replacement is already serving before the old container is stopped, so the backoff's first
@@ -368,7 +470,7 @@ import "../../Rask.Core/Resources/rask-events.js";
         // still recover, since it is the reconnect (not this handler) that carries whatever the client
         // holds to a host that never knew this session. If that attempt also drops we fall through to the
         // ordinary ladder below, which is the right shape when the replacement genuinely is not up yet.
-        if ((serverShuttingDown || (e && e.code === 1001)) && !shutdownRetryUsed) {
+        if ((serverShuttingDown || code === 1001) && !shutdownRetryUsed) {
             shutdownRetryUsed = true;
             serverShuttingDown = true;
             open = false;
@@ -785,7 +887,8 @@ import "../../Rask.Core/Resources/rask-events.js";
         // Close the dead socket so no further frames arrive (the message handler also drops them via the
         // sessionExpired guard) and the close→scheduleReconnect path early-returns on sessionExpired.
         try {
-            if (ws) ws.close(1000, "session-expired");
+            deliberateClose = true;
+            if (conn) conn.close(1000, "session-expired");
         } catch (e) {
             // ignore
         }
@@ -899,6 +1002,11 @@ import "../../Rask.Core/Resources/rask-events.js";
     // must keep backing off) and relies on connect()'s single-flight guard so it can't spawn a second
     // socket while one is already in flight. The offline transition just refreshes the overlay copy.
     if (typeof window !== "undefined" && window.addEventListener) {
+        // Not on `persisted`: a page going into the back/forward cache is coming back, and its session with it.
+        window.addEventListener("pagehide", function (e: PageTransitionEvent) {
+            if (e.persisted) return;
+            if (httpConn && conn === httpConn) httpConn.leave();
+        });
         window.addEventListener("online", function () {
             if (open || sessionExpired) return;
             if (reconnectTimer !== null) {
@@ -1456,7 +1564,7 @@ import "../../Rask.Core/Resources/rask-events.js";
         const msg = JSON.stringify(payload);
         const devtools = window.__raskDevtoolsHook;
         if (devtools) devtools.send(payload, new TextEncoder().encode(msg).length);
-        if (open && ws && ws.readyState === WebSocket.OPEN) ws.send(msg);
+        if (open && conn && conn.isOpen) conn.send(msg);
         else queue.push(msg);
     }
 
@@ -1481,7 +1589,8 @@ import "../../Rask.Core/Resources/rask-events.js";
             credentials: "same-origin"
         }).then(() => {
             try {
-                if (ws) ws.close(1000, "auth-refresh");
+                deliberateClose = true;
+                if (conn) conn.close(1000, "auth-refresh");
             } catch (e) {
             }
         }).catch((err) => {

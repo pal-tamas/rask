@@ -1307,6 +1307,12 @@ them until tagged releases begin.
   session at once rather than after its grace period. It is the same protocol, the same session and the same
   render pipeline — one request per interaction is what it costs.
 
+  The browser picks the transport itself, per tab. It tries the WebSocket first, and makes HTTP the candidate
+  when the socket errors before opening, has not opened within 5 seconds, or is cut off within 5 seconds of
+  opening three times running. It remembers HTTP (in `sessionStorage`) only once an HTTP stream has actually
+  opened where the socket did not — a server that is merely mid-redeploy fails both, and a tab is never pinned
+  to the slower transport for that. A new tab tries the socket again.
+
   The guards are the socket's, applied per request because an HTTP request has no upgrade to have checked
   earlier: the host-only `Origin` check, and `SameSessionUser` on every POST. A stream carries a generation,
   and a POST names the one it believes it is talking to — so a tab resumed from the back/forward cache, or

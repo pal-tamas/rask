@@ -23,9 +23,7 @@ public class ShutdownClientContractTests
 
         // Like the hotReload frame, this one carries no html. Falling through to applyFullReply would
         // morph the document against a non-payload.
-        var branch = js[js.IndexOf("data.type === \"shutdown\"", StringComparison.Ordinal)..];
-        var end = branch.IndexOf("\n            }", StringComparison.Ordinal);
-        Assert.Contains("return;", branch[..end], StringComparison.Ordinal);
+        Assert.Contains("return;", ShutdownBranch(js), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -34,11 +32,9 @@ public class ShutdownClientContractTests
         // The opposite of the hotReload contract, and deliberately so: a production redeploy is exactly
         // when this matters. Gating it on devMode would leave production showing "Your session timed
         // out" on every deploy — the bug this whole path exists to fix.
-        var js = ServerJs;
-        var branch = js[js.IndexOf("data.type === \"shutdown\"", StringComparison.Ordinal)..];
-        var end = branch.IndexOf("\n            }", StringComparison.Ordinal);
+        var branch = ShutdownBranch(ServerJs);
 
-        Assert.DoesNotContain("devMode", branch[..end], StringComparison.Ordinal);
+        Assert.DoesNotContain("devMode", branch, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -46,7 +42,21 @@ public class ShutdownClientContractTests
     {
         // Belt and braces for a missed frame: 1001 is the drain's own close status. Before this, the
         // close code was never inspected at all — close and error shared one handler.
-        Assert.Contains("e.code === 1001", ServerJs, StringComparison.Ordinal);
+        Assert.Contains("code === 1001", ServerJs, StringComparison.Ordinal);
+
+        // An HTTP stream has no close code, so the server names the reason in its close event and the transport
+        // translates it — otherwise a redeploy seen over HTTP would read as a dropped link and back off.
+        var transport = Read("src", "Rask.Server", "Resources", "rask-http-transport.ts");
+        Assert.Contains("data === \"server-shutdown\" ? 1001", transport, StringComparison.Ordinal);
+    }
+
+    // The frame handler's shutdown branch, up to the brace that closes it (the branch sits at the handler's top
+    // indentation, so its closing brace is the first one at that depth).
+    private static string ShutdownBranch(string js)
+    {
+        var handler = js[js.IndexOf("function onFrame(", StringComparison.Ordinal)..];
+        var branch = handler[handler.IndexOf("if (data.type === \"shutdown\")", StringComparison.Ordinal)..];
+        return branch[..branch.IndexOf("\n        }", StringComparison.Ordinal)];
     }
 
     [Fact]
@@ -213,14 +223,12 @@ public class ShutdownClientContractTests
         Assert.DoesNotContain("send(", restoreOneBody, StringComparison.Ordinal);
         Assert.Contains("pendingConverge.push", ServerJs, StringComparison.Ordinal);
 
-        // And the queue is drained where a socket exists — after the hello, so the session is known.
-        //
-        // The handler captures `const socket = ws` and works through that: under strict typing `ws` is
-        // WebSocket|null and cannot be dereferenced, and capturing also binds each handler to the
-        // socket it was registered on rather than to whichever one is current after a reconnect.
-        var open = js[js.IndexOf("socket.addEventListener(\"open\"", StringComparison.Ordinal)..];
-        var openBody = open[..open.IndexOf("\n        });", StringComparison.Ordinal)];
-        var hello = openBody.IndexOf("socket.send(JSON.stringify(hello))", StringComparison.Ordinal);
+        // And the queue is drained where a connection exists — after the hello, so the session is known. One
+        // open handler serves both transports; an HTTP stream names its session in the request that opened it,
+        // so it passes no hello, and the drain still comes after where the socket's hello goes.
+        var open = js[js.IndexOf("function onConnectionOpen(", StringComparison.Ordinal)..];
+        var openBody = open[..open.IndexOf("\n    }", StringComparison.Ordinal)];
+        var hello = openBody.IndexOf("sendHello(JSON.stringify(hello))", StringComparison.Ordinal);
         var drain = openBody.IndexOf("for (const payload of pendingConverge) send(payload);", StringComparison.Ordinal);
         Assert.True(hello >= 0 && drain > hello, "converge messages must be sent after the hello");
     }
