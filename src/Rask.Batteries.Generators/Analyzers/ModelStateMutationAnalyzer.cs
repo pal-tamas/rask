@@ -12,10 +12,10 @@ namespace Rask.Data.Generators.Analyzers;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         The generated form model is where a user's input lands, and it writes the entity through its
-///         private setters. That makes a public setter on the entity pure surface: nothing in the framework
-///         needs it, and every caller that uses it goes around the methods that keep the entity valid. So the
-///         entity itself is the only thing that should change its state.
+///         A hint, never a rule: public setters compile, map and save, and nothing in Rask requires a private
+///         one. An entity that changes only through its own constructor and methods keeps its invariants and
+///         its domain events in one place, and EF Core materialises through private setters, so the warning
+///         points out where that is not so. It is a warning by design — never raise it to an error here.
 ///     </para>
 ///     <para>
 ///         Symbol-based rather than syntax-based, so a partial type is judged once as a whole and members
@@ -42,10 +42,11 @@ public sealed class ModelStateMutationAnalyzer : DiagnosticAnalyzer
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "An entity (a class deriving from Rask.Data.Model) or a value object (IValueObject) should "
-                     + "be changed only by itself. A public setter, a public init accessor or a public mutable "
-                     + "field lets any caller skip the methods that keep it valid. The generated form model "
-                     + "writes through private setters, so nothing in the framework needs the public one. A "
+        description: "A hint, not a rule: public setters on an entity (a class deriving from Rask.Data.Model) or "
+                     + "a value object (IValueObject) are allowed. A public setter, a public init accessor or a "
+                     + "public mutable field lets any caller skip the methods that keep the type valid, and EF "
+                     + "Core materialises through private setters, so nothing in the framework needs the public "
+                     + "one. Silence it with dotnet_diagnostic.RASK084.severity = none for open entities. A "
                      + "positional record parameter's compiler-generated init accessor is exempt.",
         helpLinkUri: DiagnosticHelp.Link("RASK084"));
 

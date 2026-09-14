@@ -101,11 +101,15 @@ public sealed class ModelSetTests : IDisposable
     }
 
     [Fact]
-    public async Task A_generated_delete_soft_deletes_through_the_registered_interceptor()
+    public async Task A_delete_through_a_context_soft_deletes_and_the_read_surface_hides_it()
     {
         var doomed = (await SeedAsync("doomed"))[0];
 
-        await GeneratedModelWrites.DeleteAsync<Widget>(doomed.Id, version: null);
+        await using (var db = NewContext())
+        {
+            db.Remove((await db.Widgets.FindAsync(doomed.Id))!);
+            await db.SaveChangesAsync();
+        }
 
         // Gone from ordinary queries — the global filter ApplyRaskConventions added.
         Assert.Equal(0, await Widget.CountAsync());
@@ -117,20 +121,24 @@ public sealed class ModelSetTests : IDisposable
     }
 
     [Fact]
-    public async Task A_generated_create_publishes_its_domain_events_after_commit()
+    public async Task A_create_publishes_its_domain_events_after_commit()
     {
-        var widget = await GeneratedModelWrites.CreateAsync(Widget.Create("evented"));
+        var widget = (await SeedAsync("evented"))[0];
 
         Assert.Contains(_recorder.Events, e => e is WidgetCreated created && created.Id == widget.Id);
         Assert.Empty(widget.DomainEvents);
     }
 
     [Fact]
-    public async Task A_generated_update_publishes_the_events_its_change_raised()
+    public async Task An_update_publishes_the_events_its_change_raised()
     {
         var widget = (await SeedAsync("before"))[0];
 
-        await GeneratedModelWrites.UpdateAsync<Widget>(widget.Id, version: null, w => w.Rename("after"));
+        await using (var db = NewContext())
+        {
+            (await db.Widgets.FindAsync(widget.Id))!.Rename("after");
+            await db.SaveChangesAsync();
+        }
 
         Assert.Contains(_recorder.Events, e => e is WidgetRenamed renamed && renamed.Id == widget.Id);
         Assert.Equal(1, await Widget.CountAsync(w => w.Name == "after"));
@@ -167,11 +175,14 @@ public sealed class ModelSetTests : IDisposable
         Assert.Throws<InvalidOperationException>(() => query.Count());
     }
 
+    private TestDbContext NewContext() =>
+        _provider.GetRequiredService<IDbContextFactory<TestDbContext>>().CreateDbContext();
+
     private async Task<Widget[]> SeedAsync(params string[] names)
     {
         var widgets = names.Select(Widget.Create).ToArray();
 
-        await using var db = _provider.GetRequiredService<IDbContextFactory<TestDbContext>>().CreateDbContext();
+        await using var db = NewContext();
         db.Widgets.AddRange(widgets);
         await db.SaveChangesAsync();
 

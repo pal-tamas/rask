@@ -87,8 +87,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
                 throw new InvalidOperationException(
                     $"'{entry.Metadata.ClrType.Name}' was added with its Id still at the default, and a " +
                     $"Model<{idType.Name}> assigns its own id — nothing generates one. Set it where the entity is " +
-                    "created (for a Guid key, Guid.CreateVersion7()), or save it through the generated CreateAsync: " +
-                    "CreateAsync(model) assigns a Guid key and CreateAsync(id, model) takes yours.");
+                    "created — for a Guid key, Guid.CreateVersion7() in the entity's constructor or factory.");
             }
         }
     }

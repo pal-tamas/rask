@@ -24,14 +24,31 @@ public sealed class Order : Model<Guid>, ITimestamped, IVersioned
     public DateTime Placed { get; private set; }
 
     public int Version { get; private set; }
+
+    public static Order Create(decimal total, Guid productId, DateTime placed)
+    {
+        var order = new Order { Id = Guid.CreateVersion7() };
+        order.Change(total, productId, placed);
+        return order;
+    }
+
+    public void Change(decimal total, Guid productId, DateTime placed)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(total);
+
+        Total = total;
+        ProductId = productId;
+        Placed = placed;
+    }
 }
 ```
 
-Build, and `Order` gets everything `Product` got: an `OrderModel`, `Order.CreateAsync` / `UpdateAsync` /
-`DeleteAsync`, and `order.ToModel()`. Then the same four components as before — `CreateOrder`,
-`UpdateOrder`, `DeleteOrder` and `OrdersPage`. They're the chapter 2 files with `Product` swapped for
-`Order`, `ProductModel` for `OrderModel`, the routes moved under `/orders`, and the three inputs and grid
-columns changed to `Total`, `ProductId` and `Placed` — copy them and change the names.
+`Order` reads the way `Product` does — `Order.Where(…)`, `Order.FindAsync(id)`, `Order.AsQueryable()` — with
+nothing to build. Then the same files as before: `OrderCommands.cs` with `AddOrder`, `EditOrder` and
+`RemoveOrder` and their handlers, and the four components `CreateOrder`, `UpdateOrder`, `DeleteOrder` and
+`OrdersPage`. They're the chapter 2 files with `Product` swapped for `Order`, the routes moved under
+`/orders`, and the three inputs and grid columns changed to `Total`, `ProductId` and `Placed` — copy them and
+change the names.
 
 What ties the slice to the existing database: nothing you write. `AppDbContext`'s base maps `Order` exactly
 as it maps `Product`, with no `DbSet` to add. That's the whole of "sharing a database": one context, one

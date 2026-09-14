@@ -48,7 +48,7 @@ public static class ModelBuilderExtensions
     /// that is already set as a row that already exists: a child added to a loaded aggregate
     /// (<c>order.AddLine(…)</c>) would be saved as an UPDATE that matches nothing. A key the application
     /// already configured — <c>ValueGeneratedOnAdd()</c>, a database default, a value generator — is left as it
-    /// was, and on the generated model an entity's own static <c>Configure</c> runs after this and can say
+    /// was, and in the generated model builder an entity's own static <c>Configure</c> runs after this and can say
     /// otherwise. An entity added with its key still at the default is refused at save by
     /// <see cref="AuditingInterceptor" /> rather than inserted with an empty key.
     /// </para>

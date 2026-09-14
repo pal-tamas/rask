@@ -11,60 +11,25 @@ namespace Rask.Generators.Shared;
 
 /// <summary>The part a property of an entity plays in its generated model.</summary>
 /// <remarks>
-/// There is no key role: the model never carries <c>Model&lt;TId&gt;.Id</c> (see <see cref="ModelShape.Key" />).
+/// There is no key role: the model never carries <c>Model&lt;TId&gt;.Id</c> (see <see cref="ModelShape" />).
 /// </remarks>
 internal enum ModelMemberRole
 {
-    /// <summary>An ordinary value, copied both ways.</summary>
+    /// <summary>An ordinary value.</summary>
     Value,
 
-    /// <summary>An <c>IVersioned</c> entity's <c>int Version</c>: read into the model, never written back.</summary>
+    /// <summary>An <c>IVersioned</c> entity's <c>int Version</c>, the token an edit form carries back.</summary>
     Version,
 }
 
-/// <summary>How generated code rebuilds a value object from its nested model, best first.</summary>
-internal enum ModelValueObjectBuild
-{
-    /// <summary>A PUBLIC constructor naming every property — a positional record: <c>new Money(amount, currency)</c>.</summary>
-    Constructor,
-
-    /// <summary>A PUBLIC parameterless constructor and a public setter on every property: <c>new Money { Amount = … }</c>.</summary>
-    Initializer,
-
-    /// <summary>A non-public constructor naming every property, called through <c>[UnsafeAccessor]</c>.</summary>
-    AccessorConstructor,
-
-    /// <summary>
-    ///     A parameterless constructor of any accessibility, then every property written: a public setter
-    ///     directly, a non-public setter or a backing field through <c>[UnsafeAccessor]</c>.
-    /// </summary>
-    AccessorMembers,
-}
-
-/// <summary>How generated code gets a value back into an entity property.</summary>
-internal enum ModelWriteKind
-{
-    /// <summary>A public setter, assigned directly.</summary>
-    Public,
-
-    /// <summary>A non-public setter, reached through an <c>[UnsafeAccessor]</c> method.</summary>
-    Setter,
-
-    /// <summary>No usable setter but a compiler backing field, reached through an <c>[UnsafeAccessor]</c> field.</summary>
-    Field,
-}
-
 /// <summary>One property of an entity that its generated model carries.</summary>
-internal sealed class ModelMember(IPropertySymbol property, ModelMemberRole role, ModelWriteKind? write, ModelValueObject? valueObject)
+internal sealed class ModelMember(IPropertySymbol property, ModelMemberRole role, ModelValueObject? valueObject)
 {
     /// <summary>The entity's property; the model's property has the same name.</summary>
     public IPropertySymbol Property { get; } = property;
 
     /// <summary>The part it plays.</summary>
     public ModelMemberRole Role { get; } = role;
-
-    /// <summary>How it is written back. Null only for <see cref="ModelMemberRole.Version" />, which never is.</summary>
-    public ModelWriteKind? Write { get; } = write;
 
     /// <summary>The nested model standing in for a value object, or null for a plain value.</summary>
     public ModelValueObject? ValueObject { get; } = valueObject;
@@ -75,15 +40,12 @@ internal sealed class ModelMember(IPropertySymbol property, ModelMemberRole role
 
 /// <summary>The nested model a value object becomes: <c>ProductModel.MoneyModel</c> for <c>Money</c>.</summary>
 /// <remarks>
-/// However the value object itself is built, its nested model is always a generated mutable class — so the wire
-/// shape and the TypeScript read only <see cref="ModelName" /> and <see cref="Members" />, never the build.
+/// However the value object itself is declared — a positional record, private setters — its nested model is a
+/// generated mutable class a form can bind into.
 /// </remarks>
 internal sealed class ModelValueObject(
     INamedTypeSymbol type,
     string modelName,
-    ModelValueObjectBuild build,
-    IMethodSymbol constructor,
-    IReadOnlyList<IPropertySymbol>? constructorOrder,
     IReadOnlyList<ModelValueObjectMember> members)
 {
     /// <summary>The value object's own type.</summary>
@@ -92,33 +54,15 @@ internal sealed class ModelValueObject(
     /// <summary>The nested class's simple name, unique within its model.</summary>
     public string ModelName { get; } = modelName;
 
-    /// <summary>How the value object is rebuilt from the model.</summary>
-    public ModelValueObjectBuild Build { get; } = build;
-
-    /// <summary>The constructor it is built through: the one naming every property, or the parameterless one.</summary>
-    public IMethodSymbol Constructor { get; } = constructor;
-
-    /// <summary>The properties in constructor-parameter order, or null when it is rebuilt by object initializer.</summary>
-    public IReadOnlyList<IPropertySymbol>? ConstructorOrder { get; } = constructorOrder;
-
-    /// <summary>Whether the value object is rebuilt through a constructor naming every property.</summary>
-    public bool ByConstructor => ConstructorOrder is not null;
-
     /// <summary>Its properties, in declaration order.</summary>
     public IReadOnlyList<ModelValueObjectMember> Members { get; } = members;
 }
 
 /// <summary>One property of a value object's nested model.</summary>
-internal sealed class ModelValueObjectMember(IPropertySymbol property, ModelValueObject? valueObject, ModelWriteKind? write)
+internal sealed class ModelValueObjectMember(IPropertySymbol property, ModelValueObject? valueObject)
 {
     /// <summary>The value object's property.</summary>
     public IPropertySymbol Property { get; } = property;
-
-    /// <summary>
-    ///     For <see cref="ModelValueObjectBuild.AccessorMembers" />: how the property is written after construction.
-    ///     Null for every other build.
-    /// </summary>
-    public ModelWriteKind? Write { get; } = write;
 
     /// <summary>The nested model for a value object inside a value object, or null for a plain value.</summary>
     public ModelValueObject? ValueObject { get; } = valueObject;
@@ -128,30 +72,18 @@ internal sealed class ModelValueObjectMember(IPropertySymbol property, ModelValu
 }
 
 /// <summary>Everything the generated model of one entity is made of.</summary>
+/// <remarks>
+/// The model never carries <c>Model&lt;TId&gt;.Id</c>. It is what a form posts back, so a key on it would be a key the
+/// client chooses: an edit could be re-pointed at any row by changing one field (overposting). The id travels beside
+/// it — a route parameter, or a command property the handler loads the row by.
+/// </remarks>
 internal sealed class ModelShape(
     INamedTypeSymbol entity,
-    ITypeSymbol? idType,
-    IPropertySymbol? key,
     IReadOnlyList<ModelMember> members,
     IReadOnlyList<ModelValueObject> valueObjects)
 {
     /// <summary>The entity.</summary>
     public INamedTypeSymbol Entity { get; } = entity;
-
-    /// <summary>The <c>TId</c> of <c>Model&lt;TId&gt;</c>, or null for an entity on the non-generic base.</summary>
-    public ITypeSymbol? IdType { get; } = idType;
-
-    /// <summary>
-    ///     <c>Model&lt;TId&gt;.Id</c>, which the model deliberately does NOT carry — or null for an entity on the
-    ///     non-generic base.
-    /// </summary>
-    /// <remarks>
-    ///     A model is what a form posts back, so a key on it is a key the client chooses: an edit could be
-    ///     re-pointed at any row by changing one field (overposting). The id travels beside the model instead —
-    ///     <c>UpdateAsync(id, model)</c> — and a create never takes one. It is exposed here only for the generated
-    ///     create to assign a key EF Core would not generate.
-    /// </remarks>
-    public IPropertySymbol? Key { get; } = key;
 
     /// <summary>The model's properties, in the order they are emitted.</summary>
     public IReadOnlyList<ModelMember> Members { get; } = members;
@@ -414,15 +346,12 @@ internal static class GeneratedModelShape
     /// <summary>The properties and value-object models the generated model of <paramref name="entity" /> carries.</summary>
     public static ModelShape Describe(INamedTypeSymbol entity, CancellationToken cancellationToken = default)
     {
-        TryGetIdType(entity, out var idType);
-
         var timestamped = Implements(entity, "Rask.Data.ITimestamped");
         var softDeletable = Implements(entity, "Rask.Data.ISoftDeletable");
         var versioned = Implements(entity, "Rask.Data.IVersioned");
 
         var valueObjects = new ValueObjectCollector(ModelName(entity));
         var members = new List<ModelMember>();
-        IPropertySymbol? key = null;
 
         foreach (var property in Properties(entity))
         {
@@ -430,7 +359,6 @@ internal static class GeneratedModelShape
 
             if (IsKey(property))
             {
-                key = property;
                 continue;
             }
 
@@ -440,7 +368,7 @@ internal static class GeneratedModelShape
             }
         }
 
-        return new ModelShape(entity, idType, key, members, valueObjects.Shapes);
+        return new ModelShape(entity, members, valueObjects.Shapes);
     }
 
     // Derived members first, so a property re-declared lower down hides the base one by name.
@@ -492,31 +420,13 @@ internal static class GeneratedModelShape
             ? ModelMemberRole.Version
             : ModelMemberRole.Value;
 
-        // The version is read, never written (the auditing interceptor owns it), so it needs no way in.
-        var write = role == ModelMemberRole.Version ? null : WriteKindOf(property);
-        if (write is null && role != ModelMemberRole.Version)
-        {
-            // Computed — no setter and no backing field — so EF Core does not map it either.
-            return null;
-        }
-
-        return new ModelMember(property, role, write, valueObjects.Of(property.Type, 0, ImmutableHashSet<string>.Empty));
-    }
-
-    /// <summary>How generated code writes <paramref name="property" />, or null when it cannot.</summary>
-    public static ModelWriteKind? WriteKindOf(IPropertySymbol property)
-    {
-        if (!IsNameableFromGeneratedCode(property.ContainingType))
+        // Computed — no setter of any accessibility and no backing field — so EF Core does not map it either.
+        if (property.SetMethod is null && !HasBackingField(property))
         {
             return null;
         }
 
-        if (property.SetMethod is { IsInitOnly: false } setter)
-        {
-            return setter.DeclaredAccessibility == Accessibility.Public ? ModelWriteKind.Public : ModelWriteKind.Setter;
-        }
-
-        return HasBackingField(property) ? ModelWriteKind.Field : null;
+        return new ModelMember(property, role, valueObjects.Of(property.Type, 0, ImmutableHashSet<string>.Empty));
     }
 
     /// <summary>
@@ -573,64 +483,12 @@ internal static class GeneratedModelShape
                 return null;
             }
 
-            // How it is rebuilt from the model, best first. The public shapes are plain C#. The non-public ones — a
-            // private constructor, or `{ get; private set; }`, which is what RASK084 steers a value object
-            // towards — go through [UnsafeAccessor], so they need a type generated code can name, and a
-            // non-generic one: an accessor into a generic type has to be declared generic itself. Anything else
-            // is copied across as the value itself, and a form cannot bind into it.
-            var fullConstructors = named.InstanceConstructors
-                .Where(c => c.Parameters.Length == properties.Count &&
-                            c.Parameters.All(parameter =>
-                                properties.Any(p => string.Equals(p.Name, parameter.Name, StringComparison.OrdinalIgnoreCase))))
-                .ToList();
-            var parameterless = named.InstanceConstructors.FirstOrDefault(static c => c.Parameters.Length == 0);
-            var reachable = !named.IsGenericType && IsNameableFromGeneratedCode(named);
-            var writes = properties.Select(WriteKindOf).ToList();
-
-            ModelValueObjectBuild build;
-            IMethodSymbol constructor;
-            if (fullConstructors.FirstOrDefault(static c => c.DeclaredAccessibility == Accessibility.Public) is { } open)
-            {
-                build = ModelValueObjectBuild.Constructor;
-                constructor = open;
-            }
-            else if (parameterless is { DeclaredAccessibility: Accessibility.Public } &&
-                     properties.All(static p => p.SetMethod is { DeclaredAccessibility: Accessibility.Public }))
-            {
-                build = ModelValueObjectBuild.Initializer;
-                constructor = parameterless;
-            }
-            else if (reachable && fullConstructors.Count > 0)
-            {
-                build = ModelValueObjectBuild.AccessorConstructor;
-                constructor = fullConstructors[0];
-            }
-            else if (reachable && parameterless is not null && writes.All(static w => w is not null))
-            {
-                build = ModelValueObjectBuild.AccessorMembers;
-                constructor = parameterless;
-            }
-            else
-            {
-                return null;
-            }
-
             var inner = seen.Add(typeName);
             var members = properties
-                .Select((p, i) => new ModelValueObjectMember(
-                    p,
-                    Of(p.Type, depth + 1, inner),
-                    build == ModelValueObjectBuild.AccessorMembers ? writes[i] : null))
+                .Select(p => new ModelValueObjectMember(p, Of(p.Type, depth + 1, inner)))
                 .ToList();
 
-            var order = build is ModelValueObjectBuild.Constructor or ModelValueObjectBuild.AccessorConstructor
-                ? constructor.Parameters
-                    .Select(parameter =>
-                        properties.First(p => string.Equals(p.Name, parameter.Name, StringComparison.OrdinalIgnoreCase)))
-                    .ToList()
-                : null;
-
-            var shape = new ModelValueObject(named, UniqueName(named.Name + ModelSuffix), build, constructor, order, members);
+            var shape = new ModelValueObject(named, UniqueName(named.Name + ModelSuffix), members);
             _byType[typeName] = shape;
             Shapes.Add(shape);
             return shape;
@@ -679,19 +537,6 @@ internal static class GeneratedModelShape
         var definition = property.OriginalDefinition;
         return definition.ContainingType.GetMembers().OfType<IFieldSymbol>()
             .Any(f => SymbolEqualityComparer.Default.Equals(f.AssociatedSymbol, definition));
-    }
-
-    private static bool IsNameableFromGeneratedCode(INamedTypeSymbol type)
-    {
-        for (var current = type; current is not null; current = current.ContainingType)
-        {
-            if (current.DeclaredAccessibility is not (Accessibility.Public or Accessibility.Internal))
-            {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     private static bool IsNavigationOrCollection(ITypeSymbol type)

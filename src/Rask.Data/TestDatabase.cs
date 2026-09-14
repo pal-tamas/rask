@@ -89,7 +89,7 @@ public sealed class TestDatabase : IAsyncDisposable
     /// <summary>The fixture's own context — the way to seed rows and to run a domain operation under test.</summary>
     /// <remarks>
     ///     One long-lived, tracking context for the fixture's lifetime, so an entity added through it stays
-    ///     tracked here. The model surface (<c>Product.Where(…)</c>, the generated writes) opens contexts of
+    ///     tracked here. The model surface (<c>Product.Where(…)</c>, <c>Product.FindAsync(id)</c>) opens contexts of
     ///     its own and sees only what was saved.
     /// </remarks>
     public RaskDbContext Context => _schemaOwner;

@@ -46,7 +46,8 @@ public sealed class ShadowColumnTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
 
-        await GeneratedModelWrites.CreateAsync(Memo.Write("first"));
+        database.Context.Add(Memo.Write("first"));
+        await database.Context.SaveChangesAsync();
 
         var created = await Memo.All.QueryAsync((q, ct) =>
             q.Select(n => EF.Property<DateTime>(n, "CreatedAt")).ToListAsync(ct));
@@ -60,9 +61,12 @@ public sealed class ShadowColumnTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
 
-        var note = await GeneratedModelWrites.CreateAsync(Memo.Write("doomed"));
+        var note = Memo.Write("doomed");
+        database.Context.Add(note);
+        await database.Context.SaveChangesAsync();
 
-        await GeneratedModelWrites.DeleteAsync<Memo>(note.Id, version: null);
+        database.Context.Remove(note);
+        await database.Context.SaveChangesAsync();
 
         Assert.Equal(0, await Memo.CountAsync());
         Assert.Equal(1, await Memo.IgnoreQueryFilters().CountAsync());
@@ -163,18 +167,21 @@ public sealed class ShadowColumnTests : IDisposable
     }
 
     [Fact]
-    public async Task A_generated_update_stamps_the_shadow_UpdatedAt_and_leaves_CreatedAt()
+    public async Task An_update_stamps_the_shadow_UpdatedAt_and_leaves_CreatedAt()
     {
-        // The generated update loads the row into a context, so the shadow columns are in the change
-        // tracker where the interceptor can stamp them — the class never having seen them.
+        // Saved through a context, so the shadow columns are in the change tracker where the interceptor
+        // can stamp them — the class never having seen them.
         var start = new DateTimeOffset(2026, 3, 1, 12, 0, 0, TimeSpan.Zero);
         var clock = new FakeClock(start);
         await using var database = await StartDatabaseAsync(clock);
 
-        var note = await GeneratedModelWrites.CreateAsync(Memo.Write("once"));
+        var note = Memo.Write("once");
+        database.Context.Add(note);
+        await database.Context.SaveChangesAsync();
 
         clock.UtcNow = start.AddHours(1);
-        await GeneratedModelWrites.UpdateAsync<Memo>(note.Id, version: null, m => m.Edit("twice"));
+        note.Edit("twice");
+        await database.Context.SaveChangesAsync();
 
         var stored = await Memo.All.QueryAsync((q, ct) => q
             .Select(n => new

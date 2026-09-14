@@ -26,7 +26,7 @@ There is no connection string in `Program.cs`: `UseRaskSqlite` reads `Rask:Conne
 `appsettings.json` — `Data Source=app.db` while you develop — which is why it takes the service provider.
 
 It is a drop-in for `UseSqlite` that also installs the pragma interceptor — one word, and every background
-processor (jobs, mail, outbox), every page, and every `Product.Where(…)` or `Product.CreateAsync(…)` shares a
+processor (jobs, mail, outbox), every page, and every `Product.Where(…)` and every command handler shares a
 connection that won't spuriously fail under load. `StrictTables` makes SQLite enforce each column's declared
 type rather than quietly storing the text `"lots"` in an `INTEGER` column — see
 [STRICT tables](../sqlite.md#strict-tables--making-the-store-enforce-your-types). Retrofitting an existing app

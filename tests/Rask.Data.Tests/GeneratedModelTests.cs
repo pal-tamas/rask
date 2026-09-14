@@ -16,11 +16,10 @@ public sealed record Money(decimal Amount, string Currency) : IValueObject;
 // through its constructor, and EF cannot bind a *nested* complex type to a constructor parameter — it
 // says so at model build ("Cannot bind 'Cost' in Packaging(Money Cost, string Material)"). So a value
 // object that contains another value object needs a parameterless constructor and writable properties —
-// both may be private (RASK084), since EF Core and the generated model reach them the way they reach an
-// entity's. One holding only scalars, like Money above, has no such constraint.
+// both may be private (RASK084), since EF Core reaches them the way it reaches an entity's. One holding only scalars, like Money above, has no such constraint.
 public sealed class Packaging : IValueObject
 {
-    private Packaging() { } // EF materialization, and the generated PackagingModel's writes
+    private Packaging() { } // EF materialization
 
     public Packaging(Money cost, string material)
     {
@@ -146,9 +145,7 @@ public sealed class GeneratedModelTests : IDisposable
     {
         await SeedAsync(Gadget.Create("first", "SAME", 1m));
 
-        // Through the generated create, so its failure reaches the caller as EF's own exception.
-        await Assert.ThrowsAsync<DbUpdateException>(() =>
-            GeneratedModelWrites.CreateAsync(Gadget.Create("second", "SAME", 2m)));
+        await Assert.ThrowsAsync<DbUpdateException>(() => SeedAsync(Gadget.Create("second", "SAME", 2m)));
     }
 
     [Fact]

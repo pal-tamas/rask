@@ -24,11 +24,9 @@ namespace Rask.Data;
 ///         between calls, and nothing a read returns is being watched for changes.
 ///     </para>
 ///     <para>
-///         <b>Writes are not here.</b> The source generator gives every model a form-shaped companion and
-///         the writes that take it — <c>Product.CreateAsync(ProductModel)</c>,
-///         <c>Product.UpdateAsync(id, ProductModel)</c>, <c>Product.DeleteAsync(id)</c>. Anything richer — a
-///         domain operation such as <c>order.Cancel()</c>, several changes in one transaction — is ordinary
-///         EF Core: inject the context and call <c>SaveChangesAsync</c>.
+///         <b>Writes are not here.</b> Creating, changing and deleting are ordinary EF Core — a CQRS
+///         handler injects the context (a live page, its factory), loads the entity, calls its method and
+///         calls <c>SaveChangesAsync</c>, so the entity's own rules and the interceptors always run.
 ///     </para>
 ///     <para>
 ///         A member declared on the entity itself always wins over one of these, so an entity with its own

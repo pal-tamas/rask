@@ -7,9 +7,8 @@ namespace Rask.Data;
 /// <remarks>
 ///     <para>
 ///         Every mapped property of a <see cref="Model" /> is copied onto its generated <c>ProductModel</c>
-///         by default, which is what a create or edit form wants. Mark the ones a form must never write — a
-///         rating the application computes, a counter it maintains — and they are neither on the model nor
-///         assigned by <c>Product.CreateAsync(model)</c> or <c>Product.UpdateAsync(id, model)</c>.
+///         by default, which is what a create or edit form wants. Mark the ones a form must never edit — a
+///         rating the application computes, a counter it maintains — and they are left off the model.
 ///     </para>
 ///     <para>
 ///         On the class, it is the way out for an entity that already has a hand-written

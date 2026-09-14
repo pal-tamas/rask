@@ -1,6 +1,5 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Query;
 
 namespace Rask.Data;
 
@@ -22,8 +21,8 @@ namespace Rask.Data;
 ///     <para>
 ///         <b>Rows always come back untracked.</b> Most reads are rendered and never written back, and the
 ///         context is discarded as the call returns, so tracking would cost a graph walk and an identity-map
-///         entry to buy nothing. A change goes back through the generated <c>Product.UpdateAsync(id, model)</c>,
-///         or through an injected context when it is a domain operation.
+///         entry to buy nothing. Nothing here writes: a change is a domain method saved through an injected
+///         context, which loads the entity it is about to change.
 ///     </para>
 ///     <para>
 ///         Every operator returns a new instance, so a partially-built query is safe to hold in a field and
@@ -186,77 +185,6 @@ public sealed class ModelQuery<TEntity>
     /// <summary>Whether the query matches any row.</summary>
     public Task<bool> AnyAsync(CancellationToken cancellationToken = default) =>
         RunAsync(static (q, ct) => q.AnyAsync(ct), cancellationToken);
-
-    /// <summary>
-    ///     Deletes every matching row in one statement, without loading them.
-    /// </summary>
-    /// <remarks>
-    ///     <b>This bypasses the interceptors.</b> It is a <c>DELETE … WHERE</c> issued by the database, so
-    ///     nothing raises a domain event, stamps <c>UpdatedAt</c>, or turns the delete into a soft delete —
-    ///     an <see cref="ISoftDeletable" /> deleted this way is really gone. That is the trade for not
-    ///     round-tripping the rows; when you want the conventions, delete through the generated
-    ///     <c>Product.DeleteAsync(id)</c> or an injected context.
-    /// </remarks>
-    public Task<int> ExecuteDeleteAsync(CancellationToken cancellationToken = default) =>
-        RunAsync(static (q, ct) => q.ExecuteDeleteAsync(ct), cancellationToken);
-
-    /// <summary>
-    ///     Updates every matching row in one statement, without loading them.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///         One <c>UPDATE … WHERE</c>, so a million rows cost one round trip rather than a million
-    ///         entities in memory. The setters may read the row they are updating, which is what makes a
-    ///         counter or a relative adjustment possible in the database:
-    ///     </para>
-    ///     <example>
-    ///         <code>
-    /// await Product.Where(p =&gt; p.Discontinued)
-    ///     .ExecuteUpdateAsync(s =&gt; s
-    ///         .SetProperty(p =&gt; p.Active, false)
-    ///         .SetProperty(p =&gt; p.Price, p =&gt; p.Price * 0.9m));
-    ///         </code>
-    ///     </example>
-    ///     <para>
-    ///         <b>This bypasses the interceptors</b>, exactly as EF Core's own <c>ExecuteUpdateAsync</c>
-    ///         does, and the omissions are the conventions Rask.Data otherwise maintains for you: no
-    ///         <c>UpdatedAt</c> stamp, no <c>Version</c> bump, and no domain events — nothing was loaded to
-    ///         raise any. Set them yourself when they matter:
-    ///     </para>
-    ///     <example>
-    ///         <code>
-    /// await Product.Where(p =&gt; p.Discontinued)
-    ///     .ExecuteUpdateAsync(s =&gt; s
-    ///         .SetProperty(p =&gt; p.Active, false)
-    ///         .SetProperty(p =&gt; p.UpdatedAt, DateTime.UtcNow)
-    ///         .SetProperty(p =&gt; p.Version, p =&gt; p.Version + 1));
-    ///         </code>
-    ///     </example>
-    ///     <para>
-    ///         A batch <em>soft</em> delete is this, not <see cref="ExecuteDeleteAsync" /> — which really
-    ///         deletes, an <see cref="ISoftDeletable" /> included:
-    ///     </para>
-    ///     <example>
-    ///         <code>
-    /// await Product.Where(p =&gt; p.Discontinued)
-    ///     .ExecuteUpdateAsync(s =&gt; s.SetProperty(p =&gt; p.DeletedAt, DateTime.UtcNow));
-    ///         </code>
-    ///     </example>
-    ///     <para>
-    ///         The rule of thumb: reach for this when the work is a statement the database can do on its
-    ///         own, and load-then-save when the conventions and the domain events are the point.
-    ///     </para>
-    /// </remarks>
-    /// <param name="setters">The columns to write, chained with <c>SetProperty</c>.</param>
-    /// <param name="cancellationToken">Cancels the statement.</param>
-    /// <returns>The number of rows updated.</returns>
-    public Task<int> ExecuteUpdateAsync(
-        Action<UpdateSettersBuilder<TEntity>> setters,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(setters);
-        return RunAsync((q, ct) => q.ExecuteUpdateAsync(setters, ct), cancellationToken);
-    }
 
     /// <summary>Enumerates the query, streaming rows as the database produces them.</summary>
     /// <remarks>

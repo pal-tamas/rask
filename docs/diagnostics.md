@@ -114,7 +114,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK078](#rask078) | Error | Props snapshot cannot be read |
 | [RASK079](#rask079) | Error | Props snapshot describes a different component |
 | [RASK080](#rask080) | Warning | Package prop was not generated |
-| [RASK081](#rask081) | Warning | Entity has no parameterless constructor, so `CreateAsync(model)` is not generated |
+| RASK081 | — | *Retired* — the generated writes are gone, so a model needs no constructor |
 | [RASK082](#rask082) | Error | A type already has the generated model's name |
 | [RASK083](#rask083) | Warning | Nested entity gets no generated model |
 | [RASK084](#rask084) | Warning | Model state can be changed from outside the type |
@@ -1849,36 +1849,9 @@ public sealed partial class MuiToggle : ReactComponent
 ```
 
 ## RASK081
-
-**Entity has no parameterless constructor, so `CreateAsync(model)` is not generated** · Warning
-
-Every `Rask.Data.Model` gets a generated form model — `ProductModel` for `Product` — and the writes that
-take it ([data guide](data.md)). `Product.CreateAsync(model)` builds a new entity before inserting it, and
-it starts from a constructor that takes nothing. It may be private: it is reached the way EF Core reaches
-the constructor it materializes rows through. An entity whose only constructors take arguments leaves it
-nothing to start from.
-
-```csharp
-public sealed class Product : Model<Guid>
-{
-    public Product(string name) => Name = name;   // ⚠ RASK081 — the only constructor takes a name
-
-    public string Name { get; private set; }
-}
-```
-
-**Fix:** add a parameterless constructor. Keep it private, and the domain's own constructor stays the
-only public way to make one:
-
-```csharp
-private Product() { }                            // ✓ for EF Core and the generated CreateAsync
-public Product(string name) => Name = name;
-```
-
-Everything that works on a row that already exists is still generated — `ProductModel`,
-`product.ToModel()`, `Product.UpdateAsync(id, model)` and `Product.DeleteAsync(id)` — so the rest of the form
-flow keeps working. An entity that is never created from a form can be inserted with plain EF Core
-instead; mark it `[SkipModel]` if it should have no form model at all.
+*Retired.* It warned that an entity with no parameterless constructor got no generated `CreateAsync(model)`.
+`Rask.Data` no longer generates writes — the generated `{Entity}Model` is only a form shape, and a write is
+plain EF Core — so there is nothing left that needs a constructor. The id is retired, not reused.
 
 ---
 
@@ -1889,8 +1862,7 @@ instead; mark it `[SkipModel]` if it should have no form model at all.
 The generated form model is emitted beside its entity, in the same namespace, as `{Entity}Model`. A
 hand-written, non-`partial` type of that name — often a request model written before the generator
 existed — would collide with it as `CS0101`, a message that names neither the generator nor the way
-out. So the generator stands down for that entity and says why: no `ProductModel`, and no
-`CreateAsync`, `UpdateAsync` or `DeleteAsync`.
+out. So the generator stands down for that entity and says why: no `ProductModel` is generated.
 
 ```csharp
 public sealed class Product : Model<Guid> { /* … */ }
@@ -1924,9 +1896,9 @@ to add members, interfaces such as `IValidatableObject`, or computed display val
 
 **Nested entity gets no generated model** · Warning
 
-The generated model and the extension class holding its writes are siblings of the entity in its
-namespace. An entity declared inside another type has no such place to put them, so it is still mapped
-— it gets its table like any other — but no form model is generated for it.
+The generated model is a sibling of the entity in its namespace. An entity declared inside another type
+has no such place to put it, so it is still mapped — it gets its table like any other — but no form model
+is generated for it.
 
 ```csharp
 public static class Catalog
@@ -1941,7 +1913,7 @@ model is intended:
 ```csharp
 namespace Shop.Catalog;
 
-public sealed class Product : Model<Guid> { }      // ✓ gets ProductModel and its writes
+public sealed class Product : Model<Guid> { }      // ✓ gets ProductModel
 ```
 
 ---
@@ -1950,11 +1922,15 @@ public sealed class Product : Model<Guid> { }      // ✓ gets ProductModel and 
 
 **Model state can be changed from outside the type** · Warning
 
-An entity — a class deriving from `Rask.Data.Model`, including your own abstract base classes between
-`Model` and the entity — and a value object (`IValueObject`) are changed only by themselves. The
-generated form model writes an entity through its private setters, so nothing in the framework needs a
-public one; a public setter is only a way for any caller to go around the methods that keep the entity
-valid.
+**A hint, never a rule.** A public setter on an entity compiles, maps and saves like any other property, and
+nothing in Rask requires a private one — this warning only points out that the state can be changed from
+outside. It is never an error, and an app that prefers open entities silences it the usual way
+(`dotnet_diagnostic.RASK084.severity = none` in `.editorconfig`, or `<NoWarn>RASK084</NoWarn>`).
+
+The case for listening to it: an entity — a class deriving from `Rask.Data.Model`, including your own
+abstract base classes between `Model` and the entity — and a value object (`IValueObject`) whose state
+changes only through their own methods keep their rules in one place. EF Core materialises through private
+setters and a private constructor, so nothing in the framework needs a public one.
 
 Reported, at the accessor or the field:
 
@@ -1981,7 +1957,7 @@ public sealed record Address : IValueObject
 ```csharp
 public sealed class Product : Model<Guid>
 {
-    private Product() { }                              // for EF Core and the generated CreateAsync
+    private Product() { }                              // for EF Core
 
     public Product(string name) => Name = name;
 

@@ -17,7 +17,6 @@ Rask.Data.Columns
 Rask.Data.Db
 Rask.Data.DomainEventInterceptor
 Rask.Data.DomainEventInterceptor.DomainEventInterceptor(Microsoft.Extensions.DependencyInjection.IServiceScopeFactory! scopeFactory, Rask.Data.RaskDataOptions! options, System.Collections.Generic.IEnumerable<Rask.Data.IDomainEventDeliveryOwner!>! deliveryOwners) -> void
-Rask.Data.GeneratedModelWrites
 Rask.Data.IDomainEventDeliveryOwner
 Rask.Data.IDomainEventDeliveryOwner.Name.get -> string!
 Rask.Data.IHasDomainEvents
@@ -43,8 +42,6 @@ Rask.Data.ModelQuery<TEntity>.AsAsyncEnumerable(System.Threading.CancellationTok
 Rask.Data.ModelQuery<TEntity>.AsQueryable() -> System.Linq.IQueryable<TEntity!>!
 Rask.Data.ModelQuery<TEntity>.AsSplitQuery() -> Rask.Data.ModelQuery<TEntity!>!
 Rask.Data.ModelQuery<TEntity>.CountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
-Rask.Data.ModelQuery<TEntity>.ExecuteDeleteAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
-Rask.Data.ModelQuery<TEntity>.ExecuteUpdateAsync(System.Action<Microsoft.EntityFrameworkCore.Query.UpdateSettersBuilder<TEntity!>!>! setters, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
 Rask.Data.ModelQuery<TEntity>.FirstOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<TEntity!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
 Rask.Data.ModelQuery<TEntity>.FirstOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
 Rask.Data.ModelQuery<TEntity>.IgnoreQueryFilters() -> Rask.Data.ModelQuery<TEntity!>!
@@ -134,9 +131,6 @@ static Rask.Data.Db.Configure(System.IServiceProvider! services) -> void
 static Rask.Data.Db.Configure<TContext>(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! factory) -> void
 static Rask.Data.Db.IsConfigured.get -> bool
 static Rask.Data.Db.Reset() -> void
-static Rask.Data.GeneratedModelWrites.CreateAsync<TEntity>(TEntity! entity, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity!>!
-static Rask.Data.GeneratedModelWrites.DeleteAsync<TEntity>(object! key, int? version, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-static Rask.Data.GeneratedModelWrites.UpdateAsync<TEntity>(object! key, int? version, System.Action<TEntity!>! apply, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity!>!
 static Rask.Data.ModelBuilderExtensions.ApplyRaskConventions(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
 static Rask.Data.ModelRegistry.Apply(Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
 static Rask.Data.ModelRegistry.ApplyConventions(Microsoft.EntityFrameworkCore.ModelConfigurationBuilder! configurationBuilder) -> Microsoft.EntityFrameworkCore.ModelConfigurationBuilder!

@@ -9,14 +9,13 @@ namespace Rask.Data;
 /// <remarks>
 ///     <para>
 ///         Every read on a model — <c>Product.Where(…)</c>, <c>Product.FindAsync(id)</c>,
-///         <c>Product.AsQueryable()</c> — and every generated write — <c>Product.CreateAsync(model)</c>,
-///         <c>Product.UpdateAsync(id, model)</c>, <c>Product.DeleteAsync(id)</c> — opens a fresh context from
-///         here and disposes it before it returns. Nothing is ambient and nothing stays tracked between
+///         <c>Product.AsQueryable()</c> — opens a fresh context from here and disposes it before it
+///         returns. Nothing is ambient and nothing stays tracked between
 ///         calls, which is what makes a model safe to read from a page that lives as long as the browser
 ///         keeps its socket open.
 ///     </para>
 ///     <para>
-///         <b>Work that spans several changes is ordinary EF Core.</b> A domain operation such as
+///         <b>Writes are ordinary EF Core.</b> A domain operation such as
 ///         <c>order.Cancel()</c>, or a transaction over two aggregates, injects the context — or its
 ///         <see cref="IDbContextFactory{TContext}" /> — and calls <c>SaveChangesAsync</c> itself. There is
 ///         no Rask-owned unit of work to learn.
