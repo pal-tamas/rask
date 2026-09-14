@@ -1,8 +1,13 @@
 # Data access (EF Core + SQLite)
 
-Rask has no data layer of its own — you use whatever .NET gives you. This guide shows the
-idiomatic way to wire **EF Core + SQLite** into a Rask **Server** app: register the context, load
-data in the component lifecycle, and run forms against persisted state.
+Rask ships a data layer, [`Rask.Data`](data.md): declare a `Model<TId>` and read and write it off the
+type — `Product.Where(…)`, `Product.CreateAsync(model)` — with no `DbContext` to write. **Start there.**
+
+This guide is the other road: **plain EF Core + SQLite**, with a `DbContext` of your own, for an app
+that opts out of the model conventions or entities that do not derive from `Model`. It shows the
+idiomatic way to wire that into a Rask **Server** app: register the context, load data in the
+component lifecycle, and run forms against persisted state. The lifetime rules below hold on either
+road — `Rask.Data` follows them for you.
 
 > WASM note: this is a Server-side pattern. EF Core's SQLite provider isn't a fit for the trimmed
 > browser runtime — keep data access behind the server (a Server host, or an API the WASM app calls).
