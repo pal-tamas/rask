@@ -185,6 +185,34 @@ public class PrerenderShellTests
         Assert.Contains("data-rask-ui", tag, StringComparison.Ordinal);
     }
 
+    // Regression: the published page's <body> was the SHELL's, so a BodyClass — the app's ground and text
+    // colour — was missing until the runtime's first frame morphed it on, and the page restyled at hydration.
+    // rask.sh's `bg-ui-well` hid it only because that class happens to match the page ground.
+    [Fact]
+    public void TheDocumentsBodyAttributesSurviveTheMerge_AndTheShellStillWinsAConflict()
+    {
+        const string styled =
+            """
+            <!doctype html><html lang="en"><head><title>T</title></head>
+            <body data-rask-root="wasm" class="bg-slate-900 text-white"><h1>Hi</h1></body></html>
+            """;
+
+        var merged = PrerenderShell.Merge(Shell, styled);
+
+        var open = merged.IndexOf("<body", StringComparison.Ordinal);
+        var gt = merged.IndexOf('>', open);
+        var tag = merged[open..gt];
+
+        Assert.Contains("class=\"bg-slate-900 text-white\"", tag, StringComparison.Ordinal);
+
+        // The shell's own marker is what the boot script finds its root by; the render does not replace it.
+        Assert.DoesNotContain("data-rask-root=\"wasm\"", tag, StringComparison.Ordinal);
+        Assert.Contains("data-rask-root", tag, StringComparison.Ordinal);
+
+        // And the html merge's stamp stays on <html>, not on <body>.
+        Assert.DoesNotContain(PrerenderShell.PrerenderedAttribute, tag, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void TheBundleCanStillBoot()
     {

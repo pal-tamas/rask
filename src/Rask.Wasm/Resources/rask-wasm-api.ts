@@ -8,8 +8,9 @@
 
 // PWA web app manifest (driven by WasmHostBuilder.UseManifest / WebAppManifest). Applied at boot:
 // relative URLs are made absolute (against <base href>, so sub-path deploys stay correct), then the
-// manifest is injected as a data: URL <link rel="manifest"> plus a <meta name="theme-color">. These
-// sit beside the shell's own <base>/<link rel=icon> and aren't touched by the render head morph.
+// manifest is injected as a data: URL <link rel="manifest"> plus, when the page declares none, a
+// <meta name="theme-color">. These sit beside the shell's own <base>/<link rel=icon> and aren't touched
+// by the render head morph.
 window.__raskPwa = window.__raskPwa || {
     applyManifest: (json: string) => {
         let m: RaskManifest;
@@ -57,14 +58,16 @@ window.__raskPwa = window.__raskPwa || {
             document.head.appendChild(link);
         }
         link.href = "data:application/manifest+json," + encodeURIComponent(JSON.stringify(m));
-        if (m.theme_color) {
-            let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
-            if (!meta) {
-                meta = document.createElement("meta");
-                meta.name = "theme-color";
-                document.head.appendChild(meta);
-            }
+        // A fallback only. A theme-color the PAGE declares is the page's own head and wins: overwriting it
+        // here held for exactly one frame, until the next head morph put the page's value back — so the
+        // browser's toolbar and tab-bar tint (Safari, Chrome on Android) blinked to the manifest colour and
+        // back on every boot. It also clobbered the first tag of a light/dark `media` pair. The manifest
+        // still carries theme_color for an installed app's window.
+        if (m.theme_color && !document.querySelector('meta[name="theme-color"]')) {
+            const meta = document.createElement("meta");
+            meta.name = "theme-color";
             meta.content = m.theme_color;
+            document.head.appendChild(meta);
         }
     }
 };

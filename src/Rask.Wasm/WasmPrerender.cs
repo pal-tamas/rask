@@ -179,12 +179,19 @@ public static class WasmPrerender
         // that renders a noindex page IS written, and must still not be listed.
         var writtenPaths = new List<SitemapEntry>(paths.Count);
         var written = 0;
+        var trailingSlash = HostServesTrailingSlash();
         foreach (var path in paths)
         {
             // A scope per page, as a request would get: a page that injects something scoped must not
             // see the previous page's instance.
             using var scope = services.CreateScope();
-            scope.ServiceProvider.GetRequiredService<RouteState>().Path = path;
+
+            // The path the BROWSER will report for this file, not the route template's spelling. The page
+            // is written to {route}/index.html, which GitHub Pages serves at /docs/ — so once the bundle
+            // boots, RouteState.Path is "/docs/". Seeding the bare "/docs" here baked a document that
+            // disagreed with its own hydrated render, and anything that prints or compares the path
+            // (a breadcrumb, a "path:" badge) visibly jumped the moment the runtime took over.
+            scope.ServiceProvider.GetRequiredService<RouteState>().Path = SiteUrlPath(path, trailingSlash);
 
             var app = ActivatorUtilities.CreateInstance<TApp>(scope.ServiceProvider);
             var result = await RaskPrerender
@@ -528,11 +535,7 @@ public static class WasmPrerender
         var builder = new StringBuilder();
         builder.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
         builder.AppendLine("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
-        // Off only when the app says its host strips the slash; see TrailingSlashVariable.
-        var trailingSlash = !string.Equals(
-            Environment.GetEnvironmentVariable(TrailingSlashVariable)?.Trim(),
-            "false",
-            StringComparison.OrdinalIgnoreCase);
+        var trailingSlash = HostServesTrailingSlash();
 
         foreach (var entry in paths)
         {
@@ -616,6 +619,13 @@ public static class WasmPrerender
 
         return trailingSlash ? trimmed + "/" : trimmed;
     }
+
+    /// <summary>Off only when the app says its host strips the slash; see <see cref="TrailingSlashVariable" />.</summary>
+    private static bool HostServesTrailingSlash() =>
+        !string.Equals(
+            Environment.GetEnvironmentVariable(TrailingSlashVariable)?.Trim(),
+            "false",
+            StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Escapes the five XML entities. A route template cannot contain them today; a route is
     /// author-written text, and a sitemap that silently stops parsing is not worth the assumption.</summary>

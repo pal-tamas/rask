@@ -30,7 +30,9 @@ host.UsePwa(new WebAppManifest
     Name = "Rask WASM Showcase",
     ShortName = "Rask",
     Description = "The Rask component framework showcase, running entirely in the browser as a WASM PWA.",
-    ThemeColor = "#512BD4",
+    // The same colour App's head declares. The page's tag wins in the browser either way; this is what an
+    // installed app's window is tinted with, and two brand colours for one site is a mistake, not a choice.
+    ThemeColor = "#7c3aed",
     BackgroundColor = "#faf9fe",
     Display = DisplayMode.Standalone,
     Icons = [new ManifestIcon("icon.svg", "any", "image/svg+xml", "any maskable")],
