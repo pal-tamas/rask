@@ -215,6 +215,26 @@ Safari reveals an overlay scrollbar when a scroller's content size changes — t
 browsers draw no overlay scrollbar**, so no screenshot shows this; measure the overflow instead. Real Safari
 can only be driven after enabling Settings → Developer → "Allow remote automation" (`safaridriver`).
 
+### Refresh part-way down (`reloadprobe.cs`, `growprobe.cs`)
+
+```bash
+dotnet run reloadprobe.cs -- http://127.0.0.1:5090 /docs/guides/one-person-framework/ 2400 webkit
+dotnet run growprobe.cs   -- http://127.0.0.1:5090 /docs/guides/one-person-framework/ chromium 390
+```
+
+`reloadprobe.cs` scrolls to a depth, reloads, and logs `scrollY` and document height in every rAF plus every
+programmatic scroll with its stack — so "the page jumps on refresh" splits cleanly into *the runtime scrolled*
+(a call is listed) or *the content moved under a restored position* (height changes, no call). `growprobe.cs`
+then names the content: it snapshots every element's box on the prerendered document and again after takeover,
+and prints the DEEPEST ones that changed and anything present on one side only. A clean page prints only the
+shell's two boot `<script>`s. Expected, not defects: an island's `rask-external` (it has no prerendered size)
+and text a page can only know in a browser. WebKit also reports the theme menu's options inside a closed
+`<details>` moving by 1px, which never paints.
+
+What they found: on refresh the guides grew 4423px → 4711px, because the prerender companion was never handed
+the app's scoped `.css`, so no page carried `data-r-*` or the `rsk-css` link until WASM booted. Check a fix in
+the published bytes: `grep -o 'data-r-[0-9a-f]*' …/index.html | sort | uniq -c`.
+
 **Quote the shell's args as separate words.** Under zsh an unquoted `$cfg` is NOT split, so a loop over
 `"/ 1280 900 dark -"` requests the literal path `/ 1280 900 dark -`, gets the 404 boot shell, and shows a
 spinner-then-page "flicker" that is entirely the probe's fault. Put matrices in a bash script file.

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
@@ -46,7 +47,8 @@ internal sealed class DevToolsFeeds
 }
 
 /// <summary>
-///     What the runtime reports to while the devtools are attached: the wire traffic of every inspected session.
+///     What the runtime reports to while the devtools are attached: the wire traffic, component tree and renders of every
+///     inspected session.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -59,7 +61,7 @@ internal sealed class DevToolsFeeds
 ///         would show its own re-renders as the inspected app's traffic, growing with every refresh it caused.
 ///     </para>
 ///     <para>
-///         The component-level members are empty for now; the tree and render tabs fill them in.
+///         The handler and state members are empty for now; the perf and errors tabs fill them in.
 ///     </para>
 /// </remarks>
 internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
@@ -79,7 +81,14 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
     [ThreadStatic] private static List<DevToolsWalkItem>? t_walk;
     [ThreadStatic] private static List<DevToolsWalkItem>? t_walkBuffer;
 
-    // Holds the component ids, so a panel's expanded branches survive the next render of the page it is watching.
+    // The components whose Render() ran in that walk, beside it and reset with it. Every other component the walk passed
+    // was served from its render cache.
+    [ThreadStatic] private static List<DevToolsRenderItem>? t_renders;
+    [ThreadStatic] private static List<DevToolsRenderItem>? t_rendersBuffer;
+    [ThreadStatic] private static HashSet<Component>? t_distinct;
+
+    // Holds the component ids, so a panel's expanded branches survive the next render of the page it is watching — and the
+    // Renders tab names a component by the same id the Tree tab does.
     private readonly DevToolsTreeSnapshotter _snapshots = new();
 
     public void WalkStarted(LiveSessionBase session, bool publishOnly)
@@ -87,6 +96,7 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
         if (IsPanel(session))
         {
             t_walk = null;
+            t_renders = null;
             return;
         }
 
@@ -94,12 +104,42 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
         var buffer = t_walkBuffer ??= [];
         buffer.Clear();
         t_walk = buffer;
+        var renders = t_rendersBuffer ??= [];
+        renders.Clear();
+        t_renders = renders;
     }
 
-    public long ComponentRendering(Component component, RenderCause cause) => 0;
+    public long ComponentRendering(Component component, RenderCause cause)
+    {
+        if (t_renders is not { } renders)
+        {
+            return 0;
+        }
+
+        renders.Add(new DevToolsRenderItem(component, cause, SelfTicks: -1));
+        return Stopwatch.GetTimestamp();
+    }
 
     public void ComponentRendered(Component component, long startTimestamp)
     {
+        if (t_renders is not { } renders || startTimestamp == 0)
+        {
+            return;
+        }
+
+        var elapsed = Stopwatch.GetTimestamp() - startTimestamp;
+
+        // Render() builds markup and returns; its children render later, when the walk reaches them, so the render this
+        // closes is the newest one — searched for rather than assumed, in case a component renders another inside its own.
+        var items = CollectionsMarshal.AsSpan(renders);
+        for (var i = items.Length - 1; i >= 0; i--)
+        {
+            if (ReferenceEquals(items[i].Component, component) && items[i].SelfTicks < 0)
+            {
+                items[i].SelfTicks = elapsed;
+                return;
+            }
+        }
     }
 
     public void ComponentWalked(Component component, Component? parent, long startTimestamp, int frameStart, int frameEnd) =>
@@ -127,7 +167,9 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
         // recorded the pair. The synchronous context first — it is valid for the walk itself — with the ambient one as
         // the fallback for a render that resumed after an await.
         var walk = t_walk;
+        var renders = t_renders;
         t_walk = null;
+        t_renders = null;
 
         var services = (LiveRenderContext.CurrentSync ?? LiveRenderContext.Current)?.Services;
         if (walk is null || services is null || !_walking.TryGetValue(services, out var session))
@@ -135,9 +177,15 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
             return;
         }
 
+        var feed = feeds.For(session);
+        if (renders is not null)
+        {
+            feed.RecordCommit(renders, Distinct(walk, renders), _snapshots, Stopwatch.GetTimestamp());
+        }
+
         // Kept whether or not a panel is watching, so one that opens before the page renders again still has a tree. The
         // frame writer is still the walk's: the session pops it only after this returns.
-        feeds.For(session).RecordWalk(root, walk, FrameSinkScope.Current, session.DevToolsRenderGate, _snapshots);
+        feed.RecordWalk(root, walk, FrameSinkScope.Current, session.DevToolsRenderGate, _snapshots);
     }
 
     public void DiffComputed(LiveSessionBase session, int opCount, bool usedDiff, long startTimestamp)
@@ -170,6 +218,28 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
             ? type.GetString() ?? "?"
             : "?";
         feeds.For(session).RecordWire(DevToolsWireDirection.Out, kind, bytes, Stopwatch.GetTimestamp());
+    }
+
+    // How many components the commit went through. Not the walk alone: a component the serializer renders on a path of its
+    // own — an error boundary — runs Render() without being reported as walked.
+    private static int Distinct(List<DevToolsWalkItem> walk, List<DevToolsRenderItem> renders)
+    {
+        var seen = t_distinct ??= new HashSet<Component>(ReferenceEqualityComparer.Instance);
+        seen.Clear();
+        foreach (var item in walk)
+        {
+            seen.Add(item.Component);
+        }
+
+        foreach (var item in renders)
+        {
+            seen.Add(item.Component);
+        }
+
+        var count = seen.Count;
+        // Emptied, not kept: it would otherwise hold the page's components alive until this thread's next commit.
+        seen.Clear();
+        return count;
     }
 
     // By type first: a WASM panel session shares the page's runtime, and its route state is its own container's, so the

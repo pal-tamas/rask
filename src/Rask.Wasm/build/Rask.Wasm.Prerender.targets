@@ -71,6 +71,13 @@
       <_RaskAppResourceLinked Condition=" '%(_RaskAppResourceLinked.Link)' == '' ">
         <Link>$([MSBuild]::MakeRelative($(MSBuildProjectDirectory), %(_RaskAppResourceLinked.FullPath)))</Link>
       </_RaskAppResourceLinked>
+
+      <!--
+        THE APP'S SCOPED STYLESHEETS, as the app's own build resolved them — so its excludes, its
+        RaskScopedSourceExclude and an opt-out of the auto-include all carry over rather than being
+        re-derived. See the AdditionalFiles lines below for what went wrong without them.
+      -->
+      <_RaskAppScopedCss Include="@(AdditionalFiles)" Condition=" '%(AdditionalFiles.Extension)' == '.css' "/>
     </ItemGroup>
 
     <ItemGroup>
@@ -132,6 +139,14 @@
       -->
       <_RaskPrerenderLine Include="    &lt;TreatWarningsAsErrors&gt;false&lt;/TreatWarningsAsErrors&gt;"/>
       <_RaskPrerenderLine Include="    &lt;WarningsAsErrors&gt;&lt;/WarningsAsErrors&gt;"/>
+      <!--
+        The scoped-asset globs in Rask.Core.targets run from the COMPANION's directory, inside obj\, where no
+        component lives. They are turned off and the app's own assets are named below instead, the way
+        Rask.Server's client companion does it; tsgo is rooted at the app so its output tree lines up.
+      -->
+      <_RaskPrerenderLine Include="    &lt;RaskScopedCssAutoInclude&gt;false&lt;/RaskScopedCssAutoInclude&gt;"/>
+      <_RaskPrerenderLine Include="    &lt;RaskScopedTsGlob&gt;false&lt;/RaskScopedTsGlob&gt;"/>
+      <_RaskPrerenderLine Include="    &lt;RaskScopedTsRootDir&gt;$(MSBuildProjectDirectory)&lt;/RaskScopedTsRootDir&gt;"/>
       <_RaskPrerenderLine Include="  &lt;/PropertyGroup&gt;"/>
 
       <!--
@@ -155,6 +170,24 @@
       <_RaskPrerenderLine Include="    &lt;AdditionalFiles Remove=&quot;$(MSBuildProjectDirectory)\bin\%2A%2A&quot; /&gt;"/>
       <_RaskPrerenderLine Include="    &lt;AdditionalFiles Remove=&quot;$(MSBuildProjectDirectory)\node_modules\%2A%2A&quot; /&gt;"/>
       <_RaskPrerenderLine Include="    &lt;AdditionalFiles Remove=&quot;$(MSBuildProjectDirectory)\wwwroot\%2A%2A&quot; /&gt;"/>
+      <!--
+        THE APP'S SCOPED CSS AND TYPESCRIPT — the fifth item type found missing here, and the one that shows
+        on screen. The generators register a component's scoped assets from these files, and the prerender
+        renders through that registry: it stamps each element's data-r-* scope attribute and writes the
+        bundle's <link>/<script> into <head>. Without them every page was published with neither, so each
+        component with scoped CSS painted UNSTYLED until the runtime took over and put both on. On the site's
+        guides that is the "On this page" rail sitting under the article and every paragraph a line shorter,
+        so the whole page reflowed at hydration: 4423px to 4711px, seen as a flicker on refresh.
+
+        The CSS is carried as the app resolved it. The TypeScript is globbed, because tsgo's emitted tree and
+        the AdditionalFiles transform in Rask.Core.targets both lean on %(RecursiveDir), which only a ** glob
+        populates. Its Exclude mirrors Rask.Core.targets' own, with %3B standing in for the separator.
+      -->
+      <_RaskPrerenderLine Include="@(_RaskAppScopedCss->'    &lt;AdditionalFiles Include=&quot;%(FullPath)&quot; /&gt;')"/>
+      <_RaskPrerenderLine Condition=" '$(RaskScopedTsAutoInclude)' != 'false' AND '$(RaskScopedTsGlob)' != 'false' "
+                          Include="    &lt;_RaskScopedTs Include=&quot;$(MSBuildProjectDirectory)\%2A%2A\%2A.ts&quot; Exclude=&quot;$(MSBuildProjectDirectory)\bin\%2A%2A%3B$(MSBuildProjectDirectory)\obj\%2A%2A%3B$(MSBuildProjectDirectory)\%2A%2A\node_modules\%2A%2A%3B$(MSBuildProjectDirectory)\%2A%2A\.output\%2A%2A%3B$(MSBuildProjectDirectory)\%2A%2A\.nuxt\%2A%2A%3B$(MSBuildProjectDirectory)\%2A%2A\.next\%2A%2A%3B$(MSBuildProjectDirectory)\%2A%2A\.svelte-kit\%2A%2A%3B$(MSBuildProjectDirectory)\%2A%2A\.vite\%2A%2A%3B$(MSBuildProjectDirectory)\%2A%2A\.angular\%2A%2A%3B$(MSBuildProjectDirectory)\wwwroot\%2A%2A%3B$(MSBuildProjectDirectory)\Resources\%2A%2A%3B$(MSBuildProjectDirectory)\Browser\%2A%2A%3B$(MSBuildProjectDirectory)\%2A%2A\%2A.d.ts&quot; /&gt;"/>
+      <_RaskPrerenderLine Condition=" '$(RaskScopedTsAutoInclude)' != 'false' AND '$(RaskScopedTsGlob)' != 'false' "
+                          Include="    &lt;_RaskScopedTsTypes Include=&quot;$(MSBuildProjectDirectory)\%2A%2A\%2A.d.ts&quot; Exclude=&quot;$(MSBuildProjectDirectory)\bin\%2A%2A%3B$(MSBuildProjectDirectory)\obj\%2A%2A%3B$(MSBuildProjectDirectory)\%2A%2A\node_modules\%2A%2A%3B$(MSBuildProjectDirectory)\wwwroot\%2A%2A%3B$(MSBuildProjectDirectory)\Browser\%2A%2A&quot; /&gt;"/>
       <_RaskPrerenderLine Include="  &lt;/ItemGroup&gt;"/>
 
       <!--

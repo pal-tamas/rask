@@ -625,6 +625,15 @@ them until tagged releases begin.
   where it lives under `src/Rask.Site/wwwroot` renders on GitHub, and the site and the guide's Markdown twin serve the
   same file.
 
+- **The devtools panel counts what rendered, and why.** A Renders tab lists only the components whose `Render()`
+  actually ran — the ones served from their render cache did no work and are left out — either totalled per
+  component instance (renders, the reasons as badges, its own render time, the last commit it rendered in, most
+  renders first) or commit by commit (how many of the page's components rendered, which ones, folded by type and
+  reason). A reason is the runtime's own: new props, state, `BypassRenderCache`, context, children, nothing cached —
+  or a mount, the first render the devtools saw of that component. The feed keeps the last 200 commits or 5,000
+  renders, whichever comes first, and **Clear** starts the count again. The guide has a Renders section and a
+  screenshot.
+
 ### Changed
 
 - **File storage reads `Rask:Storage`, like every other Rask area.** It was the one package still on a top-level
@@ -1161,6 +1170,25 @@ them until tagged releases begin.
   of the path below the pattern's node. Its guard against climbing out of a content root compared paths by
   bare prefix, so a root of `/app/wwwroot` also admitted `/app/wwwroot-private/…`; it now requires the
   separator.
+- **A prerendered WASM page arrives with its scoped CSS applied, so it no longer reflows when the runtime
+  takes it over.** The prerender pass renders in a companion project compiled from the app's sources. That
+  companion was never handed the app's scoped `.css` and `.ts` files, so the generators registered no scoped
+  assets there. Every published page therefore shipped with no `data-r-*` scope attributes and no bundle
+  `<link>`/`<script>`, and any component with scoped CSS painted unstyled until WASM booted and put both on.
+  On rask.sh that was 163 of 167 pages. On a guide, the "On this page" rail sat under the article and
+  every paragraph ran a line shorter, so the page grew from 4423px to 4711px at takeover. Refreshing
+  part-way down showed that as a flicker, with the text moving under the restored scroll position. The
+  companion now carries the app's scoped stylesheets as the app resolved them, and globs its scoped
+  TypeScript rooted at the app with its own obj-relative globs switched off, as Rask.Server's client
+  companion already does. A guide's height is now identical before and after hydration, and a refresh
+  lands exactly where it was.
+  - **A scoped script already in the served page no longer holds `Rask.*` calls for 30 seconds.** Once the
+    prerender carried the scoped-JS `<script defer>`, the WASM runtime's invoke gate waited for its `load`
+    event. The parser had run that script before the runtime was even imported, so the event never came,
+    and every scoped call waited for the 30s backstop. On the site that meant an ElementRef measure that did
+    nothing and CodeSample highlight and copy that did not work. Scripts present at boot are now treated as
+    already run. Scripts a morph inserts later still wait for their `load` event, and the namespace poll
+    remains the backstop.
 - **The landing page's Counter.cs sample no longer flickers or shows a late scrollbar in Safari.** Hydration
   never touched it. The code was simply wider than its window at every desktop width: 510px of code in a
   496px box, or 525px in the fallback font a cold load paints first. So the `<pre>` was a horizontal

@@ -344,7 +344,9 @@ A browser-wasm assembly cannot execute on the desktop, so the app's own sources 
 **second time for the app's own server target** into a companion project under `obj/rask-prerender/`, and that is
 what renders. The companion carries the app's own `ProjectReference`s, `PackageReference`s, `<Using>` items and
 `EmbeddedResource` items, so it reaches the framework exactly the way the app does and reads the same
-resources at render time.
+resources at render time. It also carries the app's scoped `.css` and `.ts` files. The prerendered markup
+then has each component's `data-r-*` scope attributes and the scoped bundle's `<link>`/`<script>` in its
+`<head>`, so a component with scoped CSS is styled on first paint instead of when the runtime takes over.
 
 It compiles **`Program.cs` too**, deliberately: that file is where the app registers its services,
 and a page that injects anything would otherwise find nothing registered.
