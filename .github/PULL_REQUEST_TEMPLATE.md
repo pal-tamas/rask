@@ -24,6 +24,6 @@
 ## Checklist
 
 - [ ] `dotnet format` clean; build passes with warnings-as-errors
-- [ ] User-facing change → sample + docs/README/NUGET.md/llms.txt/template AGENTS.md updated
+- [ ] User-facing change → site + docs/README/NUGET.md/llms.txt/docs/ai-agents.md updated
 - [ ] `CHANGELOG.md` `[Unreleased]` entry added
 - [ ] Conventional Commit title; branch will be deleted after merge

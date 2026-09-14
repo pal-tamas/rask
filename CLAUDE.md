@@ -29,14 +29,14 @@ skip or narrow a gate** — a slow gate beats a lying one. Everything that could
 **Benchmarks run ONLY when you ask** — `scripts/run-benchmarks-local.sh`, in no hook and no CI;
 the public installer is `rask.sh`/`rask.ps1` at the ROOT (published to Pages by `pages.yml`, gated by
 `scripts/tests/install-script.test.sh` + `scripts/run-install-e2e-local.sh`, `docs/installation.md`);
-**user-facing change → update `src/Rask.Site` + docs/README/NUGET.md/llms.txt/template AGENTS.md**; keep
+**user-facing change → update `src/Rask.Site` + docs/README/NUGET.md/llms.txt/docs/ai-agents.md**; keep
 everything up to date; CHANGELOG `[Unreleased]` per notable change; Conventional Commits
 (commitlint); no `Co-Authored-By`/`Generated-with`. Build is warnings-as-errors + analyzers
 (`Directory.Build.props`; see `docs/code-analysis.md`). **Every public name obeys
 `docs/api-style.md`**; the build records the surface in `src/*/PublicAPI/<tfm>/`, so an unrecorded
 public member is a build error (RS0016/RS0017). Releases: tag→`release.yml`; nightly
-prerelease on `main`→`nightly.yml`. AI artifacts: `AGENTS.md`, `llms.txt`, template `AGENTS.md`,
-`docs/ai-agents.md`. Full detail: `docs/development-workflow.md`. Ask only when truly blocked.
+prerelease on `main`→`nightly.yml`. AI artifacts: `AGENTS.md`, `llms.txt`, `docs/ai-agents.md` (a scaffold has
+no `AGENTS.md`; `ProjectGeneratorTests` keeps it that way). Full detail: `docs/development-workflow.md`. Ask only when truly blocked.
 
 ## Projects
 - `src/Rask.Core` — rendering, live context, routing, scoped CSS/TypeScript, lifecycle, AND the whole

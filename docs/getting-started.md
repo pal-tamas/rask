@@ -102,47 +102,60 @@ page — so there's nothing to delete before you start building.
 Before writing code, here's what's in the project and why. The `server` template is small on purpose (the
 WASM templates differ mainly in `Program.cs`):
 
-- **`Program.cs`** — the host setup, and mostly notable for what is *not* in it:
+- **`Program.cs`** — the host setup, written out in full: one commented registration per battery, so the
+  file says exactly what the app is made of. Trimmed, it reads:
 
   ```csharp
-  var app = RaskApp.Create(args);
-  app.Run<App>();
+  var builder = WebApplication.CreateBuilder(args);
+
+  builder.Services.AddRask();
+  builder.Services.AddHealthChecks().AddRaskLiveSessions();
+  builder.Services.AddRaskCqrs();
+  builder.Services.AddRaskQuery();
+  builder.Services.AddRaskData<AppDbContext>();
+  builder.Services.AddRaskOutbox<AppDbContext>();
+  builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
+      .UseRaskSqlite(sp)
+      .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
+  builder.Services.AddRaskAuth<AppDbContext>();
+  builder.Services.AddRaskJobs<AppDbContext>();
+  builder.Services.AddRaskMail<AppDbContext>();
+  // … cache, storage, snapshots, logs, Web Push, the operator dashboard, the PWA
+
+  var app = builder.Build();
+  Db.Configure(app.Services);
+
+  app.UseForwardedHeaders();
+  app.UseHealthChecks("/health");
+  // … exception handler, HSTS + HTTPS redirection, static assets, authentication
+  app.UseRask<App>();
+  app.MapRaskStorage();
+  app.Run();
   ```
 
-  `RaskApp.Create` builds the host and turns on **every battery** — the database, mediator, background
-  jobs, transactional email, cache, outbox, file storage, operator dashboard, durable logs, Web Push, snapshots and
-  continuous backup. `app.Run<App>()` mounts your root component as the whole site and applies the
-  middleware order: forwarded headers, the health endpoint, HSTS and HTTPS redirection, static assets,
-  authentication, your own endpoints, then Rask's catch-all.
-
-  Your own services go here too, on `app.Services`. What an app writes in this file is the *exceptions* —
-  the batteries it does without, and anything configured differently:
-
-  ```csharp
-  app.Configure(c =>
-  {
-      c.Jobs.Off();                                            // this app has no background work
-      c.Mail.Configure(o => o.From = "no-reply@example.com");
-  });
-  ```
-
-  Nothing has to be turned off in order to configure it: you can also call a battery's own `AddRaskX`
-  directly and yours wins. And to map your own endpoints, use `app.MapEndpoints(e => …)` — a named place
-  for them rather than an ordering rule, since routing matches on precedence and any route you write is
-  more specific than Rask's catch-all.
+  Every battery the template supports is **on by default** — the database, mediator, background jobs,
+  transactional email, cache, outbox, file storage, operator dashboard, durable logs, Web Push, snapshots
+  and continuous backup (inert until `Rask:Litestream:ReplicaUrl` is set) — and each is an ordinary line you can read, edit or delete. The ones
+  you don't want are easier left out at scaffold time with `--no-<battery>` ([`rask new`](cli.md#rask-new--scaffold-a-project)).
+  `app.UseRask<App>()` mounts your root component as the whole site, after the middleware above it —
+  the order in the file is load-bearing, and its comments say why. Your own services and endpoints go in
+  this file too, like in any ASP.NET Core app.
 
   **Settings are not code.** A From address, a connection string, a session cap — every Rask setting lives
-  in `appsettings.json` under `Rask`, which each battery reads for itself (`Rask:Mail:From`), and an
-  environment variable overrides any of them with double underscores (`Rask__Mail__From`). A `Configure`
-  callback like the one above runs after configuration and wins. Until you set anything, `RaskApp` boots on
-  development defaults — a local `app.db`, `no-reply@example.com` — that every one of those sources
-  overrides. See [Configuration](configuration.md).
+  in `appsettings.json` under `Rask`, which each call reads for itself (`AddRaskMail` reads `Rask:Mail`),
+  and an environment variable overrides any of them with double underscores (`Rask__Mail__From`). A
+  callback — `AddRaskMail(o => …)` — runs after configuration and wins over both, for the rare value that
+  has to be code. The scaffolded `appsettings.json` starts on development defaults — a local `app.db` at
+  `Rask:ConnectionStrings:App` — that every one of those sources overrides. See
+  [Configuration](configuration.md).
 
-- **`App.cs`** — two things live here. First, the **root component** `App`: it renders straight into
+- **`Features/Shared/App.cs`** — the **root component** `App`: it renders straight into
   `<body>` — Rask builds the document around it — and drops a `Router()` where the current page appears.
   `<head>` is framework-managed — app-wide tags (title, charset, viewport) go through its `Head`
   override, not by passing children to `Head()` (more in [section 7](#7-the-document-and-the-head-override)).
-  Second, the **`HomePage`** component — the `/` route, a small welcome card. Edit or replace it; it's your
+  Beside it, `Features/Shared/AppDbContext.cs` is the app's one database context.
+
+- **`Features/Home/HomePage.cs`** — the `/` route, a small welcome card. Edit or replace it; it's your
   starting point.
 
 - **`{Project}.csproj`** and **`Properties/launchSettings.json`** — the project file (framework package
@@ -414,9 +427,10 @@ You now have a running, routed, interactive app. From here, the One Person Frame
 shipped product — and the **[zero-to-deploy tutorial](tutorial/00-overview.md)** walks that whole path
 step by step (database, auth, jobs, email, cache, events, and deployment). In short:
 
-1. **Build a feature** → [tutorial chapter 2](tutorial/02-first-feature.md) writes a full CQRS + EF Core CRUD vertical
-   slice (entity, value objects, validation, list/create/edit pages — and, with `--tests`, a test project)
-   in one command, wiring the DI into `Program.cs` for you.
+1. **Build a feature** → [tutorial chapter 2](tutorial/02-first-feature.md) builds a database-backed
+   Products catalog by hand: declare the entity, build list, create, edit and delete pages over its model surface
+   (`Product.Where(…)`, `Product.CreateAsync(model)`), then `rask db add` / `rask db update`. `rask new`
+   already wired the database into `Program.cs`, so there is nothing to register.
 2. **Make SQLite production-ready** → [Why one server, no PaaS](sqlite.md) — WAL, busy-timeout, and
    continuous backup so one SQLite file is your production database.
 3. **Ship to one server** → a `--docker` template emits a production Dockerfile; deploy the whole app to

@@ -146,20 +146,20 @@ internal static partial class ProjectGenerator
             steps.Append("  docker build -t ").Append(name.ToLowerInvariant()).Append(" .   # then: docker run -p 8080:8080 …\n");
         }
 
-        // Nothing about migrations here any more. `rask new` creates and applies the first one itself, so
-        // by the time this text is printed the tables the pillars need already exist — and repeating the
-        // commands would read as work still to do. The command prints the manual pair only in the two
-        // cases where it could not run them: --no-restore, and a migration that failed.
+        // Nothing about whether migrations ran: this text is written before `rask new` restores, builds and
+        // migrates, so it cannot know. It used to say "The first migration is already applied to app.db" here,
+        // which a failed restore then contradicted two lines later (#1083). NewCommand says it only once the
+        // migration has actually succeeded, and prints the manual pair when it was skipped or failed.
         if (batteries.Data)
         {
-            steps.Append("\nThe first migration is already applied to app.db. For your first entity, declare\n");
-            steps.Append("a class deriving from Model<TId> — no DbSet, no configuration class, no registration:\n");
+            steps.Append("\nFor your first entity, declare a class deriving from Model<TId> — no DbSet, no\n");
+            steps.Append("configuration class, no registration:\n");
             steps.Append("\n  public sealed class Product : Model<Guid>\n");
             steps.Append("  {\n");
             steps.Append("      public string Name { get; private set; } = \"\";\n");
             steps.Append("  }\n");
-            steps.Append("\nThen `rask db add <Name>` and `rask db update` to migrate it. Read it off the type\n");
-            steps.Append("itself — Product.Where(...), Product.FindAsync(id) — and save a form with the\n");
+            steps.Append("\nThen `rask db add <Name>` and `rask db update` to migrate it into app.db. Read it off\n");
+            steps.Append("the type itself — Product.Where(...), Product.FindAsync(id) — and save a form with the\n");
             steps.Append("generated Product.CreateAsync(model) / Product.UpdateAsync(id, model).\n");
         }
 

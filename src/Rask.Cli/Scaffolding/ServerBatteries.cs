@@ -121,8 +121,10 @@ internal sealed record ServerBatteries
     /// Snapshots likewise need a database file to copy.
     /// </description></item>
     /// <item><description>
-    /// <c>--data</c> implies <c>--cqrs</c> because every scaffolded feature handler dispatches through the
-    /// mediator, so one flag gives a fresh app the whole "feature → migrate" loop.
+    /// <c>--data</c> implies <c>--cqrs</c> because the database's batteries deliver through the mediator: a job is
+    /// sent through it, the outbox publishes through it, and <c>Rask.Data</c>'s domain events are dispatched by it.
+    /// Features themselves read and write through the model surface (<c>Product.Where</c>,
+    /// <c>Product.CreateAsync(model)</c>), not through commands and queries.
     /// </description></item>
     /// <item><description>
     /// <c>--push</c> implies <c>--pwa</c>: a browser can only subscribe to Web Push through a service
@@ -168,8 +170,9 @@ internal sealed record ServerBatteries
     /// </remarks>
     public ServerBatteries Reduced()
     {
-        // Every pillar registers as AddRaskX<TContext>, so losing the context loses all of them. And
-        // losing the mediator loses the context, because every scaffolded feature dispatches through it.
+        // Every pillar registers as AddRaskX<TContext>, so losing the context loses all of them. And losing the
+        // mediator loses the context: jobs, the outbox and Rask.Data's domain events are all delivered through it,
+        // and those packages reference Rask.Cqrs.
         var data = Data && Cqrs;
 
         return this with

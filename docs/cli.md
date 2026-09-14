@@ -140,7 +140,7 @@ enter through it gives you the same project a bare `rask new` does. It then scaf
 you'd passed the flags.
 
 The wizard **fills gaps rather than re-asking**: anything already on the command line is kept and its
-question skipped, so `rask new --template wasm --no-ops` asks only for the name, and a `--no-` flag
+question skipped, so `rask new --template wasm --no-pwa` asks only for the name, and a `--no-` flag
 already typed skips the checklist entirely. Piped or in a script (no terminal), a missing name is a
 plain error instead, and bare `rask` prints the command list — so automation stays predictable.
 
@@ -244,7 +244,7 @@ commands to run rather than failing: the files on disk are correct either way.
 | `--framework` | The .NET version the project targets: `net10.0` (the default, and the LTS release) or `net11.0`. Every Rask package ships for both, so this decides only what your app targets — the csproj and the Dockerfile's images follow it. Asking for a version whose SDK is not installed is refused before any file is written. |
 | `--wasm` | Write the UI as a WebAssembly app in `Client/` (server template), with message records in `Shared/`; the server answers its API and serves it with `UseRaskSpa()` rather than rendering pages — see [single-page apps](spa.md#a-rask-webassembly-app). Publish takes minutes longer. |
 | `--no-pwa` | Leave out the web app manifest, service worker, icon and the wiring to serve them. Takes `--push` with it. |
-| `--no-cqrs` | Leave out `Rask.Cqrs`. Takes the database with it — every scaffolded feature dispatches through the mediator — and [`Rask.Query`](query.md), which rides along with the dispatcher: a dispatcher without a cache refetches on every render, so the cache is not a separate decision and has no flag of its own. |
+| `--no-cqrs` | Leave out [`Rask.Cqrs`](cqrs.md), the mediator. Your pages don't need it to read and write data — they go through the [model surface](data.md) — but the scaffold's plumbing does: background jobs run through their command handlers, the outbox and `Rask.Data`'s domain events are published through it, and a `--wasm` client's messages arrive through it. So it still takes the database with it, and every battery that maps onto a `DbContext` (below). It also takes [`Rask.Query`](query.md), which rides along with the dispatcher: a dispatcher without a cache refetches on every render, so the cache is not a separate decision and has no flag of its own. |
 | `--no-data` | Leave out the SQLite database: no `AppDbContext`, no `AddRaskData()`, no `UseRaskSqlite` (WAL + `busy_timeout`) DbContext factory, and no **continuous backup** ([Litestream](sqlite.md#continuous-backup-with-litestream) — otherwise inert until you set `Rask:Litestream:ReplicaUrl`, so turning it on is one env var at deploy time: `rask deploy --env "Rask__Litestream__ReplicaUrl=s3://bucket/app"`). Takes every battery that maps onto a `DbContext` with it. |
 | `--no-jobs` | Leave out durable background jobs (`AddRaskJobs<AppDbContext>()` + `modelBuilder.AddRaskJobs()`). |
 | `--no-mail` | Leave out transactional email, delivered off the request thread; the dev default writes `.eml` files to `./mail-pickup` instead of needing SMTP. |
@@ -288,20 +288,25 @@ useful than a page designed to reveal nothing.
 A template gets every battery in its column, and nothing outside it. Nobody maintains a per-template
 default list: the default set *is* the column.
 
-| Battery | `server` | `wasm` | front-end |
-| --- | :-: | :-: | :-: |
-| database, CQRS | ✅ | — | ✅¹ |
-| jobs, mail, cache, storage, outbox, snapshots, logs, ops | ✅ | — | ✅ |
-| PWA | ✅ | ✅ | ✅ |
-| Web Push | ✅ | — | ✅ |
-| Docker | ✅ | ✅ | ✅ |
-| localization *(in `Program.cs`, not a flag)* | ✅ | —² | — |
-| `--wasm` *(opt-in)* | ✅ | — | — |
-| `--islands <runtime>…` *(opt-in)* | ✅ | ✅ | —³ |
+| Battery | `server` | `wasm` | front-end (`react`, `vue`, …) | meta framework (`nuxt`, `nextjs`, …) |
+| --- | :-: | :-: | :-: | :-: |
+| database, CQRS | ✅ | — | ✅¹ | ✅¹ |
+| jobs, mail, cache, storage, outbox, snapshots, logs | ✅ | — | ✅ | ✅ |
+| ops *(the operator dashboard)* | ✅ | — | —⁴ | —⁴ |
+| PWA | ✅ | ✅ | ✅ | — |
+| Web Push | ✅ | — | ✅ | — |
+| Docker | ✅ | ✅ | ✅ | ✅ |
+| localization *(in `Program.cs`, not a flag)* | ✅ | —² | — | — |
+| `--wasm` *(opt-in)* | ✅ | — | — | — |
+| `--islands <runtime>…` *(opt-in)* | ✅ | ✅ | —³ | —³ |
 
 ³ Islands put a front-end component **inside a C# host**, so they are for the templates whose markup is
 C#. On a template whose whole client already is a front end, `--islands` is refused rather than
 ignored — add a component to the client you already have.
+
+⁴ The operator dashboard is Rask components reached through `UseRask<TApp>()`, which only the `server`
+template calls, and it needs `Rask.Core`, which the front-end and meta hosts do not ship — so `ops` is
+listed on `server` alone rather than accepted and then disregarded.
 
 ### `--islands` — a React, Vue, Svelte, Solid, Lit, Angular, Preact or Blazor component
 
@@ -327,10 +332,11 @@ Two combinations are refused, both by name and both because the build would refu
 it server-side into the first response, so a Blazor-only island project gets no `package.json` and
 never probes for Node.
 
-¹ A front-end template always wires CQRS — the typed wire *is* the template — so `--no-cqrs` is refused
-rather than ignored. A sign-in flow used to be left out of these templates rather than half-scaffolded, because it had to be written
+¹ A front-end or meta framework template always wires CQRS — the typed wire *is* the template. On a
+front-end template `--no-cqrs` is refused rather than ignored; on a meta framework template it leaves out
+the database and every battery on it, but the mediator stays. A sign-in flow used to be left out of these templates rather than half-scaffolded, because it had to be written
 in the framework's own idiom, and the template does not write one yet. The PWA and Web Push **are**
-scaffolded there — see [TypeScript front ends](spa.md#installable-and-push-capable).
+scaffolded on a front-end template (not yet on a meta framework one) — see [TypeScript front ends](spa.md#installable-and-push-capable).
 
 ² Languages are configured in `Program.cs`, never on the command line — there is no `--culture` and no
 `--no-localization`. On `server` a scaffolded app already registers English there, because ICU is in
@@ -349,18 +355,18 @@ usage error that names both halves:
 
 ```console
 $ rask new X --template wasm --no-data
-Template 'wasm' has nothing to change for: --no-data. It supports: auth, docker, pwa.
+Template 'wasm' has nothing to change for: --no-data. It supports: docker, pwa.
 ```
 
 The database-backed batteries need an ASP.NET host to put a database in, which the `server` template is
-and the `.Server` project of a client-plus-host solution is too — a pure browser-WASM SPA has neither.
+and the ASP.NET host of a front-end template is too — a pure browser-WASM SPA has neither.
 
 Turning one off takes its dependents with it, so you never end up with a registration naming a
 `DbContext` that isn't there:
 
 ```bash
 rask new Shop --no-data     # …and no jobs, mail, cache, storage, outbox, snapshots or dashboard
-rask new Shop --no-cqrs     # …and no database either — every feature dispatches through the mediator
+rask new Shop --no-cqrs     # …and no database either — jobs, the outbox and domain events run through the mediator
 rask new Shop --no-pwa      # …and no Web Push, which subscribes through the service worker
 rask new Shop --no-logs     # …and nothing else: the log store owns a database of its own
 ```

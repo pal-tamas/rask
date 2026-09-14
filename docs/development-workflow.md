@@ -69,7 +69,7 @@ Every change passes this gate before it lands on `main` (the `rask-ship` skill):
 4. **Benchmarks** — any render/live-runtime hot-path change runs `tests/Rask.Benchmarks`
    before/after and quotes the `Allocated` delta in the commit body.
 5. **Docs & the site** — user-facing changes update `src/Rask.Site`, the relevant `docs/*.md`,
-   `README.md`, `NUGET.md`, `llms.txt`, and the template `AGENTS.md`. Add a `CHANGELOG.md`
+   `README.md`, `NUGET.md`, `llms.txt`, and `docs/ai-agents.md`. Add a `CHANGELOG.md`
    `[Unreleased]` entry (Keep a Changelog).
 6. **Review** — security, performance, and memory held together with UX; prefer standard .NET
    APIs over hand-rolled code; refactor duplication you touch (the `rask-review` skill).
