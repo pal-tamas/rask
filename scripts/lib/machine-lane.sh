@@ -325,6 +325,57 @@ rask_lane_fit() {
   printf '%s' "$fit"
 }
 
+# The machine's 1-minute load average, as printed ("12.34"), or empty when it cannot be read.
+# RASK_LANE_LOADAVG_OVERRIDE stands in for it, so the tests do not depend on how busy this box is.
+rask_lane_load_average() {
+  if [ -n "${RASK_LANE_LOADAVG_OVERRIDE:-}" ]; then
+    printf '%s' "$RASK_LANE_LOADAVG_OVERRIDE"
+    return 0
+  fi
+  if [ -r /proc/loadavg ]; then
+    cut -d' ' -f1 /proc/loadavg
+    return 0
+  fi
+  # macOS: "{ 12.34 10.01 9.87 }"
+  sysctl -n vm.loadavg 2>/dev/null | tr -d '{}' | awk '{print $1}'
+}
+
+# Logical CPUs. RASK_LANE_CPUS_OVERRIDE for the tests.
+rask_lane_cpu_count() {
+  if [ -n "${RASK_LANE_CPUS_OVERRIDE:-}" ]; then
+    printf '%s' "$RASK_LANE_CPUS_OVERRIDE"
+    return 0
+  fi
+  nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || printf '1'
+}
+
+# "Is the machine itself calm enough?" -- the second half of admitting a browser suite (#1099).
+#
+# Slots are bookkeeping between THIS repo's gates. They say nothing about everything else a busy machine
+# runs -- other worktrees' builds that never claimed, template journeys, an IDE indexing -- and the suite was
+# seen starting at a load average of ~226 on 14 CPUs, where every WebAssembly page boots past its budget and
+# the timeouts are reported as test failures in whichever tests happened to be running. So a browser suite also
+# waits until the 1-minute load average is at most RASK_E2E_MAX_LOAD_PER_CPU (default 8) per CPU.
+#
+# 8, not something tidier like 2 or 3: this machine sits around 5 per CPU in an ordinary afternoon of several
+# worktrees gating at once, and suites pass there. A ceiling below that would park every browser suite behind
+# normal contention, which is the slow kind of wrong. 8 still refuses the starved case, at 16 per CPU.
+#
+# 0 turns the check off. A load that cannot be read never blocks: a gate stuck waiting on a number it cannot
+# see would be worse than the false red this exists to prevent.
+rask_lane_load_ok() {
+  [ "${RASK_LANE_DISABLE:-}" = "1" ] && return 0
+
+  per_cpu="${RASK_E2E_MAX_LOAD_PER_CPU:-8}"
+  [ "$per_cpu" = "0" ] && return 0
+
+  load="$(rask_lane_load_average)"
+  [ -n "$load" ] || return 0
+
+  awk -v load="$load" -v cpus="$(rask_lane_cpu_count)" -v per_cpu="$per_cpu" \
+    'BEGIN { exit !(load + 0 <= cpus * per_cpu) }'
+}
+
 # "Does this much fit right now?" -- the predicate a blocking caller polls. The wait LOOP lives in the
 # calling script, not here, so the waiting message can name what is being waited for; same split as
 # e2e-concurrency.sh, where the predicate is testable and run-e2e-local.sh owns the queue.

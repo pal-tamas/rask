@@ -1101,6 +1101,22 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **Gates that failed for reasons outside the change they were gating.**
+  - **Public-API self-test.** It moved the real `src/Rask.Cache/PublicAPI` folder out of the tree, and wrote
+    into its baseline and source, while other self-tests walked `src/` concurrently. It now points its builds
+    at copies through the new `$(RaskPublicApiDir)` and a probe property, and only reads the tree (#1084).
+  - **Storage providers gate.** Fixed MinIO and Azurite container names and ports let two worktrees' runs
+    replace each other. MinIO was also polled on a liveness probe that answers before it accepts credentials.
+    Names and ports are now per run, readiness is checked on `/minio/health/ready`, and the first signed
+    request retries a 403 briefly (#1098).
+  - **Browser suite.** It waited only on its own slot bookkeeping, so it started on machines loaded far past
+    their CPUs and reported starved WebAssembly boots as test failures. It now also waits while the 1-minute
+    load average is above `RASK_E2E_MAX_LOAD_PER_CPU` per CPU (default 8, `0` turns it off). A refusal still
+    uses the anchored lines the failure classifier reads as "busy", not "broken" (#1099).
+  - **Coverage.** A new test holds the wave loop open at the exact moment #1067's lost update used to strike,
+    so a nested `ConfigureAwait(false)` child served as its placeholder (#1074) cannot come back unnoticed.
+    `HandlerDispatchBenchmarks` measures handler invocation, which the dispatch benchmarks never did, and the
+    benchmark skill points at what really exercises each path (#1062).
 - **A package built with Rask.Tailwind no longer ships its compiled sheet out of `obj/`.** The Tailwind props
   declared the output stylesheet as `Content` whenever the file did not exist yet, so a project packed on a
   clean clone, with the sheet compiled somewhere other than `wwwroot/`, shipped `content/obj/…css`, and every
