@@ -55,6 +55,8 @@ Rask.Server.LiveSessionStore.RerenderAllAsync() -> System.Threading.Tasks.Task!
 Rask.Server.RaskEndpointExtensions
 Rask.Server.RaskPwaExtensions
 Rask.Server.RaskServerOptions
+Rask.Server.RaskServerOptions.CompressPageHtml.get -> bool
+Rask.Server.RaskServerOptions.CompressPageHtml.set -> void
 Rask.Server.RaskServerOptions.HandlerTimeout.get -> System.TimeSpan
 Rask.Server.RaskServerOptions.HandlerTimeout.set -> void
 Rask.Server.RaskServerOptions.IdleSocketTimeout.get -> System.TimeSpan
