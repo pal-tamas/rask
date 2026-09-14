@@ -1027,6 +1027,18 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A WebAssembly page served with a newline between `</head>` and `<body>` updates in place again.** Every
+  click reached .NET, the handler ran and its diff frame arrived, but the page never changed and nothing
+  was logged (#1097). The HTML parser puts that newline inside `<html>`, so the live element holds
+  `[HEAD, #text, BODY]` while the server's frame walk counts `[HEAD, BODY]`. The morph has ignored that
+  text node since the fix for the unstyled hydration frame (#1049), which is what keeps it alive; the
+  diff codec's path walk still counted it, so a path addressing `<body>` resolved to the newline and the
+  op was dropped. The shipped `wasm` template's `index.html` has exactly that newline, so a freshly
+  scaffolded app lost every in-place update. The path walk now skips the same nodes the morph does —
+  formatting whitespace inside `<html>`/`<head>`, and browser-added `data-rask-managed` nodes — and
+  whitespace under `<body>`, which is rendered, still counts. The WebAssembly render queue also reports a
+  frame that throws instead of discarding the error, so a failure like this can no longer be silent.
+
 - **A state change made while its component is rendering is no longer lost.** A component's render cleared
   its dirty flags only after `Render()` had read its state, so a `StateHasChanged()` from another thread in
   that window was erased. That thread is typically an async lifecycle hook resuming on the thread pool, which

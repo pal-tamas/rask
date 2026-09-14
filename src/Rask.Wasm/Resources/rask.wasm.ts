@@ -576,12 +576,20 @@ function handle(reply: RaskFrameReply | null): void {
     if (reply.kind === "diff" && Array.isArray(reply.ops)) {
         _renderQueue = _renderQueue.then(
             () => { applyDiffReply(reply); },
-            () => { applyDiffReply(reply); });
+            (e) => { reportQueuedRenderFailure(e); applyDiffReply(reply); });
         return;
     }
     _renderQueue = _renderQueue.then(
         () => { applyFullReply(reply); },
-        () => { applyFullReply(reply); });
+        (e) => { reportQueuedRenderFailure(e); applyFullReply(reply); });
+}
+
+// The render queue deliberately carries on after a failed frame — one bad payload must not wedge
+// every later one — but the rejection used to be discarded, so a throw inside applyDiff or morph
+// left no trace anywhere: no console error, no page error, nothing for a developer to go on. Report
+// it and still apply the next frame.
+function reportQueuedRenderFailure(error: unknown): void {
+    console.error("[Rask] a queued render failed; the next frame was applied anyway", error);
 }
 
 // Per-invoke executor for the shared applyFrameInvokes loop (rask-dom.js). A frame's jsInvokes run
