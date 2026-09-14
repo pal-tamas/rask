@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Rask.Core;
+using Rask.Core.Diagnostics.DevTools;
 
 namespace Rask.DevTools.Probe;
 
@@ -14,11 +15,13 @@ namespace Rask.DevTools.Probe;
 /// <param name="Id">Stable for as long as the component lives, so a panel's expansion survives a re-render.</param>
 /// <param name="Type">The component's type name, as a developer writes it.</param>
 /// <param name="Key">Its reconciliation key, when it has one.</param>
+/// <param name="Props">Its properties, as the build described them — empty in a build without the devtools.</param>
 /// <param name="Children">What it rendered, in render order.</param>
 internal sealed record DevToolsComponentNode(
     int Id,
     string Type,
     string? Key,
+    IReadOnlyList<DescribedProp> Props,
     IReadOnlyList<DevToolsComponentNode> Children);
 
 /// <summary>
@@ -53,7 +56,17 @@ internal sealed class DevToolsTreeSnapshotter
             children.Add(Build(child, ref budget));
         }
 
-        return new DevToolsComponentNode(IdOf(component), Name(component.GetType()), component.Key?.ToString(), children);
+        // What the component says about itself. The override the build wrote reads its own properties by name; in a
+        // build without the devtools the base method is empty, so this is a call that collects nothing.
+        var describer = new PropsDescriber();
+        component.DescribeProps(describer);
+
+        return new DevToolsComponentNode(
+            IdOf(component),
+            Name(component.GetType()),
+            component.Key?.ToString(),
+            describer.Props,
+            children);
     }
 
     private int IdOf(Component component) => _ids.GetValue(component, _ => new StrongBox<int>(Interlocked.Increment(ref _next))).Value;

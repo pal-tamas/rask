@@ -2875,6 +2875,24 @@ Rask.Core.Components.VirtualizeModel.OverscanCount.set -> void
 Rask.Core.Components.VirtualizeModel.VirtualizeModel() -> void
 Rask.Core.Components.Wbr
 Rask.Core.Components.Wbr.Wbr() -> void
+Rask.Core.Diagnostics.DevTools.DescribedProp
+Rask.Core.Diagnostics.DevTools.DescribedProp.Deconstruct(out string! Name, out string! Type, out string? Value, out bool IsRedacted) -> void
+Rask.Core.Diagnostics.DevTools.DescribedProp.DescribedProp() -> void
+Rask.Core.Diagnostics.DevTools.DescribedProp.DescribedProp(string! Name, string! Type, string? Value, bool IsRedacted) -> void
+Rask.Core.Diagnostics.DevTools.DescribedProp.Equals(Rask.Core.Diagnostics.DevTools.DescribedProp other) -> bool
+Rask.Core.Diagnostics.DevTools.DescribedProp.IsRedacted.get -> bool
+Rask.Core.Diagnostics.DevTools.DescribedProp.IsRedacted.init -> void
+Rask.Core.Diagnostics.DevTools.DescribedProp.Name.get -> string!
+Rask.Core.Diagnostics.DevTools.DescribedProp.Name.init -> void
+Rask.Core.Diagnostics.DevTools.DescribedProp.Type.get -> string!
+Rask.Core.Diagnostics.DevTools.DescribedProp.Type.init -> void
+Rask.Core.Diagnostics.DevTools.DescribedProp.Value.get -> string?
+Rask.Core.Diagnostics.DevTools.DescribedProp.Value.init -> void
+Rask.Core.Diagnostics.DevTools.PropsDescriber
+Rask.Core.Diagnostics.DevTools.PropsDescriber.Add(string! name, string! type, string? value) -> void
+Rask.Core.Diagnostics.DevTools.PropsDescriber.AddRedacted(string! name, string! type) -> void
+Rask.Core.Diagnostics.DevTools.PropsDescriber.Props.get -> System.Collections.Generic.IReadOnlyList<Rask.Core.Diagnostics.DevTools.DescribedProp>!
+Rask.Core.Diagnostics.DevTools.PropsDescriber.PropsDescriber() -> void
 Rask.Core.DragAndDrop.DragDropContext
 Rask.Core.DragAndDrop.DragDropContext.DragEnd.get -> System.Action!
 Rask.Core.DragAndDrop.DragDropContext.DragOver(string! zone, int index) -> System.Action!
@@ -3926,6 +3944,8 @@ const Rask.Core.Authorization.RouteAuthorizationGuard.ForbidPath = "/forbidden" 
 const Rask.Core.BuilderRuntime.OwnPendingBit = 32 -> int
 const Rask.Core.BuilderRuntime.SharedComponentPending = 0 -> ulong
 const Rask.Core.BuilderRuntime.SharedElementPending = 524287 -> ulong
+const Rask.Core.Diagnostics.DevTools.PropsDescriber.MaxLength = 256 -> int
+const Rask.Core.Diagnostics.DevTools.PropsDescriber.Redacted = "••••" -> string!
 const Rask.Core.Forms.EditContext.DefaultValidatingStickyMs = 200 -> int
 const Rask.Core.Live.QuiescentRender.DefaultMaxWaves = 16 -> int
 const Rask.Core.ScopedAssets.ScopedAssetRegistry.HashHexLength = 12 -> int
@@ -4111,6 +4131,7 @@ override Rask.Core.Components.HtmlQuoteElement.WriteAttributes(System.Text.Strin
 override Rask.Core.Components.HtmlTableCellElement.WriteAttributes(System.Text.StringBuilder! sb) -> void
 override Rask.Core.Components.HtmlTableColElement.WriteAttributes(System.Text.StringBuilder! sb) -> void
 override Rask.Core.Components.SvgElement.WriteAttributes(System.Text.StringBuilder! sb) -> void
+override Rask.Core.Diagnostics.DevTools.DescribedProp.GetHashCode() -> int
 override Rask.Core.DragAndDrop.DragDropMove.Equals(object? obj) -> bool
 override Rask.Core.DragAndDrop.DragDropMove.GetHashCode() -> int
 override Rask.Core.DragAndDrop.DragDropMove.ToString() -> string!
@@ -4382,6 +4403,9 @@ static Rask.Core.Components.GestureResultInterop.Result(int id, string? value) -
 static Rask.Core.Components.ValidatingIndicator.Bound<TProp>(System.Linq.Expressions.Expression<System.Func<TProp>!>! For, System.Func<Rask.Core.Component!>! Template) -> Rask.Core.Components.ValidatingIndicator!
 static Rask.Core.Components.ValidationMessage.Bound<TProp>(System.Linq.Expressions.Expression<System.Func<TProp>!>! For, System.Func<System.Collections.Generic.IReadOnlyList<string!>!, Rask.Core.Component!>! Template) -> Rask.Core.Components.ValidationMessage!
 static Rask.Core.Components.Virtualize.Items<T>(System.Func<Rask.Core.Virtualization.VirtualizationContext<T>!, Rask.Core.Component!>! Render, System.Collections.Generic.IEnumerable<T>? Items = null, System.Func<Rask.Core.Virtualization.ItemsProviderRequest!, System.Threading.Tasks.ValueTask<Rask.Core.Virtualization.ItemsProviderResult<T>!>>? ItemsProvider = null, int ItemSize = 32, int OverscanCount = 3, int InitialClientHeight = 400, int InitialTotalCount = 0) -> Rask.Core.Components.VirtualizeModel!
+static Rask.Core.Diagnostics.DevTools.DescribedProp.operator !=(Rask.Core.Diagnostics.DevTools.DescribedProp left, Rask.Core.Diagnostics.DevTools.DescribedProp right) -> bool
+static Rask.Core.Diagnostics.DevTools.DescribedProp.operator ==(Rask.Core.Diagnostics.DevTools.DescribedProp left, Rask.Core.Diagnostics.DevTools.DescribedProp right) -> bool
+static Rask.Core.Diagnostics.DevTools.PropsDescriber.Format(object? value) -> string?
 static Rask.Core.DragAndDrop.DragDropMove.operator !=(Rask.Core.DragAndDrop.DragDropMove? left, Rask.Core.DragAndDrop.DragDropMove? right) -> bool
 static Rask.Core.DragAndDrop.DragDropMove.operator ==(Rask.Core.DragAndDrop.DragDropMove? left, Rask.Core.DragAndDrop.DragDropMove? right) -> bool
 static Rask.Core.ElementRef.New() -> Rask.Core.ElementRef!
@@ -6597,6 +6621,7 @@ static RaskEntriesRask_Core.Wbr.get -> Rask.Core.Components.Wbr!
 static readonly Rask.Core.Routing.QueryCollection.Empty -> Rask.Core.Routing.QueryCollection!
 virtual Rask.Core.Component.BodyClass.get -> string?
 virtual Rask.Core.Component.BypassRenderCache.get -> bool
+virtual Rask.Core.Component.DescribeProps(Rask.Core.Diagnostics.DevTools.PropsDescriber! describer) -> void
 virtual Rask.Core.Component.EnterChildrenScope() -> System.IDisposable?
 virtual Rask.Core.Component.HeadAssets.get -> Rask.Core.Component?
 virtual Rask.Core.Component.HtmlDir.get -> string?
@@ -6623,6 +6648,8 @@ virtual Rask.Core.Forms.ValidateAsync<T>.Invoke(T value, System.Threading.Cancel
 ~override Rask.Core.Browser.AnimationId.ToString() -> string
 ~override Rask.Core.Browser.MediaStreamId.Equals(object obj) -> bool
 ~override Rask.Core.Browser.MediaStreamId.ToString() -> string
+~override Rask.Core.Diagnostics.DevTools.DescribedProp.Equals(object obj) -> bool
+~override Rask.Core.Diagnostics.DevTools.DescribedProp.ToString() -> string
 ~override Rask.Core.Forms.ValidationEntry.Equals(object obj) -> bool
 ~override Rask.Core.Forms.ValidationEntry.ToString() -> string
 ~override Rask.Core.Globalization.CultureNegotiation.Equals(object obj) -> bool
