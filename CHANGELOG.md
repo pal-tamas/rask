@@ -1034,6 +1034,13 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The data guides describe the data layer Rask actually ships.** The optimistic-concurrency test in
+  [Rask.Data](docs/data.md#testing-a-model) called `Product.UpdateAsync(model)`, an overload that is never
+  generated, so the snippet did not compile; it now passes the id, as `UpdateAsync(id, model)` requires.
+  [Data access](docs/data-access.md) and [CQRS](docs/cqrs.md) still said "Rask has no data layer of its
+  own". They now point to `Rask.Data` first, and `data-access.md` is presented as the plain EF Core route
+  with a `DbContext` of your own. Getting started and the docs index point to both.
+
 - **A state change made while its component is rendering is no longer lost.** A component's render cleared
   its dirty flags only after `Render()` had read its state, so a `StateHasChanged()` from another thread in
   that window was erased. That thread is typically an async lifecycle hook resuming on the thread pool, which

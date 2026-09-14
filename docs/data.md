@@ -533,10 +533,10 @@ var anvil = await Product.CreateAsync(new ProductModel { Name = "Anvil", Price =
 var mine = anvil.ToModel();
 var theirs = anvil.ToModel();
 theirs.Price = 10m;
-await Product.UpdateAsync(theirs);
+await Product.UpdateAsync(anvil.Id, theirs);
 
 mine.Price = 11m;
-await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => Product.UpdateAsync(mine));
+await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => Product.UpdateAsync(anvil.Id, mine));
 ```
 
 ```csharp
