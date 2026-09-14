@@ -601,6 +601,30 @@ them until tagged releases begin.
 
 ### Changed
 
+- **Rask.Server compresses the page itself.** The page handler serves its document as brotli or gzip, whichever
+  the browser ranks higher in `Accept-Encoding` (`q` values honoured), over HTTPS too. Until now only the
+  scoped CSS/TypeScript bundles were compressed. The `text/html` document went out raw, and it is the
+  largest and most compressible response the host sends: rask.sh's landing page is 78,525 bytes raw and
+  15,540 gzipped, 80% smaller. At `CompressionLevel.Optimal` that takes 0.28 ms (brotli) or 0.62 ms (gzip)
+  per page. Nothing needs to be written to get it.
+  - **Only the page is compressed.** Rask adds no middleware and does not call `AddResponseCompression`, so
+    the app's own endpoints and its own `ResponseCompressionOptions` are untouched. Wiring
+    `UseResponseCompression()` from `UseRask` was tried first and rejected in review: that middleware
+    compresses every endpoint after it, which would put an app's JSON APIs under HTTPS compression too, and
+    registering the providers would switch `EnableForHttps` on for the app's own middleware.
+  - **Opt out with `RaskServerOptions.CompressPageHtml = false`** (`Rask:Server:CompressPageHtml`). Do it
+    for a page that renders a long-lived secret next to attacker-influenced input, which is the BREACH side
+    channel. The framework's own secret is not exposed that way: the session id in `data-rask-root` is minted
+    fresh for every `GET`, and no antiforgery token is rendered. See
+    [page compression](docs/configuration.md#page-compression).
+  - **An app that already compresses is not encoded twice.** The page arrives with `Content-Encoding` set,
+    so the app's middleware passes it through. A test pins this for both encodings.
+- **Prerendered WASM pages no longer ship the shell's `<head>` comments.** The splice drops them from the
+  published page and leaves them in `wwwroot/index.html`, where they document the file. On rask.sh that is
+  1,697 bytes raw and 769 gzipped per page, more than all of the formatting whitespace on the page (about
+  20 bytes gzipped; `HtmlSerializer` already writes none). `<script>`/`<style>` raw text is left untouched,
+  as are conditional comments and comments marked `<!--!`, `@license` or `@preserve`. A comment on its own
+  line takes the line with it, so no blank lines are left behind.
 - **BREAKING: every Rask.Server page is live.** There is no render ladder any more: a page no longer decides
   from its own render whether it needs a session, there is no static page served without one, and a page never
   hands itself over to a WebAssembly bundle. `AddRask()` has nothing to choose — the GET creates the session,
