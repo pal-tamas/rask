@@ -558,7 +558,8 @@ them until tagged releases begin.
   (`localhost` or a loopback address) gets the same pill and drawer as a Server app, and the Wire tab lists the page's
   frames. With no server to run it on, the panel runs as a second live session inside the app's own .NET runtime, with
   its own route state and services, and starts only when the drawer first opens. Its frames are posted into a `srcdoc`
-  frame whose small client applies them, so no second runtime boots. The scripts are embedded in `Rask.DevTools` and
+  frame whose small client applies them and forwards the panel's own clicks, changes and keys back to its session, so
+  no second runtime boots. The scripts are embedded in `Rask.DevTools` and
   imported from a `data:` URL, so a Release publish that strips the assembly strips them too; a development page whose
   Content-Security-Policy forbids `data:` scripts logs one warning instead. A Debug bundle deployed to a real host keeps
   the tools off for its visitors.
@@ -591,7 +592,9 @@ them until tagged releases begin.
   `aria-level`, `aria-setsize` and `aria-posinset`; `OnHover` reports the node under the pointer. A key seen twice
   renders once, which is also what ends a cycle. Rask's runtime now keeps the navigation keys from scrolling the page
   while a tree has focus, and scrolls the cursor back into view when it moves out of sight — including to an unrendered
-  row's place in a virtualized tree. Documented in [docs/tree.md](docs/tree.md), live at `/docs/ui/tree`.
+  row's place in a virtualized tree. A `Selected` the page changes itself takes the keyboard cursor to the first node it
+  added, and so scrolls it into view; a selection the reader made and the page hands back leaves the cursor where it
+  was. Documented in [docs/tree.md](docs/tree.md), live at `/docs/ui/tree`.
 
 - **The devtools panel shows the page's component tree.** A Tree tab beside Wire lists what the inspected page rendered,
   drawn with the kit's own `UiTree`: expandable, keyboard-navigable, and virtualized, so a page with thousands of
@@ -600,7 +603,12 @@ them until tagged releases begin.
   them, read from the same frames the diff reads. Each component and element keeps an id across renders, so the
   branches a developer opened stay open. The tree is there the moment the tab opens: every render of an inspected
   session leaves its walk in buffers that stop allocating once they fit the page, and the tree is built from them only
-  while a panel is open, including from the render the page was served with.
+  while a panel is open, including from the render the page was served with. Pointing at a row draws a labelled box on
+  the page around everything that component rendered; **Pick** reverses it — point at the page, click, and the tree
+  opens to the nearest component (or the element, with tags shown) and selects it, without the click reaching the app.
+  Each row carries its node's place in the diff's own coordinates and the panel's script posts it to the page, so a
+  hover costs no round trip. Rask.Core's path helpers moved into a module with no side effects (`rask-dom-path.ts`),
+  which the devtools host imports without binding a second set of the runtime's document listeners.
 
 - **The devtools tree says what each component was given.** Every row carries the component's own properties and
   their values, read by an override the build writes for each component rather than by reflection — so a trimmed

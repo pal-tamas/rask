@@ -54,6 +54,16 @@ try {
     await panel.getByText("ApiToken=••••").first().waitFor({timeout: 10000});
     await panel.locator("[role=tablist]").evaluate(el => el.scrollIntoView({block: "start"}));
     await shot("tree");
+
+    // Pointing at a row: the page shows the box around what that component rendered, with its label.
+    const taskRow = tree.locator('[role="treeitem"]', {hasText: "Tag the release"}).first();
+    await taskRow.locator(".ui-tree-row").hover();
+    await page.waitForFunction(() => {
+        const root = document.querySelector("rask-devtools")?.shadowRoot;
+        const label = root?.querySelector(".hl-label");
+        return !!label && !label.hidden && label.textContent.startsWith("TaskRow");
+    }, null, {timeout: 10000});
+    await shot("highlight");
 } catch (e) {
     await shot("failure").catch(() => {});
     throw e;

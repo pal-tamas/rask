@@ -153,6 +153,35 @@ public sealed partial class DevToolsTreeTabTests
         socket.Dispose();
     }
 
+    // A page made of the kit's own components, the way an app is: the tree must hold each element once, under the
+    // component that rendered it. A pick matches the page against these nodes, so a copy elsewhere is a pick that lands on
+    // a node the tree never shows.
+    [Fact]
+    public async Task A_kit_page_holds_every_node_once()
+    {
+        using var host = RaskTestHost.Create<DevToolsKitTestApp>(
+            configureServices: s => RaskDevToolsLoader.Attach(s),
+            configureMiddleware: app => app.Use((ctx, next) =>
+            {
+                ctx.Connection.RemoteIpAddress = IPAddress.Loopback;
+                return next(ctx);
+            }),
+            environment: "Development");
+        var (_, feed, socket, _) = await LivePage(host);
+        using var watch = feed.WatchTree();
+
+        var tree = await WaitForTree(feed, TimeSpan.FromSeconds(5));
+        Assert.NotNull(tree);
+
+        var all = Nodes(tree!).ToList();
+        var duplicates = all.GroupBy(n => n.Id).Where(g => g.Count() > 1)
+            .Select(g => $"{g.Key}: {string.Join(", ", g.Select(n => n.Type))}").ToList();
+        Assert.True(duplicates.Count == 0, "nodes in the tree twice: " + string.Join("; ", duplicates));
+        var button = Assert.Single(all, n => n is { IsTag: true, Type: "button" });
+        Assert.NotNull(button.At);
+        socket.Dispose();
+    }
+
     private static IEnumerable<DevToolsComponentNode> Nodes(DevToolsComponentNode node)
     {
         yield return node;

@@ -52,6 +52,18 @@ public sealed partial class DevToolsPanelAdmissionTests
         Assert.DoesNotContain(DevToolsServerEndpoints.HostScriptPath, html, StringComparison.Ordinal);
     }
 
+    // What lets its rows box their nodes on the page that framed it: the panel side of the overlays.
+    [Fact]
+    public async Task The_panel_page_loads_its_own_script()
+    {
+        using var host = Host("Development", IPAddress.Loopback);
+        var panel = await PanelUrlFromPage(host);
+
+        var html = await host.Http.GetStringAsync(panel);
+
+        Assert.Contains("src=\"" + DevToolsServerEndpoints.PanelScriptPath + "\"", html, StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task A_wrong_or_missing_token_is_answered_as_not_found()
     {

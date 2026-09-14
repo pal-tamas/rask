@@ -23,4 +23,6 @@ internal sealed class DevToolsServerInspection(
             // Created on first use, so a panel that opens before the page has sent anything still follows what comes.
             ? feeds.For(inspected)
             : null;
+
+    public string? PanelScriptUrl => endpoints.PanelScriptUrl;
 }
