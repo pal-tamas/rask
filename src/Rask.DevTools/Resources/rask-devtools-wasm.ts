@@ -7,8 +7,9 @@
 
 import {createBridge, listenToPanel, type PanelBridge} from "./host/bridge.js";
 import {installDock} from "./host/dock.js";
+import {installFlash} from "./host/flash.js";
 import {installOverlay} from "./host/overlay.js";
-import {CHANNEL, type FrameMessage} from "./rask-devtools-frame-protocol.js";
+import {CHANNEL, type FrameMessage, readFlashSetting} from "./rask-devtools-frame-protocol.js";
 
 let frameWindow: Window | null = null;
 let ready = false;
@@ -38,8 +39,9 @@ export function install(frameDocument: string, onOpen: () => void, onEvent: (jso
         onClose: () => bridge?.closed(),
     });
     const overlay = installOverlay(dock.shadow, dock.element);
+    const flash = installFlash(dock.shadow, dock.element);
     // A srcdoc frame inherits this origin but may report "null", so the source is the check and no origin is named.
-    bridge = createBridge(dock, overlay, message => frameWindow?.postMessage(message, "*"));
+    bridge = createBridge(dock, overlay, flash, message => frameWindow?.postMessage(message, "*"));
     window.__raskDevtoolsHost = {version: 1, dock};
 
     // Only the panel frame this module created; anything else on the page speaking the same shape is ignored.
@@ -54,6 +56,12 @@ export function install(frameDocument: string, onOpen: () => void, onEvent: (jso
                 break;
         }
     });
+
+    // Flashing remembered as on: DOM changes flash at once, and the panel runs behind the shut drawer to report renders.
+    if (readFlashSetting()) {
+        flash.setEnabled(true);
+        dock.preload();
+    }
 }
 
 /**

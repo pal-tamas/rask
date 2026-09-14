@@ -42,7 +42,12 @@ internal enum DevToolsRenderReason : byte
 ///     How long its own <c>Render()</c> took, in <see cref="System.Diagnostics.Stopwatch" /> ticks — not its children, which
 ///     render after it returns. -1 when the render threw.
 /// </param>
-internal readonly record struct DevToolsRender(long Id, string Type, string? Key, DevToolsRenderReason Reason, long SelfTicks);
+/// <param name="At">
+///     Where its nodes are on the page (<c>path|firstSlot|count</c>, as the Tree tab writes it), so the page can flash it.
+///     Recorded only while a panel flashes renders; null otherwise, and for a component with no nodes of its own.
+/// </param>
+internal readonly record struct DevToolsRender(
+    long Id, string Type, string? Key, DevToolsRenderReason Reason, long SelfTicks, string? At = null);
 
 /// <summary>One render the page committed: every component whose <c>Render()</c> ran in it, in the order they ran.</summary>
 /// <param name="Sequence">Monotonic per feed, counted with the wire events, so the two tabs' numbers never collide.</param>
@@ -78,6 +83,18 @@ internal static class DevToolsNames
 
         return name + "<" + string.Join(", ", type.GetGenericArguments().Select(Of)) + ">";
     }
+
+    /// <summary>A reason as the panel and the page's flash label write it.</summary>
+    internal static string Label(DevToolsRenderReason reason) => reason switch
+    {
+        DevToolsRenderReason.Mount => "mount",
+        DevToolsRenderReason.Props => "props",
+        DevToolsRenderReason.State => "state",
+        DevToolsRenderReason.Bypass => "bypass cache",
+        DevToolsRenderReason.Context => "context",
+        DevToolsRenderReason.Children => "children",
+        _ => "uncached",
+    };
 
     /// <summary>The runtime's cause, in the tab's words.</summary>
     internal static DevToolsRenderReason ReasonOf(RenderCause cause) => cause switch

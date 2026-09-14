@@ -32,8 +32,20 @@ internal sealed partial class DevToolsRendersTab : Component
     private DevToolsRefreshGate? _gate;
     private bool _byCommit;
 
+    /// <summary>The colour the page flashes a component that rendered in; the host's stylesheet uses the same.</summary>
+    internal const string RenderColour = "#f59e0b";
+
+    /// <summary>The colour the page flashes a node the patch changed.</summary>
+    internal const string DomColour = "#14b8a6";
+
     /// <summary>The inspected session's feed.</summary>
     public required DevToolsFeed Feed { get; set; }
+
+    /// <summary>Whether the page flashes renders and DOM changes. Held by the panel page, so it outlives this tab.</summary>
+    public bool? Flash { get; set; }
+
+    /// <summary>Raised when the flash switch is flipped.</summary>
+    public Callback<bool>? OnFlashChange { get; set; }
 
     // The view switch is a field, which the render cache cannot see.
     /// <inheritdoc />
@@ -70,7 +82,16 @@ internal sealed partial class DevToolsRendersTab : Component
                     ViewButton("By component", byCommit: false),
                     ViewButton("By commit", byCommit: true)
                 ],
-                UiButton.Size(UiSize.Sm).Title("Forget the renders counted so far").OnClick(Feed.ClearCommits)["Clear"]
+                Div.Class("flex flex-wrap items-center gap-3")[
+                    UiToggle.Value(Flash ?? false).Text("Flash on the page").Size(UiSize.Sm).OnChange(OnFlashChange),
+                    Flash == true
+                        ? Span.Class("flex items-center gap-3 text-xs")[
+                            Swatch(RenderColour, "rendered"),
+                            Swatch(DomColour, "changed in the DOM")
+                        ]
+                        : null,
+                    UiButton.Size(UiSize.Sm).Title("Forget the renders counted so far").OnClick(Feed.ClearCommits)["Clear"]
+                ]
             ],
             commits.Length == 0
                 ? UiAlert["No renders yet. Use the page, and every component that renders is counted here, with why."]
@@ -253,6 +274,13 @@ internal sealed partial class DevToolsRendersTab : Component
         return Div.Class("flex flex-wrap items-center gap-2")[items];
     }
 
+    // A legend entry: the outline the page draws, in its colour, and what it means.
+    private static Component Swatch(string colour, string meaning) =>
+        Span.Class("flex items-center gap-1 whitespace-nowrap")[
+            Span.Style($"display:inline-block;width:.75rem;height:.75rem;border:2px solid {colour};border-radius:2px"),
+            meaning
+        ];
+
     private static Component Name(string type, string? key) =>
         key is null
             ? Span.Class("font-mono")[type]
@@ -277,18 +305,7 @@ internal sealed partial class DevToolsRendersTab : Component
             .Key((int)reason)
             .Size(UiSize.Sm)
             .Tone(reason == DevToolsRenderReason.Mount ? UiTone.Info : null)
-            .Title(Explain(reason))[count is { } n and > 1 ? $"{Label(reason)} ×{n}" : Label(reason)];
-
-    internal static string Label(DevToolsRenderReason reason) => reason switch
-    {
-        DevToolsRenderReason.Mount => "mount",
-        DevToolsRenderReason.Props => "props",
-        DevToolsRenderReason.State => "state",
-        DevToolsRenderReason.Bypass => "bypass cache",
-        DevToolsRenderReason.Context => "context",
-        DevToolsRenderReason.Children => "children",
-        _ => "uncached",
-    };
+            .Title(Explain(reason))[count is { } n and > 1 ? $"{DevToolsNames.Label(reason)} ×{n}" : DevToolsNames.Label(reason)];
 
     private static string Explain(DevToolsRenderReason reason) => reason switch
     {

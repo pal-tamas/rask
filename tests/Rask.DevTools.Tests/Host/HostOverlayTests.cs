@@ -68,5 +68,25 @@ public sealed class HostOverlayTests
         Assert.Equal("1|0|1:Card,null:null", Str("hoverPosts"));
         Assert.Equal("pick:[],pick:null", Str("pickPosts"));
         Assert.Equal("pick:42/true,pick:cancel/true", Str("pickedKeys"));
+
+        // Flashing, at the bridge: the setting is remembered in the page's storage and forgotten again, and only
+        // well-formed boxes are flashed.
+        Assert.Equal("on", Str("flashRemembered"));
+        Assert.True(Bool("flashForgotten"));
+        Assert.Equal("enabled true | renders 1|0|1=Row · state | enabled false", Str("flashCalls"));
+
+        // Flashing, from the panel: the remembered setting reported once as a keydown; the page told of the panel's
+        // setting; commits already held when it came on are not flashed, each newer commit is flashed once, and one with
+        // no places posts nothing.
+        Assert.Equal("flash:on", Str("flashReported"));
+        Assert.Equal(0, r.GetProperty("flashPostsBeforeAgreement").GetInt32());
+        Assert.Equal("setting:true,flash:C · props,setting:false", Str("flashPosts"));
+        Assert.True(Bool("flashReportedOnce"));
+        Assert.Equal(0, r.GetProperty("flashesOfGarbage").GetInt32());
+        Assert.Equal("[[2,[[\"a\",\"b\"]]]]", Str("flashesKeepValidBoxes"));
+
+        // The DOM flash boxes what changed: the item (text, attribute and insertion, once), the list (text added to it) —
+        // not the body or document toggling an attribute, the devtools' own element, or anything in <head>.
+        Assert.Equal("li,ul", Str("domChanged"));
     }
 }

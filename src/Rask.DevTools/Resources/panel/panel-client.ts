@@ -7,10 +7,13 @@
 // their session with a value. A hover therefore costs no round trip: the row already says where its node is.
 
 import {isToggleShortcut} from "../host/dock.js";
-import {asFrameMessage, CHANNEL, type FrameMessage} from "../rask-devtools-frame-protocol.js";
+import {asFrameMessage, CHANNEL, type FrameMessage, readFlashSetting} from "../rask-devtools-frame-protocol.js";
 
 /** The prefix of the keydown `key` a pick is reported as; `DevToolsTreeTab.PickKeyPrefix` on the C# side. */
 export const PICK_KEY_PREFIX = "pick:";
+
+/** The prefix of the keydown `key` the remembered flash setting is reported as; `DevToolsFlashEmitter.SettingKeyPrefix`. */
+export const FLASH_KEY_PREFIX = "flash:";
 
 export interface PanelClientOptions {
     /** Posts a message to the page. */
@@ -52,16 +55,60 @@ export function installPanelClient(options: PanelClientOptions): void {
         post({channel: CHANNEL, kind: "pick", anchors});
     };
 
-    // The Tree tab's render is what starts, updates and stops a pick; the panel's runtime applies it to this document.
+    // Flashing. The panel starts with it off and cannot read the page's storage, so the setting the page remembered is
+    // reported once, as soon as the panel has rendered the element that takes it. After that the panel's own switch is
+    // the truth: every change is handed to the page, which remembers it. Commits are flashed once each, by sequence, and
+    // the ones already rendered when flashing came on are the baseline rather than a burst of stale boxes.
+    let flashReported = false;
+    let lastFlashSetting: string | null = null;
+    let lastFlashed = -1;
+    const syncFlash = () => {
+        const el = document.querySelector("[data-rask-devtools-flash]");
+        if (!el) return;
+        const setting = el.getAttribute("data-rask-devtools-flash");
+        if (!flashReported) {
+            flashReported = true;
+            const remembered = readFlashSetting();
+            if (remembered !== (setting === "on")) {
+                el.dispatchEvent(new KeyboardEvent("keydown", {key: FLASH_KEY_PREFIX + (remembered ? "on" : "off"), bubbles: true}));
+                return;
+            }
+        }
+        if (setting !== lastFlashSetting) {
+            lastFlashSetting = setting;
+            post({channel: CHANNEL, kind: "flash-setting", on: setting === "on"});
+            if (setting !== "on") lastFlashed = -1;
+        }
+
+        const raw = document.querySelector("[data-rask-devtools-flashes]")?.getAttribute("data-rask-devtools-flashes");
+        if (setting !== "on" || !raw) return;
+        const commits = parseFlashes(raw);
+        if (lastFlashed < 0) {
+            lastFlashed = commits.length > 0 ? commits[commits.length - 1][0] : 0;
+            return;
+        }
+        for (const [sequence, boxes] of commits) {
+            if (sequence <= lastFlashed) continue;
+            lastFlashed = sequence;
+            if (boxes.length > 0) post({channel: CHANNEL, kind: "flash", boxes});
+        }
+    };
+
+    // The tabs' renders are what start, update and stop a pick and a flash; the panel's runtime applies them to this
+    // document.
     if (typeof MutationObserver === "function") {
-        new MutationObserver(syncAnchors).observe(document.documentElement, {
+        new MutationObserver(() => {
+            syncAnchors();
+            syncFlash();
+        }).observe(document.documentElement, {
             subtree: true,
             childList: true,
             attributes: true,
-            attributeFilter: ["data-rask-devtools-anchors"],
+            attributeFilter: ["data-rask-devtools-anchors", "data-rask-devtools-flash", "data-rask-devtools-flashes"],
         });
     }
     syncAnchors();
+    syncFlash();
 
     window.addEventListener("message", (e: MessageEvent) => {
         if (!fromPage(e)) return;
@@ -86,6 +133,25 @@ export function installPanelClient(options: PanelClientOptions): void {
             reportPick("cancel");
         }
     }, true);
+}
+
+/** The emitter's `[[sequence, [[at, label], …]], …]`, keeping only well-formed entries; garbage reads as none. */
+export function parseFlashes(raw: string): [number, [string, string][]][] {
+    let data: unknown;
+    try {
+        data = JSON.parse(raw);
+    } catch {
+        return [];
+    }
+    if (!Array.isArray(data)) return [];
+    const commits: [number, [string, string][]][] = [];
+    for (const entry of data) {
+        if (!Array.isArray(entry) || typeof entry[0] !== "number" || !Array.isArray(entry[1])) continue;
+        const boxes = (entry[1] as unknown[]).filter((b): b is [string, string] =>
+            Array.isArray(b) && typeof b[0] === "string" && typeof b[1] === "string");
+        commits.push([entry[0], boxes]);
+    }
+    return commits;
 }
 
 // A keydown on the tab's hidden element: the runtime's shared key forwarding sends it to the tab with its key.

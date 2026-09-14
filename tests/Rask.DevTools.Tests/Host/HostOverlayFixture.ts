@@ -8,7 +8,8 @@ import {contains, findAnchor, parseAnchors, parsePlace} from "../../../src/Rask.
 import {createBridge, listenToPanel} from "../../../src/Rask.DevTools/Resources/host/bridge.js";
 import type {DockHandle} from "../../../src/Rask.DevTools/Resources/host/dock.js";
 import {labelText, measure, type Overlay} from "../../../src/Rask.DevTools/Resources/host/overlay.js";
-import {installPanelClient} from "../../../src/Rask.DevTools/Resources/panel/panel-client.js";
+import {changedElements, type Flash} from "../../../src/Rask.DevTools/Resources/host/flash.js";
+import {installPanelClient, parseFlashes} from "../../../src/Rask.DevTools/Resources/panel/panel-client.js";
 import {nodePath} from "../../../src/Rask.Core/Resources/rask-dom-path.js";
 import type {FrameMessage} from "../../../src/Rask.DevTools/Resources/rask-devtools-frame-protocol.js";
 
@@ -64,7 +65,19 @@ const overlay: Overlay = {
 let toggles = 0;
 const dock = {toggle: () => toggles++} as unknown as DockHandle;
 const posted: FrameMessage[] = [];
-const bridge = createBridge(dock, overlay, m => posted.push(m));
+const storage = new Map<string, string>();
+globals.localStorage = {
+    getItem: (k: string) => storage.get(k) ?? null,
+    setItem: (k: string, v: string) => storage.set(k, v),
+    removeItem: (k: string) => storage.delete(k),
+};
+const flashCalls: string[] = [];
+const flash: Flash = {
+    renders: boxes => flashCalls.push(`renders ${boxes.map(b => b.join("=")).join(";")}`),
+    setEnabled: on => flashCalls.push(`enabled ${on}`),
+    isEnabled: () => false,
+};
+const bridge = createBridge(dock, overlay, flash, m => posted.push(m));
 const ch = "rask-devtools" as const;
 
 bridge.handle({channel: ch, kind: "highlight", at: "1|0|1", label: "Card"});
@@ -72,6 +85,12 @@ bridge.handle({channel: ch, kind: "highlight", at: null, label: null});
 bridge.handle({channel: ch, kind: "pick", anchors: '[["7","1|0|1","Card"]]'});
 onPicked!("7");
 bridge.handle({channel: ch, kind: "toggle"});
+bridge.handle({channel: ch, kind: "flash-setting", on: true});
+out.flashRemembered = storage.get("rask.devtools.flash") ?? null;
+bridge.handle({channel: ch, kind: "flash", boxes: [["1|0|1", "Row · state"], ["bad"], 7] as unknown as [string, string][]});
+bridge.handle({channel: ch, kind: "flash-setting", on: false});
+out.flashForgotten = !storage.has("rask.devtools.flash");
+out.flashCalls = flashCalls.join(" | ");
 out.unknownKindNotHandled = !bridge.handle({channel: ch, kind: "ready"});
 bridge.closed();
 out.closeWhilePickingCancelled = posted.some(m => m.kind === "pick-cancelled");
@@ -190,6 +209,8 @@ const docListeners: {type: string; handler: Handler}[] = [];
 const rootListeners: {type: string; handler: Handler}[] = [];
 const panelWindowListeners: {type: string; handler: Handler}[] = [];
 let anchorsEl: StubEl | null = null;
+let flashEl: StubEl | null = null;
+let flashesEl: StubEl | null = null;
 const pickedEl = new StubEl();
 globals.window = {
     addEventListener: (type: string, handler: Handler) => panelWindowListeners.push({type, handler}),
@@ -198,7 +219,11 @@ globals.document = {
     addEventListener: (type: string, handler: Handler) => docListeners.push({type, handler}),
     documentElement: {addEventListener: (type: string, handler: Handler) => rootListeners.push({type, handler})},
     querySelector: (selector: string) =>
-        selector === "[data-rask-devtools-anchors]" ? anchorsEl : selector === "[data-rask-devtools-picked]" ? pickedEl : null,
+        selector === "[data-rask-devtools-anchors]" ? anchorsEl
+        : selector === "[data-rask-devtools-picked]" ? pickedEl
+        : selector === "[data-rask-devtools-flash]" ? flashEl
+        : selector === "[data-rask-devtools-flashes]" ? flashesEl
+        : null,
 };
 
 const panelPosts: FrameMessage[] = [];
@@ -233,5 +258,72 @@ message({}, {channel: ch, kind: "picked", id: "42"});
 message(page, {channel: ch, kind: "picked", id: "42"});
 message(page, {channel: ch, kind: "pick-cancelled"});
 out.pickedKeys = pickedEl.dispatched.map(e => `${e.key}/${e.bubbles}`).join(",");
+
+// Flashing, from the panel's side. The page remembered it on; the panel renders it off, so the setting is reported to the
+// panel once as a keydown, and nothing reaches the page until the panel agrees.
+panelPosts.length = 0;
+storage.set("rask.devtools.flash", "on");
+flashEl = new StubEl();
+flashEl.attributes.set("data-rask-devtools-flash", "off");
+observerCallback!();
+out.flashReported = flashEl.dispatched.map(e => e.key).join(",");
+out.flashPostsBeforeAgreement = panelPosts.length;
+// The panel re-renders on, with commits 3 and 4 already held: the setting goes to the page, the held commits are the
+// baseline and flash nothing.
+flashEl.attributes.set("data-rask-devtools-flash", "on");
+flashesEl = new StubEl();
+flashesEl.attributes.set("data-rask-devtools-flashes", '[[3,[["1|0|1","A · mount"]]],[4,[["1|0|2","B · state"]]]]');
+observerCallback!();
+// Commit 5 arrives, then the same attribute again: flashed once. A commit with no places posts nothing.
+flashesEl.attributes.set("data-rask-devtools-flashes",
+    '[[4,[["1|0|2","B · state"]]],[5,[["1|0|3","C · props"]]],[6,[]]]');
+observerCallback!();
+observerCallback!();
+// Switched off by the reader: the page is told, and no report is made again.
+flashEl.attributes.set("data-rask-devtools-flash", "off");
+flashesEl = null;
+observerCallback!();
+out.flashPosts = panelPosts.map(m =>
+    m.kind === "flash-setting" ? `setting:${m.on}` : m.kind === "flash" ? `flash:${m.boxes.map(b => b[1]).join(";")}` : m.kind)
+    .join(",");
+out.flashReportedOnce = flashEl.dispatched.length === 1;
+out.flashesOfGarbage = parseFlashes("{nope").length + parseFlashes('[["x",[]],[1,"no"]]').length;
+out.flashesKeepValidBoxes = JSON.stringify(parseFlashes('[[2,[["a","b"],["c"],[1,2]]]]'));
+
+// The DOM flash: what a batch of mutations changed, each element once, never the devtools' own element or anything in
+// <head>, no box for the document or body toggling an attribute, and the container when only text was added.
+class Node2 {
+    constructor(public nodeType: number, public name: string, public parentElement: Node2 | null = null) {}
+    closest(selector: string) {
+        for (let n: Node2 | null = this; n; n = n.parentElement) if (selector === n.name) return n;
+        return null;
+    }
+    contains(other: Node2) {
+        for (let n: Node2 | null = other; n; n = n.parentElement) if (n === this) return true;
+        return false;
+    }
+}
+const htmlEl = new Node2(1, "html");
+const headEl = new Node2(1, "head", htmlEl);
+const bodyEl = new Node2(1, "body", htmlEl);
+const list = new Node2(1, "ul", bodyEl);
+const item = new Node2(1, "li", list);
+const text = new Node2(3, "#text", item);
+const hostEl = new Node2(1, "rask-devtools", htmlEl);
+globals.document = {documentElement: htmlEl, body: bodyEl};
+const record = (type: string, target: Node2, added: Node2[] = []) =>
+    ({type, target, addedNodes: {length: added.length, forEach: (f: (n: Node2) => void) => added.forEach(f)}});
+const changed = changedElements([
+    record("characterData", text),
+    record("attributes", item),
+    record("childList", list, [item]),
+    record("childList", list, [new Node2(3, "#text", list)]),
+    record("attributes", bodyEl),
+    record("attributes", htmlEl),
+    record("childList", htmlEl, [hostEl]),
+    record("attributes", hostEl),
+    record("childList", headEl, [new Node2(1, "style", headEl)]),
+] as unknown as MutationRecord[], hostEl as unknown as Element);
+out.domChanged = (changed as unknown as Node2[]).map(n => n.name).join(",");
 
 process.stdout.write(JSON.stringify(out) + "\n");

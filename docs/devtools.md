@@ -153,3 +153,20 @@ A reason is one of these:
 
 The tab holds the last 200 commits, or 5,000 renders if that comes first, so its totals cover the page's recent
 past. **Clear** starts them again from nothing.
+
+### Flashing renders on the page
+
+Turn on **Flash on the page** and the page shows each render as it happens, in two colours:
+
+- **Amber** boxes a component that rendered, labelled with its name and why: `TaskRow · props`.
+- **Teal** boxes a part of the page that the update actually changed.
+
+![Adding a task with flashing on: amber outlines labelled with each component that rendered and why, and the new row filled teal where the page changed](../src/Rask.Site/wwwroot/img/devtools/flash.webp)
+
+The two differ exactly where it matters. An amber box with no teal inside it is a component that rendered and changed
+nothing on the page: work you can often avoid.
+
+Flashing keeps going while the drawer is closed, and the page remembers the switch. After a reload it flashes straight
+away: the panel loads behind the closed drawer to report what rendered. Turn the switch off to stop.
+
+Teal boxes appear as soon as the page updates. Amber boxes come from the panel, a moment later.

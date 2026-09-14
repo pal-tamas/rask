@@ -22,6 +22,10 @@ internal sealed partial class DevToolsOverviewPage(RouteState route, IDevToolsIn
 
     private string _tab = Wire;
 
+    // Whether the page flashes renders: here rather than in the Renders tab, because the page keeps flashing while another
+    // tab is showing, and the emitter that tells it what to flash is rendered whichever tab that is.
+    private bool _flash;
+
     // The panel's script, on a host whose panel is a page: it tells the page that framed the panel what a row is over,
     // and hands a pick back. Deferred, so it binds to the document the page was served with.
     /// <inheritdoc />
@@ -48,13 +52,15 @@ internal sealed partial class DevToolsOverviewPage(RouteState route, IDevToolsIn
         Component tab = _tab switch
         {
             Tree => DevToolsTreeTab.Key(session + "-tree").Feed(feed),
-            Renders => DevToolsRendersTab.Key(session + "-renders").Feed(feed),
+            Renders => DevToolsRendersTab.Key(session + "-renders").Feed(feed).Flash(_flash)
+                .OnFlashChange(on => _flash = on),
             _ => DevToolsWireTab.Key(session + "-wire").Feed(feed),
         };
 
         return Div.Class("flex flex-col gap-3")[
             // Whichever tab is showing, so the Tree tab has a tree the moment it is picked.
             DevToolsTreeWatcher.Key(session + "-watch").Feed(feed),
+            DevToolsFlashEmitter.Key(session + "-flash").Feed(feed).On(_flash).OnChange(on => _flash = on),
             Div.Role("tablist").Class("flex items-center gap-1")[
                 TabButton(Wire, "Wire"),
                 TabButton(Tree, "Tree"),

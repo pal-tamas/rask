@@ -30,7 +30,35 @@ export type FrameMessage =
     /** Page → frame: the developer clicked the node `id` while picking. */
     | {readonly channel: typeof CHANNEL; readonly kind: "picked"; readonly id: string}
     /** Page → frame: the pick was abandoned — Esc, or the drawer closed. */
-    | {readonly channel: typeof CHANNEL; readonly kind: "pick-cancelled"};
+    | {readonly channel: typeof CHANNEL; readonly kind: "pick-cancelled"}
+    /** Frame → page: flashing was switched on or off in the Renders tab. The page remembers it and flashes DOM changes. */
+    | {readonly channel: typeof CHANNEL; readonly kind: "flash-setting"; readonly on: boolean}
+    /** Frame → page: flash these components, which rendered in a commit, as `[at, label]` pairs. */
+    | {readonly channel: typeof CHANNEL; readonly kind: "flash"; readonly boxes: readonly (readonly [string, string])[]};
+
+/** Where the page remembers whether flashing is on: `"on"`, or nothing. Both the page and a same-origin panel read it. */
+export const FLASH_STORAGE_KEY = "rask.devtools.flash";
+
+/** Whether the page remembered flashing as on. Storage can be blocked (a sandboxed frame, a privacy mode): then off. */
+export function readFlashSetting(): boolean {
+    try {
+        return localStorage.getItem(FLASH_STORAGE_KEY) === "on";
+    } catch {
+        return false;
+    }
+}
+
+export function writeFlashSetting(on: boolean): void {
+    try {
+        if (on) {
+            localStorage.setItem(FLASH_STORAGE_KEY, "on");
+        } else {
+            localStorage.removeItem(FLASH_STORAGE_KEY);
+        }
+    } catch {
+        // Blocked, as above: the setting then lasts this page.
+    }
+}
 
 /** Narrows a posted message to one of ours, of any kind. Everything else a page's frames post is ignored. */
 export function asFrameMessage(data: unknown): FrameMessage | null {
