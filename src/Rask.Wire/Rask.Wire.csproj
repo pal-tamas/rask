@@ -11,7 +11,7 @@
     <Description>The primitives Rask's generated wire codecs are written against: reflection-free `Utf8JsonReader`/`Utf8JsonWriter` helpers with one well-worded error per shape mismatch, plus the file carriers a message uses in each direction (`RemoteFile` up, `FileDownload` down). Shared by Rask.Cqrs and Rask.Api so a codec reads the same on either wire and neither package has to depend on the other. No reflection, no assembly scanning: publishes clean under the WASM/AOT trimmer.</Description>
     <!-- Override the framework default tags (web/component/wasm) — this is a standalone,
          host-agnostic serialization primitive with no web/UI coupling. -->
-    <PackageTags>json serialization wire source-generator reflection-free aot trimming dotnet net10</PackageTags>
+    <PackageTags>json serialization wire source-generator reflection-free aot trimming dotnet net10 net11</PackageTags>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework

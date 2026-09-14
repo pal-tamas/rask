@@ -14,8 +14,8 @@ a consistent copy of a live database — and it never gets in the way of the too
 curl -sSL https://rask.sh/rask.sh | sh
 ```
 
-That puts a `rask` command on your `PATH`, along with the .NET 10 SDK and the dependencies the CLI
-shells out to. Re-run it to upgrade. On a machine that already has the .NET 10 SDK,
+That puts a `rask` command on your `PATH`, along with the .NET SDK and the dependencies the CLI
+shells out to. Re-run it to upgrade. On a machine that already has the .NET 10 or 11 SDK,
 `dotnet tool install -g Rask.Cli` installs just the tool, and `dotnet tool update -g Rask.Cli`
 upgrades it. Options, install locations and uninstall: [Installing Rask](installation.md).
 

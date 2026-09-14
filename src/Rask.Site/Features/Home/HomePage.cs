@@ -184,7 +184,7 @@ public sealed partial class HomePage : Component
                                 .Rel("noopener")["GitHub"]
                         ],
                         Div.Class("mt-8 flex flex-wrap gap-2")[
-                            Span.Class(Badge)[B[".NET 10"]],
+                            Span.Class(Badge)[B[".NET 10"], " · 11"],
                             Span.Class(Badge)["MIT"],
                             Span.Class(Badge)[B["Server"], " · WASM"],
                             Span.Class(Badge)[B["SQLite"], " · production DB"]
@@ -392,7 +392,7 @@ public sealed partial class HomePage : Component
         Section.Class(SectionPad)[
             Div.Class(Wrap)[
                 Div.Class("mx-auto mb-10 max-w-2xl text-center")[
-                    P.Class($"{Eyebrow} justify-center")["Prerequisite · .NET 10 SDK"],
+                    P.Class($"{Eyebrow} justify-center")["Prerequisite · .NET 10 or 11 SDK"],
                     H2.Class(H2Class)["Up and running in one command."]
                 ],
                 InstallTabs

@@ -9,7 +9,7 @@
     <PackageId>Rask.Testing</PackageId>
     <Title>Rask.Testing — unit-test Rask components</Title>
     <Description>Render a Rask component to HTML in a unit test, invoke its event handlers (clicks, input, submit), and assert on the re-rendered markup — no browser, no server, no WebSocket. RaskTest.Render(component) returns a RenderedComponent whose Html reflects the current state; InvokeAsync/ClickAsync dispatch a handler by its data-rask-on-* id and return the re-rendered HTML. Wraps Rask.Core's live-render + handler-dispatch seam. Reference from your test project; Rask.Core comes transitively from your app's Rask.Server / Rask.Wasm.</Description>
-    <PackageTags>rask testing unit-test component-testing render blazor-like dotnet net10</PackageTags>
+    <PackageTags>rask testing unit-test component-testing render blazor-like dotnet net10 net11</PackageTags>
   </PropertyGroup>
 
 

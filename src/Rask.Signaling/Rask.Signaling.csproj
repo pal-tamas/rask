@@ -11,7 +11,7 @@
     <Description>The WebRTC signaling relay Rask's ISignaling client connects to — rooms, server-minted peer ids, and opaque payload relay between peers, with authorization, size and rate limits. Depends on nothing from Rask.Server: any ASP.NET host can map it, including a static-file host serving a published WASM bundle. The relay never parses an SDP or an ICE candidate; it forwards whatever the client sent to one named peer in the same room.</Description>
     <!-- Override the framework default tags (web/component/wasm) — this is a transport-neutral
          server-side relay, not a web-UI component library. -->
-    <PackageTags>webrtc signaling relay peer-to-peer websocket dotnet net10</PackageTags>
+    <PackageTags>webrtc signaling relay peer-to-peer websocket dotnet net10 net11</PackageTags>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework

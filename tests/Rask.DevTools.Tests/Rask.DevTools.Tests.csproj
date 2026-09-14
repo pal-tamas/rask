@@ -9,6 +9,15 @@
     <!-- No scoped component assets: the .ts files here are Node fixtures (see Host/), which the scoped-TS glob must
          not claim. A property, because the csproj body evaluates before Rask.Core.targets adds the items. -->
     <RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>
+
+    <!--
+      The probe's hook sites, observable in every configuration. RaskDevTools defaults to Debug only, and it becomes a
+      runtime switch in the ENTRY app's config — this test project — so a Release run (which is what the unit gate runs)
+      would leave RaskDevToolsHook.Active null and no seam would ever fire: the tests that drive a real page and expect
+      its traffic or its component tree would pass or fail for reasons having nothing to do with the devtools.
+      Rask.Core.Tests forces it on for the same reason.
+    -->
+    <RaskDevTools>true</RaskDevTools>
   </PropertyGroup>
 
   <ItemGroup>

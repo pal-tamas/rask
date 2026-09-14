@@ -67,8 +67,8 @@ public static class GuideCatalog
         },
         new("installation", "Installing Rask", "One line to the CLI and everything it needs — options, upgrade, uninstall.", "Start here")
         {
-            SearchTitle = "Install the CLI and .NET 10 SDK in one command",
-            Description = "Install the rask CLI with one curl or PowerShell command. It adds the .NET 10 SDK, dotnet-ef, wasm-tools and Node.js LTS under your home directory, no sudo.",
+            SearchTitle = "Install the CLI and .NET 10 or 11 SDK in one command",
+            Description = "Install the rask CLI with one curl or PowerShell command. It adds the .NET SDK, dotnet-ef, wasm-tools and Node.js LTS under your home directory, no sudo.",
         },
         new("getting-started", "Getting started", "Scaffold a project and build your first component.", "Start here")
         {

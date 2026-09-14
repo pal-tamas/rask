@@ -67,8 +67,20 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
     /// <summary>The path prefix of the devtools' own pages, whose sessions are never recorded.</summary>
     internal const string PanelPrefix = "/_rask-devtools";
 
+    // The session a render walk belongs to, found later by the component-level hooks. TreeCommitted and its neighbours
+    // carry a component and no session, and the only thing that ties one to the other is the render context's services —
+    // which on every host IS the session's container. Weak on both sides: neither the container nor the session is ours.
+    private readonly ConditionalWeakTable<IServiceProvider, LiveSessionBase> _walking = new();
+
+    // Holds the component ids, so a panel's expanded branches survive the next render of the page it is watching.
+    private readonly DevToolsTreeSnapshotter _snapshots = new();
+
     public void WalkStarted(LiveSessionBase session, bool publishOnly)
     {
+        if (!IsPanel(session))
+        {
+            _walking.AddOrUpdate(session.Services, session);
+        }
     }
 
     public long ComponentRendering(Component component, RenderCause cause) => 0;
@@ -100,6 +112,19 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
     public void TreeCommitted(
         Component root, IReadOnlyCollection<Component> aliveNow, IReadOnlyCollection<Component> alivePrev)
     {
+        // Which session this walk belongs to: the render context's services are the session's container, and WalkStarted
+        // recorded the pair. The synchronous context first — it is valid for the walk itself — with the ambient one as
+        // the fallback for a render that resumed after an await.
+        var services = (LiveRenderContext.CurrentSync ?? LiveRenderContext.Current)?.Services;
+        if (services is null
+            || !_walking.TryGetValue(services, out var session)
+            || !feeds.TryGet(session, out var feed)
+            || !feed.WantsTree)
+        {
+            return;
+        }
+
+        feed.RecordTree(_snapshots.Snapshot(root));
     }
 
     public void DiffComputed(LiveSessionBase session, int opCount, bool usedDiff, long startTimestamp)

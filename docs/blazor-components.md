@@ -365,7 +365,7 @@ not need one works.
 
 ## Both hosts
 
-`Rask.Blazor` targets `net10.0` **and** `net10.0-browser`, and the two share one code path with no
+`Rask.Blazor` targets the server **and** browser faces of every shipped .NET version, and the two share one code path with no
 `#if`: a hosted component is rendered to markup in process, which browser-WebAssembly does as readily
 as a server. The only difference is where the renderer comes from — the ASP.NET shared framework on
 the server, the `Microsoft.AspNetCore.Components.Web` package in the browser.

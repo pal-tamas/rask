@@ -29,8 +29,8 @@ namespace Rask.TestSupport;
 public static class NodeFixture
 {
     /// <summary>
-    ///     Runs <paramref name="name" /> and parses its JSON line, or returns <c>null</c> when Node is
-    ///     not installed.
+    ///     Runs <paramref name="name" /> with <paramref name="arguments" /> and parses its JSON line, or
+    ///     returns <c>null</c> when Node is not installed.
     /// </summary>
     /// <remarks>
     ///     A missing Node returns null rather than failing: the browser-observable half of every one
@@ -38,7 +38,7 @@ public static class NodeFixture
     ///     or test Rask. Callers return early — which is why each one says so at its call site, so a
     ///     silently-skipped test reads as a deliberate choice rather than an accident.
     /// </remarks>
-    public static JsonElement? Run(string name)
+    public static JsonElement? Run(string name, params string[] arguments)
     {
         var node = ResolveNode();
         if (node is null)
@@ -52,13 +52,18 @@ public static class NodeFixture
             $"'{script}' is missing. It is bundled from {name}.ts by the _RaskBundleNodeFixtures target — "
             + "build the test project first.");
 
-        var psi = new ProcessStartInfo(node, $"\"{script}\"")
+        var psi = new ProcessStartInfo(node)
         {
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
         };
+        psi.ArgumentList.Add(script);
+        foreach (var argument in arguments)
+        {
+            psi.ArgumentList.Add(argument);
+        }
 
         using var proc = Process.Start(psi)!;
         var stdout = proc.StandardOutput.ReadToEnd();

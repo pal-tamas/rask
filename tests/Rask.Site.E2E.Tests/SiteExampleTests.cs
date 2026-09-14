@@ -458,6 +458,70 @@ public sealed class SiteExampleTests
     }
 
     [Fact]
+    public async Task Hydration_ChangesNeitherTheToolbarTintThePrintedPathNorTheBodyClass()
+    {
+        // Three one-frame changes survived #1049 and read to a visitor as "a little flickering":
+        //   * <meta name="theme-color"> went #7c3aed -> #512BD4 -> #7c3aed in ~25ms: the manifest injector
+        //     overwrote the page's tag and the next head morph restored it. That is browser CHROME (Safari's
+        //     tab bar, Chrome-on-Android's address bar), so no page screenshot can see it; every value the
+        //     tag ever holds is recorded instead.
+        //   * the "path:" badge said /docs in the prerender and /docs/ once hydrated, because the page is
+        //     served at the directory URL and the prerender seeded the route's bare spelling.
+        //   * <body class> arrived only with the runtime's first frame; the published page kept the shell's tag.
+        //
+        // Loaded at /docs/, the URL a reader lands on (GitHub Pages 301s /docs to it), not /docs/index.html.
+        var context = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions { BaseURL = _app.BaseUrl });
+        var page = await context.NewPageAsync();
+        try
+        {
+            await page.AddInitScriptAsync("""
+                (function () {
+                    const h = window.__raskHandover = { tints: [], path: null, bodyClass: null };
+                    const tint = () => [...document.querySelectorAll('meta[name="theme-color"]')]
+                        .map(m => m.content + '|' + m.media).join(',');
+                    const note = () => {
+                        const t = tint();
+                        if (h.tints[h.tints.length - 1] !== t) h.tints.push(t);
+                    };
+                    new MutationObserver(note).observe(document, {
+                        subtree: true, childList: true, attributes: true, attributeFilter: ['content', 'media', 'name'],
+                    });
+                    document.addEventListener('DOMContentLoaded', () => {
+                        note();
+                        const badge = [...document.querySelectorAll('span')].find(s => s.textContent.startsWith('path: '));
+                        h.path = badge ? badge.querySelector('code').textContent : '(no badge)';
+                        h.bodyClass = document.body.getAttribute('class');
+                    });
+                })();
+                """);
+
+            await page.GotoAsync("/docs/");
+
+            await Expect(page.Locator("body[data-rask-root='wasm']"))
+                .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 60_000 });
+            await Expect(page.Locator("html[data-rask-prerendered]")).ToHaveCountAsync(0);
+            // The manifest is applied AFTER the first render; wait for it rather than for a clock.
+            await Expect(page.Locator("link[rel='manifest']")).ToHaveCountAsync(1);
+            await page.WaitForTimeoutAsync(500);
+
+            var tints = await page.EvaluateAsync<string[]>("() => window.__raskHandover.tints.filter(t => t !== '')");
+            Assert.True(tints.Length == 1, $"theme-color changed during boot: {string.Join(" -> ", tints)}");
+
+            var prerenderedPath = await page.EvaluateAsync<string>("() => window.__raskHandover.path");
+            Assert.Equal("/docs/", prerenderedPath);
+            await Expect(page.Locator("span:has-text('path:') > code")).ToHaveTextAsync(prerenderedPath);
+
+            var prerenderedBodyClass = await page.EvaluateAsync<string?>("() => window.__raskHandover.bodyClass");
+            Assert.False(string.IsNullOrEmpty(prerenderedBodyClass), "the prerendered <body> carries no class");
+            Assert.Equal(prerenderedBodyClass, await page.EvaluateAsync<string?>("() => document.body.getAttribute('class')"));
+        }
+        finally
+        {
+            await context.CloseAsync();
+        }
+    }
+
+    [Fact]
     public async Task ThePublishHandsCrawlersAndAssistantsTheFilesTheWebIsToldAbout()
     {
         // All of this is written by the PUBLISH, which is the one thing no unit test runs: llms.txt and the

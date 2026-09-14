@@ -49,15 +49,17 @@ public sealed class DevToolsBootstrapTests
     }
 
     [Fact]
-    public void A_debug_build_of_this_repo_carries_the_switch()
+    public void The_switch_this_project_asks_for_reaches_the_runtime()
     {
-        // Directory.Build.targets imports Rask.DevTools.targets into every project, so a Debug build of
-        // this test assembly must have written the switch into its runtimeconfig. If this fails, the gate
-        // every app depends on is not being applied at all.
-#if DEBUG
+        // Directory.Build.targets imports Rask.DevTools.targets into every project, and this one sets
+        // RaskDevTools=true (see the csproj: the probe's hook sites are inert without it, and the unit gate
+        // builds Release). So the switch must read true here in EVERY configuration — if it does not, the
+        // targets that carry the gate into every app are not being applied at all, and a devtools test that
+        // drives a real page would quietly observe nothing.
+        //
+        // The other half — that a Release build carries no devtools — is not this assembly's to prove, and a
+        // project that forces the switch on cannot: the fixture publishes do it, where the targets strip the
+        // assembly and then fail the build if any of it survived.
         Assert.True(RaskDevToolsFeature.IsEnabled);
-#else
-        Assert.False(RaskDevToolsFeature.IsEnabled);
-#endif
     }
 }

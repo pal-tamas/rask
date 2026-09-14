@@ -21,7 +21,7 @@
     <PackageId>Rask.Cli</PackageId>
     <Title>Rask.Cli — the `rask` command-line tool</Title>
     <Description>The `rask` .NET tool: a productivity front-door for the Rask framework. Scaffold a new project (`rask new`), run it with hot reload (`rask dev`), manage EF Core migrations and back the database up (`rask db`), and deploy to a single host over SSH with auto-HTTPS (`rask deploy`) — a thin wrapper over the .NET SDK. Run it with no arguments for an interactive new-project wizard. Install with `dotnet tool install -g Rask.Cli`.</Description>
-    <PackageTags>rask cli dotnet-tool scaffolding tooling dotnet net10</PackageTags>
+    <PackageTags>rask cli dotnet-tool scaffolding tooling dotnet net10 net11</PackageTags>
 
     <!-- This is an executable tool, not a consumed library: no public API surface to document. -->
     <GenerateDocumentationFile>false</GenerateDocumentationFile>

@@ -20,7 +20,7 @@
     <!-- The fallback for a package that names no tags of its own — Rask, Rask.Server, Rask.Wasm and the other
          hosts. nuget.org search matches tags, and "web component framework wasm net10" matched nothing a
          .NET developer looking for a web framework types. -->
-    <PackageTags>web framework components csharp dotnet aspnetcore webassembly wasm ssr blazor-alternative one-person-framework sqlite net10</PackageTags>
+    <PackageTags>web framework components csharp dotnet aspnetcore webassembly wasm ssr blazor-alternative one-person-framework sqlite net10 net11</PackageTags>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>

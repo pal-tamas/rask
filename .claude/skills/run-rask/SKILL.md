@@ -167,6 +167,34 @@ the first stylesheet `<link>` is still the same connected node.
 not evidence of anything on its own. Node identity is. It is how issue #1049 was pinned to `<body>`
 being *replaced* rather than morphed, while `<head>` reconciled correctly.
 
+### Every frame, not a 50ms sample (`frameprobe.cs`, `paintprobe.cs`)
+
+A flicker a reader reports is usually ONE frame, and `hydrateprobe.cs`'s 50ms timer can step over it.
+Reach for these two when it reports a clean handover and the reader still sees something:
+
+```bash
+dotnet run frameprobe.cs https://rask.sh /docs 1 [webkit]     # per-rAF style + every head/body/attr mutation
+dotnet run paintprobe.cs https://rask.sh /docs 1280 900 dark - 6   # real painted PNGs, deduped by hash
+```
+
+`frameprobe.cs` samples in `requestAnimationFrame` (after style recalc, before paint) and logs every
+attribute change after 400ms with its old and new value. `paintprobe.cs` (Chromium only) records the
+compositor's own frames via CDP screencast into `screenshots/paint/<route>-<width>-<scheme>-<theme>-x<cpu>/`
+and keeps one PNG per DIFFERENT picture. Args after the path: width, height, `light|dark`, a stored theme or
+`-`, CPU throttle. Diff consecutive PNGs, and open the diff's bounding box: that is where the reader looked.
+
+What they found that the 50ms probe did not: `<meta name="theme-color">` switching colour and back within
+25ms (browser **chrome**, visible in Safari and Chrome on Android and in no page screenshot), a `path:` badge
+going `/docs` to `/docs/`, and `<body class>` arriving only at hydration. For WebKit, `frameprobe.cs …
+webkit` also records a video under `screenshots/video/`. Decode it with Playwright's bundled
+`~/Library/Caches/ms-playwright/ffmpeg-*/ffmpeg-mac`, since there is no system ffmpeg. A missing WebKit
+revision installs through `Microsoft.Playwright.Program.Main(["install", "webkit"])` from a one-line
+file-based app, because `scripts/playwright.sh` needs the E2E project built.
+
+**Quote the shell's args as separate words.** Under zsh an unquoted `$cfg` is NOT split, so a loop over
+`"/ 1280 900 dark -"` requests the literal path `/ 1280 900 dark -`, gets the 404 boot shell, and shows a
+spinner-then-page "flicker" that is entirely the probe's fault. Put matrices in a bash script file.
+
 **A probe that waits for an `<h1>` proves nothing here.** The prerendered HTML already has one, so such
 a wait is satisfied before the runtime exists and reports a clean boot it never observed. This waits for
 the runtime's own `raskAfterMorph` hook and says `NEVER HYDRATED` rather than implying a verdict.

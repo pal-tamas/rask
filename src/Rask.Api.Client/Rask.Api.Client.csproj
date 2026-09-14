@@ -9,7 +9,7 @@
     <PackageId>Rask.Api.Client</PackageId>
     <Title>Rask.Api.Client — Typed Clients Generated From Your Endpoints</Title>
     <Description>Call your own API controllers and minimal API endpoints from C# with no URL string at the call site. A source generator reads the endpoint declarations and emits one typed client per controller, with reflection-free JSON codecs, so the route, the verb, the request shape and the response shape cannot drift from the server. Publishes clean under the WASM/AOT trimmer.</Description>
-    <PackageTags>aspnetcore api client typed-client source-generator reflection-free aot trimming dotnet net10</PackageTags>
+    <PackageTags>aspnetcore api client typed-client source-generator reflection-free aot trimming dotnet net10 net11</PackageTags>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework

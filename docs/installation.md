@@ -15,17 +15,17 @@ That installs the `rask` CLI **and the dependencies the CLI actually shells out 
 [`rask doctor`](cli.md) so you can see the result. Everything lands in your home directory: no
 `sudo`, no elevated prompt, no distro package manager, and nothing written outside `$HOME`.
 
-Already have the .NET 10 SDK and want only the tool? `dotnet tool install -g Rask.Cli` is still the
+Already have the .NET 10 or 11 SDK and want only the tool? `dotnet tool install -g Rask.Cli` is still the
 whole story — the script exists for the case where you don't.
 
 ## What it installs
 
 | | What | Why | If it's already there |
 |---|---|---|---|
-| **Always** | **.NET 10 SDK** into `~/.dotnet` | `rask` is a `net10.0` [global tool](https://learn.microsoft.com/dotnet/core/tools/global-tools), and every command shells out to `dotnet` | left alone — any SDK 10 or newer satisfies it |
+| **Always** | **.NET SDK** into `~/.dotnet` | `rask` is a `net10.0` [global tool](https://learn.microsoft.com/dotnet/core/tools/global-tools), and every command shells out to `dotnet` | left alone — any SDK 10 or newer satisfies it |
 | **Always** | **`Rask.Cli`** as a global tool | the `rask` command itself | updated instead of installed |
 | **Always** | **`dotnet-ef`** | `rask db add` / `update` / `list` / `drop` | left alone |
-| **Always** | **`wasm-tools` workload** | every `net10.0-browser` build — the WASM templates, and `--wasm` on a server app | left alone |
+| **Always** | **`wasm-tools` workload** | every browser build (`net10.0-browser` or `net11.0-browser`) — the WASM templates, and `--wasm` on a server app | left alone |
 | **Always** | **Node.js LTS** into `~/.local/share/rask/node` | `rask new --template react\|vue\|svelte\|solid\|lit\|preact\|angular` and the meta framework templates (`nuxt\|nextjs\|sveltekit\|solidstart\|tanstack-start\|analog`), and `rask dev`'s dev server. The meta lane also needs node **at runtime**, not just at build time. | left alone if `node --version` is ≥ 24.15 (the Active LTS line the scaffolders track) |
 | **Never** | Docker | `rask deploy`, `rask db backup --remote` | detected and reported only |
 
@@ -176,7 +176,7 @@ machine goes through one wrapper, and that wrapper prints instead of running.
 Nothing here is magic, and the manual path stays supported:
 
 ```bash
-# 1. the .NET 10 SDK — https://dot.net
+# 1. the .NET 10 or 11 SDK — https://dot.net
 # 2. the tool
 dotnet tool install -g Rask.Cli
 # 3. what your project needs

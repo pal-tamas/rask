@@ -26,6 +26,12 @@ them until tagged releases begin.
     equipped, and the browser build then failed with the NETSDK1147 these checks exist to prevent. They now
     match the workload id exactly, and on a .NET 11 SDK they also expect `wasm-tools-net10`, which is what
     relinks a `net10.0-browser` app there.
+  - **The site, the docs and the package metadata say both versions.** The landing page's badge and
+    prerequisite line, the installation guide's search title and description, the JSON-LD
+    `softwareRequirements`, README, both `NUGET.md` files, `llms.txt` and every package's `PackageTags`
+    now name .NET 10 and .NET 11 rather than .NET 10 alone — and the bug report's "supported .NET SDK"
+    checkbox, which is `required`, is one a .NET 11 user can tick honestly. Copy about what the
+    *installer fetches* says ".NET SDK" without a number, so it stays true when .NET 11 goes GA.
   - **`RASK_INSTALL_DOTNET_QUALITY` installs an SDK from a channel that has not shipped yet.** Unset by
     default and handed to `dotnet-install` only when set, so `RASK_INSTALL_DOTNET_CHANNEL=11.0
     RASK_INSTALL_DOTNET_MAJOR=11 RASK_INSTALL_DOTNET_QUALITY=preview` installs the .NET 11 SDK before it is
@@ -587,8 +593,52 @@ them until tagged releases begin.
   while a tree has focus, and scrolls the cursor back into view when it moves out of sight — including to an unrendered
   row's place in a virtualized tree. Documented in [docs/tree.md](docs/tree.md), live at `/docs/ui/tree`.
 
+- **The devtools panel shows the page's component tree.** A Tree tab beside Wire lists what the inspected page rendered,
+  drawn with the kit's own `UiTree`: expandable, keyboard-navigable, and virtualized, so a page with thousands of
+  components costs the rows on screen. Each component keeps an id for as long as it lives, so the branches a developer
+  opened survive the page's next render. The snapshot is taken at the end of that render and only while the tab is
+  open — a page nobody is inspecting walks its tree exactly as before.
+
+- **The devtools tree says what each component was given.** Every row carries the component's own properties and
+  their values, read by an override the build writes for each component rather than by reflection — so a trimmed
+  app describes as much as one running on the JIT, and a Release build carries no description of an app's state at
+  all. A property holding a secret is never read in the first place: one named for a password, a token, a secret or
+  a credential, or marked `[DataType(DataType.Password)]`, `[PasswordPropertyText]`, `[PersonalData]` or
+  `[ProtectedPersonalData]`, is written out as `••••` when the build writes the override.
+
 ### Changed
 
+- **Rask.Server compresses the page itself.** The page handler serves its document as brotli or gzip, whichever
+  the browser ranks higher in `Accept-Encoding` (`q` values honoured), over HTTPS too. Until now only the
+  scoped CSS/TypeScript bundles were compressed. The `text/html` document went out raw, and it is the
+  largest and most compressible response the host sends: rask.sh's landing page is 78,525 bytes raw and
+  15,540 gzipped, 80% smaller. At `CompressionLevel.Optimal` that takes 0.28 ms (brotli) or 0.62 ms (gzip)
+  per page. Nothing needs to be written to get it.
+  - **Only the page is compressed.** Rask adds no middleware and does not call `AddResponseCompression`, so
+    the app's own endpoints and its own `ResponseCompressionOptions` are untouched. Wiring
+    `UseResponseCompression()` from `UseRask` was tried first and rejected in review: that middleware
+    compresses every endpoint after it, which would put an app's JSON APIs under HTTPS compression too, and
+    registering the providers would switch `EnableForHttps` on for the app's own middleware.
+  - **Opt out with `RaskServerOptions.CompressPageHtml = false`** (`Rask:Server:CompressPageHtml`). Do it
+    for a page that renders a long-lived secret next to attacker-influenced input, which is the BREACH side
+    channel. The framework's own secret is not exposed that way: the session id in `data-rask-root` is minted
+    fresh for every `GET`, and no antiforgery token is rendered. See
+    [page compression](docs/configuration.md#page-compression).
+  - **An app that already compresses is not encoded twice.** The page arrives with `Content-Encoding` set,
+    so the app's middleware passes it through. A test pins this for both encodings.
+- **Prerendered WASM pages no longer ship the shell's `<head>` comments.** The splice drops them from the
+  published page and leaves them in `wwwroot/index.html`, where they document the file. On rask.sh that is
+  1,697 bytes raw and 769 gzipped per page, more than all of the formatting whitespace on the page (about
+  20 bytes gzipped; `HtmlSerializer` already writes none). `<script>`/`<style>` raw text is left untouched,
+  as are conditional comments and comments marked `<!--!`, `@license` or `@preserve`. A comment on its own
+  line takes the line with it, so no blank lines are left behind.
+- **Release builds strip comments from scoped TypeScript's emitted JavaScript.** tsgo now runs with
+  `--removeComments` when `Configuration` is `Release`, which halves the scoped assets' gzipped size on rask.sh
+  (3,493 → 1,696 bytes); Debug keeps the comments for devtools. Override with `RaskScopedTsRemoveComments`.
+  Deliberately not a minifier: esbuild moves `export function NAME(` into a trailing `export { … }` clause,
+  which the registry does not match, so every scoped method would stop registering with a green build.
+  Changing either option, or `RaskScopedTsTarget`, on an already-built tree now recompiles; before, the
+  compile was judged up to date and the previous emit shipped.
 - **BREAKING: every Rask.Server page is live.** There is no render ladder any more: a page no longer decides
   from its own render whether it needs a session, there is no static page served without one, and a page never
   hands itself over to a WebAssembly bundle. `AddRask()` has nothing to choose — the GET creates the session,
@@ -1014,6 +1064,45 @@ them until tagged releases begin.
   ```
 
 ### Fixed
+
+- **A prerendered WASM page no longer changes when the runtime takes it over.** rask.sh still flickered
+  slightly on load after #1049. Recording every painted frame and every DOM mutation through the handover
+  found three differences between the prerendered document and the runtime's first frame:
+  - **The browser's toolbar tint blinked.** `UsePwa`'s manifest injector, which runs after the first render,
+    overwrote the page's own `<meta name="theme-color">` with the manifest's `ThemeColor`. The next head
+    morph restored it about 25ms later. Safari's tab bar and Chrome on Android's address bar are painted
+    from that tag, so they flashed between the two colours on every boot, a change no page screenshot
+    shows. The manifest's colour is now only a fallback, added when the page declares none. It no longer
+    rewrites the first tag of a light/dark `media` pair either. The site's manifest now names the same
+    `#7c3aed` its head does.
+  - **Anything that prints the path jumped.** The prerender seeded `RouteState.Path` with the route's own
+    spelling (`/docs`), but the page is written to `docs/index.html`, which the host serves at `/docs/`,
+    and that is what the runtime reads. The site's `path:` badge visibly went from `/docs` to `/docs/`. The
+    pass now seeds the path the browser will report, following `<RaskSiteTrailingSlash>` like the sitemap
+    does. **Behaviour change:** a component that compares `route.Path == "/x"` exactly now sees `/x/` while
+    prerendering, which it was already seeing at runtime on a trailing-slash host. Compare with the slash
+    trimmed, or match through the router or `NavLink`, which already ignore it.
+  - **`<body>`'s attributes were dropped.** The published page kept the boot shell's `<body>` tag, so a
+    `BodyClass` (an app's page ground, its text colour) was missing until the runtime added it. On a slow
+    device the page restyled seconds after first paint. The document's `<body>` attributes are now merged
+    onto the shell's the same way `<html>`'s already were, with the shell winning a conflict.
+- **The data guides describe the data layer Rask actually ships.** The optimistic-concurrency test in
+  [Rask.Data](docs/data.md#testing-a-model) called `Product.UpdateAsync(model)`, an overload that is never
+  generated, so the snippet did not compile; it now passes the id, as `UpdateAsync(id, model)` requires.
+  [Data access](docs/data-access.md) and [CQRS](docs/cqrs.md) still said "Rask has no data layer of its
+  own". They now point to `Rask.Data` first, and `data-access.md` is presented as the plain EF Core route
+  with a `DbContext` of your own. Getting started and the docs index point to both.
+- **A WebAssembly page served with a newline between `</head>` and `<body>` updates in place again.** Every
+  click reached .NET, the handler ran and its diff frame arrived, but the page never changed and nothing
+  was logged (#1097). The HTML parser puts that newline inside `<html>`, so the live element holds
+  `[HEAD, #text, BODY]` while the server's frame walk counts `[HEAD, BODY]`. The morph has ignored that
+  text node since the fix for the unstyled hydration frame (#1049), which is what keeps it alive; the
+  diff codec's path walk still counted it, so a path addressing `<body>` resolved to the newline and the
+  op was dropped. The shipped `wasm` template's `index.html` has exactly that newline, so a freshly
+  scaffolded app lost every in-place update. The path walk now skips the same nodes the morph does —
+  formatting whitespace inside `<html>`/`<head>`, and browser-added `data-rask-managed` nodes — and
+  whitespace under `<body>`, which is rendered, still counts. The WebAssembly render queue also reports a
+  frame that throws instead of discarding the error, so a failure like this can no longer be silent.
 
 - **A state change made while its component is rendering is no longer lost.** A component's render cleared
   its dirty flags only after `Render()` had read its state, so a `StateHasChanged()` from another thread in

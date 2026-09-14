@@ -66,7 +66,7 @@ export function isElement(n: Node | null | undefined): n is Element {
 /**
  * True for a text node that is nothing but whitespace.
  */
-function isFormattingText(n: Node): boolean {
+export function isFormattingText(n: Node): boolean {
     return n.nodeType === 3 && !/\S/.test(n.nodeValue || "");
 }
 
@@ -86,7 +86,7 @@ function isFormattingText(n: Node): boolean {
  * with a brand-new element. A fresh <body> has no resolved style yet, so hydration painted one
  * completely unstyled frame -- UA serif on a transparent ground, at 13x the height.
  */
-function ignoresFormattingText(el: Element): boolean {
+export function ignoresFormattingText(el: Element): boolean {
     return el.nodeName === "HTML" || el.nodeName === "HEAD";
 }
 

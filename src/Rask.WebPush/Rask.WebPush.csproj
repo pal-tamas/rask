@@ -11,7 +11,7 @@
     <Description>Server-side Web Push sender for Rask. Signs VAPID (RFC&#160;8292) and encrypts (RFC&#160;8291 aes128gcm) push messages, then POSTs them to a browser PushSubscription endpoint — the send half that pairs with Rask.Wasm's IWebPush client. Transport-neutral: usable from a Rask.Server app or any ASP.NET backend behind a WASM PWA. No external dependencies beyond Microsoft.Extensions.* — all crypto is in-box System.Security.Cryptography.</Description>
     <!-- Override the framework default tags (web/component/wasm) — Rask.WebPush is a transport-neutral
          server-side sender, not a web-UI component library. -->
-    <PackageTags>web-push push-notifications vapid rfc8291 rfc8292 aes128gcm notifications dotnet net10</PackageTags>
+    <PackageTags>web-push push-notifications vapid rfc8291 rfc8292 aes128gcm notifications dotnet net10 net11</PackageTags>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework

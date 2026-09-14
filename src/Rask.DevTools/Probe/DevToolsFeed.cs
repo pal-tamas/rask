@@ -48,6 +48,10 @@ internal sealed class DevToolsFeed
     // payload is written, and FrameSent right after, on the same session.
     private int? _pendingDiffOps;
 
+    // The last component tree, and how many panels are asking for one.
+    private DevToolsComponentNode? _tree;
+    private int _treeWatchers;
+
     /// <summary>Raised after every recorded event, outside the lock. Subscribers must not block.</summary>
     internal event Action? Changed;
 
@@ -84,6 +88,53 @@ internal sealed class DevToolsFeed
         }
 
         Changed?.Invoke();
+    }
+
+    /// <summary>Whether a panel is showing this session's component tree, so the probe knows to snapshot one.</summary>
+    /// <remarks>
+    ///     A snapshot walks every component the page rendered, and the page renders whether or not anyone is looking. The
+    ///     count is what keeps that cost with the tab that asked for it: no open tree tab, no snapshot.
+    /// </remarks>
+    internal bool WantsTree => Volatile.Read(ref _treeWatchers) > 0;
+
+    /// <summary>Asks for a tree, until the returned token is disposed.</summary>
+    internal IDisposable WatchTree()
+    {
+        Interlocked.Increment(ref _treeWatchers);
+        return new TreeWatch(this);
+    }
+
+    internal void RecordTree(DevToolsComponentNode root)
+    {
+        lock (_gate)
+        {
+            _tree = root;
+        }
+
+        Changed?.Invoke();
+    }
+
+    /// <summary>The component tree as of the last render, or null while nothing has been recorded.</summary>
+    internal DevToolsComponentNode? TreeSnapshot()
+    {
+        lock (_gate)
+        {
+            return _tree;
+        }
+    }
+
+    /// <summary>One tab's interest in the tree, given up exactly once however often it is disposed.</summary>
+    private sealed class TreeWatch(DevToolsFeed feed) : IDisposable
+    {
+        private int _released;
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _released, 1) == 0)
+            {
+                Interlocked.Decrement(ref feed._treeWatchers);
+            }
+        }
     }
 
     /// <summary>The wire events currently held, oldest first.</summary>

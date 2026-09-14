@@ -303,6 +303,14 @@ The singleton tags are resolved rather than concatenated: a browser takes the **
 appending the page's head to the shell's would leave every page titled whatever the shell says. The
 page's title wins; the shell's `<base>` wins.
 
+**The shell's `<head>` comments stay in the source and are left out of the page.** A shell is a hand-written
+file, and its comments explain it to the next maintainer. Visitors had no use for them and downloaded them
+anyway: this repo's own shell spent 1,697 bytes raw (769 gzipped) of every page on its comments. The pass
+now drops them from the published head. It keeps what is not prose. `<script>` and `<style>` contents are
+raw text, so a `<!--` inside one is left alone. The comments every minifier keeps also stay: a conditional
+comment (`<!--[if IE]>`), and one marked important with `<!--!`, `@license` or `@preserve`. Nothing is
+stripped under `dotnet run`, since only a publish splices.
+
 The runtime then does what it always did — morphs its first real render onto the document, exactly as
 it morphed over the boot spinner. The prerendered body is the placeholder that morph replaces; it is
 simply a useful one.
@@ -333,7 +341,7 @@ inputs, `robots.txt` included, so a second publish reproduces the first byte for
 ## How it runs
 
 A browser-wasm assembly cannot execute on the desktop, so the app's own sources are compiled a
-**second time for `net10.0`** into a companion project under `obj/rask-prerender/`, and that is
+**second time for the app's own server target** into a companion project under `obj/rask-prerender/`, and that is
 what renders. The companion carries the app's own `ProjectReference`s, `PackageReference`s, `<Using>` items and
 `EmbeddedResource` items, so it reaches the framework exactly the way the app does and reads the same
 resources at render time.
@@ -347,8 +355,8 @@ keep registrations in sync.
 Generated files under `obj/` are rewritten on every publish; edit the app, never the companion.
 
 The companion builds with **warnings-as-errors off**, for the same reason its analyzers are off and
-one stronger one: *its reference closure is not the app's*. Targeting `net10.0` makes a multi-targeted
-dependency resolve its non-browser face — the `Rask` metapackage's `net10.0` face carries the
+one stronger one: *its reference closure is not the app's*. Targeting the app's server framework makes a multi-targeted
+dependency resolve its non-browser face — the `Rask` metapackage's server face carries the
 server-only pieces a browser app never saw — so two components that never met in the app can meet
 here. That is a fact about the companion, not about your code, and the real build is what judges your
 code.
