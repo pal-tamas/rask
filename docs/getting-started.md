@@ -18,13 +18,13 @@ Rask-specific ideas, not the language.
 
 ## Before you start
 
-Rask requires the **.NET 10 SDK**. Confirm you have it:
+Rask requires the **.NET 10 SDK or newer** — every package ships for .NET 10 (LTS) and .NET 11. Confirm you have it:
 
 ```bash
 dotnet --version      # must be ≥ 10.0
 ```
 
-If that prints an older version (or errors), install the .NET 10 SDK from
+If that prints an older version (or errors), install the .NET 10 or 11 SDK from
 [dotnet.microsoft.com](https://dotnet.microsoft.com/download) first.
 
 > **WASM only:** the `wasm` template — and `--wasm` on a server app — also need the browser
@@ -44,7 +44,7 @@ curl -sSL https://rask.sh/rask.sh | sh   # one-time: the rask CLI + what it need
 rask new MyApp                       # create a server app in ./MyApp (server is the default)
 ```
 
-The installer adds the .NET 10 SDK if you don't have one, plus `dotnet-ef`, the `wasm-tools`
+The installer adds the .NET SDK if you don't have one, plus `dotnet-ef`, the `wasm-tools`
 workload and Node — all under `$HOME`, no `sudo`. With the SDK already in place,
 `dotnet tool install -g Rask.Cli` is enough. See [Installing Rask](installation.md).
 
@@ -53,7 +53,7 @@ workload and Node — all under `$HOME`, no `sudo`. With the SDK already in plac
 | `--template`        | What you get                                                                                  |
 |---------------------|-----------------------------------------------------------------------------------------------|
 | `server` (default)  | One ASP.NET project. Components render on the server; live updates ship over a WebSocket. **Best default.** |
-| `wasm`              | One `net10.0-browser` project that publishes to a static `wwwroot/` you can host anywhere (GitHub Pages, S3, nginx). Bring your own API. |
+| `wasm`              | One browser-WASM project that publishes to a static `wwwroot/` you can host anywhere (GitHub Pages, S3, nginx). Bring your own API. |
 
 They emit the same starter pages, so the rest of this guide applies whichever you chose.
 
@@ -394,7 +394,7 @@ The snags you're most likely to hit on a fresh project:
   exist until the generator runs, which happens on build. Run `dotnet build` once, then reload the
   solution / restart the language server.
 
-- **`net10.0` / `net10.0-browser` won't restore, or a WASM publish fails.** You're missing the .NET 10
+- **`net10.0` / `net10.0-browser` won't restore, or a WASM publish fails.** You're missing the .NET
   SDK (`dotnet --version` must be ≥ `10.0`) or, for WASM, the workload — install it with
   `dotnet workload install wasm-tools`.
 

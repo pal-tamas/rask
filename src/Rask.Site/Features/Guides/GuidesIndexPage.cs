@@ -56,7 +56,7 @@ public sealed partial class GuidesIndexPage : Component
                 H2.Class("text-base font-semibold tracking-tight text-ui-ink sm:text-lg")["Start a project"]
             ],
             P.Class("mt-1 text-sm text-ui-muted")[
-                "Nothing preinstalled — the installer brings the .NET 10 SDK with it, under ",
+                "Nothing preinstalled — the installer brings the .NET SDK with it, under ",
                 Code["$HOME"], ", with no ", Code["sudo"], "."
             ],
             Pre.Class(

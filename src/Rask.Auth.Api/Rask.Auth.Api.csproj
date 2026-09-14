@@ -9,7 +9,7 @@
     <PackageId>Rask.Auth.Api</PackageId>
     <Title>Rask.Auth.Api — accounts and /api/auth for any ASP.NET host</Title>
     <Description>Register, sign in and sign out as JSON endpoints, for an ASP.NET Core app that renders no Rask components — a TypeScript SPA host or a meta-framework host, where the front end owns the UI. Accounts are backed by ASP.NET Core Identity (versioned password hashing, lockout, security stamps) and exposed at /api/auth, with email confirmation and password reset through the app's own mail queue and optional bearer tokens. The first account to register becomes the admin. This is the host-neutral half of Rask.Auth: no components, no renderer, no Rask.Core. Add Rask.Auth instead when the app IS a Rask app and wants the built-in sign-in pages.</Description>
-    <PackageTags>authentication authorization identity login register aspnet-identity cookie-auth claims spa dotnet net10</PackageTags>
+    <PackageTags>authentication authorization identity login register aspnet-identity cookie-auth claims spa dotnet net10 net11</PackageTags>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework

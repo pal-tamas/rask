@@ -11,7 +11,7 @@
     <Description>Supervises the Litestream sidecar from inside your .NET app: restores the SQLite database from its replica on startup (if the local file is missing) and continuously streams the write-ahead log to S3/GCS/Azure/file storage for the life of the process, via a hosted background service. Also verifies, on an opt-in schedule, that what has been replicated is actually restorable — a sentinel written locally, restored back out of the replica and checked — so you learn a backup has stopped working before the day you need it. Pairs with Rask.SQLite's WAL default, which Litestream requires. Register with `services.AddRaskSqliteLitestream(...)` and call `RestoreSqliteFromLitestreamAsync()` before opening the database. Requires the `litestream` binary on the host (or a path you configure).</Description>
     <!-- Override the framework default tags (web/component/wasm) — this is a standalone, host-agnostic
          backup supervisor with no web/UI coupling. -->
-    <PackageTags>sqlite litestream backup replication wal disaster-recovery s3 hosted-service dotnet net10</PackageTags>
+    <PackageTags>sqlite litestream backup replication wal disaster-recovery s3 hosted-service dotnet net10 net11</PackageTags>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework

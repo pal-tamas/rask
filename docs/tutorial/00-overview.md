@@ -53,7 +53,7 @@ how to use it. If you'd rather add them one at a time, every flag works on its o
 
 ## Before you start
 
-You need the **.NET 10 SDK** and the **`rask` CLI**. One command gets you both:
+You need the **.NET 10 SDK or newer** and the **`rask` CLI**. One command gets you both:
 
 ```bash
 curl -sSL https://rask.sh/rask.sh | sh

@@ -16,7 +16,7 @@
     <Title>Rask.SQLite.Browser — a real SQLite database inside the browser</Title>
     <Description>Runs Microsoft.Data.Sqlite (and Entity Framework Core on top of it) inside a browser WebAssembly app, with the database persisted across reloads. The database file lives in the WASM runtime's in-memory filesystem; this package restores it from IndexedDB at boot and writes it back on a schedule and on page-hide, using SQLite's Online Backup API (never an unsafe file copy) via Rask.SQLite.Snapshots. A Web Lock elects one tab as the owner, so several open tabs cannot write over each other. Register `AddRaskBrowserSqlite("app")` and point your DbContext at `BrowserSqlite.ConnectionString("app")` — the same registration you would write on the server.</Description>
     <!-- Override the framework default tags (web/component/wasm): this is a data-layer package. -->
-    <PackageTags>sqlite wasm webassembly browser indexeddb persistence offline efcore dotnet net10</PackageTags>
+    <PackageTags>sqlite wasm webassembly browser indexeddb persistence offline efcore dotnet net10 net11</PackageTags>
   </PropertyGroup>
 
 
