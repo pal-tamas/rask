@@ -1039,10 +1039,6 @@ public static partial class RaskEndpointExtensions
         var generation = registry.NextGeneration();
         var transport = new SseTransport(ctx.Response.BodyWriter, generation);
 
-        // The stream names itself before anything else, so the client knows which generation its POSTs belong to.
-        await transport.SendAsync(
-            Encoding.UTF8.GetBytes($$"""{"type":"stream","generation":{{generation}}}"""), ct).ConfigureAwait(false);
-
         // Handed over as values, never spliced into a JSON document: both come straight from the request, and a
         // session id or a resume token carrying a quote would otherwise have been read as the hello's own
         // structure. The resume record travels in a header rather than the query string, because a token in a URL
@@ -1055,7 +1051,9 @@ public static partial class RaskEndpointExtensions
         if (attach.Status != AttachStatus.Attached || attach.Session is null)
         {
             // Nothing to attach to, and the same answer whether the id never existed or belongs to someone else
-            // (#1075). The client reloads, exactly as it does on the socket.
+            // (#1075). The client reloads, exactly as it does on the socket — which it can only do from an open
+            // connection, so the stream still opens first, naming no session.
+            await transport.SendAsync(StreamOpenedFrame(generation, sessionId: null), ct).ConfigureAwait(false);
             await transport.SendAsync(SessionUnknownPayload, ct).ConfigureAwait(false);
             await transport.CloseAsync(LiveTransportClose.Normal, "session-unknown", ct).ConfigureAwait(false);
             return;
@@ -1066,6 +1064,12 @@ public static partial class RaskEndpointExtensions
 
         try
         {
+            // Named AFTER the attach, and naming the session it attached. A resume record rebuilds a lost session
+            // under a new id, and the client addresses every POST by id: told the generation first, it would open
+            // and flush its queue to the id no server knows any more. Any frame the attach itself sent — a
+            // rebuild's render — is already on the wire, and the client holds those until this one arrives.
+            await transport.SendAsync(StreamOpenedFrame(generation, session.Id), ct).ConfigureAwait(false);
+
             // Alive between renders: a quiet page still has to look connected to every proxy in the path.
             while (!ct.IsCancellationRequested && transport.IsOpen)
             {
@@ -1102,6 +1106,30 @@ public static partial class RaskEndpointExtensions
                 store.SocketDetached();
             }
         }
+    }
+
+    /// <summary>
+    ///     <c>{"type":"stream","session":…,"generation":N}</c> — the frame that opens an HTTP connection. Written
+    ///     through a JSON writer rather than interpolated: the session id comes from the request's route when the
+    ///     attach found nothing, and must not be able to add structure of its own.
+    /// </summary>
+    private static byte[] StreamOpenedFrame(int generation, string? sessionId)
+    {
+        var buffer = new ArrayBufferWriter<byte>(96);
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
+            writer.WriteStartObject();
+            writer.WriteString("type"u8, "stream"u8);
+            if (sessionId is not null)
+            {
+                writer.WriteString("session"u8, sessionId);
+            }
+
+            writer.WriteNumber("generation"u8, generation);
+            writer.WriteEndObject();
+        }
+
+        return buffer.WrittenSpan.ToArray();
     }
 
     /// <summary>Takes the client's frames for a session whose stream is open.</summary>

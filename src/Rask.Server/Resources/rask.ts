@@ -348,13 +348,14 @@ import "../../Rask.Core/Resources/rask-events.js";
     }
 
     function connectHttp(): void {
-        const id = encodeURIComponent(sessionId ?? "");
         const connection = openHttpConnection({
-            streamUrl: prependBase("/_rask/stream/" + id),
-            sendUrl: prependBase("/_rask/send/" + id),
-            leaveUrl: prependBase("/_rask/leave/" + id),
+            sessionId: sessionId ?? "",
+            url: (kind, session) => prependBase("/_rask/" + kind + "/" + encodeURIComponent(session)),
             resumeToken,
-            onOpen: () => {
+            onOpen: (session) => {
+                // The session the server attached: a rebuilt one has a new id, and the next reconnect must ask for
+                // the session the tab now has. The full frame that follows re-stamps the document with it too.
+                sessionId = session;
                 // The stream opened where a socket could not: this network blocks WebSockets. Remember it.
                 chooser.httpOpened();
                 onConnectionOpen(null);

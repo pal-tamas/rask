@@ -7,13 +7,13 @@ namespace Rask.Server.Tests.WebSockets;
 
 public class HelloMessageTests
 {
-    [Fact]
-    public async Task Hello_UnknownSessionId_SendsSessionUnknownPayload()
+    [Theory]
+    [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
+    public async Task Hello_UnknownSessionId_SendsSessionUnknownPayload(LiveTransportKind transport)
     {
         using var host = RaskTestHost.Create<TestApp>();
-        using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
+        await using var ws = await LiveTestConnection.OpenAsync(host, transport, "no-such-id");
 
-        await ws.SendJsonAsync(new { type = "hello", session = "no-such-id" });
         var text = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
         Assert.NotNull(text);
@@ -22,8 +22,9 @@ public class HelloMessageTests
         Assert.Equal("unknown", doc.RootElement.GetProperty("status").GetString());
     }
 
-    [Fact]
-    public async Task Hello_NothingPendingAfterGet_SuppressesHelloTimeFrame()
+    [Theory]
+    [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
+    public async Task Hello_NothingPendingAfterGet_SuppressesHelloTimeFrame(LiveTransportKind transport)
     {
         // Updated contract: when nothing happened between the HTTP GET render and the WS
         // hello (no dropped StateHasChanged, no queued JS invokes), the browser already has
@@ -35,16 +36,16 @@ public class HelloMessageTests
         var initial = await host.Http.GetAsync("/start");
         var sessionId = MarkupAssert.SessionId(await initial.Content.ReadAsStringAsync());
 
-        using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await using var ws = await LiveTestConnection.OpenAsync(host, transport, sessionId);
 
         var text = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
         Assert.Null(text);
-        Assert.Equal(WebSocketState.Open, ws.State);
+        Assert.True(ws.IsOpen);
     }
 
-    [Fact]
-    public async Task Hello_StateMutatedBeforeHello_EmitsCatchUpFrame()
+    [Theory]
+    [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
+    public async Task Hello_StateMutatedBeforeHello_EmitsCatchUpFrame(LiveTransportKind transport)
     {
         // Counterpart to Hello_NothingPendingAfterGet_SuppressesHelloTimeFrame: when a
         // StateHasChanged WAS issued during the GET→hello handoff window, the hello-time render
@@ -55,6 +56,9 @@ public class HelloMessageTests
         // So the window is opened here the way it still genuinely occurs in production: work the
         // GET deliberately does NOT wait for, detached from the hook and pushing later. Rask's own
         // PollingPanel is exactly this shape.
+        // Re-armed per case: a completion source left set by the previous transport's run would let this one
+        // connect before its own push, and the test would pass without exercising the handoff window at all.
+        DetachedPushApp.Pushed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using var host = RaskTestHost.Create<DetachedPushApp>();
         var sessionId = MarkupAssert.SessionId(await host.Http.GetStringAsync("/start"));
 
@@ -63,8 +67,7 @@ public class HelloMessageTests
         // session's pending-render flag.
         await DetachedPushApp.Pushed.Task.WaitAsync(TimeSpan.FromSeconds(2));
 
-        using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+        await using var ws = await LiveTestConnection.OpenAsync(host, transport, sessionId);
 
         var text = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
         Assert.NotNull(text);
@@ -76,8 +79,9 @@ public class HelloMessageTests
         Assert.Contains("loaded", text);
     }
 
-    [Fact]
-    public async Task Hello_Reconnect_AlwaysEmitsFrame_EvenWithIdenticalHtml()
+    [Theory]
+    [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
+    public async Task Hello_Reconnect_AlwaysEmitsFrame_EvenWithIdenticalHtml(LiveTransportKind transport)
     {
         // The first-attach optimisation does NOT apply to reconnects: a tab that lost
         // its socket may have missed the prior socket's last frame to a partial send or
@@ -87,14 +91,11 @@ public class HelloMessageTests
         using var host = RaskTestHost.Create<TestApp>();
         var sessionId = MarkupAssert.SessionId(await host.Http.GetStringAsync("/start"));
 
-        var ws1 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws1.SendJsonAsync(new { type = "hello", session = sessionId });
+        var ws1 = await LiveTestConnection.OpenAsync(host, transport, sessionId);
         _ = await ws1.TryReceiveTextAsync(TimeSpan.FromMilliseconds(200));
-        await ws1.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye",
-            CancellationToken.None);
+        await ws1.DisposeAsync();
 
-        using var ws2 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws2.SendJsonAsync(new { type = "hello", session = sessionId });
+        await using var ws2 = await LiveTestConnection.OpenAsync(host, transport, sessionId);
         var frame = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
         Assert.NotNull(frame);
@@ -124,7 +125,7 @@ public class HelloMessageTests
     // detached continuation then lands in the GET→hello window with no socket attached.
     private sealed class DetachedPushApp : Component
     {
-        public static readonly TaskCompletionSource Pushed =
+        public static TaskCompletionSource Pushed =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         private bool _loaded;

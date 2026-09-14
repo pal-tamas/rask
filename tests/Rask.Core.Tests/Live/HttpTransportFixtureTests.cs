@@ -122,6 +122,38 @@ public sealed class HttpTransportFixtureTests
     }
 
     [Fact]
+    public void A_rebuilt_session_is_addressed_by_the_id_the_stream_names_and_its_render_waits_for_the_open()
+    {
+        var result = Run();
+        if (result is null)
+        {
+            return;
+        }
+
+        var connection = result.Value.GetProperty("connection");
+
+        // The rebuild's render arrived before the stream named its session, and was held rather than acted on.
+        Assert.Equal(0, connection.GetProperty("beforeOpen").GetArrayLength());
+        Assert.False(connection.GetProperty("sendWhileConnecting").GetBoolean());
+
+        // Then: open with the NEW id, the held frame, and a close that reads as a redeploy.
+        var events = connection.GetProperty("events").EnumerateArray().Select(e => e.GetString()).ToArray();
+        Assert.Equal(
+            new[] { "open:new-id", "frame:{\"html\":\"rebuilt\"}", "close:1001:server-shutdown:true" },
+            events);
+
+        // The stream asked for the session the tab had; everything after went to the one it got.
+        Assert.Equal("/_rask/stream/old-id", connection.GetProperty("streamUrl").GetString());
+        var posts = connection.GetProperty("posts");
+        Assert.Equal(2, posts.GetArrayLength());
+        Assert.Equal("/_rask/send/new-id", posts[0].GetProperty("url").GetString());
+        Assert.Equal("3", posts[0].GetProperty("stream").GetString());
+        Assert.Equal("[{\"id\":\"h1\"}]", posts[0].GetProperty("body").GetString());
+        Assert.Equal("/_rask/leave/new-id", posts[1].GetProperty("url").GetString());
+        Assert.Equal("3", posts[1].GetProperty("stream").GetString());
+    }
+
+    [Fact]
     public void Sockets_cut_off_early_three_times_count_and_blips_or_deliberate_closes_do_not()
     {
         var result = Run();

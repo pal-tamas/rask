@@ -9,6 +9,7 @@ import {
     createSseParser,
     createTransportChooser,
     EARLY_CLOSE_MS,
+    openHttpConnection,
     TRANSPORT_STORAGE_KEY,
 } from "../../../src/Rask.Server/Resources/rask-http-transport.js";
 
@@ -170,6 +171,79 @@ function choosing(): Result {
     };
 }
 
+// --- A whole connection, over a stubbed fetch ---------------------------------------------------------------------
+
+const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 5));
+
+async function connection(): Promise<Result> {
+    const encoder = new TextEncoder();
+    let push: (text: string) => void = () => {};
+    const requests: Array<{ url: string; method: string; stream: string | null; body: string | null }> = [];
+
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = (async (input: string, init: RequestInit = {}) => {
+        const headers = new Headers(init.headers);
+        requests.push({
+            url: input,
+            method: init.method ?? "GET",
+            stream: headers.get("rask-stream"),
+            body: typeof init.body === "string" ? init.body : null,
+        });
+
+        if ((init.method ?? "GET") === "GET") {
+            const body = new ReadableStream<Uint8Array>({
+                start(controller) {
+                    push = (text) => controller.enqueue(encoder.encode(text));
+                },
+            });
+            return new Response(body, {status: 200, headers: {"content-type": "text/event-stream"}});
+        }
+
+        return new Response(null, {status: 204});
+    }) as typeof fetch;
+
+    const events: string[] = [];
+    try {
+        const conn = openHttpConnection({
+            sessionId: "old-id",
+            url: (kind, session) => "/_rask/" + kind + "/" + session,
+            resumeToken: "record",
+            onOpen: (session) => events.push("open:" + session),
+            onFrame: (text) => events.push("frame:" + text),
+            onClose: (code, reason, opened) => events.push("close:" + code + ":" + reason + ":" + opened),
+        });
+        await tick();
+
+        // A rebuild: the attach renders the new session before the stream names it.
+        push('data: {"html":"rebuilt"}\n\n');
+        await tick();
+        const beforeOpen = events.slice();
+        const sendWhileConnecting = conn.isOpen;
+
+        push('data: {"type":"stream","session":"new-id","generation":3}\n\n');
+        await tick();
+
+        conn.send('{"id":"h1"}');
+        await tick();
+        conn.leave();
+        await tick();
+
+        push("event: close\ndata: server-shutdown\n\n");
+        await tick();
+
+        return {
+            beforeOpen,
+            sendWhileConnecting,
+            events,
+            streamUrl: requests[0]?.url ?? null,
+            posts: requests.slice(1).map((r) => ({url: r.url, stream: r.stream, body: r.body})),
+        };
+    } finally {
+        globalThis.fetch = realFetch;
+    }
+}
+
+results.connection = await connection();
 results.batching = await batching();
 results.refusal = await refusal();
 results.choosing = choosing();

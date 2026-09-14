@@ -21,6 +21,10 @@ namespace Rask.Server.Tests.WebSockets;
 // async handlers awaiting jsResult / dotNetInvoke don't deadlock the loop),
 // but the *start order* of dispatches now matches WS arrival order
 // deterministically.
+//
+// Both transports: over HTTP the order is the POSTs', which the browser keeps by holding one in flight and
+// batching what arrives behind it — a server that dispatched a batch's frames out of order, or ran two POSTs'
+// frames concurrently, would reorder input and submit exactly as the old socket loop did.
 public class HandlerOrderingTests
 {
     // These tests assert against the `html` field in the payload — the legacy
@@ -29,8 +33,9 @@ public class HandlerOrderingTests
     // diffMode: DisabledFull (per-host on the LiveSessionStore, not a global) so the
     // parse-html assertions remain meaningful and the class still runs in parallel.
 
-    [Fact]
-    public async Task TenHandlers_SentRapidly_DispatchInArrivalOrder()
+    [Theory]
+    [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
+    public async Task TenHandlers_SentRapidly_DispatchInArrivalOrder(LiveTransportKind transport)
     {
         // Saturate the ThreadPool first so the dispatcher's continuations have
         // to compete for workers. Without contention, the ThreadPool happens
@@ -46,9 +51,7 @@ public class HandlerOrderingTests
         var handlerIds = ExtractAllHandlerIds(initialHtml);
         Assert.Equal(10, handlerIds.Count);
 
-        using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await using var ws = await LiveTestConnection.OpenAsync(host, transport, sessionId);
 
         // Send all ten handler messages back-to-back. The OrderedDispatchApp
         // yields inside each handler (Task.Yield before mutating Sequence)
@@ -83,8 +86,9 @@ public class HandlerOrderingTests
         Assert.Equal("0123456789", finalSequence);
     }
 
-    [Fact]
-    public async Task TwoHandlers_AcrossMultipleRounds_NeverReorder()
+    [Theory]
+    [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
+    public async Task TwoHandlers_AcrossMultipleRounds_NeverReorder(LiveTransportKind transport)
     {
         // Tighter loop: 50 rounds × 2 handlers (h0 then h1). The mutation
         // pattern means the only way Sequence ends in something other than
@@ -98,9 +102,7 @@ public class HandlerOrderingTests
         var sessionId = MarkupAssert.SessionId(initialHtml);
         var handlerIds = ExtractAllHandlerIds(initialHtml);
 
-        using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await using var ws = await LiveTestConnection.OpenAsync(host, transport, sessionId);
 
         const int rounds = 50;
         var expected = string.Concat(Enumerable.Repeat("01", rounds));

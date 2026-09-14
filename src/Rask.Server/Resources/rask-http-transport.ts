@@ -240,27 +240,32 @@ export function createTransportChooser(storage: ChoiceStorage | null, now: () =>
 // ---------------------------------------------------------------------------------------------------------------
 
 export interface HttpConnectionOptions {
-    /** `/_rask/stream/{session}` with the app's base path applied. */
-    streamUrl: string;
-    /** `/_rask/send/{session}`. */
-    sendUrl: string;
-    /** `/_rask/leave/{session}`. */
-    leaveUrl: string;
+    /** The session the tab believes it has. The stream answers with the one it actually attached. */
+    sessionId: string;
+    /** `/_rask/{kind}/{session}`, with the app's base path applied. */
+    url(kind: "stream" | "send" | "leave", session: string): string;
     /** The resume record, sent as a header so it never lands in a URL. */
     resumeToken: string | null;
-    onOpen(): void;
+    /** `session` is the one the server attached — a new id when a resume record rebuilt a lost session. */
+    onOpen(session: string): void;
     onFrame(text: string): void;
     /** `code` mirrors a WebSocket close: 1001 a server going away, 1008 a policy refusal, 1006 a dropped link. */
     onClose(code: number, reason: string, opened: boolean): void;
 }
 
 /**
- * Opens the stream and returns the connection. The connection is open once the stream has named its generation —
- * the frame that tells POSTs which stream they belong to — and not before.
+ * Opens the stream and returns the connection. The connection is open once the stream has named its generation and
+ * its session — the frame that tells POSTs where they go and which stream they belong to — and not before.
+ *
+ * The server sends that frame after attaching, so a frame the attach itself produced (the render of a session
+ * rebuilt from a resume record) can arrive first. Those are held and delivered right after `onOpen`, in order:
+ * delivered earlier, the runtime would act on them — and send — before it knew where sends go.
  */
 export function openHttpConnection(options: HttpConnectionOptions): LiveConnection & { leave(): void } {
     const abort = new AbortController();
     let generation: string | null = null;
+    let session = options.sessionId;
+    let early: string[] = [];
     let open = false;
     let closed = false;
 
@@ -279,7 +284,7 @@ export function openHttpConnection(options: HttpConnectionOptions): LiveConnecti
     }
 
     const batcher = createPostBatcher(
-        (body) => fetch(options.sendUrl, {
+        (body) => fetch(options.url("send", session), {
             method: "POST",
             headers: {"content-type": "application/json", "rask-stream": generation ?? ""},
             body,
@@ -300,13 +305,23 @@ export function openHttpConnection(options: HttpConnectionOptions): LiveConnecti
                 const first = JSON.parse(data);
                 if (first && first.type === "stream" && typeof first.generation === "number") {
                     generation = String(first.generation);
+                    if (typeof first.session === "string" && first.session) session = first.session;
                     open = true;
-                    options.onOpen();
+                    options.onOpen(session);
+                    const held = early;
+                    early = [];
+                    for (const frame of held) {
+                        if (closed) break;
+                        options.onFrame(frame);
+                    }
                     return;
                 }
             } catch {
-                // Not the stream's opening frame; fall through and treat it as an ordinary one.
+                // Not the stream's opening frame: one the attach sent ahead of it.
             }
+
+            early.push(data);
+            return;
         }
 
         options.onFrame(data);
@@ -315,7 +330,7 @@ export function openHttpConnection(options: HttpConnectionOptions): LiveConnecti
     const headers: Record<string, string> = {accept: "text/event-stream"};
     if (options.resumeToken) headers["rask-resume"] = options.resumeToken;
 
-    fetch(options.streamUrl, {headers, credentials: "same-origin", signal: abort.signal, cache: "no-store"})
+    fetch(options.url("stream", options.sessionId), {headers, credentials: "same-origin", signal: abort.signal, cache: "no-store"})
         .then(async (response) => {
             if (!response.ok || !response.body) {
                 end(1006, "stream-" + response.status);
@@ -356,7 +371,7 @@ export function openHttpConnection(options: HttpConnectionOptions): LiveConnecti
         leave(): void {
             if (!generation) return;
             try {
-                void fetch(options.leaveUrl, {
+                void fetch(options.url("leave", session), {
                     method: "POST",
                     headers: {"rask-stream": generation},
                     credentials: "same-origin",

@@ -1,4 +1,3 @@
-using System.Net.WebSockets;
 using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.WebSockets;
@@ -6,11 +5,13 @@ namespace Rask.Server.Tests.WebSockets;
 // Backpressure circuit-breaker (RaskServerOptions.MaxPendingHandlers): a hung handler
 // stalls the dispatch chain head, so queued dispatches — each retaining a cloned JsonElement —
 // accumulate. Once the queue exceeds the bound the receive loop must close the socket instead of
-// growing memory without limit.
+// growing memory without limit. Over HTTP the POST that trips it is refused and the stream ends with the
+// reason, which is what the browser reconnects from.
 public class HandlerBackpressureTests
 {
-    [Fact]
-    public async Task QueueExceedsBound_WhileHandlerHung_ClosesSocket()
+    [Theory]
+    [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
+    public async Task QueueExceedsBound_WhileHandlerHung_ClosesSocket(LiveTransportKind transport)
     {
         HangingApp.Gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         try
@@ -21,8 +22,7 @@ public class HandlerBackpressureTests
             var sessionId = MarkupAssert.SessionId(initialHtml);
             var handlerId = MarkupAssert.FirstHandlerId(initialHtml);
 
-            using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-            await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+            await using var ws = await LiveTestConnection.OpenAsync(host, transport, sessionId);
 
             // First click hangs on the gate (chain head stalls); the rest queue behind it. Send
             // well past the bound — once pending exceeds MaxPendingHandlers the server closes the
@@ -40,17 +40,16 @@ public class HandlerBackpressureTests
             }
 
             var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(3);
-            while (ws.State == WebSocketState.Open && DateTime.UtcNow < deadline)
+            while (ws.IsOpen && DateTime.UtcNow < deadline)
             {
                 // Draining receives lets the client observe the server's close frame.
-                if (await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(100)) is null
-                    && ws.State == WebSocketState.Open)
+                if (await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(100)) is null && ws.IsOpen)
                 {
                     await Task.Delay(20);
                 }
             }
 
-            Assert.NotEqual(WebSocketState.Open, ws.State);
+            Assert.False(ws.IsOpen);
         }
         finally
         {
@@ -58,8 +57,9 @@ public class HandlerBackpressureTests
         }
     }
 
-    [Fact]
-    public async Task UnderBound_NormalTraffic_StaysOpen()
+    [Theory]
+    [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
+    public async Task UnderBound_NormalTraffic_StaysOpen(LiveTransportKind transport)
     {
         using var host = RaskTestHost.Create<TestApp>(
             configureServer: o => o.MaxPendingHandlers = 512);
@@ -67,9 +67,7 @@ public class HandlerBackpressureTests
         var sessionId = MarkupAssert.SessionId(initialHtml);
         var handlerId = MarkupAssert.FirstHandlerId(initialHtml);
 
-        using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        await using var ws = await LiveTestConnection.OpenAsync(host, transport, sessionId);
 
         // These drain quickly (no hung handler), so pending never approaches the bound.
         for (var i = 0; i < 10; i++)
@@ -78,6 +76,6 @@ public class HandlerBackpressureTests
             _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
         }
 
-        Assert.Equal(WebSocketState.Open, ws.State);
+        Assert.True(ws.IsOpen);
     }
 }
