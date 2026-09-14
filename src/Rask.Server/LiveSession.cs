@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.Net.WebSockets;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -74,6 +75,12 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     private volatile WebSocket? _socket;
     private CancellationToken _socketCt;
 
+    // Serialises AttachSocket against DetachSocket, so a detach can compare the socket and clear the
+    // pair (_socket, _socketCt) as one step. Readers stay lock-free, as above. Without it a reconnect's
+    // attach could land between an old loop's compare and its clear, and _socketCt would end up
+    // defaulted under the new socket (#1076).
+    private readonly Lock _socketGate = new();
+
     // Set once disposal begins. Read by RequestRenderInternalAsync so a StateHasChanged fired
     // from a component's Unmount/Dispose callback can't re-enter the render path and deadlock on
     // the _renderLock that DisposeAsync/Dispose hold while tearing the tree down. Volatile because
@@ -109,6 +116,20 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     // (children reconcile by (Type, position), not Key, so a same-position page instance is reused and
     // its OnMountAsync never re-runs — leaving data loaded for the old identity/tenant).
     public string? PendingAuthNavigation { get; set; }
+
+    // The principal the auth handoff's reconnect is expected to carry: the signed-in user for a sign-in,
+    // an unauthenticated principal for a sign-out, null when no handoff is in flight. The hello admission
+    // check lets exactly that principal attach besides the owner, because the reconnect deliberately
+    // arrives as someone the session does not belong to yet (#1075). Written by the handler that issued
+    // the ticket and read by the next socket's receive loop, which runs on another thread, hence volatile.
+    // Cleared by AttachSocket.
+    private volatile ClaimsPrincipal? _pendingAuthHandoff;
+
+    internal ClaimsPrincipal? PendingAuthHandoff
+    {
+        get => _pendingAuthHandoff;
+        set => _pendingAuthHandoff = value;
+    }
 
     // What the client's current resume record was built from. -1 means it has none, so the first payload
     // always carries one. The URL is tracked alongside the version because a navigation moves the page
@@ -470,29 +491,40 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     /// </remarks>
     internal bool LastRenderFaulted => View is RootErrorBoundary { RenderedFallback: true };
 
-    public void AttachSocket(WebSocket socket, CancellationToken ct)
+    /// <summary>Makes <paramref name="socket" /> the session's connection, replacing any it had.</summary>
+    /// <returns>
+    ///     <c>true</c> when the session had no socket, so the store's connected count should go up;
+    ///     <c>false</c> when this replaced a socket that was still attached, which was already counted.
+    /// </returns>
+    public bool AttachSocket(WebSocket socket, CancellationToken ct)
     {
-        _socketCt = ct;
-        SuppressEventsUntilReconnect = false;
-
-        if (_hasAttachedBefore)
+        lock (_socketGate)
         {
-            // Reconnect path — possibly a different browser tab/window — needs the current
-            // HTML even when it byte-matches the prior socket's last frame, since the prior
-            // send chain may have lost a frame. Force a catch-up and drop the dedup baselines
-            // so the recovery render reliably emits. The baseline reset is deferred into the
-            // render lock (see _forceResend) to avoid racing a background RenderAndSendAsync.
-            _renderRequestedWhileDetached = true;
-            _forceResend = true;
-        }
+            var wasDetached = _socket is null;
+            _socketCt = ct;
+            SuppressEventsUntilReconnect = false;
+            PendingAuthHandoff = null;
 
-        // Publish _socket last. _socket is volatile, so this write has release semantics: the
-        // resend flags set above are guaranteed visible before the new socket is — a concurrent
-        // background render either reads the old null/closed socket (early-returns, having recorded
-        // the drop) or reads the new socket and sees the flags set. The ordering holds on weak
-        // memory models too (see the _socket field note).
-        _socket = socket;
-        _hasAttachedBefore = true;
+            if (_hasAttachedBefore)
+            {
+                // Reconnect path — possibly a different browser tab/window — needs the current
+                // HTML even when it byte-matches the prior socket's last frame, since the prior
+                // send chain may have lost a frame. Force a catch-up and drop the dedup baselines
+                // so the recovery render reliably emits. The baseline reset is deferred into the
+                // render lock (see _forceResend) to avoid racing a background RenderAndSendAsync.
+                _renderRequestedWhileDetached = true;
+                _forceResend = true;
+            }
+
+            // Publish _socket last. _socket is volatile, so this write has release semantics: the
+            // resend flags set above are guaranteed visible before the new socket is — a concurrent
+            // background render either reads the old null/closed socket (early-returns, having recorded
+            // the drop) or reads the new socket and sees the flags set. The ordering holds on weak
+            // memory models too (see the _socket field note).
+            _socket = socket;
+            _hasAttachedBefore = true;
+            return wasDetached;
+        }
     }
 
     /// <summary>
@@ -532,10 +564,33 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         return publishOnly ? RequestPublishRenderAsync() : RequestRenderAsync();
     }
 
-    public void DetachSocket()
+    /// <summary>Whether <paramref name="socket" /> is the session's current connection.</summary>
+    internal bool IsAttached(WebSocket socket) => ReferenceEquals(_socket, socket);
+
+    /// <summary>Detaches <paramref name="expected" />, if it is still the session's socket.</summary>
+    /// <returns>
+    ///     <c>true</c> when it was, and the caller should count the disconnect and arm removal;
+    ///     <c>false</c> when a reconnect has already replaced it, which leaves the live socket alone.
+    /// </returns>
+    /// <remarks>
+    ///     A tab that reconnects before the server notices its old socket died attaches the new socket
+    ///     first, and only then does the old loop's cleanup run. An unconditional detach there cut the
+    ///     live connection off, drove the connected count low and scheduled an open tab's session for
+    ///     removal (#1076).
+    /// </remarks>
+    public bool DetachSocket(WebSocket expected)
     {
-        _socket = null;
-        _socketCt = default;
+        lock (_socketGate)
+        {
+            if (!ReferenceEquals(_socket, expected))
+            {
+                return false;
+            }
+
+            _socket = null;
+            _socketCt = default;
+            return true;
+        }
     }
 
     /// <summary>

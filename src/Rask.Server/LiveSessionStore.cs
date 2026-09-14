@@ -340,6 +340,13 @@ public sealed class LiveSessionStore : IAsyncDisposable
         return _sessions.TryGetValue(id, out var session) ? session : null;
     }
 
+    /// <summary>Looks a session up WITHOUT cancelling its pending removal, unlike <see cref="Get" />.</summary>
+    /// <remarks>
+    ///     For a caller that still has to decide whether the lookup is allowed to keep the session alive: a
+    ///     hello refused by the ownership check must leave an abandoned session on its removal clock.
+    /// </remarks>
+    internal LiveSession? Peek(string id) => _sessions.TryGetValue(id, out var session) ? session : null;
+
     internal void Remove(string id)
     {
         CancelPendingRemoval(id);
