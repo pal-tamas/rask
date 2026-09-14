@@ -88,5 +88,11 @@ public sealed class HostOverlayTests
         // The DOM flash boxes what changed: the item (text, attribute and insertion, once), the list (text added to it) —
         // not the body or document toggling an attribute, the devtools' own element, or anything in <head>.
         Assert.Equal("li,ul", Str("domChanged"));
+
+        // Patch times: a burst from the page is one report once the batch interval passes; a report from anywhere else,
+        // or one that is not a finite non-negative number, is dropped. The page's hook posts a frame's apply time.
+        Assert.Equal(1, r.GetProperty("patchTimersScheduled").GetInt32());
+        Assert.Equal("patch:3.46@2048,12.00@-1", Str("patchKeys"));
+        Assert.Equal("timed@357,zero@-1", Str("patchPosted"));
     }
 }

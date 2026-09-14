@@ -33,6 +33,11 @@ export type FrameMessage =
     | {readonly channel: typeof CHANNEL; readonly kind: "pick-cancelled"}
     /** Frame → page: flashing was switched on or off in the Renders tab. The page remembers it and flashes DOM changes. */
     | {readonly channel: typeof CHANNEL; readonly kind: "flash-setting"; readonly on: boolean}
+    /**
+     * Page → frame: the page applied a frame from the app in `ms` milliseconds. `bytes` is that frame's size on the wire,
+     * which is what the app matches the time to, or -1 when the page did not see it arrive.
+     */
+    | {readonly channel: typeof CHANNEL; readonly kind: "patch"; readonly ms: number; readonly bytes: number}
     /** Frame → page: flash these components, which rendered in a commit, as `[at, label]` pairs. */
     | {readonly channel: typeof CHANNEL; readonly kind: "flash"; readonly boxes: readonly (readonly [string, string])[]};
 

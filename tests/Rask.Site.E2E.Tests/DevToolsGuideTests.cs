@@ -27,9 +27,9 @@ public sealed class DevToolsGuideTests(WasmExampleAppFixture app, PlaywrightFixt
         await AssertNoGlobalCrashAsync();
 
         var images = Page.Locator("main .markdown-body img");
-        Assert.Equal(6, await images.CountAsync());
+        Assert.Equal(7, await images.CountAsync());
 
-        for (var i = 0; i < 6; i++)
+        for (var i = 0; i < 7; i++)
         {
             var image = images.Nth(i);
             // Lazy, so each is scrolled to before it is asked whether it loaded.

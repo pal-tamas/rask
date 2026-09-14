@@ -76,6 +76,20 @@ try {
     await panel.locator("[role=tablist]").evaluate(el => el.scrollIntoView({block: "start"}));
     await shot("renders");
 
+    // The Perf tab, after one more task: the click's handler, render, diff, size and the page's patch time.
+    await panel.getByRole("tab", {name: "Perf"}).click();
+    await panel.locator('[role=tab][aria-selected="true"]', {hasText: "Perf"}).waitFor({timeout: 10000});
+    await addTask.click();
+    await page.mouse.move(0, 0);
+    // All three clicks listed, once the page's patch time has arrived for each.
+    const clickRows = panel.locator("tbody tr", {hasText: "click"});
+    await clickRows.nth(2).waitFor({timeout: 10000});
+    await panel.locator("tbody tr", {hasText: "click"}).filter({hasText: "…"}).first().waitFor({state: "detached", timeout: 10000});
+    await panel.locator("[role=tablist]").evaluate(el => el.scrollIntoView({block: "start"}));
+    await shot("perf");
+    await panel.getByRole("tab", {name: "Renders"}).click();
+    await panel.locator('[role=tab][aria-selected="true"]', {hasText: "Renders"}).waitFor({timeout: 10000});
+
     // Flashing: switched on in the Renders tab, then one more task added. Shot while both colours are on the page — they
     // fade within a second — with the pointer off the page so no hover box joins them.
     await panel.getByRole("checkbox", {name: "Flash on the page"}).check();

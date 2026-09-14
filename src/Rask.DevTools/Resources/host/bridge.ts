@@ -8,6 +8,29 @@ import type {DockHandle} from "./dock.js";
 import type {Flash} from "./flash.js";
 import type {Overlay} from "./overlay.js";
 
+/**
+ * Installs the runtime's devtools hook on this page, so every frame the app sends is timed as the page applies it and the
+ * time posted to the panel with the frame's size. The runtime reads the hook at each site, so installing it after the
+ * runtime loaded is enough.
+ *
+ * The size is how the app finds the frame a time belongs to. Counting would not do: frames the page applied before the
+ * panel was listening are never reported, and a report handed to the oldest waiting frame lands on one of those.
+ */
+export function installPatchTiming(post: (message: FrameMessage) => void): void {
+    // The runtime hands recv and commit the same parsed frame; weak, so an applied frame is not kept for this.
+    const sizes = new WeakMap<object, number>();
+    window.__raskDevtoolsHook = {
+        send() {},
+        recv(frame, bytes) {
+            if (frame !== null && typeof frame === "object") sizes.set(frame, bytes);
+        },
+        commit(frame, startedAt) {
+            const bytes = frame !== null && typeof frame === "object" ? sizes.get(frame) ?? -1 : -1;
+            post({channel: CHANNEL, kind: "patch", ms: Math.max(0, performance.now() - startedAt), bytes});
+        },
+    };
+}
+
 export interface PanelBridge {
     /** Handles one message from the panel frame; true when it was an overlay message this bridge acted on. */
     handle(message: FrameMessage): boolean;

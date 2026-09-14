@@ -88,6 +88,31 @@ public sealed class DevToolsRenderCaptureTests
         socket.Dispose();
     }
 
+    [Fact]
+    public async Task A_click_on_a_real_page_is_timed_as_one_interaction_from_its_handler_to_its_frame()
+    {
+        using var host = DevToolsLivePage.Host<DevToolsTestApp>();
+        var (_, feed, socket, handlerId) = await DevToolsLivePage.OpenAsync(host);
+        var before = feed.InteractionsSnapshot().Length;
+
+        // The shape the client really sends for a click, so this drives the page's own dispatch path.
+        await socket.SendJsonAsync(new { id = handlerId, type = "click" });
+
+        Assert.True(await DevToolsLivePage.WaitFor(
+            () => feed.InteractionsSnapshot().Skip(before).Any(i => i is { Trigger: "click", Frames: > 0 }),
+            TimeSpan.FromSeconds(5)), "no click interaction that sent a frame");
+        var click = feed.InteractionsSnapshot().Skip(before).First(i => i.Trigger == "click");
+
+        // The handler belongs to the app, found through the frame that reached it; the render it caused and its frame
+        // are counted with it.
+        Assert.Equal(nameof(DevToolsTestApp), click.Target);
+        Assert.NotNull(click.HandlerTicks);
+        Assert.True(click.RenderTicks > 0);
+        Assert.True(click.Bytes > 0);
+        Assert.False(click.Faulted);
+        socket.Dispose();
+    }
+
     private static IEnumerable<DevToolsComponentNode> Nodes(DevToolsComponentNode node) =>
         node.Children.SelectMany(Nodes).Prepend(node);
 }

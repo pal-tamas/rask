@@ -5,8 +5,8 @@ using Rask.Ui;
 namespace Rask.DevTools.Panel;
 
 /// <summary>
-///     The panel: the inspected session's wire traffic, its component tree and what rendered. Perf and errors join them as
-///     they arrive.
+///     The panel: the inspected session's wire traffic, its component tree, what rendered and where the time went. Errors
+///     join them next.
 /// </summary>
 /// <remarks>
 ///     The tab is C# state rather than a route, because one host has no routes to spend on it: a WASM panel runs as a
@@ -19,6 +19,7 @@ internal sealed partial class DevToolsOverviewPage(RouteState route, IDevToolsIn
     private const string Wire = "wire";
     private const string Tree = "tree";
     private const string Renders = "renders";
+    private const string Perf = "perf";
 
     private string _tab = Wire;
 
@@ -54,6 +55,7 @@ internal sealed partial class DevToolsOverviewPage(RouteState route, IDevToolsIn
             Tree => DevToolsTreeTab.Key(session + "-tree").Feed(feed),
             Renders => DevToolsRendersTab.Key(session + "-renders").Feed(feed).Flash(_flash)
                 .OnFlashChange(on => _flash = on),
+            Perf => DevToolsPerfTab.Key(session + "-perf").Feed(feed),
             _ => DevToolsWireTab.Key(session + "-wire").Feed(feed),
         };
 
@@ -61,10 +63,12 @@ internal sealed partial class DevToolsOverviewPage(RouteState route, IDevToolsIn
             // Whichever tab is showing, so the Tree tab has a tree the moment it is picked.
             DevToolsTreeWatcher.Key(session + "-watch").Feed(feed),
             DevToolsFlashEmitter.Key(session + "-flash").Feed(feed).On(_flash).OnChange(on => _flash = on),
+            DevToolsPatchReceiver.Key(session + "-patch").Feed(feed),
             Div.Role("tablist").Class("flex items-center gap-1")[
                 TabButton(Wire, "Wire"),
                 TabButton(Tree, "Tree"),
-                TabButton(Renders, "Renders")
+                TabButton(Renders, "Renders"),
+                TabButton(Perf, "Perf")
             ],
             tab
         ];

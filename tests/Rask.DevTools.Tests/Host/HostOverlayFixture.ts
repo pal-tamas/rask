@@ -5,7 +5,7 @@
 // Stub DOMs with exactly what each module touches. The C# test (HostOverlayTests) asserts the single JSON line on stdout.
 
 import {contains, findAnchor, parseAnchors, parsePlace} from "../../../src/Rask.DevTools/Resources/host/anchors.js";
-import {createBridge, listenToPanel} from "../../../src/Rask.DevTools/Resources/host/bridge.js";
+import {createBridge, installPatchTiming, listenToPanel} from "../../../src/Rask.DevTools/Resources/host/bridge.js";
 import type {DockHandle} from "../../../src/Rask.DevTools/Resources/host/dock.js";
 import {labelText, measure, type Overlay} from "../../../src/Rask.DevTools/Resources/host/overlay.js";
 import {changedElements, type Flash} from "../../../src/Rask.DevTools/Resources/host/flash.js";
@@ -212,6 +212,7 @@ let anchorsEl: StubEl | null = null;
 let flashEl: StubEl | null = null;
 let flashesEl: StubEl | null = null;
 const pickedEl = new StubEl();
+const patchEl = new StubEl();
 globals.window = {
     addEventListener: (type: string, handler: Handler) => panelWindowListeners.push({type, handler}),
 };
@@ -223,6 +224,7 @@ globals.document = {
         : selector === "[data-rask-devtools-picked]" ? pickedEl
         : selector === "[data-rask-devtools-flash]" ? flashEl
         : selector === "[data-rask-devtools-flashes]" ? flashesEl
+        : selector === "[data-rask-devtools-patch]" ? patchEl
         : null,
 };
 
@@ -258,6 +260,32 @@ message({}, {channel: ch, kind: "picked", id: "42"});
 message(page, {channel: ch, kind: "picked", id: "42"});
 message(page, {channel: ch, kind: "pick-cancelled"});
 out.pickedKeys = pickedEl.dispatched.map(e => `${e.key}/${e.bubbles}`).join(",");
+
+// Patch times from the page, collected and reported together: one keydown for a burst, only from the page, and nothing
+// that is not a finite non-negative number.
+const timers: (() => void)[] = [];
+globals.setTimeout = (fn: () => void) => { timers.push(fn); return timers.length; };
+message({}, {channel: ch, kind: "patch", ms: 9, bytes: 1});
+message(page, {channel: ch, kind: "patch", ms: 3.456, bytes: 2048});
+message(page, {channel: ch, kind: "patch", ms: -1, bytes: 1});
+message(page, {channel: ch, kind: "patch", ms: "7", bytes: 1});
+message(page, {channel: ch, kind: "patch", ms: 4, bytes: 1.5});
+message(page, {channel: ch, kind: "patch", ms: 12, bytes: -1});
+out.patchTimersScheduled = timers.length;
+timers.splice(0).forEach(fn => fn());
+out.patchKeys = patchEl.dispatched.map(e => e.key).join(",");
+
+// The page's side: the runtime's hook, installed, posts how long a frame took to apply.
+const patchPosts: FrameMessage[] = [];
+installPatchTiming(m => patchPosts.push(m));
+const hook = (globals.window as {__raskDevtoolsHook?: RaskDevtoolsHook}).__raskDevtoolsHook!;
+const seenFrame = {} as RaskFrameReply;
+hook.send({}, 1);
+hook.recv(seenFrame, 357);
+hook.commit(seenFrame, performance.now() - 5);
+hook.commit({} as RaskFrameReply, performance.now());
+out.patchPosted = patchPosts.map(m => m.kind === "patch" ? `${m.ms >= 5 && m.ms < 1000 ? "timed" : m.ms >= 0 ? "zero" : "?"}@${m.bytes}` : m.kind)
+    .join(",");
 
 // Flashing, from the panel's side. The page remembered it on; the panel renders it off, so the setting is reported to the
 // panel once as a keydown, and nothing reaches the page until the panel agrees.

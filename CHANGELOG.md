@@ -644,6 +644,18 @@ them until tagged releases begin.
   second. The switch is off by default and remembered in the page's `localStorage`; flashing continues with the drawer
   closed, and a page reloaded with it on loads the panel behind the closed drawer so renders flash straight away.
 
+- **The devtools panel times each interaction.** A Perf tab lists interactions newest first: the page event and the
+  component whose handler ran (`click TaskBoard`), the handler's own time, the render walks it caused, the diff, the
+  frames' size and the page's own time to apply them, plus median and p95 server time and the median patch time. A
+  navigation is an interaction too, and a render nothing on the page asked for is one named `render`. Below it, the
+  slowest components by total own `Render()` time, with renders, average and slowest. The handler hooks carry no
+  session, so the probe finds it through the frame that reached the handler (both hosts dispatch on that flow); a
+  render an async handler asks for mid-await counts as render time. The page's patch time comes from the runtime's
+  existing client hook, now installed by the devtools host: it reports each frame's apply time with the frame's size,
+  and the app matches it to the oldest waiting frame of that size sent in the last two seconds — the page and the app
+  keep separate clocks, and frames applied before the panel was listening are never reported. The feed keeps 500
+  interactions; **Clear** resets them.
+
 ### Changed
 
 - **File storage reads `Rask:Storage`, like every other Rask area.** It was the one package still on a top-level

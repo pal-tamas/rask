@@ -37,7 +37,7 @@ internal readonly record struct DevToolsWireEvent(
 ///     access takes the lock. Traffic is at most a few frames per interaction, which makes a lock cheaper than anything
 ///     cleverer and the ordering trivially right.
 /// </remarks>
-internal sealed class DevToolsFeed
+internal sealed partial class DevToolsFeed
 {
     /// <summary>How many wire events a feed keeps; the oldest go first.</summary>
     internal const int WireCapacity = 1000;

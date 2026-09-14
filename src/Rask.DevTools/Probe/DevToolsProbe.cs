@@ -47,8 +47,8 @@ internal sealed class DevToolsFeeds
 }
 
 /// <summary>
-///     What the runtime reports to while the devtools are attached: the wire traffic, component tree and renders of every
-///     inspected session.
+///     What the runtime reports to while the devtools are attached: the wire traffic, component tree, renders and
+///     interaction timings of every inspected session.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -61,7 +61,7 @@ internal sealed class DevToolsFeeds
 ///         would show its own re-renders as the inspected app's traffic, growing with every refresh it caused.
 ///     </para>
 ///     <para>
-///         The handler and state members are empty for now; the perf and errors tabs fill them in.
+///         The state and throw members are empty for now; the errors tab fills them in.
 ///     </para>
 /// </remarks>
 internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
@@ -87,6 +87,14 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
     [ThreadStatic] private static List<DevToolsRenderItem>? t_rendersBuffer;
     [ThreadStatic] private static HashSet<Component>? t_distinct;
 
+    // When the walk in progress started, for the Perf tab's render time.
+    [ThreadStatic] private static long t_walkStart;
+
+    // The feed of the session whose frame is being dispatched. The handler hooks carry a component and no session; both
+    // hosts run the handler on the flow that received the frame (the Server chains it from the socket loop, WASM awaits it
+    // in the same dispatch), so a value set when the frame arrives is the one the handler sees.
+    private static readonly AsyncLocal<DevToolsFeed?> s_dispatching = new();
+
     // Holds the component ids, so a panel's expanded branches survive the next render of the page it is watching — and the
     // Renders tab names a component by the same id the Tree tab does.
     private readonly DevToolsTreeSnapshotter _snapshots = new();
@@ -107,6 +115,7 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
         var renders = t_rendersBuffer ??= [];
         renders.Clear();
         t_renders = renders;
+        t_walkStart = Stopwatch.GetTimestamp();
     }
 
     public long ComponentRendering(Component component, RenderCause cause)
@@ -154,10 +163,24 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
     {
     }
 
-    public long HandlerStarting(Component owner, string handlerId, JsonElement payload) => 0;
+    public long HandlerStarting(Component owner, string handlerId, JsonElement payload)
+    {
+        if (s_dispatching.Value is not { } feed)
+        {
+            return 0;
+        }
+
+        var now = Stopwatch.GetTimestamp();
+        feed.PerfHandlerStarted(DevToolsNames.Of(owner.GetType()), now);
+        return now;
+    }
 
     public void HandlerEnded(Component owner, string handlerId, long startTimestamp, Exception? fault)
     {
+        if (startTimestamp != 0 && s_dispatching.Value is { } feed)
+        {
+            feed.PerfHandlerEnded(startTimestamp, Stopwatch.GetTimestamp(), fault is not null);
+        }
     }
 
     public void TreeCommitted(
@@ -178,6 +201,7 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
         }
 
         var feed = feeds.For(session);
+        feed.PerfWalk(t_walkStart, Stopwatch.GetTimestamp());
         if (renders is not null)
         {
             feed.RecordCommit(
@@ -193,7 +217,12 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
     {
         if (!IsPanel(session))
         {
-            feeds.For(session).RecordDiff(opCount, usedDiff);
+            var feed = feeds.For(session);
+            feed.RecordDiff(opCount, usedDiff);
+            if (startTimestamp != 0)
+            {
+                feed.PerfDiff(startTimestamp, Stopwatch.GetTimestamp());
+            }
         }
     }
 
@@ -201,7 +230,10 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
     {
         if (!IsPanel(session))
         {
-            feeds.For(session).RecordWire(DevToolsWireDirection.In, "frame", bytes, Stopwatch.GetTimestamp());
+            var feed = feeds.For(session);
+            var now = Stopwatch.GetTimestamp();
+            feed.RecordWire(DevToolsWireDirection.In, "frame", bytes, now);
+            feed.PerfFrameSent(bytes, now);
         }
     }
 
@@ -209,6 +241,8 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
     {
         if (IsPanel(session))
         {
+            // The panel's own handlers are not the app's interactions.
+            s_dispatching.Value = null;
             return;
         }
 
@@ -218,7 +252,11 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
                    && type.ValueKind == JsonValueKind.String
             ? type.GetString() ?? "?"
             : "?";
-        feeds.For(session).RecordWire(DevToolsWireDirection.Out, kind, bytes, Stopwatch.GetTimestamp());
+        var feed = feeds.For(session);
+        var now = Stopwatch.GetTimestamp();
+        feed.RecordWire(DevToolsWireDirection.Out, kind, bytes, now);
+        feed.PerfInbound(kind, now);
+        s_dispatching.Value = feed;
     }
 
     // How many components the commit went through. Not the walk alone: a component the serializer renders on a path of its

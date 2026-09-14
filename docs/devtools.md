@@ -1,7 +1,8 @@
 # DevTools: inspect the page you are building
 
 Rask DevTools is a panel inside the page you are working on. It shows what the page and the app say to each other,
-which components the page is made of and what each one was given, and which of them render, and why. It is there while you develop and gone from
+which components the page is made of and what each one was given, which of them render and why, and where each
+interaction's time goes. It is there while you develop and gone from
 what you ship.
 
 <!--
@@ -170,3 +171,31 @@ Flashing keeps going while the drawer is closed, and the page remembers the swit
 away: the panel loads behind the closed drawer to report what rendered. Turn the switch off to stop.
 
 Teal boxes appear as soon as the page updates. Amber boxes come from the panel, a moment later.
+
+## Perf
+
+**Perf** times each interaction from the event to the updated page. A click whose handler renders the page is one
+row. So is a navigation. A render that nothing on the page asked for, such as a timer or a push, gets a row named
+`render`.
+
+![The Perf tab after adding a task: the click on TaskBoard with its handler, render, diff, size and patch times, and the slowest components below](../src/Rask.Site/wwwroot/img/devtools/perf.webp)
+
+Each row shows:
+
+- **Trigger**: the page event and the component whose handler ran, such as `click TaskBoard`. A handler that threw
+  says so.
+- **Handler**: the handler's own time. A render it asks for while it awaits counts under Render, not here.
+- **Render**: the render walks the interaction caused.
+- **Diff**: working out what to send to the page.
+- **Size**: the frames sent, on the wire. *Nothing sent* means the render changed nothing. It also marks the page's
+  first render, which arrives as the HTML page rather than as a frame.
+- **Patch**: how long the page took to apply the frames. The page measures this itself, so it appears a moment after
+  the row. A frame the page applied before the panel was open has no patch time.
+- **Total**: all of the above.
+
+The totals on top are the median (p50) and 95th-percentile (p95) server time, and the median patch time.
+
+**Slowest components** lists the components that spent the most time in their own `Render()`, with how often they
+rendered, their average and their slowest render. It covers the same recent commits as the Renders tab.
+
+The tab keeps the last 500 interactions. **Clear** forgets them.

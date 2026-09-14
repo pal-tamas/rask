@@ -7,7 +7,7 @@
 // never run the tools twice.
 
 // `window.__raskDevtoolsHost` is declared beside the dock, which both hosts' entry points share.
-import {createBridge, listenToPanel, type PanelBridge} from "./host/bridge.js";
+import {createBridge, installPatchTiming, listenToPanel, type PanelBridge} from "./host/bridge.js";
 import {installDock} from "./host/dock.js";
 import {installFlash} from "./host/flash.js";
 import {installOverlay} from "./host/overlay.js";
@@ -32,6 +32,7 @@ if (!window.__raskDevtoolsHost && panelUrl) {
     // The panel is a page of this origin, so it is posted to in this origin only, and heard from in it only.
     bridge = createBridge(dock, overlay, flash, message => frameWindow?.postMessage(message, location.origin));
     listenToPanel(() => frameWindow, location.origin, () => bridge);
+    installPatchTiming(message => frameWindow?.postMessage(message, location.origin));
 
     // Flashing remembered as on: DOM changes flash at once, and the panel runs behind the shut drawer to report renders.
     if (readFlashSetting()) {

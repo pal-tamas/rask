@@ -15,6 +15,12 @@ export const PICK_KEY_PREFIX = "pick:";
 /** The prefix of the keydown `key` the remembered flash setting is reported as; `DevToolsFlashEmitter.SettingKeyPrefix`. */
 export const FLASH_KEY_PREFIX = "flash:";
 
+/** The prefix of the keydown `key` the page's patch times are reported as; `DevToolsPatchReceiver.KeyPrefix`. */
+export const PATCH_KEY_PREFIX = "patch:";
+
+/** How long patch times are collected before one report carries them all, in milliseconds. */
+export const PATCH_BATCH_MS = 250;
+
 export interface PanelClientOptions {
     /** Posts a message to the page. */
     readonly post: (message: FrameMessage) => void;
@@ -53,6 +59,25 @@ export function installPanelClient(options: PanelClientOptions): void {
         if (anchors === lastAnchors) return;
         lastAnchors = anchors;
         post({channel: CHANNEL, kind: "pick", anchors});
+    };
+
+    // Patch times, collected and reported a few at a time as `ms@bytes`: a keydown per frame would be a round trip per frame.
+    const patches: string[] = [];
+    let patchTimer: ReturnType<typeof setTimeout> | null = null;
+    const flushPatches = () => {
+        patchTimer = null;
+        const batch = patches.splice(0, 64);
+        if (patches.length > 0) patchTimer = setTimeout(flushPatches, PATCH_BATCH_MS);
+        const el = document.querySelector("[data-rask-devtools-patch]");
+        if (!el || batch.length === 0) return;
+        el.dispatchEvent(new KeyboardEvent("keydown", {
+            key: PATCH_KEY_PREFIX + batch.join(","),
+            bubbles: true,
+        }));
+    };
+    const queuePatch = (patch: string) => {
+        patches.push(patch);
+        if (patchTimer === null) patchTimer = setTimeout(flushPatches, PATCH_BATCH_MS);
     };
 
     // Flashing. The panel starts with it off and cannot read the page's storage, so the setting the page remembered is
@@ -118,6 +143,9 @@ export function installPanelClient(options: PanelClientOptions): void {
             reportPick(message.id);
         } else if (message.kind === "pick-cancelled") {
             reportPick("cancel");
+        } else if (message.kind === "patch" && typeof message.ms === "number" && Number.isFinite(message.ms) && message.ms >= 0
+                   && Number.isInteger(message.bytes) && message.bytes >= -1) {
+            queuePatch(message.ms.toFixed(2) + "@" + message.bytes);
         }
     });
 

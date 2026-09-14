@@ -5,7 +5,7 @@
 // Imported only by a Debug build on a page served from this machine — the C# decides both before importing it — and
 // never part of rask.wasm.js.
 
-import {createBridge, listenToPanel, type PanelBridge} from "./host/bridge.js";
+import {createBridge, installPatchTiming, listenToPanel, type PanelBridge} from "./host/bridge.js";
 import {installDock} from "./host/dock.js";
 import {installFlash} from "./host/flash.js";
 import {installOverlay} from "./host/overlay.js";
@@ -43,6 +43,10 @@ export function install(frameDocument: string, onOpen: () => void, onEvent: (jso
     // A srcdoc frame inherits this origin but may report "null", so the source is the check and no origin is named.
     bridge = createBridge(dock, overlay, flash, message => frameWindow?.postMessage(message, "*"));
     window.__raskDevtoolsHost = {version: 1, dock};
+    // Posted only once the frame document is listening: before that the panel has nothing to match a time to.
+    installPatchTiming(message => {
+        if (ready) frameWindow?.postMessage(message, "*");
+    });
 
     // Only the panel frame this module created; anything else on the page speaking the same shape is ignored.
     listenToPanel(() => frameWindow, null, () => bridge, message => {

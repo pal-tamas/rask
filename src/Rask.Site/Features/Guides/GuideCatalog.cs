@@ -713,10 +713,10 @@ public static class GuideCatalog
             SearchTitle = "Unit testing C# UI components without a browser",
             Description = "Render C# components to HTML in a unit test, with no browser or server. Dispatch click and input handlers, fake IJSRuntime and uploads, and check validation.",
         },
-        new("devtools", "DevTools", "A panel in the page: wire traffic, the component tree and renders, Debug-only.", "Advanced")
+        new("devtools", "DevTools", "A panel in the page: wire traffic, the component tree, renders and perf, Debug-only.", "Advanced")
         {
-            SearchTitle = "In-page devtools for C# web apps: wire, tree, renders",
-            Description = "Inspect a running C# web app from inside the page: every frame it sends and receives, its component tree with props, and which components rendered and why.",
+            SearchTitle = "In-page devtools for C# web apps: renders and perf",
+            Description = "Inspect a running C# web app from inside the page: its wire traffic, its component tree with props, which components rendered and why, and interaction timings.",
         },
         new("building-form-controls", "Building form controls", "Author your own IFormControl<T>.", "Advanced")
         {
