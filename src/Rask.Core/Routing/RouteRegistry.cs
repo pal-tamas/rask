@@ -182,13 +182,25 @@ public static class RouteRegistry
     public static IReadOnlyList<Route> BuildTreeExcept(IReadOnlyList<Assembly> assemblies)
     {
         ArgumentNullException.ThrowIfNull(assemblies);
+        return BuildTreeExcept(assemblies, ExceptKey(assemblies));
+    }
+
+    /// <summary>The cache key <see cref="BuildTreeExcept(IReadOnlyList{Assembly})" /> files a tree under.</summary>
+    /// <remarks>
+    ///     Order-independent, so two hosts listing the same mounts in a different order share an entry. Exposed so a
+    ///     caller asking for the same set on every render — a session's Router, for one — computes it once instead of
+    ///     joining and sorting names each time.
+    /// </remarks>
+    internal static string ExceptKey(IReadOnlyList<Assembly> assemblies) =>
+        string.Join('|', assemblies.Select(a => a.FullName).OrderBy(n => n, StringComparer.Ordinal));
+
+    /// <summary><see cref="BuildTreeExcept(IReadOnlyList{Assembly})" /> with its key already computed by <see cref="ExceptKey" />.</summary>
+    internal static IReadOnlyList<Route> BuildTreeExcept(IReadOnlyList<Assembly> assemblies, string key)
+    {
         if (assemblies.Count == 0)
         {
             return BuildTree();
         }
-
-        // Order-independent so two hosts listing the same mounts in a different order share an entry.
-        var key = string.Join('|', assemblies.Select(a => a.FullName).OrderBy(n => n, StringComparer.Ordinal));
 
         lock (_lock)
         {

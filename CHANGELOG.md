@@ -1065,6 +1065,23 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A live page stays inside its own application.** On a host that mounts another application under its
+  own prefix, such as the operator console at `/_rask`, the first request resolved against the right route
+  table, but a live navigation resolved against every assembly's. So a page of your app could render
+  the console's pages inside your document, and the console could render yours (#1094). A session now
+  keeps the route table of the application it was opened for, and so does the `Router` it renders. A link
+  or back-button step to a path another application owns is loaded as a full page, so that application's
+  own root draws it. The same goes for a sign-in return URL into another application. `Router.Routes`'
+  documentation also said the default was the entry assembly's pages; it was every assembly's.
+- **A WebAssembly app shows framework warnings and errors in the browser console.** The host forwarded
+  every framework diagnostic into the app's `ILogger`, but registered logging with no provider. On an app
+  that added none, every render, lifecycle and handler fault the framework reported was written nowhere
+  (#1096). The host now adds a browser console provider when the app registered no `ILoggerProvider`,
+  and adds nothing when it did.
+- **A disposed session no longer re-renders when the language changes.** Sessions subscribe to the
+  culture service, but neither host unsubscribed on dispose (#1093). On WebAssembly, where that service
+  outlives every session, a language switch kept the disposed tree alive and re-rendered it. Both hosts
+  now unsubscribe first.
 - **A live session only accepts a socket from the user it belongs to.** A WebSocket `hello` naming an
   existing session used to attach whoever sent it, so a leaked session id let a different signed-in user,
   or an anonymous one, receive that session's frames and dispatch its handlers (#1075). It now attaches

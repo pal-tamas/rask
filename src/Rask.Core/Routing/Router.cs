@@ -32,22 +32,23 @@ public sealed class Router : Component
 
     public Router(RouteState state) => _state = state;
 
-    // Settable from the auto-generated factory. A null assignment resolves to the
-    // assembly's `RouteRegistry.BuildTree()` snapshot so `Router()` (the zero-arg call
-    // shape) Just Works — the generated factory passes Routes: null and the setter fills
-    // in the default. The reference cache below prevents pointless re-flattening on
-    // same-tree re-renders.
+    // Settable from the auto-generated factory. A null assignment resolves to the session's route
+    // table (RouteState.CurrentTable) so `Router()` (the zero-arg call shape) Just Works — the
+    // generated factory passes Routes: null on every render and the setter fills in the default,
+    // which is also what lets a hot-reloaded table reach it. The reference cache below prevents
+    // pointless re-flattening on same-tree re-renders.
     /// <summary>
     ///     The route table to match against. Leave it unset — the default — and the router uses every
-    ///     <c>[Route]</c>-attributed page the generator found in the entry assembly, which is what an
-    ///     ordinary app wants. Supply a list only to route over a set you build yourself.
+    ///     <c>[Route]</c>-attributed page of the application this session belongs to: every loaded assembly's
+    ///     pages, except those of an application mounted under its own prefix on the same host. That is what
+    ///     an ordinary app wants. Supply a list only to route over a set you build yourself.
     /// </summary>
     public IReadOnlyList<Route>? Routes
     {
         get => _routes;
         set
         {
-            var resolved = value ?? RouteRegistry.BuildTree();
+            var resolved = value ?? _state.CurrentTable;
             if (ReferenceEquals(_routes, resolved))
             {
                 return;

@@ -1,7 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Components;
+using Rask.Core.Globalization;
 using Rask.Core.Live;
+using Rask.TestSupport;
 
 namespace Rask.Server.Tests.Live;
 
@@ -26,6 +28,40 @@ public class LiveSessionDirectTests
         session.Dispose();
 
         Assert.Equal(1, disposable.Disposes);
+    }
+
+    // #1093: both disposal paths unhook the culture subscription, and neither delegates to the other, so each is
+    // pinned. The culture service is scoped per session on this host, but the contract is the same as WASM's.
+    [Fact]
+    public void Dispose_UnsubscribesFromCultureChanged()
+    {
+        var (session, culture) = NewCultureSession();
+
+        session.Dispose();
+
+        Assert.Equal(0, culture.SubscriberCount);
+    }
+
+    [Fact]
+    public async Task DisposeAsync_UnsubscribesFromCultureChanged()
+    {
+        var (session, culture) = NewCultureSession();
+
+        await session.DisposeAsync();
+
+        Assert.Equal(0, culture.SubscriberCount);
+    }
+
+    private static (LiveSession Session, CountingCulture Culture) NewCultureSession()
+    {
+        // Process-wide and not reset: it only decides whether a session looks for a culture service.
+        RaskCulture.IsEnabled = true;
+        var culture = new CountingCulture();
+        var sp = new ServiceCollection().AddSingleton<IRaskCulture>(culture).BuildServiceProvider();
+        var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
+        var session = new LiveSession("id", new BasicComponent(), scope, LiveDiffMode.Auto);
+        Assert.Equal(1, culture.SubscriberCount);
+        return (session, culture);
     }
 
     [Fact]

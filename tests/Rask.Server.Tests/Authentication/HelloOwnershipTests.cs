@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Authentication;
 using Rask.Server.Authentication;
 using Rask.Server.Tests.Infrastructure;
+using Rask.TestSupport;
 
 namespace Rask.Server.Tests.Authentication;
 
@@ -53,8 +54,7 @@ public class HelloOwnershipTests
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
 
-        Assert.True(await WebSocketHelper.EventuallyAsync(
-            () => host.Store.ConnectedCount == 1, TimeSpan.FromSeconds(5)));
+        await WaitFor.True(() => host.Store.ConnectedCount == 1, TimeSpan.FromSeconds(5));
         Assert.Equal(WebSocketState.Open, ws.State);
     }
 
@@ -257,8 +257,7 @@ public class HelloOwnershipTests
         using (var first = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None))
         {
             await first.SendJsonAsync(new { type = "hello", session = sessionId });
-            Assert.True(await WebSocketHelper.EventuallyAsync(
-                () => host.Store.ConnectedCount == 1, TimeSpan.FromSeconds(5)));
+            await WaitFor.True(() => host.Store.ConnectedCount == 1, TimeSpan.FromSeconds(5));
             await first.CloseAndAwaitServerCleanupAsync();
         }
 

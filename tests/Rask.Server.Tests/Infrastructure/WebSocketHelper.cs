@@ -86,22 +86,4 @@ internal static class WebSocketHelper
         await ws.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
         Assert.NotNull(await ws.TryReceiveCloseAsync(TimeSpan.FromSeconds(5)));
     }
-
-    /// <summary>Polls <paramref name="condition" /> until it holds or <paramref name="timeout" /> passes.</summary>
-    /// <returns>Whether it held.</returns>
-    public static async Task<bool> EventuallyAsync(Func<bool> condition, TimeSpan timeout)
-    {
-        var deadline = DateTime.UtcNow + timeout;
-        while (!condition())
-        {
-            if (DateTime.UtcNow >= deadline)
-            {
-                return false;
-            }
-
-            await Task.Delay(10);
-        }
-
-        return true;
-    }
 }

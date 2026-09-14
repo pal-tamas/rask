@@ -577,6 +577,9 @@ public static partial class RaskEndpointExtensions
                     .ConfigureAwait(false);
                 return;
             }
+
+            BindToApplication(session, selector, path);
+
             // The visitor's language, negotiated from the request and remembered on the response here,
             // because this handler is what holds a response. It reaches the session inside the render
             // below, alongside the identity and the route and BEFORE the first wave — so the page is built
@@ -1199,6 +1202,12 @@ public static partial class RaskEndpointExtensions
                         var (path, query) = SplitUrl(authDest);
                         routeState.Path = path;
                         routeState.Query = query;
+
+                        // A return URL into another application on this host: load it as a page (#1094).
+                        if (await NavigateAcrossApplicationsAsync(session, replace: true).ConfigureAwait(false))
+                        {
+                            continue;
+                        }
                     }
 
                     // Only emit a catch-up render when something asked to render during the
@@ -1624,6 +1633,7 @@ public static partial class RaskEndpointExtensions
 
         // Seed the route and the declared state BEFORE the first render, so the page builds against them
         // rather than rendering a default and then correcting itself in a second frame the user would see.
+        BindToApplication(session, selector, path);
         var routeState = session.Services.GetRequiredService<RouteState>();
         routeState.Path = path;
         routeState.Query = query;
@@ -1633,6 +1643,50 @@ public static partial class RaskEndpointExtensions
         return session;
     }
 
+
+    // Ties a new session to the application on this host that owns the path it was opened at (#1094): its live
+    // navigations and its Router resolve against that application's route table, and a navigation to a path
+    // another application owns becomes a real page load (see NavigateAcrossApplicationsAsync). Both ways a
+    // session is born — the GET and a resume — come through here, so they cannot disagree.
+    private static void BindToApplication(LiveSession session, RaskRootSelector selector, string path)
+    {
+        session.Services.GetRequiredService<RouteState>().Table = selector.TableFor(path);
+        session.OwnsPath = other => selector.SameApplication(path, other);
+    }
+
+    // When the session's route has moved to a path another application on this host owns, tells the client to
+    // load that URL as a page, so its GET builds the root that application renders with. Returns whether it did.
+    // Rendering the path in place would show another application's pages inside this one's document — or, now
+    // that the table is scoped, this application's not-found page for a URL that does exist.
+    private static async Task<bool> NavigateAcrossApplicationsAsync(LiveSession session, bool replace)
+    {
+        var routeState = session.Services.GetRequiredService<RouteState>();
+        if (session.OwnsPath is not { } owns || owns(routeState.Path))
+        {
+            return false;
+        }
+
+        // The path came from the client's navigate frame or the app's own navigation; either way it must stay on
+        // this origin once the client hands it to location.
+        var url = LocalUrl.Sanitize(QueryString.Build(routeState.Path, routeState.Query));
+        await session.SendOutOfBandAsync(LocationFrame(url, replace)).ConfigureAwait(false);
+        return true;
+    }
+
+    private static byte[] LocationFrame(string url, bool replace)
+    {
+        var buffer = new ArrayBufferWriter<byte>(64 + url.Length);
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
+            writer.WriteStartObject();
+            writer.WriteString("type"u8, "location"u8);
+            writer.WriteString("url"u8, url);
+            writer.WriteBoolean("replace"u8, replace);
+            writer.WriteEndObject();
+        }
+
+        return buffer.WrittenSpan.ToArray();
+    }
 
     private static void HandleJsResult(LiveSession session, JsonElement root)
     {
@@ -1795,7 +1849,7 @@ public static partial class RaskEndpointExtensions
     private static async Task<bool> IsCurrentRouteAuthorizedAsync(LiveSession session)
     {
         var routeState = session.Services.GetRequiredService<RouteState>();
-        if (!RouteResolver.TryResolve(routeState.Path, out var chain))
+        if (!RouteResolver.TryResolve(routeState.CurrentTable, routeState.Path, out var chain, out _))
         {
             return true;
         }
@@ -1818,8 +1872,14 @@ public static partial class RaskEndpointExtensions
         // principal. The post-reconnect render does the real check with the new identity.
         if (auth is null)
         {
+            // A path another application on this host owns is not this session's to render at all (#1094).
+            if (await NavigateAcrossApplicationsAsync(session, replace).ConfigureAwait(false))
+            {
+                return;
+            }
+
             var routeState = session.Services.GetRequiredService<RouteState>();
-            if (RouteResolver.TryResolve(routeState.Path, out var chain))
+            if (RouteResolver.TryResolve(routeState.CurrentTable, routeState.Path, out var chain, out _))
             {
                 var user = session.Services.GetRequiredService<SessionUserProvider>().Current;
                 var result = await RouteAuthorizationGuard
