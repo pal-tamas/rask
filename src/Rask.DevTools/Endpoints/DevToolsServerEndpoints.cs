@@ -24,6 +24,9 @@ internal sealed class DevToolsServerEndpoints : IRaskServerDevTools
     /// <summary>Where the host script is served, under the app's path base.</summary>
     internal const string HostScriptPath = Prefix + "/host.js";
 
+    /// <summary>Where the panel page's own script is served, under the app's path base.</summary>
+    internal const string PanelScriptPath = Prefix + "/panel.js";
+
     /// <summary>Set to <c>1</c> to open the panel from another machine — a phone on the LAN, a VM, a container.</summary>
     internal const string AllowRemoteVariable = "RASK_DEVTOOLS_ALLOW_REMOTE";
 
@@ -36,6 +39,9 @@ internal sealed class DevToolsServerEndpoints : IRaskServerDevTools
     private string? _panelUrl;
     private PathString _prefixUnderBase;
     private bool _allowRemote;
+
+    /// <summary>The panel page's script, under the app's path base; null until mapped, and outside Development.</summary>
+    internal string? PanelScriptUrl { get; private set; }
 
     /// <summary>The endpoints the container builds: the panel is on when the app carries Rask.Ui.</summary>
     public DevToolsServerEndpoints()
@@ -88,6 +94,13 @@ internal sealed class DevToolsServerEndpoints : IRaskServerDevTools
             // load its own tools — the same call the content-addressed asset endpoints make.
             .AllowAnonymous();
 
+        // The panel page's own script, which tells the page what the panel's rows are over. Anonymous for the same reason.
+        var panelScript = DevToolsScripts.LoadPanel();
+        endpoints.MapGet(pathBase + PanelScriptPath, (RequestDelegate)(ctx =>
+                Results.Text(panelScript, "text/javascript; charset=utf-8").ExecuteAsync(ctx)))
+            .AllowAnonymous();
+
+        PanelScriptUrl = pathBase + PanelScriptPath;
         _prefixUnderBase = new PathString(pathBase + Prefix);
         _hostScriptUrl = pathBase + HostScriptPath;
         _panelUrl = pathBase + Prefix + "/";

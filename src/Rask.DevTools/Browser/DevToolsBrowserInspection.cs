@@ -13,4 +13,7 @@ namespace Rask.DevTools.Browser;
 internal sealed class DevToolsBrowserInspection(DevToolsFeeds feeds) : IDevToolsInspection
 {
     public DevToolsFeed? Open(string? sessionId, string? token) => feeds.Latest;
+
+    // The frame client the panel frame runs already carries the panel script.
+    public string? PanelScriptUrl => null;
 }

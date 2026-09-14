@@ -120,5 +120,7 @@ public sealed class DevToolsPanelSessionTests
     private sealed class FixedInspection(DevToolsFeed feed) : IDevToolsInspection
     {
         public DevToolsFeed? Open(string? sessionId, string? token) => feed;
+
+        public string? PanelScriptUrl => null;
     }
 }

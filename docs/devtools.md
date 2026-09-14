@@ -95,6 +95,21 @@ the page that uses the card is the one that built them. Each row shows what its 
 The tree is ready as soon as you open the tab, and it follows every render after that. Branches you open stay open
 while the page re-renders.
 
+### Finding a component on the page, and the page in the tree
+
+Point at a row and the page shows where that component is: a box around everything it rendered, labelled with its
+name and size.
+
+![Pointing at a TaskRow row in the Tree tab draws a labelled box around that row on the page](../src/Rask.Site/wwwroot/img/devtools/highlight.webp)
+
+**Pick** goes the other way. Press it, point at anything on the page, and the same box follows the pointer. Click, and
+the tree opens to the component that rendered it and selects its row. The click goes to the devtools, not to your app.
+Press **Esc**, or **Pick** again, to stop without choosing.
+
+A pick lands on the nearest component. Some kit components, `UiButton` among them, render an element directly and
+don't appear in the tree themselves, so pointing at a button picks the component the button sits in. With **Show
+HTML tags** on, a pick lands on the element itself.
+
 ### Secrets stay out of it
 
 A prop that looks sensitive is never read. It shows as `••••` instead. The decision is made when the app is built, so

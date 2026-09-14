@@ -73,6 +73,8 @@
     <_RaskNodeFixture Include="Host\*Fixture.ts"/>
     <_RaskNodeFixtureDependency Include="..\..\src\Rask.DevTools\Resources\**\*.ts"
                                 Exclude="..\..\src\Rask.DevTools\Resources\**\*.d.ts"/>
+    <!-- The overlay resolves places through the runtime's own path walk. -->
+    <_RaskNodeFixtureDependency Include="..\..\src\Rask.Core\Resources\rask-dom-path.ts"/>
   </ItemGroup>
 
   <Import Project="..\Rask.TestSupport\NodeFixtures.targets"/>

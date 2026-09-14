@@ -1,3 +1,7 @@
+using System.Buffers;
+using System.Globalization;
+using System.Text;
+using System.Text.Json;
 using Rask.Core;
 using Rask.Core.Diagnostics.DevTools;
 using Rask.DevTools.Probe;
@@ -7,7 +11,8 @@ namespace Rask.DevTools.Panel;
 
 /// <summary>
 ///     The Tree tab: the components the inspected page rendered, nested as they sit on the page, as they stood after its
-///     last render — with the HTML elements between them one toggle away.
+///     last render — with the HTML elements between them one toggle away, a box on the page around whatever row the
+///     pointer is on, and a picker that goes the other way.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -16,24 +21,45 @@ namespace Rask.DevTools.Panel;
 ///         one too, for as long as it is on screen.
 ///     </para>
 ///     <para>
-///         Drawn with the kit's <see cref="UiTree{T,TKey}" />, which is what a component id buys: expansion is keyed on
-///         it, so the branches a developer opened survive the next render of the page they are watching.
+///         The page itself is never touched from here. Each row carries where its node is on the page
+///         (<c>data-rask-devtools-at</c>), and the panel's own script posts that to the page's devtools host, which draws
+///         the box — so a hover costs no round trip to the app. Picking works the same way back: while picking, the tab
+///         publishes every node's place (<c>data-rask-devtools-anchors</c>), the host matches what is under the pointer
+///         against them, and a click comes back as a keydown on a hidden element — the one event both panel hosts forward
+///         with a value.
 ///     </para>
 /// </remarks>
 internal sealed partial class DevToolsTreeTab : Component
 {
+    /// <summary>The <c>key</c> of the keydown a pick arrives as: this, then the picked node's id, or <c>cancel</c>.</summary>
+    internal const string PickKeyPrefix = "pick:";
+
     // One row's height, so a page with thousands of components renders only the rows on screen.
     private const int RowHeight = 24;
 
+    // How deep a view opens the first time it is shown: far enough to reach a page's own components through the layout
+    // and kit components around them — and, with the elements in between, through <html>, <body> and their wrappers too.
+    private const int ComponentDepth = 8;
+    private const int TagDepth = 16;
+
+    private readonly HashSet<long> _expanded = [];
     private DevToolsFeed? _following;
     private DevToolsRefreshGate? _gate;
     private IDisposable? _watch;
     private bool _showTags;
+    private bool _seededComponents;
+    private bool _seededTags;
+    private bool _picking;
+    private long? _selected;
     private DevToolsComponentNode? _viewOf;
     private DevToolsComponentNode? _view;
 
     /// <summary>The inspected session's feed.</summary>
     public required DevToolsFeed Feed { get; set; }
+
+    // The toggle, the picker, expansion and selection are fields, which the render cache cannot see.
+    /// <inheritdoc />
+    protected override bool BypassRenderCache => true;
 
     /// <inheritdoc />
     protected override void OnMount()
@@ -58,10 +84,6 @@ internal sealed partial class DevToolsTreeTab : Component
         _watch = null;
     }
 
-    // The toggle is a field, which the render cache cannot see.
-    /// <inheritdoc />
-    protected override bool BypassRenderCache => true;
-
     /// <inheritdoc />
     protected override Component? Render()
     {
@@ -71,23 +93,46 @@ internal sealed partial class DevToolsTreeTab : Component
         }
 
         var root = View(snapshot);
+        Seed(root);
+
         return Div.Class("flex flex-col gap-3")[
             Div.Class("flex flex-wrap items-center justify-between gap-2")[
-                P.Class("text-xs opacity-60")[$"{Count(root, tags: false)} components, as of the page's last render."],
-                UiToggle.Value(_showTags).Text("Show HTML tags").Size(UiSize.Sm).OnChange(v => _showTags = v)
+                P.Class("text-xs opacity-60")[$"{Count(root)} components, as of the page's last render."],
+                Div.Class("flex items-center gap-3")[
+                    UiButton
+                        .Size(UiSize.Sm)
+                        // daisyUI's own marker, written whole: a composed class name is invisible to the kit's Tailwind scan.
+                        .Class(_picking ? "btn-active" : null)
+                        .Title(_picking ? "Click something on the page, or press Esc" : "Pick something on the page")
+                        .Aria(new Dictionary<string, string?> { ["pressed"] = _picking ? "true" : "false" })
+                        .OnClick(() => _picking = !_picking)[UiIcon.Name(UiIconName.Cursor), "Pick"],
+                    UiToggle.Value(_showTags).Text("Show HTML tags").Size(UiSize.Sm).OnChange(v => _showTags = v)
+                ]
             ],
+            // Where the panel's script finds what to tell the page, and where it reports a pick back; neither is seen.
+            _picking
+                ? Div.Key("anchors").Hidden(true)
+                    .Data(new Dictionary<string, string?> { ["rask-devtools-anchors"] = Anchors(root) })
+                : Span.Key("anchors").Hidden(true),
+            Span.Key("picked").Hidden(true)
+                .Data(new Dictionary<string, string?> { ["rask-devtools-picked"] = "" })
+                .OnKeyDown(e => Picked(e.Key)),
             UiTree.Roots([root])
                 .NodeKey(n => n.Id)
-                // A tree per view. ExpandDepth applies to a tree's first render only, so without the key the elements the
-                // toggle brings in would arrive collapsed and hide the very components that were open a moment before.
-                .Key(_showTags ? "tags" : "components")
                 .Item(Row)
                 .Label("Component tree")
-                // Deep enough to reach a page's own components through the layout and kit components around them — and,
-                // with the elements in between, through the <html>, <body> and wrappers around those too.
-                .ExpandDepth(_showTags ? 16 : 8)
                 .NodeText(n => n.Type)
                 .Selection(UiTreeSelection.Single)
+                // Both held here, so a pick can open the picked node's ancestors and select it in one render — which is
+                // also what moves the tree's cursor to it, and so scrolls it into view.
+                .Expanded([.. _expanded])
+                .OnExpandedChange(keys =>
+                {
+                    _expanded.Clear();
+                    _expanded.UnionWith(keys);
+                })
+                .Selected(_selected is { } selected ? [selected] : [])
+                .OnSelectionChange(keys => _selected = keys.Count > 0 ? keys[0] : null)
                 .ItemSize(RowHeight)
                 .Height(320)[n => n.Children]
         ];
@@ -129,13 +174,132 @@ internal sealed partial class DevToolsTreeTab : Component
         return kept;
     }
 
+    // Each view opens to its depth the first time it is shown; after that, what is open is what the developer opened.
+    private void Seed(DevToolsComponentNode root)
+    {
+        if (_showTags ? _seededTags : _seededComponents)
+        {
+            return;
+        }
+
+        if (_showTags)
+        {
+            _seededTags = true;
+        }
+        else
+        {
+            _seededComponents = true;
+        }
+
+        Open(root, _showTags ? TagDepth : ComponentDepth);
+    }
+
+    private void Open(DevToolsComponentNode node, int depth)
+    {
+        if (depth <= 0 || node.Children.Count == 0)
+        {
+            return;
+        }
+
+        _expanded.Add(node.Id);
+        foreach (var child in node.Children)
+        {
+            Open(child, depth - 1);
+        }
+    }
+
+    // A pick, as the panel's script reports it. Looked up in the view on screen now rather than in a tree a handler closed
+    // over, so the result never depends on which render's handler the runtime happens to call: an element's id exists only
+    // in the view with tags shown. A node that is gone by now (the page re-rendered between hover and click) ends the pick.
+    private void Picked(string key)
+    {
+        if (!key.StartsWith(PickKeyPrefix, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _picking = false;
+        if (!long.TryParse(key.AsSpan(PickKeyPrefix.Length), NumberStyles.Integer, CultureInfo.InvariantCulture, out var id)
+            || Feed.TreeSnapshot() is not { } snapshot)
+        {
+            return;
+        }
+
+        var ancestors = new List<long>();
+        if (PathTo(View(snapshot), id, ancestors))
+        {
+            _expanded.UnionWith(ancestors);
+            _selected = id;
+        }
+    }
+
+    internal static bool PathTo(DevToolsComponentNode node, long id, List<long> ancestors)
+    {
+        if (node.Id == id)
+        {
+            return true;
+        }
+
+        ancestors.Add(node.Id);
+        foreach (var child in node.Children)
+        {
+            if (PathTo(child, id, ancestors))
+            {
+                return true;
+            }
+        }
+
+        ancestors.RemoveAt(ancestors.Count - 1);
+        return false;
+    }
+
+    // [[id,"at","label"],…] for every node of the view that has a place on the page, in tree order — so where two nodes
+    // cover the same element, the one further down the tree comes later and is the one a pick lands on.
+    internal static string Anchors(DevToolsComponentNode root)
+    {
+        var buffer = new ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
+            writer.WriteStartArray();
+            WriteAnchors(writer, root);
+            writer.WriteEndArray();
+        }
+
+        return Encoding.UTF8.GetString(buffer.WrittenSpan);
+    }
+
+    private static void WriteAnchors(Utf8JsonWriter writer, DevToolsComponentNode node)
+    {
+        if (node.At is { } at)
+        {
+            writer.WriteStartArray();
+            writer.WriteStringValue(node.Id.ToString(CultureInfo.InvariantCulture));
+            writer.WriteStringValue(at);
+            writer.WriteStringValue(Label(node));
+            writer.WriteEndArray();
+        }
+
+        foreach (var child in node.Children)
+        {
+            WriteAnchors(writer, child);
+        }
+    }
+
+    private static string Label(DevToolsComponentNode node) => node.IsTag ? "<" + node.Type + ">" : node.Type;
+
+    // Where the node is, for the panel's script to hand to the page when the pointer is on this row.
+    private static Dictionary<string, string?> Place(DevToolsComponentNode node) =>
+        node.At is null
+            ? []
+            : new Dictionary<string, string?> { ["rask-devtools-at"] = node.At, ["rask-devtools-label"] = Label(node) };
+
     private static Component Row(DevToolsComponentNode node) =>
         node.IsTag
-            ? Span.Class("truncate font-mono text-xs opacity-60")["<" + node.Type + ">"]
+            ? Span.Class("truncate font-mono text-xs opacity-60").Data(Place(node))[Label(node)]
             : ComponentRow(node);
 
     private static Component ComponentRow(DevToolsComponentNode node) =>
-        Span.Class("flex items-center gap-2 truncate")[
+        Span.Class("flex items-center gap-2 truncate").Data(Place(node))[
             Span.Class("truncate")[node.Type],
             node.Key is { Length: > 0 } key
                 ? UiBadge.Size(UiSize.Xs).Variant(UiVariant.Soft)[key]
@@ -150,12 +314,12 @@ internal sealed partial class DevToolsTreeTab : Component
     private static string Described(DescribedProp prop) =>
         prop.Name + "=" + (prop.Value is null ? "null" : prop.Value);
 
-    private static int Count(DevToolsComponentNode node, bool tags)
+    private static int Count(DevToolsComponentNode node)
     {
-        var total = node.IsTag && !tags ? 0 : 1;
+        var total = node.IsTag ? 0 : 1;
         foreach (var child in node.Children)
         {
-            total += Count(child, tags);
+            total += Count(child);
         }
 
         return total;

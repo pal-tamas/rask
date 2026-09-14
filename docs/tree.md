@@ -61,6 +61,12 @@ Keys reach the callback as a list of `TKey`, the whole selection each time:
 .Selected(_picked).OnSelectionChange(keys => _picked = keys)
 ```
 
+When the page changes a controlled `Selected` itself (a search result, a link to a node), the keyboard
+cursor moves to the first node the page added, and the tree scrolls it into view, including in a
+virtualized tree. A node inside a closed branch has no row to move to, so open its ancestors in the
+same render with a controlled `Expanded`. A selection the reader made and the page hands straight back
+leaves the cursor where the reader put it.
+
 ## The keyboard
 
 The tree is one focusable element. A cursor moves inside it, and `aria-activedescendant` tells a
