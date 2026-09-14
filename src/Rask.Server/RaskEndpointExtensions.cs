@@ -65,6 +65,12 @@ public static partial class RaskEndpointExtensions
     private const string RuntimePath = "/rask/rask.js";
     private const string WebSocketPath = "/rask/ws";
 
+    // The HTTP fallback, for a client whose WebSocket never opened: frames come down the stream, the
+    // client's own frames go up as POSTs, and the beacon says a tab is gone without waiting for a timeout.
+    private const string StreamPath = "/_rask/stream/{sessionId}";
+    private const string SendPath = "/_rask/send/{sessionId}";
+    private const string LeavePath = "/_rask/leave/{sessionId}";
+
     // PWA endpoints, mapped only when AddRaskPwa registered a RaskPwaState. The manifest is under /rask/;
     // the service worker is served at the app root (NOT under /rask/) so its default control scope covers
     // the whole app — a SW under /rask/ could only intercept /rask/* requests.
@@ -222,6 +228,8 @@ public static partial class RaskEndpointExtensions
         // Per-host shutdown state. Pure state with no dependencies, so the store can read it without a
         // construction cycle; RaskDrainService drives it.
         services.AddSingleton<RaskDrainCoordinator>();
+        // Which Server-Sent Events stream each session is on, for the HTTP transport. Per host, never static.
+        services.AddSingleton<StreamRegistry>();
         services.AddSingleton(static sp =>
         {
             // Session cap and diff mode are per-store instance values (not statics) so concurrent hosts and
@@ -800,6 +808,8 @@ public static partial class RaskEndpointExtensions
                     drain.HardStopping, wsCulture);
             }));
 
+        MapHttpTransport(endpoints, pathBase, selector);
+
         var script = LoadEmbeddedScript();
         endpoints.MapGet(pathBase + RuntimePath, (RequestDelegate)(ctx =>
             Results.Text(script, "text/javascript; charset=utf-8").ExecuteAsync(ctx)));
@@ -945,6 +955,322 @@ public static partial class RaskEndpointExtensions
                 RaskLogLevel.Warning, "Rask.Live", "Rask Live: dropped malformed WS frame", ex);
             return null;
         }
+    }
+
+    /// <summary>
+    ///     The live protocol over plain HTTP: a Server-Sent Events stream down, POSTs up.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Always mapped, never configured. A WebSocket is what a browser gets when one opens; a network that
+    ///         blocks the upgrade — a corporate proxy, some captive portals — would otherwise leave every page
+    ///         dead, and a page that cannot connect is not a page. The client decides which one it is on and
+    ///         remembers the answer for the tab.
+    ///     </para>
+    ///     <para>
+    ///         The guards are the socket's, applied per request rather than once per connection, because an HTTP
+    ///         request carries no upgrade to have checked earlier: the host-only Origin check, the browser's own
+    ///         <c>Sec-Fetch-Site</c>, and <c>SameSessionUser</c> on every POST.
+    ///     </para>
+    /// </remarks>
+    private static void MapHttpTransport(IEndpointRouteBuilder endpoints, string pathBase, RaskRootSelector selector)
+    {
+        // The stream. One per tab, held open for the life of the page.
+        endpoints.MapGet(pathBase + StreamPath, (RequestDelegate)(ctx =>
+            StreamAsync(ctx, selector))).DisableAntiforgery();
+
+        // The client's frames. One request per interaction, which is the cost of not having a socket.
+        endpoints.MapPost(pathBase + SendPath, (RequestDelegate)SendAsync).DisableAntiforgery();
+
+        // "This tab is gone." Sent by pagehide, so a closed tab frees its session now rather than after the
+        // grace period — the socket gets this for free from its own close.
+        endpoints.MapPost(pathBase + LeavePath, (RequestDelegate)LeaveAsync).DisableAntiforgery();
+    }
+
+    // A browser stamps every request with where it came from, and "cross-site" is a page on another site driving
+    // this one. Refused beside the Origin check. A missing header — a non-browser client, an older browser — is
+    // allowed, the same posture IsSameOrigin takes toward a missing Origin.
+    private static bool IsCrossSiteFetch(HttpRequest request) =>
+        string.Equals(request.Headers["Sec-Fetch-Site"].ToString(), "cross-site", StringComparison.OrdinalIgnoreCase);
+
+    private static ClaimsPrincipal UserOf(HttpContext ctx) => ctx.User ?? new ClaimsPrincipal(new ClaimsIdentity());
+
+    private static string? StringProperty(JsonElement root, string name) =>
+        root.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+
+    /// <summary>Holds the response open and writes the session's frames to it as events.</summary>
+    private static async Task StreamAsync(HttpContext ctx, RaskRootSelector selector)
+    {
+        if (!IsSameOrigin(ctx.Request) || IsCrossSiteFetch(ctx.Request))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return;
+        }
+
+        var sessionId = (string?)ctx.Request.RouteValues["sessionId"];
+        if (string.IsNullOrEmpty(sessionId))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
+            return;
+        }
+
+        var store = ctx.RequestServices.GetRequiredService<LiveSessionStore>();
+        var limits = ctx.RequestServices.GetRequiredService<RaskServerLimits>();
+        var registry = ctx.RequestServices.GetRequiredService<StreamRegistry>();
+        var drain = ctx.RequestServices.GetRequiredService<RaskDrainCoordinator>();
+        var resume = ctx.RequestServices.GetRequiredService<SessionResumeSupport>();
+        var metrics = store.Metrics;
+
+        // Counted in the drain exactly like a socket: a shutdown waits for these to finish too.
+        using var scope = drain.TrackSocket();
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ctx.RequestAborted, drain.HardStopping);
+        var ct = linked.Token;
+
+        ServerCultureNegotiation.TryNegotiate(ctx.Request, ctx.RequestServices, out var culture);
+
+        ctx.Response.StatusCode = StatusCodes.Status200OK;
+        ctx.Response.ContentType = "text/event-stream";
+        // no-transform is the load-bearing one: a proxy that compresses or buffers this response would hold frames
+        // until it had "enough" of them, which for a live page is for ever.
+        ctx.Response.Headers.CacheControl = "no-cache, no-transform";
+        ctx.Response.Headers["X-Accel-Buffering"] = "no";
+        await ctx.Response.Body.FlushAsync(ct).ConfigureAwait(false);
+
+        var generation = registry.NextGeneration();
+        var transport = new SseTransport(ctx.Response.BodyWriter, generation);
+
+        // The stream names itself before anything else, so the client knows which generation its POSTs belong to.
+        await transport.SendAsync(
+            Encoding.UTF8.GetBytes($$"""{"type":"stream","generation":{{generation}}}"""), ct).ConfigureAwait(false);
+
+        // Handed over as values, never spliced into a JSON document: both come straight from the request, and a
+        // session id or a resume token carrying a quote would otherwise have been read as the hello's own
+        // structure. The resume record travels in a header rather than the query string, because a token in a URL
+        // ends up in proxy logs and browser history — and this one rebuilds a page.
+        var resumeToken = ctx.Request.Headers["Rask-Resume"].ToString();
+        var attach = await AttachAsync(
+            sessionId, string.IsNullOrEmpty(resumeToken) ? null : resumeToken, transport, store, limits, UserOf(ctx),
+            resume, selector, metrics, culture, current: null, counted: false, ct).ConfigureAwait(false);
+
+        if (attach.Status != AttachStatus.Attached || attach.Session is null)
+        {
+            // Nothing to attach to, and the same answer whether the id never existed or belongs to someone else
+            // (#1075). The client reloads, exactly as it does on the socket.
+            await transport.SendAsync(SessionUnknownPayload, ct).ConfigureAwait(false);
+            await transport.CloseAsync(LiveTransportClose.Normal, "session-unknown", ct).ConfigureAwait(false);
+            return;
+        }
+
+        var session = attach.Session;
+        registry.Set(session.Id, transport);
+
+        try
+        {
+            // Alive between renders: a quiet page still has to look connected to every proxy in the path.
+            while (!ct.IsCancellationRequested && transport.IsOpen)
+            {
+                var finished = await Task.WhenAny(
+                    transport.Completed, Task.Delay(TimeSpan.FromSeconds(15), ct)).ConfigureAwait(false);
+
+                if (finished == transport.Completed)
+                {
+                    break;
+                }
+
+                await transport.HeartbeatAsync(ct).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // The client went away, or the drain's deadline passed. Both end the stream.
+        }
+        finally
+        {
+            registry.Remove(session.Id, transport);
+            transport.Abort();
+
+            // Only the connection that still owns the session may arm its grace period: a tab that reconnected has
+            // already attached a newer one (#1076).
+            if (session.DetachTransport(transport))
+            {
+                store.ScheduleRemoval(session.Id, limits.SessionGracePeriod);
+            }
+
+            // For the CONNECTION, not the session: this stream is going away whichever way the detach went (#1059).
+            if (attach.Counted)
+            {
+                store.SocketDetached();
+            }
+        }
+    }
+
+    /// <summary>Takes the client's frames for a session whose stream is open.</summary>
+    private static async Task SendAsync(HttpContext ctx)
+    {
+        if (!IsSameOrigin(ctx.Request) || IsCrossSiteFetch(ctx.Request))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return;
+        }
+
+        var store = ctx.RequestServices.GetRequiredService<LiveSessionStore>();
+        var limits = ctx.RequestServices.GetRequiredService<RaskServerLimits>();
+        var registry = ctx.RequestServices.GetRequiredService<StreamRegistry>();
+        var metrics = store.Metrics;
+
+        var sessionId = (string?)ctx.Request.RouteValues["sessionId"];
+        var session = sessionId is null ? null : store.Get(sessionId);
+        if (session is null
+            || !SameSessionUser(UserOf(ctx), session.Services.GetRequiredService<SessionUserProvider>().Current))
+        {
+            // The same answer for "no such session" and "not yours", so neither can be probed for.
+            ctx.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        // The stream this POST believes it is talking to. A tab that reconnected has a newer one, and an older tab's
+        // frames must not reach the session it no longer drives.
+        if (!registry.IsCurrent(session.Id, ctx.Request.Headers["Rask-Stream"].ToString()))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status409Conflict;
+            return;
+        }
+
+        if (!ctx.Request.HasJsonContentType())
+        {
+            ctx.Response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
+            return;
+        }
+
+        if (ctx.Request.ContentLength > limits.MaxInboundFrameBytes)
+        {
+            metrics?.FrameRejected("size");
+            ctx.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
+            return;
+        }
+
+        // Read through the cap rather than trusting Content-Length alone, which a chunked request does not carry: the
+        // same bound the socket enforces while it reassembles a message.
+        using var body = new MemoryStream();
+        var chunk = ArrayPool<byte>.Shared.Rent(16 * 1024);
+        try
+        {
+            int read;
+            while ((read = await ctx.Request.Body.ReadAsync(chunk, ctx.RequestAborted).ConfigureAwait(false)) > 0)
+            {
+                if (body.Length + read > limits.MaxInboundFrameBytes)
+                {
+                    metrics?.FrameRejected("size");
+                    ctx.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
+                    return;
+                }
+
+                body.Write(chunk, 0, read);
+            }
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(chunk);
+        }
+
+        JsonDocument doc;
+        try
+        {
+            doc = JsonDocument.Parse(body.GetBuffer().AsMemory(0, (int)body.Length));
+        }
+        catch (JsonException)
+        {
+            ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
+            return;
+        }
+
+        using (doc)
+        {
+            // An array, because a client batches whatever piled up while a POST was in flight — which is how
+            // arrival order survives a transport that has no ordering of its own.
+            if (doc.RootElement.ValueKind != JsonValueKind.Array)
+            {
+                ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
+                return;
+            }
+
+            var count = doc.RootElement.GetArrayLength();
+            if (count == 0)
+            {
+                ctx.Response.StatusCode = StatusCodes.Status204NoContent;
+                return;
+            }
+
+            // The socket's frame-rate cap, counted per batch. A flood ends the stream the way it ends a socket, so
+            // the client reconnects against the intact session and resumes from current state.
+            if (limits.MaxInboundFramesPerSecond > 0
+                && !registry.TryAdmit(session.Id, count, limits.MaxInboundFramesPerSecond))
+            {
+                metrics?.FrameRejected("rate");
+                registry.Close(session.Id, LiveTransportClose.PolicyViolation, "frame rate");
+                ctx.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                return;
+            }
+
+            // The backlog cap needs a byte count per frame, not an exact one, and dividing the body keeps this
+            // allocation-free — measuring each frame would re-serialise it.
+            var perFrame = (int)Math.Max(1, body.Length / count);
+
+            foreach (var frame in doc.RootElement.EnumerateArray())
+            {
+                if (frame.ValueKind != JsonValueKind.Object)
+                {
+                    continue;
+                }
+
+                var hasType = frame.TryGetProperty("type", out var type) && type.ValueKind == JsonValueKind.String;
+                var outcome = await ProcessFrameAsync(
+                    session, frame, hasType, type, perFrame, store, limits, metrics, ctx.RequestAborted)
+                    .ConfigureAwait(false);
+
+                if (outcome.Status == FrameStatus.Refused)
+                {
+                    // A breaker tripped. The stream is what ends; this request says so.
+                    registry.Close(session.Id, LiveTransportClose.PolicyViolation, outcome.Reason!);
+                    ctx.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                    return;
+                }
+            }
+        }
+
+        ctx.Response.StatusCode = StatusCodes.Status204NoContent;
+    }
+
+    /// <summary>Frees a session whose tab has gone, without waiting out its grace period.</summary>
+    private static Task LeaveAsync(HttpContext ctx)
+    {
+        if (!IsSameOrigin(ctx.Request) || IsCrossSiteFetch(ctx.Request))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return Task.CompletedTask;
+        }
+
+        var store = ctx.RequestServices.GetRequiredService<LiveSessionStore>();
+        var registry = ctx.RequestServices.GetRequiredService<StreamRegistry>();
+
+        var sessionId = (string?)ctx.Request.RouteValues["sessionId"];
+        var session = sessionId is null ? null : store.Get(sessionId);
+        if (session is null
+            || !SameSessionUser(UserOf(ctx), session.Services.GetRequiredService<SessionUserProvider>().Current))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status404NotFound;
+            return Task.CompletedTask;
+        }
+
+        // Only the tab that still owns the stream may end it: a beacon from a tab that has already been replaced
+        // would otherwise close the page its successor is driving. An ordinary ending, not a violation.
+        if (registry.IsCurrent(session.Id, ctx.Request.Headers["Rask-Stream"].ToString()))
+        {
+            registry.Close(session.Id, LiveTransportClose.Normal, "leave");
+        }
+
+        ctx.Response.StatusCode = StatusCodes.Status204NoContent;
+        return Task.CompletedTask;
     }
 
     private static async Task RunSocketLoop(WebSocket ws, LiveSessionStore store, RaskServerLimits limits,
@@ -1121,8 +1447,8 @@ public static partial class RaskEndpointExtensions
                 if (hasType && t.ValueEquals("hello"u8))
                 {
                     var attach = await AttachAsync(
-                        root, transport, store, limits, wsUser, resume, selector, metrics, resumeCulture,
-                        session, counted, ct).ConfigureAwait(false);
+                        StringProperty(root, "session"), StringProperty(root, "resume"), transport, store, limits,
+                        wsUser, resume, selector, metrics, resumeCulture, session, counted, ct).ConfigureAwait(false);
 
                     session = attach.Session;
                     counted = attach.Counted;
@@ -1332,7 +1658,8 @@ public static partial class RaskEndpointExtensions
     ///     is the transport's business.
     /// </remarks>
     private static async Task<AttachOutcome> AttachAsync(
-        JsonElement root,
+        string? sessionId,
+        string? resumeToken,
         ILiveTransport transport,
         LiveSessionStore store,
         RaskServerLimits limits,
@@ -1345,10 +1672,7 @@ public static partial class RaskEndpointExtensions
         bool counted,
         CancellationToken ct)
     {
-        var sessionId = root.TryGetProperty("session", out var sid) && sid.ValueKind == JsonValueKind.String
-            ? sid.GetString()
-            : null;
-        if (sessionId is null)
+        if (string.IsNullOrEmpty(sessionId))
         {
             return new AttachOutcome(AttachStatus.Ignored, current, counted);
         }
@@ -1362,11 +1686,7 @@ public static partial class RaskEndpointExtensions
             // This host has never heard of the session. Before the resume protocol that was the end of it —
             // the client reloaded and the user lost their page. If the client carries a record we can open,
             // rebuild the page around it instead.
-            var resumeToken = root.TryGetProperty("resume", out var rt) && rt.ValueKind == JsonValueKind.String
-                ? rt.GetString()
-                : null;
-
-            session = resumeToken is null
+            session = string.IsNullOrEmpty(resumeToken)
                 ? null
                 : TryResumeSession(resumeToken, user, resume, store, metrics, selector);
 

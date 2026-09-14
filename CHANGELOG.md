@@ -1298,6 +1298,21 @@ them until tagged releases begin.
   removal underneath it. Detaching is now a compare-exchange against the connection that is actually
   attached, and only a detach that wins arms the grace period.
 
+- **A page still works where WebSockets do not.** Some networks — corporate proxies, captive portals, a
+  handful of mobile operators — block the WebSocket upgrade, and a Rask Server page that cannot open one had
+  nothing to fall back to: it rendered, then sat there inert. The live protocol now also travels over plain
+  HTTP, and the server maps it always, with nothing to configure: `GET /_rask/stream/{sessionId}` holds a
+  Server-Sent Events stream open and carries the frames a socket would, while the client's own frames come
+  back as `POST /_rask/send/{sessionId}` and a `pagehide` beacon to `POST /_rask/leave/{sessionId}` frees the
+  session at once rather than after its grace period. It is the same protocol, the same session and the same
+  render pipeline — one request per interaction is what it costs.
+
+  The guards are the socket's, applied per request because an HTTP request has no upgrade to have checked
+  earlier: the host-only `Origin` check, and `SameSessionUser` on every POST. A stream carries a generation,
+  and a POST names the one it believes it is talking to — so a tab resumed from the back/forward cache, or
+  one whose frames are still in flight after a reconnect, is answered `409` instead of driving the page its
+  successor now owns. An unknown session, and one that belongs to somebody else, get the same answer.
+
 - **The connected-session count is per connection, and a repeated `hello` releases what it replaced.** A
   resumed session attached without ever counting while every cleanup decremented, so the gauge — the one
   `AddRaskLiveSessions` reports Degraded and Unhealthy from — drifted below the truth across a restart. A
