@@ -85,11 +85,19 @@
     Guarded on !Exists so the second build — where the glob DOES match — does not declare it twice.
     Guarded on the input existing so projects with no stylesheet (a class library, a test project, the
     static-file half of a hosted WASM app) declare nothing, exactly as _RaskTailwindDoBuild decides.
+
+    Only for an output under wwwroot/, and never packed (#1090). This item exists so a SERVED sheet enters the
+    static-web-assets manifest; an output written anywhere else (Rask.Ui and Rask.Auth compile theirs into obj/
+    and embed it) is served by nothing, so it has no business being Content at all. And NuGet packs every Content
+    item it sees: on a clean clone, where the file does not exist yet, pack found this one and shipped
+    content/obj/…/ui.generated.css inside the package. A served sheet reaches a package through the static-web-
+    assets pack, not through contentFiles, so Pack="false" loses nothing.
   -->
   <ItemGroup Condition=" '$(RaskTailwindOutput)' != ''
+                         AND $([System.String]::Copy('$(RaskTailwindOutput)').Replace('\','/').StartsWith('wwwroot/'))
                          AND Exists('$(MSBuildProjectDirectory)/$(RaskTailwindInput)')
                          AND !Exists('$(MSBuildProjectDirectory)/$(RaskTailwindOutput)') ">
-    <Content Include="$(RaskTailwindOutput)"/>
+    <Content Include="$(RaskTailwindOutput)" Pack="false"/>
   </ItemGroup>
 
 </Project>

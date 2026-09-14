@@ -97,6 +97,7 @@ internal static class CliBuildE2E
         var version = Path.GetFileNameWithoutExtension(nupkg)["Rask.Server.".Length..];
 
         AssertEveryDotnetVersionShipsTheSamePayload(feed, nupkg);
+        AssertNoPackageShipsBuildIntermediates(feed);
 
         EvictFromGlobalCache(version);
         return (feed, version);
@@ -119,6 +120,33 @@ internal static class CliBuildE2E
     ///         take its frameworks from RaskNetTargets.
     ///     </para>
     /// </remarks>
+    /// <summary>No package carries a file out of a project's <c>obj/</c> as content.</summary>
+    /// <remarks>
+    ///     NuGet packs every <c>Content</c> item, and Rask.Tailwind declared its compiled sheet as one whenever the file
+    ///     did not exist yet — which is exactly a clean clone. A package packed there shipped
+    ///     <c>content/obj/…/ui.generated.css</c>, and a consumer's project picked a build intermediate up as its own
+    ///     content (#1090). This gate packs from a fresh feed, so it is the place that sees the clean-clone shape.
+    /// </remarks>
+    private static void AssertNoPackageShipsBuildIntermediates(string feed)
+    {
+        var offenders = new List<string>();
+        foreach (var package in Directory.GetFiles(feed, "*.nupkg"))
+        {
+            using var zip = System.IO.Compression.ZipFile.OpenRead(package);
+            offenders.AddRange(zip.Entries
+                .Select(e => e.FullName)
+                .Where(name => name.StartsWith("content/obj/", StringComparison.OrdinalIgnoreCase)
+                               || (name.StartsWith("contentFiles/", StringComparison.OrdinalIgnoreCase)
+                                   && name.Contains("/obj/", StringComparison.OrdinalIgnoreCase)))
+                .Select(name => $"{Path.GetFileName(package)}: {name}"));
+        }
+
+        Assert.True(
+            offenders.Count == 0,
+            "These packages ship build intermediates from obj/ as content, which every consumer then treats as its own "
+            + "content:\n  " + string.Join("\n  ", offenders));
+    }
+
     private static void AssertEveryDotnetVersionShipsTheSamePayload(string feed, string serverPackage)
     {
         foreach (var package in Directory.GetFiles(feed, "*.nupkg"))

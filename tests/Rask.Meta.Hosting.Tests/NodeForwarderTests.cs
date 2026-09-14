@@ -194,19 +194,11 @@ public class NodeForwarderTests
         var (rask, raskPort) = await StartRaskAsync(nodePort);
         await using var __ = rask;
 
-        // Wait for the supervisor to have marked ready BEFORE clearing it. With SuperviseNode off it
-        // sets readiness from ExecuteAsync, which .NET's BackgroundService starts from the post-start
-        // lifecycle rather than from StartAsync — so clearing the flag immediately races it, and on a
-        // loaded machine the supervisor wins and this test sees a 200. It passed four times before it
-        // did not.
+        // Clearing readiness only means something once the supervisor has set it. With SuperviseNode off that
+        // happens inside StartAsync (#1092), so it is already set here. It used to come from ExecuteAsync,
+        // which the host starts after StartAsync returns, and this test raced the flag it was about to clear.
         var readiness = rask.Services.GetRequiredService<NodeReadiness>();
-        var deadline = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(10);
-        while (!readiness.IsReady && DateTimeOffset.UtcNow < deadline)
-        {
-            await Task.Delay(10, Timeout());
-        }
-
-        Assert.True(readiness.IsReady, "the supervisor never marked readiness; the race is not settled");
+        Assert.True(readiness.IsReady, "a started host with no Node process to supervise is not marked ready");
         readiness.MarkNotReady();
 
         using var client = ClientFor(raskPort);

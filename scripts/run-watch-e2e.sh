@@ -33,7 +33,7 @@ export RASK_CLI_BUILD_E2E=1
 export RASK_WATCH_E2E=1
 
 echo "==> Build the test project (MinVer must stamp a real version — the feed is read off the nupkg name)"
-dotnet build tests/Rask.Cli.Tests/Rask.Cli.Tests.csproj -c Release -m:1
+dotnet build tests/Rask.Cli.E2E.Tests/Rask.Cli.E2E.Tests.csproj -c Release -m:1
 
 # A package cache of the gate's OWN, for the reason run-cli-build-e2e.sh:50-63 spells out: turning on
 # RASK_CLI_BUILD_E2E above also turns on CliBuildE2E.EvictFromGlobalCache, which DELETES
@@ -49,7 +49,7 @@ mkdir -p "$gate_packages"
 
 echo "==> Watch hot-reload gate (real dotnet watch + a real live session)"
 NUGET_PACKAGES="$gate_packages" \
-dotnet test tests/Rask.Cli.Tests/Rask.Cli.Tests.csproj -c Release --no-build \
+dotnet test tests/Rask.Cli.E2E.Tests/Rask.Cli.E2E.Tests.csproj -c Release --no-build \
   --filter "FullyQualifiedName~WatchHotReloadE2ETests" \
   --logger "console;verbosity=normal"
 
