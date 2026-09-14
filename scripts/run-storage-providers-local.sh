@@ -10,12 +10,17 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-MINIO=rask-storage-minio
-AZURITE=rask-storage-azurite
-# Off the defaults (9000, 10000) on purpose: a developer machine often already runs MinIO or Azurite for
-# something else, and this must neither collide with it nor silently test against it.
-S3_PORT=19000
-AZURE_PORT=20000
+# Per run, names and ports both (#1098). Fixed ones meant a second worktree running this gate `docker rm -f`'d the
+# first one's MinIO mid-test and bound its port. The suffix is this shell's pid; the ports are whatever the kernel
+# hands out free right now, which also keeps clear of a MinIO or Azurite a developer already runs on the defaults.
+run_id="$$"
+MINIO="rask-storage-minio-$run_id"
+AZURITE="rask-storage-azurite-$run_id"
+free_port() {
+  python3 -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()'
+}
+S3_PORT="$(free_port)"
+AZURE_PORT="$(free_port)"
 AZURITE_KEY="Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=="
 
 cleanup() {
@@ -34,10 +39,13 @@ docker run -d --name "$AZURITE" -p "127.0.0.1:${AZURE_PORT}:10000" \
   mcr.microsoft.com/azure-storage/azurite:latest \
   azurite-blob --blobHost 0.0.0.0 --skipApiVersionCheck >/dev/null
 
+# wait_for <name> <url> <container> [curl flag]. With no flag any HTTP answer counts, which is right for Azurite: its
+# root answers an error status to an unsigned request once it is up. MinIO passes -f, because its readiness probe
+# answers 503 until it is ready and plain `curl -s` exits 0 on a 503.
 wait_for() {
-  local name=$1 url=$2
+  local name=$1 url=$2 strict=${4:-}
   for _ in $(seq 1 90); do
-    if curl -s -o /dev/null "$url"; then
+    if curl -s $strict -o /dev/null "$url"; then
       return 0
     fi
     sleep 1
@@ -47,7 +55,9 @@ wait_for() {
   exit 1
 }
 
-wait_for MinIO "http://127.0.0.1:${S3_PORT}/minio/health/live" "$MINIO"
+# /ready, not /live: live answers as soon as the process is up, before IAM accepts the root credentials, and the
+# first signed request then fails 403. ProviderSmokeTests still retries that first request briefly on 403.
+wait_for MinIO "http://127.0.0.1:${S3_PORT}/minio/health/ready" "$MINIO" -f
 wait_for Azurite "http://127.0.0.1:${AZURE_PORT}/" "$AZURITE"
 
 RASK_STORAGE_PROVIDERS=1 \

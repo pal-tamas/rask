@@ -21,38 +21,37 @@ root="$(git rev-parse --show-toplevel)"
 cd "$root"
 
 project="src/Rask.Cache/Rask.Cache.csproj"
-api_file="src/Rask.Cache/PublicAPI/net10.0/PublicAPI.Unshipped.txt"
-probe="src/Rask.Cache/__PublicApiGateProbe.cs"
 
 tmp="$(mktemp -d -t rask-public-api-gate.XXXXXX)"
+trap 'rm -rf "$tmp"' EXIT
 
-# Restore by copy rather than `git checkout`: the baseline is a normal file, and a test that repairs
-# the tree only when its subject happens to be committed leaves a modified baseline behind on the one
-# run where that is not true -- the first.
-cp "$root/$api_file" "$tmp/api-file.orig"
-
-cleanup() {
-  rm -f "$root/$probe"
-  if [ -d "$tmp/PublicAPI" ]; then mv "$tmp/PublicAPI" "$root/src/Rask.Cache/PublicAPI"; fi
-  cp "$tmp/api-file.orig" "$root/$api_file"
-  rm -rf "$tmp"
-}
-trap cleanup EXIT
+# Nothing under src/ is written, moved or deleted (#1084). This test used to add a probe file to
+# src/Rask.Cache, append to its real baseline, and move its PublicAPI folder out of the tree — while
+# run-unit-local.sh ran the other self-tests concurrently, one of which walks src/ and met the folder
+# vanishing mid-walk. Every case below instead hands the build its inputs by property: a probe file
+# from $tmp (RaskPublicApiGateProbe), and a baseline directory that is a copy in $tmp or an empty one
+# (RaskPublicApiDir). The real tree is only ever read.
+baseline_copy="$tmp/baseline"
+cp -R "$root/src/Rask.Cache/PublicAPI" "$baseline_copy"
+empty_baseline="$tmp/no-baseline"
+mkdir -p "$empty_baseline"
 
 failures=0
 checked=0
 
-# build_log <name> -> writes the build output to $tmp/<name>.log, echoes the exit code
+# build_log <name> [msbuild-property ...] -> writes the build output to $tmp/<name>.log, echoes the exit code
 build_log() {
   local name="$1" log="$tmp/$1.log" rc=0
-  CI=true dotnet build "$project" -m:1 --nologo > "$log" 2>&1 || rc=$?
+  shift
+  CI=true dotnet build "$project" -m:1 --nologo "$@" > "$log" 2>&1 || rc=$?
   echo "$rc"
 }
 
-# assert_green <name>
+# assert_green <name> [msbuild-property ...]
 assert_green() {
   local name="$1" rc
-  rc="$(build_log "$name")"
+  shift
+  rc="$(build_log "$name" "$@")"
   checked=$((checked + 1))
   if [ "$rc" -eq 0 ]; then
     printf '  ok   %-52s -> build succeeded\n' "$name"
@@ -63,10 +62,11 @@ assert_green() {
   fi
 }
 
-# assert_red <name> <expected-diagnostic-id>
+# assert_red <name> <expected-diagnostic-id> [msbuild-property ...]
 assert_red() {
   local name="$1" want="$2" rc
-  rc="$(build_log "$name")"
+  shift 2
+  rc="$(build_log "$name" "$@")"
   checked=$((checked + 1))
   if [ "$rc" -eq 0 ]; then
     printf '  FAIL %-52s -> build SUCCEEDED; the gate did not run\n' "$name" >&2
@@ -82,35 +82,36 @@ assert_red() {
 
 echo "==> public-API gate"
 
-# The control. Everything below is only evidence if the clean tree is green.
-assert_green "clean tree builds"
+# The control. Everything below is only evidence if the clean tree is green -- built against the COPY, so
+# the property the other cases rely on is proved to be read at all.
+assert_green "clean tree builds" "-p:RaskPublicApiDir=$baseline_copy/"
 
 # A public member nobody recorded. This is the case the gate exists for.
-cat > "$root/$probe" <<'CS'
+cat > "$tmp/PublicApiGateProbe.cs" <<'CS'
 namespace Rask.Cache;
 
-/// <summary>Deleted by the test that wrote it. If you are reading this in a diff, something leaked.</summary>
+/// <summary>Compiled in from a temp directory by the test that wrote it; never part of the tree.</summary>
 public sealed class PublicApiGateProbe
 {
     /// <summary>Unrecorded on purpose.</summary>
     public int Value { get; set; }
 }
 CS
-assert_red "unrecorded public member" "RS0016"
-rm -f "$root/$probe"
+assert_red "unrecorded public member" "RS0016" \
+  "-p:RaskPublicApiDir=$baseline_copy/" "-p:RaskPublicApiGateProbe=$tmp/PublicApiGateProbe.cs"
 
 # The other direction: a baseline entry with nothing behind it. Catches a rename that edited the
 # source and left the file, which is exactly the shape of a half-finished API change.
-printf 'Rask.Cache.ThisTypeDoesNotExist\n' >> "$root/$api_file"
-assert_red "baseline entry with no member" "RS0017"
-cp "$tmp/api-file.orig" "$root/$api_file"
+stale_baseline="$tmp/stale-baseline"
+cp -R "$baseline_copy" "$stale_baseline"
+printf 'Rask.Cache.ThisTypeDoesNotExist\n' >> "$stale_baseline/net10.0/PublicAPI.Unshipped.txt"
+assert_red "baseline entry with no member" "RS0017" "-p:RaskPublicApiDir=$stale_baseline/"
 
 # And the way this gate would come to pass by not running: no baseline at all, so the analyzer has
 # nothing to compare against and reports nothing. Without the RaskVerifyPublicApiBaseline target that
 # is a GREEN build on an untracked surface.
-mv "$root/src/Rask.Cache/PublicAPI" "$tmp/PublicAPI"
-assert_red "no baseline means no silent pass" "Rask.Cache is covered by the public-API gate"
-mv "$tmp/PublicAPI" "$root/src/Rask.Cache/PublicAPI"
+assert_red "no baseline means no silent pass" "Rask.Cache is covered by the public-API gate" \
+  "-p:RaskPublicApiDir=$empty_baseline/"
 
 echo
 if [ "$failures" -ne 0 ]; then

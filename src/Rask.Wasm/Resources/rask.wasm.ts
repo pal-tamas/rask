@@ -106,7 +106,7 @@ function isAssetAlreadyLoaded(url: string): boolean {
     return false;
 }
 
-function trackHeadAsset(el: Element): void {
+function trackHeadAsset(el: Element, parserInserted = false): void {
     if (!el || el.nodeType !== 1 || trackedHeadAssets.has(el)) return;
     // Per-component scoped tags carry data-rask-key with the framework-reserved
     // "rsk-" prefix, served from /_rask/a/{hash}.{ext}. Scoped CSS (<link rsk-css->)
@@ -133,6 +133,14 @@ function trackHeadAsset(el: Element): void {
     const sameOrigin = typeof url === "string" && url.indexOf(location.origin) === 0;
     const useLongBackstop = isScoped || sameOrigin;
     trackedHeadAssets.add(el);
+    // A scoped script the HTML PARSER put in <head> has already run. A prerendered page ships its rsk-js
+    // <script defer> in the document, and deferred and module scripts execute in document order once
+    // parsing ends — so it executed (or errored) before main.js, the module that imports this runtime.
+    // Its load event fired long before the listener below could be attached, so waiting for one parked
+    // every Rask.* invoke until the 30s backstop: a CodeSample that would not highlight or copy, an
+    // ElementRef measure that did nothing, for half a minute after every refresh. The namespace poll
+    // still covers a namespace that genuinely is not there.
+    if (isScoped && parserInserted) return;
     // A scoped (rsk-) script must wait for its real load event before draining Rask.*
     // invokes: the eager <link rel="prefetch" as="script"> warms the HTTP cache and creates
     // a Resource Timing entry, but downloaded != executed — window.Rask.{Type} is only
@@ -169,9 +177,11 @@ function trackHeadAsset(el: Element): void {
     setTimeout(() => finish("timeout"), useLongBackstop ? SCOPED_ASSET_LOAD_TIMEOUT_MS : HEAD_ASSET_LOAD_TIMEOUT_MS);
 }
 
-function scanHeadAssets() {
+// `parserInserted` is true only for the sweep at boot, before this runtime has rendered anything: every
+// head element present then came from the served document, not from a morph (see trackHeadAsset).
+function scanHeadAssets(parserInserted = false) {
     const els = document.head.querySelectorAll("script[src], link[rel=stylesheet]");
-    for (let i = 0; i < els.length; i++) trackHeadAsset(els[i]);
+    for (let i = 0; i < els.length; i++) trackHeadAsset(els[i], parserInserted);
 }
 
 function headAssetsReady() {
@@ -315,7 +325,7 @@ export function setExports(exports: RaskWasmExports): void {
     // Initial sweep for Head-declared external assets emitted by the browser's
     // index.html (and any subsequent applyRender will re-sweep so morph-added
     // assets get picked up too — see applyDom in handle()).
-    scanHeadAssets();
+    scanHeadAssets(true);
 
     // Let registered IHostedServices drain when the page really goes away — the browser's nearest
     // thing to SIGTERM. `pagehide` rather than `beforeunload` because it also fires on mobile, where
