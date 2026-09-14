@@ -1097,6 +1097,14 @@ them until tagged releases begin.
   of the path below the pattern's node. Its guard against climbing out of a content root compared paths by
   bare prefix, so a root of `/app/wwwroot` also admitted `/app/wwwroot-private/…`; it now requires the
   separator.
+- **The landing page's Counter.cs sample no longer flickers or shows a late scrollbar in Safari.** Hydration
+  never touched it. The code was simply wider than its window at every desktop width: 510px of code in a
+  496px box, or 525px in the fallback font a cold load paints first. So the `<pre>` was a horizontal
+  scroller hiding the line's closing `];`, and Safari reveals an overlay scrollbar when a scroller's content
+  size changes, which is exactly what the web font swapping in does. The hero now gives the code a 34rem
+  track beside a flexible text column, so the sample fits in either font from 768px up and there is
+  nothing left to scroll. The headline eases to 2.75rem beside it, which keeps its two lines. A site E2E
+  test measures the overflow at 1024, 1280 and 1920px with the font loaded and with it blocked.
 - **A live page stays inside its own application.** On a host that mounts another application under its
   own prefix, such as the operator console at `/_rask`, the first request resolved against the right route
   table, but a live navigation resolved against every assembly's. So a page of your app could render
