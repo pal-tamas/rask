@@ -1079,6 +1079,24 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A soft delete no longer overwrites a change someone else made.** `SoftDeleteInterceptor` turned a
+  `Remove` into a full update, which marked every property modified. The `UPDATE` that stamps `DeletedAt`
+  therefore wrote back every column the deleting context had loaded, and deleting a row another writer had
+  renamed since reverted the rename (#1055). The only defence was a version check, which a model without
+  `IVersioned` (or a `DeleteAsync(id, version: null)`) never had. The statement now sets `DeletedAt` and
+  the audit columns `UpdatedAt` and `Version`, and nothing else.
+- **Kit cards, stats, tabs and brands link to a plain URL as a plain link.** `UiStat`, `UiCard`, `UiNavTab`
+  and `UiBrand` took a `RouteUrl` but always rendered a `NavLink`. So a string such as
+  `https://status.example.test` was written as `/shophttps://status.example.test` on a sub-path deploy and
+  marked for in-app navigation (#1070). They now follow the rule `UiButton` and `UiLink` already did: a
+  generated route navigates in place with the path base, and a string is an ordinary link written as given.
+  The devtools panel's `UiBrand.Href("#")` was broken the same way under a path base.
+- **A referenced package's static web assets are found in Development.** The dev-manifest file provider
+  behind `UseRaskSpa()` joined the whole request path onto a `_content/{Package}` pattern's content root,
+  looking for `{root}/_content/{Package}/x.css` instead of `{root}/x.css` (#1091). It now maps only the part
+  of the path below the pattern's node. Its guard against climbing out of a content root compared paths by
+  bare prefix, so a root of `/app/wwwroot` also admitted `/app/wwwroot-private/…`; it now requires the
+  separator.
 - **A live page stays inside its own application.** On a host that mounts another application under its
   own prefix, such as the operator console at `/_rask`, the first request resolved against the right route
   table, but a live navigation resolved against every assembly's. So a page of your app could render

@@ -5,9 +5,9 @@ namespace Rask.Data;
 
 /// <summary>
 /// Makes deletion of an <see cref="ISoftDeletable"/> transparent: before each save, any entry marked
-/// <see cref="EntityState.Deleted"/> is rewritten to <see cref="EntityState.Modified"/> with
-/// <c>DeletedAt</c> set to now, so <c>db.Remove(entity)</c> updates the row instead of
-/// removing it. The global query filter added by <see cref="ModelBuilderExtensions.ApplyRaskConventions"/>
+/// <see cref="EntityState.Deleted"/> is rewritten to an update of <c>DeletedAt</c> alone, set to now, so
+/// <c>db.Remove(entity)</c> updates the row instead of removing it — and writes no other column back, so a
+/// delete never reverts a change another writer made since the entity was loaded. The global query filter added by <see cref="ModelBuilderExtensions.ApplyRaskConventions"/>
 /// then hides it. Runs before the <see cref="AuditingInterceptor"/> so the soft delete is also timestamped
 /// and versioned.
 /// </summary>
@@ -43,8 +43,14 @@ public sealed class SoftDeleteInterceptor(TimeProvider timeProvider) : SaveChang
         {
             if (entry.State == EntityState.Deleted)
             {
-                entry.State = EntityState.Modified;
-                entry.Property(Columns.DeletedAt).CurrentValue = now;
+                // Unchanged first, then the one column. Setting Modified marks EVERY property modified, so the UPDATE
+                // wrote back every column the deleting context had loaded — and a delete of a row someone else had
+                // changed since silently reverted their change (#1055). The entry still ends up Modified, which is
+                // what AuditingInterceptor reacts to when it adds UpdatedAt and Version.
+                entry.State = EntityState.Unchanged;
+                var deletedAt = entry.Property(Columns.DeletedAt);
+                deletedAt.CurrentValue = now;
+                deletedAt.IsModified = true;
             }
         }
     }
