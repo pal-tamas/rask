@@ -1067,6 +1067,12 @@ them until tagged releases begin.
   re-point it at another session without releasing the first, or, with a resume record, build and
   register one more session per frame. The browser runtime sends one per connection, so the server now
   closes the socket with `PolicyViolation` and counts it as `rask.ws.frames.rejected{reason=hello}`.
+- **The data guides describe the data layer Rask actually ships.** The optimistic-concurrency test in
+  [Rask.Data](docs/data.md#testing-a-model) called `Product.UpdateAsync(model)`, an overload that is never
+  generated, so the snippet did not compile; it now passes the id, as `UpdateAsync(id, model)` requires.
+  [Data access](docs/data-access.md) and [CQRS](docs/cqrs.md) still said "Rask has no data layer of its
+  own". They now point to `Rask.Data` first, and `data-access.md` is presented as the plain EF Core route
+  with a `DbContext` of your own. Getting started and the docs index point to both.
 - **A WebAssembly page served with a newline between `</head>` and `<body>` updates in place again.** Every
   click reached .NET, the handler ran and its diff frame arrived, but the page never changed and nothing
   was logged (#1097). The HTML parser puts that newline inside `<html>`, so the live element holds
