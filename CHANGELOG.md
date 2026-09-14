@@ -1076,6 +1076,27 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A prerendered WASM page no longer changes when the runtime takes it over.** rask.sh still flickered
+  slightly on load after #1049. Recording every painted frame and every DOM mutation through the handover
+  found three differences between the prerendered document and the runtime's first frame:
+  - **The browser's toolbar tint blinked.** `UsePwa`'s manifest injector, which runs after the first render,
+    overwrote the page's own `<meta name="theme-color">` with the manifest's `ThemeColor`. The next head
+    morph restored it about 25ms later. Safari's tab bar and Chrome on Android's address bar are painted
+    from that tag, so they flashed between the two colours on every boot, a change no page screenshot
+    shows. The manifest's colour is now only a fallback, added when the page declares none. It no longer
+    rewrites the first tag of a light/dark `media` pair either. The site's manifest now names the same
+    `#7c3aed` its head does.
+  - **Anything that prints the path jumped.** The prerender seeded `RouteState.Path` with the route's own
+    spelling (`/docs`), but the page is written to `docs/index.html`, which the host serves at `/docs/`,
+    and that is what the runtime reads. The site's `path:` badge visibly went from `/docs` to `/docs/`. The
+    pass now seeds the path the browser will report, following `<RaskSiteTrailingSlash>` like the sitemap
+    does. **Behaviour change:** a component that compares `route.Path == "/x"` exactly now sees `/x/` while
+    prerendering, which it was already seeing at runtime on a trailing-slash host. Compare with the slash
+    trimmed, or match through the router or `NavLink`, which already ignore it.
+  - **`<body>`'s attributes were dropped.** The published page kept the boot shell's `<body>` tag, so a
+    `BodyClass` (an app's page ground, its text colour) was missing until the runtime added it. On a slow
+    device the page restyled seconds after first paint. The document's `<body>` attributes are now merged
+    onto the shell's the same way `<html>`'s already were, with the shell winning a conflict.
 - **The data guides describe the data layer Rask actually ships.** The optimistic-concurrency test in
   [Rask.Data](docs/data.md#testing-a-model) called `Product.UpdateAsync(model)`, an overload that is never
   generated, so the snippet did not compile; it now passes the id, as `UpdateAsync(id, model)` requires.
