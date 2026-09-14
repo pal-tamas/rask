@@ -608,6 +608,25 @@ them until tagged releases begin.
   where it lives under `src/Rask.Site/wwwroot` renders on GitHub, and the site and the guide's Markdown twin serve the
   same file.
 
+- **The devtools panel counts what rendered, and why.** A Renders tab lists only the components whose `Render()`
+  actually ran — the ones served from their render cache did no work and are left out — either totalled per
+  component instance (renders, the reasons as badges, its own render time, the last commit it rendered in, most
+  renders first) or commit by commit (how many of the page's components rendered, which ones, folded by type and
+  reason). A reason is the runtime's own: new props, state, `BypassRenderCache`, context, children, nothing cached —
+  or a mount, the first render the devtools saw of that component. The feed keeps the last 200 commits or 5,000
+  renders, whichever comes first, and **Clear** starts the count again. The guide has a Renders section and a
+  screenshot.
+
+- **The devtools can flash renders on the page.** "Flash on the page" in the Renders tab boxes each component that
+  rendered in amber, labelled `TaskRow · props`, and each node the patch changed in teal — so a component that
+  rendered and changed nothing stands out as amber with no teal inside. The amber boxes are the render log's own:
+  while flashing is on, each render is recorded with its place on the page (the diff's own coordinates, the same the
+  Tree tab's hover uses), and the panel's script posts each new commit's places to the page. The teal ones the page
+  sees for itself, with a `MutationObserver` that ignores the devtools' own element, `<head>`, and the document or body
+  toggling an attribute. Both are drawn in the devtools' shadow root from a pool of 64 boxes that fade in under a
+  second. The switch is off by default and remembered in the page's `localStorage`; flashing continues with the drawer
+  closed, and a page reloaded with it on loads the panel behind the closed drawer so renders flash straight away.
+
 ### Changed
 
 - **File storage reads `Rask:Storage`, like every other Rask area.** It was the one package still on a top-level
@@ -1089,6 +1108,22 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **Gates that failed for reasons outside the change they were gating.**
+  - **Public-API self-test.** It moved the real `src/Rask.Cache/PublicAPI` folder out of the tree, and wrote
+    into its baseline and source, while other self-tests walked `src/` concurrently. It now points its builds
+    at copies through the new `$(RaskPublicApiDir)` and a probe property, and only reads the tree (#1084).
+  - **Storage providers gate.** Fixed MinIO and Azurite container names and ports let two worktrees' runs
+    replace each other. MinIO was also polled on a liveness probe that answers before it accepts credentials.
+    Names and ports are now per run, readiness is checked on `/minio/health/ready`, and the first signed
+    request retries a 403 briefly (#1098).
+  - **Browser suite.** It waited only on its own slot bookkeeping, so it started on machines loaded far past
+    their CPUs and reported starved WebAssembly boots as test failures. It now also waits while the 1-minute
+    load average is above `RASK_E2E_MAX_LOAD_PER_CPU` per CPU (default 8, `0` turns it off). A refusal still
+    uses the anchored lines the failure classifier reads as "busy", not "broken" (#1099).
+  - **Coverage.** A new test holds the wave loop open at the exact moment #1067's lost update used to strike,
+    so a nested `ConfigureAwait(false)` child served as its placeholder (#1074) cannot come back unnoticed.
+    `HandlerDispatchBenchmarks` measures handler invocation, which the dispatch benchmarks never did, and the
+    benchmark skill points at what really exercises each path (#1062).
 - **A package built with Rask.Tailwind no longer ships its compiled sheet out of `obj/`.** The Tailwind props
   declared the output stylesheet as `Content` whenever the file did not exist yet, so a project packed on a
   clean clone, with the sheet compiled somewhere other than `wwwroot/`, shipped `content/obj/…css`, and every
@@ -1133,6 +1168,25 @@ them until tagged releases begin.
   of the path below the pattern's node. Its guard against climbing out of a content root compared paths by
   bare prefix, so a root of `/app/wwwroot` also admitted `/app/wwwroot-private/…`; it now requires the
   separator.
+- **A prerendered WASM page arrives with its scoped CSS applied, so it no longer reflows when the runtime
+  takes it over.** The prerender pass renders in a companion project compiled from the app's sources. That
+  companion was never handed the app's scoped `.css` and `.ts` files, so the generators registered no scoped
+  assets there. Every published page therefore shipped with no `data-r-*` scope attributes and no bundle
+  `<link>`/`<script>`, and any component with scoped CSS painted unstyled until WASM booted and put both on.
+  On rask.sh that was 163 of 167 pages. On a guide, the "On this page" rail sat under the article and
+  every paragraph ran a line shorter, so the page grew from 4423px to 4711px at takeover. Refreshing
+  part-way down showed that as a flicker, with the text moving under the restored scroll position. The
+  companion now carries the app's scoped stylesheets as the app resolved them, and globs its scoped
+  TypeScript rooted at the app with its own obj-relative globs switched off, as Rask.Server's client
+  companion already does. A guide's height is now identical before and after hydration, and a refresh
+  lands exactly where it was.
+  - **A scoped script already in the served page no longer holds `Rask.*` calls for 30 seconds.** Once the
+    prerender carried the scoped-JS `<script defer>`, the WASM runtime's invoke gate waited for its `load`
+    event. The parser had run that script before the runtime was even imported, so the event never came,
+    and every scoped call waited for the 30s backstop. On the site that meant an ElementRef measure that did
+    nothing and CodeSample highlight and copy that did not work. Scripts present at boot are now treated as
+    already run. Scripts a morph inserts later still wait for their `load` event, and the namespace poll
+    remains the backstop.
 - **The landing page's Counter.cs sample no longer flickers or shows a late scrollbar in Safari.** Hydration
   never touched it. The code was simply wider than its window at every desktop width: 510px of code in a
   496px box, or 525px in the fallback font a cold load paints first. So the `<pre>` was a horizontal

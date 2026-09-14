@@ -64,6 +64,31 @@ try {
         return !!label && !label.hidden && label.textContent.startsWith("TaskRow");
     }, null, {timeout: 10000});
     await shot("highlight");
+
+    // The Renders tab, counting what the two clicks above rendered.
+    await page.mouse.move(0, 0);
+    const rendersTab = panel.getByRole("tab", {name: "Renders"});
+    await rendersTab.click();
+    // Waited on what only this tab shows: the Tree tab names TaskBoard too, and a shot taken then catches the switch.
+    await panel.locator('[role=tab][aria-selected="true"]', {hasText: "Renders"}).waitFor({timeout: 10000});
+    await panel.getByRole("cell", {name: "TaskBoard"}).first().waitFor({timeout: 10000});
+    await panel.locator("body").hover({position: {x: 5, y: 5}});
+    await panel.locator("[role=tablist]").evaluate(el => el.scrollIntoView({block: "start"}));
+    await shot("renders");
+
+    // Flashing: switched on in the Renders tab, then one more task added. Shot while both colours are on the page — they
+    // fade within a second — with the pointer off the page so no hover box joins them.
+    await panel.getByRole("checkbox", {name: "Flash on the page"}).check();
+    await page.waitForFunction(() => localStorage.getItem("rask.devtools.flash") === "on", null, {timeout: 10000});
+    await page.waitForTimeout(500);
+    await addTask.click();
+    await page.mouse.move(0, 0);
+    await page.waitForFunction(() => {
+        const root = document.querySelector("rask-devtools")?.shadowRoot;
+        const shown = selector => [...(root?.querySelectorAll(selector) ?? [])].filter(b => !b.hidden).length;
+        return shown(".fl-render") >= 3 && shown(".fl-dom") >= 1;
+    }, null, {timeout: 10000, polling: "raf"});
+    await shot("flash");
 } catch (e) {
     await shot("failure").catch(() => {});
     throw e;

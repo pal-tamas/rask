@@ -76,17 +76,21 @@ rask_e2e_await_slots() {
   slots_needed="$(rask_lane_budget)"
   rask_lane_claim "$slots_needed" test
 
-  rask_lane_fits "$slots_needed" && return 0
+  rask_e2e_machine_admits "$slots_needed" && return 0
 
-  echo "run-e2e-local: this machine's slots are taken, and the browser suite needs all $slots_needed."
-  rask_e2e_name_seniors
-  echo
-  echo "            Two suites on one machine contend for resources. The port collision was fixed in"
-  echo "            #626, but contention still surfaces as a plausible-looking red in one or both runs,"
-  echo "            minutes later, with nothing in the log pointing back at it. It has already cost one"
-  echo "            unexplained timeout between two worktrees that were coordinating and still both"
-  echo "            believed the machine was idle."
-  echo
+  if ! rask_lane_fits "$slots_needed"; then
+    echo "run-e2e-local: this machine's slots are taken, and the browser suite needs all $slots_needed."
+    rask_e2e_name_seniors
+    echo
+    echo "            Two suites on one machine contend for resources. The port collision was fixed in"
+    echo "            #626, but contention still surfaces as a plausible-looking red in one or both runs,"
+    echo "            minutes later, with nothing in the log pointing back at it. It has already cost one"
+    echo "            unexplained timeout between two worktrees that were coordinating and still both"
+    echo "            believed the machine was idle."
+    echo
+  else
+    rask_e2e_describe_load
+  fi
 
   if [ "${RASK_E2E_ALLOW_CONCURRENT:-}" = "1" ]; then
     # Now strictly better than it used to be: the claim above stays published, so this run is at least
@@ -120,10 +124,11 @@ rask_e2e_await_slots() {
   # Recomputed FRESH each poll rather than cached. A waiter holding a stale list would keep waiting
   # for a pid that had already exited and — worse — would miss a gate that started later but outranks
   # it after a tie-break.
-  while ! rask_lane_fits "$slots_needed"; do
+  while ! rask_e2e_machine_admits "$slots_needed"; do
     if [ "$queue_waited_s" -ge "$queue_deadline_s" ]; then
       echo
       echo "run-e2e-local: still queued after $((queue_waited_s / 60))m — giving up rather than waiting silently."
+      echo "            Load average $(rask_lane_load_average) on $(rask_lane_cpu_count) CPUs (ceiling ${RASK_E2E_MAX_LOAD_PER_CPU:-8} per CPU)."
       echo "            The slots are held by:"
       rask_e2e_name_seniors
       echo "            A gate that has outlived the ~40m norm is usually a wedged run, not a busy"
@@ -140,6 +145,23 @@ rask_e2e_await_slots() {
   done
 
   echo "run-e2e-local: slots free after $((queue_waited_s / 60))m $((queue_waited_s % 60))s — starting the suite."
+}
+
+# Whether the browser suite may start now: its slots are free AND the machine is calm enough (#1099). The slots are
+# this repo's own bookkeeping; the load average is everything else the machine is doing, which the slots cannot see.
+rask_e2e_machine_admits() {
+  rask_lane_fits "$1" && rask_lane_load_ok
+}
+
+# Said when the slots are free and the load is what holds the suite back, so a wait never goes unexplained.
+rask_e2e_describe_load() {
+  echo "run-e2e-local: the slots are free, but this machine's load average is $(rask_lane_load_average) on $(rask_lane_cpu_count) CPUs."
+  echo
+  echo "            A browser suite started on a machine this busy boots its WebAssembly pages past their"
+  echo "            budget and reports the timeouts as failures, in whichever tests happen to be running"
+  echo "            (#1099). RASK_E2E_MAX_LOAD_PER_CPU (default 8) sets the ceiling; 0 turns the check off."
+  echo
+  return 0
 }
 
 # Printing WHICH run and HOW LONG is the useful half — "there is a conflict" tells you there is a
@@ -171,8 +193,12 @@ rask_e2e_name_seniors() {
 # Same anchored line both times — scripts/lib/build-failure.sh greps for it to tell a busy machine from
 # a broken branch.
 if [ -z "${CI:-}" ] && [ "${RASK_E2E_QUEUE:-1}" = "0" ] && [ "${RASK_E2E_ALLOW_CONCURRENT:-}" != "1" ]; then
-  if ! rask_lane_fits "$(rask_lane_budget)"; then
-    echo "run-e2e-local: this machine's slots are taken, and the browser suite needs all $(rask_lane_budget)."
+  if ! rask_e2e_machine_admits "$(rask_lane_budget)"; then
+    if rask_lane_fits "$(rask_lane_budget)"; then
+      rask_e2e_describe_load
+    else
+      echo "run-e2e-local: this machine's slots are taken, and the browser suite needs all $(rask_lane_budget)."
+    fi
     rask_e2e_name_seniors
     echo "            Wait for the run above to finish, then push again. To run anyway:"
     echo "                RASK_E2E_ALLOW_CONCURRENT=1 git push        (or set it for this script)"

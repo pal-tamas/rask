@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Rask.Core;
 using Rask.Core.Live;
 
@@ -64,6 +65,22 @@ internal sealed class DevToolsFeed
     private volatile SemaphoreSlim? _captureGate;
     private volatile DevToolsTreeSnapshotter? _snapshots;
 
+    // The render log: whole commits, bounded both by how many and by how many renders they hold, since one first render of
+    // a big page can carry thousands.
+    private readonly Queue<DevToolsCommit> _commits = new();
+    private int _heldRenders;
+    private int _placeWatchers;
+
+    // Every component this feed has seen render, weakly: the first render of one is its mount.
+    private static readonly object Seen = new();
+    private readonly ConditionalWeakTable<Component, object> _rendered = new();
+
+    /// <summary>How many commits a feed keeps; the oldest go first.</summary>
+    internal const int CommitCapacity = 200;
+
+    /// <summary>How many renders, across the commits held, a feed keeps before it drops the oldest commits.</summary>
+    internal const int RenderCapacity = 5000;
+
     /// <summary>Raised after every recorded event, outside the lock. Subscribers must not block.</summary>
     internal event Action? Changed;
 
@@ -122,7 +139,7 @@ internal sealed class DevToolsFeed
             _ = BuildFromCaptureAsync();
         }
 
-        return new TreeWatch(this);
+        return new Watch(() => Interlocked.Decrement(ref _treeWatchers));
     }
 
     /// <summary>
@@ -205,8 +222,8 @@ internal sealed class DevToolsFeed
         }
     }
 
-    /// <summary>One tab's interest in the tree, given up exactly once however often it is disposed.</summary>
-    private sealed class TreeWatch(DevToolsFeed feed) : IDisposable
+    /// <summary>One panel's interest in something the feed builds, given up exactly once however often it is disposed.</summary>
+    private sealed class Watch(Action release) : IDisposable
     {
         private int _released;
 
@@ -214,9 +231,90 @@ internal sealed class DevToolsFeed
         {
             if (Interlocked.Exchange(ref _released, 1) == 0)
             {
-                Interlocked.Decrement(ref feed._treeWatchers);
+                release();
             }
         }
+    }
+
+    /// <summary>
+    ///     Records the components that rendered in the commit the page just made. Called by the probe from inside that render;
+    ///     a commit in which nothing rendered — every component served from its cache — is still a commit, and recorded.
+    /// </summary>
+    internal void RecordCommit(
+        List<DevToolsRenderItem> renders, int walked, DevToolsTreeSnapshotter ids, long timestamp,
+        List<DevToolsWalkItem>? walk = null, FrameWriter? frames = null)
+    {
+        // Where each rendered component is on the page, only while a panel flashes renders: the frames are the walk's own,
+        // still in the writer, and the spans are the walk's record of what each component wrote.
+        Dictionary<Component, (int Start, int End)>? spans = null;
+        if (WantsPlaces && walk is not null && frames is not null)
+        {
+            spans = new Dictionary<Component, (int, int)>(walk.Count, ReferenceEqualityComparer.Instance);
+            foreach (var item in walk)
+            {
+                spans[item.Component] = (item.FrameStart, item.FrameEnd);
+            }
+        }
+
+        // Built outside the lock: the ids and names are the snapshotter's and the type cache's, and a mount is known by
+        // the table below, which only this session's render thread writes.
+        var items = new DevToolsRender[renders.Count];
+        var path = spans is null ? null : new List<int>();
+        for (var i = 0; i < items.Length; i++)
+        {
+            var (component, cause, self) = renders[i];
+            var reason = _rendered.TryAdd(component, Seen) ? DevToolsRenderReason.Mount : DevToolsNames.ReasonOf(cause);
+            var at = spans is not null && spans.TryGetValue(component, out var span)
+                ? DevToolsPlaces.Locate(frames!.WrittenSpan, span.Start, span.End, path!)
+                : null;
+            items[i] = new DevToolsRender(
+                ids.IdOf(component), DevToolsNames.Of(component.GetType()), component.Key?.ToString(), reason, self, at);
+        }
+
+        lock (_gate)
+        {
+            // Past either bound, the oldest commits go, but never the newest: a first render bigger than the whole budget
+            // is still the commit a developer opened the tab to see.
+            _commits.Enqueue(new DevToolsCommit(++_sequence, timestamp, walked, items));
+            _heldRenders += items.Length;
+            while (_commits.Count > 1 && (_commits.Count > CommitCapacity || _heldRenders > RenderCapacity))
+            {
+                _heldRenders -= _commits.Dequeue().Renders.Length;
+            }
+        }
+
+        Changed?.Invoke();
+    }
+
+    /// <summary>Whether a panel is flashing this session's renders, so each render is recorded with its place.</summary>
+    internal bool WantsPlaces => Volatile.Read(ref _placeWatchers) > 0;
+
+    /// <summary>Asks for renders with their places, until the returned token is disposed.</summary>
+    internal IDisposable WatchPlaces()
+    {
+        Interlocked.Increment(ref _placeWatchers);
+        return new Watch(() => Interlocked.Decrement(ref _placeWatchers));
+    }
+
+    /// <summary>The commits currently held, oldest first.</summary>
+    internal DevToolsCommit[] CommitsSnapshot()
+    {
+        lock (_gate)
+        {
+            return _commits.ToArray();
+        }
+    }
+
+    /// <summary>Forgets every commit held, so the Renders tab counts from here. Mounts already seen stay seen.</summary>
+    internal void ClearCommits()
+    {
+        lock (_gate)
+        {
+            _commits.Clear();
+            _heldRenders = 0;
+        }
+
+        Changed?.Invoke();
     }
 
     /// <summary>The wire events currently held, oldest first.</summary>

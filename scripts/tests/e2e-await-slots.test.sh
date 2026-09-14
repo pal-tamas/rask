@@ -24,14 +24,18 @@ root="$(git rev-parse --show-toplevel)"
 gate="$root/scripts/run-e2e-local.sh"
 lifted="$(sed -n '/^rask_e2e_await_slots() {/,/^}/p' "$gate")"
 lifted_seniors="$(sed -n '/^rask_e2e_name_seniors() {/,/^}/p' "$gate")"
+lifted_admits="$(sed -n '/^rask_e2e_machine_admits() {/,/^}/p' "$gate")"
+lifted_load="$(sed -n '/^rask_e2e_describe_load() {/,/^}/p' "$gate")"
 
-if [ -z "$lifted" ] || [ -z "$lifted_seniors" ]; then
+if [ -z "$lifted" ] || [ -z "$lifted_seniors" ] || [ -z "$lifted_admits" ] || [ -z "$lifted_load" ]; then
   echo "e2e-await-slots: could not lift the wait functions out of $gate — were they renamed?" >&2
   echo "                 This test would otherwise pass without testing anything." >&2
   exit 1
 fi
 eval "$lifted"
 eval "$lifted_seniors"
+eval "$lifted_admits"
+eval "$lifted_load"
 
 # Gate DETECTION is stubbed throughout, and it has to be: this box really does run several gates at
 # once, and an exclusive claim equals the whole budget, so it is admissible only when there are no
@@ -45,6 +49,10 @@ eval "$lifted_seniors"
 # The CLAIM side is real: rask_lane_claim starts an actual scripts/lib/lane-claim.sh child here.
 export RASK_E2E_COMMAND_STUB=1
 export RASK_LANE_SLOTS=10
+# A calm machine by default, stated rather than read: this box's real load average would otherwise decide the
+# outcome of every case below that is not about load.
+export RASK_LANE_LOADAVG_OVERRIDE=1.00
+export RASK_LANE_CPUS_OVERRIDE=14
 eval "export RASK_E2E_ETIME_$$=00:01"
 
 failures=0
@@ -114,6 +122,45 @@ rc=$?
 rask_lane_release
 assert_eq "RASK_E2E_ALLOW_CONCURRENT proceeds" "$rc" "0"
 assert_says "and says the result is suspect" "$out" 'starting alongside it anyway'
+
+echo "==> load (#1099)"
+
+# Free slots on a machine loaded far past its CPUs: the suite would boot its pages starved. Refused under
+# QUEUE=0 with the same anchored line, so the classifier still reads it as busy rather than broken.
+out="$(RASK_LANE_LOADAVG_OVERRIDE=226.0 RASK_E2E_QUEUE=0 rask_e2e_await_slots 2>&1)"
+rc=$?
+rask_lane_release
+assert_eq "free slots but load 226 on 14 CPUs refuses under QUEUE=0" "$rc" "1"
+assert_says "the load refusal prints the anchored line" "$out" '^run-e2e-local: refused to start'
+assert_says "and says it is the load, with the number" "$out" 'load average is 226.0 on 14 CPUs'
+
+RASK_LANE_LOADAVG_OVERRIDE=112.0 rask_e2e_await_slots >/dev/null 2>&1
+assert_eq "load exactly at the ceiling (8 x 14) admits" "$?" "0"
+rask_lane_release
+
+RASK_LANE_LOADAVG_OVERRIDE=226.0 RASK_E2E_MAX_LOAD_PER_CPU=0 rask_e2e_await_slots >/dev/null 2>&1
+assert_eq "RASK_E2E_MAX_LOAD_PER_CPU=0 turns the check off" "$?" "0"
+rask_lane_release
+
+RASK_LANE_LOADAVG_OVERRIDE=226.0 RASK_LANE_DISABLE=1 rask_e2e_await_slots >/dev/null 2>&1
+assert_eq "RASK_LANE_DISABLE admits whatever the load" "$?" "0"
+rask_lane_release
+
+out="$(RASK_LANE_LOADAVG_OVERRIDE=226.0 RASK_E2E_ALLOW_CONCURRENT=1 rask_e2e_await_slots 2>&1)"
+rc=$?
+rask_lane_release
+assert_eq "RASK_E2E_ALLOW_CONCURRENT proceeds on a loaded machine" "$rc" "0"
+
+# The queue actually waits on load, and gives up with the anchored timeout line.
+out="$(RASK_LANE_LOADAVG_OVERRIDE=226.0 RASK_E2E_QUEUE_TIMEOUT=0 RASK_E2E_QUEUE_POLL=1 rask_e2e_await_slots 2>&1)"
+rc=$?
+rask_lane_release
+assert_eq "a queue that times out on load stops" "$rc" "1"
+assert_says "with the anchored still-queued line" "$out" '^run-e2e-local: still queued after'
+
+# An unreadable load never blocks: waiting on a number nobody can see would be worse than the red it prevents.
+( unset RASK_LANE_LOADAVG_OVERRIDE; rask_lane_load_average() { printf ''; }; rask_lane_load_ok )
+assert_eq "an unreadable load average admits" "$?" "0"
 
 echo "==> the classifier contract"
 

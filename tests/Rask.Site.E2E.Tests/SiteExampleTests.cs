@@ -217,6 +217,12 @@ public sealed class SiteExampleTests
     // page's luck. The docs page is also the one a reader lands on most often from outside.
     [InlineData("/index.html", "Ship a whole product")]
     [InlineData("/docs/index.html", "Guides")]
+    // A guide, because its chrome — the "On this page" rail beside the article — is SCOPED CSS, which the
+    // two pages above do not use. The prerender companion did not carry an app's scoped stylesheets, so
+    // every published page shipped with no data-r-* attributes and no bundle <link>: the rail sat under the
+    // article, each paragraph was a line shorter, and the page grew 4423px to 4711px at takeover — reported
+    // as a flicker on refresh. See PublishedPages_CarryTheirScopedStylesBeforeTheRuntimeBoots.
+    [InlineData("/docs/guides/one-person-framework/index.html", "The .NET One Person Framework")]
     public async Task Hydration_DoesNotReflowThePage(string path, string headline)
     {
         var context = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions { BaseURL = _app.BaseUrl });
@@ -253,6 +259,30 @@ public sealed class SiteExampleTests
                     'face=' + getComputedStyle(document.querySelector('h1')).fontFamily.split(',')[0]
                 ].join(' ');
             }");
+    }
+
+    /// <summary>
+    ///     A published page arrives with its scoped styles already applicable: the scope attributes on its
+    ///     elements AND the bundle that styles them, in the bytes the host serves.
+    /// </summary>
+    /// <remarks>
+    ///     Read over HTTP rather than in a browser, because the runtime puts both on at takeover and a DOM
+    ///     read races it. The prerender renders in a companion project compiled from the app's sources, and
+    ///     the scoped-CSS generator registers nothing unless that companion is handed the <c>.css</c> files —
+    ///     with an empty registry the render stamps no <c>data-r-*</c> and writes no <c>rsk-css</c> link, and
+    ///     163 of the site's pages painted their scoped chrome unstyled until WASM booted.
+    /// </remarks>
+    [Theory]
+    [InlineData("/docs/guides/one-person-framework/index.html")]
+    [InlineData("/docs/ui/data-grid/index.html")]
+    public async Task PublishedPages_CarryTheirScopedStylesBeforeTheRuntimeBoots(string path)
+    {
+        using var http = new HttpClient { BaseAddress = new Uri(_app.BaseUrl) };
+
+        var page = await http.GetStringAsync(path);
+
+        Assert.Matches("<link rel=\"stylesheet\" href=\"[^\"]*/_rask/a/[0-9a-f]+\\.css\" data-rask-key=\"rsk-css\">", page);
+        Assert.Matches(" data-r-[0-9a-f]{8}", page);
     }
 
     /// <summary>

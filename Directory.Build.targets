@@ -206,8 +206,13 @@
       layout the same everywhere means a project that gains a second framework later gets a new
       empty baseline to fill in, rather than a gate that quietly starts contradicting itself.
     -->
-    <AdditionalFiles Include="$(MSBuildProjectDirectory)\PublicAPI\$(RaskPublicApiTfm)\PublicAPI.Shipped.txt" Condition=" Exists('$(MSBuildProjectDirectory)\PublicAPI\$(RaskPublicApiTfm)\PublicAPI.Shipped.txt') "/>
-    <AdditionalFiles Include="$(MSBuildProjectDirectory)\PublicAPI\$(RaskPublicApiTfm)\PublicAPI.Unshipped.txt" Condition=" Exists('$(MSBuildProjectDirectory)\PublicAPI\$(RaskPublicApiTfm)\PublicAPI.Unshipped.txt') "/>
+    <AdditionalFiles Include="$(RaskPublicApiDir)$(RaskPublicApiTfm)\PublicAPI.Shipped.txt" Condition=" Exists('$(RaskPublicApiDir)$(RaskPublicApiTfm)\PublicAPI.Shipped.txt') "/>
+    <AdditionalFiles Include="$(RaskPublicApiDir)$(RaskPublicApiTfm)\PublicAPI.Unshipped.txt" Condition=" Exists('$(RaskPublicApiDir)$(RaskPublicApiTfm)\PublicAPI.Unshipped.txt') "/>
+    <!--
+      For scripts/tests/public-api-gate.test.sh ONLY: compiles one extra file into the project, so the gate's self-test
+      can add an unrecorded public member without writing into src/. Empty everywhere else, which declares nothing.
+    -->
+    <Compile Include="$(RaskPublicApiGateProbe)" Condition=" '$(RaskPublicApiGateProbe)' != '' "/>
   </ItemGroup>
 
   <!--
@@ -226,6 +231,15 @@
   -->
   <PropertyGroup>
     <RaskPublicApiTfm Condition=" '$(RaskPublicApiTfm)' == '' ">$(TargetFramework.Replace('net11.0', 'net10.0'))</RaskPublicApiTfm>
+    <!--
+      Where the baselines live: the project's own PublicAPI folder. Overridable so the gate's self-test
+      (scripts/tests/public-api-gate.test.sh) can point a build at a copy, or at an empty directory, instead of
+      moving the real folder out of the tree — which it did, while other self-tests walked src/ concurrently and
+      found a directory vanishing under them (#1084). Every reader below goes through it, so none is left looking
+      at the real folder while the analyzer reads another.
+    -->
+    <RaskPublicApiDir Condition=" '$(RaskPublicApiDir)' == '' ">$(MSBuildProjectDirectory)\PublicAPI\</RaskPublicApiDir>
+    <RaskPublicApiDir>$([MSBuild]::EnsureTrailingSlash('$(RaskPublicApiDir)'))</RaskPublicApiDir>
   </PropertyGroup>
 
   <!--
@@ -236,10 +250,10 @@
   -->
   <Target Name="RaskVerifyPublicApiBaseline" BeforeTargets="CoreCompile"
           Condition=" '$(RaskPublicApiTracked)' == 'true' AND '$(TargetFramework)' != '' ">
-    <Error Condition=" !Exists('$(MSBuildProjectDirectory)\PublicAPI\$(RaskPublicApiTfm)\PublicAPI.Unshipped.txt') "
+    <Error Condition=" !Exists('$(RaskPublicApiDir)$(RaskPublicApiTfm)\PublicAPI.Unshipped.txt') "
            Text="$(MSBuildProjectName) is covered by the public-API gate but has no baseline for $(TargetFramework). Create PublicAPI\$(RaskPublicApiTfm)\PublicAPI.Unshipped.txt (first line '#nullable enable') and PublicAPI.Shipped.txt (empty), then build: every public member is reported as RS0016 with the exact line to record. See docs/api-style.md. To exempt this project instead, set &lt;RaskPublicApiTracked&gt;false&lt;/RaskPublicApiTracked&gt; in its .csproj and say why." />
     <!-- A baseline nothing reads is a gate that passes by not running: every edit to it would go unchecked. -->
-    <Error Condition=" '$(RaskPublicApiTfm)' != '$(TargetFramework)' AND Exists('$(MSBuildProjectDirectory)\PublicAPI\$(TargetFramework)') "
+    <Error Condition=" '$(RaskPublicApiTfm)' != '$(TargetFramework)' AND Exists('$(RaskPublicApiDir)$(TargetFramework)') "
            Text="$(MSBuildProjectName) has a PublicAPI\$(TargetFramework) folder, but its $(TargetFramework) build is checked against PublicAPI\$(RaskPublicApiTfm). Delete the folder, or give this framework its own baseline with &lt;RaskPublicApiTfm Condition=&quot;'%24(TargetFramework)' == '$(TargetFramework)'&quot;&gt;$(TargetFramework)&lt;/RaskPublicApiTfm&gt; in the .csproj." />
   </Target>
 
