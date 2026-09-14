@@ -36,7 +36,7 @@ checkin() {
   if [ "$ok" = 1 ]; then
     echo "  PASS  $name  (exit $code)"; PASS=$((PASS+1))
   else
-    echo "  FAIL  $name  (exit $code, wanted $want${pat:+, /$pat/})"; echo "$out" | sed 's/^/        | /' | head -6; FAIL=$((FAIL+1))
+    echo "  FAIL  $name  (exit $code, wanted $want${pat:+, /$pat/})"; echo "$out" | tail -20 | sed 's/^/        | /'; FAIL=$((FAIL+1))
   fi
 }
 

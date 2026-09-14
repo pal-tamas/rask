@@ -170,33 +170,15 @@ public sealed class TemplateJourneyE2ETests(PlaywrightFixture browser) : IClassF
         await Assertions.Expect(page.GetByText("Hello, Rask!")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
-        // Pinned rather than required-empty, because this template currently ships TWO console errors
-        // on its very first run and #1078 is open on them: it emits a module-script tag for /main.js
-        // while shipping no scoped TypeScript, so nothing ever builds that bundle. Rask says so itself
-        // and keeps the page server-live, which is why it was never noticed.
-        //
-        // Written as "nothing OTHER than the known pair" so it fails in BOTH directions — a new error
-        // fails it, and so does fixing #1078, at which point this allowance and its Known list go.
-        var unexpected = failures.Where(f => !KnownFirstRunErrors.Any(f.Contains)).ToList();
-
+        // Required empty. This used to allow two console errors (#1078): the page shell emitted a
+        // module-script tag for a /main.js the template never builds. That tag left with the render modes
+        // (9b4846e0), so a first run has nothing left to excuse, and an allowance kept after its cause is
+        // gone would only hide the next error that happened to share its wording.
         Assert.True(
-            unexpected.Count == 0,
-            $"--template {key} reached the browser with errors beyond the ones #1078 records:\n  "
-                + $"{string.Join("\n  ", unexpected)}\n\nhost log:\n{app.Log}");
+            failures.Count == 0,
+            $"--template {key} reached the browser with console errors:\n  "
+                + $"{string.Join("\n  ", failures)}\n\nhost log:\n{app.Log}");
     }
-
-    /// <summary>
-    ///     The console output a scaffolded C# host currently produces on its first run, and should not.
-    /// </summary>
-    /// <remarks>
-    ///     #1078. Delete this and the filter with it once the boot script stops being emitted for a
-    ///     bundle that is never built.
-    /// </remarks>
-    private static readonly string[] KnownFirstRunErrors =
-    [
-        "Failed to load module script",
-        "the browser bundle could not be loaded",
-    ];
 
     /// <summary>
     ///     Scaffolds the template, builds it WITH its front end, and starts the host.

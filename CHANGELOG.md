@@ -1108,6 +1108,26 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **`rask new` stops claiming a migration it never ran, and names a missing package before its restore fails.**
+  - **Migration message.** The next-steps text said "The first migration is already applied to app.db" even
+    under a restore that had just failed. The text is written before the restore, build and migration run,
+    so the sentence is now printed only once the migration has actually succeeded (#1083).
+  - **Unpublished packages.** Before restoring, `rask new` asks nuget.org whether each Rask package the
+    project pins exists at that version. If one does not, it names each missing package and version and
+    says why the restore will fail, instead of leaving a bare `NU1103`. That happens with `Rask.Storage`
+    and `Rask.DevTools` against 0.21.0. An offline or unreachable feed reports nothing, and the restore
+    still decides.
+- **Docs and package READMEs describe the code that ships.**
+  - **Getting started** showed a `RaskApp.Create(args)` `Program.cs` that no template writes. It now shows
+    the explicit one the server template does (#1058).
+  - **`docs/cli.md`** no longer says every feature dispatches through the mediator. It says what `--no-cqrs`
+    really takes with it and why: jobs, the outbox and domain events are delivered through it. Its per-template
+    flag table now matches the CLI; `ops` is server-only. The `rask new` help text says the same.
+  - **The roadmap and scaling guides** no longer say Rask wires SQLite and nothing else.
+  - **Rask.Mail's NuGet README** taught the removed factory syntax (`Div()[…]`, `WelcomeEmail(Name: …)`). It
+    uses the chain now, and a snippet test compiles it (#1082).
+  - **The contributor guides and PR template** no longer ask for a "template `AGENTS.md`" that `rask new`
+    never scaffolds (#1100).
 - **Gates that failed for reasons outside the change they were gating.**
   - **Public-API self-test.** It moved the real `src/Rask.Cache/PublicAPI` folder out of the tree, and wrote
     into its baseline and source, while other self-tests walked `src/` concurrently. It now points its builds

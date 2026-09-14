@@ -628,6 +628,50 @@ public sealed class NewCommandTests
         Assert.Contains("rask db update", console.OutText, StringComparison.Ordinal);
     }
 
+    // #1083: the next-steps text is written before restore, build and migration run, and it used to announce the
+    // first migration as applied — under a restore that had just failed and a migration that never ran.
+    [Fact]
+    public async Task A_failed_restore_does_not_claim_the_migration_was_applied()
+    {
+        var (console, _, runner, command) = Build();
+        runner.RunHandler = args => args.Count > 0 && args[0] == "restore" ? 1 : 0;
+
+        var exit = await command.ExecuteAsync(["MyApp"], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.DoesNotContain("already applied", console.OutText, StringComparison.Ordinal);
+    }
+
+    // #1083: named before the restore, so NU1103 is not the first and only thing a reader sees.
+    [Fact]
+    public async Task A_pinned_package_the_feed_never_published_is_named_before_the_restore()
+    {
+        var console = new StringConsole();
+        var runner = new FakeProcessRunner();
+        var command = new NewCommand(console, new FakeFileSystem(), runner, WorkingDirectory)
+        {
+            Feed = new PackageFeed((id, _) => Task.FromResult<IReadOnlyCollection<string>?>(
+                id == "Rask.Storage" ? [] : null)),
+        };
+
+        await command.ExecuteAsync(["MyApp"], CancellationToken.None);
+
+        Assert.Contains("Rask.Storage", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("NU1103", console.ErrorText, StringComparison.Ordinal);
+        Assert.DoesNotContain("Rask.Server ", console.ErrorText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_migration_that_ran_says_it_was_applied()
+    {
+        var (console, _, _, command) = Build();
+
+        var exit = await command.ExecuteAsync(["MyApp"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Contains("The first migration is already applied to app.db.", console.OutText, StringComparison.Ordinal);
+    }
+
     /// <summary>
     ///     <c>--auth</c> is gone, and refused by name rather than quietly ignored.
     /// </summary>

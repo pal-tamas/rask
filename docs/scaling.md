@@ -152,8 +152,8 @@ batch.
 This is what makes the *claim* safe when several processors race. It is a separate question from where the
 database lives: on SQLite there is one writer to begin with, so the race the lease settles is one you only
 reach by pointing the pillars at a shared client-server database yourself (see [Getting past
-it](#getting-past-it) — that is outside the framework's happy path, and Rask ships no provider package for
-it).
+it](#getting-past-it) — `Rask.Postgres` and `Rask.SqlServer` are the provider packages for that, selected with
+`Rask:Database:Provider`; see [choosing the database](data.md#choosing-the-database)).
 
 **A processor that dies keeps nothing.** Its lease simply runs out and the work becomes claimable again.
 There is no sweeper to run and nothing to clean up by hand — expiry *is* the recovery mechanism, which is

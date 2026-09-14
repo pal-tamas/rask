@@ -2,8 +2,8 @@
 
 Cross-tool guide for AI assistants working **on the Rask framework itself** — Rask is the .NET One Person
 Framework (build, run, and ship a whole product solo, in C#, on one server; see
-`docs/one-person-framework.md`). (The Claude-specific map is `CLAUDE.md`; downstream app-authoring
-guidance ships as `AGENTS.md` inside the templates.)
+`docs/one-person-framework.md`). (The Claude-specific map is `CLAUDE.md`; guidance for an assistant writing an
+app ON Rask is `docs/ai-agents.md` and `llms.txt` — `rask new` scaffolds no `AGENTS.md`, deliberately.)
 GitHub is the source of truth — keep docs, examples, and these guides up to date with every change.
 
 ## Repo workflows (`.claude/skills/`)
@@ -26,7 +26,7 @@ Apply the matching playbook automatically:
 3. **Unit test every feature**; **E2E test every `src/Rask.Site` change**.
 4. **Benchmark every framework/render-hotpath change** (quote the Allocated delta).
 5. **User-facing change → update `src/Rask.Site` + docs/README** (keep `docs/`, `README.md`, `NUGET.md`,
-   `llms.txt`, and template `AGENTS.md` current). Add a `CHANGELOG.md` `[Unreleased]` entry.
+   `llms.txt`, and `docs/ai-agents.md` current). Add a `CHANGELOG.md` `[Unreleased]` entry.
 6. Review (security + performance + UX together; prefer standard .NET APIs; refactor duplication).
 7. Land it on `main` (`type(scope): subject`, Conventional Commits — enforced by commitlint): merge
    `origin/main` in with `--no-commit` (a clean merge is otherwise ungated), then

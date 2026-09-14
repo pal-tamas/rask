@@ -23,7 +23,7 @@ service to operate.
 | **Cache** | ✅ | [`Rask.Cache`](cache.md) — a developer-facing cache on the app's own database; standard `IDistributedCache` plus a typed `ICache` with `GetOrAddAsync`, absolute/sliding expiry. |
 | **File storage** | ✅ | [`Rask.Storage`](file-storage.md) — uploads kept on disk, in an S3-compatible bucket or in Azure Blob, with a `StoredFile` row per file on the app's own database; content types sniffed from the bytes, public and temporary URLs, downloads behind your own check. Files on the disk provider are not yet backed up. |
 | **Production SQLite** | ✅ | [`sqlite.md`](sqlite.md) — WAL/busy-timeout pragmas, continuous backup (Litestream), snapshots. |
-| **The door out of one box** | ❌ | Not shipped — Rask wires SQLite only. Jobs, mail and the outbox do **lease** the work they claim ([`scaling.md`](scaling.md#running-more-than-one-instance)), so the claim is safe when several processors race and a lease bounds, but does not eliminate, a duplicate side effect. See [below](#not-shipped). |
+| **The door out of one box** | ❌ | Not shipped — the PostgreSQL and SQL Server providers exist, but `rask new` and `rask deploy` wire SQLite only ([below](#another-database)). Jobs, mail and the outbox do **lease** the work they claim ([`scaling.md`](scaling.md#running-more-than-one-instance)), so the claim is safe when several processors race and a lease bounds, but does not eliminate, a duplicate side effect. See [below](#not-shipped). |
 | **Auth — sign-in** | ✅ | [`authentication.md`](authentication.md) — the cookie session, claims, authorization, and hardening guidance. |
 | **Auth — user store** | ✅ | Accounts on ASP.NET Core Identity, on by default. Register, sign in and sign out work in a fresh app with no auth code; the first account to register is the administrator. Email verification, password reset and MFA are [not shipped](#not-shipped) yet. |
 | **Web Push (server send)** | ✅ | [`webpush.md`](webpush.md) — `Rask.WebPush`: VAPID (RFC 8292) + aes128gcm (RFC 8291), zero deps. |
@@ -63,12 +63,16 @@ Passkeys are closer than they look: `IWebAuthn` is a complete typed wrapper over
 what it lacks is credential storage and server-side challenge verification.
 
 ### Another database
-Rask wires **SQLite and nothing else**. There is no provider package for PostgreSQL or SQL Server, and
-`rask new` has no database choice to make. Nothing stops you pointing EF Core at your own provider — the
-[`Rask.Data`](data.md) aggregates, [`Rask.Cqrs`](cqrs.md) handlers and generated slices are
-provider-agnostic — but you give up everything that treats the database as a file (Litestream, snapshots,
-`rask db backup`, the deploy volume) and you are off the framework's happy path. See
-[Scaling](scaling.md) for where the single-writer wall actually is.
+The provider packages have shipped: [`Rask.Postgres`](data.md#postgresql) and
+[`Rask.SqlServer`](data.md#sql-server), and `Rask:Database:Provider` (`sqlite`, `postgres` or `sqlserver`)
+picks between them for an app that opens its context with `UseRaskDatabase(sp)` — see
+[Choosing the database](data.md#choosing-the-database). What is **not** here yet is the tooling around them:
+`rask new` has no database choice and scaffolds `UseRaskSqlite(sp)`, so moving a scaffolded app is a
+hand edit of `Program.cs` plus migrations generated against the new provider; `rask deploy` points
+`Rask:ConnectionStrings:App` at a SQLite file on its volume, so a server-database app is deployed another
+way for now. On PostgreSQL or SQL Server you also give up everything that treats the database as a file —
+Litestream, snapshots, `rask db backup`. See [Scaling](scaling.md) for where the single-writer wall
+actually is.
 
 ### Offline-first sync
 No CRDT replication, no op log. Several devices sharing one database with no server between them is not
