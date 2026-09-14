@@ -23,7 +23,7 @@ internal sealed class S3BlobBackend : RemoteBlobBackend
     internal S3BlobBackend(HttpClient http, S3StorageOptions options, TimeProvider time)
         : base(http, time)
     {
-        var service = options.ServiceUrl ?? throw new InvalidOperationException("Storage__S3__ServiceUrl is required.");
+        var service = options.ServiceUrl ?? throw new InvalidOperationException("Rask__Storage__S3__ServiceUrl is required.");
         _credential = new S3Credential(options.AccessKeyId!, options.SecretAccessKey!, options.SessionToken);
         _region = options.Region;
         _bucket = options.Bucket;

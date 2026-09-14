@@ -116,15 +116,16 @@ rebuilt from the client's record. So affinity is an optimisation (an intact sess
 a rebuilt one), not a correctness requirement. For that to work across hosts, **every host must share a
 data-protection key ring** — the record is sealed with it.
 
-**Three things still require affinity, and will fail without it:**
+**Four things still require affinity, and will fail without it:**
 
 | Surface | Why |
 | --- | --- |
 | File uploads | Staged to a node-local temp file; the WebSocket message that consumes them must reach the same host. |
 | Downloads | `GET /_rask/download/{session}/{token}` reads a node-local entry. |
 | Sign-in redeem | `POST /_rask/auth/redeem` reads an in-memory ticket issued on the host that authenticated you. |
+| The [HTTP fallback](render-modes.md#when-websockets-are-blocked) | A tab's `POST`s must reach the host holding its stream; anywhere else answers `404`, and the tab reconnects rather than working. |
 
-Cookie-based affinity in the proxy covers all three. Rask does not configure one for you, and the
+Cookie-based affinity in the proxy covers all four. Rask does not configure one for you, and the
 `rask deploy` Caddy setup routes to a single container per app.
 
 **And the pillars assume one writer.** If jobs, the outbox or the cache are enabled and pointed at
@@ -134,7 +135,7 @@ run them on more than one host. What the processors themselves do about several 
 **And files kept on disk stay on the host that saved them.** [`Rask.Storage`](file-storage.md)'s default disk
 provider writes to the local filesystem, so a file saved on one host does not exist on the next. Affinity
 doesn't fix that — a file is read by people other than the one who uploaded it, from whichever host they
-land on. Point `Storage__Provider` at S3 or Azure before adding a second host; temporary links the app signs
+land on. Point `Rask__Storage__Provider` at S3 or Azure before adding a second host; temporary links the app signs
 itself also need the shared key ring above.
 
 ## Running more than one instance

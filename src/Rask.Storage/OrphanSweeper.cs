@@ -138,8 +138,8 @@ internal sealed class OrphanSweeper<TContext>(
         {
             logger.LogWarning(
                 "The storage orphan sweep found {Orphans} objects in {Provider} with no StoredFile row and deleted none: "
-                + "with no Storage__Prefix it cannot tell this app's orphans from another environment's files in the "
-                + "same bucket. Set Storage__Prefix to let it clean up.",
+                + "with no Rask__Storage__Prefix it cannot tell this app's orphans from another environment's files in the "
+                + "same bucket. Set Rask__Storage__Prefix to let it clean up.",
                 orphanCount, backend.Provider);
             return new SweepResult(0, orphanCount, Tripped: true);
         }
@@ -159,7 +159,7 @@ internal sealed class OrphanSweeper<TContext>(
             logger.LogError(
                 "The storage orphan sweep found {Orphans} of {Eligible} stored objects with no StoredFile row and deleted "
                 + "none of them: that many usually means the app is reading the wrong database, or two environments share "
-                + "one bucket and prefix. Check ConnectionStrings:App and Storage__Prefix.",
+                + "one bucket and prefix. Check ConnectionStrings:App and Rask__Storage__Prefix.",
                 orphanCount, eligible);
             return new SweepResult(0, orphanCount, Tripped: true);
         }

@@ -45,7 +45,7 @@ echo "==> Packing the working tree"
 tarball="$(mktemp -t rask-devhost-XXXXXX).tar.gz"
 trap 'rm -f "$tarball"' EXIT
 
-# site/ and benchmarks/ are dropped: nothing under tests/Rask.Cli.Tests references them, and site/ is a
+# site/ and benchmarks/ are dropped: nothing under tests/Rask.Cli.E2E.Tests references them, and site/ is a
 # published WASM app whose front-end build writes hashed filenames that a later rebuild renames, so
 # `git ls-files` routinely names files that are no longer on disk and tar stops on the first one.
 #
@@ -72,7 +72,7 @@ echo "==> Running the Linux dev-host gate"
   mkdir -p "$HOME/repo"
   tar xzf - -C "$HOME/repo"
   cd "$HOME/repo"
-  dotnet test tests/Rask.Cli.Tests/Rask.Cli.Tests.csproj \
+  dotnet test tests/Rask.Cli.E2E.Tests/Rask.Cli.E2E.Tests.csproj \
     --filter "FullyQualifiedName~DevHostLinuxE2ETests" \
     --logger "console;verbosity=normal"
 ' < "$tarball"

@@ -13,7 +13,7 @@ public enum FileRejection
 }
 
 /// <summary>
-/// A file <see cref="IFiles.SaveAsync(Rask.Core.Forms.RaskFile, Action{SaveOptions}?, CancellationToken)"/>
+/// A file <see cref="IFiles.SaveAsync(Func{long, CancellationToken, Stream}, string, long, Action{SaveOptions}?, CancellationToken)"/>
 /// refused. Nothing was stored. The message is safe to log; it never repeats the uploaded file name.
 /// </summary>
 public sealed class FileRejectedException : InvalidOperationException
@@ -44,7 +44,7 @@ public sealed class FileRejectedException : InvalidOperationException
         string.Create(CultureInfo.InvariantCulture,
             $"The file is at least {size} bytes; the limit is {limit}. Raise it with "
             + $"builder.Services.AddRaskStorage<AppDbContext>(o => o.MaxFileSize = 100 * 1024 * 1024), or the "
-            + $"Storage__MaxFileSize setting."),
+            + $"Rask__Storage__MaxFileSize setting."),
         size, limit, null);
 
     internal static FileRejectedException TypeNotAllowed(string contentType) => new(

@@ -91,6 +91,47 @@ public sealed class DaisyUiPluginDeliveryTests
         // The claim the whole approach rests on, run for real rather than reasoned about: a sheet
         // shaped like the one `rask new` writes, in a directory with no node_modules and no
         // package.json, loading the bundle by relative path.
+        var css = _consumerSheet.Value;
+
+        foreach (var name in (string[])["card", "card-body", "card-actions", "btn", "navbar", "hero", "footer", "alert"])
+        {
+            Assert.True(
+                Regex.IsMatch(css, $@"^\s*\.{Regex.Escape(name)}\s*\{{", RegexOptions.Multiline),
+                $".{name} is not in the compiled sheet, so an app writing it renders unstyled.");
+        }
+
+        // The app's own utilities compile in the same pass — this is one stylesheet, not two.
+        Assert.True(Regex.IsMatch(css, @"^\s*\.px-8\s*\{", RegexOptions.Multiline));
+    }
+
+    [Fact]
+    public void TheBundleIsNotScannedAsASafelist()
+    {
+        // 348 KB of daisyUI's own code, naming every class daisyUI defines. Scanned, it acts as a
+        // safelist for the whole library and the sheet carries every component whether or not the app
+        // uses one — which reads as correct, because a sheet containing too much looks exactly like a
+        // sheet containing enough. `@source not "./vendor"` is what stops it, and a scaffold that
+        // forgets the line gets a much larger sheet and no error.
+        var css = _consumerSheet.Value;
+
+        // The consumer's page names none of these, so none may be emitted.
+        foreach (var unused in (string[])["timeline", "carousel", "kbd", "steps", "rating"])
+        {
+            Assert.False(
+                Regex.IsMatch(css, $@"^\s*\.{unused}\s*\{{", RegexOptions.Multiline),
+                $".{unused} is in a sheet whose source never names it — the bundle is being "
+                + "scanned as a safelist, so this sheet carries the whole library.");
+        }
+    }
+
+    // One compile for both facts above (#1079). Each used to run the engine over its own directory, so a slow engine
+    // paid its timeout twice inside a one-minute gate. The two asked different questions of sheets built the same way:
+    // the consumer's page below names the classes the first fact wants and none of the ones the second forbids.
+    // Lazy, so a failure reaches both facts with the same message rather than one of them running the engine again.
+    private static readonly Lazy<string> _consumerSheet = new(CompileConsumerSheet);
+
+    private static string CompileConsumerSheet()
+    {
         var dir = Path.Combine(Path.GetTempPath(), "rask-daisyui-" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(Path.Combine(dir, "Styles", "vendor"));
         Directory.CreateDirectory(Path.Combine(dir, "Features"));
@@ -122,17 +163,7 @@ public sealed class DaisyUiPluginDeliveryTests
                 }
                 """);
 
-            var css = Compile(dir);
-
-            foreach (var name in (string[])["card", "card-body", "card-actions", "btn", "navbar", "hero", "footer", "alert"])
-            {
-                Assert.True(
-                    Regex.IsMatch(css, $@"^\s*\.{Regex.Escape(name)}\s*\{{", RegexOptions.Multiline),
-                    $".{name} is not in the compiled sheet, so an app writing it renders unstyled.");
-            }
-
-            // The app's own utilities compile in the same pass — this is one stylesheet, not two.
-            Assert.True(Regex.IsMatch(css, @"^\s*\.px-8\s*\{", RegexOptions.Multiline));
+            return Compile(dir);
         }
         finally
         {
@@ -140,52 +171,13 @@ public sealed class DaisyUiPluginDeliveryTests
         }
     }
 
-    [Fact]
-    public void TheBundleIsNotScannedAsASafelist()
-    {
-        // 348 KB of daisyUI's own code, naming every class daisyUI defines. Scanned, it acts as a
-        // safelist for the whole library and the sheet carries every component whether or not the app
-        // uses one — which reads as correct, because a sheet containing too much looks exactly like a
-        // sheet containing enough. `@source not "./vendor"` is what stops it, and a scaffold that
-        // forgets the line gets a much larger sheet and no error.
-        var dir = Path.Combine(Path.GetTempPath(), "rask-daisyui-" + Guid.NewGuid().ToString("N")[..8]);
-        Directory.CreateDirectory(Path.Combine(dir, "Styles", "vendor"));
-
-        try
-        {
-            File.Copy(
-                Path.Combine(RepoRoot(), "src", "Rask.Ui", "Styles", "vendor", "daisyui.mjs"),
-                Path.Combine(dir, "Styles", "vendor", "daisyui.mjs"));
-
-            File.WriteAllText(Path.Combine(dir, "Styles", "app.css"), """
-                @import "tailwindcss";
-
-                @source not "./vendor";
-
-                @plugin "./vendor/daisyui.mjs";
-                """);
-
-            var css = Compile(dir);
-
-            // Nothing here uses any of these, so none may be emitted.
-            foreach (var unused in (string[])["timeline", "carousel", "kbd", "steps", "rating"])
-            {
-                Assert.False(
-                    Regex.IsMatch(css, $@"^\s*\.{unused}\s*\{{", RegexOptions.Multiline),
-                    $".{unused} is in a sheet whose source never names it — the bundle is being "
-                    + "scanned as a safelist, so this sheet carries the whole library.");
-            }
-        }
-        finally
-        {
-            try { Directory.Delete(dir, true); } catch (IOException) { /* left behind on a locked file */ }
-        }
-    }
+    private static readonly TimeSpan CompileTimeout = TimeSpan.FromSeconds(120);
 
     private static string Compile(string dir)
     {
         var output = Path.Combine(dir, "out.css");
         var engine = StandaloneEngine();
+        var started = Stopwatch.StartNew();
 
         using var process = Process.Start(new ProcessStartInfo(engine)
         {
@@ -195,11 +187,28 @@ public sealed class DaisyUiPluginDeliveryTests
             RedirectStandardOutput = true,
         })!;
 
-        process.WaitForExit(milliseconds: 120_000);
+        // Drained while it runs, not after: a redirected pipe nobody reads fills up, the engine blocks writing to
+        // it, and the wait below times out on a process that was only waiting for its reader.
+        var stdout = process.StandardOutput.ReadToEndAsync();
+        var stderr = process.StandardError.ReadToEndAsync();
 
+        // The wait's result was discarded (#1079), so an engine still running at the deadline was reported as one
+        // that ran and wrote nothing — blaming the plugin for a slow machine.
+        if (!process.WaitForExit(CompileTimeout))
+        {
+            try { process.Kill(entireProcessTree: true); } catch (InvalidOperationException) { /* exited meanwhile */ }
+
+            Assert.Fail(
+                $"the standalone engine did not finish within {CompileTimeout.TotalSeconds:0} s (killed after "
+                + $"{started.Elapsed.TotalSeconds:0.0} s). That is a slow or starved machine, not a missing sheet: "
+                + $"{engine} was still running.");
+        }
+
+        process.WaitForExit(); // flushes the redirected streams
         Assert.True(
             File.Exists(output),
-            $"the standalone engine wrote no stylesheet: {process.StandardError.ReadToEnd()}");
+            $"the standalone engine exited with {process.ExitCode} after {started.Elapsed.TotalSeconds:0.0} s and wrote "
+            + $"no stylesheet:\n{stderr.GetAwaiter().GetResult()}{stdout.GetAwaiter().GetResult()}");
 
         return File.ReadAllText(output);
     }

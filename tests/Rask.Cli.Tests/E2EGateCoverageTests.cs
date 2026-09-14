@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace Rask.Cli.Tests;
@@ -29,7 +30,7 @@ namespace Rask.Cli.Tests;
 ///         and leave it to be run by the gate whose absence it exists to detect.
 ///     </para>
 /// </remarks>
-public sealed class E2EGateCoverageTests
+public sealed partial class E2EGateCoverageTests
 {
     [Fact]
     public void Every_e2e_project_is_run_by_some_gate_script()
@@ -70,4 +71,89 @@ public sealed class E2EGateCoverageTests
             + "every *.E2E.Tests project by design, so a suite no script names is run by nothing at all "
             + "while every gate keeps reporting success. Add it to the script that owns its area.");
     }
+
+    /// <summary>
+    ///     Every class a gate script filters on is declared in the project that script runs.
+    /// </summary>
+    /// <remarks>
+    ///     The test above proves a project is NAMED by some script, and three gates satisfied it while running
+    ///     nothing (#1054): the watch, deploy and Linux dev-host scripts built and tested <c>Rask.Cli.Tests</c>
+    ///     with a filter on a class that had moved to <c>Rask.Cli.E2E.Tests</c>. A VSTest filter that matches
+    ///     nothing exits 0, so each printed that it passed. Here a filter must find something to run in the project
+    ///     beside it, which is the one fact a green exit code cannot vouch for.
+    /// </remarks>
+    [Fact]
+    public void Every_gate_filter_names_a_type_in_the_project_it_tests()
+    {
+        var root = CliBuildE2E.FindRepoRoot();
+        var checkedPairs = 0;
+        var missing = new List<string>();
+
+        foreach (var script in Directory.GetFiles(Path.Combine(root, "scripts"), "run-*.sh"))
+        {
+            // One logical command per line: a backslash continuation is how every gate spreads its dotnet test.
+            var text = File.ReadAllText(script).Replace("\\\n", " ", StringComparison.Ordinal);
+            foreach (Match command in TestCommand().Matches(text))
+            {
+                if (FilterArgument().Match(command.Groups["rest"].Value) is not { Success: true } filter)
+                {
+                    continue;
+                }
+
+                var project = command.Groups["project"].Value;
+                var projectDirectory = Path.Combine(root, Path.GetDirectoryName(project)!);
+                var declared = DeclaredNames(projectDirectory);
+
+                foreach (Match token in PositiveToken().Matches(filter.Groups["filter"].Value))
+                {
+                    checkedPairs++;
+                    var name = token.Groups["name"].Value;
+                    if (!declared.Any(d => d.Contains(name, StringComparison.Ordinal)))
+                    {
+                        missing.Add($"{Path.GetFileName(script)}: {project} has no type or namespace matching '{name}'");
+                    }
+                }
+            }
+        }
+
+        // Would go vacuous if the scripts stopped spelling their test runs this way.
+        Assert.True(checkedPairs > 0, "no literal `dotnet test <project> --filter \"FullyQualifiedName~...\"` found under scripts/");
+        Assert.True(
+            missing.Count == 0,
+            "These gate filters match nothing in the project they run, so the gate runs zero tests and still exits 0:\n  "
+            + string.Join("\n  ", missing));
+    }
+
+    private static HashSet<string> DeclaredNames(string projectDirectory)
+    {
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var file in Directory.EnumerateFiles(projectDirectory, "*.cs", SearchOption.AllDirectories))
+        {
+            var relative = Path.GetRelativePath(projectDirectory, file);
+            if (relative.StartsWith("bin", StringComparison.Ordinal) || relative.StartsWith("obj", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            foreach (Match declaration in Declaration().Matches(File.ReadAllText(file)))
+            {
+                names.Add(declaration.Groups["name"].Value);
+            }
+        }
+
+        return names;
+    }
+
+    [GeneratedRegex(@"dotnet test\s+(?<project>tests/\S+\.csproj)(?<rest>[^\n]*)")]
+    private static partial Regex TestCommand();
+
+    [GeneratedRegex(@"--filter\s+""(?<filter>[^""]*)""")]
+    private static partial Regex FilterArgument();
+
+    // `~` only: a `!~` names what to leave out, which may legitimately match nothing.
+    [GeneratedRegex(@"(?<!!)FullyQualifiedName~(?<name>[A-Za-z0-9_.]+)")]
+    private static partial Regex PositiveToken();
+
+    [GeneratedRegex(@"\b(?:class|record|struct|namespace)\s+(?<name>[A-Za-z0-9_.]+)")]
+    private static partial Regex Declaration();
 }

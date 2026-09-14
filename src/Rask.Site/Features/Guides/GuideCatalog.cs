@@ -304,10 +304,10 @@ public static class GuideCatalog
             SearchTitle = "Component lifecycle hooks in C#",
             Description = "The lifecycle hooks a component can override, their order and sync vs async rules, plus disposal, cancellation tied to component lifetime and hosted services.",
         },
-        new("render-modes", "Live pages", "Every page live: waiting for async data before the first byte, status codes, redirects.", "Core")
+        new("render-modes", "Live pages", "Every page live: WebSocket or HTTP fallback, waiting for async data, status codes, redirects.", "Core")
         {
             SearchTitle = "Live server-rendered pages without hydration in C#",
-            Description = "How a server page reaches the browser: server-rendered HTML with no hydration, a live session per page, waiting for async data, status codes and redirects.",
+            Description = "Server-rendered HTML with no hydration, a live session per page over a WebSocket or an automatic HTTP fallback, async data, status codes and redirects.",
         },
         new("forms", "Forms & validation", "Two-way binding, Form<T>, inline/DataAnnotations/Fluent.", "Core")
         {

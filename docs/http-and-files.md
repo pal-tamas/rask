@@ -62,7 +62,8 @@ somewhere before then. That is what [file storage](file-storage.md) is for, and 
 on — inject `IFiles` and save from the handler, then keep the id on your own entity:
 
 ```csharp
-var saved = await files.SaveAsync(picked[0], cancellationToken: CancellationToken);
+var file = picked[0];
+var saved = await files.SaveAsync(file.OpenReadStream, file.Name, file.Size, cancellationToken: CancellationToken);
 order.AttachReceipt(saved.Id);
 ```
 

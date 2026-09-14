@@ -251,7 +251,11 @@ public sealed class RaskDatabaseProviderTests
         app.Services.AddDbContextFactory<PlainContext>(o => o.UseNpgsql(PostgresApp));
         var built = app.Build<TestApp>();
 
+        // IStartupValidator is obsolete on .NET 11 (SYSLIB0066) but is still what the host runs on both targets, and
+        // IAsyncStartupValidator does not exist on .NET 10, which this project also builds for (#1103).
+#pragma warning disable SYSLIB0066
         var error = Assert.ThrowsAny<Exception>(() => built.Services.GetRequiredService<IStartupValidator>().Validate());
+#pragma warning restore SYSLIB0066
 
         Assert.IsType<InvalidOperationException>(error);
         Assert.Contains("Rask:Database:Provider is sqlite", error.Message, StringComparison.Ordinal);

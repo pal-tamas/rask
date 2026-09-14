@@ -636,6 +636,20 @@ them until tagged releases begin.
 
 ### Changed
 
+- **File storage reads `Rask:Storage`, like every other Rask area.** It was the one package still on a top-level
+  `Storage` section (#1080). Its settings now bind from `Rask:Storage`, so the environment variables are
+  `Rask__Storage__Provider`, `Rask__Storage__S3__Bucket` and so on. They bind through the same registration
+  as the rest: defaults, then configuration, then the `AddRaskStorage` callback, with a bad value stopping the
+  host's start and naming `Rask:Storage`. The binding is source-generated, so it needs no reflection, and it
+  reaches every public option: `OrphanGracePeriod`, `SweepInterval` and `AllowedTypes` can now be set from
+  configuration too. **Upgrade:** rename `Storage:*` keys and `Storage__*` variables, including any passed
+  to `rask deploy --env`. The old names are no longer read. An app that still has a top-level `Storage`
+  section logs a warning at start saying so, rather than quietly running on the defaults.
+- **`IFiles.SaveAsync` takes an upload's opener instead of a `RaskFile`.** Write
+  `files.SaveAsync(file.OpenReadStream, file.Name, file.Size)` where you wrote `files.SaveAsync(file)`. Storage
+  still refuses a file whose declared size is over `MaxFileSize` before reading a byte, and still hands its
+  own limit to the opener rather than the upload's 512 KB default. The `Stream` overload is unchanged. This
+  is what lets the package drop its `Rask.Core` reference; see the fix below.
 - **Rask.Server compresses the page itself.** The page handler serves its document as brotli or gzip, whichever
   the browser ranks higher in `Accept-Encoding` (`q` values honoured), over HTTPS too. Until now only the
   scoped CSS/TypeScript bundles were compressed. The `text/html` document went out raw, and it is the
@@ -1096,6 +1110,32 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A package built with Rask.Tailwind no longer ships its compiled sheet out of `obj/`.** The Tailwind props
+  declared the output stylesheet as `Content` whenever the file did not exist yet, so a project packed on a
+  clean clone, with the sheet compiled somewhere other than `wwwroot/`, shipped `content/obj/…css`, and every
+  consumer treated that build intermediate as its own content (#1090). The item is now declared only for a
+  served output under `wwwroot/`, and never packed. The CLI build gate fails any package carrying `obj/`
+  content.
+- **A meta-framework host with no Node process to supervise forwards from the moment it starts.** With
+  `SuperviseNode` off, readiness was set by the background loop, which the host starts after `StartAsync`
+  returns. So the first request after start could still be refused as not ready (#1092). It is now set in
+  `StartAsync`.
+- **Three by-hand gates ran no tests and reported success, and two tests failed gates they had nothing to do
+  with.** The watch, deploy and Linux dev-host scripts built and filtered `Rask.Cli.Tests` for classes that had
+  moved to `Rask.Cli.E2E.Tests`, and a filter matching nothing exits 0 (#1054). They now run the E2E project,
+  and a unit test fails any gate whose filter matches no type in the project it runs. The daisyUI delivery test
+  reported a slow engine as "wrote no stylesheet", and it could deadlock on its own undrained output (#1079).
+  It now drains while waiting, says when it timed out, and compiles once for both of its facts. The auth
+  claim-store tests turn SQLite pooling off, so a known pool-return race in Microsoft.Data.Sqlite can no
+  longer fail an unrelated push (#1087).
+- **File storage starts on the front-end and meta templates, and `rask new` puts it back on them.** `Rask.Storage`
+  referenced `Rask.Core`, which travels only inside the hosts that render components. An app on the SPA or
+  meta lane therefore crashed before `Main` with `FileNotFoundException: Rask.Core` the moment it called
+  `MapRaskStorage()`, and the `storage` battery had been taken off those thirteen templates as a workaround
+  (#1086). The package now references no `Rask.Core`. The deploy's path base, which its routes and URLs
+  carry, is published by the Rask host as `AppContext` data. Uploads are saved from their opener (see
+  Changed). `storage` is a database battery on every template with an ASP.NET host again, and a test pins
+  that the compiled assembly names no `Rask.Core`.
 - **A soft delete no longer overwrites a change someone else made.** `SoftDeleteInterceptor` turned a
   `Remove` into a full update, which marked every property modified. The `UPDATE` that stamps `DeletedAt`
   therefore wrote back every column the deleting context had loaded, and deleting a row another writer had
@@ -1157,7 +1197,9 @@ them until tagged releases begin.
 - **A fast reconnect no longer cuts off its own new connection.** When a tab reconnected before the server
   noticed its previous socket had died, the old socket's cleanup detached the NEW socket: renders were
   dropped, the connected count went low, and the session was scheduled for removal under an open tab
-  (#1076). Cleanup now detaches only the socket it owns.
+  (#1076). Cleanup now detaches only the socket it owns. A removal armed anyway in that window finds the
+  session connected when it fires and leaves it alone, and an attach whose catch-up render fails — a client
+  dropping mid-attach — undoes itself rather than leaving a dead connection counted.
 - **`ConnectedCount` stays accurate across restarts and deploys.** A session rebuilt from its resume record
   never counted its socket as connected but still counted the disconnect, so every deploy's reconnect storm
   pushed the number (the `rask.sessions.connected` gauge and the live health check's `connectedSessions`)
@@ -1470,6 +1512,28 @@ them until tagged releases begin.
   are walked and never cached, which is why nothing hit this until the showcase moved onto `Rask.Ui`.
   The `.Key(submitting)` workaround in `FormSubmitStateDemo` is gone.
 
+- **A page still works where WebSockets do not.** Some networks — corporate proxies, captive portals, a
+  handful of mobile operators — block the WebSocket upgrade, and a Rask Server page that cannot open one had
+  nothing to fall back to: it rendered, then sat there inert. The live protocol now also travels over plain
+  HTTP, and the server maps it always, with nothing to configure: `GET /_rask/stream/{sessionId}` holds a
+  Server-Sent Events stream open and carries the frames a socket would, while the client's own frames come
+  back as `POST /_rask/send/{sessionId}` and a `pagehide` keepalive request to `POST /_rask/leave/{sessionId}` frees the
+  session at once rather than after its grace period. It is the same protocol, the same session and the same
+  render pipeline — one request per interaction is what it costs.
+
+  The browser picks the transport itself, per tab. It tries the WebSocket first, and makes HTTP the candidate
+  when the socket errors before opening, has not opened within 5 seconds, or is cut off within 5 seconds of
+  opening three times running. It remembers HTTP (in `sessionStorage`) only once an HTTP stream has actually
+  opened where the socket did not — a server that is merely mid-redeploy fails both, and a tab is never pinned
+  to the slower transport for that. A new tab tries the socket again. A socket that is refused before it opens
+  hands over to HTTP at once, without waiting out the reconnect backoff, so a blocked network never shows the
+  page inert. See "When WebSockets are blocked" in `docs/render-modes.md` for the proxy and HTTP/2 notes.
+
+  The guards are the socket's, applied per request because an HTTP request has no upgrade to have checked
+  earlier: the host-only `Origin` check, and `SameSessionUser` on every POST. A stream carries a generation,
+  and a POST names the one it believes it is talking to — so a tab resumed from the back/forward cache, or
+  one whose frames are still in flight after a reconnect, is answered `409` instead of driving the page its
+  successor now owns. An unknown session, and one that belongs to somebody else, get the same answer.
 
 ## [0.21.0] - 2026-09-10
 

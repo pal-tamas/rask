@@ -419,7 +419,7 @@ internal static class RaskBatteryWiring
         if (options.Storage.Enabled)
         {
             // Uploaded files, kept by id: the bytes on disk (/data/files on the deploy volume) or in a bucket, and a
-            // StoredFile row on this context. The Storage__* keys are read inside AddRaskStorage itself rather than
+            // StoredFile row on this context. The Rask__Storage__* keys are read inside AddRaskStorage itself rather than
             // here, so an app wired by hand in Program.cs honours exactly the same configuration as this one.
             services.AddRaskStorage<TContext>(o => options.Storage.Apply(o));
         }

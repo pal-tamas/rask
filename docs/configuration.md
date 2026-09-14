@@ -136,7 +136,7 @@ A few things to know:
 | `Rask:Sqlite` | `SqliteOptions` | `Rask.SQLite` | The pragmas, `StrictTables`, and `Retry`. Read by `AddRaskSqlite()` and by `UseRaskSqlite(sp)`. See [SQLite](sqlite.md). |
 | `Rask:Postgres` | `PostgresOptions` | `Rask.Postgres` | The session timeouts and `Retry`. Read by `UseRaskPostgres(sp)`. See [PostgreSQL](data.md#postgresql). |
 | `Rask:SqlServer` | `SqlServerOptions` | `Rask.SqlServer` | `CommandTimeout`, `LockTimeout`, `AbortOnError` and `Retry`. Read by `UseRaskSqlServer(sp)`. See [SQL Server](data.md#sql-server). |
-| `Storage` (not yet under `Rask`) | `StorageOptions` | `Rask.Storage` | The one exception for now: file storage still reads its own top-level section — `Storage__Provider`, `Storage__S3__Bucket` and the rest. See [file storage](file-storage.md). |
+| `Rask:Storage` | `StorageOptions` | `Rask.Storage` | `Provider`, `MaxFileSize`, `PublicBaseUrl`, `Prefix`, `OrphanGracePeriod`, `SweepInterval`, and the `Disk`, `S3` and `Azure` sub-sections; `AllowedTypes` is appended to. Keep `S3:SecretAccessKey` and `Azure:ConnectionString` in user secrets or the environment. See [file storage](file-storage.md#configuration). |
 | `Rask:Litestream` | `LitestreamOptions` | `Rask.SQLite.Litestream` | `ReplicaUrl`, `ConfigPath`, `ExecutablePath`, `Verification`. `DatabasePath` defaults to the file behind `Rask:ConnectionStrings:App`. See [continuous backup](sqlite.md#continuous-backup-with-litestream). |
 | `Rask:Snapshots` | `SqliteSnapshotOptions` | `Rask.SQLite.Snapshots` | `DestinationDirectory`, `Interval`, `Retain`. `DatabasePath` defaults the same way. See [snapshots](sqlite.md#scheduled-snapshots). |
 | `Rask:Cache` | `CacheOptions` | `Rask.Cache` | See [cache](cache.md). |
@@ -214,9 +214,10 @@ refuses the start. See [choosing the database](data.md#choosing-the-database).
 > | `WebPush:Subject` | `Rask:WebPush:Subject` |
 > | `Mail:PickupDirectory` | `Rask:Mail:PickupDirectory` |
 > | `Rask:<ServerOption>` (e.g. `Rask:MaxInboundFramesPerSecond`) | `Rask:Server:<ServerOption>` |
+> | `Storage:<StorageOption>` (e.g. `Storage:Provider`, `Storage:S3:Bucket`) | `Rask:Storage:<StorageOption>` |
 >
 > Environment variables follow the same rename: `ConnectionStrings__App` is now
-> `Rask__ConnectionStrings__App`. **Upgrade the `rask` CLI together with the packages** — `rask deploy` now
+> `Rask__ConnectionStrings__App`, and `Storage__Provider` is now `Rask__Storage__Provider`. **Upgrade the `rask` CLI together with the packages** — `rask deploy` now
 > sets `Rask__ConnectionStrings__App` and `Rask__ConnectionStrings__Logs`, which an older app does not read,
 > and an older CLI sets the old names, which a newer app does not read.
 >

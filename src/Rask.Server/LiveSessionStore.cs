@@ -439,11 +439,21 @@ public sealed class LiveSessionStore : IAsyncDisposable
             }
 
             cts.Dispose();
+
+            // A connection attached after this removal was armed. The attach cancels pending removal once it has
+            // published its transport, but a stale connection's cleanup can arm one in between (#1076's race,
+            // one step later) — and removing a session under a connected tab is the one outcome that must not
+            // happen. Its own disconnect will arm a fresh removal.
+            if (_sessions.TryGetValue(id, out var live) && live.HasOpenTransport)
+            {
+                return;
+            }
+
             await RemoveAsync(id).ConfigureAwait(false);
         });
     }
 
-    private void CancelPendingRemoval(string id)
+    internal void CancelPendingRemoval(string id)
     {
         if (_pendingRemovals.TryRemove(id, out var cts))
         {

@@ -108,7 +108,8 @@ public sealed class AuthHarness : IAsyncDisposable
 
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddDbContextFactory<AuthDbContext>(o => o.UseSqlite($"Data Source={DbPath}"));
+        // Pooling off, for the reason InstanceClaimStoreTests.PoolingOff gives (#1087).
+        services.AddDbContextFactory<AuthDbContext>(o => o.UseSqlite($"Data Source={DbPath};Pooling=False"));
         services.AddRaskAuth<AuthDbContext>(o =>
         {
             // A fixed token keeps the tests from having to read it back out of the log.

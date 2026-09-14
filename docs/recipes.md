@@ -125,7 +125,7 @@ builder.Services.AddRaskStorage<ProductsDbContext>();
 modelBuilder.AddRaskStorage();                                       // then: rask db add AddStorage && rask db update
 app.MapRaskStorage();                                                // after app.UseRask<App>()
 
-var saved = await files.SaveAsync(file, o => o.Public = true, CancellationToken);
+var saved = await files.SaveAsync(file.OpenReadStream, file.Name, file.Size, o => o.Public = true, CancellationToken);
 product.SetPhoto(saved.Id);
 Img.Src(files.Url(saved.Id)).Alt(product.Name)                       // no I/O — safe inside Render
 ```

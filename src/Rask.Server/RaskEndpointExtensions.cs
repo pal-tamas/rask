@@ -48,6 +48,7 @@ using Rask.Server.Diagnostics;
 using Rask.Server.Files;
 using Rask.Server.Http;
 using Rask.Server.JSInterop;
+using Rask.Server.Transport;
 using IQueryCollection = Microsoft.AspNetCore.Http.IQueryCollection;
 using QueryCollection = Rask.Core.Routing.QueryCollection;
 using QueryString = Rask.Core.Routing.QueryString;
@@ -63,6 +64,12 @@ public static partial class RaskEndpointExtensions
 {
     private const string RuntimePath = "/rask/rask.js";
     private const string WebSocketPath = "/rask/ws";
+
+    // The HTTP fallback, for a client whose WebSocket never opened: frames come down the stream, the
+    // client's own frames go up as POSTs, and the leave request says a tab is gone without waiting for a timeout.
+    private const string StreamPath = "/_rask/stream/{sessionId}";
+    private const string SendPath = "/_rask/send/{sessionId}";
+    private const string LeavePath = "/_rask/leave/{sessionId}";
 
     // PWA endpoints, mapped only when AddRaskPwa registered a RaskPwaState. The manifest is under /rask/;
     // the service worker is served at the app root (NOT under /rask/) so its default control scope covers
@@ -221,6 +228,8 @@ public static partial class RaskEndpointExtensions
         // Per-host shutdown state. Pure state with no dependencies, so the store can read it without a
         // construction cycle; RaskDrainService drives it.
         services.AddSingleton<RaskDrainCoordinator>();
+        // Which Server-Sent Events stream each session is on, for the HTTP transport. Per host, never static.
+        services.AddSingleton<StreamRegistry>();
         services.AddSingleton(static sp =>
         {
             // Session cap and diff mode are per-store instance values (not statics) so concurrent hosts and
@@ -802,6 +811,8 @@ public static partial class RaskEndpointExtensions
                     drain.HardStopping, wsCulture);
             }));
 
+        MapHttpTransport(endpoints, pathBase, selector);
+
         var script = LoadEmbeddedScript();
         endpoints.MapGet(pathBase + RuntimePath, (RequestDelegate)(ctx =>
             Results.Text(script, "text/javascript; charset=utf-8").ExecuteAsync(ctx)));
@@ -949,6 +960,395 @@ public static partial class RaskEndpointExtensions
         }
     }
 
+    /// <summary>
+    ///     The live protocol over plain HTTP: a Server-Sent Events stream down, POSTs up.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Always mapped, never configured. A WebSocket is what a browser gets when one opens; a network that
+    ///         blocks the upgrade — a corporate proxy, some captive portals — would otherwise leave every page
+    ///         dead, and a page that cannot connect is not a page. The client decides which one it is on and
+    ///         remembers the answer for the tab.
+    ///     </para>
+    ///     <para>
+    ///         The guards are the socket's, applied per request rather than once per connection, because an HTTP
+    ///         request carries no upgrade to have checked earlier: the host-only Origin check, the browser's own
+    ///         <c>Sec-Fetch-Site</c>, and <c>SameSessionUser</c> on every POST.
+    ///     </para>
+    /// </remarks>
+    private static void MapHttpTransport(IEndpointRouteBuilder endpoints, string pathBase, RaskRootSelector selector)
+    {
+        // The stream. One per tab, held open for the life of the page.
+        endpoints.MapGet(pathBase + StreamPath, (RequestDelegate)(ctx =>
+            StreamAsync(ctx, selector))).DisableAntiforgery();
+
+        // The client's frames. One request per interaction, which is the cost of not having a socket.
+        endpoints.MapPost(pathBase + SendPath, (RequestDelegate)SendAsync).DisableAntiforgery();
+
+        // "This tab is gone." Sent by pagehide, so a closed tab frees its session now rather than after the
+        // grace period — the socket gets this for free from its own close.
+        endpoints.MapPost(pathBase + LeavePath, (RequestDelegate)LeaveAsync).DisableAntiforgery();
+    }
+
+    // A browser stamps every request with where it came from, and "cross-site" is a page on another site driving
+    // this one. Refused beside the Origin check. A missing header — a non-browser client, an older browser — is
+    // allowed, the same posture IsSameOrigin takes toward a missing Origin.
+    private static bool IsCrossSiteFetch(HttpRequest request) =>
+        string.Equals(request.Headers["Sec-Fetch-Site"].ToString(), "cross-site", StringComparison.OrdinalIgnoreCase);
+
+    private static ClaimsPrincipal UserOf(HttpContext ctx) => ctx.User ?? new ClaimsPrincipal(new ClaimsIdentity());
+
+    private static string? StringProperty(JsonElement root, string name) =>
+        root.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+
+    /// <summary>Holds the response open and writes the session's frames to it as events.</summary>
+    private static async Task StreamAsync(HttpContext ctx, RaskRootSelector selector)
+    {
+        if (!IsSameOrigin(ctx.Request) || IsCrossSiteFetch(ctx.Request))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return;
+        }
+
+        var sessionId = (string?)ctx.Request.RouteValues["sessionId"];
+        if (string.IsNullOrEmpty(sessionId))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
+            return;
+        }
+
+        var store = ctx.RequestServices.GetRequiredService<LiveSessionStore>();
+        var limits = ctx.RequestServices.GetRequiredService<RaskServerLimits>();
+        var registry = ctx.RequestServices.GetRequiredService<StreamRegistry>();
+        var drain = ctx.RequestServices.GetRequiredService<RaskDrainCoordinator>();
+        var resume = ctx.RequestServices.GetRequiredService<SessionResumeSupport>();
+        var metrics = store.Metrics;
+
+        // Counted in the drain exactly like a socket: a shutdown waits for these to finish too.
+        using var scope = drain.TrackSocket();
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ctx.RequestAborted, drain.HardStopping);
+        var ct = linked.Token;
+
+        ServerCultureNegotiation.TryNegotiate(ctx.Request, ctx.RequestServices, out var culture);
+
+        ctx.Response.StatusCode = StatusCodes.Status200OK;
+        ctx.Response.ContentType = "text/event-stream";
+        // no-transform is the load-bearing one: a proxy that compresses or buffers this response would hold frames
+        // until it had "enough" of them, which for a live page is for ever.
+        ctx.Response.Headers.CacheControl = "no-cache, no-transform";
+        ctx.Response.Headers["X-Accel-Buffering"] = "no";
+        await ctx.Response.Body.FlushAsync(ct).ConfigureAwait(false);
+
+        var generation = registry.NextGeneration();
+        var transport = new SseTransport(ctx.Response.BodyWriter, generation, ct);
+
+        // Handed over as values, never spliced into a JSON document: both come straight from the request, and a
+        // session id or a resume token carrying a quote would otherwise have been read as the hello's own
+        // structure. The resume record travels in a header rather than the query string, because a token in a URL
+        // ends up in proxy logs and browser history — and this one rebuilds a page.
+        var resumeToken = ctx.Request.Headers["Rask-Resume"].ToString();
+        var attach = await AttachAsync(
+            sessionId, string.IsNullOrEmpty(resumeToken) ? null : resumeToken, transport, store, limits, UserOf(ctx),
+            resume, selector, metrics, culture, ct).ConfigureAwait(false);
+
+        if (attach.Status != AttachStatus.Attached || attach.Session is null)
+        {
+            // Nothing to attach to, and the same answer whether the id never existed or belongs to someone else
+            // (#1075). The client reloads, exactly as it does on the socket — which it can only do from an open
+            // connection, so the stream still opens first, naming no session.
+            await transport.SendAsync(StreamOpenedFrame(generation, sessionId: null, limits.MaxInboundFrameBytes), ct).ConfigureAwait(false);
+            await transport.SendAsync(SessionUnknownPayload, ct).ConfigureAwait(false);
+            await transport.CloseAsync(LiveTransportClose.Normal, "session-unknown", ct).ConfigureAwait(false);
+            return;
+        }
+
+        var session = attach.Session;
+        registry.Set(session.Id, transport);
+
+        try
+        {
+            // Named AFTER the attach, and naming the session it attached. A resume record rebuilds a lost session
+            // under a new id, and the client addresses every POST by id: told the generation first, it would open
+            // and flush its queue to the id no server knows any more. Any frame the attach itself sent — a
+            // rebuild's render — is already on the wire, and the client holds those until this one arrives.
+            await transport.SendAsync(StreamOpenedFrame(generation, session.Id, limits.MaxInboundFrameBytes), ct).ConfigureAwait(false);
+
+            // Alive between renders: a quiet page still has to look connected to every proxy in the path.
+            while (!ct.IsCancellationRequested && transport.IsOpen)
+            {
+                var finished = await Task.WhenAny(
+                    transport.Completed, Task.Delay(TimeSpan.FromSeconds(15), ct)).ConfigureAwait(false);
+
+                if (finished == transport.Completed)
+                {
+                    break;
+                }
+
+                await transport.HeartbeatAsync(ct).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // The client went away, or the drain's deadline passed. Both end the stream.
+        }
+        finally
+        {
+            registry.Remove(session.Id, transport);
+            transport.Abort();
+            await transport.WaitForWritesAsync(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+
+            // Only the connection that still owns the session may arm its grace period: a tab that reconnected has
+            // already attached a newer one (#1076). A tab that said it was leaving is not coming back, so its
+            // session goes now.
+            if (session.DetachTransport(transport))
+            {
+                session.LastStreamGeneration = generation;
+                store.SocketDetached();
+                store.ScheduleRemoval(session.Id, session.Leaving ? TimeSpan.Zero : limits.SessionGracePeriod);
+            }
+        }
+    }
+
+    /// <summary>
+    ///     <c>{"type":"stream","session":…,"limit":B,"generation":N}</c> — the frame that opens an HTTP connection.
+    ///     <c>limit</c> is <c>MaxInboundFrameBytes</c>: a POST carries a batch, and the client packs each within it so
+    ///     the cap stays a per-frame one, as on the socket, rather than refusing a batch of frames that each fit. Written
+    ///     through a JSON writer rather than interpolated: the session id comes from the request's route when the
+    ///     attach found nothing, and must not be able to add structure of its own.
+    /// </summary>
+    private static byte[] StreamOpenedFrame(int generation, string? sessionId, int maxFrameBytes)
+    {
+        var buffer = new ArrayBufferWriter<byte>(96);
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
+            writer.WriteStartObject();
+            writer.WriteString("type"u8, "stream"u8);
+            if (sessionId is not null)
+            {
+                writer.WriteString("session"u8, sessionId);
+            }
+
+            writer.WriteNumber("limit"u8, maxFrameBytes);
+            writer.WriteNumber("generation"u8, generation);
+            writer.WriteEndObject();
+        }
+
+        return buffer.WrittenSpan.ToArray();
+    }
+
+    /// <summary>Takes the client's frames for a session whose stream is open.</summary>
+    private static async Task SendAsync(HttpContext ctx)
+    {
+        if (!IsSameOrigin(ctx.Request) || IsCrossSiteFetch(ctx.Request))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return;
+        }
+
+        var store = ctx.RequestServices.GetRequiredService<LiveSessionStore>();
+        var limits = ctx.RequestServices.GetRequiredService<RaskServerLimits>();
+        var registry = ctx.RequestServices.GetRequiredService<StreamRegistry>();
+        var metrics = store.Metrics;
+
+        var sessionId = (string?)ctx.Request.RouteValues["sessionId"];
+        // Peek: a POST must not be what keeps a detached session alive (see LiveSessionStore.Peek).
+        var session = sessionId is null ? null : store.Peek(sessionId);
+        if (session is null
+            || !SameSessionUser(UserOf(ctx), session.Services.GetRequiredService<SessionUserProvider>().Current))
+        {
+            // The same answer for "no such session" and "not yours", so neither can be probed for.
+            ctx.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        // The stream this POST believes it is talking to. A tab that reconnected has a newer one, and an older tab's
+        // frames must not reach the session it no longer drives.
+        var stream = registry.Current(session.Id, ctx.Request.Headers["Rask-Stream"].ToString());
+        if (stream is null)
+        {
+            ctx.Response.StatusCode = StatusCodes.Status409Conflict;
+            return;
+        }
+
+        await stream.Inbound.WaitAsync(ctx.RequestAborted).ConfigureAwait(false);
+        try
+        {
+            // Replaced or ended while this request waited its turn — or the tab has since attached another
+            // connection, which is the one that speaks for the session now.
+            if (!stream.Transport.IsOpen || !session.IsAttached(stream.Transport))
+            {
+                ctx.Response.StatusCode = StatusCodes.Status409Conflict;
+                return;
+            }
+
+            await ReceiveFramesAsync(ctx, session, stream.Transport, store, limits, registry, metrics)
+                .ConfigureAwait(false);
+        }
+        finally
+        {
+            stream.Inbound.Release();
+        }
+    }
+
+    private static async Task ReceiveFramesAsync(
+        HttpContext ctx,
+        LiveSession session,
+        SseTransport stream,
+        LiveSessionStore store,
+        RaskServerLimits limits,
+        StreamRegistry registry,
+        RaskMetrics? metrics)
+    {
+        if (!ctx.Request.HasJsonContentType())
+        {
+            ctx.Response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
+            return;
+        }
+
+        if (ctx.Request.ContentLength > limits.MaxInboundFrameBytes)
+        {
+            metrics?.FrameRejected("size");
+            ctx.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
+            return;
+        }
+
+        // Read through the cap rather than trusting Content-Length alone, which a chunked request does not carry: the
+        // same bound the socket enforces while it reassembles a message.
+        using var body = new MemoryStream();
+        var chunk = ArrayPool<byte>.Shared.Rent(16 * 1024);
+        try
+        {
+            int read;
+            while ((read = await ctx.Request.Body.ReadAsync(chunk, ctx.RequestAborted).ConfigureAwait(false)) > 0)
+            {
+                if (body.Length + read > limits.MaxInboundFrameBytes)
+                {
+                    metrics?.FrameRejected("size");
+                    ctx.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
+                    return;
+                }
+
+                body.Write(chunk, 0, read);
+            }
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(chunk);
+        }
+
+        JsonDocument doc;
+        try
+        {
+            doc = JsonDocument.Parse(body.GetBuffer().AsMemory(0, (int)body.Length));
+        }
+        catch (JsonException)
+        {
+            ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
+            return;
+        }
+
+        using (doc)
+        {
+            // An array, because a client batches whatever piled up while a POST was in flight — which is how
+            // arrival order survives a transport that has no ordering of its own.
+            if (doc.RootElement.ValueKind != JsonValueKind.Array)
+            {
+                ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
+                return;
+            }
+
+            var count = doc.RootElement.GetArrayLength();
+            if (count == 0)
+            {
+                ctx.Response.StatusCode = StatusCodes.Status204NoContent;
+                return;
+            }
+
+            // The socket's frame-rate cap, counted per batch. A flood ends the stream the way it ends a socket, so
+            // the client reconnects against the intact session and resumes from current state.
+            if (limits.MaxInboundFramesPerSecond > 0
+                && !registry.TryAdmit(session.Id, count, limits.MaxInboundFramesPerSecond))
+            {
+                metrics?.FrameRejected("rate");
+                registry.Close(session.Id, LiveTransportClose.PolicyViolation, "frame rate");
+                ctx.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                return;
+            }
+
+            // The backlog cap needs a byte count per frame, not an exact one, and dividing the body keeps this
+            // allocation-free — measuring each frame would re-serialise it.
+            var perFrame = (int)Math.Max(1, body.Length / count);
+
+            foreach (var frame in doc.RootElement.EnumerateArray())
+            {
+                if (frame.ValueKind != JsonValueKind.Object)
+                {
+                    continue;
+                }
+
+                var hasType = frame.TryGetProperty("type", out var type) && type.ValueKind == JsonValueKind.String;
+                // The stream's lifetime, not this request's: a handler queued here runs after the 204 has gone.
+                var outcome = await ProcessFrameAsync(
+                    session, frame, hasType, type, perFrame, store, limits, metrics, stream.Lifetime)
+                    .ConfigureAwait(false);
+
+                if (outcome.Status == FrameStatus.Refused)
+                {
+                    // A breaker tripped. The stream is what ends; this request says so.
+                    registry.Close(session.Id, LiveTransportClose.PolicyViolation, outcome.Reason!);
+                    ctx.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                    return;
+                }
+            }
+        }
+
+        ctx.Response.StatusCode = StatusCodes.Status204NoContent;
+    }
+
+    /// <summary>Frees a session whose tab has gone, without waiting out its grace period.</summary>
+    private static Task LeaveAsync(HttpContext ctx)
+    {
+        if (!IsSameOrigin(ctx.Request) || IsCrossSiteFetch(ctx.Request))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return Task.CompletedTask;
+        }
+
+        var store = ctx.RequestServices.GetRequiredService<LiveSessionStore>();
+        var registry = ctx.RequestServices.GetRequiredService<StreamRegistry>();
+
+        var sessionId = (string?)ctx.Request.RouteValues["sessionId"];
+        var session = sessionId is null ? null : store.Peek(sessionId);
+        if (session is null
+            || !SameSessionUser(UserOf(ctx), session.Services.GetRequiredService<SessionUserProvider>().Current))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status404NotFound;
+            return Task.CompletedTask;
+        }
+
+        // Only the tab that still owns the stream may end it: a request from a tab that has already been replaced
+        // would otherwise close the page its successor is driving. An ordinary ending, not a violation — and the
+        // stream's cleanup frees the session at once rather than after the grace period.
+        var generation = ctx.Request.Headers["Rask-Stream"].ToString();
+        if (registry.IsCurrent(session.Id, generation))
+        {
+            session.Leaving = true;
+            registry.Close(session.Id, LiveTransportClose.Normal, "leave");
+        }
+        else if (!session.HasOpenTransport
+                 && int.TryParse(generation, NumberStyles.Integer, CultureInfo.InvariantCulture, out var named)
+                 && named == session.LastStreamGeneration)
+        {
+            // A closing tab tears its stream down while this request is on its way, so the stream's cleanup
+            // often runs first and has already armed the grace period. The generation still names the last
+            // stream this session had, and nothing has attached since: it is the same tab, and it has gone.
+            store.ScheduleRemoval(session.Id, TimeSpan.Zero);
+        }
+
+        ctx.Response.StatusCode = StatusCodes.Status204NoContent;
+        return Task.CompletedTask;
+    }
+
     private static async Task RunSocketLoop(WebSocket ws, LiveSessionStore store, RaskServerLimits limits,
         ClaimsPrincipal wsUser, SessionResumeSupport resume, RaskRootSelector selector,
         CancellationToken ct, CancellationToken stopping, CultureNegotiation resumeCulture = default)
@@ -959,6 +1359,10 @@ public static partial class RaskEndpointExtensions
             catch { }
         });
         var metrics = store.Metrics;
+
+        // One transport for this connection: what the session sends through, and the identity the detach
+        // below compares against.
+        var transport = new WebSocketTransport(ws);
         LiveSession? session = null;
         var buffer = new byte[16 * 1024];
         var message = new ArrayBufferWriter<byte>(16 * 1024);
@@ -1124,100 +1528,23 @@ public static partial class RaskEndpointExtensions
                         break;
                     }
 
-                    var sessionId = root.TryGetProperty("session", out var sid) && sid.ValueKind == JsonValueKind.String
-                        ? sid.GetString()
-                        : null;
-                    if (sessionId is null)
+                    var attach = await AttachAsync(
+                        StringProperty(root, "session"), StringProperty(root, "resume"), transport, store, limits,
+                        wsUser, resume, selector, metrics, resumeCulture, ct).ConfigureAwait(false);
+
+                    if (attach.Status == AttachStatus.Ignored)
                     {
                         continue;
                     }
 
-                    // A session that is not this principal's is treated exactly as one that does not
-                    // exist — resume record and all — so a leaked id tells a stranger nothing, not even
-                    // that it is live (#1075). Peek, not Get: Get cancels the session's pending removal,
-                    // which a refused hello must not be able to do.
-                    session = store.Peek(sessionId) is { } existing && !MayAttach(wsUser, existing)
-                        ? null
-                        : store.Get(sessionId);
-                    if (session is null)
+                    if (attach.Status == AttachStatus.Unknown)
                     {
-                        // This host has never heard of the session. Before the resume protocol that was
-                        // the end of it — the client reloaded and the user lost their page. If the client
-                        // carries a record we can open, rebuild the page around it instead.
-                        var resumeToken =
-                            root.TryGetProperty("resume", out var rt) && rt.ValueKind == JsonValueKind.String
-                                ? rt.GetString()
-                                : null;
-
-                        session = resumeToken is null
-                            ? null
-                            : TryResumeSession(resumeToken, wsUser, resume, store, metrics, selector);
-
-                        if (session is null)
-                        {
-                            await SendSessionUnknownAsync(ws, ct).ConfigureAwait(false);
-                            return;
-                        }
-
-                        // The rebuilt session has a NEW id. The client learns it from the full frame below,
-                        // which re-stamps data-rask-root — see LiveSessionBase's full-payload path.
-                        // Counted like any other attach: the finally counts the detach, so an uncounted
-                        // attach here drove ConnectedCount negative after every deploy (#1059).
-                        if (session.AttachSocket(ws, ct))
-                        {
-                            store.SocketAttached();
-                        }
-
-                        session.Services.GetRequiredService<SessionUserProvider>().Set(wsUser);
-
-                        // A resumed session is a NEW DI scope, so its culture starts at the app default.
-                        // Without this the visitor's language would silently reset the first time the
-                        // host restarted under them — the one moment resume exists to hide.
-                        if (resumeCulture.Culture is not null)
-                        {
-                            ServerCultureNegotiation.Apply(session.Services, resumeCulture);
-                        }
-                        await session.RenderAndSendAsync(null, false).ConfigureAwait(false);
-                        continue;
+                        // Nothing to attach to, and nothing that says whether the id ever existed.
+                        await SendSessionUnknownAsync(ws, ct).ConfigureAwait(false);
+                        return;
                     }
 
-                    // Counted here rather than inside AttachSocket: the store owns the number, and the
-                    // session has no reason to know a store exists. A socket that replaces one still
-                    // attached is not counted again; that one's loop will not count its detach.
-                    if (session.AttachSocket(ws, ct))
-                    {
-                        store.SocketAttached();
-                    }
-                    session.Services.GetRequiredService<SessionUserProvider>().Set(wsUser);
-
-                    // Apply a deferred sign-in/out navigation now that the principal is re-seeded, so the
-                    // destination page mounts fresh under the new identity (its OnMountAsync runs against
-                    // the redeemed principal). AttachSocket flagged _renderRequestedWhileDetached on this
-                    // reconnect, so the FlushPendingRenderAsync below performs a real render against the
-                    // updated route. See LiveSession.PendingAuthNavigation.
-                    if (session.PendingAuthNavigation is { } authDest)
-                    {
-                        session.PendingAuthNavigation = null;
-                        var routeState = session.Services.GetRequiredService<RouteState>();
-                        var (path, query) = SplitUrl(authDest);
-                        routeState.Path = path;
-                        routeState.Query = query;
-
-                        // A return URL into another application on this host: load it as a page (#1094).
-                        if (await NavigateAcrossApplicationsAsync(session, replace: true).ConfigureAwait(false))
-                        {
-                            continue;
-                        }
-                    }
-
-                    // Only emit a catch-up render when something asked to render during the
-                    // GET→hello handoff window (or while detached across a reconnect). When
-                    // no drop happened, the browser's HTML still reflects the session state
-                    // and re-rendering would just re-fire OnRendered on every alive
-                    // component for no visible change — that's what made Server's initial-
-                    // mount hook count diverge from WASM's. FlushPendingRenderAsync is a
-                    // no-op when nothing's pending.
-                    await session.FlushPendingRenderAsync().ConfigureAwait(false);
+                    session = attach.Session;
                     continue;
                 }
 
@@ -1231,110 +1558,21 @@ public static partial class RaskEndpointExtensions
                 // admitted for the principal the session had THEN, which a sign-in on the new socket may
                 // have changed since. Dropped rather than closed, so a duplicated tab holding the same id
                 // does not fall into a reconnect tug-of-war with the original.
-                if (!session.IsAttached(ws))
+                if (!session.IsAttached(transport))
                 {
                     continue;
                 }
 
-                if (session.SuppressEventsUntilReconnect)
-                {
-                    // Auth handoff in flight: a redeem fetch + WS reconnect are happening on
-                    // the client. Drop everything except a future hello (handled above).
-                    continue;
-                }
+                var frame = await ProcessFrameAsync(
+                    session, root, hasType, t, payload.Length, store, limits, metrics, ct).ConfigureAwait(false);
 
-                if (hasType && t.ValueEquals("navigate"u8))
+                if (frame.Status == FrameStatus.Refused)
                 {
-                    await HandleNavigateAsync(session, root, ct);
-                    continue;
-                }
-
-                if (hasType && t.ValueEquals("jsResult"u8))
-                {
-                    // Round-trip reply for an IJSRuntime.InvokeAsync<T> call. The base
-                    // JSRuntime class manages its own pending-task dictionary keyed by the
-                    // taskId we passed out in jsInvokes; calling EndInvokeJS with the
-                    // serialised [taskId, success, result|error] triple completes the
-                    // awaiting ValueTask. No render needed.
-                    HandleJsResult(session, root);
-                    continue;
-                }
-
-                if (hasType && t.ValueEquals("dotNetInvoke"u8))
-                {
-                    // JS-side DotNet.invokeMethodAsync calling into a [JSInvokable] method.
-                    // Hand off to the public DotNetDispatcher; the runtime completes the
-                    // call asynchronously and EndInvokeDotNet fires our SendOutOfBandAsync
-                    // to deliver the result back to the client. No render needed.
-                    HandleDotNetInvoke(session, root);
-                    continue;
-                }
-
-                var handlerId = root.TryGetProperty("id", out var idEl) && idEl.ValueKind == JsonValueKind.String
-                    ? idEl.GetString()
-                    : null;
-                if (handlerId is null)
-                {
-                    continue;
-                }
-
-                // Dispatch the handler in WS-arrival order while keeping the receive
-                // loop alive so async handlers can interleave with the jsResult /
-                // dotNetInvoke frames they're awaiting (those paths run inline above —
-                // never through DispatchHandlerAsync). The chain is rebuilt per
-                // message: capture the prior tail, assign a new continuation that
-                // awaits it before dispatching, and store the new continuation as
-                // the next tail.
-                //
-                // Why not Task.Run + session.Lock.WaitAsync (the prior shape):
-                // SemaphoreSlim is FIFO based on the order callers invoke WaitAsync,
-                // not the order Task.Run was invoked. Under ThreadPool contention,
-                // two messages spawned input→submit can race and acquire the lock
-                // submit→input — letting submit handlers read a stale EditContext
-                // that the preceding input handler hadn't applied yet. The async
-                // chaining below pins start-of-dispatch order to WS-arrival order
-                // without blocking the receive loop.
-                //
-                // We clone the JSON element because the JsonDocument's backing
-                // buffer is disposed at the bottom of the iteration.
-                var capturedSession = session;
-                var capturedHandlerId = handlerId;
-
-                // Backpressure circuit-breaker: bound both the number of dispatches queued on the
-                // chain (MaxPendingHandlers) and their aggregate cloned-payload bytes
-                // (MaxPendingHandlerBytes). When handlers drain slower than the client sends (a flood)
-                // or the chain head is stuck (a hung handler), the queue — each entry holding a cloned
-                // JsonElement — would grow without limit. Trip before cloning so we don't even allocate
-                // the payload we'd have to drop; close the socket so the client reconnects (hello)
-                // against the intact session and resumes from current state.
-                var payloadBytes = (long)payload.Length;
-                var pending = capturedSession.IncrementPendingHandlers();
-                store.HandlerQueued();
-                var pendingBytes = capturedSession.AddPendingHandlerBytes(payloadBytes);
-                if ((limits.MaxPendingHandlers > 0 && pending > limits.MaxPendingHandlers)
-                    || (limits.MaxPendingHandlerBytes > 0 && pendingBytes > limits.MaxPendingHandlerBytes))
-                {
-                    capturedSession.DecrementPendingHandlers();
-                    store.HandlerDequeued();
-                    capturedSession.SubtractPendingHandlerBytes(payloadBytes);
-                    metrics?.FrameRejected("backlog");
-                    await ClosePolicyViolationAsync(ws, "handler backlog").ConfigureAwait(false);
+                    // A breaker tripped. Close politely: the client reconnects (hello) against the intact
+                    // session and resumes from current state.
+                    await ClosePolicyViolationAsync(ws, frame.Reason!).ConfigureAwait(false);
                     break;
                 }
-
-                // We clone the JSON element because the JsonDocument's backing buffer is disposed
-                // at the bottom of the iteration.
-                var capturedRoot = root.Clone();
-                capturedSession.LastHandlerTask = ChainHandlerDispatchAsync(
-                    capturedSession.LastHandlerTask,
-                    store,
-                    capturedSession,
-                    capturedHandlerId,
-                    capturedRoot,
-                    payloadBytes,
-                    metrics,
-                    limits.HandlerTimeout,
-                    ct);
             }
         }
         catch (OperationCanceledException) { }
@@ -1344,7 +1582,7 @@ public static partial class RaskEndpointExtensions
             // Only when this loop's socket is still the attached one. A tab that reconnected before the
             // server noticed this socket die has attached a new one already: detaching, counting the
             // disconnect or arming removal here would do all three to the live connection (#1076).
-            if (session is not null && session.DetachSocket(ws))
+            if (session is not null && session.DetachTransport(transport))
             {
                 store.SocketDetached();
                 store.ScheduleRemoval(session.Id, limits.SessionGracePeriod);
@@ -1356,6 +1594,289 @@ public static partial class RaskEndpointExtensions
                 try { await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", closeCts.Token); }
                 catch { }
             }
+        }
+    }
+
+    /// <summary>Whether a frame left the connection usable.</summary>
+    private enum FrameStatus
+    {
+        /// <summary>Handled (or ignored). Keep reading.</summary>
+        Handled,
+
+        /// <summary>A safety cap tripped; this connection has to end, and <c>Reason</c> says which.</summary>
+        Refused,
+    }
+
+    /// <summary>The outcome of one inbound frame.</summary>
+    private readonly record struct FrameOutcome(FrameStatus Status, string? Reason);
+
+    /// <summary>
+    ///     Handles one inbound frame for an attached session: a navigation, a JS round-trip reply, a .NET
+    ///     invocation, or an event handler dispatched in arrival order.
+    /// </summary>
+    /// <remarks>
+    ///     Written against the session rather than a socket, so every transport runs the same protocol. The
+    ///     backpressure breaker RETURNS rather than closing anything: a WebSocket ends with a close frame, a
+    ///     Server-Sent Events stream by completing its response, and a POST by answering — which of those to
+    ///     do is the caller's business, not this method's.
+    /// </remarks>
+    private static async ValueTask<FrameOutcome> ProcessFrameAsync(
+        LiveSession session,
+        JsonElement root,
+        bool hasType,
+        JsonElement type,
+        int payloadLength,
+        LiveSessionStore store,
+        RaskServerLimits limits,
+        RaskMetrics? metrics,
+        CancellationToken ct)
+    {
+        if (session.SuppressEventsUntilReconnect)
+        {
+            // Auth handoff in flight: a redeem fetch + reconnect are happening on the client. Drop
+            // everything except a future hello (handled before this).
+            return new FrameOutcome(FrameStatus.Handled, null);
+        }
+
+        if (hasType && type.ValueEquals("navigate"u8))
+        {
+            await HandleNavigateAsync(session, root, ct);
+            return new FrameOutcome(FrameStatus.Handled, null);
+        }
+
+        if (hasType && type.ValueEquals("jsResult"u8))
+        {
+            // Round-trip reply for an IJSRuntime.InvokeAsync<T> call. The base JSRuntime class manages its
+            // own pending-task dictionary keyed by the taskId we passed out in jsInvokes; calling EndInvokeJS
+            // with the serialised [taskId, success, result|error] triple completes the awaiting ValueTask. No
+            // render needed.
+            HandleJsResult(session, root);
+            return new FrameOutcome(FrameStatus.Handled, null);
+        }
+
+        if (hasType && type.ValueEquals("dotNetInvoke"u8))
+        {
+            // JS-side DotNet.invokeMethodAsync calling into a [JSInvokable] method. Hand off to the public
+            // DotNetDispatcher; the runtime completes the call asynchronously and EndInvokeDotNet fires our
+            // SendOutOfBandAsync to deliver the result back to the client. No render needed.
+            HandleDotNetInvoke(session, root);
+            return new FrameOutcome(FrameStatus.Handled, null);
+        }
+
+        var handlerId = root.TryGetProperty("id", out var idEl) && idEl.ValueKind == JsonValueKind.String
+            ? idEl.GetString()
+            : null;
+        if (handlerId is null)
+        {
+            return new FrameOutcome(FrameStatus.Handled, null);
+        }
+
+        // Dispatch the handler in ARRIVAL order while keeping the caller's reader alive, so async handlers can
+        // interleave with the jsResult / dotNetInvoke frames they are awaiting (those paths run inline above —
+        // never through DispatchHandlerAsync). The chain is rebuilt per message: capture the prior tail, assign
+        // a new continuation that awaits it before dispatching, and store that as the next tail.
+        //
+        // Why not Task.Run + session.Lock.WaitAsync (the prior shape): SemaphoreSlim is FIFO based on the order
+        // callers invoke WaitAsync, not the order Task.Run was invoked. Under ThreadPool contention, two
+        // messages spawned input→submit can race and acquire the lock submit→input — letting submit handlers
+        // read a stale EditContext that the preceding input handler had not applied yet. The async chaining
+        // below pins start-of-dispatch order to arrival order without blocking the reader.
+        // Backpressure circuit-breaker: bound both the number of dispatches queued on the chain
+        // (MaxPendingHandlers) and their aggregate cloned-payload bytes (MaxPendingHandlerBytes). When handlers
+        // drain slower than the client sends (a flood) or the chain head is stuck (a hung handler), the queue —
+        // each entry holding a cloned JsonElement — would grow without limit. Trip BEFORE cloning, so the
+        // payload that would be dropped is never allocated.
+        var payloadBytes = (long)payloadLength;
+        var pending = session.IncrementPendingHandlers();
+        store.HandlerQueued();
+        var pendingBytes = session.AddPendingHandlerBytes(payloadBytes);
+        if ((limits.MaxPendingHandlers > 0 && pending > limits.MaxPendingHandlers)
+            || (limits.MaxPendingHandlerBytes > 0 && pendingBytes > limits.MaxPendingHandlerBytes))
+        {
+            session.DecrementPendingHandlers();
+            store.HandlerDequeued();
+            session.SubtractPendingHandlerBytes(payloadBytes);
+            metrics?.FrameRejected("backlog");
+            return new FrameOutcome(FrameStatus.Refused, "handler backlog");
+        }
+
+        // We clone the JSON element because the JsonDocument's backing buffer is disposed by the caller once
+        // this frame is handled.
+        var capturedRoot = root.Clone();
+        session.LastHandlerTask = ChainHandlerDispatchAsync(
+            session.LastHandlerTask,
+            store,
+            session,
+            handlerId,
+            capturedRoot,
+            payloadBytes,
+            metrics,
+            limits.HandlerTimeout,
+            ct);
+
+        return new FrameOutcome(FrameStatus.Handled, null);
+    }
+
+    /// <summary>What a <c>hello</c> did.</summary>
+    internal enum AttachStatus
+    {
+        /// <summary>The frame named no session. Keep reading: nothing was asked for, so nothing is refused.</summary>
+        Ignored,
+
+        /// <summary>The connection is attached to a session and has been counted.</summary>
+        Attached,
+
+        /// <summary>
+        ///     No session to attach to: this host never had that id, or the sender does not own it. The
+        ///     caller answers the unknown-session frame and ends the connection — the same answer either
+        ///     way, so a prober cannot tell the two apart (#1075).
+        /// </summary>
+        Unknown,
+    }
+
+    /// <summary>The session this connection is now driving.</summary>
+    internal readonly record struct AttachOutcome(AttachStatus Status, LiveSession? Session);
+
+    /// <summary>
+    ///     Attaches a connection to the session its <c>hello</c> names, resuming one this host never had
+    ///     when the client carries a record for it.
+    /// </summary>
+    /// <remarks>
+    ///     Written against <see cref="ILiveTransport" /> rather than a WebSocket, because every transport
+    ///     opens the same way: a client names a session, proves it may drive it, and gets a catch-up render
+    ///     for whatever it missed. The caller keeps the answer to a refusal, since how "the connection ends"
+    ///     is the transport's business.
+    /// </remarks>
+    internal static async Task<AttachOutcome> AttachAsync(
+        string? sessionId,
+        string? resumeToken,
+        ILiveTransport transport,
+        LiveSessionStore store,
+        RaskServerLimits limits,
+        ClaimsPrincipal user,
+        SessionResumeSupport resume,
+        RaskRootSelector selector,
+        RaskMetrics? metrics,
+        CultureNegotiation resumeCulture,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(sessionId))
+        {
+            return new AttachOutcome(AttachStatus.Ignored, null);
+        }
+
+        // A session that is not this principal's is treated exactly as one that does not exist — resume record
+        // and all — so a leaked id tells a stranger nothing, not even that it is live (#1075). Peek, not Get:
+        // Get cancels the session's pending removal, which a refused hello must not be able to do. It is
+        // cancelled below, once this connection has actually attached.
+        var session = store.Peek(sessionId) is { } existing && MayAttach(user, existing) ? existing : null;
+        if (session is null)
+        {
+            // This host has never heard of the session. Before the resume protocol that was the end of it —
+            // the client reloaded and the user lost their page. If the client carries a record we can open,
+            // rebuild the page around it instead.
+            session = string.IsNullOrEmpty(resumeToken)
+                ? null
+                : TryResumeSession(resumeToken, user, resume, store, metrics, selector);
+
+            if (session is null)
+            {
+                return new AttachOutcome(AttachStatus.Unknown, null);
+            }
+
+            // The rebuilt session has a NEW id. The client learns it from the full frame below, which re-stamps
+            // data-rask-root — see LiveSessionBase's full-payload path. Counted like any other attach: the
+            // cleanup counts the detach, so an uncounted attach here drove ConnectedCount negative after every
+            // deploy (#1059).
+            if (session.AttachTransport(transport, ct))
+            {
+                store.SocketAttached();
+            }
+
+            session.Services.GetRequiredService<SessionUserProvider>().Set(user);
+
+            // A resumed session is a NEW DI scope, so its culture starts at the app default. Without this the
+            // visitor's language would silently reset the first time the host restarted under them — the one
+            // moment resume exists to hide.
+            if (resumeCulture.Culture is not null)
+            {
+                ServerCultureNegotiation.Apply(session.Services, resumeCulture);
+            }
+
+            try
+            {
+                await session.RenderAndSendAsync(null, false).ConfigureAwait(false);
+            }
+            catch
+            {
+                AbandonAttach(session, transport, store, limits);
+                throw;
+            }
+
+            return new AttachOutcome(AttachStatus.Attached, session);
+        }
+
+        // Counted here rather than inside AttachTransport: the store owns the number, and the session has no
+        // reason to know a store exists. A connection that replaces one still attached is not counted again;
+        // that one's cleanup will not count its detach.
+        if (session.AttachTransport(transport, ct))
+        {
+            store.SocketAttached();
+        }
+
+        // After publishing, not before: a stale connection's cleanup that ran in between could otherwise arm a
+        // removal nothing cancels. (The removal also skips a session with an open connection when it fires.)
+        store.CancelPendingRemoval(session.Id);
+        session.Leaving = false;
+        session.Services.GetRequiredService<SessionUserProvider>().Set(user);
+
+        try
+        {
+            // Apply a deferred sign-in/out navigation now that the principal is re-seeded, so the destination
+            // page mounts fresh under the new identity (its OnMountAsync runs against the redeemed principal).
+            // The attach flagged a pending render for this reconnect, so the flush below performs a real render
+            // against the updated route. See LiveSession.PendingAuthNavigation.
+            if (session.PendingAuthNavigation is { } authDest)
+            {
+                session.PendingAuthNavigation = null;
+                var routeState = session.Services.GetRequiredService<RouteState>();
+                var (path, query) = SplitUrl(authDest);
+                routeState.Path = path;
+                routeState.Query = query;
+
+                // A return URL into another application on this host: load it as a page (#1094).
+                if (await NavigateAcrossApplicationsAsync(session, replace: true).ConfigureAwait(false))
+                {
+                    return new AttachOutcome(AttachStatus.Attached, session);
+                }
+            }
+
+            // Only emit a catch-up render when something asked to render during the GET-to-hello handoff window
+            // (or while detached across a reconnect). When no drop happened, the browser's HTML still reflects
+            // the session state and re-rendering would just re-fire OnRendered on every alive component for no
+            // visible change — that's what made Server's initial-mount hook count diverge from WASM's.
+            // FlushPendingRenderAsync is a no-op when nothing's pending.
+            await session.FlushPendingRenderAsync().ConfigureAwait(false);
+        }
+        catch
+        {
+            AbandonAttach(session, transport, store, limits);
+            throw;
+        }
+
+        return new AttachOutcome(AttachStatus.Attached, session);
+    }
+
+    // The attach's render threw — most often the client dropping mid-attach. The caller never learns this
+    // connection attached (no outcome is returned), so its cleanup cannot undo it: this does, or the session keeps
+    // a dead transport with no removal armed and the connected count never comes back down.
+    private static void AbandonAttach(
+        LiveSession session, ILiveTransport transport, LiveSessionStore store, RaskServerLimits limits)
+    {
+        if (session.DetachTransport(transport))
+        {
+            store.SocketDetached();
+            store.ScheduleRemoval(session.Id, limits.SessionGracePeriod);
         }
     }
 

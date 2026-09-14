@@ -63,23 +63,22 @@ internal static class TemplateCatalog
     /// A pure browser-WASM SPA has no server to run them on.
     /// </summary>
     /// <remarks>
-    ///     Two flags are deliberately NOT here, and both for the same reason: they need
-    ///     <c>Rask.Core</c>, which is <c>IsPackable=false</c> and travels inside the host packages that
-    ///     render components — so <c>Rask.Spa.Hosting</c> and <c>Rask.Meta.Hosting</c> ship no copy and
-    ///     an app that reaches for it aborts before <c>Main</c> (#1069).
-    ///     <list type="bullet">
-    ///         <item><c>ops</c> — the operator dashboard is Rask components carrying <c>[Route]</c>, so
-    ///         it is reachable only through <c>UseRask&lt;TApp&gt;()</c>, which only the server template
-    ///         calls. On a front-end lane it would register services no request can ever reach.</item>
-    ///         <item><c>storage</c> — <c>MapRaskStorage()</c> is CALLED at startup and its body names
-    ///         <c>Rask.Core.Live</c> types, so the JIT loads Core there and then: every front-end
-    ///         template crashed with <c>FileNotFoundException: Rask.Core</c> until this flag came off
-    ///         them. See #1086.</item>
-    ///     </list>
-    ///     Both are listed on the server template alone rather than accepted and then disregarded.
+    ///     <para>
+    ///     <c>ops</c> is deliberately NOT here. It needs <c>Rask.Core</c>, which is <c>IsPackable=false</c>
+    ///     and travels inside the host packages that render components, so <c>Rask.Spa.Hosting</c> and
+    ///     <c>Rask.Meta.Hosting</c> ship no copy and an app that reaches for it aborts before <c>Main</c>
+    ///     (#1069). The operator dashboard is also Rask components carrying <c>[Route]</c>, reachable only
+    ///     through <c>UseRask&lt;TApp&gt;()</c>, which only the server template calls. It is listed on the
+    ///     server template alone rather than accepted and then disregarded.
+    ///     </para>
+    ///     <para>
+    ///     <c>storage</c> is here now that <c>Rask.Storage</c> references no <c>Rask.Core</c> (#1086). Before
+    ///     that, <c>MapRaskStorage()</c> named Core types, and every front-end template crashed at startup
+    ///     with <c>FileNotFoundException: Rask.Core</c>.
+    ///     </para>
     /// </remarks>
     private static readonly string[] DatabaseFlags =
-        ["cqrs", "data", "jobs", "mail", "cache", "outbox", "snapshots", "logs"];
+        ["cqrs", "data", "jobs", "mail", "cache", "outbox", "snapshots", "logs", "storage"];
 
     public static IReadOnlyList<TemplateInfo> All { get; } =
     [
@@ -88,7 +87,7 @@ internal static class TemplateCatalog
         // other templates either already ARE a browser app or carry a front end of their own.
         new("server", "Rask Server app",
             new HashSet<string>(
-                [.. WebFlags, .. DatabaseFlags, "ops", "storage", "push", "wasm"],
+                [.. WebFlags, .. DatabaseFlags, "ops", "push", "wasm"],
                 StringComparer.Ordinal),
             // The server runtime carries ICU regardless, so scaffolding the registration costs nothing.
             ShipsLocalization: true),

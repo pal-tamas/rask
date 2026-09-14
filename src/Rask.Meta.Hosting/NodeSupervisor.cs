@@ -84,6 +84,14 @@ internal sealed partial class NodeSupervisor : BackgroundService
                 + "Build the front end, or set MetaHostingOptions.AppDirectory to where it was built.");
         }
 
+        // With no process to supervise there is nothing to wait for, so forwarding opens as the host starts rather than
+        // whenever the pool first runs ExecuteAsync. Left to the loop alone, "the host has started" and "requests are
+        // forwarded" were two different moments, and the first request after start could be refused (#1092).
+        if (!_options.SuperviseNode)
+        {
+            _readiness.MarkReady();
+        }
+
         await base.StartAsync(cancellationToken).ConfigureAwait(false);
     }
 
