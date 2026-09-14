@@ -1,4 +1,5 @@
 using Rask.Core;
+using Rask.Core.Diagnostics.DevTools;
 using Rask.DevTools.Probe;
 using Rask.Ui;
 
@@ -80,8 +81,16 @@ internal sealed partial class DevToolsTreeTab : Component
             Span.Class("truncate")[node.Type],
             node.Key is { Length: > 0 } key
                 ? UiBadge.Size(UiSize.Xs).Variant(UiVariant.Soft)[key]
-                : Span
+                : Span,
+            // What the component was given, on the row itself: a tree whose rows say only their type names makes a
+            // developer click every one of them to find the value they came for.
+            node.Props.Count == 0
+                ? Span
+                : Span.Class("truncate text-xs opacity-60")[string.Join("  ", node.Props.Select(Described))]
         ];
+
+    private static string Described(DescribedProp prop) =>
+        prop.Name + "=" + (prop.Value is null ? "null" : prop.Value);
 
     private static int Count(DevToolsComponentNode node)
     {

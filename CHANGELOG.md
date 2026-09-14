@@ -599,6 +599,13 @@ them until tagged releases begin.
   opened survive the page's next render. The snapshot is taken at the end of that render and only while the tab is
   open — a page nobody is inspecting walks its tree exactly as before.
 
+- **The devtools tree says what each component was given.** Every row carries the component's own properties and
+  their values, read by an override the build writes for each component rather than by reflection — so a trimmed
+  app describes as much as one running on the JIT, and a Release build carries no description of an app's state at
+  all. A property holding a secret is never read in the first place: one named for a password, a token, a secret or
+  a credential, or marked `[DataType(DataType.Password)]`, `[PasswordPropertyText]`, `[PersonalData]` or
+  `[ProtectedPersonalData]`, is written out as `••••` when the build writes the override.
+
 ### Changed
 
 - **Rask.Server compresses the page itself.** The page handler serves its document as brotli or gzip, whichever
@@ -625,6 +632,13 @@ them until tagged releases begin.
   20 bytes gzipped; `HtmlSerializer` already writes none). `<script>`/`<style>` raw text is left untouched,
   as are conditional comments and comments marked `<!--!`, `@license` or `@preserve`. A comment on its own
   line takes the line with it, so no blank lines are left behind.
+- **Release builds strip comments from scoped TypeScript's emitted JavaScript.** tsgo now runs with
+  `--removeComments` when `Configuration` is `Release`, which halves the scoped assets' gzipped size on rask.sh
+  (3,493 → 1,696 bytes); Debug keeps the comments for devtools. Override with `RaskScopedTsRemoveComments`.
+  Deliberately not a minifier: esbuild moves `export function NAME(` into a trailing `export { … }` clause,
+  which the registry does not match, so every scoped method would stop registering with a green build.
+  Changing either option, or `RaskScopedTsTarget`, on an already-built tree now recompiles; before, the
+  compile was judged up to date and the previous emit shipped.
 - **BREAKING: every Rask.Server page is live.** There is no render ladder any more: a page no longer decides
   from its own render whether it needs a session, there is no static page served without one, and a page never
   hands itself over to a WebAssembly bundle. `AddRask()` has nothing to choose — the GET creates the session,
@@ -1050,6 +1064,18 @@ them until tagged releases begin.
   ```
 
 ### Fixed
+
+- **A WebAssembly page served with a newline between `</head>` and `<body>` updates in place again.** Every
+  click reached .NET, the handler ran and its diff frame arrived, but the page never changed and nothing
+  was logged (#1097). The HTML parser puts that newline inside `<html>`, so the live element holds
+  `[HEAD, #text, BODY]` while the server's frame walk counts `[HEAD, BODY]`. The morph has ignored that
+  text node since the fix for the unstyled hydration frame (#1049), which is what keeps it alive; the
+  diff codec's path walk still counted it, so a path addressing `<body>` resolved to the newline and the
+  op was dropped. The shipped `wasm` template's `index.html` has exactly that newline, so a freshly
+  scaffolded app lost every in-place update. The path walk now skips the same nodes the morph does —
+  formatting whitespace inside `<html>`/`<head>`, and browser-added `data-rask-managed` nodes — and
+  whitespace under `<body>`, which is rendered, still counts. The WebAssembly render queue also reports a
+  frame that throws instead of discarding the error, so a failure like this can no longer be silent.
 
 - **A state change made while its component is rendering is no longer lost.** A component's render cleared
   its dirty flags only after `Render()` had read its state, so a `StateHasChanged()` from another thread in
