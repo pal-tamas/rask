@@ -143,6 +143,24 @@
     <RaskScopedTsTarget Condition="'$(RaskScopedTsTarget)' == ''">es2020</RaskScopedTsTarget>
 
     <!--
+      Whether comments are stripped from the emitted scoped JavaScript. Release strips, Debug keeps.
+
+      Comments are where the bytes are. Over the site's whole scoped surface tsgo's default emit is
+      3,493 bytes gzipped and the same emit with removeComments is 1,696 — a 51% cut of an asset
+      every visitor downloads. Minifying with esbuild instead would save a further 337 bytes and cost
+      the contract: esbuild hoists declarations into a trailing `export { … }` clause, which
+      ScopedAssetRegistry's `export function NAME(` regexes do not match, so every scoped method
+      silently stops registering (see the toolchain note above). removeComments alters no
+      declaration form, so the contract holds — pinned by
+      Tsgo_Emit_RemoveComments_PreservesTheInlineExportForm.
+
+      Debug keeps them because the emitted .js, not the .ts, is what a developer reads in devtools.
+    -->
+    <RaskScopedTsRemoveComments Condition="'$(RaskScopedTsRemoveComments)' == '' AND '$(Configuration)' == 'Release'">true</RaskScopedTsRemoveComments>
+    <RaskScopedTsRemoveComments Condition="'$(RaskScopedTsRemoveComments)' == ''">false</RaskScopedTsRemoveComments>
+    <_RaskScopedTsRemoveCommentsArg Condition="'$(RaskScopedTsRemoveComments)' == 'true'"> --removeComments</_RaskScopedTsRemoveCommentsArg>
+
+    <!--
       Shared by every project for this user, and outside any repository: tsgo unpacks to ~27 MB,
       which inside obj/ is re-downloaded by every clean and committed by somebody eventually.
     -->
@@ -154,6 +172,7 @@
       tree, and it can never be mistaken for the sibling .js that RASK055 forbids.
     -->
     <_RaskScopedTsOutDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(IntermediateOutputPath)rask/ts'))/</_RaskScopedTsOutDir>
+    <_RaskScopedTsOptionsStamp>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(IntermediateOutputPath)rask/ts-options.stamp'))</_RaskScopedTsOptionsStamp>
     <_RaskScopedTsTypesDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(IntermediateOutputPath)rask/types'))/</_RaskScopedTsTypesDir>
 
     <!--
@@ -335,10 +354,28 @@
     format or an outDir of its own would break that silently, in the browser. The tsconfig is for the
     editor; this is for the build.
   -->
+  <!--
+    The emit depends on options as well as sources, and Inputs only sees files. Without this stamp,
+    `-c Release -p:RaskScopedTsRemoveComments=false` over an already-built tree is judged up to date
+    and ships the previous emit. WriteOnlyWhenDifferent keeps the stamp's timestamp still while the
+    options are unchanged, so an ordinary rebuild stays incremental.
+  -->
+  <Target Name="_RaskStampScopedTsOptions"
+          Condition=" '$(_RaskScopedTsDoBuild)' == 'true' AND '@(_RaskScopedTs)' != '' ">
+    <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(_RaskScopedTsOptionsStamp)'))"/>
+    <WriteLinesToFile File="$(_RaskScopedTsOptionsStamp)"
+                      Lines="target=$(RaskScopedTsTarget);removeComments=$(RaskScopedTsRemoveComments);tsgo=$(RaskTsgoVersion)"
+                      Overwrite="true"
+                      WriteOnlyWhenDifferent="true"/>
+    <ItemGroup>
+      <FileWrites Include="$(_RaskScopedTsOptionsStamp)"/>
+    </ItemGroup>
+  </Target>
+
   <Target Name="_RaskCompileScopedTs"
-          DependsOnTargets="_RaskResolveTsgo"
+          DependsOnTargets="_RaskResolveTsgo;_RaskStampScopedTsOptions"
           Condition=" '$(_RaskScopedTsDoBuild)' == 'true' AND '@(_RaskScopedTs)' != '' "
-          Inputs="@(_RaskScopedTs);@(_RaskScopedTsTypes)"
+          Inputs="@(_RaskScopedTs);@(_RaskScopedTsTypes);$(_RaskScopedTsOptionsStamp)"
           Outputs="@(_RaskScopedTs->'$(_RaskScopedTsOutDir)%(RecursiveDir)%(Filename).js')">
     <!--
       _RaskTsgoPath is deliberately NOT in the Condition above, however natural that reads. A
@@ -350,7 +387,7 @@
     <Error Condition=" '$(_RaskTsgoPath)' == '' "
            Text="Rask.TypeScript: the TypeScript compiler was not resolved, so the scoped .ts files in this project cannot be compiled. Set RaskTypeScriptBuild=false to build without them."/>
     <MakeDir Directories="$(_RaskScopedTsOutDir)"/>
-    <Exec Command="&quot;$(_RaskTsgoPath)&quot; @(_RaskScopedTs->'&quot;%(FullPath)&quot;', ' ') @(_RaskScopedTsTypes->'&quot;%(FullPath)&quot;', ' ') --rootDir &quot;$(RaskScopedTsRootDir)&quot; --outDir &quot;$(_RaskScopedTsOutDir)&quot; --target $(RaskScopedTsTarget) --module esnext --noCheck --ignoreConfig"
+    <Exec Command="&quot;$(_RaskTsgoPath)&quot; @(_RaskScopedTs->'&quot;%(FullPath)&quot;', ' ') @(_RaskScopedTsTypes->'&quot;%(FullPath)&quot;', ' ') --rootDir &quot;$(RaskScopedTsRootDir)&quot; --outDir &quot;$(_RaskScopedTsOutDir)&quot; --target $(RaskScopedTsTarget) --module esnext --noCheck$(_RaskScopedTsRemoveCommentsArg) --ignoreConfig"
           WorkingDirectory="$(MSBuildProjectDirectory)"/>
   </Target>
 

@@ -219,6 +219,43 @@ public class ResolveTypeScriptToolTaskTests
     }
 
     /// <summary>
+    ///     <c>--removeComments</c>, which a Release build passes, keeps the inline export form.
+    /// </summary>
+    /// <remarks>
+    ///     The flag is only safe because it changes no declaration: were it to hoist exports the way
+    ///     esbuild does, every scoped method would stop registering with a green build. Comments sit on
+    ///     their own lines and inside a body here, so both the stripping and the survival are checked.
+    /// </remarks>
+    [Fact]
+    public void Tsgo_Emit_RemoveComments_PreservesTheInlineExportForm()
+    {
+        var path = Resolve("tsgo", Pins.Value.Tsgo);
+        using var source = new TempFile(
+            ".ts",
+            """
+            /** Reads the width. */
+            export function width(el: HTMLElement | null): number {
+                // zero when absent
+                return el ? 1 : 0;
+            }
+            /* Copies text. */
+            export async function copy(text: string): Promise<void> { await navigator.clipboard.writeText(text); }
+            """);
+        using var output = new TempDirectory();
+
+        Run(path, $"\"{source.Path}\" --outDir \"{output.Path}\" --target es2020 --module esnext --noCheck --removeComments");
+
+        var js = File.ReadAllText(
+            Path.Combine(output.Path, Path.GetFileNameWithoutExtension(source.Path) + ".js"));
+
+        Assert.Contains("export function width(", js, StringComparison.Ordinal);
+        Assert.Contains("export async function copy(", js, StringComparison.Ordinal);
+        Assert.DoesNotContain("Reads the width", js, StringComparison.Ordinal);
+        Assert.DoesNotContain("zero when absent", js, StringComparison.Ordinal);
+        Assert.DoesNotContain("Copies text", js, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     ///     tsgo reports a type error and says so by exit code.
     /// </summary>
     /// <remarks>
