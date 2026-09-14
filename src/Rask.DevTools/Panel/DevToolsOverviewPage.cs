@@ -21,6 +21,12 @@ internal sealed partial class DevToolsOverviewPage(RouteState route, IDevToolsIn
 
     private string _tab = Wire;
 
+    // The panel's script, on a host whose panel is a page: it tells the page that framed the panel what a row is over,
+    // and hands a pick back. Deferred, so it binds to the document the page was served with.
+    /// <inheritdoc />
+    protected override Component? HeadAssets =>
+        inspection.PanelScriptUrl is { } script ? Script.Src(script).Defer(true) : null;
+
     // The selected tab is a field, which the render cache cannot see.
     /// <inheritdoc />
     protected override bool BypassRenderCache => true;

@@ -55,6 +55,11 @@ public static class RaskSpaServiceCollectionExtensions
                 "application/wasm",
                 "application/octet-stream",
             ]);
+
+            // Never an event stream. Rask's live pages fall back to one where WebSockets are blocked, and a
+            // compressor holds bytes until it has enough to be worth compressing — which for a stream that sends a
+            // frame per interaction means holding the page's updates indefinitely.
+            options.ExcludedMimeTypes = ["text/event-stream"];
         });
 
         services.Configure<BrotliCompressionProviderOptions>(o => o.Level = CompressionLevel.Optimal);

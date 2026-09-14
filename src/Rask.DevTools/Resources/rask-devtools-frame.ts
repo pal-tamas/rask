@@ -9,12 +9,19 @@
 // Deliberately smaller than rask.wasm.ts: the panel has no history, no scoped CSS or JS, no JS invokes and no downloads.
 
 import {applyDiff, type DiffOp} from "../../Rask.Core/Resources/rask-dom.js";
-import {morph} from "../../Rask.Core/Resources/rask-morph.js";
-import {setHost} from "../../Rask.Core/Resources/rask-host.js";
-import {isToggleShortcut} from "./host/dock.js";
+import {flushInputsNow} from "../../Rask.Core/Resources/rask-input.js";
+import {
+    closestFrom,
+    morph,
+    raskChangeFrameValue,
+    raskChangeFrameValues,
+    raskNotePendingFormState,
+} from "../../Rask.Core/Resources/rask-morph.js";
+import {inRoot, setHost} from "../../Rask.Core/Resources/rask-host.js";
+import {installPanelClient} from "./panel/panel-client.js";
 import {CHANNEL, type FrameMessage} from "./rask-devtools-frame-protocol.js";
 
-// For its side effect: the shared click, change, submit and key listeners, bound to THIS document.
+// For its side effect: the shared key, pointer, focus and drag listeners, bound to THIS document.
 import "../../Rask.Core/Resources/rask-events.js";
 
 const decoder = new TextDecoder();
@@ -66,12 +73,43 @@ window.addEventListener("message", (e: MessageEvent) => {
     queue = queue.then(() => apply(bytes), () => apply(bytes));
 });
 
-// With focus inside the panel, the page's own shortcut listener never sees the keystroke, so it is handed up.
-window.addEventListener("keydown", (e: KeyboardEvent) => {
-    if (!isToggleShortcut(e)) return;
+// Clicks and changes. The shared rask-events module forwards keys, pointers and the rest, but these two live in each
+// host runtime (rask.ts, rask.wasm.ts), which this frame does not load — so without these a WASM panel's tabs, buttons,
+// toggles and tree rows reached nothing. The panel has no forms to submit, links to navigate or files to pick, so this is
+// the part of the runtimes' listeners it needs, built from the same shared helpers.
+document.addEventListener("click", (e: MouseEvent) => {
+    const t = closestFrom(e.target, "[data-rask-on-click]");
+    if (!t || !inRoot(t)) return;
     e.preventDefault();
-    e.stopImmediatePropagation();
-    post({channel: CHANNEL, kind: "toggle"});
-}, true);
+    flushInputsNow();
+    post({
+        channel: CHANNEL,
+        kind: "event",
+        payload: {
+            id: t.getAttribute("data-rask-on-click"), type: "click",
+            shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, altKey: e.altKey, metaKey: e.metaKey,
+        },
+    });
+});
+
+document.addEventListener("change", (e: Event) => {
+    const t = closestFrom(e.target, "[data-rask-on-change]");
+    if (!t || !inRoot(t)) return;
+    flushInputsNow();
+    const field = t as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+    const values = raskChangeFrameValues(field);
+    raskNotePendingFormState(t);
+    post({
+        channel: CHANNEL,
+        kind: "event",
+        payload: {
+            id: t.getAttribute("data-rask-on-change"), type: "change", value: raskChangeFrameValue(field),
+            ...(values !== null ? {values} : {}),
+        },
+    });
+});
+
+// The page overlays' panel side, the shortcut forwarding among it — the same client the Server panel page loads.
+installPanelClient({post, fromPage: e => e.source === window.parent});
 
 post({channel: CHANNEL, kind: "ready"});

@@ -66,6 +66,41 @@ public sealed class DevToolsTreeSnapshotterTests
             });
     }
 
+    // What the page box is drawn from: the coordinates the diff patches by, for a component and for an element alike.
+    [Fact]
+    public void Every_node_says_where_it_is_on_the_page()
+    {
+        var root = Stub();
+        var child = Stub();
+        var empty = Stub();
+
+        // <div> [child: <p>hi</p>] [empty: nothing] <button></button> </div>
+        using var frames = new FrameWriter();
+        var div = frames.OpenElement("div", null, false, 0);
+        var childStart = frames.Count;
+        var p = frames.OpenElement("p", null, false, 5);
+        frames.Text("hi", 8, 10);
+        frames.CloseElement(p, 14);
+        var childEnd = frames.Count;
+        var button = frames.OpenElement("button", null, false, 14);
+        frames.CloseElement(button, 31);
+        frames.CloseElement(div, 37);
+
+        var tree = Snapshot(root, frames, (child, root, childStart, childEnd), (empty, root, childEnd, childEnd));
+
+        // The root rendered the document; nobody hovers for that box.
+        Assert.Null(tree.At);
+        var divNode = Assert.Single(tree.Children);
+        Assert.Equal("|0|1", divNode.At);
+        var childNode = divNode.Children[0];
+        // The component's one <p>: inside the <div> (slot 0 at the top), first slot 0, one node.
+        Assert.Equal("0|0|1", childNode.At);
+        Assert.Equal("0|0|1", Assert.Single(childNode.Children).At);
+        // A component that rendered nothing has nothing to box.
+        Assert.Null(divNode.Children[1].At);
+        Assert.Equal("0|1|1", divNode.Children[2].At);
+    }
+
     [Fact]
     public void Ids_survive_a_second_snapshot_for_components_and_their_elements_alike()
     {

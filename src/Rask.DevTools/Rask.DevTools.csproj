@@ -64,6 +64,8 @@
     <ProjectReference Include="..\Rask.Server\Rask.Server.csproj" PrivateAssets="all"/>
     <EmbeddedResource Include="$(IntermediateOutputPath)rask-devtools-host.js"
                       LogicalName="Rask.DevTools.Resources.rask-devtools-host.js"/>
+    <EmbeddedResource Include="$(IntermediateOutputPath)rask-devtools-panel.js"
+                      LogicalName="Rask.DevTools.Resources.rask-devtools-panel.js"/>
     <!-- No browser runtime here: no page origin to read, no module to import, no panel to run in the page. -->
     <Compile Remove="DevToolsBootstrap.Browser.cs;Browser\**"/>
     <Compile Include="..\Rask.Hosting.Shared\Dev\DevHostName.cs" Link="Shared\Dev\DevHostName.cs"/>
@@ -109,8 +111,8 @@
   -->
   <Target Name="_RaskDevToolsBundleHostJs" BeforeTargets="PrepareForBuild" DependsOnTargets="ResolveProjectReferences"
           Condition=" '$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == '' "
-          Inputs="@(_RaskDevToolsHostTs)"
-          Outputs="$(IntermediateOutputPath)rask-devtools-host.js">
+          Inputs="@(_RaskDevToolsFrameTs)"
+          Outputs="$(IntermediateOutputPath)rask-devtools-host.js;$(IntermediateOutputPath)rask-devtools-panel.js">
     <ResolveTypeScriptToolTask Tool="esbuild"
                                Version="$(RaskEsbuildVersion)"
                                CacheRoot="$(RaskTypeScriptCacheRoot)"
@@ -122,6 +124,10 @@
     <MakeDir Directories="$(IntermediateOutputPath)"/>
 
     <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;$(MSBuildProjectDirectory)/Resources/rask-devtools-host.ts&quot; --bundle --format=iife --target=es2019 --log-level=warning --outfile=&quot;$(IntermediateOutputPath)rask-devtools-host.js&quot; $(_RaskEsbuildMinify)"
+          WorkingDirectory="$(MSBuildProjectDirectory)"/>
+
+    <!-- The panel page's own script: the page overlays' panel side, loaded by the Server panel's head. -->
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;$(MSBuildProjectDirectory)/Resources/rask-devtools-panel.ts&quot; --bundle --format=iife --target=es2019 --log-level=warning --outfile=&quot;$(IntermediateOutputPath)rask-devtools-panel.js&quot; $(_RaskEsbuildMinify)"
           WorkingDirectory="$(MSBuildProjectDirectory)"/>
   </Target>
 

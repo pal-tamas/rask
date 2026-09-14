@@ -558,7 +558,8 @@ them until tagged releases begin.
   (`localhost` or a loopback address) gets the same pill and drawer as a Server app, and the Wire tab lists the page's
   frames. With no server to run it on, the panel runs as a second live session inside the app's own .NET runtime, with
   its own route state and services, and starts only when the drawer first opens. Its frames are posted into a `srcdoc`
-  frame whose small client applies them, so no second runtime boots. The scripts are embedded in `Rask.DevTools` and
+  frame whose small client applies them and forwards the panel's own clicks, changes and keys back to its session, so
+  no second runtime boots. The scripts are embedded in `Rask.DevTools` and
   imported from a `data:` URL, so a Release publish that strips the assembly strips them too; a development page whose
   Content-Security-Policy forbids `data:` scripts logs one warning instead. A Debug bundle deployed to a real host keeps
   the tools off for its visitors.
@@ -591,7 +592,9 @@ them until tagged releases begin.
   `aria-level`, `aria-setsize` and `aria-posinset`; `OnHover` reports the node under the pointer. A key seen twice
   renders once, which is also what ends a cycle. Rask's runtime now keeps the navigation keys from scrolling the page
   while a tree has focus, and scrolls the cursor back into view when it moves out of sight — including to an unrendered
-  row's place in a virtualized tree. Documented in [docs/tree.md](docs/tree.md), live at `/docs/ui/tree`.
+  row's place in a virtualized tree. A `Selected` the page changes itself takes the keyboard cursor to the first node it
+  added, and so scrolls it into view; a selection the reader made and the page hands back leaves the cursor where it
+  was. Documented in [docs/tree.md](docs/tree.md), live at `/docs/ui/tree`.
 
 - **The devtools panel shows the page's component tree.** A Tree tab beside Wire lists what the inspected page rendered,
   drawn with the kit's own `UiTree`: expandable, keyboard-navigable, and virtualized, so a page with thousands of
@@ -600,7 +603,12 @@ them until tagged releases begin.
   them, read from the same frames the diff reads. Each component and element keeps an id across renders, so the
   branches a developer opened stay open. The tree is there the moment the tab opens: every render of an inspected
   session leaves its walk in buffers that stop allocating once they fit the page, and the tree is built from them only
-  while a panel is open, including from the render the page was served with.
+  while a panel is open, including from the render the page was served with. Pointing at a row draws a labelled box on
+  the page around everything that component rendered; **Pick** reverses it — point at the page, click, and the tree
+  opens to the nearest component (or the element, with tags shown) and selects it, without the click reaching the app.
+  Each row carries its node's place in the diff's own coordinates and the panel's script posts it to the page, so a
+  hover costs no round trip. Rask.Core's path helpers moved into a module with no side effects (`rask-dom-path.ts`),
+  which the devtools host imports without binding a second set of the runtime's document listeners.
 
 - **The devtools tree says what each component was given.** Every row carries the component's own properties and
   their values, read by an override the build writes for each component rather than by reflection — so a trimmed
@@ -1162,7 +1170,9 @@ them until tagged releases begin.
 - **A fast reconnect no longer cuts off its own new connection.** When a tab reconnected before the server
   noticed its previous socket had died, the old socket's cleanup detached the NEW socket: renders were
   dropped, the connected count went low, and the session was scheduled for removal under an open tab
-  (#1076). Cleanup now detaches only the socket it owns.
+  (#1076). Cleanup now detaches only the socket it owns. A removal armed anyway in that window finds the
+  session connected when it fires and leaves it alone, and an attach whose catch-up render fails — a client
+  dropping mid-attach — undoes itself rather than leaving a dead connection counted.
 - **`ConnectedCount` stays accurate across restarts and deploys.** A session rebuilt from its resume record
   never counted its socket as connected but still counted the disconnect, so every deploy's reconnect storm
   pushed the number (the `rask.sessions.connected` gauge and the live health check's `connectedSessions`)
@@ -1475,6 +1485,28 @@ them until tagged releases begin.
   are walked and never cached, which is why nothing hit this until the showcase moved onto `Rask.Ui`.
   The `.Key(submitting)` workaround in `FormSubmitStateDemo` is gone.
 
+- **A page still works where WebSockets do not.** Some networks — corporate proxies, captive portals, a
+  handful of mobile operators — block the WebSocket upgrade, and a Rask Server page that cannot open one had
+  nothing to fall back to: it rendered, then sat there inert. The live protocol now also travels over plain
+  HTTP, and the server maps it always, with nothing to configure: `GET /_rask/stream/{sessionId}` holds a
+  Server-Sent Events stream open and carries the frames a socket would, while the client's own frames come
+  back as `POST /_rask/send/{sessionId}` and a `pagehide` keepalive request to `POST /_rask/leave/{sessionId}` frees the
+  session at once rather than after its grace period. It is the same protocol, the same session and the same
+  render pipeline — one request per interaction is what it costs.
+
+  The browser picks the transport itself, per tab. It tries the WebSocket first, and makes HTTP the candidate
+  when the socket errors before opening, has not opened within 5 seconds, or is cut off within 5 seconds of
+  opening three times running. It remembers HTTP (in `sessionStorage`) only once an HTTP stream has actually
+  opened where the socket did not — a server that is merely mid-redeploy fails both, and a tab is never pinned
+  to the slower transport for that. A new tab tries the socket again. A socket that is refused before it opens
+  hands over to HTTP at once, without waiting out the reconnect backoff, so a blocked network never shows the
+  page inert. See "When WebSockets are blocked" in `docs/render-modes.md` for the proxy and HTTP/2 notes.
+
+  The guards are the socket's, applied per request because an HTTP request has no upgrade to have checked
+  earlier: the host-only `Origin` check, and `SameSessionUser` on every POST. A stream carries a generation,
+  and a POST names the one it believes it is talking to — so a tab resumed from the back/forward cache, or
+  one whose frames are still in flight after a reconnect, is answered `409` instead of driving the page its
+  successor now owns. An unknown session, and one that belongs to somebody else, get the same answer.
 
 ## [0.21.0] - 2026-09-10
 

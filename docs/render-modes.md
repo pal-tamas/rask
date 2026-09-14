@@ -29,6 +29,38 @@ What that costs is bounded, not unlimited:
 So `MaxSessions` bounds live sessions *and* recent page loads together. Size it against both — see
 [Scaling](scaling.md).
 
+## When WebSockets are blocked
+
+The browser connects with a WebSocket. Some networks refuse one — a corporate proxy, a captive portal, a few
+mobile operators — and a page that cannot connect is not a page, so the runtime falls back on its own to
+plain HTTP: a Server-Sent Events stream carries the frames down, and the tab's own frames go up as `POST`s.
+There is nothing to configure and nothing to turn off. It is the same protocol, the same session and the
+same limits (`MaxInboundFrameBytes`, `MaxInboundFramesPerSecond`, `MaxPendingHandlers`, the grace period),
+checked the same way — the host-only `Origin` check and the signed-in user, now on every request.
+
+| Endpoint | What it carries |
+|---|---|
+| `GET /_rask/stream/{session}` | The server's frames, as an event stream, with a comment heartbeat every 15 s on a quiet page. |
+| `POST /_rask/send/{session}` | The tab's frames, as a JSON array — whatever piled up while the previous `POST` was in flight. |
+| `POST /_rask/leave/{session}` | Sent as the tab closes, so its session is freed now rather than after the grace period. |
+
+**When a tab switches.** It tries the socket first, and makes HTTP the candidate when the socket errors
+before opening, has not opened within 5 seconds, or is cut off within 5 seconds of opening three times in a
+row. It *remembers* HTTP — for that tab only, in `sessionStorage` — once an HTTP stream has actually opened
+where the socket did not. A server that is simply mid-redeploy fails both, and a tab is never left on the
+slower transport for that; a new tab tries the socket again.
+
+**What it costs.** One request per batch of interactions instead of a frame on an open socket, and one
+long-lived request per tab. Browsers allow only six HTTP/1.1 connections per origin, so a tab on the
+fallback holds one of them for as long as it is open: serve over HTTP/2, which Kestrel does over TLS and
+most proxies do by default.
+
+**Proxies and compression.** A proxy that buffers the stream holds frames until it has "enough" of them,
+which for a live page is for ever. Rask answers with `Cache-Control: no-cache, no-transform` and
+`X-Accel-Buffering: no` (which nginx honours), and the heartbeat keeps a quiet stream inside the usual idle
+timeouts — see [Deployment](deployment.md). `AddRaskSpaHost` never compresses `text/event-stream`; if you add
+response compression yourself, exclude that type too.
+
 > **WebAssembly is not a render mode.** A Rask app that runs in the browser is a single-page app of its own:
 > `rask new --template wasm` for a standalone one, or `rask new --wasm` for a server that serves one from its
 > `Client/` folder. Either way the server renders none of its pages — see [Single-page apps](spa.md#a-rask-webassembly-app).

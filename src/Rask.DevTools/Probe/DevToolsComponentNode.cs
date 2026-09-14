@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using Rask.Core;
 using Rask.Core.Diagnostics.DevTools;
@@ -19,13 +20,19 @@ namespace Rask.DevTools.Probe;
 /// <param name="Props">Its properties, as the build described them — empty in a build without the devtools.</param>
 /// <param name="Children">What it rendered, in page order.</param>
 /// <param name="IsTag">An HTML element rather than a component; the panel hides these unless asked.</param>
+/// <param name="At">
+///     Where it is on the page, as the client addresses DOM nodes: <c>path|firstSlot|count</c> — the child slots from the
+///     document to its parent, dot-separated, the slot its first node occupies, and how many sibling nodes it rendered.
+///     Null when it rendered nothing, sits inside another renderer's subtree, or the walk captured no frames.
+/// </param>
 internal sealed record DevToolsComponentNode(
     long Id,
     string Type,
     string? Key,
     IReadOnlyList<DescribedProp> Props,
     IReadOnlyList<DevToolsComponentNode> Children,
-    bool IsTag = false);
+    bool IsTag = false,
+    string? At = null);
 
 /// <summary>One component as the walk met it: what it is, what it was walked inside, and what it wrote.</summary>
 internal readonly record struct DevToolsWalkItem(Component Component, Component? Parent, int FrameStart, int FrameEnd);
@@ -133,13 +140,15 @@ internal sealed class DevToolsTreeSnapshotter
     private long IdOf(Component component) =>
         _ids.GetValue(component, _ => new StrongBox<long>(Interlocked.Increment(ref _next))).Value;
 
-    private static DevToolsComponentNode Describe(long id, Component component, List<DevToolsComponentNode> children)
+    private static DevToolsComponentNode Describe(
+        long id, Component component, List<DevToolsComponentNode> children, string? at)
     {
         // What the component says about itself. The override the build wrote reads its own properties by name; in a
         // build without the devtools the base method is empty, so this is a call that collects nothing.
         var describer = new PropsDescriber();
         component.DescribeProps(describer);
-        return new DevToolsComponentNode(id, Name(component.GetType()), component.Key?.ToString(), describer.Props, children);
+        return new DevToolsComponentNode(
+            id, Name(component.GetType()), component.Key?.ToString(), describer.Props, children, At: at);
     }
 
     // `UiTree<Node, string>` rather than `UiTree\`2`, and no namespace: a tree of full names reads as one column of noise.
@@ -167,6 +176,7 @@ internal sealed class DevToolsTreeSnapshotter
         private readonly Dictionary<Component, int> _index = new(ReferenceEqualityComparer.Instance);
         private readonly List<int>?[] _kids;
         private readonly List<int> _rootKids = [];
+        private readonly List<int> _path = [];
         private int _budget = MaxNodes;
 
         internal Builder(DevToolsTreeSnapshotter owner, DevToolsTreeCapture capture)
@@ -176,18 +186,30 @@ internal sealed class DevToolsTreeSnapshotter
             var items = capture.Items;
             _kids = new List<int>?[items.Length];
 
+            // The root is the tree's top, built by Build — never one of its own children, even when the walk reports it too
+            // (a root boundary is walked like any component). Counting it twice put the whole document in the tree twice,
+            // and a pick matched the copy the tree never opened.
+            var root = capture.Root;
             for (var i = 0; i < items.Length; i++)
             {
-                _index.TryAdd(items[i].Component, i);
+                if (!ReferenceEquals(items[i].Component, root))
+                {
+                    _index.TryAdd(items[i].Component, i);
+                }
             }
 
-            // The walk reports a component when it FINISHES, so siblings arrive in page order: each one is done before the
-            // next begins. A parent the walk never reported — the root, which is rendered rather than walked — is the root.
+            // A parent the walk never reported, or the root itself, makes a child of the root.
             for (var i = 0; i < items.Length; i++)
             {
+                if (ReferenceEquals(items[i].Component, root))
+                {
+                    continue;
+                }
+
                 var parent = items[i].Parent;
                 if (parent is not null
                     && !ReferenceEquals(parent, items[i].Component)
+                    && !ReferenceEquals(parent, root)
                     && _index.TryGetValue(parent, out var p))
                 {
                     (_kids[p] ??= []).Add(i);
@@ -197,6 +219,25 @@ internal sealed class DevToolsTreeSnapshotter
                     _rootKids.Add(i);
                 }
             }
+
+            // In page order. The walk reports a component when it FINISHES, which keeps true siblings in order, but not the
+            // children gathered under the root from different subtrees — and the frame walk below claims each child at the
+            // frame it starts on, in list order, so one out of place lets the walk run through another's elements first.
+            // A child with no frames (nothing captured) goes last, in walk order.
+            _rootKids.Sort(ByFrameStart);
+            foreach (var kids in _kids)
+            {
+                kids?.Sort(ByFrameStart);
+            }
+        }
+
+        private int ByFrameStart(int a, int b)
+        {
+            var sa = _capture.Items[a].FrameStart;
+            var sb = _capture.Items[b].FrameStart;
+            var ka = sa < 0 ? int.MaxValue : sa;
+            var kb = sb < 0 ? int.MaxValue : sb;
+            return ka != kb ? ka.CompareTo(kb) : a.CompareTo(b);
         }
 
         internal DevToolsComponentNode Build(Component root)
@@ -215,7 +256,8 @@ internal sealed class DevToolsTreeSnapshotter
                 AddComponents(children, _rootKids);
             }
 
-            return Describe(_owner.IdOf(root), root, children);
+            // The root rendered the whole document, which is no box anyone hovers for.
+            return Describe(_owner.IdOf(root), root, children, at: null);
         }
 
         private DevToolsComponentNode BuildComponent(int index)
@@ -238,7 +280,22 @@ internal sealed class DevToolsTreeSnapshotter
                 AddComponents(children, kids);
             }
 
-            return Describe(id, item.Component, children);
+            return Describe(id, item.Component, children, Locate(item.FrameStart, item.FrameEnd));
+        }
+
+        // Through FramePathWalker, the same slot arithmetic the diff uses, so the box drawn is around the nodes the diff
+        // would patch. It walks only the levels on the way to the span, skipping whole subtrees by their length.
+        private string? Locate(int start, int end)
+        {
+            if (_capture.FrameCount < 0
+                || !FramePathWalker.TryResolve(_capture.Frames, start, end, _path, out var first, out var count)
+                || count == 0)
+            {
+                return null;
+            }
+
+            return string.Join('.', _path) + "|" + first.ToString(CultureInfo.InvariantCulture) + "|"
+                   + count.ToString(CultureInfo.InvariantCulture);
         }
 
         private void AddComponents(List<DevToolsComponentNode> into, List<int> kids)
@@ -296,7 +353,8 @@ internal sealed class DevToolsTreeSnapshotter
                 var tagId = (ownerId << TagBits) | (uint)(++ordinal & ((1 << TagBits) - 1));
                 var children = new List<DevToolsComponentNode>();
                 AddRange(children, i + 1, Math.Min(to, i + length), kids, ref next, ownerId, ref ordinal, claimAtEnd: false);
-                into.Add(new DevToolsComponentNode(tagId, frame.Name ?? "?", null, [], children, IsTag: true));
+                into.Add(new DevToolsComponentNode(
+                    tagId, frame.Name ?? "?", null, [], children, IsTag: true, At: Locate(i, i + length)));
                 i += length;
             }
 

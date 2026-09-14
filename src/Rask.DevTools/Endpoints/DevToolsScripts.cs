@@ -10,15 +10,23 @@ internal static class DevToolsScripts
     /// <summary>The host script's manifest resource name, as <c>Rask.DevTools.csproj</c> embeds it.</summary>
     internal const string HostResourceName = "Rask.DevTools.Resources.rask-devtools-host.js";
 
+    /// <summary>The panel page's script's manifest resource name.</summary>
+    internal const string PanelResourceName = "Rask.DevTools.Resources.rask-devtools-panel.js";
+
     /// <summary>Reads the host script. Called once, when the endpoint is mapped.</summary>
-    internal static string LoadHost()
+    internal static string LoadHost() => Load(HostResourceName, "rask-devtools-host.js");
+
+    /// <summary>Reads the panel page's script. Called once, when the endpoint is mapped.</summary>
+    internal static string LoadPanel() => Load(PanelResourceName, "rask-devtools-panel.js");
+
+    private static string Load(string resourceName, string fileName)
     {
         var asm = typeof(DevToolsScripts).Assembly;
-        using var stream = asm.GetManifestResourceStream(HostResourceName)
+        using var stream = asm.GetManifestResourceStream(resourceName)
                            ?? throw new InvalidOperationException(
-                               $"The Rask DevTools host script is missing from {asm.GetName().Name} "
+                               $"The Rask DevTools script {fileName} is missing from {asm.GetName().Name} "
                                + $"{asm.GetName().Version}. This is a packaging fault rather than anything in "
-                               + "your app: the assembly should embed rask-devtools-host.js. Clear obj/ and bin/ "
+                               + $"your app: the assembly should embed {fileName}. Clear obj/ and bin/ "
                                + "and rebuild; if it persists, reinstall the package, and please report it with "
                                + "the assembly version above.");
         using var reader = new StreamReader(stream, Encoding.UTF8);

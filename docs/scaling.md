@@ -116,15 +116,16 @@ rebuilt from the client's record. So affinity is an optimisation (an intact sess
 a rebuilt one), not a correctness requirement. For that to work across hosts, **every host must share a
 data-protection key ring** — the record is sealed with it.
 
-**Three things still require affinity, and will fail without it:**
+**Four things still require affinity, and will fail without it:**
 
 | Surface | Why |
 | --- | --- |
 | File uploads | Staged to a node-local temp file; the WebSocket message that consumes them must reach the same host. |
 | Downloads | `GET /_rask/download/{session}/{token}` reads a node-local entry. |
 | Sign-in redeem | `POST /_rask/auth/redeem` reads an in-memory ticket issued on the host that authenticated you. |
+| The [HTTP fallback](render-modes.md#when-websockets-are-blocked) | A tab's `POST`s must reach the host holding its stream; anywhere else answers `404`, and the tab reconnects rather than working. |
 
-Cookie-based affinity in the proxy covers all three. Rask does not configure one for you, and the
+Cookie-based affinity in the proxy covers all four. Rask does not configure one for you, and the
 `rask deploy` Caddy setup routes to a single container per app.
 
 **And the pillars assume one writer.** If jobs, the outbox or the cache are enabled and pointed at
