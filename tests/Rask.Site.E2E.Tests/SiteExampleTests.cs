@@ -630,4 +630,19 @@ public sealed class SiteExampleTests
         Assert.Equal("image/png", card.Content.Headers.ContentType?.MediaType);
         Assert.Contains("property=\"og:image\" content=\"https://rask.sh/img/og-card.png\"", guide, StringComparison.Ordinal);
     }
+
+    [Theory]
+    [InlineData("/index.html")]
+    [InlineData("/docs/guides/elements/index.html")]
+    public async Task APublishedPage_CarriesNoComment(string path)
+    {
+        // Two sources of comments nobody reads, both paid for in every visit's bytes: the boot shell's <head>
+        // notes (dropped when a page is spliced into it) and a doc's editor note (elements.md explains its MDN
+        // link table in one; dropped by the guide renderer). A comment shown as code is &lt;!-- and passes.
+        using var http = new HttpClient { BaseAddress = new Uri(_app.BaseUrl) };
+
+        var page = await http.GetStringAsync(path);
+
+        Assert.DoesNotContain("<!--", page, StringComparison.Ordinal);
+    }
 }

@@ -595,9 +595,12 @@ them until tagged releases begin.
 
 - **The devtools panel shows the page's component tree.** A Tree tab beside Wire lists what the inspected page rendered,
   drawn with the kit's own `UiTree`: expandable, keyboard-navigable, and virtualized, so a page with thousands of
-  components costs the rows on screen. Each component keeps an id for as long as it lives, so the branches a developer
-  opened survive the page's next render. The snapshot is taken at the end of that render and only while the tab is
-  open — a page nobody is inspecting walks its tree exactly as before.
+  components costs the rows on screen. Components are nested the way they sit on the PAGE — a card's rows under the
+  card, even when the page that uses the card built them — and a "Show HTML tags" toggle adds the elements between
+  them, read from the same frames the diff reads. Each component and element keeps an id across renders, so the
+  branches a developer opened stay open. The tree is there the moment the tab opens: every render of an inspected
+  session leaves its walk in buffers that stop allocating once they fit the page, and the tree is built from them only
+  while a panel is open, including from the render the page was served with.
 
 - **The devtools tree says what each component was given.** Every row carries the component's own properties and
   their values, read by an override the build writes for each component rather than by reflection — so a trimmed
@@ -605,6 +608,14 @@ them until tagged releases begin.
   all. A property holding a secret is never read in the first place: one named for a password, a token, a secret or
   a credential, or marked `[DataType(DataType.Password)]`, `[PasswordPropertyText]`, `[PersonalData]` or
   `[ProtectedPersonalData]`, is written out as `••••` when the build writes the override.
+
+- **A DevTools guide, with pictures of the real panel.** [docs/devtools.md](docs/devtools.md) (live at
+  `/docs/guides/devtools`) covers turning the panel on, what keeps it out of a Release build, and the Wire and Tree
+  tabs. rask.sh is a Release build on a public origin, where the devtools never switch on, so the guide shows them in
+  screenshots: `scripts/capture-devtools-screenshots.sh` runs a showcase app in Development, drives the pill and the
+  panel in Chromium, and writes the WebP files the guide links. A guide can now show pictures at all: an image linked
+  where it lives under `src/Rask.Site/wwwroot` renders on GitHub, and the site and the guide's Markdown twin serve the
+  same file.
 
 ### Changed
 
@@ -632,6 +643,9 @@ them until tagged releases begin.
   20 bytes gzipped; `HtmlSerializer` already writes none). `<script>`/`<style>` raw text is left untouched,
   as are conditional comments and comments marked `<!--!`, `@license` or `@preserve`. A comment on its own
   line takes the line with it, so no blank lines are left behind.
+- **rask.sh guides no longer ship the docs' editor notes.** A standalone HTML comment in a `docs/*.md` file
+  (hidden on GitHub) was rendered into the guide page's body; the site's Markdown renderer now drops it. A
+  comment shown as code — in a fenced sample or inline code — is still shown.
 - **Release builds strip comments from scoped TypeScript's emitted JavaScript.** tsgo now runs with
   `--removeComments` when `Configuration` is `Release`, which halves the scoped assets' gzipped size on rask.sh
   (3,493 → 1,696 bytes); Debug keeps the comments for devtools. Override with `RaskScopedTsRemoveComments`.
@@ -1073,6 +1087,23 @@ them until tagged releases begin.
   track beside a flexible text column, so the sample fits in either font from 768px up and there is
   nothing left to scroll. The headline eases to 2.75rem beside it, which keeps its two lines. A site E2E
   test measures the overflow at 1024, 1280 and 1920px with the font loaded and with it blocked.
+- **A live page stays inside its own application.** On a host that mounts another application under its
+  own prefix, such as the operator console at `/_rask`, the first request resolved against the right route
+  table, but a live navigation resolved against every assembly's. So a page of your app could render
+  the console's pages inside your document, and the console could render yours (#1094). A session now
+  keeps the route table of the application it was opened for, and so does the `Router` it renders. A link
+  or back-button step to a path another application owns is loaded as a full page, so that application's
+  own root draws it. The same goes for a sign-in return URL into another application. `Router.Routes`'
+  documentation also said the default was the entry assembly's pages; it was every assembly's.
+- **A WebAssembly app shows framework warnings and errors in the browser console.** The host forwarded
+  every framework diagnostic into the app's `ILogger`, but registered logging with no provider. On an app
+  that added none, every render, lifecycle and handler fault the framework reported was written nowhere
+  (#1096). The host now adds a browser console provider when the app registered no `ILoggerProvider`,
+  and adds nothing when it did.
+- **A disposed session no longer re-renders when the language changes.** Sessions subscribe to the
+  culture service, but neither host unsubscribed on dispose (#1093). On WebAssembly, where that service
+  outlives every session, a language switch kept the disposed tree alive and re-rendered it. Both hosts
+  now unsubscribe first.
 - **A live session only accepts a socket from the user it belongs to.** A WebSocket `hello` naming an
   existing session used to attach whoever sent it, so a leaked session id let a different signed-in user,
   or an anonymous one, receive that session's frames and dispatch its handlers (#1075). It now attaches

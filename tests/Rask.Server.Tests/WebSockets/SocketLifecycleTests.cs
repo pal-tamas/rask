@@ -3,6 +3,7 @@ using System.Net.WebSockets;
 using System.Text.RegularExpressions;
 using Rask.Core.Live;
 using Rask.Server.Tests.Infrastructure;
+using Rask.TestSupport;
 
 namespace Rask.Server.Tests.WebSockets;
 
@@ -133,8 +134,7 @@ public class SocketLifecycleTests
 
         using var ws1 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws1.SendJsonAsync(new { type = "hello", session = sessionId });
-        Assert.True(await WebSocketHelper.EventuallyAsync(
-            () => host.Store.ConnectedCount == 1, TimeSpan.FromSeconds(5)));
+        await WaitFor.True(() => host.Store.ConnectedCount == 1, TimeSpan.FromSeconds(5));
 
         // A reconnect always emits a frame, so receiving one proves ws2 is attached.
         using var ws2 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
@@ -172,8 +172,7 @@ public class SocketLifecycleTests
 
         using var ws1 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws1.SendJsonAsync(new { type = "hello", session = sessionId });
-        Assert.True(await WebSocketHelper.EventuallyAsync(
-            () => host.Store.ConnectedCount == 1, TimeSpan.FromSeconds(5)));
+        await WaitFor.True(() => host.Store.ConnectedCount == 1, TimeSpan.FromSeconds(5));
 
         using var ws2 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws2.SendJsonAsync(new { type = "hello", session = sessionId });

@@ -523,7 +523,7 @@ internal static class HtmlSerializer
                 {
                     // A replay appends the cached subtree at the writer's end, so the count before and after
                     // brackets exactly what this component contributed to the frame stream.
-                    RaskDevToolsHook.Active?.ComponentReplayed(component, replayFrameStart, frames.Count);
+                    RaskDevToolsHook.Active?.ComponentReplayed(component, liveCtx?.WalkParent, replayFrameStart, frames.Count);
                     _sawNestedComponent = true;
                     break;
                 }
@@ -547,6 +547,11 @@ internal static class HtmlSerializer
                 // consumed — and the snapshot needs to know which identity it was captured under.
                 var forwardedKeyAtCapture = KeyForwardScope.Peek();
 
+                // Read once: the devtools see the whole component, render AND subtree walk, as one span. The parent is
+                // read here, before this component becomes the parent of everything under it.
+                var devTools = RaskDevToolsHook.Active;
+                var devToolsParent = devTools is null ? null : liveCtx?.WalkParent;
+
                 using (LiveRenderContext.PushScopeOrNone(liveCtx, component))
                 using (LiveRenderContext.EnterParentScopeOrNone(liveCtx, component))
                 using (component.EnterChildrenScopeInternal())
@@ -562,8 +567,6 @@ internal static class HtmlSerializer
                         KeyForwardScope.Arm(fwdKey);
                     }
 
-                    // Read once: the devtools see the whole component, render AND subtree walk, as one span.
-                    var devTools = RaskDevToolsHook.Active;
                     var devToolsStart = devTools is null ? 0 : System.Diagnostics.Stopwatch.GetTimestamp();
 
                     try
@@ -584,7 +587,7 @@ internal static class HtmlSerializer
 
                         Serialize(rendered, sb);
 
-                        devTools?.ComponentWalked(component, devToolsStart, frameStart, frames?.Count ?? -1);
+                        devTools?.ComponentWalked(component, devToolsParent, devToolsStart, frameStart, frames?.Count ?? -1);
                     }
                     catch (Exception ex) when (devTools is not null && devTools.ObserveThrow(component, ex))
                     {

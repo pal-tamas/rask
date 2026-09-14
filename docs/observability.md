@@ -49,6 +49,18 @@ No wiring is needed — configure log levels for these categories like any other
 When no `ILoggerFactory` is registered (e.g. a bare test host), the seam keeps its default behaviour
 and writes the same diagnostics to `stderr`.
 
+A WebAssembly app gets the same bridge from `WasmHostBuilder.RunAsync`, into the app's own logging. If
+the app registers no `ILoggerProvider` of its own, the host adds one that writes to the browser console:
+errors through `console.error`, everything from `Information` up through `console.log`. That way a
+framework warning is never silently dropped. Register any provider yourself and the host adds nothing,
+so your providers are the only ones that see the entries:
+
+```csharp
+var host = WasmHostBuilder.CreateDefault();
+host.Services.AddSingleton<ILoggerProvider, MyTelemetryLoggerProvider>(); // replaces the console default
+await host.RunAsync<App>();
+```
+
 ### Keeping the log
 
 Everything above is a *transport*: the diagnostics reach whatever sinks you configured, which on a

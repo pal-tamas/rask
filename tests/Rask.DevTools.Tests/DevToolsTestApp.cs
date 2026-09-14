@@ -14,7 +14,8 @@ public sealed partial class DevToolsTestApp : Component
     [
         P[$"clicks={_clicks}"],
         Button.OnClick(() => _clicks++)["click"],
-        DevToolsTestChild.Caption("hello")
+        // Built here, rendered inside the frame: on the page the child sits under DevToolsTestFrame, not beside it.
+        DevToolsTestFrame[DevToolsTestChild.Caption("hello")]
     ];
 }
 
@@ -29,4 +30,11 @@ public sealed partial class DevToolsTestChild : Component
 
     /// <inheritdoc />
     protected override Component? Render() => Span[Caption ?? string.Empty];
+}
+
+/// <summary>Renders what it is given inside a section, so the tree has a child that another component built.</summary>
+public sealed partial class DevToolsTestFrame : Component
+{
+    /// <inheritdoc />
+    protected override Component? Render() => Section[Children ?? []];
 }

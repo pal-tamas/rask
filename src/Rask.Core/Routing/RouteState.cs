@@ -63,4 +63,19 @@ public sealed class RouteState
     ///     subtree usually don't need this — the router re-renders them on navigation.
     /// </summary>
     public event Action? Changed;
+
+    /// <summary>
+    ///     The route table this session navigates within, or <c>null</c> for every page in every assembly.
+    /// </summary>
+    /// <remarks>
+    ///     Set by a host that serves more than one application, to the application the session was opened for,
+    ///     so a live navigation and the session's <see cref="Router" /> resolve against the same table its
+    ///     first request did (#1094). Without it a host-app session could render a mounted application's pages
+    ///     inside its own document. A provider rather than a list, because the table changes under hot reload:
+    ///     it is asked again on every resolution, which the registry's per-tree cache keeps cheap.
+    /// </remarks>
+    internal Func<IReadOnlyList<Route>>? Table { get; set; }
+
+    /// <summary>The table to resolve against now: the session's application, or the whole registry.</summary>
+    internal IReadOnlyList<Route> CurrentTable => Table?.Invoke() ?? RouteRegistry.BuildTree();
 }

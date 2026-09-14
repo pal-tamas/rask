@@ -29,6 +29,7 @@ internal sealed class RaskRootSelector
     private readonly Func<IServiceProvider, Component> _hostFactory;
     private readonly (RaskMountedApp Mount, Func<IServiceProvider, Component> Factory)[] _mounts;
     private readonly IReadOnlyList<System.Reflection.Assembly> _mountedAssemblies;
+    private readonly string _mountedKey;
     private readonly IRaskServerDevTools? _devTools;
 
     public RaskRootSelector(
@@ -41,6 +42,8 @@ internal sealed class RaskRootSelector
             .Select(m => (m, Factory(m)))
             .ToArray();
         _mountedAssemblies = mounts.Select(m => m.RoutesFrom).Distinct().ToArray();
+        // Once, here: the host's table is asked for on every render of every host session's Router.
+        _mountedKey = RouteRegistry.ExceptKey(_mountedAssemblies);
         _devTools = devTools;
     }
 
@@ -65,10 +68,30 @@ internal sealed class RaskRootSelector
     ///     across requests would keep serving routes that have since been edited away. <c>RouteRegistry</c>
     ///     caches each tree, so this is a dictionary hit in the steady state.
     /// </remarks>
-    public IReadOnlyList<Route> RoutesFor(string? path) =>
-        Match(path) is { } hit
-            ? RouteRegistry.BuildTree(hit.Mount.RoutesFrom)
-            : RouteRegistry.BuildTreeExcept(_mountedAssemblies);
+    public IReadOnlyList<Route> RoutesFor(string? path) => TableFor(path)();
+
+    /// <summary>
+    ///     A provider of the route table for the application <paramref name="path" /> belongs to, for a session to keep.
+    /// </summary>
+    /// <remarks>
+    ///     The application is decided once, from the path the session was opened at; the table itself is still built
+    ///     on every call, for the hot-reload reason <see cref="RoutesFor" /> gives.
+    /// </remarks>
+    public Func<IReadOnlyList<Route>> TableFor(string? path)
+    {
+        if (Match(path) is { } hit)
+        {
+            var assembly = hit.Mount.RoutesFrom;
+            return () => RouteRegistry.BuildTree(assembly);
+        }
+
+        var (mounted, key) = (_mountedAssemblies, _mountedKey);
+        return () => RouteRegistry.BuildTreeExcept(mounted, key);
+    }
+
+    /// <summary>Whether two paths belong to the same application on this host: the host's, or the same mount.</summary>
+    public bool SameApplication(string? path, string? other) =>
+        ReferenceEquals(Match(path)?.Mount, Match(other)?.Mount);
 
     private (RaskMountedApp Mount, Func<IServiceProvider, Component> Factory)? Match(string? path)
     {

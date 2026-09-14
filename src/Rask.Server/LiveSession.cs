@@ -10,6 +10,7 @@ using Microsoft.JSInterop.Infrastructure;
 using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Diagnostics;
+using Rask.Core.Diagnostics.DevTools;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Server.Authentication;
@@ -116,6 +117,11 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     // its OnMountAsync never re-runs — leaving data loaded for the old identity/tenant).
     public string? PendingAuthNavigation { get; set; }
 
+    // Whether a path belongs to the application on this host the session was opened for — the host's own, or one
+    // mounted under its prefix. Null for a session built outside the page endpoint (tests, a bare store), which
+    // owns every path, as before (#1094).
+    internal Func<string, bool>? OwnsPath { get; set; }
+
     // The principal the auth handoff's reconnect is expected to carry: the signed-in user for a sign-in,
     // an unauthenticated principal for a sign-out, null when no handoff is in flight. The hello admission
     // check lets exactly that principal attach besides the owner, because the reconnect deliberately
@@ -141,6 +147,9 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     public string Id { get; }
 
     internal override string? DevToolsSessionId => Id;
+
+    // The inner gate, not Lock: a render that runs mid-handler holds only this one.
+    internal override SemaphoreSlim? DevToolsRenderGate => _renderLock;
 
     public IServiceScope Scope { get; }
     public SemaphoreSlim Lock { get; } = new(1, 1);
@@ -193,6 +202,9 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     public async ValueTask DisposeAsync()
     {
         _disposed = true;
+        // First, so a language switch during teardown cannot queue a render of a tree being disposed. Both
+        // disposal paths do it; neither delegates to the other (#1093).
+        DetachCulture();
         // Serialise teardown against any in-flight render. RenderAndSendAsync mutates the
         // component tree's child dictionaries under _renderLock (the swap+Clear in
         // Component.BuildRenderTree, then GetOrCreateChild inserts), and
@@ -226,6 +238,7 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     public void Dispose()
     {
         _disposed = true;
+        DetachCulture();
         // See DisposeAsync: take the render lock so the synchronous tree walk can't race an
         // in-flight render mutating the same child dictionaries.
         _renderLock.Wait();
@@ -453,6 +466,10 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     // deferred rotation.
     private string RenderRootWave(bool publishOnly)
     {
+        // The served render is this session's first walk, and the one a devtools panel opened before any interaction has
+        // to show — it reaches the page through the GET rather than through RenderTreeToHtml, which says so for the rest.
+        RaskDevToolsHook.Active?.WalkStarted(this, publishOnly);
+
         if (DiffMode == LiveDiffMode.DisabledFull)
         {
             return View.RenderAsLiveRoot(Services, publishOnly);

@@ -288,6 +288,15 @@ import "../../Rask.Core/Resources/rask-events.js";
                 showSessionExpired();
                 return;
             }
+            // The path we navigated to belongs to another application on this host (a mounted one, or the
+            // host when this is a mounted one), which this session cannot render. Load it as a page, so its
+            // request builds that application's root. `replace` mirrors the navigation it answers: a popstate
+            // is already at that entry, a link click is not.
+            if (data.type === "location" && typeof data.url === "string") {
+                const target = prependBase(data.url);
+                if (data.replace) location.replace(target); else location.assign(target);
+                return;
+            }
             // Dev-only: the coordinator finished applying an edit and every session has repainted.
             // Purely an indicator — the DOM was already updated by the render that preceded this
             // frame, so it must NOT fall through to applyFullReply (which would morph the document

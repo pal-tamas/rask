@@ -20,6 +20,8 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
 {
     private readonly SemaphoreSlim _lock = new(1, 1);
 
+    internal override SemaphoreSlim? DevToolsRenderGate => _lock;
+
     // Held so Dispose can unsubscribe symmetrically. The provider can outlive the session (it is a
     // separate service), so a dangling subscription would fire OnUserChanged on a disposed session
     // (disposed _lock → ObjectDisposedException). In the normal single-session-per-page lifetime
@@ -65,6 +67,10 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
         {
             _userProvider.Changed -= OnUserChanged;
         }
+
+        // Same for the culture service, which is a root singleton here and outlives every session: left
+        // subscribed, the next language switch would re-render this disposed tree against _lock (#1093).
+        DetachCulture();
 
         ComponentLifecycle.DisposeComponentTree(View);
         _lock.Dispose();

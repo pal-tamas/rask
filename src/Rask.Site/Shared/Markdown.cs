@@ -6,6 +6,7 @@ using Markdig.Renderers.Html;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
 using Rask.Core;
+using Rask.Core.Live;
 
 namespace Rask.Site;
 
@@ -42,7 +43,33 @@ public sealed partial class Markdown : Component
     {
         var builder = new MarkdownPipelineBuilder().UseAdvancedExtensions();
         builder.DocumentProcessed += StampGitHubHeadingIds;
+        builder.DocumentProcessed += DropCommentBlocks;
         return builder.Build();
+    }
+
+    // An HTML comment on its own in a doc is a note to whoever edits the Markdown (elements.md explains its
+    // MDN link table in one) — GitHub hides it, and the site shipped it in every page's body instead. Only a
+    // block that is nothing BUT one comment goes: a comment inside a fenced sample is a CodeBlock and is
+    // shown as code, and a comment block with markup after its `-->` keeps that markup.
+    private static void DropCommentBlocks(MarkdownDocument document)
+    {
+        var comments = document.Descendants<HtmlBlock>().Where(IsCommentOnly).ToList();
+        foreach (var block in comments)
+        {
+            block.Parent?.Remove(block);
+        }
+    }
+
+    private static bool IsCommentOnly(HtmlBlock block)
+    {
+        if (block.Type != HtmlBlockType.Comment)
+        {
+            return false;
+        }
+
+        var text = block.Lines.ToString().Trim();
+        var close = text.IndexOf("-->", StringComparison.Ordinal);
+        return close == text.Length - 3;
     }
 
     private static void StampGitHubHeadingIds(MarkdownDocument document)
@@ -182,8 +209,21 @@ public sealed partial class Markdown : Component
     internal static IReadOnlyList<string> DemoKeys(string source) =>
         Split(source).Where(s => s.IsDemo).Select(s => s.Value).ToArray();
 
-    private static string RenderHtml((string? SourcePath, string Text) doc) =>
-        HighlightCodeBlocks(RewriteLinks(global::Markdig.Markdown.ToHtml(doc.Text, Pipeline), doc.SourcePath));
+    internal static string RenderHtml((string? SourcePath, string Text) doc) =>
+        HighlightCodeBlocks(RewriteImages(RewriteLinks(global::Markdig.Markdown.ToHtml(doc.Text, Pipeline), doc.SourcePath), doc.SourcePath));
+
+    // Every relative image, resolved like a link. A picture the site serves itself — one under src/Rask.Site/wwwroot,
+    // which is how a guide links it so GitHub can render it too — is served from the site; any other file is GitHub's
+    // raw copy, since a blob page is not an image. Lazy, because a guide's pictures are below its opening paragraphs.
+    internal static string RewriteImages(string html, string? sourcePath) =>
+        DocImageRegex().Replace(html, m =>
+        {
+            var target = DocLinks.Resolve(sourcePath, m.Groups["path"].Value);
+            var src = target.SitePath is { } sitePath
+                ? $"{LiveOptions.PathBase}/{sitePath}"
+                : $"{SiteIdentity.Repository}/raw/main/{target.RepositoryPath}";
+            return $"<img src=\"{src}\" loading=\"lazy\" decoding=\"async\"";
+        });
 
     // Markdig renders a fenced ```lang block as <pre><code class="language-{lang}">{HTML-encoded source}
     // </code></pre> with NO highlighting. Tokenize the known languages server-side with the shared
@@ -289,6 +329,10 @@ public sealed partial class Markdown : Component
     // not a bare "#fragment" — which needs no rewriting.
     [GeneratedRegex("href=\"(?![a-zA-Z][a-zA-Z0-9+.-]*:|/)(?<path>[^\"#]+)(?<frag>#[^\"]*)?\"")]
     private static partial Regex DocLinkRegex();
+
+    // Markdig's image output, <img src="path" — relative only: not a scheme, not rooted, not a data: URI.
+    [GeneratedRegex("<img src=\"(?![a-zA-Z][a-zA-Z0-9+.-]*:|/)(?<path>[^\"]+)\"")]
+    private static partial Regex DocImageRegex();
 
     // Markdig fenced-code output: <pre><code class="language-{info}">{HTML-encoded body}</code></pre>.
     // Non-greedy body; the body is HTML-encoded so a literal </code> can never appear inside it.

@@ -2,8 +2,10 @@ using System.Security.Claims;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Authentication;
+using Rask.Core.Globalization;
 using Rask.Core.Live;
 using Rask.Core.Routing;
+using Rask.TestSupport;
 using Rask.Wasm.Files;
 
 #pragma warning disable RASK014 // test-defined Component subclass has no generated factory
@@ -33,6 +35,29 @@ public class DisposalTests
         session.Dispose();
 
         Assert.Equal(0, provider.SubscriberCount); // ...and unsubscribed on dispose
+    }
+
+    // #1093: IRaskCulture is a root singleton on WASM, so it outlives every session. A handler left attached keeps
+    // the disposed tree reachable and re-renders it on the next language switch.
+    [Fact]
+    public void Dispose_UnsubscribesFromCultureChanged()
+    {
+        // Process-wide, and deliberately not reset: it only decides whether a session LOOKS for a culture
+        // service (see RaskCulture.IsEnabled), so leaving it on cannot change what a parallel test renders.
+        RaskCulture.IsEnabled = true;
+        var culture = new CountingCulture();
+        var services = new ServiceCollection();
+        services.AddSingleton<RouteState>();
+        services.AddSingleton<Navigator>();
+        services.AddSingleton<IRaskCulture>(culture);
+        var sp = services.BuildServiceProvider();
+
+        var session = new WasmLiveSession(new MiniApp(), sp, LiveDiffMode.Auto);
+        Assert.Equal(1, culture.SubscriberCount);
+
+        session.Dispose();
+
+        Assert.Equal(0, culture.SubscriberCount);
     }
 
     [Fact]

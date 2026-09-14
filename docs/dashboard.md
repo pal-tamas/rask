@@ -285,7 +285,10 @@ overview measured **1.09:1**, with every class name in the markup correct and th
 green.
 
 Your own pages are unaffected: the console is a mounted application with its own document, so its
-stylesheet, its reset and its theme reach nothing of yours.
+stylesheet, its reset and its theme reach nothing of yours. The same goes for its pages. A live page of
+your app never renders one of the console's routes in place, and the console never renders one of yours.
+A link or a back-button step from one to the other loads the destination as a full page, so each
+application's own root always draws it.
 
 ## Related
 

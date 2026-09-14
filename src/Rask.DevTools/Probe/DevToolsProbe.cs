@@ -72,15 +72,28 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
     // which on every host IS the session's container. Weak on both sides: neither the container nor the session is ours.
     private readonly ConditionalWeakTable<IServiceProvider, LiveSessionBase> _walking = new();
 
+    // The walk in progress on this thread: every component it finished, with the component it was walked inside. A render
+    // walk is synchronous from WalkStarted to TreeCommitted, so the thread is what ties the two together; the list is
+    // reused, so a page that renders on every keystroke does not allocate one per render. Null outside a session's walk —
+    // a prerender, a ToHtml — which is recorded nowhere.
+    [ThreadStatic] private static List<DevToolsWalkItem>? t_walk;
+    [ThreadStatic] private static List<DevToolsWalkItem>? t_walkBuffer;
+
     // Holds the component ids, so a panel's expanded branches survive the next render of the page it is watching.
     private readonly DevToolsTreeSnapshotter _snapshots = new();
 
     public void WalkStarted(LiveSessionBase session, bool publishOnly)
     {
-        if (!IsPanel(session))
+        if (IsPanel(session))
         {
-            _walking.AddOrUpdate(session.Services, session);
+            t_walk = null;
+            return;
         }
+
+        _walking.AddOrUpdate(session.Services, session);
+        var buffer = t_walkBuffer ??= [];
+        buffer.Clear();
+        t_walk = buffer;
     }
 
     public long ComponentRendering(Component component, RenderCause cause) => 0;
@@ -89,13 +102,11 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
     {
     }
 
-    public void ComponentWalked(Component component, long startTimestamp, int frameStart, int frameEnd)
-    {
-    }
+    public void ComponentWalked(Component component, Component? parent, long startTimestamp, int frameStart, int frameEnd) =>
+        t_walk?.Add(new DevToolsWalkItem(component, parent, frameStart, frameEnd));
 
-    public void ComponentReplayed(Component component, int frameStart, int frameEnd)
-    {
-    }
+    public void ComponentReplayed(Component component, Component? parent, int frameStart, int frameEnd) =>
+        t_walk?.Add(new DevToolsWalkItem(component, parent, frameStart, frameEnd));
 
     public bool ObserveThrow(Component component, Exception exception) => false;
 
@@ -115,16 +126,18 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
         // Which session this walk belongs to: the render context's services are the session's container, and WalkStarted
         // recorded the pair. The synchronous context first — it is valid for the walk itself — with the ambient one as
         // the fallback for a render that resumed after an await.
+        var walk = t_walk;
+        t_walk = null;
+
         var services = (LiveRenderContext.CurrentSync ?? LiveRenderContext.Current)?.Services;
-        if (services is null
-            || !_walking.TryGetValue(services, out var session)
-            || !feeds.TryGet(session, out var feed)
-            || !feed.WantsTree)
+        if (walk is null || services is null || !_walking.TryGetValue(services, out var session))
         {
             return;
         }
 
-        feed.RecordTree(_snapshots.Snapshot(root));
+        // Kept whether or not a panel is watching, so one that opens before the page renders again still has a tree. The
+        // frame writer is still the walk's: the session pops it only after this returns.
+        feeds.For(session).RecordWalk(root, walk, FrameSinkScope.Current, session.DevToolsRenderGate, _snapshots);
     }
 
     public void DiffComputed(LiveSessionBase session, int opCount, bool usedDiff, long startTimestamp)
