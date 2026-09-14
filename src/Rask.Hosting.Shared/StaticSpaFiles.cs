@@ -44,10 +44,11 @@ internal static class StaticSpaFiles
     ///     bundles can live in one host.
     /// </summary>
     /// <remarks>
-    ///     The prefixed shape carries <c>{*path:nonfile}</c>, which is what keeps a request for a
-    ///     missing asset a 404 instead of a page of HTML — handing a browser <c>index.html</c> for a
-    ///     module import produces a decode error that reads as a broken framework. The root shape is
-    ///     deliberately unconstrained, preserving the behaviour the WASM host shipped with.
+    ///     Both shapes match <c>{*path:nonfile}</c> only, which is what keeps a request for a missing asset
+    ///     a 404 instead of a page of HTML — handing a browser <c>index.html</c> for a module import
+    ///     produces a decode error that reads as a broken framework. The prefixed shape spells the
+    ///     constraint out; the root shape gets it from <c>MapFallback(RequestDelegate)</c>, whose default
+    ///     pattern is exactly that. <c>UseRaskSpaTests</c> pins a missing <c>/main.js</c> as a 404 (#1078).
     /// </remarks>
     public static void MapCatchAll(IEndpointRouteBuilder endpoints, string pathBase, RequestDelegate handler)
     {

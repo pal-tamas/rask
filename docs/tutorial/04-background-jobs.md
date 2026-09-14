@@ -111,16 +111,16 @@ after the order is saved. `SendOrderReceipt` lives in `Features/Shared/`, so the
 `using Shop.Features.Shared;`:
 
 ```csharp
-public sealed partial class CreateOrder(IJob jobs, Navigator navigator) : Component
+public sealed partial class CreateOrder(IDispatcher dispatcher, IJob jobs, Navigator navigator) : Component
 {
     // … the fields and Render() are unchanged …
 
-    private async Task SaveAsync(OrderModel model)
+    private async Task SaveAsync(AddOrder model)
     {
         try
         {
-            var order = await Order.CreateAsync(model, CancellationToken);
-            await jobs.EnqueueAsync(new SendOrderReceipt(order.Id), CancellationToken);   // ← enqueue
+            var orderId = await dispatcher.SendAsync(model, CancellationToken);
+            await jobs.EnqueueAsync(new SendOrderReceipt(orderId), CancellationToken);   // ← enqueue
             navigator.NavigateTo(Routes.OrdersPage());
         }
         catch (Exception)
@@ -131,7 +131,7 @@ public sealed partial class CreateOrder(IJob jobs, Navigator navigator) : Compon
 }
 ```
 
-`CreateAsync` hands back the saved `Order`, its `Id` included. `EnqueueAsync` returns as soon as the job row
+`AddOrder` is an `ICommand<Guid>`, so `SendAsync` hands back the saved order's id. `EnqueueAsync` returns as soon as the job row
 is written — the customer's request finishes immediately, and the worker runs the job moments later. Need it
 *later*? `ScheduleAsync(job, TimeSpan.FromHours(24))` or `ScheduleAsync(job, aDateTimeOffset)`. Need it
 *repeatedly*? Register a recurring job in the same `AddRaskJobs` options:

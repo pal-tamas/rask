@@ -99,7 +99,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 choices: IslandRuntimes.All)
             .Flag("no-pwa", description: "Leave out the PWA manifest, icon, and offline page (also drops Web Push).")
             .Flag("no-push", description: "Leave out server-sent Web Push and its subscribe endpoints.")
-            .Flag("no-cqrs", description: "Leave out Rask.Cqrs — and with it the database, which every scaffolded feature dispatches through.")
+            .Flag("no-cqrs", description: "Leave out Rask.Cqrs — and with it the database, whose jobs, outbox and domain events are delivered through it.")
             .Flag("no-data", description: "Leave out the database and EF Core — and with it every battery that maps onto a DbContext.")
             .Flag("no-jobs", description: "Leave out durable background jobs.")
             .Flag("no-mail", description: "Leave out transactional email.")
@@ -597,7 +597,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["pwa"] = "installable: a manifest, an icon, and an offline page",
-            ["cqrs"] = "the source-generated mediator every feature dispatches through",
+            ["cqrs"] = "the source-generated mediator jobs, the outbox and domain events are delivered through",
             ["data"] = "a SQLite database and an AppDbContext your features map through",
             ["docker"] = "a production Dockerfile and .dockerignore",
             ["jobs"] = "durable background jobs on the app's own database",
@@ -823,6 +823,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         }
         else
         {
+            await ReportUnpublishedPackagesAsync(result, cancellationToken).ConfigureAwait(false);
             Console.WriteLine("Restoring packages…", ConsoleStyle.Dim);
             restoreFailed = await _process.RunAsync("dotnet", ["restore", restoreTarget], targetDirectory, cancellationToken).ConfigureAwait(false) != 0;
         }
@@ -865,6 +866,14 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         {
             Console.Out.WriteLine();
             Console.Out.WriteLine(result.Notes);
+        }
+
+        // Only now that it has happened. Said by the generator ahead of time, it appeared under a restore that had
+        // failed and a migration that never ran (#1083).
+        if (migrated == true)
+        {
+            Console.Out.WriteLine();
+            Console.Out.WriteLine("The first migration is already applied to app.db.");
         }
 
         if (restoreFailed)
@@ -1176,6 +1185,41 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         Console.WriteLine("Initialized a git repository with one commit.", ConsoleStyle.Dim);
     }
 
+    /// <summary>
+    ///     The package feed <c>rask new</c> checks the pinned versions against before restoring, or <c>null</c> to skip the
+    ///     check. Set by <c>CliApplication</c>; left unset in tests, so none of them reaches the network.
+    /// </summary>
+    internal PackageFeed? Feed { get; init; }
+
+    // Names the packages the restore is about to fail on, and why, before its NU1103 output buries it (#1083). The restore
+    // still runs: the feed may be one the machine does not use, and the restore's own answer is the authoritative one.
+    private async Task ReportUnpublishedPackagesAsync(ScaffoldResult result, CancellationToken cancellationToken)
+    {
+        if (Feed is null)
+        {
+            return;
+        }
+
+        var unpublished = await Feed
+            .FindUnpublishedAsync(PackageFeed.RaskReferences(result.Files), cancellationToken)
+            .ConfigureAwait(false);
+        if (unpublished.Count == 0)
+        {
+            return;
+        }
+
+        Console.WriteErrorLine("These packages have no published version on nuget.org at the version this project pins:", ConsoleStyle.Error);
+        foreach (var (id, version) in unpublished.OrderBy(p => p.Id, StringComparer.Ordinal))
+        {
+            Console.WriteErrorLine($"  {id} {version}", ConsoleStyle.Error);
+        }
+
+        Console.WriteErrorLine(
+            "The restore below will fail with NU1103 until they are released at that version. A package added since the "
+            + "last release is the usual reason; pin a version that exists in the .csproj, or turn the battery off.",
+            ConsoleStyle.Error);
+    }
+
     /// <summary>True when <paramref name="directory"/> already sits inside a git working tree.</summary>
     private async Task<bool> IsInsideRepositoryAsync(string directory, CancellationToken cancellationToken)
     {
@@ -1186,10 +1230,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         return result.ExitCode == 0 && result.StandardOutput.Trim().Equals("true", StringComparison.OrdinalIgnoreCase);
     }
 
-    /// <summary>
-    /// Resolve the package version to pin in a generated project: the CLI's own version when it's a published
-    /// stable, else the latest-stable fallback (a dev/CI prerelease isn't on NuGet). Pure — unit-tested directly.
-    /// </summary>
     /// <summary>
     /// The version to pin generated <c>PackageReference</c>s at.
     ///

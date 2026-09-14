@@ -404,9 +404,7 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
 
     private readonly record struct ValueObjectPath(EquatableArray<string> Segments);
 
-    // Internal so the model generator's CreateAsync asks "is this a strongly-typed id, and over what" of the same
-    // definition the registry registers the value converter from.
-    internal readonly record struct StronglyTypedId(string? TypeName, string? ValueTypeName, string? ValueMember, string? Problem)
+    private readonly record struct StronglyTypedId(string? TypeName, string? ValueTypeName, string? ValueMember, string? Problem)
     {
         // A strongly-typed id is a user-defined type with one public value and a constructor that takes
         // it. Anything the BCL already maps (Guid, int, string, …) is not one and needs no converter.

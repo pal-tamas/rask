@@ -5,8 +5,8 @@ namespace Rask.Data;
 /// <summary>
 /// The root of the entity hierarchy, and what the model surface is keyed on: every type that derives from
 /// this gains the reads <see cref="ModelSet" /> declares — <c>Product.Where</c>, <c>Product.FindAsync</c>,
-/// <c>Product.AsQueryable</c> — and the source generator gives it a <c>ProductModel</c> with the writes
-/// that take one (<c>Product.CreateAsync</c>, <c>Product.UpdateAsync</c>, <c>Product.DeleteAsync</c>).
+/// <c>Product.AsQueryable</c>. Writes are not on the type: a change is a domain method saved through an
+/// injected context.
 /// </summary>
 /// <remarks>
 /// Carries no state. It exists so that surface can be constrained to entities rather than to

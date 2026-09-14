@@ -25,10 +25,10 @@ namespace Rask.Cli.E2E.Tests;
 /// the old <c>--force</c> regeneration papered over and a reader patching by hand cannot.
 /// </para>
 /// <para>
-/// The pages read and write through the model surface — <c>Product.FindAsync</c>,
-/// <c>Product.AsQueryable()</c> and the generated <c>Product.CreateAsync(ProductModel)</c> — so nothing
-/// here patches a context: declaring the entity is the whole of the data code a reader types, and this
-/// walk is what proves the generated form model and writes exist for it.
+/// The pages read through the model surface — <c>Product.FindAsync</c>, <c>Product.AsQueryable()</c> — and
+/// write by dispatching the chapter's commands, whose handlers open the scaffold's
+/// <c>IDbContextFactory&lt;AppDbContext&gt;</c>. So this walk is what proves the context the scaffold writes
+/// and the one the handlers name have not drifted apart.
 /// </para>
 /// <para>
 /// The chapters build on each other — chapter 4's handler reads <c>Order</c>, which only exists after
@@ -77,21 +77,22 @@ public sealed partial class TutorialChapterBuildE2ETests
                 fs.WriteAllText(file.Path, file.Content);
             }
 
-            // Chapter 2: every file it hands the reader. The entity is the only data code in it — the form
-            // model and the writes the pages call are generated from it, and it is mapped with no context
-            // to edit, so there is nothing else to overlay.
+            // Chapter 2: every file it hands the reader — the entity, its commands and handlers, and the
+            // pages that dispatch them. The entity is mapped with no context to edit, so there is nothing
+            // else to overlay.
             var slice = Path.Combine(projectDir, "Features", "Products");
             fs.CreateDirectory(slice);
             Write(fs, slice, "Product.cs", Fence("class Product : Model<Guid>"));
+            Write(fs, slice, "ProductCommands.cs", Fence("class AddProductHandler"));
             Write(fs, slice, "CreateProduct.cs", Fence("[Route(\"/products/new\")]"));
             Write(fs, slice, "UpdateProduct.cs", Fence("[Route(\"/products/{id:guid}/edit\")]"));
-            Write(fs, slice, "DeleteProduct.cs", Fence("class DeleteProduct : Component"));
+            Write(fs, slice, "DeleteProduct.cs", Fence("class DeleteProduct(IDispatcher dispatcher) : Component"));
             Write(fs, slice, "ProductsPage.cs", Fence("class ProductsPage"));
 
             CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
 
-            // No package is added here, and that is the assertion. Chapter 2 puts [Required] on an entity
-            // and expects the generated form model to enforce it; validation ships inside Rask.Core, so a
+            // No package is added here, and that is the assertion. Chapter 2 puts [Required] on its commands
+            // and expects the form to enforce it; validation ships inside Rask.Core, so a
             // project straight out of `rask new` already has it. If it ever stops being built in, this build
             // still succeeds and the chapter still compiles — so the guarantee is pinned by the unit suite
             // (Rask.Validation.Tests), and this gate only has to prove no `dotnet add package` is needed.

@@ -59,6 +59,27 @@ public class UseRaskSpaTests
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    // #1078: a browser requests a module with Accept: */*, which the Accept rule reads as a navigation. What keeps a
+    // missing /main.js outside any asset folder from being answered with the index document (a MIME-type error that
+    // reads as a broken framework) is the fallback's route: MapFallback matches {*path:nonfile} only, so a path with
+    // a file extension never reaches it. Pinned here because nothing else said so, and a hand-written route pattern
+    // in its place would silently lose the constraint.
+    [Theory]
+    [InlineData("/main.js")]
+    [InlineData("/app.mjs")]
+    [InlineData("/runtime/dotnet.native.wasm")]
+    public async Task A_missing_script_or_module_is_a_404_even_when_the_browser_accepts_anything(string path)
+    {
+        using var dist = new FakeDistDirectory();
+        await using var host = await SpaTestServer.CreateAsync(dist.Path);
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, path);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
+        var response = await host.Http.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
     [Fact]
     public async Task A_request_that_does_not_want_html_is_a_404()
     {

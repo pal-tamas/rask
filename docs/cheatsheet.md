@@ -107,9 +107,9 @@ nav.NavigateTo(Routes.UpdateProduct(Id: id));          // edit page → Update<E
 Authorize[ NewProductButton() ]                      // shown only to signed-in users
 Authorize.Roles(["admin"])[ DeleteProductButton(id) ]
 
-// Read a model, save a form — no context injected (Rask.Data):
+// Read a model — no context injected (Rask.Data); write through a command whose handler saves with EF Core:
 var products = await Product.Where(p => p.Price > 0).OrderBy(p => p.Name).ToListAsync(CancellationToken);
-await Product.UpdateAsync(id, model, CancellationToken);   // id from the route; model = product.ToModel(), bound to a Form
+await dispatcher.SendAsync(new EditProduct { Id = id, Name = name, Version = version }, CancellationToken);
 UiDataGrid.Data(Product.AsQueryable()).RowKey(p => p.Id)[c => [ c.Field(p => p.Name) ]];   // pages in SQL
 
 // Cache an expensive read; invalidate on write:

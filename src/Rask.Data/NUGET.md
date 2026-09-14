@@ -2,8 +2,8 @@
 
 A data layer for **Entity Framework Core** apps with one goal: **you declare models, and that is all**.
 No `DbContext` class, no `DbSet` property, no `IEntityTypeConfiguration`, no registration — and no
-`IDbContextFactory` injected into everything that reads a row or saves a form. Underneath it is ordinary
-EF Core, and work richer than that — a domain operation, a transaction — is EF Core exactly as you know it.
+`IDbContextFactory` injected into everything that reads a row. Underneath it is ordinary EF Core, and every
+write — a domain method, a transaction — is EF Core exactly as you know it.
 
 - **`Model<TId>`** — a base entity with `Id` and a domain-events buffer. A source generator finds every one
   of them and builds the model, so nothing is scanned or reflected and a trimmed publish cannot quietly drop
@@ -13,15 +13,15 @@ EF Core, and work richer than that — a domain operation, a transaction — is 
   **Every read is untracked and opens and disposes its own context**, which is what makes them safe on a
   page that lives as long as a browser's socket. `AsQueryable()` is a standard `IQueryable<T>` that opens a
   context per execution — hand it to a data grid and it sorts and pages in the database.
-- **A generated `ProductModel`** — a settable, form-shaped copy of each entity (`Version` and its
-  DataAnnotations included, the key left out), with `Product.CreateAsync(model)`,
-  `Product.UpdateAsync(id, model)`, `Product.DeleteAsync(id)` and `product.ToModel()`. Each write goes
-  through the change tracker, so the interceptors stamp, version, soft-delete and publish as for any save.
-  `[SkipModel]` keeps a property off the form; a write declared on the entity overrides the generated one.
-- **State stays inside the entity** — build warnings with lightbulb fixes flag a public setter or field on a
-  model or value object (RASK084) and an entity exposing a mutable collection of entities (RASK085).
-- **Domain operations and transactions are plain EF Core** — inject `IDbContextFactory<TContext>` on a live
-  page, or the context in a handler, call the method, and `SaveChangesAsync`.
+- **A generated `ProductModel` for forms** — a settable copy of each entity's mapped properties, with its
+  DataAnnotations and `Version` carried and the key left out, so `Form.Model(model)` validates by the entity's
+  own rules. It is only a shape: the save is plain EF Core. `[SkipModel]` keeps a property off it.
+- **Hints, not rules** — build warnings with lightbulb fixes point out a public setter or field on a model or
+  value object (RASK084) and an entity exposing a mutable collection of entities (RASK085). Public setters
+  are allowed; the warnings never fail a build that does not ask them to.
+- **Writes are plain EF Core** — inject `IDbContextFactory<TContext>` into a command handler or a live page,
+  load the entity, call its method, and `SaveChangesAsync`. The interceptors stamp, version, soft-delete and
+  publish as for any save.
 - **Value objects** (`IValueObject`) map as EF **complex types**, not owned entities; **strongly-typed
   ids** get a generated value converter with nothing declared; mapping rules live in a plain
   `public static void Configure(EntityTypeBuilder<T>)` on the model.
@@ -50,16 +50,7 @@ public sealed class Product : Model<Guid>, ISoftDeletable, IVersioned
 // read — no context in scope, nothing left open, nothing tracked
 var products = await Product.OrderBy(p => p.Name).ToListAsync();
 
-// write — the generated model, as a form hands it back
-var anvil = await Product.CreateAsync(new ProductModel { Name = "Anvil" });
-
-var edit = anvil.ToModel();
-edit.Name = "Anvil, large";
-var saved = await Product.UpdateAsync(anvil.Id, edit); // a stale Version throws DbUpdateConcurrencyException
-
-await Product.DeleteAsync(saved.Id, saved.Version); // a soft delete, through the interceptor
-
-// a domain operation — plain EF Core, one transaction
+// write — plain EF Core, one context, one transaction
 await using var db = await contexts.CreateDbContextAsync(ct);
 var order = await db.Set<Order>().FirstAsync(o => o.Id == orderId, ct);
 order.Cancel(DateTime.UtcNow);
@@ -84,7 +75,7 @@ A class that does **not** derive from `Model` stays an ordinary EF Core entity: 
 and configurations and use them exactly as before. Registering an `IDbContextFactory<YourContext>` is
 the whole of opting out at the app level.
 
-A delete — `Product.DeleteAsync(id)` or `db.Remove(product)` — soft-deletes an `ISoftDeletable`; deleted
+A delete — `db.Remove(product)` — soft-deletes an `ISoftDeletable`; deleted
 rows drop out of queries (use `IgnoreQueryFilters()` to restore); a save against a stale `Version` throws
 `DbUpdateConcurrencyException`; and any `INotification` raised on the entity is published after the change
 commits.

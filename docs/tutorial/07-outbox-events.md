@@ -14,10 +14,10 @@ processor delivers it after commit — retrying until it succeeds.
 
 ## 1. Placing an order is a domain operation
 
-Chapter 3's order form saves through `Order.CreateAsync(model)`. That is exactly right for data entry — a
-member of staff types an order in, and the generated write copies the fields onto a new row — and exactly
-wrong for announcing anything, because it has no idea that what just happened was a *sale*. A generated
-write copies fields; it never calls a method of yours, so there is nowhere in it for an event to be raised.
+Chapter 3's order form sends `AddOrder`, whose handler calls `Order.Create`. That is exactly right for data
+entry — a member of staff types an order in — and exactly wrong for announcing anything, because nothing in
+it says that what just happened was a *sale*. `Create` records a row; it isn't the business event, so it
+isn't where the event belongs.
 
 A customer buying a product is a different thing, and it gets its own path: a method on the entity that
 raises the event, and a small component that calls it and saves through EF Core. Four small additions.
@@ -49,6 +49,22 @@ public sealed class Order : Model<Guid>, ITimestamped, IVersioned
 
     public int Version { get; private set; }
 
+    public static Order Create(decimal total, Guid productId, DateTime placed)
+    {
+        var order = new Order { Id = Guid.CreateVersion7() };
+        order.Change(total, productId, placed);
+        return order;
+    }
+
+    public void Change(decimal total, Guid productId, DateTime placed)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(total);
+
+        Total = total;
+        ProductId = productId;
+        Placed = placed;
+    }
+
     public static Order Place(Guid productId, decimal total, DateTime now)
     {
         var order = new Order { Id = Guid.CreateVersion7(), ProductId = productId, Total = total, Placed = now };
@@ -58,7 +74,7 @@ public sealed class Order : Model<Guid>, ITimestamped, IVersioned
 }
 ```
 
-The fields are chapter 3's, untouched, so the generated `OrderModel` and the staff pages built on it keep
+The fields, `Create` and `Change` are chapter 3's, untouched, so the staff pages and their commands keep
 working. `Raise` comes from `Model<TId>`, and the event sits on the entity until `SaveChanges` — which is what
 makes the next part atomic.
 
@@ -72,7 +88,8 @@ using Shop.Features.Shared;
 namespace Shop.Features.Orders;
 
 // A "Buy" button. A sale is a domain operation, not a form edit, so it goes through Order.Place — the
-// method that announces it — and is saved with EF Core rather than through a generated write.
+// method that announces it — and one button saves one change, so it opens a context itself rather than
+// going through a command.
 public sealed partial class PlaceOrder(IDbContextFactory<AppDbContext> dbFactory) : Component
 {
     private bool _placing;
@@ -142,7 +159,7 @@ asking you to remember something on pain of silent data loss, so Rask decides it
 
 The factory call's `.AddInterceptors(sp.GetServices<ISaveChangesInterceptor>())` is what puts both
 interceptors in the `SaveChanges` pipeline — which is why `PlaceOrder`'s own `db.SaveChangesAsync()` gets the
-outbox, the timestamps and the version bump exactly as the generated writes do. Where `AddDbContextFactory`
+outbox, the timestamps and the version bump exactly as chapter 2's handlers do. Where `AddDbContextFactory`
 sits relative to the other two lines does not matter: that callback runs when the factory is first resolved,
 by which point the container holds every registration.
 
@@ -187,8 +204,8 @@ receipt already went out before sending another.
 > [jobs](04-background-jobs.md) run what you *schedule* (in an hour, purge stale carts). A confirmation email
 > belongs to the order's transaction. A nightly cleanup does not.
 
-> **What raises nothing.** Editing an order through `UpdateOrder` announces nothing — the generated
-> `UpdateAsync` copies fields, just as `CreateAsync` did. When a change *is* something the business cares
+> **What raises nothing.** Editing an order through `UpdateOrder` announces nothing — `Order.Change` raises
+> no event, just as `Create` didn't. When a change *is* something the business cares
 > about — a cancellation, a shipment — give `Order` a method for it that raises its event, and save it the
 > way `PlaceOrder` saves `Place`.
 

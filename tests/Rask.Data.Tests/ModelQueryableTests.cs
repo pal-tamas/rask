@@ -51,12 +51,14 @@ public sealed class ModelQueryableTests : IDisposable
 
         Assert.Equal(0, query.Count());
 
-        var first = await GeneratedModelWrites.CreateAsync(Widget.Create("first"));
+        var first = Widget.Create("first");
+        database.Context.Add(first);
+        await database.Context.SaveChangesAsync();
         Assert.Equal(["first"], query.ToList().Select(w => w.Name));
 
-        await GeneratedModelWrites.CreateAsync(Widget.Create("second"));
-        await GeneratedModelWrites.CreateAsync(Widget.Create("hidden"));
-        await GeneratedModelWrites.UpdateAsync<Widget>(first.Id, version: null, w => w.Rename("renamed"));
+        database.Context.AddRange(Widget.Create("second"), Widget.Create("hidden"));
+        first.Rename("renamed");
+        await database.Context.SaveChangesAsync();
 
         Assert.Equal(["renamed", "second"], query.OrderBy(w => w.Name).ToList().Select(w => w.Name));
         Assert.Equal(2, await query.CountAsync());

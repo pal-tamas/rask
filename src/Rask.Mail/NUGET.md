@@ -15,12 +15,12 @@ request thread, with no broker or Redis.
 ## Use
 
 ```csharp
-public sealed class WelcomeEmail : Component
+public sealed partial class WelcomeEmail : Component
 {
     public string Name { get; set; } = "";
 
     protected override Component? Render() =>
-        Div()[H1()[$"Welcome, {Name}!"], P()["Thanks for signing up."]];
+        Div[H1[$"Welcome, {Name}!"], P["Thanks for signing up."]];
 }
 
 // Program.cs
@@ -48,11 +48,11 @@ Any `Rask:Mail:Smtp` key turns SMTP delivery on. A callback — `AddRaskMail<App
 after the section and wins.
 
 ```csharp
-// send from anywhere IMail is injected:
+// send from anywhere IMail is injected — a component, or any class marked [RaskMarkup], where the chain lives:
 await mail.SendAsync(Email
     .To(user.Email, user.Name)
     .Subject("Welcome")
-    .Body(WelcomeEmail(Name: user.Name)));   // the generated factory, not new (RASK014)
+    .Body(WelcomeEmail.Name(user.Name)));   // the chain, not new (RASK014)
 
 await mail.ScheduleAsync(reminder, delay: TimeSpan.FromHours(24));
 ```

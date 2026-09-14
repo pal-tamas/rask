@@ -77,7 +77,7 @@ builder.Services.AddHealthChecks();
 // `rask db update` to create and apply the migration.
 //
 // The generic overload is what names the context to the model surface, so `Product.Where(…)`
-// and the generated `Product.CreateAsync(model)` know which one to open. The non-generic
+// knows which one to open. The non-generic
 // AddRaskData() registers only the interceptors, and Db.Configure below then has nothing to bind.
 builder.Services.AddRaskData<AppDbContext>();
 // rask:if outbox
