@@ -1110,6 +1110,17 @@ public static partial class RaskEndpointExtensions
 
                 if (hasType && t.ValueEquals("hello"u8))
                 {
+                    // One session per socket. The client sends exactly one hello per connection, so a
+                    // second is a protocol violation — and honouring it leaked: it re-pointed this loop
+                    // at another session without detaching the first, and with a resume token it built
+                    // one more session per frame (#1059).
+                    if (session is not null)
+                    {
+                        metrics?.FrameRejected("hello");
+                        await ClosePolicyViolationAsync(ws, "hello").ConfigureAwait(false);
+                        break;
+                    }
+
                     var sessionId = root.TryGetProperty("session", out var sid) && sid.ValueKind == JsonValueKind.String
                         ? sid.GetString()
                         : null;
@@ -1118,7 +1129,13 @@ public static partial class RaskEndpointExtensions
                         continue;
                     }
 
-                    session = store.Get(sessionId);
+                    // A session that is not this principal's is treated exactly as one that does not
+                    // exist — resume record and all — so a leaked id tells a stranger nothing, not even
+                    // that it is live (#1075). Peek, not Get: Get cancels the session's pending removal,
+                    // which a refused hello must not be able to do.
+                    session = store.Peek(sessionId) is { } existing && !MayAttach(wsUser, existing)
+                        ? null
+                        : store.Get(sessionId);
                     if (session is null)
                     {
                         // This host has never heard of the session. Before the resume protocol that was
@@ -1141,7 +1158,13 @@ public static partial class RaskEndpointExtensions
 
                         // The rebuilt session has a NEW id. The client learns it from the full frame below,
                         // which re-stamps data-rask-root — see LiveSessionBase's full-payload path.
-                        session.AttachSocket(ws, ct);
+                        // Counted like any other attach: the finally counts the detach, so an uncounted
+                        // attach here drove ConnectedCount negative after every deploy (#1059).
+                        if (session.AttachSocket(ws, ct))
+                        {
+                            store.SocketAttached();
+                        }
+
                         session.Services.GetRequiredService<SessionUserProvider>().Set(wsUser);
 
                         // A resumed session is a NEW DI scope, so its culture starts at the app default.
@@ -1155,10 +1178,13 @@ public static partial class RaskEndpointExtensions
                         continue;
                     }
 
-                    session.AttachSocket(ws, ct);
                     // Counted here rather than inside AttachSocket: the store owns the number, and the
-                    // session has no reason to know a store exists.
-                    store.SocketAttached();
+                    // session has no reason to know a store exists. A socket that replaces one still
+                    // attached is not counted again; that one's loop will not count its detach.
+                    if (session.AttachSocket(ws, ct))
+                    {
+                        store.SocketAttached();
+                    }
                     session.Services.GetRequiredService<SessionUserProvider>().Set(wsUser);
 
                     // Apply a deferred sign-in/out navigation now that the principal is re-seeded, so the
@@ -1187,6 +1213,16 @@ public static partial class RaskEndpointExtensions
                 }
 
                 if (session is null)
+                {
+                    continue;
+                }
+
+                // A socket another hello has replaced speaks for the session no longer. Its loop runs on
+                // until the socket itself dies, and a frame from it must not dispatch: that socket was
+                // admitted for the principal the session had THEN, which a sign-in on the new socket may
+                // have changed since. Dropped rather than closed, so a duplicated tab holding the same id
+                // does not fall into a reconnect tug-of-war with the original.
+                if (!session.IsAttached(ws))
                 {
                     continue;
                 }
@@ -1296,9 +1332,11 @@ public static partial class RaskEndpointExtensions
         catch (WebSocketException) { }
         finally
         {
-            if (session is not null)
+            // Only when this loop's socket is still the attached one. A tab that reconnected before the
+            // server noticed this socket die has attached a new one already: detaching, counting the
+            // disconnect or arming removal here would do all three to the live connection (#1076).
+            if (session is not null && session.DetachSocket(ws))
             {
-                session.DetachSocket();
                 store.SocketDetached();
                 store.ScheduleRemoval(session.Id, limits.SessionGracePeriod);
             }
@@ -1883,6 +1921,16 @@ public static partial class RaskEndpointExtensions
             await ctx.SignOutAsync(scheme).ConfigureAwait(false);
         }
 
+        // The reconnect that follows carries this principal, not the session's owner, so let the hello
+        // admission check expect it (MayAttach). Opened here rather than when the handler issued the
+        // ticket: the client reconnects only once this response arrives, and tying the window to the
+        // redeem means only whoever holds the ticket can open it. A sign-out opened at issue time let
+        // any anonymous holder of the session id attach before the client had even redeemed (#1075).
+        if (ctx.RequestServices.GetService<LiveSessionStore>()?.Peek(ticket.SessionId) is { } handoffSession)
+        {
+            handoffSession.PendingAuthHandoff = ticket.Principal ?? new ClaimsPrincipal(new ClaimsIdentity());
+        }
+
         ctx.Response.StatusCode = StatusCodes.Status200OK;
     }
 
@@ -1938,6 +1986,24 @@ public static partial class RaskEndpointExtensions
         }
 
         return string.Equals(UserKey(request), UserKey(owner), StringComparison.Ordinal);
+    }
+
+    // Whether a hello's principal may attach to a session that already exists (#1075). The owner may,
+    // under the same rule the upload and download endpoints apply. So may the one principal an auth
+    // handoff in flight is waiting for: that reconnect is the whole point of the handoff, and it arrives
+    // as the redeemed identity (sign-in) or as nobody (sign-out) while the session still holds the old
+    // one. Strict in both directions: a sign-out admits an anonymous reconnect, never some other user.
+    internal static bool MayAttach(ClaimsPrincipal request, LiveSession session)
+    {
+        if (SameSessionUser(request, session.Services.GetRequiredService<SessionUserProvider>().Current))
+        {
+            return true;
+        }
+
+        return session.PendingAuthHandoff is { } expected
+               && (expected.Identity?.IsAuthenticated == true
+                   ? SameSessionUser(request, expected)
+                   : request.Identity?.IsAuthenticated != true);
     }
 
     private static string? UserKey(ClaimsPrincipal user) =>

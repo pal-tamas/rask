@@ -595,9 +595,12 @@ them until tagged releases begin.
 
 - **The devtools panel shows the page's component tree.** A Tree tab beside Wire lists what the inspected page rendered,
   drawn with the kit's own `UiTree`: expandable, keyboard-navigable, and virtualized, so a page with thousands of
-  components costs the rows on screen. Each component keeps an id for as long as it lives, so the branches a developer
-  opened survive the page's next render. The snapshot is taken at the end of that render and only while the tab is
-  open — a page nobody is inspecting walks its tree exactly as before.
+  components costs the rows on screen. Components are nested the way they sit on the PAGE — a card's rows under the
+  card, even when the page that uses the card built them — and a "Show HTML tags" toggle adds the elements between
+  them, read from the same frames the diff reads. Each component and element keeps an id across renders, so the
+  branches a developer opened stay open. The tree is there the moment the tab opens: every render of an inspected
+  session leaves its walk in buffers that stop allocating once they fit the page, and the tree is built from them only
+  while a panel is open, including from the render the page was served with.
 
 - **The devtools tree says what each component was given.** Every row carries the component's own properties and
   their values, read by an override the build writes for each component rather than by reflection — so a trimmed
@@ -605,6 +608,14 @@ them until tagged releases begin.
   all. A property holding a secret is never read in the first place: one named for a password, a token, a secret or
   a credential, or marked `[DataType(DataType.Password)]`, `[PasswordPropertyText]`, `[PersonalData]` or
   `[ProtectedPersonalData]`, is written out as `••••` when the build writes the override.
+
+- **A DevTools guide, with pictures of the real panel.** [docs/devtools.md](docs/devtools.md) (live at
+  `/docs/guides/devtools`) covers turning the panel on, what keeps it out of a Release build, and the Wire and Tree
+  tabs. rask.sh is a Release build on a public origin, where the devtools never switch on, so the guide shows them in
+  screenshots: `scripts/capture-devtools-screenshots.sh` runs a showcase app in Development, drives the pill and the
+  panel in Chromium, and writes the WebP files the guide links. A guide can now show pictures at all: an image linked
+  where it lives under `src/Rask.Site/wwwroot` renders on GitHub, and the site and the guide's Markdown twin serve the
+  same file.
 
 ### Changed
 
@@ -1068,6 +1079,32 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A live session only accepts a socket from the user it belongs to.** A WebSocket `hello` naming an
+  existing session used to attach whoever sent it, so a leaked session id let a different signed-in user,
+  or an anonymous one, receive that session's frames and dispatch its handlers (#1075). It now attaches
+  only for the session's owner, by the same rule the upload and download endpoints already applied. The
+  one exception is the principal an in-flight sign-in or sign-out is waiting for: that reconnect
+  deliberately arrives as the redeemed user, or as nobody. That window opens only once the ticket has been
+  redeemed, so only whoever holds the ticket can open it. Anyone else is treated exactly as for an id
+  that never existed. They get `session/unknown`, or their own page rebuilt from their own resume record,
+  so a refusal does not reveal that the id is live, and it does not keep an abandoned session alive
+  either. A socket that a reconnect has replaced can no longer dispatch handlers: it was admitted for
+  whoever the session belonged to before that reconnect's sign-in. A session
+  nobody has signed into has no owner to compare against, so for anonymous pages the id's secrecy is
+  still what protects it. Upgrade note: a signed-in tab whose cookie expired while its socket was down
+  now reloads on reconnect, and the page's normal authorization challenge runs, instead of carrying on
+  anonymously in the old session.
+- **A fast reconnect no longer cuts off its own new connection.** When a tab reconnected before the server
+  noticed its previous socket had died, the old socket's cleanup detached the NEW socket: renders were
+  dropped, the connected count went low, and the session was scheduled for removal under an open tab
+  (#1076). Cleanup now detaches only the socket it owns.
+- **`ConnectedCount` stays accurate across restarts and deploys.** A session rebuilt from its resume record
+  never counted its socket as connected but still counted the disconnect, so every deploy's reconnect storm
+  pushed the number (the `rask.sessions.connected` gauge and the live health check's `connectedSessions`)
+  below zero for good (#1059). The same socket can also no longer send a second `hello`. That used to
+  re-point it at another session without releasing the first, or, with a resume record, build and
+  register one more session per frame. The browser runtime sends one per connection, so the server now
+  closes the socket with `PolicyViolation` and counts it as `rask.ws.frames.rejected{reason=hello}`.
 - **A prerendered WASM page no longer changes when the runtime takes it over.** rask.sh still flickered
   slightly on load after #1049. Recording every painted frame and every DOM mutation through the handover
   found three differences between the prerendered document and the runtime's first frame:

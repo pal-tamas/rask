@@ -5,14 +5,15 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Diagnostics.DevTools;
 using Rask.Core.Live;
+using Rask.DevTools.Panel;
 using Rask.DevTools.Probe;
 using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.DevTools.Tests.Panel;
 
 /// <summary>
-///     The component tree the panel shows: taken at the end of the inspected page's render walk, and only while a tab is
-///     asking for one.
+///     The component tree the panel shows: built from the inspected page's last render walk, and only while a panel is
+///     watching.
 /// </summary>
 [Collection(DevToolsHookCollection.Name)]
 public sealed partial class DevToolsTreeTabTests
@@ -41,7 +42,7 @@ public sealed partial class DevToolsTreeTabTests
     }
 
     [Fact]
-    public async Task With_no_tab_watching_the_page_is_not_walked_for_a_tree()
+    public async Task With_no_panel_watching_no_tree_is_built()
     {
         using var host = Host();
         var (_, feed, socket, handlerId) = await LivePage(host);
@@ -95,6 +96,60 @@ public sealed partial class DevToolsTreeTabTests
         var child = Nodes(tree!).Single(n => n.Type == nameof(DevToolsTestChild));
         var caption = child.Props.Single(p => p.Name == nameof(DevToolsTestChild.Caption));
         Assert.Equal("hello", caption.Value);
+        socket.Dispose();
+    }
+
+    // The first thing a developer does is open the panel on a page they have not touched yet. The page rendered once, for
+    // the GET, and that render is what the tree is built from — not a render the panel would have to wait for.
+    [Fact]
+    public async Task A_panel_opened_before_any_interaction_gets_the_tree_the_page_was_served_with()
+    {
+        using var host = Host();
+        var (_, feed, socket, _) = await LivePage(host);
+
+        using var watch = feed.WatchTree();
+
+        var tree = await WaitForTree(feed, TimeSpan.FromSeconds(5));
+        Assert.NotNull(tree);
+        Assert.Contains(nameof(DevToolsTestChild), Types(tree!));
+        socket.Dispose();
+    }
+
+    [Fact]
+    public async Task A_child_sits_under_the_component_it_is_rendered_inside()
+    {
+        using var host = Host();
+        var (_, feed, socket, _) = await LivePage(host);
+        using var watch = feed.WatchTree();
+
+        var tree = await WaitForTree(feed, TimeSpan.FromSeconds(5));
+        Assert.NotNull(tree);
+
+        // The app built the child, and the frame renders it: the page's nesting puts it under the frame.
+        var components = DevToolsTreeTab.WithoutTags([tree!]).Single();
+        var frame = Nodes(components).Single(n => n.Type == nameof(DevToolsTestFrame));
+        Assert.Equal(nameof(DevToolsTestChild), Assert.Single(frame.Children).Type);
+        socket.Dispose();
+    }
+
+    [Fact]
+    public async Task The_elements_between_components_are_in_the_tree_as_tags()
+    {
+        using var host = Host();
+        var (_, feed, socket, _) = await LivePage(host);
+        using var watch = feed.WatchTree();
+
+        var tree = await WaitForTree(feed, TimeSpan.FromSeconds(5));
+        Assert.NotNull(tree);
+
+        // The frame's own <section>, and the child's <span> inside it.
+        var frame = Nodes(tree!).Single(n => n.Type == nameof(DevToolsTestFrame));
+        var section = Assert.Single(frame.Children);
+        Assert.True(section.IsTag);
+        Assert.Equal("section", section.Type);
+        var child = Assert.Single(section.Children);
+        Assert.Equal(nameof(DevToolsTestChild), child.Type);
+        Assert.Equal("span", Assert.Single(child.Children).Type);
         socket.Dispose();
     }
 

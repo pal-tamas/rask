@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!--
+    The app the devtools guide's screenshots are taken of: a small task board with typed props, a button
+    that changes state and a prop the build redacts. scripts/capture-devtools-screenshots.sh runs it in
+    Development and drives the real pill and panel; nothing else starts it. The gate's own proofs use the
+    two Rask.DevTools.Fixture apps, which stay minimal on purpose.
+  -->
+  <PropertyGroup>
+    <TargetFramework>$(RaskTestTarget)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <RaskPublicApiTracked>false</RaskPublicApiTracked>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.DevTools\Rask.DevTools.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Ui\Rask.Ui.csproj"/>
+    <!-- PrivateAssets="all" from the host and the devtools, so an in-repo app names it itself. -->
+    <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+</Project>

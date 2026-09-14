@@ -65,14 +65,15 @@ internal interface IRaskDevToolsProbe
     void ComponentRendered(Component component, long startTimestamp);
 
     /// <summary>
-    ///     A component and its whole subtree were serialized. <paramref name="frameStart" /> and
-    ///     <paramref name="frameEnd" /> bracket what it wrote into the live frame stream, or are -1 when the
-    ///     walk captured no frames.
+    ///     A component and its whole subtree were serialized. <paramref name="parent" /> is the component it was
+    ///     walked inside — its place on the page, not whoever constructed it — or null outside a live render.
+    ///     <paramref name="frameStart" /> and <paramref name="frameEnd" /> bracket what it wrote into the live frame
+    ///     stream, or are -1 when the walk captured no frames.
     /// </summary>
-    void ComponentWalked(Component component, long startTimestamp, int frameStart, int frameEnd);
+    void ComponentWalked(Component component, Component? parent, long startTimestamp, int frameStart, int frameEnd);
 
     /// <summary>A clean component was replayed from its cached frames instead of being walked.</summary>
-    void ComponentReplayed(Component component, int frameStart, int frameEnd);
+    void ComponentReplayed(Component component, Component? parent, int frameStart, int frameEnd);
 
     /// <summary>
     ///     A component's render or walk threw. Used as an exception filter, so it MUST return false: the

@@ -92,6 +92,26 @@ public sealed class UiKitTreeTests(WasmExampleAppFixture app, PlaywrightFixture 
         Assert.True(child!.X > parent!.X, "a child row is not indented past its parent.");
     });
 
+    // The flat list's rows are all the same box, so the indent is padding, and it is the label that has to move. Its
+    // rule once lost the cascade to daisyUI's menu padding: every row computed 12px whatever its depth.
+    [Fact]
+    public Task AVirtualizedChildRowIsIndentedUnderItsParent() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var tree = Page.Locator("[data-testid='ui-tree-virtual']");
+        var parent = tree.Locator("[role='treeitem'][aria-level='1'] .ui-tree-toggle").First;
+        var child = tree.Locator("[role='treeitem'][aria-level='2'] .ui-tree-toggle").First;
+        await Expect(child).ToBeAttachedAsync(new LocatorAssertionsToBeAttachedOptions { Timeout = 15_000 });
+
+        var parentBox = await parent.BoundingBoxAsync();
+        var childBox = await child.BoundingBoxAsync();
+
+        Assert.NotNull(parentBox);
+        Assert.NotNull(childBox);
+        Assert.True(childBox!.X > parentBox!.X, "a virtualized child row is not indented past its parent.");
+    });
+
     [Fact]
     public Task VirtualizedRowsAreExactlyOneItemSizeTall() => RunAsync(async () =>
     {
