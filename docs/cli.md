@@ -244,7 +244,7 @@ commands to run rather than failing: the files on disk are correct either way.
 | `--framework` | The .NET version the project targets: `net10.0` (the default, and the LTS release) or `net11.0`. Every Rask package ships for both, so this decides only what your app targets — the csproj and the Dockerfile's images follow it. Asking for a version whose SDK is not installed is refused before any file is written. |
 | `--wasm` | Write the UI as a WebAssembly app in `Client/` (server template), with message records in `Shared/`; the server answers its API and serves it with `UseRaskSpa()` rather than rendering pages — see [single-page apps](spa.md#a-rask-webassembly-app). Publish takes minutes longer. |
 | `--no-pwa` | Leave out the web app manifest, service worker, icon and the wiring to serve them. Takes `--push` with it. |
-| `--no-cqrs` | Leave out [`Rask.Cqrs`](cqrs.md), the mediator. Your pages don't need it to read and write data — they go through the [model surface](data.md) — but the scaffold's plumbing does: background jobs run through their command handlers, the outbox and `Rask.Data`'s domain events are published through it, and a `--wasm` client's messages arrive through it. So it still takes the database with it, and every battery that maps onto a `DbContext` (below). It also takes [`Rask.Query`](query.md), which rides along with the dispatcher: a dispatcher without a cache refetches on every render, so the cache is not a separate decision and has no flag of its own. |
+| `--no-cqrs` | Leave out [`Rask.Cqrs`](cqrs.md), the mediator. Your pages read through the [model surface](data.md) without it, but they write through it: a save is a command whose handler loads the entity and calls `SaveChangesAsync`. The scaffold's plumbing needs it too — background jobs run through their command handlers, the outbox and `Rask.Data`'s domain events are published through it, and a `--wasm` client's messages arrive through it. So it still takes the database with it, and every battery that maps onto a `DbContext` (below). It also takes [`Rask.Query`](query.md), which rides along with the dispatcher: a dispatcher without a cache refetches on every render, so the cache is not a separate decision and has no flag of its own. |
 | `--no-data` | Leave out the SQLite database: no `AppDbContext`, no `AddRaskData()`, no `UseRaskSqlite` (WAL + `busy_timeout`) DbContext factory, and no **continuous backup** ([Litestream](sqlite.md#continuous-backup-with-litestream) — otherwise inert until you set `Rask:Litestream:ReplicaUrl`, so turning it on is one env var at deploy time: `rask deploy --env "Rask__Litestream__ReplicaUrl=s3://bucket/app"`). Takes every battery that maps onto a `DbContext` with it. |
 | `--no-jobs` | Leave out durable background jobs (`AddRaskJobs<AppDbContext>()` + `modelBuilder.AddRaskJobs()`). |
 | `--no-mail` | Leave out transactional email, delivered off the request thread; the dev default writes `.eml` files to `./mail-pickup` instead of needing SMTP. |
@@ -332,9 +332,8 @@ Two combinations are refused, both by name and both because the build would refu
 it server-side into the first response, so a Blazor-only island project gets no `package.json` and
 never probes for Node.
 
-¹ A front-end or meta framework template always wires CQRS — the typed wire *is* the template. On a
-front-end template `--no-cqrs` is refused rather than ignored; on a meta framework template it leaves out
-the database and every battery on it, but the mediator stays. A sign-in flow used to be left out of these templates rather than half-scaffolded, because it had to be written
+¹ A front-end or meta framework template always wires CQRS — the typed wire *is* the template — so on
+either `--no-cqrs` is refused rather than ignored. A sign-in flow used to be left out of these templates rather than half-scaffolded, because it had to be written
 in the framework's own idiom, and the template does not write one yet. The PWA and Web Push **are**
 scaffolded on a front-end template (not yet on a meta framework one) — see [TypeScript front ends](spa.md#installable-and-push-capable).
 
@@ -366,7 +365,7 @@ Turning one off takes its dependents with it, so you never end up with a registr
 
 ```bash
 rask new Shop --no-data     # …and no jobs, mail, cache, storage, outbox, snapshots or dashboard
-rask new Shop --no-cqrs     # …and no database either — jobs, the outbox and domain events run through the mediator
+rask new Shop --no-cqrs     # …and no database either — writes, jobs, the outbox and domain events run through the mediator
 rask new Shop --no-pwa      # …and no Web Push, which subscribes through the service worker
 rask new Shop --no-logs     # …and nothing else: the log store owns a database of its own
 ```

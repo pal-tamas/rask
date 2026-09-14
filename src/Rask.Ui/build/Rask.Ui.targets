@@ -52,6 +52,26 @@
     <RaskUiWriteDaisyUiPlugin Condition="'$(RaskUiWriteDaisyUiPlugin)' == ''">false</RaskUiWriteDaisyUiPlugin>
   </PropertyGroup>
 
+  <!--
+    Declares the written sheet as Content before it exists, so a FIRST build serves it.
+
+    RaskUiWriteStylesheet below copies the file during the build, after this project was evaluated, and static web
+    assets are discovered from what evaluation saw. On a clean checkout the file is not on disk at evaluation, so the
+    first build's manifest had no css/rask-ui.css: a run with no rebuild after it, and a `dotnet publish` from a
+    fresh clone (the Docker image's build) answered /css/rask-ui.css with 404 and every kit colour resolved to
+    nothing. A second build found the file and hid it, which is why only the template journey saw it (#1105).
+
+    A literal Include, not a glob: it does not consult the disk, so the item exists regardless and the file is only
+    required when it is copied, after the target above has run. Rask.Tailwind declares its own output the same way.
+    Guarded on !Exists so a later build, whose wwwroot glob already matches the file, does not declare it twice;
+    Pack="false" because a served sheet reaches a package through static web assets, never as content.
+  -->
+  <ItemGroup Condition=" '$(RaskUiWriteStylesheet)' == 'true'
+                         AND '$(RaskUiStylesheetOutput)' != ''
+                         AND !Exists('$(MSBuildProjectDirectory)/$(RaskUiStylesheetOutput)') ">
+    <Content Include="$(RaskUiStylesheetOutput)" Pack="false"/>
+  </ItemGroup>
+
   <Target Name="_RaskUiResolveStylesheet">
 
     <!--

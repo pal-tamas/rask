@@ -99,7 +99,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 choices: IslandRuntimes.All)
             .Flag("no-pwa", description: "Leave out the PWA manifest, icon, and offline page (also drops Web Push).")
             .Flag("no-push", description: "Leave out server-sent Web Push and its subscribe endpoints.")
-            .Flag("no-cqrs", description: "Leave out Rask.Cqrs — and with it the database, whose jobs, outbox and domain events are delivered through it.")
+            .Flag("no-cqrs", description: "Leave out Rask.Cqrs — and with it the database, whose writes, jobs, outbox and domain events all go through it.")
             .Flag("no-data", description: "Leave out the database and EF Core — and with it every battery that maps onto a DbContext.")
             .Flag("no-jobs", description: "Leave out durable background jobs.")
             .Flag("no-mail", description: "Leave out transactional email.")
@@ -217,7 +217,11 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         // The generated TypeScript contracts ARE the mediator's wire on these templates, so there is no
         // project left without it. Refused rather than ignored, for the same reason --tailwind is below:
         // a flag the CLI accepts and then disregards is the most expensive kind to discover.
-        if (off.Contains("cqrs") && SpaFramework.TryGet(template.Key, out _))
+        //
+        // Both front-end lanes, not only the SPA one. The meta generator forces CQRS back on just as the SPA one
+        // does, so a meta template used to accept the flag, keep the mediator it was asked to drop, and lose the
+        // database instead (#1106).
+        if (off.Contains("cqrs") && (SpaFramework.TryGet(template.Key, out _) || MetaTemplate.TryGet(template.Key, out _)))
         {
             return Fail(
                 $"Template '{template.Key}' can't drop CQRS — the generated TypeScript client dispatches "
@@ -597,7 +601,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["pwa"] = "installable: a manifest, an icon, and an offline page",
-            ["cqrs"] = "the source-generated mediator jobs, the outbox and domain events are delivered through",
+            ["cqrs"] = "the source-generated mediator your writes, jobs, the outbox and domain events go through",
             ["data"] = "a SQLite database and an AppDbContext your features map through",
             ["docker"] = "a production Dockerfile and .dockerignore",
             ["jobs"] = "durable background jobs on the app's own database",

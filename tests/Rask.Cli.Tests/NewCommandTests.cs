@@ -628,6 +628,22 @@ public sealed class NewCommandTests
         Assert.Contains("rask db update", console.OutText, StringComparison.Ordinal);
     }
 
+    // #1106: a meta template accepted --no-cqrs, forced the mediator back on anyway, and dropped the database instead.
+    [Theory]
+    [InlineData("nuxt")]
+    [InlineData("react")]
+    public async Task No_cqrs_is_refused_on_both_front_end_lanes(string template)
+    {
+        var (console, fs, runner, command) = Build();
+
+        var exit = await command.ExecuteAsync(["MyApp", "--template", template, "--no-cqrs"], CancellationToken.None);
+
+        Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Empty(runner.Invocations);
+        Assert.Empty(fs.Files);
+        Assert.Contains("can't drop CQRS", console.ErrorText, StringComparison.Ordinal);
+    }
+
     // #1083: the next-steps text is written before restore, build and migration run, and it used to announce the
     // first migration as applied — under a restore that had just failed and a migration that never ran.
     [Fact]

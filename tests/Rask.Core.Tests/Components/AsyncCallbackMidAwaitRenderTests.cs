@@ -48,18 +48,34 @@ public partial class AsyncCallbackMidAwaitRenderTests : global::Rask.Core.RaskMa
     }
 
     // Re-renders on request and records the markup, so the test can read what the mid-await render produced.
+    //
+    // One render at a time, as a live session's render gate guarantees. Without it the callback resuming on the pool
+    // could ask for a render while the handler drain was still walking the same tree, and the second walk mutated the
+    // alive sets the first was enumerating: "Collection was modified", once in four full-suite runs (#1104). A Monitor
+    // rather than a semaphore, so a render requested from inside a render on the same thread still goes through, as it
+    // did before; only a render from another thread waits.
     private sealed class RenderingHandle(Host view) : IRenderHandle
     {
+        private readonly Lock _gate = new();
+
         public Task RequestRenderAsync()
         {
-            view.LastHtml = view.RenderAsLiveRoot(RenderHarness.EmptyServices());
+            Render();
             return Task.CompletedTask;
         }
 
         Task IRenderHandle.RenderInScopeAsync()
         {
-            view.LastHtml = view.RenderAsLiveRoot(RenderHarness.EmptyServices());
+            Render();
             return Task.CompletedTask;
+        }
+
+        private void Render()
+        {
+            lock (_gate)
+            {
+                view.LastHtml = view.RenderAsLiveRoot(RenderHarness.EmptyServices());
+            }
         }
     }
 

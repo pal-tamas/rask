@@ -163,6 +163,17 @@ public sealed class TemplateJourneyE2ETests(PlaywrightFixture browser) : IClassF
             }
         };
 
+        // The browser's own console line for a failed load ("Failed to load resource: … 404") names no URL, so a red
+        // run said something was missing and not what. Every failing response is recorded with its address.
+        var failedResponses = new List<string>();
+        page.Response += (_, response) =>
+        {
+            if (response.Status >= 400)
+            {
+                failedResponses.Add($"{response.Status} {response.Url}");
+            }
+        };
+
         await page.GotoAsync(app.BaseUrl, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
 
         // The starter's own heading, written by a Rask component the HOST rendered — the one thing a
@@ -177,7 +188,8 @@ public sealed class TemplateJourneyE2ETests(PlaywrightFixture browser) : IClassF
         Assert.True(
             failures.Count == 0,
             $"--template {key} reached the browser with console errors:\n  "
-                + $"{string.Join("\n  ", failures)}\n\nhost log:\n{app.Log}");
+                + $"{string.Join("\n  ", failures)}\n\nfailed responses:\n  {string.Join("\n  ", failedResponses)}"
+                + $"\n\nhost log:\n{app.Log}");
     }
 
     /// <summary>
@@ -190,7 +202,11 @@ public sealed class TemplateJourneyE2ETests(PlaywrightFixture browser) : IClassF
         var work = TemplateBuildE2ETests.NewWorkingDirectory();
         var projectDirectory = Path.Combine(work, name);
 
-        var result = TemplateBuildE2ETests.Scaffold(key, projectDirectory, name, version, islands: []);
+        // Without its WebAssembly client. These journeys run the host as `dotnet run` does and never publish a client,
+        // so a server scaffold WITH one answered every request 503 from UseRaskSpa's missing-bundle page, and the
+        // server journey could not reach the component it asserts on (#1105). The SPA and meta templates carry no
+        // `wasm` flag, so this changes nothing for them.
+        var result = TemplateBuildE2ETests.Scaffold(key, projectDirectory, name, version, islands: [], wasm: false);
         TemplateBuildE2ETests.Write(result, projectDirectory, feed);
 
         var projectFile = Path.Combine(projectDirectory, name + ".csproj");

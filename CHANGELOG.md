@@ -1120,6 +1120,16 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A scaffolded app's first build serves the UI kit's stylesheet.** `RaskUiWriteStylesheet` copies the kit's
+  sheet to `wwwroot/css/rask-ui.css` during the build. On a clean checkout the file did not exist when the
+  project was evaluated, so the first build's static web assets had no entry for it. A run with no rebuild
+  after it, or a `dotnet publish` from a fresh clone (which is what a Docker image build is), answered
+  `/css/rask-ui.css` with 404, and every kit colour resolved to nothing. A second local build found the file,
+  which hid the problem. The sheet is now declared before it exists, as Rask.Tailwind already did for its
+  own output, and the server template's browser journey passes with no console errors (#1105).
+- **`--no-cqrs` is refused on meta framework templates too.** A meta framework template accepted it, forced
+  the mediator back on because its typed client dispatches through it, and dropped the database and every
+  battery on it instead. It is now refused by name, as it already was on the front-end SPA templates (#1106).
 - **`rask new` stops claiming a migration it never ran, and names a missing package before its restore fails.**
   - **Migration message.** The next-steps text said "The first migration is already applied to app.db" even
     under a restore that had just failed. The text is written before the restore, build and migration run,

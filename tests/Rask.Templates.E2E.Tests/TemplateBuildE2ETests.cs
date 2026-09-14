@@ -100,12 +100,14 @@ public sealed class TemplateBuildE2ETests
     ///     fails here rather than producing a different template's project.
     /// </summary>
     internal static ScaffoldResult Scaffold(
-        string key, string projectDirectory, string name, string version, IReadOnlyList<string> islands)
+        string key, string projectDirectory, string name, string version, IReadOnlyList<string> islands, bool? wasm = null)
     {
         Assert.True(TemplateCatalog.TryGet(key, out var template));
 
-        var wasm = template.SupportedFlags.Contains("wasm");
-        var batteries = NewCommand.ToBatteries(template, [], wasm);
+        // Every supported flag on by default, which for the server template includes its WebAssembly client: the
+        // build gates want that variant compiled. A caller that RUNS the app says which variant it means (#1105).
+        wasm ??= template.SupportedFlags.Contains("wasm");
+        var batteries = NewCommand.ToBatteries(template, [], wasm.Value);
 
         if (SpaFramework.TryGet(key, out var spa))
         {
