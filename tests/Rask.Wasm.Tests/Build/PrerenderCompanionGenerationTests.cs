@@ -37,6 +37,8 @@ public class PrerenderCompanionGenerationTests : IDisposable
         Directory.CreateDirectory(Path.Combine(_dir, "Features"));
         File.WriteAllText(Path.Combine(_dir, "Features", "Demo.cs"), "// read back at render time");
         File.WriteAllText(Path.Combine(_dir, "Features", "Notes.txt"), "no LogicalName of its own");
+        File.WriteAllText(Path.Combine(_dir, "Features", "Demo.css"), ".demo { color: red; }");
+        File.WriteAllText(Path.Combine(_dir, "Features", "Other.json"), "{}");
         File.WriteAllText(Path.Combine(_dir, "App.csproj"), $"""
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
@@ -54,6 +56,10 @@ public class PrerenderCompanionGenerationTests : IDisposable
                   <LogicalName>raksrc/Demo.cs</LogicalName>
                 </EmbeddedResource>
                 <EmbeddedResource Include="Features/Notes.txt"/>
+              </ItemGroup>
+              <ItemGroup>
+                <AdditionalFiles Include="Features/Demo.css"/>
+                <AdditionalFiles Include="Features/Other.json"/>
               </ItemGroup>
               <Import Project="{Path.Combine(SrcDir, "Rask.Wasm", "build", "Rask.Wasm.Prerender.targets")}"/>
             </Project>
@@ -197,6 +203,50 @@ public class PrerenderCompanionGenerationTests : IDisposable
         Assert.Contains("<AdditionalFiles Include=\"", project, StringComparison.Ordinal);
         Assert.Contains("/**/*.props.json\" />", project, StringComparison.Ordinal);
         Assert.Contains("/obj/**\" />", project, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheAppsScopedStylesheetsReachTheCompanion()
+    {
+        // The prerender renders through the scoped-asset registry, and the generator fills it only from the
+        // .css AdditionalFiles it is handed. Missing, every page published with no data-r-* attributes and no
+        // bundle <link>, and its scoped chrome painted unstyled until the runtime took over — a reflow on
+        // every refresh. Carried as the app resolved them, and only the stylesheets: the app's other
+        // AdditionalFiles are not the companion's business here.
+        var project = Generate().Replace('\\', '/');
+
+        Assert.Equal(1, Occurrences(project, "Features/Demo.css\" />"));
+        Assert.DoesNotContain("Other.json", project, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheCompanionsOwnScopedGlobsAreOffAndTypeScriptIsRootedAtTheApp()
+    {
+        // Rask.Core.targets globs scoped .css and .ts from the COMPANION's directory, inside obj/, where no
+        // component lives. Off, and the TypeScript named from the app instead — rooted there, because tsgo's
+        // output tree and the AdditionalFiles transform both follow %(RecursiveDir) from that root.
+        var project = Generate().Replace('\\', '/');
+        // Matched on the app directory's NAME: MSBuild spells a temp path through its resolved form (/private/var
+        // on macOS), so the absolute prefix is not the one this test created it under.
+        var app = "[^\"<]*/" + System.Text.RegularExpressions.Regex.Escape(Path.GetFileName(_dir));
+
+        Assert.Contains("<RaskScopedCssAutoInclude>false</RaskScopedCssAutoInclude>", project, StringComparison.Ordinal);
+        Assert.Contains("<RaskScopedTsGlob>false</RaskScopedTsGlob>", project, StringComparison.Ordinal);
+        Assert.Matches($"<RaskScopedTsRootDir>{app}</RaskScopedTsRootDir>", project);
+        Assert.Matches($"<_RaskScopedTs Include=\"{app}/\\*\\*/\\*\\.ts\" Exclude=\"{app}/bin/\\*\\*;", project);
+        Assert.Contains("/**/*.d.ts\" />", project, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AnAppThatOptsOutOfScopedTypeScriptGetsNoneInTheCompanion()
+    {
+        var csproj = Path.Combine(_dir, "App.csproj");
+        File.WriteAllText(csproj, File.ReadAllText(csproj).Replace(
+            "<RaskPrerender>true</RaskPrerender>",
+            "<RaskPrerender>true</RaskPrerender><RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>",
+            StringComparison.Ordinal));
+
+        Assert.DoesNotContain("<_RaskScopedTs Include=", Generate(), StringComparison.Ordinal);
     }
 
     [Fact]
