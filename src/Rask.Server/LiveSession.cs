@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.Net.WebSockets;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -496,7 +497,27 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         // ordering holds on weak memory models too (see the _transport field note).
         Volatile.Write(ref _transport, transport);
         _hasAttachedBefore = true;
+
+        // Again, after publishing: a stale connection whose detach won the compare-exchange just before the
+        // write above resets the token to default, and would otherwise leave this connection with none.
+        _socketCt = ct;
     }
+
+    /// <summary>Whether a connection is attached and still open — the one state a session must never be removed in.</summary>
+    internal bool HasOpenTransport => Volatile.Read(ref _transport)?.IsOpen == true;
+
+    /// <summary>
+    ///     The principal the session's next connection is expected to carry, stamped by a redeemed sign-in or
+    ///     sign-out ticket. The redeem changes the cookie before the tab reconnects, so the reconnect arrives as
+    ///     a different user than the session recorded; this is what lets that one reconnect through.
+    /// </summary>
+    internal ClaimsPrincipal? ExpectedOwner { get; set; }
+
+    /// <summary>Set by a leave request: the tab has gone for good, so the session goes when its stream does.</summary>
+    internal bool Leaving { get; set; }
+
+    /// <summary>The generation of the last HTTP stream that detached, so a leave arriving after it can still name it.</summary>
+    internal int LastStreamGeneration { get; set; }
 
     /// <summary>
     ///     Catch-up render at WS-hello time: emit a frame only if at least one render

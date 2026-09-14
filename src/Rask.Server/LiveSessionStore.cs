@@ -340,6 +340,13 @@ public sealed class LiveSessionStore : IAsyncDisposable
         return _sessions.TryGetValue(id, out var session) ? session : null;
     }
 
+    /// <summary>
+    ///     Looks a session up WITHOUT touching its pending removal. For a request that has not yet proved it may
+    ///     act on the session: <see cref="Get" /> would keep a detached session alive for anyone holding its id,
+    ///     and a refused request would leave it that way for good, since nothing re-arms the removal.
+    /// </summary>
+    internal LiveSession? Peek(string id) => _sessions.TryGetValue(id, out var session) ? session : null;
+
     internal void Remove(string id)
     {
         CancelPendingRemoval(id);
@@ -432,11 +439,21 @@ public sealed class LiveSessionStore : IAsyncDisposable
             }
 
             cts.Dispose();
+
+            // A connection attached after this removal was armed. The attach cancels pending removal once it has
+            // published its transport, but a stale connection's cleanup can arm one in between (#1076's race,
+            // one step later) — and removing a session under a connected tab is the one outcome that must not
+            // happen. Its own disconnect will arm a fresh removal.
+            if (_sessions.TryGetValue(id, out var live) && live.HasOpenTransport)
+            {
+                return;
+            }
+
             await RemoveAsync(id).ConfigureAwait(false);
         });
     }
 
-    private void CancelPendingRemoval(string id)
+    internal void CancelPendingRemoval(string id)
     {
         if (_pendingRemovals.TryRemove(id, out var cts))
         {

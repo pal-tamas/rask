@@ -66,7 +66,7 @@ public static partial class RaskEndpointExtensions
     private const string WebSocketPath = "/rask/ws";
 
     // The HTTP fallback, for a client whose WebSocket never opened: frames come down the stream, the
-    // client's own frames go up as POSTs, and the beacon says a tab is gone without waiting for a timeout.
+    // client's own frames go up as POSTs, and the leave request says a tab is gone without waiting for a timeout.
     private const string StreamPath = "/_rask/stream/{sessionId}";
     private const string SendPath = "/_rask/send/{sessionId}";
     private const string LeavePath = "/_rask/leave/{sessionId}";
@@ -1037,7 +1037,7 @@ public static partial class RaskEndpointExtensions
         await ctx.Response.Body.FlushAsync(ct).ConfigureAwait(false);
 
         var generation = registry.NextGeneration();
-        var transport = new SseTransport(ctx.Response.BodyWriter, generation);
+        var transport = new SseTransport(ctx.Response.BodyWriter, generation, ct);
 
         // Handed over as values, never spliced into a JSON document: both come straight from the request, and a
         // session id or a resume token carrying a quote would otherwise have been read as the hello's own
@@ -1053,7 +1053,7 @@ public static partial class RaskEndpointExtensions
             // Nothing to attach to, and the same answer whether the id never existed or belongs to someone else
             // (#1075). The client reloads, exactly as it does on the socket — which it can only do from an open
             // connection, so the stream still opens first, naming no session.
-            await transport.SendAsync(StreamOpenedFrame(generation, sessionId: null), ct).ConfigureAwait(false);
+            await transport.SendAsync(StreamOpenedFrame(generation, sessionId: null, limits.MaxInboundFrameBytes), ct).ConfigureAwait(false);
             await transport.SendAsync(SessionUnknownPayload, ct).ConfigureAwait(false);
             await transport.CloseAsync(LiveTransportClose.Normal, "session-unknown", ct).ConfigureAwait(false);
             return;
@@ -1068,7 +1068,7 @@ public static partial class RaskEndpointExtensions
             // under a new id, and the client addresses every POST by id: told the generation first, it would open
             // and flush its queue to the id no server knows any more. Any frame the attach itself sent — a
             // rebuild's render — is already on the wire, and the client holds those until this one arrives.
-            await transport.SendAsync(StreamOpenedFrame(generation, session.Id), ct).ConfigureAwait(false);
+            await transport.SendAsync(StreamOpenedFrame(generation, session.Id, limits.MaxInboundFrameBytes), ct).ConfigureAwait(false);
 
             // Alive between renders: a quiet page still has to look connected to every proxy in the path.
             while (!ct.IsCancellationRequested && transport.IsOpen)
@@ -1092,12 +1092,15 @@ public static partial class RaskEndpointExtensions
         {
             registry.Remove(session.Id, transport);
             transport.Abort();
+            await transport.WaitForWritesAsync(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
 
             // Only the connection that still owns the session may arm its grace period: a tab that reconnected has
-            // already attached a newer one (#1076).
+            // already attached a newer one (#1076). A tab that said it was leaving is not coming back, so its
+            // session goes now.
             if (session.DetachTransport(transport))
             {
-                store.ScheduleRemoval(session.Id, limits.SessionGracePeriod);
+                session.LastStreamGeneration = generation;
+                store.ScheduleRemoval(session.Id, session.Leaving ? TimeSpan.Zero : limits.SessionGracePeriod);
             }
 
             // For the CONNECTION, not the session: this stream is going away whichever way the detach went (#1059).
@@ -1109,11 +1112,13 @@ public static partial class RaskEndpointExtensions
     }
 
     /// <summary>
-    ///     <c>{"type":"stream","session":…,"generation":N}</c> — the frame that opens an HTTP connection. Written
+    ///     <c>{"type":"stream","session":…,"limit":B,"generation":N}</c> — the frame that opens an HTTP connection.
+    ///     <c>limit</c> is <c>MaxInboundFrameBytes</c>: a POST carries a batch, and the client packs each within it so
+    ///     the cap stays a per-frame one, as on the socket, rather than refusing a batch of frames that each fit. Written
     ///     through a JSON writer rather than interpolated: the session id comes from the request's route when the
     ///     attach found nothing, and must not be able to add structure of its own.
     /// </summary>
-    private static byte[] StreamOpenedFrame(int generation, string? sessionId)
+    private static byte[] StreamOpenedFrame(int generation, string? sessionId, int maxFrameBytes)
     {
         var buffer = new ArrayBufferWriter<byte>(96);
         using (var writer = new Utf8JsonWriter(buffer))
@@ -1125,6 +1130,7 @@ public static partial class RaskEndpointExtensions
                 writer.WriteString("session"u8, sessionId);
             }
 
+            writer.WriteNumber("limit"u8, maxFrameBytes);
             writer.WriteNumber("generation"u8, generation);
             writer.WriteEndObject();
         }
@@ -1147,7 +1153,8 @@ public static partial class RaskEndpointExtensions
         var metrics = store.Metrics;
 
         var sessionId = (string?)ctx.Request.RouteValues["sessionId"];
-        var session = sessionId is null ? null : store.Get(sessionId);
+        // Peek: a POST must not be what keeps a detached session alive (see LiveSessionStore.Peek).
+        var session = sessionId is null ? null : store.Peek(sessionId);
         if (session is null
             || !SameSessionUser(UserOf(ctx), session.Services.GetRequiredService<SessionUserProvider>().Current))
         {
@@ -1158,12 +1165,41 @@ public static partial class RaskEndpointExtensions
 
         // The stream this POST believes it is talking to. A tab that reconnected has a newer one, and an older tab's
         // frames must not reach the session it no longer drives.
-        if (!registry.IsCurrent(session.Id, ctx.Request.Headers["Rask-Stream"].ToString()))
+        var stream = registry.Current(session.Id, ctx.Request.Headers["Rask-Stream"].ToString());
+        if (stream is null)
         {
             ctx.Response.StatusCode = StatusCodes.Status409Conflict;
             return;
         }
 
+        await stream.Inbound.WaitAsync(ctx.RequestAborted).ConfigureAwait(false);
+        try
+        {
+            // Replaced or ended while this request waited its turn.
+            if (!stream.Transport.IsOpen)
+            {
+                ctx.Response.StatusCode = StatusCodes.Status409Conflict;
+                return;
+            }
+
+            await ReceiveFramesAsync(ctx, session, stream.Transport, store, limits, registry, metrics)
+                .ConfigureAwait(false);
+        }
+        finally
+        {
+            stream.Inbound.Release();
+        }
+    }
+
+    private static async Task ReceiveFramesAsync(
+        HttpContext ctx,
+        LiveSession session,
+        SseTransport stream,
+        LiveSessionStore store,
+        RaskServerLimits limits,
+        StreamRegistry registry,
+        RaskMetrics? metrics)
+    {
         if (!ctx.Request.HasJsonContentType())
         {
             ctx.Response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
@@ -1252,8 +1288,9 @@ public static partial class RaskEndpointExtensions
                 }
 
                 var hasType = frame.TryGetProperty("type", out var type) && type.ValueKind == JsonValueKind.String;
+                // The stream's lifetime, not this request's: a handler queued here runs after the 204 has gone.
                 var outcome = await ProcessFrameAsync(
-                    session, frame, hasType, type, perFrame, store, limits, metrics, ctx.RequestAborted)
+                    session, frame, hasType, type, perFrame, store, limits, metrics, stream.Lifetime)
                     .ConfigureAwait(false);
 
                 if (outcome.Status == FrameStatus.Refused)
@@ -1282,7 +1319,7 @@ public static partial class RaskEndpointExtensions
         var registry = ctx.RequestServices.GetRequiredService<StreamRegistry>();
 
         var sessionId = (string?)ctx.Request.RouteValues["sessionId"];
-        var session = sessionId is null ? null : store.Get(sessionId);
+        var session = sessionId is null ? null : store.Peek(sessionId);
         if (session is null
             || !SameSessionUser(UserOf(ctx), session.Services.GetRequiredService<SessionUserProvider>().Current))
         {
@@ -1290,11 +1327,23 @@ public static partial class RaskEndpointExtensions
             return Task.CompletedTask;
         }
 
-        // Only the tab that still owns the stream may end it: a beacon from a tab that has already been replaced
-        // would otherwise close the page its successor is driving. An ordinary ending, not a violation.
-        if (registry.IsCurrent(session.Id, ctx.Request.Headers["Rask-Stream"].ToString()))
+        // Only the tab that still owns the stream may end it: a request from a tab that has already been replaced
+        // would otherwise close the page its successor is driving. An ordinary ending, not a violation — and the
+        // stream's cleanup frees the session at once rather than after the grace period.
+        var generation = ctx.Request.Headers["Rask-Stream"].ToString();
+        if (registry.IsCurrent(session.Id, generation))
         {
+            session.Leaving = true;
             registry.Close(session.Id, LiveTransportClose.Normal, "leave");
+        }
+        else if (!session.HasOpenTransport
+                 && int.TryParse(generation, NumberStyles.Integer, CultureInfo.InvariantCulture, out var named)
+                 && named == session.LastStreamGeneration)
+        {
+            // A closing tab tears its stream down while this request is on its way, so the stream's cleanup
+            // often runs first and has already armed the grace period. The generation still names the last
+            // stream this session had, and nothing has attached since: it is the same tab, and it has gone.
+            store.ScheduleRemoval(session.Id, TimeSpan.Zero);
         }
 
         ctx.Response.StatusCode = StatusCodes.Status204NoContent;
@@ -1558,7 +1607,7 @@ public static partial class RaskEndpointExtensions
     ///     Server-Sent Events stream by completing its response, and a POST by answering — which of those to
     ///     do is the caller's business, not this method's.
     /// </remarks>
-    private static async Task<FrameOutcome> ProcessFrameAsync(
+    private static async ValueTask<FrameOutcome> ProcessFrameAsync(
         LiveSession session,
         JsonElement root,
         bool hasType,
@@ -1656,7 +1705,7 @@ public static partial class RaskEndpointExtensions
     }
 
     /// <summary>What a <c>hello</c> did.</summary>
-    private enum AttachStatus
+    internal enum AttachStatus
     {
         /// <summary>The frame named no session, or named one nobody may drive. Keep reading.</summary>
         Ignored,
@@ -1673,7 +1722,7 @@ public static partial class RaskEndpointExtensions
     }
 
     /// <summary>The session this connection is now driving, and whether it has been counted.</summary>
-    private readonly record struct AttachOutcome(AttachStatus Status, LiveSession? Session, bool Counted);
+    internal readonly record struct AttachOutcome(AttachStatus Status, LiveSession? Session, bool Counted);
 
     /// <summary>
     ///     Attaches a connection to the session its <c>hello</c> names, resuming one this host never had
@@ -1685,7 +1734,7 @@ public static partial class RaskEndpointExtensions
     ///     for whatever it missed. The caller keeps the answer to a refusal, since how "the connection ends"
     ///     is the transport's business.
     /// </remarks>
-    private static async Task<AttachOutcome> AttachAsync(
+    internal static async Task<AttachOutcome> AttachAsync(
         string? sessionId,
         string? resumeToken,
         ILiveTransport transport,
@@ -1708,7 +1757,10 @@ public static partial class RaskEndpointExtensions
         // The session this connection was driving, if any. A second hello naming a different one leaves the
         // first with nothing reading for it, and the cleanup only ever sees the last (#1059).
         var previous = current;
-        var session = store.Get(sessionId);
+
+        // Peek, not Get: Get cancels the session's pending removal, and a hello refused below would then leave a
+        // detached session alive for good. The removal is cancelled once this connection has actually attached.
+        var session = store.Peek(sessionId);
         if (session is null)
         {
             // This host has never heard of the session. Before the resume protocol that was the end of it —
@@ -1726,6 +1778,7 @@ public static partial class RaskEndpointExtensions
             // The rebuilt session has a NEW id. The client learns it from the full frame below, which
             // re-stamps data-rask-root — see LiveSessionBase's full-payload path.
             session.AttachTransport(transport, ct);
+            var countedByRebuild = !counted;
             counted = Count(store, counted);
             ReleasePrevious(previous, session, transport, store, limits);
             session.Services.GetRequiredService<SessionUserProvider>().Set(user);
@@ -1738,7 +1791,16 @@ public static partial class RaskEndpointExtensions
                 ServerCultureNegotiation.Apply(session.Services, resumeCulture);
             }
 
-            await session.RenderAndSendAsync(null, false).ConfigureAwait(false);
+            try
+            {
+                await session.RenderAndSendAsync(null, false).ConfigureAwait(false);
+            }
+            catch
+            {
+                AbandonAttach(session, transport, store, limits, countedByRebuild);
+                throw;
+            }
+
             return new AttachOutcome(AttachStatus.Attached, session, counted);
         }
 
@@ -1746,8 +1808,12 @@ public static partial class RaskEndpointExtensions
         // a leaked id must not let a different signed-in user drive a victim's page — the rule the upload and
         // download endpoints already apply (SameSessionUser). An anonymous session is matched by anyone,
         // because the unguessable id is the only authority there (#1075).
+        //
+        // A redeemed sign-in or sign-out ticket changes the cookie before the tab reconnects, so that reconnect
+        // arrives as someone the session does not know yet. The redeem stamped who that is; the ticket was the
+        // proof, being single-use and bound to this session.
         var owner = session.Services.GetRequiredService<SessionUserProvider>();
-        if (!SameSessionUser(user, owner.Current))
+        if (!SameSessionUser(user, session.ExpectedOwner ?? owner.Current))
         {
             // This connection never attached to the session it asked for, so it keeps driving whatever it
             // already had and the caller's cleanup has nothing new to undo.
@@ -1755,6 +1821,10 @@ public static partial class RaskEndpointExtensions
         }
 
         session.AttachTransport(transport, ct);
+        store.CancelPendingRemoval(session.Id);
+        session.ExpectedOwner = null;
+        session.Leaving = false;
+        var countedByAttach = !counted;
         counted = Count(store, counted);
         ReleasePrevious(previous, session, transport, store, limits);
         owner.Set(user);
@@ -1777,8 +1847,34 @@ public static partial class RaskEndpointExtensions
         // session state and re-rendering would just re-fire OnRendered on every alive component for no visible
         // change — that's what made Server's initial-mount hook count diverge from WASM's.
         // FlushPendingRenderAsync is a no-op when nothing's pending.
-        await session.FlushPendingRenderAsync().ConfigureAwait(false);
+        try
+        {
+            await session.FlushPendingRenderAsync().ConfigureAwait(false);
+        }
+        catch
+        {
+            AbandonAttach(session, transport, store, limits, countedByAttach);
+            throw;
+        }
+
         return new AttachOutcome(AttachStatus.Attached, session, counted);
+    }
+
+    // The attach's render threw — most often the client dropping mid-attach. The caller never learns this
+    // connection attached (no outcome is returned), so its cleanup cannot undo it: this does, or the session keeps
+    // a dead transport with no removal armed and the connected count never comes back down.
+    private static void AbandonAttach(
+        LiveSession session, ILiveTransport transport, LiveSessionStore store, RaskServerLimits limits, bool counted)
+    {
+        if (session.DetachTransport(transport))
+        {
+            store.ScheduleRemoval(session.Id, limits.SessionGracePeriod);
+        }
+
+        if (counted)
+        {
+            store.SocketDetached();
+        }
     }
 
     // One increment per CONNECTION, whichever hello did it: the store owns the number, and a session has no
@@ -2371,6 +2467,16 @@ public static partial class RaskEndpointExtensions
         {
             ctx.Response.StatusCode = StatusCodes.Status410Gone;
             return;
+        }
+
+        // The tab reconnects next, carrying the cookie this request is about to set or clear — a different user
+        // than the session recorded. Say who, so the hello's owner check lets exactly that reconnect through
+        // rather than answering "session unknown" to every sign-out and account switch.
+        if (ctx.RequestServices.GetRequiredService<LiveSessionStore>().Peek(sessionId) is { } redeemed)
+        {
+            redeemed.ExpectedOwner = ticket.Action == AuthAction.SignIn
+                ? ticket.Principal!
+                : new ClaimsPrincipal(new ClaimsIdentity());
         }
 
         var scheme = await ResolveAuthSchemeAsync(ctx.RequestServices, ticket.Scheme).ConfigureAwait(false);

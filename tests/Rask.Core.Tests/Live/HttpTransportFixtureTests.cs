@@ -154,6 +154,49 @@ public sealed class HttpTransportFixtureTests
     }
 
     [Fact]
+    public void A_batch_is_packed_within_the_limit_the_stream_announced()
+    {
+        var result = Run();
+        if (result is null)
+        {
+            return;
+        }
+
+        var packing = result.Value.GetProperty("packing");
+
+        // No limit known: everything that piled up goes together.
+        Assert.Equal(3, packing.GetProperty("unlimited").GetInt32());
+        // "[" + 10 + "," + 10 + "]" is 23 bytes; a third frame would not fit.
+        Assert.Equal(2, packing.GetProperty("twoFit").GetInt32());
+        // A single frame over the limit still goes, alone — the server refuses it exactly as the socket would.
+        Assert.Equal(1, packing.GetProperty("oversizedStillGoes").GetInt32());
+        // Counted in UTF-8 bytes, not UTF-16 units: each "é" frame is 4 bytes, so two need 11.
+        Assert.Equal(1, packing.GetProperty("multibyte").GetInt32());
+    }
+
+    [Fact]
+    public void A_stream_that_never_opens_or_goes_silent_is_given_up_on_rather_than_waited_for()
+    {
+        var result = Run();
+        if (result is null)
+        {
+            return;
+        }
+
+        var deadlines = result.Value.GetProperty("deadlines");
+
+        // Never opened: ends as a failed attempt, so the chooser and the backoff treat it as one, and Retry works.
+        Assert.Equal(
+            new[] { "1006:stream-open-timeout:false" },
+            deadlines.GetProperty("neverOpened").EnumerateArray().Select(e => e.GetString()).ToArray());
+
+        // Opened, then nothing — not even a heartbeat: a half-open connection, ended as a dropped link.
+        Assert.Equal(
+            new[] { "open", "1006:stream-silent:true" },
+            deadlines.GetProperty("wentSilent").EnumerateArray().Select(e => e.GetString()).ToArray());
+    }
+
+    [Fact]
     public void Sockets_cut_off_early_three_times_count_and_blips_or_deliberate_closes_do_not()
     {
         var result = Run();

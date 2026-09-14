@@ -23,7 +23,8 @@ namespace Rask.Server.Transport;
 ///         from an older stream is refused rather than applied to the newer one.
 ///     </para>
 /// </remarks>
-internal sealed class SseTransport(PipeWriter writer, int generation) : ILiveTransport
+internal sealed class SseTransport(PipeWriter writer, int generation, CancellationToken lifetime = default)
+    : ILiveTransport
 {
     private static readonly byte[] DataPrefix = "data: "u8.ToArray();
     private static readonly byte[] FrameEnd = "\n\n"u8.ToArray();
@@ -44,6 +45,13 @@ internal sealed class SseTransport(PipeWriter writer, int generation) : ILiveTra
     public int Generation { get; } = generation;
 
     public bool IsOpen => !_closed;
+
+    /// <summary>
+    ///     Cancelled when the stream's own request ends. What a POST's frames are dispatched under: the POST's
+    ///     request token belongs to a request that has already been answered by the time a queued handler runs,
+    ///     and the server reuses it for whatever that connection carries next.
+    /// </summary>
+    public CancellationToken Lifetime { get; } = lifetime;
 
     /// <summary>
     ///     Completes when the stream is finished with, so the request that owns the response body can return
@@ -141,6 +149,19 @@ internal sealed class SseTransport(PipeWriter writer, int generation) : ILiveTra
     }
 
     public void Abort() => Finish();
+
+    /// <summary>
+    ///     Waits for a write that was already under way when the stream was aborted. <see cref="Abort" /> only
+    ///     stops new ones; a send that got past its check is still using the response writer, and the request
+    ///     that owns that writer must not return underneath it.
+    /// </summary>
+    public async Task WaitForWritesAsync(TimeSpan timeout)
+    {
+        if (await _write.WaitAsync(timeout).ConfigureAwait(false))
+        {
+            _write.Release();
+        }
+    }
 
     private void Finish()
     {

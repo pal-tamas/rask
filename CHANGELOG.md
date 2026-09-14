@@ -1289,21 +1289,26 @@ them until tagged releases begin.
   rule the upload and download endpoints already applied — an anonymous session is matched by anyone, since
   the unguessable id is the only authority there, and an owned one requires the same identity. A mismatch
   answers the same unknown-session frame an id this host never had answers, so a prober cannot tell an
-  existing session from a missing one.
+  existing session from a missing one. Signing in, out or into another account still reconnects to the same
+  page: redeeming the single-use ticket names the principal that reconnect will carry, and exactly that one
+  is let through. A refused `hello` no longer cancels the session's pending removal either, so it cannot be
+  what keeps a detached session in memory.
 
 - **A fast reconnect no longer kills the connection it just made.** A tab that reconnects quickly runs two
   connections at once for a moment: the new one attaches from its own `hello` while the old one is still
   unwinding. The old one's cleanup cleared the session's connection unconditionally, so it detached the
   *live* one — renders stopped reaching a client sitting there connected, and the session was armed for
   removal underneath it. Detaching is now a compare-exchange against the connection that is actually
-  attached, and only a detach that wins arms the grace period.
+  attached, and only a detach that wins arms the grace period. A removal that a stale cleanup armed anyway
+  now finds the session connected when it fires and leaves it alone, and an attach whose catch-up render
+  fails (a client dropping mid-attach) undoes itself instead of leaving a dead connection counted.
 
 - **A page still works where WebSockets do not.** Some networks — corporate proxies, captive portals, a
   handful of mobile operators — block the WebSocket upgrade, and a Rask Server page that cannot open one had
   nothing to fall back to: it rendered, then sat there inert. The live protocol now also travels over plain
   HTTP, and the server maps it always, with nothing to configure: `GET /_rask/stream/{sessionId}` holds a
   Server-Sent Events stream open and carries the frames a socket would, while the client's own frames come
-  back as `POST /_rask/send/{sessionId}` and a `pagehide` beacon to `POST /_rask/leave/{sessionId}` frees the
+  back as `POST /_rask/send/{sessionId}` and a `pagehide` keepalive request to `POST /_rask/leave/{sessionId}` frees the
   session at once rather than after its grace period. It is the same protocol, the same session and the same
   render pipeline — one request per interaction is what it costs.
 

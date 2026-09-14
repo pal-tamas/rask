@@ -9,6 +9,7 @@ import {
     createSseParser,
     createTransportChooser,
     EARLY_CLOSE_MS,
+    framesThatFit,
     openHttpConnection,
     TRANSPORT_STORAGE_KEY,
 } from "../../../src/Rask.Server/Resources/rask-http-transport.js";
@@ -243,7 +244,56 @@ async function connection(): Promise<Result> {
     }
 }
 
+// Frames packed to the announced limit: 12 bytes of brackets and one frame, then 11 per further frame.
+results.packing = {
+    unlimited: framesThatFit(['{"id":"a"}', '{"id":"b"}', '{"id":"c"}'], 0),
+    twoFit: framesThatFit(['{"id":"a"}', '{"id":"b"}', '{"id":"c"}'], 23),
+    oversizedStillGoes: framesThatFit(['{"id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}', '{"id":"b"}'], 10),
+    multibyte: framesThatFit(['"é"', '"é"'], 9),
+};
+
+// Deadlines: a stream that never opens, and one that opens and then goes silent.
+async function deadlines(): Promise<Result> {
+    const realFetch = globalThis.fetch;
+    let push: (text: string) => void = () => {};
+    globalThis.fetch = (async () => {
+        const body = new ReadableStream<Uint8Array>({
+            start(controller) {
+                push = (text) => controller.enqueue(new TextEncoder().encode(text));
+            },
+        });
+        return new Response(body, {status: 200});
+    }) as typeof fetch;
+
+    const events: string[] = [];
+    const options = {
+        sessionId: "s",
+        url: (kind: string, session: string) => "/_rask/" + kind + "/" + session,
+        resumeToken: null,
+        onOpen: () => events.push("open"),
+        onFrame: () => {},
+        onClose: (code: number, reason: string, opened: boolean) => events.push(code + ":" + reason + ":" + opened),
+    };
+
+    try {
+        openHttpConnection({...options, openTimeoutMs: 20, silenceMs: 10_000});
+        await new Promise((resolve) => setTimeout(resolve, 60));
+        const neverOpened = events.splice(0);
+
+        openHttpConnection({...options, openTimeoutMs: 10_000, silenceMs: 30});
+        await tick();
+        push('data: {"type":"stream","generation":1}\n\n');
+        await new Promise((resolve) => setTimeout(resolve, 80));
+        const wentSilent = events.splice(0);
+
+        return {neverOpened, wentSilent};
+    } finally {
+        globalThis.fetch = realFetch;
+    }
+}
+
 results.connection = await connection();
+results.deadlines = await deadlines();
 results.batching = await batching();
 results.refusal = await refusal();
 results.choosing = choosing();

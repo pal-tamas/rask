@@ -51,10 +51,15 @@ internal sealed class StreamRegistry
     ///     A request that names nothing is refused: the header is how a client says which page it is, and
     ///     guessing on its behalf is what this exists to prevent.
     /// </summary>
-    public bool IsCurrent(string sessionId, string? generation) =>
+    public bool IsCurrent(string sessionId, string? generation) => Current(sessionId, generation) is not null;
+
+    /// <summary>The session's current stream, when <paramref name="generation" /> names it; otherwise null.</summary>
+    public Entry? Current(string sessionId, string? generation) =>
         _streams.TryGetValue(sessionId, out var entry)
         && int.TryParse(generation, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)
-        && value == entry.Transport.Generation;
+        && value == entry.Transport.Generation
+            ? entry
+            : null;
 
     /// <summary>
     ///     Counts <paramref name="frames" /> against the session's one-second window and reports whether they fit
@@ -93,12 +98,19 @@ internal sealed class StreamRegistry
         }
     }
 
-    private sealed class Entry(SseTransport transport)
+    internal sealed class Entry(SseTransport transport)
     {
         internal readonly Lock Gate = new();
         internal long WindowStart = Environment.TickCount64;
         internal int FramesInWindow;
 
         internal SseTransport Transport { get; } = transport;
+
+        /// <summary>
+        ///     One POST at a time per stream. The client already keeps one in flight, but the server cannot rely
+        ///     on it: two that overlap — a retry, a tab resumed from the back/forward cache — would race each
+        ///     other's dispatch chain and reorder the frames, and each would hold a full body in memory at once.
+        /// </summary>
+        internal SemaphoreSlim Inbound { get; } = new(1, 1);
     }
 }

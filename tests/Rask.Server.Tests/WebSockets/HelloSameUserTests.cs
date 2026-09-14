@@ -1,5 +1,9 @@
+using System.Net.Http.Json;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Rask.Core.Authentication;
+using Rask.Server.Authentication;
 using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.WebSockets;
@@ -133,6 +137,75 @@ public sealed class HelloSameUserTests
         Assert.Contains("\"type\":\"session\"", reply, StringComparison.Ordinal);
         Assert.Contains("\"status\":\"unknown\"", reply, StringComparison.Ordinal);
         Assert.Equal(0, host.Store.ConnectedCount);
+    }
+
+    /// <summary>
+    ///     The host the sign-in and sign-out journeys need: the header still says who a request is, and cookie
+    ///     authentication is registered so the redeem endpoint has a scheme to sign in and out of.
+    /// </summary>
+    private static RaskTestHost NewAuthHost() =>
+        RaskTestHost.Create<NoOpApp>(
+            configureServices: services => services.AddAuthentication("TestCookie").AddCookie("TestCookie"),
+            configureMiddleware: StampUser);
+
+    private static async Task RedeemAsync(RaskTestHost host, AuthAction action, string sessionId, string? toUser)
+    {
+        var principal = toUser is null
+            ? null
+            : new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, toUser)], "TestCookie"));
+        var ticket = host.Services.GetRequiredService<IAuthTicketStore>()
+            .Issue(action, principal, "TestCookie", sessionId);
+
+        using var response = await host.Http.PostAsJsonAsync(
+            "/_rask/auth/redeem", new { ticket, session = sessionId });
+        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
+    }
+
+    /// <summary>
+    ///     Signing out is a reconnect: the redeem clears the cookie, then the tab says hello again — anonymous, to a
+    ///     session that recorded the signed-in owner. Refusing that (the rule above, applied blindly) turned every
+    ///     sign-out on a live page into "your session timed out".
+    /// </summary>
+    [Fact]
+    public async Task Signing_out_reconnects_to_the_same_session()
+    {
+        using var host = NewAuthHost();
+        var sessionId = await StartSessionAsync(host, "alice");
+
+        await RedeemAsync(host, AuthAction.SignOut, sessionId, toUser: null);
+
+        using var ws = await ConnectAsync(host, user: null);
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+
+        await WaitForConnectedAsync(host, 1);
+        Assert.Equal(1, host.Store.ConnectedCount);
+    }
+
+    /// <summary>
+    ///     Switching account names exactly who the reconnect will be: the new user attaches, and nobody else does in
+    ///     the meantime — the redeem is not an opening for whoever holds the id.
+    /// </summary>
+    [Fact]
+    public async Task Switching_account_lets_the_new_user_reconnect_and_nobody_else()
+    {
+        using var host = NewAuthHost();
+        var sessionId = await StartSessionAsync(host, "alice");
+
+        await RedeemAsync(host, AuthAction.SignIn, sessionId, toUser: "bob");
+
+        using (var stranger = await ConnectAsync(host, "carol"))
+        {
+            await stranger.SendJsonAsync(new { type = "hello", session = sessionId });
+            var reply = await stranger.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+            Assert.NotNull(reply);
+            Assert.Contains("\"status\":\"unknown\"", reply, StringComparison.Ordinal);
+        }
+
+        using var ws = await ConnectAsync(host, "bob");
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+
+        await WaitForConnectedAsync(host, 1);
+        Assert.Equal(1, host.Store.ConnectedCount);
     }
 
     private static async Task WaitForConnectedAsync(RaskTestHost host, int expected)

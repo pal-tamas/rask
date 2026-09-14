@@ -39,7 +39,124 @@ public sealed class HttpTransportTests
             await next(ctx);
         });
 
-    private static RaskTestHost NewHost() => RaskTestHost.Create<NoOpApp>(configureMiddleware: StampUser);
+    private static RaskTestHost NewHost(TimeSpan? gracePeriod = null) =>
+        RaskTestHost.Create<NoOpApp>(
+            configureMiddleware: StampUser,
+            configureServer: o =>
+            {
+                if (gracePeriod is { } grace)
+                {
+                    o.SessionGracePeriod = grace;
+                }
+            });
+
+    private static async Task<bool> GoneWithinAsync(RaskTestHost host, string sessionId, TimeSpan within)
+    {
+        var deadline = DateTime.UtcNow + within;
+        while (DateTime.UtcNow < deadline)
+        {
+            if (host.Store.Peek(sessionId) is null)
+            {
+                return true;
+            }
+
+            await Task.Delay(20);
+        }
+
+        return host.Store.Peek(sessionId) is null;
+    }
+
+    private static async Task<HttpStatusCode> PostAsync(RaskTestHost host, string path, string generation)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, path)
+        {
+            Content = JsonContent.Create(new[] { new { type = "navigate", path = "/", query = "" } }),
+        };
+        request.Headers.Add("Rask-Stream", generation);
+        using var response = await host.Http.SendAsync(request);
+        return response.StatusCode;
+    }
+
+    private static string GenerationOf(string openingFrame) =>
+        openingFrame.Split("\"generation\":")[1].TrimEnd('}', ' ');
+
+    /// <summary>
+    ///     A tab that closed is not coming back — a reload or a navigation makes a new session — so its session is
+    ///     freed when it says so, not after the grace period a dropped connection gets.
+    /// </summary>
+    [Fact]
+    public async Task Leaving_frees_the_session_now_rather_than_after_the_grace_period()
+    {
+        using var host = NewHost(gracePeriod: TimeSpan.FromMinutes(5));
+        var sessionId = await StartSessionAsync(host);
+
+        var (response, reader) = await OpenStreamAsync(host, sessionId);
+        using (response)
+        using (reader)
+        {
+            var generation = GenerationOf(await ReadEventAsync(reader));
+
+            Assert.Equal(HttpStatusCode.NoContent, await PostAsync(host, $"/_rask/leave/{sessionId}", generation));
+
+            Assert.True(await GoneWithinAsync(host, sessionId, TimeSpan.FromSeconds(3)),
+                "a leaving tab's session should go at once, not after five minutes");
+        }
+    }
+
+    /// <summary>
+    ///     A closing tab tears its stream down while the leave request is on its way, so the stream's cleanup often
+    ///     runs first. The leave still names that stream, and nothing has attached since: same tab, gone.
+    /// </summary>
+    [Fact]
+    public async Task A_leave_that_arrives_after_its_stream_ended_still_frees_the_session()
+    {
+        using var host = NewHost(gracePeriod: TimeSpan.FromMinutes(5));
+        var sessionId = await StartSessionAsync(host);
+
+        var (response, reader) = await OpenStreamAsync(host, sessionId);
+        var generation = GenerationOf(await ReadEventAsync(reader));
+        reader.Dispose();
+        response.Dispose();
+
+        for (var i = 0; i < 150 && host.Store.ConnectedCount > 0; i++)
+        {
+            await Task.Delay(20);
+        }
+
+        Assert.Equal(0, host.Store.ConnectedCount);
+        Assert.NotNull(host.Store.Peek(sessionId));
+
+        Assert.Equal(HttpStatusCode.NoContent, await PostAsync(host, $"/_rask/leave/{sessionId}", generation));
+        Assert.True(await GoneWithinAsync(host, sessionId, TimeSpan.FromSeconds(3)));
+    }
+
+    /// <summary>
+    ///     A request the server refuses must not be what keeps a detached session alive. Looking the session up used
+    ///     to cancel its pending removal before any check ran, and nothing re-armed it — so a stale tab's POST, or
+    ///     anyone holding the id, kept it in memory for good, and MaxSessions eventually answered 503.
+    /// </summary>
+    [Fact]
+    public async Task A_refused_post_does_not_keep_a_detached_session_alive()
+    {
+        using var host = NewHost(gracePeriod: TimeSpan.FromMilliseconds(300));
+        var sessionId = await StartSessionAsync(host);
+
+        var (response, reader) = await OpenStreamAsync(host, sessionId);
+        var generation = GenerationOf(await ReadEventAsync(reader));
+        reader.Dispose();
+        response.Dispose();
+
+        for (var i = 0; i < 150 && host.Store.ConnectedCount > 0; i++)
+        {
+            await Task.Delay(20);
+        }
+
+        // The stream is gone, so this generation is no longer current: refused.
+        Assert.Equal(HttpStatusCode.Conflict, await PostAsync(host, $"/_rask/send/{sessionId}", generation));
+
+        Assert.True(await GoneWithinAsync(host, sessionId, TimeSpan.FromSeconds(3)),
+            "the grace period armed by the stream's end should still remove the session");
+    }
 
     private static async Task<string> StartSessionAsync(RaskTestHost host, string? user = null)
     {

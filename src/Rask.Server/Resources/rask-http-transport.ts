@@ -90,6 +90,7 @@ export function createSseParser(onEvent: (event: string, data: string) => void):
 export function createPostBatcher(
     post: (body: string) => Promise<number>,
     onRefused: (status: number) => void,
+    maxBytes: () => number = () => 0,
 ): { push(message: string): void; readonly pending: number; stop(): void } {
     let queue: string[] = [];
     let inFlight = false;
@@ -97,8 +98,7 @@ export function createPostBatcher(
 
     function flush(): void {
         if (inFlight || stopped || queue.length === 0) return;
-        const batch = queue;
-        queue = [];
+        const batch = queue.splice(0, framesThatFit(queue, maxBytes()));
         inFlight = true;
         // Each message is already a serialised frame, so the array is assembled rather than re-serialised.
         post("[" + batch.join(",") + "]").then(
@@ -134,6 +134,38 @@ export function createPostBatcher(
     };
 }
 
+/**
+ * How many frames from the front of `queue` fit in one body of `budget` bytes, never fewer than one. The server's
+ * cap is per frame on the socket; a POST carries several, so packing to the cap keeps a batch of frames that each
+ * fit from being refused as a whole. `budget` 0 means no limit is known.
+ */
+export function framesThatFit(queue: readonly string[], budget: number): number {
+    if (budget <= 0) return queue.length;
+    let size = 2; // the brackets
+    let count = 0;
+    for (const frame of queue) {
+        const cost = utf8Length(frame) + (count > 0 ? 1 : 0);
+        if (count > 0 && size + cost > budget) break;
+        size += cost;
+        count++;
+    }
+    return count;
+}
+
+function utf8Length(text: string): number {
+    let bytes = 0;
+    for (let i = 0; i < text.length; i++) {
+        const code = text.charCodeAt(i);
+        if (code < 0x80) bytes += 1;
+        else if (code < 0x800) bytes += 2;
+        else if (code >= 0xd800 && code <= 0xdbff) {
+            bytes += 4;
+            i++;
+        } else bytes += 3;
+    }
+    return bytes;
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // Choosing a transport
 // ---------------------------------------------------------------------------------------------------------------
@@ -148,8 +180,15 @@ export interface ChoiceStorage {
 
 export const TRANSPORT_STORAGE_KEY = "rask:transport";
 
-/** How long a WebSocket gets to open before the tab tries HTTP instead. */
+/** How long a WebSocket gets to open before the tab tries HTTP instead — and an HTTP stream before it is given up on. */
 export const OPEN_TIMEOUT_MS = 5000;
+
+/**
+ * How long an open stream may stay silent before it is treated as dropped. The server writes a heartbeat every
+ * 15 s, so this is two and a half missed ones: a half-open connection — a proxy that stopped forwarding, a laptop
+ * that slept — otherwise leaves a page that only receives looking connected while nothing arrives.
+ */
+export const STREAM_SILENCE_MS = 40_000;
 
 /** A socket that opens and dies within this long counts as cut off rather than as a blip. */
 export const EARLY_CLOSE_MS = 5000;
@@ -251,6 +290,10 @@ export interface HttpConnectionOptions {
     onFrame(text: string): void;
     /** `code` mirrors a WebSocket close: 1001 a server going away, 1008 a policy refusal, 1006 a dropped link. */
     onClose(code: number, reason: string, opened: boolean): void;
+    /** Overrides {@link OPEN_TIMEOUT_MS}; for tests. */
+    openTimeoutMs?: number;
+    /** Overrides {@link STREAM_SILENCE_MS}; for tests. */
+    silenceMs?: number;
 }
 
 /**
@@ -268,10 +311,25 @@ export function openHttpConnection(options: HttpConnectionOptions): LiveConnecti
     let early: string[] = [];
     let open = false;
     let closed = false;
+    let limit = 0;
+
+    // A buffering proxy — the kind of network this fallback exists for — can hold the response headers or the
+    // first event for ever. Without a deadline the connection would report `isConnecting` indefinitely, and the
+    // runtime's single-flight guard would then swallow every Retry and every `online` event.
+    const openTimer = setTimeout(() => end(1006, "stream-open-timeout"), options.openTimeoutMs ?? OPEN_TIMEOUT_MS);
+    let silenceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function heard(): void {
+        if (!open || closed) return;
+        if (silenceTimer !== null) clearTimeout(silenceTimer);
+        silenceTimer = setTimeout(() => end(1006, "stream-silent"), options.silenceMs ?? STREAM_SILENCE_MS);
+    }
 
     function end(code: number, reason: string): void {
         if (closed) return;
         closed = true;
+        clearTimeout(openTimer);
+        if (silenceTimer !== null) clearTimeout(silenceTimer);
         const wasOpen = open;
         open = false;
         batcher.stop();
@@ -292,7 +350,8 @@ export function openHttpConnection(options: HttpConnectionOptions): LiveConnecti
         }).then((response) => response.status),
         // 409: a newer stream owns the session. 404: the session is gone. 429: a breaker tripped, and the
         // stream's own close event is on its way. All of them end this connection so the runtime reconnects.
-        (status) => end(status === 429 ? 1008 : 1006, "send-refused-" + status));
+        (status) => end(status === 429 ? 1008 : 1006, "send-refused-" + status),
+        () => limit);
 
     const parse = createSseParser((event, data) => {
         if (event === "close") {
@@ -306,7 +365,10 @@ export function openHttpConnection(options: HttpConnectionOptions): LiveConnecti
                 if (first && first.type === "stream" && typeof first.generation === "number") {
                     generation = String(first.generation);
                     if (typeof first.session === "string" && first.session) session = first.session;
+                    if (typeof first.limit === "number") limit = first.limit;
                     open = true;
+                    clearTimeout(openTimer);
+                    heard();
                     options.onOpen(session);
                     const held = early;
                     early = [];
@@ -342,6 +404,7 @@ export function openHttpConnection(options: HttpConnectionOptions): LiveConnecti
             for (;;) {
                 const {done, value} = await reader.read();
                 if (done) break;
+                heard();
                 parse(decoder.decode(value, {stream: true}));
             }
 

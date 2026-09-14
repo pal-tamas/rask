@@ -120,6 +120,98 @@ public sealed class TransportAttachTests
     }
 
     /// <summary>
+    ///     The same race one step later: a stale connection's detach wins its compare-exchange just before the new
+    ///     connection publishes itself, and arms a removal the new attach has already cancelled. Nothing else would
+    ///     cancel it, so the session was disposed under a connected tab when the grace period ran out.
+    /// </summary>
+    [Fact]
+    public async Task A_removal_armed_under_a_connected_session_does_not_remove_it()
+    {
+        var store = NewStore();
+        var session = store.Create(_ => new Shell());
+        session.AttachTransport(new FakeTransport(), CancellationToken.None);
+
+        store.ScheduleRemoval(session.Id, TimeSpan.FromMilliseconds(20));
+        await Task.Delay(300);
+
+        Assert.Same(session, store.Peek(session.Id));
+    }
+
+    /// <summary>A lookup that has not yet proved anything must not keep a detached session alive.</summary>
+    [Fact]
+    public async Task Peeking_at_a_session_leaves_its_pending_removal_armed()
+    {
+        var store = NewStore();
+        var session = store.Create(_ => new Shell());
+
+        store.ScheduleRemoval(session.Id, TimeSpan.FromMilliseconds(20));
+        Assert.Same(session, store.Peek(session.Id));
+
+        for (var i = 0; i < 50 && store.Peek(session.Id) is not null; i++)
+        {
+            await Task.Delay(20);
+        }
+
+        Assert.Null(store.Peek(session.Id));
+    }
+
+    /// <summary>A connection whose first send fails, the way a client that drops mid-attach makes it fail.</summary>
+    private sealed class FailingTransport : ILiveTransport
+    {
+        public bool IsOpen => true;
+
+        public ValueTask SendAsync(ReadOnlyMemory<byte> frame, CancellationToken ct) =>
+            ValueTask.FromException(new System.Net.WebSockets.WebSocketException("the client went away"));
+
+        public Task CloseAsync(LiveTransportClose reason, string description, CancellationToken ct) => Task.CompletedTask;
+
+        public void Abort()
+        {
+        }
+    }
+
+    /// <summary>
+    ///     An attach whose render throws never tells its caller it attached, so the caller's cleanup cannot undo it.
+    ///     The attach has to: otherwise the session keeps a dead connection with no removal armed, and the connected
+    ///     count — what the health check reports from — never comes back down.
+    /// </summary>
+    [Fact]
+    public async Task An_attach_whose_render_throws_undoes_itself()
+    {
+        using var host = Infrastructure.RaskTestHost.Create<Infrastructure.TestApp>(
+            configureServer: o => o.SessionGracePeriod = TimeSpan.FromMilliseconds(50));
+        var sessionId = MarkupAssert.SessionId(await host.Http.GetStringAsync("/start"));
+        var session = host.Store.Peek(sessionId)!;
+
+        // A previous connection came and went, so the next attach owes the tab a catch-up frame — the render
+        // that is going to fail.
+        var earlier = new FakeTransport();
+        session.AttachTransport(earlier, CancellationToken.None);
+        session.DetachTransport(earlier);
+
+        var services = host.Services;
+        await Assert.ThrowsAsync<System.Net.WebSockets.WebSocketException>(() => RaskEndpointExtensions.AttachAsync(
+            sessionId, resumeToken: null, new FailingTransport(), host.Store,
+            services.GetRequiredService<RaskServerLimits>(),
+            new System.Security.Claims.ClaimsPrincipal(),
+            services.GetRequiredService<SessionResumeSupport>(),
+            // Only a resume rebuild consults it; this session is known.
+            new RaskRootSelector(_ => new Shell(), []),
+            metrics: null, resumeCulture: default, current: null, counted: false, CancellationToken.None));
+
+        Assert.Equal(0, host.Store.ConnectedCount);
+        Assert.False(session.HasOpenTransport);
+
+        // And the grace period was armed, so the session goes rather than lingering for good.
+        for (var i = 0; i < 50 && host.Store.Peek(sessionId) is not null; i++)
+        {
+            await Task.Delay(20);
+        }
+
+        Assert.Null(host.Store.Peek(sessionId));
+    }
+
+    /// <summary>
     ///     The shutdown announcement reaches the connection the session currently has, whichever it is.
     /// </summary>
     [Fact]
