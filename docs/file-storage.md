@@ -70,7 +70,8 @@ app.MapRaskStorage();
 
 Add a migration for the new table before running — `rask db add AddStorage && rask db update`.
 
-`rask new MyApp` scaffolds all of it; `--no-storage` leaves it out. The wiring mistakes are loud rather than
+`rask new MyApp` scaffolds all of it — on the server template and on every front-end and meta-framework
+template alike; `--no-storage` leaves it out. The wiring mistakes are loud rather than
 silent: a missing `modelBuilder.AddRaskStorage()` stops the boot and names the line to add, a configuration
 value that can't work (a negative size, a storage directory inside `wwwroot`) stops the boot and names what
 to change, and a host that never calls `MapRaskStorage()` logs a warning at startup — its public and
@@ -79,7 +80,7 @@ temporary links would otherwise 404 with nothing to say why.
 ## Saving an upload
 
 A file picker hands its handler a list of `RaskFile`s ([uploading files](http-and-files.md#uploading-files)).
-Pass one straight to `SaveAsync`:
+Pass one's opener, name and size to `SaveAsync`:
 
 ```csharp
 public sealed partial class AvatarPicker(IFiles files) : Component
@@ -96,7 +97,9 @@ public sealed partial class AvatarPicker(IFiles files) : Component
 
         try
         {
-            var saved = await files.SaveAsync(picked[0], o => o.Public = true, CancellationToken);
+            var file = picked[0];
+            var saved = await files.SaveAsync(file.OpenReadStream, file.Name, file.Size,
+                o => o.Public = true, CancellationToken);
             _avatarUrl = files.Url(saved.Id);
             _error = null;
         }
@@ -123,8 +126,9 @@ Three things about that handler are load-bearing:
 
 - **Save before the handler returns.** A `RaskFile` is only readable while its handler is on the stack, so
   the `await` belongs inside it.
-- **Don't open the stream yourself.** `SaveAsync` opens it with the storage size limit. `RaskFile`'s own
-  `OpenReadStream` defaults to a 512 KB cap, which is not the limit you configured.
+- **Pass the opener, don't call it.** `file.OpenReadStream` goes in as a method group, and `SaveAsync` calls
+  it with the storage size limit. Calling `OpenReadStream()` yourself gets its 512 KB default cap, which is
+  not the limit you configured.
 - **`Accept` is a hint to the dialog, not a check.** The browser's filter and the browser's claimed type are
   both the client's word. What is enforced is what `SaveAsync` sniffs from the bytes — see
   [what is accepted](#what-is-accepted-and-how-it-is-served).
@@ -150,7 +154,7 @@ file exists regardless of what your code does next — if the entity that was me
 to save, deleting the file is yours to do:
 
 ```csharp
-var saved = await files.SaveAsync(upload, cancellationToken: ct);
+var saved = await files.SaveAsync(upload.OpenReadStream, upload.Name, upload.Size, cancellationToken: ct);
 try
 {
     order.AttachReceipt(saved.Id);
@@ -313,30 +317,33 @@ avatar picker does.
 
 ## Configuration
 
-Every option can come from configuration under `Storage`, which is how a deployed app picks its store without
-a code change. Code in the configure delegate wins over configuration.
+Every option can come from configuration under `Rask:Storage`, like every other Rask area, which is how a
+deployed app picks its store without a code change. In `appsettings.json` that is
+`"Rask": { "Storage": { "Provider": "S3", … } }`; in the environment, `Rask__Storage__Provider`. Code in the
+configure delegate wins over configuration. A top-level `Storage` section is no longer read — see
+[migrating from the old keys](configuration.md#raskapps-development-defaults).
 
 | Key | Default | Meaning |
 | --- | --- | --- |
-| `Storage__Provider` | `Disk` | `Disk`, `S3` or `Azure`. |
-| `Storage__MaxFileSize` | `52428800` (50 MB) | The largest file accepted, in bytes. |
-| `Storage__PublicBaseUrl` | — | An absolute `https` URL (a CDN or a public bucket domain) that `Url(id)` joins with the file's key. `http` is accepted only for localhost. Unset, the app serves public files itself. |
-| `Storage__Prefix` | — | A key prefix, so one bucket can hold several apps (`myapp/`). The sweep never looks outside it. |
-| `Storage__Disk__Root` | `/data/files` when the `/data` volume exists, else `storage/` under the content root | Where the disk provider writes. A relative path resolves against the content root; a path inside `wwwroot` is refused. |
-| `Storage__S3__ServiceUrl` | — | The S3-compatible endpoint — see [providers](#s3-compatible-storage). |
-| `Storage__S3__Bucket` | — | The bucket. |
-| `Storage__S3__Region` | `us-east-1` | The signing region. Cloudflare R2 wants `auto`. |
-| `Storage__S3__AccessKeyId`, `Storage__S3__SecretAccessKey` | — | The access key pair. |
-| `Storage__S3__SessionToken` | — | Only for temporary credentials. |
-| `Storage__S3__UsePathStyle` | `true` | Put the bucket in the path rather than the host name. R2 and MinIO need it. |
-| `Storage__Azure__ConnectionString` | — | See [Azure Blob](#azure-blob-storage). |
-| `Storage__Azure__Container` | — | The container. |
+| `Rask__Storage__Provider` | `Disk` | `Disk`, `S3` or `Azure`. |
+| `Rask__Storage__MaxFileSize` | `52428800` (50 MB) | The largest file accepted, in bytes. |
+| `Rask__Storage__PublicBaseUrl` | — | An absolute `https` URL (a CDN or a public bucket domain) that `Url(id)` joins with the file's key. `http` is accepted only for localhost. Unset, the app serves public files itself. |
+| `Rask__Storage__Prefix` | — | A key prefix, so one bucket can hold several apps (`myapp/`). The sweep never looks outside it. |
+| `Rask__Storage__Disk__Root` | `/data/files` when the `/data` volume exists, else `storage/` under the content root | Where the disk provider writes. A relative path resolves against the content root; a path inside `wwwroot` is refused. |
+| `Rask__Storage__S3__ServiceUrl` | — | The S3-compatible endpoint — see [providers](#s3-compatible-storage). |
+| `Rask__Storage__S3__Bucket` | — | The bucket. |
+| `Rask__Storage__S3__Region` | `us-east-1` | The signing region. Cloudflare R2 wants `auto`. |
+| `Rask__Storage__S3__AccessKeyId`, `Rask__Storage__S3__SecretAccessKey` | — | The access key pair. |
+| `Rask__Storage__S3__SessionToken` | — | Only for temporary credentials. |
+| `Rask__Storage__S3__UsePathStyle` | `true` | Put the bucket in the path rather than the host name. R2 and MinIO need it. |
+| `Rask__Storage__Azure__ConnectionString` | — | See [Azure Blob](#azure-blob-storage). |
+| `Rask__Storage__Azure__Container` | — | The container. |
 
-Three more are set in code: `AllowedTypes` (above), `OrphanGracePeriod` and `SweepInterval` (see
-[the sweep](#the-orphan-sweep)). The options are validated when the app starts, so a bad value stops the
-boot — not the first upload in production.
+The rest of `StorageOptions` binds the same way — `AllowedTypes` (above), `OrphanGracePeriod` and
+`SweepInterval` (see [the sweep](#the-orphan-sweep)) — or is set in code. The options are validated when the
+app starts, so a bad value stops the boot, naming `Rask:Storage` — not the first upload in production.
 
-Secrets go the way every other secret does: `rask deploy --env Storage__S3__SecretAccessKey=…`, remembered by
+Secrets go the way every other secret does: `rask deploy --env Rask__Storage__S3__SecretAccessKey=…`, remembered by
 name and never by value (see [secrets](secrets.md)).
 
 ## Providers
@@ -344,7 +351,7 @@ name and never by value (see [secrets](secrets.md)).
 ### Disk
 
 The default, and the right one for development and for a single box you back up yourself. With no
-`Storage__Disk__Root` set, files go to `/data/files` when the `/data` deploy volume exists — so on a
+`Rask__Storage__Disk__Root` set, files go to `/data/files` when the `/data` deploy volume exists — so on a
 `rask deploy` box they survive a redeploy the way the database does — and to `storage/` under the content
 root otherwise.
 
@@ -368,19 +375,19 @@ One provider covers every store that speaks the S3 API. Requests are signed with
 | Google Cloud Storage | `https://storage.googleapis.com` | Interoperability HMAC keys, not a service-account key file. |
 
 ```bash
-rask deploy --env Storage__Provider=S3 \
-            --env Storage__S3__ServiceUrl=https://<account-id>.r2.cloudflarestorage.com \
-            --env Storage__S3__Bucket=shop-files \
-            --env Storage__S3__Region=auto \
-            --env Storage__S3__AccessKeyId=… \
-            --env Storage__S3__SecretAccessKey=…
+rask deploy --env Rask__Storage__Provider=S3 \
+            --env Rask__Storage__S3__ServiceUrl=https://<account-id>.r2.cloudflarestorage.com \
+            --env Rask__Storage__S3__Bucket=shop-files \
+            --env Rask__Storage__S3__Region=auto \
+            --env Rask__Storage__S3__AccessKeyId=… \
+            --env Rask__Storage__S3__SecretAccessKey=…
 ```
 
 Temporary URLs here are presigned by the provider, so downloads go straight from the bucket.
 
 ### Azure Blob Storage
 
-Set `Storage__Azure__ConnectionString` and `Storage__Azure__Container`. The connection string's form decides
+Set `Rask__Storage__Azure__ConnectionString` and `Rask__Storage__Azure__Container`. The connection string's form decides
 how temporary URLs work:
 
 | Connection string | Temporary URLs |
@@ -393,7 +400,7 @@ Requests are signed with Shared Key, or carry the configured SAS.
 
 ### Changing provider
 
-Changing `Storage__Provider` does **not** move existing files. Each row records the provider its bytes were
+Changing `Rask__Storage__Provider` does **not** move existing files. Each row records the provider its bytes were
 written to, so a file is never looked for in the wrong store: an `IFiles` call for a row from the old provider
 throws, naming both providers, and the file routes answer `404`. There is no migration tool — pick the
 production store before the first upload you intend to keep.
@@ -426,7 +433,7 @@ be in flight between writing the bytes and the row). It is built to do nothing r
   every object as an orphan.
 - **On S3 or Azure it needs a `Prefix` to delete anything.** Without one it only logs what it found, and the app
   warns at startup: a bucket is easily shared by two environments, and a key's shape alone cannot tell this
-  app's orphans from another app's files. Set `Storage__Prefix` for each environment.
+  app's orphans from another app's files. Set `Rask__Storage__Prefix` for each environment.
 
 ## Backups, and more than one instance
 
@@ -467,7 +474,8 @@ files are on disk it says so, because that is the one state in which no backup c
 ## Limits
 
 - **Server-only.** `Rask.Storage` runs in the ASP.NET host, not in the browser: a WebAssembly page uploads to
-  the server, which saves the file.
+  the server, which saves the file. That host can be any template's — the server template, or the one behind a
+  front-end or meta-framework template.
 - **One object per file, no multipart upload.** A single object is at most 5 GiB on S3 and 5000 MiB on Azure,
   so a `MaxFileSize` above the chosen provider's ceiling stops the boot.
 - **No image processing.** No resizing, no thumbnails, no format conversion.

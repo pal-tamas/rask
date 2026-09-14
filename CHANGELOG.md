@@ -619,6 +619,20 @@ them until tagged releases begin.
 
 ### Changed
 
+- **File storage reads `Rask:Storage`, like every other Rask area.** It was the one package still on a top-level
+  `Storage` section (#1080). Its settings now bind from `Rask:Storage`, so the environment variables are
+  `Rask__Storage__Provider`, `Rask__Storage__S3__Bucket` and so on. They bind through the same registration
+  as the rest: defaults, then configuration, then the `AddRaskStorage` callback, with a bad value stopping the
+  host's start and naming `Rask:Storage`. The binding is source-generated, so it needs no reflection, and it
+  reaches every public option: `OrphanGracePeriod`, `SweepInterval` and `AllowedTypes` can now be set from
+  configuration too. **Upgrade:** rename `Storage:*` keys and `Storage__*` variables, including any passed
+  to `rask deploy --env`. The old names are no longer read. An app that still has a top-level `Storage`
+  section logs a warning at start saying so, rather than quietly running on the defaults.
+- **`IFiles.SaveAsync` takes an upload's opener instead of a `RaskFile`.** Write
+  `files.SaveAsync(file.OpenReadStream, file.Name, file.Size)` where you wrote `files.SaveAsync(file)`. Storage
+  still refuses a file whose declared size is over `MaxFileSize` before reading a byte, and still hands its
+  own limit to the opener rather than the upload's 512 KB default. The `Stream` overload is unchanged. This
+  is what lets the package drop its `Rask.Core` reference; see the fix below.
 - **Rask.Server compresses the page itself.** The page handler serves its document as brotli or gzip, whichever
   the browser ranks higher in `Accept-Encoding` (`q` values honoured), over HTTPS too. Until now only the
   scoped CSS/TypeScript bundles were compressed. The `text/html` document went out raw, and it is the
@@ -1079,6 +1093,14 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **File storage starts on the front-end and meta templates, and `rask new` puts it back on them.** `Rask.Storage`
+  referenced `Rask.Core`, which travels only inside the hosts that render components. An app on the SPA or
+  meta lane therefore crashed before `Main` with `FileNotFoundException: Rask.Core` the moment it called
+  `MapRaskStorage()`, and the `storage` battery had been taken off those thirteen templates as a workaround
+  (#1086). The package now references no `Rask.Core`. The deploy's path base, which its routes and URLs
+  carry, is published by the Rask host as `AppContext` data. Uploads are saved from their opener (see
+  Changed). `storage` is a database battery on every template with an ASP.NET host again, and a test pins
+  that the compiled assembly names no `Rask.Core`.
 - **A soft delete no longer overwrites a change someone else made.** `SoftDeleteInterceptor` turned a
   `Remove` into a full update, which marked every property modified. The `UPDATE` that stamps `DeletedAt`
   therefore wrote back every column the deleting context had loaded, and deleting a row another writer had

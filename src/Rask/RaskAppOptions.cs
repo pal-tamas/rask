@@ -92,7 +92,7 @@ public sealed class RaskAppOptions
     /// the app's own database, handed back as public URLs, temporary URLs or downloads. See <c>IFiles</c>.
     /// </summary>
     /// <remarks>
-    /// Where the bytes go is configuration — <c>Storage__Provider</c> and the keys beside it — so moving from the
+    /// Where the bytes go is configuration — <c>Rask__Storage__Provider</c> and the keys beside it — so moving from the
     /// deploy volume to a bucket changes no code. Turning it off leaves the table mapped, like every other
     /// database-backed battery.
     /// </remarks>

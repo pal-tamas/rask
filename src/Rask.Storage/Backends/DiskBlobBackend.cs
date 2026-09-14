@@ -46,7 +46,7 @@ internal sealed class DiskBlobBackend : IBlobBackend
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             throw new InvalidOperationException(
-                $"Rask.Storage cannot create its directory '{_root}': {ex.Message} Point Storage__Disk__Root at a "
+                $"Rask.Storage cannot create its directory '{_root}': {ex.Message} Point Rask__Storage__Disk__Root at a "
                 + "directory the app can write to.", ex);
         }
 

@@ -62,7 +62,7 @@ public sealed class AzureAccountTests
     {
         var ex = Assert.Throws<InvalidOperationException>(() => AzureAccount.Parse(connectionString));
 
-        Assert.Contains("Storage__Azure__ConnectionString", ex.Message);
+        Assert.Contains("Rask__Storage__Azure__ConnectionString", ex.Message);
         Assert.DoesNotContain("c2VjcmV0", ex.Message);
         Assert.DoesNotContain("not*base64", ex.Message);
     }

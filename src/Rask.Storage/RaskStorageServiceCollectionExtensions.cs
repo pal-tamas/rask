@@ -5,6 +5,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
+using Rask.Hosting.Shared;
 using Rask.Storage.Backends;
 using Rask.Storage.Serving;
 
@@ -22,8 +24,9 @@ public static class RaskStorageServiceCollectionExtensions
     /// Idempotent: the first registration wins.
     /// </summary>
     /// <remarks>
-    /// Options are read from configuration under <c>Storage</c> first, then <paramref name="configure"/>, so code
-    /// wins. They are validated when the app starts — a bad value stops the boot, not the first upload.
+    /// Options are read from configuration under <c>Rask:Storage</c> first (<c>Rask__Storage__Provider</c>, …), then
+    /// <paramref name="configure"/>, so code wins. They are validated when the app starts — a bad value stops the boot,
+    /// naming <c>Rask:Storage</c>, not the first upload.
     /// </remarks>
     /// <typeparam name="TContext">The application <see cref="DbContext"/> that owns the stored-file table.</typeparam>
     public static IServiceCollection AddRaskStorage<TContext>(this IServiceCollection services,
@@ -52,7 +55,18 @@ public static class RaskStorageServiceCollectionExtensions
             .ConfigureHttpClient(static client => client.Timeout = Timeout.InfiniteTimeSpan)
             .RemoveAllLoggers();
 
-        services.TryAddSingleton(sp => BuildOptions(sp, configure));
+        // Defaults, then Rask:Storage, then the callback; the disk root is settled after all three, and everything is
+        // validated at start. Only on the first call: a repeat registers nothing, as AddRaskStorage always has.
+        if (services.AddRaskOptions<StorageOptions>(
+                StorageConfiguration.SectionName,
+                static (section, o) => StorageConfiguration.Bind(section, o),
+                configure,
+                validate: null))
+        {
+            services.AddSingleton<IPostConfigureOptions<StorageOptions>, ResolveStorageDiskRoot>();
+            services.AddSingleton<IValidateOptions<StorageOptions>, ValidateStorageOptions>();
+        }
+
         services.TryAddSingleton(sp => CreateBackend(sp, sp.GetRequiredService<StorageOptions>()));
         services.TryAddSingleton(sp => new TemporaryUrlProtector(sp.GetRequiredService<IDataProtectionProvider>()));
         services.TryAddSingleton<StorageRuntime>();
@@ -66,20 +80,40 @@ public static class RaskStorageServiceCollectionExtensions
         return services;
     }
 
-    private static StorageOptions BuildOptions(IServiceProvider services, Action<StorageOptions>? configure)
+    // After configuration and the callback, because either may name the root — or leave it to the volume or the content
+    // root, which only the host knows.
+    private sealed class ResolveStorageDiskRoot(IServiceProvider services) : IPostConfigureOptions<StorageOptions>
     {
-        var options = new StorageOptions();
-        StorageConfiguration.Apply(options, services.GetService<IConfiguration>());
-        configure?.Invoke(options);
-
-        var contentRoot = services.GetService<IHostEnvironment>()?.ContentRootPath ?? AppContext.BaseDirectory;
-        if (options.Provider == StorageProvider.Disk)
+        public void PostConfigure(string? name, StorageOptions options)
         {
-            StorageConfiguration.ResolveDiskRoot(options, contentRoot);
+            if (options.Provider == StorageProvider.Disk)
+            {
+                var contentRoot = services.GetService<IHostEnvironment>()?.ContentRootPath ?? AppContext.BaseDirectory;
+                StorageConfiguration.ResolveDiskRoot(options, contentRoot);
+            }
         }
+    }
 
-        options.Validate(services.GetService<IWebHostEnvironment>()?.WebRootPath);
-        return options;
+    // Not the helper's validate callback: the disk-root check needs the web root, which only the host knows.
+    private sealed class ValidateStorageOptions(IServiceProvider services) : IValidateOptions<StorageOptions>
+    {
+        public ValidateOptionsResult Validate(string? name, StorageOptions options)
+        {
+            if (name is not null && name != Options.DefaultName)
+            {
+                return ValidateOptionsResult.Skip;
+            }
+
+            try
+            {
+                options.Validate(services.GetService<IWebHostEnvironment>()?.WebRootPath);
+                return ValidateOptionsResult.Success;
+            }
+            catch (InvalidOperationException ex)
+            {
+                return ValidateOptionsResult.Fail($"{StorageConfiguration.SectionName}: {ex.Message}");
+            }
+        }
     }
 
     private static IBlobBackend CreateBackend(IServiceProvider services, StorageOptions options) => options.Provider switch

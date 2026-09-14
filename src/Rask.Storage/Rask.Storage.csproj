@@ -34,17 +34,22 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore"/>
   </ItemGroup>
 
-  <ItemGroup>
-    <!-- SaveAsync takes the RaskFile an upload handler receives, and URLs honour LiveOptions.PathBase.
-         PrivateAssets="all" mirrors Rask.Dashboard: Rask.Core is IsPackable=false and reaches an app
-         through its host package, so naming it as a nuspec dependency would make this one unrestorable.
-         Guarded by PackageDependencyTests. -->
-    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
-  </ItemGroup>
+  <!-- No Rask.Core reference, deliberately (#1086). Core is IsPackable=false and travels inside the hosts that
+       render components, so the SPA and meta lanes have none, and an app there died before Main the moment
+       MapRaskStorage named a Core type. The path base arrives through AppContext data instead (see RaskPathBase),
+       and an upload is saved from its opener rather than from Core's RaskFile. -->
 
-  <!-- The boot-time "is this battery mapped?" check, source-linked: the batteries share no common assembly. -->
+  <!-- StorageOptions binds Rask:Storage. The configuration binding source generator writes that bind at compile time,
+       so no reflection binder runs; the SDK leaves it off unless a project asks. -->
+  <PropertyGroup>
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+  </PropertyGroup>
+
+  <!-- Source-linked: the batteries share no common assembly. The boot-time "is this battery mapped?" check, and the
+       one registration every server-side options type binds its Rask:<Area> section through. -->
   <ItemGroup>
     <Compile Include="..\Rask.Batteries.Shared\BatteryModelCheck.cs" Link="Shared\BatteryModelCheck.cs"/>
+    <Compile Include="..\Rask.Hosting.Shared\RaskOptionsRegistration.cs" Link="Shared\RaskOptionsRegistration.cs"/>
   </ItemGroup>
 
   <ItemGroup>

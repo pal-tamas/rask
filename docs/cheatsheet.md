@@ -117,7 +117,7 @@ var products = await cache.GetOrAddAsync("products", async _ => await LoadAsync(
 await cache.RemoveAsync("products");
 
 // Keep an upload, then link to it — Url does no I/O, so it is safe inside Render:
-var saved = await files.SaveAsync(file, o => o.Public = true, CancellationToken);   // IFiles, ctor-injected
+var saved = await files.SaveAsync(file.OpenReadStream, file.Name, file.Size, o => o.Public = true, CancellationToken);   // IFiles, ctor-injected
 Img.Src(files.Url(saved.Id)).Alt(product.Name)
 
 // Enqueue work off the request thread — returns as soon as the row is written:

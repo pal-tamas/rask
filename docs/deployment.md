@@ -302,25 +302,25 @@ Two consequences worth knowing before an incident rather than during one:
 ### Uploaded files
 
 [`Rask.Storage`](file-storage.md) needs no variable from `rask deploy` to find the volume: with no
-`Storage__Disk__Root` set it writes to `/data/files` whenever `/data` exists, so uploads survive a redeploy
+`Rask__Storage__Disk__Root` set it writes to `/data/files` whenever `/data` exists, so uploads survive a redeploy
 the same way the database does. Where files go beyond that is configuration, passed with `--env` like any
 other variable, and the secrets among it are [remembered by name](secrets.md):
 
 | Variable | Effect |
 | --- | --- |
-| `Storage__Provider` | `Disk` (the default), `S3` or `Azure`. |
-| `Storage__MaxFileSize` | The largest file accepted, in bytes (default 52428800, 50 MB). |
-| `Storage__PublicBaseUrl` | An absolute `https` URL — a CDN or a public bucket domain — that public file links are built on. Unset, the app serves them itself. |
-| `Storage__Prefix` | A key prefix, so one bucket can hold several apps or environments (`shop-prod/`). |
-| `Storage__Disk__Root` | Where the disk provider writes; `/data/files` on the volume by default. |
-| `Storage__S3__ServiceUrl`, `__Bucket`, `__Region`, `__AccessKeyId`, `__SecretAccessKey`, `__SessionToken`, `__UsePathStyle` | An S3-compatible store: AWS S3, Cloudflare R2, Backblaze B2, MinIO, DigitalOcean Spaces, or Google Cloud Storage with HMAC keys. |
-| `Storage__Azure__ConnectionString`, `__Container` | Azure Blob Storage. |
+| `Rask__Storage__Provider` | `Disk` (the default), `S3` or `Azure`. |
+| `Rask__Storage__MaxFileSize` | The largest file accepted, in bytes (default 52428800, 50 MB). |
+| `Rask__Storage__PublicBaseUrl` | An absolute `https` URL — a CDN or a public bucket domain — that public file links are built on. Unset, the app serves them itself. |
+| `Rask__Storage__Prefix` | A key prefix, so one bucket can hold several apps or environments (`shop-prod/`). |
+| `Rask__Storage__Disk__Root` | Where the disk provider writes; `/data/files` on the volume by default. |
+| `Rask__Storage__S3__ServiceUrl`, `__Bucket`, `__Region`, `__AccessKeyId`, `__SecretAccessKey`, `__SessionToken`, `__UsePathStyle` | An S3-compatible store: AWS S3, Cloudflare R2, Backblaze B2, MinIO, DigitalOcean Spaces, or Google Cloud Storage with HMAC keys. |
+| `Rask__Storage__Azure__ConnectionString`, `__Container` | Azure Blob Storage. |
 
 ```bash
-rask deploy --env Storage__Provider=S3 \
-            --env Storage__S3__ServiceUrl=https://<account-id>.r2.cloudflarestorage.com \
-            --env Storage__S3__Bucket=shop-files --env Storage__S3__Region=auto \
-            --env Storage__S3__AccessKeyId=… --env Storage__S3__SecretAccessKey=…
+rask deploy --env Rask__Storage__Provider=S3 \
+            --env Rask__Storage__S3__ServiceUrl=https://<account-id>.r2.cloudflarestorage.com \
+            --env Rask__Storage__S3__Bucket=shop-files --env Rask__Storage__S3__Region=auto \
+            --env Rask__Storage__S3__AccessKeyId=… --env Rask__Storage__S3__SecretAccessKey=…
 ```
 
 The same two cautions as the log store apply, and the first is sharper here:

@@ -12,7 +12,7 @@ internal sealed class AzureAccount
     internal const string DevelopmentAccountKey =
         "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==";
 
-    private const string Setting = "Storage__Azure__ConnectionString";
+    private const string Setting = "Rask__Storage__Azure__ConnectionString";
 
     private AzureAccount(string blobEndpoint, string accountName, byte[]? accountKey, string? sharedAccessSignature)
     {
@@ -43,7 +43,7 @@ internal sealed class AzureAccount
         if (string.IsNullOrWhiteSpace(connectionString))
         {
             throw new InvalidOperationException(
-                $"{Setting} is required when Storage__Provider is Azure: "
+                $"{Setting} is required when Rask__Storage__Provider is Azure: "
                 + "DefaultEndpointsProtocol=https;AccountName=…;AccountKey=…;EndpointSuffix=core.windows.net, or "
                 + "BlobEndpoint=…;SharedAccessSignature=…, or UseDevelopmentStorage=true for Azurite.");
         }

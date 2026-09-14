@@ -186,11 +186,11 @@ public sealed class StorageOptionsTests
         var options = new StorageOptions();
         StorageConfiguration.Apply(options, Config(new()
         {
-            ["Storage:Provider"] = "disk",
-            ["Storage:MaxFileSize"] = "1048576",
-            ["Storage:PublicBaseUrl"] = "https://files.example.com",
-            ["Storage:Prefix"] = "myapp",
-            ["Storage:Disk:Root"] = "uploads",
+            ["Rask:Storage:Provider"] = "disk",
+            ["Rask:Storage:MaxFileSize"] = "1048576",
+            ["Rask:Storage:PublicBaseUrl"] = "https://files.example.com",
+            ["Rask:Storage:Prefix"] = "myapp",
+            ["Rask:Storage:Disk:Root"] = "uploads",
         }));
 
         Assert.Equal(StorageProvider.Disk, options.Provider);
@@ -206,16 +206,16 @@ public sealed class StorageOptionsTests
     public void An_unknown_provider_names_the_key_and_the_choices(string value)
     {
         var ex = Assert.Throws<InvalidOperationException>(() =>
-            StorageConfiguration.Apply(new StorageOptions(), Config(new() { ["Storage:Provider"] = value })));
+            StorageConfiguration.Apply(new StorageOptions(), Config(new() { ["Rask:Storage:Provider"] = value })));
 
-        Assert.Contains("Storage__Provider", ex.Message);
+        Assert.Contains("Rask__Storage__Provider", ex.Message);
         Assert.Contains("Disk", ex.Message);
     }
 
     [Fact]
     public void A_non_numeric_size_names_the_key() =>
-        Assert.Contains("Storage__MaxFileSize", Assert.Throws<InvalidOperationException>(() =>
-            StorageConfiguration.Apply(new StorageOptions(), Config(new() { ["Storage:MaxFileSize"] = "50MB" }))).Message);
+        Assert.Contains("Rask__Storage__MaxFileSize", Assert.Throws<InvalidOperationException>(() =>
+            StorageConfiguration.Apply(new StorageOptions(), Config(new() { ["Rask:Storage:MaxFileSize"] = "50MB" }))).Message);
 
     [Fact]
     public void The_disk_root_prefers_config_then_the_volume_then_the_content_root()
@@ -253,7 +253,7 @@ public sealed class StorageOptionsTests
         var web = Path.Combine(Path.GetTempPath(), "app", "wwwroot");
         var options = Resolved(Path.Combine(web, "uploads"));
 
-        Assert.Contains("Storage__Disk__Root", Assert.Throws<InvalidOperationException>(() => options.Validate(web)).Message);
+        Assert.Contains("Rask__Storage__Disk__Root", Assert.Throws<InvalidOperationException>(() => options.Validate(web)).Message);
     }
 
     [Fact]
