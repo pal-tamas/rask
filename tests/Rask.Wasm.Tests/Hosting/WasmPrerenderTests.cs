@@ -276,6 +276,42 @@ public class WasmPrerenderTests
         }
     }
 
+    [Theory]
+    [InlineData(null, "/where/")]
+    [InlineData("false", "/where")]
+    public async Task APageRendersThePathTheBrowserWillReport(string? trailingSlash, string expected)
+    {
+        // The page is written to where/index.html, which GitHub Pages serves at /where/ — so once the bundle
+        // boots, RouteState.Path is "/where/". A prerender that rendered the bare "/where" disagreed with its
+        // own hydrated frame, and rask.sh's "path:" badge visibly jumped from /docs to /docs/ on every load.
+        // A path no other test registers: the registry is process-global, and a second component claiming
+        // one of their routes puts that path in their plan twice.
+        var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
+
+        RouteRegistry.Replace(nameof(APageRendersThePathTheBrowserWillReport), [
+            new RouteRegistration(typeof(PathPrinter), "/where", null),
+        ]);
+
+        var services = new ServiceCollection();
+        services.AddScoped<RouteState>();
+
+        Environment.SetEnvironmentVariable(WasmPrerender.TrailingSlashVariable, trailingSlash);
+        try
+        {
+            await WasmPrerender.RunAsync<PathPrinter>(
+                services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5));
+
+            var where = await File.ReadAllTextAsync(Path.Combine(dir, "where", "index.html"));
+
+            Assert.Contains($"<code>{expected}</code>", where, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(WasmPrerender.TrailingSlashVariable, null);
+            try { Directory.Delete(dir, recursive: true); } catch (IOException) { /* best effort */ }
+        }
+    }
+
     [Fact]
     public async Task ARouteThatWasNotWrittenStaysOutOfTheSitemap()
     {
@@ -906,6 +942,11 @@ public class WasmPrerenderTests
 
     // A page that contributes to <head>, which is what the merge duplicates. A component with no head
     // assets cannot show the #1036 failure at all: the shell's head is the only head there is.
+    private sealed class PathPrinter(RouteState route) : Component
+    {
+        protected override Component? Render() => Code[route.Path];
+    }
+
     private sealed class HeadContributor : Component
     {
         protected override Component? HeadAssets =>
@@ -926,7 +967,7 @@ public class WasmPrerenderTests
     private sealed class DatedOnOneRoute(RouteState route) : Component
     {
         protected override Component? HeadAssets =>
-            route.Path == "/dated" ? Meta.Property("article:modified_time").Content("2026-09-10") : null;
+            route.Path.TrimEnd('/') == "/dated" ? Meta.Property("article:modified_time").Content("2026-09-10") : null;
 
         protected override Component? Render() => Div["page"];
     }
@@ -945,6 +986,6 @@ public class WasmPrerenderTests
     private sealed class BrokenOnOneRoute(RouteState route) : Component
     {
         protected override Component? Render() =>
-            route.Path == "/broken" ? throw new InvalidOperationException("boom") : Div["home-page"];
+            route.Path.TrimEnd('/') == "/broken" ? throw new InvalidOperationException("boom") : Div["home-page"];
     }
 }

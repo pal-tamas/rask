@@ -123,7 +123,7 @@ internal static class PrerenderShell
         builder.Append(HasTitle(documentHeadInner) ? RemoveTitle(shellHeadInner) : shellHeadInner);
         builder.Append(StripShellOwnedTags(documentHeadInner));
         AppendBetweenHeadAndBody(
-            builder, shell.AsSpan(shellHead.InnerEnd, shellBody.InnerStart - shellHead.InnerEnd));
+            builder, MergeBodyAttributes(shell[shellHead.InnerEnd..shellBody.InnerStart], document));
 
         // --- the rendered body, then the shell's own scripts ---
         // The shell's body is a boot placeholder plus the script that boots the bundle. The placeholder
@@ -214,9 +214,25 @@ internal static class PrerenderShell
     ///         that did not know about it.
     ///     </para>
     /// </remarks>
-    private static string MergeHtmlAttributes(string shellPrefix, string document)
+    private static string MergeHtmlAttributes(string shellPrefix, string document) =>
+        MergeOpenTagAttributes(shellPrefix, document, "html", stampPrerendered: true);
+
+    /// <summary>
+    ///     Carries the rendered document's <c>&lt;body&gt;</c> attributes onto the shell's, on the same
+    ///     terms as <see cref="MergeHtmlAttributes" />.
+    /// </summary>
+    /// <remarks>
+    ///     The shell's <c>&lt;body data-rask-root&gt;</c> is what the page was published with, so a
+    ///     <c>BodyClass</c> — the app's page ground, its text colour — was absent from the prerendered
+    ///     document and arrived only when the runtime's first frame morphed it on. Until then the page painted
+    ///     without it, and at hydration it visibly restyled: on a slow device, seconds after first paint.
+    /// </remarks>
+    private static string MergeBodyAttributes(string shellRegion, string document) =>
+        MergeOpenTagAttributes(shellRegion, document, "body", stampPrerendered: false);
+
+    private static string MergeOpenTagAttributes(string shellPrefix, string document, string tag, bool stampPrerendered)
     {
-        var shellOpen = IndexOfTag(shellPrefix, "html");
+        var shellOpen = IndexOfTag(shellPrefix, tag);
         if (shellOpen < 0)
         {
             return shellPrefix;
@@ -228,7 +244,8 @@ internal static class PrerenderShell
             return shellPrefix;
         }
 
-        var shellAttrs = shellPrefix.Substring(shellOpen + 5, shellGt - 5).Trim().TrimEnd('/').Trim();
+        var nameEnd = 1 + tag.Length;
+        var shellAttrs = shellPrefix.Substring(shellOpen + nameEnd, shellGt - nameEnd).Trim().TrimEnd('/').Trim();
 
         var added = new StringBuilder();
 
@@ -244,17 +261,17 @@ internal static class PrerenderShell
         // exactly. "Is the boot spinner missing" is the same question most of the time and not always:
         // a hand-written shell need not have one, and would then defer a boot nobody is looking at
         // content during.
-        if (!HasAttribute(shellAttrs, PrerenderedAttribute))
+        if (stampPrerendered && !HasAttribute(shellAttrs, PrerenderedAttribute))
         {
             added.Append(' ').Append(PrerenderedAttribute);
         }
 
-        var documentOpen = IndexOfTag(document, "html");
+        var documentOpen = IndexOfTag(document, tag);
         var documentGt = documentOpen < 0 ? -1 : document.AsSpan(documentOpen).IndexOf('>');
         if (documentOpen >= 0 && documentGt > 0)
         {
             var documentAttrs = document
-                .Substring(documentOpen + 5, documentGt - 5).Trim().TrimEnd('/').Trim();
+                .Substring(documentOpen + nameEnd, documentGt - nameEnd).Trim().TrimEnd('/').Trim();
 
             foreach (var attribute in SplitAttributes(documentAttrs))
             {

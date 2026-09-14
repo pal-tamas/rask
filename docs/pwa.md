@@ -51,7 +51,9 @@ below — the [manifest](#installable--the-web-app-manifest) and, for WASM,
 Configure a typed `WebAppManifest` (in `Rask.Core.Browser`) in `Program.cs` — on WASM the framework
 injects the `<link rel="manifest">` (a `data:` URL, so **no `manifest.webmanifest` file to ship**) and
 the `<meta name="theme-color">` at boot; on Server `AddRaskPwa` serves and links it. There's nothing to
-hand-write or keep in sync:
+hand-write or keep in sync. A `theme-color` your page's head declares (including a light/dark `media`
+pair) wins: the manifest's `ThemeColor` is added only when the page names none, so the browser's toolbar
+tint never switches colour as the app boots.
 
 ```csharp
 using Rask.Core.Browser;
