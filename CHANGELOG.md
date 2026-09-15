@@ -806,6 +806,12 @@ them until tagged releases begin.
     open/closed drawer stays component state with a backdrop. daisyUI's `drawer` is a checkbox toggle, and it
     would have taken that state out of C#. The Bootstrap leftovers `display-5`, `text-accent` and
     `bg-body-tertiary` are gone, and the brand's display face is utilities too.
+  - **The guides are typeset by Tailwind's typography plugin (`prose`)**, whose colours are mapped onto the kit's
+    palette so they follow every theme, replacing about 150 lines of hand-written `.markdown-body` rules. Rask
+    keeps a short list of its own rules on top: headings clear the sticky bar, tables and long identifiers never
+    widen a phone page, inline code is tinted without backticks, and blockquotes stay brand-tinted notes. Inline
+    demos are `not-prose`, which also removes the stray outline the old `.markdown-body pre` rule drew around
+    their code panes. The standalone Tailwind binary bundles the plugin, so no npm install is needed.
 - **File storage reads `Rask:Storage`, like every other Rask area.** It was the one package still on a top-level
   `Storage` section (#1080). Its settings now bind from `Rask:Storage`, so the environment variables are
   `Rask__Storage__Provider`, `Rask__Storage__S3__Bucket` and so on. They bind through the same registration

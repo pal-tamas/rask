@@ -5,6 +5,14 @@
 @import "tailwindcss";
 
 /*
+  The guides' typography (#1101): Tailwind's own typography plugin, `prose`, on the rendered docs/*.md.
+  The standalone Tailwind binary bundles it, which is the engine every platform this site builds on uses.
+  Rask.Tailwind's npm fallback (platforms with no standalone binary) installs tailwindcss alone, so there
+  this line would need `@tailwindcss/typography` added to the generated package.json.
+*/
+@plugin "@tailwindcss/typography";
+
+/*
   The kit's palette, so THIS project's Tailwind can emit the ui-* utilities this project writes.
 
   Rask.Ui ships a compiled sheet carrying the utilities the KIT's own components use, and that is not
@@ -112,5 +120,92 @@
   body {
     background-color: var(--color-ui-well);
     color: var(--color-ui-ink);
+  }
+}
+
+/*
+  `prose` on the kit's palette. The plugin colours everything from its own gray scale by default — a
+  fixed light-theme ink that would sit at a few percent contrast on every dark theme the picker offers —
+  so each of its variables is pointed at the ui-* token the rest of the site reads. Unlayered, so it wins
+  over the plugin's utility-layer defaults whatever order the sheets land in.
+
+  Below the variables, the few things `prose` does not do the way these guides need, each a behaviour a
+  suite or a phone depends on rather than a look:
+  - headings clear the sticky bar when an anchor jumps to them;
+  - a bare URL or a long identifier wraps instead of widening the page;
+  - inline code is tinted, not wrapped in the backticks `prose` adds around it;
+  - a table scrolls inside the column — Markdig emits no wrapper, and a table's minimum content width
+    otherwise widens the whole document on a 390px screen;
+  - a blockquote is the brand-tinted note these guides use it for, not an italic pull quote.
+  Code blocks keep the site's dark ink, because the syntax colours in wwwroot/global.css are tuned for it.
+*/
+.markdown-body.prose {
+  --tw-prose-body: var(--color-ui-ink);
+  --tw-prose-headings: var(--color-ui-ink);
+  --tw-prose-lead: var(--color-ui-muted);
+  --tw-prose-links: var(--color-ui-brand-ink);
+  --tw-prose-bold: var(--color-ui-ink);
+  --tw-prose-counters: var(--color-ui-muted);
+  --tw-prose-bullets: var(--color-ui-line);
+  --tw-prose-hr: var(--color-ui-line);
+  --tw-prose-quotes: var(--color-ui-ink);
+  --tw-prose-quote-borders: var(--color-ui-brand);
+  --tw-prose-captions: var(--color-ui-muted);
+  --tw-prose-kbd: var(--color-ui-ink);
+  --tw-prose-code: var(--color-ui-brand-ink);
+  --tw-prose-pre-code: var(--rask-code-ink);
+  --tw-prose-pre-bg: var(--rask-ink);
+  --tw-prose-th-borders: var(--color-ui-line);
+  --tw-prose-td-borders: var(--color-ui-line);
+
+  max-width: 52rem;
+
+  & :where(h1, h2, h3, h4) {
+    scroll-margin-top: calc(var(--nav-h) + 1.25rem);
+  }
+
+  & :where(h2) {
+    border-bottom: 1px solid var(--color-ui-line);
+    padding-bottom: 0.3rem;
+  }
+
+  & :where(a) {
+    overflow-wrap: anywhere;
+  }
+
+  & :where(:not(pre) > code) {
+    background: var(--color-ui-brand-surface);
+    border-radius: 4px;
+    padding: 0.08rem 0.34rem;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+  }
+
+  & :where(:not(pre) > code)::before,
+  & :where(:not(pre) > code)::after {
+    content: none;
+  }
+
+  & :where(pre) {
+    border-radius: 0.7rem;
+  }
+
+  & :where(table) {
+    display: block;
+    width: max-content;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  & :where(blockquote) {
+    background: var(--color-ui-brand-surface);
+    border-radius: 0 0.4rem 0.4rem 0;
+    padding: 0.6rem 1rem;
+    font-style: normal;
+  }
+
+  & :where(blockquote p)::before,
+  & :where(blockquote p)::after {
+    content: none;
   }
 }
