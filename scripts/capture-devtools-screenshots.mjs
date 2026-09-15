@@ -52,6 +52,8 @@ try {
     await row.locator(".ui-tree-row").first().click();
     await page.keyboard.type("DeployCard");
     await panel.getByText("ApiToken=••••").first().waitFor({timeout: 10000});
+    // The selected row's detail pane, down to the release it read from the board.
+    await panel.locator("[data-rask-devtools-reads]").getByText("TaskBoard").waitFor({timeout: 10000});
     await panel.locator("[role=tablist]").evaluate(el => el.scrollIntoView({block: "start"}));
     await shot("tree");
 

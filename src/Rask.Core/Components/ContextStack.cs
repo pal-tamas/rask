@@ -33,17 +33,28 @@ internal static class ContextStack
     /// </summary>
     internal static bool TryGet(Type requested, string? name, out object? value)
     {
-        for (var e = _head.Value; e is not null; e = e.Parent)
+        if (Find(requested, name) is { } entry)
         {
-            if (e.Name == name && requested.IsAssignableFrom(e.ValueType))
-            {
-                value = e.Value;
-                return true;
-            }
+            value = entry.Value;
+            return true;
         }
 
         value = null;
         return false;
+    }
+
+    /// <summary>The entry <see cref="TryGet" /> resolves to, or null. The devtools read which provider answered.</summary>
+    internal static Entry? Find(Type requested, string? name)
+    {
+        for (var e = _head.Value; e is not null; e = e.Parent)
+        {
+            if (e.Name == name && requested.IsAssignableFrom(e.ValueType))
+            {
+                return e;
+            }
+        }
+
+        return null;
     }
 
     internal sealed record Entry(Type ValueType, string? Name, object? Value, Entry? Parent);

@@ -29,6 +29,11 @@ namespace Rask.DevTools.Probe;
 ///     What kind of component it is, when that is more than a component: the runtime of an island (<c>React</c>,
 ///     <c>Lit</c>…) or <c>Blazor</c>. Read from the element it renders, so the devtools need no reference to either package.
 /// </param>
+/// <param name="Provides">
+///     The context values its markup provides, in page order. Null when the render this came from recorded no context —
+///     one before a panel was open.
+/// </param>
+/// <param name="Reads">The context values it read while rendering, once each; null as for <paramref name="Provides" />.</param>
 internal sealed record DevToolsComponentNode(
     long Id,
     string Type,
@@ -37,7 +42,9 @@ internal sealed record DevToolsComponentNode(
     IReadOnlyList<DevToolsComponentNode> Children,
     bool IsTag = false,
     string? At = null,
-    string? Badge = null);
+    string? Badge = null,
+    IReadOnlyList<DevToolsProvidedContext>? Provides = null,
+    IReadOnlyList<DevToolsReadContext>? Reads = null);
 
 /// <summary>One component as the walk met it: what it is, what it was walked inside, and what it wrote.</summary>
 internal readonly record struct DevToolsWalkItem(Component Component, Component? Parent, int FrameStart, int FrameEnd);
@@ -61,6 +68,10 @@ internal sealed class DevToolsTreeCapture
 {
     private DevToolsWalkItem[] _items = [];
     private RenderFrame[] _frames = [];
+    private DevToolsProvideItem[] _provides = [];
+    private DevToolsReadItem[] _reads = [];
+    private int _provideCount;
+    private int _readCount;
 
     internal Component? Root { get; private set; }
 
@@ -73,19 +84,22 @@ internal sealed class DevToolsTreeCapture
 
     internal ReadOnlySpan<RenderFrame> Frames => FrameCount < 0 ? default : _frames.AsSpan(0, FrameCount);
 
-    internal void Record(Component root, List<DevToolsWalkItem> items, FrameWriter? frames)
+    /// <summary>Whether the walk recorded context: false for a render made while no panel showed the tree.</summary>
+    internal bool HasContexts { get; private set; }
+
+    internal ReadOnlySpan<DevToolsProvideItem> Provides => _provides.AsSpan(0, _provideCount);
+
+    internal ReadOnlySpan<DevToolsReadItem> Reads => _reads.AsSpan(0, _readCount);
+
+    internal void Record(
+        Component root, List<DevToolsWalkItem> items, FrameWriter? frames,
+        List<DevToolsProvideItem>? provides = null, List<DevToolsReadItem>? reads = null)
     {
         Root = root;
-
-        if (_items.Length < items.Count)
-        {
-            _items = new DevToolsWalkItem[Math.Max(items.Count, _items.Length * 2)];
-        }
-
-        items.CopyTo(_items);
-        // The old tail still names components from an earlier render; cleared so it does not keep them alive.
-        Array.Clear(_items, items.Count, Math.Max(0, ItemCount - items.Count));
-        ItemCount = items.Count;
+        ItemCount = CopyInto(ref _items, items, ItemCount);
+        HasContexts = provides is not null && reads is not null;
+        _provideCount = CopyInto(ref _provides, provides, _provideCount);
+        _readCount = CopyInto(ref _reads, reads, _readCount);
 
         if (frames is null)
         {
@@ -101,6 +115,21 @@ internal sealed class DevToolsTreeCapture
 
         written.CopyTo(_frames);
         FrameCount = written.Length;
+    }
+
+    // Grows the buffer to fit, copies, and clears the old tail — which still names components and values from an earlier
+    // render, and would keep them alive. Returns the new count.
+    private static int CopyInto<T>(ref T[] buffer, List<T>? from, int previousCount)
+    {
+        var count = from?.Count ?? 0;
+        if (buffer.Length < count)
+        {
+            buffer = new T[Math.Max(count, buffer.Length * 2)];
+        }
+
+        from?.CopyTo(buffer);
+        Array.Clear(buffer, count, Math.Max(0, previousCount - count));
+        return count;
     }
 }
 
@@ -168,17 +197,6 @@ internal sealed class DevToolsTreeSnapshotter
     internal long IdOf(Component component) =>
         _ids.GetValue(component, _ => new StrongBox<long>(Interlocked.Increment(ref _next))).Value;
 
-    private static DevToolsComponentNode Describe(
-        long id, Component component, List<DevToolsComponentNode> children, string? at, string? badge = null)
-    {
-        // What the component says about itself. The override the build wrote reads its own properties by name; in a
-        // build without the devtools the base method is empty, so this is a call that collects nothing.
-        var describer = new PropsDescriber();
-        component.DescribeProps(describer);
-        return new DevToolsComponentNode(
-            id, DevToolsNames.Of(component.GetType()), component.Key?.ToString(), describer.Props, children, At: at,
-            Badge: badge);
-    }
 
     /// <summary>The element an island or a Blazor component renders, named as the badge a developer knows it by.</summary>
     internal static string? BadgeOf(ReadOnlySpan<RenderFrame> frames, int start)
@@ -225,6 +243,8 @@ internal sealed class DevToolsTreeSnapshotter
         private readonly List<int>?[] _kids;
         private readonly List<int> _rootKids = [];
         private readonly List<int> _path = [];
+        private readonly Dictionary<Component, List<int>>? _providesBy;
+        private readonly Dictionary<Component, List<int>>? _readsBy;
         private int _budget = MaxNodes;
 
         internal Builder(DevToolsTreeSnapshotter owner, DevToolsTreeCapture capture)
@@ -277,6 +297,96 @@ internal sealed class DevToolsTreeSnapshotter
             {
                 kids?.Sort(ByFrameStart);
             }
+
+            if (capture.HasContexts)
+            {
+                _providesBy = new Dictionary<Component, List<int>>(ReferenceEqualityComparer.Instance);
+                for (var i = 0; i < capture.Provides.Length; i++)
+                {
+                    Add(_providesBy, capture.Provides[i].Owner, i);
+                }
+
+                _readsBy = new Dictionary<Component, List<int>>(ReferenceEqualityComparer.Instance);
+                for (var i = 0; i < capture.Reads.Length; i++)
+                {
+                    Add(_readsBy, capture.Reads[i].Reader, i);
+                }
+            }
+        }
+
+        private static void Add(Dictionary<Component, List<int>> by, Component component, int index)
+        {
+            if (!by.TryGetValue(component, out var list))
+            {
+                by[component] = list = [];
+            }
+
+            list.Add(index);
+        }
+
+        private DevToolsComponentNode Describe(
+            long id, Component component, List<DevToolsComponentNode> children, string? at, string? badge = null)
+        {
+            // What the component says about itself. The override the build wrote reads its own properties by name; in a
+            // build without the devtools the base method is empty, so this is a call that collects nothing.
+            var describer = new PropsDescriber();
+            component.DescribeProps(describer);
+            return new DevToolsComponentNode(
+                id, DevToolsNames.Of(component.GetType()), component.Key?.ToString(), describer.Props, children, At: at,
+                Badge: badge, Provides: ProvidesOf(component), Reads: ReadsOf(component));
+        }
+
+        private IReadOnlyList<DevToolsProvidedContext>? ProvidesOf(Component component)
+        {
+            if (_providesBy is null)
+            {
+                return null;
+            }
+
+            if (!_providesBy.TryGetValue(component, out var indexes))
+            {
+                return [];
+            }
+
+            var provided = new DevToolsProvidedContext[indexes.Count];
+            for (var i = 0; i < indexes.Count; i++)
+            {
+                provided[i] = DevToolsSensitive.Describe(_capture.Provides[indexes[i]]);
+            }
+
+            return provided;
+        }
+
+        // Once per type and name: a component that reads the same value twice in one render read one thing.
+        private IReadOnlyList<DevToolsReadContext>? ReadsOf(Component component)
+        {
+            if (_readsBy is null)
+            {
+                return null;
+            }
+
+            if (!_readsBy.TryGetValue(component, out var indexes))
+            {
+                return [];
+            }
+
+            var reads = new List<DevToolsReadContext>(indexes.Count);
+            var seen = new HashSet<(Type, string?)>();
+            foreach (var index in indexes)
+            {
+                var read = _capture.Reads[index];
+                if (!seen.Add((read.Requested, read.Name)))
+                {
+                    continue;
+                }
+
+                reads.Add(new DevToolsReadContext(
+                    DevToolsNames.Of(read.Requested), read.Name, read.Found,
+                    read.Provider is { } provider ? _owner.IdOf(provider) : null,
+                    read.Provider is { } named ? DevToolsNames.Of(named.GetType()) : null));
+            }
+
+            return reads;
         }
 
         private int ByFrameStart(int a, int b)

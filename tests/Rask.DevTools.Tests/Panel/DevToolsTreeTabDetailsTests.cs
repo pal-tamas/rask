@@ -20,11 +20,24 @@ public sealed class DevToolsTreeTabDetailsTests
                 new DescribedProp("ApiToken", "System.String", "••••", true),
                 new DescribedProp("Assignee", "System.String", null, false),
             ],
-            [], At: "0|0|1");
+            [], At: "0|0|1",
+            Provides: [],
+            Reads:
+            [
+                new DevToolsReadContext("Theme", null, true, 5, "ThemeShell"),
+                new DevToolsReadContext("Int32", "page-size", false, null, null),
+            ]);
         var chart = new DevToolsComponentNode(4, "SalesChart", null,
             [new DescribedProp("Year", "System.Int32", "2026", false)], [], At: "0|1|1", Badge: "React");
+        var shell = new DevToolsComponentNode(5, "ThemeShell", null, [], [row],
+            Provides:
+            [
+                new DevToolsProvidedContext("Theme", null, "Theme { Name = dark }", false),
+                new DevToolsProvidedContext("String", "api-token", "••••", true),
+            ],
+            Reads: []);
         var feed = new DevToolsFeed();
-        feed.RecordTree(new DevToolsComponentNode(1, "App", null, [], [row, chart]));
+        feed.RecordTree(new DevToolsComponentNode(1, "App", null, [], [shell, chart]));
         return feed;
     }
 
@@ -64,6 +77,46 @@ public sealed class DevToolsTreeTabDetailsTests
         Assert.Contains("An island", details.TextContent);
         Assert.Contains(page.FindAll("[role=\"treeitem\"]"), r => r.TextContent.Contains("SalesChart", StringComparison.Ordinal)
                                                                    && r.TextContent.Contains("React", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_provider_lists_the_context_it_provides_with_a_secret_one_withheld()
+    {
+        var page = Tab(5);
+
+        var rows = page.FindAll("[data-rask-devtools-provides] tbody tr")
+            .Select(r => r.Children.Select(c => c.TextContent.Trim()).ToArray()).ToList();
+        Assert.Equal(["Theme", "—", "Theme { Name = dark }"], rows[0]);
+        Assert.Equal(["String", "api-token", "••••"], rows[1]);
+        Assert.Empty(page.FindAll("[data-rask-devtools-reads]"));
+    }
+
+    [Fact]
+    public void A_reader_names_where_each_value_came_from_or_that_nothing_provided_it()
+    {
+        var page = Tab(3);
+
+        var rows = page.FindAll("[data-rask-devtools-reads] tbody tr")
+            .Select(r => r.Children.Select(c => c.TextContent.Trim()).ToArray()).ToList();
+        Assert.Equal(["Theme", "—", "ThemeShell"], rows[0]);
+        Assert.Equal(["Int32", "page-size", "none in scope"], rows[1]);
+    }
+
+    [Fact]
+    public async Task Following_a_reads_provider_selects_that_component()
+    {
+        var page = Tab(3);
+
+        await page.On("[data-rask-devtools-reads] button").ClickAsync();
+
+        Assert.Contains("ThemeShell", page.Find("[data-rask-devtools-details]").TextContent);
+        Assert.NotEmpty(page.FindAll("[data-rask-devtools-provides]"));
+    }
+
+    [Fact]
+    public void Without_context_from_the_last_render_the_pane_says_when_it_arrives()
+    {
+        Assert.Contains("Context shows from the page's next render.", Tab(4).Find("[data-rask-devtools-context]").TextContent);
     }
 
     [Theory]

@@ -102,12 +102,7 @@ internal sealed partial class DevToolsTreeTab : Component
         if (Reveal is { } reveal && reveal != _revealed)
         {
             _revealed = reveal;
-            var ancestors = new List<long>();
-            if (PathTo(root, reveal, ancestors))
-            {
-                _expanded.UnionWith(ancestors);
-                _selected = reveal;
-            }
+            Open(root, reveal);
         }
 
         return Div.Class("flex flex-col gap-3")[
@@ -135,7 +130,9 @@ internal sealed partial class DevToolsTreeTab : Component
             // The tree and the selected node's details side by side, or one above the other in a narrow drawer.
             Div.Class("flex flex-wrap gap-3")[
                 Div.Class("min-w-0").Style("flex:2 1 22rem")[TreeView(root)],
-                Div.Class("min-w-0").Style("flex:1 1 16rem")[Details(_selected is { } id ? Find(root, id) : null)]
+                Div.Class("min-w-0").Style("flex:1 1 16rem")[
+                    Details(_selected is { } id ? Find(root, id) : null, provider => Open(root, provider))
+                ]
             ]
         ];
     }
@@ -161,8 +158,9 @@ internal sealed partial class DevToolsTreeTab : Component
                 .Height(320)[n => n.Children];
 
     // What the selected node is and what it was given, in full: a row has room for a line of props, this has room for
-    // their types and every value.
-    internal static Component Details(DevToolsComponentNode? node)
+    // their types and every value — and for the context it provides and reads, each read naming, as a link, the component
+    // that provided it.
+    internal static Component Details(DevToolsComponentNode? node, Action<long>? open = null)
     {
         if (node is null)
         {
@@ -193,9 +191,67 @@ internal sealed partial class DevToolsTreeTab : Component
                 : UiTable.Scroll(true)[
                     Thead[Tr[Th["Prop"], Th["Type"], Th["Value"]]],
                     Tbody[node.Props.Select(PropRow).ToArray()]
+                ],
+            ContextDetails(node, open)
+        ];
+    }
+
+    private static Component ContextDetails(DevToolsComponentNode node, Action<long>? open)
+    {
+        if (node.Provides is null || node.Reads is null)
+        {
+            return P.Class("text-xs opacity-60").Data(new Dictionary<string, string?> { ["rask-devtools-context"] = "" })[
+                "Context shows from the page's next render."
+            ];
+        }
+
+        if (node.Provides.Count == 0 && node.Reads.Count == 0)
+        {
+            return P.Class("text-xs opacity-60").Data(new Dictionary<string, string?> { ["rask-devtools-context"] = "" })[
+                "Provides and reads no context."
+            ];
+        }
+
+        return Div.Class("flex flex-col gap-2").Data(new Dictionary<string, string?> { ["rask-devtools-context"] = "" })[
+            node.Provides.Count == 0
+                ? null
+                : UiTable.Scroll(true).Data(new Dictionary<string, string?> { ["rask-devtools-provides"] = "" })[
+                    Thead[Tr[Th["Provides"], Th["Name"], Th["Value"]]],
+                    Tbody[node.Provides.Select(ProvidedRow).ToArray()]
+                ],
+            node.Reads.Count == 0
+                ? null
+                : UiTable.Scroll(true).Data(new Dictionary<string, string?> { ["rask-devtools-reads"] = "" })[
+                    Thead[Tr[Th["Reads"], Th["Name"], Th["From"]]],
+                    Tbody[node.Reads.Select(read => ReadRow(read, open)).ToArray()]
                 ]
         ];
     }
+
+    private static Component ProvidedRow(DevToolsProvidedContext provided, int index) =>
+        Tr.Key(index)[
+            Td.Class("font-mono")[provided.Type],
+            Td.Class("font-mono text-xs")[provided.Name is null ? Span.Class("opacity-60")["—"] : provided.Name],
+            Td.Class("font-mono break-all")[
+                provided.IsRedacted
+                    ? Span.Title("Not read: its name or type says it is a secret.")[provided.Value ?? PropsDescriber.Redacted]
+                    : provided.Value is null ? Span.Class("opacity-60")["null"] : provided.Value
+            ]
+        ];
+
+    private static Component ReadRow(DevToolsReadContext read, Action<long>? open) =>
+        Tr.Key(read.Type + "|" + read.Name)[
+            Td.Class("font-mono")[read.Type],
+            Td.Class("font-mono text-xs")[read.Name is null ? Span.Class("opacity-60")["—"] : read.Name],
+            Td[
+                !read.Found
+                    ? Span.Class("text-xs opacity-60")["none in scope"]
+                    : read.ProviderId is { } provider && open is not null
+                        ? UiButton.Size(UiSize.Xs).Variant(UiVariant.Link).Title("Select the component that provided it")
+                            .OnClick(() => open(provider))[read.ProviderType ?? "?"]
+                        : Span.Class("font-mono")[read.ProviderType ?? "a provider"]
+            ]
+        ];
 
     private static Component PropRow(DescribedProp prop) =>
         Tr.Key(prop.Name)[
@@ -337,8 +393,15 @@ internal sealed partial class DevToolsTreeTab : Component
             return;
         }
 
+        Open(View(snapshot), id);
+    }
+
+    // Selects a node and opens the way to it, which also moves the tree's cursor there and scrolls it into view. A node the
+    // view does not hold — gone since, or an element while tags are hidden — changes nothing.
+    private void Open(DevToolsComponentNode root, long id)
+    {
         var ancestors = new List<long>();
-        if (PathTo(View(snapshot), id, ancestors))
+        if (PathTo(root, id, ancestors))
         {
             _expanded.UnionWith(ancestors);
             _selected = id;

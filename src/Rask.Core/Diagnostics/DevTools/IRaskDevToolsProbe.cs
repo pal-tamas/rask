@@ -95,6 +95,18 @@ internal interface IRaskDevToolsProbe
     /// </summary>
     void DiagnosticReported(in RaskDiagnosticEvent diagnostic);
 
+    /// <summary>
+    ///     A <see cref="Context" /> provider pushed its value for the subtree walked inside it. <paramref name="owner" /> is
+    ///     the component whose markup holds the provider. Called right after the push, so the stack's head is its entry.
+    /// </summary>
+    void ContextProvided(Context provider, Component owner);
+
+    /// <summary>
+    ///     A component read a context value while rendering — through <c>Get</c>, <c>Required</c> or <c>Has</c> — before the
+    ///     read resolves. Not called for a read outside a live render.
+    /// </summary>
+    void ContextRead(Component reader, Type requested, string? name);
+
     /// <summary>A component asked to re-render (<c>StateHasChanged</c>).</summary>
     void StateRequested(Component component);
 
