@@ -299,6 +299,11 @@ public static class GuideCatalog
             SearchTitle = "Virtualized lists, toasts and drag and drop",
             Description = "Render windowed lists with Virtualize, keep list identity with keys, and add toast messages, drag-and-drop and error boundaries to C# web components.",
         },
+        new("broadcast", "Broadcast", "Publish on a topic; every subscribed component, in every open page, re-renders.", "Core")
+        {
+            SearchTitle = "Real-time pub/sub to every open page in C#",
+            Description = "Push a change to every open page with IBroadcast: typed topics, subscriptions that end when the component unmounts, and delivery in order with page events.",
+        },
         new("lifecycle", "Lifecycle", "Mount, props-changed, rendered, unmount, cancellation.", "Core")
         {
             SearchTitle = "Component lifecycle hooks in C#",

@@ -214,6 +214,49 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
         }
     }
 
+    protected override Task DeliverCoreAsync(Func<Task> work)
+    {
+        _ = DeliverInScopeAsync(work);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    ///     A broadcast delivered in this tab (#1061): under the dispatch lock, in order with the browser's events, then
+    ///     one frame — the same shape <see cref="DispatchAsync" /> gives an event handler.
+    /// </summary>
+    internal async Task DeliverInScopeAsync(Func<Task> work)
+    {
+        await _lock.WaitAsync().ConfigureAwait(false);
+        InHandlerScope = true;
+        try
+        {
+            var navigator = Services.GetRequiredService<Navigator>();
+            string? historyUrl = null;
+            var historyReplace = false;
+            using (navigator.EnterHandler())
+            {
+                await work().ConfigureAwait(false);
+                if (navigator.TryConsumeHistory(out var url, out var replace))
+                {
+                    historyUrl = url;
+                    historyReplace = replace;
+                }
+            }
+
+            await BuildPayloadCoalescingRerendersAsync(historyUrl, historyReplace).ConfigureAwait(false);
+            if (await TryEmitFrameAsync(historyUrl is not null).ConfigureAwait(false))
+            {
+                _htmlBuffers.Commit();
+            }
+        }
+        finally
+        {
+            InHandlerScope = false;
+            _lock.Release();
+            _ = DrainRenderRequestedAfterScope();
+        }
+    }
+
     public async Task<byte[]> DispatchAsync(byte[] json)
     {
         // Push model: produce the render payload, then either return it to the caller

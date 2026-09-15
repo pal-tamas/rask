@@ -9,6 +9,20 @@ them until tagged releases begin.
 
 ### Added
 
+- **Broadcast: push a change to every open page (#1061).** `IBroadcast.PublishAsync(topic, message)` reaches every
+  component subscribed to a `Topic<T>`, in every session the process holds, and re-renders each one where it is:
+  a new order appears on every admin's open order list without a refresh.
+  - **Subscribing:** `broadcast.Subscribe(this, Topics.Orders, order => …)` in `OnMount`. The subscription lives
+    exactly as long as the component, because it is tied to the component's lifetime token rather than a handler's.
+    There is nothing to dispose and no `StateHasChanged` to call.
+  - **Delivery:** each session runs its subscribers on its own dispatch queue, in order with its events, under the
+    same lock, and renders once. The publisher does not wait for the renders.
+  - **Pressure and reconnects:** a session whose queue is full is skipped with a warning, and its socket stays open.
+    A reconnecting session still applies the message and shows it on its catch-up render.
+  - **Scope:** at most once, in-process, never serialized. In a browser-WASM app it connects the components of one
+    tab. Registered by both hosts.
+  - Guide and live demo at [docs/broadcast.md](docs/broadcast.md). A cross-server backplane is still planned.
+
 - **F5 debugs the code that runs in the browser: WebAssembly C# and scoped `.ts` (#1073).**
   - **`rask new wasm` ships a `.vscode/` folder.** It starts the dev server in the background on
     `http://localhost:5210` and opens the app in Chrome under VS Code's JavaScript debugger. The debugger attaches
@@ -1238,6 +1252,13 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A server page no longer drops a render requested just as a dispatch finishes.** A `StateHasChanged` from outside
+  the dispatch could land after the dispatch's render loop had settled but before it released its scope. A timer, a
+  finished fetch or another session's broadcast can all do this. The request only set a flag, and nothing read that
+  flag again, so the change stayed off screen until the page's next event. The request now re-checks the scope after
+  setting the flag. The dispatch renders anything left pending after it releases the scope, as the WebAssembly host
+  already did (#986). Both fields are volatile, so each side sees the other's write. Found while building
+  Broadcast (#1061).
 - **`BulkInsertAsync(SkipChangeTracking)` is fast on PostgreSQL, SQL Server and MySQL, and works on Npgsql again
   (#1063).**
   - **It was slow.** The fast path sent one prepared single-row `INSERT` per row. That is the right shape for a

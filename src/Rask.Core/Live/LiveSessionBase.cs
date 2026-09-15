@@ -41,7 +41,12 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
 
     // Set when an in-handler StateHasChanged lands mid-dispatch (InHandlerScope=true); the coalescing
     // loop reads and clears it to rebuild the payload before releasing the dispatch lock.
-    protected bool _pendingRenderInScope;
+    //
+    // Volatile, with InHandlerScope: a server session's background request (a timer, a broadcast's other session)
+    // reads the scope on one thread while the dispatch clears it on another. The request sets this flag and re-reads
+    // the scope; the dispatch clears the scope and re-reads this flag. Each write-then-read is only sound when both
+    // reads see the other side's write, which is what volatile guarantees.
+    protected volatile bool _pendingRenderInScope;
 
     // The wire-payload shape for THIS session, snapshotted from the host's RaskLiveOptions at
     // construction and read on the render hot path (RenderTreeToHtml / WritePayload) instead of the
@@ -254,13 +259,42 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
     // Plain instance bool, NOT AsyncLocal: the dispatch lock is owned by the session as a whole, not
     // by any one async chain. AsyncLocal would flow into Timer/Task captures created during a render
     // and later report InHandlerScope=true forever, stranding background StateHasChanged calls.
-    public bool InHandlerScope { get; set; }
+    public bool InHandlerScope
+    {
+        get => _inHandlerScope;
+        set => _inHandlerScope = value;
+    }
+
+    // Volatile for the handoff described at _pendingRenderInScope.
+    private volatile bool _inHandlerScope;
 
     public Task RequestRenderAsync() => RequestRenderInternalAsync(false);
 
     public Task RequestPublishRenderAsync() => RequestRenderInternalAsync(true);
 
     Task IRenderHandle.RenderInScopeAsync() => RenderInScopeCoreAsync();
+
+    Task IRenderHandle.DeliverAsync(Func<Task> work) => DeliverCoreAsync(work);
+
+    /// <summary>
+    ///     Queues <paramref name="work" /> on this session's dispatch queue, as an event handler would be queued, and
+    ///     renders once it has run. Returns once it is queued (see <see cref="IRenderHandle.DeliverAsync" />).
+    /// </summary>
+    /// <remarks>
+    ///     The default runs the work and then asks for a render, which serialises against a dispatch through the
+    ///     render request. The hosts replace it with their own queue.
+    /// </remarks>
+    protected virtual Task DeliverCoreAsync(Func<Task> work)
+    {
+        _ = RunThenRenderAsync(work);
+        return Task.CompletedTask;
+    }
+
+    private async Task RunThenRenderAsync(Func<Task> work)
+    {
+        await work().ConfigureAwait(false);
+        await RequestRenderInternalAsync(false).ConfigureAwait(false);
+    }
 
     protected abstract Task RequestRenderInternalAsync(bool publishOnly);
 

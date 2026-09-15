@@ -611,6 +611,12 @@ public abstract partial class Component : RaskMarkup
     private CancellationToken LifetimeToken =>
         LazyInitializer.EnsureInitialized(ref Live.LifetimeCts, () => new CancellationTokenSource()).Token;
 
+    /// <summary>
+    ///     The raw lifetime token, for framework code that must outlive any one dispatch: a broadcast subscription made
+    ///     inside an event handler would otherwise end at that handler's timeout (#1061).
+    /// </summary>
+    internal CancellationToken LifetimeTokenInternal => LifetimeToken;
+
     // Hoisted into LiveState like Boundary: set only on the live-render root and on GetOrCreate'd
     // user components (both of which already carry a LiveState); the null-guard keeps a `?? =` with a
     // null handle, or a plain Element, from allocating one.

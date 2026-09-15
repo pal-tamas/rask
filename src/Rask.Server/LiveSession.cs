@@ -341,7 +341,13 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
             // dissolves into the dispatch's outer render flags, matching WASM
             // (Rask.Wasm/WasmLiveSession.cs:79-87).
             _pendingRenderInScope = true;
-            return;
+
+            // Re-read after the write: a dispatch that finished its coalescing loop and cleared the scope in between
+            // will not look at the flag again, so this request renders itself instead of being dropped.
+            if (InHandlerScope)
+            {
+                return;
+            }
         }
 
         await Lock.WaitAsync(_socketCt).ConfigureAwait(false);
@@ -354,8 +360,56 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         {
             InHandlerScope = false;
             Lock.Release();
+            _ = DrainRenderRequestedAfterScope();
         }
     }
+
+    /// <summary>
+    ///     Renders a request that arrived while the scope was held but after its render had settled. The request side
+    ///     of this handoff is the re-read in <see cref="RequestRenderInternalAsync" />; this is the dispatch side, run
+    ///     after the scope is cleared. The WASM session carries the same drain (#986).
+    /// </summary>
+    internal Task DrainRenderRequestedAfterScope()
+    {
+        if (!_pendingRenderInScope)
+        {
+            return Task.CompletedTask;
+        }
+
+        _pendingRenderInScope = false;
+        return RequestPublishRenderAsync();
+    }
+
+    private readonly object _handlerChainGate = new();
+
+    /// <summary>
+    ///     Appends to <see cref="LastHandlerTask" /> atomically. The receive loop and a broadcast delivery both extend
+    ///     the chain from different threads; a read-then-write by each could drop one link, and with it the ordering
+    ///     and the shutdown drain's wait on that dispatch.
+    /// </summary>
+    internal void EnqueueOnHandlerChain(Func<Task, Task> link)
+    {
+        lock (_handlerChainGate)
+        {
+            LastHandlerTask = link(LastHandlerTask);
+        }
+    }
+
+    internal bool IsDisposed => _disposed;
+
+    /// <summary>Drops a render requested in scope, for a dispatch that has handed the browser to another page.</summary>
+    internal void DiscardPendingRender() => _pendingRenderInScope = false;
+
+    /// <summary>When no connection is open, asks the next attach for a catch-up render of state changed meanwhile.</summary>
+    internal void RequestCatchUpIfDetached()
+    {
+        if (Volatile.Read(ref _transport) is not { IsOpen: true })
+        {
+            _renderRequestedWhileDetached = true;
+        }
+    }
+
+    protected override Task DeliverCoreAsync(Func<Task> work) => RaskEndpointExtensions.EnqueueDelivery(this, work);
 
     /// <summary>
     ///     Hands this session's pooled arrays back to <see cref="ArrayPool{T}" />.

@@ -48,6 +48,7 @@ public static class RaskHostContracts
         // Declared state, transient user messages, and the current user.
         typeof(IPersistentState),
         typeof(IToaster),
+        typeof(IBroadcast),
         typeof(IUserProvider),
         // Sign-in/out. The two hosts mean very different things by it (a cookie the server sets, or a POST
         // to a logout endpoint) — which is exactly why each must supply one.
