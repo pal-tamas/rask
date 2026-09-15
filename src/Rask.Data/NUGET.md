@@ -107,4 +107,21 @@ violating save throws `RangeOverlapException`. Enforcement lives in the database
 too. On a provider that emits no such DDL — a plain `UseSqlite`, or any other — the rule would be silently
 ignored, so `AddRaskData<TContext>()` refuses to boot instead, naming the entity and the call that enforces it.
 
+## Full-text search
+
+Declare which text is searchable, and search it from LINQ — ranked, word-aware, diacritic-insensitive:
+
+```csharp
+modelBuilder.Entity<Post>().HasFullTextSearch(p => new { p.Title, p.Body });
+
+var hits = await Post.Search(query).Where(p => p.Published).Take(20).ToListAsync();
+var marked = await Post.Search(query).Select(p => FullText.Snippet(p.Body)).ToListAsync();
+```
+
+`Search(text)` works on `Post`, on a `ModelQuery` and on any EF Core `IQueryable`; it returns best matches
+first and keeps composing. Typed text is always words, never FTS query syntax. With
+`Rask.SQLite.EntityFrameworkCore`'s `UseRaskSqlite(...)`, migrations create an FTS5 index kept current by
+triggers — adding it to an existing table fills it. Other providers are refused at boot: full-text search is
+SQLite-only for now.
+
 Part of the [Rask](https://github.com/pal-tamas/rask) framework. MIT licensed.

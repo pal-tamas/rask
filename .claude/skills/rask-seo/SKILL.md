@@ -20,6 +20,7 @@ own ("blazor", "react"). Map every new page to one:
 | React / Vue / Svelte components in a C# / .NET app | `islands` (+ `/docs/islands`) |
 | CQRS .NET source generator, mediator without reflection | `cqrs` |
 | SQLite in production .NET, WAL, Litestream | `sqlite`, `08-production-sqlite` |
+| EF Core SQLite full-text search, FTS5 in .NET, ranked search with highlights | `sqlite` (#full-text-search), `data` |
 | background jobs / outbox / cache .NET without Redis | `jobs`, `outbox`, `cache` |
 | file uploads ASP.NET Core to disk / S3 / Azure Blob, presigned URLs without the AWS SDK | `file-storage` |
 | Tailwind CSS .NET without npm | `tailwind` |

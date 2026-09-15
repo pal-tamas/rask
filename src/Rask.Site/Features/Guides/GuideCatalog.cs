@@ -175,7 +175,7 @@ public static class GuideCatalog
         new("data", "Rask.Data", "Declare models, read them off the type, bind generated form models, write with plain EF Core.", "One Person Framework")
         {
             SearchTitle = "EF Core models without writing a DbContext in C#",
-            Description = "Declare EF Core models in C#, read them off the type, bind generated form models and write with plain EF Core — audit stamps, soft delete, bulk insert.",
+            Description = "Declare EF Core models in C#, read and full-text search them off the type, bind generated form models and write with plain EF Core — audit stamps, soft delete.",
         },
         new("cqrs", "CQRS", "Source-generated queries, commands, notifications, behaviors.", "One Person Framework")
         {
@@ -249,7 +249,7 @@ public static class GuideCatalog
         new("sqlite", "Production SQLite", "WAL + busy-timeout pragmas, continuous backup, snapshots.", "One Person Framework")
         {
             SearchTitle = "SQLite in production for .NET: WAL and pragmas",
-            Description = "Run SQLite as a production database with ADO.NET or EF Core: WAL and busy_timeout pragmas, BEGIN IMMEDIATE retries, STRICT tables and Litestream backup.",
+            Description = "Run SQLite as a production database with ADO.NET or EF Core: WAL pragmas, BEGIN IMMEDIATE retries, STRICT tables, FTS5 full-text search and Litestream backup.",
         },
         new("deployment", "Deployment", "rask deploy: a bare VPS to a live HTTPS site, zero downtime.", "One Person Framework")
         {

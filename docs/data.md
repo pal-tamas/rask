@@ -123,6 +123,7 @@ await Product.FindAsync(id);
 await Product.FirstOrDefaultAsync(p => p.Name == "Anvil");
 await Product.CountAsync(p => p.Active);
 await Product.AnyAsync();
+await Product.Search("red anvil").Take(20).ToListAsync();           // full-text, best match first
 await foreach (var p in Product.AsAsyncEnumerable()) { }
 ```
 
@@ -852,6 +853,36 @@ provider — including a plain `UseSqlite` — the rule would be silently ignore
 until an entity declares a rule, and the rule composes with
 [`Rask:Sqlite:StrictTables`](sqlite.md#strict-tables--making-the-store-enforce-your-types) — a table can be both
 `STRICT` and range-constrained. See [Rask.SQLite](sqlite.md).
+
+## Full-text search
+
+A search box over your models wants ranked, word-aware matching, not `Contains` — which is a
+`LIKE '%…%'` scan that cannot rank and misses `kérés` for `keres`. Declare which text is searchable, and
+the migration creates a real full-text index:
+
+```csharp
+modelBuilder.Entity<Product>().HasFullTextSearch(p => new { p.Name, p.Description });
+```
+
+Then search from the model type, a context, or a grid:
+
+```csharp
+await Product.Search(query).Where(p => p.Active).Take(20).ToListAsync();
+await db.Set<Product>().Search(query).CountAsync();
+UiDataGrid.Data(Product.Search(query).AsQueryable())
+```
+
+`Search(text)` keeps every row containing all of the typed words — any order, any case, diacritics
+ignored, the last word as a prefix — **best match first**, and keeps composing; a later `OrderBy`
+replaces the rank order. The text is always words, never query syntax, so nothing a user types can break
+the query. Blank text filters nothing. `FullText.Highlight(p.Name)` and `FullText.Snippet(p.Description)`
+inside a `Select` return the matched terms marked, rendered safely by `UiHighlight.Text(...)`.
+
+The index lives in the database and triggers keep it current, so raw SQL and other processes are searchable
+too. Adding the declaration to an existing table is its own migration, which fills the index from the rows
+already there. Requires `UseRaskSqlite(...)`; on any other provider `AddRaskData<TContext>` **refuses to
+boot** rather than letting the first search fail. How it works, the tokenizers and the costs are in
+[Rask.SQLite — Full-text search](sqlite.md#full-text-search--fts5-through-ef-core).
 
 ## Choosing the database
 

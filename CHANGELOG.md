@@ -9,6 +9,28 @@ them until tagged releases begin.
 
 ### Added
 
+- **Full-text search through EF Core, on SQLite's FTS5.** A search box used to mean `Contains` — a
+  `LIKE '%…%'` scan that cannot rank, matches `sql` inside `nosql`, and misses `kérés` for `keres` — because
+  EF Core has no support for SQLite's full-text engine at all, though it is compiled into the SQLite build Rask
+  ships on the server and in the browser. Now `modelBuilder.Entity<Post>().HasFullTextSearch(p => new
+  { p.Title, p.Body })` declares the index and `Post.Search(text)` / `db.Set<Post>().Search(text)` reads it:
+  every typed word must match (any order, case and diacritics ignored, the last word as a prefix), best match
+  first by `bm25`, and the result keeps composing — `Where`, `Take`, `CountAsync`, and a grid's `OrderBy`, which
+  replaces the rank order.
+  - **Typed text is words, never query syntax.** `Search` compiles it to quoted FTS5 phrases, so `"`, `OR`,
+    `NEAR(…)` or `title:` in a search box can neither break the statement nor change what it means.
+  - **`FullText.Highlight(p.Title)` / `FullText.Snippet(p.Body, words)`** project the matched terms marked with
+    two private-use characters rather than HTML, and **`UiHighlight.Text(...)`** renders them encoded with
+    `<mark>` — stored text is never rendered as markup.
+  - **The index lives in the database.** `UseRaskSqlite(...)` migrations create the FTS5 table and the triggers
+    that keep it current, so raw SQL and other processes are searchable too; adding the declaration to an
+    existing table is a migration of its own that fills the index, and any migration that rebuilds the table
+    rebuilds it. A single integer key is the index's rowid (external content, nothing stored twice); any other
+    key goes through a key map, because SQLite's implicit rowid is not stable across `VACUUM`.
+  - **SQLite-only for now, and said so at boot.** On any other provider, `AddRaskData<TContext>` refuses to start
+    a context that declares an index, the way it already refuses an unenforced `HasNonOverlappingRange` — that
+    check is now one hosted service covering both.
+
 - **`rask new --framework net11.0` scaffolds an app on .NET 11.** The csproj takes the version asked for
   (`net11.0`, or `net11.0-browser` on the WASM template), the Dockerfile takes the matching `sdk:11.0` /
   `aspnet:11.0` images, and `.vscode/launch.json` points at the build output that version actually produces,
