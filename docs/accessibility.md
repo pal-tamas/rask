@@ -143,7 +143,13 @@ runtime — no component library's JavaScript, no per-component wiring. While th
 it on open (its `[autofocus]` element, else the element itself), `Tab`/`Shift+Tab` cycle **within** it
 (focus can't reach the inert page behind), and focus returns to the previously-focused element when it
 closes. If the trap (or a descendant) carries `data-rask-dismiss`, `Escape` closes it by triggering that
-element's click handler — no per-keystroke server round-trip.
+element's click handler — no per-keystroke server round-trip. The trap follows the attribute as well as the
+element: adding or removing `data-rask-focus-trap` on an element that stays mounted engages or releases it,
+which is how Rask UI's state-driven `UiModal` hands focus back when `Open(false)` closes it in place.
+
+Rask UI's declarative `UiModal` needs none of this: it opens with `command="show-modal"`, so the browser's own
+modal dialog makes the page inert, closes on Escape and returns focus to the trigger. While any kit dialog is
+open, the kit's stylesheet also stops the page behind it from scrolling.
 
 A dialog should opt in deliberately: an open modal traps focus, is labelled (`aria-labelledby`
 its title, or `aria-label` from the title text), and dismisses on `Escape` (except with a static backdrop,

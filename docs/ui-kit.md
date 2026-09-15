@@ -382,15 +382,30 @@ The kit ships no JavaScript, and that constraint decides the shape of every inte
 resolves three ways, and which one a component takes is a property of what the platform can do rather
 than of anyone's preference.
 
-**The browser owns it, declaratively.** `UiModal` with an `Id` and a `Trigger` is a real
-`<dialog popover>`: the browser supplies the top layer, Escape, light-dismiss and a native
-`::backdrop`. `UiMegamenu` is built the same way. `UiFab` opens on `:focus-within` because daisyUI
-defines no class to force it. All of these work on a prerendered page with no runtime booted, and with
-scripting off entirely.
+**The browser owns it, declaratively.** `UiModal` with an `Id` and a `Trigger` is a real **modal**
+`<dialog>`, opened by an HTML invoker command (`command="show-modal" commandfor`): the browser supplies
+the top layer, an inert page behind it so Tab cannot wander out, Escape, and focus handed back to the
+trigger on close. Every open and close control also names the dialog as a `popover`, so a browser
+without invoker commands (before Chrome 135, Firefox 144, Safari 26.2) opens it as a popover instead —
+top layer and Escape, without the inert page. `UiMegamenu` is built on the popover the same way. `UiFab`
+opens on `:focus-within` because daisyUI defines no class to force it. All of these work on a prerendered
+page with no runtime booted, and with scripting off entirely.
 
 ```csharp
 UiModal.Title("Shortcuts").Id("shortcuts").Trigger("Show shortcuts")[ … ]
+UiModal.Title("Filters").Id("filters").Trigger("Filters").Position(UiModalPosition.End)[ … ]  // a flyout
+UiModal.Title("Unsaved work").Id("edit").Dismissible(false).Escapable(false)[ … ]
 ```
+
+Flux UI's switches are all here: `Dismissible(false)` ignores a click outside, `Escapable(false)` ignores
+Escape (`closedby="none"`; Safari has not shipped it), `Closable(false)` drops the header's close button, and
+`OnClose` hears every way it closed. `Position(UiModalPosition.Start|End)` makes it a full-height flyout. While
+any kit dialog is open the page behind it does not scroll. The state-driven `Open` path below cannot reach the
+top layer, but it is not left without containment: it carries the runtime's `data-rask-focus-trap`, so focus
+moves in, Tab cycles inside, Escape runs `OnClose`, and focus returns when it closes.
+
+`UiTooltip` takes `Kbd("⌘S")` to teach a shortcut where the reader is already looking, and `Toggleable(true)`
+to show on a tap — a touch screen has no hover, so an ordinary tooltip is never seen there.
 
 **The page owns it, in C#.** `UiDropdown`, `UiCollapse`, `UiAccordion`, `UiSwap`, `UiTabs` and
 `UiModal`'s `Open` path hold their state in a field and redraw through the live diff — which is what

@@ -953,6 +953,32 @@
 }
 
 /*
+  UiTooltip.Toggleable: the tip shows while anything in its wrapper has focus, which a tap gives it and a tap
+  elsewhere takes away — the touch screen's only way to see a tooltip, with no script. Mirrors the open state
+  daisyUI gives `.tooltip-open`, for both of its shapes (the `data-tip` pseudo-element and `.tooltip-content`).
+*/
+@layer rask-ui-corrections {
+  .tooltip.ui-tooltip-toggleable:focus-within > .tooltip-content,
+  .tooltip.ui-tooltip-toggleable[data-tip]:focus-within::before,
+  .tooltip.ui-tooltip-toggleable:focus-within::after {
+    opacity: 1;
+    --tt-pos: 0rem;
+  }
+}
+
+/*
+  A kit modal locks the page's scroll while it is open, so a long page does not slide underneath a sheet the
+  reader is scrolling. Keyed to an OPEN kit dialog, which is what keeps this — the kit's one rule at the
+  document root — off every page that is not showing one: the modal path (`[open]` from show-modal), the
+  popover fallback, and the state-driven `modal-open`.
+*/
+@layer rask {
+  :root:has(dialog.modal[open], dialog.modal:popover-open, .modal.modal-open) {
+    overflow: hidden;
+  }
+}
+
+/*
   A button waiting on its own handler (UiButton.Loading; the runtime's rask-loading.ts).
 
   The runtime writes `data-loading` + `aria-busy` once a dispatch has gone 200 ms without an answer, and a

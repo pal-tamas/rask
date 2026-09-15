@@ -9,6 +9,21 @@ them until tagged releases begin.
 
 ### Added
 
+- **Rask UI's dialog is a real modal, and gains Flux UI's switches.** `UiModal`'s trigger opens it with the HTML
+  invoker command `show-modal`, so the browser makes the page behind inert, contains Tab, closes on Escape and hands
+  focus back to the trigger — no script. Every open and close control still names the dialog as a `popover`, so a
+  browser without invoker commands falls back to today's behaviour. New `Dismissible` (a click outside; daisyUI's
+  backdrop button now closes the modal path too), `Escapable` (`closedby="none"`), and `Closable` (the header's close
+  button); `OnClose` now fires on the modal path as well, from the dialog's own toggle event.
+  `Position(UiModalPosition.Start|End)` is a full-height flyout — the centred box's height and width caps no longer
+  override daisyUI's side modal. The state-driven `Open` path gets containment from the runtime's focus trap: focus
+  moves in, Tab cycles, Escape runs `OnClose`, and focus returns on close — and the trap now follows the
+  `data-rask-focus-trap` ATTRIBUTE, so a dialog kept mounted with `Open(false)` releases it. The kit's stylesheet locks
+  the page's scroll while any kit dialog is open.
+- **`UiTooltip.Kbd` and `UiTooltip.Toggleable`.** `Kbd("⌘S")` renders the shortcut as a `<kbd>` inside the tip, and
+  `Toggleable(true)` shows it on a tap — the wrapper takes focus, and the tip shows while it has it — because a touch
+  screen has no hover to show an ordinary tooltip.
+
 - **A button waiting on its own handler says so, and cannot be pressed twice — automatically, on both hosts.**
   Flux UI's answer to the double submit. Once a `<button>` (or `<input type=button|submit>`) has waited 200 ms on
   its handler — or its form's submit, file uploads included — the runtime writes `data-loading` and

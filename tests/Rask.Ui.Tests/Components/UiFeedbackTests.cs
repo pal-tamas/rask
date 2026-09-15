@@ -63,6 +63,31 @@ public partial class UiFeedbackTests : global::Rask.Core.RaskMarkup
     public void The_tip_travels_in_the_attribute_daisyUI_reads() =>
         Assert.Contains("data-tip=\"Copy\"", UiTooltip.Tip("Copy")[Span["c"]].ToHtml());
 
+    [Fact]
+    public void A_shortcut_is_a_kbd_inside_the_tip_rather_than_text_in_an_attribute()
+    {
+        // An attribute holds text; the shortcut is an element, so the tip moves into daisyUI's content child.
+        var html = UiTooltip.Tip("Save").Kbd("⌘S")[Span["s"]].ToHtml();
+
+        Assert.DoesNotContain("data-tip", html);
+        Assert.Contains("class=\"tooltip-content\" role=\"tooltip\"", html);
+        Assert.Contains("<kbd class=\"kbd kbd-xs", html);
+        Assert.True(
+            html.IndexOf("tooltip-content", StringComparison.Ordinal) < html.IndexOf("<span>s</span>", StringComparison.Ordinal),
+            "the tip content must come before the thing it points at, which daisyUI's child selector expects.");
+    }
+
+    [Fact]
+    public void A_toggleable_tip_is_reachable_by_a_tap()
+    {
+        // No hover on a touch screen: a focusable wrapper is what a tap can give focus to.
+        var html = UiTooltip.Tip("Why").Toggleable(true)[Span["?"]].ToHtml();
+
+        Assert.Contains("ui-tooltip-toggleable", html);
+        Assert.Contains("tabindex=\"0\"", html);
+        Assert.DoesNotContain("tabindex", UiTooltip.Tip("Why")[Span["?"]].ToHtml());
+    }
+
     [Theory]
     [InlineData(UiTone.Error, "alert-error")]
     [InlineData(UiTone.Warning, "alert-warning")]

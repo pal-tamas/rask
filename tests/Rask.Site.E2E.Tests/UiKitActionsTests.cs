@@ -146,6 +146,75 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
+    public Task TheDialogIsARealModalThatLocksTheScrollAndHandsFocusBack() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var trigger = Page.Locator("[data-testid='ui-modal-popover']")
+            .GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Show shortcuts" });
+        var dialog = Page.Locator("#demo-shortcuts");
+
+        await trigger.FocusAsync();
+        await Page.Keyboard.PressAsync("Enter");
+        await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // The invoker command, not the popover fallback: a :modal dialog, the page behind inert.
+        Assert.True(await dialog.EvaluateAsync<bool>("d => d.matches(':modal')"), "the kit's dialog opened as a popover");
+        // The kit's stylesheet locks the page under an open kit dialog, and only then.
+        Assert.Equal("hidden", await Page.EvaluateAsync<string>("() => getComputedStyle(document.documentElement).overflow"));
+
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(dialog).ToBeHiddenAsync();
+        Assert.NotEqual("hidden", await Page.EvaluateAsync<string>("() => getComputedStyle(document.documentElement).overflow"));
+        await Expect(trigger).ToBeFocusedAsync();
+    });
+
+    [Fact]
+    public Task TheStateDrivenDialogTrapsFocusAndEscapeRunsItsCloseHandler() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-modal']");
+        var opener = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Delete order" }).First;
+        await opener.FocusAsync();
+        await Page.Keyboard.PressAsync("Enter");
+
+        var dialog = scope.Locator("dialog");
+        await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // The runtime's trap moved focus in; Tab cycles inside rather than reaching the page behind.
+        await Expect(dialog).ToHaveAttributeAsync("data-rask-focus-trap", "");
+        for (var i = 0; i < 5; i++)
+        {
+            await Page.Keyboard.PressAsync("Tab");
+            Assert.True(
+                await dialog.EvaluateAsync<bool>("d => d.contains(document.activeElement)"),
+                "Tab escaped the state-driven dialog.");
+        }
+
+        // Escape presses the close control, OnClose stops rendering it, and focus goes back to the opener.
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(scope.Locator(".modal")).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+        await Expect(opener).ToBeFocusedAsync();
+    });
+
+    [Fact]
+    public Task AFlyoutRunsTheFullHeightOfTheViewport() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        await Page.Locator("[data-testid='ui-modal-flyout']")
+            .GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Filters" }).ClickAsync();
+        var box = Page.Locator("#demo-filters .modal-box");
+        await Expect(box).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        var viewport = Page.ViewportSize!;
+        var rect = await box.BoundingBoxAsync();
+        Assert.True(rect!.Height >= viewport.Height - 2, $"the flyout is {rect.Height}px tall in a {viewport.Height}px viewport.");
+        Assert.True(rect.X + rect.Width >= viewport.Width - 2, "the flyout is not against the end edge.");
+    });
+
+    [Fact]
     public Task ThePopoverDialogIsARealDialogElement() => RunAsync(async () =>
     {
         await OpenAsync();

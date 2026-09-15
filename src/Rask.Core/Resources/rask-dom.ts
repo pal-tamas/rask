@@ -475,15 +475,21 @@ export function applyFrameInvokes(
         return false;
     }
 
+    // The attribute itself is watched too: a dialog that stays mounted while closed (Rask UI's state-driven
+    // UiModal with Open(false)) gains and loses the trap by attribute alone, with no node added or removed —
+    // and without this its trap would never engage, or never hand focus back.
     const observer = new MutationObserver(function (records) {
         for (let i = 0; i < records.length; i++) {
-            if (touchesTrap(records[i].addedNodes) || touchesTrap(records[i].removedNodes)) {
+            const r = records[i];
+            if (r.type === "attributes" || touchesTrap(r.addedNodes) || touchesTrap(r.removedNodes)) {
                 sync();
                 return;
             }
         }
     });
-    observer.observe(document.documentElement, { childList: true, subtree: true });
+    observer.observe(document.documentElement, {
+        childList: true, subtree: true, attributes: true, attributeFilter: ["data-rask-focus-trap"]
+    });
     sync(); // a trap already present at load
 })();
 

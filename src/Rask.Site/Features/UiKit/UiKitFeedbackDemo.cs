@@ -55,9 +55,19 @@ public sealed partial class UiKitFeedbackDemo : Component
 
         Section(
             "Tooltip",
-            "A hint and nothing more: it cannot be reached by touch and is easy to miss, so nothing "
-            + "that matters should live only here. Open shows one without a hover.",
+            "A hint and nothing more: it is easy to miss, so nothing that matters should live only here. "
+            + "Open shows one without a hover, Kbd teaches a shortcut where the reader is already looking, "
+            + "and Toggleable shows it on a tap — a touch screen has no hover.",
             Div.Data(Testid("ui-tooltip")).Class("flex flex-wrap items-center gap-8 pt-8")[
+                UiTooltip.Key("k").Tip("Save").Kbd("⌘S").Position(UiPosition.Top)[
+                    UiButton.Size(UiSize.Sm)["Shortcut"]
+                ],
+                UiTooltip.Key("tap").Tip("Tapping shows this on a phone").Toggleable(true)[
+                    UiIcon.Name(UiIconName.Info).Class("size-5")
+                ],
+                UiTooltip.Key("disabled").Tip("Available once the form is valid")[
+                    UiButton.Size(UiSize.Sm).Disabled(true)["Disabled"]
+                ],
                 UiTooltip.Key("t").Tip("Above").Position(UiPosition.Top)[
                     UiButton.Size(UiSize.Sm)["Top"]
                 ],
