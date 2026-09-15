@@ -84,12 +84,19 @@ The Wire tab records only the page's own traffic. The panel's own frames never s
 **Tree** shows the page's components nested the way they sit on the page. A card's rows sit under the card, even when
 the page that uses the card is the one that built them. Each row shows what its component was given:
 
-![The Tree tab: the app's components nested as on the page, with each component's props on its row and a token shown as dots](../src/Rask.Site/wwwroot/img/devtools/tree.webp)
+![The Tree tab: the app's components nested as on the page, with each component's props on its row, and the selected TaskRow's props listed with their types beside the tree](../src/Rask.Site/wwwroot/img/devtools/tree.webp)
 
 - **The type**, as you write it: `TaskRow`, `UiTree<Node, string>`.
 - **The key**, as a badge, when the component has one.
 - **Its props**, as `Name=value`. Rask writes the code that reads them when it builds the app, so they are there in a
   trimmed WASM app too.
+- **What it is**, as a badge, when it is more than a component: an island's runtime (`React`, `Vue`, `Lit`…), or
+  `Blazor`.
+
+Select a row to see the component in full beside the tree: its key, and every prop with its type and value.
+
+An [island](islands.md) is a row like any other component, with the props your C# passed it. Its own components live
+in the browser, so the tree ends at the island.
 
 **Show HTML tags** adds the elements between the components, so you can see which `<ul>` a row sits in.
 

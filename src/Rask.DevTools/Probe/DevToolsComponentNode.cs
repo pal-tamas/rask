@@ -25,6 +25,10 @@ namespace Rask.DevTools.Probe;
 ///     document to its parent, dot-separated, the slot its first node occupies, and how many sibling nodes it rendered.
 ///     Null when it rendered nothing, sits inside another renderer's subtree, or the walk captured no frames.
 /// </param>
+/// <param name="Badge">
+///     What kind of component it is, when that is more than a component: the runtime of an island (<c>React</c>,
+///     <c>Lit</c>…) or <c>Blazor</c>. Read from the element it renders, so the devtools need no reference to either package.
+/// </param>
 internal sealed record DevToolsComponentNode(
     long Id,
     string Type,
@@ -32,7 +36,8 @@ internal sealed record DevToolsComponentNode(
     IReadOnlyList<DescribedProp> Props,
     IReadOnlyList<DevToolsComponentNode> Children,
     bool IsTag = false,
-    string? At = null);
+    string? At = null,
+    string? Badge = null);
 
 /// <summary>One component as the walk met it: what it is, what it was walked inside, and what it wrote.</summary>
 internal readonly record struct DevToolsWalkItem(Component Component, Component? Parent, int FrameStart, int FrameEnd);
@@ -164,14 +169,52 @@ internal sealed class DevToolsTreeSnapshotter
         _ids.GetValue(component, _ => new StrongBox<long>(Interlocked.Increment(ref _next))).Value;
 
     private static DevToolsComponentNode Describe(
-        long id, Component component, List<DevToolsComponentNode> children, string? at)
+        long id, Component component, List<DevToolsComponentNode> children, string? at, string? badge = null)
     {
         // What the component says about itself. The override the build wrote reads its own properties by name; in a
         // build without the devtools the base method is empty, so this is a call that collects nothing.
         var describer = new PropsDescriber();
         component.DescribeProps(describer);
         return new DevToolsComponentNode(
-            id, DevToolsNames.Of(component.GetType()), component.Key?.ToString(), describer.Props, children, At: at);
+            id, DevToolsNames.Of(component.GetType()), component.Key?.ToString(), describer.Props, children, At: at,
+            Badge: badge);
+    }
+
+    /// <summary>The element an island or a Blazor component renders, named as the badge a developer knows it by.</summary>
+    internal static string? BadgeOf(ReadOnlySpan<RenderFrame> frames, int start)
+    {
+        if (start < 0 || start >= frames.Length || frames[start].Kind != RenderFrameKind.Element)
+        {
+            return null;
+        }
+
+        switch (frames[start].Name)
+        {
+            case "rask-blazor":
+                return "Blazor";
+            case "rask-external":
+                for (var i = start + 1; i < frames.Length && frames[i].Kind == RenderFrameKind.Attribute; i++)
+                {
+                    if (frames[i].Name == "runtime" && frames[i].Value is { Length: > 0 } runtime)
+                    {
+                        return runtime switch
+                        {
+                            "react" => "React",
+                            "preact" => "Preact",
+                            "solid" => "Solid",
+                            "vue" => "Vue",
+                            "svelte" => "Svelte",
+                            "angular" => "Angular",
+                            "lit" => "Lit",
+                            _ => runtime,
+                        };
+                    }
+                }
+
+                return "Island";
+            default:
+                return null;
+        }
     }
 
     private sealed class Builder
@@ -285,7 +328,9 @@ internal sealed class DevToolsTreeSnapshotter
                 AddComponents(children, kids);
             }
 
-            return Describe(id, item.Component, children, Locate(item.FrameStart, item.FrameEnd));
+            return Describe(
+                id, item.Component, children, Locate(item.FrameStart, item.FrameEnd),
+                _capture.FrameCount >= 0 ? BadgeOf(_capture.Frames, item.FrameStart) : null);
         }
 
         // Through FramePathWalker, the same slot arithmetic the diff uses, so the box drawn is around the nodes the diff
