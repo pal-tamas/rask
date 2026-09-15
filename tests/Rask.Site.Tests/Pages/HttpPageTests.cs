@@ -155,6 +155,24 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
         Assert.Contains("alert-error", html, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task The_guide_prerenders_the_post_from_the_sites_own_file_without_the_network()
+    {
+        // The default test services answer the demo's relative fetch from src/Rask.Site/wwwroot, as the
+        // published site does. They used to hand it a client aimed at a host that does not exist, so every
+        // unit test rendering this guide spent the retry delays waiting on DNS and still showed an error (#1108).
+        var sp = TestServices.Default(routeState: TestRouteState.At("/docs/guides/http-and-files"));
+
+#pragma warning disable RASK014 // the App is rendered directly as a root
+        var result = await global::Rask.Core.Live.RaskPrerender.RenderDocumentAsync(
+            new global::Rask.Site.App(), sp, TimeSpan.FromSeconds(10));
+#pragma warning restore RASK014
+
+        Assert.False(result.TimedOut, $"did not settle ({result.Waves} waves)");
+        Assert.Contains("Components are just methods", result.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("alert-error", result.Html, StringComparison.Ordinal);
+    }
+
     private static IServiceProvider Services(HttpClient http, TimeProvider time) =>
         LiveHost.Services((typeof(HttpClient), (object)http), (typeof(TimeProvider), (object)time));
 

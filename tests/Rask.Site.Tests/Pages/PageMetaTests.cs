@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Net;
 using System.Text.Json;
@@ -454,8 +455,10 @@ public sealed class PageMetaTests
         // and a single synchronous render returns the placeholder — or the error page, for one that
         // awaits. Going through RenderDocumentAsync means this asserts on the same bytes the publish
         // writes, which is the only version of the page that a crawler ever sees.
+        var started = Stopwatch.StartNew();
         var result = await RaskPrerender.RenderDocumentAsync(
             new global::Rask.Site.App(), sp, TimeSpan.FromSeconds(10));
+        started.Stop();
 
         // A faulted render still returns perfectly ordinary HTML — the root boundary's error page, which
         // has a title and no description. Without this, every assertion below would be made against
@@ -463,7 +466,11 @@ public sealed class PageMetaTests
         Assert.False(
             result.Faulted,
             $"{path} faulted while rendering: {result.Error?.GetType().Name}: {result.Error?.Message}");
-        Assert.False(result.TimedOut, $"{path} did not settle");
+        // Waves and time together say WHICH budget ran out: the wave cap in well under the ten seconds
+        // means work kept being tracked, the full ten seconds means one wait never returned (#1108).
+        Assert.False(
+            result.TimedOut,
+            $"{path} did not settle ({result.Waves} waves in {started.ElapsedMilliseconds} ms)");
 
         return result.Html;
     }

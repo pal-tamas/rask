@@ -1131,6 +1131,13 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **Two signed-in users with no identifier no longer count as the same user.** The session ownership check behind a
+  reconnect, an upload and a download compares users by `NameIdentifier`, or `Name` when there is no
+  identifier. When two signed-in principals carried neither, it compared nothing with nothing and matched, so
+  any such user passed as the owner of any other such user's session (#1102). A signed-in principal with no
+  identifier now matches nobody, and Rask logs a warning naming the missing claim. **Upgrade:** an app whose
+  sign-in issues principals without either claim will see its pages reload on every reconnect until it adds
+  `ClaimTypes.NameIdentifier`.
 - **A scaffolded app's first build serves the UI kit's stylesheet.** `RaskUiWriteStylesheet` copies the kit's
   sheet to `wwwroot/css/rask-ui.css` during the build. On a clean checkout the file did not exist when the
   project was evaluated, so the first build's static web assets had no entry for it. A run with no rebuild

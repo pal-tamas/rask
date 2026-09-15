@@ -1711,9 +1711,10 @@ code .language-csharp
 div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .sample-result-label
 div .sample-result-body
-span .gap-2 .inline-flex .items-center .text-ui-muted
-span .loading .loading-sm .loading-spinner
-span
+article .bg-base-100 .bg-ui-well .border .border-base-300 .p-4 .rounded-xl .sm:p-5
+div .mb-1 .text-sm .text-ui-muted .uppercase
+h3 .font-semibold .text-base
+p .mb-0 .text-sm
 
 === data-http-register ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm

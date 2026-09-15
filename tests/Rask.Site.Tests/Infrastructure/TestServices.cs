@@ -50,7 +50,7 @@ internal static class TestServices
         sc.AddSingleton(sp => new Navigator(sp.GetRequiredService<RouteState>(),
             sp.GetService<IDownloadSink>()));
 
-        sc.AddSingleton(http ?? new HttpClient { BaseAddress = new Uri("https://example.test/") });
+        sc.AddSingleton(http ?? FakeHttp.ServingSiteFiles());
         sc.AddSingleton<IJSRuntime>(js ?? new FakeJsRuntime());
         sc.AddSingleton(downloadSink ?? new CapturingDownloadSink());
         sc.AddSingleton(bannedWords ?? new BannedWordService());

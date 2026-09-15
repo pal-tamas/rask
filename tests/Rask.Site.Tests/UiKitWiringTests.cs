@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Rask.Site.Tests.Infrastructure;
 
 namespace Rask.Site.Tests;
 
@@ -95,19 +96,5 @@ public sealed class UiKitWiringTests
         return Token.Matches(text).Select(m => m.Groups["name"].Value).ToHashSet(StringComparer.Ordinal);
     }
 
-    private static string RepoRoot()
-    {
-        var dir = AppContext.BaseDirectory;
-        while (dir is not null)
-        {
-            if (Directory.Exists(Path.Combine(dir, ".git")) || File.Exists(Path.Combine(dir, "Rask.slnx")))
-            {
-                return dir;
-            }
-
-            dir = Path.GetDirectoryName(dir);
-        }
-
-        throw new InvalidOperationException("could not locate the repository root from " + AppContext.BaseDirectory);
-    }
+    private static string RepoRoot() => RepoPaths.Root;
 }
