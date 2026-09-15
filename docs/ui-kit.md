@@ -338,6 +338,28 @@ UiButton.Href("https://github.com/pal-tamas/rask").NewTab(true)["GitHub"]     //
 A string that happens to name one of your own pages is still a string: it reloads the whole app to get
 there. Use the route. `NewTab(true)` is never intercepted, because the reader asked for another tab.
 
+## Buttons that wait
+
+A button whose handler is still running shows it — with nothing to set. Press "Save" on a slow link and,
+once the handler has gone 200 ms without finishing, the button swaps its label for a spinner at the same
+width, carries `aria-busy="true"`, and drops a second press until the first one's render has landed. This
+is Flux UI's answer to the double submit, and it holds on both hosts: the Server runtime ends the wait on
+the handler's ack, the WebAssembly runtime when its dispatch returns.
+
+```csharp
+UiButton.Tone(UiTone.Primary).OnClick(SaveAsync)["Save"]          // waits automatically
+UiButton.Loading(false).OnClick(StepAsync)[UiIcon.Name(UiIconName.Plus)]  // a stepper: presses queue
+UiButton.Loading(_exporting)["Export"]                            // work that outlives the handler
+```
+
+It is the **runtime** that marks the button, not script in the kit, because only the runtime knows when a
+dispatch starts and ends. So every `<button>` with a handler gets the same `data-loading` + `aria-busy`
+attributes — the kit's stylesheet is what turns them into a spinner, and your own CSS can style
+`[data-loading]` on any control. `data-rask-loading="off"` on an element, or on a toolbar around several,
+opts them out; `data-rask-loading` on a non-button element opts it in. It is never `disabled`, which would
+throw keyboard focus off the control mid-press. A Blazor island's buttons get it too — their handlers
+dispatch over the same channel.
+
 ## What is in it
 
 Grouped as daisyUI groups them, so its documentation reads straight across.

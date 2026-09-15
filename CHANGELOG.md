@@ -9,6 +9,17 @@ them until tagged releases begin.
 
 ### Added
 
+- **A button waiting on its own handler says so, and cannot be pressed twice — automatically, on both hosts.**
+  Flux UI's answer to the double submit. Once a `<button>` (or `<input type=button|submit>`) has waited 200 ms on
+  its handler — or its form's submit, file uploads included — the runtime writes `data-loading` and
+  `aria-busy="true"` on it and drops a second press until the first one's render lands. The Server runtime ends it
+  on that handler seq's ack, the WebAssembly runtime when its dispatch returns, and a dropped connection or a 30 s
+  backstop clears it. It is never `disabled`, which would throw keyboard focus off the control mid-press, and the
+  morph leaves a mark it did not render alone so the handler's own render cannot strip the spinner early. New
+  shared module `rask-loading.ts`. Rask UI's `UiButton` draws a same-width spinner from the mark; new
+  `UiButton.Loading` — unset automatic, `false` opts out (`data-rask-loading="off"`, which also works on any
+  element or ancestor), `true` shows it from C# for work that outlives the handler.
+
 - **Rask UI fields describe themselves to assistive tech, the way Flux UI does.** `UiInput`, `UiTextarea` and
   `UiSelect` now write `aria-describedby` naming what is visible under the control — the bound validation
   message, then a controlled `Error` (only while `Tone(UiTone.Error)` reveals it), then the `Hint` — each with an id
@@ -1279,6 +1290,10 @@ them until tagged releases begin.
   ```
 
 ### Fixed
+
+- **A C# click handler cancelled the button's HTML invoker command.** Both runtimes kept a click's default only for a
+  `popovertarget` button, so `UiButton.Command("show-modal").CommandFor("x").OnClick(...)` ran its handler and never
+  showed the dialog. `commandfor` is now exempt the same way.
 
 - **`UiSelect` was named twice, or not at all.** Both modes copied `Label` into `aria-label` beside the visible
   label, and a select with no label rendered a valueless `aria-label` and ignored `AccessibleLabel`. The drawn

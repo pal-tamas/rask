@@ -138,8 +138,61 @@ public sealed partial class UiButton : UiElement
     /// </summary>
     public bool? Disabled { get; set; }
 
+    /// <summary>
+    ///     Whether the button shows that it is waiting. Unset is AUTOMATIC: the runtime marks it while its own
+    ///     handler — or its form's submit — is still running.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     Automatic is the default because the page cannot do it well by hand. A handler that takes a second
+    ///     on a slow link leaves the pressed button looking exactly as it did, so the reader presses it again
+    ///     and the handler runs twice. Flux UI answers that on every button bound to a server action, and so
+    ///     does this: after 200 ms without an answer the runtime writes <c>data-loading</c> and
+    ///     <c>aria-busy="true"</c>, the kit's stylesheet swaps the label for a spinner at the same width, and a
+    ///     second press is dropped until the first one's render has landed. It is never <c>disabled</c>, which
+    ///     would throw keyboard focus off the control mid-press.
+    ///     </para>
+    ///     <para>
+    ///     <see langword="false" /> opts out — a stepper whose presses are meant to queue. <see langword="true" />
+    ///     shows it from C#, for work that outlives the handler: a job the page is polling, an upload the
+    ///     server is still processing. Ignored when <see cref="Href" /> is set; a link waits on nothing.
+    ///     </para>
+    /// </remarks>
+    public bool? Loading { get; set; }
+
     /// <inheritdoc />
     protected override string TagName => Link is null ? "button" : "a";
+
+    /// <inheritdoc />
+    private protected override IReadOnlyDictionary<string, string?>? ResolveData()
+    {
+        if (Loading is not { } loading || Link is not null)
+        {
+            return Data;
+        }
+
+        // The runtime reads `data-rask-loading="off"` and leaves the button alone; `data-loading` is the same
+        // hook the runtime itself writes, so the stylesheet has one rule for both.
+        var data = new Dictionary<string, string?>(StringComparer.Ordinal);
+        if (Data is { } callerData)
+        {
+            foreach (var (name, value) in callerData)
+            {
+                data[name] = value;
+            }
+        }
+
+        if (loading)
+        {
+            data.TryAdd("loading", null);
+        }
+        else
+        {
+            data.TryAdd("rask-loading", "off");
+        }
+
+        return data;
+    }
 
     // A null string reaching Href converts to a RouteUrl with no path rather than to no RouteUrl at all, and a
     // button with a null string for a destination is a button, as it was when Href was a string.
@@ -164,12 +217,24 @@ public sealed partial class UiButton : UiElement
     /// <inheritdoc />
     protected override IReadOnlyDictionary<string, string?>? ResolveAria()
     {
-        if (AccessibleLabel is not { } label || Aria?.ContainsKey("label") == true)
+        var label = AccessibleLabel is { } accessible && Aria?.ContainsKey("label") != true ? accessible : null;
+        var busy = Loading == true && Link is null && Aria?.ContainsKey("busy") != true;
+        if (label is null && !busy)
         {
             return Aria;
         }
 
-        var aria = new Dictionary<string, string?>(StringComparer.Ordinal) { ["label"] = label };
+        var aria = new Dictionary<string, string?>(StringComparer.Ordinal);
+        if (label is not null)
+        {
+            aria["label"] = label;
+        }
+
+        if (busy)
+        {
+            aria["busy"] = "true";
+        }
+
         if (Aria is { } callerAria)
         {
             foreach (var (name, value) in callerAria)

@@ -16,6 +16,8 @@ public sealed partial class UiKitActionsDemo : Component
     private bool _muted;
     private UiThemeName _theme = UiThemeName.Light;
     private string _lastAction = "nothing yet";
+    private int _saves;
+    private int _steps;
 
     /// <inheritdoc />
     protected override Component? Render() =>
@@ -35,6 +37,27 @@ public sealed partial class UiKitActionsDemo : Component
                 UiButton.Key("circle").AccessibleLabel("Close").Circle(true)[UiIcon.Name(UiIconName.Close)],
                 UiButton.Key("square").AccessibleLabel("Add").Square(true)[UiIcon.Name(UiIconName.Plus)],
                 UiButton.Key("disabled").Disabled(true)["Disabled"]
+            ]),
+
+        Section(
+            "Button — waiting on its handler",
+            "No property to set. A button whose handler is still running after 200 ms shows a spinner at the "
+            + "same width, tells a screen reader it is busy, and drops a second press until the first is done. "
+            + "Loading(false) opts a stepper out, so its presses queue.",
+            Div.Data(Testid("ui-button-loading")).Class("flex flex-wrap items-center gap-3")[
+                UiButton.Key("slow-save").Tone(UiTone.Primary).OnClick(async () =>
+                {
+                    await Task.Delay(1500);
+                    _saves++;
+                })["Save"],
+                UiButton.Key("stepper").Loading(false).OnClick(async () =>
+                {
+                    await Task.Delay(400);
+                    _steps++;
+                })[UiIcon.Name(UiIconName.Plus), "Step"],
+                Span.Data(Testid("ui-button-loading-count")).Class("text-sm text-ui-muted")[
+                    $"Saved {_saves} time{(_saves == 1 ? "" : "s")} · stepped {_steps}"
+                ]
             ]),
 
         Section(

@@ -281,6 +281,62 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void Loading_is_automatic_by_default_and_writes_nothing_of_its_own()
+    {
+        // Unset is the runtime's to decide per press, so the render says nothing either way.
+        var html = UiButton["Save"].ToHtml();
+
+        Assert.DoesNotContain("data-loading", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-loading", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-busy", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Loading_true_marks_it_from_the_render_in_the_documented_attribute_order()
+    {
+        // The same data-loading the runtime writes, so one stylesheet rule draws both; aria-busy for what is
+        // announced. data-* stays in its slot ahead of role and aria-*, and the call site's data survives.
+        var html = UiButton.Id("save").Data("testid", "save").AccessibleLabel("Save").Loading(true)["Save"].ToHtml();
+
+        Assert.Equal(
+            "<button id=\"save\" class=\"btn\" data-testid=\"save\" data-loading aria-label=\"Save\" aria-busy=\"true\" "
+            + "type=\"button\">Save</button>",
+            html);
+    }
+
+    [Fact]
+    public void Loading_false_opts_the_button_out_of_the_runtimes_mark() =>
+        Assert.Contains(
+            "data-rask-loading=\"off\"",
+            UiButton.Loading(false)["+"].ToHtml(),
+            StringComparison.Ordinal);
+
+    [Fact]
+    public void A_link_waits_on_nothing()
+    {
+        var html = UiButton.Href("/orders").Loading(true)["Orders"].ToHtml();
+
+        Assert.DoesNotContain("data-loading", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-busy", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Resolving_the_loading_data_leaves_the_call_sites_own_bag_untouched()
+    {
+        // The resolved bag stands in for the walk and is put back afterwards: rendering twice must not
+        // accumulate, and the property a caller set must still read as what they set.
+        var own = new Dictionary<string, string?> { ["testid"] = "save" };
+        var button = UiButton.Data(own).Loading(true)["Save"];
+
+        var first = button.ToHtml();
+        var second = button.ToHtml();
+
+        Assert.Equal(first, second);
+        Assert.Same(own, ((UiButton)button).Data);
+        Assert.Single(own);
+    }
+
+    [Fact]
     public void An_icon_only_anchor_still_has_an_accessible_name() =>
         Assert.Contains(
             "aria-label=\"Settings\"",

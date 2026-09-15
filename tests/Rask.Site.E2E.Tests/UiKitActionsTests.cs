@@ -249,6 +249,36 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
+    public Task AButtonWaitingOnItsHandlerShowsASpinnerKeepsItsWidthAndTakesOnePress() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-button-loading']");
+        var save = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Save" });
+        var count = Page.Locator("[data-testid='ui-button-loading-count']");
+        await Expect(count).ToContainTextAsync("Saved 0 times", new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+
+        var before = await save.BoundingBoxAsync();
+        await save.FocusAsync();
+        await Page.Keyboard.PressAsync("Enter");
+
+        // The WASM host ends the mark when the dispatch promise resolves, so it is up for the 1.5 s the handler
+        // takes — and the stylesheet draws it: the label goes transparent, the width holds, the spinner sits on top.
+        await Expect(save).ToHaveAttributeAsync("aria-busy", "true", new LocatorAssertionsToHaveAttributeOptions { Timeout = 5_000 });
+        Assert.Equal("rgba(0, 0, 0, 0)", await save.EvaluateAsync<string>("el => getComputedStyle(el).color"));
+        Assert.NotEqual("none", await save.EvaluateAsync<string>("el => getComputedStyle(el, '::after').maskImage"));
+        var during = await save.BoundingBoxAsync();
+        Assert.Equal(before!.Width, during!.Width, 0.5);
+
+        await Page.Keyboard.PressAsync("Enter");
+
+        await Expect(count).ToContainTextAsync("Saved 1 time", new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        await Expect(save).Not.ToHaveAttributeAsync("aria-busy", "true", new LocatorAssertionsToHaveAttributeOptions { Timeout = 5_000 });
+        await Page.WaitForTimeoutAsync(2_000);
+        await Expect(count).ToContainTextAsync("Saved 1 time ");
+    });
+
+    [Fact]
     public Task AButtonGivenARouteNavigatesWithoutReloadingTheApp() => RunAsync(async () =>
     {
         await OpenAsync();

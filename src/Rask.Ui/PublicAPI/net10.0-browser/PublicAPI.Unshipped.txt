@@ -736,6 +736,8 @@ Rask.Ui.UiButton.Disabled.get -> bool?
 Rask.Ui.UiButton.Disabled.set -> void
 Rask.Ui.UiButton.Href.get -> Rask.Core.Routing.RouteUrl?
 Rask.Ui.UiButton.Href.set -> void
+Rask.Ui.UiButton.Loading.get -> bool?
+Rask.Ui.UiButton.Loading.set -> void
 Rask.Ui.UiButton.NewTab.get -> bool?
 Rask.Ui.UiButton.NewTab.set -> void
 Rask.Ui.UiButton.Size.get -> Rask.Ui.UiSize?
@@ -2486,6 +2488,7 @@ static RaskBuilderSettersRask_Ui.Leading(this Rask.Ui.UiListRow! __b, Rask.Core.
 static RaskBuilderSettersRask_Ui.Length(this Rask.Ui.UiOtp! __b, int value) -> Rask.Ui.UiOtp!
 static RaskBuilderSettersRask_Ui.Lines(this Rask.Ui.UiMockupCode! __b, System.Collections.Generic.IReadOnlyList<(string! Prefix, string! Text)>! value) -> Rask.Ui.UiMockupCode!
 static RaskBuilderSettersRask_Ui.List<T>(this Rask.Ui.UiInput<T>! __b, string? value) -> Rask.Ui.UiInput<T>!
+static RaskBuilderSettersRask_Ui.Loading(this Rask.Ui.UiButton! __b, bool? value) -> Rask.Ui.UiButton!
 static RaskBuilderSettersRask_Ui.Loading<T, TKey>(this Rask.Ui.UiDataGrid<T, TKey>! __b, bool? value) -> Rask.Ui.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.MainAction(this Rask.Ui.UiFab! __b, Rask.Core.Component? value) -> Rask.Ui.UiFab!
 static RaskBuilderSettersRask_Ui.Marker(this Rask.Ui.UiAccordionSection! __b, Rask.Ui.UiMarker? value) -> Rask.Ui.UiAccordionSection!

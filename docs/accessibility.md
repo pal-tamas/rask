@@ -168,6 +168,17 @@ rather than the focus, the runtime also scrolls the named row back into view whe
 and in a virtualized tree — where that row is not rendered at all — it scrolls to where the row will be,
 which is what loads it.
 
+## Controls that are waiting
+
+A `<button>` (or `<input type=button|submit>`) whose own handler is still running after 200 ms is marked
+by the runtime with `aria-busy="true"` and `data-loading`, on both hosts, and a second activation is dropped
+until the first handler's render has landed. It is deliberately **not** `disabled`: disabling the control
+the reader just pressed moves keyboard focus to the document body, so the next Tab starts from the top of
+the page. The mark comes off when the dispatch finishes, when the connection drops, or after a 30 s
+backstop. Opt a control — or a container of them — out with `data-rask-loading="off"`
+(`UiButton.Loading(false)`), and opt a non-button element in with `data-rask-loading`. See
+[ui-kit.md](ui-kit.md#buttons-that-wait).
+
 ## Navigation
 
 Client-side (SPA) route changes on the Server live runtime are handled accessibly without any wiring:
