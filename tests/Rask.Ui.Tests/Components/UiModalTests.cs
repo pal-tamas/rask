@@ -73,21 +73,21 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
     }
 
     [Theory]
-    [InlineData(UiModalPlacement.Top, "modal-top")]
-    [InlineData(UiModalPlacement.Middle, "modal-middle")]
-    [InlineData(UiModalPlacement.Bottom, "modal-bottom")]
-    [InlineData(UiModalPlacement.Start, "modal-start")]
-    [InlineData(UiModalPlacement.End, "modal-end")]
-    public void Every_placement_writes_its_own_class(UiModalPlacement placement, string expected) =>
+    [InlineData(UiModalPosition.Top, "modal-top")]
+    [InlineData(UiModalPosition.Middle, "modal-middle")]
+    [InlineData(UiModalPosition.Bottom, "modal-bottom")]
+    [InlineData(UiModalPosition.Start, "modal-start")]
+    [InlineData(UiModalPosition.End, "modal-end")]
+    public void Every_position_writes_its_own_class(UiModalPosition position, string expected) =>
         Assert.Contains(expected,
-            UiModal.Title("Delete order").Id("confirm").Placement(placement).ToHtml());
+            UiModal.Title("Delete order").Id("confirm").Position(position).ToHtml());
 
     [Fact]
-    public void A_stated_placement_replaces_the_responsive_default_rather_than_fighting_it()
+    public void A_stated_position_replaces_the_responsive_default_rather_than_fighting_it()
     {
         // Appending the default would leave `sm:modal-middle` overriding the caller's choice at every
         // width above a phone — the class present, and ignored.
-        var html = UiModal.Title("Delete order").Id("confirm").Placement(UiModalPlacement.Top).ToHtml();
+        var html = UiModal.Title("Delete order").Id("confirm").Position(UiModalPosition.Top).ToHtml();
 
         Assert.DoesNotContain("sm:modal-middle", html);
         Assert.DoesNotContain("modal-bottom", html);
@@ -100,7 +100,7 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
         // worse implementation of something already there.
         Assert.DoesNotContain("modal-backdrop", Popover());
         Assert.Contains("modal-backdrop",
-            UiModal.Title("Delete order").Open(true).Close(() => { }).ToHtml());
+            UiModal.Title("Delete order").Open(true).OnClose(() => { }).ToHtml());
     }
 
     [Fact]

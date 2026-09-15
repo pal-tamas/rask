@@ -141,7 +141,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                 // the kit's CSS-only one, deliberately: it writes no C# event handlers, and handler ids
                 // are positional, so a handler here would shift every id after it and break the
                 // islands page. App.ThemeInitJs stores the choice and re-marks the radio instead.
-                UiThemeDropdown.Placement("dropdown-end")
+                UiThemeDropdown.Align(UiAlign.End)
             ]
         ],
         Div.Class("flex items-start app-shell")[

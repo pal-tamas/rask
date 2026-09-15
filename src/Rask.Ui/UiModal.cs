@@ -55,13 +55,13 @@ public sealed partial class UiModal : Component
     public bool? Open { get; set; }
 
     /// <summary>Where it sits in the viewport.</summary>
-    public UiModalPlacement? Placement { get; set; }
+    public UiModalPosition? Position { get; set; }
 
     /// <summary>
     ///     Runs on the close button and on a click outside. State-driven path only — on the popover path
     ///     the browser closes it and no callback is involved.
     /// </summary>
-    public Callback? Close { get; set; }
+    public Callback? OnClose { get; set; }
 
     /// <summary>The actions, trailing-aligned on a pointer and stacked on a phone.</summary>
     public Component? Footer { get; set; }
@@ -102,25 +102,25 @@ public sealed partial class UiModal : Component
                 .Variant(UiVariant.Ghost)
                 .Size(UiSize.Sm)
                 .Square(true)
-                .OnClick(() => Close?.Invoke() ?? Task.CompletedTask)[UiIcon.Name(UiIconName.Close)],
+                .OnClick(() => OnClose?.Invoke() ?? Task.CompletedTask)[UiIcon.Name(UiIconName.Close)],
             // A pointer convenience, not the only way out: the header's close button is the keyboard
             // path, which is why this carries no role and no label of its own.
-            backdrop: Close is null
+            backdrop: OnClose is null
                 ? null
                 : Button
                     .Type("button")
                     .Class("modal-backdrop")
                     .Aria(new Dictionary<string, string?> { ["hidden"] = "true" })
                     .TabIndex(-1)
-                    .OnClick(() => Close?.Invoke() ?? Task.CompletedTask)["close"]);
+                    .OnClick(() => OnClose?.Invoke() ?? Task.CompletedTask)["close"]);
 
     private string Classes() =>
         UiClass.Compose(
             "modal",
             // The responsive default, and only where the caller has not chosen: a stated placement with
             // `sm:modal-middle` appended would be overridden at every width above a phone.
-            Placement is { } placement
-                ? UiClassNames.ModalPlacement(placement)
+            Position is { } position
+                ? UiClassNames.ModalPosition(position)
                 : "modal-bottom sm:modal-middle",
             Class);
 

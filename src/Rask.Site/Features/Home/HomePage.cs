@@ -105,7 +105,7 @@ public sealed partial class HomePage : Component
                     // script rather than by this component (see App.ThemeInitJs). It stays the kit's
                     // handler-free picker on purpose: a C# one puts handlers in the chrome of every
                     // page, and handler ids are positional, which silently broke the islands.
-                    UiThemeDropdown.Placement("dropdown-end")
+                    UiThemeDropdown.Align(UiAlign.End)
                 ]
             ]
         ];

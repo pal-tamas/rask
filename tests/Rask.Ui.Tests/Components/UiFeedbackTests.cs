@@ -37,15 +37,19 @@ public partial class UiFeedbackTests : global::Rask.Core.RaskMarkup
     }
 
     [Theory]
-    [InlineData(UiPlacement.Top, "tooltip-top")]
-    [InlineData(UiPlacement.Bottom, "tooltip-bottom")]
-    [InlineData(UiPlacement.Left, "tooltip-left")]
-    [InlineData(UiPlacement.Right, "tooltip-right")]
-    [InlineData(UiPlacement.Start, "tooltip-start")]
-    [InlineData(UiPlacement.Center, "tooltip-center")]
-    [InlineData(UiPlacement.End, "tooltip-end")]
-    public void A_tooltip_defines_all_seven_placements(UiPlacement placement, string expected) =>
-        Assert.Contains(expected, UiTooltip.Tip("Copy").Placement(placement)[Span["c"]].ToHtml());
+    [InlineData(UiPosition.Top, "tooltip-top")]
+    [InlineData(UiPosition.Bottom, "tooltip-bottom")]
+    [InlineData(UiPosition.Left, "tooltip-left")]
+    [InlineData(UiPosition.Right, "tooltip-right")]
+    public void A_tooltip_takes_every_position(UiPosition position, string expected) =>
+        Assert.Contains(expected, UiTooltip.Tip("Copy").Position(position)[Span["c"]].ToHtml());
+
+    [Theory]
+    [InlineData(UiAlign.Start, "tooltip-start")]
+    [InlineData(UiAlign.Center, "tooltip-center")]
+    [InlineData(UiAlign.End, "tooltip-end")]
+    public void A_tooltip_takes_every_alignment(UiAlign align, string expected) =>
+        Assert.Contains(expected, UiTooltip.Tip("Copy").Align(align)[Span["c"]].ToHtml());
 
     [Fact]
     public void A_tooltip_can_be_shown_without_a_hover()
@@ -98,7 +102,7 @@ public partial class UiFeedbackTests : global::Rask.Core.RaskMarkup
     public void A_toast_only_offers_a_dismiss_when_there_is_something_to_dismiss_it_with()
     {
         Assert.DoesNotContain("Dismiss", UiToast.Message("Saved").ToHtml());
-        Assert.Contains("Dismiss", UiToast.Message("Saved").Dismiss(() => { }).ToHtml());
+        Assert.Contains("Dismiss", UiToast.Message("Saved").OnDismiss(() => { }).ToHtml());
     }
 
     [Fact]

@@ -35,21 +35,35 @@ public partial class UiDropdownTests : global::Rask.Core.RaskMarkup
     }
 
     [Theory]
-    [InlineData(UiPlacement.Start, "dropdown-start")]
-    [InlineData(UiPlacement.Center, "dropdown-center")]
-    [InlineData(UiPlacement.End, "dropdown-end")]
-    [InlineData(UiPlacement.Top, "dropdown-top")]
-    [InlineData(UiPlacement.Bottom, "dropdown-bottom")]
-    [InlineData(UiPlacement.Left, "dropdown-left")]
-    [InlineData(UiPlacement.Right, "dropdown-right")]
-    public void Every_placement_writes_its_own_class(UiPlacement placement, string expected) =>
-        Assert.Contains(expected, UiDropdown.Trigger("Actions").Placement(placement).ToHtml());
+    [InlineData(UiPosition.Top, "dropdown-top")]
+    [InlineData(UiPosition.Bottom, "dropdown-bottom")]
+    [InlineData(UiPosition.Left, "dropdown-left")]
+    [InlineData(UiPosition.Right, "dropdown-right")]
+    public void Every_position_writes_its_own_class(UiPosition position, string expected) =>
+        Assert.Contains(expected, UiDropdown.Trigger("Actions").Position(position).ToHtml());
+
+    [Theory]
+    [InlineData(UiAlign.Start, "dropdown-start")]
+    [InlineData(UiAlign.Center, "dropdown-center")]
+    [InlineData(UiAlign.End, "dropdown-end")]
+    public void Every_alignment_writes_its_own_class(UiAlign align, string expected) =>
+        Assert.Contains(expected, UiDropdown.Trigger("Actions").Align(align).ToHtml());
 
     [Fact]
-    public void The_default_placement_writes_no_class_at_all() =>
+    public void A_side_and_an_edge_compose()
+    {
+        // The reason these are two properties: one enum could name "above" or "flush with the end", never both.
+        var html = UiDropdown.Trigger("Actions").Position(UiPosition.Top).Align(UiAlign.End).ToHtml();
+
+        Assert.Contains("dropdown-top", html);
+        Assert.Contains("dropdown-end", html);
+    }
+
+    [Fact]
+    public void The_default_position_and_alignment_write_no_class_at_all() =>
         Assert.Equal(
             UiDropdown.Trigger("Actions").ToHtml(),
-            UiDropdown.Trigger("Actions").Placement(UiPlacement.Default).ToHtml());
+            UiDropdown.Trigger("Actions").Position(UiPosition.Default).Align(UiAlign.Default).ToHtml());
 
     [Fact]
     public void Opening_on_hover_is_opt_in() =>

@@ -29,7 +29,10 @@ public sealed partial class UiDropdown : Component
     public required string Trigger { get; set; }
 
     /// <summary>Which side of the trigger the panel opens on.</summary>
-    public UiPlacement? Placement { get; set; }
+    public UiPosition? Position { get; set; }
+
+    /// <summary>Where along that side the panel sits — flush with the trigger's start, centred, or its end.</summary>
+    public UiAlign? Align { get; set; }
 
     /// <summary>
     ///     Whether the panel is open. Leave it unset to let the browser handle opening on focus; set it
@@ -88,7 +91,8 @@ public sealed partial class UiDropdown : Component
 
         return Div.Class(UiClass.Compose(
             "dropdown",
-            Placement is { } placement ? UiClassNames.DropdownPlacement(placement) : "",
+            Position is { } position ? UiClassNames.DropdownPosition(position) : "",
+            Align is { } align ? UiClassNames.DropdownAlign(align) : "",
             OpenOn == UiOpenOn.Hover ? "dropdown-hover" : "",
             // Nothing when uncontrolled, so the browser's own focus behaviour stands.
             Open switch { true => "dropdown-open", false => "dropdown-close", null => "" },

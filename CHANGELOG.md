@@ -789,6 +789,19 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING — Rask UI places things with one vocabulary, Flux UI's `Position` + `Align`.** `UiPlacement` is gone:
+  it mixed sides and edges in one enum, so `dropdown-top dropdown-end` — a menu above its trigger, flush with
+  its end — could not be said at all. New `UiPosition` (Top/Right/Bottom/Left) and `UiAlign` (Start/Center/End)
+  are two properties that compose. `UiDropdown.Placement` and `UiTooltip.Placement` → `Position` + `Align`;
+  `UiTabs.Placement` → `Position`; `UiThemeDropdown.Placement` (a free-form class string) → typed `Position` +
+  `Align`; `UiModal.Placement`/`UiModalPlacement` → `Position`/`UiModalPosition`. `UiDrawer.Side` → `Panel`, with a
+  new `Position(UiPosition.Right)` for daisyUI's `drawer-end`. Events carry the `On` prefix every element event
+  has: `UiModal.Close` → `OnClose`, `UiToast.Dismiss` → `OnDismiss`. `UiAvatar.Size` takes `UiSize` rather than a
+  Tailwind class string the kit's sheet never compiled.
+- **Rask UI components carry no outer margin — "we style, you space".** `UiTabs` dropped the `-mx-3 px-3` phone
+  bleed from its root, which pushed a tab row out of any card it sat in; where a component sits is the page's to
+  say. `docs/ui-kit.md` records the rule and its two shape-bound exceptions.
+
 - **File storage reads `Rask:Storage`, like every other Rask area.** It was the one package still on a top-level
   `Storage` section (#1080). Its settings now bind from `Rask:Storage`, so the environment variables are
   `Rask__Storage__Provider`, `Rask__Storage__S3__Bucket` and so on. They bind through the same registration

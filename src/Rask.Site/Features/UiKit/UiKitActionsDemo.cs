@@ -58,14 +58,14 @@ public sealed partial class UiKitActionsDemo : Component
                 UiDropdown
                     .Key("controlled")
                     .Trigger(_menuOpen ? "Close menu" : "Open menu")
-                    .Placement(UiPlacement.Bottom)
+                    .Position(UiPosition.Bottom)
                     .Open(_menuOpen)
                     .OnToggle(open => { _menuOpen = open; })[
                     MenuAction("rename", "Rename"),
                     MenuAction("duplicate", "Duplicate"),
                     MenuAction("delete", "Delete")
                 ],
-                UiDropdown.Key("uncontrolled").Trigger("Uncontrolled").Placement(UiPlacement.End)[
+                UiDropdown.Key("uncontrolled").Trigger("Uncontrolled").Align(UiAlign.End)[
                     MenuAction("first", "Opens on focus"),
                     MenuAction("second", "Closes when focus leaves")
                 ]
@@ -96,7 +96,7 @@ public sealed partial class UiKitActionsDemo : Component
                 _confirming
                     ? UiModal
                         .Title("Delete order")
-                        .Close(() => { _confirming = false; })
+                        .OnClose(() => { _confirming = false; })
                         .Footer(Div.Class("flex flex-wrap gap-2 sm:justify-end")[
                             UiButton.Key("cancel").Variant(UiVariant.Ghost)
                                 .OnClick(() => { _confirming = false; })["Cancel"],

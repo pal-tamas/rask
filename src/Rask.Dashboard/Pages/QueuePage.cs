@@ -230,7 +230,7 @@ public sealed partial class QueuePage(
         // nothing to preserve between openings, so not rendering it at all is cheaper and simpler.
         return UiModal
             .Title(row.Type)
-            .Close(Close)
+            .OnClose(Close)
             .Footer([.. RowActionButtons(row, isDead), UiButton.Key("close").OnClick(Close)["Close"]])[
             UiDetailList[
                 UiDetailRow.Key("id").Label("ID").Value($"#{row.Id}").Mono(true),
@@ -396,7 +396,7 @@ public sealed partial class QueuePage(
             ? UiToast
                 .Message(message)
                 .Tone(message.StartsWith("Failed:", StringComparison.Ordinal) ? UiTone.Error : null)
-                .Dismiss(Dismiss)
+                .OnDismiss(Dismiss)
             : null;
 
     private void Cancel()

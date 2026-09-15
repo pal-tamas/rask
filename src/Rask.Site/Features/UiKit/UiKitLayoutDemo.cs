@@ -16,11 +16,11 @@ public sealed partial class UiKitLayoutDemo : Component
             + "written against it, so removing the input removes the component. C# sets it and hears "
             + "it change, which is what the checkbox alone could not offer.",
             Div.Data(Testid("ui-drawer")).Class("h-56 overflow-hidden rounded-xl border border-base-300")[
-                // Id and Side are both REQUIRED, so the chain owes them before any optional step:
-                // .Id(x).Open(y) does not compile until Side has been supplied.
+                // Id and Panel are both REQUIRED, so the chain owes them before any optional step:
+                // .Id(x).Open(y) does not compile until Panel has been supplied.
                 UiDrawer
                     .Id("demo-drawer")
-                    .Side(
+                    .Panel(
                         Ul.Class("menu min-h-full w-56 bg-base-200 p-4")[
                             Li.Key("a")[A.Href("#")["Overview"]],
                             Li.Key("b")[A.Href("#")["Queues"]],

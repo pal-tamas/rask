@@ -31,7 +31,17 @@ public sealed partial class UiDrawer : Component
     public required string Id { get; set; }
 
     /// <summary>The panel's contents. The page itself is this component's children.</summary>
-    public required Component Side { get; set; }
+    /// <remarks>
+    ///     Called <c>Side</c> once, which read like the side it opens from — the word <see cref="Position" />
+    ///     now owns across every floating part of the kit.
+    /// </remarks>
+    public required Component Panel { get; set; }
+
+    /// <summary>
+    ///     Which edge the panel slides in from: <see cref="UiPosition.Left" /> by default, or
+    ///     <see cref="UiPosition.Right" />. Top and bottom have no daisyUI form and draw the default.
+    /// </summary>
+    public UiPosition? Position { get; set; }
 
     /// <summary>Whether the panel is showing. Unset leaves the state to the checkbox alone.</summary>
     public bool? Open { get; set; }
@@ -54,7 +64,10 @@ public sealed partial class UiDrawer : Component
             toggle = toggle.OnChange(onToggle);
         }
 
-        return Div.Class(UiClass.Compose("drawer", Class))[
+        return Div.Class(UiClass.Compose(
+            "drawer",
+            Position is { } position ? UiClassNames.DrawerPosition(position) : "",
+            Class))[
             toggle,
             Div.Class("drawer-content")[Children ?? []],
             Div.Class("drawer-side")[
@@ -62,7 +75,7 @@ public sealed partial class UiDrawer : Component
                     .For(Id)
                     .Class("drawer-overlay")
                     .Aria(new Dictionary<string, string?> { ["label"] = CloseLabel ?? "Close" }),
-                Side
+                Panel
             ]
         ];
     }

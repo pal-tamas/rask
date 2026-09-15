@@ -245,8 +245,35 @@ Not every component honours every member — daisyUI defines no `input-outline`,
 — and **a member a component has no class for writes nothing**, rather than a class that would sit in
 the markup looking as though it styled something.
 
-Other axes follow the same rule: `UiPlacement`, `UiModalPlacement`, `UiMaskShape`, `UiLoadingShape`,
-`UiSwapAnimation`, `UiAuraStyle`, `UiTabStyle`, `UiMarker`, `UiOpenOn`.
+Other axes follow the same rule: `UiPosition`, `UiAlign`, `UiModalPosition`, `UiMaskShape`,
+`UiLoadingShape`, `UiSwapAnimation`, `UiAuraStyle`, `UiTabStyle`, `UiMarker`, `UiOpenOn`.
+
+### One vocabulary for placing things
+
+Everything that floats against something else is placed with the same two words, the ones Flux UI uses:
+**`Position`** picks the side (`UiPosition` — Top, Right, Bottom, Left) and **`Align`** slides it along that
+side (`UiAlign` — Start, Center, End, following the reading direction). They are two properties because
+daisyUI composes them — a menu above its trigger, flush with the trigger's end edge, is both.
+
+```csharp
+UiDropdown.Trigger("Actions").Position(UiPosition.Top).Align(UiAlign.End)[ … ]
+UiTooltip.Tip("Copy").Position(UiPosition.Right)[ … ]
+UiTabs.Position(UiPosition.Bottom)[ … ]
+UiDrawer.Id("nav").Panel(menu).Position(UiPosition.Right)[ … ]
+UiModal.Title("Details").Position(UiModalPosition.End)[ … ]   // placed against the viewport, not a trigger
+```
+
+Events are always `On…` — `UiModal.OnClose`, `UiToast.OnDismiss` — the same prefix every element event
+carries.
+
+### We style, you space
+
+A kit component brings its padding, its border and its colours, and **never an outer margin**. Where it
+sits — the gap above a row of tabs, the bleed of a scrolling strip to the screen edge — belongs to the
+page that places it, because the same component sits in a card, a toolbar and a page gutter, and a margin
+right for one is wrong for the other two. Two exceptions are part of a component's shape rather than its
+placement: `UiNavTab`'s `-mb-px`, which joins the active tab's border to its nav's hairline, and
+`UiToast`'s `mx-auto`, which centres a fixed overlay in the viewport.
 
 ## Components that are one element
 

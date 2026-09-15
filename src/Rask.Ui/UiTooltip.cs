@@ -11,8 +11,11 @@ public sealed partial class UiTooltip : Component
 {
     public required string Tip { get; set; }
 
-    /// <summary>Which side of the thing it points at. All seven are defined for a tooltip.</summary>
-    public UiPlacement? Placement { get; set; }
+    /// <summary>Which side of the thing it points at.</summary>
+    public UiPosition? Position { get; set; }
+
+    /// <summary>Where along that side it sits.</summary>
+    public UiAlign? Align { get; set; }
 
     /// <summary>Anything but <see cref="UiTone.Neutral" />, which daisyUI does not define for a tooltip.</summary>
     public UiTone? Tone { get; set; }
@@ -30,7 +33,8 @@ public sealed partial class UiTooltip : Component
         Div
             .Class(UiClass.Compose(
                 "tooltip",
-                Placement is { } placement ? UiClassNames.TooltipPlacement(placement) : "",
+                Position is { } position ? UiClassNames.TooltipPosition(position) : "",
+                Align is { } align ? UiClassNames.TooltipAlign(align) : "",
                 Tone is { } tone ? UiClassNames.TooltipTone(tone) : "",
                 Open == true ? "tooltip-open" : "",
                 Class))

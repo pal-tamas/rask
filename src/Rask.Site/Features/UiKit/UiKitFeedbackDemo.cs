@@ -58,13 +58,13 @@ public sealed partial class UiKitFeedbackDemo : Component
             "A hint and nothing more: it cannot be reached by touch and is easy to miss, so nothing "
             + "that matters should live only here. Open shows one without a hover.",
             Div.Data(Testid("ui-tooltip")).Class("flex flex-wrap items-center gap-8 pt-8")[
-                UiTooltip.Key("t").Tip("Above").Placement(UiPlacement.Top)[
+                UiTooltip.Key("t").Tip("Above").Position(UiPosition.Top)[
                     UiButton.Size(UiSize.Sm)["Top"]
                 ],
-                UiTooltip.Key("r").Tip("Beside").Placement(UiPlacement.Right).Tone(UiTone.Info)[
+                UiTooltip.Key("r").Tip("Beside").Position(UiPosition.Right).Tone(UiTone.Info)[
                     UiButton.Size(UiSize.Sm)["Right"]
                 ],
-                UiTooltip.Key("o").Tip("Always shown").Placement(UiPlacement.Top).Open(true)[
+                UiTooltip.Key("o").Tip("Always shown").Position(UiPosition.Top).Open(true)[
                     UiButton.Size(UiSize.Sm)["Open"]
                 ]
             ]),
@@ -95,7 +95,7 @@ public sealed partial class UiKitFeedbackDemo : Component
                         .Tone(message.Contains("failed", StringComparison.Ordinal)
                             ? UiTone.Error
                             : UiTone.Success)
-                        .Dismiss(() => { _toast = null; })
+                        .OnDismiss(() => { _toast = null; })
                     : null
             ])
     ];
