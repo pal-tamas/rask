@@ -85,21 +85,7 @@ public sealed class UiPaletteTests
         return result;
     }
 
-    private static string RepoRoot()
-    {
-        var dir = AppContext.BaseDirectory;
-        while (dir is not null)
-        {
-            if (File.Exists(Path.Combine(dir, "Rask.slnx")))
-            {
-                return dir;
-            }
-
-            dir = Path.GetDirectoryName(dir);
-        }
-
-        throw new InvalidOperationException("could not find the repository root.");
-    }
+    private static string RepoRoot() => RepoPaths.Root;
 
     [Fact]
     public void The_document_opts_into_the_kits_theme_scope()
