@@ -768,7 +768,11 @@ them until tagged releases begin.
   dev-error overlay onto the Errors tab. On WASM it serves the fixture's Debug publish (with the kit) from a static host
   on `localhost` and drives the panel the page writes into its own frame: the click and its answering frame on the
   Wire tab, the shortcut closing the drawer from inside the panel, a Tree row boxing its component and a pick that the
-  page never counts, and a failing handler on the pill and the Errors tab. It is its own gate, listed in `run-all-gates.sh`, because the devtools exist
+  page never counts, and a failing handler on the pill and the Errors tab. With real islands on a Server page — a
+  Lit-runtime island bundled by the build and a component from a Razor class library — it checks their Tree rows
+  badged `Lit` and `Blazor` with the props C# passed, an island that fails to mount counted on the pill before the
+  panel ever opened and listed as an island failure inside its component, and the Blazor component's own click reaching
+  its callback and the Wire tab. It is its own gate, listed in `run-all-gates.sh`, because the devtools exist
   only in a Debug build and `run-e2e-local.sh` builds Release; a Release build or a run without
   `DOTNET_MODIFIABLE_ASSEMBLIES=debug` fails naming the script. The browser gates' machine admission moved into
   `scripts/lib/e2e-admission.sh`, shared by both and printing under each gate's name, and the slot budget counts the

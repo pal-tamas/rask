@@ -44,6 +44,11 @@
     <ProjectReference Include="..\..\src\Rask.DevTools\Rask.DevTools.csproj"/>
     <!-- The panel is drawn with the app's own kit. -->
     <ProjectReference Include="..\..\src\Rask.Ui\Rask.Ui.csproj"/>
+    <!-- Real islands on the page the island journeys inspect: a Lit-runtime one (bundled by this build, which is why
+         package.json sits beside this file) and a component from a real Razor class library. -->
+    <ProjectReference Include="..\..\src\Rask.External\Rask.External.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Blazor\Rask.Blazor.csproj"/>
+    <ProjectReference Include="..\Rask.Blazor.Library.Fixture\Rask.Blazor.Library.Fixture.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
