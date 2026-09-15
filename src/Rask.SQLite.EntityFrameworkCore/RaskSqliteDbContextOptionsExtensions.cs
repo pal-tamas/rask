@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
@@ -98,6 +100,13 @@ public static class RaskSqliteDbContextOptionsExtensions
         {
             optionsBuilder.ReplaceService<IMigrationsSqlGenerator, RaskSqliteRangeExclusionSqlGenerator>();
         }
+
+        // Full-text search, inert unless an entity declares HasFullTextSearch. The annotation provider reports the
+        // declaration on its table so the migrations differ sees it change; EF resolves exactly one, and nothing else
+        // in Rask replaces it. The extension carries the query side, and EF keeps one per type, so a second
+        // UseRaskSqlite call does not register the rewrite twice.
+        optionsBuilder.ReplaceService<IRelationalAnnotationProvider, RaskSqliteAnnotationProvider>();
+        ((IDbContextOptionsBuilderInfrastructure)optionsBuilder).AddOrUpdateExtension(new FullTextSearchOptionsExtension());
 
         return optionsBuilder
             // Inert too: it only reacts to the error the range-exclusion triggers raise.

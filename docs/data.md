@@ -136,6 +136,7 @@ await Product.FindAsync(id);
 await Product.FirstOrDefaultAsync(p => p.Name == "Anvil");
 await Product.CountAsync(p => p.Active);
 await Product.AnyAsync();
+await Product.Search("red anvil").Take(20).ToListAsync();           // full-text, best match first
 await foreach (var p in Product.AsAsyncEnumerable()) { }
 ```
 
@@ -834,11 +835,20 @@ transaction and drained after it commits, which is exactly the durable-delivery 
 
 Most of what is left after the batching is the change tracker itself — materialising an entry per row,
 walking them on save, then throwing them away. `SkipChangeTracking` writes the rows straight to the provider
-instead, with one prepared `INSERT` whose parameters are rebound per row:
+instead:
 
 ```csharp
 await db.BulkInsertAsync(products, o => o.SkipChangeTracking = true);
 ```
+
+The shape it writes in depends on what a statement costs. **On SQLite** it is one prepared `INSERT` whose
+parameters are rebound per row: a local file has no round trip, and a statement packed with many rows is quadratic
+to bind there. **On PostgreSQL, SQL Server and MySQL** every statement is a round trip, so it packs up to 1,000 rows
+into each `INSERT … VALUES (…), (…)` — fewer on SQL Server, whose request carries at most 2,100 parameters. Against
+PostgreSQL 17 with 1 ms of added latency, 10,000 rows took 136 ms and allocated 11.6 MB that way, against 225 ms
+and 99 MB through the change tracker and 20.1 s one row at a time (`PostgresBulkInsertBenchmarks`, run with
+`scripts/run-bulk-insert-benchmarks-local.sh`). Another provider gets the per-row shape, which is correct
+everywhere and slow wherever there is a network.
 
 It is opt-in because of what it skips: **no `ISaveChangesInterceptor` runs** — not Rask.Data's, and not any
 you registered. The writer stamps `CreatedAt`/`UpdatedAt` itself (from the same `TimeProvider` the auditing
@@ -920,6 +930,36 @@ provider — including a plain `UseSqlite` — the rule would be silently ignore
 until an entity declares a rule, and the rule composes with
 [`Rask:Sqlite:StrictTables`](sqlite.md#strict-tables--making-the-store-enforce-your-types) — a table can be both
 `STRICT` and range-constrained. See [Rask.SQLite](sqlite.md).
+
+## Full-text search
+
+A search box over your models wants ranked, word-aware matching, not `Contains` — which is a
+`LIKE '%…%'` scan that cannot rank and misses `kérés` for `keres`. Declare which text is searchable, and
+the migration creates a real full-text index:
+
+```csharp
+modelBuilder.Entity<Product>().HasFullTextSearch(p => new { p.Name, p.Description });
+```
+
+Then search from the model type, a context, or a grid:
+
+```csharp
+await Product.Search(query).Where(p => p.Active).Take(20).ToListAsync();
+await db.Set<Product>().Search(query).CountAsync();
+UiDataGrid.Data(Product.Search(query).AsQueryable())
+```
+
+`Search(text)` keeps every row containing all of the typed words — any order, any case, diacritics
+ignored, the last word as a prefix — **best match first**, and keeps composing; a later `OrderBy`
+replaces the rank order. The text is always words, never query syntax, so nothing a user types can break
+the query. Blank text filters nothing. `FullText.Highlight(p.Name)` and `FullText.Snippet(p.Description)`
+inside a `Select` return the matched terms marked, rendered safely by `UiHighlight.Text(...)`.
+
+The index lives in the database and triggers keep it current, so raw SQL and other processes are searchable
+too. Adding the declaration to an existing table is its own migration, which fills the index from the rows
+already there. Requires `UseRaskSqlite(...)`; on any other provider `AddRaskData<TContext>` **refuses to
+boot** rather than letting the first search fail. How it works, the tokenizers and the costs are in
+[Rask.SQLite — Full-text search](sqlite.md#full-text-search--fts5-through-ef-core).
 
 ## Choosing the database
 
@@ -1003,13 +1043,8 @@ to its `ignore_startup_parameters`, or set the timeouts to `TimeSpan.Zero` and c
 
 Everything in this guide works unchanged: the interceptors, the ambient `Db`, bulk insert (which spells its
 SQL through the provider), and the jobs, mail, outbox and cache batteries, whose leased claim is proven
-against a real server. Three things change:
+against a real server. Two things change:
 
-- **The bulk-insert fast path pays one round trip per row.** `SkipChangeTracking` rebinds one prepared
-  single-row `INSERT` per row — the winning shape on a local file. Against a server each row is a network
-  round trip, so its cost grows with the latency to the database: 10,000 rows took about a second against a
-  PostgreSQL container on the same machine, and a remote server multiplies that by its round-trip time.
-  Measure it against the batched default before choosing it for a remote database.
 - **Retrying refuses a transaction you open yourself** outside the execution strategy. Wrap a hand-written
   `BeginTransaction` in `context.Database.CreateExecutionStrategy().ExecuteAsync(...)`, or set
   `Rask:Postgres:Retry:Enabled` to `false`.

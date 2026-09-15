@@ -10,6 +10,16 @@ public sealed class Order
     public string Group { get; set; } = "";
 
     public int Select { get; set; }
+
+    // #1063: columns whose EF mapping carries no DbType, so a parameter says what it is only through its value —
+    // and a nullable one whose first value is null says nothing at all.
+    public decimal Total { get; set; }
+
+    public bool Paid { get; set; }
+
+    public DateTime PlacedAt { get; set; }
+
+    public string? Note { get; set; }
 }
 
 public sealed class BulkDbContext(DbContextOptions<BulkDbContext> options) : DbContext(options)
@@ -59,7 +69,16 @@ public sealed class PostgresBulkInsertTests : IAsyncLifetime
         Skip.IfNot(Postgres.Available, Postgres.SkipReason);
 
         var orders = Enumerable.Range(0, 10_000)
-            .Select(i => new Order { Id = Guid.NewGuid(), Group = $"g{i % 7}", Select = i })
+            .Select(i => new Order
+            {
+                Id = Guid.NewGuid(),
+                Group = $"g{i % 7}",
+                Select = i,
+                Total = i + 0.25m,
+                Paid = i % 2 == 0,
+                PlacedAt = DateTime.UtcNow,
+                Note = i % 3 == 0 ? null : $"note {i}",
+            })
             .ToList();
 
         await using (var db = NewContext())
@@ -76,6 +95,8 @@ public sealed class PostgresBulkInsertTests : IAsyncLifetime
         await using var verify = NewContext();
         Assert.Equal(10_000, await verify.Orders.CountAsync());
         Assert.Equal(orders.Sum(o => (long)o.Select), await verify.Orders.SumAsync(o => (long)o.Select));
+        Assert.Equal(orders.Sum(o => o.Total), await verify.Orders.SumAsync(o => o.Total));
+        Assert.Equal(orders.Count(o => o.Note is null), await verify.Orders.CountAsync(o => o.Note == null));
     }
 
     private static BulkDbContext NewContext() =>

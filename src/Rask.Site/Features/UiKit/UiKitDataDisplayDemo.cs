@@ -134,6 +134,10 @@ public sealed partial class UiKitDataDisplayDemo : Component
             Div.Data(Testid("ui-display-rest")).Class("flex flex-wrap items-center gap-3")[
                 UiBadge.Key("badge").Tone(UiTone.Info)["Beta"],
                 UiKbd.Key("kbd").Text("⌘K").Size(UiSize.Sm),
+                // What FullText.Snippet returns for a search of "sqlite fast": matches between U+E000 and U+E001.
+                Span.Key("highlight").Data(Testid("ui-highlight"))[
+                    UiHighlight.Text("…SQLite is small, and fast…")
+                ],
                 UiStatusDot.Key("status").Label("Healthy").Tone(UiTone.Success),
                 UiCountdown.Key("countdown").Value(42).Label("seconds left"),
                 UiChatBubble.Key("chat").Message("On my way").Author("Ada").When("09:14")
