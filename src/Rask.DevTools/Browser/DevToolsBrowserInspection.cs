@@ -16,6 +16,8 @@ internal sealed class DevToolsBrowserInspection(DevToolsFeeds feeds) : IDevTools
 
     public DevToolsErrorLog AppWide => feeds.AppWide;
 
+    public string HostName => "WASM";
+
     // The frame client the panel frame runs already carries the panel script.
     public string? PanelScriptUrl => null;
 }

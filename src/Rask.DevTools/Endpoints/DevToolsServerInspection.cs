@@ -18,6 +18,8 @@ internal sealed class DevToolsServerInspection(
 {
     public DevToolsErrorLog AppWide => feeds.AppWide;
 
+    public string HostName => "Server";
+
     public DevToolsFeed? Open(string? sessionId, string? token) =>
         endpoints.FindInspected(store, sessionId, token) is { } inspected
         && RaskEndpointExtensions.SameSessionUser(

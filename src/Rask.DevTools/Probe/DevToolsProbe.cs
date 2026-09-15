@@ -202,7 +202,7 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
             t_unwindingEntry = log.Record(
                 DevToolsErrorKind.Render, isWarning: false, title, message, exception.ToString(),
                 DevToolsNames.Of(component.GetType()), _snapshots.IdOf(component), caught: false, appWide,
-                DateTimeOffset.Now);
+                DateTimeOffset.Now, Verdict(exception, component));
         }
 
         return false;
@@ -227,7 +227,7 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
         log.Record(
             DevToolsErrorKind.Diagnostic, diagnostic.Level == RaskLogLevel.Warning, diagnostic.Category, message,
             diagnostic.Exception?.ToString(), component: null, componentId: null, caught: false, appWide,
-            DateTimeOffset.Now);
+            DateTimeOffset.Now, diagnostic.Exception is { } reported ? Verdict(reported, null) : null);
     }
 
     private void RecordFault(Component component, Exception exception, DevToolsErrorKind kind, bool caught)
@@ -240,7 +240,7 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
         var (title, message) = Describe(exception);
         var entry = log.Record(
             kind, isWarning: false, title, message, exception.ToString(), DevToolsNames.Of(component.GetType()),
-            _snapshots.IdOf(component), caught, appWide, DateTimeOffset.Now);
+            _snapshots.IdOf(component), caught, appWide, DateTimeOffset.Now, Verdict(exception, component));
 
         // The components around it, from the page's last render: a handler or a hook is not inside a walk to unwind.
         if (!appWide && s_dispatching.Value is { } feed && !ReferenceEquals(feed, PanelDispatch))
@@ -282,13 +282,38 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
     // The exception a developer means: the one inside the reflection and task wrappers the runtime adds around it.
     internal static (string Title, string Message) Describe(Exception exception)
     {
+        var inner = Unwrap(exception);
+        return (inner.GetType().Name, inner.Message);
+    }
+
+    private static Exception Unwrap(Exception exception)
+    {
         var inner = exception;
         while (inner is System.Reflection.TargetInvocationException or AggregateException && inner.InnerException is { } next)
         {
             inner = next;
         }
 
-        return (inner.GetType().Name, inner.Message);
+        return inner;
+    }
+
+    // The app's namespaces, as far as they can be known here: the entry assembly's name, and the failing component's own.
+    private static readonly string? EntryName = System.Reflection.Assembly.GetEntryAssembly()?.GetName().Name;
+
+    private static DevToolsStackVerdict Verdict(Exception exception, Component? component)
+    {
+        var app = new List<string>(2);
+        if (EntryName is { } entry)
+        {
+            app.Add(entry);
+        }
+
+        if (component?.GetType().Namespace is { } own)
+        {
+            app.Add(own);
+        }
+
+        return DevToolsBugReport.FromDotNet(Unwrap(exception).StackTrace, app);
     }
 
     /// <summary>Marks the flow a panel's own event runs on, so nothing its handlers do is recorded as the app's.</summary>

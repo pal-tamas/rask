@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Rask.Core;
 using Rask.Core.Routing;
 using Rask.Ui;
@@ -58,6 +59,9 @@ internal sealed partial class DevToolsOverviewPage(RouteState route, IDevToolsIn
             DevToolsTabIds.Errors => DevToolsErrorsTab.Key(session + "-errors")
                 .PageErrors(feed.Errors)
                 .AppErrors(inspection.AppWide)
+                .ReportEnvironment(new Probe.DevToolsBugReport.Environment(
+                    inspection.HostName, RaskVersion.Current, RuntimeInformation.FrameworkDescription,
+                    RuntimeInformation.OSDescription, feed.Browser))
                 .OnShowInTree(id =>
                 {
                     _reveal = id;

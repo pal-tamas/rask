@@ -27,6 +27,10 @@ internal sealed partial class DevToolsErrorsTab : Component
     private DevToolsRefreshGate? _gate;
     private string _filter = All;
 
+    // The report open for editing, by row key, and what the developer has made of each draft so far.
+    private string? _reporting;
+    private readonly Dictionary<string, (string Title, string Body)> _drafts = [];
+
     /// <summary>The inspected page's errors.</summary>
     public required DevToolsErrorLog PageErrors { get; set; }
 
@@ -35,6 +39,9 @@ internal sealed partial class DevToolsErrorsTab : Component
 
     /// <summary>Raised with a component's tree id when the developer asks to see it in the Tree tab.</summary>
     public Callback<long>? OnShowInTree { get; set; }
+
+    /// <summary>What a framework bug report says about where the app runs; without it, no error offers one.</summary>
+    public DevToolsBugReport.Environment? ReportEnvironment { get; set; }
 
     // The filter is a field, which the render cache cannot see.
     /// <inheritdoc />
@@ -128,8 +135,11 @@ internal sealed partial class DevToolsErrorsTab : Component
         return merged;
     }
 
+    private static string RowKey(DevToolsError error) =>
+        (error.AppWide ? "app-" : "page-") + error.Sequence.ToString(CultureInfo.InvariantCulture);
+
     private Component Row(DevToolsError error) =>
-        UiCard.Key((error.AppWide ? "app-" : "page-") + error.Sequence.ToString(CultureInfo.InvariantCulture))
+        UiCard.Key(RowKey(error))
             .Class("card-border card-sm")[
                 Div.Class("card-body gap-1")[
                     Div.Class("flex flex-wrap items-center gap-2")[
@@ -151,9 +161,48 @@ internal sealed partial class DevToolsErrorsTab : Component
                         ],
                     error.Detail is { } detail
                         ? UiCollapse.Title("Stack")[Pre.Class("text-xs whitespace-pre-wrap break-all")[detail]]
+                        : null,
+                    error.LikelyFrameworkBug && ReportEnvironment is { } environment
+                        ? Report(error, environment)
                         : null
                 ]
             ];
+
+    // An error whose stack points at Rask: a button, and once pressed, the report to review before GitHub sees any of it.
+    private Component Report(DevToolsError error, DevToolsBugReport.Environment environment)
+    {
+        var key = RowKey(error);
+        if (_reporting != key)
+        {
+            return Div.Class("flex flex-wrap items-center gap-2 text-xs")[
+                Span.Class("opacity-60")["This looks like a bug in Rask itself."],
+                UiButton.Size(UiSize.Xs).OnClick(() => _reporting = key)["Report framework bug"]
+            ];
+        }
+
+        if (!_drafts.TryGetValue(key, out var draft))
+        {
+            draft = DevToolsBugReport.Draft(error, environment);
+            _drafts[key] = draft;
+        }
+
+        return Div.Class("flex flex-col gap-2")[
+            P.Class("text-xs opacity-60")[
+                "Check what it says and add what you can. Nothing leaves this machine until you submit the issue on GitHub; "
+                + "the exception's message, props, data and file paths are not in it."
+            ],
+            UiInput.Value(draft.Title).Label("Title").OnInput(v => _drafts[key] = (v, _drafts[key].Body)),
+            UiTextarea.Value(draft.Body).Label("Issue").Rows(12).Class("font-mono text-xs")
+                .OnInput(v => _drafts[key] = (_drafts[key].Title, v)),
+            Div.Class("flex flex-wrap items-center gap-2")[
+                A.Class("btn btn-primary btn-sm")
+                    .Href(DevToolsBugReport.IssueUrl(draft.Title, draft.Body))
+                    .Target("_blank")
+                    .Rel("noopener noreferrer")["Open the issue on GitHub"],
+                UiButton.Size(UiSize.Sm).OnClick(() => _reporting = null)["Cancel"]
+            ]
+        ];
+    }
 
     internal static string KindLabel(DevToolsError error) => error.Kind switch
     {
