@@ -2064,9 +2064,10 @@ private Product() { }                            // ✓ for EF Core and the gene
 public Product(string name) => Name = name;
 ```
 
-Everything that works on a row that already exists is still generated — `ProductModel`,
-`Product.UpdateAsync(id, model)`, `Product.UpdateAsync(id, p => …)` and `Product.DeleteAsync(id)` — so the rest
-of the form flow keeps working. An entity built by its own constructor is inserted with
+That covers every generated create — `Product.CreateAsync(model)` and `Product.CreateAsync(p => …)` alike, since
+both start from a new, empty entity. Everything that works on a row that already exists is still generated —
+`ProductModel`, `Product.UpdateAsync(id, model)`, `Product.UpdateAsync(id, p => …)` and `Product.DeleteAsync(id)`
+— so the rest of the form flow keeps working. An entity built by its own constructor is inserted with
 `Product.CreateAsync(new Product("Anvil"))`; mark it `[SkipModel]` if it should have no form model at all.
 
 This rule was RASK081 before the generated writes were dropped and brought back; a retired id is never

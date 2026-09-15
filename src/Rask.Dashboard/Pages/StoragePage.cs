@@ -93,15 +93,15 @@ public sealed partial class StoragePage(
         ];
     }
 
-    // The one state in which nothing backs the files up, which an operator should not have to go and read
-    // the docs to find out.
+    // The one state in which only a manual backup covers the files, which an operator should not have to go and
+    // read the docs to find out.
     private Component? DiskNotice() =>
         _stats.ActiveProvider == StorageProvider.Disk || _stats.ByProvider.Any(p => p.Provider == StorageProvider.Disk)
             ? UiAlert.Tone(UiTone.Warning)[
                 UiIcon.Name(UiIconName.Warning),
                 Span[
-                    "Files on disk are not covered by rask db backup, Litestream or snapshots, and live on this host "
-                    + "only. Use S3 or Azure for uploads you can't afford to lose."
+                    "Files on disk live on this host only. rask db backup archives them beside the database, but "
+                    + "Litestream and snapshots copy the database alone. Use S3 or Azure for uploads you can't afford to lose."
                 ]
             ]
             : null;

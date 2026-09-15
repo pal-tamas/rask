@@ -29,6 +29,8 @@ public sealed class Invoice : Model<Guid>, ITimestamped, IVersioned
     public static Invoice Draft(string title) => new() { Id = Guid.CreateVersion7(), Title = title };
 
     public void Viewed() => Views++;
+
+    public void Retitle(string title) => Title = title;
 }
 
 public sealed record InvoiceTotal(decimal Amount, string Currency) : IValueObject;
@@ -185,6 +187,41 @@ public sealed class GeneratedInputModelTests : IDisposable
         });
 
         Assert.Equal(1, (await Invoice.FindAsync(created.Id))!.Views);
+    }
+
+    [Fact]
+    public async Task CreateAsync_without_a_form_builds_the_row_the_lambda_describes_the_way_UpdateAsync_does()
+    {
+        await using var database = await StartDatabaseAsync();
+
+        var created = await Invoice.CreateAsync(invoice =>
+        {
+            invoice.Retitle("Walk-in");
+            invoice.Viewed();
+        });
+
+        Assert.Equal(7, created.Id.Version);
+        var stored = (await Invoice.FindAsync(created.Id))!;
+        Assert.Equal("Walk-in", stored.Title);
+        Assert.Equal(1, stored.Views);
+        Assert.Equal(Start.UtcDateTime, stored.CreatedAt);
+
+        // The same shape, one write later.
+        await Invoice.UpdateAsync(created.Id, invoice => invoice.Retitle("Walk-in, paid"));
+        Assert.Equal("Walk-in, paid", (await Invoice.FindAsync(created.Id))!.Title);
+    }
+
+    [Fact]
+    public async Task CreateAsync_without_a_form_joins_a_given_context_and_takes_a_given_id()
+    {
+        await using var database = await StartDatabaseAsync();
+        var id = Guid.NewGuid();
+
+        var created = await Invoice.CreateAsync(id, invoice => invoice.Retitle("Keyed"), db: database.Context);
+
+        Assert.Equal(id, created.Id);
+        Assert.Equal(EntityState.Unchanged, database.Context.Entry(created).State);
+        Assert.Equal("Keyed", (await Invoice.FindAsync(id))!.Title);
     }
 
     [Fact]

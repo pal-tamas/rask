@@ -95,7 +95,7 @@ public sealed class StoragePageTests
 
         Assert.Contains("report &lt;img", html, StringComparison.Ordinal);
         Assert.DoesNotContain("<img src=x", html, StringComparison.Ordinal);
-        Assert.Contains("not covered by rask db backup", html, StringComparison.Ordinal);
+        Assert.Contains("Files on disk live on this host only", html, StringComparison.Ordinal);
     }
 
     [Fact]

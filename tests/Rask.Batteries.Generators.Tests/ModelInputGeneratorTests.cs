@@ -68,6 +68,15 @@ public class ModelInputGeneratorTests
 
         Assert.Contains("CreateAsync(global::Shop.ProductModel model, ", source, StringComparison.Ordinal);
         Assert.Contains("CreateAsync(global::System.Guid id, global::Shop.ProductModel model, ", source, StringComparison.Ordinal);
+        // The creates mirror the updates: a lambda-only form beside each model form.
+        Assert.Contains(
+            "CreateAsync(global::System.Action<global::Shop.Product> apply, global::Microsoft.EntityFrameworkCore.DbContext? db = null, ",
+            source,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "CreateAsync(global::System.Guid id, global::System.Action<global::Shop.Product> apply, global::Microsoft.EntityFrameworkCore.DbContext? db = null, ",
+            source,
+            StringComparison.Ordinal);
         Assert.Contains("UpdateAsync(global::System.Guid id, global::Shop.ProductModel model, ", source, StringComparison.Ordinal);
         Assert.Contains("DeleteAsync(global::System.Guid id, int? version = null, ", source, StringComparison.Ordinal);
         Assert.DoesNotContain("ToModel", source, StringComparison.Ordinal);

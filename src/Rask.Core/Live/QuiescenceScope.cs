@@ -20,16 +20,15 @@ namespace Rask.Core.Live;
 ///         it.
 ///     </para>
 ///     <para>
-///         Lookup mirrors <c>LiveRenderContext</c>: a <c>ThreadStatic</c> for the synchronous walk,
-///         which is the hot path, falling back to an <c>AsyncLocal</c> for continuations that have
-///         already hopped threads.
+///         Lookup is the <c>AsyncLocal</c> alone. A <c>ThreadStatic</c> beside it outlived the pass that
+///         set it: <c>QuiescentRender.RunAsync</c> begins on a pool thread and awaits, so the thread
+///         kept a LIVE render's scope, and a scope-less render landing there next tracked its hooks into
+///         that stranger until the stranger hit its wave cap (#1108).
 ///     </para>
 /// </remarks>
 internal sealed class QuiescenceScope : IDisposable
 {
     private static readonly AsyncLocal<QuiescenceScope?> _asyncCurrent = new();
-
-    [ThreadStatic] private static QuiescenceScope? _syncCurrent;
 
     private readonly List<(Task Wrapped, Component? Owner)> _pending = new();
 
@@ -42,71 +41,25 @@ internal sealed class QuiescenceScope : IDisposable
     /// <summary>The scope collecting work for the render currently running, if any.</summary>
     /// <remarks>
     ///     <para>
-    ///         <b>The flow wins over the thread.</b> The <c>AsyncLocal</c> belongs to the render that is
-    ///         actually running here; the <c>ThreadStatic</c> is a fallback for code that crossed an
-    ///         <see cref="ExecutionContext.SuppressFlow" /> boundary. Consulting the thread first means a
-    ///         pool thread still carrying a DIFFERENT, live render's scope shadows this one — and the
-    ///         work this render started is then tracked against a stranger, while this render's own loop
-    ///         sees nothing pending and serves a placeholder for data it never waited for. It answers
-    ///         200 while doing it, so nothing anywhere reports a fault.
-    ///     </para>
-    ///     <para>
-    ///         Nothing needs the thread to win. The one path that loses the <c>AsyncLocal</c> —
-    ///         <c>LifecycleSyncContext</c>'s suppressed <c>Task.Run</c> — restores the captured scope
-    ///         with <see cref="Enter" />, which sets both slots, so the flow lookup finds it there too.
+    ///         <b>Only the flow answers.</b> The <c>AsyncLocal</c> belongs to the render that is actually
+    ///         running here. A thread slot cannot: after an <c>await</c> the thread goes back to the pool
+    ///         still holding whatever pass began on it, and the next render there — its own or a
+    ///         stranger's — would read that. The one path that loses the <c>AsyncLocal</c>,
+    ///         <c>LifecycleSyncContext</c>'s suppressed <c>Task.Run</c>, restores the captured scope with
+    ///         <see cref="Enter" />.
     ///     </para>
     ///     <para>
     ///         <b>Ask this only from the render walk.</b> Every caller is on it, and that is the whole
     ///         reason the answer is trustworthy: the walk runs inside the pass's own flow. A CONTINUATION
     ///         cannot ask — a <c>SynchronizationContext.Post</c> runs before the runtime restores the
     ///         awaiter's captured <c>ExecutionContext</c> (that happens around the continuation itself),
-    ///         so a lookup there reads whichever thread finished the awaited task and answers null, or a
-    ///         stranger, at random. Work started off the walk must be handed a scope captured on it —
-    ///         see <c>LifecycleSyncContext</c>'s field. This cost #932 twice.
+    ///         so a lookup there answers null, or a stranger, at random. Work started off the walk must
+    ///         be handed a scope captured on it — see <c>LifecycleSyncContext</c>'s field. This cost #932
+    ///         twice.
     ///     </para>
-    ///     <para>
-    ///         A disposed scope is never current either, and reading past one clears it.
-    ///         <see cref="Dispose" /> can only clear the thread-static slot on the thread it happens to
-    ///         run on, and after an <c>await</c> that is routinely not the thread <see cref="Begin" />
-    ///         ran on — so a finished pass would otherwise stay visible to whatever renders on that pool
-    ///         thread next.
-    ///     </para>
+    ///     <para>A disposed scope is never current, even while a flow still carries it.</para>
     /// </remarks>
-    internal static QuiescenceScope? Current
-    {
-        get
-        {
-            var resolved = Resolve(_asyncCurrent.Value, _syncCurrent);
-
-            // Reading past a dead thread slot clears it, so the leak heals on first contact rather
-            // than persisting for the life of the thread.
-            if (_syncCurrent is { _disposed: true })
-            {
-                _syncCurrent = null;
-            }
-
-            return resolved;
-        }
-    }
-
-    /// <summary>
-    ///     Which of the two slots a lookup should use, given what each holds.
-    /// </summary>
-    /// <remarks>
-    ///     Named so the rule can be asserted directly. The situation it exists for — this thread holding
-    ///     another render's LIVE scope while the flow carries our own — needs two renders interleaved on
-    ///     one pool thread, which is not something a test can arrange deterministically. The rule is the
-    ///     fix, so the rule is what is pinned.
-    /// </remarks>
-    internal static QuiescenceScope? Resolve(QuiescenceScope? flow, QuiescenceScope? thread)
-    {
-        if (flow is { _disposed: false })
-        {
-            return flow;
-        }
-
-        return thread is { _disposed: false } ? thread : null;
-    }
+    internal static QuiescenceScope? Current => _asyncCurrent.Value is { _disposed: false } scope ? scope : null;
 
     /// <summary>
     ///     Whether any wave gave up before its work settled — the page is being served incomplete.
@@ -126,11 +79,6 @@ internal sealed class QuiescenceScope : IDisposable
             _pending.Clear();
         }
 
-        if (ReferenceEquals(_syncCurrent, this))
-        {
-            _syncCurrent = null;
-        }
-
         if (ReferenceEquals(_asyncCurrent.Value, this))
         {
             _asyncCurrent.Value = null;
@@ -141,13 +89,12 @@ internal sealed class QuiescenceScope : IDisposable
     internal static QuiescenceScope Begin()
     {
         var scope = new QuiescenceScope();
-        _syncCurrent = scope;
         _asyncCurrent.Value = scope;
         return scope;
     }
 
     /// <summary>
-    ///     Re-establish <paramref name="captured" /> on the current thread, for code that has
+    ///     Re-establish <paramref name="captured" /> as current, for code that has
     ///     crossed an <see cref="ExecutionContext.SuppressFlow" /> boundary and so lost the
     ///     <c>AsyncLocal</c>.
     /// </summary>
@@ -252,34 +199,19 @@ internal sealed class QuiescenceScope : IDisposable
     /// <summary>Record that a wave gave up waiting. See <see cref="TimedOut" />.</summary>
     internal void MarkTimedOut() => TimedOut = true;
 
-    /// <summary>
-    ///     Clear the thread-static slot. xUnit reuses pool threads and a <c>ThreadStatic</c>
-    ///     outlives an <c>await</c>, so a scope left behind by one test would be found by the next
-    ///     — the same reason <c>LiveRenderContext</c> carries this hook.
-    /// </summary>
-    internal static void ResetSyncForTests()
-    {
-        _syncCurrent = null;
-        _asyncCurrent.Value = null;
-    }
+    /// <summary>Clear the current scope, so a test starts from a flow that carries none.</summary>
+    internal static void ResetSyncForTests() => _asyncCurrent.Value = null;
 
     private sealed class Restore : IDisposable
     {
-        private readonly QuiescenceScope? _previousAsync;
-        private readonly QuiescenceScope? _previousSync;
+        private readonly QuiescenceScope? _previous;
 
         internal Restore(QuiescenceScope? scope)
         {
-            _previousSync = _syncCurrent;
-            _previousAsync = _asyncCurrent.Value;
-            _syncCurrent = scope;
+            _previous = _asyncCurrent.Value;
             _asyncCurrent.Value = scope;
         }
 
-        public void Dispose()
-        {
-            _syncCurrent = _previousSync;
-            _asyncCurrent.Value = _previousAsync;
-        }
+        public void Dispose() => _asyncCurrent.Value = _previous;
     }
 }

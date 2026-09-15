@@ -9,10 +9,24 @@ them until tagged releases begin.
 
 ### Added
 
+- **`rask db backup` takes uploaded files with the database, and `restore` puts both back (#1077).** An app on
+  Rask.Storage's disk provider kept its `StoredFile` rows in `app.db` and its bytes in the disk root, and a backup
+  copied only the first, so a restored database pointed at files that were gone.
+  - **The archive:** the disk root is written as `shop-….files.tgz` beside `shop-….db`, locally (from
+    `Rask:Storage:Disk:Root`, else `storage/`) and with `--remote` (from `/data/files`, in the same throwaway
+    container as the `VACUUM INTO`). It is taken after the database copy, so every row in the copy has its bytes.
+    The save spool is left out.
+  - **The restore:** it finds the archive beside the file you name, and unpacks it into a staging directory
+    before it touches the database. A corrupt archive stops the restore with nothing replaced. Remotely, both are
+    replaced while the app is stopped. With no archive beside the file, the files are left as they are.
+  - **Rows without bytes are reported.** `rask db restore` names disk rows whose file is missing. The storage
+    sweep now logs a warning with their count and the first few ids, which is what a database restored by
+    Litestream or a snapshot (neither of which copies files) looks like. It never deletes the rows.
 - **Create, update and delete live on the model type again.** Beside the reads, every `Rask.Data` model gets
-  `Product.CreateAsync(model)`, `Product.CreateAsync(id, model)`, `Product.UpdateAsync(id, model)`,
-  `Product.UpdateAsync(id, p => …)` and `Product.DeleteAsync(id)`, and `Product.CreateAsync(entity)` inserts
-  one built by its own factory. The generated `ProductModel` is the mass-assignment whitelist — `[SkipModel]`
+  creates that read like their updates — `Product.CreateAsync(model)` / `Product.UpdateAsync(id, model)` and
+  `Product.CreateAsync(p => …)` / `Product.UpdateAsync(id, p => …)` (with `CreateAsync(id, …)` for a key only
+  the caller can give) — plus `Product.DeleteAsync(id)`, and `Product.CreateAsync(entity)` inserts one built by
+  its own factory. The generated `ProductModel` is the mass-assignment whitelist — `[SkipModel]`
   keeps a property out of reach of any form — and the id is always the caller's, never the form's.
   - **Values the form does not carry** go in an optional `p => …` that runs after the model's values:
     `Product.CreateAsync(model, p => p.AssignTo(user.Id))`.
@@ -1175,6 +1189,13 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A server render no longer waits on another render's work.** The scope that collects a first render's
+  async lifecycle work was also kept in a thread-static slot. `QuiescentRender` begins on a pool thread and
+  then awaits, so that thread went back to the pool still pointing at a render that was waiting. The next
+  render with no scope of its own that landed there tracked its `OnMountAsync` work into the stranger, whose
+  wave loop kept finding new work until it hit the 16-wave cap and served its page early, marked timed out
+  (#1108, seen as `PageMetaTests` "did not settle" under load). The scope is now found through the async flow
+  only.
 - **Two signed-in users with no identifier no longer count as the same user.** The session ownership check behind a
   reconnect, an upload and a download compares users by `NameIdentifier`, or `Name` when there is no
   identifier. When two signed-in principals carried neither, it compared nothing with nothing and matched, so

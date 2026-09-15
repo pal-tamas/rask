@@ -130,8 +130,8 @@ product.SetPhoto(saved.Id);
 Img.Src(files.Url(saved.Id)).Alt(product.Name)                       // no I/O — safe inside Render
 ```
 
-Files on the default disk provider aren't covered by `rask db backup` or Litestream; use S3 or Azure for
-uploads you can't afford to lose.
+Files on the default disk provider are archived by `rask db backup` beside the database, but not by Litestream
+or snapshots; use S3 or Azure for uploads you can't afford to lose.
 
 → Reference: [file storage](file-storage.md) · The picker: [HTTP & files](http-and-files.md#uploading-files)
 

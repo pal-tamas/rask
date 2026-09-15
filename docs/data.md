@@ -57,7 +57,10 @@ And to write it — from a form, from code, or inside a transaction you already 
 ```csharp
 var product = await Product.CreateAsync(model);                        // ProductModel from a form
 await Product.UpdateAsync(product.Id, edit);                           // stale Version throws
-await Product.UpdateAsync(product.Id, p => p.Reprice(12.50m));         // no form at all
+
+var other = await Product.CreateAsync(p => p.Reprice(9.90m));          // no form at all …
+await Product.UpdateAsync(other.Id, p => p.Reprice(12.50m));           // … and the same shape to change it
+
 await Product.DeleteAsync(product.Id);
 ```
 
@@ -213,16 +216,25 @@ Product.AsQueryable().Include(p => p.Reviews);        // ✗ compiles, loads no 
 
 ## Writing: create, update, delete
 
-The writes live on the type, beside the reads:
+The writes live on the type, beside the reads, and a create reads like the update it pairs with — the update just
+names the row first:
 
-| Call | What it does |
-| --- | --- |
-| `Product.CreateAsync(model)` | Builds a `Product` from the generated `ProductModel` and inserts it. The key is a new version-7 `Guid` (or the store's identity for an integer key). |
-| `Product.CreateAsync(id, model)` | The same, under a key you give — the only create for a key nothing can produce, such as a strongly-typed id over a `string`. Not generated for an integer key the database produces: an explicit identity value fails on SQL Server and leaves PostgreSQL's sequence behind. |
-| `Product.CreateAsync(entity)` | Inserts an entity you built with its own factory — `Product.CreateAsync(Product.Create("Anvil", 30m))`. |
-| `Product.UpdateAsync(id, model)` | Loads the row, writes the model onto it, saves **only the columns that changed**. |
-| `Product.UpdateAsync(id, p => …)` | Loads the row, runs your change, saves — an update with no form behind it. |
-| `Product.DeleteAsync(id)` | Loads the row and deletes it — a `DeletedAt` stamp for an `ISoftDeletable`. |
+| Create | Update | From |
+| --- | --- | --- |
+| `Product.CreateAsync(model)` | `Product.UpdateAsync(id, model)` | a form: the generated `ProductModel` |
+| `Product.CreateAsync(model, p => …)` | `Product.UpdateAsync(id, model, p => …)` | a form, plus values it does not carry |
+| `Product.CreateAsync(p => …)` | `Product.UpdateAsync(id, p => …)` | code, with no form behind it |
+
+- **A create** builds a `Product` from its parameterless constructor, applies the model and then the lambda, and
+  inserts it. The key is a new version-7 `Guid` (or the store's identity for an integer key).
+- **`Product.CreateAsync(id, model)` / `Product.CreateAsync(id, p => …)`** do the same under a key you give — the
+  only creates for a key nothing can produce, such as a strongly-typed id over a `string`. They are not generated
+  for an integer key the database produces: an explicit identity value fails on SQL Server and leaves
+  PostgreSQL's sequence behind.
+- **`Product.CreateAsync(entity)`** inserts an entity you built with its own factory —
+  `Product.CreateAsync(Product.Create("Anvil", 30m))`.
+- **An update** loads the row, applies the model and then the lambda, and saves **only the columns that changed**.
+- **`Product.DeleteAsync(id)`** loads the row and deletes it — a `DeletedAt` stamp for an `ISoftDeletable`.
 
 Each one goes through EF Core's change tracker, so the interceptors run exactly as for a hand-written save:
 `CreatedAt`/`UpdatedAt` are stamped, `Version` is bumped, a delete of an `ISoftDeletable` becomes a stamp, and the

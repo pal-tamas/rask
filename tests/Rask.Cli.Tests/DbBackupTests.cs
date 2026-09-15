@@ -32,7 +32,7 @@ public sealed class DbBackupTests
         // refuses to overwrite — so every later backup would fail until someone cleaned up by hand.
         var script = DbCommand.BuildRemoteVacuumArguments("h", "shop").Last();
 
-        Assert.StartsWith("rm -f /data/.rask-backup.db &&", script, StringComparison.Ordinal);
+        Assert.StartsWith("rm -f /data/.rask-backup.db ", script, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -83,6 +83,9 @@ public sealed class DbBackupTests
             DbCommand.BuildHelperRemoveArguments("h", "c"),
             DbCommand.BuildCopyDownArguments("h", "c", "x"),
             DbCommand.BuildCopyUpArguments("h", "c", "x"),
+            DbCommand.BuildFilesCopyDownArguments("h", "c", "x"),
+            DbCommand.BuildFilesCopyUpArguments("h", "c", "x"),
+            DbCommand.BuildRemoteReplaceArguments("h", "s", withFiles: true),
             DbCommand.BuildRemoteCleanupArguments("h", "s"),
             DbCommand.BuildRemoteReplaceArguments("h", "s"),
             DbCommand.BuildStopArguments("h", "s"),
