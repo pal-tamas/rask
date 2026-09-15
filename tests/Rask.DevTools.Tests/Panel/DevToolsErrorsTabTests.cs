@@ -32,6 +32,7 @@ public sealed class DevToolsErrorsTabTests
             PageErrors = page,
             AppErrors = app,
             OnShowInTree = show is null ? null : new Callback<long>(show),
+            ReportEnvironment = new DevToolsBugReport.Environment("Server", "0.22.0", ".NET 10", "macOS", "Chrome 131"),
         });
 
     private static RenderedComponent Tabs(string current, DevToolsErrorLog page, DevToolsErrorLog app, Action<string>? select = null) =>
@@ -83,6 +84,29 @@ public sealed class DevToolsErrorsTabTests
         await Click(tab, "App-wide");
         Assert.DoesNotContain("the save failed", tab.Html);
         Assert.Contains("two siblings", tab.Html);
+    }
+
+    [Fact]
+    public async Task Only_a_likely_framework_bug_offers_a_report_which_opens_a_github_issue_to_review()
+    {
+        var (page, app) = Logs();
+        page.Record(DevToolsErrorKind.Render, false, "NullReferenceException", "customer 4711 has no card", "stack", "Row", 9,
+            false, false, At.AddSeconds(5),
+            new DevToolsStackVerdict(true, ["Rask.Core.Live.FrameDiffer.DiffSiblings", "[app code]"]));
+        var tab = Tab(page, app);
+
+        // One button: the handler fault from the app's own code has none.
+        Assert.Single(tab.FindAll("button"), b => b.TextContent.Trim() == "Report framework bug");
+
+        await Click(tab, "Report framework bug");
+
+        var link = tab.Find("a[target=\"_blank\"]");
+        var href = System.Net.WebUtility.HtmlDecode(link.Attributes["href"]);
+        Assert.StartsWith(DevToolsBugReport.NewIssueUrl + "?labels=bug&title=", href);
+        Assert.Contains("FrameDiffer.DiffSiblings", Uri.UnescapeDataString(href));
+        Assert.DoesNotContain("4711", href);
+        Assert.Equal("noopener noreferrer", link.Attributes["rel"]);
+        Assert.Contains("Chrome 131", tab.Find("textarea").TextContent);
     }
 
     [Fact]

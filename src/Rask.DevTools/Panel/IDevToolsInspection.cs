@@ -19,6 +19,9 @@ internal interface IDevToolsInspection
     /// </summary>
     DevToolsFeed? Open(string? sessionId, string? token);
 
+    /// <summary>Which host the inspected app runs on, as a bug report names it: <c>Server</c> or <c>WASM</c>.</summary>
+    string HostName { get; }
+
     /// <summary>What the app reported outside any page's work, which every panel may show.</summary>
     DevToolsErrorLog AppWide { get; }
 

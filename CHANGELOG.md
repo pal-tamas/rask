@@ -676,6 +676,16 @@ them until tagged releases begin.
   throwing `adapter.update` — which ran inside the page's `MutationObserver` callback, where it stopped the rest of that
   batch of changes from reaching their islands — logging it like the other phases.
 
+- **An error that looks like Rask's own can be reported from the devtools.** When the innermost stack frame outside the
+  .NET runtime and base library is in a Rask namespace (or, for a page script's error, in one of Rask's scripts), the
+  Errors tab offers **Report framework bug**: an editable draft of a GitHub issue — the exception type, where it
+  happened, the components' type names, the host with the Rask, .NET, OS and browser versions, and Rask's frames by
+  name with the app's collapsed to `[app code]` — that **Open the issue on GitHub** opens as a new issue on
+  pal-tamas/rask, labelled `bug`, for the developer to submit. The exception's message, props, data and file paths are
+  never in it; an app whose namespace starts with `Rask.` is recognised by its entry assembly and component namespaces;
+  frames are read from the stack text, so a trimmed WASM app reports the same; the URL stays under 8,000 characters by
+  dropping the oldest frames first.
+
 ### Changed
 
 - **File storage reads `Rask:Storage`, like every other Rask area.** It was the one package still on a top-level
@@ -1156,6 +1166,13 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A server render no longer waits on another render's work.** The scope that collects a first render's
+  async lifecycle work was also kept in a thread-static slot. `QuiescentRender` begins on a pool thread and
+  then awaits, so that thread went back to the pool still pointing at a render that was waiting. The next
+  render with no scope of its own that landed there tracked its `OnMountAsync` work into the stranger, whose
+  wave loop kept finding new work until it hit the 16-wave cap and served its page early, marked timed out
+  (#1108, seen as `PageMetaTests` "did not settle" under load). The scope is now found through the async flow
+  only.
 - **Two signed-in users with no identifier no longer count as the same user.** The session ownership check behind a
   reconnect, an upload and a download compares users by `NameIdentifier`, or `Name` when there is no
   identifier. When two signed-in principals carried neither, it compared nothing with nothing and matched, so

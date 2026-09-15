@@ -237,6 +237,23 @@ Most framework warnings happen while a page renders or handles an event, and tho
 reported anywhere else, such as at startup or from a background service, belongs to no page. It is listed as
 **app-wide** in every panel. **This page** and **App-wide** narrow the list to one or the other.
 
+### Reporting a bug in Rask
+
+Most errors are the app's to fix. When an error's stack points at Rask instead, the row says *This looks like a bug in
+Rask itself* and offers **Report framework bug**. The test is the innermost frame outside .NET's own libraries: if
+that frame is Rask's, the button appears; if it is your code, it doesn't, even when Rask called your code. For a
+script error on the page, the frame has to be in one of Rask's scripts.
+
+**Report framework bug** opens a draft of the issue for you to read and edit first. It holds:
+
+- the exception type, and where it happened (rendering, a handler, a page script…);
+- the components it happened in, by type name;
+- the host, and the Rask, .NET, operating system and browser versions;
+- Rask's own stack frames by name, with every run of your code collapsed to `[app code]`.
+
+It never includes the exception's message, props, data, or any file path. **Open the issue on GitHub** opens a new
+issue on the Rask repository with the draft filled in. Nothing is sent until you submit it there.
+
 ### From the error overlay
 
 When you run the app with hot reload (`rask dev` or `dotnet watch`), a handler that throws also shows Rask's error
