@@ -79,7 +79,13 @@ const flash: Flash = {
     setEnabled: on => flashCalls.push(`enabled ${on}`),
     isEnabled: () => false,
 };
-const bridge = createBridge(dock, overlay, flash, m => posted.push(m), {show() {}, heardFromPanel: () => panelHeard++});
+const bridge = createBridge(dock, overlay, flash, m => posted.push(m), {
+    show() {},
+    heardFromPanel: () => panelHeard++,
+    setPanelCount: (n: number) => alerts.push(n),
+    record() {},
+    island() {},
+});
 const ch = "rask-devtools" as const;
 
 bridge.handle({channel: ch, kind: "highlight", at: "1|0|1", label: "Card"});
@@ -216,6 +222,7 @@ const panelWindowListeners: {type: string; handler: Handler}[] = [];
 let anchorsEl: StubEl | null = null;
 let flashEl: StubEl | null = null;
 let errorsEl: StubEl | null = null;
+let pageErrorsEl: StubEl | null = null;
 let flashesEl: StubEl | null = null;
 const pickedEl = new StubEl();
 const patchEl = new StubEl();
@@ -232,6 +239,7 @@ globals.document = {
         : selector === "[data-rask-devtools-flashes]" ? flashesEl
         : selector === "[data-rask-devtools-patch]" ? patchEl
         : selector === "[data-rask-devtools-errors]" ? errorsEl
+        : selector === "[data-rask-devtools-page-errors]" ? pageErrorsEl
         : null,
 };
 
@@ -281,6 +289,13 @@ errorsEl.attributes.set("data-rask-devtools-errors", "0");
 observerCallback!();
 out.errorPosts = panelPosts.map(m => m.kind === "error-count" ? `count:${m.count}` : m.kind).join(",");
 out.showErrorsKeys = errorsEl.dispatched.map(e => e.key).join(",");
+
+// A page failure, held until the receiver's element has rendered, then handed over as its JSON; a malformed one ignored.
+message(page, {channel: ch, kind: "page-error", report: {kind: "page", title: "TypeError", message: "boom"}});
+message(page, {channel: ch, kind: "page-error", report: null});
+pageErrorsEl = new StubEl();
+observerCallback!();
+out.pageErrorKeys = pageErrorsEl.dispatched.map(e => e.key).join(",");
 
 // Patch times from the page, collected and reported together: one keydown for a burst, only from the page, and nothing
 // that is not a finite non-negative number.

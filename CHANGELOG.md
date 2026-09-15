@@ -650,6 +650,15 @@ them until tagged releases begin.
   Two internal probe hooks feed it: `ComponentFaulted` (a handler's or lifecycle hook's exception, and whether a
   boundary took it) and `DiagnosticReported` (every `RaskDiagnostics` report, sink or no sink).
 
+- **The devtools Errors tab also lists what fails on the page itself.** A script's uncaught error and a promise rejected
+  with nothing to catch it, with the error's name, message and stack (or, for another origin's "Script error.", where
+  it came from); and an island that failed to mount, update or unmount, or whose props it could not read, named with
+  its phase and listed under the component it sits in, found by its element's place as a pick finds it. The page counts
+  them on the pill at once and keeps the last 50 until the panel opens, then hands them over. `console.error` is not
+  wrapped. `rask-external.js` now reports each island failure to the devtools hook when one is installed, and catches a
+  throwing `adapter.update` — which ran inside the page's `MutationObserver` callback, where it stopped the rest of that
+  batch of changes from reaching their islands — logging it like the other phases.
+
 ### Changed
 
 - **File storage reads `Rask:Storage`, like every other Rask area.** It was the one package still on a top-level

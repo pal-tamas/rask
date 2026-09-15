@@ -101,6 +101,7 @@ public sealed class HostOverlayTests
         Assert.True(Bool("heardFromPanel"));
         Assert.Equal("count:2,count:0", Str("errorPosts"));
         Assert.Equal("errors:show", Str("showErrorsKeys"));
+        Assert.Equal("page-error:{\"kind\":\"page\",\"title\":\"TypeError\",\"message\":\"boom\"}", Str("pageErrorKeys"));
         Assert.Equal("timed@357,zero@-1", Str("patchPosted"));
     }
 }
