@@ -117,9 +117,9 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | RASK081 | — | *Retired* — returned as [RASK086](#rask086) |
 | [RASK082](#rask082) | Error | A type already has the generated model's name |
 | [RASK083](#rask083) | Warning | Nested entity gets no generated model |
-| [RASK084](#rask084) | Warning | Model state can be changed from outside the type |
+| [RASK084](#rask084) | Error | Model state can be changed from outside the type |
 | [RASK085](#rask085) | Warning | Entity exposes a mutable collection of entities |
-| [RASK086](#rask086) | Warning | Entity has no parameterless constructor, so `CreateAsync(model)` is not generated |
+| [RASK086](#rask086) | Warning | Aggregate has no parameterless constructor, so `CreateAsync` is not generated |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -1628,7 +1628,7 @@ own selection, so a chip template has nowhere to render either.
 
 **Entity `Configure` method will not be called** · Warning
 
-An entity maps itself: Rask's model generator calls a static `Configure` on every `Model<TId>` that
+An entity maps itself: Rask's model generator calls a static `Configure` on every `Entity<TId>` that
 declares one, for the rules that are that entity's own. The method is matched **by signature**, not by
 name alone — so one that is an instance method, is private, or takes something other than
 `EntityTypeBuilder<TSelf>` is simply not found.
@@ -1637,7 +1637,7 @@ Without this warning the build stays green, the table is created from convention
 missing index or length turns up in production.
 
 ```csharp
-public sealed class Product : Model<Guid>
+public sealed class Product : Aggregate<Guid>
 {
     public string Sku { get; private set; } = "";
 
@@ -1668,7 +1668,7 @@ case and the intended one.
 
 **Strongly-typed id has no usable value** · Warning
 
-A strongly-typed id — `Model<ProductId>` rather than `Model<Guid>` — is stored as its underlying value
+A strongly-typed id — `Aggregate<ProductId>` rather than `Aggregate<Guid>` — is stored as its underlying value
 through a generated `ValueConverter`. Building one needs two things the generator can see: a single
 public property holding the value, and a public constructor taking that value back.
 
@@ -1860,36 +1860,35 @@ returned as [RASK086](#rask086). The id is retired, not reused.
 
 **A type already has the generated model's name** · Error
 
-The generated form model is emitted beside its entity, in the same namespace, as `{Entity}Model`. A
-hand-written, non-`partial` type of that name — often a request model written before the generator
-existed — would collide with it as `CS0101`, a message that names neither the generator nor the way
-out. So the generator stands down for that entity and says why: no `ProductModel` is generated.
+Every aggregate gets a generated form model emitted beside it, in the same namespace, as `{Aggregate}Model`. A
+hand-written, non-`partial` type of that name, often a request model written before the generator existed,
+would collide with it as `CS0101`, a message that names neither the generator nor the way out. So the
+generator stands down for that aggregate and says why: no `ProductModel` is generated, and neither are the
+`CreateAsync`, `UpdateAsync` and `DeleteAsync` that take it.
 
 ```csharp
-public sealed class Product : Model<Guid> { /* … */ }
+public sealed class Product : Aggregate<Guid> { /* … */ }
 
-public sealed class ProductModel                  // ✗ RASK082 — the generated model's name
+public sealed class ProductModel                  // ✗ RASK082: the generated model's name
 {
     public string Name { get; set; } = "";
 }
 ```
 
-**Fix:** one of three, depending on what the hand-written type was for.
+**Fix:** rename the hand-written type, or make it `partial` so it extends the generated one.
 
 ```csharp
 public sealed class ProductForm { /* … */ }       // ✓ rename it and keep both
 
 public sealed partial class ProductModel          // ✓ extend the generated one instead
 {
-    public string Slug => Name.ToLowerInvariant().Replace(' ', '-');
+    public string Slug => (Name ?? "").ToLowerInvariant().Replace(' ', '-');
 }
-
-[SkipModel]                                       // ✓ this entity has no generated form model
-public sealed class Product : Model<Guid> { /* … */ }
 ```
 
 A `partial` declaration is not reported: it merges into the generated class, which is the supported way
-to add members, interfaces such as `IValidatableObject`, or computed display values to a model.
+to add members, interfaces such as `IValidatableObject`, or computed display values to a model. Every
+generated property is nullable, so a member you add reads them as such.
 
 ---
 
@@ -1897,97 +1896,96 @@ to add members, interfaces such as `IValidatableObject`, or computed display val
 
 **Nested entity gets no generated model** · Warning
 
-The generated model is a sibling of the entity in its namespace. An entity declared inside another type
-has no such place to put it, so it is still mapped — it gets its table like any other — but no form model
-is generated for it.
+The generated model is a sibling of the aggregate in its namespace. An aggregate declared inside another
+type has no such place to put it, so it is still mapped (it gets its table like any other) but no form
+model is generated for it.
 
 ```csharp
 public static class Catalog
 {
-    public sealed class Product : Model<Guid> { }  // ⚠ RASK083 — nested in Catalog
+    public sealed class Product : Aggregate<Guid> { }  // ⚠ RASK083: nested in Catalog
 }
 ```
 
-**Fix:** declare the entity at namespace level, or mark it `[SkipModel]` to say that having no form
-model is intended:
+**Fix:** declare the aggregate at namespace level:
 
 ```csharp
 namespace Shop.Catalog;
 
-public sealed class Product : Model<Guid> { }      // ✓ gets ProductModel
+public sealed class Product : Aggregate<Guid> { }      // ✓ gets ProductModel
 ```
 
 ---
 
 ## RASK084
 
-**Model state can be changed from outside the type** · Warning
+**Model state can be changed from outside the type** · Error
 
-**A hint, never a rule.** A public setter on an entity compiles, maps and saves like any other property, and
-nothing in Rask requires a private one — this warning only points out that the state can be changed from
-outside. It is never an error, and an app that prefers open entities silences it the usual way
-(`dotnet_diagnostic.RASK084.severity = none` in `.editorconfig`, or `<NoWarn>RASK084</NoWarn>`).
+An aggregate, an entity and every value object they hold change only through their own methods, so their
+rules and their domain events stay in one place. A public setter lets any caller skip those methods. Nothing
+in Rask needs one: EF Core materialises through private setters, and the generated form model writes through
+them too (`Product.CreateAsync(model)`, `Product.UpdateAsync(id, model)`). So it is an error, not a hint.
 
-The case for listening to it: an entity — a class deriving from `Rask.Data.Model`, including your own
-abstract base classes between `Model` and the entity — and a value object (`IValueObject`) whose state
-changes only through their own methods keep their rules in one place. EF Core materialises through private
-setters and a private constructor, so nothing in the framework needs a public one.
+Checked: every class deriving from `Rask.Data.Entity<TId>` (and so every `Aggregate<TId>`), including your own
+abstract bases between them, and every value object one of them holds. A value object carries no marker: it
+is any composite (a class, record or struct) that an entity holds and that is not itself an entity, so it is
+found through the entity that holds it.
 
 Reported, at the accessor or the field:
 
 - a property `set` accessor that is public (`{ get; set; }` on a public property);
-- a public `init` accessor;
+- a public `init` accessor you wrote yourself;
 - a public instance field that is neither `readonly` nor `const`.
 
 ```csharp
-public sealed class Product : Model<Guid>
+public sealed class Product : Aggregate<Guid>
 {
-    public string Name { get; set; } = "";            // ⚠ RASK084 — 'Product.Name' has a public setter
-    public int Stock;                                  // ⚠ RASK084 — a public field that is not readonly
+    public string Name { get; set; } = "";            // ✗ RASK084: 'Product.Name' has a public setter
+    public int Stock;                                  // ✗ RASK084: a public field that is not readonly
+    public Address Warehouse { get; private set; } = new();
 }
 
-public sealed record Address : IValueObject
+public sealed record Address
 {
-    public string City { get; init; } = "";           // ⚠ RASK084 — a public init accessor
+    public string City { get; init; } = "";           // ✗ RASK084: a public init accessor
 }
 ```
 
-**Fix:** make the member private, and change the state through the type's own methods or its constructor
-(**quick-fix available**: `set` → `private set`, `init` → `private init`, a public field → `private`):
+**Fix:** make the member private, change the state through the type's own methods, and create it in a
+static factory (**quick-fix available**: `set` → `private set`, `init` → `private init`, a public field →
+`private`):
 
 ```csharp
-public sealed class Product : Model<Guid>
+public sealed class Product : Aggregate<Guid>
 {
-    private Product() { }                              // for EF Core
-
-    public Product(string name) => Name = name;
-
     public string Name { get; private set; } = "";    // ✓
     public int Stock { get; private set; }             // ✓
 
-    public void Rename(string name) => Name = name;    // ✓ the entity changes itself
+    public static Product Create(string name) => new() { Name = name };
+
+    public void Rename(string name) => Name = name;    // ✓ the aggregate changes itself
 }
 ```
 
-`private`, `protected` and `internal` accessors are all fine — `protected set` is the natural choice on an
-abstract base whose derived entities write the property. Members inherited from `Model<TId>` (its
-`protected set` `Id`) are never reported, and neither is an `override`: it cannot narrow what it
-overrides, so the base declaration is where it is reported.
+`private`, `protected` and `internal` accessors are all fine, and `protected set` is the natural choice on an
+abstract base whose derived entities write the property. Members inherited from `Entity<TId>` and
+`Aggregate<TId>` (`Id`, `CreatedAt`, `UpdatedAt`, `Version`, `DeletedAt`) are never reported, and neither is
+an `override`: it cannot narrow what it overrides, so the base declaration is where it is reported.
 
 **Positional records are exempt.** The properties a positional record parameter declares get public
 `init` accessors from the compiler, and that is exactly the immutable value object:
 
 ```csharp
-public sealed record Money(decimal Amount, string Currency) : IValueObject;          // ✓ not reported
-public readonly record struct Weight(decimal Grams) : IValueObject;                  // ✓ not reported
-public record struct Height(decimal Centimetres) : IValueObject;                     // ⚠ RASK084 — a real set
+public sealed record Money(decimal Amount, string Currency);          // ✓ not reported
+public readonly record struct Weight(decimal Grams);                  // ✓ not reported
+public record struct Height(decimal Centimetres);                     // ✗ RASK084: a real set
 ```
 
 A positional parameter of a record struct that is not `readonly` gets a real `set`, so it is reported at
 the parameter; declare it `readonly record struct`. The quick-fix is not offered where `private` would not
-compile — a `required` or `abstract` property, an accessor whose sibling already has a modifier
-(`{ private get; set; }`), or a setter an interface you implement demands — and the warning stands for you
-to decide.
+compile (a `required` or `abstract` property, an accessor whose sibling already has a modifier such as
+`{ private get; set; }`, or a setter an interface you implement demands), and the error stays for you to
+resolve by hand.
 
 ---
 
@@ -1997,26 +1995,28 @@ to decide.
 
 A private setter does not protect a list: `order.Lines.Add(line)` changes the order without calling any
 of its methods. Reported for a publicly readable property of an entity whose type is a mutable collection
-(it implements `ICollection<T>` — `List<T>`, `IList<T>`, `ICollection<T>`, `HashSet<T>`, `ISet<T>`,
+(it implements `ICollection<T>`: `List<T>`, `IList<T>`, `ICollection<T>`, `HashSet<T>`, `ISet<T>`,
 `Collection<T>`) of other **entities**. A collection of strings or of value objects is not a navigation
 and is not reported; neither are `ReadOnlyCollection<T>` and the immutable collections.
 
 ```csharp
-public sealed class Order : Model<Guid>
+public sealed class Order : Aggregate<Guid>
 {
     public List<OrderLine> Lines { get; private set; } = new();   // ⚠ RASK085
 }
+
+public sealed class OrderLine : Entity<Guid> { /* … */ }
 ```
 
 **Fix:** keep the collection in a private readonly field, expose `IReadOnlyCollection<T>`,
-`IReadOnlyList<T>` or `IEnumerable<T>`, and add to it through the entity (**quick-fix available**: it
-writes the field and the read-only property, and points this instance's own references (`Lines`, `this.Lines` in an instance member) at the field — an
-access through a lambda parameter such as `Configure`'s `b.HasMany(o => o.Lines)`, another instance's
-`other.Lines` and `nameof(Lines)` keep naming the property;
+`IReadOnlyList<T>` or `IEnumerable<T>`, and add to it through the aggregate (**quick-fix available**: it
+writes the field and the read-only property, and points this instance's own references (`Lines`, `this.Lines`
+in an instance member) at the field. An access through a lambda parameter such as `Configure`'s
+`b.HasMany(o => o.Lines)`, another instance's `other.Lines` and `nameof(Lines)` keep naming the property;
 references outside the type are yours to move onto a method):
 
 ```csharp
-public sealed class Order : Model<Guid>
+public sealed class Order : Aggregate<Guid>
 {
     private readonly List<OrderLine> _lines = [];
 
@@ -2039,36 +2039,37 @@ type split across several files, or a member that already has the field's name.
 
 ## RASK086
 
-**Entity has no parameterless constructor, so `CreateAsync(model)` is not generated** · Warning
+**Aggregate has no parameterless constructor, so `CreateAsync` is not generated** · Warning
 
-Every `Rask.Data.Model` gets a generated form model — `ProductModel` for `Product` — and the writes that
-take it ([data guide](data.md#writing-create-update-delete)). `Product.CreateAsync(model)` builds a new entity
-before inserting it, and it starts from a constructor that takes nothing. It may be private: it is reached the
-way EF Core reaches the constructor it materializes rows through. An entity whose only constructors take
-arguments leaves it nothing to start from.
+Every `Aggregate<TId>` gets a generated form model (`ProductModel` for `Product`) and the writes that take it
+([data guide](data.md#writing-create-update-delete)). `Product.CreateAsync(model)` and
+`Product.CreateAsync(p => …)` both start from a new, empty aggregate, and so does `new ProductModel()`, which
+holds the aggregate's own defaults. That needs a constructor that takes nothing, and an aggregate that declares
+no constructor has one for free. Declaring one that takes arguments removes it.
 
 ```csharp
-public sealed class Product : Model<Guid>
+public sealed class Product : Aggregate<Guid>
 {
-    public Product(string name) => Name = name;   // ⚠ RASK086 — the only constructor takes a name
+    public Product(string name) => Name = name;   // ⚠ RASK086: the only constructor takes a name
 
     public string Name { get; private set; }
 }
 ```
 
-**Fix:** add a parameterless constructor. Keep it private, and the domain's own constructor stays the
-only public way to make one:
+**Fix:** declare no constructor, and put domain creation in a static factory:
 
 ```csharp
-private Product() { }                            // ✓ for EF Core and the generated CreateAsync
-public Product(string name) => Name = name;
+public sealed class Product : Aggregate<Guid>
+{
+    public string Name { get; private set; } = "";
+
+    public static Product Create(string name) => new() { Name = name };   // ✓
+}
 ```
 
-That covers every generated create — `Product.CreateAsync(model)` and `Product.CreateAsync(p => …)` alike, since
-both start from a new, empty entity. Everything that works on a row that already exists is still generated —
-`ProductModel`, `Product.UpdateAsync(id, model)`, `Product.UpdateAsync(id, p => …)` and `Product.DeleteAsync(id)`
-— so the rest of the form flow keeps working. An entity built by its own constructor is inserted with
-`Product.CreateAsync(new Product("Anvil"))`; mark it `[SkipModel]` if it should have no form model at all.
+An aggregate built by its factory is inserted with `Product.CreateAsync(Product.Create("Anvil"))`. Until the
+constructor goes, everything that works on a row that already exists is still generated: `ProductModel`,
+`Product.UpdateAsync(id, model)`, `Product.UpdateAsync(id, p => …)` and `Product.DeleteAsync(id)`.
 
 This rule was RASK081 before the generated writes were dropped and brought back; a retired id is never
 recycled, so it returned under a new one.

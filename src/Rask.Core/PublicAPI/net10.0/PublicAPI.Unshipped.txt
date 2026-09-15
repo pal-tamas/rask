@@ -6670,6 +6670,7 @@ virtual Rask.Core.Forms.ValidateAsync<T>.Invoke(T value, System.Threading.Cancel
 ~override Rask.Core.ScopedAssets.ScopedAssetRegistry.AssetBytes.ToString() -> string
 ~override Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry.Equals(object obj) -> bool
 ~override Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry.ToString() -> string
+static Rask.Core.Forms.ExpressionAccessor.NonNullable<T>(System.Linq.Expressions.Expression<System.Func<T?>!>! bind) -> System.Linq.Expressions.Expression<System.Func<T>!>!
 Rask.Core.Messaging.IBroadcast
 Rask.Core.Messaging.IBroadcast.PublishAsync<T>(Rask.Core.Messaging.Topic<T>! topic, T message, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
 Rask.Core.Messaging.IBroadcast.Subscribe<T>(Rask.Core.Component! owner, Rask.Core.Messaging.Topic<T>! topic, System.Action<T>! handler) -> void

@@ -29,6 +29,28 @@ namespace Rask.Core.Forms;
 //   () => SomeStatic.Field          static or non-property member
 public static class ExpressionAccessor
 {
+    /// <summary>
+    ///     Turns a bind over a nullable value-type property into the non-nullable bind a control over
+    ///     <typeparamref name="T" /> takes: <c>() =&gt; model.InStock</c> over a <c>bool?</c> for a checkbox's
+    ///     <c>Expression&lt;Func&lt;bool&gt;&gt;</c>. Called by the generated <c>Bind</c> overload.
+    /// </summary>
+    /// <remarks>
+    ///     The body is wrapped in a <c>Convert</c>, which <see cref="Parse" /> strips, so the accessor still
+    ///     reads and writes the nullable property itself: a null reads as the control's empty state, and a
+    ///     write boxes a <typeparamref name="T" />, which the nullable property takes. The expression is never
+    ///     compiled, so the conversion never runs on a null.
+    /// </remarks>
+    /// <param name="bind">The bind over the nullable property.</param>
+    /// <typeparam name="T">The control's value type.</typeparam>
+    /// <returns>The same bind, typed for the control.</returns>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    public static Expression<Func<T>> NonNullable<T>(Expression<Func<T?>> bind)
+        where T : struct
+    {
+        ArgumentNullException.ThrowIfNull(bind);
+        return Expression.Lambda<Func<T>>(Expression.Convert(bind.Body, typeof(T)), bind.Parameters);
+    }
+
     public static Accessor Parse(LambdaExpression expression)
     {
         if (expression is null)
@@ -37,7 +59,8 @@ public static class ExpressionAccessor
         }
 
         var body = expression.Body;
-        if (body is UnaryExpression { NodeType: ExpressionType.Convert } u)
+        // Every Convert, not one: a bind lifted by NonNullable over a cast the caller wrote carries two.
+        while (body is UnaryExpression { NodeType: ExpressionType.Convert } u)
         {
             body = u.Operand;
         }

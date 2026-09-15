@@ -101,7 +101,7 @@ public sealed partial class UiDataGridModelQueryTests : global::Rask.Core.RaskMa
     }
 }
 
-internal sealed class Gizmo : Model<Guid>
+internal sealed class Gizmo : Aggregate<Guid>
 {
     private Gizmo() { } // EF materialization
 

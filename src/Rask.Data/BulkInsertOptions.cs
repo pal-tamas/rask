@@ -55,7 +55,7 @@ public sealed class BulkInsertOptions
     /// </para>
     /// <para>
     /// It is opt-in because of what it skips. <b>No <c>ISaveChangesInterceptor</c> runs</b> — not Rask.Data's,
-    /// and not any you registered yourself. The writer stamps <see cref="ITimestamped"/> audit columns in
+    /// and not any you registered yourself. The writer stamps <see cref="Entity{TId}"/> audit columns in
     /// <see cref="AuditingInterceptor"/>'s place, but nothing stands in for the rest: entities carrying domain
     /// events are rejected rather than inserted with their events undelivered, and an outbox never sees the
     /// load. Anything the writer cannot map faithfully — store-generated keys, shadow properties, navigations,

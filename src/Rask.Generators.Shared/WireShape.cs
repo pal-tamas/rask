@@ -545,17 +545,16 @@ internal static class WireShape
 
             foreach (var member in shape.Members)
             {
-                var wire = member.ValueObject is { } valueObject
-                    ? ClassifyValueObjectModel(valueObject, modelFqn, stack, compilation)
-                    : Classify(member.Property.Type, false, stack, compilation);
+                var wire = ClassifyModelMember(member.Property.Type, member.ValueObject, modelFqn, stack, compilation);
 
                 if (wire.Kind == WireKind.Unsupported)
                 {
                     return MemberUnsupported(member.Property, wire, compilation);
                 }
 
+                // Every property of a generated model is nullable — a null is a value the model does not give.
                 result.Members.Add(new WireMember(
-                    member.Property.Name, CamelCase(member.Property.Name), wire, member.Nullable));
+                    member.Property.Name, CamelCase(member.Property.Name), wire, true));
             }
 
             // The author's own partial half, when there is one, is part of the same object: its settable
@@ -617,9 +616,7 @@ internal static class WireShape
 
         foreach (var member in valueObject.Members)
         {
-            var wire = member.ValueObject is { } nested
-                ? ClassifyValueObjectModel(nested, modelFqn, stack, compilation)
-                : Classify(member.Property.Type, false, stack, compilation);
+            var wire = ClassifyModelMember(member.Property.Type, member.ValueObject, modelFqn, stack, compilation);
 
             if (wire.Kind == WireKind.Unsupported)
             {
@@ -627,10 +624,42 @@ internal static class WireShape
             }
 
             result.Members.Add(new WireMember(
-                member.Property.Name, CamelCase(member.Property.Name), wire, member.Nullable));
+                member.Property.Name, CamelCase(member.Property.Name), wire, true));
         }
 
         return result;
+    }
+
+    // A member of a generated model, as the model declares it: nullable, a one-value value object as its value, any
+    // other value object as its nested model.
+    private static WireType ClassifyModelMember(
+        ITypeSymbol entityType,
+        ModelValueObject? valueObject,
+        string modelFqn,
+        HashSet<ITypeSymbol> stack,
+        Compilation compilation)
+    {
+        if (valueObject is { SingleValue: true } single)
+        {
+            return Classify(AsNullable(single.Members[0].Property.Type, compilation), false, stack, compilation);
+        }
+
+        return valueObject is { } nested
+            ? ClassifyValueObjectModel(nested, modelFqn, stack, compilation)
+            : Classify(AsNullable(entityType, compilation), false, stack, compilation);
+    }
+
+    // T? for a value type (Nullable<T>), an annotated reference otherwise — the type the model property is declared with.
+    private static ITypeSymbol AsNullable(ITypeSymbol type, Compilation compilation)
+    {
+        if (!type.IsValueType)
+        {
+            return type.WithNullableAnnotation(NullableAnnotation.Annotated);
+        }
+
+        return type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T
+            ? type
+            : compilation.GetSpecialType(SpecialType.System_Nullable_T).Construct(type);
     }
 
     private static WireType MemberUnsupported(IPropertySymbol property, WireType member, Compilation? compilation) =>

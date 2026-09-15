@@ -14,13 +14,13 @@ processor delivers it after commit — retrying until it succeeds.
 
 ## 1. Placing an order is a domain operation
 
-Chapter 3's order form sends `AddOrder`, whose handler calls `Order.Create`. That is exactly right for data
-entry — a member of staff types an order in — and exactly wrong for announcing anything, because nothing in
-it says that what just happened was a *sale*. `Create` records a row; it isn't the business event, so it
-isn't where the event belongs.
+Chapter 3's order form saves an `OrderModel` with `Order.CreateAsync(model)`. That is exactly right for data
+entry (a member of staff types an order in) and exactly wrong for announcing anything, because a form save
+writes properties and nothing in it says that what just happened was a *sale*. It records a row; it isn't the
+business event, so it isn't where the event belongs.
 
-A customer buying a product is a different thing, and it gets its own path: a method on the entity that
-raises the event, and a small component that calls it and saves through EF Core. Four small additions.
+A customer buying a product is a different thing, and it gets its own path: a static factory on the aggregate
+that raises the event, and a small component that inserts what it built. Four small additions.
 
 **The event.** `Features/Orders/OrderEvents.cs` — one record per thing that happened:
 
@@ -30,43 +30,28 @@ namespace Shop.Features.Orders;
 public sealed record OrderPlaced(Guid Id) : IOutboxEvent;
 ```
 
-**Raising it.** Announce the change from the same method that makes it, so an order can never be placed
+**Raising it.** Announce the change from the same code that makes it, so an order can never be placed
 without saying so. Here is chapter 3's `Features/Orders/Order.cs` with `Place` added — the whole file, so you
 can see where it goes:
 
 ```csharp
+using System.ComponentModel.DataAnnotations;
+
 namespace Shop.Features.Orders;
 
-public sealed class Order : Model<Guid>, ITimestamped, IVersioned
+public sealed class Order : Aggregate<Guid>
 {
-    private Order() { } // EF Core materialization
-
+    [Range(0, 1_000_000)]
     public decimal Total { get; private set; }
 
     public Guid ProductId { get; private set; }
 
     public DateTime Placed { get; private set; }
 
-    public int Version { get; private set; }
-
-    public static Order Create(decimal total, Guid productId, DateTime placed)
-    {
-        var order = new Order { Id = Guid.CreateVersion7() };
-        order.Change(total, productId, placed);
-        return order;
-    }
-
-    public void Change(decimal total, Guid productId, DateTime placed)
+    public static Order Place(Guid productId, decimal total, DateTime now)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(total);
 
-        Total = total;
-        ProductId = productId;
-        Placed = placed;
-    }
-
-    public static Order Place(Guid productId, decimal total, DateTime now)
-    {
         var order = new Order { Id = Guid.CreateVersion7(), ProductId = productId, Total = total, Placed = now };
         order.Raise(new OrderPlaced(order.Id));
         return order;
@@ -74,23 +59,19 @@ public sealed class Order : Model<Guid>, ITimestamped, IVersioned
 }
 ```
 
-The fields, `Create` and `Change` are chapter 3's, untouched, so the staff pages and their commands keep
-working. `Raise` comes from `Model<TId>`, and the event sits on the entity until `SaveChanges` — which is what
-makes the next part atomic.
+The fields are chapter 3's, untouched, so the staff pages keep working. `Place` is the aggregate's **factory**:
+the domain's way to create an order, which is why `Order` still declares no constructor. `Raise` comes from
+`Aggregate<Guid>`, and the event sits on the aggregate until it is saved, which is what makes the next part
+atomic.
 
-**Placing it.** `Features/Orders/PlaceOrder.cs` — a "Buy" button that places an order for one product. It
-injects the app's context factory, calls `Place`, and saves:
+**Placing it.** `Features/Orders/PlaceOrder.cs` — a "Buy" button that places an order for one product:
 
 ```csharp
-using Microsoft.EntityFrameworkCore;
-using Shop.Features.Shared;
-
 namespace Shop.Features.Orders;
 
 // A "Buy" button. A sale is a domain operation, not a form edit, so it goes through Order.Place — the
-// method that announces it — and one button saves one change, so it opens a context itself rather than
-// going through a command.
-public sealed partial class PlaceOrder(IDbContextFactory<AppDbContext> dbFactory) : Component
+// factory that announces it — and Order.CreateAsync inserts the order Place built.
+public sealed partial class PlaceOrder : Component
 {
     private bool _placing;
 
@@ -103,11 +84,8 @@ public sealed partial class PlaceOrder(IDbContextFactory<AppDbContext> dbFactory
         _placing = true;
         try
         {
-            await using var db = await dbFactory.CreateDbContextAsync(CancellationToken);
-
             var order = Order.Place(ProductId, Price, DateTime.UtcNow);
-            db.Set<Order>().Add(order);
-            await db.SaveChangesAsync(CancellationToken);   // the order AND its OrderPlaced, one transaction
+            await Order.CreateAsync(order, cancellationToken: CancellationToken);   // the order AND its OrderPlaced, one transaction
         }
         finally
         {
@@ -120,9 +98,8 @@ public sealed partial class PlaceOrder(IDbContextFactory<AppDbContext> dbFactory
 }
 ```
 
-This is plain EF Core, and that's deliberate: there's no Rask unit of work to learn. The context comes from
-the same `AddDbContextFactory<AppDbContext>` registration the model surface uses, it's yours to dispose —
-which `await using` does — and `db.Set<Order>()` reaches the table without a `DbSet` property. The
+`Order.CreateAsync(order)` is the create for an aggregate you built yourself. It saves through the same
+interceptors a form save does, so the order and the event it carries are written in one transaction. The
 `_placing` flag disables the button while the save runs, so a double click can't buy twice.
 
 Drop it into `ProductsPage`'s actions column (with `using Shop.Features.Orders;` at the top of that file):
@@ -158,8 +135,8 @@ find out when a crash loses an order confirmation. A framework that makes you op
 asking you to remember something on pain of silent data loss, so Rask decides it for you.
 
 The factory call's `.AddInterceptors(sp.GetServices<ISaveChangesInterceptor>())` is what puts both
-interceptors in the `SaveChanges` pipeline — which is why `PlaceOrder`'s own `db.SaveChangesAsync()` gets the
-outbox, the timestamps and the version bump exactly as chapter 2's handlers do. Where `AddDbContextFactory`
+interceptors in the `SaveChanges` pipeline — which is why `PlaceOrder`'s `Order.CreateAsync` gets the
+outbox, the timestamps and the version bump exactly as chapter 2's form saves do. Where `AddDbContextFactory`
 sits relative to the other two lines does not matter: that callback runs when the factory is first resolved,
 by which point the container holds every registration.
 
@@ -204,10 +181,10 @@ receipt already went out before sending another.
 > [jobs](04-background-jobs.md) run what you *schedule* (in an hour, purge stale carts). A confirmation email
 > belongs to the order's transaction. A nightly cleanup does not.
 
-> **What raises nothing.** Editing an order through `UpdateOrder` announces nothing — `Order.Change` raises
-> no event, just as `Create` didn't. When a change *is* something the business cares
-> about — a cancellation, a shipment — give `Order` a method for it that raises its event, and save it the
-> way `PlaceOrder` saves `Place`.
+> **What raises nothing.** Editing an order through `UpdateOrder` announces nothing: a form save writes the
+> model's properties and calls no method, so nothing raises an event. When a change *is* something the business
+> cares about (a cancellation, a shipment) give `Order` a method for it that raises its event, and call it
+> through `Order.UpdateAsync(id, o => o.Cancel(now))`.
 
 ## Verify
 

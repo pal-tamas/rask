@@ -2,10 +2,10 @@
 
 > **Goal:** go from an empty app to a working, database-backed **Products** catalog — list, create, edit,
 > delete — persisted in SQLite.
-> **You'll write:** a vertical slice under `Features/Products/` — an entity, its commands and its pages — then
-> run `rask db add` / `rask db update`.
+> **You'll write:** a vertical slice under `Features/Products/` — an aggregate and its pages — then run
+> `rask db add` / `rask db update`.
 
-This chapter sets the pattern every later feature repeats — **entity → commands → pages → migrate**. Do it once here
+This chapter sets the pattern every later feature repeats — **aggregate → pages → migrate**. Do it once here
 and the rest of the tutorial is variations on it.
 
 Everything below is code you write. It's longer than the chapters that follow because it's the only one
@@ -13,196 +13,82 @@ that shows a slice end to end; once you've typed it, the shape is yours and late
 what's new.
 
 > **You don't name a database.** Chapter 1's `rask new` already wired one — `AppDbContext` in
-> `Features/Shared/`. Its base, `RaskDbContext`, maps every entity you declare, so you never edit it to add
+> `Features/Shared/`. Its base, `RaskDbContext`, maps every aggregate you declare, so you never edit it to add
 > one, and an app keeps **one** database and one set of migrations however many features you add.
 
-## 1. The entity
+## 1. The aggregate
 
-`Features/Products/Product.cs`. The constructor is private and the setters are `private set`, so nothing
-outside can build a `Product` halfway or poke a field — the ways in are the factory and the method the
-entity declares itself:
+`Features/Products/Product.cs`:
 
 ```csharp
 using System.ComponentModel.DataAnnotations;
 
 namespace Shop.Features.Products;
 
-public sealed class Product : Model<Guid>, ITimestamped, IVersioned
+public sealed class Product : Aggregate<Guid>
 {
-    private Product() { } // EF Core materialization
-
     [Required, MaxLength(200)]
     public string Name { get; private set; } = "";
 
+    [Range(0, 1_000_000)]
     public decimal Price { get; private set; }
 
-    public bool InStock { get; private set; }
-
-    public int Version { get; private set; }
-
-    public static Product Create(string name, decimal price, bool inStock)
-    {
-        var product = new Product { Id = Guid.CreateVersion7() };
-        product.Change(name, price, inStock);
-        return product;
-    }
-
-    public void Change(string name, decimal price, bool inStock)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        ArgumentOutOfRangeException.ThrowIfNegative(price);
-
-        Name = name.Trim();
-        Price = price;
-        InStock = inStock;
-    }
+    public bool InStock { get; private set; } = true;
 }
 ```
 
-`Model<Guid>` comes from [Rask.Data](../data.md). It supplies the `Id`, and mapping the class needs
-nothing else — no `DbSet` property, no configuration class, no registration. `[Required, MaxLength(200)]`
-is read by EF Core as the column (`NOT NULL`, 200 characters). The `private set`s are this tutorial's
-choice, not a requirement: public setters compile and save just the same, and the build only points them out
-with a warning (RASK084). Keeping them private means the state changes through the entity's own methods —
-`Create` and `Change` here — which is where the rules live: a blank name or a negative price can't reach the
-database, whoever calls.
+`Aggregate<Guid>` comes from [Rask.Data](../data.md). An **aggregate** is the unit your app loads, changes and
+saves as one: here, a product. Deriving from it is all the mapping there is (no `DbSet` property, no
+configuration class, no registration) and it brings the columns every aggregate needs:
 
-The two markers are opt-in, and opting in costs nothing in the class:
+- **`Id`**, the key: a `Guid`, generated for you when a product is created.
+- **`CreatedAt` / `UpdatedAt`**, stamped on every save.
+- **`Version`**, a concurrency token bumped on every update. It's what stops two people editing the same
+  product from silently overwriting each other, and you'll see it at work in section 4.
+- **`DeletedAt`**, so a delete hides the row instead of destroying it.
 
-- **`ITimestamped`** — `CreatedAt`/`UpdatedAt` columns exist and are filled in on every save, without
-  appearing on the type. Declare `public DateTime CreatedAt { get; private set; }` only when a screen
-  needs to show it.
-- **`IVersioned`** — a concurrency token, bumped on every update. It is the one marker that must declare
-  its property, because an edit form has to carry the version it was loaded at. It's what stops two people
-  editing the same product from silently overwriting each other — you'll see it at work in section 4.
+They're ordinary read-only properties, so a page can show `product.CreatedAt` or sort by it.
+
+Two rules shape the class, and the build enforces both:
+
+- **Setters are `private set`.** A public setter on an aggregate is a build error
+  ([RASK084](../diagnostics.md#rask084)): state changes only through the aggregate's own code, so nothing outside
+  can poke a field. EF Core and the forms below both write through private setters.
+- **No constructor.** The implicit one is what EF Core builds rows with and what a new form starts from. When an
+  aggregate needs a domain way to be created, it gets a static factory; chapter 7 gives `Order` one.
+
+`[Required, MaxLength(200)]` is read twice: EF Core makes the column `NOT NULL` and 200 characters, and the
+form checks it as the user types. `[Range]` is only for the form. `InStock`'s `= true` is the default a new
+product starts with, on the create form too.
 
 **Reading needs nothing more.** `Product.Where(…)`, `Product.FindAsync(id)` and `Product.AsQueryable()` are
 on the type already. Each opens its own database context, runs, and disposes it before it returns, and
 hands back rows nothing is tracking. That's what makes it safe to call them straight from a page: a Rask
 page lives as long as the browser keeps its socket open, and nothing here holds a context between calls.
 
-## 2. The writes: one command per change
+## 2. The form model and the writes
 
-Reads are on the type, and so are the plain writes — `Product.CreateAsync(model)`, `Product.UpdateAsync(id, model)`,
-`Product.DeleteAsync(id)` ([Rask.Data](../data.md#writing-create-update-delete)). This chapter builds the shape a
-change grows into instead: a **command** — a message saying what to do — and a **handler** that does it: loads the
-entity, calls its method, saves. `Features/Products/ProductCommands.cs`:
+A form edits something mutable, and `Product` isn't. So the build generates a **form model** beside it,
+`ProductModel`, and every form binds that, never the aggregate:
+
+- it has a settable copy of `Name`, `Price` and `InStock`, plus the `Version` an edit was loaded at, and never
+  the `Id`;
+- **every property is nullable**, because a form field can be empty whatever the column is;
+- `[Required]`, `[MaxLength]` and `[Range]` are copied onto it, so the form validates by the aggregate's rules;
+- **`new ProductModel()`** starts with the aggregate's defaults (`InStock` is `true`), and **`product.ToModel()`**
+  fills one from a row for an edit form.
+
+The writes are on the type, beside the reads, and take the model:
 
 ```csharp
-using System.ComponentModel.DataAnnotations;
-using Microsoft.EntityFrameworkCore;
-using Shop.Features.Shared;
-
-namespace Shop.Features.Products;
-
-// What the create form fills in. Mutable, because a form binds to it while someone types.
-public sealed class AddProduct : ICommand<Guid>
-{
-    [Required, MaxLength(200)]
-    public string Name { get; set; } = "";
-
-    [Range(0, 1_000_000)]
-    public decimal Price { get; set; }
-
-    public bool InStock { get; set; }
-}
-
-public sealed class AddProductHandler(IDbContextFactory<AppDbContext> contexts)
-    : ICommandHandler<AddProduct, Guid>
-{
-    public async Task<Guid> HandleAsync(AddProduct command, CancellationToken cancellationToken)
-    {
-        await using var db = await contexts.CreateDbContextAsync(cancellationToken);
-
-        var product = Product.Create(command.Name, command.Price, command.InStock);
-        db.Add(product);
-        await db.SaveChangesAsync(cancellationToken);
-
-        return product.Id;
-    }
-}
-
-// What the edit form fills in, starting from the row it edits.
-public sealed class EditProduct : ICommand
-{
-    public Guid Id { get; set; }
-
-    [Required, MaxLength(200)]
-    public string Name { get; set; } = "";
-
-    [Range(0, 1_000_000)]
-    public decimal Price { get; set; }
-
-    public bool InStock { get; set; }
-
-    // The version the form was loaded at.
-    public int Version { get; set; }
-
-    public static EditProduct From(Product product) => new()
-    {
-        Id = product.Id,
-        Name = product.Name,
-        Price = product.Price,
-        InStock = product.InStock,
-        Version = product.Version,
-    };
-}
-
-public sealed class EditProductHandler(IDbContextFactory<AppDbContext> contexts)
-    : ICommandHandler<EditProduct>
-{
-    public async Task HandleAsync(EditProduct command, CancellationToken cancellationToken)
-    {
-        await using var db = await contexts.CreateDbContextAsync(cancellationToken);
-
-        var product = await db.Set<Product>().FindAsync([command.Id], cancellationToken)
-                      ?? throw new KeyNotFoundException($"There is no product {command.Id}.");
-
-        // Compare against the version the form was loaded at, not the one just read, so a save that
-        // lost a race throws DbUpdateConcurrencyException instead of overwriting the winner.
-        db.Entry(product).Property(p => p.Version).OriginalValue = command.Version;
-        product.Change(command.Name, command.Price, command.InStock);
-
-        await db.SaveChangesAsync(cancellationToken);
-    }
-}
-
-public sealed record RemoveProduct(Guid Id, int Version) : ICommand;
-
-public sealed class RemoveProductHandler(IDbContextFactory<AppDbContext> contexts)
-    : ICommandHandler<RemoveProduct>
-{
-    public async Task HandleAsync(RemoveProduct command, CancellationToken cancellationToken)
-    {
-        await using var db = await contexts.CreateDbContextAsync(cancellationToken);
-
-        var product = await db.Set<Product>().FindAsync([command.Id], cancellationToken)
-                      ?? throw new KeyNotFoundException($"There is no product {command.Id}.");
-
-        db.Entry(product).Property(p => p.Version).OriginalValue = command.Version;
-        db.Remove(product);
-
-        await db.SaveChangesAsync(cancellationToken);
-    }
-}
+var product = await Product.CreateAsync(model);   // a new row with a new Id
+await Product.UpdateAsync(id, model);             // only the changed columns; a stale Version throws
+await Product.DeleteAsync(id, version);           // stamps DeletedAt, and reads stop seeing it
 ```
 
-Three things make this the shape every later write repeats:
-
-- **The command is the form model.** `AddProduct` and `EditProduct` are what the pages bind their inputs
-  to, so their `[Required]`, `[MaxLength]` and `[Range]` are checked as the user types — and again by the
-  dispatcher before the handler runs, so a command sent from anywhere else is held to the same rules. The
-  entity's own guards are the last line: they hold even for code that skips both. (The build also generates
-  a `ProductModel` beside `Product` — the entity's properties and attributes as a form shape — for a page
-  that would rather bind that; see [a create and an edit form](../data.md#a-create-and-an-edit-form).)
-- **The handler makes its own context.** `IDbContextFactory<AppDbContext>`, not a context injected
-  directly: a page dispatching in-process shares its live session's services, and a session outlives any
-  unit of work. One context per command, disposed when the command is done.
-- **The save runs the conventions.** `SaveChangesAsync` goes through the interceptors `rask new` wired, so
-  `CreatedAt`/`UpdatedAt` are stamped and `Version` is bumped without a line of it here.
-
-Nothing registers the handlers — they're found at build time. See [CQRS](../cqrs.md) for the rest of what
-the dispatcher does.
+Each one opens a context, saves through the interceptors `rask new` wired (so the timestamps and `Version` are
+looked after), and disposes it. There's nothing to inject and nothing to write here: the next three sections are
+just pages.
 
 ## 3. The create page
 
@@ -214,18 +100,18 @@ using Rask.Core.Routing;
 namespace Shop.Features.Products;
 
 [Route("/products/new")]
-public sealed partial class CreateProduct(IDispatcher dispatcher, Navigator navigator) : Component
+public sealed partial class CreateProduct(Navigator navigator) : Component
 {
-    private readonly AddProduct _model = new();
+    private readonly ProductModel _model = new();
     private string? _error;
 
     protected override Component? HeadAssets => Title["New Product"];
 
-    private async Task SaveAsync(AddProduct model)
+    private async Task SaveAsync(ProductModel model)
     {
         try
         {
-            await dispatcher.SendAsync(model, CancellationToken);
+            await Product.CreateAsync(model, cancellationToken: CancellationToken);
             navigator.NavigateTo(Routes.ProductsPage());
         }
         catch (Exception)
@@ -261,16 +147,15 @@ the field, rather than in a placeholder), and the field's own validation message
 `Href` it renders as a link, and because `Routes.ProductsPage()` is a generated route rather than a string,
 the runtime follows it without reloading the page. See [the UI kit](../ui-kit.md#buttons-and-links-that-go-somewhere).
 
-Nothing in that form mentions validation, and the attributes on `AddProduct` are still enforced:
-`Form<T>` validates its model on its own, with no package to add and nothing to declare, and `SaveAsync`
-only runs for a valid one. `dispatcher.SendAsync(model)` hands back the new product's id — `AddProduct` is
-an `ICommand<Guid>`. See [forms](../forms.md) and [validation](../validation.md).
+Nothing in that form mentions validation, and the attributes on `Product` are still enforced: `Form<T>`
+validates its model on its own, with no package to add and nothing to declare, and `SaveAsync` only runs for a
+valid one. See [forms](../forms.md) and [validation](../validation.md).
 
 ## 4. Edit and delete
 
 Same shape, and the list page in the next step links to both — so write them now or it won't compile.
 
-`Features/Products/UpdateProduct.cs` loads the row, turns it into an `EditProduct`, and sends it back:
+`Features/Products/UpdateProduct.cs` loads the row, turns it into a `ProductModel`, and saves it back:
 
 ```csharp
 using Microsoft.EntityFrameworkCore;
@@ -279,9 +164,9 @@ using Rask.Core.Routing;
 namespace Shop.Features.Products;
 
 [Route("/products/{id:guid}/edit")]
-public sealed partial class UpdateProduct(IDispatcher dispatcher, Navigator navigator) : Component
+public sealed partial class UpdateProduct(Navigator navigator) : Component
 {
-    private EditProduct _model = new();
+    private ProductModel _model = new();
     private bool _loaded;
     private bool _found;
     private string? _error;
@@ -297,17 +182,17 @@ public sealed partial class UpdateProduct(IDispatcher dispatcher, Navigator navi
         _found = product is not null;
         if (product is not null)
         {
-            _model = EditProduct.From(product);
+            _model = product.ToModel();
         }
 
         _loaded = true;
     }
 
-    private async Task SaveAsync(EditProduct model)
+    private async Task SaveAsync(ProductModel model)
     {
         try
         {
-            await dispatcher.SendAsync(model, CancellationToken);
+            await Product.UpdateAsync(Id, model, cancellationToken: CancellationToken);
             navigator.NavigateTo(Routes.ProductsPage());
         }
         catch (DbUpdateConcurrencyException)
@@ -354,15 +239,15 @@ public sealed partial class UpdateProduct(IDispatcher dispatcher, Navigator navi
 
 Four things in that page are doing more than they look:
 
-- **The row comes from the route.** The page looks the product up by its `[RouteParam]`, and
-  `EditProduct.From` copies that row's id — no input on the form carries it.
-- **`From` copies the `Version` too.** That is the whole of optimistic concurrency here: the command
-  remembers the version the form was loaded at, and the handler refuses to write if the row has moved on
+- **The row comes from the route.** The page looks the product up by its `[RouteParam]` and saves to that same
+  `Id`. The model carries no id, so no input on the form can point the save at another row.
+- **`ToModel()` copies the `Version` too.** That is the whole of optimistic concurrency here: the model
+  remembers the version the form was loaded at, and `UpdateAsync` refuses to write if the row has moved on
   since, throwing `DbUpdateConcurrencyException` rather than overwriting someone else's edit. A row deleted
   in the meantime is a `KeyNotFoundException`.
-- **The row `FindAsync` returns is untracked.** Changing it and hoping it saves would do nothing — which is
-  exactly why the change goes through a command, whose handler loads the entity into the context that saves
-  it.
+- **The save writes what the form holds.** `UpdateAsync` loads the row, copies the model onto it and saves only
+  the columns that changed. The row `FindAsync` returned is untracked, so changing it directly would save
+  nothing; the model is how a change gets back.
 - **`OnPropsChangedAsync`, not a constructor or `OnInitialized`.** A Rask component loads its data from its
   lifecycle hooks: `OnMountAsync` once, `OnPropsChangedAsync` whenever its props — here the route's `Id` —
   change. The [lifecycle](../lifecycle.md) guide has the full order.
@@ -376,7 +261,7 @@ namespace Shop.Features.Products;
 
 // A reusable delete button: removes the product, then invokes OnDeleted so the caller (the list page)
 // can refresh.
-public sealed partial class DeleteProduct(IDispatcher dispatcher) : Component
+public sealed partial class DeleteProduct : Component
 {
     public Guid Id { get; set; }
 
@@ -393,7 +278,7 @@ public sealed partial class DeleteProduct(IDispatcher dispatcher) : Component
     {
         try
         {
-            await dispatcher.SendAsync(new RemoveProduct(Id, Version), CancellationToken);
+            await Product.DeleteAsync(Id, Version, cancellationToken: CancellationToken);
         }
         catch (Exception ex) when (ex is DbUpdateConcurrencyException or KeyNotFoundException)
         {
@@ -412,6 +297,9 @@ public sealed partial class DeleteProduct(IDispatcher dispatcher) : Component
         UiButton.Tone(UiTone.Error).Variant(UiVariant.Ghost).Size(UiSize.Sm).OnClick(DeleteAsync)["Delete"];
 }
 ```
+
+A delete is a **soft delete**: `DeletedAt` is stamped and every read, the list's included, stops seeing the row,
+while the data stays in `app.db`.
 
 ## 5. The list page
 
@@ -438,6 +326,7 @@ public sealed partial class ProductsPage : Component
             c.Field(p => p.Name).Title("Name").Sortable(true),
             c.Field(p => p.Price).Title("Price").Sortable(true),
             c.Field(p => p.InStock).Title("In stock"),
+            c.Field(p => p.UpdatedAt).Title("Updated").Sortable(true),
             c.Column().Title("Actions").Cell(p => Div[
                 UiButton.Variant(UiVariant.Ghost).Size(UiSize.Sm).Href(Routes.UpdateProduct(p.Id))["Edit"],
                 // The grid re-runs its query on every render, so asking for one is the whole refresh.
@@ -451,7 +340,8 @@ public sealed partial class ProductsPage : Component
 `Product.AsQueryable()` is a standard `IQueryable<Product>` that holds no context, which is the shape
 [`UiDataGrid`](../data-grid.md) wants: clicking a sortable header becomes `ORDER BY`, and the pager becomes
 `Skip`/`Take`, so the database does the work however large the catalog grows. `RowKey` is required — it
-is what the grid identifies a row by when it redraws.
+is what the grid identifies a row by when it redraws. The grid shows the aggregates themselves, read-only;
+`UpdatedAt` is one of the columns `Aggregate<Guid>` brought, sortable like any other.
 
 Note what the page doesn't have: an `OnMountAsync`. Nothing needs loading up front, because the grid runs
 the query when it renders. When a page does need data before it draws — a count for a heading, say —
@@ -488,30 +378,30 @@ var app = builder.Build();
 Db.Configure(app.Services);
 ```
 
-- `AddRaskCqrs()` registers the dispatcher and every handler the build found — `AddProductHandler` and its
-  two siblings included — and the validation that runs before each one.
-- `AddRaskData<AppDbContext>()` registers the interceptors (auditing, and later soft-delete, concurrency
-  and events) **and names the context to the model surface**. The type argument is what makes
-  `Product.Where(…)` and `Product.FindAsync(…)` know which database to open.
+- `AddRaskData<AppDbContext>()` registers the interceptors (timestamps, versions, soft delete and events)
+  **and names the context to the model surface**. The type argument is what makes `Product.Where(…)` and
+  `Product.CreateAsync(…)` know which database to open.
 - `Db.Configure(app.Services)` points the model surface at it, once, after the container exists. Without
   this pair the app builds and serves, and throws `The model database has not been configured` on the first
   line of data code.
 - `AddDbContextFactory<AppDbContext>(…)` registers the context **as a factory**, not as a shared context.
-  Rask pages are long-lived and can render concurrently, so every read and every handler makes its own
+  Rask pages are long-lived and can render concurrently, so every read and every write makes its own
   short-lived context instead of sharing one. `UseRaskSqlite` is a drop-in for `UseSqlite` that also applies the
   production pragmas (WAL, `busy_timeout`, `foreign_keys`) — so the app handles concurrent writers (the
   jobs, email, and outbox you add in later chapters) without hitting `database is locked`. It reads its
   connection string from `Rask:ConnectionStrings:App` — a local `app.db` in `appsettings.json` — which is
   why it takes the service provider, and a deploy overrides it with `Rask__ConnectionStrings__App`, which is
   how it points at a persistent volume.
+- `AddRaskCqrs()` registers the dispatcher that the jobs and domain events of later chapters are handed
+  through.
 
-That factory is also what a page injects when a write is too small to deserve a command — one button that
-saves one change. [Chapter 7](07-outbox-events.md)'s **Buy** button does exactly that.
+That factory is also what a page or a handler injects for work richer than one aggregate's write, such as
+several aggregates changed in one transaction; see [Rask.Data](../data.md#writing-plain-ef-core).
 
 ## 7. Create the table
 
 The code is ready, but `app.db` has no table for `Product` yet. EF Core **migrations** generate the schema
-from your entities. `rask new` already created and applied the first one — the batteries' tables — and
+from your aggregates. `rask new` already created and applied the first one — the batteries' tables — and
 `rask db` wraps the EF tooling for every one after it:
 
 ```bash
@@ -520,7 +410,7 @@ rask db update                # apply it — adds the Product table to app.db
 ```
 
 `rask db add` writes into the `Migrations/` folder you commit alongside your code; `rask db update` runs it
-against `app.db`. Every time you change an entity later, it's the same pair: `rask db add <Name>` then
+against `app.db`. Every time you change an aggregate later, it's the same pair: `rask db add <Name>` then
 `rask db update`.
 
 ## 8. Run it
@@ -530,13 +420,13 @@ rask dev
 ```
 
 Browse to **`/products`**. You get a sortable, paged list with **New**, **Edit**, and **Delete** — each one
-reading SQLite through the model and writing it through a command. Create a product and refresh: it's still there, because it's
-on disk in `app.db`.
+reading and writing SQLite through the `Product` type. Create a product and refresh: it's still there, because
+it's on disk in `app.db`.
 
 ## Verify
 
-- `Features/Products/` holds the entity, its three commands and four components — no configuration class,
-  and `AppDbContext` is untouched.
+- `Features/Products/` holds the aggregate and four components — no configuration class, no hand-written form
+  model, and `AppDbContext` is untouched.
 - The app builds with no warnings.
 - After `rask db update`, `/products` renders.
 - Creating a product then restarting the app still shows it (it's persisted, not in-memory).
@@ -545,10 +435,10 @@ on disk in `app.db`.
 
 > **Troubleshooting.** `rask db` can't find the project → make sure you `cd`'d into `Shop` first.
 > `/products` fails with `no such table` → you skipped `rask db update`. The build can't find
-> `Routes.ProductsPage()` or `Product.Where` → those are generated; build once and the IDE catches up. For a
-> route, the generator also needs the `[Route]` attribute on the page.
+> `Routes.ProductsPage()`, `ProductModel` or `Product.Where` → those are generated; build once and the IDE
+> catches up. For a route, the generator also needs the `[Route]` attribute on the page.
 
-**Learn more:** [Rask.Data](../data.md) · [CQRS](../cqrs.md) · [forms](../forms.md) ·
-[data grid](../data-grid.md) · [the `rask` CLI](../cli.md)
+**Learn more:** [Rask.Data](../data.md) · [forms](../forms.md) · [data grid](../data-grid.md) ·
+[the `rask` CLI](../cli.md)
 
 Next → **[Chapter 3: A second feature + locking it down](03-orders-and-auth.md)**

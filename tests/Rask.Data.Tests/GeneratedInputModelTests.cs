@@ -4,13 +4,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Rask.Data.Tests;
 
-// An entity shaped the way the guide shows one — private constructor, private setters, a validation attribute,
-// a value object, a counter the application owns — so these drive the form model and the writes the source
+// An aggregate shaped the way the guide shows one — no constructor, private setters, a validation attribute, a value
+// object, an optional note, a counter the application owns — so these drive the form model and the writes the source
 // generator really emitted for it in this compilation, not the hook underneath them.
-public sealed class Invoice : Model<Guid>, ITimestamped, IVersioned
+public sealed class Invoice : Aggregate<Guid>
 {
-    private Invoice() { }
-
     [Required]
     [MaxLength(40)]
     public string Title { get; private set; } = "";
@@ -19,21 +17,20 @@ public sealed class Invoice : Model<Guid>, ITimestamped, IVersioned
 
     public InvoiceTotal Total { get; private set; } = new(0m, "EUR");
 
-    [SkipModel]
     public int Views { get; private set; }
 
-    public DateTime CreatedAt { get; private set; }
-
-    public int Version { get; private set; }
+    public string? Note { get; private set; }
 
     public static Invoice Draft(string title) => new() { Id = Guid.CreateVersion7(), Title = title };
 
     public void Viewed() => Views++;
 
     public void Retitle(string title) => Title = title;
+
+    public void Annotate(string? note) => Note = note;
 }
 
-public sealed record InvoiceTotal(decimal Amount, string Currency) : IValueObject;
+public sealed record InvoiceTotal(decimal Amount, string Currency);
 
 [Collection(DataDbCollection.Name)]
 public sealed class GeneratedInputModelTests : IDisposable
@@ -55,14 +52,8 @@ public sealed class GeneratedInputModelTests : IDisposable
         Total = new InvoiceModel.InvoiceTotalModel { Amount = 99m, Currency = "HUF" },
     };
 
-    // What an edit page does by hand: fill the form from the row it read.
-    private static InvoiceModel EditOf(Invoice invoice) => new()
-    {
-        Title = invoice.Title,
-        Balance = invoice.Balance,
-        Total = new InvoiceModel.InvoiceTotalModel { Amount = invoice.Total.Amount, Currency = invoice.Total.Currency },
-        Version = invoice.Version,
-    };
+    // What an edit page does: fill the form from the row it read.
+    private static InvoiceModel EditOf(Invoice invoice) => invoice.ToModel();
 
     private static bool IsValid(object model, out List<ValidationResult> results)
     {
@@ -81,14 +72,20 @@ public sealed class GeneratedInputModelTests : IDisposable
             .Order(StringComparer.Ordinal)
             .ToArray();
 
-        Assert.Equal(["Balance", "Title", "Total", "Version"], names);
+        Assert.Equal(["Balance", "Note", "Title", "Total", "Version", "Views"], names);
         Assert.All(typeof(InvoiceModel).GetProperties(), p => Assert.True(p.CanWrite, p.Name));
     }
 
     [Fact]
-    public void A_skipped_property_is_left_off_the_model()
+    public void Every_property_of_the_model_is_nullable()
     {
-        Assert.Null(typeof(InvoiceModel).GetProperty(nameof(Invoice.Views)));
+        var nullability = new NullabilityInfoContext();
+
+        Assert.All(typeof(InvoiceModel).GetProperties(), p =>
+            Assert.True(
+                Nullable.GetUnderlyingType(p.PropertyType) is not null ||
+                nullability.Create(p).WriteState == NullabilityState.Nullable,
+                p.Name));
     }
 
     [Fact]
@@ -100,7 +97,7 @@ public sealed class GeneratedInputModelTests : IDisposable
         Assert.NotNull(new InvoiceModel().Total);
 
         var model = NewModel();
-        model.Total.Amount = 12m;
+        model.Total!.Amount = 12m;
         Assert.Equal(12m, model.Total.Amount);
     }
 
@@ -121,12 +118,32 @@ public sealed class GeneratedInputModelTests : IDisposable
     }
 
     [Fact]
-    public void The_model_carries_only_its_values_and_there_is_no_ToModel()
+    public void A_new_model_holds_the_aggregates_own_defaults()
     {
-        Assert.DoesNotContain(
-            typeof(InvoiceModel).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly),
-            m => !m.IsSpecialName);
-        Assert.DoesNotContain(typeof(InvoiceModelExtensions).GetMethods(), m => m.Name == "ToModel");
+        var model = new InvoiceModel();
+
+        Assert.Equal("", model.Title);
+        Assert.Equal(0m, model.Balance);
+        Assert.Equal(0m, model.Total!.Amount);
+        Assert.Equal("EUR", model.Total.Currency);
+        Assert.Null(model.Note);
+        Assert.Equal(0, model.Version);
+    }
+
+    [Fact]
+    public void ToModel_copies_every_value_including_the_version_and_the_value_object()
+    {
+        var invoice = Invoice.Draft("March");
+        invoice.Annotate("net 30");
+        invoice.Viewed();
+
+        var model = invoice.ToModel();
+
+        Assert.Equal("March", model.Title);
+        Assert.Equal("net 30", model.Note);
+        Assert.Equal(1, model.Views);
+        Assert.Equal("EUR", model.Total!.Currency);
+        Assert.Equal(0, model.Version);
     }
 
     // ---- create -------------------------------------------------------------------------------------
@@ -183,7 +200,7 @@ public sealed class GeneratedInputModelTests : IDisposable
         var created = await Invoice.CreateAsync(NewModel(), invoice =>
         {
             Assert.Equal("March", invoice.Title); // the model is already on it
-            invoice.Viewed();                     // a [SkipModel] value the form never carries
+            invoice.Viewed();                     // a value the form never carries
         });
 
         Assert.Equal(1, (await Invoice.FindAsync(created.Id))!.Views);
@@ -240,29 +257,40 @@ public sealed class GeneratedInputModelTests : IDisposable
     // ---- update -------------------------------------------------------------------------------------
 
     [Fact]
-    public async Task UpdateAsync_writes_the_edit_bumps_the_version_and_never_touches_a_skipped_property()
+    public async Task UpdateAsync_writes_the_edit_and_bumps_the_version()
     {
         await using var database = await StartDatabaseAsync();
         var created = await Invoice.CreateAsync(NewModel());
         var edit = EditOf((await Invoice.FindAsync(created.Id))!);
 
-        // The application moves the skipped counter on its own, between the read and the save.
-        var tracked = await database.Context.Set<Invoice>().SingleAsync(i => i.Id == created.Id);
-        tracked.Viewed();
-        tracked.Viewed();
-        await database.Context.SaveChangesAsync();
-
-        edit.Version = tracked.Version;
         edit.Title = "April";
-        edit.Total.Amount = 150m;
+        edit.Total!.Amount = 150m;
         var updated = await Invoice.UpdateAsync(created.Id, edit);
 
         var stored = await Invoice.FindAsync(created.Id);
         Assert.Equal("April", stored!.Title);
         Assert.Equal(new InvoiceTotal(150m, "HUF"), stored.Total);
-        Assert.Equal(2, stored.Views);
-        Assert.Equal(tracked.Version + 1, stored.Version);
+        Assert.Equal(1, stored.Version);
         Assert.Equal(stored.Version, updated.Version);
+    }
+
+    [Fact]
+    public async Task A_null_clears_a_nullable_property_and_leaves_a_non_nullable_one()
+    {
+        await using var database = await StartDatabaseAsync();
+        var model = NewModel();
+        model.Note = "net 30";
+        var created = await Invoice.CreateAsync(model);
+
+        // The form emptied Note, and never set Balance or Total at all.
+        var edit = new InvoiceModel(blank: true) { Title = "April", Note = null, Version = created.Version };
+        await Invoice.UpdateAsync(created.Id, edit);
+
+        var stored = (await Invoice.FindAsync(created.Id))!;
+        Assert.Equal("April", stored.Title);
+        Assert.Null(stored.Note);
+        Assert.Equal(120.5m, stored.Balance);
+        Assert.Equal(new InvoiceTotal(99m, "HUF"), stored.Total);
     }
 
     [Fact]

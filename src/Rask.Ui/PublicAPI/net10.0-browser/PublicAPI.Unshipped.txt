@@ -3163,3 +3163,9 @@ virtual Rask.Ui.UiElement.ResolveAria() -> System.Collections.Generic.IReadOnlyD
 ~override Rask.Ui.UiGridRequest.ToString() -> string
 ~override Rask.Ui.UiGridSort.Equals(object obj) -> bool
 ~override Rask.Ui.UiGridSort.ToString() -> string
+Rask.Ui.RaskSeed_UiCalendar.Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly?>!>! Bind) -> Rask.Ui.RaskPending_UiCalendar
+Rask.Ui.RaskSeed_UiCheckbox.Bind(System.Linq.Expressions.Expression<System.Func<bool?>!>! Bind) -> Rask.Ui.RaskPending_UiCheckbox
+Rask.Ui.RaskSeed_UiRadio.Bind(System.Linq.Expressions.Expression<System.Func<bool?>!>! Bind) -> Rask.Ui.RaskPending_UiRadio
+Rask.Ui.RaskSeed_UiRange.Bind(System.Linq.Expressions.Expression<System.Func<double?>!>! Bind) -> Rask.Ui.RaskPending_UiRange
+Rask.Ui.RaskSeed_UiRating.Bind(System.Linq.Expressions.Expression<System.Func<int?>!>! Bind) -> Rask.Ui.RaskPending_UiRating
+Rask.Ui.RaskSeed_UiToggle.Bind(System.Linq.Expressions.Expression<System.Func<bool?>!>! Bind) -> Rask.Ui.RaskPending_UiToggle

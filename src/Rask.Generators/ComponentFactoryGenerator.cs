@@ -1555,6 +1555,26 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                     isBind ? -1 : Bit(bits, p.Name),
                     p.Summary),
             ]);
+
+            // A control over a non-nullable value type binds a nullable property too: every property of a
+            // generated form model is nullable, so `UiCheckbox.Bind(() => model.InStock)` over a `bool?` has
+            // to open the chain as surely as over a `bool`. A second overload rather than a wider parameter,
+            // so a `bool` property still takes the exact one (C# prefers the identity return conversion) and
+            // the controlled half, Value and OnChange, keeps its plain `bool`. A null reads as the control's
+            // empty state, and a write boxes a `bool`, which either property takes.
+            if (isBind && c.FormControl is { LiftsToNullable: true } lifted)
+            {
+                openings.Add([
+                    new EntryInference(
+                        p.Name,
+                        "global::System.Linq.Expressions.Expression<global::System.Func<" + lifted.ValueTypeFqn + "?>>",
+                        p.Name,
+                        Track: false,
+                        PendingBit: -1,
+                        p.Summary,
+                        Lift: "global::Rask.Core.Forms.ExpressionAccessor.NonNullable"),
+                ]);
+            }
         }
 
         return openings;
@@ -2396,7 +2416,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     private static void EmitPinAssignment(
         StringBuilder sb, EntryInference pin, string value, string pad = "")
     {
-        var assigned = value;
+        var assigned = pin.Lift is null ? value : pin.Lift + "(" + value + ")";
 
         if (pin.Track)
         {
@@ -2941,13 +2961,17 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         return found;
     }
 
+    // Lift, when set, is the method the argument goes through before it is assigned: the nullable `Bind`
+    // overload hands its `Expression<Func<T?>>` to ExpressionAccessor.NonNullable to become the property's
+    // `Expression<Func<T>>`.
     private readonly record struct EntryInference(
         string ParamName,
         string ParamTypeFqn,
         string PropertyName,
         bool Track,
         int PendingBit,
-        string Summary = "");
+        string Summary = "",
+        string? Lift = null);
 
     // Construction that cannot be `new T()`: no parameterless constructor, or a required member the
     // language will not let `new()` satisfy.
@@ -4454,8 +4478,11 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             if (i.TypeArguments.Length == 1 &&
                 i.OriginalDefinition.ToDisplayString() == FormControlOpenFullName)
             {
-                var valueType = TypeName(i.TypeArguments[0], FullyQualifiedNullable, compilation);
-                return new FormControlInfo(valueType);
+                var argument = i.TypeArguments[0];
+                var valueType = TypeName(argument, FullyQualifiedNullable, compilation);
+                var lifts = argument is { IsValueType: true, TypeKind: not TypeKind.TypeParameter }
+                            && argument.OriginalDefinition.SpecialType != SpecialType.System_Nullable_T;
+                return new FormControlInfo(valueType, lifts);
             }
         }
 
@@ -5431,7 +5458,10 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     // Set when a component implements IFormControl<T> — drives the synthesized bound factory and the
     // exclusion of the bound-mode interface members from the controlled factory. ValueTypeFqn is the T
     // (the validator/after-bind fan key); the bound-member names are the fixed interface member names.
-    private readonly record struct FormControlInfo(string ValueTypeFqn);
+    //
+    // LiftsToNullable: T is a non-nullable value type (`bool`, `int`, `DateOnly`), so the control's chain also
+    // opens on `Bind(Expression<Func<T?>>)` — a form model's `bool?` binds as readily as a `bool`.
+    private readonly record struct FormControlInfo(string ValueTypeFqn, bool LiftsToNullable = false);
 
     private readonly record struct GenericFactoryConfig(
         string TypeParameter,

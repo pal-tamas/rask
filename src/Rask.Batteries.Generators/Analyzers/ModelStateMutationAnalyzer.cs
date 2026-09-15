@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -8,23 +9,26 @@ using Rask.Generators.Shared;
 namespace Rask.Data.Generators.Analyzers;
 
 /// <summary>
-///     RASK084 — an entity or a value object whose state can be changed from outside the type.
+///     RASK084 — an aggregate, an entity or a value object whose state can be changed from outside the type.
 /// </summary>
 /// <remarks>
 ///     <para>
-///         A hint, never a rule: public setters compile, map and save, and nothing in Rask requires a private
-///         one. An entity that changes only through its own constructor and methods keeps its invariants and
-///         its domain events in one place, and EF Core materialises through private setters, so the warning
-///         points out where that is not so. It is a warning by design — never raise it to an error here.
+///         An error: state changes only through the type's own constructor and methods, which keeps its invariants
+///         and its domain events in one place. EF Core materialises through private setters and forms bind through
+///         them, so nothing in Rask needs a public one.
+///     </para>
+///     <para>
+///         A value object carries no marker, so it is found from the entity that holds it: every value-object type
+///         an entity reaches is checked once per compilation, whichever entity reached it first.
 ///     </para>
 ///     <para>
 ///         Symbol-based rather than syntax-based, so a partial type is judged once as a whole and members
-///         inherited from metadata (<c>Model&lt;TId&gt;.Id</c>, a protected setter) are never seen at all —
+///         inherited from metadata (<c>Entity&lt;TId&gt;.Id</c>, a protected setter) are never seen at all —
 ///         <see cref="INamespaceOrTypeSymbol.GetMembers()" /> is the type's OWN members.
 ///     </para>
 ///     <para>
 ///         The one exemption is the property a positional record parameter declares:
-///         <c>record Money(decimal Amount, string Currency) : IValueObject</c> gets public <c>init</c>
+///         <c>record Money(decimal Amount, string Currency)</c> gets public <c>init</c>
 ///         accessors from the compiler, and that is the idiomatic immutable value object — there is no
 ///         accessor in the source to change. It is recognised by its declaring syntax being the
 ///         <see cref="ParameterSyntax" /> rather than a property declaration. A positional parameter of a
@@ -40,14 +44,14 @@ public sealed class ModelStateMutationAnalyzer : DiagnosticAnalyzer
         "'{0}.{1}' {2}, so code outside '{0}' can change its state — {3}, and change it through the methods of "
         + "'{0}' (or its constructor)",
         DiagnosticHelp.Category,
-        DiagnosticSeverity.Warning,
+        DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        description: "A hint, not a rule: public setters on an entity (a class deriving from Rask.Data.Model) or "
-                     + "a value object (IValueObject) are allowed. A public setter, a public init accessor or a "
-                     + "public mutable field lets any caller skip the methods that keep the type valid, and EF "
-                     + "Core materialises through private setters, so nothing in the framework needs the public "
-                     + "one. Silence it with dotnet_diagnostic.RASK084.severity = none for open entities. A "
-                     + "positional record parameter's compiler-generated init accessor is exempt.",
+        description: "An aggregate, an entity (a class deriving from Rask.Data.Entity<TId>) or a value object one of "
+                     + "them holds changes only through its own constructor and methods. A public setter, a public "
+                     + "init accessor or a public mutable field lets any caller skip the methods that keep the type "
+                     + "valid, and EF Core and forms both work through private setters, so nothing in the framework "
+                     + "needs the public one. A positional record parameter's compiler-generated init accessor is "
+                     + "exempt.",
         helpLinkUri: DiagnosticHelp.Link("RASK084"));
 
     private static readonly ImmutableDictionary<string, string?> NoFix =
@@ -62,23 +66,39 @@ public sealed class ModelStateMutationAnalyzer : DiagnosticAnalyzer
         context.RegisterCompilationStartAction(static start =>
         {
             var types = ModelTypes.Resolve(start.Compilation);
-            if (types.Model is null && types.ValueObject is null)
+            if (types.EntityOfId is null)
             {
                 return;
             }
 
-            start.RegisterSymbolAction(ctx => Analyze(ctx, types), SymbolKind.NamedType);
+            // A value object two entities hold is still reported once.
+            var checkedValueObjects = new ConcurrentDictionary<INamedTypeSymbol, byte>(SymbolEqualityComparer.Default);
+            start.RegisterSymbolAction(ctx => Analyze(ctx, types, checkedValueObjects), SymbolKind.NamedType);
         });
     }
 
-    private static void Analyze(SymbolAnalysisContext context, ModelTypes types)
+    private static void Analyze(
+        SymbolAnalysisContext context, ModelTypes types, ConcurrentDictionary<INamedTypeSymbol, byte> checkedValueObjects)
     {
         var type = (INamedTypeSymbol)context.Symbol;
-        if (!types.IsEntity(type) && !types.IsValueObject(type))
+        if (!types.IsEntity(type))
         {
             return;
         }
 
+        AnalyzeMembers(context, type);
+
+        foreach (var valueObject in ModelTypes.ValueObjectsOf(type))
+        {
+            if (checkedValueObjects.TryAdd(valueObject, 0))
+            {
+                AnalyzeMembers(context, valueObject);
+            }
+        }
+    }
+
+    private static void AnalyzeMembers(SymbolAnalysisContext context, INamedTypeSymbol type)
+    {
         foreach (var member in type.GetMembers())
         {
             switch (member)

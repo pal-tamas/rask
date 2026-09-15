@@ -91,7 +91,7 @@ The jobs tables are mapped in `AppDbContext.OnModelCreating`:
 ```csharp
 protected override void OnModelCreating(ModelBuilder modelBuilder)
 {
-    base.OnModelCreating(modelBuilder);       // every Model<TId> you declared
+    base.OnModelCreating(modelBuilder);       // every aggregate you declared
     modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
     modelBuilder.AddRaskOutbox();
     modelBuilder.AddRaskJobs();               // ← the Job + RecurringJobState tables
@@ -111,16 +111,16 @@ after the order is saved. `SendOrderReceipt` lives in `Features/Shared/`, so the
 `using Shop.Features.Shared;`:
 
 ```csharp
-public sealed partial class CreateOrder(IDispatcher dispatcher, IJob jobs, Navigator navigator) : Component
+public sealed partial class CreateOrder(IJob jobs, Navigator navigator) : Component
 {
     // … the fields and Render() are unchanged …
 
-    private async Task SaveAsync(AddOrder model)
+    private async Task SaveAsync(OrderModel model)
     {
         try
         {
-            var orderId = await dispatcher.SendAsync(model, CancellationToken);
-            await jobs.EnqueueAsync(new SendOrderReceipt(orderId), CancellationToken);   // ← enqueue
+            var order = await Order.CreateAsync(model, cancellationToken: CancellationToken);
+            await jobs.EnqueueAsync(new SendOrderReceipt(order.Id), CancellationToken);   // ← enqueue
             navigator.NavigateTo(Routes.OrdersPage());
         }
         catch (Exception)
@@ -131,7 +131,7 @@ public sealed partial class CreateOrder(IDispatcher dispatcher, IJob jobs, Navig
 }
 ```
 
-`AddOrder` is an `ICommand<Guid>`, so `SendAsync` hands back the saved order's id. `EnqueueAsync` returns as soon as the job row
+`Order.CreateAsync` hands back the saved order, with the `Id` it was given. `EnqueueAsync` returns as soon as the job row
 is written — the customer's request finishes immediately, and the worker runs the job moments later. Need it
 *later*? `ScheduleAsync(job, TimeSpan.FromHours(24))` or `ScheduleAsync(job, aDateTimeOffset)`. Need it
 *repeatedly*? Register a recurring job in the same `AddRaskJobs` options:

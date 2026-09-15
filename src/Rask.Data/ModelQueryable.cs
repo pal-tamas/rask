@@ -70,7 +70,7 @@ internal interface IModelQueryProvider : IAsyncQueryProvider
 ///     </para>
 /// </remarks>
 internal sealed class ModelQueryProvider<TEntity> : IModelQueryProvider
-    where TEntity : Model
+    where TEntity : class, IAggregate
 {
     private readonly ModelQuery<TEntity> _query;
     private readonly ModelQueryable<TEntity> _root;

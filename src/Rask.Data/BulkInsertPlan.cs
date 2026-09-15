@@ -81,7 +81,7 @@ internal sealed class BulkInsertPlan
     /// <summary>The mapped columns, in the order their parameters appear.</summary>
     internal IReadOnlyList<BulkInsertColumn> Columns { get; }
 
-    /// <summary>Setters for the audit stamps, when the entity is <see cref="ITimestamped"/>.</summary>
+    /// <summary>Setters for the audit stamps, when the entity is <see cref="Entity{TId}"/>.</summary>
     internal BulkTimestamps? Timestamps { get; }
 
     internal static BulkInsertPlan For<TEntity>(DbContext context)
@@ -160,7 +160,7 @@ internal sealed class BulkInsertPlan
 
             // Nothing generates or assigns values on this path, so a key left at its default would be written
             // as-is - and the second such row would collide on the primary key. That covers a value-generated
-            // property, and a Guid key the entity assigns itself: Rask.Data's key convention marks a Model<TId>
+            // property, and a Guid key the entity assigns itself: Rask.Data's key convention marks an Entity<TId>
             // key never generated, so a factory that forgot its Id would otherwise insert Guid.Empty here. Only a
             // Guid (or a strongly-typed id stored as one) is guarded that way - an enum or integer key whose
             // default is a real value must still insert.
@@ -200,7 +200,7 @@ internal sealed class BulkInsertPlan
     private static BulkTimestamps? BuildTimestamps<TEntity>(IEntityType entityType)
         where TEntity : class
     {
-        if (!typeof(ITimestamped).IsAssignableFrom(typeof(TEntity)))
+        if (!typeof(IEntity).IsAssignableFrom(typeof(TEntity)))
         {
             return null;
         }

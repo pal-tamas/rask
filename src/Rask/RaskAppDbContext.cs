@@ -16,7 +16,7 @@ namespace Rask;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The entities come from <see cref="ModelRegistry" /> — everything deriving from <see cref="Model{TId}" />
+/// The entities come from <see cref="ModelRegistry" /> — everything deriving from <see cref="Aggregate{TId}" />
 /// that the source generator found, with Rask's conventions applied and each entity's own static
 /// <c>Configure</c> run last. Declaring the entity is the whole of what an app
 /// does: there is no context to write, no <c>DbSet</c> property to remember, and no

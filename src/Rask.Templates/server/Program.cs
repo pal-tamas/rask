@@ -157,7 +157,7 @@ builder.Services.AddRaskCqrsServer();
 // UseSqlite that also applies the production pragmas (WAL, busy_timeout, foreign_keys), and reads
 // its connection string from Rask:ConnectionStrings:App — a local app.db in appsettings.json, which
 // `rask deploy` points at a mounted volume so the DB survives redeploys.
-// For each entity, declare a class deriving from Model<TId> anywhere in the project — no
+// For each entity, declare a class deriving from Aggregate<TId> anywhere in the project — no
 // DbSet property, no configuration class, no registration — then `rask db add <Name>` /
 // `rask db update` to create and apply the migration.
 // rask:end

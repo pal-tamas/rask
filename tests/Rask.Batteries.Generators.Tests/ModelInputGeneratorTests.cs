@@ -43,14 +43,12 @@ public class ModelInputGeneratorTests
             using System.ComponentModel.DataAnnotations;
             using Rask.Data;
             namespace Shop;
-            public sealed class Product : Model<Guid>, ITimestamped, IVersioned
+            public sealed class Product : Aggregate<Guid>
             {
                 private Product() { }
                 [Required, MaxLength(200)] public string Name { get; private set; } = "";
                 public decimal Price { get; set; }
                 public string? Notes { get; private set; }
-                public DateTime CreatedAt { get; private set; }
-                public int Version { get; private set; }
             }
             """);
 
@@ -59,11 +57,13 @@ public class ModelInputGeneratorTests
 
         var source = run.GeneratedSource("Shop.ProductModel");
         Assert.Contains("public sealed partial class ProductModel", source, StringComparison.Ordinal);
-        Assert.Contains("public string Name { get; set; } = \"\";", source, StringComparison.Ordinal);
+        Assert.Contains("public string? Name { get; set; }", source, StringComparison.Ordinal);
         Assert.Contains("[global::System.ComponentModel.DataAnnotations.RequiredAttribute()]", source, StringComparison.Ordinal);
         Assert.Contains("[global::System.ComponentModel.DataAnnotations.MaxLengthAttribute(200)]", source, StringComparison.Ordinal);
         Assert.Contains("public string? Notes { get; set; }", source, StringComparison.Ordinal);
-        Assert.Contains("public int Version { get; set; }", source, StringComparison.Ordinal);
+        Assert.Contains("public int? Version { get; set; }", source, StringComparison.Ordinal);
+        Assert.Contains("public decimal? Price { get; set; }", source, StringComparison.Ordinal);
+        Assert.Contains("public ProductModel() => ProductModelExtensions.__Fill(this, ProductModelExtensions.__Defaults());", source, StringComparison.Ordinal);
         Assert.DoesNotContain("CreatedAt", source, StringComparison.Ordinal);
 
         Assert.Contains("CreateAsync(global::Shop.ProductModel model, ", source, StringComparison.Ordinal);
@@ -79,7 +79,7 @@ public class ModelInputGeneratorTests
             StringComparison.Ordinal);
         Assert.Contains("UpdateAsync(global::System.Guid id, global::Shop.ProductModel model, ", source, StringComparison.Ordinal);
         Assert.Contains("DeleteAsync(global::System.Guid id, int? version = null, ", source, StringComparison.Ordinal);
-        Assert.DoesNotContain("ToModel", source, StringComparison.Ordinal);
+        Assert.Contains("public global::Shop.ProductModel ToModel()", source, StringComparison.Ordinal);
         Assert.Contains(
             "UpdateAsync(global::System.Guid id, global::System.Action<global::Shop.Product> apply, int? version = null, ",
             source,
@@ -108,7 +108,7 @@ public class ModelInputGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Product : Model<Guid>
+            public sealed class Product : Aggregate<Guid>
             {
                 private Product() { }
                 public string Name { get; private set; } = "";
@@ -122,73 +122,71 @@ public class ModelInputGeneratorTests
         Assert.DoesNotContain("model.Id", source, StringComparison.Ordinal);
         Assert.DoesNotContain("Id = entity.Id", source, StringComparison.Ordinal);
         Assert.Contains(
-            ".UpdateAsync<global::Shop.Product>(id!, null, entity => { __Apply(entity, model); apply?.Invoke(entity); }, db, cancellationToken);",
+            ".UpdateAsync<global::Shop.Product>(id!, model.Version, entity => { __Apply(entity, model); apply?.Invoke(entity); }, db, cancellationToken);",
             source,
             StringComparison.Ordinal);
         Assert.Contains("<param name=\"id\">The id of the row to update.</param>", source, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void An_entity_without_a_version_deletes_by_id_alone()
+    public void Every_aggregate_is_versioned_so_a_delete_takes_an_optional_version()
     {
         var run = Run("""
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Tag : Model<Guid>
+            public sealed class Tag : Aggregate<Guid>
             {
-                private Tag() { }
                 public string Label { get; private set; } = "";
             }
             """);
 
         Assert.Empty(run.GeneratedCompileErrors());
-        var source = run.GeneratedSource("Shop.TagModel");
         Assert.Contains(
-            "DeleteAsync(global::System.Guid id, global::Microsoft.EntityFrameworkCore.DbContext? db = null, "
-            + "global::System.Threading.CancellationToken cancellationToken = default)",
-            source,
+            "DeleteAsync(global::System.Guid id, int? version = null, global::Microsoft.EntityFrameworkCore.DbContext? db = null, ",
+            run.GeneratedSource("Shop.TagModel"),
             StringComparison.Ordinal);
-        Assert.DoesNotContain("int? version", source, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void SkipModel_leaves_a_property_off_and_on_the_class_generates_nothing()
+    public void Every_mapped_property_is_on_the_model_and_a_null_clears_only_a_nullable_one()
     {
         var run = Run("""
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Product : Model<Guid>
+            public sealed class Product : Aggregate<Guid>
             {
-                private Product() { }
                 public string Name { get; private set; } = "";
-                [SkipModel] public int Views { get; private set; }
-            }
-
-            [SkipModel]
-            public sealed class AuditRow : Model<Guid>
-            {
+                public int Views { get; private set; }
+                public string? Notes { get; private set; }
             }
             """);
 
         Assert.Empty(run.Diagnostics);
         Assert.Empty(run.GeneratedCompileErrors());
-        Assert.DoesNotContain("Views", run.GeneratedSource("Shop.ProductModel"), StringComparison.Ordinal);
-        Assert.False(run.HasGeneratedSource("AuditRowModel"));
+
+        var source = run.GeneratedSource("Shop.ProductModel");
+        Assert.Contains("public int? Views { get; set; }", source, StringComparison.Ordinal);
+
+        // Notes is nullable on the aggregate, so an emptied form field clears it; Name and Views are not, so a null
+        // leaves them as they are.
+        Assert.Contains("__Setter2_Notes(entity, null);", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("__Setter0_Name(entity, null);", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("__Setter1_Views(entity, null);", source, StringComparison.Ordinal);
     }
 
     [Fact]
     public void A_strongly_typed_guid_id_is_the_key_parameter_and_is_assigned_on_create()
     {
         // EF Core does not generate a key behind a value converter, so the create assigns one — only when the
-        // constructor left it unset — through a generic accessor into Model<TId>.Id.
+        // constructor left it unset — through a generic accessor into Aggregate<TId>.Id.
         var run = Run("""
             using System;
             using Rask.Data;
             namespace Shop;
             public readonly record struct ProductId(Guid Value);
-            public sealed class Product : Model<ProductId>
+            public sealed class Product : Aggregate<ProductId>
             {
                 private Product() { }
                 public string Name { get; private set; } = "";
@@ -224,13 +222,13 @@ public class ModelInputGeneratorTests
             public readonly record struct ProductId(Guid Value);
             public readonly record struct OrderNumber(long Value);
             public readonly record struct Sku(string Value);
-            public sealed class Product : Model<ProductId> { private Product() { } }
-            public sealed class Tag : Model<Guid> { private Tag() { } }
-            public sealed class Note : Model<int> { private Note() { } }
-            public sealed class Entry : Model<long> { private Entry() { } }
-            public sealed class Order : Model<OrderNumber> { private Order() { } }
-            public sealed class Item : Model<Sku> { private Item() { } }
-            public sealed class Country : Model<string> { private Country() { } }
+            public sealed class Product : Aggregate<ProductId> { private Product() { } }
+            public sealed class Tag : Aggregate<Guid> { private Tag() { } }
+            public sealed class Note : Aggregate<int> { private Note() { } }
+            public sealed class Entry : Aggregate<long> { private Entry() { } }
+            public sealed class Order : Aggregate<OrderNumber> { private Order() { } }
+            public sealed class Item : Aggregate<Sku> { private Item() { } }
+            public sealed class Country : Aggregate<string> { private Country() { } }
             """);
 
         Assert.Empty(run.Diagnostics);
@@ -285,13 +283,13 @@ public class ModelInputGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed record Money(decimal Amount, string Currency) : IValueObject;
-            public sealed class Packaging : IValueObject
+            public sealed record Money(decimal Amount, string Currency);
+            public sealed class Packaging
             {
                 public Money Cost { get; set; } = new(0m, "EUR");
                 public string Material { get; set; } = "card";
             }
-            public sealed class Order : Model<Guid>
+            public sealed class Order : Aggregate<Guid>
             {
                 private Order() { }
                 public Money Total { get; private set; } = new(0m, "EUR");
@@ -304,9 +302,9 @@ public class ModelInputGeneratorTests
         var source = run.GeneratedSource("Shop.OrderModel");
         Assert.Contains("public sealed partial class MoneyModel", source, StringComparison.Ordinal);
         Assert.Contains("public sealed partial class PackagingModel", source, StringComparison.Ordinal);
-        Assert.Contains("public MoneyModel Total { get; set; } = new();", source, StringComparison.Ordinal);
+        Assert.Contains("public MoneyModel? Total { get; set; }", source, StringComparison.Ordinal);
         Assert.Contains("public PackagingModel? Box { get; set; }", source, StringComparison.Ordinal);
-        Assert.Contains("new global::Shop.Money(model.Total.Amount, model.Total.Currency)", source, StringComparison.Ordinal);
+        Assert.Contains("new global::Shop.Money((__v0.Amount ?? entity.Total?.Amount ?? default(decimal)!), (__v0.Currency ?? entity.Total?.Currency ?? default(string)!))", source, StringComparison.Ordinal);
         Assert.Contains("new global::Shop.Packaging { Cost = ", source, StringComparison.Ordinal);
     }
 
@@ -319,11 +317,11 @@ public class ModelInputGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed record Money(decimal Amount, string Currency) : IValueObject
+            public sealed record Money(decimal Amount, string Currency)
             {
                 public string Display => $"{Amount} {Currency}";
             }
-            public sealed class Order : Model<Guid>
+            public sealed class Order : Aggregate<Guid>
             {
                 private Order() { }
                 public Money Total { get; private set; } = new(0m, "EUR");
@@ -334,8 +332,8 @@ public class ModelInputGeneratorTests
         Assert.Empty(run.GeneratedCompileErrors());
 
         var source = run.GeneratedSource("Shop.OrderModel");
-        Assert.Contains("public MoneyModel Total { get; set; } = new();", source, StringComparison.Ordinal);
-        Assert.Contains("new global::Shop.Money(model.Total.Amount, model.Total.Currency)", source, StringComparison.Ordinal);
+        Assert.Contains("public MoneyModel? Total { get; set; }", source, StringComparison.Ordinal);
+        Assert.Contains("new global::Shop.Money((__v0.Amount ?? entity.Total?.Amount ?? default(decimal)!), (__v0.Currency ?? entity.Total?.Currency ?? default(string)!))", source, StringComparison.Ordinal);
         Assert.DoesNotContain("Display", source, StringComparison.Ordinal);
     }
 
@@ -349,7 +347,7 @@ public class ModelInputGeneratorTests
             using Rask.Data;
             namespace Shop;
             public enum CurrencyCode { Eur, Huf }
-            public sealed class Money : IValueObject
+            public sealed class Money
             {
                 public Money() { }
                 public Money(decimal amount, string currency)
@@ -360,7 +358,7 @@ public class ModelInputGeneratorTests
                 public decimal Amount { get; set; }
                 public CurrencyCode Currency { get; set; }
             }
-            public sealed class Order : Model<Guid>
+            public sealed class Order : Aggregate<Guid>
             {
                 private Order() { }
                 public Money Total { get; private set; } = new();
@@ -370,7 +368,7 @@ public class ModelInputGeneratorTests
         Assert.Empty(run.GeneratedCompileErrors());
 
         var source = run.GeneratedSource("Shop.OrderModel");
-        Assert.Contains("new global::Shop.Money { Amount = model.Total.Amount, Currency = model.Total.Currency }", source, StringComparison.Ordinal);
+        Assert.Contains("new global::Shop.Money { Amount = (__v0.Amount ?? entity.Total?.Amount ?? default(decimal)!), Currency = (__v0.Currency ?? entity.Total?.Currency ?? default(global::Shop.CurrencyCode)!) }", source, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -379,7 +377,7 @@ public class ModelInputGeneratorTests
         var run = Run("""
             using Rask.Data;
             namespace Shop;
-            public sealed class Coupon : Model<int>
+            public sealed class Coupon : Aggregate<int>
             {
                 private Coupon() { }
                 public string Code { get; private set; } = "";
@@ -404,25 +402,25 @@ public class ModelInputGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Address : IValueObject
+            public sealed class Address
             {
                 private Address() { }
                 public string Street { get; private set; } = "";
                 public string? City { get; private set; }
             }
-            public sealed class Weight : IValueObject
+            public sealed class Weight
             {
                 private Weight(decimal amount, string unit) { Amount = amount; Unit = unit; }
                 public decimal Amount { get; }
                 public string Unit { get; }
                 public static Weight Of(decimal amount, string unit) => new(amount, unit);
             }
-            public struct Dimensions : IValueObject
+            public struct Dimensions
             {
                 public decimal Width { get; private set; }
                 public decimal Height { get; private set; }
             }
-            public sealed class Shipment : Model<Guid>
+            public sealed class Shipment : Aggregate<Guid>
             {
                 private Shipment() { }
                 public Address Destination { get; private set; } = null!;
@@ -439,18 +437,18 @@ public class ModelInputGeneratorTests
 
         // The nested models are the same mutable classes as ever, whatever the value object's own shape.
         Assert.Contains("public sealed partial class AddressModel", source, StringComparison.Ordinal);
-        Assert.Contains("public string Street { get; set; } = \"\";", source, StringComparison.Ordinal);
+        Assert.Contains("public string? Street { get; set; }", source, StringComparison.Ordinal);
 
         // Private parameterless constructor, then private setters.
         Assert.Contains("private static extern global::Shop.Address __NewAddressModel();", source, StringComparison.Ordinal);
         Assert.Contains("private static global::Shop.Address __BuildAddressModel(string p0, string? p1)", source, StringComparison.Ordinal);
         Assert.Contains("__SetterAddressModel_Street(value, p0);", source, StringComparison.Ordinal);
-        Assert.Contains("__BuildAddressModel(model.Destination.Street, model.Destination.City)", source, StringComparison.Ordinal);
-        Assert.Contains("(model.ReturnTo is null ? null : __BuildAddressModel(model.ReturnTo.Street, model.ReturnTo.City))", source, StringComparison.Ordinal);
+        Assert.Contains("__BuildAddressModel((__v0.Street ?? entity.Destination?.Street ?? default(string)!), (__v0.City ?? entity.Destination?.City))", source, StringComparison.Ordinal);
+        Assert.Contains("__BuildAddressModel((__v1.Street ?? entity.ReturnTo?.Street ?? default(string)!), (__v1.City ?? entity.ReturnTo?.City))", source, StringComparison.Ordinal);
 
         // Private constructor naming every property.
         Assert.Contains("private static extern global::Shop.Weight __NewWeightModel(decimal p0, string p1);", source, StringComparison.Ordinal);
-        Assert.Contains("__NewWeightModel(model.Weight.Amount, model.Weight.Unit)", source, StringComparison.Ordinal);
+        Assert.Contains("__NewWeightModel((__v2.Amount ?? entity.Weight?.Amount ?? default(decimal)!), (__v2.Unit ?? entity.Weight?.Unit ?? default(string)!))", source, StringComparison.Ordinal);
 
         // A struct: its own public constructor, then setters reached by reference.
         Assert.Contains("var value = new global::Shop.Dimensions();", source, StringComparison.Ordinal);
@@ -467,19 +465,19 @@ public class ModelInputGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public abstract class ValueKeyed<TId> : Model<TId> where TId : struct
+            public abstract class ValueKeyed<TId> : Aggregate<TId> where TId : struct
             {
                 public string Name { get; private set; } = "";
             }
-            public abstract class NotNullKeyed<TId> : Model<TId> where TId : notnull
+            public abstract class NotNullKeyed<TId> : Aggregate<TId> where TId : notnull
             {
                 public string Code { get; private set; } = "";
             }
-            public abstract class ReferenceKeyed<TKey> : Model<TKey> where TKey : class
+            public abstract class ReferenceKeyed<TKey> : Aggregate<TKey> where TKey : class
             {
                 public string Label { get; private set; } = "";
             }
-            public abstract class Ranked<TId, TSelf> : Model<TId>
+            public abstract class Ranked<TId, TSelf> : Aggregate<TId>
                 where TId : unmanaged, IComparable<TId>
                 where TSelf : Ranked<TId, TSelf>, new()
             {
@@ -504,6 +502,31 @@ public class ModelInputGeneratorTests
     }
 
     [Fact]
+    public void A_one_value_value_object_is_carried_as_its_value()
+    {
+        var run = Run("""
+            using System;
+            using Rask.Data;
+            namespace Shop;
+            public sealed record Email(string Value);
+            public sealed class Customer : Aggregate<Guid>
+            {
+                public Email Email { get; private set; } = new("");
+                public Email? Backup { get; private set; }
+            }
+            """);
+
+        Assert.Empty(run.GeneratedCompileErrors());
+
+        var source = run.GeneratedSource("Shop.CustomerModel");
+        Assert.Contains("public string? Email { get; set; }", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("EmailModel", source, StringComparison.Ordinal);
+        Assert.Contains("model.Email = entity.Email?.Value;", source, StringComparison.Ordinal);
+        Assert.Contains("new global::Shop.Email(__v0)", source, StringComparison.Ordinal);
+        Assert.Contains("__Setter1_Backup(entity, null);", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Two_value_objects_sharing_a_name_get_a_nested_model_each()
     {
         // Keyed by simple name, Billing.Money's model was dropped in favour of Shop.Money's, and Fee was
@@ -513,16 +536,16 @@ public class ModelInputGeneratorTests
             using Rask.Data;
             namespace Billing
             {
-                public sealed record Money(long Cents) : IValueObject;
+                public sealed record Money(long Cents, string Unit);
             }
             namespace Shop
             {
-                public sealed record Money(decimal Amount, string Currency) : IValueObject;
-                public sealed class Order : Model<Guid>
+                public sealed record Money(decimal Amount, string Currency);
+                public sealed class Order : Aggregate<Guid>
                 {
                     private Order() { }
                     public Money Total { get; private set; } = new(0m, "EUR");
-                    public Billing.Money Fee { get; private set; } = new(0);
+                    public Billing.Money Fee { get; private set; } = new(0, "cent");
                 }
             }
             """);
@@ -530,9 +553,9 @@ public class ModelInputGeneratorTests
         Assert.Empty(run.GeneratedCompileErrors());
 
         var source = run.GeneratedSource("Shop.OrderModel");
-        Assert.Contains("public MoneyModel Total { get; set; } = new();", source, StringComparison.Ordinal);
-        Assert.Contains("public MoneyModel2 Fee { get; set; } = new();", source, StringComparison.Ordinal);
-        Assert.Contains("new global::Billing.Money(model.Fee.Cents)", source, StringComparison.Ordinal);
+        Assert.Contains("public MoneyModel? Total { get; set; }", source, StringComparison.Ordinal);
+        Assert.Contains("public MoneyModel2? Fee { get; set; }", source, StringComparison.Ordinal);
+        Assert.Contains("new global::Billing.Money((__v1.Cents ?? entity.Fee?.Cents ?? default(long)!), (__v1.Unit ?? entity.Fee?.Unit ?? default(string)!))", source, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -544,12 +567,12 @@ public class ModelInputGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed record Leaf(string Code) : IValueObject;
-            public sealed record D(Leaf Leaf) : IValueObject;
-            public sealed record C(D D) : IValueObject;
-            public sealed record B(C C) : IValueObject;
-            public sealed record A(B B) : IValueObject;
-            public sealed class Order : Model<Guid>
+            public sealed record Leaf(string Code);
+            public sealed record D(Leaf Leaf);
+            public sealed record C(D D);
+            public sealed record B(C C);
+            public sealed record A(B B);
+            public sealed class Order : Aggregate<Guid>
             {
                 private Order() { }
                 public A Deep { get; private set; } = null!;
@@ -557,11 +580,9 @@ public class ModelInputGeneratorTests
             }
             """);
 
+        // Compiling is the assertion: every use of D agrees with the one shape emitted for it.
         Assert.Empty(run.GeneratedCompileErrors());
-        Assert.Contains(
-            "public DModel Direct { get; set; } = new();",
-            run.GeneratedSource("Shop.OrderModel"),
-            StringComparison.Ordinal);
+        Assert.Contains(" Direct { get; set; }", run.GeneratedSource("Shop.OrderModel"), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -572,7 +593,7 @@ public class ModelInputGeneratorTests
             using System.ComponentModel.DataAnnotations;
             using Rask.Data;
             namespace Shop;
-            public sealed class Product : Model<Guid>
+            public sealed class Product : Aggregate<Guid>
             {
                 private Product() { }
                 [AllowedValues("draft", "live")] public string Status { get; private set; } = "draft";
@@ -591,11 +612,11 @@ public class ModelInputGeneratorTests
             using System.Collections.Generic;
             using Rask.Data;
             namespace Shop;
-            public sealed class Customer : Model<Guid>
+            public sealed class Customer : Aggregate<Guid>
             {
                 private Customer() { }
             }
-            public sealed class Order : Model<Guid>
+            public sealed class Order : Aggregate<Guid>
             {
                 private Order() { }
                 public Customer Customer { get; private set; } = null!;
@@ -610,7 +631,7 @@ public class ModelInputGeneratorTests
         Assert.Empty(run.GeneratedCompileErrors());
 
         var source = run.GeneratedSource("Shop.OrderModel");
-        Assert.Contains("public global::System.Guid CustomerId { get; set; }", source, StringComparison.Ordinal);
+        Assert.Contains("public global::System.Guid? CustomerId { get; set; }", source, StringComparison.Ordinal);
         Assert.DoesNotContain("public global::Shop.Customer Customer", source, StringComparison.Ordinal);
         Assert.DoesNotContain("Tags", source, StringComparison.Ordinal);
         Assert.DoesNotContain("Label", source, StringComparison.Ordinal);
@@ -623,7 +644,7 @@ public class ModelInputGeneratorTests
     {
         var run = Run("""
             using Rask.Data;
-            internal sealed class Note : Model<int>
+            internal sealed class Note : Aggregate<int>
             {
                 private Note() { }
                 public string Text { get; private set; } = "";
@@ -644,7 +665,7 @@ public class ModelInputGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Product : Model<Guid>
+            public sealed class Product : Aggregate<Guid>
             {
                 public Product(string name) => Name = name;
                 public string Name { get; private set; }
@@ -670,7 +691,7 @@ public class ModelInputGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Product : Model<Guid>
+            public sealed class Product : Aggregate<Guid>
             {
                 private Product() { }
             }
@@ -693,7 +714,7 @@ public class ModelInputGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Product : Model<Guid>
+            public sealed class Product : Aggregate<Guid>
             {
                 private Product() { }
                 public string Name { get; private set; } = "";
@@ -718,7 +739,7 @@ public class ModelInputGeneratorTests
             namespace Shop;
             public static class Catalog
             {
-                public sealed class Product : Model<Guid>
+                public sealed class Product : Aggregate<Guid>
                 {
                     private Product() { }
                 }

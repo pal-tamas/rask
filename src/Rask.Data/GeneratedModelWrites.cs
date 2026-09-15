@@ -34,7 +34,7 @@ public static class GeneratedModelWrites
         TEntity entity,
         DbContext? db = null,
         CancellationToken cancellationToken = default)
-        where TEntity : Model
+        where TEntity : class, IAggregate
     {
         ArgumentNullException.ThrowIfNull(entity);
 
@@ -70,7 +70,7 @@ public static class GeneratedModelWrites
         Action<TEntity> apply,
         DbContext? db = null,
         CancellationToken cancellationToken = default)
-        where TEntity : Model
+        where TEntity : class, IAggregate
     {
         ArgumentNullException.ThrowIfNull(key);
         ArgumentNullException.ThrowIfNull(apply);
@@ -89,7 +89,7 @@ public static class GeneratedModelWrites
 
     /// <summary>
     ///     Deletes the row with <paramref name="key" /> through the change tracker, so an
-    ///     <see cref="ISoftDeletable" /> is stamped rather than removed.
+    ///     <see cref="Aggregate{TId}" /> is stamped rather than removed.
     /// </summary>
     /// <param name="key">The primary key of the row to delete.</param>
     /// <param name="version">
@@ -108,7 +108,7 @@ public static class GeneratedModelWrites
         int? version,
         DbContext? db = null,
         CancellationToken cancellationToken = default)
-        where TEntity : Model
+        where TEntity : class, IAggregate
     {
         ArgumentNullException.ThrowIfNull(key);
 
@@ -137,7 +137,7 @@ public static class GeneratedModelWrites
     }
 
     private static async Task<TEntity> LoadAsync<TEntity>(DbContext context, object key, CancellationToken cancellationToken)
-        where TEntity : Model =>
+        where TEntity : class, IAggregate =>
         await context.Set<TEntity>().FindAsync([key], cancellationToken).ConfigureAwait(false)
         ?? throw new KeyNotFoundException(
             $"There is no {typeof(TEntity).Name} with key '{key}' — it was never created, or it has been " +
@@ -146,21 +146,13 @@ public static class GeneratedModelWrites
     // The save's WHERE clause compares against the ORIGINAL value of a concurrency token, and a freshly
     // loaded row's original is whatever the database holds now — which would make every check pass. Pinning
     // the original to the version the caller read is what turns "someone saved since" into an exception.
-    private static void ExpectVersion(DbContext context, Model entity, int? version)
+    private static void ExpectVersion(DbContext context, IAggregate entity, int? version)
     {
         if (version is not { } expected)
         {
             return;
         }
 
-        var entry = context.Entry(entity);
-        if (entry.Metadata.FindProperty(Columns.Version) is null)
-        {
-            throw new InvalidOperationException(
-                $"'{entity.GetType().Name}' has no {Columns.Version} to check a version against; implement " +
-                $"{nameof(IVersioned)} to guard it with optimistic concurrency.");
-        }
-
-        entry.Property(Columns.Version).OriginalValue = expected;
+        context.Entry(entity).Property(Columns.Version).OriginalValue = expected;
     }
 }

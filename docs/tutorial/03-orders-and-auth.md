@@ -11,51 +11,36 @@ get a second `DbContext`. It is mapped through the one the app already has.
 `Features/Orders/Order.cs` is chapter 2's shape with different fields:
 
 ```csharp
+using System.ComponentModel.DataAnnotations;
+
 namespace Shop.Features.Orders;
 
-public sealed class Order : Model<Guid>, ITimestamped, IVersioned
+public sealed class Order : Aggregate<Guid>
 {
-    private Order() { } // EF Core materialization
-
+    [Range(0, 1_000_000)]
     public decimal Total { get; private set; }
 
     public Guid ProductId { get; private set; }
 
     public DateTime Placed { get; private set; }
-
-    public int Version { get; private set; }
-
-    public static Order Create(decimal total, Guid productId, DateTime placed)
-    {
-        var order = new Order { Id = Guid.CreateVersion7() };
-        order.Change(total, productId, placed);
-        return order;
-    }
-
-    public void Change(decimal total, Guid productId, DateTime placed)
-    {
-        ArgumentOutOfRangeException.ThrowIfNegative(total);
-
-        Total = total;
-        ProductId = productId;
-        Placed = placed;
-    }
 }
 ```
 
-`Order` reads the way `Product` does — `Order.Where(…)`, `Order.FindAsync(id)`, `Order.AsQueryable()` — with
-nothing to build. Then the same files as before: `OrderCommands.cs` with `AddOrder`, `EditOrder` and
-`RemoveOrder` and their handlers, and the four components `CreateOrder`, `UpdateOrder`, `DeleteOrder` and
-`OrdersPage`. They're the chapter 2 files with `Product` swapped for `Order`, the routes moved under
-`/orders`, and the three inputs and grid columns changed to `Total`, `ProductId` and `Placed` — copy them and
-change the names.
+`Order` reads and writes the way `Product` does (`Order.Where(…)`, `Order.CreateAsync(model)`,
+`Order.AsQueryable()`) and gets its own generated `OrderModel`, with nothing to build. Then the same four
+components as before: `CreateOrder`, `UpdateOrder`, `DeleteOrder` and `OrdersPage`. They're the chapter 2 files
+with `Product` swapped for `Order`, the routes moved under `/orders`, and the three inputs and grid columns
+changed to `Total`, `ProductId` and `Placed`. Copy them and change the names.
+
+`ProductId` is a `Guid`, not a `Product`. One aggregate refers to another **by id**: each is loaded and saved on
+its own, so an order never drags a product along with it.
 
 What ties the slice to the existing database: nothing you write. `AppDbContext`'s base maps `Order` exactly
 as it maps `Product`, with no `DbSet` to add. That's the whole of "sharing a database": one context, one
 connection string, one migration history, however many features you add. Nothing else in the slice knows
 or cares.
 
-> **Relating entities.** `Order.ProductId` is a plain foreign key here. To have EF understand it as a
+> **Relating aggregates.** `Order.ProductId` is a plain foreign key here. To have EF understand it as a
 > relationship, give `Order` a static `Configure` — the place for any mapping rule the conventions don't
 > cover (it needs `using Microsoft.EntityFrameworkCore;`, `using Microsoft.EntityFrameworkCore.Metadata.Builders;`
 > and `using Shop.Features.Products;`):

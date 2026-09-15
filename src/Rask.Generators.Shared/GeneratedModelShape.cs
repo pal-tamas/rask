@@ -11,14 +11,14 @@ namespace Rask.Generators.Shared;
 
 /// <summary>The part a property of an entity plays in its generated model.</summary>
 /// <remarks>
-/// There is no key role: the model never carries <c>Model&lt;TId&gt;.Id</c> (see <see cref="ModelShape.Key" />).
+/// There is no key role: the model never carries <c>Entity&lt;TId&gt;.Id</c> (see <see cref="ModelShape.Key" />).
 /// </remarks>
 internal enum ModelMemberRole
 {
     /// <summary>An ordinary value, copied both ways.</summary>
     Value,
 
-    /// <summary>An <c>IVersioned</c> entity's <c>int Version</c>: read into the model, never written back.</summary>
+    /// <summary>An aggregate's <c>int Version</c>: read into the model, never written back.</summary>
     Version,
 }
 
@@ -106,6 +106,12 @@ internal sealed class ModelValueObject(
 
     /// <summary>Its properties, in declaration order.</summary>
     public IReadOnlyList<ModelValueObjectMember> Members { get; } = members;
+
+    /// <summary>
+    ///     Whether it holds exactly one plain value (<c>record Email(string Value)</c>). Such a value object is one column
+    ///     and is carried on the model as that value itself — <c>string? Email</c> — with no nested model.
+    /// </summary>
+    public bool SingleValue => Members.Count == 1 && Members[0].ValueObject is null;
 }
 
 /// <summary>One property of a value object's nested model.</summary>
@@ -138,11 +144,11 @@ internal sealed class ModelShape(
     /// <summary>The entity.</summary>
     public INamedTypeSymbol Entity { get; } = entity;
 
-    /// <summary>The <c>TId</c> of <c>Model&lt;TId&gt;</c>, or null for an entity on the non-generic base.</summary>
+    /// <summary>The <c>TId</c> of <c>Entity&lt;TId&gt;</c>.</summary>
     public ITypeSymbol? IdType { get; } = idType;
 
     /// <summary>
-    ///     <c>Model&lt;TId&gt;.Id</c>, which the model deliberately does NOT carry — or null for an entity on the
+    ///     <c>Entity&lt;TId&gt;.Id</c>, which the model deliberately does NOT carry.
     ///     non-generic base.
     /// </summary>
     /// <remarks>
@@ -164,7 +170,7 @@ internal sealed class ModelShape(
 }
 
 /// <summary>
-///     The one definition of what <c>ModelInputGenerator</c> generates for a <c>Rask.Data.Model</c> entity:
+///     The one definition of what <c>ModelInputGenerator</c> generates for a <c>Rask.Data.Aggregate&lt;TId&gt;</c>:
 ///     which classes get a model, what the model is called, and which properties — and value-object
 ///     models — it carries.
 /// </summary>
@@ -190,10 +196,7 @@ internal static class GeneratedModelShape
     public const int MaxValueObjectDepth = 4;
 
     private const string RaskDataNamespace = "Rask.Data";
-    private const string ModelBase = "Model";
-    private const string SkipModelAttribute = "Rask.Data.SkipModelAttribute";
     private const string NotMappedAttribute = "System.ComponentModel.DataAnnotations.Schema.NotMappedAttribute";
-    private const string ValueObjectInterface = "Rask.Data.IValueObject";
 
     /// <summary>The display format generated code names types in: fully qualified, keeping <c>?</c>.</summary>
     public static readonly SymbolDisplayFormat TypeFormat = SymbolDisplayFormat.FullyQualifiedFormat
@@ -202,42 +205,19 @@ internal static class GeneratedModelShape
     // ---- entities -------------------------------------------------------------------------------
 
     /// <summary>
-    ///     Walks the base chain to <c>Rask.Data.Model</c> or <c>Model&lt;TId&gt;</c>, handing back <c>TId</c>.
-    ///     Returns false for a class that is not an entity at all.
+    ///     Walks the base chain to <c>Rask.Data.Entity&lt;TId&gt;</c>, handing back <c>TId</c>. Returns false for a
+    ///     class that is not an entity at all.
     /// </summary>
-    public static bool TryGetIdType(INamedTypeSymbol symbol, out ITypeSymbol? idType)
-    {
-        idType = null;
-
-        for (var current = symbol.BaseType; current is not null; current = current.BaseType)
-        {
-            // By name and namespace rather than by display string: Model and Model<TId> are both the
-            // base, and a display string carries the type-parameter name, which is not ours to depend on.
-            if (current.Name != ModelBase || current.ContainingNamespace?.ToDisplayString() != RaskDataNamespace)
-            {
-                continue;
-            }
-
-            if (current.TypeArguments.Length == 1)
-            {
-                idType = current.TypeArguments[0];
-            }
-
-            return true;
-        }
-
-        return false;
-    }
+    public static bool TryGetIdType(INamedTypeSymbol symbol, out ITypeSymbol? idType) =>
+        AggregateShape.TryGetIdType(symbol, out idType);
 
     /// <summary>
-    ///     Whether <paramref name="symbol" /> is an entity the model generator considers at all: concrete,
-    ///     non-static, non-generic, and not marked <c>[SkipModel]</c>. A candidate may still be refused a
+    ///     Whether <paramref name="symbol" /> is a type the model generator considers at all: a concrete, non-static,
+    ///     non-generic AGGREGATE. Only an aggregate is edited through a form. A candidate may still be refused a
     ///     model — see <see cref="GetsModel" />.
     /// </summary>
     public static bool IsCandidate(INamedTypeSymbol symbol) =>
-        symbol is { IsAbstract: false, IsStatic: false, IsGenericType: false } &&
-        TryGetIdType(symbol, out _) &&
-        !HasAttribute(symbol, SkipModelAttribute);
+        AggregateShape.IsMappedEntity(symbol) && AggregateShape.IsAggregate(symbol);
 
     /// <summary>
     ///     A hand-written type already occupying the model's name beside <paramref name="entity" /> that the
@@ -416,39 +396,37 @@ internal static class GeneratedModelShape
     {
         TryGetIdType(entity, out var idType);
 
-        var timestamped = Implements(entity, "Rask.Data.ITimestamped");
-        var softDeletable = Implements(entity, "Rask.Data.ISoftDeletable");
-        var versioned = Implements(entity, "Rask.Data.IVersioned");
-
         var valueObjects = new ValueObjectCollector(ModelName(entity));
         var members = new List<ModelMember>();
-        IPropertySymbol? key = null;
+        var key = AggregateShape.KeyProperty(entity);
 
         foreach (var property in Properties(entity))
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (IsKey(property))
-            {
-                key = property;
-                continue;
-            }
-
-            if (DescribeMember(property, timestamped, softDeletable, versioned, valueObjects) is { } member)
+            if (DescribeMember(property, valueObjects) is { } member)
             {
                 members.Add(member);
             }
         }
 
+        // The one framework column a form carries: the aggregate's Version, read into the model and sent back so a
+        // stale save is refused. CreatedAt, UpdatedAt and DeletedAt are the framework's and never on the model.
+        if (VersionProperty(entity) is { } version)
+        {
+            members.Add(new ModelMember(version, ModelMemberRole.Version, null, null));
+        }
+
         return new ModelShape(entity, idType, key, members, valueObjects.Shapes);
     }
 
-    // Derived members first, so a property re-declared lower down hides the base one by name.
+    // Derived members first, so a property re-declared lower down hides the base one by name. The walk stops at
+    // Rask's own bases, whose members (Id, the timestamps, Version, DeletedAt, the events) are the framework's.
     private static IEnumerable<IPropertySymbol> Properties(INamedTypeSymbol entity)
     {
         var seen = new HashSet<string>(StringComparer.Ordinal);
 
-        for (var type = entity; type is not null && !IsNonGenericModel(type); type = type.BaseType)
+        for (var type = entity; type is not null && !IsRaskDataType(type); type = type.BaseType)
         {
             foreach (var property in type.GetMembers().OfType<IPropertySymbol>())
             {
@@ -460,12 +438,7 @@ internal static class GeneratedModelShape
         }
     }
 
-    private static ModelMember? DescribeMember(
-        IPropertySymbol property,
-        bool timestamped,
-        bool softDeletable,
-        bool versionedMarker,
-        ValueObjectCollector valueObjects)
+    private static ModelMember? DescribeMember(IPropertySymbol property, ValueObjectCollector valueObjects)
     {
         if (property.IsStatic || property.IsIndexer ||
             property.DeclaredAccessibility != Accessibility.Public ||
@@ -474,33 +447,33 @@ internal static class GeneratedModelShape
             return null;
         }
 
-        // Framework-owned: the events buffer, and the columns the interceptors stamp.
-        if ((property.Name == "DomainEvents" && IsRaskDataType(property.ContainingType)) ||
-            (timestamped && property.Name is "CreatedAt" or "UpdatedAt") ||
-            (softDeletable && property.Name == "DeletedAt"))
+        if (HasAttribute(property, NotMappedAttribute) || IsNavigationOrCollection(property.Type))
         {
             return null;
         }
 
-        if (HasAttribute(property, SkipModelAttribute) || HasAttribute(property, NotMappedAttribute) ||
-            IsNavigationOrCollection(property.Type))
-        {
-            return null;
-        }
-
-        var role = versionedMarker && property.Name == "Version" && property.Type.SpecialType == SpecialType.System_Int32
-            ? ModelMemberRole.Version
-            : ModelMemberRole.Value;
-
-        // The version is read, never written (the auditing interceptor owns it), so it needs no way in.
-        var write = role == ModelMemberRole.Version ? null : WriteKindOf(property);
-        if (write is null && role != ModelMemberRole.Version)
+        if (WriteKindOf(property) is not { } write)
         {
             // Computed — no setter and no backing field — so EF Core does not map it either.
             return null;
         }
 
-        return new ModelMember(property, role, write, valueObjects.Of(property.Type, 0, ImmutableHashSet<string>.Empty));
+        return new ModelMember(
+            property, ModelMemberRole.Value, write, valueObjects.Of(property.Type, 0, ImmutableHashSet<string>.Empty));
+    }
+
+    // Aggregate<TId>.Version as the aggregate inherits it.
+    private static IPropertySymbol? VersionProperty(INamedTypeSymbol entity)
+    {
+        for (var current = entity.BaseType; current is not null; current = current.BaseType)
+        {
+            if (current is { Name: "Aggregate", TypeArguments.Length: 1 } && IsRaskDataType(current))
+            {
+                return current.GetMembers("Version").OfType<IPropertySymbol>().FirstOrDefault();
+            }
+        }
+
+        return null;
     }
 
     /// <summary>How generated code writes <paramref name="property" />, or null when it cannot.</summary>
@@ -545,8 +518,8 @@ internal static class GeneratedModelShape
 
         public ModelValueObject? Of(ITypeSymbol type, int depth, ImmutableHashSet<string> seen)
         {
-            if (depth >= MaxValueObjectDepth || type is not INamedTypeSymbol named || named.IsAbstract ||
-                !Implements(named, ValueObjectInterface))
+            if (depth >= MaxValueObjectDepth || type is not INamedTypeSymbol named ||
+                !AggregateShape.IsValueObjectType(named.WithNullableAnnotation(NullableAnnotation.NotAnnotated)))
             {
                 return null;
             }
@@ -667,19 +640,8 @@ internal static class GeneratedModelShape
     public static bool HasAttribute(ISymbol symbol, string fullyQualifiedAttribute) =>
         symbol.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == fullyQualifiedAttribute);
 
-    private static bool IsNonGenericModel(INamedTypeSymbol type) =>
-        type is { Name: ModelBase, TypeArguments.Length: 0 } && IsRaskDataType(type);
-
     private static bool IsRaskDataType(INamedTypeSymbol? type) =>
         type?.ContainingNamespace?.ToDisplayString() == RaskDataNamespace;
-
-    private static bool IsKey(IPropertySymbol property) =>
-        property.Name == "Id" &&
-        property.ContainingType is { Name: ModelBase, TypeArguments.Length: 1 } model &&
-        IsRaskDataType(model);
-
-    private static bool Implements(INamedTypeSymbol type, string fullyQualifiedInterface) =>
-        type.AllInterfaces.Any(i => i.ToDisplayString() == fullyQualifiedInterface);
 
     private static bool SameTypeIgnoringNullability(ITypeSymbol left, ITypeSymbol right) =>
         SymbolEqualityComparer.Default.Equals(
