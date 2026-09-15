@@ -2,60 +2,73 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Tests.Live;
 
-// A finished render pass must not still be collecting work.
+// A render pass's scope must be visible to that pass and to nothing else.
 //
-// Dispose can only clear the thread-static slot on whatever thread it runs on, and after an await that
-// is routinely not the thread the pass began on — so the scope stays visible to the next render that
-// lands on that pool thread. Work then goes into the dead scope while the live pass waits on its own,
-// empty, set, and the page is served with a placeholder for data nobody waited for.
+// The scope used to live in a ThreadStatic as well as an AsyncLocal. After an await the thread goes
+// back to the pool still holding the pass that began on it, so the next render on that thread — a
+// finished pass's corpse, or a stranger that is still waiting — was found by work that did not belong
+// to it. Work then went into the wrong scope while the right pass waited on its own, empty, set.
 //
-// Found as an intermittent failure of a server quiescence test that passed every time in isolation:
-// it needs enough concurrency for a thread to be recycled between renders, which is the full suite and
-// not a single test.
+// Found twice as intermittent failures that passed every time in isolation (a server quiescence test,
+// then #1108's PageMetaTests): both need enough concurrency for a thread to be recycled between
+// renders, which is the full suite and not a single test.
 public class QuiescenceScopeStaleThreadTests
 {
     [Fact]
-    public void TheRunningFlowsScopeBeatsALiveOneLeftOnTheThread()
+    public void ALiveScopeBegunByAnotherPassOnThisThreadIsNotCurrentOnceItsFlowHasGone()
     {
-        // The bug this exists for. A pool thread can still hold ANOTHER render's scope — Begin sets the
-        // thread slot, and only a Dispose that happens to run on that same thread clears it. If the
-        // thread won, this render's work would be tracked against a stranger's scope, this render's own
-        // wave loop would see nothing pending, and the page would be served with a placeholder for data
-        // it never waited for — answering 200 while doing it.
-        //
-        // Nothing needs the thread to win: the one path that loses the AsyncLocal (LifecycleSyncContext's
-        // suppressed Task.Run) restores the captured scope with Enter, which sets both slots.
-        QuiescenceScope.ResetSyncForTests();
-        using var mine = QuiescenceScope.Begin();
-        using var stranger = QuiescenceScope.Begin();
+        // #1108. QuiescentRender.RunAsync calls Begin on a pool thread and then awaits: the runtime
+        // restores the thread's ExecutionContext when the async method yields, so the AsyncLocal is
+        // gone from that thread — but a thread slot stayed behind, pointing at a render that was still
+        // waiting. A scope-less synchronous render landing there (RaskTest.Render in a parallel test
+        // class) then tracked its hooks into the stranger, whose wave loop kept finding new work until
+        // the 16-wave cap served it "did not settle" in half a second.
+        QuiescenceScope? stranger = null;
+        QuiescenceScope? observed = null;
+        var thread = new Thread(() =>
+        {
+            BeginTheWayRunAsyncDoes(scope => stranger = scope).GetAwaiter().GetResult();
+            observed = QuiescenceScope.Current;
+        });
+        thread.Start();
+        thread.Join();
 
-        Assert.Same(mine, QuiescenceScope.Resolve(flow: mine, thread: stranger));
+        Assert.NotNull(stranger);
+        Assert.Null(observed);
+        stranger.Dispose();
     }
 
     [Fact]
-    public void TheThreadIsUsedWhenTheFlowCarriesNothing()
+    public async Task EnterRestoresAScopeForCodeThatCrossedSuppressFlow()
     {
-        // The reason the thread slot exists at all: code that crossed an ExecutionContext.SuppressFlow
-        // boundary has no AsyncLocal to read. Preferring the flow must not mean ignoring the thread.
+        // The one path that loses the AsyncLocal: LifecycleSyncContext's suppressed Task.Run. It is
+        // handed the scope captured on the walk and must still find it, and leave nothing behind.
         QuiescenceScope.ResetSyncForTests();
-        using var thread = QuiescenceScope.Begin();
+        using var captured = QuiescenceScope.Begin();
+        QuiescenceScope? unrestored = captured;
+        QuiescenceScope? inside = null;
+        QuiescenceScope? after = null;
 
-        Assert.Same(thread, QuiescenceScope.Resolve(flow: null, thread: thread));
-    }
+        Task work;
+        using (ExecutionContext.SuppressFlow())
+        {
+            work = Task.Run(() =>
+            {
+                unrestored = QuiescenceScope.Current;
+                using (QuiescenceScope.Enter(captured))
+                {
+                    inside = QuiescenceScope.Current;
+                }
 
-    [Fact]
-    public void ADeadScopeInEitherSlotIsNeverResolved()
-    {
-        QuiescenceScope.ResetSyncForTests();
-        var deadFlow = QuiescenceScope.Begin();
-        deadFlow.Dispose();
-        var liveThread = QuiescenceScope.Begin();
+                after = QuiescenceScope.Current;
+            });
+        }
 
-        // A finished render must not keep collecting, whichever slot still points at it.
-        Assert.Same(liveThread, QuiescenceScope.Resolve(deadFlow, liveThread));
-        Assert.Null(QuiescenceScope.Resolve(deadFlow, deadFlow));
+        await work;
 
-        liveThread.Dispose();
+        Assert.Null(unrestored);
+        Assert.Same(captured, inside);
+        Assert.Null(after);
     }
 
     [Fact]
@@ -72,10 +85,10 @@ public class QuiescenceScopeStaleThreadTests
     }
 
     [Fact]
-    public void AScopeLeftOnTheThreadByAnotherPassIsNotCurrent()
+    public void AScopeDisposedOnAnotherThreadIsNotCurrent()
     {
-        // The real shape: the pass ends somewhere else, so nothing clears THIS thread's slot. Modelled
-        // by disposing from another thread, which is exactly what an await continuation does.
+        // The real shape: the pass ends somewhere else, which is exactly what an await continuation
+        // does. The flow here still carries it, and must not hand it back.
         QuiescenceScope.ResetSyncForTests();
 
         var scope = QuiescenceScope.Begin();
@@ -83,12 +96,17 @@ public class QuiescenceScopeStaleThreadTests
         other.Start();
         other.Join();
 
-        // The slot on this thread still points at it — reading must not hand it back, and must clear it.
         Assert.Null(QuiescenceScope.Current);
 
-        // And a fresh pass on the same thread gets its own scope, not the corpse.
+        // And a fresh pass gets its own scope, not the corpse.
         var next = QuiescenceScope.Begin();
         Assert.Same(next, QuiescenceScope.Current);
         next.Dispose();
+    }
+
+    private static async Task BeginTheWayRunAsyncDoes(Action<QuiescenceScope> keep)
+    {
+        keep(QuiescenceScope.Begin());
+        await Task.CompletedTask;
     }
 }

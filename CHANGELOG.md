@@ -1131,6 +1131,13 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A server render no longer waits on another render's work.** The scope that collects a first render's
+  async lifecycle work was also kept in a thread-static slot. `QuiescentRender` begins on a pool thread and
+  then awaits, so that thread went back to the pool still pointing at a render that was waiting. The next
+  render with no scope of its own that landed there tracked its `OnMountAsync` work into the stranger, whose
+  wave loop kept finding new work until it hit the 16-wave cap and served its page early, marked timed out
+  (#1108, seen as `PageMetaTests` "did not settle" under load). The scope is now found through the async flow
+  only.
 - **Two signed-in users with no identifier no longer count as the same user.** The session ownership check behind a
   reconnect, an upload and a download compares users by `NameIdentifier`, or `Name` when there is no
   identifier. When two signed-in principals carried neither, it compared nothing with nothing and matched, so
