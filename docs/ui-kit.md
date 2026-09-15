@@ -17,6 +17,27 @@ Live, on this site: [Actions](/docs/ui/actions) · [Data display](/docs/ui/data-
 [Navigation](/docs/ui/navigation) · [Feedback](/docs/ui/feedback) ·
 [Data input](/docs/ui/data-input) · [Layout & mockups](/docs/ui/layout).
 
+## Principles
+
+The kit's behaviour follows the practices [Flux UI](https://fluxui.dev) set out for Livewire, adapted to a
+C# component framework that ships no script of its own:
+
+- **Use the browser.** A dialog is a modal `<dialog>` opened by an invoker command; a menu, a listbox and a
+  megamenu are `[popover]`s; a sidebar is a checkbox drawer. The top layer, Escape, light-dismiss and focus
+  return are the platform's, and they work before any runtime has booted.
+- **Use CSS.** The submenu's safe triangle is a clipped wedge, the scroll lock under a dialog is a `:has()`
+  rule, a button's spinner is a `[data-loading]` rule. Where something truly needs script — pressing a menu row,
+  marking a button that is waiting on its handler — the framework runtime does it, generically, for every
+  control, not the kit.
+- **Accessible by default.** Fields describe themselves (`aria-describedby`, `aria-invalid`, `aria-required`),
+  menus carry a keyboard cursor, the current navigation item says `aria-current="page"`, a waiting button says
+  `aria-busy` — none of it opt-in.
+- **One vocabulary.** `Position` + `Align` place everything that floats, events are `On…`, `Kbd` shows a shortcut
+  wherever one is shown, `Tone`/`Variant`/`Size` style everything.
+- **We style, you space.** Components bring padding, borders and colour — never an outer margin.
+- **Simple first, composable after.** `UiInput.Label("Email").Hint(…)` is one line; `UiNavList` with
+  `UiNavGroup`s and `UiNavItem`s, or `UiDropdown` with `UiMenuSub`s, is there when one line is not enough.
+
 ## Wiring it up
 
 > **Every project `rask new` creates arrives wired this way already** — the two properties, the two
