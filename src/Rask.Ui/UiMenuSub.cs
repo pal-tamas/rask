@@ -37,7 +37,7 @@ public sealed partial class UiMenuSub : Component
     {
         if (Context.Get<UiMenuLevel>() is not { } level)
         {
-            return Li.Class(UiClass.Compose(Class))[
+            return Li.Class(Class)[
                 Details[
                     Summary[
                         Icon is { } icon ? UiIcon.Name(icon).Class("size-4 shrink-0") : null,

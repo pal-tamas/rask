@@ -858,6 +858,27 @@ export function applyFrameInvokes(
     scan(document.documentElement);
 })();
 
+// ----- Labels that are buttons (label[role="button"]) ---------------------
+// A <label for> is how a checkbox-driven control opens with no runtime — Rask UI's UiSidebarToggle is one — but a
+// label is not pressable from the keyboard. Given role="button" and a tabindex it is a keyboard stop, and this
+// presses it on Enter and Space the way a real button is pressed, so the control is reachable without a pointer.
+(function () {
+    if (typeof document === "undefined" || typeof document.addEventListener !== "function") {
+        return;
+    }
+
+    document.addEventListener("keydown", function (e) {
+        if ((e.key !== "Enter" && e.key !== " ") || e.ctrlKey || e.altKey || e.metaKey) {
+            return;
+        }
+        const t = e.target;
+        if (t instanceof HTMLLabelElement && t.getAttribute("role") === "button") {
+            e.preventDefault();
+            t.click();
+        }
+    }, true);
+})();
+
 // ----- Menus (role="menu") -----------------------------------------------
 // A menu is one focused element with a cursor inside it (aria-activedescendant), like the tree below, so its
 // navigation keys move the cursor rather than scrolling: the C# handler still receives every one — this only

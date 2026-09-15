@@ -86,7 +86,41 @@ public sealed partial class NavLink : Element
 
     protected override void WriteAttributes(StringBuilder sb)
     {
-        base.WriteAttributes(sb);
+        // The link to the page being shown says so to assistive tech, not only with a class: `aria-current="page"`
+        // is what a screen reader announces as "current page", and a class is invisible to it. Written in the
+        // aria-* slot of the documented attribute order by standing in for Aria for the walk, and only when the
+        // active state is not opted out (an empty ActiveClass) and the call site has not set aria-current itself.
+        var ownAria = Aria;
+        var current = !string.Equals(ActiveClass, string.Empty, StringComparison.Ordinal)
+                      && ownAria?.ContainsKey("current") != true
+                      && IsActive();
+        if (current)
+        {
+            var aria = new Dictionary<string, string?>(StringComparer.Ordinal);
+            if (ownAria is not null)
+            {
+                foreach (var (name, value) in ownAria)
+                {
+                    aria[name] = value;
+                }
+            }
+
+            aria["current"] = "page";
+            Aria = aria;
+        }
+
+        try
+        {
+            base.WriteAttributes(sb);
+        }
+        finally
+        {
+            if (current)
+            {
+                Aria = ownAria;
+            }
+        }
+
         if (Href is not null)
         {
             // Prefixed with the deploy's PathBase, exactly as scoped-asset URLs already are (#975).

@@ -37,7 +37,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
     public Task PwaExample_RoutesAndRenders() => RunAsync(async () =>
     {
         await Page.GotoAsync(Docs);
-        await Expect(Page.Locator(".side-nav a.side-nav-link.active").First).ToBeVisibleAsync(
+        await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await OpenSection("notifications", "Notifications, push & badge");
@@ -60,7 +60,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
     public Task WakeLockExample_RoutesAndRenders() => RunAsync(async () =>
     {
         await Page.GotoAsync(Docs);
-        await Expect(Page.Locator(".side-nav a.side-nav-link.active").First).ToBeVisibleAsync(
+        await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await OpenSection("wake-lock", "Wake lock");
@@ -74,7 +74,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
     public Task OrientationExample_RoutesAndReads() => RunAsync(async () =>
     {
         await Page.GotoAsync(Docs);
-        await Expect(Page.Locator(".side-nav a.side-nav-link.active").First).ToBeVisibleAsync(
+        await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await OpenSection("orientation", "Orientation");
@@ -106,7 +106,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
     public Task FullscreenExample_RoutesAndRenders() => RunAsync(async () =>
     {
         await Page.GotoAsync(Docs);
-        await Expect(Page.Locator(".side-nav a.side-nav-link.active").First).ToBeVisibleAsync(
+        await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await OpenSection("fullscreen", "Fullscreen");
@@ -124,7 +124,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
     public Task InstallPromptExample_RoutesAndRenders() => RunAsync(async () =>
     {
         await Page.GotoAsync(Docs);
-        await Expect(Page.Locator(".side-nav a.side-nav-link.active").First).ToBeVisibleAsync(
+        await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await OpenSection("install", "Install prompt");
@@ -142,7 +142,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
     public Task PictureInPictureExample_RoutesAndRenders() => RunAsync(async () =>
     {
         await Page.GotoAsync(Docs);
-        await Expect(Page.Locator(".side-nav a.side-nav-link.active").First).ToBeVisibleAsync(
+        await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await OpenSection("picture-in-picture", "Picture-in-Picture");
@@ -158,7 +158,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
     public Task EyeDropperExample_RoutesAndRenders() => RunAsync(async () =>
     {
         await Page.GotoAsync(Docs);
-        await Expect(Page.Locator(".side-nav a.side-nav-link.active").First).ToBeVisibleAsync(
+        await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await OpenSection("eye-dropper", "EyeDropper");
@@ -174,7 +174,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
     public Task IdleDetectionExample_RoutesAndRenders() => RunAsync(async () =>
     {
         await Page.GotoAsync(Docs);
-        await Expect(Page.Locator(".side-nav a.side-nav-link.active").First).ToBeVisibleAsync(
+        await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await OpenSection("idle", "Idle detection");
@@ -191,7 +191,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
     public Task MediaDevicesExample_RoutesAndRenders() => RunAsync(async () =>
     {
         await Page.GotoAsync(Docs);
-        await Expect(Page.Locator(".side-nav a.side-nav-link.active").First).ToBeVisibleAsync(
+        await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await OpenSection("media-devices", "Camera & microphone");

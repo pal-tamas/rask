@@ -77,7 +77,7 @@ public sealed partial class UiMenuCheckbox : Component, IFormControl<bool>
 
         button = UiMenuItemMarkup.AsMenuItem(button, level, ordinal, "menuitemcheckbox", aria, KeepOpen != false, current);
 
-        return Li.Role(level is null ? null : "none").Class(UiClass.Compose(Class))[
+        return Li.Role(level is null ? null : "none").Class(Class)[
             button[global::Rask.Ui.UiMenuItem.Row(Icon, Text, Kbd, trailing: null, global::Rask.Ui.UiMenuItem.Indicator(current))]
         ];
     }

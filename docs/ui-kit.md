@@ -338,6 +338,45 @@ UiButton.Href("https://github.com/pal-tamas/rask").NewTab(true)["GitHub"]     //
 A string that happens to name one of your own pages is still a string: it reloads the whole app to get
 there. Use the route. `NewTab(true)` is never intercepted, because the reader asked for another tab.
 
+## Application layout
+
+Flux UI's layout pieces, drawn with daisyUI. The sidebar beside the docs on this site is exactly this.
+
+```csharp
+UiSidebar.Id("app-nav").Collapsible(UiBreakpoint.Lg).Page(Main[Outlet])[
+    UiBrand.Label("Shop").Href(Routes.HomePage()),
+    UiNavList.AccessibleLabel("Main")[
+        UiNavItem.Label("Orders").Href(Routes.OrdersPage()).Icon(UiIconName.Book).Badge("12"),
+        UiNavGroup.Heading("Catalogue").Expandable(true)[
+            UiNavItem.Label("Products").Href(Routes.ProductsPage()),
+            UiNavItem.Label("Categories").Href(Routes.CategoriesPage())
+        ]
+    ],
+    UiSpacer.Key("spacer"),
+    UiNavList.AccessibleLabel("Account")[UiNavItem.Label("Settings").Href(Routes.SettingsPage())]
+]
+
+// in the top bar, shown only while the sidebar is collapsed:
+UiSidebarToggle.For("app-nav").Collapsible(UiBreakpoint.Lg)
+```
+
+- **`UiSidebar`** is an `<aside>` beside `Page`: docked — sticky, full height — from `Collapsible` up, and a
+  drawer below it that `UiSidebarToggle` slides in and a click beside it slides out. The open state is daisyUI's
+  checkbox, so it opens on a prerendered page with no runtime; `Open`/`OnToggle` mirror it into C#, which is how a
+  navigation closes it. `UiSidebarToggle` is a `<label>` for that checkbox with `role="button"` and a tab stop, and
+  the runtime presses it on Enter and Space.
+- **`UiNavList`** is a named `<nav>` around daisyUI's `menu`. **`UiNavItem`** is a `NavLink` underneath, so
+  **`Current` is worked out from the route** — `menu-active` and `aria-current="page"` — unless you state it;
+  `Match` + `MatchPrefix` keep an item current across a section. **`UiNavGroup`** is a heading over its items, or a
+  `<details>` disclosure with `Expandable`, controlled with `Expanded`/`OnToggle`.
+- **`UiSpacer`** is `flex: 1`: it pushes what follows it to the far end of a row or a column.
+- **`UiDivider`** is Flux's separator: `Vertical`, `Subtle`, and `Align(UiAlign.Start|End)` for its words, a
+  `separator` to assistive tech when it has none, and **no outer margin** — daisyUI's 1rem is zeroed, so the page
+  spaces it.
+- **`UiHeading`** separates how big a heading looks (`Size`) from where it sits in the outline (`Level` 1–6, a
+  `<div>` without one); **`UiSubheading`** and **`UiText`** (`Strong`, `Subtle`, `Tone`, `Inline`) are the rest of the
+  type scale. `UiHeader` and `UiCard` take a `HeadingLevel` instead of a fixed `<h1>`/`<h2>`.
+
 ## Buttons that wait
 
 A button whose handler is still running shows it — with nothing to set. Press "Save" on a slow link and,

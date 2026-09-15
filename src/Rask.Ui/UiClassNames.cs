@@ -663,6 +663,67 @@ internal static class UiClassNames
     ///     A drawer opens from the left or the right edge, and daisyUI's one class for it is <c>drawer-end</c>,
     ///     so only <see cref="UiPosition.Right" /> writes anything.
     /// </remarks>
+    /// <remarks>daisyUI hides one side of a divider's line with these, so its words sit at that edge.</remarks>
+    internal static string DividerAlign(UiAlign value) => value switch
+    {
+        UiAlign.Start => "divider-start",
+        UiAlign.End => "divider-end",
+        _ => "",
+    };
+
+    /// <remarks>
+    ///     The width from which a sidebar sits in the page's flow instead of sliding over it. Every member a complete
+    ///     literal: <c>"lg:" + "drawer-open"</c> is invisible to Tailwind's scan, and the sidebar would never open.
+    /// </remarks>
+    internal static string SidebarInFlowFrom(UiBreakpoint value) => value switch
+    {
+        UiBreakpoint.Sm => "sm:drawer-open",
+        UiBreakpoint.Md => "md:drawer-open",
+        UiBreakpoint.Lg => "lg:drawer-open",
+        UiBreakpoint.Xl => "xl:drawer-open",
+        _ => "lg:drawer-open",
+    };
+
+    /// <remarks>The toggle is only needed while the sidebar slides over the page, so it hides where the sidebar docks.</remarks>
+    internal static string HiddenFrom(UiBreakpoint value) => value switch
+    {
+        UiBreakpoint.Sm => "sm:hidden",
+        UiBreakpoint.Md => "md:hidden",
+        UiBreakpoint.Lg => "lg:hidden",
+        UiBreakpoint.Xl => "xl:hidden",
+        _ => "lg:hidden",
+    };
+
+    internal static string SubheadingSize(UiSize value) => value switch
+    {
+        UiSize.Xs => "text-xs",
+        UiSize.Lg => "text-base",
+        UiSize.Xl => "text-lg",
+        _ => "text-sm",
+    };
+
+    internal static string TextSize(UiSize value) => value switch
+    {
+        UiSize.Xs => "text-xs",
+        UiSize.Sm => "text-sm",
+        UiSize.Lg => "text-base",
+        UiSize.Xl => "text-lg",
+        _ => "text-sm",
+    };
+
+    /// <remarks>The ink colours, which are what keep body text readable on every theme's base.</remarks>
+    internal static string TextTone(UiTone value) => value switch
+    {
+        UiTone.Primary => "text-primary",
+        UiTone.Secondary => "text-secondary",
+        UiTone.Accent => "text-accent",
+        UiTone.Info => "text-info",
+        UiTone.Success => "text-success",
+        UiTone.Warning => "text-warning",
+        UiTone.Error => "text-error",
+        _ => "",
+    };
+
     internal static string DrawerPosition(UiPosition value) => value switch
     {
         UiPosition.Right => "drawer-end",

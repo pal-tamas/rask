@@ -16,8 +16,8 @@ namespace Rask.Site;
 public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<ShowcaseNavEntry> extraNav)
     : Component
 {
-    private static readonly IReadOnlyDictionary<string, string?> DrawerAria =
-        new Dictionary<string, string?>(StringComparer.Ordinal) { ["label"] = "Toggle navigation" };
+    // The id the sidebar and the hamburger share: the hamburger is a label for the sidebar's own checkbox.
+    private const string SidebarId = "docs-sidebar";
 
     /// <summary>The shape of the two actions in the top bar's trailing edge.</summary>
     /// <remarks>
@@ -97,16 +97,14 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
             // wordmark and the trailing half is three controls, so an even split would squeeze the
             // wider one at exactly the width where it matters.
             Div.Class("navbar-start w-auto min-w-0 gap-2")[
-                Button
-                    .Type("button")
-                    // btn-ghost/btn-square, not a hand-rolled transparent button: the CSS behind
-                    // `hamburger-btn` forced `color: #fff` for the dark bar above and is gone with it.
-                    // size-11 over daisyUI's 2.5rem because 44px is the smallest reliable touch target.
-                    .Class("hamburger-btn btn btn-ghost btn-square size-11 md:hidden")
-                    .Aria(DrawerAria)
-                    .OnClick(() => _drawerOpen = !_drawerOpen)[
-                    UiIcon.Name(_drawerOpen ? UiIconName.Close : UiIconName.Menu).Class("size-5 shrink-0")
-                ],
+                // The kit's sidebar toggle: a label for the sidebar's checkbox, so the drawer opens on a
+                // prerendered page with no runtime, and a keyboard stop the runtime presses on Enter/Space.
+                // size-11 over daisyUI's 2.5rem because 44px is the smallest reliable touch target.
+                UiSidebarToggle
+                    .For(SidebarId)
+                    .Collapsible(UiBreakpoint.Md)
+                    .AccessibleLabel("Toggle navigation")
+                    .Class("hamburger-btn size-11"),
                 NavLink
                     .Href(PageMeta.LinkTo(Features.Routes.GuidesIndexPage()))
                     .ActiveClass("")
@@ -144,29 +142,24 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                 UiThemeDropdown.Align(UiAlign.End)
             ]
         ],
-        Div.Class("flex items-start app-shell")[
-            // Always in the flow from md up; below that it slides over the page, and a backdrop
-            // closes it. The open state was already Rask state — the drawer never needed script.
-            // Below the bar, not over it: the drawer used to be z-50 against the bar's z-40, and the
-            // only reason its close button stayed reachable was a `z-index: 1046` on .app-navbar in
-            // global.css. With that magic number gone the three layers say the order themselves —
-            // bar 50, drawer 40, backdrop 30.
-            Aside
-                .Class(_drawerOpen
-                    ? "side-nav flex fixed inset-y-0 left-0 z-40 w-72 bg-ui-bg p-4 "
-                      + "shadow-xl md:static md:z-auto md:w-64 md:shadow-none"
-                    : "side-nav hidden w-64 p-4 md:flex")[
-                SidebarBody()
-            ],
-            _drawerOpen
-                ? Div
-                    .Class("nav-backdrop fixed inset-0 z-30 bg-black/40 md:hidden")
-                    .OnClick(() => _drawerOpen = false)
-                : null,
-            Main.Class(
+        // The kit's sidebar: docked from md up, a drawer below it. The open state is the drawer's checkbox, mirrored
+        // in _drawerOpen so a navigation closes it. The docked rail sits under the sticky top bar rather than
+        // under its top edge, which is what the two arbitrary variants on the drawer say.
+        UiSidebar
+            .Id(SidebarId)
+            .Page(Main.Class(
                 "grow min-w-0 px-3 py-4 pb-[calc(2rem_+_env(safe-area-inset-bottom))] md:px-5 page-main")[
                 Div.Class("mx-auto page-main-inner")[Outlet]
-            ]
+            ])
+            .Collapsible(UiBreakpoint.Md)
+            .Open(_drawerOpen)
+            .OnToggle(open => { _drawerOpen = open; })
+            .AccessibleLabel("Guides and examples")
+            .CloseLabel("Close navigation")
+            .Class("app-shell min-h-0 md:[&>.drawer-side]:top-[var(--nav-h)] "
+                   + "md:[&>.drawer-side]:h-[calc(100vh_-_var(--nav-h))]")
+            .PanelClass("side-nav w-72 border-ui-line bg-ui-bg md:w-64")[
+            SidebarBody()
         ]
     ];
 
@@ -278,31 +271,26 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                     // and Select infers the sequence — which is what the indexer wants.
                     items.Select(i =>
                     {
-                        // The local is what makes string -> RouteUrl reachable: the conversion is
-                        // defined on a string, not on a string?, so a null has to stay a null RouteUrl
-                        // rather than be converted.
-                        RouteUrl? match = null;
+                        // The kit's nav item: a NavLink underneath, so the current page is worked out from the
+                        // route and says so with menu-active AND aria-current="page" — the attribute the browser
+                        // suite now selects the current link by, where it used to rely on a class.
+                        var item = UiNavItem
+                            .Key(i.Path)
+                            .Label(i.Label)
+                            // The slashed URL the host serves: a bare href is a 301 for every crawler (#1057).
+                            .Href(PageMeta.LinkTo(i.Path))
+                            .Icon(i.Icon)
+                            .Class("side-nav-link");
+
+                        // The local is what makes string -> RouteUrl reachable: the conversion is defined on a
+                        // string, not on a string?.
                         if (i.MatchPrefix is { } mp)
                         {
-                            match = mp;
+                            RouteUrl match = mp;
+                            item = item.Match(match).MatchPrefix(true);
                         }
 
-                        return Li.Key(i.Path)[
-                            NavLink
-                                // The slashed URL the host serves: a bare href is a 301 for every crawler (#1057).
-                                .Href(PageMeta.LinkTo(i.Path))
-                                .Match(match)
-                                .ActiveMatch(i.MatchPrefix is null ? null : NavLinkMatch.Prefix)
-                                // Both names, on purpose. menu-active is what daisyUI styles; active is
-                                // NavLink's own default and what seventeen assertions across the unit and
-                                // browser suites look for. Dropping either would cost the styling or the
-                                // tests that prove the link is the one for this page.
-                                .ActiveClass("active menu-active")
-                                .Class("side-nav-link")[
-                                UiIcon.Name(i.Icon).Class("me-2"),
-                                Span[i.Label]
-                            ]
-                        ];
+                        return item;
                     })
                 ]
         ];

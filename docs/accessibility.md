@@ -200,6 +200,10 @@ backstop. Opt a control — or a container of them — out with `data-rask-loadi
 
 ## Navigation
 
+A `NavLink` to the page being shown writes `aria-current="page"` beside its active class — what a screen reader
+announces as "current page", where a class says nothing. An empty `ActiveClass` opts out of both, and an
+`aria-current` the call site sets wins. Rask UI's `UiNavItem` is built on it.
+
 Client-side (SPA) route changes on the Server live runtime are handled accessibly without any wiring:
 
 - **Progress.** A slow server-side route render surfaces the top progress bar (the same one a slow

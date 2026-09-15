@@ -76,7 +76,7 @@ public sealed partial class UiMenuItem : Component
             inner = Decorate(button, level, ordinal)[content];
         }
 
-        return Li.Class(UiClass.Compose(Class)).Role(level is null ? null : "none")[inner];
+        return Li.Class(Class).Role(level is null ? null : "none")[inner];
     }
 
     private string ItemClass(UiMenuLevel? level, int ordinal) =>

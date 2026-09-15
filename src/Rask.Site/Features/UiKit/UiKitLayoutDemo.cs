@@ -60,6 +60,45 @@ public sealed partial class UiKitLayoutDemo : Component
             ]),
 
         Section(
+            "Application layout — sidebar, navigation, separator, spacer, type",
+            "Flux UI's layout pieces. The sidebar beside these docs IS UiSidebar: docked from md up, a drawer "
+            + "behind the hamburger below it, with no runtime needed to open it. The current item says so with "
+            + "aria-current, worked out from the route. A separator carries no margin — the page spaces it — and a "
+            + "spacer pushes what follows it to the far end of its row.",
+            Div.Data(Testid("ui-app-layout")).Class("grid gap-6 md:grid-cols-[16rem_1fr]")[
+                Div.Class("rounded-xl border border-base-300 p-3")[
+                    UiNavList.AccessibleLabel("Demo")[
+                        UiNavItem.Key("layout").Label("Layout").Href(PageMeta.LinkTo(Routes.UiKitLayoutPage()))
+                            .Icon(UiIconName.Book),
+                        UiNavItem.Key("actions").Label("Actions").Href(PageMeta.LinkTo(Routes.UiKitActionsPage()))
+                            .Icon(UiIconName.Sparkles).Badge("5").BadgeTone(UiTone.Primary),
+                        UiNavGroup.Key("more").Heading("More").Expandable(true)[
+                            UiNavItem.Key("feedback").Label("Feedback")
+                                .Href(PageMeta.LinkTo(Routes.UiKitFeedbackPage())),
+                            UiNavItem.Key("navigation").Label("Navigation")
+                                .Href(PageMeta.LinkTo(Routes.UiKitNavigationPage()))
+                        ]
+                    ]
+                ],
+                Div.Class("flex flex-col gap-4")[
+                    Div.Data(Testid("ui-spacer-row")).Class("flex items-center gap-2 rounded-xl border border-base-300 p-2")[
+                        UiButton.Key("left").Variant(UiVariant.Ghost).Size(UiSize.Sm)["Rask"],
+                        UiDivider.Key("bar-sep").Vertical(true).Subtle(true).Class("my-1"),
+                        UiButton.Key("docs").Variant(UiVariant.Ghost).Size(UiSize.Sm)["Docs"],
+                        UiSpacer.Key("spacer"),
+                        UiButton.Key("right").Size(UiSize.Sm)["Sign in"]
+                    ],
+                    Div[
+                        UiHeading.Key("h").Level(3).Size(UiSize.Lg)["Orders"],
+                        UiSubheading.Key("sh")["Everything placed in the last 30 days."]
+                    ],
+                    UiDivider.Key("then").Text("then").Align(UiAlign.Start),
+                    UiText.Key("t")["Body copy in the kit's scale. ", UiText.Key("strong").Inline(true).Strong(true)["Strong"],
+                        " for what matters, ", UiText.Key("subtle").Inline(true).Subtle(true)["subtle"], " for what can be skipped."]
+                ]
+            ]),
+
+        Section(
             "Mask",
             "Clipping, so whatever is masked has to survive losing its corners.",
             Div.Data(Testid("ui-layout-mask")).Class("flex flex-wrap gap-3")[

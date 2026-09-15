@@ -9,6 +9,17 @@ them until tagged releases begin.
 
 ### Added
 
+- **Rask UI gets Flux UI's application layout.** New `UiSidebar` — an `<aside>` beside the page, docked and sticky from
+  its `Collapsible` breakpoint up and a daisyUI drawer below it, opening with no runtime and mirrored into C# through
+  `Open`/`OnToggle` — and `UiSidebarToggle`, a keyboard-reachable `label[role=button]` the runtime presses on Enter and
+  Space. New `UiNavList` (a named `<nav>`), `UiNavItem` (`Current` worked out from the route, `Match`/`MatchPrefix`,
+  `Icon`, `Badge`) and `UiNavGroup` (a heading, or a `<details>` disclosure with `Expandable`/`Expanded`/`OnToggle`);
+  `UiSpacer`; `UiHeading` (`Level` separate from `Size`), `UiSubheading` and `UiText`. `UiDivider` gains `Subtle` and
+  `Align`, and is a `separator` to assistive tech when it has no words; `UiHeader` and `UiCard` take a `HeadingLevel`.
+  The sidebar beside rask.sh's docs is now `UiSidebar` with `UiNavItem`s.
+- **`NavLink` tells assistive tech which link is the current page.** An active `NavLink` writes `aria-current="page"`
+  beside its active class; an empty `ActiveClass` opts out, and a call site's own `aria-current` wins.
+
 - **Rask UI menus behave like Flux UI's: a popover menu with a keyboard cursor, submenus with a safe triangle, and
   checkable items.** `UiDropdown`'s panel is now a `[popover]` — top layer, Escape and click-outside, focus handed
   back to the trigger — placed by CSS anchor positioning, with the menu focused as it opens. The arrows move an
@@ -832,6 +843,9 @@ them until tagged releases begin.
   new gate as a browser gate.
 
 ### Changed
+
+- **`UiDivider` no longer carries daisyUI's 1rem outer margin** — "we style, you space". A divider that relied on it
+  needs a margin from the page, e.g. `.Class("my-4")`.
 
 - **BREAKING — `UiDropdown` renders a popover menu, not daisyUI's `:focus-within` dropdown.** Its children are menu
   rows — use `UiMenuItem`/`UiMenuCheckbox`/`UiMenuRadioGroup`/`UiMenuSub` rather than hand-written `<li>`s, which still

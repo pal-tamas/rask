@@ -953,6 +953,22 @@
 }
 
 /*
+  UiDivider carries no outer margin — "we style, you space". daisyUI builds its margin from --divider-m (1rem across,
+  0 1rem down) inside `@layer utilities`, so the correction is the variable, here. Subtle is Flux's faint separator:
+  half the ink daisyUI mixes into the line.
+*/
+@layer rask-ui-corrections {
+  .divider,
+  .divider.divider-horizontal {
+    --divider-m: 0;
+  }
+
+  .divider.ui-divider-subtle {
+    --divider-color: color-mix(in oklab, var(--color-base-content) 5%, transparent);
+  }
+}
+
+/*
   UiDropdown's menu rows, submenus and the safe triangle.
 
   In `rask-ui-corrections` because every rule it has to beat — daisyUI's grid row, its nested-list indent and the
