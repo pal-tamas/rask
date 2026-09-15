@@ -57,14 +57,14 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
     internal static readonly DiagnosticDescriptor Rask086 = new(
         "RASK086",
         "Entity has no parameterless constructor, so CreateAsync is not generated",
-        "'{0}' has no parameterless constructor, so neither '{0}.CreateAsync({0}Model)' nor "
-        + "'{0}.CreateAsync(id, {0}Model)' is generated; add one — it may be private, like the one EF Core "
-        + "materializes rows through",
+        "'{0}' has no parameterless constructor, so no generated '{0}.CreateAsync' — from a '{0}Model' or a "
+        + "'p => …' — exists; add one — it may be private, like the one EF Core materializes rows through — or "
+        + "insert one you built with '{0}.CreateAsync(entity)'",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
-        description: "Both generated CreateAsync overloads build the entity from its form model before inserting it, "
-                     + "and they need a constructor that takes nothing to start from. Everything that works on a row "
+        description: "Every generated CreateAsync builds the entity itself — from its form model or through a lambda — "
+                     + "before inserting it, and needs a constructor that takes nothing to start from. Everything that works on a row "
                      + "that already exists — the model itself, UpdateAsync and DeleteAsync — is still generated.",
         helpLinkUri: DiagnosticHelp.Link("RASK086"));
 
@@ -541,6 +541,8 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         s.Append("    extension(").Append(entityType).AppendLine(")");
         s.AppendLine("    {");
 
+        // Creates mirror the updates: `CreateAsync(model, apply?)` beside `UpdateAsync(id, model, apply?)`, and
+        // `CreateAsync(apply)` beside `UpdateAsync(id, apply)` for a row with no form behind it.
         if (idLessCreate)
         {
             s.Append("        /// <summary>Inserts a new <see cref=\"").Append(entityType)
@@ -550,34 +552,32 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             s.AppendLine(DbDoc);
             s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the save.</param>");
             s.AppendLine("        /// <returns>The inserted entity, with its key.</returns>");
-            switch (entity.KeySource)
-            {
-                case KeySource.Guid:
-                    s.AppendLine("        /// <remarks>The key is a new version-7 <see cref=\"global::System.Guid\" />, unless the constructor already set one.</remarks>");
-                    break;
-                case KeySource.Store:
-                    s.AppendLine("        /// <remarks>The key is assigned by the database when the row is inserted.</remarks>");
-                    break;
-            }
-
+            AppendKeyRemarks(s, entity);
             s.Append("        public static ").Append(Task).Append('<').Append(entityType).Append("> CreateAsync(")
                 .Append(modelType).Append(" model, ").Append(applyParameter).Append(DbParameter).Append(Token)
                 .AppendLine(" cancellationToken = default)");
             s.AppendLine("        {");
             s.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(model);");
-            s.AppendLine("            var entity = __New();");
-
-            if (entity.KeySource == KeySource.Guid && entity.KeyWrite is { } generatedKey)
-            {
-                s.Append("            if (global::System.Collections.Generic.EqualityComparer<").Append(entity.IdTypeName)
-                    .AppendLine(">.Default.Equals(entity.Id, default!))");
-                s.AppendLine("            {");
-                s.Append("                ").AppendLine(Assignment(generatedKey, "entity", "Id", entity.KeyFactory!));
-                s.AppendLine("            }");
-            }
-
+            AppendNewEntity(s, entity, withId: false);
             s.AppendLine("            __Apply(entity, model);");
             s.AppendLine("            apply?.Invoke(entity);");
+            s.Append("            return ").Append(Writes).AppendLine(".CreateAsync(entity, db, cancellationToken);");
+            s.AppendLine("        }");
+            s.AppendLine();
+
+            s.Append("        /// <summary>Inserts a new <see cref=\"").Append(entityType)
+                .AppendLine("\" /> whose values <paramref name=\"apply\" /> sets.</summary>");
+            s.AppendLine("        /// <param name=\"apply\">Sets the new row's values.</param>");
+            s.AppendLine(DbDoc);
+            s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the save.</param>");
+            s.AppendLine("        /// <returns>The inserted entity, with its key.</returns>");
+            AppendKeyRemarks(s, entity);
+            s.Append("        public static ").Append(Task).Append('<').Append(entityType).Append("> CreateAsync(global::System.Action<")
+                .Append(entityType).Append("> apply, ").Append(DbParameter).Append(Token).AppendLine(" cancellationToken = default)");
+            s.AppendLine("        {");
+            s.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(apply);");
+            AppendNewEntity(s, entity, withId: false);
+            s.AppendLine("            apply(entity);");
             s.Append("            return ").Append(Writes).AppendLine(".CreateAsync(entity, db, cancellationToken);");
             s.AppendLine("        }");
             s.AppendLine();
@@ -597,16 +597,28 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
                 .Append(entity.IdTypeName).Append(" id, ").Append(modelType).Append(" model, ").Append(applyParameter)
                 .Append(DbParameter).Append(Token).AppendLine(" cancellationToken = default)");
             s.AppendLine("        {");
-            if (entity.KeyIsReference)
-            {
-                s.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(id);");
-            }
-
             s.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(model);");
-            s.AppendLine("            var entity = __New();");
-            s.Append("            ").AppendLine(Assignment(entity.KeyWrite!, "entity", "Id", "id"));
+            AppendNewEntity(s, entity, withId: true);
             s.AppendLine("            __Apply(entity, model);");
             s.AppendLine("            apply?.Invoke(entity);");
+            s.Append("            return ").Append(Writes).AppendLine(".CreateAsync(entity, db, cancellationToken);");
+            s.AppendLine("        }");
+            s.AppendLine();
+
+            s.Append("        /// <summary>Inserts a new <see cref=\"").Append(entityType)
+                .AppendLine("\" /> under <paramref name=\"id\" />, whose values <paramref name=\"apply\" /> sets.</summary>");
+            s.AppendLine("        /// <param name=\"id\">The key of the new row.</param>");
+            s.AppendLine("        /// <param name=\"apply\">Sets the new row's values.</param>");
+            s.AppendLine(DbDoc);
+            s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the save.</param>");
+            s.AppendLine("        /// <returns>The inserted entity.</returns>");
+            s.Append("        public static ").Append(Task).Append('<').Append(entityType).Append("> CreateAsync(")
+                .Append(entity.IdTypeName).Append(" id, global::System.Action<").Append(entityType).Append("> apply, ")
+                .Append(DbParameter).Append(Token).AppendLine(" cancellationToken = default)");
+            s.AppendLine("        {");
+            s.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(apply);");
+            AppendNewEntity(s, entity, withId: true);
+            s.AppendLine("            apply(entity);");
             s.Append("            return ").Append(Writes).AppendLine(".CreateAsync(entity, db, cancellationToken);");
             s.AppendLine("        }");
             s.AppendLine();
@@ -742,6 +754,44 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
 
         s.AppendLine("}");
         return s.ToString();
+    }
+
+    private static void AppendKeyRemarks(StringBuilder s, Entity entity)
+    {
+        switch (entity.KeySource)
+        {
+            case KeySource.Guid:
+                s.AppendLine("        /// <remarks>The key is a new version-7 <see cref=\"global::System.Guid\" />, unless the constructor already set one.</remarks>");
+                break;
+            case KeySource.Store:
+                s.AppendLine("        /// <remarks>The key is assigned by the database when the row is inserted.</remarks>");
+                break;
+        }
+    }
+
+    // `var entity = __New();` and its key — the caller's for an id overload, a new version-7 Guid when nothing set one,
+    // or nothing at all where the store assigns it.
+    private static void AppendNewEntity(StringBuilder s, Entity entity, bool withId)
+    {
+        if (withId && entity.KeyIsReference)
+        {
+            s.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(id);");
+        }
+
+        s.AppendLine("            var entity = __New();");
+
+        if (withId)
+        {
+            s.Append("            ").AppendLine(Assignment(entity.KeyWrite!, "entity", "Id", "id"));
+        }
+        else if (entity.KeySource == KeySource.Guid && entity.KeyWrite is { } generatedKey)
+        {
+            s.Append("            if (global::System.Collections.Generic.EqualityComparer<").Append(entity.IdTypeName)
+                .AppendLine(">.Default.Equals(entity.Id, default!))");
+            s.AppendLine("            {");
+            s.Append("                ").AppendLine(Assignment(generatedKey, "entity", "Id", entity.KeyFactory!));
+            s.AppendLine("            }");
+        }
     }
 
     // CreateAsync(model) exists only where a key can be produced without the caller (see KeySourceOf); the Guid
