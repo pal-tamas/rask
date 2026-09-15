@@ -152,9 +152,9 @@ internal static partial class ProjectGenerator
         // migration has actually succeeded, and prints the manual pair when it was skipped or failed.
         if (batteries.Data)
         {
-            steps.Append("\nFor your first entity, declare a class deriving from Model<TId> — no DbSet, no\n");
+            steps.Append("\nFor your first entity, declare a class deriving from Aggregate<TId> — no DbSet, no\n");
             steps.Append("configuration class, no registration:\n");
-            steps.Append("\n  public sealed class Product : Model<Guid>\n");
+            steps.Append("\n  public sealed class Product : Aggregate<Guid>\n");
             steps.Append("  {\n");
             steps.Append("      public string Name { get; private set; } = \"\";\n");
             steps.Append("  }\n");
@@ -231,17 +231,17 @@ internal static partial class ProjectGenerator
         {
             protected override void OnModelCreating(ModelBuilder modelBuilder)
             {
-                // RaskDbContext, not DbContext: the base maps every class deriving from Model<TId>, which
+                // RaskDbContext, not DbContext: the base maps every class deriving from Aggregate<TId>, which
                 // is what lets you declare an entity and nothing else — no DbSet property, no
                 // IEntityTypeConfiguration, no registration. It also brings the value converters for
                 // strongly-typed ids, which EF reads before the model is built. Over plain DbContext this
                 // file still compiles and every model you declare is silently absent from the database.
                 base.OnModelCreating(modelBuilder);
 
-                // ApplyRaskConventions walks the model as it stands, giving each marked entity its audit
-                // stamps, its soft-delete query filter and its concurrency token — so it has to come LAST,
-                // after the models, the configurations AND every battery's tables. Anything mapped after
-                // it silently misses out, which is what a User declaring ITimestamped used to do.
+                // ApplyRaskConventions walks the model as it stands, giving every entity its audit stamps and
+                // every aggregate its soft-delete query filter and concurrency token — so it has to come LAST,
+                // after the models, the configurations AND every battery's tables. Anything mapped after it
+                // silently misses out.
                 modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);{{schema}}
                 modelBuilder.ApplyRaskConventions();
             }

@@ -5,19 +5,19 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Rask.Data.Tests;
 
 // A strongly-typed id: a user-defined value standing in for a Guid, so a GadgetId cannot be passed
-// where another entity's id belongs. Nothing declares it as one — Rask sees it in Model<TId>.
+// where another entity's id belongs. Nothing declares it as one — Rask sees it in Aggregate<TId>.
 public readonly record struct GadgetId(Guid Value);
 
 // Value objects. Mapped as complex types, so their properties are columns on the owning row.
 // A positional record is the ordinary shape, and works wherever the value object holds only scalars.
-public sealed record Money(decimal Amount, string Currency) : IValueObject;
+public sealed record Money(decimal Amount, string Currency);
 
 // NOT a positional record, and the difference is EF Core's, not Rask's: a complex type is materialised
 // through its constructor, and EF cannot bind a *nested* complex type to a constructor parameter — it
 // says so at model build ("Cannot bind 'Cost' in Packaging(Money Cost, string Material)"). So a value
 // object that contains another value object needs a parameterless constructor and writable properties —
 // both may be private (RASK084), since EF Core reaches them the way it reaches an entity's. One holding only scalars, like Money above, has no such constraint.
-public sealed class Packaging : IValueObject
+public sealed class Packaging
 {
     private Packaging() { } // EF materialization
 
@@ -34,7 +34,7 @@ public sealed class Packaging : IValueObject
 
 // An entity, and nothing else: no DbContext, no DbSet property, no IEntityTypeConfiguration class, no
 // registration, no interface to implement. The generator finds it and RaskDbContext maps it.
-public sealed class Gadget : Model<GadgetId>
+public sealed class Gadget : Aggregate<GadgetId>
 {
     private Gadget() { } // EF materialization
 
@@ -65,7 +65,7 @@ public sealed class Gadget : Model<GadgetId>
 }
 
 // A second entity with no configuration and no value objects, to pin that both are optional.
-public sealed class Doodad : Model<Guid>
+public sealed class Doodad : Aggregate<Guid>
 {
     private Doodad() { }
 
@@ -107,7 +107,7 @@ public sealed class GeneratedModelTests : IDisposable
     private RaskDbContext NewContext() =>
         _provider.GetRequiredService<IDbContextFactory<RaskDbContext>>().CreateDbContext();
 
-    private async Task SeedAsync(params Model[] entities)
+    private async Task SeedAsync(params object[] entities)
     {
         await using var db = NewContext();
         db.AddRange(entities);

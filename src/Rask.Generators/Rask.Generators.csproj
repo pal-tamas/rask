@@ -28,6 +28,7 @@
     <!-- What Rask.Data's generated {Entity}Model looks like. Generators cannot see each other's output,
          so the wire model and the validator registry reconstruct that model from the same rules. -->
     <Compile Include="..\Rask.Generators.Shared\GeneratedModelShape.cs" Link="Shared\GeneratedModelShape.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\AggregateShape.cs" Link="Shared\AggregateShape.cs"/>
   </ItemGroup>
 
   <ItemGroup>

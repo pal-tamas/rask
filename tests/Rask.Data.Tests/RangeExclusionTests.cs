@@ -4,6 +4,14 @@ using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Rask.Data.Tests;
 
+// Soft-deletable because every aggregate is; the range tests only read the model built for it.
+public sealed class RangeLease : Aggregate<int>
+{
+    public long StartsAt { get; private set; }
+
+    public long EndsAt { get; private set; }
+}
+
 // Unit tests for the provider-agnostic half of HasNonOverlappingRange: what lands on the model, and the
 // spec's round-trip through the string form migrations and model snapshots store it as.
 [Collection(DataDbCollection.Name)]
@@ -64,20 +72,20 @@ public sealed class RangeExclusionTests
     [Fact]
     public void A_soft_deletable_entity_frees_its_slot_by_default()
     {
-        var model = BuildModel(builder => builder.Entity<Lease>()
+        var model = BuildModel(builder => builder.Entity<RangeLease>()
             .HasNonOverlappingRange(x => x.StartsAt, x => x.EndsAt));
 
-        Assert.True(RangeExclusionSpec.TryParse(Annotation(model, typeof(Lease)), out var spec));
+        Assert.True(RangeExclusionSpec.TryParse(Annotation(model, typeof(RangeLease)), out var spec));
         Assert.True(spec.IgnoreSoftDeleted);
     }
 
     [Fact]
     public void A_soft_deletable_entity_can_opt_back_in_to_blocking_the_slot()
     {
-        var model = BuildModel(builder => builder.Entity<Lease>()
+        var model = BuildModel(builder => builder.Entity<RangeLease>()
             .HasNonOverlappingRange(x => x.StartsAt, x => x.EndsAt, ignoreSoftDeleted: false));
 
-        Assert.True(RangeExclusionSpec.TryParse(Annotation(model, typeof(Lease)), out var spec));
+        Assert.True(RangeExclusionSpec.TryParse(Annotation(model, typeof(RangeLease)), out var spec));
         Assert.False(spec.IgnoreSoftDeleted);
     }
 
@@ -144,17 +152,6 @@ public sealed class RangeExclusionTests
         public long StartsAt { get; set; }
 
         public long EndsAt { get; set; }
-    }
-
-    private sealed class Lease : ISoftDeletable
-    {
-        public int Id { get; set; }
-
-        public long StartsAt { get; set; }
-
-        public long EndsAt { get; set; }
-
-        public DateTime? DeletedAt { get; set; }
     }
 
     // Each test builds a one-off model through the configure delegate. EF caches a built model per (context

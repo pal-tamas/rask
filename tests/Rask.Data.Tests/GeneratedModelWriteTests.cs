@@ -132,7 +132,7 @@ public sealed class GeneratedModelWriteTests : IDisposable
     // ---- delete -----------------------------------------------------------------------------------
 
     [Fact]
-    public async Task Delete_soft_deletes_an_ISoftDeletable()
+    public async Task Delete_soft_deletes_an_aggregate()
     {
         await using var database = await StartDatabaseAsync();
         var widget = await GeneratedModelWrites.CreateAsync(Widget.Create("doomed"));
@@ -149,17 +149,6 @@ public sealed class GeneratedModelWriteTests : IDisposable
     }
 
     [Fact]
-    public async Task Delete_really_deletes_a_model_that_is_not_soft_deletable()
-    {
-        await using var database = await StartDatabaseAsync();
-        var doodad = await GeneratedModelWrites.CreateAsync(Doodad.Create("plain"));
-
-        await GeneratedModelWrites.DeleteAsync<Doodad>(doodad.Id, version: null);
-
-        Assert.Equal(0, await Doodad.IgnoreQueryFilters().CountAsync());
-    }
-
-    [Fact]
     public async Task Delete_at_a_stale_version_is_refused_and_the_row_stays()
     {
         await using var database = await StartDatabaseAsync();
@@ -170,26 +159,6 @@ public sealed class GeneratedModelWriteTests : IDisposable
             GeneratedModelWrites.DeleteAsync<Widget>(widget.Id, version: 0));
 
         Assert.Equal(1, await Widget.CountAsync());
-    }
-
-    // ---- misuse -----------------------------------------------------------------------------------
-
-    [Fact]
-    public async Task A_version_for_a_model_that_has_none_is_refused_rather_than_ignored()
-    {
-        // Order is not IVersioned. Silently skipping the check would let a caller believe it was guarded.
-        await using var database = await StartDatabaseAsync();
-        var order = await GeneratedModelWrites.CreateAsync(Order.Place("A-1"));
-
-        var update = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            GeneratedModelWrites.UpdateAsync<Order>(order.Id, version: 3, o => o.Ship()));
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            GeneratedModelWrites.DeleteAsync<Order>(order.Id, version: 3));
-
-        Assert.Contains(nameof(IVersioned), update.Message, StringComparison.Ordinal);
-
-        var stored = await Order.FindAsync(order.Id);
-        Assert.Equal(OrderStatus.Open, stored!.Status);
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>

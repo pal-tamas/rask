@@ -31,7 +31,7 @@ namespace Rask.Data;
 /// </remarks>
 /// <typeparam name="TEntity">The entity being queried.</typeparam>
 public sealed class ModelQuery<TEntity>
-    where TEntity : Model
+    where TEntity : class, IAggregate
 {
     private readonly Func<IQueryable<TEntity>, IQueryable<TEntity>>? _compose;
     private readonly bool _ordered;
@@ -108,7 +108,7 @@ public sealed class ModelQuery<TEntity>
     /// <summary>
     ///     Drops the model's global query filters — notably the one
     ///     <see cref="ModelBuilderExtensions.ApplyRaskConventions" /> adds to every
-    ///     <see cref="ISoftDeletable" />, so this is how soft-deleted rows are listed or restored.
+    ///     <see cref="Aggregate{TId}" />, so this is how soft-deleted rows are listed or restored.
     /// </summary>
     public ModelQuery<TEntity> IgnoreQueryFilters() => Then(q => q.IgnoreQueryFilters(), _ordered);
 
@@ -268,7 +268,7 @@ public sealed class ModelQuery<TEntity>
 /// <typeparam name="TEntity">The entity being read.</typeparam>
 /// <typeparam name="TResult">What each row is projected to.</typeparam>
 public sealed class Projection<TEntity, TResult>
-    where TEntity : Model
+    where TEntity : class, IAggregate
 {
     private readonly Func<IQueryable<TEntity>, IQueryable<TEntity>> _source;
     private readonly Expression<Func<TEntity, TResult>> _selector;

@@ -160,14 +160,14 @@ public sealed class RaskSqliteRangeExclusionTests : IDisposable
         await using var context = Create<LeaseContext>();
         CreateSchema(context);
 
-        var lease = new Lease { Id = 1, AssetId = 1, StartsAt = 100, EndsAt = 200 };
+        var lease = Lease.For(1, 1, 100, 200);
         context.Leases.Add(lease);
         await context.SaveChangesAsync();
 
-        lease.DeletedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        context.Entry(lease).Property(Columns.DeletedAt).CurrentValue = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         await context.SaveChangesAsync();
 
-        context.Leases.Add(new Lease { Id = 2, AssetId = 1, StartsAt = 100, EndsAt = 200 });
+        context.Leases.Add(Lease.For(2, 1, 100, 200));
         await context.SaveChangesAsync();
 
         Assert.Equal(2, await context.Leases.IgnoreQueryFilters().CountAsync());

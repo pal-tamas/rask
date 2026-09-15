@@ -4,21 +4,18 @@ namespace Rask.Data.Tests;
 
 // Behaviour on the model, of the kind an application actually writes: a guard, a state change, an event
 // — and one method that has to ask the database something before it can decide.
-public sealed class Order : Model<Guid>, ITimestamped, ISoftDeletable
+public sealed class Order : Aggregate<Guid>
 {
     private Order() { } // EF materialization
 
     public string Reference { get; private set; } = "";
 
-    public DateTime CreatedAt { get; private set; }
 
-    public DateTime UpdatedAt { get; private set; }
 
     public OrderStatus Status { get; private set; } = OrderStatus.Open;
 
     public DateTime? CancelledAt { get; private set; }
 
-    public DateTime? DeletedAt { get; private set; }
 
     public static Order Place(string reference) =>
         new() { Id = Guid.NewGuid(), Reference = reference, Status = OrderStatus.Open };
@@ -74,7 +71,7 @@ public enum OrderStatus
     Cancelled,
 }
 
-public sealed class Shipment : Model<Guid>
+public sealed class Shipment : Aggregate<Guid>
 {
     private Shipment() { }
 
@@ -226,7 +223,7 @@ public sealed class ModelBehaviourTests : IDisposable
     private Task<TestDatabase> StartDatabaseAsync(TimeProvider? clock = null) =>
         TestDatabase.StartAsync(o => o.UseSqlite($"Data Source={_dbPath}"), clock);
 
-    private static async Task SeedAsync(TestDatabase database, params Model[] entities)
+    private static async Task SeedAsync(TestDatabase database, params object[] entities)
     {
         database.Context.AddRange(entities);
         await database.Context.SaveChangesAsync();

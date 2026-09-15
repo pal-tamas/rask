@@ -12,15 +12,16 @@ using Rask.Generators.Shared;
 namespace Rask.Data.Generators;
 
 /// <summary>
-/// Builds the EF Core model from the <c>Rask.Data.Model</c> types in the compilation, so an app declares
-/// entities and nothing else — no <c>DbContext</c>, no <c>DbSet</c> property, no
+/// Builds the EF Core model from the <c>Rask.Data.Entity&lt;TId&gt;</c> types in the compilation, so an app declares
+/// aggregates and nothing else — no <c>DbContext</c>, no <c>DbSet</c> property, no
 /// <c>IEntityTypeConfiguration</c> class, no registration.
 /// </summary>
 /// <remarks>
 /// <para>
 /// Emits a per-assembly <c>[ModuleInitializer]</c> that contributes to <c>Rask.Data.ModelRegistry</c>:
-/// each entity is mapped, its <c>IValueObject</c> properties become complex properties, its
-/// strongly-typed id gets a value converter, and its own static <c>Configure</c> is called last.
+/// each entity is mapped, every value-object property becomes a complex property (no marker — see
+/// <c>AggregateShape.IsValueObjectType</c>), its strongly-typed id gets a value converter, and its own static
+/// <c>Configure</c> is called last.
 /// </para>
 /// <para>
 /// Generated calls, never reflection. An assembly scan would be removed or mis-answered by the trimmer,
@@ -30,9 +31,6 @@ namespace Rask.Data.Generators;
 [Generator]
 public sealed class ModelRegistryGenerator : IIncrementalGenerator
 {
-    private const string ModelBase = "Model";
-    private const string RaskDataNamespace = "Rask.Data";
-    private const string ValueObjectInterface = "Rask.Data.IValueObject";
     private const string BuilderType = "EntityTypeBuilder";
     private const string BuilderNamespace = "Microsoft.EntityFrameworkCore.Metadata.Builders";
 
@@ -90,7 +88,7 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
         // An abstract entity is a base in somebody's hierarchy, not a table. An open generic cannot be
         // mapped as itself, and a closed one has no declaration site to be named at — both skipped
         // silently, because a shared generic base is an ordinary way to factor columns out.
-        if (symbol.IsAbstract || symbol.IsStatic || symbol.IsGenericType || !TryGetIdType(symbol, out var idType))
+        if (!AggregateShape.IsMappedEntity(symbol) || !AggregateShape.TryGetIdType(symbol, out var idType))
         {
             return null;
         }
@@ -108,53 +106,61 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
             StronglyTypedId.For(idType));
     }
 
-    // Walks to Model<TId>, handing back TId. Returns false for a class that is not an entity at all.
-    // Defined in GeneratedModelShape, so "what is an entity" has one answer in the registry, the model
-    // generator, and every generator that reconstructs a generated model it cannot see.
-    internal static bool TryGetIdType(INamedTypeSymbol symbol, out ITypeSymbol? idType) =>
-        GeneratedModelShape.TryGetIdType(symbol, out idType);
-
     // Every path from the entity down to a value-object property, so nested value objects are mapped all
     // the way. Depth-limited and cycle-guarded: a value object referring to its own type would otherwise
     // walk forever, and a deep graph is a modelling mistake rather than something to support silently.
+    //
+    // Each path remembers the type at every step, so the registry can drop a path whose type turns out to be a
+    // strongly-typed id another entity is keyed by (that one is a converted column, not a complex type), and the
+    // single stored property of a one-value type, whose column takes the property's own name.
     private static EquatableArray<ValueObjectPath> ValueObjectPaths(INamedTypeSymbol entity)
     {
         var paths = new List<ValueObjectPath>();
-        Walk(entity, [], []);
+        Walk(entity, [], [], []);
         return new EquatableArray<ValueObjectPath>([.. paths]);
 
-        void Walk(ITypeSymbol owner, ImmutableArray<string> prefix, ImmutableHashSet<string> seen)
+        void Walk(ITypeSymbol owner, ImmutableArray<string> prefix, ImmutableArray<string> types, ImmutableHashSet<string> seen)
         {
-            if (prefix.Length >= 4)
+            if (prefix.Length >= AggregateShape.MaxValueObjectDepth)
             {
                 return;
             }
 
-            foreach (var property in owner.GetMembers().OfType<IPropertySymbol>())
+            var properties = owner is INamedTypeSymbol named && prefix.Length > 0
+                ? AggregateShape.StoredProperties(named)
+                : owner.GetMembers().OfType<IPropertySymbol>().Where(static p =>
+                    !p.IsStatic && !p.IsIndexer && p.GetMethod is not null && p.DeclaredAccessibility == Accessibility.Public);
+
+            foreach (var property in properties)
             {
-                if (property.IsStatic || property.IsIndexer || property.GetMethod is null ||
-                    property.DeclaredAccessibility != Accessibility.Public ||
-                    property.Type is not INamedTypeSymbol type ||
-                    !Implements(type, ValueObjectInterface))
+                if (property.Type is not INamedTypeSymbol type ||
+                    !AggregateShape.IsValueObjectType(type) ||
+                    property.GetAttributes().Any(static a =>
+                        a.AttributeClass?.ToDisplayString() == "System.ComponentModel.DataAnnotations.Schema.NotMappedAttribute"))
                 {
                     continue;
                 }
 
-                var typeName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                var typeName = type.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
+                    .ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
                 if (seen.Contains(typeName))
                 {
                     continue;
                 }
 
+                var stored = AggregateShape.StoredProperties(type).ToList();
+                var singleValue = stored.Count == 1 && !AggregateShape.IsValueObjectType(stored[0].Type)
+                    ? stored[0].Name
+                    : null;
+
                 var path = prefix.Add(property.Name);
-                paths.Add(new ValueObjectPath(new EquatableArray<string>([.. path])));
-                Walk(type, path, seen.Add(typeName));
+                var pathTypes = types.Add(typeName);
+                paths.Add(new ValueObjectPath(
+                    new EquatableArray<string>([.. path]), new EquatableArray<string>([.. pathTypes]), singleValue));
+                Walk(type, path, pathTypes, seen.Add(typeName));
             }
         }
     }
-
-    private static bool Implements(ITypeSymbol type, string fullyQualifiedInterface) =>
-        type.AllInterfaces.Any(i => i.ToDisplayString() == fullyQualifiedInterface);
 
     // Looks for `public static void Configure(EntityTypeBuilder<TSelf>)`. Returns why a near-miss does
     // not match, so the build can say so rather than mapping by convention alone and looking fine.
@@ -256,7 +262,13 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
         source.AppendLine("            typeof(__RaskModelRegistry), MapEntities, ApplyConfigurations, ConfigureConventions);");
         source.AppendLine();
 
-        EmitMapEntities(source, entities);
+        // A strongly-typed id another entity is keyed by is a converted column wherever it appears (a foreign key
+        // to Product is a ProductId too), never a complex type.
+        var idTypes = new HashSet<string>(
+            entities.Select(static e => e.Id.TypeName).Where(static t => t is not null).Select(static t => t!),
+            StringComparer.Ordinal);
+
+        EmitMapEntities(source, entities, idTypes);
         EmitConfigureConventions(source, entities);
         EmitApplyConfigurations(source, entities);
 
@@ -265,7 +277,7 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
         context.AddSource("__RaskModelRegistry.g.cs", SourceText.From(source.ToString(), Encoding.UTF8));
     }
 
-    private static void EmitMapEntities(StringBuilder source, List<Candidate> entities)
+    private static void EmitMapEntities(StringBuilder source, List<Candidate> entities, HashSet<string> idTypes)
     {
         source.AppendLine("    private static void MapEntities(global::Microsoft.EntityFrameworkCore.ModelBuilder modelBuilder)");
         source.AppendLine("    {");
@@ -276,7 +288,8 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
                 .Append(entity.FullyQualifiedName).AppendLine(">();");
 
             // Value objects become complex properties: part of the row, not a joined table.
-            EmitComplexProperties(source, Local(entity), [.. entity.ValueObjects], depth: 0, indent: "        ");
+            var paths = entity.ValueObjects.Where(p => !p.Types.Any(idTypes.Contains)).ToList();
+            EmitComplexProperties(source, Local(entity), paths, depth: 0, indent: "        ");
         }
 
         source.AppendLine("    }");
@@ -301,12 +314,28 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
 
         foreach (var group in groups)
         {
+            var self = group.First(p => p.Segments.Count == 1);
             var nested = group
                 .Where(p => p.Segments.Count > 1)
-                .Select(p => new ValueObjectPath(new EquatableArray<string>(p.Segments.Skip(1))))
+                .Select(p => new ValueObjectPath(
+                    new EquatableArray<string>(p.Segments.Skip(1)),
+                    new EquatableArray<string>(p.Types.Skip(1)),
+                    p.SingleValue,
+                    p.ColumnPrefix is null ? group.Key : p.ColumnPrefix + "_" + group.Key))
                 .ToList();
 
             source.Append(indent).Append(receiver).Append(".ComplexProperty(x => x.").Append(group.Key);
+
+            // A one-value type is still a complex type, but its one column takes the property's name — `Email`,
+            // not `Email_Value` — so the table reads as if the value were stored directly.
+            if (nested.Count == 0 && self.SingleValue is { } value)
+            {
+                var column = self.ColumnPrefix is null ? group.Key : self.ColumnPrefix + "_" + group.Key;
+                var single = "b" + depth;
+                source.Append(", ").Append(single).Append(" => ").Append(single).Append(".Property(v => v.").Append(value)
+                    .Append(").HasColumnName(\"").Append(column).AppendLine("\"));");
+                continue;
+            }
 
             if (nested.Count == 0)
             {
@@ -402,7 +431,13 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
     private static string ConverterName(StronglyTypedId id) =>
         "__" + id.TypeName!.Split('.').Last().Replace("<", "").Replace(">", "") + "Converter";
 
-    private readonly record struct ValueObjectPath(EquatableArray<string> Segments);
+    // Segments and Types run in step, root first. SingleValue names the one stored property of a one-value type;
+    // ColumnPrefix is the owning path's column name once a path has been re-rooted under a nested builder.
+    private readonly record struct ValueObjectPath(
+        EquatableArray<string> Segments,
+        EquatableArray<string> Types,
+        string? SingleValue,
+        string? ColumnPrefix = null);
 
     // Internal so the model generator's CreateAsync asks "is this a strongly-typed id, and over what" of the same
     // definition the registry registers the value converter from.

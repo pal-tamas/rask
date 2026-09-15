@@ -25,15 +25,15 @@ namespace Rask.Data;
 /// </remarks>
 public static class Columns
 {
-    /// <summary>When the row was first persisted. Added by <see cref="ITimestamped" />.</summary>
+    /// <summary>When the row was first persisted. Added by <see cref="Entity{TId}" />.</summary>
     public const string CreatedAt = "CreatedAt";
 
-    /// <summary>When the row was last persisted. Added by <see cref="ITimestamped" />.</summary>
+    /// <summary>When the row was last persisted. Added by <see cref="Entity{TId}" />.</summary>
     public const string UpdatedAt = "UpdatedAt";
 
-    /// <summary>When the row was soft-deleted, or <c>null</c> while it is live. Added by <see cref="ISoftDeletable" />.</summary>
+    /// <summary>When the row was soft-deleted, or <c>null</c> while it is live. Added by <see cref="Aggregate{TId}" />.</summary>
     public const string DeletedAt = "DeletedAt";
 
-    /// <summary>The optimistic-concurrency token. Added by <see cref="IVersioned" />, which must declare it.</summary>
+    /// <summary>The optimistic-concurrency token. Added by <see cref="Aggregate{TId}" />, which must declare it.</summary>
     public const string Version = "Version";
 }

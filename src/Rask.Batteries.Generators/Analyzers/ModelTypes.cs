@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
+using Rask.Generators.Shared;
 
 namespace Rask.Data.Generators.Analyzers;
 
@@ -16,64 +18,75 @@ internal sealed class ModelTypes
     // fixes in Rask.Generators.CodeFixes, which cannot reference this assembly, so the key is repeated there.
     public const string NoFixProperty = "RaskNoFix";
 
-    private ModelTypes(INamedTypeSymbol? model, INamedTypeSymbol? modelOfId, INamedTypeSymbol? valueObject)
+    private ModelTypes(INamedTypeSymbol? entityOfId, INamedTypeSymbol? aggregateOfId)
     {
-        Model = model;
-        ModelOfId = modelOfId;
-        ValueObject = valueObject;
+        EntityOfId = entityOfId;
+        AggregateOfId = aggregateOfId;
     }
 
-    public INamedTypeSymbol? Model { get; }
+    /// <summary><c>Rask.Data.Entity&lt;TId&gt;</c>, or null when the compilation does not reference Rask.Data.</summary>
+    public INamedTypeSymbol? EntityOfId { get; }
 
-    public INamedTypeSymbol? ModelOfId { get; }
-
-    public INamedTypeSymbol? ValueObject { get; }
+    /// <summary><c>Rask.Data.Aggregate&lt;TId&gt;</c>.</summary>
+    public INamedTypeSymbol? AggregateOfId { get; }
 
     public static ModelTypes Resolve(Compilation compilation) =>
         new(
-            compilation.GetTypeByMetadataName("Rask.Data.Model"),
-            compilation.GetTypeByMetadataName("Rask.Data.Model`1"),
-            compilation.GetTypeByMetadataName("Rask.Data.IValueObject"));
+            compilation.GetTypeByMetadataName("Rask.Data.Entity`1"),
+            compilation.GetTypeByMetadataName("Rask.Data.Aggregate`1"));
 
     /// <summary>
-    ///     A class whose base chain reaches <c>Rask.Data.Model</c> — a concrete entity or an abstract base
-    ///     between the two. <c>Model</c> and <c>Model&lt;TId&gt;</c> themselves are not entities.
+    ///     A class whose base chain reaches <c>Rask.Data.Entity&lt;TId&gt;</c> — a concrete entity, an aggregate, or an
+    ///     abstract base between them. <c>Entity&lt;TId&gt;</c> and <c>Aggregate&lt;TId&gt;</c> themselves are not.
     /// </summary>
     public bool IsEntity(ITypeSymbol type)
     {
-        if (Model is null || type is not INamedTypeSymbol { TypeKind: TypeKind.Class } named
-                          || SymbolEqualityComparer.Default.Equals(named.OriginalDefinition, Model)
-                          || SymbolEqualityComparer.Default.Equals(named.OriginalDefinition, ModelOfId))
+        if (EntityOfId is null || type is not INamedTypeSymbol { TypeKind: TypeKind.Class } named
+                               || IsFrameworkBase(named))
         {
             return false;
         }
 
-        for (var current = named.BaseType; current is not null; current = current.BaseType)
-        {
-            if (SymbolEqualityComparer.Default.Equals(current.OriginalDefinition, Model))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return AggregateShape.IsEntity(named);
     }
 
-    public bool IsValueObject(ITypeSymbol type)
-    {
-        if (ValueObject is null)
-        {
-            return false;
-        }
+    /// <summary>Whether <paramref name="type" /> is one of Rask's own bases (<c>Entity&lt;TId&gt;</c>, <c>Aggregate&lt;TId&gt;</c>).</summary>
+    public bool IsFrameworkBase(ITypeSymbol type) =>
+        SymbolEqualityComparer.Default.Equals(type.OriginalDefinition, EntityOfId) ||
+        SymbolEqualityComparer.Default.Equals(type.OriginalDefinition, AggregateOfId);
 
-        foreach (var implemented in type.AllInterfaces)
+    /// <summary>
+    ///     Every value-object type <paramref name="entity" /> holds, however deep, declared in source — the types whose
+    ///     state is part of the entity's even though they carry no marker.
+    /// </summary>
+    public static IEnumerable<INamedTypeSymbol> ValueObjectsOf(INamedTypeSymbol entity)
+    {
+        var seen = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+        var pending = new Stack<(INamedTypeSymbol Owner, int Depth)>();
+        pending.Push((entity, 0));
+
+        while (pending.Count > 0)
         {
-            if (SymbolEqualityComparer.Default.Equals(implemented, ValueObject))
+            var (owner, depth) = pending.Pop();
+            if (depth >= AggregateShape.MaxValueObjectDepth)
             {
-                return true;
+                continue;
+            }
+
+            foreach (var member in owner.GetMembers())
+            {
+                if (member is not IPropertySymbol { IsStatic: false } property ||
+                    property.Type is not INamedTypeSymbol type ||
+                    !AggregateShape.IsValueObjectType(type) ||
+                    type.DeclaringSyntaxReferences.Length == 0 ||
+                    !seen.Add(type))
+                {
+                    continue;
+                }
+
+                yield return type;
+                pending.Push((type, depth + 1));
             }
         }
-
-        return false;
     }
 }

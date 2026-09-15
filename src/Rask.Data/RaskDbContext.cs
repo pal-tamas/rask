@@ -7,7 +7,7 @@ namespace Rask.Data;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Its model is <see cref="ModelRegistry" /> — every <see cref="Model" /> the source generator
+///         Its model is <see cref="ModelRegistry" /> — every <see cref="Aggregate{TId}" /> the source generator
 ///         found, with Rask's conventions applied and each entity's own static <c>Configure</c> run
 ///         last. Declaring an entity is the whole of what an app does; there is no context class, no
 ///         <c>DbSet</c> property, and no <see cref="IEntityTypeConfiguration{TEntity}" /> to write.

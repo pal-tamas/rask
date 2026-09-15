@@ -82,7 +82,7 @@ public sealed partial class TutorialChapterBuildE2ETests
             // else to overlay.
             var slice = Path.Combine(projectDir, "Features", "Products");
             fs.CreateDirectory(slice);
-            Write(fs, slice, "Product.cs", Fence("class Product : Model<Guid>"));
+            Write(fs, slice, "Product.cs", Fence("class Product : Aggregate<Guid>"));
             Write(fs, slice, "ProductCommands.cs", Fence("class AddProductHandler"));
             Write(fs, slice, "CreateProduct.cs", Fence("[Route(\"/products/new\")]"));
             Write(fs, slice, "UpdateProduct.cs", Fence("[Route(\"/products/{id:guid}/edit\")]"));
@@ -103,7 +103,7 @@ public sealed partial class TutorialChapterBuildE2ETests
             // --- Chapter 3: a second entity on the same database ---
             var orders = Path.Combine(projectDir, "Features", "Orders");
             fs.CreateDirectory(orders);
-            Write(fs, orders, "Order.cs", Pick(ch3, "class Order : Model<Guid>", "3"));
+            Write(fs, orders, "Order.cs", Pick(ch3, "class Order : Aggregate<Guid>", "3"));
 
             await Build(csproj, "chapter 3");
 

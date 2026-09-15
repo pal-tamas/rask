@@ -25,15 +25,14 @@ public class GeneratedModelAcrossGeneratorsTests
 
         namespace Shop
         {
-            public sealed record Money(decimal Amount, string Currency) : IValueObject;
+            public sealed record Money(decimal Amount, string Currency);
 
-            public sealed class Product : Model<Guid>, IVersioned
+            public sealed class Product : Aggregate<Guid>
             {
                 private Product() { }
                 [Required, MaxLength(200)] public string Name { get; private set; } = "";
                 public Money Price { get; private set; } = new(0m, "EUR");
                 public string? Notes { get; private set; }
-                public int Version { get; private set; }
             }
         }
 
@@ -133,7 +132,7 @@ public class GeneratedModelAcrossGeneratorsTests
         var run = RunCodec("""
             namespace Billing
             {
-                public sealed class Product : Model<Guid>
+                public sealed class Product : Aggregate<Guid>
                 {
                     private Product() { }
                     public string Sku { get; private set; } = "";
@@ -158,7 +157,7 @@ public class GeneratedModelAcrossGeneratorsTests
         var run = RunCodec("""
             namespace Billing
             {
-                public sealed class Product : Model<Guid>
+                public sealed class Product : Aggregate<Guid>
                 {
                     private Product() { }
                     public string Sku { get; private set; } = "";
@@ -226,7 +225,7 @@ public class GeneratedModelAcrossGeneratorsTests
 
         Assert.Contains("product: ProductModel;", ts, StringComparison.Ordinal);
         Assert.Contains("export interface ProductModel {", ts, StringComparison.Ordinal);
-        Assert.Contains("price: MoneyModel;", ts, StringComparison.Ordinal);
+        Assert.Contains("price: MoneyModel | null;", ts, StringComparison.Ordinal);
         Assert.Contains("notes: string | null;", ts, StringComparison.Ordinal);
         Assert.Contains("export interface MoneyModel {", ts, StringComparison.Ordinal);
         Assert.DoesNotContain("Anonymous", ts, StringComparison.Ordinal);
@@ -265,14 +264,14 @@ public class GeneratedModelAcrossGeneratorsTests
 
             namespace Shop
             {
-                public sealed class Address : IValueObject
+                public sealed class Address
                 {
                     private Address() { }
                     public string Street { get; private set; } = "";
                     public string City { get; private set; } = "";
                 }
 
-                public sealed class Customer : Model<Guid>
+                public sealed class Customer : Aggregate<Guid>
                 {
                     private Customer() { }
                     public string Name { get; private set; } = "";

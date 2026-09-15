@@ -19,14 +19,14 @@ public class ModelStateMutationAnalyzerTests
     public async Task A_public_setter_on_an_entity_is_reported_at_the_accessor()
     {
         var diagnostic = Assert.Single(await Run("""
-            public sealed class Product : Model<Guid>
+            public sealed class Product : Aggregate<Guid>
             {
                 public string Name { get; set; } = "";
             }
             """));
 
         Assert.Equal("RASK084", diagnostic.Id);
-        Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
+        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
         Assert.Equal("set;", diagnostic.Flagged());
         Assert.Contains("'Product.Name' has a public setter", diagnostic.GetMessage(), StringComparison.Ordinal);
         Assert.Contains("make it 'private set'", diagnostic.GetMessage(), StringComparison.Ordinal);
@@ -37,7 +37,7 @@ public class ModelStateMutationAnalyzerTests
     public async Task Non_public_accessors_are_not_reported()
     {
         Assert.Empty(await Run("""
-            public sealed class Product : Model<Guid>
+            public sealed class Product : Aggregate<Guid>
             {
                 public string Name { get; private set; } = "";
                 public string Sku { get; internal set; } = "";
@@ -54,7 +54,7 @@ public class ModelStateMutationAnalyzerTests
     public async Task A_public_init_on_an_entity_is_reported()
     {
         var diagnostic = Assert.Single(await Run("""
-            public sealed class Product : Model<Guid>
+            public sealed class Product : Aggregate<Guid>
             {
                 public string Name { get; init; } = "";
             }
@@ -69,7 +69,7 @@ public class ModelStateMutationAnalyzerTests
     public async Task A_public_setter_on_an_abstract_base_between_Model_and_the_entity_is_reported()
     {
         var diagnostic = Assert.Single(await Run("""
-            public abstract class Audited : Model<Guid>
+            public abstract class Audited : Aggregate<Guid>
             {
                 public string CreatedBy { get; set; } = "";
             }
@@ -83,7 +83,7 @@ public class ModelStateMutationAnalyzerTests
     public async Task A_protected_setter_on_an_abstract_entity_base_is_not_reported()
     {
         Assert.Empty(await Run("""
-            public abstract class Audited : Model<Guid>
+            public abstract class Audited : Aggregate<Guid>
             {
                 public string CreatedBy { get; protected set; } = "";
             }
@@ -97,13 +97,23 @@ public class ModelStateMutationAnalyzerTests
     [Fact]
     public async Task The_inherited_Id_from_Model_is_never_reported()
     {
-        // Model<TId>.Id is `protected set` and lives in metadata; only a type's OWN members are judged.
+        // Aggregate<TId>.Id is `protected set` and lives in metadata; only a type's OWN members are judged.
         Assert.Empty(await Run("""
-            public sealed class Product : Model<Guid>
+            public sealed class Product : Aggregate<Guid>
             {
                 public static Product Create() => new() { Id = Guid.NewGuid() };
             }
-            public sealed class Keyless : Model { }
+            """));
+    }
+
+    [Fact]
+    public async Task A_composite_no_aggregate_holds_is_not_a_value_object_and_is_not_reported()
+    {
+        Assert.Empty(await Run("""
+            public sealed class Address
+            {
+                public string City { get; set; } = "";
+            }
             """));
     }
 
@@ -124,8 +134,8 @@ public class ModelStateMutationAnalyzerTests
     public async Task A_positional_record_value_object_is_exempt()
     {
         Assert.Empty(await Run("""
-            public sealed record Money(decimal Amount, string Currency) : IValueObject;
-            public readonly record struct Weight(decimal Grams) : IValueObject;
+            public sealed record Money(decimal Amount, string Currency);
+            public readonly record struct Weight(decimal Grams);
             """));
     }
 
@@ -133,9 +143,13 @@ public class ModelStateMutationAnalyzerTests
     public async Task An_explicit_init_on_a_value_object_is_reported()
     {
         var diagnostic = Assert.Single(await Run("""
-            public sealed record Address : IValueObject
+            public sealed record Address
             {
                 public string City { get; init; } = "";
+            }
+            public sealed class Customer : Aggregate<Guid>
+            {
+                public Address Home { get; private set; } = new();
             }
             """));
 
@@ -147,9 +161,13 @@ public class ModelStateMutationAnalyzerTests
     public async Task A_public_setter_on_a_value_object_is_reported()
     {
         Assert.Equal("set;", Assert.Single(await Run("""
-            public sealed class Address : IValueObject
+            public sealed class Address
             {
                 public string City { get; set; } = "";
+            }
+            public sealed class Customer : Aggregate<Guid>
+            {
+                public Address Home { get; private set; } = new();
             }
             """)).Flagged());
     }
@@ -160,7 +178,11 @@ public class ModelStateMutationAnalyzerTests
         // A non-readonly record struct gives its positional properties a real `set`, so the exemption is for
         // the init accessor only.
         var diagnostic = Assert.Single(await Run("""
-            public record struct Weight(decimal Grams) : IValueObject;
+            public record struct Weight(decimal Grams);
+            public sealed class Parcel : Aggregate<Guid>
+            {
+                public Weight Weight { get; private set; }
+            }
             """));
 
         Assert.Equal("decimal Grams", diagnostic.Flagged());
@@ -172,7 +194,7 @@ public class ModelStateMutationAnalyzerTests
     public async Task A_public_mutable_field_is_reported_and_a_readonly_one_is_not()
     {
         var diagnostic = Assert.Single(await Run("""
-            public sealed class Product : Model<Guid>
+            public sealed class Product : Aggregate<Guid>
             {
                 public int Stock;
                 public readonly int Limit = 10;
@@ -191,10 +213,15 @@ public class ModelStateMutationAnalyzerTests
     public async Task A_public_mutable_field_on_a_value_object_struct_is_reported()
     {
         Assert.Equal("Amount = 0", Assert.Single(await Run("""
-            public struct Money : IValueObject
+            public struct Money
             {
                 public decimal Amount = 0;
                 public Money() { }
+                public string Currency { get; private set; } = "EUR";
+            }
+            public sealed class Invoice : Aggregate<Guid>
+            {
+                public Money Total { get; private set; }
             }
             """)).Flagged());
     }
@@ -203,7 +230,7 @@ public class ModelStateMutationAnalyzerTests
     public async Task Every_part_of_a_partial_entity_is_judged()
     {
         var diagnostics = await Run("""
-            public sealed partial class Product : Model<Guid>
+            public sealed partial class Product : Aggregate<Guid>
             {
                 public string Name { get; set; } = "";
             }
@@ -220,7 +247,7 @@ public class ModelStateMutationAnalyzerTests
     public async Task An_override_is_judged_at_its_base_not_again()
     {
         var diagnostic = Assert.Single(await Run("""
-            public abstract class Named : Model<Guid>
+            public abstract class Named : Aggregate<Guid>
             {
                 public virtual string Name { get; set; } = "";
             }
@@ -241,7 +268,7 @@ public class ModelStateMutationAnalyzerTests
     public async Task The_fix_is_withheld_where_private_would_not_compile(string member)
     {
         var diagnostic = Assert.Single(await Run($$"""
-            public abstract class Product : Model<Guid>
+            public abstract class Product : Aggregate<Guid>
             {
                 {{member}}
             }
@@ -255,7 +282,7 @@ public class ModelStateMutationAnalyzerTests
     {
         var diagnostic = Assert.Single(await Run("""
             public interface INamed { string Name { get; set; } }
-            public sealed class Product : Model<Guid>, INamed
+            public sealed class Product : Aggregate<Guid>, INamed
             {
                 public string Name { get; set; } = "";
             }
@@ -268,7 +295,7 @@ public class ModelStateMutationAnalyzerTests
     public async Task An_ordinary_public_setter_carries_no_fix_veto()
     {
         var diagnostic = Assert.Single(await Run("""
-            public sealed class Product : Model<Guid>
+            public sealed class Product : Aggregate<Guid>
             {
                 public string Name { get; set; } = "";
             }

@@ -35,7 +35,7 @@ public static class RangeExclusionBuilderExtensions
     /// </param>
     /// <param name="ignoreSoftDeleted">
     /// Excludes soft-deleted rows, so a deleted row frees its slot. Defaults to <see langword="true"/> when
-    /// <typeparamref name="TEntity"/> is <see cref="ISoftDeletable"/>, and is ignored when it is not.
+    /// <typeparamref name="TEntity"/> is <see cref="Aggregate{TId}"/>, and is ignored when it is not.
     /// </param>
     /// <returns>The same builder, for chaining.</returns>
     /// <exception cref="ArgumentNullException">A required argument is <see langword="null"/>.</exception>
@@ -52,7 +52,7 @@ public static class RangeExclusionBuilderExtensions
         ArgumentNullException.ThrowIfNull(lo);
         ArgumentNullException.ThrowIfNull(hi);
 
-        var softDeletable = typeof(ISoftDeletable).IsAssignableFrom(typeof(TEntity));
+        var softDeletable = typeof(IAggregate).IsAssignableFrom(typeof(TEntity));
 
         var spec = new RangeExclusionSpec(
             Single(lo, nameof(lo)),

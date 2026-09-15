@@ -14,8 +14,8 @@ public class ModelStateCodeFixTests
         using System.Collections.Generic;
         using Rask.Data;
         namespace Shop;
-        public sealed class OrderLine : Model<Guid> { }
-        public sealed class Order : Model<Guid>
+        public sealed class OrderLine : Aggregate<Guid> { }
+        public sealed class Order : Aggregate<Guid>
         {
             {{members}}
         }
@@ -56,10 +56,11 @@ public class ModelStateCodeFixTests
         var fixed_ = await Fix080("""
             using Rask.Data;
             namespace Shop;
-            public sealed record Address : IValueObject
+            public sealed record Address
             {
                 public string City { get; init; } = "";
             }
+            public sealed class Customer : Aggregate<System.Guid> { public Address Home { get; private set; } = new(); }
             """);
         Assert.Contains("public string City { get; private init; } = \"\";", fixed_, StringComparison.Ordinal);
     }
@@ -107,7 +108,8 @@ public class ModelStateCodeFixTests
         Assert.False(await Offered080("""
             using Rask.Data;
             namespace Shop;
-            public record struct Weight(decimal Grams) : IValueObject;
+            public record struct Weight(decimal Grams);
+            public sealed class Parcel : Aggregate<System.Guid> { public Weight Weight { get; private set; } }
             """));
 
     // ---- RASK085 ----
@@ -167,8 +169,8 @@ public class ModelStateCodeFixTests
             using Microsoft.EntityFrameworkCore.Metadata.Builders;
             using Rask.Data;
             namespace Shop;
-            public sealed class OrderLine : Model<Guid> { }
-            public sealed class Order : Model<Guid>
+            public sealed class OrderLine : Aggregate<Guid> { }
+            public sealed class Order : Aggregate<Guid>
             {
                 public List<OrderLine> Lines { get; private set; } = new();
                 public void Add(OrderLine line) => Lines.Add(line);
@@ -226,8 +228,8 @@ public class ModelStateCodeFixTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class OrderLine : Model<Guid> { }
-            public sealed class Order : Model<Guid>
+            public sealed class OrderLine : Aggregate<Guid> { }
+            public sealed class Order : Aggregate<Guid>
             {
                 public System.Collections.Generic.List<OrderLine> Lines { get; } = [];
             }

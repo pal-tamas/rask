@@ -443,7 +443,7 @@ public sealed class ServerBatteryScaffoldTests
         var next = ProjectGenerator.GenerateServer(
             Root, "App", NewCommand.BatteriesOf(["jobs"]), Version).Notes ?? "";
 
-        Assert.Contains("Model<Guid>", next, StringComparison.Ordinal);
+        Assert.Contains("Aggregate<Guid>", next, StringComparison.Ordinal);
         Assert.DoesNotContain("Add a DbSet", next, StringComparison.Ordinal);
     }
 }
