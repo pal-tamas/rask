@@ -325,10 +325,12 @@ rask deploy --env Rask__Storage__Provider=S3 \
 
 The same two cautions as the log store apply, and the first is sharper here:
 
-- **Files on disk are not backed up.** `rask db backup`, Litestream and snapshots cover `app.db` and nothing
-  else. The files' rows *are* in `app.db`, so a database restored onto a fresh box comes back pointing at
-  uploads that no longer exist. Backing up the disk store is not in the box yet — for files you can't afford
-  to lose, use S3 or Azure.
+- **Only `rask db backup` takes the files.** `rask db backup --remote` archives `/data/files` beside the
+  database copy and `rask db restore --remote` puts both back, stopping the app while it does. Litestream and
+  snapshots cover `app.db` alone, and the files' rows *are* in `app.db`, so a database recovered that way comes
+  back pointing at uploads that no longer exist — the app logs a warning naming them. For files you can't afford
+  to lose between backups, use S3 or Azure. A custom `Rask__Storage__Disk__Root` outside `/data/files` is not
+  archived.
 - **They share the volume's disk.** `MaxFileSize` bounds one file, not the total, so size the volume for the
   uploads you expect alongside both databases.
 

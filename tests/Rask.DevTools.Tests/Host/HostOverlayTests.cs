@@ -101,6 +101,9 @@ public sealed class HostOverlayTests
         Assert.True(Bool("heardFromPanel"));
         Assert.Equal("count:2,count:0", Str("errorPosts"));
         Assert.Equal("errors:show", Str("showErrorsKeys"));
+        // The browser is named first, once, for a bug report; then the failure.
+        Assert.Matches("^browser:[^,]+,page-error:\\{\"kind\":\"page\",\"title\":\"TypeError\",\"message\":\"boom\"\\}$", Str("pageErrorKeys"));
+        Assert.Equal("Chrome 131,Edge 131,Firefox 133,Safari 18.1,Unknown browser", Str("browsers"));
         Assert.Equal("timed@357,zero@-1", Str("patchPosted"));
     }
 }

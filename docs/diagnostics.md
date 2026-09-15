@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK085, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK086, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -114,11 +114,12 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK078](#rask078) | Error | Props snapshot cannot be read |
 | [RASK079](#rask079) | Error | Props snapshot describes a different component |
 | [RASK080](#rask080) | Warning | Package prop was not generated |
-| RASK081 | — | *Retired* — the generated writes are gone, so a model needs no constructor |
+| RASK081 | — | *Retired* — returned as [RASK086](#rask086) |
 | [RASK082](#rask082) | Error | A type already has the generated model's name |
 | [RASK083](#rask083) | Warning | Nested entity gets no generated model |
 | [RASK084](#rask084) | Warning | Model state can be changed from outside the type |
 | [RASK085](#rask085) | Warning | Entity exposes a mutable collection of entities |
+| [RASK086](#rask086) | Warning | Entity has no parameterless constructor, so `CreateAsync(model)` is not generated |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -1850,8 +1851,8 @@ public sealed partial class MuiToggle : ReactComponent
 
 ## RASK081
 *Retired.* It warned that an entity with no parameterless constructor got no generated `CreateAsync(model)`.
-`Rask.Data` no longer generates writes — the generated `{Entity}Model` is only a form shape, and a write is
-plain EF Core — so there is nothing left that needs a constructor. The id is retired, not reused.
+The generated writes were dropped, and the id retired with them; when the writes came back, the same rule
+returned as [RASK086](#rask086). The id is retired, not reused.
 
 ---
 
@@ -2033,6 +2034,44 @@ The quick-fix keeps a `HashSet<T>` as a `HashSet<T>` field and uses `List<T>` ot
 when the rewrite could not keep the meaning: an initializer with elements or arguments, a property with
 accessor bodies, a `required` property, a property assigned inside the type (the field is `readonly`), a
 type split across several files, or a member that already has the field's name.
+
+---
+
+## RASK086
+
+**Entity has no parameterless constructor, so `CreateAsync(model)` is not generated** · Warning
+
+Every `Rask.Data.Model` gets a generated form model — `ProductModel` for `Product` — and the writes that
+take it ([data guide](data.md#writing-create-update-delete)). `Product.CreateAsync(model)` builds a new entity
+before inserting it, and it starts from a constructor that takes nothing. It may be private: it is reached the
+way EF Core reaches the constructor it materializes rows through. An entity whose only constructors take
+arguments leaves it nothing to start from.
+
+```csharp
+public sealed class Product : Model<Guid>
+{
+    public Product(string name) => Name = name;   // ⚠ RASK086 — the only constructor takes a name
+
+    public string Name { get; private set; }
+}
+```
+
+**Fix:** add a parameterless constructor. Keep it private, and the domain's own constructor stays the
+only public way to make one:
+
+```csharp
+private Product() { }                            // ✓ for EF Core and the generated CreateAsync
+public Product(string name) => Name = name;
+```
+
+That covers every generated create — `Product.CreateAsync(model)` and `Product.CreateAsync(p => …)` alike, since
+both start from a new, empty entity. Everything that works on a row that already exists is still generated —
+`ProductModel`, `Product.UpdateAsync(id, model)`, `Product.UpdateAsync(id, p => …)` and `Product.DeleteAsync(id)`
+— so the rest of the form flow keeps working. An entity built by its own constructor is inserted with
+`Product.CreateAsync(new Product("Anvil"))`; mark it `[SkipModel]` if it should have no form model at all.
+
+This rule was RASK081 before the generated writes were dropped and brought back; a retired id is never
+recycled, so it returned under a new one.
 
 ---
 

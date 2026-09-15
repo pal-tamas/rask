@@ -9,7 +9,7 @@ import {createBridge, installPatchTiming, listenToPanel} from "../../../src/Rask
 import type {DockHandle} from "../../../src/Rask.DevTools/Resources/host/dock.js";
 import {labelText, measure, type Overlay} from "../../../src/Rask.DevTools/Resources/host/overlay.js";
 import {changedElements, type Flash} from "../../../src/Rask.DevTools/Resources/host/flash.js";
-import {installPanelClient, parseFlashes} from "../../../src/Rask.DevTools/Resources/panel/panel-client.js";
+import {browserName, installPanelClient, parseFlashes} from "../../../src/Rask.DevTools/Resources/panel/panel-client.js";
 import {nodePath} from "../../../src/Rask.Core/Resources/rask-dom-path.js";
 import type {FrameMessage} from "../../../src/Rask.DevTools/Resources/rask-devtools-frame-protocol.js";
 
@@ -79,7 +79,13 @@ const flash: Flash = {
     setEnabled: on => flashCalls.push(`enabled ${on}`),
     isEnabled: () => false,
 };
-const bridge = createBridge(dock, overlay, flash, m => posted.push(m), {show() {}, heardFromPanel: () => panelHeard++});
+const bridge = createBridge(dock, overlay, flash, m => posted.push(m), {
+    show() {},
+    heardFromPanel: () => panelHeard++,
+    setPanelCount: (n: number) => alerts.push(n),
+    record() {},
+    island() {},
+});
 const ch = "rask-devtools" as const;
 
 bridge.handle({channel: ch, kind: "highlight", at: "1|0|1", label: "Card"});
@@ -216,6 +222,7 @@ const panelWindowListeners: {type: string; handler: Handler}[] = [];
 let anchorsEl: StubEl | null = null;
 let flashEl: StubEl | null = null;
 let errorsEl: StubEl | null = null;
+let pageErrorsEl: StubEl | null = null;
 let flashesEl: StubEl | null = null;
 const pickedEl = new StubEl();
 const patchEl = new StubEl();
@@ -232,6 +239,7 @@ globals.document = {
         : selector === "[data-rask-devtools-flashes]" ? flashesEl
         : selector === "[data-rask-devtools-patch]" ? patchEl
         : selector === "[data-rask-devtools-errors]" ? errorsEl
+        : selector === "[data-rask-devtools-page-errors]" ? pageErrorsEl
         : null,
 };
 
@@ -281,6 +289,20 @@ errorsEl.attributes.set("data-rask-devtools-errors", "0");
 observerCallback!();
 out.errorPosts = panelPosts.map(m => m.kind === "error-count" ? `count:${m.count}` : m.kind).join(",");
 out.showErrorsKeys = errorsEl.dispatched.map(e => e.key).join(",");
+
+// A page failure, held until the receiver's element has rendered, then handed over as its JSON; a malformed one ignored.
+message(page, {channel: ch, kind: "page-error", report: {kind: "page", title: "TypeError", message: "boom"}});
+message(page, {channel: ch, kind: "page-error", report: null});
+pageErrorsEl = new StubEl();
+observerCallback!();
+out.pageErrorKeys = pageErrorsEl.dispatched.map(e => e.key).join(",");
+out.browsers = [
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:133.0) Gecko/20100101 Firefox/133.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Safari/605.1.15",
+    "curl/8.7.1",
+].map(browserName).join(",");
 
 // Patch times from the page, collected and reported together: one keydown for a burst, only from the page, and nothing
 // that is not a finite non-negative number.

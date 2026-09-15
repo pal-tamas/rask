@@ -1,11 +1,15 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Rask.Storage.Backends;
 
 namespace Rask.Storage;
 
 /// <summary>What one sweep did.</summary>
 internal readonly record struct SweepResult(int Deleted, int Orphans, bool Tripped);
+
+/// <summary>Rows whose bytes are not on disk: how many, and the first few ids.</summary>
+internal sealed record MissingFiles(int Count, IReadOnlyList<Guid> Examples);
 
 /// <summary>When the sweep is allowed to delete at all.</summary>
 internal static class SweepPolicy
@@ -39,6 +43,11 @@ internal static class SweepPolicy
 /// It never writes to the database, and deleting is idempotent, so several instances sweeping one store is
 /// safe with no lease.
 /// </para>
+/// <para>
+/// <b>On disk it also looks the other way</b>: rows whose bytes are gone. That is what a database restored without its
+/// files looks like, and it would otherwise surface only as 404s (#1077). It is reported, never repaired — the row is
+/// the app's, and the fix is to restore the files.
+/// </para>
 /// </remarks>
 internal sealed class OrphanSweeper<TContext>(
     IDbContextFactory<TContext> contextFactory,
@@ -49,6 +58,7 @@ internal sealed class OrphanSweeper<TContext>(
     internal const int BatchSize = 500;
     internal const int MaxDeletesPerRun = 10_000;
     internal const int BreakerFloor = 100;
+    internal const int MissingExamples = 5;
 
     /// <summary>How long after start the first sweep waits, before its jitter.</summary>
     internal static readonly TimeSpan InitialDelay = TimeSpan.FromMinutes(1);
@@ -63,11 +73,13 @@ internal sealed class OrphanSweeper<TContext>(
             var jitter = TimeSpan.FromSeconds(Random.Shared.Next(0, 120));
             await Task.Delay(InitialDelay + jitter, runtime.Time, stoppingToken).ConfigureAwait(false);
             await RunOnceAsync(stoppingToken).ConfigureAwait(false);
+            await ReportMissingOnceAsync(stoppingToken).ConfigureAwait(false);
 
             using var timer = new PeriodicTimer(runtime.Options.SweepInterval, runtime.Time);
             while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false))
             {
                 await RunOnceAsync(stoppingToken).ConfigureAwait(false);
+                await ReportMissingOnceAsync(stoppingToken).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)
@@ -92,6 +104,79 @@ internal sealed class OrphanSweeper<TContext>(
         {
             logger.LogError(ex, "The storage orphan sweep failed and stopped; retrying on the next interval.");
         }
+    }
+
+    private async Task ReportMissingOnceAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await FindMissingAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+#pragma warning disable CA1031 // A transient database error must not fault the host; the next run retries.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            logger.LogError(ex, "The storage check for files missing from disk failed; retrying on the next interval.");
+        }
+    }
+
+    /// <summary>
+    /// Count disk rows older than the grace period whose bytes are not under the root, and warn when there are any.
+    /// Null when the store is not a disk.
+    /// </summary>
+    /// <remarks>
+    /// Rows newer than the grace period are skipped, so a delete that has removed the bytes and not yet the row is
+    /// never reported.
+    /// </remarks>
+    internal async Task<MissingFiles?> FindMissingAsync(CancellationToken cancellationToken)
+    {
+        if (runtime.Backend is not DiskBlobBackend disk)
+        {
+            return null;
+        }
+
+        var cutoff = (runtime.Time.GetUtcNow() - runtime.Options.OrphanGracePeriod).UtcDateTime;
+        var missing = 0;
+        var examples = new List<Guid>();
+
+        var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using (db.ConfigureAwait(false))
+        {
+            var rows = db.Set<StoredFile>()
+                .AsNoTracking()
+                .Where(f => f.Provider == StorageProvider.Disk && f.CreatedAt < cutoff)
+                .Select(f => new { f.Id, f.Key })
+                .AsAsyncEnumerable();
+
+            await foreach (var row in rows.WithCancellation(cancellationToken).ConfigureAwait(false))
+            {
+                if (KeyLayout.IsValid(row.Key) && disk.Exists(row.Key))
+                {
+                    continue;
+                }
+
+                missing++;
+                if (examples.Count < MissingExamples)
+                {
+                    examples.Add(row.Id);
+                }
+            }
+        }
+
+        if (missing > 0)
+        {
+            logger.LogWarning(
+                "{Missing} stored files have a StoredFile row but no bytes under {Root} (for example {Examples}), and answer "
+                + "404. A database restored without its files looks like this: restore the .files.tgz archive that "
+                + "rask db backup wrote beside the database.",
+                missing, runtime.Options.Disk.Root, string.Join(", ", examples));
+        }
+
+        return new MissingFiles(missing, examples);
     }
 
     internal async Task<SweepResult> SweepAsync(CancellationToken cancellationToken)

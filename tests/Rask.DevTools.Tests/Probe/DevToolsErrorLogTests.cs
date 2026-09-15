@@ -112,6 +112,40 @@ public sealed class DevToolsErrorLogTests
     }
 
     [Fact]
+    public void A_fault_from_the_apps_own_code_is_not_a_framework_bug_and_one_from_raskS_is()
+    {
+        var feeds = new DevToolsFeeds();
+        var probe = new DevToolsProbe(feeds);
+
+        // Thrown here, in this test project's own namespace — which starts with Rask., like the component that "owns" it.
+        var fromApp = Caught(() => throw new InvalidOperationException("the app's own"));
+        probe.ComponentFaulted(Child(), fromApp, ErrorSource.Action, caught: true);
+
+        // Thrown inside Rask: the report builder, handed a null it does not accept.
+        var fromRask = Caught(() => DevToolsBugReport.IssueUrl(null!, "body"));
+        probe.ComponentFaulted(Frame(), fromRask, ErrorSource.Action, caught: true);
+
+        var errors = feeds.AppWide.Snapshot();
+        Assert.False(errors[0].LikelyFrameworkBug);
+        Assert.True(errors[1].LikelyFrameworkBug);
+        Assert.StartsWith("Rask.DevTools.Probe.DevToolsBugReport.", errors[1].ReportFrames[0]);
+    }
+
+    private static Exception Caught(Action action)
+    {
+        try
+        {
+            action();
+        }
+        catch (Exception exception)
+        {
+            return exception;
+        }
+
+        throw new InvalidOperationException("nothing was thrown");
+    }
+
+    [Fact]
     public void Framework_warnings_and_errors_are_listed_and_information_is_not()
     {
         var feeds = new DevToolsFeeds();

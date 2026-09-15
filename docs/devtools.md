@@ -207,6 +207,10 @@ The tab keeps the last 500 interactions. **Clear** forgets them.
 - **A component that threw**: in its `Render()`, in an event handler, or in an async lifecycle hook such as
   `OnMountAsync`.
 - **A warning or an error from the framework**, such as two list items sharing a key, or a JavaScript call that failed.
+- **A script on the page that threw**, or a promise that was rejected with nothing to catch it.
+- **An island that failed** to mount, update or unmount, or whose props it could not read.
+
+What your code logs with `console.error` is not listed: logging a problem is not the same as failing.
 
 A red count on the **Errors** tab and on the **Rask** pill says how many errors you haven't looked at yet. Warnings
 are listed, but not counted. Nothing opens by itself.
@@ -215,19 +219,40 @@ are listed, but not counted. Nothing opens by itself.
 
 Each error shows:
 
-- **What kind it is**: `render`, `handler`, `lifecycle`, or `warning` / `error` for the framework's own.
+- **What kind it is**: `render`, `handler`, `lifecycle`, `page script`, `island`, or `warning` / `error` for the
+  framework's own.
 - **The exception type and message**. Rask unwraps the wrappers .NET adds around it, so you see the exception your
   code threw.
-- **Where it happened**: the components it sat in, outermost first. **Show in tree** opens the Tree tab at that
-  component and selects it.
+- **Where it happened**: the components it sat in, outermost first. For an island, that is the component the island
+  sits in. **Show in tree** opens the Tree tab at that component and selects it.
 - **Whether an error boundary caught it**, for a handler or a lifecycle hook.
 - **Its stack**, behind **Stack**.
 
 The same error again, straight after, counts up as `×2` rather than adding a row.
 
+A script or an island that fails before you have opened the panel still counts on the pill. The page keeps the last 50
+such failures and lists them as soon as the panel opens.
+
 Most framework warnings happen while a page renders or handles an event, and those are listed for that page. One
 reported anywhere else, such as at startup or from a background service, belongs to no page. It is listed as
 **app-wide** in every panel. **This page** and **App-wide** narrow the list to one or the other.
+
+### Reporting a bug in Rask
+
+Most errors are the app's to fix. When an error's stack points at Rask instead, the row says *This looks like a bug in
+Rask itself* and offers **Report framework bug**. The test is the innermost frame outside .NET's own libraries: if
+that frame is Rask's, the button appears; if it is your code, it doesn't, even when Rask called your code. For a
+script error on the page, the frame has to be in one of Rask's scripts.
+
+**Report framework bug** opens a draft of the issue for you to read and edit first. It holds:
+
+- the exception type, and where it happened (rendering, a handler, a page script…);
+- the components it happened in, by type name;
+- the host, and the Rask, .NET, operating system and browser versions;
+- Rask's own stack frames by name, with every run of your code collapsed to `[app code]`.
+
+It never includes the exception's message, props, data, or any file path. **Open the issue on GitHub** opens a new
+issue on the Rask repository with the draft filled in. Nothing is sent until you submit it there.
 
 ### From the error overlay
 

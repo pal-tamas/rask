@@ -6,10 +6,11 @@
 all**. No `DbContext` class, no `DbSet` property, no `IEntityTypeConfiguration`, no registration — and
 no `IDbContextFactory` injected into every page that reads a row.
 
-Underneath it is ordinary EF Core, and nothing is hidden from you. **The model type reads; every write is EF
-Core exactly as you know it** — a domain method saved through a context ([below](#writing-plain-ef-core)) —
-and an app that outgrows the conventions writes its own context and Rask steps aside
-([below](#using-ef-core-the-usual-way)).
+Underneath it is ordinary EF Core, and nothing is hidden from you. **The model type reads and writes** —
+`Product.Where(…)`, `Product.CreateAsync(model)`, `Product.UpdateAsync(id, model)`, `Product.DeleteAsync(id)`
+([below](#writing-create-update-delete)) — anything richer is EF Core exactly as you know it, a domain method
+saved through a context ([below](#writing-plain-ef-core)), and an app that outgrows the conventions writes its
+own context and Rask steps aside ([below](#using-ef-core-the-usual-way)).
 
 > Included in the [`Rask`](../README.md) package — nothing to install. It is **on**; an app that does without it says so:
 >
@@ -51,7 +52,19 @@ var anvil = await Product.FindAsync(id);
 var grid  = Product.OrderBy(p => p.Name).AsQueryable();   // for UiDataGrid — sorted and paged in SQL
 ```
 
-A write is EF Core, through a context that saves what the entity's own methods changed:
+And to write it — from a form, from code, or inside a transaction you already hold:
+
+```csharp
+var product = await Product.CreateAsync(model);                        // ProductModel from a form
+await Product.UpdateAsync(product.Id, edit);                           // stale Version throws
+
+var other = await Product.CreateAsync(p => p.Reprice(9.90m));          // no form at all …
+await Product.UpdateAsync(other.Id, p => p.Reprice(12.50m));           // … and the same shape to change it
+
+await Product.DeleteAsync(product.Id);
+```
+
+Anything richer is EF Core, through a context that saves what the entity's own methods changed:
 
 ```csharp
 await using var db = await contexts.CreateDbContextAsync(ct);   // IDbContextFactory<RaskAppDbContext>
@@ -147,8 +160,8 @@ Most reads are rendered and never written back anyway, and tracking them would c
 identity-map entry to buy nothing.
 
 **The consequence to know:** a row that comes back is a plain object nothing is watching, so changing it
-and expecting a save does nothing. A change goes back through [a context](#writing-plain-ef-core), which
-loads the entity it is about to change.
+and expecting a save does nothing. A change goes back through [a write on the type](#writing-create-update-delete)
+or [a context](#writing-plain-ef-core), and both load the entity they are about to change.
 
 `FindAsync(id)` is a read like the others: an untracked query by primary key, with the global query
 filters applied, so a soft-deleted row is not found. Its key is typed `object`, as EF Core's is, because
@@ -202,10 +215,173 @@ Product.IgnoreQueryFilters().AsQueryable();           // ✓ soft-deleted rows t
 Product.AsQueryable().Include(p => p.Reviews);        // ✗ compiles, loads no reviews
 ```
 
+## Writing: create, update, delete
+
+The writes live on the type, beside the reads, and a create reads like the update it pairs with — the update just
+names the row first:
+
+| Create | Update | From |
+| --- | --- | --- |
+| `Product.CreateAsync(model)` | `Product.UpdateAsync(id, model)` | a form: the generated `ProductModel` |
+| `Product.CreateAsync(model, p => …)` | `Product.UpdateAsync(id, model, p => …)` | a form, plus values it does not carry |
+| `Product.CreateAsync(p => …)` | `Product.UpdateAsync(id, p => …)` | code, with no form behind it |
+
+- **A create** builds a `Product` from its parameterless constructor, applies the model and then the lambda, and
+  inserts it. The key is a new version-7 `Guid` (or the store's identity for an integer key).
+- **`Product.CreateAsync(id, model)` / `Product.CreateAsync(id, p => …)`** do the same under a key you give — the
+  only creates for a key nothing can produce, such as a strongly-typed id over a `string`. They are not generated
+  for an integer key the database produces: an explicit identity value fails on SQL Server and leaves
+  PostgreSQL's sequence behind.
+- **`Product.CreateAsync(entity)`** inserts an entity you built with its own factory —
+  `Product.CreateAsync(Product.Create("Anvil", 30m))`.
+- **An update** loads the row, applies the model and then the lambda, and saves **only the columns that changed**.
+- **`Product.DeleteAsync(id)`** loads the row and deletes it — a `DeletedAt` stamp for an `ISoftDeletable`.
+
+Each one goes through EF Core's change tracker, so the interceptors run exactly as for a hand-written save:
+`CreatedAt`/`UpdatedAt` are stamped, `Version` is bumped, a delete of an `ISoftDeletable` becomes a stamp, and the
+entity's domain events are published after the commit.
+
+- **The form model is the whitelist.** A create or update writes the model's properties and nothing else — the
+  entity's private setters included, through generated `[UnsafeAccessor]`s, with no reflection. A property marked
+  `[SkipModel]` is not on the model, so no form can write it (Laravel's `$guarded`, Rails' unpermitted param).
+- **The id is always yours.** The model carries none; the row is addressed by the `id` you pass, never by anything
+  a form posted.
+- **Values that do not come from the form** go in an optional lambda, which runs after the model's values are
+  written, so it has the last word: `Product.CreateAsync(model, p => p.AssignTo(user.Id))`. A lambda that
+  assigns a property — `p => p.PublishedAt = DateTime.UtcNow` — needs that setter to be reachable from your code;
+  with private setters, call the entity's method.
+- **A stale edit is refused.** On an `IVersioned` entity, `UpdateAsync(id, model)` checks the `Version` the model
+  carries, and throws `DbUpdateConcurrencyException` when someone saved since. `UpdateAsync(id, p => …)` and
+  `DeleteAsync(id)` take an optional `version:` for the same check.
+- **A missing row** — never created, or soft-deleted — is `KeyNotFoundException`, naming the entity and the key.
+
+A create or update needs a parameterless constructor to start from (a private one is fine — EF Core needs it
+too). An entity without one still gets `UpdateAsync` and `DeleteAsync`, and the build says why it has no
+`CreateAsync` ([RASK086](diagnostics.md#rask086)); insert one built by its own factory with
+`Product.CreateAsync(entity)` instead.
+
+### Joining a context you already have
+
+Without a context, each write opens one, saves and disposes it — the same as a read. Pass `db:` and it works in
+**that** context instead: it saves it — with anything else pending there — and leaves it open, so several writes
+share one transaction:
+
+```csharp
+await using var db = await contexts.CreateDbContextAsync(ct);
+await using var transaction = await db.Database.BeginTransactionAsync(ct);
+
+var order = await Order.CreateAsync(orderModel, db: db, cancellationToken: ct);
+await StockItem.UpdateAsync(stockId, s => s.Reserve(orderModel.Quantity), db: db, cancellationToken: ct);
+
+await transaction.CommitAsync(ct);   // both rows, or — on an exception before this line — neither
+```
+
+A row that context already tracks is the one updated, not a second copy.
+
+### A create and an edit form
+
+A form edits something mutable, so every model gets a **form shape generated beside it**: `ProductModel` for
+`Product`. It is a plain class with a settable copy of every mapped property, and the entity's validation
+attributes are copied onto it, so `Form.Model(…)` checks input by the entity's own rules as the user types.
+It carries `Version` when the entity is `IVersioned`, and never the `Id`. A create page starts from an empty one:
+
+```csharp
+[Route("/products/new")]
+public sealed partial class NewProductPage(Navigator nav) : Component
+{
+    private readonly ProductModel _product = new();
+
+    protected override Component Render() =>
+        Form.Model(_product).OnValidSubmit(CreateAsync)[submitting => [
+            UiInput.Bind(() => _product.Name).Label("Name"),
+            UiInput.Bind(() => _product.Price).Label("Price"),
+            UiButton.Type(UiButtonType.Submit).Disabled(submitting)["Create"],
+        ]];
+
+    private async Task CreateAsync(ProductModel product)
+    {
+        await Product.CreateAsync(product, cancellationToken: CancellationToken);
+        nav.NavigateTo(Routes.ProductsPage());
+    }
+}
+```
+
+An edit page fills one from the row it read, and hands it back with the route's id:
+
+```csharp
+[Route("/products/{id:guid}/edit")]
+public sealed partial class EditProductPage(Navigator nav) : Component
+{
+    [RouteParam] public Guid Id { get; set; }
+
+    private ProductModel? _product;
+    private string? _conflict;
+
+    protected override async Task OnMountAsync() =>
+        _product = await Product.FindAsync(Id, CancellationToken) is { } p
+            ? new ProductModel { Name = p.Name, Price = p.Price, Version = p.Version }
+            : null;
+
+    protected override Component? Render() =>
+        _product is null ? P["Loading…"] :
+        Form.Model(_product).OnValidSubmit(SaveAsync)[
+            _conflict is null ? null : UiAlert.Tone(UiTone.Warning)[_conflict],
+            UiInput.Bind(() => _product.Name).Label("Name"),
+            UiInput.Bind(() => _product.Price).Label("Price"),
+            UiButton.Type(UiButtonType.Submit)["Save"],
+        ];
+
+    private async Task SaveAsync(ProductModel edit)
+    {
+        try
+        {
+            await Product.UpdateAsync(Id, edit, cancellationToken: CancellationToken);   // Version checked
+            nav.NavigateTo(Routes.ProductsPage());
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            _conflict = "Someone saved this product while you were editing it.";
+        }
+    }
+}
+```
+
+The `[Required, MaxLength(200)]` on `Name` is the entity's, copied to the model, so both forms refuse an empty
+or overlong name before anything is saved — and EF Core reads the same attributes for the column.
+
+**Or send it in a command.** A command, a query, an API endpoint or an island prop can carry a `ProductModel`
+(`public sealed record AddProduct(ProductModel Product) : ICommand<Guid>`), and the generators that build their
+codecs recognise it although it is itself generated; the handler calls `Product.CreateAsync(command.Product)`. A
+hand-written command class with its own attributes works exactly the same way — it is what the
+[tutorial](tutorial/02-first-feature.md) builds.
+
+**Your own write wins.** A static `CreateAsync(ProductModel, …)` or `DeleteAsync(Guid, …)` declared on `Product`
+replaces the generated one at every call site — a member on the type beats an extension member — and the
+generated one stays reachable as `ProductModelExtensions.CreateAsync(…)` for an override that only adds to it.
+
+### What the model leaves out
+
+- **The `Id`**, the framework's columns (`CreatedAt`, `UpdatedAt`, `DeletedAt`, the domain events), navigations,
+  collections and computed properties.
+- **A property marked `[SkipModel]`** (from `Rask.Data`) — a status only `Ship()` moves, a total the entity
+  computes. `[SkipModel]` on the **class** generates no model at all.
+- **Nothing about a value object's shape:** `Money Total` on `Order` is `MoneyModel Total` on `OrderModel`, so a
+  form binds `() => _order.Total.Amount` like any [nested model](forms-advanced.md), however `Money` is declared.
+
+A `partial class ProductModel` of your own merges into the generated one — the way to add members,
+`IValidatableObject` or display helpers. The build says when it cannot generate: a **hand-written, non-`partial`
+`ProductModel`** beside a `Product` is an error ([RASK082](diagnostics.md#rask082)), and a **nested entity** — a
+model declared inside another class — is a warning and gets no model ([RASK083](diagnostics.md#rask083)).
+
+On the wire a model's properties are **camelCase**. Only validation attributes are copied from the entity, so a
+`[JsonPropertyName]` on the entity does not rename the model's property; a property you declare yourself on a
+`partial ProductModel` keeps its own pin.
+
 ## Writing: plain EF Core
 
-The model type reads; it does not write. **Every change is ordinary EF Core** — load the entity into a
-context, call its method, save — so the entity's own rules run on every write, and so do the interceptors:
+The writes on the type cover a create, an update and a delete. **Everything past that is ordinary EF Core** — a
+change several entities make together, a query-then-decide, a bulk statement: load the entities into a context,
+call their methods, save — so the entity's own rules run on every write, and so do the interceptors:
 `CreatedAt`/`UpdatedAt` are stamped, `Version` is bumped, a delete of an `ISoftDeletable` becomes a
 `DeletedAt` stamp, and the entity's domain events are published after the commit. There is no Rask-owned
 unit of work to learn.
@@ -295,116 +471,6 @@ public sealed partial class OrderPage(IDbContextFactory<RaskAppDbContext> contex
 The one thing to remember is the one from [Reading](#reading-the-model-type-is-its-own-query): rows from
 `Product.Where(…)` are untracked, so load the entity you are about to change from the context that is going
 to save it.
-
-### A create and an edit form
-
-A form edits something mutable, so every model gets a **form shape generated beside it**: `ProductModel` for
-`Product`. It is a plain class with a settable copy of every mapped property, and the entity's validation
-attributes are copied onto it, so `Form.Model(…)` checks input by the entity's own rules as the user types.
-It carries `Version` when the entity is `IVersioned`, and never the `Id`.
-
-**It is only a shape.** Nothing is generated that fills it from an entity or writes it back — the save is the
-plain EF Core above. A create page starts from an empty one:
-
-```csharp
-[Route("/products/new")]
-public sealed partial class NewProductPage(IDbContextFactory<RaskAppDbContext> contexts, Navigator nav) : Component
-{
-    private readonly ProductModel _product = new();
-
-    protected override Component Render() =>
-        Form.Model(_product).OnValidSubmit(CreateAsync)[submitting => [
-            UiInput.Bind(() => _product.Name).Label("Name"),
-            UiInput.Bind(() => _product.Price).Label("Price"),
-            UiButton.Type(UiButtonType.Submit).Disabled(submitting)["Create"],
-        ]];
-
-    private async Task CreateAsync(ProductModel product)
-    {
-        await using var db = await contexts.CreateDbContextAsync(CancellationToken);
-
-        db.Add(Product.Create(product.Name, product.Price));
-        await db.SaveChangesAsync(CancellationToken);
-
-        nav.NavigateTo(Routes.ProductsPage());
-    }
-}
-```
-
-An edit page fills one from the row it read, and saves through a context that loads the row again:
-
-```csharp
-[Route("/products/{id:guid}/edit")]
-public sealed partial class EditProductPage(IDbContextFactory<RaskAppDbContext> contexts, Navigator nav) : Component
-{
-    [RouteParam] public Guid Id { get; set; }
-
-    private ProductModel? _product;
-    private string? _conflict;
-
-    protected override async Task OnMountAsync() =>
-        _product = await Product.FindAsync(Id, CancellationToken) is { } p
-            ? new ProductModel { Name = p.Name, Price = p.Price, Version = p.Version }
-            : null;
-
-    protected override Component? Render() =>
-        _product is null ? P["Loading…"] :
-        Form.Model(_product).OnValidSubmit(SaveAsync)[
-            _conflict is null ? null : UiAlert.Tone(UiTone.Warning)[_conflict],
-            UiInput.Bind(() => _product.Name).Label("Name"),
-            UiInput.Bind(() => _product.Price).Label("Price"),
-            UiButton.Type(UiButtonType.Submit)["Save"],
-        ];
-
-    private async Task SaveAsync(ProductModel edit)
-    {
-        await using var db = await contexts.CreateDbContextAsync(CancellationToken);
-        var product = await db.Set<Product>().FirstAsync(p => p.Id == Id, CancellationToken);
-
-        db.Entry(product).Property(p => p.Version).OriginalValue = edit.Version;   // refuse a stale save
-        product.Rename(edit.Name);
-        product.Reprice(edit.Price);
-
-        try
-        {
-            await db.SaveChangesAsync(CancellationToken);
-            nav.NavigateTo(Routes.ProductsPage());
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            _conflict = "Someone saved this product while you were editing it.";
-        }
-    }
-}
-```
-
-The `[Required, MaxLength(200)]` on `Name` is the entity's, copied to the model, so both forms refuse an empty
-or overlong name before anything is saved — and EF Core reads the same attributes for the column. The row is
-addressed by the route's `Id`, never by anything the form posted.
-
-**Or send it in a command.** A command, a query, an API endpoint or an island prop can carry a `ProductModel`
-(`public sealed record AddProduct(ProductModel Product) : ICommand<Guid>`), and the generators that build their
-codecs recognise it although it is itself generated; the handler does the save above. A hand-written command
-class with its own attributes works exactly the same way — it is what the [tutorial](tutorial/02-first-feature.md)
-builds.
-
-### What the model leaves out
-
-- **The `Id`**, the framework's columns (`CreatedAt`, `UpdatedAt`, `DeletedAt`, the domain events), navigations,
-  collections and computed properties.
-- **A property marked `[SkipModel]`** (from `Rask.Data`) — a status only `Ship()` moves, a total the entity
-  computes. `[SkipModel]` on the **class** generates no model at all.
-- **Nothing about a value object's shape:** `Money Total` on `Order` is `MoneyModel Total` on `OrderModel`, so a
-  form binds `() => _order.Total.Amount` like any [nested model](forms-advanced.md), however `Money` is declared.
-
-A `partial class ProductModel` of your own merges into the generated one — the way to add members,
-`IValidatableObject` or display helpers. The build says when it cannot generate: a **hand-written, non-`partial`
-`ProductModel`** beside a `Product` is an error ([RASK082](diagnostics.md#rask082)), and a **nested entity** — a
-model declared inside another class — is a warning and gets no model ([RASK083](diagnostics.md#rask083)).
-
-On the wire a model's properties are **camelCase**. Only validation attributes are copied from the entity, so a
-`[JsonPropertyName]` on the entity does not rename the model's property; a property you declare yourself on a
-`partial ProductModel` keeps its own pin.
 
 ### Keeping state inside the entity
 
@@ -696,7 +762,9 @@ overridden `ConfigureConventions`.
 
 ## Optimistic concurrency
 
-`IVersioned` makes `Version` an EF Core concurrency token, bumped on every save. The edit form carries the
+`IVersioned` makes `Version` an EF Core concurrency token, bumped on every save. `Product.UpdateAsync(id, model)`
+does the rest for you — it checks the `Version` the model carries — and `UpdateAsync(id, p => …)` and
+`DeleteAsync(id)` take a `version:`. A hand-written save does it itself. The edit form carries the
 version it was loaded at, and the handler compares against **that** version rather than the one it just
 read — a freshly loaded row's original `Version` is whatever the database holds now, which would make every
 check pass. So pin the caller's version as the tracked original value before saving:

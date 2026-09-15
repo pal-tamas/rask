@@ -786,6 +786,14 @@ result down over the existing `docker -H ssh://…` connection. The host does ne
 `alpine`, which it already does for every deploy. Host and app name come from `.rask/deploy.json`, so a
 repeat backup is a bare `rask db backup --remote`; override with `--host` and `--app`.
 
+**Uploaded files go with the database.** When the app keeps [stored files](file-storage.md) on disk, `backup`
+archives them beside the copy — `nightly.db` comes with `nightly.files.tgz` — and `restore` puts both back when it
+finds the archive next to the file you name. The archive is taken after the database copy, so every row in it has
+its bytes; locally the files are the disk root the app would use (`Rask:Storage:Disk:Root`, else `storage/`), and
+remotely they are `/data/files` on the volume. A restore unpacks the archive before it touches the database, so a
+corrupt archive stops it with nothing replaced. With no archive beside it, the files are left as they are, and
+`restore` names any rows that now point at bytes that aren't there.
+
 **Restore replaces a database, so it behaves like `rask db drop`**: it asks first, takes `--yes` to skip
 the prompt, and refuses outright when there's no terminal to ask on rather than guessing. A remote restore
 also **stops the app first and starts it again afterwards** — replacing the file under a live writer

@@ -18,6 +18,25 @@ export const FLASH_KEY_PREFIX = "flash:";
 /** The keydown `key` that asks the panel to show its Errors tab; `DevToolsTabIds.ShowErrorsKey`. */
 export const SHOW_ERRORS_KEY = "errors:show";
 
+/** The prefix of the keydown `key` a page failure is reported as, followed by its JSON; `DevToolsPageErrorReceiver.KeyPrefix`. */
+export const PAGE_ERROR_KEY_PREFIX = "page-error:";
+
+/** The prefix of the keydown `key` the browser is named in; `DevToolsPageErrorReceiver.BrowserKeyPrefix`. */
+export const BROWSER_KEY_PREFIX = "browser:";
+
+/** `Chrome 131`, `Firefox 133`, `Safari 18.1`, `Edge 131` — the browser and its major version, nothing else from the UA. */
+export function browserName(userAgent: string): string {
+    const found = (pattern: RegExp, name: string) => {
+        const m = pattern.exec(userAgent);
+        return m ? `${name} ${m[1]}` : null;
+    };
+    return found(/Edg\/(\d+)/, "Edge")
+        ?? found(/Firefox\/(\d+)/, "Firefox")
+        ?? found(/Chrome\/(\d+)/, "Chrome")
+        ?? found(/Version\/([\d.]+).*Safari/, "Safari")
+        ?? "Unknown browser";
+}
+
 /** The prefix of the keydown `key` the page's patch times are reported as; `DevToolsPatchReceiver.KeyPrefix`. */
 export const PATCH_KEY_PREFIX = "patch:";
 
@@ -80,6 +99,22 @@ export function installPanelClient(options: PanelClientOptions): void {
         if (showErrorsWanted) {
             showErrorsWanted = false;
             el.dispatchEvent(new KeyboardEvent("keydown", {key: SHOW_ERRORS_KEY, bubbles: true}));
+        }
+    };
+
+    // The page's own failures, handed to the panel one keydown each, once the element that takes them has rendered — after
+    // the browser's name, which a bug report carries.
+    const pageErrors: unknown[] = [];
+    let browserNamed = false;
+    const syncPageErrors = () => {
+        const el = document.querySelector("[data-rask-devtools-page-errors]");
+        if (!el) return;
+        if (!browserNamed) {
+            browserNamed = true;
+            el.dispatchEvent(new KeyboardEvent("keydown", {key: BROWSER_KEY_PREFIX + browserName(navigator.userAgent), bubbles: true}));
+        }
+        for (const report of pageErrors.splice(0)) {
+            el.dispatchEvent(new KeyboardEvent("keydown", {key: PAGE_ERROR_KEY_PREFIX + JSON.stringify(report), bubbles: true}));
         }
     };
 
@@ -148,6 +183,7 @@ export function installPanelClient(options: PanelClientOptions): void {
             syncAnchors();
             syncFlash();
             syncErrors();
+            syncPageErrors();
         }).observe(document.documentElement, {
             subtree: true,
             childList: true,
@@ -170,6 +206,9 @@ export function installPanelClient(options: PanelClientOptions): void {
             reportPick(message.id);
         } else if (message.kind === "pick-cancelled") {
             reportPick("cancel");
+        } else if (message.kind === "page-error" && message.report !== null && typeof message.report === "object") {
+            pageErrors.push(message.report);
+            syncPageErrors();
         } else if (message.kind === "show-errors") {
             showErrorsWanted = true;
             syncErrors();

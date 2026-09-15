@@ -2,8 +2,8 @@
 
 A data layer for **Entity Framework Core** apps with one goal: **you declare models, and that is all**.
 No `DbContext` class, no `DbSet` property, no `IEntityTypeConfiguration`, no registration — and no
-`IDbContextFactory` injected into everything that reads a row. Underneath it is ordinary EF Core, and every
-write — a domain method, a transaction — is EF Core exactly as you know it.
+`IDbContextFactory` injected to read a row or save a form. Underneath it is ordinary EF Core, and anything
+richer than a create, an update or a delete is EF Core exactly as you know it.
 
 - **`Model<TId>`** — a base entity with `Id` and a domain-events buffer. A source generator finds every one
   of them and builds the model, so nothing is scanned or reflected and a trimmed publish cannot quietly drop
@@ -15,13 +15,17 @@ write — a domain method, a transaction — is EF Core exactly as you know it.
   context per execution — hand it to a data grid and it sorts and pages in the database.
 - **A generated `ProductModel` for forms** — a settable copy of each entity's mapped properties, with its
   DataAnnotations and `Version` carried and the key left out, so `Form.Model(model)` validates by the entity's
-  own rules. It is only a shape: the save is plain EF Core. `[SkipModel]` keeps a property off it.
+  own rules. It is the whitelist a create or update writes from: `[SkipModel]` keeps a property off it.
 - **Hints, not rules** — build warnings with lightbulb fixes point out a public setter or field on a model or
   value object (RASK084) and an entity exposing a mutable collection of entities (RASK085). Public setters
   are allowed; the warnings never fail a build that does not ask them to.
-- **Writes are plain EF Core** — inject `IDbContextFactory<TContext>` into a command handler or a live page,
-  load the entity, call its method, and `SaveChangesAsync`. The interceptors stamp, version, soft-delete and
-  publish as for any save.
+- **Writes off the type** — creates read like their updates: `Product.CreateAsync(model)` /
+  `Product.UpdateAsync(id, model)`, `Product.CreateAsync(p => …)` / `Product.UpdateAsync(id, p => …)`, plus
+  `Product.CreateAsync(entity)` for a built entity and `Product.DeleteAsync(id)`. A form's values go through the generated
+  model; values that do not come from the form go in an optional `p => …`; the id is always the caller's, never
+  the form's; an `IVersioned` edit refuses a stale save. Each takes an optional `DbContext` to join a caller's
+  transaction. The interceptors stamp, version, soft-delete and publish as for any save — and anything richer
+  is plain EF Core through `IDbContextFactory<TContext>`.
 - **Value objects** (`IValueObject`) map as EF **complex types**, not owned entities; **strongly-typed
   ids** get a generated value converter with nothing declared; mapping rules live in a plain
   `public static void Configure(EntityTypeBuilder<T>)` on the model.
@@ -50,7 +54,12 @@ public sealed class Product : Model<Guid>, ISoftDeletable, IVersioned
 // read — no context in scope, nothing left open, nothing tracked
 var products = await Product.OrderBy(p => p.Name).ToListAsync();
 
-// write — plain EF Core, one context, one transaction
+// write — off the type too; the form model is the whitelist, the id is yours
+var product = await Product.CreateAsync(model);
+await Product.UpdateAsync(product.Id, edit);   // only changed columns; a stale Version throws
+await Product.DeleteAsync(product.Id);         // soft delete
+
+// anything richer — plain EF Core, one context, one transaction (the writes above join it with db: db)
 await using var db = await contexts.CreateDbContextAsync(ct);
 var order = await db.Set<Order>().FirstAsync(o => o.Id == orderId, ct);
 order.Cancel(DateTime.UtcNow);

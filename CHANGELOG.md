@@ -36,6 +36,35 @@ them until tagged releases begin.
   - **SQLite-only for now, and said so at boot.** On any other provider, `AddRaskData<TContext>` refuses to start
     a context that declares an index, the way it already refuses an unenforced `HasNonOverlappingRange` — that
     check is now one hosted service covering both.
+- **`rask db backup` takes uploaded files with the database, and `restore` puts both back (#1077).** An app on
+  Rask.Storage's disk provider kept its `StoredFile` rows in `app.db` and its bytes in the disk root, and a backup
+  copied only the first, so a restored database pointed at files that were gone.
+  - **The archive:** the disk root is written as `shop-….files.tgz` beside `shop-….db`, locally (from
+    `Rask:Storage:Disk:Root`, else `storage/`) and with `--remote` (from `/data/files`, in the same throwaway
+    container as the `VACUUM INTO`). It is taken after the database copy, so every row in the copy has its bytes.
+    The save spool is left out.
+  - **The restore:** it finds the archive beside the file you name, and unpacks it into a staging directory
+    before it touches the database. A corrupt archive stops the restore with nothing replaced. Remotely, both are
+    replaced while the app is stopped. With no archive beside the file, the files are left as they are.
+  - **Rows without bytes are reported.** `rask db restore` names disk rows whose file is missing. The storage
+    sweep now logs a warning with their count and the first few ids, which is what a database restored by
+    Litestream or a snapshot (neither of which copies files) looks like. It never deletes the rows.
+- **Create, update and delete live on the model type again.** Beside the reads, every `Rask.Data` model gets
+  creates that read like their updates — `Product.CreateAsync(model)` / `Product.UpdateAsync(id, model)` and
+  `Product.CreateAsync(p => …)` / `Product.UpdateAsync(id, p => …)` (with `CreateAsync(id, …)` for a key only
+  the caller can give) — plus `Product.DeleteAsync(id)`, and `Product.CreateAsync(entity)` inserts one built by
+  its own factory. The generated `ProductModel` is the mass-assignment whitelist — `[SkipModel]`
+  keeps a property out of reach of any form — and the id is always the caller's, never the form's.
+  - **Values the form does not carry** go in an optional `p => …` that runs after the model's values:
+    `Product.CreateAsync(model, p => p.AssignTo(user.Id))`.
+  - **Join a context you already hold** with `db:` — the write saves through it and leaves it open, so several
+    writes share one transaction. Without one, each write opens a context, saves and disposes it, like a read.
+  - Every write goes through the change tracker, so audit stamps, `Version`, soft delete and domain events
+    behave as for any save; an update writes only the columns that changed, a stale `Version` throws
+    `DbUpdateConcurrencyException`, and a missing or soft-deleted row is `KeyNotFoundException`.
+  - **RASK086** (warning): an entity with no parameterless constructor gets no `CreateAsync(model)` — the rule
+    RASK081 carried before the writes were dropped; a retired id is never recycled. There is still no
+    `ToModel()`, and instance `product.SaveAsync()` is not part of this.
 
 - **`rask new --framework net11.0` scaffolds an app on .NET 11.** The csproj takes the version asked for
   (`net11.0`, or `net11.0-browser` on the WASM template), the Dockerfile takes the matching `sdk:11.0` /
@@ -678,6 +707,25 @@ them until tagged releases begin.
   Two internal probe hooks feed it: `ComponentFaulted` (a handler's or lifecycle hook's exception, and whether a
   boundary took it) and `DiagnosticReported` (every `RaskDiagnostics` report, sink or no sink).
 
+- **The devtools Errors tab also lists what fails on the page itself.** A script's uncaught error and a promise rejected
+  with nothing to catch it, with the error's name, message and stack (or, for another origin's "Script error.", where
+  it came from); and an island that failed to mount, update or unmount, or whose props it could not read, named with
+  its phase and listed under the component it sits in, found by its element's place as a pick finds it. The page counts
+  them on the pill at once and keeps the last 50 until the panel opens, then hands them over. `console.error` is not
+  wrapped. `rask-external.js` now reports each island failure to the devtools hook when one is installed, and catches a
+  throwing `adapter.update` — which ran inside the page's `MutationObserver` callback, where it stopped the rest of that
+  batch of changes from reaching their islands — logging it like the other phases.
+
+- **An error that looks like Rask's own can be reported from the devtools.** When the innermost stack frame outside the
+  .NET runtime and base library is in a Rask namespace (or, for a page script's error, in one of Rask's scripts), the
+  Errors tab offers **Report framework bug**: an editable draft of a GitHub issue — the exception type, where it
+  happened, the components' type names, the host with the Rask, .NET, OS and browser versions, and Rask's frames by
+  name with the app's collapsed to `[app code]` — that **Open the issue on GitHub** opens as a new issue on
+  pal-tamas/rask, labelled `bug`, for the developer to submit. The exception's message, props, data and file paths are
+  never in it; an app whose namespace starts with `Rask.` is recognised by its entry assembly and component namespaces;
+  frames are read from the stack text, so a trimmed WASM app reports the same; the URL stays under 8,000 characters by
+  dropping the oldest frames first.
+
 ### Changed
 
 - **File storage reads `Rask:Storage`, like every other Rask area.** It was the one package still on a top-level
@@ -806,11 +854,10 @@ them until tagged releases begin.
   builder.Services.AddRaskSpaHost();
   app.UseRaskSpa();
   ```
-- **BREAKING: `Rask.Data` has no unit of work and no writes on the model — the model type only reads.**
-  Removed outright, with no `[Obsolete]` step: the generated `Product.CreateAsync(model)`,
-  `Product.UpdateAsync(id, model)`, `Product.DeleteAsync(id)` and `product.ToModel()` (the generated
-  `ProductModel` itself stays, as a form shape) and the `GeneratedModelWrites` they called, retiring
-  [RASK081](docs/diagnostics.md#rask081); the tracker verbs
+- **BREAKING: `Rask.Data` has no unit of work.** (Its create, update and delete on the model type were dropped
+  here too and have since come back — see *Create, update and delete live on the model type again* above.)
+  Removed outright, with no `[Obsolete]` step: `product.ToModel()` (the generated `ProductModel` itself stays),
+  retiring [RASK081](docs/diagnostics.md#rask081); the tracker verbs
   `Product.Add`/`AddRange`/`Update`/`UpdateRange`/`Remove`/`RemoveRange`/`Attach`/`Entry`/`Set`; the
   instance `entity.SaveAsync()` and `entity.DeleteAsync()`; `AsTracking()` and `AsNoTracking()`;
   `Db.Begin()` and the `UnitOfWork` type; and `Db.Current`, `Db.HasCurrent`, `Db.CurrentUnitOfWork`,
@@ -1166,6 +1213,13 @@ them until tagged releases begin.
   and on a busy machine the pre-commit gate went red on a commit that never touched the installer. It now reads
   its whole input (`grep -E … >/dev/null`), the repo's own rule for exactly this trap.
 
+- **A server render no longer waits on another render's work.** The scope that collects a first render's
+  async lifecycle work was also kept in a thread-static slot. `QuiescentRender` begins on a pool thread and
+  then awaits, so that thread went back to the pool still pointing at a render that was waiting. The next
+  render with no scope of its own that landed there tracked its `OnMountAsync` work into the stranger, whose
+  wave loop kept finding new work until it hit the 16-wave cap and served its page early, marked timed out
+  (#1108, seen as `PageMetaTests` "did not settle" under load). The scope is now found through the async flow
+  only.
 - **Two signed-in users with no identifier no longer count as the same user.** The session ownership check behind a
   reconnect, an upload and a download compares users by `NameIdentifier`, or `Name` when there is no
   identifier. When two signed-in principals carried neither, it compared nothing with nothing and matched, so

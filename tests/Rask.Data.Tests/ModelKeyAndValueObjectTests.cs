@@ -25,6 +25,8 @@ public sealed class Locker : Model<LockerCode>
     public string Site { get; private set; } = "";
 
     public static Locker At(LockerCode code, string site) => new() { Id = code, Site = site };
+
+    public void MoveTo(string site) => Site = site;
 }
 
 // Value objects the way RASK084 wants them — no public setters — so EF Core has to materialise them through
@@ -140,5 +142,101 @@ public sealed class ModelKeyAndValueObjectTests : IDisposable
         Assert.Equal("Szeged", stored.Destination.City);
         Assert.Equal(2.5m, stored.Weight.Amount);
         Assert.Equal("kg", stored.Weight.Unit);
+    }
+
+    // ---- the generated writes ------------------------------------------------------------------------
+    // The model carries no key, so the key comes from the caller — CreateAsync(id, model), for every entity — or,
+    // where CreateAsync(model) exists, from something that can produce one: the store's identity for an integer,
+    // the generated create itself for a Guid or a strongly-typed id over one. A key nothing can produce — a
+    // strongly-typed id over a string — gets only the id overload.
+
+    private static ParcelModel NewParcel(string label) => new()
+    {
+        Label = label,
+        Destination = new ParcelModel.DeliveryAddressModel { Street = "1 Main St", City = "Szeged" },
+        Weight = new ParcelModel.ParcelWeightModel { Amount = 2.5m, Unit = "kg" },
+    };
+
+    [Fact]
+    public async Task The_generated_create_leaves_an_integer_key_to_the_store()
+    {
+        await using var database = await StartDatabaseAsync();
+
+        var first = await Coupon.CreateAsync(new CouponModel { Code = "SPRING" });
+        var second = await Coupon.CreateAsync(new CouponModel { Code = "SUMMER" });
+
+        Assert.True(first.Id > 0);
+        Assert.NotEqual(first.Id, second.Id);
+        Assert.Equal("SUMMER", (await Coupon.FindAsync(second.Id))!.Code);
+    }
+
+    [Fact]
+    public void A_key_the_store_generates_gets_no_create_that_takes_one()
+    {
+        // An explicit value in an identity column is refused on SQL Server and leaves PostgreSQL's sequence behind.
+        Assert.DoesNotContain(
+            typeof(CouponModelExtensions).GetMethods(),
+            m => m.Name == "CreateAsync" && m.GetParameters()[0].ParameterType == typeof(int));
+    }
+
+    [Fact]
+    public async Task A_key_nothing_can_produce_is_inserted_under_the_id_the_caller_gives()
+    {
+        await using var database = await StartDatabaseAsync();
+
+        var created = await Locker.CreateAsync(new LockerCode("A-12"), new LockerModel { Site = "Szeged" });
+
+        Assert.Equal(new LockerCode("A-12"), created.Id);
+        Assert.Equal("Szeged", (await Locker.FindAsync(new LockerCode("A-12")))!.Site);
+        Assert.DoesNotContain(
+            typeof(LockerModelExtensions).GetMethods(),
+            m => m.Name == "CreateAsync" &&
+                 (m.GetParameters()[0].ParameterType == typeof(LockerModel) ||
+                  m.GetParameters()[0].ParameterType == typeof(Action<Locker>)));
+
+        // The lambda form takes the key the same way.
+        var moved = await Locker.CreateAsync(new LockerCode("B-7"), locker => locker.MoveTo("Debrecen"));
+        Assert.Equal(new LockerCode("B-7"), moved.Id);
+        Assert.Equal("Debrecen", (await Locker.FindAsync(new LockerCode("B-7")))!.Site);
+    }
+
+    [Fact]
+    public async Task A_strongly_typed_guid_key_is_assigned_by_the_generated_create()
+    {
+        await using var database = await StartDatabaseAsync();
+
+        var first = await Parcel.CreateAsync(NewParcel("first"));
+        var second = await Parcel.CreateAsync(NewParcel("second"));
+
+        Assert.NotEqual(Guid.Empty, first.Id.Value);
+        Assert.Equal(7, first.Id.Value.Version);
+        Assert.NotEqual(first.Id, second.Id);
+        Assert.Equal("second", (await Parcel.FindAsync(second.Id))!.Label);
+    }
+
+    [Fact]
+    public async Task Value_objects_without_public_setters_round_trip_through_the_generated_create_and_update()
+    {
+        await using var database = await StartDatabaseAsync();
+
+        var created = await Parcel.CreateAsync(NewParcel("fragile"));
+
+        var stored = (await Parcel.FindAsync(created.Id))!;
+        Assert.Equal("1 Main St", stored.Destination.Street);
+        Assert.Equal("Szeged", stored.Destination.City);
+        Assert.Equal(2.5m, stored.Weight.Amount);
+        Assert.Equal("kg", stored.Weight.Unit);
+
+        var edit = NewParcel("fragile");
+        edit.Destination.City = "Debrecen";
+        edit.Weight.Amount = 3m;
+        edit.Weight.Unit = "lb";
+        await Parcel.UpdateAsync(created.Id, edit);
+
+        var updated = (await Parcel.FindAsync(created.Id))!;
+        Assert.Equal("1 Main St", updated.Destination.Street);
+        Assert.Equal("Debrecen", updated.Destination.City);
+        Assert.Equal(3m, updated.Weight.Amount);
+        Assert.Equal("lb", updated.Weight.Unit);
     }
 }

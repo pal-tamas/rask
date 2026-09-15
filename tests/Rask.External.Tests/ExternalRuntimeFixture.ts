@@ -210,7 +210,64 @@ const childrenAfterRemoval = mountedChildren;
 
 runtime.__internals.unmount(parent);
 
+// ----- failures -----
+//
+// An island that throws is logged as before, reported to the devtools hook when one is installed, and — for an update,
+// which runs inside the page's MutationObserver callback — no longer thrown out of the runtime.
+
+const reports = [];
+globalThis.__raskDevtoolsHook = {
+    island: (phase, element, name, error) => reports.push(`${phase}:${name}:${error ? error.message : ""}`),
+};
+const workingResolve = globalThis.__raskExternal.resolve;
+globalThis.__raskExternal.resolve = (name) =>
+    name === "BrokenMount"
+        ? Promise.resolve({default: {mount() { throw new Error("mount boom"); }}})
+        : name === "BrokenLater"
+            ? Promise.resolve({default: {
+                mount: () => ({}),
+                update() { throw new Error("update boom"); },
+                unmount() { throw new Error("unmount boom"); },
+            }})
+            : workingResolve(name);
+const quietError = console.error;
+console.error = () => {};
+
+const brokenMount = makeEl("rask-external", {name: "BrokenMount", props: "{}"});
+body.appendChild(brokenMount);
+runtime.__internals.hydrate(brokenMount);
+await tick();
+
+const brokenLater = makeEl("rask-external", {name: "BrokenLater", props: "{}"});
+body.appendChild(brokenLater);
+runtime.__internals.hydrate(brokenLater);
+await tick();
+brokenLater.setAttribute("props", JSON.stringify({heading: "again"}));
+let updateThrew = false;
+try {
+    runtime.__internals.update(brokenLater);
+} catch {
+    updateThrew = true;
+}
+runtime.__internals.unmount(brokenLater);
+
+const unreadable = makeEl("rask-external", {name: "Unreadable", props: "{not json"});
+body.appendChild(unreadable);
+runtime.__internals.hydrate(unreadable);
+await tick();
+runtime.__internals.unmount(unreadable);
+
+// A hook that throws must not turn a logged failure into an unhandled one.
+globalThis.__raskDevtoolsHook = {island() { throw new Error("devtools broke"); }};
+const brokenAgain = makeEl("rask-external", {name: "BrokenMount", props: "{}"});
+body.appendChild(brokenAgain);
+runtime.__internals.hydrate(brokenAgain);
+await tick();
+console.error = quietError;
+
 process.stdout.write(JSON.stringify({
+    islandReports: reports,
+    updateThrew,
     log: logBeforeChildren,
     callbackIsFunction,
     // Same object across updates: the runtime's handler cache is keyed by id, and React compares

@@ -121,6 +121,8 @@ public sealed class DevToolsPanelSessionTests
     {
         public DevToolsErrorLog AppWide { get; } = new();
 
+        public string HostName => "Test";
+
         public DevToolsFeed? Open(string? sessionId, string? token) => feed;
 
         public string? PanelScriptUrl => null;

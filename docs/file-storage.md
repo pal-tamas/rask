@@ -358,8 +358,9 @@ root otherwise.
 A root inside `wwwroot` stops the boot: the static-file middleware would serve those files directly, with
 none of the checks above, and an uploaded HTML page would be served as HTML from your own origin.
 
-Know the two limits before you rely on it: files on disk are **not backed up**, and the directory is
-**node-local**. Both are covered [below](#backups-and-more-than-one-instance).
+Know the two limits before you rely on it: files on disk are backed up **only by `rask db backup`** (not by
+Litestream or snapshots), and the directory is **node-local**. Both are covered
+[below](#backups-and-more-than-one-instance).
 
 ### S3-compatible storage
 
@@ -437,10 +438,25 @@ be in flight between writing the bytes and the row). It is built to do nothing r
 
 ## Backups, and more than one instance
 
-**Files on the disk provider are not backed up.** `rask db backup`, Litestream and SQLite snapshots cover
-`app.db` and nothing else. The `StoredFile` rows *are* in `app.db`, so a database restored onto a fresh box
-comes back pointing at files that are no longer there. Backing up the disk store is not in the box yet. For
-uploads you can't afford to lose, use S3 or Azure, where the bytes' durability is the provider's.
+**`rask db backup` takes the files with the database; nothing else does.** The `StoredFile` rows live in
+`app.db` and the bytes live in the disk root, so a backup of one without the other restores rows pointing at
+files that are no longer there. `rask db backup` (locally and `--remote`) archives the disk root beside the
+database copy — `shop-20260805-081500.db` comes with `shop-20260805-081500.files.tgz` — and `rask db restore`
+puts both back when it finds the archive beside the file you name
+([Backup and restore](cli.md#backup-and-restore)). The files are archived *after* the database is copied: a save
+writes its bytes before its row, so every row in the copy has its bytes in the archive, and bytes saved in between
+are orphans the sweep removes.
+
+Litestream and SQLite snapshots copy `app.db` alone. An app that relies on them for disaster recovery, or
+that uploads files it can't afford to lose between backups, should use S3 or Azure, where the bytes' durability
+is the provider's.
+
+**A database restored without its files says so.** The storage sweep also looks for disk rows older than the
+grace period whose bytes are gone, and logs a warning with their count and the first few ids; `rask db restore`
+prints the same check when it finishes. Rows are reported, never deleted — the fix is to restore the files.
+
+A remote backup archives `/data/files`, where the disk provider writes on a `rask deploy` box. An app that sets
+`Rask__Storage__Disk__Root` somewhere else on the host keeps its files outside what the backup can see.
 
 **The disk store is node-local.** A file saved on one host does not exist on another, and routing a visitor
 back to the same host doesn't help, because a file is read by people other than the one who uploaded it. Run

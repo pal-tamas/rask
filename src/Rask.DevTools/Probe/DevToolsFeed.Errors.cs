@@ -7,6 +7,9 @@ internal sealed partial class DevToolsFeed
     /// <summary>The errors this page hit: its components' faults, and the framework diagnostics reported while it worked.</summary>
     internal DevToolsErrorLog Errors { get; } = new();
 
+    /// <summary>The browser the page runs in, as its panel script named it (<c>Chrome 131</c>); null until it has.</summary>
+    internal volatile string? Browser;
+
     /// <summary>
     ///     The components <paramref name="component" /> sat inside at the page's last render, innermost first, as the tree
     ///     names them — or nothing, when it was not in that render.

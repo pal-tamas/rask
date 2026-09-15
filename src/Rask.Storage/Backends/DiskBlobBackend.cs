@@ -155,6 +155,9 @@ internal sealed class DiskBlobBackend : IBlobBackend
         }
     }
 
+    /// <summary>Whether the bytes for <paramref name="key"/> are on disk — a stat, no read.</summary>
+    internal bool Exists(string key) => File.Exists(Resolve(key));
+
     private string Resolve(string key)
     {
         if (!KeyLayout.IsValid(key) || Path.IsPathRooted(key))
