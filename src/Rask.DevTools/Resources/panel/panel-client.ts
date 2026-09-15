@@ -15,6 +15,9 @@ export const PICK_KEY_PREFIX = "pick:";
 /** The prefix of the keydown `key` the remembered flash setting is reported as; `DevToolsFlashEmitter.SettingKeyPrefix`. */
 export const FLASH_KEY_PREFIX = "flash:";
 
+/** The keydown `key` that asks the panel to show its Errors tab; `DevToolsTabIds.ShowErrorsKey`. */
+export const SHOW_ERRORS_KEY = "errors:show";
+
 /** The prefix of the keydown `key` the page's patch times are reported as; `DevToolsPatchReceiver.KeyPrefix`. */
 export const PATCH_KEY_PREFIX = "patch:";
 
@@ -59,6 +62,25 @@ export function installPanelClient(options: PanelClientOptions): void {
         if (anchors === lastAnchors) return;
         lastAnchors = anchors;
         post({channel: CHANNEL, kind: "pick", anchors});
+    };
+
+    // The Errors tab's unseen count, handed to the page for the pill; and the page's request to show the tab, held until
+    // the tab strip has rendered the element that takes it.
+    let lastErrorCount: string | null = null;
+    let showErrorsWanted = false;
+    const syncErrors = () => {
+        const el = document.querySelector("[data-rask-devtools-errors]");
+        if (!el) return;
+        const count = el.getAttribute("data-rask-devtools-errors");
+        if (count !== lastErrorCount) {
+            lastErrorCount = count;
+            const parsed = Number(count);
+            post({channel: CHANNEL, kind: "error-count", count: Number.isFinite(parsed) ? parsed : 0});
+        }
+        if (showErrorsWanted) {
+            showErrorsWanted = false;
+            el.dispatchEvent(new KeyboardEvent("keydown", {key: SHOW_ERRORS_KEY, bubbles: true}));
+        }
     };
 
     // Patch times, collected and reported a few at a time as `ms@bytes`: a keydown per frame would be a round trip per frame.
@@ -125,15 +147,20 @@ export function installPanelClient(options: PanelClientOptions): void {
         new MutationObserver(() => {
             syncAnchors();
             syncFlash();
+            syncErrors();
         }).observe(document.documentElement, {
             subtree: true,
             childList: true,
             attributes: true,
-            attributeFilter: ["data-rask-devtools-anchors", "data-rask-devtools-flash", "data-rask-devtools-flashes"],
+            attributeFilter: [
+                "data-rask-devtools-anchors", "data-rask-devtools-flash", "data-rask-devtools-flashes",
+                "data-rask-devtools-errors",
+            ],
         });
     }
     syncAnchors();
     syncFlash();
+    syncErrors();
 
     window.addEventListener("message", (e: MessageEvent) => {
         if (!fromPage(e)) return;
@@ -143,6 +170,9 @@ export function installPanelClient(options: PanelClientOptions): void {
             reportPick(message.id);
         } else if (message.kind === "pick-cancelled") {
             reportPick("cancel");
+        } else if (message.kind === "show-errors") {
+            showErrorsWanted = true;
+            syncErrors();
         } else if (message.kind === "patch" && typeof message.ms === "number" && Number.isFinite(message.ms) && message.ms >= 0
                    && Number.isInteger(message.bytes) && message.bytes >= -1) {
             queuePatch(message.ms.toFixed(2) + "@" + message.bytes);

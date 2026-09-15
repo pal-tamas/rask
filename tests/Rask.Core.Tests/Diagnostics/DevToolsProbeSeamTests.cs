@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Rask.Core.Diagnostics;
 using Rask.Core.Diagnostics.DevTools;
 using Rask.Core.Live;
 
@@ -165,6 +166,47 @@ public partial class DevToolsProbeSeamTests : global::Rask.Core.RaskMarkup, IDis
     }
 
     [Fact]
+    public async Task A_handler_fault_a_boundary_catches_is_reported_with_its_owner_as_caught()
+    {
+        static void Boom() => throw new InvalidOperationException("boom");
+
+        var view = new StubComponent(() => Div[ErrorBoundary[Div.OnClick(Boom)["go"]]]);
+        var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-click")!;
+        using var payload = JsonDocument.Parse("{\"type\":\"click\"}");
+
+        // Caught: the boundary took it, so the dispatch reports it handled rather than throwing.
+        Assert.True(await view.TryInvokeHandlerAsync(id, payload.RootElement));
+
+        var fault = Assert.Single(_probe.Faults);
+        Assert.Equal("boom", fault.Exception.Message);
+        Assert.Equal(ErrorSource.Action, fault.Source);
+        Assert.True(fault.Caught);
+        // The handler was registered inside the boundary, which is therefore its owner.
+        Assert.IsType<ErrorBoundary>(fault.Component);
+    }
+
+    [Fact]
+    public void A_framework_diagnostic_is_reported_to_the_probe_even_with_no_sink_listening()
+    {
+        var previous = RaskDiagnostics.Sink;
+        RaskDiagnostics.Sink = null;
+        try
+        {
+            var error = new InvalidOperationException("boom");
+            RaskDiagnostics.Report(RaskLogLevel.Warning, "Rask.Test", "a probe-seam diagnostic", error);
+
+            var reported = Assert.Single(_probe.Diagnostics, d => d.Category == "Rask.Test");
+            Assert.Equal(RaskLogLevel.Warning, reported.Level);
+            Assert.Equal("a probe-seam diagnostic", reported.Message);
+            Assert.Same(error, reported.Exception);
+        }
+        finally
+        {
+            RaskDiagnostics.Sink = previous;
+        }
+    }
+
+    [Fact]
     public void A_cached_component_that_changes_state_is_reported_as_a_state_render_not_an_uncached_one()
     {
         // The case the cause order exists for. A live session captures a clean pure-element subtree as frames and drops
@@ -281,6 +323,15 @@ public partial class DevToolsProbeSeamTests : global::Rask.Core.RaskMarkup, IDis
         }
 
         public void StateRequested(Component component) => Events.Add(("state-requested", component, null));
+
+        public List<(Component Component, Exception Exception, ErrorSource Source, bool Caught)> Faults { get; } = [];
+
+        public List<RaskDiagnosticEvent> Diagnostics { get; } = [];
+
+        public void ComponentFaulted(Component component, Exception exception, ErrorSource source, bool caught) =>
+            Faults.Add((component, exception, source, caught));
+
+        public void DiagnosticReported(in RaskDiagnosticEvent diagnostic) => Diagnostics.Add(diagnostic);
 
         public long HandlerStarting(Component owner, string handlerId, JsonElement payload)
         {

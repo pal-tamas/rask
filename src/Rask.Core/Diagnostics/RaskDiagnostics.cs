@@ -84,7 +84,9 @@ internal static class RaskDiagnostics
     {
         // Snapshot the settable sink so a concurrent reassignment can't null it out mid-call.
         var sink = Sink;
-        sink?.Invoke(new RaskDiagnosticEvent(level, category, message, exception));
+        var diagnostic = new RaskDiagnosticEvent(level, category, message, exception);
+        DevTools.RaskDevToolsHook.Active?.DiagnosticReported(diagnostic);
+        sink?.Invoke(diagnostic);
     }
 
     /// <summary>
@@ -119,7 +121,9 @@ internal static class RaskDiagnostics
             }
         }
 
-        sink.Invoke(new RaskDiagnosticEvent(level, category, messageFactory(), exception));
+        var diagnostic = new RaskDiagnosticEvent(level, category, messageFactory(), exception);
+        DevTools.RaskDevToolsHook.Active?.DiagnosticReported(diagnostic);
+        sink.Invoke(diagnostic);
     }
 
     private static void WriteToStandardError(RaskDiagnosticEvent e) =>

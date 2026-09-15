@@ -32,10 +32,18 @@ internal static partial class DevToolsLivePage
     internal static async Task<(LiveSessionBase Session, DevToolsFeed Feed, WebSocket Socket, string HandlerId)> OpenAsync(
         RaskTestHost host)
     {
+        var (session, feed, socket, handlerIds) = await OpenWithHandlersAsync(host);
+        return (session, feed, socket, handlerIds[0]);
+    }
+
+    /// <summary>The app's page, live on a socket, with every click handler on it in page order.</summary>
+    internal static async Task<(LiveSessionBase Session, DevToolsFeed Feed, WebSocket Socket, IReadOnlyList<string> HandlerIds)>
+        OpenWithHandlersAsync(RaskTestHost host)
+    {
         var html = await host.Http.GetStringAsync("/");
         var sessionId = SessionId().Match(html).Groups[1].Value;
-        var handlerId = HandlerId().Match(html).Groups[1].Value;
-        Assert.False(string.IsNullOrEmpty(handlerId), "the page has no click handler:" + Environment.NewLine + html);
+        var handlerIds = HandlerId().Matches(html).Select(m => m.Groups[1].Value).ToList();
+        Assert.True(handlerIds.Count > 0, "the page has no click handler:" + Environment.NewLine + html);
 
         var session = host.Store.Get(sessionId);
         Assert.NotNull(session);
@@ -47,7 +55,7 @@ internal static partial class DevToolsLivePage
         {
         }
 
-        return (session, feed, socket, handlerId);
+        return (session, feed, socket, handlerIds);
     }
 
     /// <summary>Polls until <paramref name="until" /> holds, so a test says what it is waiting for rather than how long.</summary>

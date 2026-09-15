@@ -56,7 +56,10 @@ public sealed partial class TaskRow : Component
             .Trailing(UiBadge.Tone(Done ? UiTone.Success : UiTone.Info).Variant(UiVariant.Soft)[Done ? "done" : Assignee ?? "open"]);
 }
 
-/// <summary>Carries a token, so the Tree tab has a prop to show as redacted.</summary>
+/// <summary>
+///     Carries a token, so the Tree tab has a prop to show as redacted; and a Deploy button whose handler throws, so the
+///     Errors tab has something to list.
+/// </summary>
 public sealed partial class DeployCard : Component
 {
     public string? Environment { get; set; }
@@ -68,6 +71,10 @@ public sealed partial class DeployCard : Component
     protected override Component? Render() =>
         UiCard.Heading("Deploy")[
             P[$"Target: {Environment} ({Region})"],
-            P[ApiToken is null ? "No token configured." : "Token configured."]
+            P[ApiToken is null ? "No token configured." : "Token configured."],
+            UiButton.Title("Throws, so the devtools have an error to show").OnClick(Deploy)["Deploy"]
         ];
+
+    private void Deploy() =>
+        throw new InvalidOperationException($"The {Environment} environment is locked by another deploy.");
 }

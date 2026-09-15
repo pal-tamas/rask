@@ -19,6 +19,9 @@ internal interface IDevToolsInspection
     /// </summary>
     DevToolsFeed? Open(string? sessionId, string? token);
 
+    /// <summary>What the app reported outside any page's work, which every panel may show.</summary>
+    DevToolsErrorLog AppWide { get; }
+
     /// <summary>
     ///     The script the panel page loads to talk to the page that framed it, or null where the panel's frame already runs
     ///     it (WASM, whose frame client carries it).

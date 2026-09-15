@@ -5,8 +5,8 @@ using Rask.Ui;
 namespace Rask.DevTools.Panel;
 
 /// <summary>
-///     The panel: the inspected session's wire traffic, its component tree, what rendered and where the time went. Errors
-///     join them next.
+///     The panel: the inspected session's wire traffic, its component tree, what rendered, where the time went and what went
+///     wrong.
 /// </summary>
 /// <remarks>
 ///     The tab is C# state rather than a route, because one host has no routes to spend on it: a WASM panel runs as a
@@ -16,12 +16,11 @@ namespace Rask.DevTools.Panel;
 [ParentRoute(typeof(DevToolsLayout))]
 internal sealed partial class DevToolsOverviewPage(RouteState route, IDevToolsInspection inspection) : Component
 {
-    private const string Wire = "wire";
-    private const string Tree = "tree";
-    private const string Renders = "renders";
-    private const string Perf = "perf";
+    private string _tab = DevToolsTabIds.Wire;
 
-    private string _tab = Wire;
+    // A component the Errors tab asked to see: the Tree tab opens the way to it and selects it. Cleared when the developer
+    // picks a tab themselves, so going back to the tree later does not jump to it again.
+    private long? _reveal;
 
     // Whether the page flashes renders: here rather than in the Renders tab, because the page keeps flashing while another
     // tab is showing, and the emitter that tells it what to flash is rendered whichever tab that is.
@@ -52,10 +51,18 @@ internal sealed partial class DevToolsOverviewPage(RouteState route, IDevToolsIn
 
         Component tab = _tab switch
         {
-            Tree => DevToolsTreeTab.Key(session + "-tree").Feed(feed),
-            Renders => DevToolsRendersTab.Key(session + "-renders").Feed(feed).Flash(_flash)
+            DevToolsTabIds.Tree => DevToolsTreeTab.Key(session + "-tree").Feed(feed).Reveal(_reveal),
+            DevToolsTabIds.Renders => DevToolsRendersTab.Key(session + "-renders").Feed(feed).Flash(_flash)
                 .OnFlashChange(on => _flash = on),
-            Perf => DevToolsPerfTab.Key(session + "-perf").Feed(feed),
+            DevToolsTabIds.Perf => DevToolsPerfTab.Key(session + "-perf").Feed(feed),
+            DevToolsTabIds.Errors => DevToolsErrorsTab.Key(session + "-errors")
+                .PageErrors(feed.Errors)
+                .AppErrors(inspection.AppWide)
+                .OnShowInTree(id =>
+                {
+                    _reveal = id;
+                    _tab = DevToolsTabIds.Tree;
+                }),
             _ => DevToolsWireTab.Key(session + "-wire").Feed(feed),
         };
 
@@ -64,23 +71,16 @@ internal sealed partial class DevToolsOverviewPage(RouteState route, IDevToolsIn
             DevToolsTreeWatcher.Key(session + "-watch").Feed(feed),
             DevToolsFlashEmitter.Key(session + "-flash").Feed(feed).On(_flash).OnChange(on => _flash = on),
             DevToolsPatchReceiver.Key(session + "-patch").Feed(feed),
-            Div.Role("tablist").Class("flex items-center gap-1")[
-                TabButton(Wire, "Wire"),
-                TabButton(Tree, "Tree"),
-                TabButton(Renders, "Renders"),
-                TabButton(Perf, "Perf")
-            ],
+            DevToolsTabs.Key(session + "-tabs")
+                .Current(_tab)
+                .PageErrors(feed.Errors)
+                .AppErrors(inspection.AppWide)
+                .OnSelect(id =>
+                {
+                    _tab = id;
+                    _reveal = null;
+                }),
             tab
         ];
     }
-
-    private Component TabButton(string id, string label) =>
-        UiButton
-            .Key(id)
-            .Size(UiSize.Sm)
-            .Role("tab")
-            // daisyUI's own marker, written whole: a composed class name is invisible to the kit's Tailwind scan.
-            .Class(_tab == id ? "btn-active" : null)
-            .Aria(new Dictionary<string, string?> { ["selected"] = _tab == id ? "true" : "false" })
-            .OnClick(() => _tab = id)[label];
 }

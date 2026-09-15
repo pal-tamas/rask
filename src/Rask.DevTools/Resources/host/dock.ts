@@ -39,6 +39,8 @@ export interface DockHandle {
     toggle(): void;
     /** Creates the panel frame without opening the drawer, so the panel runs while it is shut. */
     preload(): void;
+    /** Shows `count` unseen errors as a red dot on the pill while the drawer is shut; 0 takes the dot away. */
+    setAlert(count: number): void;
     side(): Dock;
     setSide(side: Dock): void;
 }
@@ -49,6 +51,9 @@ const CSS =
     "border:1px solid rgba(255,255,255,.28);background:#1d1b26;color:#fff;cursor:pointer;" +
     "font:600 12px/1.4 system-ui,-apple-system,Segoe UI,sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.3)}" +
     ".pill:focus-visible,.btn:focus-visible{outline:2px solid #8b7cf6;outline-offset:2px}" +
+    ".dot{display:inline-block;min-width:16px;margin-left:6px;padding:0 4px;border-radius:999px;background:#e5484d;" +
+    "color:#fff;font-size:10px;line-height:16px;text-align:center;box-sizing:border-box}" +
+    ".dot[hidden]{display:none}" +
     ".drawer{position:fixed;z-index:2147483647;display:flex;flex-direction:column;background:#15141c;color:#ece9f5;" +
     "font:12px/1.4 system-ui,-apple-system,Segoe UI,sans-serif;box-shadow:0 0 24px rgba(0,0,0,.35)}" +
     ".drawer[hidden]{display:none}" +
@@ -101,6 +106,19 @@ export function installDock(options: DockOptions): DockHandle {
     style.textContent = CSS;
 
     const pill = button("pill", "Rask", "Rask DevTools");
+    const dot = document.createElement("span");
+    dot.className = "dot";
+    dot.hidden = true;
+    dot.setAttribute("aria-hidden", "true");
+    pill.appendChild(dot);
+    let alertCount = 0;
+    const showAlert = () => {
+        dot.hidden = alertCount === 0 || !drawer.hidden;
+        dot.textContent = alertCount > 99 ? "99+" : String(alertCount);
+        pill.setAttribute("aria-label", alertCount === 0
+            ? "Rask DevTools"
+            : "Rask DevTools, " + alertCount + (alertCount === 1 ? " new error" : " new errors"));
+    };
     pill.title = "Rask DevTools (Ctrl+Shift+D)";
     pill.setAttribute("aria-expanded", "false");
     pill.setAttribute("aria-controls", "drawer");
@@ -155,11 +173,13 @@ export function installDock(options: DockOptions): DockHandle {
         ensureFrame();
         drawer.hidden = false;
         pill.setAttribute("aria-expanded", "true");
+        showAlert();
     };
 
     const shut = () => {
         drawer.hidden = true;
         pill.setAttribute("aria-expanded", "false");
+        showAlert();
         pill.focus();
         options.onClose?.();
     };
@@ -170,6 +190,10 @@ export function installDock(options: DockOptions): DockHandle {
         isOpen: () => !drawer.hidden,
         toggle: () => (drawer.hidden ? open() : shut()),
         preload: ensureFrame,
+        setAlert: (count: number) => {
+            alertCount = Math.max(0, Math.floor(count));
+            showAlert();
+        },
         side: () => current,
         setSide: (side: Dock) => {
             current = side;

@@ -5,6 +5,7 @@
 import {asFrameMessage, CHANNEL, type FrameMessage, writeFlashSetting} from "../rask-devtools-frame-protocol.js";
 import {parseAnchors} from "./anchors.js";
 import type {DockHandle} from "./dock.js";
+import type {ErrorsLink} from "./errors.js";
 import type {Flash} from "./flash.js";
 import type {Overlay} from "./overlay.js";
 
@@ -39,13 +40,20 @@ export interface PanelBridge {
 }
 
 export function createBridge(
-    dock: DockHandle, overlay: Overlay, flash: Flash, post: (message: FrameMessage) => void,
+    dock: DockHandle, overlay: Overlay, flash: Flash, post: (message: FrameMessage) => void, errors?: ErrorsLink,
 ): PanelBridge {
     const cancel = () => post({channel: CHANNEL, kind: "pick-cancelled"});
 
     return {
         handle(message) {
+            // Any word from the panel means it is listening.
+            errors?.heardFromPanel();
             switch (message.kind) {
+                case "error-count":
+                    if (typeof message.count === "number" && Number.isFinite(message.count)) {
+                        dock.setAlert(message.count);
+                    }
+                    return true;
                 case "highlight":
                     if (typeof message.at === "string") {
                         overlay.show(message.at, typeof message.label === "string" ? message.label : null);

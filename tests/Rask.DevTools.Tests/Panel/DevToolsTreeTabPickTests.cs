@@ -88,6 +88,20 @@ public sealed class DevToolsTreeTabPickTests
         Assert.Empty(page.FindAll("[aria-pressed=\"true\"]"));
     }
 
+    // The Errors tab's "Show in tree": the tab opens with the component asked for already opened to and selected.
+    [Fact]
+    public void A_component_to_reveal_is_opened_to_and_selected_when_the_tab_renders()
+    {
+        var feed = new DevToolsFeed();
+        feed.RecordTree(Tree());
+#pragma warning disable RASK014 // the tab rendered alone, the way the panel page would chain it, with a feed given by hand
+        var page = RaskTest.Render(new DevToolsTreeTab { Feed = feed, Reveal = 99 });
+#pragma warning restore RASK014
+
+        var selected = Assert.Single(page.FindAll("[aria-selected=\"true\"]"));
+        Assert.Contains("Deepest", selected.TextContent, StringComparison.Ordinal);
+    }
+
     // An element exists only in the view with tags shown, and the tags are switched on after the tab first rendered: the
     // pick has to be resolved in the view on screen when it arrives.
     [Fact]

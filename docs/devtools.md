@@ -1,8 +1,8 @@
 # DevTools: inspect the page you are building
 
 Rask DevTools is a panel inside the page you are working on. It shows what the page and the app say to each other,
-which components the page is made of and what each one was given, which of them render and why, and where each
-interaction's time goes. It is there while you develop and gone from
+which components the page is made of and what each one was given, which of them render and why, where each
+interaction's time goes, and what went wrong. It is there while you develop and gone from
 what you ship.
 
 <!--
@@ -199,3 +199,40 @@ The totals on top are the median (p50) and 95th-percentile (p95) server time, an
 rendered, their average and their slowest render. It covers the same recent commits as the Renders tab.
 
 The tab keeps the last 500 interactions. **Clear** forgets them.
+
+## Errors
+
+**Errors** lists what went wrong while you used the page, newest first:
+
+- **A component that threw**: in its `Render()`, in an event handler, or in an async lifecycle hook such as
+  `OnMountAsync`.
+- **A warning or an error from the framework**, such as two list items sharing a key, or a JavaScript call that failed.
+
+A red count on the **Errors** tab and on the **Rask** pill says how many errors you haven't looked at yet. Warnings
+are listed, but not counted. Nothing opens by itself.
+
+![The Errors tab: an InvalidOperationException thrown by DeployCard's handler, caught by an error boundary, with the components it happened in and its stack](../src/Rask.Site/wwwroot/img/devtools/errors.webp)
+
+Each error shows:
+
+- **What kind it is**: `render`, `handler`, `lifecycle`, or `warning` / `error` for the framework's own.
+- **The exception type and message**. Rask unwraps the wrappers .NET adds around it, so you see the exception your
+  code threw.
+- **Where it happened**: the components it sat in, outermost first. **Show in tree** opens the Tree tab at that
+  component and selects it.
+- **Whether an error boundary caught it**, for a handler or a lifecycle hook.
+- **Its stack**, behind **Stack**.
+
+The same error again, straight after, counts up as `×2` rather than adding a row.
+
+Most framework warnings happen while a page renders or handles an event, and those are listed for that page. One
+reported anywhere else, such as at startup or from a background service, belongs to no page. It is listed as
+**app-wide** in every panel. **This page** and **App-wide** narrow the list to one or the other.
+
+### From the error overlay
+
+When you run the app with hot reload (`rask dev` or `dotnet watch`), a handler that throws also shows Rask's error
+overlay at the bottom of the page. With the devtools on, the overlay has an **Open in DevTools** button. It opens the
+panel on the Errors tab.
+
+![Rask's error overlay for the same exception, with an Open in DevTools button beside Stack and Dismiss, and a red 1 on the Rask pill](../src/Rask.Site/wwwroot/img/devtools/error-overlay.webp)

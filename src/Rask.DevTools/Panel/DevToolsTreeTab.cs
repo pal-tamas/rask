@@ -57,6 +57,11 @@ internal sealed partial class DevToolsTreeTab : Component
     /// <summary>The inspected session's feed.</summary>
     public required DevToolsFeed Feed { get; set; }
 
+    /// <summary>A component to open the way to and select, once — the Errors tab's "Show in tree".</summary>
+    public long? Reveal { get; set; }
+
+    private long? _revealed;
+
     // The toggle, the picker, expansion and selection are fields, which the render cache cannot see.
     /// <inheritdoc />
     protected override bool BypassRenderCache => true;
@@ -94,6 +99,16 @@ internal sealed partial class DevToolsTreeTab : Component
 
         var root = View(snapshot);
         Seed(root);
+        if (Reveal is { } reveal && reveal != _revealed)
+        {
+            _revealed = reveal;
+            var ancestors = new List<long>();
+            if (PathTo(root, reveal, ancestors))
+            {
+                _expanded.UnionWith(ancestors);
+                _selected = reveal;
+            }
+        }
 
         return Div.Class("flex flex-col gap-3")[
             Div.Class("flex flex-wrap items-center justify-between gap-2")[

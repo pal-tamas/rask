@@ -63,7 +63,9 @@ const overlay: Overlay = {
     isPicking: () => picking,
 };
 let toggles = 0;
-const dock = {toggle: () => toggles++} as unknown as DockHandle;
+const alerts: number[] = [];
+const dock = {toggle: () => toggles++, setAlert: (n: number) => alerts.push(n)} as unknown as DockHandle;
+let panelHeard = 0;
 const posted: FrameMessage[] = [];
 const storage = new Map<string, string>();
 globals.localStorage = {
@@ -77,7 +79,7 @@ const flash: Flash = {
     setEnabled: on => flashCalls.push(`enabled ${on}`),
     isEnabled: () => false,
 };
-const bridge = createBridge(dock, overlay, flash, m => posted.push(m));
+const bridge = createBridge(dock, overlay, flash, m => posted.push(m), {show() {}, heardFromPanel: () => panelHeard++});
 const ch = "rask-devtools" as const;
 
 bridge.handle({channel: ch, kind: "highlight", at: "1|0|1", label: "Card"});
@@ -85,6 +87,9 @@ bridge.handle({channel: ch, kind: "highlight", at: null, label: null});
 bridge.handle({channel: ch, kind: "pick", anchors: '[["7","1|0|1","Card"]]'});
 onPicked!("7");
 bridge.handle({channel: ch, kind: "toggle"});
+out.errorCountHandled = bridge.handle({channel: ch, kind: "error-count", count: 4});
+bridge.handle({channel: ch, kind: "error-count", count: "x" as unknown as number});
+out.alerts = alerts.join(",");
 bridge.handle({channel: ch, kind: "flash-setting", on: true});
 out.flashRemembered = storage.get("rask.devtools.flash") ?? null;
 bridge.handle({channel: ch, kind: "flash", boxes: [["1|0|1", "Row · state"], ["bad"], 7] as unknown as [string, string][]});
@@ -210,6 +215,7 @@ const rootListeners: {type: string; handler: Handler}[] = [];
 const panelWindowListeners: {type: string; handler: Handler}[] = [];
 let anchorsEl: StubEl | null = null;
 let flashEl: StubEl | null = null;
+let errorsEl: StubEl | null = null;
 let flashesEl: StubEl | null = null;
 const pickedEl = new StubEl();
 const patchEl = new StubEl();
@@ -225,6 +231,7 @@ globals.document = {
         : selector === "[data-rask-devtools-flash]" ? flashEl
         : selector === "[data-rask-devtools-flashes]" ? flashesEl
         : selector === "[data-rask-devtools-patch]" ? patchEl
+        : selector === "[data-rask-devtools-errors]" ? errorsEl
         : null,
 };
 
@@ -260,6 +267,20 @@ message({}, {channel: ch, kind: "picked", id: "42"});
 message(page, {channel: ch, kind: "picked", id: "42"});
 message(page, {channel: ch, kind: "pick-cancelled"});
 out.pickedKeys = pickedEl.dispatched.map(e => `${e.key}/${e.bubbles}`).join(",");
+
+// The Errors tab's count, handed to the page when it changes; the page asking to show the errors before the tab strip has
+// rendered is held, then handed to it as a keydown once it has.
+out.heardFromPanel = panelHeard > 0;
+panelPosts.length = 0;
+message(page, {channel: ch, kind: "show-errors"});
+errorsEl = new StubEl();
+errorsEl.attributes.set("data-rask-devtools-errors", "2");
+observerCallback!();
+observerCallback!(); // unchanged: no second post, and the request is handed over once
+errorsEl.attributes.set("data-rask-devtools-errors", "0");
+observerCallback!();
+out.errorPosts = panelPosts.map(m => m.kind === "error-count" ? `count:${m.count}` : m.kind).join(",");
+out.showErrorsKeys = errorsEl.dispatched.map(e => e.key).join(",");
 
 // Patch times from the page, collected and reported together: one keydown for a burst, only from the page, and nothing
 // that is not a finite non-negative number.

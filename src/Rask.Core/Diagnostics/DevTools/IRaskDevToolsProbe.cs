@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Rask.Core.Components;
 using Rask.Core.Live;
 
 namespace Rask.Core.Diagnostics.DevTools;
@@ -80,6 +81,19 @@ internal interface IRaskDevToolsProbe
     ///     exception keeps propagating to the boundary that handles it, and the stack is not unwound here.
     /// </summary>
     bool ObserveThrow(Component component, Exception exception);
+
+    /// <summary>
+    ///     A component's handler or async lifecycle hook threw. <paramref name="caught" /> says whether an error boundary
+    ///     took the exception; when none did, the runtime reports it through <see cref="RaskDiagnostics" /> too. A render
+    ///     that throws is seen through <see cref="ObserveThrow" /> instead, while it is still unwinding.
+    /// </summary>
+    void ComponentFaulted(Component component, Exception exception, ErrorSource source, bool caught);
+
+    /// <summary>
+    ///     The framework reported a diagnostic, whether or not a sink is listening. Called on the reporting thread, before
+    ///     the sink.
+    /// </summary>
+    void DiagnosticReported(in RaskDiagnosticEvent diagnostic);
 
     /// <summary>A component asked to re-render (<c>StateHasChanged</c>).</summary>
     void StateRequested(Component component);

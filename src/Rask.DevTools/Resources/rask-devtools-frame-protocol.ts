@@ -38,6 +38,10 @@ export type FrameMessage =
      * which is what the app matches the time to, or -1 when the page did not see it arrive.
      */
     | {readonly channel: typeof CHANNEL; readonly kind: "patch"; readonly ms: number; readonly bytes: number}
+    /** Frame → page: how many errors the Errors tab has that nobody has looked at yet, for the pill. */
+    | {readonly channel: typeof CHANNEL; readonly kind: "error-count"; readonly count: number}
+    /** Page → frame: show the Errors tab — the overlay's "Open in DevTools" was pressed. */
+    | {readonly channel: typeof CHANNEL; readonly kind: "show-errors"}
     /** Frame → page: flash these components, which rendered in a commit, as `[at, label]` pairs. */
     | {readonly channel: typeof CHANNEL; readonly kind: "flash"; readonly boxes: readonly (readonly [string, string])[]};
 
