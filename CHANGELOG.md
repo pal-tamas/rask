@@ -1153,6 +1153,13 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The installer's wasm-workload check no longer flakes the unit gate.** `rask_workload_installed` piped
+  `printf` into `grep -q`, which exits on the first match and leaves `printf` writing into a closed pipe. The
+  installer runs under `sh` with no `pipefail`, so a real install never noticed — but
+  `install-script.test.sh` sources it under bash with `pipefail`, where that SIGPIPE reads as "not installed",
+  and on a busy machine the pre-commit gate went red on a commit that never touched the installer. It now reads
+  its whole input (`grep -E … >/dev/null`), the repo's own rule for exactly this trap.
+
 - **Two signed-in users with no identifier no longer count as the same user.** The session ownership check behind a
   reconnect, an upload and a download compares users by `NameIdentifier`, or `Name` when there is no
   identifier. When two signed-in principals carried neither, it compared nothing with nothing and matched, so
