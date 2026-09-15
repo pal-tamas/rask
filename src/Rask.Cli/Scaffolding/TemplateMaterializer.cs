@@ -77,7 +77,7 @@ internal static class TemplateMaterializer
         string version,
         DotnetTarget dotnet,
         IReadOnlyList<string>? islands = null,
-        bool vsCode = false)
+        VsCodeSetup vsCode = VsCodeSetup.None)
     {
         ArgumentException.ThrowIfNullOrEmpty(targetDirectory);
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -135,9 +135,9 @@ internal static class TemplateMaterializer
         // below exists: it is one more set of files added to this list, and anything added after the
         // rewrite is a file the rewrite never saw. It carried net10.0 in launch.json's program path, so
         // F5 on a net11.0 scaffold started a dll that was never built.
-        if (vsCode)
+        if (vsCode != VsCodeSetup.None)
         {
-            written = VsCodeAssembly.Apply(targetDirectory, name, written);
+            written = VsCodeAssembly.Apply(targetDirectory, name, written, vsCode);
         }
 
         // Last, and over the ASSEMBLED list rather than each asset as it is read: both assemblers above

@@ -218,6 +218,13 @@ wrapper of your own:
 ])
 ```
 
+For a search box over a model with a [full-text index](data.md#full-text-search), hand the grid the search
+itself — it still counts, sorts and pages in the database, and a column sort replaces best-match order:
+
+```csharp
+UiDataGrid.Data(Entry.Search(_query).AsQueryable())
+```
+
 ## Cells, clicks, and the rule behind them
 
 `Cell(p => …)` gives a column custom markup; `Footer` and `FooterCell` give it a summary computed over

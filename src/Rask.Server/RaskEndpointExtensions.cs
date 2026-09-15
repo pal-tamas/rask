@@ -271,6 +271,9 @@ public static partial class RaskEndpointExtensions
         // message queued before a client-side NavigateTo survives the navigation and shows once on arrival.
         services.AddScoped<IToaster, Toaster>();
 
+        // One hub for the process, not per session: a broadcast crosses sessions (#1061).
+        services.TryAddSingleton<IBroadcast, BroadcastHub>();
+
         // Scoped: a DI scope on the server IS a live session, and so a visitor. Registered even when
         // the app configured nothing, because IRaskCulture is a host contract; without a configured
         // culture this is inert. Negotiating one from the request arrives in a later change.
@@ -855,6 +858,8 @@ public static partial class RaskEndpointExtensions
                 .AllowAnonymous();
             endpoints.MapMethods(pathBase + "/_rask/a/{hash}.js", _assetMethods,
                     static ctx => ServeAssetAsync(ctx, AssetKind.Js))
+                .AllowAnonymous();
+            endpoints.MapMethods(pathBase + "/_rask/a/{hash}.js.map", _assetMethods, ServeSourceMapAsync)
                 .AllowAnonymous();
         }
 
@@ -1703,8 +1708,8 @@ public static partial class RaskEndpointExtensions
         // We clone the JSON element because the JsonDocument's backing buffer is disposed by the caller once
         // this frame is handled.
         var capturedRoot = root.Clone();
-        session.LastHandlerTask = ChainHandlerDispatchAsync(
-            session.LastHandlerTask,
+        session.EnqueueOnHandlerChain(previous => ChainHandlerDispatchAsync(
+            previous,
             store,
             session,
             handlerId,
@@ -1712,7 +1717,7 @@ public static partial class RaskEndpointExtensions
             payloadBytes,
             metrics,
             limits.HandlerTimeout,
-            ct);
+            ct));
 
         return new FrameOutcome(FrameStatus.Handled, null);
     }
@@ -1964,26 +1969,129 @@ public static partial class RaskEndpointExtensions
         }
     }
 
-    private static async Task DispatchHandlerAsync(
+    private static Task DispatchHandlerAsync(
         LiveSession session,
         string handlerId,
         JsonElement root,
         RaskMetrics? metrics,
         TimeSpan handlerTimeout,
+        CancellationToken ct) =>
+        RunInSessionAsync(
+            session,
+            "rask.handler.dispatch",
+            handlerId,
+            token => session.View.TryInvokeHandlerAsync(handlerId, root, session.Services, token),
+            metrics,
+            handlerTimeout,
+            ct);
+
+    /// <summary>
+    ///     Queues work that did not come from the browser — a broadcast — on <paramref name="session" />'s handler chain,
+    ///     where it runs exactly as an event handler does (#1061).
+    /// </summary>
+    /// <remarks>
+    ///     Counted against <see cref="RaskServerLimits.MaxPendingHandlers" /> like any queued dispatch. Over the limit the
+    ///     delivery is dropped for this session and the socket is left alone: the backlog is not the client's doing, and
+    ///     closing it would punish the visitor for the publisher's rate.
+    /// </remarks>
+    internal static Task EnqueueDelivery(LiveSession session, Func<Task> work)
+    {
+        if (session.IsDisposed)
+        {
+            return Task.CompletedTask;
+        }
+
+        var services = session.Services;
+        var limits = services.GetService<RaskServerLimits>();
+        var store = services.GetService<LiveSessionStore>();
+
+        var pending = session.IncrementPendingHandlers();
+        store?.HandlerQueued();
+        if (limits is { MaxPendingHandlers: > 0 } && pending > limits.MaxPendingHandlers)
+        {
+            session.DecrementPendingHandlers();
+            store?.HandlerDequeued();
+            RaskDiagnostics.Report(
+                RaskLogLevel.Warning, "Rask.Broadcast",
+                $"Session {session.Id} has {limits.MaxPendingHandlers} dispatches queued, its limit; a broadcast was not delivered to it.");
+            return Task.CompletedTask;
+        }
+
+        session.EnqueueOnHandlerChain(previous => ChainDeliveryAsync(previous, session, store, work));
+        return Task.CompletedTask;
+    }
+
+    private static async Task ChainDeliveryAsync(Task previous, LiveSession session, LiveSessionStore? store, Func<Task> work)
+    {
+        try
+        {
+            try
+            {
+                await previous.ConfigureAwait(false);
+            }
+            catch
+            {
+                // Observed where it ran; the chain is for ordering only.
+            }
+
+            // No socket token: a session reconnecting still applies the message, and shows it on its catch-up render.
+            await RunInSessionAsync(
+                    session,
+                    "rask.broadcast.deliver",
+                    null,
+                    async _ =>
+                    {
+                        await work().ConfigureAwait(false);
+                        session.RequestCatchUpIfDetached();
+                        return true;
+                    },
+                    metrics: null,
+                    TimeSpan.Zero,
+                    CancellationToken.None)
+                .ConfigureAwait(false);
+        }
+        finally
+        {
+            session.DecrementPendingHandlers();
+            store?.HandlerDequeued();
+        }
+    }
+
+    /// <summary>
+    ///     The body every dispatch into a session shares: take the session's lock, hold the handler scope so state changes
+    ///     coalesce into one render, re-check the route's authorization, run <paramref name="invoke" />, and render with
+    ///     whatever navigation or sign-in it asked for.
+    /// </summary>
+    private static async Task RunInSessionAsync(
+        LiveSession session,
+        string activityName,
+        string? handlerId,
+        Func<CancellationToken, ValueTask<bool>> invoke,
+        RaskMetrics? metrics,
+        TimeSpan handlerTimeout,
         CancellationToken ct)
     {
+        if (session.IsDisposed)
+        {
+            return;
+        }
+
         try
         {
             await session.Lock.WaitAsync(ct).ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
+        catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException)
         {
             return;
         }
 
         session.InHandlerScope = true;
-        using var activity = RaskActivity.Source.StartActivity("rask.handler.dispatch");
-        activity?.SetTag("rask.handler.id", handlerId);
+        using var activity = RaskActivity.Source.StartActivity(activityName);
+        if (handlerId is not null)
+        {
+            activity?.SetTag("rask.handler.id", handlerId);
+        }
+
         metrics?.HandlerDispatched();
         var dispatchStart = Stopwatch.GetTimestamp();
 
@@ -2016,8 +2124,7 @@ public static partial class RaskEndpointExtensions
                     {
                         await EnforceAuthAndRenderAsync(session, null, false).ConfigureAwait(false);
                     }
-                    else if (await session.View.TryInvokeHandlerAsync(
-                                 handlerId, root, session.Services, dispatchToken))
+                    else if (await invoke(dispatchToken).ConfigureAwait(false))
                     {
                         string? historyUrl = null;
                         var historyReplace = false;
@@ -2076,20 +2183,21 @@ public static partial class RaskEndpointExtensions
                 activity?.SetStatus(ActivityStatusCode.Error, "handler timed out");
                 RaskDiagnostics.Report(
                     RaskLogLevel.Warning, "Rask.Live",
-                    $"Rask Live handler '{handlerId}' cancelled after HandlerTimeout ({handlerTimeout})");
+                    $"Rask Live handler '{handlerId ?? activityName}' cancelled after HandlerTimeout ({handlerTimeout})");
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 metrics?.HandlerFaulted();
                 activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
                 RaskDiagnostics.Report(
-                    RaskLogLevel.Error, "Rask.Live", $"Rask Live handler '{handlerId}' threw", ex);
+                    RaskLogLevel.Error, "Rask.Live", $"Rask Live handler '{handlerId ?? activityName}' threw", ex);
             }
         }
         finally
         {
             session.InHandlerScope = false;
             session.Lock.Release();
+            _ = session.DrainRenderRequestedAfterScope();
             metrics?.RecordHandlerDuration(Stopwatch.GetElapsedTime(dispatchStart).TotalMilliseconds);
         }
     }
@@ -2191,6 +2299,10 @@ public static partial class RaskEndpointExtensions
         // this origin once the client hands it to location.
         var url = LocalUrl.Sanitize(QueryString.Build(routeState.Path, routeState.Query));
         await session.SendOutOfBandAsync(LocationFrame(url, replace)).ConfigureAwait(false);
+
+        // The browser is leaving this page. The route change asked for a render in scope; drained after the dispatch, it
+        // would paint the other application's URL into this one's tree on its way out.
+        session.DiscardPendingRender();
         return true;
     }
 
@@ -2361,6 +2473,7 @@ public static partial class RaskEndpointExtensions
         {
             session.InHandlerScope = false;
             session.Lock.Release();
+            _ = session.DrainRenderRequestedAfterScope();
         }
     }
 
@@ -2734,6 +2847,25 @@ public static partial class RaskEndpointExtensions
                 contentType,
                 enableRangeProcessing: true,
                 entityTag: new EntityTagHeaderValue(bytes.Value.Etag))
+            .ExecuteAsync(ctx);
+    }
+
+    /// <summary>
+    ///     Serves the scoped-script bundle's source map, which the bundle's last line names (#1073). Only a Debug
+    ///     build's emit carries maps, so anywhere else — and for any hash that is not the current bundle — a 404.
+    /// </summary>
+    internal static Task ServeSourceMapAsync(HttpContext ctx)
+    {
+        var hash = ctx.Request.RouteValues["hash"] as string;
+        if (!ScopedAssetBundle.IsContentHash(hash) || ScopedAssetRegistry.GetSourceMap(hash) is not { } map)
+        {
+            ctx.Response.StatusCode = StatusCodes.Status404NotFound;
+            return Task.CompletedTask;
+        }
+
+        ctx.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+        ctx.Response.Headers["X-Content-Type-Options"] = "nosniff";
+        return Results.Bytes(map.Utf8.ToArray(), "application/json; charset=utf-8", entityTag: new EntityTagHeaderValue(map.Etag))
             .ExecuteAsync(ctx);
     }
 

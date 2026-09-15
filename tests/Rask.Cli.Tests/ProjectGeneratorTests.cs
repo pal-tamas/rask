@@ -481,6 +481,8 @@ public sealed class ProjectGeneratorTests
         // For the editor, not the build — see AlwaysPresent.
         "Styles/app.css",
         "tsconfig.json",
+        // F5 in VS Code: the dev server, and a browser under the JavaScript debugger through its proxy (#1073).
+        ".vscode/launch.json", ".vscode/tasks.json", ".vscode/extensions.json",
     ];
 
     [Fact]

@@ -72,7 +72,7 @@ public sealed class ServerBatteryScaffoldTests
         // The ordering the template's own comment always described and the template did not do: the
         // battery maps were appended AFTER ApplyRaskConventions, so anything they mapped missed the
         // audit stamps, the soft-delete filter and the concurrency token. Harmless while no battery
-        // entity carried a marker — and silently wrong the moment a User declares ITimestamped.
+        // entity was stamped — and silently wrong the moment one is.
         var context = Generate(flag)["Features/Shared/AppDbContext.cs"];
 
         var conventions = context.IndexOf("ApplyRaskConventions()", StringComparison.Ordinal);

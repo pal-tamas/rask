@@ -586,8 +586,12 @@ rask_wasm_workloads() {
 # Is one workload id installed? The FIRST column, matched WHOLE: `wasm-tools-net10` begins with
 # `wasm-tools`, so a prefix test reports the pair present on a machine that has only the net10 half —
 # and the browser build then fails with the NETSDK1147 this check exists to prevent.
+#
+# `>/dev/null`, not `-q`: `-q` exits on the first match and leaves printf writing into a closed pipe. Harmless
+# under this script's own `sh`, but a caller with pipefail — install-script.test.sh sources this under bash —
+# reads that SIGPIPE as "not installed", intermittently, whenever the machine is busy.
 rask_workload_installed() {
-    printf '%s\n' "$2" | grep -qE "^$1([[:space:]]|\$)"
+    printf '%s\n' "$2" | grep -E "^$1([[:space:]]|\$)" >/dev/null
 }
 
 step_wasm_tools() {

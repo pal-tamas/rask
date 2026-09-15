@@ -4751,6 +4751,7 @@ static Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry.operator !=(Ra
 static Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry.operator ==(Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry left, Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry right) -> bool
 static Rask.Core.ScopedAssets.ScopedAssetRegistry.GetBundleHash(Rask.Core.ScopedAssets.AssetKind kind) -> string!
 static Rask.Core.ScopedAssets.ScopedAssetRegistry.GetByHash(string! hash, Rask.Core.ScopedAssets.AssetKind kind) -> Rask.Core.ScopedAssets.ScopedAssetRegistry.AssetBytes?
+static Rask.Core.ScopedAssets.ScopedAssetRegistry.GetSourceMap(string! hash) -> Rask.Core.ScopedAssets.ScopedAssetRegistry.AssetBytes?
 static Rask.Core.ScopedAssets.ScopedAssetRegistry.InvalidateAll() -> void
 static Rask.Core.ScopedAssets.ScopedAssetRegistry.InvalidateAllCss() -> void
 static Rask.Core.ScopedAssets.ScopedAssetRegistry.InvalidateAllJs() -> void
@@ -6670,3 +6671,11 @@ virtual Rask.Core.Forms.ValidateAsync<T>.Invoke(T value, System.Threading.Cancel
 ~override Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry.Equals(object obj) -> bool
 ~override Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry.ToString() -> string
 static Rask.Core.Forms.ExpressionAccessor.NonNullable<T>(System.Linq.Expressions.Expression<System.Func<T?>!>! bind) -> System.Linq.Expressions.Expression<System.Func<T>!>!
+Rask.Core.Messaging.IBroadcast
+Rask.Core.Messaging.IBroadcast.PublishAsync<T>(Rask.Core.Messaging.Topic<T>! topic, T message, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+Rask.Core.Messaging.IBroadcast.Subscribe<T>(Rask.Core.Component! owner, Rask.Core.Messaging.Topic<T>! topic, System.Action<T>! handler) -> void
+Rask.Core.Messaging.IBroadcast.Subscribe<T>(Rask.Core.Component! owner, Rask.Core.Messaging.Topic<T>! topic, System.Func<T, System.Threading.Tasks.Task!>! handler) -> void
+Rask.Core.Messaging.Topic<T>
+Rask.Core.Messaging.Topic<T>.Name.get -> string!
+Rask.Core.Messaging.Topic<T>.Topic(string! name) -> void
+override Rask.Core.Messaging.Topic<T>.ToString() -> string!

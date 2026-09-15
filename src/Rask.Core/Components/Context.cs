@@ -1,3 +1,4 @@
+using Rask.Core.Diagnostics.DevTools;
 using Rask.Core.Live;
 
 namespace Rask.Core.Components;
@@ -63,7 +64,7 @@ public sealed class Context : Component
     /// </summary>
     public static T? Get<T>(string? name = null)
     {
-        MarkConsumer();
+        MarkConsumer(typeof(T), name);
         return ContextStack.TryGet(typeof(T), name, out var value) ? (T?)value : default;
     }
 
@@ -74,7 +75,7 @@ public sealed class Context : Component
     /// </summary>
     public static T Required<T>(string? name = null)
     {
-        MarkConsumer();
+        MarkConsumer(typeof(T), name);
         if (ContextStack.TryGet(typeof(T), name, out var value))
         {
             return (T)value!;
@@ -95,9 +96,20 @@ public sealed class Context : Component
     /// </summary>
     public static bool Has<T>(string? name = null)
     {
-        MarkConsumer();
+        MarkConsumer(typeof(T), name);
         return ContextStack.TryGet(typeof(T), name, out _);
     }
 
-    private static void MarkConsumer() => LiveRenderContext.CurrentSync?.MarkCurrentReadsAmbientState();
+    // A read outside a live render (a handler, a ToHtml) marks nothing and is not a devtools read: no component is
+    // rendering to own it.
+    private static void MarkConsumer(Type requested, string? name)
+    {
+        if (LiveRenderContext.CurrentSync is not { } live)
+        {
+            return;
+        }
+
+        live.MarkCurrentReadsAmbientState();
+        RaskDevToolsHook.Active?.ContextRead(live.WalkParent, requested, name);
+    }
 }

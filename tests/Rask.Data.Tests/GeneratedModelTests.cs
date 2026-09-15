@@ -221,7 +221,7 @@ public sealed class GeneratedModelTests : IDisposable
         using var db = NewContext();
         var widget = db.Model.FindEntityType(typeof(Widget));
 
-        // Widget is ISoftDeletable + IVersioned, so ApplyRaskConventions must have run over the model
+        // Widget is an aggregate, so ApplyRaskConventions must have run over the model
         // ModelRegistry built — the conventions are not tied to a hand-written OnModelCreating.
         Assert.NotNull(widget);
         Assert.NotEmpty(widget.GetDeclaredQueryFilters());

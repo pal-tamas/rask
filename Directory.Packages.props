@@ -64,7 +64,7 @@
 
       Why: 2.1.11's SQLitePCLRaw.lib.e_sqlite3 bundles SQLite 3.49.1, which is vulnerable to
       CVE-2025-6965 (GHSA-2m69-gcr7-jv3q, memory corruption; fixed in SQLite 3.50.2). The 3.x family
-      drops lib.e_sqlite3 entirely in favour of SourceGear.sqlite3, which carries SQLite 3.50.4 — so
+      drops lib.e_sqlite3 entirely in favour of the SQLite package, which carries SQLite 3.53.4 — so
       moving the family off 2.1.x removes the vulnerable package rather than version-bumping around it.
 
       How: every project with a direct Microsoft.Data.Sqlite / EF Core Sqlite reference also references
@@ -75,7 +75,9 @@
       Compatibility is verified, not assumed: Microsoft.Data.Sqlite 10.0.10 is built against
       SQLitePCLRaw.core 2.x (AssemblyVersion 2.0.0.0; core 3.x is 8.0.0.0), but .NET resolves these by
       simple name, and the SQLite suites pass against the 3.x family. `select sqlite_version()` through
-      the real graph reports 3.50.4. Re-check that if this family moves again.
+      the real graph reports 3.53.4. That build also compiles in FTS5 (Rask.Data's HasFullTextSearch), JSON,
+      R*Tree and the math functions, on the server RIDs and in browser-wasm's e_sqlite3.a alike — the
+      FullTextSearch tests are what notice if a future bundle drops FTS5. Re-check both if this family moves.
     -->
     <PackageVersion Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.5" />
     <PackageVersion Include="SQLitePCLRaw.core" Version="3.0.5" />

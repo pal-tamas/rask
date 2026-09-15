@@ -1,0 +1,5 @@
+{
+  // C# Dev Kit: C# editing for the project. Debugging in the browser needs nothing more — VS Code's built-in
+  // JavaScript debugger attaches through the dev server's WebAssembly debug proxy.
+  "recommendations": ["ms-dotnettools.csdevkit"]
+}

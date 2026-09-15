@@ -39,7 +39,7 @@ internal static partial class ProjectGenerator
         return new ScaffoldResult(
             TemplateMaterializer.Files(
                 targetDirectory, framework.Key, name, batteries, version, dotnet ?? DotnetTarget.Default,
-                vsCode: true),
+                vsCode: VsCodeSetup.Host),
             SpaNextSteps(name, framework, batteries.Docker))
         {
             Packages = ["Rask.Cqrs", "Rask.Cqrs.Server", "Rask.Spa.Hosting"],

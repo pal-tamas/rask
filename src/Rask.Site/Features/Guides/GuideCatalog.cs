@@ -175,7 +175,7 @@ public static class GuideCatalog
         new("data", "Rask.Data", "Declare aggregates, read and write them off the type, bind generated form models.", "One Person Framework")
         {
             SearchTitle = "EF Core aggregates without writing a DbContext in C#",
-            Description = "Declare DDD aggregates, entities and value objects in C# with EF Core, read and write them off the type, bind generated form models — soft delete, versions.",
+            Description = "Declare DDD aggregates, entities and value objects in C# with EF Core, read, full-text search and write them off the type from generated form models.",
         },
         new("cqrs", "CQRS", "Source-generated queries, commands, notifications, behaviors.", "One Person Framework")
         {
@@ -249,7 +249,7 @@ public static class GuideCatalog
         new("sqlite", "Production SQLite", "WAL + busy-timeout pragmas, continuous backup, snapshots.", "One Person Framework")
         {
             SearchTitle = "SQLite in production for .NET: WAL and pragmas",
-            Description = "Run SQLite as a production database with ADO.NET or EF Core: WAL and busy_timeout pragmas, BEGIN IMMEDIATE retries, STRICT tables and Litestream backup.",
+            Description = "Run SQLite as a production database with ADO.NET or EF Core: WAL pragmas, BEGIN IMMEDIATE retries, STRICT tables, FTS5 full-text search and Litestream backup.",
         },
         new("deployment", "Deployment", "rask deploy: a bare VPS to a live HTTPS site, zero downtime.", "One Person Framework")
         {
@@ -298,6 +298,11 @@ public static class GuideCatalog
         {
             SearchTitle = "Virtualized lists, toasts and drag and drop",
             Description = "Render windowed lists with Virtualize, keep list identity with keys, and add toast messages, drag-and-drop and error boundaries to C# web components.",
+        },
+        new("broadcast", "Broadcast", "Publish on a topic; every subscribed component, in every open page, re-renders.", "Core")
+        {
+            SearchTitle = "Real-time pub/sub to every open page in C#",
+            Description = "Push a change to every open page with IBroadcast: typed topics, subscriptions that end when the component unmounts, and delivery in order with page events.",
         },
         new("lifecycle", "Lifecycle", "Mount, props-changed, rendered, unmount, cancellation.", "Core")
         {

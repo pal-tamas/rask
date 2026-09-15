@@ -30,6 +30,7 @@ and reach for the [**Recipes**](recipes.md) when you need "how do I do X?".
 | [Building components](building-components.md) | How markup is written: naming a component and chaining onto it, the properties a component demands before it exists, bound versus controlled form controls, and what the IDE offers at each step. |
 | [Elements & the DSL](elements.md) | The primitives every component is built from: tag entries, universal attributes, the children indexer, `Text`/`Raw`, SVG, and the element catalog. |
 | [Routing](routing.md) | `[Route]`, route/query params, nested routes, type-safe `Routes.*` URLs, `Navigator`, `RouteState`. |
+| [Broadcast](broadcast.md) | `IBroadcast` pub/sub: publish on a typed `Topic<T>`, and every subscribed component in every open page re-renders. |
 | [Composition](composition.md) | Children & fragments, callbacks (child→parent), context (provide/consume), toast messages (`IToaster`/`ToastOutlet`), `VirtualizeModel`, drag-and-drop. |
 | [JS interop](js-interop.md) | Scoped CSS & TypeScript conventions (a `.js` sibling is RASK055), calling JS via `IJSRuntime`, element refs (`Ref:`), typed browser APIs, asset delivery. |
 | [Browser APIs](browser-apis.md) | The map of all 50 typed Web-API wrappers — shared vs WASM-only, one-shot vs subscription, the inject-from-ctor and push/`[JSInvokable]` patterns. |
@@ -57,9 +58,9 @@ in the [Tutorial](tutorial/00-overview.md); the reference for each is here.
 
 | Guide | What it covers |
 |-------|----------------|
-| [Rask.Data](data.md) | Declare an `Aggregate<TId>` and nothing else: reads and writes off the type (`Product.Where(…)`, `Product.CreateAsync(model)`), generated form models (`ProductModel`), value objects with no marker, audit stamps, soft delete, optimistic concurrency and domain events. |
+| [Rask.Data](data.md) | Declare an `Aggregate<TId>` and nothing else: reads and writes off the type (`Product.Where(…)`, `Product.CreateAsync(model)`), generated form models (`ProductModel`), value objects with no marker, audit stamps, soft delete, optimistic concurrency, domain events and ranked full-text search (`Product.Search(text)`). |
 | [Data access (EF Core)](data-access.md) | Plain EF Core + SQLite with a `DbContext` of your own: `IDbContextFactory`, loading in the lifecycle, vertical slices, a DDD aggregate + value objects, and the SQLite decimal gotcha. |
-| [SQLite production pragmas](sqlite.md) | Production SQLite via `UseRaskSqlite` / `AddRaskSqlite` (standalone `Rask.SQLite`): WAL, `foreign_keys`, `busy_timeout` & friends applied on every connection open, plus Litestream backup. |
+| [SQLite production pragmas](sqlite.md) | Production SQLite via `UseRaskSqlite` / `AddRaskSqlite` (standalone `Rask.SQLite`): WAL, `foreign_keys`, `busy_timeout` & friends applied on every connection open, STRICT tables, FTS5 full-text search through EF Core, plus Litestream backup. |
 | [CQRS](cqrs.md) | Source-generated, trim-safe queries / commands / notifications and pipeline behaviors via `AddRaskCqrs()` + `IDispatcher` (standalone `Rask.Cqrs`). |
 | [HTTP APIs](api-endpoints.md) | Ordinary API controllers and minimal API endpoints, hosted properly and callable without a URL: `AddRaskApi()` + `MapRaskApi()` map them and answer 404 with a problem document under `/api` — where the catch-all used to render the app with a 200 — and `Rask.Api.Client` generates one typed client per controller straight from the declaration, so a route renamed on the server breaks the call site at compile time instead of at 404 time. For when someone other than your own browser code has to call you; [CQRS](cqrs.md) is the answer when nobody does. |
 | [TypeScript front ends](spa.md) | A TypeScript SPA with a typed connection to your C#: `rask new --template react`, TypeScript generated from the message records, and `UseRaskSpa()` (standalone `Rask.Spa.Hosting`). React, Preact, Vue, Angular, Solid, Svelte or Lit — the framework is yours, the language is not. |

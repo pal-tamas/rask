@@ -99,9 +99,9 @@ public static class RaskDataServiceCollectionExtensions
             typeof(TContext),
             () => sp.GetRequiredService<IDbContextFactory<TContext>>().CreateDbContext()));
 
-        // A HasNonOverlappingRange the provider would silently ignore fails the boot rather than the first
-        // double booking. TryAddEnumerable, so a second call for the same context checks once.
-        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, RangeExclusionCheck<TContext>>());
+        // A HasNonOverlappingRange or HasFullTextSearch the provider would silently ignore fails the boot rather
+        // than the first double booking or search. TryAddEnumerable, so a second call for the same context checks once.
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, ProviderFeatureCheck<TContext>>());
 
         return services;
     }

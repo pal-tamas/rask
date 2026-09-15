@@ -43,9 +43,10 @@ broker, no Redis, no separate infrastructure for a hello-world. Ordered by lever
 The developer-facing cache has [shipped](cache.md). Still planned: a render/fragment cache reusing the
 framework's existing subtree-cache machinery, to memoize a component subtree across sessions by an explicit key.
 
-### Broadcast
-Server-to-many-clients pub/sub over the existing WebSocket channel — subscribe to a topic, push a live diff
-to every subscriber. Unlocks realtime UI without new infrastructure.
+### Broadcast — across servers
+[Broadcast](broadcast.md) has shipped for one process: publish on a topic and every subscribed component in every
+open session re-renders. Still planned: a backplane that carries a publish to the sessions held by other instances
+behind a load balancer.
 
 ## Not shipped
 

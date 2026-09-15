@@ -22,15 +22,61 @@ internal sealed class BulkInsertPlan
     // its entry with it. Models are singletons per configuration, so this stays tiny.
     private static readonly ConditionalWeakTable<IModel, ConcurrentDictionary<Type, BulkInsertPlan>> Cache = new();
 
-    private BulkInsertPlan(string commandText, IReadOnlyList<BulkInsertColumn> columns, BulkTimestamps? timestamps)
+    private readonly ISqlGenerationHelper _sql;
+    private readonly string _insertPrefix;
+    private readonly ConcurrentDictionary<int, string> _packed = new();
+
+    private BulkInsertPlan(
+        ISqlGenerationHelper sql,
+        string insertPrefix,
+        IReadOnlyList<BulkInsertColumn> columns,
+        BulkTimestamps? timestamps)
     {
-        CommandText = commandText;
+        _sql = sql;
+        _insertPrefix = insertPrefix;
+        CommandText = insertPrefix + "(" + string.Join(", ", columns.Select(static c => c.ParameterPlaceholder)) + ");";
         Columns = columns;
         Timestamps = timestamps;
     }
 
     /// <summary>The single-row <c>INSERT</c>, with one named parameter per column.</summary>
     internal string CommandText { get; }
+
+    /// <summary>
+    /// The <c>INSERT … VALUES (…),(…)</c> for <paramref name="rows"/> rows, whose parameters are named by
+    /// <see cref="PackedParameterName"/> in row-major order. Built once per row count: a load uses at most two —
+    /// the full packing and its remainder.
+    /// </summary>
+    internal string PackedCommandText(int rows) =>
+        _packed.GetOrAdd(rows, static (count, plan) => plan.BuildPacked(count), this);
+
+    /// <summary>The name parameter <paramref name="index"/> (<c>row × columns + column</c>) is bound under.</summary>
+    internal string PackedParameterName(int index) => _sql.GenerateParameterName(PackedParameter(index));
+
+    private static string PackedParameter(int index) => "p" + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    private string BuildPacked(int rows)
+    {
+        var text = new System.Text.StringBuilder(_insertPrefix, _insertPrefix.Length + (rows * Columns.Count * 8));
+        var index = 0;
+        for (var r = 0; r < rows; r++)
+        {
+            text.Append(r == 0 ? "(" : ", (");
+            for (var c = 0; c < Columns.Count; c++)
+            {
+                if (c > 0)
+                {
+                    text.Append(", ");
+                }
+
+                text.Append(_sql.GenerateParameterNamePlaceholder(PackedParameter(index++)));
+            }
+
+            text.Append(')');
+        }
+
+        return text.Append(';').ToString();
+    }
 
     /// <summary>The mapped columns, in the order their parameters appear.</summary>
     internal IReadOnlyList<BulkInsertColumn> Columns { get; }
@@ -143,14 +189,12 @@ internal sealed class BulkInsertPlan
 
         var table = sql.DelimitIdentifier(entityType.GetTableName()!, entityType.GetSchema());
 
-        var text =
+        var prefix =
             $"INSERT INTO {table} (" +
             string.Join(", ", columns.Select(c => sql.DelimitIdentifier(c.ColumnName))) +
-            ") VALUES (" +
-            string.Join(", ", columns.Select(static c => c.ParameterPlaceholder)) +
-            ");";
+            ") VALUES ";
 
-        return new BulkInsertPlan(text, columns, BuildTimestamps<TEntity>(entityType));
+        return new BulkInsertPlan(sql, prefix, columns, BuildTimestamps<TEntity>(entityType));
     }
 
     private static BulkTimestamps? BuildTimestamps<TEntity>(IEntityType entityType)

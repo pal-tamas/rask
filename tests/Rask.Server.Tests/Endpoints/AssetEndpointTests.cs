@@ -59,6 +59,38 @@ public class AssetEndpointTests
     }
 
     [Fact]
+    public async Task GetSourceMap_ForTheBundleOfADebugEmit_IsTheIndexMapTheBundleNames()
+    {
+        // #1073: the bundle's last line names {hash}.js.map, resolved against the script's own URL.
+        const string map = """{"version":3,"sources":["Features/A.ts"],"names":[],"mappings":"AAAA"}""";
+        ScopedAssetRegistry.RegisterJs(
+            typeof(WidgetA),
+            "export function f(){}\n//# sourceMappingURL=data:application/json;base64," + Convert.ToBase64String(Encoding.UTF8.GetBytes(map)));
+        var hash = ScopedAssetRegistry.GetBundleHash(AssetKind.Js);
+        using var host = RaskTestHost.Create<TestApp>();
+
+        var bundle = await host.Http.GetStringAsync($"/_rask/a/{hash}.js");
+        var response = await host.Http.GetAsync($"/_rask/a/{hash}.js.map");
+
+        Assert.EndsWith($"//# sourceMappingURL={hash}.js.map\n", bundle, StringComparison.Ordinal);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
+        Assert.Contains("\"sections\"", await response.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetSourceMap_ForAReleaseEmitOrAnUnknownHash_Is404()
+    {
+        ScopedAssetRegistry.RegisterJs(typeof(WidgetA), "export function f(){}");
+        var hash = ScopedAssetRegistry.GetBundleHash(AssetKind.Js);
+        using var host = RaskTestHost.Create<TestApp>();
+
+        Assert.Equal(HttpStatusCode.NotFound, (await host.Http.GetAsync($"/_rask/a/{hash}.js.map")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await host.Http.GetAsync("/_rask/a/000000000000.js.map")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await host.Http.GetAsync("/_rask/a/not-a-hash.js.map")).StatusCode);
+    }
+
+    [Fact]
     public async Task GetCss_BodyBytes_AreByteEqualToRegistryStorage()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");

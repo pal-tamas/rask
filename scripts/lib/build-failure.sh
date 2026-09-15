@@ -69,7 +69,7 @@ rask_build_failure_kind() {
   # fail hours later for reasons entirely their own — keying on it would stamp `busy` on a real red and
   # tell the author nothing ran when a full suite did. Only the terminal outcomes qualify: the queue
   # giving up, and the explicit RASK_E2E_QUEUE=0 refusal.
-  busy=$(grep -Ec '^run-e2e-local: (still queued after|refused to start)' "$log" 2>/dev/null || true)
+  busy=$(grep -Ec '^run-(devtools-)?e2e-local: (still queued after|refused to start)' "$log" 2>/dev/null || true)
 
   # `busy` sits BELOW code and above the machine kinds. A refusal means the suite never started, so it
   # outranks anything inferred from an absence — but it must never outrank a real build error: if

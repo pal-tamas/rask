@@ -26,7 +26,10 @@ public sealed partial class App : Component
         ];
 }
 
-/// <summary>A card of tasks; the button adds one, which is a click on the Wire tab and a new row on the Tree tab.</summary>
+/// <summary>
+///     A card of tasks; the button adds one, which is a click on the Wire tab and a new row on the Tree tab. It provides the
+///     release its rows belong to, so the Tree tab has context to show.
+/// </summary>
 public sealed partial class TaskBoard : Component
 {
     private readonly List<string> _tasks = ["Write the changelog", "Tag the release", "Publish the packages"];
@@ -36,11 +39,16 @@ public sealed partial class TaskBoard : Component
     public string? Owner { get; set; }
 
     protected override Component? Render() =>
-        UiCard.Heading(Heading ?? "Tasks")[
-            UiList[_tasks.Select((task, i) => TaskRow.Key(task).Done(i == 0).Label(task).Assignee(Owner))],
-            UiButton.Tone(UiTone.Primary).OnClick(() => _tasks.Add($"Follow-up {_tasks.Count - 2}"))["Add task"]
+        Context.Provide(new Release(Heading ?? "Tasks"))[
+            UiCard.Heading(Heading ?? "Tasks")[
+                UiList[_tasks.Select((task, i) => TaskRow.Key(task).Done(i == 0).Label(task).Assignee(Owner))],
+                UiButton.Tone(UiTone.Primary).OnClick(() => _tasks.Add($"Follow-up {_tasks.Count - 2}"))["Add task"]
+            ]
         ];
 }
+
+/// <summary>The release a board's tasks belong to.</summary>
+public sealed record Release(string Name);
 
 public sealed partial class TaskRow : Component
 {
@@ -50,10 +58,14 @@ public sealed partial class TaskRow : Component
 
     public string? Assignee { get; set; }
 
-    protected override Component? Render() =>
-        UiListRow
+    protected override Component? Render()
+    {
+        var release = Context.Get<Release>();
+        return UiListRow
             .Grow(Span[Label ?? string.Empty])
-            .Trailing(UiBadge.Tone(Done ? UiTone.Success : UiTone.Info).Variant(UiVariant.Soft)[Done ? "done" : Assignee ?? "open"]);
+            .Trailing(UiBadge.Tone(Done ? UiTone.Success : UiTone.Info).Variant(UiVariant.Soft)
+                .Title(release is null ? null : "Part of " + release.Name)[Done ? "done" : Assignee ?? "open"]);
+    }
 }
 
 /// <summary>

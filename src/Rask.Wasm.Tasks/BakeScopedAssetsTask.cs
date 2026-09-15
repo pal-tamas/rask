@@ -329,14 +329,28 @@ public sealed class BakeScopedAssetsTask : Task
                 continue;
             }
 
-            var utf8 = assetBytes.GetType().GetProperty("Utf8")!.GetValue(assetBytes)!;
-            // ReadOnlyMemory<byte> → byte[]
-            var bytes = (byte[])utf8.GetType().GetMethod("ToArray")!.Invoke(utf8, null)!;
-            File.WriteAllBytes(Path.Combine(outDir, hash + "." + ext), bytes);
+            File.WriteAllBytes(Path.Combine(outDir, hash + "." + ext), Utf8Of(assetBytes));
             written++;
+
+            // A Debug build's scoped scripts carry source maps (#1073), and the bundle's last line names this file.
+            // Looked up by name so a registry from before GetSourceMap still bakes.
+            if (ext == "js"
+                && registryType.GetMethod("GetSourceMap", BindingFlags.Static | BindingFlags.Public) is { } getSourceMap
+                && getSourceMap.Invoke(null, new object[] { hash }) is { } map)
+            {
+                File.WriteAllBytes(Path.Combine(outDir, hash + ".js.map"), Utf8Of(map));
+                written++;
+            }
         }
 
         return written;
+    }
+
+    // AssetBytes.Utf8 (a ReadOnlyMemory<byte>) → byte[], through reflection like the rest of the bake.
+    private static byte[] Utf8Of(object assetBytes)
+    {
+        var utf8 = assetBytes.GetType().GetProperty("Utf8")!.GetValue(assetBytes)!;
+        return (byte[])utf8.GetType().GetMethod("ToArray")!.Invoke(utf8, null)!;
     }
 
     private static void InvokeStatic(Type type, string method)

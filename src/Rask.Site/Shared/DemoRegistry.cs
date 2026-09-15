@@ -185,6 +185,9 @@ public static partial class DemoRegistry
             ["boom-render"] = () => CodeSample.Files(["BoomRenderDemo.cs"]).Result(BoomRenderDemo),
             ["boom-nested"] = () => CodeSample.Files(["BoomNestedDemo.cs"]).Result(BoomNestedDemo),
 
+            // --- Broadcast guide (#1061): a publisher and two subscribers that share only a topic. ---
+            ["broadcast-orders"] = () => CodeSample.Files(["BroadcastDemo.cs", "OrderBoard.cs"]).Result(BroadcastDemo),
+
             // --- Lifecycle guide: hooks, mount/unmount cycle, disposal, cancellation (their standalone
             //     example pages folded into docs/lifecycle.md). The demos embed the probe source — the
             //     teaching artifact — while Result mounts the live widget. ---

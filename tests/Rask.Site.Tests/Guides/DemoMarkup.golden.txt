@@ -480,6 +480,35 @@ button .btn .btn-warning
 svg .shrink-0 .size-5
 path
 
+=== broadcast-orders ===
+div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
+div .sample-code-col
+div .sample-code-header
+span .dot-r .sample-dot
+span .dot-y .sample-dot
+span .dot-g .sample-dot
+span .ms-2 .sample-tabs
+button .active .sample-tab
+button .sample-tab
+button .sample-copy
+svg .me-1 .shrink-0 .size-5
+path
+span .sample-copy-text
+pre .m-0 .sample-code
+code .language-csharp
+div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
+div .sample-result-label
+div .sample-result-body
+div .flex .flex-col .gap-3
+button .btn .btn-primary
+div .gap-3 .grid .sm:grid-cols-2
+div .bg-base-100 .border .border-base-300 .broadcast-board .p-4 .rounded-xl .sm:p-5
+h3 .font-semibold .text-sm
+p .text-sm .text-ui-muted
+div .bg-base-100 .border .border-base-300 .broadcast-board .p-4 .rounded-xl .sm:p-5
+h3 .font-semibold .text-sm
+p .text-sm .text-ui-muted
+
 === browser-battery ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .sample-code-col

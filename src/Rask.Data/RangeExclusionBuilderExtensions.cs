@@ -55,54 +55,12 @@ public static class RangeExclusionBuilderExtensions
         var softDeletable = typeof(IAggregate).IsAssignableFrom(typeof(TEntity));
 
         var spec = new RangeExclusionSpec(
-            Single(lo, nameof(lo)),
-            Single(hi, nameof(hi)),
-            partitionBy is null ? [] : Properties(partitionBy, nameof(partitionBy)),
+            PropertyExpressions.Single(lo, nameof(lo)),
+            PropertyExpressions.Single(hi, nameof(hi)),
+            partitionBy is null ? [] : PropertyExpressions.Many(partitionBy, nameof(partitionBy)),
             softDeletable && (ignoreSoftDeleted ?? true));
 
         builder.HasAnnotation(RangeExclusionSpec.AnnotationName, spec.Serialize());
         return builder;
     }
-
-    private static string Single<TEntity>(Expression<Func<TEntity, object?>> expression, string parameter)
-    {
-        var names = Properties(expression, parameter);
-        return names.Count == 1
-            ? names[0]
-            : throw new ArgumentException($"'{parameter}' must name exactly one property.", parameter);
-    }
-
-    // Mirrors the shapes EF Core itself accepts for HasIndex: x => x.A, x => (object)x.A, x => new { x.A, x.B }.
-    private static IReadOnlyList<string> Properties<TEntity>(
-        Expression<Func<TEntity, object?>> expression,
-        string parameter)
-    {
-        var body = Unwrap(expression.Body);
-
-        if (body is NewExpression anonymous)
-        {
-            return anonymous.Arguments.Count == 0
-                ? throw new ArgumentException($"'{parameter}' must name at least one property.", parameter)
-                : [.. anonymous.Arguments.Select(argument => Name(argument, expression, parameter))];
-        }
-
-        return [Name(body, expression, parameter)];
-    }
-
-    private static string Name<TEntity>(
-        Expression node,
-        Expression<Func<TEntity, object?>> expression,
-        string parameter)
-        => Unwrap(node) is MemberExpression { Expression: ParameterExpression } member
-            ? member.Member.Name
-            : throw new ArgumentException(
-                $"'{parameter}' must name properties of {typeof(TEntity).Name} directly, as in x => x.Property " +
-                $"or x => new {{ x.A, x.B }}, but was '{expression}'.",
-                parameter);
-
-    // A value-type property is boxed by the Func<TEntity, object?> signature; see through that cast.
-    private static Expression Unwrap(Expression node)
-        => node is UnaryExpression { NodeType: ExpressionType.Convert or ExpressionType.ConvertChecked } cast
-            ? cast.Operand
-            : node;
 }

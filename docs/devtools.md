@@ -84,12 +84,28 @@ The Wire tab records only the page's own traffic. The panel's own frames never s
 **Tree** shows the page's components nested the way they sit on the page. A card's rows sit under the card, even when
 the page that uses the card is the one that built them. Each row shows what its component was given:
 
-![The Tree tab: the app's components nested as on the page, with each component's props on its row and a token shown as dots](../src/Rask.Site/wwwroot/img/devtools/tree.webp)
+![The Tree tab: the app's components nested as on the page, with each component's props on its row, and beside the tree the selected TaskRow's props with their types and the Release it reads from TaskBoard](../src/Rask.Site/wwwroot/img/devtools/tree.webp)
 
 - **The type**, as you write it: `TaskRow`, `UiTree<Node, string>`.
 - **The key**, as a badge, when the component has one.
 - **Its props**, as `Name=value`. Rask writes the code that reads them when it builds the app, so they are there in a
   trimmed WASM app too.
+- **What it is**, as a badge, when it is more than a component: an island's runtime (`React`, `Vue`, `Lit`…), or
+  `Blazor`.
+
+Select a row to see the component in full beside the tree: its key, every prop with its type and value, and its
+[context](composition.md):
+
+- **Provides**: each value its markup provides with `Context.Provide`, with its type, name and value.
+- **Reads**: each value it read while rendering, through `Context.Get`, `Required` or `Has`, and where it came from.
+  The provider is named by where the `Context.Provide` sits on the page, like the tree itself: the component it is
+  inside. Click the name to select that component. **none in scope** means nothing above it provides that type and name.
+
+Context is recorded while the panel is open. Open the panel on a page that has already rendered, and a component's
+context appears with the page's next render.
+
+An [island](islands.md) is a row like any other component, with the props your C# passed it. Its own components live
+in the browser, so the tree ends at the island.
 
 **Show HTML tags** adds the elements between the components, so you can see which `<ul>` a row sits in.
 
@@ -119,6 +135,9 @@ the value never reaches the panel. A prop is treated as sensitive when:
 - its name contains `password`, `passcode`, `secret`, `token`, `apikey` or `credential`, or is exactly `pin` or `ssn`;
 - or it carries `[DataType(DataType.Password)]`, `[PasswordPropertyText]`, `[PersonalData]` or
   `[ProtectedPersonalData]`.
+
+A provided context value follows the same words, matched against its name and its type's name:
+`Context.Provide(key, Name: "api-token")` shows as `••••`. Its value is never formatted, so its `ToString` never runs.
 
 Add one of those attributes to a prop whose name does not give it away.
 

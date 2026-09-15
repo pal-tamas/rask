@@ -103,9 +103,33 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
         var expectedFiles = (cssBundleHash.Length > 0 ? 1 : 0) + (jsBundleHash.Length > 0 ? 1 : 0);
         Assert.True(expectedFiles > 0, "Rask.ScopedAssets.Fixture should register at least one scoped asset kind");
 
+        // A Debug build's scoped TypeScript carries a source map, which the bake writes beside the script (#1073).
+        if (jsBundleHash.Length > 0 && ScopedAssetRegistry.GetSourceMap(jsBundleHash) is { } map)
+        {
+            expectedFiles++;
+            Assert.Equal(map.Utf8.ToArray(), File.ReadAllBytes(Path.Combine(outDir, jsBundleHash + ".js.map")));
+        }
+
         // One concatenated bundle file per kind (css + js), not one per component.
         var bakedFiles = Directory.EnumerateFiles(outDir).ToArray();
         Assert.Equal(expectedFiles, bakedFiles.Length);
+    }
+
+    [Fact]
+    public void RealAssemblies_ADebugBuild_BakesTheScriptsSourceMap()
+    {
+#if DEBUG
+        var task = NewTask(_bundleDir, new ITaskItem[]
+        {
+            new TaskItem(typeof(ScopedAssetRegistry).Assembly.Location),
+            new TaskItem(typeof(ScopedWidget).Assembly.Location),
+        });
+        Assert.True(task.Execute());
+
+        var hash = ScopedAssetRegistry.GetBundleHash(AssetKind.Js);
+        Assert.True(File.Exists(Path.Combine(_bundleDir, "_rask", "a", hash + ".js.map")), "a Debug build's bundle should bake its map");
+        Assert.NotNull(ScopedAssetRegistry.GetSourceMap(hash));
+#endif
     }
 
     [Fact]

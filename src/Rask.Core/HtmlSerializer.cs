@@ -288,6 +288,13 @@ internal static class HtmlSerializer
 
                 using (ContextStack.Push(context.ValueType, context.Name, context.Value))
                 {
+                    // After the push, so the devtools find the entry this provider just became; read only in a live render,
+                    // where there is a component whose markup holds it.
+                    if (RaskDevToolsHook.Active is { } contextDevTools && LiveRenderContext.CurrentSync is { } contextLive)
+                    {
+                        contextDevTools.ContextProvided(context, contextLive.WalkParent);
+                    }
+
                     try
                     {
                         if (context.ChildrenArray is { } ctxArray)
@@ -495,6 +502,15 @@ internal static class HtmlSerializer
                 if (frames is not null)
                 {
                     frames.CloseElement(elementFrameIdx, sb.Length);
+                }
+
+                // A component that renders as an element of its own (an External island) is still a component: the
+                // devtools' tree lists it like one. The type test comes first, so every HTML element — all of them
+                // Element — pays one type check and never reads the hook.
+                if (el is not Element && RaskDevToolsHook.Active is { } elementDevTools)
+                {
+                    elementDevTools.ComponentWalked(
+                        el, live?.WalkParent, 0, elementFrameIdx, frames?.Count ?? -1);
                 }
 
                 break;

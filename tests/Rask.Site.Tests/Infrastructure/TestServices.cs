@@ -44,6 +44,7 @@ internal static class TestServices
         // exactly what these tests do and exactly what the prerender pass does.
         sc.AddWasmBrowserApis(ServiceLifetime.Singleton);
         sc.AddSingleton<IToaster, Toaster>();
+        sc.AddSingleton<Rask.Core.Messaging.IBroadcast, Rask.Core.Messaging.BroadcastHub>();
 
         routeState ??= new RouteState();
         sc.AddSingleton(routeState);

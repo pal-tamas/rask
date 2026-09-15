@@ -239,6 +239,26 @@ public partial class DevToolsProbeSeamTests : global::Rask.Core.RaskMarkup, IDis
     }
 
     [Fact]
+    public void A_component_that_renders_as_its_own_element_is_walked_like_a_component_but_an_html_element_is_not()
+    {
+        // An External island is serialized down the element branch; it is still a component, and the devtools' tree
+        // lists it. The HTML elements around it are not components and are never reported as walked.
+        var island = new ElementRenderedComponent();
+        var view = new StubComponent(() => Div[Section[island]]);
+
+        view.RenderAsLiveRoot();
+
+        var walk = Assert.Single(_probe.Walks, w => ReferenceEquals(w.Component, island));
+        Assert.Same(view, walk.Parent);
+        Assert.DoesNotContain(_probe.Walks, w => w.Component is Element);
+    }
+
+    private sealed class ElementRenderedComponent : Component
+    {
+        protected override string? TagName => "x-island";
+    }
+
+    [Fact]
     public void A_replayed_component_names_the_component_it_was_replayed_inside()
     {
         var inner = new StubComponent(() => Span["x"]);
@@ -266,6 +286,50 @@ public partial class DevToolsProbeSeamTests : global::Rask.Core.RaskMarkup, IDis
         Assert.Contains(_probe.Events, e => e.Name == "replayed" && ReferenceEquals(e.Component, inner));
         Assert.DoesNotContain(_probe.Events, e => e.Name == "rendering" && ReferenceEquals(e.Component, inner));
     }
+
+    [Fact]
+    public void A_provider_is_reported_with_the_component_whose_markup_holds_it_after_its_value_is_pushed()
+    {
+        var theme = new SeamTheme("dark");
+        var reader = new StubComponent(() => Span[Context.Get<SeamTheme>()?.Name ?? "none"]);
+        var shell = new StubComponent(() => Div[Context.Provide(theme)[reader]]);
+        var view = new StubComponent(() => Main[shell]);
+
+        view.RenderAsLiveRoot();
+
+        var provide = Assert.Single(_probe.Provides);
+        Assert.Same(shell, provide.Owner);
+        Assert.Same(typeof(SeamTheme), provide.Provider.ValueType);
+        Assert.Same(theme, provide.Head);
+    }
+
+    [Fact]
+    public void Every_kind_of_read_is_reported_with_the_component_that_read_it()
+    {
+        var reader = new StubComponent(() =>
+        {
+            _ = Context.Get<SeamTheme>();
+            _ = Context.Has<int>("page-size");
+            return Span[Context.Required<string>("user")];
+        });
+        var view = new StubComponent(() => Div[Context.Provide("ada", Name: "user")[reader]]);
+
+        view.RenderAsLiveRoot();
+
+        (Type, string?)[] expected = [(typeof(SeamTheme), null), (typeof(int), "page-size"), (typeof(string), "user")];
+        Assert.Equal(expected, _probe.Reads.Select(r => (r.Requested, r.Name)));
+        Assert.All(_probe.Reads, r => Assert.Same(reader, r.Reader));
+    }
+
+    [Fact]
+    public void A_read_outside_a_live_render_is_not_reported()
+    {
+        _ = Context.Get<SeamTheme>();
+
+        Assert.Empty(_probe.Reads);
+    }
+
+    private sealed record SeamTheme(string Name);
 
     // A live session renders with a frame writer pushed, which is what makes the serializer capture clean subtrees and
     // replay them on the next render. RenderAsLiveRoot() on its own captures nothing.
@@ -323,6 +387,15 @@ public partial class DevToolsProbeSeamTests : global::Rask.Core.RaskMarkup, IDis
         }
 
         public void StateRequested(Component component) => Events.Add(("state-requested", component, null));
+
+        public List<(Context Provider, Component Owner, object? Head)> Provides { get; } = [];
+
+        public List<(Component Reader, Type Requested, string? Name)> Reads { get; } = [];
+
+        public void ContextProvided(Context provider, Component owner) =>
+            Provides.Add((provider, owner, ContextStack.Head?.Value));
+
+        public void ContextRead(Component reader, Type requested, string? name) => Reads.Add((reader, requested, name));
 
         public List<(Component Component, Exception Exception, ErrorSource Source, bool Caught)> Faults { get; } = [];
 
