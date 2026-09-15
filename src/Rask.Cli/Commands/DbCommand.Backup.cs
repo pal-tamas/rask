@@ -20,6 +20,13 @@ namespace Rask.Cli.Commands;
 ///     same call <c>Rask.SQLite.Snapshots</c> makes.
 /// </para>
 /// <para>
+///     <b>Uploaded files go with it.</b> An app on Rask.Storage's disk provider keeps its uploads as files, and a
+///     <c>StoredFile</c> row per upload in the database. A database restored without its files points at bytes that are
+///     gone, so the files are archived beside the copy (<c>shop-….files.tgz</c> next to <c>shop-….db</c>) and restored
+///     with it. The archive is taken after the database copy: a save writes its bytes before its row, so every row in
+///     the copy has its bytes in the archive, and bytes saved in between are orphans the storage sweep removes.
+/// </para>
+/// <para>
 ///     <b>Remote</b> needs nothing installed on the host and nothing installed locally: it runs
 ///     <c>VACUUM INTO</c> inside a throwaway container mounted on the app's data volume, exactly the shape
 ///     the deploy's readiness probe already uses, and brings the result down with <c>docker cp</c>.
@@ -41,21 +48,38 @@ internal sealed partial class DbCommand
     /// <summary>The database inside a deployed container — fixed by what <c>rask deploy</c> configures.</summary>
     private const string RemoteDatabasePath = "/data/app.db";
 
+    /// <summary>Where the container writes the files archive, beside <see cref="RemoteBackupPath"/>.</summary>
+    private const string RemoteFilesArchivePath = "/data/.rask-backup-files.tgz";
+
+    /// <summary>Where the restore unpacks the archive before swapping it in.</summary>
+    private const string RemoteFilesStagingPath = "/data/.rask-restore-files";
+
     /// <summary>
-    /// <c>VACUUM INTO</c> the live database, inside a throwaway container on the app's data volume.
+    /// Rask.Storage's disk root on a deployed container: <c>files</c> on the data volume. An app that sets
+    /// <c>Rask__Storage__Disk__Root</c> elsewhere keeps its files outside what a backup can see.
+    /// </summary>
+    private const string RemoteFilesPath = "/data/files";
+
+    /// <summary>
+    /// <c>VACUUM INTO</c> the live database, then archive the stored files, inside a throwaway container on the app's
+    /// data volume.
     /// </summary>
     /// <remarks>
     /// <c>VACUUM INTO</c> rather than a file copy because it is transactionally consistent against a
     /// database being written to, and it checkpoints the WAL into the output — so the single file that
     /// comes back is the whole database, not a torn one. <c>rm -f</c> first so a previous run that died
     /// between the vacuum and the cleanup cannot make this one fail with "output file already exists".
+    /// <c>mkdir -p</c> before the archive so an app that has never stored a file still gets one, and the copy down
+    /// never has to guess whether a missing archive is an app with no files or a failure.
     /// </remarks>
     internal static IReadOnlyList<string> BuildRemoteVacuumArguments(string host, string slug) =>
     [
         "-H", $"ssh://{host}", "run", "--rm", "-v", $"{slug}-data:/data", SqliteImage,
         "sh", "-c",
-        $"rm -f {RemoteBackupPath} && apk add --no-cache sqlite >/dev/null && " +
-        $"sqlite3 {RemoteDatabasePath} \"VACUUM INTO '{RemoteBackupPath}'\"",
+        $"rm -f {RemoteBackupPath} {RemoteFilesArchivePath} && apk add --no-cache sqlite >/dev/null && " +
+        $"sqlite3 {RemoteDatabasePath} \"VACUUM INTO '{RemoteBackupPath}'\" && " +
+        $"mkdir -p {RemoteFilesPath} && " +
+        $"tar -C /data -czf {RemoteFilesArchivePath} --exclude=files/{StoredFilesArchive.SpoolDirectory} files",
     ];
 
     /// <summary>
@@ -75,11 +99,17 @@ internal sealed partial class DbCommand
     internal static IReadOnlyList<string> BuildCopyUpArguments(string host, string helper, string localPath) =>
         ["-H", $"ssh://{host}", "cp", localPath, $"{helper}:{RemoteBackupPath}"];
 
-    /// <summary>Delete the staged copy from inside the volume once it is down (or restored).</summary>
+    internal static IReadOnlyList<string> BuildFilesCopyDownArguments(string host, string helper, string localPath) =>
+        ["-H", $"ssh://{host}", "cp", $"{helper}:{RemoteFilesArchivePath}", localPath];
+
+    internal static IReadOnlyList<string> BuildFilesCopyUpArguments(string host, string helper, string localPath) =>
+        ["-H", $"ssh://{host}", "cp", localPath, $"{helper}:{RemoteFilesArchivePath}"];
+
+    /// <summary>Delete the staged copies from inside the volume once they are down (or restored).</summary>
     internal static IReadOnlyList<string> BuildRemoteCleanupArguments(string host, string slug) =>
     [
         "-H", $"ssh://{host}", "run", "--rm", "-v", $"{slug}-data:/data", SqliteImage,
-        "rm", "-f", RemoteBackupPath,
+        "rm", "-rf", RemoteBackupPath, RemoteFilesArchivePath, RemoteFilesStagingPath,
     ];
 
     /// <summary>
@@ -90,13 +120,26 @@ internal sealed partial class DbCommand
     /// leaving a stale WAL beside a replaced database is how a restore silently produces a hybrid of the
     /// two, because SQLite will replay it over the file it now finds. The app must be stopped before this
     /// runs — <see cref="RestoreRemoteAsync" /> refuses otherwise.
+    /// <para>
+    /// With <paramref name="withFiles"/>, the uploaded archive is unpacked into a staging directory FIRST and swapped
+    /// over the files directory only once it has come out whole, so a corrupt archive stops the restore before the
+    /// database has been touched.
+    /// </para>
     /// </remarks>
-    internal static IReadOnlyList<string> BuildRemoteReplaceArguments(string host, string slug) =>
+    internal static IReadOnlyList<string> BuildRemoteReplaceArguments(string host, string slug, bool withFiles = false) =>
     [
         "-H", $"ssh://{host}", "run", "--rm", "-v", $"{slug}-data:/data", SqliteImage,
         "sh", "-c",
+        (withFiles
+            ? $"rm -rf {RemoteFilesStagingPath} && mkdir {RemoteFilesStagingPath} && " +
+              $"tar -C {RemoteFilesStagingPath} -xzf {RemoteFilesArchivePath} && "
+            : "") +
         $"rm -f {RemoteDatabasePath}-wal {RemoteDatabasePath}-shm && " +
-        $"mv {RemoteBackupPath} {RemoteDatabasePath}",
+        $"mv {RemoteBackupPath} {RemoteDatabasePath}" +
+        (withFiles
+            ? $" && rm -rf {RemoteFilesPath} && mv {RemoteFilesStagingPath}/files {RemoteFilesPath} && " +
+              $"rm -rf {RemoteFilesStagingPath} {RemoteFilesArchivePath}"
+            : ""),
     ];
 
     internal static IReadOnlyList<string> BuildStopArguments(string host, string container) =>
@@ -202,7 +245,28 @@ internal sealed partial class DbCommand
         }
 
         Console.WriteLine($"Backed up to {destination}.", ConsoleStyle.Success);
-        return 0;
+
+        // After the database, never before: see the type's remarks on why that order keeps rows and bytes together.
+        var root = StorageRootLocator.Locate(_fileSystem, projectDirectory);
+        if (root is null || !_fileSystem.DirectoryExists(root))
+        {
+            return 0;
+        }
+
+        var archive = StoredFilesArchive.PathFor(destination);
+        try
+        {
+            var count = await Task.Run(() => StoredFilesArchive.Create(root, archive), cancellationToken).ConfigureAwait(false);
+            Console.WriteLine($"Backed up {count} stored file(s) from {root} to {archive}.", ConsoleStyle.Success);
+            return 0;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Console.WriteErrorLine(
+                $"The database is backed up, but the stored files under '{root}' are not: {ex.Message}",
+                ConsoleStyle.Error);
+            return 1;
+        }
     }
 
     /// <summary>Replace the local database with <paramref name="input"/>, after confirming.</summary>
@@ -224,9 +288,34 @@ internal sealed partial class DbCommand
             return 1;
         }
 
-        if (!TryConfirm($"Restore '{input}' over the database at '{destination}'? This replaces it and everything in it.", force, out var declined))
+        var root = StorageRootLocator.Locate(_fileSystem, projectDirectory);
+        var archive = StoredFilesArchive.PathFor(input);
+        var withFiles = root is not null && _fileSystem.FileExists(archive);
+
+        var question = withFiles
+            ? $"Restore '{input}' over the database at '{destination}', and '{archive}' over the stored files in '{root}'? This replaces both and everything in them."
+            : $"Restore '{input}' over the database at '{destination}'? This replaces it and everything in it.";
+        if (!TryConfirm(question, force, out var declined))
         {
             return declined;
+        }
+
+        if (withFiles)
+        {
+            // Files first: the swap only happens once the whole archive has come out, so a corrupt archive stops the
+            // restore with the database untouched.
+            try
+            {
+                var count = await Task.Run(() => StoredFilesArchive.Restore(archive, root!), cancellationToken).ConfigureAwait(false);
+                Console.WriteLine($"Restored {count} stored file(s) to {root}.", ConsoleStyle.Dim);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
+            {
+                Console.WriteErrorLine(
+                    $"Couldn't restore the stored files from '{archive}', so nothing was restored: {ex.Message}",
+                    ConsoleStyle.Error);
+                return 1;
+            }
         }
 
         try
@@ -255,7 +344,43 @@ internal sealed partial class DbCommand
         }
 
         Console.WriteLine($"Restored {input} to {destination}.", ConsoleStyle.Success);
+
+        if (root is not null)
+        {
+            ReportMissingStoredFiles(destination, root, withFiles);
+        }
+
         return 0;
+    }
+
+    /// <summary>
+    /// Say so when the restored database has disk rows whose bytes are not there — the 404s a restore without its
+    /// files would otherwise leave to be discovered by users.
+    /// </summary>
+    private void ReportMissingStoredFiles(string databasePath, string root, bool restoredFiles)
+    {
+        MissingStoredFiles? found;
+        try
+        {
+            found = StoredFilesCheck.FindMissing(databasePath, root);
+        }
+        catch (SqliteException)
+        {
+            return;
+        }
+
+        if (found is not { Missing: > 0 })
+        {
+            return;
+        }
+
+        var hint = restoredFiles
+            ? "The archive did not hold them either, so they were already missing when the backup was taken."
+            : "No .files.tgz archive was restored with the database; restore the one taken beside it to bring them back.";
+        Console.WriteErrorLine(
+            $"{found.Missing} of {found.Checked} stored file(s) in the restored database have no bytes under '{root}' "
+            + $"(for example {string.Join(", ", found.Examples)}), and will answer 404. {hint}",
+            ConsoleStyle.Warning);
     }
 
     // The Online Backup API: consistent against a live writer, and it checkpoints the WAL into the copy,
@@ -277,7 +402,7 @@ internal sealed partial class DbCommand
         Console.WriteLine($"Taking a consistent copy of {slug}'s database on {host}…", ConsoleStyle.Dim);
         if (await DockerAsync(BuildRemoteVacuumArguments(host, slug), cancellationToken).ConfigureAwait(false) != 0)
         {
-            Console.WriteErrorLine("Couldn't copy the database inside the container. Is the app deployed, and does the host have network access to pull the sqlite image?", ConsoleStyle.Error);
+            Console.WriteErrorLine("Couldn't copy the database and stored files inside the container. Is the app deployed, and does the host have network access to pull the sqlite image?", ConsoleStyle.Error);
             return 1;
         }
 
@@ -300,6 +425,14 @@ internal sealed partial class DbCommand
                 Console.WriteErrorLine("Couldn't copy the backup down from the host.", ConsoleStyle.Error);
                 return 1;
             }
+
+            if (await DockerAsync(BuildFilesCopyDownArguments(host, helper, StoredFilesArchive.PathFor(destination)), cancellationToken).ConfigureAwait(false) != 0)
+            {
+                Console.WriteErrorLine(
+                    $"The database is backed up to {destination}, but the stored files archive couldn't be copied down from the host.",
+                    ConsoleStyle.Error);
+                return 1;
+            }
         }
         finally
         {
@@ -309,7 +442,9 @@ internal sealed partial class DbCommand
             await DockerAsync(BuildRemoteCleanupArguments(host, slug), CancellationToken.None).ConfigureAwait(false);
         }
 
-        Console.WriteLine($"Backed up to {destination}.", ConsoleStyle.Success);
+        Console.WriteLine(
+            $"Backed up to {destination}, with the stored files in {RemoteFilesPath} beside it as {StoredFilesArchive.PathFor(destination)}.",
+            ConsoleStyle.Success);
         return 0;
     }
 
@@ -324,7 +459,12 @@ internal sealed partial class DbCommand
             return 1;
         }
 
-        if (!TryConfirm($"Restore '{input}' over {slug}'s database on {host}? The app stops, its database is replaced, and it starts again.", force, out var declined))
+        var archive = StoredFilesArchive.PathFor(input);
+        var withFiles = _fileSystem.FileExists(archive);
+        var question = withFiles
+            ? $"Restore '{input}' and '{archive}' over {slug}'s database and stored files on {host}? The app stops, both are replaced, and it starts again."
+            : $"Restore '{input}' over {slug}'s database on {host}? The app stops, its database is replaced, and it starts again. There is no '{archive}' beside it, so the stored files are left as they are.";
+        if (!TryConfirm(question, force, out var declined))
         {
             return declined;
         }
@@ -355,7 +495,14 @@ internal sealed partial class DbCommand
                 return 1;
             }
 
-            if (await DockerAsync(BuildRemoteReplaceArguments(host, slug), cancellationToken).ConfigureAwait(false) != 0)
+            if (withFiles &&
+                await DockerAsync(BuildFilesCopyUpArguments(host, helper, archive), cancellationToken).ConfigureAwait(false) != 0)
+            {
+                Console.WriteErrorLine("Couldn't copy the stored files archive up to the host.", ConsoleStyle.Error);
+                return 1;
+            }
+
+            if (await DockerAsync(BuildRemoteReplaceArguments(host, slug, withFiles), cancellationToken).ConfigureAwait(false) != 0)
             {
                 Console.WriteErrorLine("Couldn't put the database in place inside the volume.", ConsoleStyle.Error);
                 return 1;
@@ -366,6 +513,7 @@ internal sealed partial class DbCommand
         finally
         {
             await DockerAsync(BuildHelperRemoveArguments(host, helper), CancellationToken.None).ConfigureAwait(false);
+            await DockerAsync(BuildRemoteCleanupArguments(host, slug), CancellationToken.None).ConfigureAwait(false);
 
             // Always bring the app back, restored or not: leaving it stopped after a failed restore turns
             // a recoverable problem into an outage.
@@ -381,7 +529,9 @@ internal sealed partial class DbCommand
             return 1;
         }
 
-        Console.WriteLine($"Restored {input} to {slug} on {host}.", ConsoleStyle.Success);
+        Console.WriteLine(
+            withFiles ? $"Restored {input} and {archive} to {slug} on {host}." : $"Restored {input} to {slug} on {host}.",
+            ConsoleStyle.Success);
         return 0;
     }
 

@@ -9,6 +9,19 @@ them until tagged releases begin.
 
 ### Added
 
+- **`rask db backup` takes uploaded files with the database, and `restore` puts both back (#1077).** An app on
+  Rask.Storage's disk provider kept its `StoredFile` rows in `app.db` and its bytes in the disk root, and a backup
+  copied only the first, so a restored database pointed at files that were gone.
+  - **The archive:** the disk root is written as `shop-….files.tgz` beside `shop-….db`, locally (from
+    `Rask:Storage:Disk:Root`, else `storage/`) and with `--remote` (from `/data/files`, in the same throwaway
+    container as the `VACUUM INTO`). It is taken after the database copy, so every row in the copy has its bytes.
+    The save spool is left out.
+  - **The restore:** it finds the archive beside the file you name, and unpacks it into a staging directory
+    before it touches the database. A corrupt archive stops the restore with nothing replaced. Remotely, both are
+    replaced while the app is stopped. With no archive beside the file, the files are left as they are.
+  - **Rows without bytes are reported.** `rask db restore` names disk rows whose file is missing. The storage
+    sweep now logs a warning with their count and the first few ids, which is what a database restored by
+    Litestream or a snapshot (neither of which copies files) looks like. It never deletes the rows.
 - **Create, update and delete live on the model type again.** Beside the reads, every `Rask.Data` model gets
   `Product.CreateAsync(model)`, `Product.CreateAsync(id, model)`, `Product.UpdateAsync(id, model)`,
   `Product.UpdateAsync(id, p => …)` and `Product.DeleteAsync(id)`, and `Product.CreateAsync(entity)` inserts

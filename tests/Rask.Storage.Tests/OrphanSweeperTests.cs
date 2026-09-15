@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+
 namespace Rask.Storage.Tests;
 
 [Collection(StorageDbCollection.Name)]
@@ -123,6 +125,39 @@ public sealed class OrphanSweeperTests
         Assert.Equal(1, result.Deleted);
         Assert.False(File.Exists(inside));
         Assert.True(File.Exists(outside));
+    }
+
+    [Fact]
+    public async Task Rows_whose_bytes_are_gone_from_disk_are_reported_and_left_alone()
+    {
+        // #1077: a database restored without its files. The row is the app's; the sweep only says so.
+        await using var harness = new StorageHarness();
+        var kept = await harness.Files.SaveAsync(new MemoryStream(Samples.Png()), "kept.png");
+        var lost = await harness.Files.SaveAsync(new MemoryStream(Samples.Png()), "lost.png");
+        File.Delete(Path.Combine(harness.Root, lost.Key));
+        harness.Clock.Advance(TimeSpan.FromHours(25));
+
+        var found = await harness.Sweeper.FindMissingAsync(default);
+
+        Assert.NotNull(found);
+        Assert.Equal(1, found.Count);
+        Assert.Equal([lost.Id], found.Examples);
+        await using var db = harness.NewContext();
+        Assert.Equal(2, await db.Set<StoredFile>().CountAsync());
+        Assert.True(File.Exists(Path.Combine(harness.Root, kept.Key)));
+    }
+
+    [Fact]
+    public async Task A_row_younger_than_the_grace_period_is_not_reported_missing()
+    {
+        // A delete removes the bytes and then the row; the check must not catch it in between.
+        await using var harness = new StorageHarness();
+        var lost = await harness.Files.SaveAsync(new MemoryStream(Samples.Png()), "lost.png");
+        File.Delete(Path.Combine(harness.Root, lost.Key));
+
+        var found = await harness.Sweeper.FindMissingAsync(default);
+
+        Assert.Equal(0, found!.Count);
     }
 
     [Theory]
