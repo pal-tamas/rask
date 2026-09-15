@@ -68,20 +68,49 @@ public sealed class AccountServiceTests
     }
 
     [Fact]
-    public async Task Too_many_wrong_passwords_lock_the_account()
+    public async Task Too_many_wrong_passwords_throttle_that_client_not_the_account()
     {
-        await using var harness = await ClaimedAsync(o => o.MaxFailedAccessAttempts = 3);
+        await using var harness = await ClaimedAsync(o => o.SignInAttemptsPerMinute = 3);
 
         for (var i = 0; i < 3; i++)
         {
-            await SignInAsync(harness, "owner@example.com", "WrongPassword1");
+            await SignInAsync(harness, "owner@example.com", "WrongPassword1", client: "10.0.0.1");
         }
 
-        // Locked out now, so even the right password is refused — that is the point of a lockout.
-        var result = await SignInAsync(harness, "owner@example.com", Password);
+        // That client waits out the minute, even with the right password...
+        var throttled = await SignInAsync(harness, "owner@example.com", Password, client: "10.0.0.1");
+        Assert.False(throttled.Succeeded);
+        Assert.Equal(AuthError.TooManyAttempts, throttled.Error);
 
-        Assert.False(result.Succeeded);
-        Assert.Equal(AuthError.LockedOut, result.Error);
+        // ...and the owner, signing in from anywhere else, is not locked out by somebody guessing.
+        var owner = await SignInAsync(harness, "owner@example.com", Password, client: "10.0.0.2");
+        Assert.True(owner.Succeeded);
+    }
+
+    [Fact]
+    public async Task A_successful_sign_in_clears_the_failures_before_it()
+    {
+        await using var harness = await ClaimedAsync(o => o.SignInAttemptsPerMinute = 3);
+
+        await SignInAsync(harness, "owner@example.com", "WrongPassword1", client: "10.0.0.1");
+        await SignInAsync(harness, "owner@example.com", "WrongPassword1", client: "10.0.0.1");
+        Assert.True((await SignInAsync(harness, "owner@example.com", Password, client: "10.0.0.1")).Succeeded);
+
+        await SignInAsync(harness, "owner@example.com", "WrongPassword1", client: "10.0.0.1");
+        await SignInAsync(harness, "owner@example.com", "WrongPassword1", client: "10.0.0.1");
+        Assert.True((await SignInAsync(harness, "owner@example.com", Password, client: "10.0.0.1")).Succeeded);
+    }
+
+    [Fact]
+    public async Task An_address_is_stored_normalized_and_signs_in_however_it_is_typed()
+    {
+        await using var harness = await ClaimedAsync();
+
+        Assert.True((await RegisterAsync(harness, "  Mixed.Case@Example.COM ")).Succeeded);
+
+        Assert.Equal("mixed.case@example.com", (await harness.UserAsync("mixed.case@example.com"))!.Email);
+        Assert.True((await SignInAsync(harness, "MIXED.case@example.com", Password)).Succeeded);
+        Assert.Equal(AuthError.DuplicateAccount, (await RegisterAsync(harness, "mixed.case@EXAMPLE.com")).Error);
     }
 
     /// <summary>A harness whose instance is already claimed, with one ordinary account to work against.</summary>
@@ -102,15 +131,16 @@ public sealed class AccountServiceTests
     {
         using var scope = harness.NewScope();
         var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
-        var outcome = await accounts.RegisterAsync(email, password, firstRunToken);
+        var outcome = await accounts.RegisterAsync(email, password, firstRunToken, client: null);
         return outcome.Result;
     }
 
-    private static async Task<AuthResult> SignInAsync(AuthHarness harness, string email, string password)
+    private static async Task<AuthResult> SignInAsync(
+        AuthHarness harness, string email, string password, string? client = null)
     {
         using var scope = harness.NewScope();
         var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
-        var outcome = await accounts.ValidateAsync(email, password);
+        var outcome = await accounts.ValidateAsync(email, password, client);
         return outcome.Result;
     }
 }

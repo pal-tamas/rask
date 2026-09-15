@@ -27,7 +27,6 @@ Rask.Core.Authentication.AuthInstruction.Ticket.get -> string!
 Rask.Core.Authentication.AuthInstruction.Ticket.init -> void
 Rask.Core.Authentication.AuthSignIn
 Rask.Core.Authentication.AuthSignIn.AuthSignIn() -> void
-Rask.Core.Authentication.AuthSignIn.SignInAsync(System.Security.Claims.ClaimsPrincipal! principal, string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
 Rask.Core.Authentication.AuthSignIn.SignOutAsync(string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
 Rask.Core.Authentication.IAuth
 Rask.Core.Authentication.IAuth.ConfirmEmailAsync(string! userId, string! token) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
@@ -37,7 +36,6 @@ Rask.Core.Authentication.IAuth.SendPasswordResetAsync(string! email) -> System.T
 Rask.Core.Authentication.IAuth.SignInAsync(string! email, string! password, bool remember = false, string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 Rask.Core.Authentication.IAuth.SignOutAsync(string? returnUrl = null) -> System.Threading.Tasks.Task!
 Rask.Core.Authentication.IAuthSignIn
-Rask.Core.Authentication.IAuthSignIn.SignInAsync(System.Security.Claims.ClaimsPrincipal! principal, string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
 Rask.Core.Authentication.IAuthSignIn.SignOutAsync(string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
 Rask.Core.Authentication.IUserProvider
 Rask.Core.Authentication.IUserProvider.Changed -> System.Action?
@@ -49,9 +47,7 @@ Rask.Core.Authentication.PendingAuth
 Rask.Core.Authentication.PendingAuth.<Clone>$() -> Rask.Core.Authentication.PendingAuth!
 Rask.Core.Authentication.PendingAuth.Action.get -> Rask.Core.Authentication.AuthAction
 Rask.Core.Authentication.PendingAuth.Action.init -> void
-Rask.Core.Authentication.PendingAuth.Deconstruct(out Rask.Core.Authentication.AuthAction Action, out System.Security.Claims.ClaimsPrincipal? Principal, out string? ReturnUrl, out string? Scheme) -> void
 Rask.Core.Authentication.PendingAuth.Equals(Rask.Core.Authentication.PendingAuth? other) -> bool
-Rask.Core.Authentication.PendingAuth.PendingAuth(Rask.Core.Authentication.AuthAction Action, System.Security.Claims.ClaimsPrincipal? Principal, string? ReturnUrl, string? Scheme) -> void
 Rask.Core.Authentication.PendingAuth.Principal.get -> System.Security.Claims.ClaimsPrincipal?
 Rask.Core.Authentication.PendingAuth.Principal.init -> void
 Rask.Core.Authentication.PendingAuth.ReturnUrl.get -> string?
@@ -6679,3 +6675,17 @@ Rask.Core.Messaging.Topic<T>
 Rask.Core.Messaging.Topic<T>.Name.get -> string!
 Rask.Core.Messaging.Topic<T>.Topic(string! name) -> void
 override Rask.Core.Messaging.Topic<T>.ToString() -> string!
+Rask.Core.Authentication.AuthSignIn.SignInAsync(System.Security.Claims.ClaimsPrincipal! principal, string? returnUrl = null, string? scheme = null, bool persistent = false) -> System.Threading.Tasks.Task!
+Rask.Core.Authentication.ClaimsPrincipalExtensions
+Rask.Core.Authentication.IAuth.RegisterAsync<TUser>(string! email, string! password, System.Action<TUser!>! apply, string? returnUrl = null, string? firstRunToken = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+Rask.Core.Authentication.IAuth.SignOutEverywhereAsync(string? returnUrl = null) -> System.Threading.Tasks.Task!
+Rask.Core.Authentication.IAuth.SignOutOtherDevicesAsync() -> System.Threading.Tasks.Task!
+Rask.Core.Authentication.IAuthSignIn.SignInAsync(System.Security.Claims.ClaimsPrincipal! principal, string? returnUrl = null, string? scheme = null, bool persistent = false) -> System.Threading.Tasks.Task!
+Rask.Core.Authentication.ISessionRevalidator
+Rask.Core.Authentication.ISessionRevalidator.RevalidateAsync(System.Security.Claims.ClaimsPrincipal! principal, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<System.Security.Claims.ClaimsPrincipal?>
+Rask.Core.Authentication.PendingAuth.Deconstruct(out Rask.Core.Authentication.AuthAction Action, out System.Security.Claims.ClaimsPrincipal? Principal, out string? ReturnUrl, out string? Scheme, out bool Persistent) -> void
+Rask.Core.Authentication.PendingAuth.PendingAuth(Rask.Core.Authentication.AuthAction Action, System.Security.Claims.ClaimsPrincipal? Principal, string? ReturnUrl, string? Scheme, bool Persistent = false) -> void
+Rask.Core.Authentication.PendingAuth.Persistent.get -> bool
+Rask.Core.Authentication.PendingAuth.Persistent.init -> void
+static Rask.Core.Authentication.ClaimsPrincipalExtensions.UserId(this System.Security.Claims.ClaimsPrincipal! principal) -> System.Guid?
+static Rask.Core.Authentication.ClaimsPrincipalExtensions.SessionId(this System.Security.Claims.ClaimsPrincipal! principal) -> System.Guid?

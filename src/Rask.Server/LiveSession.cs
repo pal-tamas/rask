@@ -140,6 +140,11 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         set => _pendingAuthHandoff = value;
     }
 
+    // When the session's principal was last checked against its sign-in (Environment.TickCount64), so the check
+    // runs at most every RevalidateUserEvery rather than before every dispatch. Only the dispatch path reads and
+    // writes it, one dispatch at a time.
+    internal long LastUserRevalidation { get; set; }
+
     // What the client's current resume record was built from. -1 means it has none, so the first payload
     // always carries one. The URL is tracked alongside the version because a navigation moves the page
     // without touching the bag: version alone would leave the client holding a record that rebuilds the

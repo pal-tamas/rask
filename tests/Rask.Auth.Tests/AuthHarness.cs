@@ -1,8 +1,9 @@
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Rask.Data;
 using Rask.Mail;
 
 namespace Rask.Auth.Tests;
@@ -11,7 +12,12 @@ namespace Rask.Auth.Tests;
 ///     The account type these tests run on. Rask ships none — an app declares its own and the generator
 ///     finds it — so the suite declares one exactly as a scaffolded app does.
 /// </summary>
-public sealed class TestUser : Microsoft.AspNetCore.Identity.IdentityUser;
+public sealed class TestUser : Authenticatable
+{
+    public string DisplayName { get; private set; } = "";
+
+    public void Rename(string name) => DisplayName = name;
+}
 
 /// <summary>One captured message, in the terms a test asks questions in.</summary>
 /// <param name="To">The recipient.</param>
@@ -75,7 +81,13 @@ public sealed class MailSpy : IMail
 /// <summary>The application context an app would write, with the auth tables mapped onto it.</summary>
 public sealed class AuthDbContext(DbContextOptions<AuthDbContext> options) : DbContext(options)
 {
-    protected override void OnModelCreating(ModelBuilder modelBuilder) => modelBuilder.AddRaskAuth();
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.AddRaskAuth();
+
+        // Last, as in a scaffolded app: the soft-delete filter that hides an ended session, the concurrency token.
+        modelBuilder.ApplyRaskConventions();
+    }
 }
 
 /// <summary>
@@ -101,15 +113,33 @@ public sealed class AuthHarness : IAsyncDisposable
     ///     scaffolded app that has not configured one, and the flows have to behave sanely there too.
     ///     Passing <c>true</c> registers <see cref="MailSpy" />, which captures what would have been sent.
     /// </param>
-    public AuthHarness(Action<AuthOptions>? configure = null, string? dbPath = null, bool mail = false)
+    /// <param name="clock">The clock sessions and tokens read, when a test needs to move time.</param>
+    public AuthHarness(
+        Action<AuthOptions>? configure = null, string? dbPath = null, bool mail = false, TimeProvider? clock = null)
     {
         _ownsFile = dbPath is null;
         DbPath = dbPath ?? Path.Combine(Path.GetTempPath(), $"rask-auth-test-{Guid.NewGuid():N}.db");
 
         var services = new ServiceCollection();
         services.AddLogging();
+
+        if (clock is not null)
+        {
+            services.AddSingleton(clock);
+        }
+
+        // The interceptors a scaffolded app runs, so an ended session is soft-deleted exactly as it is there. Domain
+        // events are not dispatched: nothing here has a dispatcher, and no test asserts on delivery.
+        services.AddRaskData(o => o.DispatchDomainEventsInProcess = false);
+
         // Pooling off, for the reason InstanceClaimStoreTests.PoolingOff gives (#1087).
-        services.AddDbContextFactory<AuthDbContext>(o => o.UseSqlite($"Data Source={DbPath};Pooling=False"));
+        services.AddDbContextFactory<AuthDbContext>((sp, o) => o
+            .UseSqlite($"Data Source={DbPath};Pooling=False")
+            .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
+
+        // A real hash at a fraction of the work: 600,000 iterations per registration would make this suite
+        // measure PBKDF2 rather than the flows. Registered first, so AddRaskAuth's TryAdd keeps it.
+        services.AddSingleton(new PasswordHasher(iterations: 1_000));
         services.AddRaskAuth<AuthDbContext>(o =>
         {
             // A fixed token keeps the tests from having to read it back out of the log.
@@ -165,14 +195,19 @@ public sealed class AuthHarness : IAsyncDisposable
 
     public FirstRunToken Token => _provider.GetRequiredService<FirstRunToken>();
 
-    /// <summary>The roles held by the account with this email, lowercased.</summary>
+    /// <summary>The roles held by the account with this email.</summary>
     public async Task<IReadOnlyList<string>> RolesOfAsync(string email)
     {
-        using var scope = NewScope();
-        var users = scope.ServiceProvider.GetRequiredService<UserManager<TestUser>>();
-        var user = await users.FindByEmailAsync(email);
+        var user = await UserAsync(email);
+        return user is null ? [] : user.Roles;
+    }
 
-        return user is null ? [] : (await users.GetRolesAsync(user)).ToArray();
+    /// <summary>The user with this email, as it is stored now.</summary>
+    public async Task<TestUser?> UserAsync(string email)
+    {
+        await using var db = NewContext();
+        var normalized = Authenticatable.NormalizeEmail(email);
+        return await db.Set<TestUser>().AsNoTracking().FirstOrDefaultAsync(u => u.Email == normalized);
     }
 
     public async Task<int> UserCountAsync()

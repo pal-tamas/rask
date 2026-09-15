@@ -18,6 +18,51 @@
     "Dockerfile": [
       "docker"
     ],
+    "Features/Auth/AuthMessages.cs": [
+      "cqrs",
+      "data",
+      "!wasm"
+    ],
+    "Features/Auth/AuthPage.cs": [
+      "cqrs",
+      "data",
+      "!wasm"
+    ],
+    "Features/Auth/ConfirmEmailPage.cs": [
+      "cqrs",
+      "data",
+      "!wasm"
+    ],
+    "Features/Auth/DevicesPage.cs": [
+      "cqrs",
+      "data",
+      "!wasm"
+    ],
+    "Features/Auth/ForgotPasswordPage.cs": [
+      "cqrs",
+      "data",
+      "!wasm"
+    ],
+    "Features/Auth/LoginPage.cs": [
+      "cqrs",
+      "data",
+      "!wasm"
+    ],
+    "Features/Auth/LogoutPage.cs": [
+      "cqrs",
+      "data",
+      "!wasm"
+    ],
+    "Features/Auth/RegisterPage.cs": [
+      "cqrs",
+      "data",
+      "!wasm"
+    ],
+    "Features/Auth/ResetPasswordPage.cs": [
+      "cqrs",
+      "data",
+      "!wasm"
+    ],
     "Features/Home/HomePage.cs": [
       "!wasm"
     ],

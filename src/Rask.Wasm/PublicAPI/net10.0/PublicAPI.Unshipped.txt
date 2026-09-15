@@ -2,7 +2,6 @@
 Rask.Wasm.Authentication.WasmAuthSignIn
 Rask.Wasm.Authentication.WasmAuthSignIn.LogoutPath.get -> string!
 Rask.Wasm.Authentication.WasmAuthSignIn.LogoutPath.init -> void
-Rask.Wasm.Authentication.WasmAuthSignIn.SignInAsync(System.Security.Claims.ClaimsPrincipal! principal, string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
 Rask.Wasm.Authentication.WasmAuthSignIn.SignOutAsync(string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
 Rask.Wasm.Authentication.WasmAuthSignIn.WasmAuthSignIn(System.Net.Http.HttpClient! http, Rask.Core.Authentication.IUserProvider! userProvider, Rask.Core.Routing.Navigator! navigator) -> void
 Rask.Wasm.Browser.BackgroundSync
@@ -524,3 +523,4 @@ static Rask.Wasm.RaskWasmBatteryRegistry.Use(System.Action<Rask.Wasm.WasmHostBui
 static Rask.Wasm.WasmHostBuilder.BaseAddress.get -> string!
 static Rask.Wasm.WasmHostBuilder.CreateDefault() -> Rask.Wasm.WasmHostBuilder!
 static Rask.Wasm.WasmHostBuilder.CreateDefault(System.Action<Rask.Core.Live.RaskLiveOptions!>? configureLive) -> Rask.Wasm.WasmHostBuilder!
+Rask.Wasm.Authentication.WasmAuthSignIn.SignInAsync(System.Security.Claims.ClaimsPrincipal! principal, string? returnUrl = null, string? scheme = null, bool persistent = false) -> System.Threading.Tasks.Task!

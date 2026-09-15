@@ -157,7 +157,7 @@ async function run(): Promise<Any> {
     const authMeOnFailureIsNull = (await auth.me()) === null;
 
     // A refusal carries the server's error NAME through unchanged.
-    captureFetch(401, {error: "LockedOut", message: "Too many attempts."});
+    captureFetch(429, {error: "TooManyAttempts", message: "Too many attempts."});
     const refused = await auth.login({email: "ada@example.com", password: "wrong"});
     const authFailureFromProblemDocument = refused.ok ? null : refused.failure;
 

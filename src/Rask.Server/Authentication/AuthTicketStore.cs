@@ -7,7 +7,7 @@ namespace Rask.Server.Authentication;
 
 internal interface IAuthTicketStore
 {
-    string Issue(AuthAction action, ClaimsPrincipal? principal, string? scheme, string sessionId);
+    string Issue(AuthAction action, ClaimsPrincipal? principal, string? scheme, string sessionId, bool persistent = false);
     bool TryRedeem(string ticketId, string sessionId, out AuthTicket ticket);
 }
 
@@ -16,7 +16,8 @@ internal sealed record AuthTicket(
     ClaimsPrincipal? Principal,
     string? Scheme,
     string SessionId,
-    DateTime ExpiresUtc);
+    DateTime ExpiresUtc,
+    bool Persistent = false);
 
 internal sealed class AuthTicketStore : IAuthTicketStore
 {
@@ -27,11 +28,12 @@ internal sealed class AuthTicketStore : IAuthTicketStore
     private readonly ConcurrentDictionary<string, AuthTicket> _tickets = new();
     private int _opsSinceLastSweep;
 
-    public string Issue(AuthAction action, ClaimsPrincipal? principal, string? scheme, string sessionId)
+    public string Issue(
+        AuthAction action, ClaimsPrincipal? principal, string? scheme, string sessionId, bool persistent = false)
     {
         ArgumentNullException.ThrowIfNull(sessionId);
         var id = SecureToken.Create();
-        var ticket = new AuthTicket(action, principal, scheme, sessionId, DateTime.UtcNow.Add(Ttl));
+        var ticket = new AuthTicket(action, principal, scheme, sessionId, DateTime.UtcNow.Add(Ttl), persistent);
         _tickets[id] = ticket;
         MaybeSweep();
         return id;

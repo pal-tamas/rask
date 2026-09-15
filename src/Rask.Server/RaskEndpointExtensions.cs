@@ -2120,6 +2120,8 @@ public static partial class RaskEndpointExtensions
                     // fire a server-side handler on a page they can no longer view. When the guard
                     // no longer passes, skip the handler entirely and let EnforceAuthAndRenderAsync
                     // re-evaluate and ship the challenge/forbid redirect.
+                    await RevalidateUserAsync(session, ct).ConfigureAwait(false);
+
                     if (!await IsCurrentRouteAuthorizedAsync(session).ConfigureAwait(false))
                     {
                         await EnforceAuthAndRenderAsync(session, null, false).ConfigureAwait(false);
@@ -2137,7 +2139,8 @@ public static partial class RaskEndpointExtensions
                                 pending.Action,
                                 pending.Principal,
                                 pending.Scheme,
-                                session.Id);
+                                session.Id,
+                                pending.Persistent);
                             authInstruction = new AuthInstruction(ticketId, safeReturn);
 
                             // Do NOT navigate routeState here. Setting it to the destination now would
@@ -2480,6 +2483,55 @@ public static partial class RaskEndpointExtensions
     // Evaluates the route guard for the session's current route + principal. Returns true when the
     // route resolves and the guard allows it, or when no route resolves (nothing to gate — e.g. a
     // NotFound page); false when the guard would challenge/forbid. Used to gate handler dispatch.
+    // How often a live session's principal is re-checked against its sign-in before a dispatch.
+    internal static readonly TimeSpan RevalidateUserEvery = TimeSpan.FromSeconds(30);
+
+    /// <summary>
+    ///     Re-checks the session's principal against its sign-in, at most every <see cref="RevalidateUserEvery" />.
+    /// </summary>
+    /// <remarks>
+    ///     A page open for hours holds the principal it attached with. When the sign-in behind it has ended (signed out
+    ///     on another device, a password reset) the principal is cleared, and the route re-check that follows sends the
+    ///     challenge. When the claims changed (a role granted or removed) the principal is replaced, so the page re-renders
+    ///     under the new ones. Nothing is checked when the app registered no <see cref="ISessionRevalidator" />.
+    /// </remarks>
+    private static async Task RevalidateUserAsync(LiveSession session, CancellationToken cancellationToken)
+    {
+        if (session.Services.GetService<ISessionRevalidator>() is not { } revalidator)
+        {
+            return;
+        }
+
+        var users = session.Services.GetRequiredService<SessionUserProvider>();
+        if (users.Current.Identity?.IsAuthenticated != true)
+        {
+            return;
+        }
+
+        var now = Environment.TickCount64;
+        if (session.LastUserRevalidation != 0
+            && now - session.LastUserRevalidation < (long)RevalidateUserEvery.TotalMilliseconds)
+        {
+            return;
+        }
+
+        session.LastUserRevalidation = now;
+
+        var fresh = await revalidator.RevalidateAsync(users.Current, cancellationToken).ConfigureAwait(false);
+        if (fresh is null)
+        {
+            users.Clear();
+        }
+        else if (!SameClaims(users.Current, fresh))
+        {
+            users.Set(fresh);
+        }
+    }
+
+    private static bool SameClaims(ClaimsPrincipal left, ClaimsPrincipal right) =>
+        left.Claims.Select(static c => c.Type + "\u0000" + c.Value).Order(StringComparer.Ordinal)
+            .SequenceEqual(right.Claims.Select(static c => c.Type + "\u0000" + c.Value).Order(StringComparer.Ordinal));
+
     private static async Task<bool> IsCurrentRouteAuthorizedAsync(LiveSession session)
     {
         var routeState = session.Services.GetRequiredService<RouteState>();
@@ -2608,7 +2660,13 @@ public static partial class RaskEndpointExtensions
         var scheme = await ResolveAuthSchemeAsync(ctx.RequestServices, ticket.Scheme).ConfigureAwait(false);
         if (ticket.Action == AuthAction.SignIn)
         {
-            await ctx.SignInAsync(scheme, ticket.Principal!).ConfigureAwait(false);
+            // Persistence travels with the ticket: a "remember me" sign-in from a component gets the same
+            // browser-outliving cookie the /api/auth login endpoint writes.
+            await ctx.SignInAsync(
+                    scheme,
+                    ticket.Principal!,
+                    new AuthenticationProperties { IsPersistent = ticket.Persistent })
+                .ConfigureAwait(false);
         }
         else
         {

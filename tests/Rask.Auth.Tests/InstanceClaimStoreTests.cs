@@ -32,7 +32,7 @@ public sealed class InstanceClaimStoreTests
         await using var harness = new AuthHarness();
         var store = Store(harness);
 
-        Assert.True(await store.TryClaimAsync("user-1"));
+        Assert.True(await store.TryClaimAsync(UserId(1)));
         Assert.True(await store.IsClaimedAsync());
     }
 
@@ -42,8 +42,8 @@ public sealed class InstanceClaimStoreTests
         await using var harness = new AuthHarness();
         var store = Store(harness);
 
-        Assert.True(await store.TryClaimAsync("user-1"));
-        Assert.False(await store.TryClaimAsync("user-2"));
+        Assert.True(await store.TryClaimAsync(UserId(1)));
+        Assert.False(await store.TryClaimAsync(UserId(2)));
     }
 
     /// <summary>
@@ -67,7 +67,7 @@ public sealed class InstanceClaimStoreTests
         {
             // Nothing between the barrier and the claim, so every racer is genuinely in the window.
             gate.SignalAndWait();
-            return store.TryClaimAsync($"user-{i}");
+            return store.TryClaimAsync(UserId(i));
         })));
 
         Assert.Equal(1, won.Count(w => w));
@@ -86,7 +86,7 @@ public sealed class InstanceClaimStoreTests
     {
         await WithStoreAsync(new FailBeforeWriteInterceptor(), async store =>
         {
-            await Assert.ThrowsAsync<DbUpdateException>(() => store.TryClaimAsync("user-1"));
+            await Assert.ThrowsAsync<DbUpdateException>(() => store.TryClaimAsync(UserId(1)));
             Assert.False(await store.IsClaimedAsync());
         });
     }
@@ -105,7 +105,7 @@ public sealed class InstanceClaimStoreTests
     {
         await WithStoreAsync(new FailAfterCommitInterceptor(), async store =>
         {
-            Assert.True(await store.TryClaimAsync("user-1"));
+            Assert.True(await store.TryClaimAsync(UserId(1)));
             Assert.True(await store.IsClaimedAsync());
         });
     }
@@ -116,6 +116,8 @@ public sealed class InstanceClaimStoreTests
     // sequence due to active statements". A connection that is never pooled is never deactivated. What the tests
     // assert is unchanged: every claim still contends for the one row on its own handle.
     private const string PoolingOff = ";Pooling=False";
+
+    private static Guid UserId(int n) => new($"00000000-0000-0000-0000-{n:D12}");
 
     private static IInstanceClaimStore Store(AuthHarness harness) =>
         harness.Services.GetRequiredService<IInstanceClaimStore>();

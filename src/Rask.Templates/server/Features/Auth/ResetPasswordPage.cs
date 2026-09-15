@@ -1,35 +1,20 @@
 using Microsoft.AspNetCore.Authorization;
-using Rask.Core.Authentication;
 using Rask.Core.Routing;
 using Rask.Wire;
 
-namespace Rask.Auth.Pages;
+namespace Company.RaskServer.Features.Auth;
 
-/// <summary>The new password, twice.</summary>
 public sealed class ResetPasswordModel
 {
-    /// <summary>The new password.</summary>
     public string Password { get; set; } = "";
 
-    /// <summary>The same password again.</summary>
     public string Confirm { get; set; } = "";
 }
 
-/// <summary>
-/// The built-in "choose a new password" page, at <c>/reset-password</c>.
-/// </summary>
-/// <remarks>
-/// <para>
-/// Reached from an emailed link carrying <c>userId</c> and <c>token</c>. The token is what authorizes
-/// the change — the visitor is signed out, and proving they can read that mailbox is the whole check.
-/// </para>
-/// <para>
-/// No session is issued on success. A reset link lives in an inbox and gets forwarded; signing the
-/// visitor in here would make reading the email enough to be signed in, on top of the password change.
-/// </para>
-/// </remarks>
+// Reached from an emailed link carrying userId and token. No session is issued on success: a reset link gets
+// forwarded, and reading the email must not be enough to be signed in. Every session the account had ends.
 [AllowAnonymous]
-[Route("reset-password")]
+[Route("/reset-password")]
 public sealed partial class ResetPasswordPage(IAuth auth) : AuthPage
 {
     private readonly ResetPasswordModel _model = new();
@@ -37,15 +22,14 @@ public sealed partial class ResetPasswordPage(IAuth auth) : AuthPage
     private string? _mismatch;
     private bool _done;
 
-    /// <summary>The account the link named.</summary>
     [QueryParam]
     public string? UserId { get; set; }
 
-    /// <summary>The token the link carried.</summary>
     [QueryParam]
     public string? Token { get; set; }
 
-    /// <inheritdoc />
+    protected override Component? HeadAssets => Title["Choose a new password"];
+
     protected override Component? Content =>
         _done ? Done
         : string.IsNullOrEmpty(UserId) || string.IsNullOrEmpty(Token) ? Incomplete
@@ -54,14 +38,10 @@ public sealed partial class ResetPasswordPage(IAuth auth) : AuthPage
     private Component Done =>
         Fragment[
             H1.Class("text-2xl font-bold")["Password changed"],
-            Ok("reset-done",
-                "Your password has been changed, and every other session for this account is signed out."),
-            P.Class("text-sm opacity-70")[
-                NavLink.Href(Routes.LoginPage()).Class("link link-primary")["Sign in"], "."]
+            Ok("reset-done", "Your password has been changed, and every session for this account is signed out."),
+            P.Class("text-sm opacity-70")[NavLink.Href(Routes.LoginPage()).Class("link link-primary")["Sign in"], "."]
         ];
 
-    // The page a visitor lands on when they type the address by hand, or when a mail client mangles a
-    // long link. Sent back to the start rather than shown a form that cannot possibly work.
     private Component Incomplete =>
         Fragment[
             H1.Class("text-2xl font-bold")["That link is incomplete"],
@@ -75,14 +55,8 @@ public sealed partial class ResetPasswordPage(IAuth auth) : AuthPage
             H1.Class("text-2xl font-bold")["Choose a new password"],
             Message is null ? null : Error("reset-error", Message),
             Form.Model(_model).OnValidSubmit(SubmitAsync)[
-                Field(
-                    "password",
-                    "New password",
-                    Input.Bind(() => _model.Password).Id("password").Type(InputType.Password).Class("input w-full")),
-                Field(
-                    "confirm",
-                    "New password again",
-                    Input.Bind(() => _model.Confirm).Id("confirm").Type(InputType.Password).Class("input w-full")),
+                Field("password", "New password", Input.Bind(() => _model.Password).Id("password").Type(InputType.Password).Class("input w-full")),
+                Field("confirm", "New password again", Input.Bind(() => _model.Confirm).Id("confirm").Type(InputType.Password).Class("input w-full")),
                 Div.Class("card-actions mt-2")[
                     Button.Type("submit").Id("reset-submit").Class("btn btn-primary btn-block")["Change my password"]
                 ]
@@ -96,8 +70,6 @@ public sealed partial class ResetPasswordPage(IAuth auth) : AuthPage
         _mismatch = null;
         _error = AuthError.None;
 
-        // Checked here rather than by a validator, so the page works on an app that has neither
-        // validation package installed — these pages ship inside a package and cannot assume one.
         if (!string.Equals(model.Password, model.Confirm, StringComparison.Ordinal))
         {
             _mismatch = "Those two passwords do not match.";
@@ -105,7 +77,6 @@ public sealed partial class ResetPasswordPage(IAuth auth) : AuthPage
         }
 
         var result = await auth.ResetPasswordAsync(UserId!, Token!, model.Password);
-
         _error = result.Error;
         _done = result.Succeeded;
     }
