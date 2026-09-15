@@ -167,6 +167,19 @@
     <_RaskScopedTsRemoveCommentsArg Condition="'$(RaskScopedTsRemoveComments)' == 'true'"> --removeComments</_RaskScopedTsRemoveCommentsArg>
 
     <!--
+      Whether the emitted scoped JavaScript carries a source map, so a debugger stops on the .ts line (#1073).
+      Debug maps, Release does not: a map is for a developer's debugger and would only add bytes for a visitor.
+
+      Inline (`inlineSourceMap` + `inlineSources`), not a .js.map beside the .js: the compiled text is what the
+      generator embeds, so an inline map travels to the registry with no second file for the build, the
+      generator or the WebAssembly bake to carry. ScopedAssetRegistry strips it, keeps each component's map, and
+      serves the bundle's as /_rask/a/{hash}.js.map. `sourceRoot` is the root as a file URL, so the map's sources
+      name the .ts on this machine wherever the map itself is served from.
+    -->
+    <RaskScopedTsSourceMap Condition="'$(RaskScopedTsSourceMap)' == '' AND '$(Configuration)' == 'Debug'">true</RaskScopedTsSourceMap>
+    <RaskScopedTsSourceMap Condition="'$(RaskScopedTsSourceMap)' == ''">false</RaskScopedTsSourceMap>
+
+    <!--
       Shared by every project for this user, and outside any repository: tsgo unpacks to ~27 MB,
       which inside obj/ is re-downloaded by every clean and committed by somebody eventually.
     -->
@@ -370,7 +383,7 @@
           Condition=" '$(_RaskScopedTsDoBuild)' == 'true' AND '@(_RaskScopedTs)' != '' ">
     <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(_RaskScopedTsOptionsStamp)'))"/>
     <WriteLinesToFile File="$(_RaskScopedTsOptionsStamp)"
-                      Lines="target=$(RaskScopedTsTarget);removeComments=$(RaskScopedTsRemoveComments);tsgo=$(RaskTsgoVersion)"
+                      Lines="target=$(RaskScopedTsTarget);removeComments=$(RaskScopedTsRemoveComments);sourceMap=$(RaskScopedTsSourceMap);tsgo=$(RaskTsgoVersion)"
                       Overwrite="true"
                       WriteOnlyWhenDifferent="true"/>
     <ItemGroup>
@@ -393,7 +406,11 @@
     <Error Condition=" '$(_RaskTsgoPath)' == '' "
            Text="Rask.TypeScript: the TypeScript compiler was not resolved, so the scoped .ts files in this project cannot be compiled. Set RaskTypeScriptBuild=false to build without them."/>
     <MakeDir Directories="$(_RaskScopedTsOutDir)"/>
-    <Exec Command="&quot;$(_RaskTsgoPath)&quot; @(_RaskScopedTs->'&quot;%(FullPath)&quot;', ' ') @(_RaskScopedTsTypes->'&quot;%(FullPath)&quot;', ' ') --rootDir &quot;$(RaskScopedTsRootDir)&quot; --outDir &quot;$(_RaskScopedTsOutDir)&quot; --target $(RaskScopedTsTarget) --module esnext --noCheck$(_RaskScopedTsRemoveCommentsArg) --ignoreConfig"
+    <!-- Computed here rather than with the other properties: a companion project sets RaskScopedTsRootDir itself. -->
+    <PropertyGroup>
+      <_RaskScopedTsSourceMapArg Condition="'$(RaskScopedTsSourceMap)' == 'true'"> --inlineSourceMap --inlineSources --sourceRoot &quot;$([System.Uri]::new('$([MSBuild]::NormalizeDirectory($(RaskScopedTsRootDir)))').AbsoluteUri)&quot;</_RaskScopedTsSourceMapArg>
+    </PropertyGroup>
+    <Exec Command="&quot;$(_RaskTsgoPath)&quot; @(_RaskScopedTs->'&quot;%(FullPath)&quot;', ' ') @(_RaskScopedTsTypes->'&quot;%(FullPath)&quot;', ' ') --rootDir &quot;$(RaskScopedTsRootDir)&quot; --outDir &quot;$(_RaskScopedTsOutDir)&quot; --target $(RaskScopedTsTarget) --module esnext --noCheck$(_RaskScopedTsRemoveCommentsArg)$(_RaskScopedTsSourceMapArg) --ignoreConfig"
           WorkingDirectory="$(MSBuildProjectDirectory)"/>
   </Target>
 

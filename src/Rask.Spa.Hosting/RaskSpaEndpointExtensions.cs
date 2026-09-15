@@ -151,6 +151,12 @@ public static class RaskSpaEndpointExtensions
         {
             Console.WriteLine(
                 $"Rask.Spa.Hosting: serving the WebAssembly client's build output (hot reload) from {devManifest}");
+
+            // Mapped endpoints, so they win over the catch-all's asset 404 for /_framework/.
+            if (wasm && SpaDebugProxy.ResolveHost(devManifest!) is { } debugHost)
+            {
+                SpaDebugProxy.Map(endpoints, prefix, debugHost);
+            }
         }
 
         // Precompressed siblings first, so a .br/.gz emitted by the build is served as-is with no

@@ -79,6 +79,52 @@ public sealed class ScopedTypeScriptRemoveCommentsTests
         Assert.Contains("$(_RaskScopedTsOptionsStamp)", (string?)compile.Attribute("Inputs"), StringComparison.Ordinal);
         Assert.Contains("_RaskStampScopedTsOptions", (string?)compile.Attribute("DependsOnTargets"), StringComparison.Ordinal);
         Assert.Contains("$(RaskScopedTsRemoveComments)", lines, StringComparison.Ordinal);
+        Assert.Contains("$(RaskScopedTsSourceMap)", lines, StringComparison.Ordinal);
         Assert.Contains("$(RaskScopedTsTarget)", lines, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("-p:Configuration=Debug", "true")]
+    [InlineData("-p:Configuration=Release", "false")]
+    [InlineData("-p:Configuration=Release -p:RaskScopedTsSourceMap=true", "true")]
+    [InlineData("-p:Configuration=Debug -p:RaskScopedTsSourceMap=false", "false")]
+    public void SourceMaps_AreDebugOnly_AndOverridable(string properties, string expected)
+    {
+        // #1073: a map is for a developer's debugger; a Release bundle a visitor downloads carries none.
+        var directory = Directory.CreateTempSubdirectory("rask-ts-sourcemap-");
+        try
+        {
+            var probe = Path.Combine(directory.FullName, "probe.proj");
+            File.WriteAllText(probe, $"""<Project><Import Project="{_targets}"/></Project>""");
+
+            var (exitCode, output) = PinnedTools.Run(
+                Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ?? "dotnet",
+                $"msbuild \"{probe}\" {properties} -getProperty:RaskScopedTsSourceMap");
+
+            Assert.True(exitCode == 0, output);
+            Assert.Equal(expected, output.TrimEnd('\r', '\n'));
+        }
+        finally
+        {
+            directory.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public void TheScopedCompile_InlinesTheMapWithASourceRootThatIsAFileUrl()
+    {
+        // Inline, so the map rides the compiled text the generator already embeds; sourceRoot as a file URL, so the
+        // map's sources name the .ts on this machine wherever the bundle's map is served from.
+        var elements = XDocument.Load(_targets).Descendants().ToList();
+        var command = elements
+            .Where(e => e.Name.LocalName == "Exec")
+            .Select(e => (string?)e.Attribute("Command") ?? string.Empty)
+            .Single(c => c.Contains("_RaskScopedTsOutDir", StringComparison.Ordinal));
+        var arg = elements.Single(e => e.Name.LocalName == "_RaskScopedTsSourceMapArg").Value;
+
+        Assert.Contains("$(_RaskScopedTsSourceMapArg)", command, StringComparison.Ordinal);
+        Assert.Contains("--inlineSourceMap --inlineSources --sourceRoot", arg, StringComparison.Ordinal);
+        Assert.Contains("[System.Uri]::new(", arg, StringComparison.Ordinal);
+        Assert.Contains("AbsoluteUri", arg, StringComparison.Ordinal);
     }
 }

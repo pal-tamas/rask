@@ -672,8 +672,8 @@ and no stack ever reaches the browser.
 
 ### Debugging in VS Code
 
-Every template with an ASP.NET host ships a `.vscode/` folder, so **F5** in VS Code runs the app under the C#
-debugger: breakpoints hit from the first line of `Program.cs`, and a handler or async lifecycle hook that
+Every template ships a `.vscode/` folder. For one with an ASP.NET host, **F5** in VS Code runs the app under the C#
+debugger (the `wasm` template debugs in the browser — [below](#code-that-runs-in-the-browser)): breakpoints hit from the first line of `Program.cs`, and a handler or async lifecycle hook that
 throws stops the debugger at the fault instead of only showing the panel above. It needs the
 [C# Dev Kit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit) extension, which the
 folder recommends.
@@ -719,8 +719,27 @@ the three files are committed and the rest of `.vscode/` stays yours:
 !/.vscode/extensions.json
 ```
 
-Browser-side debugging — C# running in WebAssembly, and scoped `.ts` — is not covered yet, and the `wasm`
-template ships no `.vscode/`.
+#### Code that runs in the browser
+
+C# compiled to WebAssembly and a component's scoped `.ts` run in the browser, where the C# debugger cannot
+reach. F5 debugs them there instead: VS Code's built-in JavaScript debugger launches Chrome with an `inspectUri`
+through the **WebAssembly debug proxy** at `/_framework/debug`, which turns WebAssembly frames back into C#.
+Breakpoints then hit in `.cs` and `.ts` files alike.
+
+| Template | What F5 does |
+| --- | --- |
+| `wasm` | Starts the dev server in the background (`dotnet run --urls http://localhost:5210`, whose SDK dev server maps the proxy), then opens the app in a debugged browser. |
+| `server --wasm` | Runs the host under the C# debugger as above, and once it prints `Rask dev: open`, starts a second session: the browser at the launch profile's `https://localhost:5001`, attached to the proxy `UseRaskSpa` maps in Development. Both halves stop at breakpoints. |
+
+- **The proxy comes from the WebAssembly SDK** (`BrowserDebugHost.dll`, beside its dev server). The client's build
+  records where it is, next to its build manifest, and `UseRaskSpa` starts it on the first debugger that asks. It
+  listens on 127.0.0.1 and refuses a `?browser=` that is not a DevTools socket on this machine.
+- **Scoped `.ts` is debuggable as `.ts`.** A Debug build emits source maps for it, and the scoped-script bundle is
+  served with an index map beside it, so a breakpoint in `Counter.ts` binds where the browser runs it. A Release
+  build emits none.
+- **Chrome by default.** Change `"type": "chrome"` to `"msedge"` in `launch.json` to debug in Edge.
+- **Code before the debugger attaches is not stopped in** — the first lines of `Program.Main`. Reload the page once
+  the session is up to stop there.
 
 ## `rask db` — migrations, and getting the database in and out
 

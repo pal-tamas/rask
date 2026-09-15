@@ -1,0 +1,30 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      // The dev server F5 starts first, left running in the background. RaskDevSession=true is the same
+      // switch `rask dev` passes. The debug session starts once the server prints where its debug proxy is.
+      "label": "rask: serve",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "run",
+        "--project",
+        "${workspaceFolder}/Company.RaskServer.csproj",
+        "--property:RaskDevSession=true",
+        "--urls",
+        "http://localhost:5210"
+      ],
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "rask",
+        "pattern": { "regexp": "^(.*)\\((\\d+),(\\d+)\\): (error|warning) (\\w+): (.*)$", "file": 1, "line": 2, "column": 3, "severity": 4, "code": 5, "message": 6 },
+        "background": {
+          "activeBegins": true,
+          "beginsPattern": "^",
+          "endsPattern": "Debug at url:"
+        }
+      }
+    }
+  ]
+}

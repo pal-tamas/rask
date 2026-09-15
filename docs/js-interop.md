@@ -116,9 +116,15 @@ Ordinary builds compile without type-checking, so the inner loop stays fast; the
 in your test gate, where a failure is loud and attributable. Rask's own gate runs
 `tsgo --noEmit --strict` over every scoped file in the repository.
 
+A Debug build emits a **source map** for every scoped file, so devtools and VS Code's debugger show — and stop
+on — your `.ts`, not the emitted JavaScript. The map is inline in the compiled text, the registry lifts it out,
+and the bundle is served with an index map beside it at `/_rask/a/{hash}.js.map` (baked beside the bundle for a
+WebAssembly app). Its sources are `file://` URLs to the `.ts` on your machine, with the source text inlined too.
+A Release build emits none; `RaskScopedTsSourceMap=true|false` overrides either way. See
+[Debugging in VS Code](cli.md#code-that-runs-in-the-browser).
+
 A Release build also strips comments from the emitted JavaScript (`--removeComments`) — on rask.sh that
-halves the scoped assets' gzipped size — while Debug keeps them, since the emitted `.js` is what you read
-in devtools. `/*! … */` license headers are kept. `RaskScopedTsRemoveComments=true|false` overrides either way. It is not minified: a minifier
+halves the scoped assets' gzipped size — while Debug keeps them. `/*! … */` license headers are kept. `RaskScopedTsRemoveComments=true|false` overrides either way. It is not minified: a minifier
 rewrites `export function NAME(` into a trailing `export { … }` clause, and that line-start form is exactly
 how the registry finds the methods to put on `window.Rask[Name]`.
 

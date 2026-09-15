@@ -21,7 +21,8 @@ internal static partial class ProjectGenerator
 
         return new ScaffoldResult(
             TemplateMaterializer.Files(
-                targetDirectory, "wasm", name, resolved, version, dotnet ?? DotnetTarget.Default, islands),
+                targetDirectory, "wasm", name, resolved, version, dotnet ?? DotnetTarget.Default, islands,
+                vsCode: VsCodeSetup.WasmBrowser),
             WasmNextSteps(name, docker, cultures.Length > 0))
         {
             // Rask.DevTools is named directly, like Rask.Ui: its build/ hooks are what keep the

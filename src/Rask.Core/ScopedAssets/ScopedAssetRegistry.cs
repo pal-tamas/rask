@@ -215,7 +215,7 @@ public static class ScopedAssetRegistry
     private static bool ApplyJsLocked(
         ConcurrentDictionary<Type, string> hashByType,
         Dictionary<string, AssetEntry> byHash,
-        Type componentType, string hash, byte[] bytes)
+        Type componentType, string hash, byte[] bytes, string? sourceMap)
     {
         if (hashByType.TryGetValue(componentType, out var existing))
         {
@@ -228,7 +228,7 @@ public static class ScopedAssetRegistry
         }
 
         hashByType[componentType] = hash;
-        IncrementOrInsertLocked(byHash, hash, bytes);
+        IncrementOrInsertLocked(byHash, hash, bytes, sourceMap);
         return true;
     }
 
@@ -254,7 +254,11 @@ public static class ScopedAssetRegistry
             return;
         }
 
-        var wrapped = WrapModule(componentType.Name, source);
+        // A Debug build's emit ends with its source map inline (#1073). The comment goes: inside a concatenated bundle
+        // it would name the wrong script, and a browser honours only the last one anyway. The map is kept for the
+        // bundle's own index map.
+        var sourceMap = ExtractInlineSourceMap(ref source);
+        var wrapped = WrapModule(componentType.Name, source, preserveLayout: sourceMap is not null);
         var bytes = Encoding.UTF8.GetBytes(wrapped);
         var hash = ComputeHash(bytes);
         bool changed;
@@ -263,11 +267,11 @@ public static class ScopedAssetRegistry
         {
             if (_stagingJsHashByType is not null)
             {
-                ApplyJsLocked(_stagingJsHashByType, _stagingJsByHash!, componentType, hash, bytes);
+                ApplyJsLocked(_stagingJsHashByType, _stagingJsByHash!, componentType, hash, bytes, sourceMap);
                 return;
             }
 
-            changed = ApplyJsLocked(_jsHashByType, _jsByHash, componentType, hash, bytes);
+            changed = ApplyJsLocked(_jsHashByType, _jsByHash, componentType, hash, bytes, sourceMap);
             if (changed)
             {
                 Interlocked.Increment(ref _version);
@@ -551,7 +555,7 @@ public static class ScopedAssetRegistry
     // one tag per mounted component; the bundle is served like any other content-addressed asset
     // (GetByHash resolves it), so its URL is immutable and a static-asset host can ship it as a
     // single fingerprinted file. Rebuilt only when the registered set changes.
-    private sealed record BundleEntry(long Version, bool Minified, string Hash, AssetBytes Bytes);
+    private sealed record BundleEntry(long Version, bool Minified, string Hash, AssetBytes Bytes, AssetBytes? SourceMap = null);
 
     private static volatile BundleEntry? _cssBundle;
     private static volatile BundleEntry? _jsBundle;
@@ -587,6 +591,7 @@ public static class ScopedAssetRegistry
         // deterministic regardless of registration order — two builds of the same component set
         // produce byte-identical bundles, so the immutable URL stays stable across deployments.
         byte[] bytes;
+        List<(int Line, string Map)>? sections = null;
         lock (_lock)
         {
             // Read the bucket field inside the lock: the refresh path swaps it wholesale.
@@ -601,10 +606,19 @@ public static class ScopedAssetRegistry
             var ordered = new List<KeyValuePair<string, AssetEntry>>(bucket);
             ordered.Sort((a, b) => string.CompareOrdinal(a.Key, b.Key));
             using var ms = new MemoryStream();
+            var line = 0;
             foreach (var kv in ordered)
             {
+                // Each mapped entry's source starts WrapPrefixLines below where the entry does: that is where its
+                // section of the bundle's index map begins.
+                if (kv.Value.SourceMap is { } map)
+                {
+                    (sections ??= []).Add((line + WrapPrefixLines, map));
+                }
+
                 ms.Write(kv.Value.Utf8, 0, kv.Value.Utf8.Length);
                 ms.WriteByte((byte)'\n');
+                line += kv.Value.Utf8.AsSpan().Count((byte)'\n') + 1;
             }
 
             bytes = ms.ToArray();
@@ -618,9 +632,104 @@ public static class ScopedAssetRegistry
         }
 
         var hash = ComputeHash(bytes);
-        var entry = new BundleEntry(version, minify, hash, new AssetBytes(bytes, "\"" + hash + "\""));
+        AssetBytes? sourceMap = null;
+        if (sections is not null)
+        {
+            // Named after the hash computed WITHOUT this line, so the URL still addresses the bundle's content; the
+            // comment is a pure function of that hash, so the served bytes stay deterministic.
+            bytes = [.. bytes, .. Encoding.UTF8.GetBytes("//# sourceMappingURL=" + hash + ".js.map\n")];
+            sourceMap = new AssetBytes(IndexSourceMap(hash, sections), "\"" + hash + "-map\"");
+        }
+
+        var entry = new BundleEntry(version, minify, hash, new AssetBytes(bytes, "\"" + hash + "\""), sourceMap);
         if (kind == AssetKind.Css) { _cssBundle = entry; } else { _jsBundle = entry; }
         return entry;
+    }
+
+    /// <summary>
+    ///     The source map of the scoped-script bundle <paramref name="hash" /> names, served beside it as
+    ///     <c>/_rask/a/{hash}.js.map</c>; null when that is not the current bundle or no entry in it carries a map.
+    /// </summary>
+    /// <remarks>
+    ///     Only a build that emitted maps has one — scoped TypeScript compiled in Debug (#1073). It is an index map
+    ///     with one section per mapped component, each offset to where that component's source sits in the bundle.
+    /// </remarks>
+    public static AssetBytes? GetSourceMap(string hash)
+    {
+        var bundle = EnsureBundle(AssetKind.Js);
+        return bundle is not null && string.Equals(bundle.Hash, hash, StringComparison.Ordinal) ? bundle.SourceMap : null;
+    }
+
+    private static string Blank(ReadOnlySpan<char> text)
+    {
+        var blank = new char[text.Length];
+        for (var i = 0; i < text.Length; i++)
+        {
+            blank[i] = text[i] == '\n' ? '\n' : ' ';
+        }
+
+        return new string(blank);
+    }
+
+    /// <summary>The lines <see cref="WrapModule" /> writes before a component's source.</summary>
+    private const int WrapPrefixLines = 3;
+
+    private const string InlineSourceMapPrefix = "//# sourceMappingURL=data:application/json;base64,";
+
+    /// <summary>
+    ///     Removes a trailing inline source map from <paramref name="source" /> and returns its JSON, or null (leaving
+    ///     the source alone) when it has none, or one that does not decode.
+    /// </summary>
+    internal static string? ExtractInlineSourceMap(ref string source)
+    {
+        var trimmed = source.AsSpan().TrimEnd();
+        var lineStart = trimmed.LastIndexOf('\n') + 1;
+        var last = trimmed[lineStart..];
+        if (!last.StartsWith(InlineSourceMapPrefix, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        string json;
+        try
+        {
+            json = Encoding.UTF8.GetString(Convert.FromBase64String(last[InlineSourceMapPrefix.Length..].ToString()));
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
+
+        source = source[..lineStart];
+        return json;
+    }
+
+    private static byte[] IndexSourceMap(string hash, List<(int Line, string Map)> sections)
+    {
+        using var buffer = new MemoryStream();
+        using (var json = new System.Text.Json.Utf8JsonWriter(buffer))
+        {
+            json.WriteStartObject();
+            json.WriteNumber("version", 3);
+            json.WriteString("file", hash + ".js");
+            json.WriteStartArray("sections");
+            foreach (var (line, map) in sections)
+            {
+                json.WriteStartObject();
+                json.WriteStartObject("offset");
+                json.WriteNumber("line", line);
+                json.WriteNumber("column", 0);
+                json.WriteEndObject();
+                json.WritePropertyName("map");
+                json.WriteRawValue(map);
+                json.WriteEndObject();
+            }
+
+            json.WriteEndArray();
+            json.WriteEndObject();
+        }
+
+        return buffer.ToArray();
     }
 
     /// <summary>
@@ -710,7 +819,7 @@ public static class ScopedAssetRegistry
     }
 
     private static void IncrementOrInsertLocked(
-        Dictionary<string, AssetEntry> bucket, string hash, byte[] bytes)
+        Dictionary<string, AssetEntry> bucket, string hash, byte[] bytes, string? sourceMap = null)
     {
         if (bucket.TryGetValue(hash, out var entry))
         {
@@ -718,7 +827,7 @@ public static class ScopedAssetRegistry
             return;
         }
 
-        bucket[hash] = new AssetEntry(bytes, "\"" + hash + "\"") { RefCount = 1 };
+        bucket[hash] = new AssetEntry(bytes, "\"" + hash + "\"") { RefCount = 1, SourceMap = sourceMap };
     }
 
     private static void DecrementRefLocked(Dictionary<string, AssetEntry> bucket, string hash)
@@ -757,7 +866,7 @@ public static class ScopedAssetRegistry
     private static char ToLowerHex(int nibble)
         => (char)(nibble < 10 ? '0' + nibble : 'a' + nibble - 10);
 
-    private static string WrapModule(string typeName, string source)
+    private static string WrapModule(string typeName, string source, bool preserveLayout = false)
     {
         var exportedNames = new List<string>();
         foreach (Match m in _exportedFunctionNames.Matches(source))
@@ -769,7 +878,11 @@ public static class ScopedAssetRegistry
             }
         }
 
-        var stripped = _exportStrip.Replace(source, "$1");
+        // With a source map every line and column of the source must stay where the map says it is, so the stripped
+        // `export ` becomes blanks, and any newline the match took is kept, rather than being removed.
+        var stripped = preserveLayout
+            ? _exportStrip.Replace(source, static m => m.Groups[1].Value + Blank(m.Value.AsSpan(m.Groups[1].Length)))
+            : _exportStrip.Replace(source, "$1");
         var sb = new StringBuilder(stripped.Length + 128);
         sb.Append("(function () {\n");
         sb.Append("window.Rask = window.Rask || {};\n");
@@ -821,5 +934,8 @@ public static class ScopedAssetRegistry
 
         public byte[] Utf8 { get; }
         public string Etag { get; }
+
+        /// <summary>The component's source map JSON, when its compiled text carried one (a Debug build's).</summary>
+        public string? SourceMap { get; init; }
     }
 }
