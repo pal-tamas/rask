@@ -40,10 +40,23 @@ project=tests/Rask.DevTools.E2E.Tests
 # Debug, because that is the only build the devtools are in. MinVerSkip=true like every other gate, so this build
 # and theirs share obj/ instead of recompiling each other's graph on every commit; the journeys host their app in
 # this test process, so no version identity ever has to resolve.
-echo "==> Build the devtools browser-journey project (Debug)"
+#
+# The WASM journeys serve the WASM fixture's publish from a static host, so it is published first: Debug (the devtools
+# are in it) and with the kit (-p:RaskDevToolsFixtureUi=true; without it the devtools stay off by design).
+# WasmBuildNative=false for the reason run-e2e-local.sh gives: one WASM build mode, so the fingerprinted runtime assets
+# and the boot import map's hashes cannot drift apart in a shared obj/. Serial, because a WASM publish builds
+# Rask.Core twice.
+echo "==> Publish the WASM fixture the WASM journeys serve (Debug, with the kit)"
 build_status=0
-dotnet build tests/Rask.DevTools.E2E.Tests/Rask.DevTools.E2E.Tests.csproj -c Debug -p:MinVerSkip=true --nologo 2>&1 \
+dotnet publish tests/Rask.DevTools.Fixture.Wasm/Rask.DevTools.Fixture.Wasm.csproj -c Debug -m:1 \
+  -p:RaskDevToolsFixtureUi=true -p:WasmBuildNative=false -p:MinVerSkip=true --nologo 2>&1 \
   | tee "$build_log" || build_status=$?
+
+if [ "$build_status" -eq 0 ]; then
+  echo "==> Build the devtools browser-journey project (Debug)"
+  dotnet build tests/Rask.DevTools.E2E.Tests/Rask.DevTools.E2E.Tests.csproj -c Debug -p:MinVerSkip=true --nologo 2>&1 \
+    | tee -a "$build_log" || build_status=$?
+fi
 
 if [ "$build_status" -ne 0 ]; then
   if [ "${RASK_GATE_WRAPPED:-}" != "1" ]; then

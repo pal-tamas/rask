@@ -765,7 +765,10 @@ them until tagged releases begin.
   component's element, a pick that selects the nearest component without the click reaching the app, and the detail
   pane with a withheld secret and a row's context read from its board; the Renders tab and both flash colours; a Perf
   row with the page's patch time; and a failing handler counted on the closed pill and opened from the runtime's
-  dev-error overlay onto the Errors tab. It is its own gate, listed in `run-all-gates.sh`, because the devtools exist
+  dev-error overlay onto the Errors tab. On WASM it serves the fixture's Debug publish (with the kit) from a static host
+  on `localhost` and drives the panel the page writes into its own frame: the click and its answering frame on the
+  Wire tab, the shortcut closing the drawer from inside the panel, a Tree row boxing its component and a pick that the
+  page never counts, and a failing handler on the pill and the Errors tab. It is its own gate, listed in `run-all-gates.sh`, because the devtools exist
   only in a Debug build and `run-e2e-local.sh` builds Release; a Release build or a run without
   `DOTNET_MODIFIABLE_ASSEMBLIES=debug` fails naming the script. The browser gates' machine admission moved into
   `scripts/lib/e2e-admission.sh`, shared by both and printing under each gate's name, and the slot budget counts the

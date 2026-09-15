@@ -41,12 +41,14 @@ internal sealed class DevToolsPage(IPage page)
         await Expect(Tab("Wire")).ToBeVisibleAsync(Visible);
     }
 
-    internal ILocator Tab(string name) => Panel.GetByRole(AriaRole.Tab, new() { Name = name, Exact = true });
+    // By the name's first word: a tab with news carries its count too, "Errors 1".
+    internal ILocator Tab(string name) =>
+        Panel.GetByRole(AriaRole.Tab, new() { NameRegex = new System.Text.RegularExpressions.Regex("^" + name + @"\b") });
 
     /// <summary>Picks a tab and waits until the panel says it is the selected one.</summary>
     internal async Task ShowTabAsync(string name)
     {
         await Tab(name).ClickAsync();
-        await Expect(Panel.Locator("[role=tab][aria-selected=\"true\"]")).ToHaveTextAsync(name, Text);
+        await Expect(Panel.Locator("[role=tab][aria-selected=\"true\"]")).ToContainTextAsync(name, Contains);
     }
 }

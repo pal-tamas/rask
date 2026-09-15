@@ -53,6 +53,9 @@
   <ItemGroup>
     <!-- One browser install and launch story for every browser suite. -->
     <Compile Include="..\Rask.Site.E2E.Tests\Infrastructure\PlaywrightFixture.cs" Link="Infrastructure\PlaywrightFixture.cs"/>
+    <!-- And one static host for a published WASM bundle: the WASM journeys serve the fixture's Debug publish with it. -->
+    <Compile Include="..\Rask.Site.E2E.Tests\Infrastructure\StaticWwwrootHostFixture.cs" Link="Infrastructure\StaticWwwrootHostFixture.cs"/>
+    <Compile Include="..\Rask.Site.E2E.Tests\Infrastructure\LoopbackPort.cs" Link="Infrastructure\LoopbackPort.cs"/>
   </ItemGroup>
 
 </Project>
