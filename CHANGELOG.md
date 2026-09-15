@@ -9,6 +9,33 @@ them until tagged releases begin.
 
 ### Added
 
+- **Full-text search through EF Core, on SQLite's FTS5.** A search box used to mean `Contains` — a
+  `LIKE '%…%'` scan that cannot rank, matches `sql` inside `nosql`, and misses `kérés` for `keres` — because
+  EF Core has no support for SQLite's full-text engine at all, though it is compiled into the SQLite build Rask
+  ships on the server and in the browser. Now `modelBuilder.Entity<Post>().HasFullTextSearch(p => new
+  { p.Title, p.Body })` declares the index and `Post.Search(text)` / `db.Set<Post>().Search(text)` reads it:
+  every typed word must match (any order, case and diacritics ignored, the last word as a prefix), best match
+  first by `bm25`, and the result keeps composing — `Where`, `Take`, `CountAsync`, and a grid's `OrderBy`, which
+  replaces the rank order.
+  - **Typed text is words, never query syntax.** `Search` compiles it to quoted FTS5 phrases, so `"`, `OR`,
+    `NEAR(…)` or `title:` in a search box can neither break the statement nor change what it means.
+  - **`FullText.Highlight(p.Title)` / `FullText.Snippet(p.Body, words)`** project the matched terms marked with
+    two private-use characters rather than HTML, and **`UiHighlight.Text(...)`** renders them encoded with
+    `<mark>` — stored text is never rendered as markup.
+  - **The index lives in the database.** `UseRaskSqlite(...)` migrations create the FTS5 table and the triggers
+    that keep it current, so raw SQL and other processes are searchable too; adding the declaration to an
+    existing table is a migration of its own that fills the index, and any migration that rebuilds the table
+    rebuilds it. The index keeps its own copy of the indexed text, because an external-content index cannot
+    forget the row an `INSERT OR REPLACE` replaces (SQLite fires no `AFTER DELETE` for it); every trigger
+    clears a row's entry by id before writing, so REPLACE and upserts stay correct. A single integer key —
+    strongly-typed ids included — is the entry's id; any other key goes through a key map, because SQLite's
+    implicit rowid is not stable across `VACUUM`. The choice is recorded on the model, so a migration run
+    from its saved model builds the layout the queries join to.
+  - **`Post.Search(text).ThenBy(...)` breaks ties after best match**, and after an empty search it is the
+    ordering itself rather than an error, so a search page does not fail before anything is typed.
+  - **SQLite-only for now, and said so at boot.** On any other provider, `AddRaskData<TContext>` refuses to start
+    a context that declares an index, the way it already refuses an unenforced `HasNonOverlappingRange` — that
+    check is now one hosted service covering both.
 - **`rask db backup` takes uploaded files with the database, and `restore` puts both back (#1077).** An app on
   Rask.Storage's disk provider kept its `StoredFile` rows in `app.db` and its bytes in the disk root, and a backup
   copied only the first, so a restored database pointed at files that were gone.
@@ -699,6 +726,16 @@ them until tagged releases begin.
   frames are read from the stack text, so a trimmed WASM app reports the same; the URL stays under 8,000 characters by
   dropping the oldest frames first.
 
+- **The devtools Tree tab shows islands, and the selected component in full.** An External island (React, Preact, Solid,
+  Vue, Svelte, Angular, Lit) is now a component row like any other, badged with its runtime and carrying the props C#
+  passed it — it was a bare `<rask-external>` tag, visible only with HTML tags shown; a Blazor component is badged
+  `Blazor`. The badge is read from the element the component renders, so the devtools reference neither package.
+  Selecting a row opens a detail pane beside the tree (below it in a narrow drawer) with the key, the badge and every
+  prop as name, type and value, sensitive ones marked. Rask.Core reports a component that renders as an element of its
+  own through the same walk hook as any component; the check is a type test that every HTML element fails before the
+  hook is read — the serializer and live render benchmarks allocate identically (8/8), and times measured back to back
+  under the same load show no difference.
+
 ### Changed
 
 - **File storage reads `Rask:Storage`, like every other Rask area.** It was the one package still on a top-level
@@ -1193,6 +1230,13 @@ them until tagged releases begin.
   - **How it was chosen.** `PostgresBulkInsertBenchmarks` and `scripts/run-bulk-insert-benchmarks-local.sh`
     measured every candidate against a delayed server: 1,000-command `DbBatch`es took 160 ms, 1,000-row `VALUES`
     lists took 120 ms.
+- **The installer's wasm-workload check no longer flakes the unit gate.** `rask_workload_installed` piped
+  `printf` into `grep -q`, which exits on the first match and leaves `printf` writing into a closed pipe. The
+  installer runs under `sh` with no `pipefail`, so a real install never noticed — but
+  `install-script.test.sh` sources it under bash with `pipefail`, where that SIGPIPE reads as "not installed",
+  and on a busy machine the pre-commit gate went red on a commit that never touched the installer. It now reads
+  its whole input (`grep -E … >/dev/null`), the repo's own rule for exactly this trap.
+
 - **A server render no longer waits on another render's work.** The scope that collects a first render's
   async lifecycle work was also kept in a thread-static slot. `QuiescentRender` begins on a pool thread and
   then awaits, so that thread went back to the pool still pointing at a render that was waiting. The next

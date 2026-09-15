@@ -143,6 +143,22 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
         }
     });
 
+    [Fact]
+    public Task AHighlightMarksEachMatchAndShowsNoMarkerCharacters() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var highlight = Page.Locator("[data-testid='ui-highlight']");
+        await Expect(highlight).ToBeVisibleAsync();
+        await Expect(highlight.Locator("mark")).ToHaveTextAsync(["SQLite", "fast"]);
+
+        // The private-use markers are consumed, never shown as tofu boxes.
+        var text = await highlight.InnerTextAsync();
+        Assert.DoesNotContain('', text);
+        Assert.DoesNotContain('', text);
+        Assert.Contains("SQLite is small, and fast", text, StringComparison.Ordinal);
+    });
+
     private async Task OpenAsync()
     {
         await Page.GotoAsync(Docs);

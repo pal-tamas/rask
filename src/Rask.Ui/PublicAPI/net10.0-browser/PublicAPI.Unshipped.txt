@@ -429,6 +429,10 @@ Rask.Ui.RaskSeed_UiHeader
 Rask.Ui.RaskSeed_UiHeader.Heading(string! Heading) -> Rask.Ui.UiHeader!
 Rask.Ui.RaskSeed_UiHeader.Key(object? key) -> Rask.Ui.RaskSeed_UiHeader
 Rask.Ui.RaskSeed_UiHeader.RaskSeed_UiHeader() -> void
+Rask.Ui.RaskSeed_UiHighlight
+Rask.Ui.RaskSeed_UiHighlight.Key(object? key) -> Rask.Ui.RaskSeed_UiHighlight
+Rask.Ui.RaskSeed_UiHighlight.RaskSeed_UiHighlight() -> void
+Rask.Ui.RaskSeed_UiHighlight.Text(string! Text) -> Rask.Ui.UiHighlight!
 Rask.Ui.RaskSeed_UiIcon
 Rask.Ui.RaskSeed_UiIcon.Key(object? key) -> Rask.Ui.RaskSeed_UiIcon
 Rask.Ui.RaskSeed_UiIcon.Name(Rask.Ui.UiIconName Name) -> Rask.Ui.UiIcon!
@@ -1232,6 +1236,12 @@ Rask.Ui.UiHero
 Rask.Ui.UiHero.Class.get -> string?
 Rask.Ui.UiHero.Class.set -> void
 Rask.Ui.UiHero.UiHero() -> void
+Rask.Ui.UiHighlight
+Rask.Ui.UiHighlight.Class.get -> string?
+Rask.Ui.UiHighlight.Class.set -> void
+Rask.Ui.UiHighlight.Text.get -> string!
+Rask.Ui.UiHighlight.Text.set -> void
+Rask.Ui.UiHighlight.UiHighlight() -> void
 Rask.Ui.UiHover3d
 Rask.Ui.UiHover3d.Class.get -> string?
 Rask.Ui.UiHover3d.Class.set -> void
@@ -2270,6 +2280,7 @@ static RaskBuilderSettersRask_Ui.Class(this Rask.Ui.UiFieldset! __b, string? val
 static RaskBuilderSettersRask_Ui.Class(this Rask.Ui.UiFileInput! __b, string? value) -> Rask.Ui.UiFileInput!
 static RaskBuilderSettersRask_Ui.Class(this Rask.Ui.UiFooter! __b, string? value) -> Rask.Ui.UiFooter!
 static RaskBuilderSettersRask_Ui.Class(this Rask.Ui.UiHero! __b, string? value) -> Rask.Ui.UiHero!
+static RaskBuilderSettersRask_Ui.Class(this Rask.Ui.UiHighlight! __b, string? value) -> Rask.Ui.UiHighlight!
 static RaskBuilderSettersRask_Ui.Class(this Rask.Ui.UiHover3d! __b, string? value) -> Rask.Ui.UiHover3d!
 static RaskBuilderSettersRask_Ui.Class(this Rask.Ui.UiHoverGallery! __b, string? value) -> Rask.Ui.UiHoverGallery!
 static RaskBuilderSettersRask_Ui.Class(this Rask.Ui.UiIcon! __b, string? value) -> Rask.Ui.UiIcon!
@@ -2730,6 +2741,7 @@ static RaskBuilderSettersRask_Ui.SystemLabel(this Rask.Ui.UiThemePicker! __b, st
 static RaskBuilderSettersRask_Ui.Text(this Rask.Ui.UiCheckbox! __b, string! value) -> Rask.Ui.UiCheckbox!
 static RaskBuilderSettersRask_Ui.Text(this Rask.Ui.UiDivider! __b, string? value) -> Rask.Ui.UiDivider!
 static RaskBuilderSettersRask_Ui.Text(this Rask.Ui.UiFieldset! __b, string! value) -> Rask.Ui.UiFieldset!
+static RaskBuilderSettersRask_Ui.Text(this Rask.Ui.UiHighlight! __b, string! value) -> Rask.Ui.UiHighlight!
 static RaskBuilderSettersRask_Ui.Text(this Rask.Ui.UiKbd! __b, string! value) -> Rask.Ui.UiKbd!
 static RaskBuilderSettersRask_Ui.Text(this Rask.Ui.UiLabel! __b, string? value) -> Rask.Ui.UiLabel!
 static RaskBuilderSettersRask_Ui.Text(this Rask.Ui.UiLink! __b, string! value) -> Rask.Ui.UiLink!
@@ -2887,6 +2899,7 @@ static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiFilter_1<T>(Rask.Cor
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiFooter(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiHeader(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiHero(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiHighlight(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiHover3d(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiHoverGallery(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_Ui_UiIcon(Rask.Core.Component! __c0) -> void
@@ -2982,6 +2995,7 @@ static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiFilter_1<T>(Rask.C
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiFooter(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiHeader(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiHero(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiHighlight(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiHover3d(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiHoverGallery(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_Ui_UiIcon(Rask.Core.Component! __c0, ulong __p) -> void
@@ -3080,6 +3094,7 @@ static RaskEntriesRask_Ui.UiFooter.get -> Rask.Ui.UiFooter!
 static RaskEntriesRask_Ui.UiGrid.get -> Rask.Ui.UiGrid!
 static RaskEntriesRask_Ui.UiHeader.get -> Rask.Ui.RaskSeed_UiHeader
 static RaskEntriesRask_Ui.UiHero.get -> Rask.Ui.UiHero!
+static RaskEntriesRask_Ui.UiHighlight.get -> Rask.Ui.RaskSeed_UiHighlight
 static RaskEntriesRask_Ui.UiHover3d.get -> Rask.Ui.UiHover3d!
 static RaskEntriesRask_Ui.UiHoverGallery.get -> Rask.Ui.UiHoverGallery!
 static RaskEntriesRask_Ui.UiIcon.get -> Rask.Ui.RaskSeed_UiIcon

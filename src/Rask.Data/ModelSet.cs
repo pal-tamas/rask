@@ -84,6 +84,18 @@ public static class ModelSet
         public static ModelQuery<TEntity> Where(Expression<Func<TEntity, bool>> predicate) =>
             new ModelQuery<TEntity>().Where(predicate);
 
+        /// <summary>
+        ///     The rows whose indexed text contains every word of <paramref name="text" />, best match first. The
+        ///     entity must declare <c>HasFullTextSearch</c>.
+        /// </summary>
+        /// <example>
+        ///     <code>
+        /// var hits = await Post.Search(query).Where(p =&gt; p.Published).Take(20).ToListAsync();
+        ///     </code>
+        /// </example>
+        public static ModelQuery<TEntity> Search(string? text) =>
+            new ModelQuery<TEntity>().Search(text);
+
         /// <summary>Orders the set ascending.</summary>
         public static ModelQuery<TEntity> OrderBy<TKey>(Expression<Func<TEntity, TKey>> keySelector) =>
             new ModelQuery<TEntity>().OrderBy(keySelector);

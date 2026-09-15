@@ -86,6 +86,19 @@ table. Both are inert until an entity declares a rule. `Rask.Data`'s `AddRaskDat
 boot a context that declares a rule its provider would ignore; `UseRaskSqlite` is what satisfies it, and a
 plain `UseSqlite` does not.
 
+## Full-text search
+
+`UseRaskSqlite` also implements `Rask.Data`'s `HasFullTextSearch(...)` on SQLite's FTS5 — which EF Core does
+not support at all. Migrations create the virtual table and the `AFTER INSERT/UPDATE/DELETE` triggers that keep
+it current (filling it from existing rows, and rebuilding it after table rebuilds), and `Search(text)`,
+`FullText.Highlight` and `FullText.Snippet` translate to a ranked join over the index. Typed text is compiled
+to quoted words, so FTS5 syntax in user input is never live. Inert until an entity declares an index.
+
+```csharp
+modelBuilder.Entity<Post>().HasFullTextSearch(p => new { p.Title, p.Body });
+var hits = await db.Set<Post>().Search("keres sqlite").Take(20).ToListAsync();
+```
+
 Not using EF Core? Use `Rask.SQLite` directly: `services.AddRaskSqlite()` + inject
 `ISqlite`.
 

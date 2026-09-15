@@ -239,6 +239,26 @@ public partial class DevToolsProbeSeamTests : global::Rask.Core.RaskMarkup, IDis
     }
 
     [Fact]
+    public void A_component_that_renders_as_its_own_element_is_walked_like_a_component_but_an_html_element_is_not()
+    {
+        // An External island is serialized down the element branch; it is still a component, and the devtools' tree
+        // lists it. The HTML elements around it are not components and are never reported as walked.
+        var island = new ElementRenderedComponent();
+        var view = new StubComponent(() => Div[Section[island]]);
+
+        view.RenderAsLiveRoot();
+
+        var walk = Assert.Single(_probe.Walks, w => ReferenceEquals(w.Component, island));
+        Assert.Same(view, walk.Parent);
+        Assert.DoesNotContain(_probe.Walks, w => w.Component is Element);
+    }
+
+    private sealed class ElementRenderedComponent : Component
+    {
+        protected override string? TagName => "x-island";
+    }
+
+    [Fact]
     public void A_replayed_component_names_the_component_it_was_replayed_inside()
     {
         var inner = new StubComponent(() => Span["x"]);

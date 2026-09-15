@@ -190,6 +190,80 @@ converting an existing table means rebuilding it. `rask new` therefore scaffolds
 `decimal` is unaffected: it is `TEXT` in SQLite, which STRICT allows, and it still orders through the
 [invariant collation](data-access.md#does-sqlite-support-decimal).
 
+## Full-text search — FTS5 through EF Core
+
+A search box over your own rows usually starts as `Where(p => p.Title.Contains(q))`, which is a
+`LIKE '%q%'` scan of every row, matches `sql` inside `nosql`, cannot rank, and misses `kérés` when
+someone types `keres`. SQLite ships a real full-text engine, [FTS5](https://sqlite.org/fts5.html) —
+compiled into the SQLite build Rask uses on the server **and** in the browser — but EF Core has no
+support for it at all. Rask adds it: declare the index on the model, and search it from LINQ.
+
+```csharp
+builder.HasFullTextSearch(p => new { p.Title, p.Body });   // in the entity's configuration
+
+var hits = await db.Set<Post>().Search(query).Where(p => p.Published).Take(20).ToListAsync();
+var page = await Post.Search(query).Take(20).ToListAsync();      // Rask.Data's model reads
+```
+
+`Search(text)` returns the rows containing every word of `text`, **best match first** (FTS5's `bm25`
+ranking), as an ordinary query: `Where`, `Skip`/`Take`, `CountAsync` and projections keep composing,
+and a later `OrderBy` replaces the rank order — so a data grid's column sort does the obvious thing.
+The index is scanned first and each match reaches its row by primary key, so the cost follows the
+number of matches, not the size of the table.
+
+**What the user types is words, not a query language.** Each word must appear (any order, any case,
+diacritics ignored), the last word also matches as a prefix so results narrow while typing, and FTS5's
+own syntax — `OR`, `NOT`, `NEAR(…)`, `column:`, quotes, `*` — is just text. A stray `"` can never
+become a syntax error, and a search box can never become a query someone did not mean to write. Text
+with no word in it (empty, blank, punctuation) filters nothing, so an empty box lists everything.
+
+**Show why each row matched** by projecting the matched terms:
+
+```csharp
+var hits = await Post.Search(query)
+    .Select(p => new { p.Id, Title = FullText.Highlight(p.Title), Excerpt = FullText.Snippet(p.Body, 12) })
+    .ToListAsync();
+
+// in markup
+UiHighlight.Text(hit.Excerpt)
+```
+
+`Highlight` returns the whole value and `Snippet` the best passage of up to `words` words, with each
+match between `FullText.MatchStart` and `FullText.MatchEnd` (two private-use characters) rather than
+HTML — the text is whatever a row holds, and rendering it as markup would let anyone who can write a
+row inject script. `UiHighlight` encodes the text and wraps each match in `<mark>`.
+
+| Option | Effect |
+| --- | --- |
+| `tokenizer: FullTextTokenizer.Unicode` | The default: Unicode word boundaries, case- and diacritic-insensitive. Right for any language. |
+| `tokenizer: FullTextTokenizer.English` | Adds English stemming — `run` finds `running` and `runs`. Makes non-English matches worse. |
+
+Four things worth knowing:
+
+- **The index is kept current by the database.** `AFTER INSERT/UPDATE/DELETE` triggers update it, so
+  raw SQL, `ExecuteUpdate`, a bulk insert and another process are all searchable the moment they commit.
+  The triggers call no function, so they run under the default `trusted_schema=OFF`.
+- **It arrives via migrations — including on an existing table.** Adding, changing or removing
+  `HasFullTextSearch` is a migration of its own, and the migration that creates the index fills it from
+  the rows already there. A database created with `EnsureCreated` does not get it.
+- **Any migration that touches the table rebuilds the index.** SQLite rebuilds a table for most
+  `ALTER`s, which drops its triggers, and a renamed column would leave the triggers writing a column that
+  is gone; Rask re-creates and refills the index rather than guess which case it is in. On a very large
+  table, that is a full read of the table once per such migration.
+- **The index keeps its own copy of the text** (`{Table}_fts`), costing disk roughly the size of the
+  indexed columns. An FTS5 *external content* table would store nothing twice, but it can only forget a
+  row when told its old values — and SQLite fires no `AFTER DELETE` for the row an `INSERT OR REPLACE`
+  replaces, so one raw `REPLACE` would leave it wrong for good. The copy is forgotten by row id, so
+  REPLACE, upserts and key changes all stay correct. A single integer key (including a strongly-typed id
+  stored as one) is the index's row id; any other key — a `Guid`, a string, a composite — goes through a
+  small key map (`{Table}_fts_keys`), because SQLite's implicit rowid can change on `VACUUM`.
+
+Requires `UseRaskSqlite(...)`, which registers the migration SQL, the query translation and the
+`highlight`/`snippet` functions; all of it is inert until an entity declares an index, and it composes
+with `STRICT` tables and non-overlapping ranges. Full-text search is **SQLite-only for now**: on
+PostgreSQL, SQL Server or a plain `UseSqlite`, `AddRaskData<TContext>` **refuses to boot** a context that
+declares an index rather than letting the first search fail.
+
 ## Why it hooks connection-open (not startup)
 
 Only `journal_mode=WAL` persists in the database file header. Every other pragma
