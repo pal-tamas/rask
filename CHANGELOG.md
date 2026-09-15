@@ -9,6 +9,22 @@ them until tagged releases begin.
 
 ### Added
 
+- **Create, update and delete live on the model type again.** Beside the reads, every `Rask.Data` model gets
+  `Product.CreateAsync(model)`, `Product.CreateAsync(id, model)`, `Product.UpdateAsync(id, model)`,
+  `Product.UpdateAsync(id, p => …)` and `Product.DeleteAsync(id)`, and `Product.CreateAsync(entity)` inserts
+  one built by its own factory. The generated `ProductModel` is the mass-assignment whitelist — `[SkipModel]`
+  keeps a property out of reach of any form — and the id is always the caller's, never the form's.
+  - **Values the form does not carry** go in an optional `p => …` that runs after the model's values:
+    `Product.CreateAsync(model, p => p.AssignTo(user.Id))`.
+  - **Join a context you already hold** with `db:` — the write saves through it and leaves it open, so several
+    writes share one transaction. Without one, each write opens a context, saves and disposes it, like a read.
+  - Every write goes through the change tracker, so audit stamps, `Version`, soft delete and domain events
+    behave as for any save; an update writes only the columns that changed, a stale `Version` throws
+    `DbUpdateConcurrencyException`, and a missing or soft-deleted row is `KeyNotFoundException`.
+  - **RASK086** (warning): an entity with no parameterless constructor gets no `CreateAsync(model)` — the rule
+    RASK081 carried before the writes were dropped; a retired id is never recycled. There is still no
+    `ToModel()`, and instance `product.SaveAsync()` is not part of this.
+
 - **`rask new --framework net11.0` scaffolds an app on .NET 11.** The csproj takes the version asked for
   (`net11.0`, or `net11.0-browser` on the WASM template), the Dockerfile takes the matching `sdk:11.0` /
   `aspnet:11.0` images, and `.vscode/launch.json` points at the build output that version actually produces,
@@ -787,11 +803,10 @@ them until tagged releases begin.
   builder.Services.AddRaskSpaHost();
   app.UseRaskSpa();
   ```
-- **BREAKING: `Rask.Data` has no unit of work and no writes on the model — the model type only reads.**
-  Removed outright, with no `[Obsolete]` step: the generated `Product.CreateAsync(model)`,
-  `Product.UpdateAsync(id, model)`, `Product.DeleteAsync(id)` and `product.ToModel()` (the generated
-  `ProductModel` itself stays, as a form shape) and the `GeneratedModelWrites` they called, retiring
-  [RASK081](docs/diagnostics.md#rask081); the tracker verbs
+- **BREAKING: `Rask.Data` has no unit of work.** (Its create, update and delete on the model type were dropped
+  here too and have since come back — see *Create, update and delete live on the model type again* above.)
+  Removed outright, with no `[Obsolete]` step: `product.ToModel()` (the generated `ProductModel` itself stays),
+  retiring [RASK081](docs/diagnostics.md#rask081); the tracker verbs
   `Product.Add`/`AddRange`/`Update`/`UpdateRange`/`Remove`/`RemoveRange`/`Attach`/`Entry`/`Set`; the
   instance `entity.SaveAsync()` and `entity.DeleteAsync()`; `AsTracking()` and `AsNoTracking()`;
   `Db.Begin()` and the `UnitOfWork` type; and `Db.Current`, `Db.HasCurrent`, `Db.CurrentUnitOfWork`,
