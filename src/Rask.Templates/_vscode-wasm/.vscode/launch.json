@@ -1,0 +1,25 @@
+{
+  // F5 serves this app and opens it in a browser under VS Code's JavaScript debugger, attached through the
+  // WebAssembly debug proxy the dev server maps. Breakpoints hit in your C# and in a component's scoped .ts,
+  // both of which run in the browser. Edits need a restart; `rask dev` in a terminal is the loop that applies
+  // edits live.
+  //
+  // A breakpoint in code that runs before the debugger attaches — Program.Main's first lines — is not hit.
+  // Reload the page (Ctrl+R in the browser) once the session is up to stop there.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Rask: debug in the browser",
+      // Chrome. Change to "msedge" to debug in Microsoft Edge instead.
+      "type": "chrome",
+      "request": "launch",
+      "preLaunchTask": "rask: serve",
+      "url": "http://localhost:5210",
+      // Routes the browser's debugging protocol through the dev server's /_framework/debug proxy, which is
+      // what turns WebAssembly frames into C# the debugger understands.
+      "inspectUri": "{wsProtocol}://{url.hostname}:{url.port}/_framework/debug/ws-proxy?browser={browserInspectUri}",
+      "webRoot": "${workspaceFolder}/wwwroot",
+      "timeout": 60000
+    }
+  ]
+}

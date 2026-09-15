@@ -856,6 +856,8 @@ public static partial class RaskEndpointExtensions
             endpoints.MapMethods(pathBase + "/_rask/a/{hash}.js", _assetMethods,
                     static ctx => ServeAssetAsync(ctx, AssetKind.Js))
                 .AllowAnonymous();
+            endpoints.MapMethods(pathBase + "/_rask/a/{hash}.js.map", _assetMethods, ServeSourceMapAsync)
+                .AllowAnonymous();
         }
 
         endpoints.MapPost(pathBase + "/_rask/auth/redeem", (RequestDelegate)(ctx =>
@@ -2734,6 +2736,25 @@ public static partial class RaskEndpointExtensions
                 contentType,
                 enableRangeProcessing: true,
                 entityTag: new EntityTagHeaderValue(bytes.Value.Etag))
+            .ExecuteAsync(ctx);
+    }
+
+    /// <summary>
+    ///     Serves the scoped-script bundle's source map, which the bundle's last line names (#1073). Only a Debug
+    ///     build's emit carries maps, so anywhere else — and for any hash that is not the current bundle — a 404.
+    /// </summary>
+    internal static Task ServeSourceMapAsync(HttpContext ctx)
+    {
+        var hash = ctx.Request.RouteValues["hash"] as string;
+        if (!ScopedAssetBundle.IsContentHash(hash) || ScopedAssetRegistry.GetSourceMap(hash) is not { } map)
+        {
+            ctx.Response.StatusCode = StatusCodes.Status404NotFound;
+            return Task.CompletedTask;
+        }
+
+        ctx.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+        ctx.Response.Headers["X-Content-Type-Options"] = "nosniff";
+        return Results.Bytes(map.Utf8.ToArray(), "application/json; charset=utf-8", entityTag: new EntityTagHeaderValue(map.Etag))
             .ExecuteAsync(ctx);
     }
 

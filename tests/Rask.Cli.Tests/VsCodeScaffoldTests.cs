@@ -63,13 +63,68 @@ public sealed class VsCodeScaffoldTests
     }
 
     [Fact]
-    public void The_wasm_template_ships_none_of_it()
+    public void The_wasm_template_debugs_in_the_browser_through_the_dev_servers_proxy()
     {
-        // Its C# runs in the browser, which the coreclr debugger cannot reach. A launch configuration that
-        // looks like it should work and cannot is worse than none.
+        // #1073. Its C# runs in the browser, which the coreclr debugger cannot reach: F5 starts the dev server and
+        // a browser under the JavaScript debugger, whose inspectUri goes through /_framework/debug.
         var files = Index(ProjectGenerator.GenerateWasm(Root, "App", pwa: false, docker: false, Version));
+        using var launch = JsonDocument.Parse(files[".vscode/launch.json"], Jsonc);
+        using var tasks = JsonDocument.Parse(files[".vscode/tasks.json"], Jsonc);
+        Assert.True(files.ContainsKey(".vscode/extensions.json"));
 
-        Assert.DoesNotContain(files.Keys, k => k.StartsWith(".vscode/", StringComparison.Ordinal));
+        var config = launch.RootElement.GetProperty("configurations").EnumerateArray().Single();
+        Assert.Equal("chrome", config.GetProperty("type").GetString());
+        AssertInspectsThroughTheProxy(config);
+
+        var task = tasks.RootElement.GetProperty("tasks").EnumerateArray()
+            .Single(t => t.GetProperty("label").GetString() == config.GetProperty("preLaunchTask").GetString());
+        var args = task.GetProperty("args").EnumerateArray().Select(a => a.GetString()).ToList();
+
+        // The dev server listens where the browser goes, builds the scaffolded project as a dev session, and stays up.
+        Assert.Equal(config.GetProperty("url").GetString(), args[args.IndexOf("--urls") + 1]);
+        Assert.Contains("${workspaceFolder}/App.csproj", args);
+        Assert.Contains($"--property:{DevCommand.DevSessionProperty}=true", args);
+        Assert.True(task.GetProperty("isBackground").GetBoolean());
+
+        // The debug session waits for the line the SDK's dev server prints once its proxy is mapped.
+        Assert.Equal("Debug at url:", task.GetProperty("problemMatcher").GetProperty("background").GetProperty("endsPattern").GetString());
+    }
+
+    [Fact]
+    public void A_server_with_a_wasm_client_debugs_the_client_in_the_browser_once_the_host_is_up()
+    {
+        var files = Index(ProjectGenerator.GenerateServer(Root, "App", new ServerBatteries { Wasm = true }, Version));
+        using var launch = JsonDocument.Parse(files[".vscode/launch.json"], Jsonc);
+        using var settings = JsonDocument.Parse(files["Properties/launchSettings.json"], Jsonc);
+        var configurations = launch.RootElement.GetProperty("configurations").EnumerateArray().ToList();
+
+        var ready = configurations[0].GetProperty("serverReadyAction");
+        Assert.Equal("startDebugging", ready.GetProperty("action").GetString());
+        Assert.Matches(ready.GetProperty("pattern").GetString()!, EditorDevSession.OpenLinePrefix + "https://app.test");
+
+        var browser = configurations.Single(c => c.GetProperty("name").GetString() == ready.GetProperty("name").GetString());
+        AssertInspectsThroughTheProxy(browser);
+
+        // F5 runs the host on its launch profile's addresses, so that is where the browser has to go.
+        var urls = settings.RootElement.GetProperty("profiles").EnumerateObject().Single().Value
+            .GetProperty("applicationUrl").GetString()!.Split(';');
+        Assert.Contains(browser.GetProperty("url").GetString(), urls);
+    }
+
+    [Fact]
+    public void A_server_without_a_wasm_client_opens_a_plain_browser()
+    {
+        var files = Index(ProjectGenerator.GenerateServer(Root, "App", new ServerBatteries(), Version));
+
+        Assert.DoesNotContain("inspectUri", files[".vscode/launch.json"], StringComparison.Ordinal);
+    }
+
+    private static void AssertInspectsThroughTheProxy(JsonElement config)
+    {
+        Assert.Equal("launch", config.GetProperty("request").GetString());
+        Assert.Equal(
+            "{wsProtocol}://{url.hostname}:{url.port}/_framework/debug/ws-proxy?browser={browserInspectUri}",
+            config.GetProperty("inspectUri").GetString());
     }
 
     [Fact]

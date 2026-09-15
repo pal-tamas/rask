@@ -4751,6 +4751,7 @@ static Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry.operator !=(Ra
 static Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry.operator ==(Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry left, Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry right) -> bool
 static Rask.Core.ScopedAssets.ScopedAssetRegistry.GetBundleHash(Rask.Core.ScopedAssets.AssetKind kind) -> string!
 static Rask.Core.ScopedAssets.ScopedAssetRegistry.GetByHash(string! hash, Rask.Core.ScopedAssets.AssetKind kind) -> Rask.Core.ScopedAssets.ScopedAssetRegistry.AssetBytes?
+static Rask.Core.ScopedAssets.ScopedAssetRegistry.GetSourceMap(string! hash) -> Rask.Core.ScopedAssets.ScopedAssetRegistry.AssetBytes?
 static Rask.Core.ScopedAssets.ScopedAssetRegistry.InvalidateAll() -> void
 static Rask.Core.ScopedAssets.ScopedAssetRegistry.InvalidateAllCss() -> void
 static Rask.Core.ScopedAssets.ScopedAssetRegistry.InvalidateAllJs() -> void

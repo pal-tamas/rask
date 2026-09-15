@@ -9,6 +9,20 @@ them until tagged releases begin.
 
 ### Added
 
+- **F5 debugs the code that runs in the browser: WebAssembly C# and scoped `.ts` (#1073).**
+  - **`rask new wasm` ships a `.vscode/` folder.** It starts the dev server in the background on
+    `http://localhost:5210` and opens the app in Chrome under VS Code's JavaScript debugger. The debugger attaches
+    through the SDK dev server's `/_framework/debug` proxy, so breakpoints hit in `.cs` and `.ts` files.
+  - **`rask new server --wasm` runs the host under the C# debugger.** Once the host is up, a second session opens
+    the client in the browser, so both halves stop at breakpoints.
+  - **`UseRaskSpa` now maps that proxy in Development** (`/_framework/debug`, `/_framework/debug/ws-proxy`). It
+    starts the WebAssembly SDK's `BrowserDebugHost.dll` on first use, on loopback. The client's build records where
+    that dll is, beside its build manifest. A `?browser=` that is not a DevTools socket on this machine is refused.
+  - **A Debug build emits a source map for scoped TypeScript.** tsgo inlines it, and `ScopedAssetRegistry` lifts it
+    out. The bundle is served with an index map at `/_rask/a/{hash}.js.map`, baked beside it for a WebAssembly app.
+    New `ScopedAssetRegistry.GetSourceMap`. The map's sources are `file://` URLs to the `.ts`, and the wrapper blanks
+    the `export ` it strips rather than removing it, so every line and column stays where the map says.
+  - **Release is unchanged**, byte for byte. `RaskScopedTsSourceMap` overrides the default.
 - **Full-text search through EF Core, on SQLite's FTS5.** A search box used to mean `Contains` — a
   `LIKE '%…%'` scan that cannot rank, matches `sql` inside `nosql`, and misses `kérés` for `keres` — because
   EF Core has no support for SQLite's full-text engine at all, though it is compiled into the SQLite build Rask

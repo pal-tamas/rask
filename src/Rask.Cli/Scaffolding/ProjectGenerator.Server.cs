@@ -25,7 +25,7 @@ internal static partial class ProjectGenerator
         return new ScaffoldResult(
             TemplateMaterializer.Files(
                 targetDirectory, "server", name, batteries, version, dotnet ?? DotnetTarget.Default, islands,
-                vsCode: true),
+                vsCode: batteries.Wasm ? VsCodeSetup.WasmHost : VsCodeSetup.Host),
             ServerNextSteps(name, batteries))
         {
             Packages = ServerPackages(batteries),

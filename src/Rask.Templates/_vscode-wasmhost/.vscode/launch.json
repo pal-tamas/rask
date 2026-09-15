@@ -1,0 +1,42 @@
+{
+  // F5 builds this app as a dev session and runs the server under the C# debugger; once it is listening, a
+  // browser starts under VS Code's JavaScript debugger, attached through the WebAssembly debug proxy the app
+  // maps in Development. Breakpoints then hit in both halves: the server's C# here, and the Client's C#
+  // (and its scoped .ts) in the browser. Edits need a restart (Ctrl+Shift+F5); `rask dev` in a terminal is
+  // the loop that applies edits live.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Rask: debug",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "rask: build",
+      "program": "${workspaceFolder}/bin/Debug/net10.0/Company.RaskServer.dll",
+      "cwd": "${workspaceFolder}",
+      // Just My Code is what makes a handler's exception stop on its throw line: it leaves your code for
+      // Rask's, which the debugger reports as user-unhandled.
+      "justMyCode": true,
+      "console": "internalConsole",
+      // Waits for the line the app logs once it is ready, then debugs the Client in the browser.
+      "serverReadyAction": {
+        "action": "startDebugging",
+        "pattern": "Rask dev: open (https?://\\S+)",
+        "name": "Rask: debug the Client in the browser"
+      }
+    },
+    {
+      // Started by the configuration above; not meant to be picked on its own.
+      "name": "Rask: debug the Client in the browser",
+      // Chrome. Change to "msedge" to debug in Microsoft Edge instead.
+      "type": "chrome",
+      "request": "launch",
+      // The https address in Properties/launchSettings.json, which F5 runs the server on.
+      "url": "https://localhost:5001",
+      // Routes the browser's debugging protocol through the app's /_framework/debug proxy, which is what
+      // turns WebAssembly frames into C# the debugger understands.
+      "inspectUri": "{wsProtocol}://{url.hostname}:{url.port}/_framework/debug/ws-proxy?browser={browserInspectUri}",
+      "webRoot": "${workspaceFolder}/Client/wwwroot",
+      "presentation": { "hidden": true }
+    }
+  ]
+}
