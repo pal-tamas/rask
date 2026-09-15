@@ -1179,6 +1179,20 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **`BulkInsertAsync(SkipChangeTracking)` is fast on PostgreSQL, SQL Server and MySQL, and works on Npgsql again
+  (#1063).**
+  - **It was slow.** The fast path sent one prepared single-row `INSERT` per row. That is the right shape for a
+    local SQLite file, but on a server every row is a round trip.
+  - **It could fail.** It also prepared the command before binding any values. Npgsql cannot prepare a parameter
+    with no type, so any entity with a decimal or bool column failed with "must have either its DbType,
+    NpgsqlDbType, DataTypeName or its Value set".
+  - **What it does now.** On those providers it packs up to 1,000 rows into each `INSERT … VALUES (…), (…)`,
+    within the provider's parameter limit. Against PostgreSQL 17 with 1 ms of added latency, 10,000 rows take
+    136 ms and 11.6 MB. The change tracker takes 225 ms and 99 MB, and one row at a time takes 20.1 s. SQLite keeps
+    its per-row path, which it still wins.
+  - **How it was chosen.** `PostgresBulkInsertBenchmarks` and `scripts/run-bulk-insert-benchmarks-local.sh`
+    measured every candidate against a delayed server: 1,000-command `DbBatch`es took 160 ms, 1,000-row `VALUES`
+    lists took 120 ms.
 - **A server render no longer waits on another render's work.** The scope that collects a first render's
   async lifecycle work was also kept in a thread-static slot. `QuiescentRender` begins on a pool thread and
   then awaits, so that thread went back to the pool still pointing at a render that was waiting. The next

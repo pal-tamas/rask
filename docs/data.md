@@ -834,11 +834,20 @@ transaction and drained after it commits, which is exactly the durable-delivery 
 
 Most of what is left after the batching is the change tracker itself — materialising an entry per row,
 walking them on save, then throwing them away. `SkipChangeTracking` writes the rows straight to the provider
-instead, with one prepared `INSERT` whose parameters are rebound per row:
+instead:
 
 ```csharp
 await db.BulkInsertAsync(products, o => o.SkipChangeTracking = true);
 ```
+
+The shape it writes in depends on what a statement costs. **On SQLite** it is one prepared `INSERT` whose
+parameters are rebound per row: a local file has no round trip, and a statement packed with many rows is quadratic
+to bind there. **On PostgreSQL, SQL Server and MySQL** every statement is a round trip, so it packs up to 1,000 rows
+into each `INSERT … VALUES (…), (…)` — fewer on SQL Server, whose request carries at most 2,100 parameters. Against
+PostgreSQL 17 with 1 ms of added latency, 10,000 rows took 136 ms and allocated 11.6 MB that way, against 225 ms
+and 99 MB through the change tracker and 20.1 s one row at a time (`PostgresBulkInsertBenchmarks`, run with
+`scripts/run-bulk-insert-benchmarks-local.sh`). Another provider gets the per-row shape, which is correct
+everywhere and slow wherever there is a network.
 
 It is opt-in because of what it skips: **no `ISaveChangesInterceptor` runs** — not Rask.Data's, and not any
 you registered. The writer stamps `CreatedAt`/`UpdatedAt` itself (from the same `TimeProvider` the auditing
@@ -1003,13 +1012,8 @@ to its `ignore_startup_parameters`, or set the timeouts to `TimeSpan.Zero` and c
 
 Everything in this guide works unchanged: the interceptors, the ambient `Db`, bulk insert (which spells its
 SQL through the provider), and the jobs, mail, outbox and cache batteries, whose leased claim is proven
-against a real server. Three things change:
+against a real server. Two things change:
 
-- **The bulk-insert fast path pays one round trip per row.** `SkipChangeTracking` rebinds one prepared
-  single-row `INSERT` per row — the winning shape on a local file. Against a server each row is a network
-  round trip, so its cost grows with the latency to the database: 10,000 rows took about a second against a
-  PostgreSQL container on the same machine, and a remote server multiplies that by its round-trip time.
-  Measure it against the batched default before choosing it for a remote database.
 - **Retrying refuses a transaction you open yourself** outside the execution strategy. Wrap a hand-written
   `BeginTransaction` in `context.Database.CreateExecutionStrategy().ExecuteAsync(...)`, or set
   `Rask:Postgres:Retry:Enabled` to `false`.

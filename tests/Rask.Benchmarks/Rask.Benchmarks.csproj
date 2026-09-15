@@ -19,6 +19,8 @@
     <PackageReference Include="Microsoft.AspNetCore.TestHost" />
     <!-- ConfigurationBuilder: UseRaskSqlite reads Rask:ConnectionStrings:App, which TestConnectionStrings supplies. -->
     <PackageReference Include="Microsoft.Extensions.Configuration"/>
+    <!-- PostgresBulkInsertBenchmarks (#1063): the provider directly, so the raw ADO.NET arms and the EF arms share one driver. -->
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL"/>
   </ItemGroup>
 
   <ItemGroup>

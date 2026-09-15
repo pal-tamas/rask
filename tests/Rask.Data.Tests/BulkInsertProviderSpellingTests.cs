@@ -77,6 +77,63 @@ public sealed class BulkInsertProviderSpellingTests : IDisposable
         Assert.Equal(5, await verify.Widgets.CountAsync());
     }
 
+    [Fact]
+    public void A_packed_statement_numbers_its_parameters_row_by_row_in_the_providers_spelling()
+    {
+        using var db = NewContext();
+        var plan = BulkInsertPlan.For<Widget>(db);
+        var columns = plan.Columns.Count;
+
+        var rows = Enumerable.Range(0, 3).Select(r =>
+            "(" + string.Join(", ", Enumerable.Range(0, columns).Select(c => $"$p{(r * columns) + c}")) + ")");
+        var expected =
+            "INSERT INTO [Widgets] (" +
+            string.Join(", ", plan.Columns.Select(c => $"[{c.ColumnName}]")) +
+            ") VALUES " + string.Join(", ", rows) + ";";
+
+        Assert.Equal(expected, plan.PackedCommandText(3));
+        Assert.Same(plan.PackedCommandText(3), plan.PackedCommandText(3));
+        Assert.Equal($"$p{columns + 1}", plan.PackedParameterName(columns + 1));
+    }
+
+    [Fact]
+    public async Task Packed_rows_land_with_a_remainder_and_their_audit_stamps()
+    {
+        // SQLite never chooses packing, so the writer is asked for it directly: 7 rows at 3 a statement is two full
+        // statements through one rebound command and a remainder of one through its own.
+        var widgets = Enumerable.Range(0, 7).Select(i => Widget.Create($"packed-{i}")).ToArray();
+        foreach (var widget in widgets)
+        {
+            widget.ClearDomainEvents();
+        }
+
+        await using (var db = NewContext())
+        {
+            var written = await BulkInsertWriter.WriteAsync(
+                db, widgets, new BulkInsertOptions { SkipChangeTracking = true }, rowsPerStatement: 3, default);
+            Assert.Equal(7, written);
+        }
+
+        await using var verify = NewContext();
+        var stored = await verify.Widgets.OrderBy(w => w.Name).ToListAsync();
+        Assert.Equal(widgets.Select(w => w.Name).Order(), stored.Select(w => w.Name));
+        Assert.All(stored, w => Assert.NotEqual(default, w.CreatedAt));
+    }
+
+    [Theory]
+    [InlineData("Microsoft.EntityFrameworkCore.Sqlite", 8, 1)]
+    [InlineData(null, 8, 1)]
+    [InlineData("Some.Other.Provider", 8, 1)]
+    [InlineData("Npgsql.EntityFrameworkCore.PostgreSQL", 8, 1_000)]
+    [InlineData("Npgsql.EntityFrameworkCore.PostgreSQL", 100, 655)]
+    [InlineData("Microsoft.EntityFrameworkCore.SqlServer", 8, 262)]
+    [InlineData("Microsoft.EntityFrameworkCore.SqlServer", 3_000, 1)]
+    [InlineData("MySql.EntityFrameworkCore", 8, 1_000)]
+    [InlineData("Pomelo.EntityFrameworkCore.MySql", 8, 1_000)]
+    public void A_server_packs_rows_to_its_parameter_limit_and_everything_else_writes_one_row_at_a_time(
+        string? providerName, int columns, int rows) =>
+        Assert.Equal(rows, BulkInsertWriter.RowsPerStatement(providerName, columns));
+
     [Theory]
     [InlineData("Microsoft.EntityFrameworkCore.Sqlite", true)]
     [InlineData("Npgsql.EntityFrameworkCore.PostgreSQL", false)]
