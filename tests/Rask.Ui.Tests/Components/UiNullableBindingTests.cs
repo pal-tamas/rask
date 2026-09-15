@@ -101,6 +101,19 @@ public partial class UiNullableBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_cast_the_caller_wrote_survives_the_lift()
+    {
+        // `() => (bool?)model.Agreed` is already a Convert; lifting adds a second, and both are stripped.
+        var model = new Plain();
+        var accessor = ExpressionAccessor.Parse(ExpressionAccessor.NonNullable(() => (bool?)model.Agreed));
+
+        accessor.Setter(true);
+
+        Assert.Equal("Agreed", accessor.PropertyName);
+        Assert.True(model.Agreed);
+    }
+
+    [Fact]
     public void A_plain_bool_still_takes_the_exact_overload()
     {
         // Both openings accept `() => model.Agreed` over a bool; C# prefers the identity return conversion,

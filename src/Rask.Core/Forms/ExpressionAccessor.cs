@@ -59,7 +59,8 @@ public static class ExpressionAccessor
         }
 
         var body = expression.Body;
-        if (body is UnaryExpression { NodeType: ExpressionType.Convert } u)
+        // Every Convert, not one: a bind lifted by NonNullable over a cast the caller wrote carries two.
+        while (body is UnaryExpression { NodeType: ExpressionType.Convert } u)
         {
             body = u.Operand;
         }
