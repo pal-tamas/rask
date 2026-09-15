@@ -17,7 +17,10 @@ import type {Overlay} from "./overlay.js";
  * The size is how the app finds the frame a time belongs to. Counting would not do: frames the page applied before the
  * panel was listening are never reported, and a report handed to the oldest waiting frame lands on one of those.
  */
-export function installPatchTiming(post: (message: FrameMessage) => void): void {
+export function installPatchTiming(
+    post: (message: FrameMessage) => void,
+    island?: (phase: string, element: Element, name: string | null, error: unknown) => void,
+): void {
     // The runtime hands recv and commit the same parsed frame; weak, so an applied frame is not kept for this.
     const sizes = new WeakMap<object, number>();
     window.__raskDevtoolsHook = {
@@ -29,6 +32,7 @@ export function installPatchTiming(post: (message: FrameMessage) => void): void 
             const bytes = frame !== null && typeof frame === "object" ? sizes.get(frame) ?? -1 : -1;
             post({channel: CHANNEL, kind: "patch", ms: Math.max(0, performance.now() - startedAt), bytes});
         },
+        island,
     };
 }
 
@@ -51,7 +55,11 @@ export function createBridge(
             switch (message.kind) {
                 case "error-count":
                     if (typeof message.count === "number" && Number.isFinite(message.count)) {
-                        dock.setAlert(message.count);
+                        if (errors) {
+                            errors.setPanelCount(message.count);
+                        } else {
+                            dock.setAlert(message.count);
+                        }
                     }
                     return true;
                 case "highlight":

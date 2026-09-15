@@ -135,4 +135,23 @@ public sealed class ExternalRuntimeTests
         Assert.True(doc.Value.GetProperty("childrenAfterRemovalIsNull").GetBoolean(),
             "the adapter kept being handed children C# had removed");
     }
+
+    [Fact]
+    public void An_island_that_fails_is_reported_to_the_devtools_and_a_failed_update_is_not_thrown()
+    {
+        // Each failure still goes to the console, and to Rask DevTools when a Debug page loaded them. An update runs inside
+        // the page's MutationObserver callback, where a throw would stop the rest of that batch reaching their islands.
+        var doc = NodeFixture.Run("ExternalRuntimeFixture");
+        if (doc is null)
+        {
+            return;
+        }
+
+        var reports = doc.Value.GetProperty("islandReports").EnumerateArray().Select(e => e.GetString()).ToArray();
+        Assert.Contains("mount:BrokenMount:mount boom", reports);
+        Assert.Contains("update:BrokenLater:update boom", reports);
+        Assert.Contains("unmount:BrokenLater:unmount boom", reports);
+        Assert.Contains(reports, r => r!.StartsWith("props:Unreadable:", StringComparison.Ordinal));
+        Assert.False(doc.Value.GetProperty("updateThrew").GetBoolean(), "a failed update was thrown out of the runtime");
+    }
 }

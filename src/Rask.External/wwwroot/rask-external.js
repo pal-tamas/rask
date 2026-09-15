@@ -210,6 +210,22 @@ function revive(value, cache) {
     return value;
 }
 
+/**
+ * An island failed. Logged as before, and handed to Rask DevTools when a Debug page loaded them: the one caller of the
+ * hook, and a no-op on every other page. `phase` is `mount`, `update`, `unmount` or `props`.
+ */
+function reportFailure(phase, element, name, message, error) {
+    console.error(message, error);
+    const devtools = globalThis.__raskDevtoolsHook;
+    if (devtools && typeof devtools.island === "function") {
+        try {
+            devtools.island(phase, element, name, error);
+        } catch {
+            // The devtools must never be the reason an island's failure goes unhandled.
+        }
+    }
+}
+
 function readProps(element, cache) {
     const raw = element.getAttribute("props");
     if (!raw) return {};
@@ -217,7 +233,8 @@ function readProps(element, cache) {
     try {
         return revive(JSON.parse(raw), cache);
     } catch (error) {
-        console.error(`Rask islands: '${element.getAttribute("name")}' has unreadable props.`, error);
+        const name = element.getAttribute("name");
+        reportFailure("props", element, name, `Rask islands: '${name}' has unreadable props.`, error);
         return {};
     }
 }
@@ -410,7 +427,7 @@ async function hydrate(element) {
             entry.handle = adapter.mount(element, tree.props, childrenArgument(tree.children));
         } catch (error) {
             mounted.delete(element);
-            console.error(`Rask islands: '${name}' failed to mount.`, error);
+            reportFailure("mount", element, name, `Rask islands: '${name}' failed to mount.`, error);
         }
     };
 
@@ -428,7 +445,13 @@ function update(element) {
         // A newer update started while this one's children loaded, or the island went away: drop this one, or the
         // older props would land last and stay.
         if (seq !== entry.seq || mounted.get(element) !== entry) return;
-        entry.handle = entry.adapter.update(entry.handle, props, childrenArgument(children)) ?? entry.handle;
+        // Caught here: this runs inside the page's MutationObserver callback, where a throw would stop the rest of that
+        // batch of changes from reaching their islands, and reach nobody who could say which island threw.
+        try {
+            entry.handle = entry.adapter.update(entry.handle, props, childrenArgument(children)) ?? entry.handle;
+        } catch (error) {
+            reportFailure("update", element, entry.name, `Rask islands: '${entry.name}' failed to update.`, error);
+        }
     };
 
     // Synchronous whenever every child's chunk has already loaded — the ordinary re-render — so an update that needs
@@ -436,7 +459,8 @@ function update(element) {
     if (fillLoaded(children)) {
         apply();
     } else {
-        loadTree(children).then(apply, (error) => console.error(`Rask islands: '${entry.name}' could not load a child.`, error));
+        loadTree(children).then(apply, (error) =>
+            reportFailure("update", element, entry.name, `Rask islands: '${entry.name}' could not load a child.`, error));
     }
 }
 
@@ -452,7 +476,7 @@ function unmount(element) {
     } catch (error) {
         // Teardown must not throw: the element is going away regardless, and an adapter that fails to
         // clean up should not stop the ones after it in the same batch.
-        console.error(`Rask islands: '${entry.name}' failed to unmount.`, error);
+        reportFailure("unmount", element, entry.name, `Rask islands: '${entry.name}' failed to unmount.`, error);
     }
 }
 

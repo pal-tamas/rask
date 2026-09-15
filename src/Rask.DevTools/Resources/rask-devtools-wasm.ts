@@ -43,12 +43,13 @@ export function install(frameDocument: string, onOpen: () => void, onEvent: (jso
     const flash = installFlash(dock.shadow, dock.element);
     // A srcdoc frame inherits this origin but may report "null", so the source is the check and no origin is named.
     const post = (message: FrameMessage) => frameWindow?.postMessage(message, "*");
-    bridge = createBridge(dock, overlay, flash, post, installErrorsLink(dock, post));
+    const errors = installErrorsLink(dock, post);
+    bridge = createBridge(dock, overlay, flash, post, errors);
     window.__raskDevtoolsHost = {version: 1, dock};
     // Posted only once the frame document is listening: before that the panel has nothing to match a time to.
     installPatchTiming(message => {
         if (ready) frameWindow?.postMessage(message, "*");
-    });
+    }, errors.island);
 
     // Only the panel frame this module created; anything else on the page speaking the same shape is ignored.
     listenToPanel(() => frameWindow, null, () => bridge, message => {

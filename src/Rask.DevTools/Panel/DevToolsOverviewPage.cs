@@ -71,6 +71,7 @@ internal sealed partial class DevToolsOverviewPage(RouteState route, IDevToolsIn
             DevToolsTreeWatcher.Key(session + "-watch").Feed(feed),
             DevToolsFlashEmitter.Key(session + "-flash").Feed(feed).On(_flash).OnChange(on => _flash = on),
             DevToolsPatchReceiver.Key(session + "-patch").Feed(feed),
+            DevToolsPageErrorReceiver.Key(session + "-page-errors").Feed(feed),
             DevToolsTabs.Key(session + "-tabs")
                 .Current(_tab)
                 .PageErrors(feed.Errors)
