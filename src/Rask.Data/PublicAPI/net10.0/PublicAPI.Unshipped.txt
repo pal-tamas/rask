@@ -17,6 +17,12 @@ Rask.Data.Columns
 Rask.Data.Db
 Rask.Data.DomainEventInterceptor
 Rask.Data.DomainEventInterceptor.DomainEventInterceptor(Microsoft.Extensions.DependencyInjection.IServiceScopeFactory! scopeFactory, Rask.Data.RaskDataOptions! options, System.Collections.Generic.IEnumerable<Rask.Data.IDomainEventDeliveryOwner!>! deliveryOwners) -> void
+Rask.Data.FullText
+Rask.Data.FullTextQueryableExtensions
+Rask.Data.FullTextSearchBuilderExtensions
+Rask.Data.FullTextTokenizer
+Rask.Data.FullTextTokenizer.English = 1 -> Rask.Data.FullTextTokenizer
+Rask.Data.FullTextTokenizer.Unicode = 0 -> Rask.Data.FullTextTokenizer
 Rask.Data.IDomainEventDeliveryOwner
 Rask.Data.IDomainEventDeliveryOwner.Name.get -> string!
 Rask.Data.IHasDomainEvents
@@ -51,6 +57,7 @@ Rask.Data.ModelQuery<TEntity>.LongCountAsync(System.Threading.CancellationToken 
 Rask.Data.ModelQuery<TEntity>.OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<TEntity!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<TEntity!>!
 Rask.Data.ModelQuery<TEntity>.OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<TEntity!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<TEntity!>!
 Rask.Data.ModelQuery<TEntity>.QueryAsync<TResult>(System.Func<System.Linq.IQueryable<TEntity!>!, System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
+Rask.Data.ModelQuery<TEntity>.Search(string? text) -> Rask.Data.ModelQuery<TEntity!>!
 Rask.Data.ModelQuery<TEntity>.Select<TResult>(System.Linq.Expressions.Expression<System.Func<TEntity!, TResult>!>! selector) -> Rask.Data.Projection<TEntity!, TResult>!
 Rask.Data.ModelQuery<TEntity>.SingleOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
 Rask.Data.ModelQuery<TEntity>.Skip(int count) -> Rask.Data.ModelQuery<TEntity!>!
@@ -108,6 +115,8 @@ const Rask.Data.Columns.CreatedAt = "CreatedAt" -> string!
 const Rask.Data.Columns.DeletedAt = "DeletedAt" -> string!
 const Rask.Data.Columns.UpdatedAt = "UpdatedAt" -> string!
 const Rask.Data.Columns.Version = "Version" -> string!
+const Rask.Data.FullText.MatchEnd = '' -> char
+const Rask.Data.FullText.MatchStart = '' -> char
 const Rask.Data.RangeExclusionSpec.AnnotationName = "Rask:RangeExclusion" -> string!
 override Rask.Data.AuditingInterceptor.SavingChanges(Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData! eventData, Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result) -> Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>
 override Rask.Data.AuditingInterceptor.SavingChangesAsync(Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData! eventData, Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>>
@@ -131,6 +140,10 @@ static Rask.Data.Db.Configure(System.IServiceProvider! services) -> void
 static Rask.Data.Db.Configure<TContext>(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! factory) -> void
 static Rask.Data.Db.IsConfigured.get -> bool
 static Rask.Data.Db.Reset() -> void
+static Rask.Data.FullText.Highlight(string? property) -> string?
+static Rask.Data.FullText.Snippet(string? property, int words = 12) -> string?
+static Rask.Data.FullTextQueryableExtensions.Search<TEntity>(this System.Linq.IQueryable<TEntity>! source, string? text) -> System.Linq.IQueryable<TEntity>!
+static Rask.Data.FullTextSearchBuilderExtensions.HasFullTextSearch<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! builder, System.Linq.Expressions.Expression<System.Func<TEntity!, object?>!>! properties, Rask.Data.FullTextTokenizer tokenizer = Rask.Data.FullTextTokenizer.Unicode) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>!
 static Rask.Data.ModelBuilderExtensions.ApplyRaskConventions(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
 static Rask.Data.ModelRegistry.Apply(Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
 static Rask.Data.ModelRegistry.ApplyConventions(Microsoft.EntityFrameworkCore.ModelConfigurationBuilder! configurationBuilder) -> Microsoft.EntityFrameworkCore.ModelConfigurationBuilder!
@@ -153,6 +166,7 @@ static Rask.Data.ModelSet.LongCountAsync<TEntity>(System.Threading.CancellationT
 static Rask.Data.ModelSet.OrderBy<TEntity, TKey>(System.Linq.Expressions.Expression<System.Func<TEntity!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<TEntity!>!
 static Rask.Data.ModelSet.OrderByDescending<TEntity, TKey>(System.Linq.Expressions.Expression<System.Func<TEntity!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<TEntity!>!
 static Rask.Data.ModelSet.QueryAsync<TEntity, TResult>(System.Func<System.Linq.IQueryable<TEntity!>!, System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
+static Rask.Data.ModelSet.Search<TEntity>(string? text) -> Rask.Data.ModelQuery<TEntity!>!
 static Rask.Data.ModelSet.Select<TEntity, TResult>(System.Linq.Expressions.Expression<System.Func<TEntity!, TResult>!>! selector) -> Rask.Data.Projection<TEntity!, TResult>!
 static Rask.Data.ModelSet.SingleOrDefaultAsync<TEntity>(System.Linq.Expressions.Expression<System.Func<TEntity!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
 static Rask.Data.ModelSet.Skip<TEntity>(int count) -> Rask.Data.ModelQuery<TEntity!>!
@@ -178,6 +192,7 @@ static Rask.Data.ModelSet.extension<TEntity>(TEntity!).LongCountAsync(System.Thr
 static Rask.Data.ModelSet.extension<TEntity>(TEntity!).OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<TEntity!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<TEntity!>!
 static Rask.Data.ModelSet.extension<TEntity>(TEntity!).OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<TEntity!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<TEntity!>!
 static Rask.Data.ModelSet.extension<TEntity>(TEntity!).QueryAsync<TResult>(System.Func<System.Linq.IQueryable<TEntity!>!, System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
+static Rask.Data.ModelSet.extension<TEntity>(TEntity!).Search(string? text) -> Rask.Data.ModelQuery<TEntity!>!
 static Rask.Data.ModelSet.extension<TEntity>(TEntity!).Select<TResult>(System.Linq.Expressions.Expression<System.Func<TEntity!, TResult>!>! selector) -> Rask.Data.Projection<TEntity!, TResult>!
 static Rask.Data.ModelSet.extension<TEntity>(TEntity!).SingleOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<TEntity!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
 static Rask.Data.ModelSet.extension<TEntity>(TEntity!).Skip(int count) -> Rask.Data.ModelQuery<TEntity!>!

@@ -53,6 +53,20 @@ public sealed class ModelQuery<TEntity>
         return Then(q => q.Where(predicate), _ordered);
     }
 
+    /// <summary>
+    ///     Narrows the query to the rows whose indexed text contains every word of <paramref name="text" />, best
+    ///     match first. The entity must declare <c>HasFullTextSearch</c>.
+    /// </summary>
+    /// <remarks>
+    ///     Text with no word in it filters nothing, so an empty search box lists everything. A later
+    ///     <see cref="OrderBy{TKey}" /> replaces best-match order. See
+    ///     <see cref="FullTextQueryableExtensions.Search{TEntity}" />.
+    /// </remarks>
+    public ModelQuery<TEntity> Search(string? text) =>
+        FullTextQuery.Compile(text) is null
+            ? this
+            : Then(q => q.Search(text), ordered: true);
+
     /// <summary>Orders the query ascending, replacing any ordering already applied.</summary>
     public ModelQuery<TEntity> OrderBy<TKey>(Expression<Func<TEntity, TKey>> keySelector)
     {

@@ -78,7 +78,7 @@ public sealed class RangeExclusionCheckTests
         services.AddRaskData<SlotContext>();
 
         Assert.Single(services, d => d.ServiceType == typeof(IHostedService)
-            && d.ImplementationType == typeof(RangeExclusionCheck<SlotContext>));
+            && d.ImplementationType == typeof(ProviderFeatureCheck<SlotContext>));
     }
 
     private static ServiceProvider Build<TContext>(Action<DbContextOptionsBuilder> configure)

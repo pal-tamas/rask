@@ -309,39 +309,17 @@ public sealed class RaskSqliteRangeExclusionTests : IDisposable
         return (TContext)Activator.CreateInstance(typeof(TContext), options)!;
     }
 
-    // Runs the model through the differ and generator — the same path `dotnet ef database update` takes.
-    private static void CreateSchema(DbContext context) => Migrate(context, null);
+    private static void CreateSchema(DbContext context) => TestMigrations.Apply(context);
 
     private void Migrate<TFrom>(DbContext context)
         where TFrom : DbContext
     {
         var options = new DbContextOptionsBuilder<TFrom>().UseRaskSqliteAt($"Data Source={_dbPath}").Options;
         using var from = (TFrom)Activator.CreateInstance(typeof(TFrom), options)!;
-        Migrate(context, from);
+        TestMigrations.Apply(context, from);
     }
 
-    private static void Migrate(DbContext context, DbContext? from)
-    {
-        var target = context.GetService<IDesignTimeModel>().Model;
-        var source = from?.GetService<IDesignTimeModel>().Model.GetRelationalModel();
+    private static string Ddl(DbContext context) => TestMigrations.Ddl(context);
 
-        var operations = context.GetService<IMigrationsModelDiffer>()
-            .GetDifferences(source, target.GetRelationalModel());
-
-        foreach (var command in context.GetService<IMigrationsSqlGenerator>().Generate(operations, target))
-        {
-            context.Database.ExecuteSqlRaw(command.CommandText);
-        }
-    }
-
-    private static string Ddl(DbContext context)
-        => string.Join(
-            "\n",
-            context.Database.SqlQueryRaw<string>("SELECT COALESCE(sql, '') AS Value FROM sqlite_master").ToList());
-
-    private static int TriggerCount(DbContext context)
-        => context.Database
-            .SqlQueryRaw<int>("SELECT COUNT(*) AS Value FROM sqlite_master WHERE type = 'trigger'")
-            .AsEnumerable()
-            .Single();
+    private static int TriggerCount(DbContext context) => TestMigrations.TriggerCount(context);
 }

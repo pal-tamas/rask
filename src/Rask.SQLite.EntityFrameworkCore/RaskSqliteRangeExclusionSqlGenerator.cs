@@ -28,7 +28,7 @@ namespace Rask.SQLite;
 public class RaskSqliteRangeExclusionSqlGenerator(
     MigrationsSqlGeneratorDependencies dependencies,
     IRelationalAnnotationProvider migrationsAnnotations)
-    : SqliteMigrationsSqlGenerator(dependencies, migrationsAnnotations), IRangeExclusionEnforcer
+    : SqliteMigrationsSqlGenerator(dependencies, migrationsAnnotations), IRangeExclusionEnforcer, IFullTextSearchEnforcer
 {
     /// <inheritdoc />
     public override IReadOnlyList<MigrationCommand> Generate(
@@ -38,6 +38,7 @@ public class RaskSqliteRangeExclusionSqlGenerator(
     {
         var commands = base.Generate(operations, model, options).ToList();
         commands.AddRange(RangeExclusionDdl.Build(operations, model, Dependencies));
+        commands.AddRange(FullTextSearchDdl.Build(operations, model, Dependencies));
         return commands;
     }
 }
