@@ -25,7 +25,7 @@ only when unreachable); E2E for every `src/Rask.Site` change — **tests run loc
 `.githooks/pre-push` each run `scripts/run-unit-local.sh` scoped to what changed (staged files /
 `origin/main...HEAD`). When a gate goes over budget the answer is to **make the tests faster, never to
 skip or narrow a gate** — a slow gate beats a lying one. Everything that could not fit runs BY HAND:
-`scripts/run-all-gates.sh` (browser E2E, CLI build, watch, deploy, meta publish, installer).
+`scripts/run-all-gates.sh` (browser E2E, devtools E2E, CLI build, watch, deploy, meta publish, installer).
 **Benchmarks run ONLY when you ask** — `scripts/run-benchmarks-local.sh`, in no hook and no CI;
 the public installer is `rask.sh`/`rask.ps1` at the ROOT (published to Pages by `pages.yml`, gated by
 `scripts/tests/install-script.test.sh` + `scripts/run-install-e2e-local.sh`, `docs/installation.md`);

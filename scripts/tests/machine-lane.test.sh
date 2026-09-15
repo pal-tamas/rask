@@ -51,6 +51,8 @@ assert_eq "the unit gate after its re-exec" \
   "$(rask_lane_script_of '/bin/bash /repo/scripts/run-unit-local.sh --lane-slots 4')" "run-unit-local.sh"
 assert_eq "under bash -x, plausible while debugging a gate" \
   "$(rask_lane_script_of 'bash -x scripts/run-e2e-local.sh')" "run-e2e-local.sh"
+assert_eq "the devtools browser gate is a gate of its own" \
+  "$(rask_lane_script_of 'bash scripts/run-devtools-e2e-local.sh')" "run-devtools-e2e-local.sh"
 assert_eq "a claim marker" \
   "$(rask_lane_script_of 'bash /repo/scripts/lib/lane-claim.sh 400 10 test')" "lane-claim.sh"
 # The false positives that made the sibling file exist. An editor and a log are not gates, and
