@@ -79,7 +79,8 @@ public partial class UiFloatingFieldTests : global::Rask.Core.RaskMarkup
         var html = UiInput.Value("").Label("Email").Hint("We never share it.").ToHtml();
 
         Assert.StartsWith("<div class=\"fieldset\"><label class=\"floating-label\"", html, StringComparison.Ordinal);
-        Assert.Contains("</label><p class=\"label\">We never share it.</p></div>", html, StringComparison.Ordinal);
+        Assert.Contains("</label><p id=\"f-email-hint\" class=\"label\">We never share it.</p></div>", html,
+            StringComparison.Ordinal);
     }
 
     [Fact]
@@ -87,7 +88,8 @@ public partial class UiFloatingFieldTests : global::Rask.Core.RaskMarkup
     {
         var html = UiInput.Value("x").Label("Email").Tone(UiTone.Error).Error("Enter an email.").ToHtml();
 
-        Assert.Contains("</label><p class=\"validator-hint\">Enter an email.</p>", html, StringComparison.Ordinal);
+        Assert.Contains("</label><p id=\"f-email-error\" class=\"validator-hint\">Enter an email.</p>", html,
+            StringComparison.Ordinal);
     }
 
     [Fact]

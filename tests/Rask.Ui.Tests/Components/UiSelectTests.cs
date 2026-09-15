@@ -142,10 +142,37 @@ public partial class UiSelectTests : global::Rask.Core.RaskMarkup
             UiSelect.Value("gb").Options(Countries).Label("Country").Name("country").ToHtml());
 
     [Fact]
-    public void Both_modes_name_themselves()
+    public void Both_modes_are_named_by_their_visible_label()
     {
-        Assert.Contains("aria-label=\"Country\"", Native(null));
-        Assert.Contains("aria-label=\"Country\"", Native(false));
+        // By `for`/`id`, in both modes. The drawn box used to carry no id, so its label pointed at nothing,
+        // and each mode papered over that with an aria-label copied from the label — a second name beside
+        // the one on screen.
+        foreach (var html in new[] { Native(null), Native(false) })
+        {
+            Assert.Contains("for=\"f-country\"", html);
+            Assert.Contains("id=\"f-country\"", html);
+        }
+
+        Assert.DoesNotContain("aria-label", Native(null));
+
+        // The drawn LIST is a separate widget in the top layer and keeps a name of its own; the box does not.
+        var drawn = Native(false);
+        var boxStart = drawn.IndexOf("role=\"combobox\"", StringComparison.Ordinal);
+        var box = drawn[drawn.LastIndexOf('<', boxStart)..drawn.IndexOf('>', boxStart)];
+        Assert.DoesNotContain("aria-label", box);
+        Assert.Contains("role=\"listbox\" aria-label=\"Country\"", drawn);
+    }
+
+    [Fact]
+    public void An_unlabelled_select_takes_its_accessible_label_in_both_modes()
+    {
+        // Label was copied into aria-label unconditionally, so a select with no label rendered a VALUELESS
+        // aria-label and ignored AccessibleLabel entirely.
+        Assert.Contains("aria-label=\"Country\"",
+            UiSelect.Value("gb").Options(Countries).AccessibleLabel("Country").ToHtml());
+        Assert.Contains("aria-label=\"Country\"",
+            UiSelect.Value("gb").Options(Countries).AccessibleLabel("Country").Native(false).ToHtml());
+        Assert.DoesNotContain("aria-label", UiSelect.Value("gb").Options(Countries).ToHtml());
     }
 
     [Fact]

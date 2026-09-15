@@ -9,6 +9,15 @@ them until tagged releases begin.
 
 ### Added
 
+- **Rask UI fields describe themselves to assistive tech, the way Flux UI does.** `UiInput`, `UiTextarea` and
+  `UiSelect` now write `aria-describedby` naming what is visible under the control — the bound validation
+  message, then a controlled `Error` (only while `Tone(UiTone.Error)` reveals it), then the `Hint` — each with an id
+  derived from the field id (`f-email-hint`, `-error`, `-validation`). A bound field is `aria-invalid` whenever its
+  form holds a message for it, not only when a tone says so, and one bound to a `[Required]` member writes
+  `aria-required="true"`. New `Badge` ("Required", "Optional") draws a small badge inside the label, hidden from
+  assistive tech so the accessible name stays the label's text; it is never guessed from the model, because a
+  FluentValidation rule is invisible to the field.
+
 - **F5 debugs the code that runs in the browser: WebAssembly C# and scoped `.ts` (#1073).**
   - **`rask new wasm` ships a `.vscode/` folder.** It starts the dev server in the background on
     `http://localhost:5210` and opens the app in Chrome under VS Code's JavaScript debugger. The debugger attaches
@@ -1257,6 +1266,11 @@ them until tagged releases begin.
   ```
 
 ### Fixed
+
+- **`UiSelect` was named twice, or not at all.** Both modes copied `Label` into `aria-label` beside the visible
+  label, and a select with no label rendered a valueless `aria-label` and ignored `AccessibleLabel`. The drawn
+  combobox also had no `id`, so its label's `for` pointed at nothing. The box now carries the field id and takes its
+  name, invalid state and description from the same place every other field does.
 
 - **`BulkInsertAsync(SkipChangeTracking)` is fast on PostgreSQL, SQL Server and MySQL, and works on Npgsql again
   (#1063).**

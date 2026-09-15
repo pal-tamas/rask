@@ -126,6 +126,24 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
     public string? Hint { get; set; }
 
     /// <summary>
+    ///     A short word beside the label — <c>"Required"</c>, <c>"Optional"</c>, <c>"Beta"</c>.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     Drawn only where there is a visible <see cref="Label" /> to sit beside, and hidden from assistive
+    ///     tech: the label is the control's accessible name, and a name that ends in "Required" is read out
+    ///     on every visit. What a screen reader needs to hear about required-ness it gets from
+    ///     <c>aria-required</c>, which a field bound to a <c>[Required]</c> member writes on its own.
+    ///     </para>
+    ///     <para>
+    ///     Never guessed from the model. <c>[Required]</c> is the one rule a field can see; a field required
+    ///     by a FluentValidation rule or a <c>Validate</c> delegate is invisible to it, so a badge derived
+    ///     from attributes would say "Optional" on fields that are not.
+    ///     </para>
+    /// </remarks>
+    public string? Badge { get; set; }
+
+    /// <summary>
     ///     The control's colour. <see cref="UiTone.Error" /> also marks it invalid to assistive tech.
     /// </summary>
     public UiTone? Tone { get; set; }
@@ -171,13 +189,24 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
     private protected virtual bool FloatsLabel => false;
 
     /// <summary>
-    ///     <c>aria-*</c> for the control, with the accessible name and the invalid state resolved.
+    ///     <c>aria-*</c> for the control, with the accessible name, the required and invalid states, and
+    ///     what describes it resolved.
     /// </summary>
     /// <remarks>
+    ///     <para>
     ///     <c>aria-invalid</c> is what makes daisyUI reveal a following validator message, and what a
     ///     screen reader needs — a field that is visibly red and says nothing is half a message. It is
     ///     OMITTED rather than set to null: a null renders the attribute valueless, and a valueless
-    ///     <c>aria-invalid</c> reads as "true", which would mark every field in the kit invalid.
+    ///     <c>aria-invalid</c> reads as "true", which would mark every field in the kit invalid. A bound
+    ///     field is invalid when its form holds a message for it, not only when a tone says so.
+    ///     </para>
+    ///     <para>
+    ///     <c>aria-describedby</c> is the other half of a message. A hint or an error rendered NEXT to a
+    ///     control is only next to it on screen; to a screen reader it is a paragraph somewhere later in the
+    ///     page, reached — if at all — after the reader has already left the field. It names only what is
+    ///     visible right now, error first: a hidden <c>validator-hint</c> referenced here would still be read
+    ///     aloud, telling a reader about a mistake they have not made.
+    ///     </para>
     /// </remarks>
     protected Dictionary<string, string?> ControlAria()
     {
@@ -190,13 +219,80 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
             aria["label"] = name;
         }
 
-        if (Tone == UiTone.Error)
+        if (IsBoundToRequiredMember())
+        {
+            aria["required"] = "true";
+        }
+
+        var boundMessages = HasBoundMessages();
+        if (Tone == UiTone.Error || boundMessages)
         {
             aria["invalid"] = "true";
         }
 
+        if (DescribedBy(boundMessages) is { } describedBy)
+        {
+            aria["describedby"] = describedBy;
+        }
+
         return aria;
     }
+
+    /// <summary>The id of the hint paragraph, for <c>aria-describedby</c>.</summary>
+    private protected string HintId => FieldId + "-hint";
+
+    /// <summary>The id of the controlled <see cref="Error" /> paragraph.</summary>
+    private protected string ErrorId => FieldId + "-error";
+
+    /// <summary>The id of the bound field's own validation message.</summary>
+    /// <remarks>
+    ///     Separate from <see cref="ErrorId" />: a bound field can carry a controlled <see cref="Error" /> as
+    ///     well, both render, and two elements cannot share one id.
+    /// </remarks>
+    private protected string ValidationId => FieldId + "-validation";
+
+    private string? DescribedBy(bool boundMessages)
+    {
+        List<string>? ids = null;
+
+        if (boundMessages && ShowValidation != false)
+        {
+            (ids ??= []).Add(ValidationId);
+        }
+
+        // The controlled message is `visibility: hidden` until the tone marks the control invalid.
+        if (Error is not null && Tone == UiTone.Error)
+        {
+            (ids ??= []).Add(ErrorId);
+        }
+
+        if (Hint is not null)
+        {
+            (ids ??= []).Add(HintId);
+        }
+
+        return ids is null ? null : string.Join(' ', ids);
+    }
+
+    // Reading the form's messages here is what latches this component out of the render cache — the same
+    // bargain ValidationMessage makes, and for the same reason: a message added after an await has to be
+    // seen by the next render rather than served stale.
+    private bool HasBoundMessages() =>
+        Bind is { } bind
+        && EditContextScope.Current is { } ctx
+        && ctx.GetValidationMessages(ExpressionAccessor.Parse(bind).Field).Count > 0;
+
+    // [Required] is the one required rule a field can see from its bind expression. Asked of a member the
+    // expression already roots, so it costs the trimmer nothing.
+    private bool IsBoundToRequiredMember() =>
+        Bind?.Body is MemberExpression member
+        && member.Member.IsDefined(typeof(System.ComponentModel.DataAnnotations.RequiredAttribute), inherit: true);
+
+    /// <summary>The <see cref="Badge" />, for the label to carry beside its text.</summary>
+    private Component? BadgeFor() =>
+        Badge is null
+            ? null
+            : Span.Class("badge badge-ghost badge-xs ms-1 align-middle").Aria("hidden", "true")[Badge];
 
     /// <summary>
     ///     The field's own validation message, or null when there is nothing to show one for.
@@ -216,7 +312,7 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
         ShowValidation == false || Bind is not { } bind
             ? null
             : ValidationMessage
-                .Template(messages => P.Class("label text-ui-danger-ink")[messages[0]])
+                .Template(messages => P.Id(ValidationId).Class("label text-ui-danger-ink")[messages[0]])
                 .For(bind);
 
     /// <summary>
@@ -279,7 +375,7 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
         // A floating caption is the FIRST child and the control follows it: daisyUI positions the caption
         // over the control and raises it once the control stops showing its placeholder.
         var field = floats
-            ? RaskMarkup.Label.For(FieldId).Class("floating-label")[Span[Label], control]
+            ? RaskMarkup.Label.For(FieldId).Class("floating-label")[Span[Label, BadgeFor()], control]
             : control;
 
         // Nothing to wrap it in. Keeps a bare control's markup exactly as it was, which is what a control
@@ -292,7 +388,9 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
         }
 
         return Div.Class("fieldset")[
-            Label is null || floats ? null : RaskMarkup.Label.For(FieldId).Class("fieldset-legend")[Label],
+            Label is null || floats
+                ? null
+                : RaskMarkup.Label.For(FieldId).Class("fieldset-legend")[Label, BadgeFor()],
             field,
             // While an async validator runs. Ahead of the message, so the two occupy the same place in turn
             // rather than the message jumping when the indicator gives way to it.
@@ -301,8 +399,8 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
             validation,
             // daisyUI's own class, so the reveal-on-invalid behaviour is the library's rather than a second
             // implementation of it.
-            Error is null ? null : P.Class("validator-hint")[Error],
-            Hint is null ? null : P.Class("label")[Hint]
+            Error is null ? null : P.Id(ErrorId).Class("validator-hint")[Error],
+            Hint is null ? null : P.Id(HintId).Class("label")[Hint]
         ];
     }
 }

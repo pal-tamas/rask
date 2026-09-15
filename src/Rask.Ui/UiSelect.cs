@@ -214,7 +214,10 @@ public sealed partial class UiSelect<T> : UiFormField<T>
         var disabled = Disabledness(flat);
         var cursor = UiSelectNav.Normalize(_cursor, flat.Count, disabled);
 
+        // The id is what the legend's `for` names. Without it the label pointed at nothing, and the box
+        // was named only by the aria-label this used to duplicate from it.
         var box = Button
+            .Id(FieldId)
             .Type("button")
             .Role("combobox")
             .Class(UiClass.Compose(BoxClass(), "flex items-center justify-between text-left"))
@@ -279,7 +282,11 @@ public sealed partial class UiSelect<T> : UiFormField<T>
                 .Id(ListId)
                 .Role("listbox")
                 .Class("menu w-full flex-nowrap p-0")
-                .Aria(new Dictionary<string, string?> { ["label"] = Label })[
+                // The list is a separate widget in the top layer and needs its own name. Omitted when there is
+                // none to give: a null value renders a valueless aria-label.
+                .Aria((Label ?? AccessibleLabel) is { } listName
+                    ? new Dictionary<string, string?> { ["label"] = listName }
+                    : [])[
                 Rows(layout, acc, ctx, current, cursor)
             ]
         ];
@@ -483,16 +490,12 @@ public sealed partial class UiSelect<T> : UiFormField<T>
             Variant is { } variant ? UiClassNames.SelectVariant(variant) : "",
             DrawsOwnList ? "" : Class);
 
-    // aria-invalid is what makes daisyUI reveal a following UiValidator, and what a screen reader
-    // needs: a field that is visibly red and says nothing is half a message. It is OMITTED rather than
-    // nulled — a null renders the attribute valueless, and a valueless aria-invalid reads as "true".
+    // The field's own name, invalid state and description first — the base resolves them once for every
+    // control. This used to copy the invalid rule and write `aria-label` from Label: a second name beside the
+    // visible label, and a VALUELESS aria-label on a select with no label at all.
     private Dictionary<string, string?> Aria(bool? expanded, string? activeDescendant = null)
     {
-        var aria = new Dictionary<string, string?> { ["label"] = Label };
-        if (Tone == UiTone.Error)
-        {
-            aria["invalid"] = "true";
-        }
+        var aria = ControlAria();
 
         if (expanded is { } open)
         {

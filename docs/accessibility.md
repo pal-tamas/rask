@@ -103,33 +103,38 @@ for everything else.
 
 ## Form validation
 
-A bound form control wires validation state to assistive tech automatically — you don't add
-anything. When a bound field has validation messages the control renders:
+A Rask UI field wires its label, hint, error and validation state to assistive tech on its own — you add
+nothing. `UiInput`, `UiTextarea` and `UiSelect` (both modes) render:
 
-- `aria-invalid="true"` on the input/select/textarea, so the failed state is exposed programmatically
-  (not just the visual `.is-invalid` red border);
-- `aria-describedby` pointing at the error message's `id` (and the help-text `id` when `HelpText:` is
-  set), so a screen reader reads the error together with the field; and
-- the `.invalid-feedback` message as a `role="alert"` live region, so the error is announced the moment
-  validation fails on submit/blur.
+- `aria-invalid="true"` when the field is invalid — a bound field whose form holds a message for it, or a
+  controlled field given `Tone(UiTone.Error)` — so the failed state is exposed programmatically, not only
+  as a red border;
+- `aria-describedby` naming what is **visible** under the control, error first: the bound field's own
+  validation message, then a controlled `Error` (only while the tone reveals it — a hidden message named
+  by `aria-describedby` would still be read aloud), then the `Hint`. Omitted when there is nothing;
+- `aria-required="true"` when the field is bound to a member carrying `[Required]`. It is the one required
+  rule a field can see; a FluentValidation rule or a `Validate` delegate is invisible to it, so nothing is
+  guessed; and
+- a `Badge` ("Required", "Optional") inside the label, `aria-hidden` so the accessible name stays the
+  label's text.
 
 ```csharp
-BsInput.Bind(() => model.Email).Label("Email").HelpText("We never share it.")
-// valid   → <input id="Email" aria-describedby="Email-help" …>
-// invalid → <input id="Email" class="form-control is-invalid"
-//                  aria-invalid="true" aria-describedby="Email-help Email-error" …>
-//           <div id="Email-error" class="invalid-feedback d-block" role="alert">Enter a valid email</div>
+UiInput.Bind(() => model.Email).Label("Email").Badge("Required").Hint("We never share it.")
+// valid   → <input id="f-email" aria-required="true" aria-describedby="f-email-hint" …>
+// invalid → <input id="f-email" aria-required="true" aria-invalid="true"
+//                  aria-describedby="f-email-validation f-email-hint" …>
+//           <p id="f-email-validation" class="label text-ui-danger-ink">Enter a valid email</p>
+//           <p id="f-email-hint" class="label">We never share it.</p>
 ```
 
-The help/error element ids (and the `aria-describedby` that points at them) derive from the control id —
-`Id:` if you set one, otherwise the bound property name or `Name:`. That id also anchors the `<label for>`
-association, so the same rule has always applied: **if you render the same bound field more than once on a
-page** (a repeated form, a list of rows), give each control an explicit unique `Id:` so the ids stay
-document-unique and every `aria-describedby`/`for` resolves to the right field.
+The hint, error and message ids derive from the field id — `Id` if you set one, otherwise the bound
+member's name or the label text. That id also anchors the `<label for>` association, so **if you render
+the same bound field more than once on a page** (a repeated form, a list of rows), give each field an
+explicit unique `Id` so every `for` and `aria-describedby` resolves to the right element.
 
-Building your own control from the core `Input`/`ValidationMessage` primitives? Mirror the same three
-attributes: `Aria: new() { ["invalid"] = "true", ["describedby"] = errorId }` on the control, and render
-the message in a `Div.Id(errorId).Role("alert")`. See [forms-validation.md](forms-validation.md).
+Building your own control from the core `Input`/`ValidationMessage` primitives? Mirror the same
+attributes: `.Aria(new Dictionary<string, string?> { ["invalid"] = "true", ["describedby"] = errorId })`
+on the control, and give the message element that id. See [forms-validation.md](forms-validation.md).
 
 ## Focus trapping (overlays)
 

@@ -43,7 +43,9 @@ public sealed partial class UiKitDataInputDemo : Component
                 // UiValidator at the end of this grid, which worked only because the input was a bare
                 // element: daisyUI reveals the hint with `.validator ~ .validator-hint`, so a field that
                 // grew a label and a wrapper stopped being its sibling and the message silently vanished.
-                UiInput.Value(_email).Key("email").Label("Email").Type(InputType.Email)
+                // The badge sits inside the label and is hidden from assistive tech; the hint and, once it
+                // shows, the error are tied to the input by aria-describedby, error first.
+                UiInput.Value(_email).Key("email").Label("Email").Badge("Required").Type(InputType.Email)
                     .Hint("For example, you@example.com.")
                     .Tone(_email.Length > 0 && !_email.Contains('@') ? UiTone.Error : (UiTone?)null)
                     .Error(_email.Length > 0 && !_email.Contains('@')
@@ -51,7 +53,7 @@ public sealed partial class UiKitDataInputDemo : Component
                         : null)
                     .OnChange(v => { _email = v; }),
                 UiInput.Of<string>().Key("ghost").Label("Search").Variant(UiVariant.Ghost),
-                UiTextarea.Value(_notes).Key("notes").Label("Notes").Rows(3)
+                UiTextarea.Value(_notes).Key("notes").Label("Notes").Badge("Optional").Rows(3)
                     .Hint("Anything else?")
                     .OnChange(v => { _notes = v; }),
                 UiSelect.Value(_country).Key("country")

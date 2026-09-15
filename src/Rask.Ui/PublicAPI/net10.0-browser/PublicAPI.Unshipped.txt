@@ -1154,6 +1154,8 @@ Rask.Ui.UiFormField<T>.AccessibleLabel.get -> string?
 Rask.Ui.UiFormField<T>.AccessibleLabel.set -> void
 Rask.Ui.UiFormField<T>.AfterBind.get -> Rask.Core.Callback<T>?
 Rask.Ui.UiFormField<T>.AfterBind.set -> void
+Rask.Ui.UiFormField<T>.Badge.get -> string?
+Rask.Ui.UiFormField<T>.Badge.set -> void
 Rask.Ui.UiFormField<T>.Bind.get -> System.Linq.Expressions.Expression<System.Func<T>!>?
 Rask.Ui.UiFormField<T>.Bind.set -> void
 Rask.Ui.UiFormField<T>.Class.get -> string?
@@ -2243,6 +2245,9 @@ static RaskBuilderSettersRask_Ui.Animation(this Rask.Ui.UiSwap! __b, Rask.Ui.UiS
 static RaskBuilderSettersRask_Ui.Author(this Rask.Ui.UiChatBubble! __b, string? value) -> Rask.Ui.UiChatBubble!
 static RaskBuilderSettersRask_Ui.Autofocus<T>(this Rask.Ui.UiInput<T>! __b, bool? value) -> Rask.Ui.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Badge(this Rask.Ui.UiIndicator! __b, Rask.Core.Component! value) -> Rask.Ui.UiIndicator!
+static RaskBuilderSettersRask_Ui.Badge<T>(this Rask.Ui.UiInput<T>! __b, string? value) -> Rask.Ui.UiInput<T>!
+static RaskBuilderSettersRask_Ui.Badge<T>(this Rask.Ui.UiSelect<T>! __b, string? value) -> Rask.Ui.UiSelect<T>!
+static RaskBuilderSettersRask_Ui.Badge<T>(this Rask.Ui.UiTextarea<T>! __b, string? value) -> Rask.Ui.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.Before(this Rask.Ui.UiDiff! __b, Rask.Core.Component! value) -> Rask.Ui.UiDiff!
 static RaskBuilderSettersRask_Ui.Block(this Rask.Ui.UiButton! __b, bool? value) -> Rask.Ui.UiButton!
 static RaskBuilderSettersRask_Ui.Caption(this Rask.Ui.UiHeader! __b, string? value) -> Rask.Ui.UiHeader!
