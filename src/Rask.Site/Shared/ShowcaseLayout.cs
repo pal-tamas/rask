@@ -110,7 +110,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                 NavLink
                     .Href(PageMeta.LinkTo(Features.Routes.GuidesIndexPage()))
                     .ActiveClass("")
-                    .Class("app-brand font-semibold inline-flex min-w-0 items-center gap-2 text-ui-ink no-underline")[
+                    .Class("app-brand font-semibold font-[family-name:var(--font-display)] tracking-[-0.022em] inline-flex min-w-0 items-center gap-2 text-ui-ink no-underline")[
                     RaskLogo.Size(24).GradientId("brandBolt"),
                     Span["Rask"],
                     // Both badges are hidden below sm, in the markup and nowhere else. The bar carries a
@@ -151,11 +151,15 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
             // only reason its close button stayed reachable was a `z-index: 1046` on .app-navbar in
             // global.css. With that magic number gone the three layers say the order themselves —
             // bar 50, drawer 40, backdrop 30.
+            // The rail's layout is utilities now (#1101), where global.css's .side-nav rules used to be — unlayered, they
+            // outranked every utility here, which is why `display` had to be left out of them for `hidden` to work. A
+            // column that does not scroll: the filter is pinned, the list below it scrolls. From md up it is a sticky
+            // 280px column capped at the viewport under the bar; below md the open drawer clears the bar and the notch.
             Aside
                 .Class(_drawerOpen
-                    ? "side-nav flex fixed inset-y-0 left-0 z-40 w-72 bg-ui-bg p-4 "
-                      + "shadow-xl md:static md:z-auto md:w-64 md:shadow-none"
-                    : "side-nav hidden w-64 p-4 md:flex")[
+                    ? "side-nav flex flex-col overflow-hidden fixed inset-y-0 left-0 z-40 w-72 bg-ui-bg px-3 py-4 "
+                      + "pt-[calc(var(--nav-h)+env(safe-area-inset-top))] shadow-xl " + RailAtMd
+                    : "side-nav hidden flex-col overflow-hidden px-3 py-4 " + RailAtMd)[
                 SidebarBody()
             ],
             _drawerOpen
@@ -165,7 +169,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                 : null,
             Main.Class(
                 "grow min-w-0 px-3 py-4 pb-[calc(2rem_+_env(safe-area-inset-bottom))] md:px-5 page-main")[
-                Div.Class("mx-auto page-main-inner")[Outlet]
+                Div.Class("mx-auto max-w-[1280px] page-main-inner")[Outlet]
             ]
         ]
     ];
@@ -174,13 +178,19 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     // single scrolling list (.side-nav-scroll). The filter is a real flex header rather than a
     // position:sticky child because sticky-in-flexbox is unreliable in Safari (the filter would scroll
     // away with the list), and this keeps it rock-solid across browsers with a clean hairline divider.
+    // The static rail from md up, whether or not the drawer was left open: in the flow, sticky under the bar, and no
+    // taller than the viewport below it, so a fully expanded list scrolls inside .side-nav-scroll, not the page.
+    private const string RailAtMd =
+        "md:sticky md:top-(--nav-h) md:bottom-auto md:left-auto md:z-auto md:flex md:w-[280px] md:flex-none md:self-start "
+        + "md:max-h-[calc(100vh-var(--nav-h))] md:pt-4 md:shadow-none";
+
     private Component SidebarBody() => [
-        Div.Class("side-nav-search")[
+        Div.Class("side-nav-search mb-1 flex-none border-b border-ui-line bg-ui-well pb-2")[
             UiInput.Value(_filter).AccessibleLabel("Filter guides & examples…")
                 .OnInput(v => _filter = v ?? "")
-                .Placeholder("Filter guides & examples…").Class("side-nav-filter")
+                .Placeholder("Filter guides & examples…").Class("side-nav-filter rounded-lg")
         ],
-        Div.Class("side-nav-scroll")[
+        Div.Class("side-nav-scroll flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain")[
             Ul.Class("menu menu-sm w-full flex-nowrap p-0")[BuildSections()]
         ]
     ];
@@ -235,13 +245,13 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                 continue;
             }
 
-            children.Add(Li.Class("side-nav-section menu-title")[section]);
+            children.Add(Li.Class("side-nav-section menu-title mt-2 border-t border-ui-line px-2 pt-3 pb-1 font-mono text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-ui-brand-ink first:mt-0 first:border-t-0")[section]);
             children.AddRange(groups);
         }
 
         if (children.Count == 0)
         {
-            children.Add(Li.Class("side-nav-empty menu-title")["Nothing matches that filter."]);
+            children.Add(Li.Class("side-nav-empty menu-title px-2 py-4")["Nothing matches that filter."]);
         }
 
         return children;

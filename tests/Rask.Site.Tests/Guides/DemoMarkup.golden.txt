@@ -2151,7 +2151,7 @@ u
 s
 small
 mark
-span .text-accent
+span .text-ui-brand-ink
 p
 code
 kbd

@@ -131,14 +131,9 @@ body {
 }
 
 /* Headings carry the display face — tighter tracking, a touch more weight than Bootstrap's default. */
-h1, h2, h3, h4, h5, h6,
-.app-brand {
+h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
     letter-spacing: -0.022em;
-}
-
-.display-5 {
-    font-weight: 700;
 }
 
 /* THERE IS NO GLOBAL `a { color }` RULE, and that is deliberate.
@@ -173,9 +168,6 @@ pre {
     margin: 0;
 }
 
-.text-accent {
-    color: var(--rask-accent-strong) !important;
-}
 
 /* Shell-tag global rules. */
 html {
@@ -189,12 +181,6 @@ body {
     padding-right: env(safe-area-inset-right);
 }
 
-/* The page ground — the deep violet-black (or light tint in light mode) from the shared tokens.
-   !important because Bootstrap's own .bg-body-tertiary is an !important utility (keyed off
-   --bs-tertiary-bg-rgb), which would otherwise win over a plain selector. */
-body.bg-body-tertiary {
-    background-color: var(--ground) !important;
-}
 
 button, a, [role="button"] {
     touch-action: manipulation;
@@ -268,119 +254,13 @@ button, a, [role="button"] {
     color: #c3e88d;
 }
 
-/* ShowcaseLayout: the app shell (top bar + drawer sidebar + main). These rules are GLOBAL rather than
-   a scoped {Component}.css because the sidebar's anchors are rendered by NavLink, several component
-   levels below ShowcaseLayout, and so never carry its scope id. Same rationale as the .sample-code
-   rules above — markup another component renders can't be component-scoped. The .side-nav* /
-   .nav-group* / .app-* class names are specific enough not to leak.
-
-   What is NOT here any more: .app-navbar, .hamburger-btn and .app-shell. The bar is daisyUI's
-   `navbar` and the hamburger is its `btn btn-ghost btn-square`; the shell's one property
-   (align-items) is the `items-start` utility. Their names stay on the elements — the unit and browser
-   suites select on all three — but nothing in this file backs them, which is the point: unlayered
-   rules here outrank every layered utility on the page, so .app-navbar's dark-glass background quietly
-   beat the bg-ui-bg written in the markup and left the bar's own text at about 1.4:1 against it.
-
-   The sidebar is a slide-in drawer below md and a fixed-width static column at >=md. Its body is a
-   non-scrolling flex column: the filter is a pinned header and the LIST inside scrolls. The filter is
-   a real flex header (not position:sticky) because a sticky child of a flex container does not stick
-   in Safari — it would scroll away with the list. This is bulletproof across browsers. */
-.side-nav {
-    /* NO display here. This file loads after the utilities, so `display: flex` would beat the
-       `hidden` utility and the mobile drawer could never close. Tailwind owns display (hidden /
-       md:flex on the element); this rule owns only the column layout the pinned filter needs. */
-    flex-direction: column;
-    padding: 1rem 0.75rem;
-    overflow: hidden;
-}
-
-/* Pinned filter header — a fixed-height flex item over the scrolling list, with a hairline divider so
-   list rows read as scrolling cleanly beneath it rather than clipping against a hard edge. */
-.side-nav-search {
-    flex: 0 0 auto;
-    padding-bottom: 0.5rem;
-    margin-bottom: 0.25rem;
-    background: var(--ground);
-    border-bottom: 1px solid var(--rask-line);
-}
-
-/* The single scrolling region: the nav list scrolls here (never the body), so the filter stays put. */
-.side-nav-scroll {
-    flex: 1 1 auto;
-    min-height: 0; /* let the list scroll inside the flex column instead of stretching it */
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-}
-
-.side-nav-filter {
-    border-radius: 0.5rem;
-}
-
-.side-nav-section {
-    font-family: var(--font-mono);
-    text-transform: uppercase;
-    font-size: 0.68rem;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    color: var(--rask-accent-strong);
-    padding: 0.75rem 0.5rem 0.25rem;
-    margin-top: 0.5rem;
-    border-top: 1px solid var(--rask-line);
-}
-
-.side-nav-section:first-of-type {
-    margin-top: 0;
-    border-top: 0;
-}
-
-/* Group toggle: a full-width, borderless button revealing/hiding its items via BsCollapse. */
-
-/* The sidebar's links, groups and active state are daisyUI's `menu` now — see ShowcaseLayout, which
-   renders a real <ul>/<li> tree and marks the current entry with `menu-active`. The rules that used to
-   live here are gone rather than overridden: kept alongside daisyUI's they would have doubled its
-   padding and its hover, which is worse than either on its own. The .side-nav-link and .nav-group-*
-   names survive on the elements because the tests name them, not because anything styles them. */
-
-.side-nav-empty {
-    padding: 1rem 0.5rem;
-}
-
-/* Main content column. Its two properties — min-width:0 so long code blocks scroll instead of
-   stretching the flex item, and a safe-area-aware bottom pad — are `min-w-0` and an arbitrary
-   `pb-[…]` on the element now; .page-main is a name the browser suite selects on (it asserts focus
-   moves into the new page's <main> after a nav), not a style hook. */
-.page-main-inner {
-    max-width: 1280px;
-}
-
-/* Desktop: pin the static sidebar under the navbar and let only its list scroll, so a long list
-   never stretches the page or hides its bottom entries below the fold. */
-@media (min-width: 768px) {
-    .side-nav {
-        flex: 0 0 280px;
-        width: 280px;
-        position: sticky;
-        top: var(--nav-h);
-        align-self: flex-start;
-        /* Cap the column to the viewport minus the top bar so the inner .side-nav-scroll (not the page)
-           is the bounded scroll region — a long, fully-expanded list scrolls inside itself, filter
-           pinned above. This used to be written against Bootstrap's .side-nav.offcanvas-md
-           .offcanvas-body, an element that stopped existing when BsOffcanvas went: the <aside> IS the
-           body now, so the rule had matched nothing since. */
-        max-height: calc(100vh - var(--nav-h));
-    }
-}
-
-/* Mobile drawer: account for the fixed navbar and notch insets when the offcanvas slides in. */
-@media (max-width: 767.98px) {
-    .side-nav {
-        padding-top: calc(var(--nav-h) + env(safe-area-inset-top));
-    }
-}
+/* ShowcaseLayout's shell has no rules here any more (#1101). The bar is daisyUI's `navbar`, the sidebar's
+   links and groups are its `menu`, and the rail's own layout — the pinned filter over a scrolling list, the
+   sticky md column capped at the viewport, the drawer's top padding — is utilities on the elements. The
+   .app-*, .side-nav* and .nav-group* names stay there because the unit and browser suites select on them;
+   ChromeStylesheetTests fails if a rule for one comes back, since an unlayered rule in this file outranks
+   every utility on the page.
+*/
 
 /* GuidePage: the Markdig-rendered guide HTML (docs/*.md) is injected verbatim via Raw(), so it carries
    no scope id — these rules live here (global) and are anchored under .markdown-body so they never leak

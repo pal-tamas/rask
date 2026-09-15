@@ -801,6 +801,11 @@ them until tagged releases begin.
   - The tabs and the copy button keep a legible label on light themes. daisyUI colours them from the theme, and
     the code pane stays the site's dark ink, because the syntax palette is tuned for it.
   - The class names the suites select on stay on the elements.
+  - **The docs sidebar's layout is utilities** where `global.css`'s unlayered `.side-nav*` rules were: the pinned
+    filter over a scrolling list, the sticky md column capped under the bar, and the drawer's top padding. The
+    open/closed drawer stays component state with a backdrop. daisyUI's `drawer` is a checkbox toggle, and it
+    would have taken that state out of C#. The Bootstrap leftovers `display-5`, `text-accent` and
+    `bg-body-tertiary` are gone, and the brand's display face is utilities too.
 - **File storage reads `Rask:Storage`, like every other Rask area.** It was the one package still on a top-level
   `Storage` section (#1080). Its settings now bind from `Rask:Storage`, so the environment variables are
   `Rask__Storage__Provider`, `Rask__Storage__S3__Bucket` and so on. They bind through the same registration

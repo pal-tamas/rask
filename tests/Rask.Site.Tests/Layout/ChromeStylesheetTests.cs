@@ -58,6 +58,21 @@ public sealed class ChromeStylesheetTests
         "sample-result-body",
         "sample-dot",
         "side-nav-link",
+        // The rail's own layout went to utilities with #1101: the pinned filter, the scrolling list, the sticky md
+        // column and the section headings.
+        "side-nav",
+        "side-nav-search",
+        "side-nav-scroll",
+        "side-nav-filter",
+        "side-nav-section",
+        "side-nav-empty",
+        "page-main-inner",
+        // The trivia #1101 closed: the brand's display face is utilities on it, display-5 and bg-body-tertiary were
+        // Bootstrap names nothing emits, and the one text-accent span uses the brand-ink token.
+        "app-brand",
+        "display-5",
+        "text-accent",
+        "bg-body-tertiary",
         "nav-group",
         "nav-group-toggle",
         "nav-group-items",
