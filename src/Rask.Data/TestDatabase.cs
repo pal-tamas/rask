@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Rask.Data;
 
 /// <summary>
-///     A real database for a test, in one line — so a method on a <see cref="Model" /> that reads or
+///     A real database for a test, in one line — so a method on a <see cref="Aggregate{TId}" /> that reads or
 ///     writes can be tested as directly as one that only changes fields.
 /// </summary>
 /// <remarks>
@@ -24,7 +24,7 @@ namespace Rask.Data;
 ///         </code>
 ///     </example>
 ///     <para>
-///         It builds the generated model (so every <see cref="Model" /> in the test assembly is mapped),
+///         It builds the generated model (so every <see cref="Aggregate{TId}" /> in the test assembly is mapped),
 ///         creates the schema, wires the auditing and soft-delete interceptors so the conventions behave
 ///         as they do in production, and points <see cref="Db" /> at it. Disposing clears it again, so one
 ///         test cannot leak its database into the next.

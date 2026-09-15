@@ -367,6 +367,7 @@ Rask.Ui.RaskSeed_UiBreadcrumbs.Key(object? key) -> Rask.Ui.RaskSeed_UiBreadcrumb
 Rask.Ui.RaskSeed_UiBreadcrumbs.RaskSeed_UiBreadcrumbs() -> void
 Rask.Ui.RaskSeed_UiCalendar
 Rask.Ui.RaskSeed_UiCalendar.Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly>!>! Bind) -> Rask.Ui.RaskPending_UiCalendar
+Rask.Ui.RaskSeed_UiCalendar.Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly?>!>! Bind) -> Rask.Ui.RaskPending_UiCalendar
 Rask.Ui.RaskSeed_UiCalendar.Key(object? key) -> Rask.Ui.RaskSeed_UiCalendar
 Rask.Ui.RaskSeed_UiCalendar.RaskSeed_UiCalendar() -> void
 Rask.Ui.RaskSeed_UiCalendar.Value(System.DateOnly Value) -> Rask.Ui.RaskPending_UiCalendar
@@ -376,6 +377,7 @@ Rask.Ui.RaskSeed_UiChatBubble.Message(string! Message) -> Rask.Ui.UiChatBubble!
 Rask.Ui.RaskSeed_UiChatBubble.RaskSeed_UiChatBubble() -> void
 Rask.Ui.RaskSeed_UiCheckbox
 Rask.Ui.RaskSeed_UiCheckbox.Bind(System.Linq.Expressions.Expression<System.Func<bool>!>! Bind) -> Rask.Ui.RaskPending_UiCheckbox
+Rask.Ui.RaskSeed_UiCheckbox.Bind(System.Linq.Expressions.Expression<System.Func<bool?>!>! Bind) -> Rask.Ui.RaskPending_UiCheckbox
 Rask.Ui.RaskSeed_UiCheckbox.Key(object? key) -> Rask.Ui.RaskSeed_UiCheckbox
 Rask.Ui.RaskSeed_UiCheckbox.RaskSeed_UiCheckbox() -> void
 Rask.Ui.RaskSeed_UiCheckbox.Value(bool Value) -> Rask.Ui.RaskPending_UiCheckbox
@@ -498,6 +500,7 @@ Rask.Ui.RaskSeed_UiMegamenuPanel.RaskSeed_UiMegamenuPanel() -> void
 Rask.Ui.RaskSeed_UiMegamenuPanel.Trigger(string! Trigger) -> Rask.Ui.RaskPending_UiMegamenuPanel_Trigger
 Rask.Ui.RaskSeed_UiMenuCheckbox
 Rask.Ui.RaskSeed_UiMenuCheckbox.Bind(System.Linq.Expressions.Expression<System.Func<bool>!>! Bind) -> Rask.Ui.RaskPending_UiMenuCheckbox
+Rask.Ui.RaskSeed_UiMenuCheckbox.Bind(System.Linq.Expressions.Expression<System.Func<bool?>!>! Bind) -> Rask.Ui.RaskPending_UiMenuCheckbox
 Rask.Ui.RaskSeed_UiMenuCheckbox.Key(object? key) -> Rask.Ui.RaskSeed_UiMenuCheckbox
 Rask.Ui.RaskSeed_UiMenuCheckbox.RaskSeed_UiMenuCheckbox() -> void
 Rask.Ui.RaskSeed_UiMenuCheckbox.Value(bool Value) -> Rask.Ui.RaskPending_UiMenuCheckbox
@@ -568,16 +571,19 @@ Rask.Ui.RaskSeed_UiRadialProgress.Percent(int Percent) -> Rask.Ui.RaskPending_Ui
 Rask.Ui.RaskSeed_UiRadialProgress.RaskSeed_UiRadialProgress() -> void
 Rask.Ui.RaskSeed_UiRadio
 Rask.Ui.RaskSeed_UiRadio.Bind(System.Linq.Expressions.Expression<System.Func<bool>!>! Bind) -> Rask.Ui.RaskPending_UiRadio
+Rask.Ui.RaskSeed_UiRadio.Bind(System.Linq.Expressions.Expression<System.Func<bool?>!>! Bind) -> Rask.Ui.RaskPending_UiRadio
 Rask.Ui.RaskSeed_UiRadio.Key(object? key) -> Rask.Ui.RaskSeed_UiRadio
 Rask.Ui.RaskSeed_UiRadio.RaskSeed_UiRadio() -> void
 Rask.Ui.RaskSeed_UiRadio.Value(bool Value) -> Rask.Ui.RaskPending_UiRadio
 Rask.Ui.RaskSeed_UiRange
 Rask.Ui.RaskSeed_UiRange.Bind(System.Linq.Expressions.Expression<System.Func<double>!>! Bind) -> Rask.Ui.RaskPending_UiRange
+Rask.Ui.RaskSeed_UiRange.Bind(System.Linq.Expressions.Expression<System.Func<double?>!>! Bind) -> Rask.Ui.RaskPending_UiRange
 Rask.Ui.RaskSeed_UiRange.Key(object? key) -> Rask.Ui.RaskSeed_UiRange
 Rask.Ui.RaskSeed_UiRange.RaskSeed_UiRange() -> void
 Rask.Ui.RaskSeed_UiRange.Value(double Value) -> Rask.Ui.RaskPending_UiRange
 Rask.Ui.RaskSeed_UiRating
 Rask.Ui.RaskSeed_UiRating.Bind(System.Linq.Expressions.Expression<System.Func<int>!>! Bind) -> Rask.Ui.RaskPending_UiRating
+Rask.Ui.RaskSeed_UiRating.Bind(System.Linq.Expressions.Expression<System.Func<int?>!>! Bind) -> Rask.Ui.RaskPending_UiRating
 Rask.Ui.RaskSeed_UiRating.Key(object? key) -> Rask.Ui.RaskSeed_UiRating
 Rask.Ui.RaskSeed_UiRating.RaskSeed_UiRating() -> void
 Rask.Ui.RaskSeed_UiRating.Value(int Value) -> Rask.Ui.RaskPending_UiRating
@@ -644,6 +650,7 @@ Rask.Ui.RaskSeed_UiToast.Message(string! Message) -> Rask.Ui.UiToast!
 Rask.Ui.RaskSeed_UiToast.RaskSeed_UiToast() -> void
 Rask.Ui.RaskSeed_UiToggle
 Rask.Ui.RaskSeed_UiToggle.Bind(System.Linq.Expressions.Expression<System.Func<bool>!>! Bind) -> Rask.Ui.RaskPending_UiToggle
+Rask.Ui.RaskSeed_UiToggle.Bind(System.Linq.Expressions.Expression<System.Func<bool?>!>! Bind) -> Rask.Ui.RaskPending_UiToggle
 Rask.Ui.RaskSeed_UiToggle.Key(object? key) -> Rask.Ui.RaskSeed_UiToggle
 Rask.Ui.RaskSeed_UiToggle.RaskSeed_UiToggle() -> void
 Rask.Ui.RaskSeed_UiToggle.Value(bool Value) -> Rask.Ui.RaskPending_UiToggle

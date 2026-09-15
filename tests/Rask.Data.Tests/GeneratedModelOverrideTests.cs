@@ -7,7 +7,7 @@ namespace Rask.Data.Tests;
 // overriding one: a type's own member wins over an extension member of the same signature, so every
 // `Ticket.CreateAsync(model)` in the app reaches this code — and the generated write stays reachable
 // through its extension class for an override that only wants to add to it.
-public sealed class Ticket : Model<Guid>
+public sealed class Ticket : Aggregate<Guid>
 {
     private Ticket() { }
 
@@ -19,7 +19,7 @@ public sealed class Ticket : Model<Guid>
     public static Task<Ticket> CreateAsync(TicketModel model, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(model);
-        model.Title = model.Title.Trim().ToUpperInvariant();
+        model.Title = model.Title?.Trim().ToUpperInvariant();
         return TicketModelExtensions.CreateAsync(model, cancellationToken: cancellationToken);
     }
 

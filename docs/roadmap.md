@@ -16,7 +16,7 @@ service to operate.
 | **The `rask` CLI** | ✅ | [`cli.md`](cli.md) — `new` / `dev` / `db` / `deploy`. |
 | **CRUD pattern** | ✅ | A CQRS + EF Core vertical slice — encapsulated entity, validation, pages — documented as code in [tutorial chapter 2](tutorial/02-first-feature.md), with jobs, email and cache following the same shape. |
 | **CQRS / mediator** | ✅ | [`Rask.Cqrs`](cqrs.md) — source-generated, reflection-free. |
-| **Data layer** | ✅ | [`Rask.Data`](data.md) — `Model<TId>` + interceptors (audit, soft delete, concurrency, domain events). |
+| **Data layer** | ✅ | [`Rask.Data`](data.md) — `Aggregate<TId>` and `Entity<TId>` + interceptors (audit, soft delete, concurrency, domain events). |
 | **Transactional outbox** | ✅ | [`Rask.Outbox`](outbox.md) — durable, crash-safe domain-event delivery on the app's own database. |
 | **Background jobs** | ✅ | [`Rask.Jobs`](jobs.md) — durable enqueued/delayed/recurring work on the app's own database, at-least-once with backoff. |
 | **Transactional email** | ✅ | [`Rask.Mail`](mail.md) — durable email queued on the app's own database, delivered off the request thread over SMTP; bodies are Rask components. |
@@ -43,9 +43,10 @@ broker, no Redis, no separate infrastructure for a hello-world. Ordered by lever
 The developer-facing cache has [shipped](cache.md). Still planned: a render/fragment cache reusing the
 framework's existing subtree-cache machinery, to memoize a component subtree across sessions by an explicit key.
 
-### Broadcast
-Server-to-many-clients pub/sub over the existing WebSocket channel — subscribe to a topic, push a live diff
-to every subscriber. Unlocks realtime UI without new infrastructure.
+### Broadcast — across servers
+[Broadcast](broadcast.md) has shipped for one process: publish on a topic and every subscribed component in every
+open session re-renders. Still planned: a backplane that carries a publish to the sessions held by other instances
+behind a load balancer.
 
 ## Not shipped
 

@@ -108,7 +108,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                 NavLink
                     .Href(PageMeta.LinkTo(Features.Routes.GuidesIndexPage()))
                     .ActiveClass("")
-                    .Class("app-brand font-semibold inline-flex min-w-0 items-center gap-2 text-ui-ink no-underline")[
+                    .Class("app-brand font-semibold font-[family-name:var(--font-display)] tracking-[-0.022em] inline-flex min-w-0 items-center gap-2 text-ui-ink no-underline")[
                     RaskLogo.Size(24).GradientId("brandBolt"),
                     Span["Rask"],
                     // Both badges are hidden below sm, in the markup and nowhere else. The bar carries a
@@ -145,20 +145,26 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
         // The kit's sidebar: docked from md up, a drawer below it. The open state is the drawer's checkbox, mirrored
         // in _drawerOpen so a navigation closes it. The docked rail sits under the sticky top bar rather than
         // under its top edge, which is what the two arbitrary variants on the drawer say.
+        //
+        // The rail's own layout is utilities (#1101), where global.css's .side-nav rules used to be: a column that
+        // does not scroll — the filter is pinned, the list below it scrolls — as wide as the old 280px column from md
+        // up, and clearing the bar and the notch while it slides over the page below md. The widths are `!` because
+        // the kit's panel carries its own default width and two width utilities would be settled by sheet order.
         UiSidebar
             .Id(SidebarId)
             .Page(Main.Class(
                 "grow min-w-0 px-3 py-4 pb-[calc(2rem_+_env(safe-area-inset-bottom))] md:px-5 page-main")[
-                Div.Class("mx-auto page-main-inner")[Outlet]
+                Div.Class("mx-auto max-w-[1280px] page-main-inner")[Outlet]
             ])
             .Collapsible(UiBreakpoint.Md)
             .Open(_drawerOpen)
             .OnToggle(open => { _drawerOpen = open; })
             .AccessibleLabel("Guides and examples")
             .CloseLabel("Close navigation")
-            .Class("app-shell min-h-0 md:[&>.drawer-side]:top-[var(--nav-h)] "
-                   + "md:[&>.drawer-side]:h-[calc(100vh_-_var(--nav-h))]")
-            .PanelClass("side-nav w-72 border-ui-line bg-ui-bg md:w-64")[
+            .Class("app-shell min-h-0 md:[&>.drawer-side]:top-(--nav-h) "
+                   + "md:[&>.drawer-side]:h-[calc(100vh-var(--nav-h))]")
+            .PanelClass("side-nav h-full flex-col gap-0 overflow-hidden border-ui-line bg-ui-bg px-3 py-4 w-72! "
+                        + "pt-[calc(var(--nav-h)+env(safe-area-inset-top))] md:w-[280px]! md:pt-4")[
             SidebarBody()
         ]
     ];
@@ -168,12 +174,12 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     // position:sticky child because sticky-in-flexbox is unreliable in Safari (the filter would scroll
     // away with the list), and this keeps it rock-solid across browsers with a clean hairline divider.
     private Component SidebarBody() => [
-        Div.Class("side-nav-search")[
+        Div.Class("side-nav-search mb-1 flex-none border-b border-ui-line bg-ui-well pb-2")[
             UiInput.Value(_filter).AccessibleLabel("Filter guides & examples…")
                 .OnInput(v => _filter = v ?? "")
-                .Placeholder("Filter guides & examples…").Class("side-nav-filter")
+                .Placeholder("Filter guides & examples…").Class("side-nav-filter rounded-lg")
         ],
-        Div.Class("side-nav-scroll")[
+        Div.Class("side-nav-scroll flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain")[
             Ul.Class("menu menu-sm w-full flex-nowrap p-0")[BuildSections()]
         ]
     ];
@@ -228,13 +234,13 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                 continue;
             }
 
-            children.Add(Li.Class("side-nav-section menu-title")[section]);
+            children.Add(Li.Class("side-nav-section menu-title mt-2 border-t border-ui-line px-2 pt-3 pb-1 font-mono text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-ui-brand-ink first:mt-0 first:border-t-0")[section]);
             children.AddRange(groups);
         }
 
         if (children.Count == 0)
         {
-            children.Add(Li.Class("side-nav-empty menu-title")["Nothing matches that filter."]);
+            children.Add(Li.Class("side-nav-empty menu-title px-2 py-4")["Nothing matches that filter."]);
         }
 
         return children;

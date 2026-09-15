@@ -244,7 +244,7 @@ public class SqliteBulkInsertBenchmarks
     private const int EfChunk = 5_000;
 
     private static readonly string[] Columns =
-        ["Id", "Sku", "Name", "Price", "Stock", "Active", "CreatedAt", "UpdatedAt"];
+        ["Id", "Sku", "Name", "Price", "Stock", "Active", "CreatedAt", "UpdatedAt", "Version"];
 
     private static string BuildInsert(int rows)
     {
@@ -276,7 +276,7 @@ public class SqliteBulkInsertBenchmarks
     }
 
     private static object[] ValuesOf(BenchProduct row, DateTime now) =>
-        [row.Id.ToString(), row.Sku, row.Name, row.Price, row.Stock, row.Active, now, now];
+        [row.Id.ToString(), row.Sku, row.Name, row.Price, row.Stock, row.Active, now, now, 0];
 
     private static void Bind(SqliteCommand command, BenchProduct row, int index, DateTime now)
     {
@@ -291,7 +291,7 @@ public class SqliteBulkInsertBenchmarks
 }
 
 /// <summary>A representative row: a few scalars of each storage class, plus Rask's audit stamps.</summary>
-public sealed class BenchProduct : Model<Guid>
+public sealed class BenchProduct : Aggregate<Guid>
 {
     public string Sku { get; private set; } = string.Empty;
 

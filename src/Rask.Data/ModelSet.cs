@@ -13,7 +13,7 @@ namespace Rask.Data;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         These are C# 14 static extension members over every type deriving from <see cref="Model" />,
+///         These are C# 14 static extension members over every type deriving from <see cref="Aggregate{TId}" />,
 ///         which is why nothing has to be declared or derived from a second base: an entity that compiles
 ///         today has them.
 ///     </para>
@@ -40,7 +40,7 @@ public static class ModelSet
     private static readonly FieldInfo BoxedValue = typeof(StrongBox<object?>).GetField(nameof(StrongBox<object?>.Value))!;
 
     extension<TEntity>(TEntity)
-        where TEntity : Model
+        where TEntity : class, IAggregate
     {
         // ---- The set itself -------------------------------------------------------------------
 
@@ -248,7 +248,7 @@ public static class ModelSet
     }
 
     private static async Task<TEntity?> FindByKeyAsync<TEntity>(object?[] keyValues, CancellationToken cancellationToken)
-        where TEntity : Model
+        where TEntity : class, IAggregate
     {
         await using var context = Db.CreateContext();
 

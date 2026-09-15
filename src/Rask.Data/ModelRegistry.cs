@@ -9,7 +9,7 @@ namespace Rask.Data;
 /// <remarks>
 ///     <para>
 ///         An app writes no <c>DbContext</c> and no <see cref="IEntityTypeConfiguration{TEntity}" />
-///         classes: a source generator finds every <see cref="Model" /> in the compilation and registers
+///         classes: a source generator finds every <see cref="Aggregate{TId}" /> in the compilation and registers
 ///         a contribution here, which <see cref="RaskDbContext" /> replays in <c>OnModelCreating</c>.
 ///     </para>
 ///     <para>

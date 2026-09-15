@@ -86,17 +86,16 @@ internal sealed class RenamedColumnContext(DbContextOptions options) : DbContext
     }
 }
 
-internal sealed class Lease : ISoftDeletable
+internal sealed class Lease : Aggregate<int>
 {
-    public int Id { get; set; }
+    public int AssetId { get; private set; }
 
-    public int AssetId { get; set; }
+    public long StartsAt { get; private set; }
 
-    public long StartsAt { get; set; }
+    public long EndsAt { get; private set; }
 
-    public long EndsAt { get; set; }
-
-    public DateTime? DeletedAt { get; set; }
+    public static Lease For(int id, int assetId, long startsAt, long endsAt) =>
+        new() { Id = id, AssetId = assetId, StartsAt = startsAt, EndsAt = endsAt };
 }
 
 internal sealed class LeaseContext(DbContextOptions options) : DbContext(options)

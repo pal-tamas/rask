@@ -66,29 +66,35 @@ public sealed partial class CodeSample : Component
         await _js.InvokeVoidAsync("Rask.CodeSample.copy", source, _copyButton);
     }
 
+    // The header sits in the row daisyUI's `mockup-code` opens with its three window dots, to their right. The dots
+    // are the component's own ::before now — the three spans and their literal traffic-light colours are gone.
     private Component Header()
     {
         Component files = Files.Count == 1
-            ? Span.Class("sample-code-label ms-2")[Files[0]]
-            : Span.Class("sample-tabs ms-2")[
+            ? Span.Class("sample-code-label font-mono text-xs opacity-60")[Files[0]]
+            // One row that scrolls sideways rather than wrapping: the header sits in mockup-code's fixed top band, and
+            // a second row of tabs on a phone spilled into the code beneath it.
+            : Div.Class("sample-tabs tabs tabs-xs min-w-0 flex-nowrap overflow-x-auto")[
                 Files.Select((file, index) => Button
                     .Type("button")
-                    .Class($"sample-tab{(index == _active ? " active" : "")}")
+                    // "sample-tab active" stays one run of text: a unit test reads the pair, and the browser suite
+                    // selects on .sample-tab. `tab`/`tab-active` are what daisyUI draws.
+                    .Class(index == _active
+                        ? "sample-tab active tab tab-active shrink-0 font-mono text-[#e7e3ff]!"
+                        : "sample-tab tab shrink-0 font-mono text-[#e7e3ff]! opacity-60 hover:opacity-100")
                     .Key(file)
                     .OnClick(() => _active = index)[file])
             ];
 
-        return Div.Class("sample-code-header")[
-            Span.Class("sample-dot dot-r"),
-            Span.Class("sample-dot dot-y"),
-            Span.Class("sample-dot dot-g"),
+        return Div.Class("sample-code-header absolute inset-x-0 top-0 flex h-11 items-center gap-1 ps-20 pe-3")[
             files,
             Button
                 .Type("button")
-                .Class("sample-copy")
+                // `copied` is toggled by the scoped script for the moment it flashes "Copied!".
+                .Class("sample-copy btn btn-ghost btn-xs ms-auto shrink-0 font-normal text-[#e7e3ff]! opacity-60 hover:opacity-100 [&.copied]:text-success! [&.copied]:opacity-100")
                 .Ref(_copyButton)
                 .OnClick(CopyAsync)[
-                    UiIcon.Name(UiIconName.Clipboard).Class("me-1"),
+                    UiIcon.Name(UiIconName.Clipboard).Class("size-4"),
                     // A real text node (not a CSS pseudo-element) so the button has an
                     // accessible name; the scoped JS swaps it to "Copied!" on click.
                     Span.Class("sample-copy-text")["Copy"]
@@ -119,9 +125,12 @@ public sealed partial class CodeSample : Component
             // Stacked, code first: the source pane on top, the live result below (full width). Reads
             // top-to-bottom — the code you'd write, then what it renders — and never squeezes either
             // pane into a narrow column on smaller viewports.
-            Div.Class("sample-code-col")[
+            // daisyUI's `mockup-code`: the window chrome and the code pane's spacing. The ground stays the site's ink
+            // rather than the theme's `neutral` because the syntax colours in global.css are one palette tuned for
+            // that ink, and a neutral that is light in some themes would put them on a background they fail on.
+            Div.Class("sample-code-col mockup-code relative min-w-0 rounded-none bg-(--rask-ink) text-[#e7e3ff]")[
                 Header(),
-                Pre.Class("sample-code m-0")[
+                Pre.Class("sample-code m-0 overflow-x-auto px-5 pb-1 text-[0.82rem] leading-relaxed")[
                     Code.Class(codeClass)[
                         // A known language is tokenized server-side and injected verbatim;
                         // an unknown extension falls back to plain, HTML-encoded text.
@@ -132,8 +141,13 @@ public sealed partial class CodeSample : Component
                 ]
             ],
             Div.Class("sample-result-col flex flex-col border-t border-ui-line bg-ui-bg p-4")[
-                Div.Class("sample-result-label")["Live result"],
-                Div.Class("sample-result-body")[Result ?? null]
+                // The output side of the pairing: daisyUI's `status` dot, pulsing unless the visitor asked for less
+                // motion, beside a mono label that rhymes with the code header above.
+                Div.Class("sample-result-label mb-3 inline-flex items-center gap-2 font-mono text-[0.68rem] uppercase tracking-[0.12em] text-ui-brand-ink")[
+                    Span.Class("status status-primary motion-safe:animate-pulse").Aria(new Dictionary<string, string?> { ["hidden"] = "true" }),
+                    "Live result"
+                ],
+                Div.Class("sample-result-body flex-1")[Result ?? null]
             ]
         ];
     }

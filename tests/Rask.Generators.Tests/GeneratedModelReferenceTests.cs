@@ -28,8 +28,8 @@ public class GeneratedModelReferenceTests
     private const string Stubs = """
         namespace Rask.Data
         {
-            public abstract class Model { }
-            public abstract class Model<TId> : Model { public TId Id { get; protected set; } = default!; }
+            public abstract class Entity<TId> { public TId Id { get; protected set; } = default!; }
+            public abstract class Aggregate<TId> : Entity<TId> { public int Version { get; private set; } }
         }
         namespace FluentValidation
         {
@@ -41,7 +41,7 @@ public class GeneratedModelReferenceTests
         }
         namespace Shop
         {
-            public sealed class Product : Rask.Data.Model<System.Guid>
+            public sealed class Product : Rask.Data.Aggregate<System.Guid>
             {
                 private Product() { }
                 public string Name { get; private set; } = "";
@@ -105,12 +105,12 @@ public class GeneratedModelReferenceTests
             using Rask.Core;
             namespace Rask.Data
             {
-                public abstract class Model { }
-                public abstract class Model<TId> : Model { public TId Id { get; protected set; } = default!; }
+                public abstract class Entity<TId> { public TId Id { get; protected set; } = default!; }
+                public abstract class Aggregate<TId> : Entity<TId> { public int Version { get; private set; } }
             }
             namespace Shop.Catalog
             {
-                public sealed class Product : Rask.Data.Model<int>
+                public sealed class Product : Rask.Data.Aggregate<int>
                 {
                     private Product() { }
                     public string Name { get; private set; } = "";
@@ -181,7 +181,8 @@ public class GeneratedModelReferenceTests
             {
                 public sealed partial class ProductModel
                 {
-                    public string Name { get; set; } = "";
+                    public string? Name { get; set; }
+                    public int? Version { get; set; }
                 }
             }
             """,

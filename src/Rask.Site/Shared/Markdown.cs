@@ -11,8 +11,10 @@ using Rask.Core.Live;
 namespace Rask.Site;
 
 // A reusable Markdown renderer: pass it markdown Source and it renders to HTML with Markdig and injects
-// the result via Raw() inside a .markdown-body wrapper (styled globally in wwwroot/global.css — the Raw
-// HTML carries no scope id, so those prose rules can't be component-scoped). The rendered HTML is cached
+// the result via Raw() inside a .markdown-body wrapper, typeset by Tailwind's `prose` (mapped onto the kit's
+// palette in Styles/app.css — the Raw HTML carries no scope id, so those rules can't be component-scoped).
+// An inline demo is `not-prose`: it is a real component with its own utilities, and prose's element rules
+// would otherwise restyle its headings, lists and code. The rendered HTML is cached
 // per source, so Markdig parses once. This is the showcase's prose component; it also rewrites the docs'
 // relative links so they work on the site: resolved against the doc's own folder (SourcePath), a link that
 // lands on another guide becomes a SPA-routed guide anchor (data-rask-nav), and any other relative link —
@@ -145,8 +147,8 @@ public sealed partial class Markdown : Component
 
     protected override Component? Render() =>
         DemoMarkerRegex().IsMatch(Source)
-            ? Div.Class("markdown-body")[Segments()]
-            : Div.Class("markdown-body")[Raw.Value(HtmlCache.GetOrAdd((SourcePath, Source), static key => RenderHtml(key)))];
+            ? Div.Class("markdown-body prose")[Segments()]
+            : Div.Class("markdown-body prose")[Raw.Value(HtmlCache.GetOrAdd((SourcePath, Source), static key => RenderHtml(key)))];
 
     // Renders the split segments: prose runs become Raw() HTML chunks (each rendered and cached
     // independently) and each demo segment becomes the resolved demo component. An unknown key renders a
@@ -163,7 +165,7 @@ public sealed partial class Markdown : Component
                 continue;
             }
 
-            yield return Div.Class("guide-demo").Key($"demo-{index}")[
+            yield return Div.Class("guide-demo not-prose").Key($"demo-{index}")[
                 DemoRegistry.Contains(segment.Value)
                     ? DemoRegistry.Build(segment.Value)
                     : UiAlert.Tone(UiTone.Warning).Variant(UiVariant.Soft)[$"Unknown demo “{segment.Value}”."]

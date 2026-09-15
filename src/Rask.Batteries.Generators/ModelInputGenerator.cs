@@ -15,7 +15,7 @@ using Rask.Generators.Shared;
 namespace Rask.Data.Generators;
 
 /// <summary>
-/// Gives every <c>Rask.Data.Model</c> a form-shaped companion — <c>ProductModel</c> for <c>Product</c> — and
+/// Gives every <c>Rask.Data.Aggregate&lt;TId&gt;</c> a form-shaped companion — <c>ProductModel</c> for <c>Product</c> — and
 /// the writes that take it: <c>Product.CreateAsync(id, model)</c>, <c>Product.CreateAsync(model)</c> where a key
 /// can be produced without the caller, <c>Product.UpdateAsync(id, model)</c>, <c>Product.UpdateAsync(id, apply)</c>
 /// and <c>Product.DeleteAsync(id, version)</c>. Every write takes an optional <c>apply</c> (values that do not come
@@ -56,16 +56,17 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
     // RASK081 said this before the writes were dropped; a retired id is never recycled, so the rule returned as RASK086.
     internal static readonly DiagnosticDescriptor Rask086 = new(
         "RASK086",
-        "Entity has no parameterless constructor, so CreateAsync is not generated",
-        "'{0}' has no parameterless constructor, so no generated '{0}.CreateAsync' — from a '{0}Model' or a "
-        + "'p => …' — exists; add one — it may be private, like the one EF Core materializes rows through — or "
-        + "insert one you built with '{0}.CreateAsync(entity)'",
+        "Aggregate has no parameterless constructor, so CreateAsync is not generated",
+        "'{0}' declares a constructor that takes arguments, so it has no parameterless one and no generated "
+        + "'{0}.CreateAsync' — from a '{0}Model' or a 'p => …' — exists; declare no constructor and build it in a "
+        + "static factory instead, or insert one you built with '{0}.CreateAsync(entity)'",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
-        description: "Every generated CreateAsync builds the entity itself — from its form model or through a lambda — "
-                     + "before inserting it, and needs a constructor that takes nothing to start from. Everything that works on a row "
-                     + "that already exists — the model itself, UpdateAsync and DeleteAsync — is still generated.",
+        description: "Every generated CreateAsync — and a new form model's defaults — starts from an empty aggregate, "
+                     + "which needs a constructor that takes nothing. An aggregate that declares no constructor has "
+                     + "one for free; domain creation belongs in a static factory. Everything that works on a row that "
+                     + "already exists — the model itself, UpdateAsync and DeleteAsync — is still generated.",
         helpLinkUri: DiagnosticHelp.Link("RASK086"));
 
     internal static readonly DiagnosticDescriptor Rask082 = new(
@@ -73,11 +74,11 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         "A type already has the generated model's name",
         "'{1}' already exists beside the entity '{0}', so Rask cannot generate its form model or the "
         + "CreateAsync, UpdateAsync and DeleteAsync that take it; rename the existing type, declare it "
-        + "'partial' to extend the generated one, or mark '{0}' [SkipModel] to generate none",
+        + "'partial' to extend the generated one",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
-        description: "Every Rask.Data.Model gets a generated {Entity}Model in its own namespace. A hand-written, "
+        description: "Every Rask.Data.Aggregate<TId> gets a generated {Entity}Model in its own namespace. A hand-written, "
                      + "non-partial type of that name would collide with it as CS0101, a message that names "
                      + "neither the generator nor the way out — so the generator stands down and says why instead.",
         helpLinkUri: DiagnosticHelp.Link("RASK082"));
@@ -86,7 +87,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         "RASK083",
         "Nested entity gets no generated model",
         "'{0}' is declared inside '{1}', so no '{0}Model' is generated for it; declare the entity at "
-        + "namespace level to get one, or mark it [SkipModel] to say that is intended",
+        + "namespace level to get one",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
@@ -170,10 +171,9 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
     //  * A Guid: this code, as a version-7 Guid (time-ordered, so the primary-key index stays append-only), and
     //    the same inside a strongly-typed id over a Guid.
     //  * An integer: the store's identity column. Rask.Data's key convention leaves integer keys store-generated
-    //    and marks every other Model<TId> key never-generated, so EF produces nothing else.
+    //    and marks every other Entity<TId> key never-generated, so EF produces nothing else.
     //  * Anything else — a string, a strongly-typed id over an integer or a string — has no value the row could
     //    be keyed by that the caller did not choose, so only CreateAsync(id, model) is generated for it.
-    // An entity on the non-generic Model has no single key to reason about, and keeps CreateAsync(model).
     private static (KeySource Source, string? Factory) KeySourceOf(ITypeSymbol? idType)
     {
         if (idType is null)
@@ -217,8 +217,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         return new Member(
             property.Name,
             member.Role,
-            valueObject is null ? property.Type.ToDisplayString(TypeFormat) : valueObject.ModelName + (member.Nullable ? "?" : ""),
-            valueObject is null ? Initializer(property.Type) : member.Nullable ? "" : " = new();",
+            ModelTypeOf(property.Type, valueObject),
             member.Nullable,
             valueObject,
             member.Write is { } kind
@@ -318,8 +317,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             var nested = m.ValueObject is null ? null : ToShape(m.ValueObject, converted);
             return new ValueObjectMember(
                 m.Property.Name,
-                nested is null ? m.Property.Type.ToDisplayString(TypeFormat) : nested.ModelName + (m.Nullable ? "?" : ""),
-                nested is null ? Initializer(m.Property.Type) : m.Nullable ? "" : " = new();",
+                ModelTypeOf(m.Property.Type, nested),
                 m.Nullable,
                 nested,
                 new EquatableArray<string>(m.Property.GetAttributes().Where(IsCopiedAttribute).Select(RenderAttribute)),
@@ -338,6 +336,8 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
                 ? valueObject.Constructor.Parameters.Select(static p => p.Type.ToDisplayString(TypeFormat))
                 : []),
             valueObject.Constructor.DeclaredAccessibility == Accessibility.Public,
+            valueObject.Type.IsValueType,
+            valueObject.SingleValue,
             new EquatableArray<ValueObjectMember>(members));
 
         converted[valueObject] = shape;
@@ -345,10 +345,27 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
     }
 
     // ---- emit helpers ---------------------------------------------------------------------------
-    private static string Initializer(ITypeSymbol type) =>
-        !type.IsReferenceType || type.NullableAnnotation == NullableAnnotation.Annotated ? ""
-        : type.SpecialType == SpecialType.System_String ? " = \"\";"
-        : " = default!;";
+    // Every property of a model is nullable: a null means "not given" — an update leaves that value as it is, a create
+    // keeps the aggregate's default. A one-value value object is carried as its value; any other as its nested model.
+    private static string ModelTypeOf(ITypeSymbol type, ValueObjectShape? valueObject) =>
+        valueObject switch
+        {
+            { SingleValue: true } single => single.Members[0].ModelType,
+            { } nested => nested.ModelName + "?",
+            _ => NullableDisplay(type),
+        };
+
+    private static string NullableDisplay(ITypeSymbol type)
+    {
+        if (type.IsValueType)
+        {
+            return type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T
+                ? type.ToDisplayString(TypeFormat)
+                : type.ToDisplayString(TypeFormat) + "?";
+        }
+
+        return type.WithNullableAnnotation(NullableAnnotation.Annotated).ToDisplayString(TypeFormat);
+    }
 
     // The form-facing attributes: DataAnnotations (less the three that only mean something to EF Core) and
     // any ValidationAttribute of the app's own. Schema attributes like [Column] say nothing to a form.
@@ -453,7 +470,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         s.AppendLine("/// <remarks>");
         // Names only the writes this entity actually got — a model without a parameterless constructor has
         // no CreateAsync at all, one whose key only the caller can supply has no id-less one, and one without
-        // Model<TId> has no id to create or update by.
+        // no id has none to create or update by.
         var idLessCreate = IdLessCreate(entity);
         var createWithId = CreateWithId(entity);
         var writes = new List<string>();
@@ -480,9 +497,22 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             s.AppendLine("/// It carries no id: the id is passed beside it, so a posted form cannot point a write at another row.");
         }
 
+        s.AppendLine("/// Every property is nullable: a null clears a property the aggregate declares nullable, and leaves the others as they are.");
         s.AppendLine("/// </remarks>");
         s.Append(entity.Accessibility).Append(" sealed partial class ").AppendLine(modelName);
         s.AppendLine("{");
+
+        if (entity.Constructible)
+        {
+            s.Append("    /// <summary>A model holding <see cref=\"").Append(entityType)
+                .AppendLine("\" />'s own defaults — what its constructor and property initializers set.</summary>");
+            s.Append("    public ").Append(modelName).Append("() => ").Append(modelName)
+                .AppendLine("Extensions.__Fill(this, " + modelName + "Extensions.__Defaults());");
+            s.AppendLine();
+            s.AppendLine("    /// <summary>A model with no values yet, filled by the generated <c>ToModel()</c>.</summary>");
+            s.Append("    internal ").Append(modelName).AppendLine("(bool blank) => _ = blank;");
+            s.AppendLine();
+        }
 
         foreach (var member in entity.Members)
         {
@@ -493,12 +523,11 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
                 s.Append("    ").AppendLine(attribute);
             }
 
-            s.Append("    public ").Append(member.ModelType).Append(' ').Append(member.Name)
-                .Append(" { get; set; }").AppendLine(member.Initializer);
+            s.Append("    public ").Append(member.ModelType).Append(' ').Append(member.Name).AppendLine(" { get; set; }");
             s.AppendLine();
         }
 
-        foreach (var valueObject in entity.ValueObjects)
+        foreach (var valueObject in entity.ValueObjects.Where(static v => !v.SingleValue))
         {
             s.Append("    /// <summary>The form model for <see cref=\"").Append(valueObject.TypeName)
                 .AppendLine("\" />.</summary>");
@@ -513,8 +542,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
                     s.Append("        ").AppendLine(attribute);
                 }
 
-                s.Append("        public ").Append(member.ModelType).Append(' ').Append(member.Name)
-                    .Append(" { get; set; }").AppendLine(member.Initializer);
+                s.Append("        public ").Append(member.ModelType).Append(' ').Append(member.Name).AppendLine(" { get; set; }");
             }
 
             s.AppendLine("    }");
@@ -713,22 +741,70 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         s.AppendLine("    }");
         s.AppendLine();
 
+        s.Append("    extension(").Append(entityType).AppendLine(" entity)");
+        s.AppendLine("    {");
+        s.Append("        /// <summary>Copies this aggregate into a new <see cref=\"").Append(modelType)
+            .AppendLine("\" />, ready to bind to an edit form.</summary>");
+        s.Append("        public ").Append(modelType).AppendLine(" ToModel()");
+        s.AppendLine("        {");
+        s.Append("            var model = new ").Append(modelType).AppendLine(entity.Constructible ? "(blank: true);" : "();");
+        s.AppendLine("            __Fill(model, entity);");
+        s.AppendLine("            return model;");
+        s.AppendLine("        }");
+        s.AppendLine("    }");
+        s.AppendLine();
+
         // ---- plumbing ----
+        // A model save writes what the form holds. A null clears a property the aggregate declares nullable — the user
+        // emptied that field — and leaves a non-nullable one as it is, since it can only mean the form never set it. A
+        // nested value-object model merges what it gives over the value object the aggregate holds.
         s.Append("    private static void __Apply(").Append(entityType).Append(" entity, ").Append(modelType)
             .AppendLine(" model)");
         s.AppendLine("    {");
+        var local = 0;
         foreach (var member in entity.Members.Where(static m => m.Role == ModelMemberRole.Value && m.Write is not null))
         {
+            var given = "__v" + (local++).ToString(CultureInfo.InvariantCulture);
+            var value = member.ValueObject switch
+            {
+                null => given,
+                { SingleValue: true } single => BuildExpression(single, _ => given),
+                { } valueObject => MergeExpression(given, "entity." + member.Name, valueObject, member.Nullable, ref local),
+            };
+
+            s.Append("        if (model.").Append(member.Name).Append(" is { } ").Append(given).AppendLine(")");
+            s.AppendLine("        {");
+            s.Append("            ").AppendLine(Assignment(member.Write!, "entity", member.Name, value));
+            s.AppendLine("        }");
+
+            if (member.Nullable)
+            {
+                s.AppendLine("        else");
+                s.AppendLine("        {");
+                s.Append("            ").AppendLine(Assignment(member.Write!, "entity", member.Name, "null"));
+                s.AppendLine("        }");
+            }
+        }
+
+        s.AppendLine("    }");
+        s.AppendLine();
+
+        s.Append("    internal static void __Fill(").Append(modelType).Append(" model, ").Append(entityType).AppendLine(" entity)");
+        s.AppendLine("    {");
+        foreach (var member in entity.Members)
+        {
             var value = member.ValueObject is null
-                ? "model." + member.Name
-                : ToEntityExpression("model." + member.Name, member.ValueObject, member.Nullable);
-            s.Append("        ").AppendLine(Assignment(member.Write!, "entity", member.Name, value));
+                ? "entity." + member.Name
+                : ToModelExpression("entity." + member.Name, member.ValueObject, member.Nullable, modelType);
+            s.Append("        model.").Append(member.Name).Append(" = ").Append(value).AppendLine(";");
         }
 
         s.AppendLine("    }");
 
         if (entity.Constructible)
         {
+            s.AppendLine();
+            s.Append("    internal static ").Append(entityType).AppendLine(" __Defaults() => __New();");
             s.AppendLine();
             s.Append("    [").Append(UnsafeAccessor).Append('(').Append(UnsafeAccessorKind).AppendLine(".Constructor)]");
             s.Append("    private static extern ").Append(entityType).AppendLine(" __New();");
@@ -795,7 +871,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
     }
 
     // CreateAsync(model) exists only where a key can be produced without the caller (see KeySourceOf); the Guid
-    // case needs a way into Model<TId>.Id to put it there.
+    // case needs a way into Entity<TId>.Id to put it there.
     private static bool IdLessCreate(Entity entity) =>
         entity.Constructible && entity.KeySource switch
         {
@@ -913,26 +989,78 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         };
     }
 
-    private static string ToEntityExpression(string source, ValueObjectShape shape, bool nullable)
+    // The value object built from one value per member, in whichever way this value object is built.
+    private static string BuildExpression(ValueObjectShape shape, Func<ValueObjectMember, string> value)
     {
-        string Value(ValueObjectMember member) =>
-            member.ValueObject is null
-                ? source + "." + member.Name
-                : ToEntityExpression(source + "." + member.Name, member.ValueObject, member.Nullable);
-
         string InConstructorOrder() =>
-            string.Join(", ", shape.ConstructorOrder.Select(name => Value(shape.Members.First(m => m.Name == name))));
+            string.Join(", ", shape.ConstructorOrder.Select(name => value(shape.Members.First(m => m.Name == name))));
 
-        var build = shape.Build switch
+        return shape.Build switch
         {
             ModelValueObjectBuild.Constructor => "new " + shape.TypeName + "(" + InConstructorOrder() + ")",
             ModelValueObjectBuild.Initializer => "new " + shape.TypeName + " { " + string.Join(", ",
-                shape.Members.Select(m => m.Name + " = " + Value(m))) + " }",
+                shape.Members.Select(m => m.Name + " = " + value(m))) + " }",
             ModelValueObjectBuild.AccessorConstructor => "__New" + shape.ModelName + "(" + InConstructorOrder() + ")",
-            _ => "__Build" + shape.ModelName + "(" + string.Join(", ", shape.Members.Select(Value)) + ")",
+            _ => "__Build" + shape.ModelName + "(" + string.Join(", ", shape.Members.Select(value)) + ")",
         };
+    }
 
-        return nullable ? "(" + source + " is null ? null : " + build + ")" : build;
+    // `given` is a non-null nested model; `current` is the value object the aggregate holds now, which may be null (a
+    // reference type, or a nullable property). Each member is the model's value when it gives one, else the current one,
+    // else the member type's default — so a model that names only Amount still builds a whole Money.
+    private static string MergeExpression(string given, string current, ValueObjectShape shape, bool currentNullable, ref int local)
+    {
+        var currentMayBeNull = currentNullable || !shape.IsValueType;
+        var access = currentMayBeNull ? "?." : ".";
+        var counter = local;
+
+        string Member(ValueObjectMember member)
+        {
+            var currentMember = current + access + member.Name;
+            var fallback = currentMayBeNull && !member.Nullable ? " ?? default(" + member.ValueTypeName + ")!" : "";
+
+            switch (member.ValueObject)
+            {
+                case null:
+                    return "(" + given + "." + member.Name + " ?? " + currentMember + fallback + ")";
+
+                case { SingleValue: true } single:
+                {
+                    var inner = "__v" + (counter++).ToString(CultureInfo.InvariantCulture);
+                    return "(" + given + "." + member.Name + " is { } " + inner + " ? " +
+                           BuildExpression(single, _ => inner) + " : " + currentMember + fallback + ")";
+                }
+
+                default:
+                {
+                    var inner = "__v" + (counter++).ToString(CultureInfo.InvariantCulture);
+                    var merged = MergeExpression(inner, currentMember, member.ValueObject, currentMayBeNull || member.Nullable, ref counter);
+                    return "(" + given + "." + member.Name + " is { } " + inner + " ? " + merged + " : " + currentMember + fallback + ")";
+                }
+            }
+        }
+
+        var built = BuildExpression(shape, Member);
+        local = counter;
+        return built;
+    }
+
+    // The model's copy of a value object: the value itself for a one-value one, a nested model otherwise.
+    private static string ToModelExpression(string source, ValueObjectShape shape, bool nullable, string modelType)
+    {
+        var mayBeNull = nullable || !shape.IsValueType;
+
+        if (shape.SingleValue)
+        {
+            return source + (mayBeNull ? "?." : ".") + shape.Members[0].Name;
+        }
+
+        var build = "new " + modelType + "." + shape.ModelName + " { " + string.Join(", ",
+            shape.Members.Select(m => m.Name + " = " + (m.ValueObject is null
+                ? source + "." + m.Name
+                : ToModelExpression(source + "." + m.Name, m.ValueObject, m.Nullable, modelType)))) + " }";
+
+        return mayBeNull ? "(" + source + " is null ? null : " + build + ")" : build;
     }
 
     // ---- the incremental model ------------------------------------------------------------------
@@ -980,7 +1108,6 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         string Name,
         ModelMemberRole Role,
         string ModelType,
-        string Initializer,
         bool Nullable,
         ValueObjectShape? ValueObject,
         Write? Write,
@@ -1003,12 +1130,13 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         EquatableArray<string> ConstructorOrder,
         EquatableArray<string> ConstructorParameterTypes,
         bool PublicConstructor,
+        bool IsValueType,
+        bool SingleValue,
         EquatableArray<ValueObjectMember> Members);
 
     private sealed record ValueObjectMember(
         string Name,
         string ModelType,
-        string Initializer,
         bool Nullable,
         ValueObjectShape? ValueObject,
         EquatableArray<string> Attributes,

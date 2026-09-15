@@ -5,7 +5,7 @@ namespace Rask.Data.Tests;
 
 // A Guid-keyed entity with one factory that assigns its id and one that forgets to, saved the way a domain
 // operation saves — through a context.
-public sealed class Voucher : Model<Guid>
+public sealed class Voucher : Aggregate<Guid>
 {
     private Voucher() { }
 

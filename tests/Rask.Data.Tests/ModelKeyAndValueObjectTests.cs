@@ -5,7 +5,7 @@ namespace Rask.Data.Tests;
 
 // Rask.Data's key convention leaves an integer key to the store's identity and marks every other key never
 // generated, so the entity's own factory is what assigns it. Saved the way every write is — through a context.
-public sealed class Coupon : Model<int>
+public sealed class Coupon : Aggregate<int>
 {
     private Coupon() { }
 
@@ -18,7 +18,7 @@ public readonly record struct ParcelId(Guid Value);
 
 public readonly record struct LockerCode(string Value);
 
-public sealed class Locker : Model<LockerCode>
+public sealed class Locker : Aggregate<LockerCode>
 {
     private Locker() { }
 
@@ -31,7 +31,7 @@ public sealed class Locker : Model<LockerCode>
 
 // Value objects the way RASK084 wants them — no public setters — so EF Core has to materialise them through
 // private members; only a round trip shows it can.
-public sealed class Parcel : Model<ParcelId>
+public sealed class Parcel : Aggregate<ParcelId>
 {
     private Parcel() { }
 
@@ -51,7 +51,7 @@ public sealed class Parcel : Model<ParcelId>
 }
 
 // A private parameterless constructor and private setters.
-public sealed class DeliveryAddress : IValueObject
+public sealed class DeliveryAddress
 {
     private DeliveryAddress() { }
 
@@ -63,7 +63,7 @@ public sealed class DeliveryAddress : IValueObject
 }
 
 // A private constructor naming every property.
-public sealed class ParcelWeight : IValueObject
+public sealed class ParcelWeight
 {
     private ParcelWeight(decimal amount, string unit)
     {
@@ -228,8 +228,8 @@ public sealed class ModelKeyAndValueObjectTests : IDisposable
         Assert.Equal("kg", stored.Weight.Unit);
 
         var edit = NewParcel("fragile");
-        edit.Destination.City = "Debrecen";
-        edit.Weight.Amount = 3m;
+        edit.Destination!.City = "Debrecen";
+        edit.Weight!.Amount = 3m;
         edit.Weight.Unit = "lb";
         await Parcel.UpdateAsync(created.Id, edit);
 

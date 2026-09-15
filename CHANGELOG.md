@@ -72,6 +72,19 @@ them until tagged releases begin.
   `aria-required="true"`. New `Badge` ("Required", "Optional") draws a small badge inside the label, hidden from
   assistive tech so the accessible name stays the label's text; it is never guessed from the model, because a
   FluentValidation rule is invisible to the field.
+- **Broadcast: push a change to every open page (#1061).** `IBroadcast.PublishAsync(topic, message)` reaches every
+  component subscribed to a `Topic<T>`, in every session the process holds, and re-renders each one where it is:
+  a new order appears on every admin's open order list without a refresh.
+  - **Subscribing:** `broadcast.Subscribe(this, Topics.Orders, order => …)` in `OnMount`. The subscription lives
+    exactly as long as the component, because it is tied to the component's lifetime token rather than a handler's.
+    There is nothing to dispose and no `StateHasChanged` to call.
+  - **Delivery:** each session runs its subscribers on its own dispatch queue, in order with its events, under the
+    same lock, and renders once. The publisher does not wait for the renders.
+  - **Pressure and reconnects:** a session whose queue is full is skipped with a warning, and its socket stays open.
+    A reconnecting session still applies the message and shows it on its catch-up render.
+  - **Scope:** at most once, in-process, never serialized. In a browser-WASM app it connects the components of one
+    tab. Registered by both hosts.
+  - Guide and live demo at [docs/broadcast.md](docs/broadcast.md). A cross-server backplane is still planned.
 
 - **F5 debugs the code that runs in the browser: WebAssembly C# and scoped `.ts` (#1073).**
   - **`rask new wasm` ships a `.vscode/` folder.** It starts the dev server in the background on
@@ -127,12 +140,12 @@ them until tagged releases begin.
   - **Rows without bytes are reported.** `rask db restore` names disk rows whose file is missing. The storage
     sweep now logs a warning with their count and the first few ids, which is what a database restored by
     Litestream or a snapshot (neither of which copies files) looks like. It never deletes the rows.
-- **Create, update and delete live on the model type again.** Beside the reads, every `Rask.Data` model gets
+- **Create, update and delete live on the aggregate type again.** Beside the reads, every `Rask.Data` aggregate gets
   creates that read like their updates — `Product.CreateAsync(model)` / `Product.UpdateAsync(id, model)` and
   `Product.CreateAsync(p => …)` / `Product.UpdateAsync(id, p => …)` (with `CreateAsync(id, …)` for a key only
   the caller can give) — plus `Product.DeleteAsync(id)`, and `Product.CreateAsync(entity)` inserts one built by
-  its own factory. The generated `ProductModel` is the mass-assignment whitelist — `[SkipModel]`
-  keeps a property out of reach of any form — and the id is always the caller's, never the form's.
+  its own factory. The generated `ProductModel` carries a form's values, and the id is always the caller's,
+  never the form's.
   - **Values the form does not carry** go in an optional `p => …` that runs after the model's values:
     `Product.CreateAsync(model, p => p.AssignTo(user.Id))`.
   - **Join a context you already hold** with `db:` — the write saves through it and leaves it open, so several
@@ -140,9 +153,9 @@ them until tagged releases begin.
   - Every write goes through the change tracker, so audit stamps, `Version`, soft delete and domain events
     behave as for any save; an update writes only the columns that changed, a stale `Version` throws
     `DbUpdateConcurrencyException`, and a missing or soft-deleted row is `KeyNotFoundException`.
-  - **RASK086** (warning): an entity with no parameterless constructor gets no `CreateAsync(model)` — the rule
-    RASK081 carried before the writes were dropped; a retired id is never recycled. There is still no
-    `ToModel()`, and instance `product.SaveAsync()` is not part of this.
+  - **RASK086** (warning): an aggregate that declares a constructor with arguments gets no `CreateAsync`; declare
+    none and create through a static factory. It is the rule RASK081 carried before the writes were dropped; a
+    retired id is never recycled. Instance `product.SaveAsync()` is not part of this.
 
 - **`rask new --framework net11.0` scaffolds an app on .NET 11.** The csproj takes the version asked for
   (`net11.0`, or `net11.0-browser` on the WASM template), the Dockerfile takes the matching `sdk:11.0` /
@@ -642,15 +655,16 @@ them until tagged releases begin.
   island runtime now tags what is added to `<head>` until the page runtime arms its own watch and takes
   over.
 
-- **Every `Rask.Data` model gets a generated, form-shaped companion.** For `Product` the build writes
-  `ProductModel`: a settable copy of every mapped property, `Version` included and `Id`,
-  `CreatedAt`/`UpdatedAt`/`DeletedAt`, navigations and computed properties left out, with the entity's
-  DataAnnotations copied so `Form.Model(model)` validates by the entity's own rules. A value-object property
-  becomes a nested `{ValueObject}Model`, `[SkipModel]` keeps a property (or, on the class, the whole model)
-  off, and a `partial ProductModel` of the app's own merges into the generated one. It is only a shape:
-  nothing is generated that fills it from an entity or saves it — the write is plain EF Core. The build refuses
-  a hand-written, non-`partial` `ProductModel` beside a `Product` ([RASK082](docs/diagnostics.md#rask082)) and
-  warns about a nested entity, which gets no model ([RASK083](docs/diagnostics.md#rask083)).
+- **Every `Rask.Data` aggregate gets a generated form model, and forms bind it rather than the aggregate.** For
+  `Product` the build writes `ProductModel`: a settable, nullable copy of every mapped property, `Version`
+  included and `Id`, `CreatedAt`/`UpdatedAt`/`DeletedAt`, navigations and computed properties left out, with the
+  aggregate's DataAnnotations copied so `Form.Model(model)` validates by its own rules. `new ProductModel()` holds
+  the aggregate's defaults and `product.ToModel()` fills an edit form. A save writes what the form holds: a null
+  clears a property the aggregate declares nullable and leaves a non-nullable one as it is, and a null `Version`
+  skips the concurrency check. A value object becomes a nested `{ValueObject}Model` (a one-value one is carried as
+  its value), and a `partial ProductModel` of the app's own merges into the generated one. The build refuses a
+  hand-written, non-`partial` `ProductModel` beside a `Product` ([RASK082](docs/diagnostics.md#rask082)) and warns
+  about a nested aggregate, which gets no model ([RASK083](docs/diagnostics.md#rask083)).
 
   The other generators recognise a model although it is generated and they cannot see it: a CQRS message, a
   query handler's result, an API endpoint, an island prop, a component prop or an
@@ -658,12 +672,16 @@ them until tagged releases begin.
   hand-written type. On the wire a model's properties are camelCase; the entity's `[JsonPropertyName]` is not
   copied onto it.
 
-- **Two build warnings point out where an entity's state can be changed from outside.** They are hints, never
-  errors — a public setter on an entity compiles, maps and saves, and an app that prefers open entities
-  silences them in `.editorconfig`. [RASK084](docs/diagnostics.md#rask084)
-  reports a public `set` or `init` (a value object's positional record parameters excepted) or a public
-  non-readonly field on a `Model`, the app's abstract bases between `Model` and its entities, and every
-  `IValueObject`; [RASK085](docs/diagnostics.md#rask085) reports an entity exposing a mutable collection of
+- **The Ui kit's value controls bind a nullable property.** `UiCheckbox`, `UiToggle`, `UiRadio`, `UiRating`,
+  `UiRange` and `UiCalendar` are over `bool`, `int`, `double` and `DateOnly`, so `.Bind(() => model.InStock)` over
+  a `bool?`, the shape of every generated form model's properties, did not compile. Their chains now also open
+  on `Bind(Expression<Func<T?>>)`: a `null` draws as the empty state and a change writes a value, while `Value`
+  and `OnChange` keep the plain type. Any custom control over a value type gets the same overload from the
+  generator, through `ExpressionAccessor.NonNullable`.
+- **The build keeps an aggregate's state inside it.** [RASK084](docs/diagnostics.md#rask084) is an error for a
+  public `set`, a hand-written public `init` or a public non-readonly field on an aggregate, an entity (and the
+  app's abstract bases between them) or a value object one of them holds; a positional record's parameters are
+  exempt. [RASK085](docs/diagnostics.md#rask085), a warning, reports an entity exposing a mutable collection of
   other entities instead of `IReadOnlyCollection<T>` over a private field. Both ship a lightbulb fix.
 
 - **`Product.AsQueryable()` hands a model query to a component that composes its own LINQ.** It is a
@@ -865,6 +883,43 @@ them until tagged releases begin.
   bleed from its root, which pushed a tab row out of any card it sat in; where a component sits is the page's to
   say. `docs/ui-kit.md` records the rule and its two shape-bound exceptions.
 
+- **rask.sh's code samples are drawn by daisyUI (#1101).** `CodeSample` is `mockup-code` with `tabs`, a `btn` and
+  a `status` dot, and its 170-line scoped stylesheet is gone.
+  - The window dots are daisyUI's own now, replacing three spans with literal traffic-light colours.
+  - The file tabs stay on one row that scrolls sideways on a phone, instead of wrapping into the code.
+  - The tabs and the copy button keep a legible label on light themes. daisyUI colours them from the theme, and
+    the code pane stays the site's dark ink, because the syntax palette is tuned for it.
+  - The class names the suites select on stay on the elements.
+  - **The docs sidebar's layout is utilities** where `global.css`'s unlayered `.side-nav*` rules were: the pinned
+    filter over a scrolling list, the sticky md column capped under the bar, and the drawer's top padding. The
+    open/closed drawer stays component state with a backdrop. daisyUI's `drawer` is a checkbox toggle, and it
+    would have taken that state out of C#. The Bootstrap leftovers `display-5`, `text-accent` and
+    `bg-body-tertiary` are gone, and the brand's display face is utilities too.
+  - **The guides are typeset by Tailwind's typography plugin (`prose`)**, whose colours are mapped onto the kit's
+    palette so they follow every theme, replacing about 150 lines of hand-written `.markdown-body` rules. Rask
+    keeps a short list of its own rules on top: headings clear the sticky bar, tables and long identifiers never
+    widen a phone page, inline code is tinted without backticks, and blockquotes stay brand-tinted notes. Inline
+    demos are `not-prose`, which also removes the stray outline the old `.markdown-body pre` rule drew around
+    their code panes. The standalone Tailwind binary bundles the plugin, so no npm install is needed.
+- **BREAKING: `Rask.Data` models are domain-driven design's aggregates, entities and value objects.**
+  - **`Model<TId>` is `Aggregate<TId>`**, which derives from the new `Entity<TId>`; the non-generic `Model` is gone.
+    An entity carries `Id`, `CreatedAt` and `UpdatedAt`; an aggregate adds `Version`, `DeletedAt` and
+    `Raise`/`DomainEvents`. They are real properties with private setters, so a page can show them and a query
+    can sort by them.
+  - **`ITimestamped`, `IVersioned` and `ISoftDeletable` are removed.** Every entity is stamped, and every aggregate
+    is versioned and soft-deleted, so `Product.DeleteAsync(id)` always stamps `DeletedAt`.
+  - **Reads, writes and the generated form model are for aggregates.** An `Entity<TId>` that is not an aggregate is
+    mapped with its table and timestamps and reached through its aggregate.
+  - **Value objects need no marker.** `IValueObject` is removed: any record, struct or class an entity holds that is
+    not an entity, a collection or a framework type maps as a complex type. A one-value value object
+    (`record Email(string Value)`) is one column named after the property.
+  - **`[SkipModel]` is removed.** Every mapped property of an aggregate is on its form model.
+  - **Aggregates declare no constructor**: the implicit one serves EF Core, `CreateAsync` and the form model's
+    defaults, and domain creation goes in a static factory ([RASK086](docs/diagnostics.md#rask086)).
+  - **Upgrade:** derive from `Aggregate<TId>` (or `Entity<TId>` for a type that lives inside an aggregate); delete
+    the marker interfaces, `: IValueObject`, `[SkipModel]`, private constructors, and any `Version`, `CreatedAt`,
+    `UpdatedAt` or `DeletedAt` you declared, since the base declares them; make public setters private; then
+    `rask db add` a migration, because a model that had no marker gains those columns.
 - **File storage reads `Rask:Storage`, like every other Rask area.** It was the one package still on a top-level
   `Storage` section (#1080). Its settings now bind from `Rask:Storage`, so the environment variables are
   `Rask__Storage__Provider`, `Rask__Storage__S3__Bucket` and so on. They bind through the same registration
@@ -991,15 +1046,15 @@ them until tagged releases begin.
   builder.Services.AddRaskSpaHost();
   app.UseRaskSpa();
   ```
-- **BREAKING: `Rask.Data` has no unit of work.** (Its create, update and delete on the model type were dropped
-  here too and have since come back — see *Create, update and delete live on the model type again* above.)
-  Removed outright, with no `[Obsolete]` step: `product.ToModel()` (the generated `ProductModel` itself stays),
-  retiring [RASK081](docs/diagnostics.md#rask081); the tracker verbs
+- **BREAKING: `Rask.Data` has no unit of work.** (Its create, update and delete on the model type, and
+  `product.ToModel()`, were dropped here too and have since come back — see *Create, update and delete live on
+  the aggregate type again* above.) Removed outright, with no `[Obsolete]` step: the tracker verbs
   `Product.Add`/`AddRange`/`Update`/`UpdateRange`/`Remove`/`RemoveRange`/`Attach`/`Entry`/`Set`; the
   instance `entity.SaveAsync()` and `entity.DeleteAsync()`; `AsTracking()` and `AsNoTracking()`;
   `Db.Begin()` and the `UnitOfWork` type; and `Db.Current`, `Db.HasCurrent`, `Db.CurrentUnitOfWork`,
   `Db.SaveChangesAsync`, `Db.Set<T>()` and `Db.Entry()`; and `ExecuteUpdateAsync`/`ExecuteDeleteAsync` on the
-  model query. `Db` keeps only its three `Configure` overloads, `IsConfigured` and `Reset()`. A `Model<TId>`
+  model query. `Db` keeps only its three `Configure` overloads, `IsConfigured` and `Reset()`.
+  [RASK081](docs/diagnostics.md#rask081) is retired. An `Entity<TId>`
   key that is not an integer is no longer generated by EF Core: the entity assigns its own id in its factory,
   and saving one added with its key
   still at the default now throws instead of inserting an empty key. A key an app configured itself
@@ -1357,6 +1412,13 @@ them until tagged releases begin.
   combobox also had no `id`, so its label's `for` pointed at nothing. The box now carries the field id and takes its
   name, invalid state and description from the same place every other field does.
 
+- **A server page no longer drops a render requested just as a dispatch finishes.** A `StateHasChanged` from outside
+  the dispatch could land after the dispatch's render loop had settled but before it released its scope. A timer, a
+  finished fetch or another session's broadcast can all do this. The request only set a flag, and nothing read that
+  flag again, so the change stayed off screen until the page's next event. The request now re-checks the scope after
+  setting the flag. The dispatch renders anything left pending after it releases the scope, as the WebAssembly host
+  already did (#986). Both fields are volatile, so each side sees the other's write. Found while building
+  Broadcast (#1061).
 - **`BulkInsertAsync(SkipChangeTracking)` is fast on PostgreSQL, SQL Server and MySQL, and works on Npgsql again
   (#1063).**
   - **It was slow.** The fast path sent one prepared single-row `INSERT` per row. That is the right shape for a
@@ -1468,8 +1530,8 @@ them until tagged releases begin.
 - **A soft delete no longer overwrites a change someone else made.** `SoftDeleteInterceptor` turned a
   `Remove` into a full update, which marked every property modified. The `UPDATE` that stamps `DeletedAt`
   therefore wrote back every column the deleting context had loaded, and deleting a row another writer had
-  renamed since reverted the rename (#1055). The only defence was a version check, which a model without
-  `IVersioned` (or a `DeleteAsync(id, version: null)`) never had. The statement now sets `DeletedAt` and
+  renamed since reverted the rename (#1055). The only defence was a version check, which a `DeleteAsync(id, version: null)` never
+  had. The statement now sets `DeletedAt` and
   the audit columns `UpdatedAt` and `Version`, and nothing else.
 - **Kit cards, stats, tabs and brands link to a plain URL as a plain link.** `UiStat`, `UiCard`, `UiNavTab`
   and `UiBrand` took a `RouteUrl` but always rendered a `NavLink`. So a string such as

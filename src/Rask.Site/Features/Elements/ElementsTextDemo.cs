@@ -9,7 +9,7 @@ public sealed partial class ElementsTextDemo : Component
             "Link ", A.Href("https://example.com").Target("_blank").Rel("noopener")["an anchor"],
             ", ", Strong["strong"], ", ", B["bold"], ", ", Em["emphasis"], ", ", I["idiomatic"],
             ", ", U["underline"], ", ", S["struck"], ", ", Small["small"], ", ", Mark["highlight"],
-            ", and ", Span.Class("text-accent")["a plain span"], "."
+            ", and ", Span.Class("text-ui-brand-ink")["a plain span"], "."
         ],
         P[
             "Inline code ", Code["Div()[…]"], ", a key ", Kbd["Ctrl"], "+", Kbd["C"],

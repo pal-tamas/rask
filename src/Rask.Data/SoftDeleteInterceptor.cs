@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 namespace Rask.Data;
 
 /// <summary>
-/// Makes deletion of an <see cref="ISoftDeletable"/> transparent: before each save, any entry marked
+/// Makes deletion of an <see cref="Aggregate{TId}"/> transparent: before each save, any entry marked
 /// <see cref="EntityState.Deleted"/> is rewritten to an update of <c>DeletedAt</c> alone, set to now, so
 /// <c>db.Remove(entity)</c> updates the row instead of removing it — and writes no other column back, so a
 /// delete never reverts a change another writer made since the entity was loaded. The global query filter added by <see cref="ModelBuilderExtensions.ApplyRaskConventions"/>
@@ -39,7 +39,7 @@ public sealed class SoftDeleteInterceptor(TimeProvider timeProvider) : SaveChang
 
         var now = _timeProvider.GetUtcNow().UtcDateTime;
 
-        foreach (var entry in context.ChangeTracker.Entries<ISoftDeletable>())
+        foreach (var entry in context.ChangeTracker.Entries<IAggregate>())
         {
             if (entry.State == EntityState.Deleted)
             {

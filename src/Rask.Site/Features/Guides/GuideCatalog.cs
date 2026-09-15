@@ -172,10 +172,10 @@ public static class GuideCatalog
             SearchTitle = "A .NET CLI to scaffold, run, migrate and deploy apps",
             Description = "Reference for the rask .NET tool: rask new to scaffold projects, rask dev for hot reload, rask db for EF Core migrations and backups, rask deploy over SSH.",
         },
-        new("data", "Rask.Data", "Declare models, read and write them off the type, bind generated form models.", "One Person Framework")
+        new("data", "Rask.Data", "Declare aggregates, read and write them off the type, bind generated form models.", "One Person Framework")
         {
-            SearchTitle = "EF Core models without writing a DbContext in C#",
-            Description = "Declare EF Core models in C#, read and full-text search them off the type, create, update and delete from generated form models — audit stamps, soft delete.",
+            SearchTitle = "EF Core aggregates without writing a DbContext in C#",
+            Description = "Declare DDD aggregates, entities and value objects in C# with EF Core, read, full-text search and write them off the type from generated form models.",
         },
         new("cqrs", "CQRS", "Source-generated queries, commands, notifications, behaviors.", "One Person Framework")
         {
@@ -298,6 +298,11 @@ public static class GuideCatalog
         {
             SearchTitle = "Virtualized lists, toasts and drag and drop",
             Description = "Render windowed lists with Virtualize, keep list identity with keys, and add toast messages, drag-and-drop and error boundaries to C# web components.",
+        },
+        new("broadcast", "Broadcast", "Publish on a topic; every subscribed component, in every open page, re-renders.", "Core")
+        {
+            SearchTitle = "Real-time pub/sub to every open page in C#",
+            Description = "Push a change to every open page with IBroadcast: typed topics, subscriptions that end when the component unmounts, and delivery in order with page events.",
         },
         new("lifecycle", "Lifecycle", "Mount, props-changed, rendered, unmount, cancellation.", "Core")
         {

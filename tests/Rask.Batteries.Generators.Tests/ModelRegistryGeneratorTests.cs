@@ -19,8 +19,8 @@ public class ModelRegistryGeneratorTests
         var run = Run("""
             using System;
             using Rask.Data;
-            namespace Shop.Catalog { public sealed class Product : Model<Guid> { } }
-            namespace Shop.Archive { public sealed class Product : Model<Guid> { } }
+            namespace Shop.Catalog { public sealed class Product : Aggregate<Guid> { } }
+            namespace Shop.Archive { public sealed class Product : Aggregate<Guid> { } }
             """);
 
         Assert.Empty(run.Diagnostics);
@@ -35,7 +35,7 @@ public class ModelRegistryGeneratorTests
             using Microsoft.EntityFrameworkCore.Metadata.Builders;
             using Rask.Data;
             namespace Shop;
-            public sealed class Product : Model<Guid>
+            public sealed class Product : Aggregate<Guid>
             {
                 public void Configure(EntityTypeBuilder<Product> builder) { }
             }
@@ -54,7 +54,7 @@ public class ModelRegistryGeneratorTests
             using Rask.Data;
             namespace Shop;
             public readonly record struct PairId(Guid Left, Guid Right);
-            public sealed class Pair : Model<PairId> { }
+            public sealed class Pair : Aggregate<PairId> { }
             """);
 
         var diagnostic = Assert.Single(run.Diagnostics);

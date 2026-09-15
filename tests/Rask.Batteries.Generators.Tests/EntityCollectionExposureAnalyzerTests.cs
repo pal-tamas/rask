@@ -14,9 +14,9 @@ public class EntityCollectionExposureAnalyzerTests
             using System.Collections.ObjectModel;
             using Rask.Data;
             namespace Shop;
-            public sealed class OrderLine : Model<Guid> { }
-            public sealed record Money(decimal Amount, string Currency) : IValueObject;
-            public sealed class Order : Model<Guid>
+            public sealed class OrderLine : Aggregate<Guid> { }
+            public sealed record Money(decimal Amount, string Currency);
+            public sealed class Order : Aggregate<Guid>
             {
                 {{members}}
             }
@@ -75,7 +75,7 @@ public class EntityCollectionExposureAnalyzerTests
             using System.Collections.Generic;
             using Rask.Data;
             namespace Shop;
-            public sealed class OrderLine : Model<Guid> { }
+            public sealed class OrderLine : Aggregate<Guid> { }
             public sealed class OrderForm { public List<OrderLine> Lines { get; set; } = []; }
             """));
 
@@ -87,8 +87,8 @@ public class EntityCollectionExposureAnalyzerTests
             using System.Collections.Generic;
             using Rask.Data;
             namespace Shop;
-            public sealed class Note : Model<Guid> { }
-            public abstract class Annotated : Model<Guid> { public List<Note> Notes { get; } = []; }
+            public sealed class Note : Aggregate<Guid> { }
+            public abstract class Annotated : Aggregate<Guid> { public List<Note> Notes { get; } = []; }
             public sealed class Order : Annotated { }
             """));
 

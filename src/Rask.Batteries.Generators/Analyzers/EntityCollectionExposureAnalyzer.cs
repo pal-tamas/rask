@@ -17,7 +17,7 @@ namespace Rask.Data.Generators.Analyzers;
 ///         <c>IReadOnlyCollection&lt;OrderLine&gt;</c> and keep the list to itself at no cost to mapping.
 ///     </para>
 ///     <para>
-///         Only a collection of ENTITIES — the element type derives from <c>Rask.Data.Model</c>. A list of
+///         Only a collection of ENTITIES — the element type derives from <c>Rask.Data.Entity&lt;TId&gt;</c>. A list of
 ///         strings or of value objects is not a navigation, and mapping one is configured explicitly anyway.
 ///     </para>
 ///     <para>
@@ -54,7 +54,7 @@ public sealed class EntityCollectionExposureAnalyzer : DiagnosticAnalyzer
         {
             var types = ModelTypes.Resolve(start.Compilation);
             var collection = start.Compilation.GetTypeByMetadataName("System.Collections.Generic.ICollection`1");
-            if (types.Model is null || collection is null)
+            if (types.EntityOfId is null || collection is null)
             {
                 return;
             }
@@ -136,7 +136,5 @@ public sealed class EntityCollectionExposureAnalyzer : DiagnosticAnalyzer
     }
 
     private static bool IsEntityOrModel(ModelTypes types, ITypeSymbol element) =>
-        types.IsEntity(element)
-        || SymbolEqualityComparer.Default.Equals(element.OriginalDefinition, types.Model)
-        || SymbolEqualityComparer.Default.Equals(element.OriginalDefinition, types.ModelOfId);
+        types.IsEntity(element) || types.IsFrameworkBase(element);
 }

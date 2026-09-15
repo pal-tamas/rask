@@ -55,7 +55,7 @@ public abstract class PostgresBulkInsertArms
     private const int EfBatch = 5_000;
 
     private static readonly string[] Columns =
-        ["Id", "Sku", "Name", "Price", "Stock", "Active", "CreatedAt", "UpdatedAt"];
+        ["Id", "Sku", "Name", "Price", "Stock", "Active", "CreatedAt", "UpdatedAt", "Version"];
 
     private string _connectionString = null!;
     private PgBenchProduct[] _rows = null!;
@@ -243,16 +243,16 @@ public abstract class PostgresBulkInsertArms
     }
 
     private static object[] ValuesOf(PgBenchProduct row, DateTime now) =>
-        [row.Id, row.Sku, row.Name, row.Price, row.Stock, row.Active, now, now];
+        [row.Id, row.Sku, row.Name, row.Price, row.Stock, row.Active, now, now, 0];
 
     private PgBenchContext NewContext() => new(_connectionString);
 }
 
 /// <summary>
-/// <see cref="BenchProduct"/> with its audit stamps declared, so every arm writes the same eight columns and
-/// the Rask arms carry the stamping a timestamped model gets.
+/// <see cref="BenchProduct"/> for PostgreSQL: an aggregate, so every arm writes the same columns and the Rask arms
+/// carry the stamping every entity gets.
 /// </summary>
-public sealed class PgBenchProduct : Model<Guid>, ITimestamped
+public sealed class PgBenchProduct : Aggregate<Guid>
 {
     public string Sku { get; private set; } = string.Empty;
 
@@ -263,10 +263,6 @@ public sealed class PgBenchProduct : Model<Guid>, ITimestamped
     public int Stock { get; private set; }
 
     public bool Active { get; private set; }
-
-    public DateTime CreatedAt { get; private set; }
-
-    public DateTime UpdatedAt { get; private set; }
 
     public static PgBenchProduct Create(int i) => new()
     {

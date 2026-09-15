@@ -81,6 +81,7 @@ public abstract partial class SharedSmokeTests
         await TestSidebarNavAsync();
         await WalkUserComponentsGuideAsync();
         await TestCompositionGuideAsync();
+        await WalkBroadcastGuideAsync();
         await WalkLifecycleGuideAsync();
         await WalkRoutingGuideAsync();
         await WalkJsInteropGuideAsync();
@@ -580,6 +581,28 @@ public abstract partial class SharedSmokeTests
         await Expect(demo).ToContainTextAsync("welcome, rootadmin",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await demo.Locator("button:has-text('Sign out')").ClickAsync();
+    }
+
+    // Broadcast guide (#1061): one publish reaches both boards, which share nothing with the button but the topic —
+    // so each board's list changing proves delivery into the session and the re-render after it, in the real browser.
+    protected async Task WalkBroadcastGuideAsync()
+    {
+        var contains = new LocatorAssertionsToContainTextOptions { Timeout = 10_000 };
+        // The heading, not the label: "Broadcast" also matches the IBroadcastChannel reference in the sidebar filter.
+        await SideAsync("Broadcast", "push a change to every open page", "main .markdown-body h1");
+        await AssertGuideDemosAsync(1, "broadcast");
+
+        var demo = Page.Locator("#broadcast-demo");
+        var boards = demo.Locator(".broadcast-board");
+        await Expect(boards).ToHaveCountAsync(2);
+        await Expect(boards.Nth(0)).ToContainTextAsync("No orders yet.", contains);
+
+        await demo.Locator("#broadcast-publish").ClickAsync();
+        await demo.Locator("#broadcast-publish").ClickAsync();
+
+        await Expect(boards.Nth(0)).ToContainTextAsync("#2 rocket skates", contains);
+        await Expect(boards.Nth(1)).ToContainTextAsync("#2 rocket skates", contains);
+        await Expect(boards.Nth(1)).ToContainTextAsync("#1 anvil", contains);
     }
 
     // Lifecycle guide: the Lifecycle / Disposal / Cancellation / Background-service example pages were

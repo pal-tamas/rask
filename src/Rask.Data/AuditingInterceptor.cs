@@ -10,7 +10,7 @@ namespace Rask.Data;
 /// each update so the stored value changes (SQLite has no native rowversion). Registered by
 /// <see cref="RaskDataServiceCollectionExtensions.AddRaskData"/> after the <see cref="SoftDeleteInterceptor"/>,
 /// so a soft delete (rewritten to <see cref="EntityState.Modified"/>) is stamped and versioned too. It also
-/// refuses an added <see cref="Model{TId}"/> whose non-integer key is still at its default — see
+/// refuses an added <see cref="Aggregate{TId}"/> whose non-integer key is still at its default — see
 /// <see cref="ModelBuilderExtensions.ApplyRaskConventions"/>.
 /// </summary>
 public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChangesInterceptor
@@ -43,7 +43,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
 
         var now = _timeProvider.GetUtcNow().UtcDateTime;
 
-        foreach (var entry in context.ChangeTracker.Entries<ITimestamped>())
+        foreach (var entry in context.ChangeTracker.Entries<IEntity>())
         {
             if (entry.State == EntityState.Added)
             {
@@ -56,7 +56,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
             }
         }
 
-        foreach (var entry in context.ChangeTracker.Entries<IVersioned>())
+        foreach (var entry in context.ChangeTracker.Entries<IAggregate>())
         {
             if (entry.State == EntityState.Modified)
             {
@@ -66,7 +66,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
         }
     }
 
-    // A Model<TId> key that is not an integer is the entity's to assign (see ApplyRaskConventions), so nothing
+    // An Entity<TId> key that is not an integer is the entity's to assign (see ApplyRaskConventions), so nothing
     // fills one left at its default. Inserting it would write an empty key — the first row lands and the second
     // collides — and the author would meet that as a duplicate-key error far from the factory that forgot the id.
     private static void RefuseUnassignedKeys(DbContext context)
@@ -74,10 +74,10 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
         foreach (var entry in context.ChangeTracker.Entries())
         {
             if (entry.State != EntityState.Added ||
-                entry.Entity is not Model ||
+                entry.Entity is not IEntity ||
                 ModelBuilderExtensions.IdTypeOf(entry.Metadata.ClrType) is not { } idType ||
                 ModelBuilderExtensions.IsInteger(idType) ||
-                entry.Metadata.FindProperty(nameof(Model<int>.Id)) is not { ValueGenerated: ValueGenerated.Never } key)
+                entry.Metadata.FindProperty(nameof(Entity<int>.Id)) is not { ValueGenerated: ValueGenerated.Never } key)
             {
                 continue;
             }
@@ -86,7 +86,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
             {
                 throw new InvalidOperationException(
                     $"'{entry.Metadata.ClrType.Name}' was added with its Id still at the default, and a " +
-                    $"Model<{idType.Name}> assigns its own id — nothing generates one. Set it where the entity is " +
+                    $"Entity<{idType.Name}> assigns its own id — nothing generates one. Set it where the entity is " +
                     "created — for a Guid key, Guid.CreateVersion7() in the entity's constructor or factory.");
             }
         }

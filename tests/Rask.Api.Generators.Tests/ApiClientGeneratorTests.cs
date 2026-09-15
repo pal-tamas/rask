@@ -419,12 +419,12 @@ public sealed class ApiClientGeneratorTests
             using Microsoft.AspNetCore.Mvc;
             namespace Rask.Data
             {
-                public abstract class Model { }
-                public abstract class Model<TId> : Model { public TId Id { get; protected set; } = default!; }
+                public abstract class Entity<TId> { public TId Id { get; protected set; } = default!; }
+                public abstract class Aggregate<TId> : Entity<TId> { public int Version { get; private set; } }
             }
             namespace Shop
             {
-                public sealed class Product : Rask.Data.Model<System.Guid>
+                public sealed class Product : Rask.Data.Aggregate<System.Guid>
                 {
                     private Product() { }
                     public string Name { get; private set; } = "";

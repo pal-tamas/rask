@@ -335,7 +335,7 @@ The two attributes an app usually wants on the shell are overrides of their own,
 
 ```csharp
 protected override string? HtmlLang => "fr";
-protected override string? BodyClass => "bg-body-tertiary";
+protected override string? BodyClass => "bg-base-200";
 ```
 
 Anything those two can't express — another attribute on `<html>`, an element wrapped around the app —

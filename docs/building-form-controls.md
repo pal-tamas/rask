@@ -72,6 +72,15 @@ after one, in either mode: bound mode withdraws `Value` on purpose, so treating 
 leave `MyCheck.Bind(…).Label(…)` pending forever on a step its own mode does not offer, with no symptom
 beyond the chain having no `ToHtml`.
 
+**…and a second `Bind` opening over the nullable.** The chain of a control over a non-nullable value type
+also takes `Bind(Expression<Func<T?>>)`, so `MyCheck.Bind(() => model.Agreed)` compiles over a `bool?` as well
+as a `bool`. The generated overload hands the expression to `ExpressionAccessor.NonNullable`, which wraps its
+body in a `Convert` that `ExpressionAccessor.Parse` strips again. Your `Bind` property therefore still holds an
+`Expression<Func<bool>>`, while the accessor reads and writes the nullable property itself: the getter returns
+`null` for an unset value, so read it with `accessor.Getter() is bool b && b` rather than a cast, and a boxed
+`bool` written through the setter fits either property. Never compile the expression: the conversion would
+throw on a `null`.
+
 The rule is by **name**, which is what lets it reach a prop the interface does not declare. If your
 control has its own `Checked`, `OnInput` or `OnInputAsync` — as the core `Input` and `Textarea` do —
 those are recognized as controlled-mode members too, because bound mode derives the checked state from

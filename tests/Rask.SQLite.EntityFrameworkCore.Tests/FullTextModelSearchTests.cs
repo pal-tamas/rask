@@ -20,10 +20,10 @@ public sealed class FullTextModelSearchTests : IDisposable
             TestMigrations.Apply(db);
             db.Database.ExecuteSqlRaw(
                 """
-                INSERT INTO "Posts" ("Id", "Title", "Body") VALUES
-                  (1, 'Charlie', 'search search search'),
-                  (2, 'Alpha', 'a long body that mentions search once among many other words'),
-                  (3, 'Bravo', 'nothing relevant');
+                INSERT INTO "Posts" ("Id", "Title", "Body", "CreatedAt", "UpdatedAt", "Version") VALUES
+                  (1, 'Charlie', 'search search search', '2026-01-01 00:00:00', '2026-01-01 00:00:00', 0),
+                  (2, 'Alpha', 'a long body that mentions search once among many other words', '2026-01-01 00:00:00', '2026-01-01 00:00:00', 0),
+                  (3, 'Bravo', 'nothing relevant', '2026-01-01 00:00:00', '2026-01-01 00:00:00', 0);
                 """);
         }
 
@@ -96,11 +96,11 @@ public sealed class FullTextModelSearchTests : IDisposable
         File.Delete(_dbPath);
     }
 
-    internal sealed class Post : Model<int>
+    internal sealed class Post : Aggregate<int>
     {
-        public string Title { get; set; } = string.Empty;
+        public string Title { get; private set; } = string.Empty;
 
-        public string Body { get; set; } = string.Empty;
+        public string Body { get; private set; } = string.Empty;
     }
 
     private sealed class JournalContext(DbContextOptions options) : DbContext(options)

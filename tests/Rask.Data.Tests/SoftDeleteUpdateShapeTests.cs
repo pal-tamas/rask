@@ -4,6 +4,30 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace Rask.Data.Tests;
 
+// Aggregates, so the conventions give them DeletedAt, the timestamps and Version. Namespace-level rather than nested:
+// the generated model registry maps every aggregate in the assembly, and cannot name a private nested one.
+public sealed class ShapeCard : Aggregate<string>
+{
+    private ShapeCard() { }
+
+    public string Title { get; private set; } = "";
+
+    public static ShapeCard Draw(string id, string title) => new() { Id = id, Title = title };
+
+    public void Retitle(string title) => Title = title;
+}
+
+public sealed class ShapeTicket : Aggregate<string>
+{
+    private ShapeTicket() { }
+
+    public string Subject { get; private set; } = "";
+
+    public string Body { get; private set; } = "";
+
+    public static ShapeTicket Open(string id, string subject, string body) => new() { Id = id, Subject = subject, Body = body };
+}
+
 // #1055: a soft delete is an UPDATE of DeletedAt, not of the whole row. Turning the Deleted entry into Modified marked
 // every property modified, so the statement wrote back each column the deleting context had loaded — and a delete of a
 // row someone had changed since silently reverted their change.
@@ -15,48 +39,46 @@ public sealed class SoftDeleteUpdateShapeTests : IDisposable
     public void Dispose() => File.Delete(_dbPath);
 
     [Fact]
-    public async Task A_stale_delete_does_not_revert_a_change_made_after_it_loaded_the_row()
+    public async Task A_stale_delete_is_refused_by_the_version_and_does_not_revert_a_change_made_after_it_loaded_the_row()
     {
-        await using (var setup = Context<Card>())
+        await using (var setup = Context<ShapeCard>())
         {
             await setup.Database.EnsureCreatedAsync();
-            setup.Add(new Card { Id = "c1", Title = "original" });
+            setup.Add(ShapeCard.Draw("c1", "original"));
             await setup.SaveChangesAsync();
         }
 
-        await using var deleting = Context<Card>();
-        var stale = await deleting.Set<Card>().SingleAsync(c => c.Id == "c1");
+        await using var deleting = Context<ShapeCard>();
+        var stale = await deleting.Set<ShapeCard>().SingleAsync(c => c.Id == "c1");
 
-        await using (var renaming = Context<Card>())
+        await using (var renaming = Context<ShapeCard>())
         {
-            (await renaming.Set<Card>().SingleAsync(c => c.Id == "c1")).Title = "renamed";
+            (await renaming.Set<ShapeCard>().SingleAsync(c => c.Id == "c1")).Retitle("renamed");
             await renaming.SaveChangesAsync();
         }
 
         deleting.Remove(stale);
-        await deleting.SaveChangesAsync();
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => deleting.SaveChangesAsync());
 
-        await using var reading = Context<Card>();
-        var row = await reading.Set<Card>().IgnoreQueryFilters().SingleAsync(c => c.Id == "c1");
+        await using var reading = Context<ShapeCard>();
+        var row = await reading.Set<ShapeCard>().IgnoreQueryFilters().SingleAsync(c => c.Id == "c1");
         Assert.Equal("renamed", row.Title);
-        Assert.NotNull(await reading.Set<Card>().IgnoreQueryFilters()
-            .Select(c => EF.Property<DateTime?>(c, Columns.DeletedAt))
-            .SingleAsync());
+        Assert.Null(row.DeletedAt);
     }
 
     [Fact]
     public async Task The_soft_delete_UPDATE_sets_DeletedAt_and_the_audit_columns_and_nothing_else()
     {
-        await using (var setup = Context<Ticket>())
+        await using (var setup = Context<ShapeTicket>())
         {
             await setup.Database.EnsureCreatedAsync();
-            setup.Add(new Ticket { Id = "t1", Subject = "subject", Body = "body" });
+            setup.Add(ShapeTicket.Open("t1", "subject", "body"));
             await setup.SaveChangesAsync();
         }
 
         var commands = new CommandCapture();
-        await using var deleting = Context<Ticket>(commands);
-        deleting.Remove(await deleting.Set<Ticket>().SingleAsync(t => t.Id == "t1"));
+        await using var deleting = Context<ShapeTicket>(commands);
+        deleting.Remove(await deleting.Set<ShapeTicket>().SingleAsync(t => t.Id == "t1"));
         await deleting.SaveChangesAsync();
 
         var update = Assert.Single(commands.Texts, t => t.TrimStart().StartsWith("UPDATE ", StringComparison.Ordinal));
@@ -84,26 +106,6 @@ public sealed class SoftDeleteUpdateShapeTests : IDisposable
         }
 
         return new TestContext<T>(builder.Options);
-    }
-
-    // Soft-deletable, not versioned: nothing but the statement's shape protects a concurrent change here.
-    private sealed class Card : ISoftDeletable
-    {
-        public string Id { get; set; } = "";
-
-        public string Title { get; set; } = "";
-    }
-
-    // All three markers, so the pin covers the columns AuditingInterceptor adds to the narrowed statement.
-    private sealed class Ticket : ITimestamped, ISoftDeletable, IVersioned
-    {
-        public string Id { get; set; } = "";
-
-        public string Subject { get; set; } = "";
-
-        public string Body { get; set; } = "";
-
-        public int Version { get; set; }
     }
 
     private sealed class TestContext<T>(DbContextOptions<TestContext<T>> options) : DbContext(options)
