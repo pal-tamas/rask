@@ -54,8 +54,9 @@ trap cleanup EXIT
 project=tests/Rask.DevTools.Showcase/Rask.DevTools.Showcase.csproj
 dotnet build "$project" -c Debug -nologo -v quiet
 
-# Port 0: the app picks a free loopback port and says which on its first lines.
-ASPNETCORE_ENVIRONMENT=Development dotnet run --no-build -c Debug --project "$project" \
+# Port 0: the app picks a free loopback port and says which on its first lines. DOTNET_MODIFIABLE_ASSEMBLIES is what
+# `rask dev` and `dotnet watch` set: it turns on the runtime's dev-error overlay, which the Errors screenshots show.
+ASPNETCORE_ENVIRONMENT=Development DOTNET_MODIFIABLE_ASSEMBLIES=debug dotnet run --no-build -c Debug --project "$project" \
   --urls http://127.0.0.1:0 > "$work/app.log" 2>&1 &
 app_pid=$!
 

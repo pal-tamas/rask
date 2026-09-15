@@ -1231,10 +1231,12 @@ public abstract partial class Component : RaskMarkup
         if (boundary is not null)
         {
             System.Diagnostics.Debugger.BreakForUserUnhandledException(actual);
+            RaskDevToolsHook.Active?.ComponentFaulted(comp, actual, ErrorSource.Lifecycle, caught: true);
             boundary.Trip(actual, ErrorSource.Lifecycle);
             return;
         }
 
+        RaskDevToolsHook.Active?.ComponentFaulted(comp, actual, ErrorSource.Lifecycle, caught: false);
         RaskDiagnostics.Report(
             RaskLogLevel.Error,
             "Rask.Lifecycle",
@@ -2514,6 +2516,7 @@ public abstract partial class Component : RaskMarkup
             // higher. For non-boundary owners (regular components), fall back to their
             // ancestor boundary. Without a boundary the exception bubbles so the dispatcher's
             // catch-and-log still fires.
+            RaskDevToolsHook.Active?.ComponentFaulted(owner, ex, ErrorSource.Action, caught: true);
             ResolveHandlerBoundary(owner)!.Trip(ex, ErrorSource.Action);
             return true;
         }

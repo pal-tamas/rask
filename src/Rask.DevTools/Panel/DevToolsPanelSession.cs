@@ -78,6 +78,8 @@ internal sealed class DevToolsPanelSession : LiveSessionBase, IDisposable
     /// <summary>One event from the panel frame: the handler runs, and the panel re-renders if anything changed.</summary>
     internal async Task DispatchAsync(ReadOnlyMemory<byte> json)
     {
+        // This flow's handlers are the panel's: nothing they do is the inspected app's traffic or errors.
+        Probe.DevToolsProbe.EnterPanelDispatch();
         if (json.IsEmpty || IsDisposed)
         {
             return;

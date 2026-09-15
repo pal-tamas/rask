@@ -5,6 +5,7 @@
 import {asFrameMessage, CHANNEL, type FrameMessage, writeFlashSetting} from "../rask-devtools-frame-protocol.js";
 import {parseAnchors} from "./anchors.js";
 import type {DockHandle} from "./dock.js";
+import type {ErrorsLink} from "./errors.js";
 import type {Flash} from "./flash.js";
 import type {Overlay} from "./overlay.js";
 
@@ -16,7 +17,10 @@ import type {Overlay} from "./overlay.js";
  * The size is how the app finds the frame a time belongs to. Counting would not do: frames the page applied before the
  * panel was listening are never reported, and a report handed to the oldest waiting frame lands on one of those.
  */
-export function installPatchTiming(post: (message: FrameMessage) => void): void {
+export function installPatchTiming(
+    post: (message: FrameMessage) => void,
+    island?: (phase: string, element: Element, name: string | null, error: unknown) => void,
+): void {
     // The runtime hands recv and commit the same parsed frame; weak, so an applied frame is not kept for this.
     const sizes = new WeakMap<object, number>();
     window.__raskDevtoolsHook = {
@@ -28,6 +32,7 @@ export function installPatchTiming(post: (message: FrameMessage) => void): void 
             const bytes = frame !== null && typeof frame === "object" ? sizes.get(frame) ?? -1 : -1;
             post({channel: CHANNEL, kind: "patch", ms: Math.max(0, performance.now() - startedAt), bytes});
         },
+        island,
     };
 }
 
@@ -39,13 +44,24 @@ export interface PanelBridge {
 }
 
 export function createBridge(
-    dock: DockHandle, overlay: Overlay, flash: Flash, post: (message: FrameMessage) => void,
+    dock: DockHandle, overlay: Overlay, flash: Flash, post: (message: FrameMessage) => void, errors?: ErrorsLink,
 ): PanelBridge {
     const cancel = () => post({channel: CHANNEL, kind: "pick-cancelled"});
 
     return {
         handle(message) {
+            // Any word from the panel means it is listening.
+            errors?.heardFromPanel();
             switch (message.kind) {
+                case "error-count":
+                    if (typeof message.count === "number" && Number.isFinite(message.count)) {
+                        if (errors) {
+                            errors.setPanelCount(message.count);
+                        } else {
+                            dock.setAlert(message.count);
+                        }
+                    }
+                    return true;
                 case "highlight":
                     if (typeof message.at === "string") {
                         overlay.show(message.at, typeof message.label === "string" ? message.label : null);

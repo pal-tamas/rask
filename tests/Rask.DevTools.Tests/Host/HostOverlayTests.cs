@@ -93,6 +93,15 @@ public sealed class HostOverlayTests
         // or one that is not a finite non-negative number, is dropped. The page's hook posts a frame's apply time.
         Assert.Equal(1, r.GetProperty("patchTimersScheduled").GetInt32());
         Assert.Equal("patch:3.46@2048,12.00@-1", Str("patchKeys"));
+
+        // Errors: the bridge puts the panel's count on the pill (ignoring a count that is not a number) and notes that
+        // the panel is listening; the panel posts its count when it changes, and hands the page's show request over once.
+        Assert.True(Bool("errorCountHandled"));
+        Assert.Equal("4", Str("alerts"));
+        Assert.True(Bool("heardFromPanel"));
+        Assert.Equal("count:2,count:0", Str("errorPosts"));
+        Assert.Equal("errors:show", Str("showErrorsKeys"));
+        Assert.Equal("page-error:{\"kind\":\"page\",\"title\":\"TypeError\",\"message\":\"boom\"}", Str("pageErrorKeys"));
         Assert.Equal("timed@357,zero@-1", Str("patchPosted"));
     }
 }

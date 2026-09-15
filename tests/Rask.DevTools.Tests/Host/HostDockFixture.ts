@@ -179,7 +179,26 @@ const wasmFrames = parts(wasm.element as unknown as StubElement).drawer.find("if
 const wasmFrameDocument = (wasmFrames[0] as unknown as {srcdoc?: string} | undefined)?.srcdoc ?? null;
 const wasmFrameSrc = wasmFrames[0]?.src ?? null;
 
+// 8. The pill's alert: a count while the drawer is shut, none while it is open, capped, and read out.
+newDocument();
+const alerting = installDock({panelUrl: "/_rask-devtools/?inspect=s2"});
+const alertPill = parts(alerting.element as unknown as StubElement).pill;
+const dot = alertPill.children[0];
+const dotAtStart = dot.hidden;
+alerting.setAlert(3);
+const dotShut = !dot.hidden && dot.textContent === "3";
+const alertLabel = alertPill.getAttribute("aria-label");
+alerting.toggle();
+const dotHiddenWhileOpen = dot.hidden;
+alerting.toggle();
+const dotBackWhenShut = !dot.hidden;
+alerting.setAlert(150);
+const dotCapped = dot.textContent;
+alerting.setAlert(0);
+const dotCleared = dot.hidden && alertPill.getAttribute("aria-label") === "Rask DevTools";
+
 process.stdout.write(JSON.stringify({
+    dotAtStart, dotShut, alertLabel, dotHiddenWhileOpen, dotBackWhenShut, dotCapped, dotCleared,
     mountedAfterBody, managed, closedAtStart, framesAtStart, sideAtStart, shortcutListenerIsCapture,
     openAfterPill, frameCount: frames.length, frameSrc,
     closedByShortcut, shortcutSwallowed, focusReturnedToPill, plainIgnored, reopenedByMac, framesAfterReopen,

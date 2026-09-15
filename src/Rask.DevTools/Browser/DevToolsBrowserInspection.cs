@@ -14,6 +14,8 @@ internal sealed class DevToolsBrowserInspection(DevToolsFeeds feeds) : IDevTools
 {
     public DevToolsFeed? Open(string? sessionId, string? token) => feeds.Latest;
 
+    public DevToolsErrorLog AppWide => feeds.AppWide;
+
     // The frame client the panel frame runs already carries the panel script.
     public string? PanelScriptUrl => null;
 }

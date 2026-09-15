@@ -63,5 +63,15 @@ public sealed class HostDockTests
         Assert.Equal("<!DOCTYPE html><title>panel</title>", Str("wasmFrameDocument"));
         Assert.Equal("", Str("wasmFrameSrc"));
         Assert.Equal(["attached"], r.GetProperty("framed").EnumerateArray().Select(e => e.GetString() ?? ""));
+
+        // 8. The pill's alert: the count on a red dot while the drawer is shut, gone while it is open, capped at 99+, said
+        // in the pill's name, and gone again at 0.
+        Assert.True(Bool("dotAtStart"));
+        Assert.True(Bool("dotShut"));
+        Assert.Equal("Rask DevTools, 3 new errors", Str("alertLabel"));
+        Assert.True(Bool("dotHiddenWhileOpen"));
+        Assert.True(Bool("dotBackWhenShut"));
+        Assert.Equal("99+", Str("dotCapped"));
+        Assert.True(Bool("dotCleared"));
     }
 }

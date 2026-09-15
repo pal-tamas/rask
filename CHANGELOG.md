@@ -655,6 +655,26 @@ them until tagged releases begin.
   keep separate clocks, and frames applied before the panel was listening are never reported. The feed keeps 500
   interactions; **Clear** resets them.
 
+- **The devtools panel lists what went wrong.** An Errors tab shows, newest first, each exception a component threw —
+  in `Render()`, an event handler or an async lifecycle hook — with its type and message (unwrapped from reflection and
+  task wrappers), the components it happened inside, whether an error boundary caught it, and its stack; plus the
+  framework's own warnings and errors. **Show in tree** opens the Tree tab at the component. A red count of errors not
+  yet looked at sits on the Errors tab and on the Rask pill; warnings are listed but not counted. A diagnostic reported
+  during a page's render or handler belongs to that page; one reported anywhere else is app-wide and shown in every
+  panel, with filters for either. Repeats count up instead of adding rows. With hot reload on, the runtime's dev-error
+  overlay gains an **Open in DevTools** button, added by the devtools host script so the runtimes carry none of it.
+  Two internal probe hooks feed it: `ComponentFaulted` (a handler's or lifecycle hook's exception, and whether a
+  boundary took it) and `DiagnosticReported` (every `RaskDiagnostics` report, sink or no sink).
+
+- **The devtools Errors tab also lists what fails on the page itself.** A script's uncaught error and a promise rejected
+  with nothing to catch it, with the error's name, message and stack (or, for another origin's "Script error.", where
+  it came from); and an island that failed to mount, update or unmount, or whose props it could not read, named with
+  its phase and listed under the component it sits in, found by its element's place as a pick finds it. The page counts
+  them on the pill at once and keeps the last 50 until the panel opens, then hands them over. `console.error` is not
+  wrapped. `rask-external.js` now reports each island failure to the devtools hook when one is installed, and catches a
+  throwing `adapter.update` — which ran inside the page's `MutationObserver` callback, where it stopped the rest of that
+  batch of changes from reaching their islands — logging it like the other phases.
+
 ### Changed
 
 - **File storage reads `Rask:Storage`, like every other Rask area.** It was the one package still on a top-level

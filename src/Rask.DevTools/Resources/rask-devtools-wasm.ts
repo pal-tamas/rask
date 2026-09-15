@@ -7,6 +7,7 @@
 
 import {createBridge, installPatchTiming, listenToPanel, type PanelBridge} from "./host/bridge.js";
 import {installDock} from "./host/dock.js";
+import {installErrorsLink} from "./host/errors.js";
 import {installFlash} from "./host/flash.js";
 import {installOverlay} from "./host/overlay.js";
 import {CHANNEL, type FrameMessage, readFlashSetting} from "./rask-devtools-frame-protocol.js";
@@ -41,12 +42,14 @@ export function install(frameDocument: string, onOpen: () => void, onEvent: (jso
     const overlay = installOverlay(dock.shadow, dock.element);
     const flash = installFlash(dock.shadow, dock.element);
     // A srcdoc frame inherits this origin but may report "null", so the source is the check and no origin is named.
-    bridge = createBridge(dock, overlay, flash, message => frameWindow?.postMessage(message, "*"));
+    const post = (message: FrameMessage) => frameWindow?.postMessage(message, "*");
+    const errors = installErrorsLink(dock, post);
+    bridge = createBridge(dock, overlay, flash, post, errors);
     window.__raskDevtoolsHost = {version: 1, dock};
     // Posted only once the frame document is listening: before that the panel has nothing to match a time to.
     installPatchTiming(message => {
         if (ready) frameWindow?.postMessage(message, "*");
-    });
+    }, errors.island);
 
     // Only the panel frame this module created; anything else on the page speaking the same shape is ignored.
     listenToPanel(() => frameWindow, null, () => bridge, message => {

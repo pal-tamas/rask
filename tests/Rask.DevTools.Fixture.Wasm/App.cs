@@ -16,6 +16,10 @@ public sealed partial class App : Component
         Main[
             H1["Rask.DevTools WASM fixture"],
             P[$"clicks={_clicks}"],
-            Button.Id("fixture-click").OnClick(() => _clicks++)["click"]
+            Button.Id("fixture-click").OnClick(() => _clicks++)["click"],
+            // And one that throws, so a Debug run has an error for the panel's Errors tab.
+            Button.Id("fixture-throw").OnClick(Throw)["throw"]
         ];
+
+    private static void Throw() => throw new InvalidOperationException("the fixture's handler failed on purpose");
 }

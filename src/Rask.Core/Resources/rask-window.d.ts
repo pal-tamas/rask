@@ -518,6 +518,11 @@ interface RaskDevtoolsHook {
     recv(frame: RaskFrameReply, bytes: number): void;
     /** A frame finished patching the DOM; `startedAt` is the `performance.now()` taken before it started. */
     commit(frame: RaskFrameReply, startedAt: number): void;
+    /**
+     * An island failed — Rask.External's runtime calls it, not the page runtimes. `phase` is `mount`, `update`, `unmount`
+     * or `props`; `element` is the island's host element.
+     */
+    island?(phase: string, element: Element, name: string | null, error: unknown): void;
 }
 
 /** One entry of a frame's jsInvokes list, as both hosts read it. */

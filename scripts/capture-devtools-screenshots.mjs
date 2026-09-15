@@ -103,6 +103,30 @@ try {
         return shown(".fl-render") >= 3 && shown(".fl-dom") >= 1;
     }, null, {timeout: 10000, polling: "raf"});
     await shot("flash");
+
+    // Errors. Flashing off again, the drawer shut, then a deploy that throws: the runtime's dev-error overlay shows it,
+    // with the devtools' "Open in DevTools" button, and the pill counts it.
+    await panel.getByRole("checkbox", {name: "Flash on the page"}).uncheck();
+    await page.waitForFunction(() => localStorage.getItem("rask.devtools.flash") === null, null, {timeout: 10000});
+    await page.keyboard.press("Control+Shift+D");
+    await page.locator("rask-devtools .drawer").waitFor({state: "hidden", timeout: 10000});
+    await page.getByRole("button", {name: "Deploy"}).click();
+    const openInDevTools = page.locator("[data-rask-dev-error] [data-rask-devtools-open]");
+    await openInDevTools.waitFor({timeout: 10000});
+    await page.locator("rask-devtools .dot").filter({hasText: "1"}).waitFor({timeout: 10000});
+    await page.mouse.move(0, 0);
+    await page.waitForTimeout(1100); // the last flash boxes fade
+    await shot("error-overlay");
+
+    // The overlay's button opens the drawer on the Errors tab, with the fault, where it happened, and its stack.
+    await openInDevTools.click();
+    await panel.locator('[role=tab][aria-selected="true"]', {hasText: "Errors"}).waitFor({timeout: 10000});
+    await panel.getByText("locked by another deploy").first().waitFor({timeout: 10000});
+    // The tab clicked last still has focus, which draws it like the selected one.
+    await panel.locator("body").evaluate(() => (document.activeElement instanceof HTMLElement) && document.activeElement.blur());
+    await panel.locator("body").hover({position: {x: 5, y: 5}});
+    await panel.locator("[role=tablist]").evaluate(el => el.scrollIntoView({block: "start"}));
+    await shot("errors");
 } catch (e) {
     await shot("failure").catch(() => {});
     throw e;

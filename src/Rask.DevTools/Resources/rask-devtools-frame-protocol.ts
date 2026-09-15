@@ -38,8 +38,32 @@ export type FrameMessage =
      * which is what the app matches the time to, or -1 when the page did not see it arrive.
      */
     | {readonly channel: typeof CHANNEL; readonly kind: "patch"; readonly ms: number; readonly bytes: number}
+    /** Frame → page: how many errors the Errors tab has that nobody has looked at yet, for the pill. */
+    | {readonly channel: typeof CHANNEL; readonly kind: "error-count"; readonly count: number}
+    /** Page → frame: show the Errors tab — the overlay's "Open in DevTools" was pressed. */
+    | {readonly channel: typeof CHANNEL; readonly kind: "show-errors"}
+    /** Page → frame: something failed on the page itself — a script, a rejected promise, an island. */
+    | {readonly channel: typeof CHANNEL; readonly kind: "page-error"; readonly report: PageErrorReport}
     /** Frame → page: flash these components, which rendered in a commit, as `[at, label]` pairs. */
     | {readonly channel: typeof CHANNEL; readonly kind: "flash"; readonly boxes: readonly (readonly [string, string])[]};
+
+/** A failure on the page itself, as the page describes it to the panel. */
+export interface PageErrorReport {
+    /** `page` for a script's error or a rejected promise, `island` for an island that failed. */
+    readonly kind: "page" | "island";
+    /** The error's name (`TypeError`), or what kind of failure it was when it has none. */
+    readonly title: string;
+    readonly message: string;
+    /** The stack, bounded; null when there is none. */
+    readonly stack: string | null;
+    /** When it happened, in milliseconds since the epoch. */
+    readonly at: number;
+    /** For an island: its name, and `mount`, `update`, `unmount` or `props`. */
+    readonly island: string | null;
+    readonly phase: string | null;
+    /** For an island: where its host element is on the page (`path|slot|1`), so the panel can find its component. */
+    readonly place: string | null;
+}
 
 /** Where the page remembers whether flashing is on: `"on"`, or nothing. Both the page and a same-origin panel read it. */
 export const FLASH_STORAGE_KEY = "rask.devtools.flash";
