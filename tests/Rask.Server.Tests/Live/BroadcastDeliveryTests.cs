@@ -113,7 +113,18 @@ public sealed class BroadcastDeliveryTests
         var sessionId = MarkupAssert.SessionId(html);
         var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        return new ConnectedClient(ws, host.Store.Get(sessionId)!, MarkupAssert.FirstHandlerId(html));
+
+        // Wait for the attach itself, not for a frame: a hello with nothing to catch up on sends none, and a test that
+        // raced ahead of the attach would see a detached session, where a render request only marks the catch-up.
+        var session = host.Store.Get(sessionId)!;
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+        while (!session.HasOpenTransport)
+        {
+            Assert.True(DateTime.UtcNow < deadline, "the socket never attached");
+            await Task.Delay(5);
+        }
+
+        return new ConnectedClient(ws, session, MarkupAssert.FirstHandlerId(html));
     }
 
     private static Task ClickAsync(ConnectedClient client) => client.Ws.SendJsonAsync(new { id = client.BumpHandler });
