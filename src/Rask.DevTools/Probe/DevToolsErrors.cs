@@ -37,6 +37,8 @@ internal enum DevToolsErrorKind : byte
 /// <param name="Caught">An error boundary took it.</param>
 /// <param name="AppWide">Reported outside any page's render or handler, so it belongs to no one page.</param>
 /// <param name="Count">How many times it happened in a row.</param>
+/// <param name="LikelyFrameworkBug">Its stack points at Rask rather than the app, so it may be reported as a framework bug.</param>
+/// <param name="ReportFrames">The frames a report may carry; see <see cref="DevToolsBugReport" />.</param>
 internal sealed record DevToolsError(
     long Sequence,
     DateTimeOffset At,
@@ -49,7 +51,13 @@ internal sealed record DevToolsError(
     long? ComponentId,
     bool Caught,
     bool AppWide,
-    int Count);
+    int Count,
+    bool LikelyFrameworkBug = false,
+    IReadOnlyList<string>? ReportFrames = null)
+{
+    /// <summary>The frames a report may carry, never null.</summary>
+    public IReadOnlyList<string> ReportFrames { get; init; } = ReportFrames ?? [];
+}
 
 /// <summary>
 ///     A bounded list of errors, the same one repeated in a row counting up rather than filling the list.
@@ -77,7 +85,7 @@ internal sealed class DevToolsErrorLog
     /// <summary>Records an error and hands back its entry, so a render fault can add the components it unwinds through.</summary>
     internal Entry Record(
         DevToolsErrorKind kind, bool isWarning, string title, string message, string? detail, string? component,
-        long? componentId, bool caught, bool appWide, DateTimeOffset at)
+        long? componentId, bool caught, bool appWide, DateTimeOffset at, DevToolsStackVerdict? verdict = null)
     {
         Entry entry;
         lock (_gate)
@@ -92,7 +100,8 @@ internal sealed class DevToolsErrorLog
             }
             else
             {
-                entry = new Entry(++_sequence, kind, isWarning, title, message, Bound(detail), componentId, caught, appWide, at);
+                entry = new Entry(++_sequence, kind, isWarning, title, message, Bound(detail), componentId, caught, appWide, at,
+                    verdict ?? DevToolsStackVerdict.None);
                 if (component is not null)
                 {
                     entry.InnermostFirst.Add(component);
@@ -171,7 +180,7 @@ internal sealed class DevToolsErrorLog
 
     internal sealed class Entry(
         long sequence, DevToolsErrorKind kind, bool isWarning, string title, string message, string? detail,
-        long? componentId, bool caught, bool appWide, DateTimeOffset at)
+        long? componentId, bool caught, bool appWide, DateTimeOffset at, DevToolsStackVerdict verdict)
     {
         internal DevToolsErrorKind Kind { get; } = kind;
         internal string Title { get; } = title;
@@ -191,7 +200,7 @@ internal sealed class DevToolsErrorLog
             }
 
             return new DevToolsError(sequence, At, Kind, isWarning, Title, Message, detail, path, ComponentId, Caught,
-                appWide, Count);
+                appWide, Count, verdict.LikelyFrameworkBug, verdict.Frames);
         }
     }
 }
