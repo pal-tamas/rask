@@ -9,6 +9,24 @@ them until tagged releases begin.
 
 ### Added
 
+- **Rask UI menus behave like Flux UI's: a popover menu with a keyboard cursor, submenus with a safe triangle, and
+  checkable items.** `UiDropdown`'s panel is now a `[popover]` — top layer, Escape and click-outside, focus handed
+  back to the trigger — placed by CSS anchor positioning, with the menu focused as it opens. The arrows move an
+  `aria-activedescendant` cursor that skips disabled rows and wraps, Home/End jump, a letter jumps to the next row
+  starting with it, Enter/Space press the row, Tab leaves. New `UiMenuSub` flies out beside its row: ArrowRight opens
+  it, ArrowLeft closes it, a tap opens it on a touch screen, and a pointer crossing diagonally toward it keeps it open
+  (a CSS wedge plus a 300 ms close delay — no script). New `UiMenuCheckbox` (`menuitemcheckbox`, keeps the menu open)
+  and `UiMenuRadioGroup<T>` (`menuitemradio`) bind like every kit form control; new `UiMenuGroup` and
+  `UiMenuSeparator`. `UiMenuItem` gains `Kbd`, `Tone(UiTone.Error)` for a danger row, `IconTrailing`, `Disabled`,
+  `KeepOpen`, and `aria-current` for `Active`. `UiDropdown` gains `Gap`, `Offset`, `KeepOpen` and `IconTrailing`
+  (a chevron by default), and styling hooks `data-open` on the dropdown, `data-highlighted` on the cursor row and
+  `data-checked` on a checked row.
+  - **Runtime:** a `[popover][data-rask-popover-open]` is shown or hidden to match whenever the attribute changes, so a
+    controlled `UiDropdown.Open(bool)` works; a `role="menu"` contains its navigation keys, Enter/Space press the
+    active row, ArrowDown on a closed menu button opens it, a pick closes the menu unless `data-rask-keep-open`, and
+    Tab out of a menu closes it.
+  - `UiOpenOn.Hover` keeps daisyUI's CSS dropdown, which CSS can open and a popover cannot.
+
 - **Rask UI's dialog is a real modal, and gains Flux UI's switches.** `UiModal`'s trigger opens it with the HTML
   invoker command `show-modal`, so the browser makes the page behind inert, contains Tab, closes on Escape and hands
   focus back to the trigger — no script. Every open and close control still names the dialog as a `popover`, so a
@@ -815,6 +833,11 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING — `UiDropdown` renders a popover menu, not daisyUI's `:focus-within` dropdown.** Its children are menu
+  rows — use `UiMenuItem`/`UiMenuCheckbox`/`UiMenuRadioGroup`/`UiMenuSub` rather than hand-written `<li>`s, which still
+  render but get no keyboard cursor. The `dropdown-open`/`dropdown-close` classes are gone except under
+  `OpenOn(UiOpenOn.Hover)`; `OnToggle` now reports every open and close the reader makes, not only trigger clicks.
+
 - **BREAKING — Rask UI places things with one vocabulary, Flux UI's `Position` + `Align`.** `UiPlacement` is gone:
   it mixed sides and edges in one enum, so `dropdown-top dropdown-end` — a menu above its trigger, flush with
   its end — could not be said at all. New `UiPosition` (Top/Right/Bottom/Left) and `UiAlign` (Start/Center/End)
@@ -1305,6 +1328,11 @@ them until tagged releases begin.
   ```
 
 ### Fixed
+
+- **A floating-label field was announced twice — "Email Email".** The floating label wraps its control, and
+  daisyUI's caption needs a placeholder, so Chromium computed the name from the caption plus the empty control's
+  placeholder. `UiInput`, `UiTextarea` and the native `UiSelect` now name the control by the caption alone through
+  `aria-labelledby`.
 
 - **A C# click handler cancelled the button's HTML invoker command.** Both runtimes kept a click's default only for a
   `popovertarget` button, so `UiButton.Command("show-modal").CommandFor("x").OnClick(...)` ran its handler and never

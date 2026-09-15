@@ -67,24 +67,25 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     {
         await OpenAsync();
 
-        var dropdown = Page.Locator("[data-testid='ui-dropdown'] .dropdown").First;
-        var trigger = dropdown.Locator("button").First;
-
-        // Closed writes `dropdown-close`, not merely the absence of `dropdown-open` — because daisyUI
-        // also opens on :focus-within, and clicking the trigger puts focus inside it. Without the
-        // explicit close class this assertion would fail the moment the click landed.
-        await Expect(dropdown).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("dropdown-close"));
-        await Expect(trigger).ToHaveAttributeAsync("aria-expanded", "false");
+        var scope = Page.Locator("[data-testid='ui-dropdown']");
+        var trigger = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Open menu" });
+        await Expect(trigger).ToHaveAttributeAsync("aria-expanded", "false", new LocatorAssertionsToHaveAttributeOptions { Timeout = 15_000 });
 
         await trigger.ClickAsync();
-        await Expect(dropdown).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("dropdown-open"));
-        await Expect(trigger).ToHaveAttributeAsync("aria-expanded", "true");
 
-        // The panel is genuinely reachable once open, which is the whole point of the class.
-        await Expect(dropdown.Locator(".dropdown-content")).ToBeVisibleAsync();
+        // The popover opened, C# heard it through the toggle event, and the page's own state now drives the label.
+        var panel = scope.Locator("[popover]").First;
+        await Expect(panel).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        var reopened = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Close menu" });
+        await Expect(reopened).ToHaveAttributeAsync("aria-expanded", "true", new LocatorAssertionsToHaveAttributeOptions { Timeout = 10_000 });
 
-        await trigger.ClickAsync();
-        await Expect(dropdown).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("dropdown-close"));
+        // The menu took focus when it opened, so the keyboard works straight away.
+        await Expect(panel.Locator("[role='menu']").First).ToBeFocusedAsync();
+
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(panel).ToBeHiddenAsync();
+        await Expect(scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Open menu" }))
+            .ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 10_000 });
     });
 
     [Fact]
@@ -92,15 +93,105 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     {
         await OpenAsync();
 
-        var dropdown = Page.Locator("[data-testid='ui-dropdown'] .dropdown").First;
-        await dropdown.Locator("button").First.ClickAsync();
-        await dropdown.GetByText("Duplicate").ClickAsync();
+        var scope = Page.Locator("[data-testid='ui-dropdown']");
+        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Open menu" }).ClickAsync();
+        await scope.GetByRole(AriaRole.Menuitem, new LocatorGetByRoleOptions { Name = "Duplicate" }).ClickAsync();
 
-        // Both halves matter: the action ran, and the menu closed itself afterwards. Closing on
-        // completion is exactly what the <details> version could not do.
+        // Both halves matter: the action ran, and the menu closed itself afterwards.
         await Expect(Page.Locator("[data-testid='ui-actions-log']")).ToContainTextAsync("duplicate");
-        await Expect(dropdown).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("dropdown-close"));
+        await Expect(scope.Locator("[popover]").First).ToBeHiddenAsync();
     });
+
+    [Fact]
+    public Task TheMenuIsDrivenByTheKeyboardIntoASubmenu() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-dropdown']");
+        var trigger = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "View" });
+        await trigger.FocusAsync();
+        await Page.Keyboard.PressAsync("Enter");
+
+        var menu = scope.Locator("[role='menu'][autofocus]").Last;
+        await Expect(menu).ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 10_000 });
+
+        async Task<string> CursorAsync() =>
+            await menu.EvaluateAsync<string>(
+                "m => { const r = document.getElementById(m.getAttribute('aria-activedescendant') || ''); "
+                + "return r ? r.textContent.trim() : ''; }");
+
+        // Home puts the cursor on the first row, Right walks into "Sort by", and Down moves among its options.
+        await Page.Keyboard.PressAsync("Home");
+        await WaitForCursorAsync(CursorAsync, "Sort by");
+        await Page.Keyboard.PressAsync("ArrowRight");
+        await WaitForCursorAsync(CursorAsync, "Name");
+        await Expect(scope.Locator(".ui-menu-flyout").First).ToBeVisibleAsync();
+
+        await Page.Keyboard.PressAsync("ArrowDown");
+        await WaitForCursorAsync(CursorAsync, "Date modified");
+        // Enter presses the row under the cursor, exactly as a click would.
+        await Page.Keyboard.PressAsync("Enter");
+        await Expect(Page.Locator("[data-testid='ui-actions-log']")).ToContainTextAsync("sorted by date");
+    });
+
+    [Fact]
+    public Task APointerCrossingDiagonallyIntoASubmenuKeepsItOpen() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-dropdown']");
+        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "View" }).ClickAsync();
+
+        var sub = scope.GetByRole(AriaRole.Menuitem, new LocatorGetByRoleOptions { Name = "Sort by" });
+        await sub.HoverAsync(new LocatorHoverOptions { Timeout = 10_000 });
+        var flyout = scope.Locator(".ui-menu-flyout").First;
+        await Expect(flyout).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // From the middle of the row to the flyout's last option, in small steps: the path crosses the row below
+        // ("Refresh"), which without the safe triangle would take the hover and close the flyout on the way.
+        var from = (await sub.BoundingBoxAsync())!;
+        var target = flyout.GetByRole(AriaRole.Menuitemradio, new LocatorGetByRoleOptions { Name = "Size" });
+        var to = (await target.BoundingBoxAsync())!;
+        await Page.Mouse.MoveAsync(from.X + (from.Width * 0.6f), from.Y + (from.Height / 2));
+        await Page.Mouse.MoveAsync(to.X + 12, to.Y + (to.Height / 2), new MouseMoveOptions { Steps = 25 });
+
+        await Expect(flyout).ToBeVisibleAsync();
+        await target.ClickAsync();
+        await Expect(Page.Locator("[data-testid='ui-actions-log']")).ToContainTextAsync("sorted by size");
+    });
+
+    [Fact]
+    public Task ACheckboxItemTogglesAndKeepsTheMenuOpen() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-dropdown']");
+        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "View" }).ClickAsync();
+        var item = scope.GetByRole(AriaRole.Menuitemcheckbox, new LocatorGetByRoleOptions { Name = "Show archived" });
+
+        await item.ClickAsync();
+        await Expect(item).ToHaveAttributeAsync("aria-checked", "true", new LocatorAssertionsToHaveAttributeOptions { Timeout = 10_000 });
+        // A menu of switches stays up: flipping three should not mean opening it three times.
+        await Page.WaitForTimeoutAsync(300);
+        await Expect(item).ToBeVisibleAsync();
+    });
+
+    private static async Task WaitForCursorAsync(Func<Task<string>> read, string expected)
+    {
+        var last = "";
+        for (var i = 0; i < 50; i++)
+        {
+            last = await read();
+            if (last.StartsWith(expected, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            await Task.Delay(100);
+        }
+
+        Assert.Fail($"the menu cursor never reached \"{expected}\" (it is on \"{last}\").");
+    }
 
     [Fact]
     public Task TheModalOpensOnDemandAndClosesFromItsFooter() => RunAsync(async () =>
@@ -334,7 +425,12 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         // The WASM host ends the mark when the dispatch promise resolves, so it is up for the 1.5 s the handler
         // takes — and the stylesheet draws it: the label goes transparent, the width holds, the spinner sits on top.
         await Expect(save).ToHaveAttributeAsync("aria-busy", "true", new LocatorAssertionsToHaveAttributeOptions { Timeout = 5_000 });
-        Assert.Equal("rgba(0, 0, 0, 0)", await save.EvaluateAsync<string>("el => getComputedStyle(el).color"));
+        // daisyUI transitions a button's colour, so the label fades rather than vanishing: wait for the fade to end,
+        // whatever colour space the engine reports it in.
+        await Page.WaitForFunctionAsync(
+            "el => { const c = getComputedStyle(el).color; return /rgba\\(.*,\\s*0\\)$/.test(c) || /\\/\\s*0\\)$/.test(c) || c === 'transparent'; }",
+            await save.ElementHandleAsync(),
+            new PageWaitForFunctionOptions { Timeout = 5_000 });
         Assert.NotEqual("none", await save.EvaluateAsync<string>("el => getComputedStyle(el, '::after').maskImage"));
         var during = await save.BoundingBoxAsync();
         Assert.Equal(before!.Width, during!.Width, 0.5);

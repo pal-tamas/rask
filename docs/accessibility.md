@@ -174,6 +174,19 @@ rather than the focus, the runtime also scrolls the named row back into view whe
 and in a virtualized tree — where that row is not rendered at all — it scrolls to where the row will be,
 which is what loads it.
 
+## Menus
+
+An element with `role="menu"` is a focused list with a cursor inside it (`aria-activedescendant`), and the
+runtime treats it like one: the arrows, Home/End, Page keys and Space are contained so they move the cursor
+rather than scrolling the page, and Enter or Space press the row the cursor names — its own click handler, link
+or checkbox runs exactly as a pointer would run it. ArrowDown or ArrowUp on a closed `aria-haspopup="menu"`
+button opens it; a pick closes the popover the menu sits in unless the row or the menu carries
+`data-rask-keep-open`; Tab out of an open menu closes it. Escape is the browser's, and hands focus back to the
+trigger. Rask UI's `UiDropdown` builds on this, with `menuitem`, `menuitemcheckbox` and `menuitemradio` rows.
+
+A `[popover]` carrying `data-rask-popover-open="true"|"false"` is shown or hidden to match whenever the attribute
+changes — how a controlled menu opens from C#, which cannot call `showPopover()`.
+
 ## Controls that are waiting
 
 A `<button>` (or `<input type=button|submit>`) whose own handler is still running after 200 ms is marked

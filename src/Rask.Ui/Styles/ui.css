@@ -953,6 +953,92 @@
 }
 
 /*
+  UiDropdown's menu rows, submenus and the safe triangle.
+
+  In `rask-ui-corrections` because every rule it has to beat — daisyUI's grid row, its nested-list indent and the
+  vertical line it draws with a nested list's ::before — is emitted inside `@layer utilities`.
+
+  A row is a flex row, not daisyUI's column grid, so the words take the slack and a shortcut sits at the end.
+
+  A submenu flies out beside its row. A pointer opens it by hovering and the keyboard by the dropdown writing
+  `data-open`. Closing waits 300 ms, and the flyout carries a WEDGE — its ::before, clipped to a triangle from the
+  middle of the parent row to the flyout's edge — that belongs to the flyout, so hovering it keeps the parent row
+  hovered. Together they are the safe triangle: a diagonal move toward the flyout that crosses the next row down
+  does not close it. Hovering a different submenu row closes this one at once instead of after the delay. There is
+  no hover on a touch screen, so there the wedge is off and a tap opens the flyout.
+*/
+@layer rask-ui-corrections {
+  .menu > li > :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]) {
+    display: flex;
+  }
+
+  .menu .ui-menu-kbd {
+    margin-inline-start: auto;
+    opacity: 0.7;
+  }
+
+  .menu > li.ui-menu-separator {
+    block-size: 1px;
+    margin-block: 0.25rem;
+    padding: 0;
+    background-color: var(--color-base-300);
+  }
+
+  .menu > li.ui-menu-sub {
+    position: relative;
+  }
+
+  .menu > li.ui-menu-sub > .ui-menu-flyout {
+    position: absolute;
+    z-index: 2;
+    inset-block-start: calc(-0.5rem - 1px);
+    inset-inline-start: 100%;
+    margin: 0 0 0 0.25rem;
+    white-space: normal;
+    visibility: hidden;
+    opacity: 0;
+    transition: visibility 0s linear 300ms, opacity 120ms ease-out 180ms;
+  }
+
+  .menu > li.ui-menu-sub:is(:hover, [data-open]) > .ui-menu-flyout {
+    visibility: visible;
+    opacity: 1;
+    transition-delay: 0s;
+  }
+
+  .menu:has(> li.ui-menu-sub:hover) > li.ui-menu-sub:not(:hover, [data-open]) > .ui-menu-flyout {
+    transition-delay: 0s;
+  }
+
+  .menu > li.ui-menu-sub > .ui-menu-flyout::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: auto;
+    inset-inline-end: 100%;
+    inline-size: 3.25rem;
+    opacity: 1;
+    background-color: transparent;
+    clip-path: polygon(100% 0, 100% 100%, 0 var(--ui-menu-apex, 1.25rem));
+    pointer-events: none;
+  }
+
+  [dir="rtl"] .menu > li.ui-menu-sub > .ui-menu-flyout::before {
+    clip-path: polygon(0 0, 0 100%, 100% var(--ui-menu-apex, 1.25rem));
+  }
+
+  .menu > li.ui-menu-sub:hover > .ui-menu-flyout::before {
+    pointer-events: auto;
+  }
+
+  @media (hover: none) {
+    .menu > li.ui-menu-sub > .ui-menu-flyout::before {
+      display: none;
+    }
+  }
+}
+
+/*
   UiTooltip.Toggleable: the tip shows while anything in its wrapper has focus, which a tap gives it and a tap
   elsewhere takes away — the touch screen's only way to see a tooltip, with no script. Mirrors the open state
   daisyUI gives `.tooltip-open`, for both of its shapes (the `data-tip` pseudo-element and `.tooltip-content`).

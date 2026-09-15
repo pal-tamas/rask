@@ -153,13 +153,13 @@ public partial class UiSelectTests : global::Rask.Core.RaskMarkup
             Assert.Contains("id=\"f-country\"", html);
         }
 
-        Assert.DoesNotContain("aria-label", Native(null));
+        Assert.DoesNotContain("aria-label=", Native(null));
 
         // The drawn LIST is a separate widget in the top layer and keeps a name of its own; the box does not.
         var drawn = Native(false);
         var boxStart = drawn.IndexOf("role=\"combobox\"", StringComparison.Ordinal);
         var box = drawn[drawn.LastIndexOf('<', boxStart)..drawn.IndexOf('>', boxStart)];
-        Assert.DoesNotContain("aria-label", box);
+        Assert.DoesNotContain("aria-label=", box);
         Assert.Contains("role=\"listbox\" aria-label=\"Country\"", drawn);
     }
 
@@ -172,7 +172,7 @@ public partial class UiSelectTests : global::Rask.Core.RaskMarkup
             UiSelect.Value("gb").Options(Countries).AccessibleLabel("Country").ToHtml());
         Assert.Contains("aria-label=\"Country\"",
             UiSelect.Value("gb").Options(Countries).AccessibleLabel("Country").Native(false).ToHtml());
-        Assert.DoesNotContain("aria-label", UiSelect.Value("gb").Options(Countries).ToHtml());
+        Assert.DoesNotContain("aria-label=", UiSelect.Value("gb").Options(Countries).ToHtml());
     }
 
     [Fact]

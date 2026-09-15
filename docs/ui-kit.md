@@ -407,18 +407,49 @@ moves in, Tab cycles inside, Escape runs `OnClose`, and focus returns when it cl
 `UiTooltip` takes `Kbd("⌘S")` to teach a shortcut where the reader is already looking, and `Toggleable(true)`
 to show on a tap — a touch screen has no hover, so an ordinary tooltip is never seen there.
 
-**The page owns it, in C#.** `UiDropdown`, `UiCollapse`, `UiAccordion`, `UiSwap`, `UiTabs` and
-`UiModal`'s `Open` path hold their state in a field and redraw through the live diff — which is what
-lets a dropdown close itself when the action inside it completes.
+**The browser owns the open state, C# owns the cursor.** `UiDropdown` is a menu button over a `[popover]`
+menu: the browser opens and closes it — top layer, Escape, a click outside, focus back on the trigger — and
+the menu takes focus as it opens. What C# owns is the keyboard cursor Flux UI's menus have: the arrows move an
+`aria-activedescendant` cursor that skips disabled rows and wraps, Home/End jump, a letter jumps to the next
+row starting with it, ArrowRight opens a submenu and ArrowLeft closes it, Enter or Space press the row, Tab
+leaves. The runtime supplies the few things C# cannot: pressing the row, closing the popover after a pick, and
+closing it when Tab leaves.
+
+```csharp
+UiDropdown.Trigger("View").Align(UiAlign.End)[
+    UiMenuGroup.Heading("Arrange")[
+        UiMenuSub.Heading("Sort by")[
+            UiMenuRadioGroup.Value(_sort).Options([("name", "Name"), ("date", "Date")]).OnChange(s => _sort = s)
+        ],
+        UiMenuItem.Text("Refresh").Kbd("⌘R").OnClick(Refresh)
+    ],
+    UiMenuSeparator.Key("sep"),
+    UiMenuCheckbox.Key("archived").Value(_archived).Text("Show archived").OnChange(on => _archived = on),
+    UiMenuItem.Text("Delete").Tone(UiTone.Error).OnClick(Delete)
+]
+```
+
+A submenu flies out beside its row, and a pointer moving diagonally toward it — across the row below — does
+not close it: the flyout carries a CSS wedge back to its row and waits 300 ms before closing, Flux's **safe
+triangle** with no script. A tap opens it on a touch screen. `UiMenuCheckbox` keeps the menu open, since
+flipping three switches should not mean opening it three times; any row can ask for the same with `KeepOpen`.
+Style the rows from `data-highlighted` (the cursor), `data-checked` and the dropdown's `data-open`.
+
+A controlled item written as `.Value(x).Key("k")` keeps the value it had when the key first claimed it — put
+`Key` first on a non-generic item (`UiMenuCheckbox.Key("k").Value(x)`), and leave a generic one such as
+`UiMenuRadioGroup` unkeyed.
+
+`Open` is nullable and the three settings mean three things: unset leaves it to the reader; `true` and `false`
+hand it to the page, and the runtime shows or hides the popover to match whenever the page changes its mind,
+which is what lets a dropdown close itself when the action inside it completes. `OpenOn(UiOpenOn.Hover)` keeps
+daisyUI's CSS dropdown, which a pointer can open and a popover cannot — without the keyboard cursor.
 
 ```csharp
 UiDropdown.Trigger("Actions").Open(_open).OnToggle(open => _open = open)[ … ]
 ```
 
-`Open` is nullable and the three settings mean three things: unset is uncontrolled and the browser
-decides; `true` and `false` hand it to the page. Closed writes `dropdown-close` rather than merely
-omitting `dropdown-open`, because daisyUI also opens on `:focus-within` — without it, tabbing into
-the panel would re-open a dropdown the page had just closed.
+**The page owns it, in C#.** `UiCollapse`, `UiAccordion`, `UiSwap`, `UiTabs` and `UiModal`'s `Open` path hold
+their state in a field and redraw through the live diff.
 
 **The markup owns it.** `UiTab` is a real link with a real URL, so a tab is bookmarkable, survives a
 refresh and answers the back button. `UiDrawer` keeps its checkbox because daisyUI's rules are written

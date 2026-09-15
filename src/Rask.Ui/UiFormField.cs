@@ -219,6 +219,14 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
             aria["label"] = name;
         }
 
+        // A floating label WRAPS its control, and daisyUI's floating caption needs a placeholder to rise from, so a
+        // browser computing the name from the label reads the caption and then the control inside it — whose empty
+        // value falls back to that placeholder: "Email Email". Naming the control by the caption alone says it once.
+        if (Label is not null && FloatsLabel)
+        {
+            aria["labelledby"] = LabelId;
+        }
+
         if (IsBoundToRequiredMember())
         {
             aria["required"] = "true";
@@ -237,6 +245,9 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
 
         return aria;
     }
+
+    /// <summary>The id of a floating label's caption, for <c>aria-labelledby</c>.</summary>
+    private protected string LabelId => FieldId + "-label";
 
     /// <summary>The id of the hint paragraph, for <c>aria-describedby</c>.</summary>
     private protected string HintId => FieldId + "-hint";
@@ -375,7 +386,7 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
         // A floating caption is the FIRST child and the control follows it: daisyUI positions the caption
         // over the control and raises it once the control stops showing its placeholder.
         var field = floats
-            ? RaskMarkup.Label.For(FieldId).Class("floating-label")[Span[Label, BadgeFor()], control]
+            ? RaskMarkup.Label.For(FieldId).Class("floating-label")[Span.Id(LabelId)[Label, BadgeFor()], control]
             : control;
 
         // Nothing to wrap it in. Keeps a bare control's markup exactly as it was, which is what a control

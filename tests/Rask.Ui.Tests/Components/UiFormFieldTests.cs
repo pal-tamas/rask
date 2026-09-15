@@ -87,7 +87,7 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
         var html = UiInput.Value("").Label("Username").AccessibleLabel("Search").ToHtml();
 
         Assert.Contains("Username", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("aria-label", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-label=", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -101,7 +101,7 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
         var hint = html.IndexOf("At least 12 characters", StringComparison.Ordinal);
 
         Assert.True(close >= 0 && hint > close, "the hint is inside the label.");
-        Assert.DoesNotContain("aria-label", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-label=", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -243,7 +243,7 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
         Assert.Contains("Notes", html, StringComparison.Ordinal);
 
         // One name, not two: the visible label is the name, so no aria-label duplicates it.
-        Assert.DoesNotContain("aria-label", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-label=", html, StringComparison.Ordinal);
     }
 
     private sealed class SignUp

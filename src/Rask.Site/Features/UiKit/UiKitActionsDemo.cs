@@ -17,6 +17,8 @@ public sealed partial class UiKitActionsDemo : Component
     private UiThemeName _theme = UiThemeName.Light;
     private string _lastAction = "nothing yet";
     private int _saves;
+    private string _sort = "name";
+    private bool _showArchived;
     private int _steps;
 
     /// <inheritdoc />
@@ -75,8 +77,10 @@ public sealed partial class UiKitActionsDemo : Component
 
         Section(
             "Dropdown",
-            "Open is nullable, and the three settings mean three different things: unset lets the "
-            + "browser open it on focus, true and false hand the decision to this page.",
+            "A popover menu with Flux UI's keyboard: the arrows move a cursor, Home and End jump, a letter "
+            + "jumps to the next item starting with it, Right opens a submenu and Left closes it, Enter picks, "
+            + "Escape and Tab leave. A pointer crossing diagonally into a submenu keeps it open — the safe "
+            + "triangle. Open is nullable: unset leaves it to the reader, true and false hand it to this page.",
             Div.Data(Testid("ui-dropdown")).Class("flex flex-wrap items-center gap-2")[
                 UiDropdown
                     .Key("controlled")
@@ -84,13 +88,24 @@ public sealed partial class UiKitActionsDemo : Component
                     .Position(UiPosition.Bottom)
                     .Open(_menuOpen)
                     .OnToggle(open => { _menuOpen = open; })[
-                    MenuAction("rename", "Rename"),
-                    MenuAction("duplicate", "Duplicate"),
-                    MenuAction("delete", "Delete")
+                    MenuAction("rename", "Rename", "⌘R"),
+                    MenuAction("duplicate", "Duplicate", "⌘D"),
+                    MenuAction("delete", "Delete", null, UiTone.Error)
                 ],
-                UiDropdown.Key("uncontrolled").Trigger("Uncontrolled").Align(UiAlign.End)[
-                    MenuAction("first", "Opens on focus"),
-                    MenuAction("second", "Closes when focus leaves")
+                UiDropdown.Key("rich").Trigger("View").Icon(UiIconName.Sparkles).Align(UiAlign.End)[
+                    UiMenuGroup.Key("sort-group").Heading("Arrange")[
+                        UiMenuSub.Key("sort").Heading("Sort by")[
+                            UiMenuRadioGroup.Value(_sort)
+                                .Options([("name", "Name"), ("date", "Date modified"), ("size", "Size")])
+                                .OnChange(sort => { _sort = sort; _lastAction = "sorted by " + sort; })
+                        ],
+                        UiMenuItem.Key("refresh").Text("Refresh").Kbd("⌘⇧R")
+                            .OnClick(() => { _lastAction = "refreshed"; })
+                    ],
+                    UiMenuSeparator.Key("sep"),
+                    UiMenuCheckbox.Key("archived").Value(_showArchived).Text("Show archived")
+                        .OnChange(on => { _showArchived = on; _lastAction = on ? "showing archived" : "hiding archived"; }),
+                    UiMenuItem.Key("export").Text("Export").Disabled(true)
                 ]
             ]),
 
@@ -226,17 +241,12 @@ public sealed partial class UiKitActionsDemo : Component
             .Active(_theme == theme)
             .OnChange(chosen => { _theme = chosen; });
 
-    private Component MenuAction(string key, string label) =>
-        Li.Key(key)[
-            Button
-                .Type("button")
-                .Class("w-full text-left")
-                .OnClick(() =>
-                {
-                    _lastAction = label.ToLowerInvariant();
-                    _menuOpen = false;
-                })[label]
-        ];
+    private Component MenuAction(string key, string label, string? kbd, UiTone? tone = null) =>
+        UiMenuItem.Key(key).Text(label).Kbd(kbd).Tone(tone).OnClick(() =>
+        {
+            _lastAction = label.ToLowerInvariant();
+            _menuOpen = false;
+        });
 
     private static Component Section(string heading, string blurb, Component body) =>
         Div.Key(heading).Class("mb-8")[

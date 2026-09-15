@@ -806,6 +806,150 @@ export function applyFrameInvokes(
     }, true);
 })();
 
+// ----- Controlled popovers (data-rask-popover-open) ----------------------
+// C# cannot call showPopover(), and a render can only write attributes. So a [popover] that carries
+// data-rask-popover-open="true" | "false" is shown or hidden to match, whenever the attribute changes or the
+// element arrives. Only on a CHANGE: a reader who closes the popover with Escape while the page still says
+// "true" is not fought — the page hears the toggle event and updates, or it does not, and either way the next
+// time it changes its mind is the next time this acts. Rask UI's controlled UiDropdown is built on it.
+(function () {
+    if (typeof document === "undefined" || typeof MutationObserver !== "function") {
+        return;
+    }
+
+    function reconcile(el: Element): void {
+        const want = el.getAttribute("data-rask-popover-open");
+        const popover = el as HTMLElement & { showPopover?: () => void; hidePopover?: () => void };
+        if (want === null || typeof popover.showPopover !== "function") {
+            return;
+        }
+        let open = false;
+        try {
+            open = el.matches(":popover-open");
+        } catch (e) {
+            return; // an engine without the popover API
+        }
+        try {
+            if (want === "true" && !open) popover.showPopover();
+            else if (want === "false" && open) popover.hidePopover!();
+        } catch (e) {
+            // not connected, or already transitioning — the next change will reconcile
+        }
+    }
+
+    function scan(root: Element): void {
+        if (root.hasAttribute("data-rask-popover-open")) reconcile(root);
+        root.querySelectorAll("[data-rask-popover-open]").forEach(reconcile);
+    }
+
+    new MutationObserver(function (records) {
+        for (const record of records) {
+            if (record.type === "attributes") {
+                reconcile(record.target as Element);
+                continue;
+            }
+            record.addedNodes.forEach(function (n) {
+                if (isElement(n)) scan(n);
+            });
+        }
+    }).observe(document.documentElement, {
+        subtree: true, childList: true, attributes: true, attributeFilter: ["data-rask-popover-open"]
+    });
+    scan(document.documentElement);
+})();
+
+// ----- Menus (role="menu") -----------------------------------------------
+// A menu is one focused element with a cursor inside it (aria-activedescendant), like the tree below, so its
+// navigation keys move the cursor rather than scrolling: the C# handler still receives every one — this only
+// prevents the default. What C# cannot do is press a row or move focus, so the rest lives here:
+//   * Enter / Space press the row the cursor is on, so its own click handler, its link, or its checkbox runs
+//     exactly as a pointer would run it;
+//   * ArrowDown / ArrowUp on a closed menu button open it;
+//   * a pick closes the popover the menu sits in — unless the row, or the menu, says data-rask-keep-open, or the
+//     row opens a submenu;
+//   * Tab out of an open menu closes it, the way a menu is left.
+// Escape is not touched: closing the popover on Escape is the browser's, and it hands focus back to the trigger.
+(function () {
+    if (typeof document === "undefined" || typeof document.addEventListener !== "function") {
+        return;
+    }
+
+    const CONTAIN = [" ", "Enter", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"];
+    const ITEM = "[role=menuitem],[role=menuitemcheckbox],[role=menuitemradio]";
+
+    document.addEventListener("keydown", function (e) {
+        if (e.ctrlKey || e.altKey || e.metaKey) {
+            return;
+        }
+        const t = e.target;
+        if (!(t instanceof HTMLElement)) {
+            return;
+        }
+
+        if (t.getAttribute("role") === "menu" && CONTAIN.indexOf(e.key) >= 0) {
+            e.preventDefault();
+            if (e.key === "Enter" || e.key === " ") {
+                const id = t.getAttribute("aria-activedescendant");
+                const row = id ? document.getElementById(id) : null;
+                if (row && t.contains(row) && row.getAttribute("aria-disabled") !== "true") {
+                    row.click();
+                }
+            }
+            return;
+        }
+
+        if ((e.key === "ArrowDown" || e.key === "ArrowUp")
+            && t.getAttribute("aria-haspopup") === "menu" && t.hasAttribute("popovertarget")
+            && t.getAttribute("aria-expanded") !== "true") {
+            e.preventDefault();
+            t.click();
+        }
+    }, true);
+
+    document.addEventListener("click", function (e) {
+        const row = e.target instanceof Element ? e.target.closest(ITEM) : null;
+        if (!row || row.getAttribute("aria-haspopup") === "menu" || row.getAttribute("aria-disabled") === "true"
+            || row.closest("[data-rask-keep-open]")) {
+            return;
+        }
+        const panel = row.closest("[popover]") as (HTMLElement & { hidePopover?: () => void }) | null;
+        if (!panel || typeof panel.hidePopover !== "function" || !row.closest("[role=menu]")) {
+            return;
+        }
+        // After this click has been dispatched to its own handler, not before: hiding first would move focus
+        // back to the trigger ahead of the handler that needs the row.
+        setTimeout(function () {
+            try {
+                if (panel.matches(":popover-open")) panel.hidePopover!();
+            } catch (err) {
+                // already gone
+            }
+        }, 0);
+    });
+
+    document.addEventListener("focusout", function (e) {
+        const menu = e.target instanceof Element && e.target.getAttribute("role") === "menu" ? e.target : null;
+        const next = e.relatedTarget;
+        if (!menu || !(next instanceof Element)) {
+            return;
+        }
+        const panel = menu.closest("[popover]") as (HTMLElement & { hidePopover?: () => void }) | null;
+        if (!panel || panel.contains(next) || typeof panel.hidePopover !== "function") {
+            return;
+        }
+        // Focus went somewhere a Tab took it: leaving the menu closes it. The trigger itself is left alone — the
+        // click on it is already toggling the popover.
+        if (next.getAttribute("popovertarget") === panel.id) {
+            return;
+        }
+        try {
+            if (panel.matches(":popover-open")) panel.hidePopover();
+        } catch (err) {
+            // already gone
+        }
+    });
+})();
+
 // A tree is one focusable element with a cursor inside it, so the navigation keys mean "move the cursor",
 // not "scroll": ArrowUp/Down and Home/End would scroll the document behind it, ArrowLeft/Right would
 // scroll it sideways, and Space would page down. The C# handler still receives every one of them —
