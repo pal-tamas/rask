@@ -4,8 +4,10 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Rask.Blazor;
 using Rask.Core;
 using Rask.Server;
 
@@ -37,7 +39,12 @@ internal sealed class DevToolsServerHost : IAsyncDisposable
 
     public string BaseUrl { get; }
 
-    public static async Task<DevToolsServerHost> StartAsync<TApp>()
+    /// <param name="islands">
+    ///     Serve what islands load in the browser: Rask.External's client script, and the chunks the build bundled into
+    ///     this project. A Web SDK app serves both as static web assets; this host is a test assembly, which has none, and
+    ///     UseRask serves no static files — so without these a page's islands never load.
+    /// </param>
+    public static async Task<DevToolsServerHost> StartAsync<TApp>(bool islands = false)
         where TApp : Component
     {
         DevToolsGate.AssertOn();
@@ -47,8 +54,16 @@ internal sealed class DevToolsServerHost : IAsyncDisposable
         builder.Logging.ClearProviders();
         builder.Services.AddRouting();
         builder.Services.AddRask(configureServer: o => o.ShutdownDrainTimeout = TimeSpan.FromMilliseconds(200));
+        builder.Services.AddRaskBlazor();
 
         var app = builder.Build();
+        if (islands)
+        {
+            var repo = RepoRoot();
+            Serve(app, Path.Combine(repo, "src", "Rask.External", "wwwroot"), "/_content/Rask.External");
+            Serve(app, Path.Combine(repo, "tests", "Rask.DevTools.E2E.Tests", "wwwroot", "_rask", "external"), "/_rask/external");
+        }
+
         app.UseRouting();
         app.UseWebSockets();
         app.UseRask<TApp>();
@@ -57,6 +72,35 @@ internal sealed class DevToolsServerHost : IAsyncDisposable
         var address = app.Services.GetRequiredService<IServer>().Features
             .Get<IServerAddressesFeature>()!.Addresses.First();
         return new DevToolsServerHost(app, address.TrimEnd('/'));
+    }
+
+    private static void Serve(WebApplication app, string directory, string requestPath)
+    {
+        if (!Directory.Exists(directory))
+        {
+            throw new InvalidOperationException(
+                $"Nothing to serve at '{directory}'. The islands are bundled by the build of Rask.DevTools.E2E.Tests, "
+                + "which needs node and runs npm the first time: run scripts/run-devtools-e2e-local.sh.");
+        }
+
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            FileProvider = new PhysicalFileProvider(directory),
+            RequestPath = requestPath,
+        });
+    }
+
+    private static string RepoRoot()
+    {
+        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
+        {
+            if (File.Exists(Path.Combine(dir.FullName, "Rask.slnx")))
+            {
+                return dir.FullName;
+            }
+        }
+
+        throw new InvalidOperationException("Rask.slnx not found above " + AppContext.BaseDirectory);
     }
 
     public async ValueTask DisposeAsync()

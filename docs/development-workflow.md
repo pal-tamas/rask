@@ -292,7 +292,9 @@ Every change passes this gate before it lands on `main` (the `rask-ship` skill):
   the devtools exist only in a **Debug** build and `run-e2e-local.sh` builds Release. The Server journeys host their
   app in the test process, in Development, on a loopback port. The WASM journeys serve the Debug publish of
   `tests/Rask.DevTools.Fixture.Wasm` (with the kit, `-p:RaskDevToolsFixtureUi=true`), which the script makes first,
-  from a static host on `localhost`, and refuse a bundle without the devtools in it. The script sets `DOTNET_MODIFIABLE_ASSEMBLIES=debug`
+  from a static host on `localhost`, and refuse a bundle without the devtools in it. The island journeys put a real
+  Lit-runtime island (bundled by the project's own build, so **node** must be on `PATH` and the first build runs
+  `npm ci`) and a component from `tests/Rask.Blazor.Library.Fixture` on a Server page. The script sets `DOTNET_MODIFIABLE_ASSEMBLIES=debug`
   for that process, the only way the runtime draws the dev-error overlay the Errors journey opens the panel from. A
   Release build of the project, or a run without the variable, fails with a message naming the script rather than
   passing on nothing. It waits for the machine through the same admission as the browser gate
