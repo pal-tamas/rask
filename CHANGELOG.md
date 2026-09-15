@@ -554,6 +554,12 @@ them until tagged releases begin.
   hand-written type. On the wire a model's properties are camelCase; the entity's `[JsonPropertyName]` is not
   copied onto it.
 
+- **The Ui kit's value controls bind a nullable property.** `UiCheckbox`, `UiToggle`, `UiRadio`, `UiRating`,
+  `UiRange` and `UiCalendar` are over `bool`, `int`, `double` and `DateOnly`, so `.Bind(() => model.InStock)` over
+  a `bool?`, the shape of every generated form model's properties, did not compile. Their chains now also open
+  on `Bind(Expression<Func<T?>>)`: a `null` draws as the empty state and a change writes a value, while `Value`
+  and `OnChange` keep the plain type. Any custom control over a value type gets the same overload from the
+  generator, through `ExpressionAccessor.NonNullable`.
 - **The build keeps an aggregate's state inside it.** [RASK084](docs/diagnostics.md#rask084) is an error for a
   public `set`, a hand-written public `init` or a public non-readonly field on an aggregate, an entity (and the
   app's abstract bases between them) or a value object one of them holds; a positional record's parameters are

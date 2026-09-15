@@ -131,6 +131,40 @@ public class BuilderFormControlChainTests
             " " + step + "<T>(this global::Demo.Widget<T> __b", setters, StringComparison.Ordinal);
     }
 
+    // A control over a non-nullable value type also opens on a bind over the NULLABLE type, because every
+    // property of a generated form model is nullable: `Flag.Bind(() => model.InStock)` over a `bool?` has to
+    // compile. It is a second overload, lifted through ExpressionAccessor.NonNullable, rather than a wider
+    // parameter, so a `bool` still takes the exact one and Value/OnChange keep their plain `bool`.
+    [Fact]
+    public void A_control_over_a_value_type_also_opens_on_a_bind_over_its_nullable()
+    {
+        var output = Entries(Flag);
+
+        Assert.Contains(
+            "public global::Demo.Flag Bind(global::System.Linq.Expressions.Expression<global::System.Func<bool?>> Bind)",
+            output, StringComparison.Ordinal);
+        Assert.Contains(
+            "__c.Bind = global::Rask.Core.Forms.ExpressionAccessor.NonNullable(Bind);", output, StringComparison.Ordinal);
+
+        // Folding is the Bind rule, whichever overload took it.
+        var lifted = Opening(output, "Func<bool?>> Bind)");
+        Assert.DoesNotContain(lifted, l => l.Contains("BuilderRuntime.Track", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_generic_control_or_one_over_a_nullable_gets_no_lifted_bind()
+    {
+        // A generic control infers T from the property, `bool?` included, and a control already over
+        // `bool?` binds it directly — neither has anything to lift.
+        var overNullable = Flag
+            .Replace("IFormControl<bool>", "IFormControl<bool?>", StringComparison.Ordinal)
+            .Replace("public bool Value", "public bool? Value", StringComparison.Ordinal)
+            .Replace("<bool>", "<bool?>", StringComparison.Ordinal);
+
+        Assert.DoesNotContain("ExpressionAccessor.NonNullable", Entries(Widget), StringComparison.Ordinal);
+        Assert.DoesNotContain("ExpressionAccessor.NonNullable", Entries(overNullable), StringComparison.Ordinal);
+    }
+
     // `Of` is offered to a generic form control even though it has a required step: a control's opening
     // is what pins its value type, and `Label` says nothing about T, so without this a call site with no
     // starting value has no way in at all.

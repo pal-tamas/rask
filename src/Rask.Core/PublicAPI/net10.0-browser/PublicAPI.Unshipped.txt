@@ -6669,3 +6669,4 @@ virtual Rask.Core.Forms.ValidateAsync<T>.Invoke(T value, System.Threading.Cancel
 ~override Rask.Core.ScopedAssets.ScopedAssetRegistry.AssetBytes.ToString() -> string
 ~override Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry.Equals(object obj) -> bool
 ~override Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry.ToString() -> string
+static Rask.Core.Forms.ExpressionAccessor.NonNullable<T>(System.Linq.Expressions.Expression<System.Func<T?>!>! bind) -> System.Linq.Expressions.Expression<System.Func<T>!>!
