@@ -113,7 +113,11 @@ public static class FullTextQueryableExtensions
 internal static class FullTextMarkers
 {
     /// <summary>The marker for "filter <paramref name="source"/> to rows matching the compiled FTS query".</summary>
-    public static IQueryable<TEntity> Matching<TEntity>(IQueryable<TEntity> source, string match) =>
+    /// <remarks>
+    /// Ordered, because a search IS an ordering — best match first — so <c>ThenBy</c> can follow it, as
+    /// <c>ModelQuery.Search</c> promises. The provider folds such a <c>ThenBy</c> into its rank order.
+    /// </remarks>
+    public static IOrderedQueryable<TEntity> Matching<TEntity>(IQueryable<TEntity> source, string match) =>
         throw Unsupported<TEntity>();
 
     public static InvalidOperationException Unsupported<TEntity>() => new(
@@ -122,7 +126,7 @@ internal static class FullTextMarkers
         "Rask.SQLite.EntityFrameworkCore, and declare the index with HasFullTextSearch.");
 
     public static System.Reflection.MethodInfo MatchingMethod<TEntity>() =>
-        new Func<IQueryable<TEntity>, string, IQueryable<TEntity>>(Matching).Method;
+        new Func<IQueryable<TEntity>, string, IOrderedQueryable<TEntity>>(Matching).Method;
 
     public static bool IsMatching(System.Reflection.MethodInfo method) =>
         method.IsGenericMethod && method.DeclaringType == typeof(FullTextMarkers) && method.Name == nameof(Matching);

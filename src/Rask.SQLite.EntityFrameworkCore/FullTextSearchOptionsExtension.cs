@@ -111,8 +111,21 @@ internal sealed class FullTextSearchEntityConvention : IModelFinalizingConventio
             var store = StoreObjectIdentifier.Table(table, entityType.GetSchema());
             var usesRowid = FullTextSearchDdl.UsesRowid(entityType);
 
+            // Recorded, so it travels into the migration's saved model and the DDL builds the layout queries expect.
+            entityType.SetAnnotation(
+                FullTextSearchDdl.LayoutAnnotation,
+                usesRowid ? FullTextSearchDdl.RowidLayout : FullTextSearchDdl.KeyMapLayout);
+
             var index = Bag(modelBuilder, IndexEntityName(entityType), FullTextSearchDdl.IndexTable(table), entityType.GetSchema());
-            Column(index, usesRowid ? key.Properties[0].ClrType : typeof(long), RowId, "rowid");
+            if (usesRowid)
+            {
+                KeyColumn(index, key.Properties[0], RowId, "rowid", store);
+            }
+            else
+            {
+                Column(index, typeof(long), RowId, "rowid");
+            }
+
             Column(index, typeof(string), Match, FullTextSearchDdl.IndexTable(table));
             Column(index, typeof(double), Rank, "rank");
 
@@ -123,16 +136,7 @@ internal sealed class FullTextSearchEntityConvention : IModelFinalizingConventio
 
                 foreach (var property in key.Properties)
                 {
-                    var column = Column(keys, property.ClrType, property.Name, property.GetColumnName(store) ?? property.Name);
-                    if (property.GetValueConverter() is { } converter)
-                    {
-                        column.HasConversion(converter);
-                    }
-
-                    if (property.GetColumnType(store) is { } columnType)
-                    {
-                        column.HasColumnType(columnType);
-                    }
+                    KeyColumn(keys, property, property.Name, property.GetColumnName(store) ?? property.Name, store);
                 }
             }
         }
@@ -151,6 +155,32 @@ internal sealed class FullTextSearchEntityConvention : IModelFinalizingConventio
         builder.ToTable(table, schema);
         builder.Metadata.SetIsTableExcludedFromMigrations(true);
         return builder;
+    }
+
+    // A column holding the searched entity's key: same CLR type, same conversion, same store type, so comparing the two
+    // needs no CAST — and a strongly-typed id still reads back as itself.
+    private static void KeyColumn(
+        IConventionEntityTypeBuilder entity,
+        IConventionProperty key,
+        string name,
+        string column,
+        StoreObjectIdentifier store)
+    {
+        var property = Column(entity, key.ClrType, name, column);
+
+        if (key.GetValueConverter() is { } converter)
+        {
+            property.HasConversion(converter);
+        }
+        else if (FullTextSearchDdl.ValueConverterTypeOf(key) is { } converterType)
+        {
+            property.HasConverter(converterType);
+        }
+
+        if (key.GetColumnType(store) is { } columnType)
+        {
+            property.HasColumnType(columnType);
+        }
     }
 
     private static IConventionPropertyBuilder Column(IConventionEntityTypeBuilder entity, Type type, string name, string column)

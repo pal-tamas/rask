@@ -36,21 +36,26 @@ public sealed class ModelQuery<TEntity>
     private readonly Func<IQueryable<TEntity>, IQueryable<TEntity>>? _compose;
     private readonly bool _ordered;
 
+    // A Search whose text held no word filters and ranks nothing, but the caller wrote it as an ordering, so a ThenBy
+    // after it has to keep working — as the ordering itself — rather than fail exactly while the search box is empty.
+    private readonly bool _unrankedSearch;
+
     internal ModelQuery()
     {
     }
 
-    private ModelQuery(Func<IQueryable<TEntity>, IQueryable<TEntity>>? compose, bool ordered)
+    private ModelQuery(Func<IQueryable<TEntity>, IQueryable<TEntity>>? compose, bool ordered, bool unrankedSearch)
     {
         _compose = compose;
         _ordered = ordered;
+        _unrankedSearch = unrankedSearch;
     }
 
     /// <summary>Filters the query. Composes with any filter already applied.</summary>
     public ModelQuery<TEntity> Where(Expression<Func<TEntity, bool>> predicate)
     {
         ArgumentNullException.ThrowIfNull(predicate);
-        return Then(q => q.Where(predicate), _ordered);
+        return Then(q => q.Where(predicate), _ordered, _unrankedSearch);
     }
 
     /// <summary>
@@ -64,7 +69,7 @@ public sealed class ModelQuery<TEntity>
     /// </remarks>
     public ModelQuery<TEntity> Search(string? text) =>
         FullTextQuery.Compile(text) is null
-            ? this
+            ? _ordered ? this : new ModelQuery<TEntity>(_compose, _ordered, unrankedSearch: true)
             : Then(q => q.Search(text), ordered: true);
 
     /// <summary>Orders the query ascending, replacing any ordering already applied.</summary>
@@ -86,6 +91,11 @@ public sealed class ModelQuery<TEntity>
     public ModelQuery<TEntity> ThenBy<TKey>(Expression<Func<TEntity, TKey>> keySelector)
     {
         ArgumentNullException.ThrowIfNull(keySelector);
+        if (_unrankedSearch)
+        {
+            return OrderBy(keySelector);
+        }
+
         RequireOrdering(nameof(ThenBy));
         return Then(q => ((IOrderedQueryable<TEntity>)q).ThenBy(keySelector), ordered: true);
     }
@@ -95,28 +105,33 @@ public sealed class ModelQuery<TEntity>
     public ModelQuery<TEntity> ThenByDescending<TKey>(Expression<Func<TEntity, TKey>> keySelector)
     {
         ArgumentNullException.ThrowIfNull(keySelector);
+        if (_unrankedSearch)
+        {
+            return OrderByDescending(keySelector);
+        }
+
         RequireOrdering(nameof(ThenByDescending));
         return Then(q => ((IOrderedQueryable<TEntity>)q).ThenByDescending(keySelector), ordered: true);
     }
 
     /// <summary>Skips <paramref name="count" /> rows.</summary>
-    public ModelQuery<TEntity> Skip(int count) => Then(q => q.Skip(count), _ordered);
+    public ModelQuery<TEntity> Skip(int count) => Then(q => q.Skip(count), _ordered, _unrankedSearch);
 
     /// <summary>Takes at most <paramref name="count" /> rows.</summary>
-    public ModelQuery<TEntity> Take(int count) => Then(q => q.Take(count), _ordered);
+    public ModelQuery<TEntity> Take(int count) => Then(q => q.Take(count), _ordered, _unrankedSearch);
 
     /// <summary>Eager-loads a related navigation.</summary>
     public ModelQuery<TEntity> Include<TProperty>(Expression<Func<TEntity, TProperty>> navigation)
     {
         ArgumentNullException.ThrowIfNull(navigation);
-        return Then(q => q.Include(navigation), _ordered);
+        return Then(q => q.Include(navigation), _ordered, _unrankedSearch);
     }
 
     /// <summary>Eager-loads a related navigation named by a path, as EF Core's string overload does.</summary>
     public ModelQuery<TEntity> Include(string navigationPropertyPath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(navigationPropertyPath);
-        return Then(q => q.Include(navigationPropertyPath), _ordered);
+        return Then(q => q.Include(navigationPropertyPath), _ordered, _unrankedSearch);
     }
 
     /// <summary>
@@ -124,10 +139,10 @@ public sealed class ModelQuery<TEntity>
     ///     <see cref="ModelBuilderExtensions.ApplyRaskConventions" /> adds to every
     ///     <see cref="ISoftDeletable" />, so this is how soft-deleted rows are listed or restored.
     /// </summary>
-    public ModelQuery<TEntity> IgnoreQueryFilters() => Then(q => q.IgnoreQueryFilters(), _ordered);
+    public ModelQuery<TEntity> IgnoreQueryFilters() => Then(q => q.IgnoreQueryFilters(), _ordered, _unrankedSearch);
 
     /// <summary>Splits the query's joins into separate round trips.</summary>
-    public ModelQuery<TEntity> AsSplitQuery() => Then(q => q.AsSplitQuery(), _ordered);
+    public ModelQuery<TEntity> AsSplitQuery() => Then(q => q.AsSplitQuery(), _ordered, _unrankedSearch);
 
     /// <summary>Projects each row, giving a query that returns <typeparamref name="TResult" />.</summary>
     /// <remarks>
@@ -247,10 +262,13 @@ public sealed class ModelQuery<TEntity>
         return _compose is null ? head : _compose(head);
     }
 
-    private ModelQuery<TEntity> Then(Func<IQueryable<TEntity>, IQueryable<TEntity>> step, bool ordered)
+    private ModelQuery<TEntity> Then(
+        Func<IQueryable<TEntity>, IQueryable<TEntity>> step,
+        bool ordered,
+        bool unrankedSearch = false)
     {
         var previous = _compose;
-        return new ModelQuery<TEntity>(previous is null ? step : q => step(previous(q)), ordered);
+        return new ModelQuery<TEntity>(previous is null ? step : q => step(previous(q)), ordered, unrankedSearch);
     }
 
     private void RequireOrdering(string member)

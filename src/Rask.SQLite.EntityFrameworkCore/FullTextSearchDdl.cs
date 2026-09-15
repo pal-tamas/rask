@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
@@ -12,12 +13,20 @@ namespace Rask.SQLite;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Two layouts, chosen by the primary key.</b> A table whose key is a single <c>INTEGER</c> column has a stable
-/// rowid, so its index is an <em>external-content</em> FTS5 table: it stores only the index and reads the text back
-/// from the table itself, so nothing is stored twice. Any other key — a <see cref="Guid"/>, a string, a composite —
-/// leaves SQLite's implicit rowid, which <c>VACUUM</c> is free to renumber, so the index cannot point at it. Those
-/// tables get an FTS5 table holding its own copy of the indexed text, plus a small key map
-/// (<c>{Table}_fts_keys</c>) whose unique index resolves a key to the index row in one seek.
+/// <b>The index keeps its own copy of the text.</b> An <em>external-content</em> FTS5 table would store nothing twice,
+/// but it can only forget a row when told that row's old values — and SQLite does not fire <c>AFTER DELETE</c> for
+/// the row an <c>INSERT OR REPLACE</c> replaces (not without <c>recursive_triggers</c>), so one raw <c>REPLACE</c>
+/// would leave the index permanently wrong. A regular FTS5 table forgets by rowid alone, so every trigger clears
+/// whatever the index holds for a row before writing it, and REPLACE, upserts and key changes all stay correct. The
+/// cost is disk roughly the size of the indexed columns.
+/// </para>
+/// <para>
+/// <b>Two ways to find a row's index entry, chosen by the primary key.</b> A single <c>INTEGER</c> key IS the index
+/// rowid. Any other key — a <see cref="Guid"/>, a string, a composite — goes through a small key map
+/// (<c>{Table}_fts_keys</c>) whose unique index resolves it in one seek: SQLite's implicit rowid is not stable across
+/// <c>VACUUM</c>, so the index cannot point at it. The choice is recorded on the entity type by
+/// <see cref="FullTextSearchEntityConvention"/>, so a migration — which runs against the model it was generated
+/// from, not the live one — builds exactly the layout the queries join to.
 /// </para>
 /// <para>
 /// <b>Triggers, not SaveChanges.</b> The index is kept current by <c>AFTER INSERT/UPDATE/DELETE</c> triggers, so a
@@ -26,7 +35,7 @@ namespace Rask.SQLite;
 /// </para>
 /// <para>
 /// <b>Recreated whenever its table is touched.</b> SQLite rebuilds a table for most <c>ALTER</c>s, which drops its
-/// triggers, and a renamed column would leave an external-content index reading a column that no longer exists.
+/// triggers, and a renamed column would leave the triggers writing a column that no longer exists.
 /// Rather than tell those cases apart, any migration that touches a searchable table drops the index and builds it
 /// again from the table — correct whichever path the provider took, at the cost of re-reading the table.
 /// </para>
@@ -39,18 +48,31 @@ internal static class FullTextSearchDdl
     /// <summary>The key map behind a table whose key is not a single <c>INTEGER</c> column.</summary>
     public static string KeyTable(string table) => $"{table}_fts_keys";
 
+    /// <summary>The annotation recording which layout an entity's index uses: <see cref="RowidLayout"/> or <see cref="KeyMapLayout"/>.</summary>
+    public const string LayoutAnnotation = "Rask:FullTextSearch:Layout";
+
+    public const string RowidLayout = "rowid";
+
+    public const string KeyMapLayout = "keys";
+
     /// <summary>
     /// Whether <paramref name="entityType"/>'s index points straight at its rowid (a single <c>INTEGER</c> key),
     /// rather than through a key map.
     /// </summary>
     /// <remarks>
-    /// Decided from the model as configured rather than from the resolved type mapping, because the query side asks
-    /// while the model is still being finalized, before type mappings exist — and the two sides must never disagree,
-    /// or a query would join to a key map the migration never created. An unconverted integer key is what SQLite's
-    /// provider maps to an <c>INTEGER PRIMARY KEY</c>, the rowid alias.
+    /// The recorded <see cref="LayoutAnnotation"/> wins. It has to: a migration runs against the model saved with it,
+    /// where a converted key (a strongly-typed id, an enum) is already its provider type, while the queries run
+    /// against the live model — deciding afresh on each would let them disagree, and a search would join to a key map
+    /// the migration never created. The rule itself reads the configured column type, or else the provider type after
+    /// any value converter, because the convention asks before type mappings exist.
     /// </remarks>
     public static bool UsesRowid(IReadOnlyEntityType entityType)
     {
+        if (entityType.FindAnnotation(LayoutAnnotation)?.Value is string recorded)
+        {
+            return recorded == RowidLayout;
+        }
+
         if (entityType.FindPrimaryKey() is not { Properties: [var key] })
         {
             return false;
@@ -61,11 +83,29 @@ internal static class FullTextSearchDdl
             return string.Equals(columnType, "INTEGER", StringComparison.OrdinalIgnoreCase);
         }
 
-        var type = Nullable.GetUnderlyingType(key.ClrType) ?? key.ClrType;
-        return key.GetValueConverter() is null
-            && (type == typeof(int) || type == typeof(long) || type == typeof(short) || type == typeof(byte)
-                || type == typeof(uint) || type == typeof(ushort) || type == typeof(sbyte));
+        var converter = key.GetValueConverter()
+            ?? (ValueConverterTypeOf(key) is { } converterType
+                ? (Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter?)Activator.CreateInstance(converterType)
+                : null);
+
+        var type = converter?.ProviderClrType ?? key.ClrType;
+        type = Nullable.GetUnderlyingType(type) ?? type;
+        if (type.IsEnum)
+        {
+            type = Enum.GetUnderlyingType(type);
+        }
+
+        return type == typeof(int) || type == typeof(long) || type == typeof(short) || type == typeof(byte)
+            || type == typeof(uint) || type == typeof(ushort) || type == typeof(sbyte) || type == typeof(ulong);
     }
+
+    /// <summary>
+    /// The converter TYPE a property was configured with (<c>HaveConversion&lt;TConverter&gt;()</c>, which is how Rask.Data
+    /// maps strongly-typed ids), or <see langword="null"/>. EF Core stores it under this core annotation and exposes no
+    /// public accessor for it on the read-only metadata.
+    /// </summary>
+    public static Type? ValueConverterTypeOf(IReadOnlyAnnotatable property) =>
+        property.FindAnnotation("ValueConverterType")?.Value as Type;
 
     /// <summary>The first entity type mapped to <paramref name="table"/> that declares an index, with its spec.</summary>
     public static (IEntityType EntityType, FullTextSearchSpec Spec)? Find(IModel model, string table, string? schema)
@@ -207,17 +247,24 @@ internal static class FullTextSearchDdl
 
         Drop(builder, table);
 
+        // Every write first clears whatever the index holds for the row, by rowid. That is what keeps a REPLACE (whose
+        // replaced row fires no AFTER DELETE), an upsert and a key change from leaving a stale or duplicate entry.
+        Append(builder, $"CREATE VIRTUAL TABLE {index} USING fts5({columnList}, tokenize={tokenize});");
+
         if (UsesRowid(entityType))
         {
             var rowid = Quote(keyColumns[0]);
-            var added = $"INSERT INTO {index}(rowid, {columnList}) VALUES (NEW.{rowid}, {Values("NEW", columns)});";
-            var removed = $"INSERT INTO {index}({index}, rowid, {columnList}) VALUES ('delete', OLD.{rowid}, {Values("OLD", columns)});";
+            string Write(string row) =>
+                $"  DELETE FROM {index} WHERE rowid = {row}.{rowid};\n" +
+                $"  INSERT INTO {index}(rowid, {columnList}) VALUES ({row}.{rowid}, {Values(row, columns)});\n";
 
-            Append(builder, $"CREATE VIRTUAL TABLE {index} USING fts5({columnList}, content={Literal(table)}, content_rowid={Literal(keyColumns[0])}, tokenize={tokenize});");
-            Append(builder, $"CREATE TRIGGER {Quote(insert)} AFTER INSERT ON {source}\nBEGIN\n  {added}\nEND;");
-            Append(builder, $"CREATE TRIGGER {Quote(delete)} AFTER DELETE ON {source}\nBEGIN\n  {removed}\nEND;");
-            Append(builder, $"CREATE TRIGGER {Quote(update)} AFTER UPDATE OF {watched} ON {source}\nBEGIN\n  {removed}\n  {added}\nEND;");
-            Append(builder, $"INSERT INTO {index}({index}) VALUES ('rebuild');");
+            Append(builder, $"CREATE TRIGGER {Quote(insert)} AFTER INSERT ON {source}\nBEGIN\n{Write("NEW")}END;");
+            Append(builder, $"CREATE TRIGGER {Quote(delete)} AFTER DELETE ON {source}\nBEGIN\n  DELETE FROM {index} WHERE rowid = OLD.{rowid};\nEND;");
+            Append(
+                builder,
+                $"CREATE TRIGGER {Quote(update)} AFTER UPDATE OF {watched} ON {source}\nBEGIN\n" +
+                $"  DELETE FROM {index} WHERE rowid = OLD.{rowid};\n{Write("NEW")}END;");
+            Append(builder, $"INSERT INTO {index}(rowid, {columnList}) SELECT {rowid}, {columnList} FROM {source};");
             return;
         }
 
@@ -225,26 +272,23 @@ internal static class FullTextSearchDdl
         var keyDefinitions = string.Join(", ", key.Properties.Select((property, i) =>
             $"{Quote(keyColumns[i])} {property.GetColumnType(store)} NOT NULL"));
         var keyList = string.Join(", ", keyColumns.Select(Quote));
-        string Lookup(string row) =>
-            $"(SELECT rowid FROM {keys} WHERE {string.Join(" AND ", keyColumns.Select(c => $"{Quote(c)} = {row}.{Quote(c)}"))})";
+        string Match(string row) => string.Join(" AND ", keyColumns.Select(c => $"{Quote(c)} = {row}.{Quote(c)}"));
+        string Lookup(string row) => $"(SELECT rowid FROM {keys} WHERE {Match(row)})";
+        // Clear through the EXISTING mapping before touching the map: inside an INSERT OR REPLACE, SQLite applies the
+        // outer statement's conflict resolution to the trigger's own statements, so the OR IGNORE below acts as a
+        // REPLACE and gives the key a new rowid — which would orphan the entry filed under the old one.
+        string WriteKeyed(string row) =>
+            $"  DELETE FROM {index} WHERE rowid = {Lookup(row)};\n" +
+            $"  INSERT OR IGNORE INTO {keys}({keyList}) VALUES ({Values(row, keyColumns)});\n" +
+            $"  INSERT INTO {index}(rowid, {columnList}) VALUES ({Lookup(row)}, {Values(row, columns)});\n";
+        string Forget(string row) =>
+            $"  DELETE FROM {index} WHERE rowid = {Lookup(row)};\n" +
+            $"  DELETE FROM {keys} WHERE {Match(row)};\n";
 
         Append(builder, $"CREATE TABLE {keys} (rowid INTEGER PRIMARY KEY, {keyDefinitions}, UNIQUE ({keyList}));");
-        Append(builder, $"CREATE VIRTUAL TABLE {index} USING fts5({columnList}, tokenize={tokenize});");
-        Append(
-            builder,
-            $"CREATE TRIGGER {Quote(insert)} AFTER INSERT ON {source}\nBEGIN\n" +
-            $"  INSERT INTO {keys}({keyList}) VALUES ({Values("NEW", keyColumns)});\n" +
-            $"  INSERT INTO {index}(rowid, {columnList}) VALUES ({Lookup("NEW")}, {Values("NEW", columns)});\nEND;");
-        Append(
-            builder,
-            $"CREATE TRIGGER {Quote(delete)} AFTER DELETE ON {source}\nBEGIN\n" +
-            $"  DELETE FROM {index} WHERE rowid = {Lookup("OLD")};\n" +
-            $"  DELETE FROM {keys} WHERE rowid = {Lookup("OLD")};\nEND;");
-        Append(
-            builder,
-            $"CREATE TRIGGER {Quote(update)} AFTER UPDATE OF {watched} ON {source}\nBEGIN\n" +
-            $"  UPDATE {keys} SET {string.Join(", ", keyColumns.Select(c => $"{Quote(c)} = NEW.{Quote(c)}"))} WHERE rowid = {Lookup("OLD")};\n" +
-            $"  UPDATE {index} SET {string.Join(", ", columns.Select(c => $"{Quote(c)} = NEW.{Quote(c)}"))} WHERE rowid = {Lookup("NEW")};\nEND;");
+        Append(builder, $"CREATE TRIGGER {Quote(insert)} AFTER INSERT ON {source}\nBEGIN\n{WriteKeyed("NEW")}END;");
+        Append(builder, $"CREATE TRIGGER {Quote(delete)} AFTER DELETE ON {source}\nBEGIN\n{Forget("OLD")}END;");
+        Append(builder, $"CREATE TRIGGER {Quote(update)} AFTER UPDATE OF {watched} ON {source}\nBEGIN\n{Forget("OLD")}{WriteKeyed("NEW")}END;");
         Append(builder, $"INSERT INTO {keys}({keyList}) SELECT {keyList} FROM {source};");
         Append(
             builder,

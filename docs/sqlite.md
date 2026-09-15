@@ -247,14 +247,16 @@ Four things worth knowing:
   `HasFullTextSearch` is a migration of its own, and the migration that creates the index fills it from
   the rows already there. A database created with `EnsureCreated` does not get it.
 - **Any migration that touches the table rebuilds the index.** SQLite rebuilds a table for most
-  `ALTER`s, which drops its triggers, and a renamed column would leave the index reading a column that is
-  gone; Rask re-creates and refills the index rather than guess which case it is in. On a very large
+  `ALTER`s, which drops its triggers, and a renamed column would leave the triggers writing a column that
+  is gone; Rask re-creates and refills the index rather than guess which case it is in. On a very large
   table, that is a full read of the table once per such migration.
-- **The key decides the layout.** A single `int`/`long` key is SQLite's rowid, so the index stores only
-  the index and reads text back from the table (`{Table}_fts`, *external content*). Any other key — a
-  `Guid`, a string, a composite — is not a stable rowid (`VACUUM` may renumber it), so the index keeps
-  its own copy of the indexed text plus a small key map (`{Table}_fts_keys`). Both are invisible to your
-  code; the copy costs disk roughly the size of the indexed columns.
+- **The index keeps its own copy of the text** (`{Table}_fts`), costing disk roughly the size of the
+  indexed columns. An FTS5 *external content* table would store nothing twice, but it can only forget a
+  row when told its old values — and SQLite fires no `AFTER DELETE` for the row an `INSERT OR REPLACE`
+  replaces, so one raw `REPLACE` would leave it wrong for good. The copy is forgotten by row id, so
+  REPLACE, upserts and key changes all stay correct. A single integer key (including a strongly-typed id
+  stored as one) is the index's row id; any other key — a `Guid`, a string, a composite — goes through a
+  small key map (`{Table}_fts_keys`), because SQLite's implicit rowid can change on `VACUUM`.
 
 Requires `UseRaskSqlite(...)`, which registers the migration SQL, the query translation and the
 `highlight`/`snippet` functions; all of it is inert until an entity declares an index, and it composes

@@ -120,6 +120,27 @@ public sealed class FullTextSearchTests : IDisposable
     }
 
     [Fact]
+    public async Task A_derived_type_searches_the_index_its_base_declares()
+    {
+        await using var db = Create<PageContext>();
+        TestMigrations.Apply(db);
+        db.Pages.AddRange(
+            new Page { Id = 1, Text = "plain page about search" },
+            new HelpPage { Id = 2, Text = "help page about search", Topic = "t" });
+        await db.SaveChangesAsync();
+
+        var help = await db.Set<Page>().OfType<HelpPage>().Search("search")
+            .Select(p => new { p.Id, Text = FullText.Highlight(p.Text) })
+            .ToListAsync();
+        var all = await db.Pages.Search("search").CountAsync();
+
+        var hit = Assert.Single(help);
+        Assert.Equal(2, hit.Id);
+        Assert.Equal($"help page about {S}search{E}", hit.Text);
+        Assert.Equal(2, all);
+    }
+
+    [Fact]
     public async Task A_query_filter_still_applies_to_the_matches()
     {
         await using var db = Create<PublishedArticleContext>();
@@ -268,6 +289,78 @@ public sealed class FullTextSearchTests : IDisposable
         Assert.Equal(["Databases"], await Titles(db.Articles.Search("zebras")));
         Assert.Empty(await Titles(db.Articles.Search("sqlite")));
         await AssertIntegrityAsync(db);
+    }
+
+    [Fact]
+    public async Task Insert_or_replace_and_upsert_keep_the_index_right()
+    {
+        // A REPLACE deletes the old row without firing AFTER DELETE (recursive_triggers is off), so an index that could
+        // only forget a row by its old values would keep "SQLite" for row 1 forever.
+        await using var db = await SeededAsync();
+
+        await db.Database.ExecuteSqlRawAsync(
+            """INSERT OR REPLACE INTO "Articles" ("Id", "Title", "Body", "Published") VALUES (1, 'Replaced', 'zebras now', 0);""");
+        await db.Database.ExecuteSqlRawAsync(
+            """INSERT INTO "Articles" ("Id", "Title", "Body", "Published") VALUES (3, 'Kittens', 'upserted giraffes', 0) ON CONFLICT ("Id") DO UPDATE SET "Body" = excluded."Body";""");
+
+        Assert.Equal(["Databases"], await Titles(db.Articles.Search("sqlite")));
+        Assert.Equal(["Replaced"], await Titles(db.Articles.Search("zebras")));
+        Assert.Equal(["Kittens"], await Titles(db.Articles.Search("giraffes")));
+        Assert.Empty(await Titles(db.Articles.Search("storage")));
+        Assert.Equal(4, await db.Database.SqlQueryRaw<int>("""SELECT COUNT(*) AS Value FROM "Articles_fts" """).SingleAsync());
+        await AssertIntegrityAsync(db);
+    }
+
+    [Fact]
+    public async Task A_Guid_key_survives_insert_or_replace()
+    {
+        await using var db = Create<MemoContext>();
+        TestMigrations.Apply(db);
+        var id = Guid.NewGuid();
+        db.Memos.Add(new Memo { Id = id, Text = "buy milk" });
+        await db.SaveChangesAsync();
+
+        await db.Database.ExecuteSqlAsync(
+            $"""INSERT OR REPLACE INTO "Memos" ("Id", "Text") VALUES ({id}, 'sell bread')""");
+
+        Assert.Empty(await db.Memos.Search("milk").ToListAsync());
+        Assert.Equal(id, (await db.Memos.Search("bread").SingleAsync()).Id);
+        Assert.Equal(1, await db.Database.SqlQueryRaw<int>("""SELECT COUNT(*) AS Value FROM "Memos_fts" """).SingleAsync());
+    }
+
+    [Theory]
+    [InlineData(typeof(TicketContext))]
+    [InlineData(typeof(ConventionTicketContext))]
+    public async Task A_converted_integer_key_is_the_rowid_on_both_sides(Type contextType)
+    {
+        var options = (DbContextOptions)typeof(FullTextSearchTests)
+            .GetMethod(nameof(Options), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+            .MakeGenericMethod(contextType)
+            .Invoke(this, [false])!;
+        await using var db = (DbContext)Activator.CreateInstance(contextType, options)!;
+        TestMigrations.Apply(db);
+
+        db.Set<Ticket>().AddRange(new Ticket { Id = new TicketId(7), Text = "printer on fire" }, new Ticket { Id = new TicketId(8), Text = "fine" });
+        await db.SaveChangesAsync();
+
+        // The migration saved with the model records the choice, so an older saved model cannot disagree with the query.
+        Assert.Equal("rowid", db.Model.FindEntityType(typeof(Ticket))!.FindAnnotation("Rask:FullTextSearch:Layout")?.Value);
+        Assert.DoesNotContain("Tickets_fts_keys", TestMigrations.Ddl(db), StringComparison.Ordinal);
+
+        var hit = await db.Set<Ticket>().Search("fire").Select(t => new { t.Id, Text = FullText.Highlight(t.Text) }).SingleAsync();
+        Assert.Equal(new TicketId(7), hit.Id);
+        Assert.Equal($"printer on {S}fire{E}", hit.Text);
+    }
+
+    [Fact]
+    public async Task A_recorded_layout_wins_over_the_rule_for_the_migration_and_the_query()
+    {
+        await using var db = Create<RecordedKeyMapArticleContext>();
+        TestMigrations.Apply(db);
+        await SeedAsync(db);
+
+        Assert.Contains("Articles_fts_keys", TestMigrations.Ddl(db), StringComparison.Ordinal);
+        Assert.Equal(["All about SQLite", "Databases"], await Titles(db.Articles.Search("sqlite")));
     }
 
     // ---- Migrations -------------------------------------------------------------------------------------------

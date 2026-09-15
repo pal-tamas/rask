@@ -74,6 +74,77 @@ internal sealed class EnglishArticleContext(DbContextOptions options) : PlainArt
         modelBuilder.Entity<Article>().HasFullTextSearch(a => new { a.Title, a.Body }, FullTextTokenizer.English);
 }
 
+// A strongly-typed id, converted the two ways a model can say it: a converter instance, and a converter TYPE through
+// ConfigureConventions (how Rask.Data's generated registry maps ids). Either way the store key is an INTEGER rowid.
+internal readonly record struct TicketId(int Value);
+
+internal sealed class TicketIdConverter() : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<TicketId, int>(
+    id => id.Value,
+    value => new TicketId(value));
+
+internal sealed class Ticket
+{
+    public TicketId Id { get; set; }
+
+    public string Text { get; set; } = string.Empty;
+}
+
+internal sealed class TicketContext(DbContextOptions options) : DbContext(options)
+{
+    public DbSet<Ticket> Tickets => Set<Ticket>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Ticket>().Property(t => t.Id).HasConversion(id => id.Value, value => new TicketId(value));
+        modelBuilder.Entity<Ticket>().HasFullTextSearch(t => t.Text);
+    }
+}
+
+internal sealed class ConventionTicketContext(DbContextOptions options) : DbContext(options)
+{
+    public DbSet<Ticket> Tickets => Set<Ticket>();
+
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
+        configurationBuilder.Properties<TicketId>().HaveConversion<TicketIdConverter>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder) =>
+        modelBuilder.Entity<Ticket>().HasFullTextSearch(t => t.Text);
+}
+
+// An integer key whose layout was recorded as the key map — what a migration saved by an earlier model can carry. The
+// recorded choice has to win on BOTH sides, or the query joins to a table the migration did not build.
+internal sealed class RecordedKeyMapArticleContext(DbContextOptions options) : PlainArticleContext(options)
+{
+    protected override void OnModelCreating(ModelBuilder modelBuilder) =>
+        modelBuilder.Entity<Article>()
+            .HasAnnotation("Rask:FullTextSearch:Layout", "keys")
+            .HasFullTextSearch(a => new { a.Title, a.Body });
+}
+
+// A hierarchy sharing one table (TPH): the base declares the index, the derived type is searched.
+internal class Page
+{
+    public int Id { get; set; }
+
+    public string Text { get; set; } = string.Empty;
+}
+
+internal sealed class HelpPage : Page
+{
+    public string Topic { get; set; } = string.Empty;
+}
+
+internal sealed class PageContext(DbContextOptions options) : DbContext(options)
+{
+    public DbSet<Page> Pages => Set<Page>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Page>().HasFullTextSearch(p => p.Text);
+        modelBuilder.Entity<HelpPage>();
+    }
+}
+
 // A Guid key: SQLite's implicit rowid is not stable across VACUUM, so the index goes through a key map.
 internal sealed class Memo
 {

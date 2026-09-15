@@ -91,7 +91,16 @@ internal sealed class FullTextSearchQueryInterceptor : IQueryExpressionIntercept
             if (FullTextMarkers.IsMatching(node.Method))
             {
                 var source = Visit(node.Arguments[0]);
-                return RewriteSearch(Index.For(model, node.Method.GetGenericArguments()[0]), source, node.Arguments[1]);
+                return RewriteSearch(Index.For(model, node.Method.GetGenericArguments()[0]), source, node.Arguments[1], []);
+            }
+
+            // Search(text).ThenBy(k)…: a tie-breaker has to join the rank ordering, before the rows are projected back
+            // out of it, because nothing can be ThenBy'd after a Select.
+            if (TieBreakers(node) is { } chain)
+            {
+                var (marker, orderings) = chain;
+                var source = Visit(marker.Arguments[0]);
+                return RewriteSearch(Index.For(model, marker.Method.GetGenericArguments()[0]), source, marker.Arguments[1], orderings);
             }
 
             if (node.Method == HighlightMarker || node.Method == SnippetMarker)
@@ -104,7 +113,32 @@ internal sealed class FullTextSearchQueryInterceptor : IQueryExpressionIntercept
 
         // ---- Search -------------------------------------------------------------------------------------------
 
-        private static Expression RewriteSearch(Index index, Expression source, Expression match)
+        // ThenBy/ThenByDescending calls stacked directly on a Search marker, innermost first; null when node is not one.
+        private static (MethodCallExpression Marker, List<(LambdaExpression Key, bool Descending)> Orderings)? TieBreakers(
+            MethodCallExpression node)
+        {
+            var orderings = new List<(LambdaExpression Key, bool Descending)>();
+            Expression current = node;
+
+            while (current is MethodCallExpression { Method: { DeclaringType: var declaring, Name: var name } } call
+                   && declaring == typeof(Queryable)
+                   && name is nameof(Queryable.ThenBy) or nameof(Queryable.ThenByDescending)
+                   && call.Arguments.Count == 2)
+            {
+                orderings.Insert(0, ((LambdaExpression)Unquote(call.Arguments[1]), name == nameof(Queryable.ThenByDescending)));
+                current = call.Arguments[0];
+            }
+
+            return orderings.Count > 0 && current is MethodCallExpression marker && FullTextMarkers.IsMatching(marker.Method)
+                ? (marker, orderings)
+                : null;
+        }
+
+        private static Expression RewriteSearch(
+            Index index,
+            Expression source,
+            Expression match,
+            List<(LambdaExpression Key, bool Descending)> tieBreakers)
         {
             var entity = index.EntityType.ClrType;
             var hit = typeof(FullTextHit<>).MakeGenericType(entity);
@@ -150,12 +184,26 @@ internal sealed class FullTextSearchQueryInterceptor : IQueryExpressionIntercept
             }
 
             var h = Expression.Parameter(hit, "h");
-            var ordered = Expression.Call(
+            Expression ordered = Expression.Call(
                 typeof(Queryable),
                 nameof(Queryable.OrderBy),
                 [hit, typeof(double)],
                 hits,
                 Expression.Quote(Expression.Lambda(Expression.Property(h, nameof(FullTextHit<object>.Rank)), h)));
+
+            foreach (var (key, descending) in tieBreakers)
+            {
+                // k(row) becomes k(hit.Item): the same body, with its parameter read out of the hit.
+                var t = Expression.Parameter(hit, "t");
+                var body = new ParameterReplacer(key.Parameters[0], Expression.Property(t, nameof(FullTextHit<object>.Item)))
+                    .Visit(key.Body);
+                ordered = Expression.Call(
+                    typeof(Queryable),
+                    descending ? nameof(Queryable.ThenByDescending) : nameof(Queryable.ThenBy),
+                    [hit, key.ReturnType],
+                    ordered,
+                    Expression.Quote(Expression.Lambda(body, t)));
+            }
 
             var o = Expression.Parameter(hit, "o");
             return Expression.Call(
@@ -333,6 +381,15 @@ internal sealed class FullTextSearchQueryInterceptor : IQueryExpressionIntercept
             node is UnaryExpression { NodeType: ExpressionType.Convert or ExpressionType.ConvertChecked } cast
                 ? Unwrap(cast.Operand)
                 : node;
+
+        private static Expression Unquote(Expression node) =>
+            node is UnaryExpression { NodeType: ExpressionType.Quote } quote ? quote.Operand : node;
+    }
+
+    private sealed class ParameterReplacer(ParameterExpression parameter, Expression replacement) : ExpressionVisitor
+    {
+        protected override Expression VisitParameter(ParameterExpression node) =>
+            node == parameter ? replacement : base.VisitParameter(node);
     }
 
     /// <summary>The searched entity's index, as mapped by <see cref="FullTextSearchEntityConvention"/>.</summary>
@@ -346,15 +403,25 @@ internal sealed class FullTextSearchQueryInterceptor : IQueryExpressionIntercept
         public static Index For(IModel model, Type type)
         {
             var entityType = model.FindEntityType(type);
+
+            // Annotations are not inherited: a derived type in a hierarchy shares its base's table, and so its
+            // index, but carries no declaration of its own.
+            var declaring = entityType;
+            while (declaring is not null && declaring.FindAnnotation(FullTextSearchSpec.AnnotationName) is null)
+            {
+                declaring = declaring.BaseType;
+            }
+
             if (entityType is null
-                || !FullTextSearchSpec.TryParse(entityType.FindAnnotation(FullTextSearchSpec.AnnotationName)?.Value, out var spec))
+                || declaring is null
+                || !FullTextSearchSpec.TryParse(declaring.FindAnnotation(FullTextSearchSpec.AnnotationName)?.Value, out var spec))
             {
                 throw new InvalidOperationException(
                     $"{type.Name} has no full-text index to search. Declare one in its configuration, as in " +
                     $"builder.HasFullTextSearch(x => new {{ x.Title, x.Body }}), and add a migration.");
             }
 
-            var indexEntity = model.FindEntityType(FullTextSearchEntityConvention.IndexEntityName(entityType))
+            var indexEntity = model.FindEntityType(FullTextSearchEntityConvention.IndexEntityName(declaring))
                 ?? throw new InvalidOperationException(
                     $"{type.Name} declares HasFullTextSearch, but its index is not mapped. Configure the context with " +
                     "UseRaskSqlite(services) from Rask.SQLite.EntityFrameworkCore.");
@@ -362,9 +429,9 @@ internal sealed class FullTextSearchQueryInterceptor : IQueryExpressionIntercept
             return new Index(
                 entityType,
                 spec,
-                entityType.FindPrimaryKey()!.Properties,
+                declaring.FindPrimaryKey()!.Properties,
                 indexEntity,
-                model.FindEntityType(FullTextSearchEntityConvention.KeyEntityName(entityType)));
+                model.FindEntityType(FullTextSearchEntityConvention.KeyEntityName(declaring)));
         }
     }
 }

@@ -25,8 +25,14 @@ them until tagged releases begin.
   - **The index lives in the database.** `UseRaskSqlite(...)` migrations create the FTS5 table and the triggers
     that keep it current, so raw SQL and other processes are searchable too; adding the declaration to an
     existing table is a migration of its own that fills the index, and any migration that rebuilds the table
-    rebuilds it. A single integer key is the index's rowid (external content, nothing stored twice); any other
-    key goes through a key map, because SQLite's implicit rowid is not stable across `VACUUM`.
+    rebuilds it. The index keeps its own copy of the indexed text, because an external-content index cannot
+    forget the row an `INSERT OR REPLACE` replaces (SQLite fires no `AFTER DELETE` for it); every trigger
+    clears a row's entry by id before writing, so REPLACE and upserts stay correct. A single integer key —
+    strongly-typed ids included — is the entry's id; any other key goes through a key map, because SQLite's
+    implicit rowid is not stable across `VACUUM`. The choice is recorded on the model, so a migration run
+    from its saved model builds the layout the queries join to.
+  - **`Post.Search(text).ThenBy(...)` breaks ties after best match**, and after an empty search it is the
+    ordering itself rather than an error, so a search page does not fail before anything is typed.
   - **SQLite-only for now, and said so at boot.** On any other provider, `AddRaskData<TContext>` refuses to start
     a context that declares an index, the way it already refuses an unenforced `HasNonOverlappingRange` — that
     check is now one hosted service covering both.

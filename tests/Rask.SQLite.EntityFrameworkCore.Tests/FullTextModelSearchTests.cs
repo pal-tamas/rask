@@ -48,6 +48,24 @@ public sealed class FullTextModelSearchTests : IDisposable
     }
 
     [Fact]
+    public async Task ThenBy_composes_onto_best_match_order()
+    {
+        // Search counts as an ordering, so a tie-breaker is allowed after it and has to translate after the rewrite.
+        var titles = (await Post.Search("search").ThenByDescending(p => p.Title).ToListAsync()).Select(p => p.Title);
+
+        Assert.Equal(["Charlie", "Alpha"], titles);
+    }
+
+    [Fact]
+    public async Task ThenBy_after_an_empty_search_orders_instead_of_failing()
+    {
+        // The box is empty on first render: the page must not crash exactly when nothing has been typed yet.
+        var titles = (await Post.Search("").ThenBy(p => p.Title).ToListAsync()).Select(p => p.Title);
+
+        Assert.Equal(["Alpha", "Bravo", "Charlie"], titles);
+    }
+
+    [Fact]
     public async Task Post_Search_projects_highlights()
     {
         var excerpts = await Post.Search("mentions").Select(p => FullText.Snippet(p.Body, 3)).ToListAsync();
