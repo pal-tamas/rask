@@ -794,6 +794,13 @@ them until tagged releases begin.
 
 ### Changed
 
+- **rask.sh's code samples are drawn by daisyUI (#1101).** `CodeSample` is `mockup-code` with `tabs`, a `btn` and
+  a `status` dot, and its 170-line scoped stylesheet is gone.
+  - The window dots are daisyUI's own now, replacing three spans with literal traffic-light colours.
+  - The file tabs stay on one row that scrolls sideways on a phone, instead of wrapping into the code.
+  - The tabs and the copy button keep a legible label on light themes. daisyUI colours them from the theme, and
+    the code pane stays the site's dark ink, because the syntax palette is tuned for it.
+  - The class names the suites select on stay on the elements.
 - **File storage reads `Rask:Storage`, like every other Rask area.** It was the one package still on a top-level
   `Storage` section (#1080). Its settings now bind from `Rask:Storage`, so the environment variables are
   `Rask__Storage__Provider`, `Rask__Storage__S3__Bucket` and so on. They bind through the same registration

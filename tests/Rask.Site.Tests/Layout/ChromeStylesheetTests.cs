@@ -46,6 +46,17 @@ public sealed class ChromeStylesheetTests
         "rask-badge",
         "sample-card",
         "sample-result-col",
+        // CodeSample on daisyUI's mockup-code, tabs, btn and status (#1101): its scoped sheet is gone, and these names
+        // stay on the elements only because the suites select on them.
+        "sample-code-col",
+        "sample-code-header",
+        "sample-code-label",
+        "sample-tabs",
+        "sample-tab",
+        "sample-copy",
+        "sample-result-label",
+        "sample-result-body",
+        "sample-dot",
         "side-nav-link",
         "nav-group",
         "nav-group-toggle",

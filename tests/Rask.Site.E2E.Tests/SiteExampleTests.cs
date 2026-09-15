@@ -274,7 +274,10 @@ public sealed class SiteExampleTests
     /// </remarks>
     [Theory]
     [InlineData("/docs/guides/one-person-framework/index.html")]
-    [InlineData("/docs/ui/data-grid/index.html")]
+    // A page whose DEMOS carry scoped CSS (ScopedRed/ScopedBlue), not only its chrome. This was the data-grid page,
+    // whose only scoped stylesheet was CodeSample's own — gone since CodeSample became daisyUI's mockup-code (#1101),
+    // which left that page with nothing to scope and this assertion with nothing to find.
+    [InlineData("/docs/guides/js-interop/index.html")]
     public async Task PublishedPages_CarryTheirScopedStylesBeforeTheRuntimeBoots(string path)
     {
         using var http = new HttpClient { BaseAddress = new Uri(_app.BaseUrl) };
