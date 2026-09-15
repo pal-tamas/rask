@@ -148,9 +148,9 @@ internal sealed partial class DevToolsFeed
     /// </summary>
     internal void RecordWalk(
         Component root, List<DevToolsWalkItem> items, FrameWriter? frames, SemaphoreSlim? gate,
-        DevToolsTreeSnapshotter snapshots)
+        DevToolsTreeSnapshotter snapshots, List<DevToolsProvideItem>? provides = null, List<DevToolsReadItem>? reads = null)
     {
-        _capture.Record(root, items, frames);
+        _capture.Record(root, items, frames, provides, reads);
         _captureGate = gate;
         _snapshots = snapshots;
 

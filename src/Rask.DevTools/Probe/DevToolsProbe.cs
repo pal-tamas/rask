@@ -95,6 +95,14 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
     [ThreadStatic] private static List<DevToolsRenderItem>? t_rendersBuffer;
     [ThreadStatic] private static HashSet<Component>? t_distinct;
 
+    // The context values that walk provided and read — kept only while a panel shows the tree, since nothing else reads
+    // them — and which component's markup holds each provider still on the stack, by its stack entry.
+    [ThreadStatic] private static List<DevToolsProvideItem>? t_provides;
+    [ThreadStatic] private static List<DevToolsProvideItem>? t_providesBuffer;
+    [ThreadStatic] private static List<DevToolsReadItem>? t_reads;
+    [ThreadStatic] private static List<DevToolsReadItem>? t_readsBuffer;
+    [ThreadStatic] private static Dictionary<ContextStack.Entry, Component>? t_providers;
+
     // When the walk in progress started, for the Perf tab's render time.
     [ThreadStatic] private static long t_walkStart;
 
@@ -130,6 +138,8 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
             _panels.AddOrUpdate(session.Services, Listed);
             t_walk = null;
             t_renders = null;
+            t_provides = null;
+            t_reads = null;
             return;
         }
 
@@ -141,6 +151,48 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
         renders.Clear();
         t_renders = renders;
         t_walkStart = Stopwatch.GetTimestamp();
+
+        if (feeds.For(session).WantsTree)
+        {
+            (t_providesBuffer ??= []).Clear();
+            (t_readsBuffer ??= []).Clear();
+            t_provides = t_providesBuffer;
+            t_reads = t_readsBuffer;
+        }
+        else
+        {
+            t_provides = null;
+            t_reads = null;
+        }
+    }
+
+    public void ContextProvided(Context provider, Component owner)
+    {
+        if (t_provides is not { } provides || ContextStack.Head is not { } entry)
+        {
+            return;
+        }
+
+        provides.Add(new DevToolsProvideItem(owner, provider.ValueType, provider.Name, provider.Value));
+        (t_providers ??= new Dictionary<ContextStack.Entry, Component>(ReferenceEqualityComparer.Instance))[entry] = owner;
+    }
+
+    public void ContextRead(Component reader, Type requested, string? name)
+    {
+        if (t_reads is not { } reads)
+        {
+            return;
+        }
+
+        // Resolved the way the read itself resolves, so the provider named is the one whose value it got.
+        var entry = ContextStack.Find(requested, name);
+        Component? provider = null;
+        if (entry is not null)
+        {
+            t_providers?.TryGetValue(entry, out provider);
+        }
+
+        reads.Add(new DevToolsReadItem(reader, requested, name, entry is not null, provider));
     }
 
     public long ComponentRendering(Component component, RenderCause cause)
@@ -357,8 +409,14 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
         // the fallback for a render that resumed after an await.
         var walk = t_walk;
         var renders = t_renders;
+        var provides = t_provides;
+        var reads = t_reads;
         t_walk = null;
         t_renders = null;
+        t_provides = null;
+        t_reads = null;
+        // Emptied, not kept: it would hold the page's components until this thread's next walk.
+        t_providers?.Clear();
 
         var services = (LiveRenderContext.CurrentSync ?? LiveRenderContext.Current)?.Services;
         if (walk is null || services is null || !_walking.TryGetValue(services, out var session))
@@ -376,7 +434,7 @@ internal sealed class DevToolsProbe(DevToolsFeeds feeds) : IRaskDevToolsProbe
 
         // Kept whether or not a panel is watching, so one that opens before the page renders again still has a tree. The
         // frame writer is still the walk's: the session pops it only after this returns.
-        feed.RecordWalk(root, walk, FrameSinkScope.Current, session.DevToolsRenderGate, _snapshots);
+        feed.RecordWalk(root, walk, FrameSinkScope.Current, session.DevToolsRenderGate, _snapshots, provides, reads);
     }
 
     public void DiffComputed(LiveSessionBase session, int opCount, bool usedDiff, long startTimestamp)

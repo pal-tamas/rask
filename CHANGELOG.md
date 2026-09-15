@@ -709,6 +709,14 @@ them until tagged releases begin.
   hook is read — the serializer and live render benchmarks allocate identically (8/8), and times measured back to back
   under the same load show no difference.
 
+- **The devtools Tree tab shows context: what a component provides, and what it reads from where.** The detail pane
+  lists the values a component's markup provides with `Context.Provide` (type, name, value) and the ones it read while
+  rendering through `Context.Get`, `Required` or `Has`, each naming the component the provider sits inside, as a link
+  that selects it — or `none in scope`. A context whose name or type name says it is a secret (`token`, `password`,
+  `apikey`…) shows as `••••` and is never formatted. Recorded only while a panel is open. Rask.Core reports a provider
+  after its push and a read before it resolves, both behind the devtools hook's null check; a new context render
+  benchmark and the serializer and live render benchmarks allocate identically (8/8).
+
 ### Changed
 
 - **File storage reads `Rask:Storage`, like every other Rask area.** It was the one package still on a top-level

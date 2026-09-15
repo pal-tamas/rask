@@ -288,6 +288,13 @@ internal static class HtmlSerializer
 
                 using (ContextStack.Push(context.ValueType, context.Name, context.Value))
                 {
+                    // After the push, so the devtools find the entry this provider just became; read only in a live render,
+                    // where there is a component whose markup holds it.
+                    if (RaskDevToolsHook.Active is { } contextDevTools && LiveRenderContext.CurrentSync is { } contextLive)
+                    {
+                        contextDevTools.ContextProvided(context, contextLive.WalkParent);
+                    }
+
                     try
                     {
                         if (context.ChildrenArray is { } ctxArray)
