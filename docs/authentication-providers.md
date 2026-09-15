@@ -12,8 +12,10 @@ and signing in through the cookie. For the cookie flows and the `Authorize` gate
 ASP.NET Identity is just a richer `ICredentialStore` + cookie. Wire Identity for storage/password hashing,
 then sign in through Rask's handshake.
 
-> **This replaces the accounts battery — turn it off first.** `Rask.Auth` *is* ASP.NET Identity behind
-> Rask's own surface, and it owns both the cookie scheme and the default scheme. Left on beside the
+> **This replaces the accounts battery — turn it off first.** `Rask.Auth` has accounts of its own (your
+> `User : Authenticatable` and its sessions), and it owns both the cookie scheme and the default scheme. To move
+> an existing Identity database onto Rask.Auth instead, copy the rows into `User`: it reads Identity's V3
+> password hashes and rehashes each on its first sign-in. Left on beside the
 > wiring below you get two account stores, and the battery's `Cookies` wins as `DefaultScheme` over the
 > `IdentityConstants.ApplicationScheme` set here. Drop the `AddRaskAuth` line, or
 > `app.Configure(c => c.Auth.Off())`, before adopting this section.
