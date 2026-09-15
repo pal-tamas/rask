@@ -25,6 +25,8 @@ public sealed class Locker : Model<LockerCode>
     public string Site { get; private set; } = "";
 
     public static Locker At(LockerCode code, string site) => new() { Id = code, Site = site };
+
+    public void MoveTo(string site) => Site = site;
 }
 
 // Value objects the way RASK084 wants them — no public setters — so EF Core has to materialise them through
@@ -188,7 +190,14 @@ public sealed class ModelKeyAndValueObjectTests : IDisposable
         Assert.Equal("Szeged", (await Locker.FindAsync(new LockerCode("A-12")))!.Site);
         Assert.DoesNotContain(
             typeof(LockerModelExtensions).GetMethods(),
-            m => m.Name == "CreateAsync" && m.GetParameters()[0].ParameterType == typeof(LockerModel));
+            m => m.Name == "CreateAsync" &&
+                 (m.GetParameters()[0].ParameterType == typeof(LockerModel) ||
+                  m.GetParameters()[0].ParameterType == typeof(Action<Locker>)));
+
+        // The lambda form takes the key the same way.
+        var moved = await Locker.CreateAsync(new LockerCode("B-7"), locker => locker.MoveTo("Debrecen"));
+        Assert.Equal(new LockerCode("B-7"), moved.Id);
+        Assert.Equal("Debrecen", (await Locker.FindAsync(new LockerCode("B-7")))!.Site);
     }
 
     [Fact]

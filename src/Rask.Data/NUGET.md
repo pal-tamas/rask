@@ -19,8 +19,9 @@ richer than a create, an update or a delete is EF Core exactly as you know it.
 - **Hints, not rules** — build warnings with lightbulb fixes point out a public setter or field on a model or
   value object (RASK084) and an entity exposing a mutable collection of entities (RASK085). Public setters
   are allowed; the warnings never fail a build that does not ask them to.
-- **Writes off the type** — `Product.CreateAsync(model)` (or a built entity), `Product.UpdateAsync(id, model)`,
-  `Product.UpdateAsync(id, p => …)` and `Product.DeleteAsync(id)`. A form's values go through the generated
+- **Writes off the type** — creates read like their updates: `Product.CreateAsync(model)` /
+  `Product.UpdateAsync(id, model)`, `Product.CreateAsync(p => …)` / `Product.UpdateAsync(id, p => …)`, plus
+  `Product.CreateAsync(entity)` for a built entity and `Product.DeleteAsync(id)`. A form's values go through the generated
   model; values that do not come from the form go in an optional `p => …`; the id is always the caller's, never
   the form's; an `IVersioned` edit refuses a stale save. Each takes an optional `DbContext` to join a caller's
   transaction. The interceptors stamp, version, soft-delete and publish as for any save — and anything richer

@@ -10,9 +10,10 @@ them until tagged releases begin.
 ### Added
 
 - **Create, update and delete live on the model type again.** Beside the reads, every `Rask.Data` model gets
-  `Product.CreateAsync(model)`, `Product.CreateAsync(id, model)`, `Product.UpdateAsync(id, model)`,
-  `Product.UpdateAsync(id, p => …)` and `Product.DeleteAsync(id)`, and `Product.CreateAsync(entity)` inserts
-  one built by its own factory. The generated `ProductModel` is the mass-assignment whitelist — `[SkipModel]`
+  creates that read like their updates — `Product.CreateAsync(model)` / `Product.UpdateAsync(id, model)` and
+  `Product.CreateAsync(p => …)` / `Product.UpdateAsync(id, p => …)` (with `CreateAsync(id, …)` for a key only
+  the caller can give) — plus `Product.DeleteAsync(id)`, and `Product.CreateAsync(entity)` inserts one built by
+  its own factory. The generated `ProductModel` is the mass-assignment whitelist — `[SkipModel]`
   keeps a property out of reach of any form — and the id is always the caller's, never the form's.
   - **Values the form does not carry** go in an optional `p => …` that runs after the model's values:
     `Product.CreateAsync(model, p => p.AssignTo(user.Id))`.
