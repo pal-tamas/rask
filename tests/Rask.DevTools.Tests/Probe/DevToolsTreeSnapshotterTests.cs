@@ -150,6 +150,42 @@ public sealed class DevToolsTreeSnapshotterTests
 
     // A snapshot reads what a component IS, never renders it: the walk already happened.
 #pragma warning disable RASK014 // a test stand-in the snapshot names by identity; no chain builds a capture by hand
+    [Fact]
+    public void An_island_or_a_blazor_component_is_badged_from_the_element_it_renders_and_nothing_else_is()
+    {
+        var root = Stub();
+        var island = Stub();
+        var blazor = Stub();
+        var plain = Stub();
+
+        // <section> [island: <rask-external runtime=lit>] [blazor: <rask-blazor>] [plain: <p>] </section>
+        using var frames = new FrameWriter();
+        var section = frames.OpenElement("section", null, false, 0);
+        var islandStart = frames.Count;
+        var host = frames.OpenElement("rask-external", null, false, 9, opaque: true);
+        frames.Attribute("name", "Chart");
+        frames.Attribute("runtime", "lit");
+        frames.CloseElement(host, 60);
+        var islandEnd = frames.Count;
+        var blazorStart = frames.Count;
+        var blazorHost = frames.OpenElement("rask-blazor", null, false, 60);
+        frames.CloseElement(blazorHost, 90);
+        var blazorEnd = frames.Count;
+        var plainStart = frames.Count;
+        var p = frames.OpenElement("p", null, false, 90);
+        frames.CloseElement(p, 97);
+        var plainEnd = frames.Count;
+        frames.CloseElement(section, 107);
+
+        var tree = Snapshot(root, frames,
+            (island, root, islandStart, islandEnd), (blazor, root, blazorStart, blazorEnd), (plain, root, plainStart, plainEnd));
+
+        var components = Assert.Single(tree.Children).Children;
+        Assert.Equal(["Lit", "Blazor", null], components.Select(c => c.Badge));
+        // The island still has a place on the page, so hovering and picking reach it.
+        Assert.NotNull(components[0].At);
+    }
+
     private static StubComponent Stub() => new(() => throw new InvalidOperationException("a snapshot never renders"));
 #pragma warning restore RASK014
 

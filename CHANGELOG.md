@@ -726,6 +726,16 @@ them until tagged releases begin.
   frames are read from the stack text, so a trimmed WASM app reports the same; the URL stays under 8,000 characters by
   dropping the oldest frames first.
 
+- **The devtools Tree tab shows islands, and the selected component in full.** An External island (React, Preact, Solid,
+  Vue, Svelte, Angular, Lit) is now a component row like any other, badged with its runtime and carrying the props C#
+  passed it — it was a bare `<rask-external>` tag, visible only with HTML tags shown; a Blazor component is badged
+  `Blazor`. The badge is read from the element the component renders, so the devtools reference neither package.
+  Selecting a row opens a detail pane beside the tree (below it in a narrow drawer) with the key, the badge and every
+  prop as name, type and value, sensitive ones marked. Rask.Core reports a component that renders as an element of its
+  own through the same walk hook as any component; the check is a type test that every HTML element fails before the
+  hook is read — the serializer and live render benchmarks allocate identically (8/8), and times measured back to back
+  under the same load show no difference.
+
 ### Changed
 
 - **File storage reads `Rask:Storage`, like every other Rask area.** It was the one package still on a top-level

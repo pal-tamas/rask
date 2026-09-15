@@ -497,6 +497,15 @@ internal static class HtmlSerializer
                     frames.CloseElement(elementFrameIdx, sb.Length);
                 }
 
+                // A component that renders as an element of its own (an External island) is still a component: the
+                // devtools' tree lists it like one. The type test comes first, so every HTML element — all of them
+                // Element — pays one type check and never reads the hook.
+                if (el is not Element && RaskDevToolsHook.Active is { } elementDevTools)
+                {
+                    elementDevTools.ComponentWalked(
+                        el, live?.WalkParent, 0, elementFrameIdx, frames?.Count ?? -1);
+                }
+
                 break;
 
             default:
