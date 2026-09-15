@@ -744,6 +744,19 @@ them until tagged releases begin.
   after its push and a read before it resolves, both behind the devtools hook's null check; a new context render
   benchmark and the serializer and live render benchmarks allocate identically (8/8).
 
+- **Rask DevTools have a browser E2E gate: `scripts/run-devtools-e2e-local.sh`.** A new
+  `tests/Rask.DevTools.E2E.Tests` (Playwright) drives the real pill and panel against a Server page hosted in the test
+  process in Development: opening from the pill, closing with the shortcut and keeping the dock side across a reload;
+  the Wire tab counting the page's click and frame but never the panel's own; the Tree tab's hover box matching the
+  component's element, a pick that selects the nearest component without the click reaching the app, and the detail
+  pane with a withheld secret and a row's context read from its board; the Renders tab and both flash colours; a Perf
+  row with the page's patch time; and a failing handler counted on the closed pill and opened from the runtime's
+  dev-error overlay onto the Errors tab. It is its own gate, listed in `run-all-gates.sh`, because the devtools exist
+  only in a Debug build and `run-e2e-local.sh` builds Release; a Release build or a run without
+  `DOTNET_MODIFIABLE_ASSEMBLIES=debug` fails naming the script. The browser gates' machine admission moved into
+  `scripts/lib/e2e-admission.sh`, shared by both and printing under each gate's name, and the slot budget counts the
+  new gate as a browser gate.
+
 ### Changed
 
 - **File storage reads `Rask:Storage`, like every other Rask area.** It was the one package still on a top-level

@@ -286,6 +286,17 @@ Every change passes this gate before it lands on `main` (the `rask-ship` skill):
   heavy build still running names it and asks you to re-run alone before investigating. Neither claims
   your failure is not real; they say the run was not clean enough to conclude that it is.
 
+- **The devtools run in a real browser by hand.** `scripts/run-devtools-e2e-local.sh` drives Rask DevTools
+  (`tests/Rask.DevTools.E2E.Tests`, Playwright) against real pages: the pill and the dock, and the Wire, Tree,
+  Renders, Perf and Errors tabs reading a live page. It is a gate of its own, listed in `run-all-gates.sh`, because
+  the devtools exist only in a **Debug** build and `run-e2e-local.sh` builds Release. The Server journeys host their
+  app in the test process, in Development, on a loopback port; the script sets `DOTNET_MODIFIABLE_ASSEMBLIES=debug`
+  for that process, the only way the runtime draws the dev-error overlay the Errors journey opens the panel from. A
+  Release build of the project, or a run without the variable, fails with a message naming the script rather than
+  passing on nothing. It waits for the machine through the same admission as the browser gate
+  (`scripts/lib/e2e-admission.sh`, printing under its own name), so the same overrides and `RASK_E2E_FILTER` apply,
+  and the slot budget counts it as a browser gate.
+
 - **Every gate says whether it ran.** The path-filtered gates — CLI build, watch hot-reload, deploy,
   install — used to take a silent branch when nothing in the push matched their paths, printing
   nothing at all. A gate that does not run then looks exactly like one that passed, which is this

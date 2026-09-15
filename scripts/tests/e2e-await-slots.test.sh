@@ -9,8 +9,8 @@
 # contended run is simply relabelled as a genuine failure and someone spends an afternoon on a red that
 # was never in their branch.
 #
-# The function is LIFTED out of the gate rather than sourced, because sourcing run-e2e-local.sh would
-# run it. The lift is checked below, so a rename cannot leave this file passing vacuously.
+# The functions live in scripts/lib/e2e-admission.sh, shared with the devtools gate; RASK_E2E_GATE names the gate in
+# what they print, and the last cases check that another gate's anchored lines classify the same way.
 #
 # Usage:  scripts/tests/e2e-await-slots.test.sh   (run by scripts/run-unit-local.sh)
 set -uo pipefail
@@ -21,21 +21,18 @@ root="$(git rev-parse --show-toplevel)"
 # shellcheck source=../lib/build-failure.sh
 . "$root/scripts/lib/build-failure.sh"
 
-gate="$root/scripts/run-e2e-local.sh"
-lifted="$(sed -n '/^rask_e2e_await_slots() {/,/^}/p' "$gate")"
-lifted_seniors="$(sed -n '/^rask_e2e_name_seniors() {/,/^}/p' "$gate")"
-lifted_admits="$(sed -n '/^rask_e2e_machine_admits() {/,/^}/p' "$gate")"
-lifted_load="$(sed -n '/^rask_e2e_describe_load() {/,/^}/p' "$gate")"
+# Sourced from the shared lib both browser gates use. The check below keeps a rename from leaving this file passing
+# without testing anything.
+# shellcheck source=../lib/e2e-admission.sh
+. "$root/scripts/lib/e2e-admission.sh"
 
-if [ -z "$lifted" ] || [ -z "$lifted_seniors" ] || [ -z "$lifted_admits" ] || [ -z "$lifted_load" ]; then
-  echo "e2e-await-slots: could not lift the wait functions out of $gate — were they renamed?" >&2
-  echo "                 This test would otherwise pass without testing anything." >&2
-  exit 1
-fi
-eval "$lifted"
-eval "$lifted_seniors"
-eval "$lifted_admits"
-eval "$lifted_load"
+for fn in rask_e2e_await_slots rask_e2e_name_seniors rask_e2e_machine_admits rask_e2e_describe_load; do
+  if ! declare -F "$fn" >/dev/null; then
+    echo "e2e-await-slots: scripts/lib/e2e-admission.sh defines no $fn — was it renamed?" >&2
+    echo "                 This test would otherwise pass without testing anything." >&2
+    exit 1
+  fi
+done
 
 # Gate DETECTION is stubbed throughout, and it has to be: this box really does run several gates at
 # once, and an exclusive claim equals the whole budget, so it is admissible only when there are no
@@ -123,6 +120,14 @@ rask_lane_release
 assert_eq "RASK_E2E_ALLOW_CONCURRENT proceeds" "$rc" "0"
 assert_says "and says the result is suspect" "$out" 'starting alongside it anyway'
 
+# The devtools gate waits through the same function under its own name, and is refused the same way.
+out="$(RASK_E2E_GATE=run-devtools-e2e-local RASK_LANE_COMMAND_STUB=1 RASK_LANE_PGREP_OVERRIDE="31000" RASK_E2E_QUEUE=0 \
+        rask_e2e_await_slots 2>&1)"
+rc=$?
+rask_lane_release
+assert_eq "another gate's QUEUE=0 refuses too" "$rc" "1"
+assert_says "under its own name, anchored" "$out" '^run-devtools-e2e-local: refused to start'
+
 echo "==> load (#1099)"
 
 # Free slots on a machine loaded far past its CPUs: the suite would boot its pages starved. Refused under
@@ -172,6 +177,8 @@ printf '%s\n' "run-e2e-local: refused to start — RASK_E2E_QUEUE=0 and the lane
 assert_eq "a refusal classifies as busy" "$(rask_build_failure_kind "$log")" "busy"
 printf '%s\n' "run-e2e-local: still queued after 90m — giving up rather than waiting silently." > "$log"
 assert_eq "a queue timeout classifies as busy" "$(rask_build_failure_kind "$log")" "busy"
+printf '%s\n' "run-devtools-e2e-local: refused to start — RASK_E2E_QUEUE=0 and the lane is held." > "$log"
+assert_eq "the devtools gate's refusal classifies as busy" "$(rask_build_failure_kind "$log")" "busy"
 rm -f "$log"
 
 echo

@@ -1,0 +1,58 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Rask DevTools in a real Chromium: the pill, the panel in its frame, and every tab reading a real page.
+
+    The devtools exist only in a Debug build, so this suite is its own hand-run gate,
+    scripts/run-devtools-e2e-local.sh, which builds Debug; run-e2e-local.sh builds Release and never loads it. A Release
+    build of this project compiles and then fails every journey with a message naming the gate.
+
+    The Server journeys host their app in THIS process, in Development, on a loopback port — like
+    Rask.Server.E2E.Tests, and for its reasons: no build or process start inside a journey, and no MinVer version
+    identity to resolve. The runner sets DOTNET_MODIFIABLE_ASSEMBLIES=debug, the only way the runtime's own dev-error
+    overlay (and its Open in DevTools button) appears.
+  -->
+  <PropertyGroup>
+    <TargetFramework>$(RaskTestTarget)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Rask.DevTools.E2E.Tests</RootNamespace>
+    <NoWarn>$(NoWarn);RASK014</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Playwright"/>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="xunit"/>
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.DevTools\Rask.DevTools.csproj"/>
+    <!-- The panel is drawn with the app's own kit. -->
+    <ProjectReference Include="..\..\src\Rask.Ui\Rask.Ui.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- One browser install and launch story for every browser suite. -->
+    <Compile Include="..\Rask.Site.E2E.Tests\Infrastructure\PlaywrightFixture.cs" Link="Infrastructure\PlaywrightFixture.cs"/>
+  </ItemGroup>
+
+</Project>

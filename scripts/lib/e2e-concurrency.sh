@@ -26,7 +26,7 @@ rask_other_e2e_runs() {
     if [ -n "${RASK_E2E_PGREP_OVERRIDE:-}" ]; then
       printf '%s\n' $RASK_E2E_PGREP_OVERRIDE
     else
-      pgrep -f 'run-e2e-local\.sh' 2>/dev/null || true
+      pgrep -f 'run-(devtools-)?e2e-local\.sh' 2>/dev/null || true
     fi
   )"
 
@@ -104,8 +104,10 @@ rask_is_e2e_gate_command() {
     *) target="$first" ;;
   esac
 
+  # Both browser gates: the devtools suite needs the machine for the same reason this one does.
   case "$target" in
     */run-e2e-local.sh | run-e2e-local.sh) return 0 ;;
+    */run-devtools-e2e-local.sh | run-devtools-e2e-local.sh) return 0 ;;
   esac
   return 1
 }

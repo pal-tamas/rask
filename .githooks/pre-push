@@ -143,6 +143,7 @@ fi
 # WHAT THIS HOOK NO LONGER RUNS, and where it went:
 #
 #   * The browser E2E journeys   -> scripts/run-e2e-local.sh          (run it by hand)
+#   * The devtools E2E journeys  -> scripts/run-devtools-e2e-local.sh (run it by hand)
 #   * The benchmark byte-gates   -> scripts/run-benchmarks-local.sh   (ONLY when you ask; no hook,
 #                                                                     no CI, not in run-all-gates)
 #   * The CLI build gate         -> scripts/run-cli-build-e2e.sh      (run it by hand)

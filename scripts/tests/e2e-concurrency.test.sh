@@ -106,6 +106,7 @@ form gate "run-e2e-local.sh"
 # plausible thing to do while debugging the gate, and an earlier version bailed on the first option and
 # made every one of these invisible.
 form gate "bash -x scripts/run-e2e-local.sh"
+form gate "bash scripts/run-devtools-e2e-local.sh"
 form gate "bash -eu ./scripts/run-e2e-local.sh"
 
 form not  "vim scripts/run-e2e-local.sh"

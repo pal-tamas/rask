@@ -73,6 +73,7 @@
         <Project Path="tests/Rask.Cqrs.Transport.Tests/Rask.Cqrs.Transport.Tests.csproj" />
         <Project Path="tests/Rask.Dashboard.Tests/Rask.Dashboard.Tests.csproj" />
         <Project Path="tests/Rask.DevTools.Tests/Rask.DevTools.Tests.csproj" />
+        <Project Path="tests/Rask.DevTools.E2E.Tests/Rask.DevTools.E2E.Tests.csproj" />
         <Project Path="tests/Rask.DevTools.Fixture.Server/Rask.DevTools.Fixture.Server.csproj" />
         <Project Path="tests/Rask.DevTools.Fixture.Wasm/Rask.DevTools.Fixture.Wasm.csproj" />
         <Project Path="tests/Rask.DevTools.Showcase/Rask.DevTools.Showcase.csproj" />
