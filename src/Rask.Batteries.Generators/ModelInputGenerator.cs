@@ -174,7 +174,6 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
     //    and marks every other Entity<TId> key never-generated, so EF produces nothing else.
     //  * Anything else — a string, a strongly-typed id over an integer or a string — has no value the row could
     //    be keyed by that the caller did not choose, so only CreateAsync(id, model) is generated for it.
-    // An entity on the non-generic Model has no single key to reason about, and keeps CreateAsync(model).
     private static (KeySource Source, string? Factory) KeySourceOf(ITypeSymbol? idType)
     {
         if (idType is null)

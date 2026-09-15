@@ -168,27 +168,16 @@ and silently strand the other. Declare none and you have no accounts, and auth i
 An app that would rather be explicit can be: `AddRaskAuth<AppDbContext, User>()` and
 `modelBuilder.AddRaskAuth<User>()` still exist.
 
-### Audit stamps on an account
+### Accounts and your aggregates
 
-Accounts take the same convention as every [model](data.md): add `ITimestamped` and `CreatedAt` /
-`UpdatedAt` are stamped on every write, as shadow columns unless you declare them.
-
-```csharp
-public class User : IdentityUser, ITimestamped
-{
-}
-```
-
-**Do not add `IVersioned`.** Identity already maintains `ConcurrencyStamp` as its optimistic-concurrency
-token, and a second token on the same row is a race rather than a guard.
-
-Your `User` is an Identity type, not a `Model<TId>` — C# has single inheritance, so it cannot be both.
-That means no `User.Where(…)` static surface: accounts go through `UserManager<User>`, which is the right
-tool for them anyway, since it owns password hashing, lockout and the security stamp. Your own models
-reference an account by its key, which Identity types as a `string`:
+Your `User` is an Identity type, not an [`Aggregate<TId>`](data.md): C# has single inheritance, so it cannot be
+both. So the framework's columns (`CreatedAt`, `UpdatedAt`, `Version`, `DeletedAt`) are not added to it, and it has
+no `User.Where(…)` static surface. Accounts go through `UserManager<User>`, which is the right tool for them
+anyway, since it owns password hashing, lockout, the security stamp and Identity's own `ConcurrencyStamp`. Your
+aggregates reference an account by its key, which Identity types as a `string`:
 
 ```csharp
-public sealed class Order : Model<Guid>, ITimestamped
+public sealed class Order : Aggregate<Guid>
 {
     public string OwnerId { get; private set; } = "";   // AspNetUsers.Id
 }

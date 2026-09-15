@@ -25,10 +25,10 @@ namespace Rask.Cli.E2E.Tests;
 /// the old <c>--force</c> regeneration papered over and a reader patching by hand cannot.
 /// </para>
 /// <para>
-/// The pages read through the model surface — <c>Product.FindAsync</c>, <c>Product.AsQueryable()</c> — and
-/// write by dispatching the chapter's commands, whose handlers open the scaffold's
-/// <c>IDbContextFactory&lt;AppDbContext&gt;</c>. So this walk is what proves the context the scaffold writes
-/// and the one the handlers name have not drifted apart.
+/// The pages read and write through the aggregate type — <c>Product.FindAsync</c>, <c>Product.AsQueryable()</c>,
+/// <c>Product.CreateAsync(model)</c> — and bind the generated <c>ProductModel</c>, which only exists once the
+/// model generator has run over the chapter's <c>Product</c>. So this walk is what proves the generated form
+/// model binds to the Ui kit's controls the way the chapter types it.
 /// </para>
 /// <para>
 /// The chapters build on each other — chapter 4's handler reads <c>Order</c>, which only exists after
@@ -77,22 +77,20 @@ public sealed partial class TutorialChapterBuildE2ETests
                 fs.WriteAllText(file.Path, file.Content);
             }
 
-            // Chapter 2: every file it hands the reader — the entity, its commands and handlers, and the
-            // pages that dispatch them. The entity is mapped with no context to edit, so there is nothing
-            // else to overlay.
+            // Chapter 2: every file it hands the reader — the aggregate and the pages that bind its generated
+            // form model. The aggregate is mapped with no context to edit, so there is nothing else to overlay.
             var slice = Path.Combine(projectDir, "Features", "Products");
             fs.CreateDirectory(slice);
             Write(fs, slice, "Product.cs", Fence("class Product : Aggregate<Guid>"));
-            Write(fs, slice, "ProductCommands.cs", Fence("class AddProductHandler"));
             Write(fs, slice, "CreateProduct.cs", Fence("[Route(\"/products/new\")]"));
             Write(fs, slice, "UpdateProduct.cs", Fence("[Route(\"/products/{id:guid}/edit\")]"));
-            Write(fs, slice, "DeleteProduct.cs", Fence("class DeleteProduct(IDispatcher dispatcher) : Component"));
+            Write(fs, slice, "DeleteProduct.cs", Fence("class DeleteProduct : Component"));
             Write(fs, slice, "ProductsPage.cs", Fence("class ProductsPage"));
 
             CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
 
-            // No package is added here, and that is the assertion. Chapter 2 puts [Required] on its commands
-            // and expects the form to enforce it; validation ships inside Rask.Core, so a
+            // No package is added here, and that is the assertion. Chapter 2 puts [Required] on its aggregate
+            // and expects the form to enforce it through the generated model; validation ships inside Rask.Core, so a
             // project straight out of `rask new` already has it. If it ever stops being built in, this build
             // still succeeds and the chapter still compiles — so the guarantee is pinned by the unit suite
             // (Rask.Validation.Tests), and this gate only has to prove no `dotnet add package` is needed.
@@ -131,10 +129,8 @@ public sealed partial class TutorialChapterBuildE2ETests
             // reader needs (the Raise call has to go somewhere specific) and what lets this walk apply
             // it — a fragment could not replace the file chapter 3 wrote.
             //
-            // PlaceOrder is the chapter's one piece of plain EF Core — IDbContextFactory<AppDbContext>,
-            // Order.Place, db.Set<Order>(), SaveChangesAsync — and it is a whole component precisely so it
-            // is compiled here: it is the only snippet that names the scaffold's context type, so it is the
-            // one that breaks if the context the scaffold writes and the context the tutorial teaches drift.
+            // PlaceOrder is a whole component precisely so it is compiled here: it is the chapter's one
+            // create from an aggregate built by its own factory — Order.Place, then Order.CreateAsync(order).
             Write(fs, orders, "OrderEvents.cs", Pick(ch7, "record OrderPlaced", "7"));
             Write(fs, orders, "Order.cs", Pick(ch7, "Raise(new OrderPlaced", "7"));
             Write(fs, orders, "PlaceOrder.cs", Pick(ch7, "Order.Place(ProductId", "7"));

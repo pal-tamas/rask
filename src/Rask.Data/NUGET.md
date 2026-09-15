@@ -1,65 +1,67 @@
 # Rask.Data
 
-A data layer for **Entity Framework Core** apps with one goal: **you declare models, and that is all**.
-No `DbContext` class, no `DbSet` property, no `IEntityTypeConfiguration`, no registration — and no
+A data layer for **Entity Framework Core** apps with one goal: **you declare aggregates, and that is all**.
+No `DbContext` class, no `DbSet` property, no `IEntityTypeConfiguration`, no registration, and no
 `IDbContextFactory` injected to read a row or save a form. Underneath it is ordinary EF Core, and anything
 richer than a create, an update or a delete is EF Core exactly as you know it.
 
-- **`Model<TId>`** — a base entity with `Id` and a domain-events buffer. A source generator finds every one
-  of them and builds the model, so nothing is scanned or reflected and a trimmed publish cannot quietly drop
-  a table.
-- **Reads off the type** — `Product.Where(...)`, `Product.FindAsync(id)`, `Product.CountAsync()`,
-  `Product.AsQueryable()`. C# 14 static extension members, so an entity that compiles today has them.
+- **`Aggregate<TId>` and `Entity<TId>`**: domain-driven design's building blocks as base classes. An entity carries
+  `Id`, `CreatedAt` and `UpdatedAt`; an aggregate adds a `Version` concurrency token, `DeletedAt` soft delete and
+  domain events. A source generator finds every one and builds the model, so nothing is scanned or reflected and
+  a trimmed publish cannot quietly drop a table.
+- **Value objects with no marker**: any record, struct or class an entity holds that is not an entity maps as an
+  EF **complex type**, columns on the owner's row. **Strongly-typed ids** get a generated value converter with
+  nothing declared; mapping rules live in a plain `public static void Configure(EntityTypeBuilder<T>)` on the type.
+- **Reads off the type**: `Product.Where(...)`, `Product.FindAsync(id)`, `Product.CountAsync()`,
+  `Product.AsQueryable()`. C# 14 static extension members, so an aggregate that compiles today has them.
   **Every read is untracked and opens and disposes its own context**, which is what makes them safe on a
   page that lives as long as a browser's socket. `AsQueryable()` is a standard `IQueryable<T>` that opens a
-  context per execution — hand it to a data grid and it sorts and pages in the database.
-- **A generated `ProductModel` for forms** — a settable copy of each entity's mapped properties, with its
-  DataAnnotations and `Version` carried and the key left out, so `Form.Model(model)` validates by the entity's
-  own rules. It is the whitelist a create or update writes from: `[SkipModel]` keeps a property off it.
-- **Hints, not rules** — build warnings with lightbulb fixes point out a public setter or field on a model or
-  value object (RASK084) and an entity exposing a mutable collection of entities (RASK085). Public setters
-  are allowed; the warnings never fail a build that does not ask them to.
-- **Writes off the type** — creates read like their updates: `Product.CreateAsync(model)` /
+  context per execution: hand it to a data grid and it sorts and pages in the database.
+- **A generated `ProductModel` for forms**: a nullable, settable copy of each aggregate's mapped properties, with
+  its DataAnnotations and `Version` carried and the key left out, so `Form.Model(model)` validates by the
+  aggregate's own rules. `new ProductModel()` holds the aggregate's defaults and `product.ToModel()` fills an edit
+  form.
+- **Writes off the type**: creates read like their updates: `Product.CreateAsync(model)` /
   `Product.UpdateAsync(id, model)`, `Product.CreateAsync(p => …)` / `Product.UpdateAsync(id, p => …)`, plus
-  `Product.CreateAsync(entity)` for a built entity and `Product.DeleteAsync(id)`. A form's values go through the generated
-  model; values that do not come from the form go in an optional `p => …`; the id is always the caller's, never
-  the form's; an `IVersioned` edit refuses a stale save. Each takes an optional `DbContext` to join a caller's
-  transaction. The interceptors stamp, version, soft-delete and publish as for any save — and anything richer
-  is plain EF Core through `IDbContextFactory<TContext>`.
-- **Value objects** (`IValueObject`) map as EF **complex types**, not owned entities; **strongly-typed
-  ids** get a generated value converter with nothing declared; mapping rules live in a plain
-  `public static void Configure(EntityTypeBuilder<T>)` on the model.
-- **`TestDatabase.StartAsync`** — a real database for a test in one line, so behaviour on a model is
+  `Product.CreateAsync(entity)` for one built by a factory and `Product.DeleteAsync(id)`, a soft delete. A save
+  writes what the form holds; values that do not come from the form go in an optional `p => …`; the id is always
+  the caller's, never the form's; a stale `Version` is refused. Each takes an optional `DbContext` to join a
+  caller's transaction.
+- **State stays inside**: a public setter or mutable field on an aggregate, entity or value object is a build
+  error with a lightbulb fix (RASK084), and an entity exposing a mutable collection of entities is a warning
+  (RASK085).
+- **`TestDatabase.StartAsync`**: a real database for a test in one line, so behaviour on an aggregate is
   tested against the database it ships on rather than a mocked `DbContext`.
-- **Opt-in markers** — implement `ITimestamped` (adds `CreatedAt`/`UpdatedAt`), `ISoftDeletable` (adds
-  `DeletedAt`) or `IVersioned` (a `Version` concurrency token) on your entity to turn on the behavior.
-- **Three `ISaveChangesInterceptor`s** — auditing timestamps, **transparent soft delete** (a delete
+- **Three `ISaveChangesInterceptor`s**: auditing timestamps and versions, **transparent soft delete** (a delete
   becomes a `DeletedAt` stamp behind a global query filter), and **after-commit domain-event publication**
   through [Rask.Cqrs](https://www.nuget.org/packages/Rask.Cqrs).
-- **`BulkInsertAsync`** — the bulk insert EF Core leaves out (`ExecuteUpdate`/`ExecuteDelete` exist; inserts
+- **`BulkInsertAsync`**: the bulk insert EF Core leaves out (`ExecuteUpdate`/`ExecuteDelete` exist; inserts
   are out of its scope). Batched, with the change tracker cleared as it goes so memory stays flat.
 
 ## Use
 
 ```csharp
-public sealed class Product : Model<Guid>, ISoftDeletable, IVersioned
+public sealed class Product : Aggregate<Guid>
 {
-    private Product() { }
-
     [Required, MaxLength(200)]
     public string Name { get; private set; } = "";
-    public int Version { get; private set; }
+    public Money Price { get; private set; } = new(0m, "EUR");
+
+    public static Product Create(string name, Money price) =>
+        new() { Id = Guid.CreateVersion7(), Name = name, Price = price };
 }
 
-// read — no context in scope, nothing left open, nothing tracked
+public sealed record Money(decimal Amount, string Currency);
+
+// read: no context in scope, nothing left open, nothing tracked
 var products = await Product.OrderBy(p => p.Name).ToListAsync();
 
-// write — off the type too; the form model is the whitelist, the id is yours
+// write: off the type too; the form model carries the values, the id is yours
 var product = await Product.CreateAsync(model);
 await Product.UpdateAsync(product.Id, edit);   // only changed columns; a stale Version throws
 await Product.DeleteAsync(product.Id);         // soft delete
 
-// anything richer — plain EF Core, one context, one transaction (the writes above join it with db: db)
+// anything richer: plain EF Core, one context, one transaction (the writes above join it with db: db)
 await using var db = await contexts.CreateDbContextAsync(ct);
 var order = await db.Set<Order>().FirstAsync(o => o.Id == orderId, ct);
 order.Cancel(DateTime.UtcNow);
@@ -80,13 +82,13 @@ var app = builder.Build();
 Db.Configure(app.Services);
 ```
 
-A class that does **not** derive from `Model` stays an ordinary EF Core entity: write your own context
+A class that does **not** derive from `Entity<TId>` stays an ordinary EF Core entity: write your own context
 and configurations and use them exactly as before. Registering an `IDbContextFactory<YourContext>` is
 the whole of opting out at the app level.
 
-A delete — `db.Remove(product)` — soft-deletes an `ISoftDeletable`; deleted
+A delete, `db.Remove(product)`, soft-deletes an aggregate; deleted
 rows drop out of queries (use `IgnoreQueryFilters()` to restore); a save against a stale `Version` throws
-`DbUpdateConcurrencyException`; and any `INotification` raised on the entity is published after the change
+`DbUpdateConcurrencyException`; and any `INotification` raised on the aggregate is published after the change
 commits.
 
 To load many rows at once — seeding, an import, a migration — `await db.BulkInsertAsync(products)` (or
