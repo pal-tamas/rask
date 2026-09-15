@@ -15,9 +15,10 @@ namespace Rask.Data;
 ///         keeps its socket open.
 ///     </para>
 ///     <para>
-///         <b>Writes are ordinary EF Core.</b> A domain operation such as
-///         <c>order.Cancel()</c>, or a transaction over two aggregates, injects the context — or its
-///         <see cref="IDbContextFactory{TContext}" /> — and calls <c>SaveChangesAsync</c> itself. There is
+///         <b>The writes on a model use it the same way.</b> <c>Product.CreateAsync(model)</c>,
+///         <c>Product.UpdateAsync(id, model)</c> and <c>Product.DeleteAsync(id)</c> open a context here, save
+///         and dispose it — unless they are handed a context, which they save through and leave open. A
+///         transaction over two aggregates is that context's <c>Database.BeginTransactionAsync</c>; there is
 ///         no Rask-owned unit of work to learn.
 ///     </para>
 ///     <para>

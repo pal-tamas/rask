@@ -15,8 +15,10 @@ namespace Rask.Data;
 ///     <para>
 ///         The model surface (<c>Product.Where(…)</c>, <c>Product.FindAsync(id)</c>) reaches it with
 ///         nothing injected — a Rask session outlives any context, so what is registered is an
-///         <see cref="IDbContextFactory{TContext}" /> and each call opens its own. A domain operation
-///         injects that factory (or, in a scoped handler, the context) and uses EF Core directly — that is how every write is made.
+///         <see cref="IDbContextFactory{TContext}" /> and each call opens its own. The writes on the type
+///         (<c>Product.CreateAsync</c>, <c>UpdateAsync</c>, <c>DeleteAsync</c>) do the same, or join a context
+///         they are handed; anything richer injects that factory (or, in a scoped handler, the context) and uses
+///         EF Core directly.
 ///     </para>
 ///     <para>
 ///         <b>An app that outgrows this writes its own context and Rask steps aside.</b> Registering an

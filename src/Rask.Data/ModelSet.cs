@@ -24,9 +24,11 @@ namespace Rask.Data;
 ///         between calls, and nothing a read returns is being watched for changes.
 ///     </para>
 ///     <para>
-///         <b>Writes are not here.</b> Creating, changing and deleting are ordinary EF Core — a CQRS
-///         handler injects the context (a live page, its factory), loads the entity, calls its method and
-///         calls <c>SaveChangesAsync</c>, so the entity's own rules and the interceptors always run.
+///         <b>Writes are on the type too.</b> <c>Product.CreateAsync(entity)</c> is here; the source generator
+///         adds the form-model writes beside the entity — <c>Product.CreateAsync(ProductModel)</c>,
+///         <c>Product.UpdateAsync(id, ProductModel)</c>, <c>Product.DeleteAsync(id)</c>. Each goes through the
+///         change tracker, so the interceptors always run, and each takes an optional context to join. Plain
+///         EF Core through an injected context stays available for anything richer.
 ///     </para>
 ///     <para>
 ///         A member declared on the entity itself always wins over one of these, so an entity with its own
@@ -210,6 +212,27 @@ public static class ModelSet
             Func<IQueryable<TEntity>, CancellationToken, Task<TResult>> query,
             CancellationToken cancellationToken = default) =>
             new ModelQuery<TEntity>().QueryAsync(query, cancellationToken);
+
+        // ---- Writes -------------------------------------------------------------------------------
+
+        /// <summary>Inserts an entity the caller built — through its own factory and methods — and saves.</summary>
+        /// <remarks>
+        ///     The domain-operation form of create: the entity's constructor keeps its invariants, and Rask only
+        ///     persists it. A form's values go through the generated <c>Product.CreateAsync(ProductModel)</c>
+        ///     instead.
+        /// </remarks>
+        /// <param name="entity">The entity to insert.</param>
+        /// <param name="db">
+        ///     The context to insert through, or <c>null</c> to open one. A given context is saved — with anything
+        ///     else pending on it — and is not disposed, so the insert joins the caller's transaction.
+        /// </param>
+        /// <param name="cancellationToken">Cancels the save.</param>
+        /// <returns>The inserted entity, with any store-generated key filled in.</returns>
+        public static Task<TEntity> CreateAsync(
+            TEntity entity,
+            DbContext? db = null,
+            CancellationToken cancellationToken = default) =>
+            GeneratedModelWrites.CreateAsync(entity, db, cancellationToken);
     }
 
     private static async Task<TEntity?> FindByKeyAsync<TEntity>(object?[] keyValues, CancellationToken cancellationToken)

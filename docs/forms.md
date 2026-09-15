@@ -335,10 +335,10 @@ private async Task CreateAsync(ProductModel product)
 }
 ```
 
-The model is only a shape — nothing generated fills it or saves it; the write is plain EF Core, or a command
-that carries the model to a handler. It carries no id, so the row an edit saves is the one the page's own route
-names, and it carries the row's `Version` back, so a save that pins it throws
-`DbUpdateConcurrencyException` when it lost a race rather than overwriting the other one. See
+The model is what the writes on the type take — `Product.CreateAsync(model)`, `Product.UpdateAsync(id, model)` —
+or what a command carries to a handler. It carries no id, so the row an edit saves is the one the page's own route
+names, and it carries the row's `Version` back, so `UpdateAsync` throws `DbUpdateConcurrencyException` when it
+lost a race rather than overwriting the other one. See
 [a create and an edit form](data.md#a-create-and-an-edit-form).
 
 ### Rendering messages
