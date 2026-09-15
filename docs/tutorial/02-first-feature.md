@@ -83,8 +83,10 @@ page lives as long as the browser keeps its socket open, and nothing here holds 
 
 ## 2. The writes: one command per change
 
-Reads are on the type; writes are not. A change is a **command** — a message saying what to do — and a
-**handler** that does it: loads the entity, calls its method, saves. `Features/Products/ProductCommands.cs`:
+Reads are on the type, and so are the plain writes — `Product.CreateAsync(model)`, `Product.UpdateAsync(id, model)`,
+`Product.DeleteAsync(id)` ([Rask.Data](../data.md#writing-create-update-delete)). This chapter builds the shape a
+change grows into instead: a **command** — a message saying what to do — and a **handler** that does it: loads the
+entity, calls its method, saves. `Features/Products/ProductCommands.cs`:
 
 ```csharp
 using System.ComponentModel.DataAnnotations;

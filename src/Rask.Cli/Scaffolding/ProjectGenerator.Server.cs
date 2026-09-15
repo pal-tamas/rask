@@ -160,8 +160,8 @@ internal static partial class ProjectGenerator
             steps.Append("  }\n");
             steps.Append("\nThen `rask db add <Name>` and `rask db update` to migrate it into app.db. Read it off\n");
             steps.Append("the type itself — Product.Where(...), Product.FindAsync(id) — bind a form to the generated\n");
-            steps.Append("ProductModel, and save from a CQRS handler: IDbContextFactory<AppDbContext>, load, call the\n");
-            steps.Append("entity's method, SaveChangesAsync.\n");
+            steps.Append("ProductModel, and write it off the type too — Product.CreateAsync(model),\n");
+            steps.Append("Product.UpdateAsync(id, model), Product.DeleteAsync(id).\n");
         }
 
         if (batteries.Push)
