@@ -1,5 +1,6 @@
 using System.Net.Mail;
 using System.Security.Claims;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Rask.Wire;
@@ -40,6 +41,19 @@ internal interface IAccounts
     Task<int> SignOutOtherDevicesAsync(ClaimsPrincipal principal, CancellationToken cancellationToken = default);
 
     Task<int> SignOutEverywhereAsync(ClaimsPrincipal principal, CancellationToken cancellationToken = default);
+
+    Task<PasskeyCreationChallenge?> BeginAddPasskeyAsync(
+        Guid userId, string? origin, CancellationToken cancellationToken = default);
+
+    Task<AuthResult> CompleteAddPasskeyAsync(
+        Guid userId, PasskeyRegistrationRequest request, string? origin, CancellationToken cancellationToken = default);
+
+    PasskeyRequestChallenge? BeginPasskeySignIn(string? origin);
+
+    Task<AccountOutcome> CompletePasskeySignInAsync(
+        PasskeyLoginRequest request, string? origin, string? client, CancellationToken cancellationToken = default);
+
+    Task<AuthResult> RemovePasskeyAsync(Guid userId, Guid passkeyId, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -68,6 +82,8 @@ internal sealed class AccountService<TUser>(
     PasswordHasher hasher,
     AuthTokens tokens,
     AuthThrottle throttle,
+    PasskeyChallenges challenges,
+    PasskeySite site,
     IAuthSessions sessions,
     TimeProvider clock,
     ILogger<AccountService<TUser>> logger) : IAccounts
@@ -76,6 +92,7 @@ internal sealed class AccountService<TUser>(
     private const string SignInPurpose = "sign-in";
     private const string RegisterPurpose = "register";
     private const string ResetPurpose = "reset";
+    private const string PasskeyThrottlePurpose = "passkey";
 
     public Task<AccountOutcome> RegisterAsync(
         string email,
@@ -369,6 +386,245 @@ internal sealed class AccountService<TUser>(
         AuthPrincipal.UserId(principal) is { } userId
             ? sessions.EndAllAsync(userId, cancellationToken: cancellationToken)
             : Task.FromResult(0);
+
+    /// <summary>Starts adding a passkey: the options the browser needs, and the sealed challenge it posts back.</summary>
+    public async Task<PasskeyCreationChallenge?> BeginAddPasskeyAsync(
+        Guid userId, string? origin, CancellationToken cancellationToken = default)
+    {
+        if (!options.Passkeys)
+        {
+            return null;
+        }
+
+        await using var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+
+        if (await db.Set<TUser>().AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, cancellationToken)
+                .ConfigureAwait(false) is not { } user)
+        {
+            return null;
+        }
+
+        // What the account already has, so the authenticator says "you already have a passkey here" instead of quietly
+        // making a second one for the same device.
+        var existing = await db.Set<Passkey>()
+            .AsNoTracking()
+            .Where(p => p.UserId == userId)
+            .Select(p => p.CredentialId)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var challenge = PasskeyChallenges.NewChallenge();
+
+        return new PasskeyCreationChallenge(
+            challenges.Issue(PasskeyPurpose.Create, userId, challenge),
+            WebEncoders.Base64UrlEncode(challenge),
+            site.RelyingPartyId(origin),
+            site.Name,
+
+            // The account id as the user handle, never the address: it is stored on the authenticator, where anyone
+            // holding the device may read it, and an id tells them nothing they did not already have.
+            WebEncoders.Base64UrlEncode(userId.ToByteArray()),
+            user.Email,
+            user.Email,
+            [.. existing.Select(WebEncoders.Base64UrlEncode)],
+            (int)PasskeyChallenges.Lifetime.TotalMilliseconds);
+    }
+
+    /// <summary>Verifies a created passkey and stores it against the account that asked for it.</summary>
+    public async Task<AuthResult> CompleteAddPasskeyAsync(
+        Guid userId, PasskeyRegistrationRequest request, string? origin, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (!options.Passkeys)
+        {
+            return AuthResult.Fail(AuthError.NotAllowed);
+        }
+
+        // The challenge says which account asked. A state issued to somebody else is not a way into this one.
+        if (challenges.Redeem(request.State, PasskeyPurpose.Create, out var owner) is not { } challenge
+            || owner != userId)
+        {
+            return AuthResult.Fail(AuthError.InvalidToken);
+        }
+
+        if (PasskeyVerifier.VerifyRegistration(request, site.Ceremony(origin, challenge), out var failure)
+            is not { } verified)
+        {
+            logger.LogDebug("A passkey registration was refused: {Failure}.", failure);
+            return AuthResult.Fail(AuthError.PasskeyRejected, "That passkey could not be verified.");
+        }
+
+        await using var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+
+        var credentialId = verified.CredentialId;
+        var taken = await db.Set<Passkey>()
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.CredentialId == credentialId, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (taken is { DeletedAt: null })
+        {
+            return AuthResult.Fail(AuthError.PasskeyRejected, "That passkey is already on an account.");
+        }
+
+        if (taken is not null)
+        {
+            // A removed passkey keeps its row, and a credential id is unique, so adding the same device again would
+            // collide with its own tombstone forever. Registering it is what makes that row not worth keeping.
+            await db.Set<Passkey>()
+                .IgnoreQueryFilters()
+                .Where(p => p.Id == taken.Id)
+                .ExecuteDeleteAsync(cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        var passkey = Passkey.Register(
+            userId,
+            request.Name,
+            credentialId,
+            verified.PublicKey,
+            verified.Algorithm,
+            verified.SignCount,
+            verified.BackedUp,
+            JoinTransports(request.Transports),
+            clock.GetUtcNow().UtcDateTime);
+
+        db.Add(passkey);
+
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (DbUpdateException)
+        {
+            // Two registrations of one credential arrived together and the unique index kept one.
+            return AuthResult.Fail(AuthError.PasskeyRejected, "That passkey is already on an account.");
+        }
+
+        return AuthResult.Success;
+    }
+
+    /// <summary>Starts a passkey sign-in. Discoverable: nothing about any account leaves the server.</summary>
+    public PasskeyRequestChallenge? BeginPasskeySignIn(string? origin)
+    {
+        if (!options.Passkeys)
+        {
+            return null;
+        }
+
+        var challenge = PasskeyChallenges.NewChallenge();
+
+        return new PasskeyRequestChallenge(
+            challenges.Issue(PasskeyPurpose.Get, Guid.Empty, challenge),
+            WebEncoders.Base64UrlEncode(challenge),
+            site.RelyingPartyId(origin),
+            (int)PasskeyChallenges.Lifetime.TotalMilliseconds);
+    }
+
+    /// <summary>Verifies a signed challenge and produces the principal for the account that signed it.</summary>
+    /// <remarks>
+    /// Every failure answers <see cref="AuthError.InvalidCredentials" />, exactly as a wrong password does. Anybody can
+    /// reach this endpoint, so "no such credential" and "that signature is wrong" have to be one answer.
+    /// </remarks>
+    public async Task<AccountOutcome> CompletePasskeySignInAsync(
+        PasskeyLoginRequest request, string? origin, string? client, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (!options.Passkeys)
+        {
+            return Fail(AuthError.NotAllowed);
+        }
+
+        var throttleKey = AuthThrottle.Key(PasskeyThrottlePurpose, "", client);
+        if (throttle.IsThrottled(throttleKey))
+        {
+            return Fail(AuthError.TooManyAttempts);
+        }
+
+        if (challenges.Redeem(request.State, PasskeyPurpose.Get, out _) is not { } challenge)
+        {
+            throttle.Hit(throttleKey);
+            return Fail(AuthError.InvalidCredentials);
+        }
+
+        byte[] credentialId;
+        try
+        {
+            credentialId = WebEncoders.Base64UrlDecode(request.RawId);
+        }
+        catch (FormatException)
+        {
+            throttle.Hit(throttleKey);
+            return Fail(AuthError.InvalidCredentials);
+        }
+
+        await using var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+
+        var passkey = await db.Set<Passkey>()
+            .FirstOrDefaultAsync(p => p.CredentialId == credentialId, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (passkey is null)
+        {
+            logger.LogDebug("A passkey sign-in was refused: {Failure}.", "no such credential");
+            throttle.Hit(throttleKey);
+            return Fail(AuthError.InvalidCredentials);
+        }
+
+        if (PasskeyVerifier.VerifyAssertion(request, site.Ceremony(origin, challenge), passkey, out var failure)
+            is not { } verified)
+        {
+            logger.LogDebug("A passkey sign-in was refused: {Failure}.", failure);
+            throttle.Hit(throttleKey);
+            return Fail(AuthError.InvalidCredentials);
+        }
+
+        if (await db.Set<TUser>().FirstOrDefaultAsync(u => u.Id == passkey.UserId, cancellationToken)
+                .ConfigureAwait(false) is not { } user)
+        {
+            throttle.Hit(throttleKey);
+            return Fail(AuthError.InvalidCredentials);
+        }
+
+        throttle.Clear(throttleKey);
+
+        if (options.RequireConfirmedEmail && !user.IsEmailConfirmed)
+        {
+            return Fail(AuthError.EmailNotConfirmed);
+        }
+
+        passkey.Used(verified.SignCount, clock.GetUtcNow().UtcDateTime);
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        return new AccountOutcome(AuthResult.Success, AuthPrincipal.For(user));
+    }
+
+    /// <summary>Removes one of an account's passkeys. It stops signing anybody in at once.</summary>
+    public async Task<AuthResult> RemovePasskeyAsync(
+        Guid userId, Guid passkeyId, CancellationToken cancellationToken = default)
+    {
+        await using var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+
+        // Scoped to the caller's own account, so an id guessed from somewhere else removes nothing.
+        if (await db.Set<Passkey>()
+                .FirstOrDefaultAsync(p => p.Id == passkeyId && p.UserId == userId, cancellationToken)
+                .ConfigureAwait(false) is not { } passkey)
+        {
+            return AuthResult.Fail(AuthError.PasskeyRejected, "That passkey is not on this account.");
+        }
+
+        passkey.Removed();
+        db.Remove(passkey);
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        return AuthResult.Success;
+    }
+
+    private static string? JoinTransports(IReadOnlyList<string>? transports) =>
+        transports is { Count: > 0 } ? string.Join(',', transports) : null;
 
     private string? PasswordProblem(string password) =>
         password.Length < options.MinimumPasswordLength

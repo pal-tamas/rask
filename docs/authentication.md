@@ -131,6 +131,7 @@ choice between, not a layering.
 - [Your `User`](#your-user)
 - [Sessions and devices](#sessions-and-devices)
 - [Passwords and throttling](#passwords-and-throttling)
+- [Passkeys](#passkeys)
 - [Concepts](#concepts)
 - [The first account is the administrator](#the-first-account-is-the-administrator)
 - [Confirming an address, and resetting a password](#confirming-an-address-and-resetting-a-password)
@@ -238,11 +239,69 @@ same way. Behind a proxy, run `UseForwardedHeaders` so the client address is the
 An unknown address costs a password check anyway, a reset request answers the same for every address, and "confirm
 your email" is only said after the right password — so no answer tells anybody which addresses have an account.
 
+## Passkeys
+
+**A passkey is another way in, not a replacement for the password.** A signed-in person adds one on `/devices`;
+`/login` then offers "Sign in with a passkey", with no email and no password typed. Everything else is unchanged:
+the sign-in starts the same `Session` row, shows up on the same device list, and the account keeps its password.
+
+```csharp
+await auth.AddPasskeyAsync("MacBook");                          // signed in; runs the browser ceremony
+await auth.SignInWithPasskeyAsync(remember: true, returnUrl);   // discoverable — nothing is typed
+await auth.RemovePasskeyAsync(passkeyId);
+
+var keys = await Passkey.Where(p => p.UserId == me).ToListAsync();   // list them like sessions
+```
+
+**Call these from a click handler.** Browsers only show the passkey dialog for a real gesture. A dismissed dialog
+comes back as `AuthError.PasskeyRejected`, never an exception, so the page renders a message.
+
+It is on by default and needs no configuration in development: with no origin configured, a ceremony is held to the
+relying party id — its host must be that domain or a subdomain of it — which is the binding that protects the account
+whatever port the app is served on. In production behind a proxy, or on more than one subdomain, say where the app is,
+and the list becomes exact:
+
+```csharp
+app.Configure(c => c.Auth.Configure(o =>
+{
+    o.PasskeyRelyingPartyId = "example.com";              // a bare domain — no scheme, no port
+    o.PasskeyOrigins.Add("https://app.example.com");      // one per origin you serve
+}));
+```
+
+> **Changing `PasskeyRelyingPartyId` invalidates every passkey already registered.** A passkey is bound to that
+> domain and cannot be used on another — which is exactly what makes it unphishable. Set it to the parent domain
+> (`example.com`) if one passkey should work across subdomains.
+
+**What the server checks.** Rask verifies WebAuthn itself, on the base class library — `System.Formats.Cbor` for the
+CBOR and `ECDsa`/`RSA` for the signature, with no FIDO library. Every ceremony must present the challenge this
+server issued (sealed, five minutes, good once), come from an allowed origin, hash to the right relying party, and
+report that the user was **present and verified** — so a passkey is two factors: the device, and the biometric or
+PIN that unlocked it. ES256 and RS256 keys are accepted and nothing else. The authenticator's signature counter is
+checked for clones, except where it stays at zero, which is what a synced passkey reports.
+
+Attestation is `none`: Rask does not verify which *model* of authenticator a person owns, because a site that
+forces particular hardware is a site people cannot sign in to from the device they have.
+
+Failures are throttled per client and answer `InvalidCredentials`, exactly as a wrong password does — which of the
+checks failed is written only to the log, at debug level.
+
+**Turning them off** hides the button and refuses the endpoints. Passkeys already added stay in the table and work
+again the moment it is turned back on:
+
+```csharp
+app.Configure(c => c.Auth.Configure(o => o.Passkeys = false));
+```
+
+A TypeScript front end has the same three calls — `addPasskey`, `signInWithPasskey`, `removePasskey`, plus
+`passkeysSupported()` to gate the button — from the `auth` module.
+
 ## Concepts
 
 | Piece | What it is |
 |---|---|
-| `IAuth` | The flows: `RegisterAsync` / `SignInAsync` / `SignOutAsync`, `SignOutOtherDevicesAsync` / `SignOutEverywhereAsync`, plus `SendPasswordResetAsync` / `ResetPasswordAsync` / `ConfirmEmailAsync`. The same injected type on every host — the server implementation validates against the account store and drives the handshake below; the browser one posts to `/api/auth`. |
+| `Passkey` | One registered credential: the account, the credential id, the public key, what the person called it, and when it was last used. Rask adds and removes them; read them like sessions. |
+| `IAuth` | The flows: `RegisterAsync` / `SignInAsync` / `SignOutAsync`, `SignOutOtherDevicesAsync` / `SignOutEverywhereAsync`, `AddPasskeyAsync` / `SignInWithPasskeyAsync` / `RemovePasskeyAsync`, plus `SendPasswordResetAsync` / `ResetPasswordAsync` / `ConfirmEmailAsync`. The same injected type on every host — the server implementation validates against the account store and drives the handshake below; the browser one posts to `/api/auth`. |
 | `IUserProvider` | Scoped source of the current `ClaimsPrincipal` (`Current`), a `Changed` event, `EnsureLoadedAsync`/`RefreshAsync`, and `IsLoading`. Server: `SessionUserProvider` (seeded from `HttpContext.User`). WASM: `HttpUserProvider`, from `AddRaskAuthClient()`. |
 | Injecting `IUserProvider` | Inject it via the constructor and read `.Current` — the never-null `ClaimsPrincipal` for the active render scope. Gate in `Render()` on `provider.Current.Identity?.IsAuthenticated` / `provider.Current.IsInRole(...)`. |
 | `Authorize` component | Headless declarative gate with `Authorized` / `NotAuthorized` / `Authorizing` slots (see below). |
