@@ -6,7 +6,7 @@ owns the UI.
 
 Register, sign in, sign out, `/me`, email confirmation and password reset, all at `/api/auth`, on the app's own
 `User` aggregate: PBKDF2 or bcrypt password hashing, a session row per signed-in device that signing out elsewhere
-or a password reset ends at once, and throttling rather than lockout. The first account to register becomes the
+or a password reset ends at once, throttling rather than lockout, and passkeys beside the password. The first account to register becomes the
 administrator.
 
 ```csharp

@@ -136,6 +136,31 @@ public class BrowserModuleTests
     }
 
     [Fact]
+    public void A_passkey_ceremony_refuses_where_there_is_no_browser_rather_than_throwing()
+    {
+        if (Result is not { } r) return;
+
+        // node has no navigator.credentials, which is what a server render looks like. Both ceremonies have to
+        // report a refusal the caller can render, and neither should reach the network to find that out.
+        Assert.False(r.GetProperty("authPasskeysSupported").GetBoolean());
+        Assert.Equal("NotAllowed", r.GetProperty("authAddPasskeyFailure").GetProperty("error").GetString());
+        Assert.Equal("NotAllowed", r.GetProperty("authPasskeySignInFailure").GetProperty("error").GetString());
+        Assert.True(r.GetProperty("authPasskeyCeremonyMadeNoRequest").GetBoolean());
+    }
+
+    [Fact]
+    public void Removing_a_passkey_posts_to_its_own_route_with_the_csrf_header()
+    {
+        if (Result is not { } r) return;
+
+        var request = r.GetProperty("authRemovePasskeyRequest");
+
+        Assert.True(r.GetProperty("authRemovePasskeyOk").GetBoolean());
+        Assert.Equal("/api/auth/passkeys/remove", request.GetProperty("url").GetString());
+        Assert.Equal("1", request.GetProperty("headers").GetProperty("X-Rask-Auth").GetString());
+    }
+
+    [Fact]
     public void A_position_is_flattened_out_of_the_live_GeolocationPosition()
     {
         if (Result is not { } r) return;

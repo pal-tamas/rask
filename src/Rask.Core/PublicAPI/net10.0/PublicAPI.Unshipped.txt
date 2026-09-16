@@ -6689,3 +6689,6 @@ Rask.Core.Authentication.PendingAuth.Persistent.get -> bool
 Rask.Core.Authentication.PendingAuth.Persistent.init -> void
 static Rask.Core.Authentication.ClaimsPrincipalExtensions.UserId(this System.Security.Claims.ClaimsPrincipal! principal) -> System.Guid?
 static Rask.Core.Authentication.ClaimsPrincipalExtensions.SessionId(this System.Security.Claims.ClaimsPrincipal! principal) -> System.Guid?
+Rask.Core.Authentication.IAuth.AddPasskeyAsync(string? name = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+Rask.Core.Authentication.IAuth.RemovePasskeyAsync(System.Guid id) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+Rask.Core.Authentication.IAuth.SignInWithPasskeyAsync(bool remember = false, string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!

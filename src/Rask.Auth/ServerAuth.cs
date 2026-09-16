@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Rask.Core.Authentication;
+using Rask.Core.Browser;
 using Rask.Wire;
 
 namespace Rask.Auth;
@@ -19,6 +20,7 @@ internal sealed class ServerAuth<TUser>(
     AccountService<TUser> accounts,
     IAuthSignIn signIn,
     IUserProvider users,
+    IWebAuthn webAuthn,
     IHttpContextAccessor http,
     AuthOptions options) : IAuth
     where TUser : Authenticatable, new()
@@ -79,6 +81,111 @@ internal sealed class ServerAuth<TUser>(
     public Task<AuthResult> ConfirmEmailAsync(string userId, string token) =>
         accounts.ConfirmEmailAsync(userId, token);
 
+    public async Task<AuthResult> AddPasskeyAsync(string? name = null)
+    {
+        if (AuthPrincipal.UserId(users.Current) is not { } userId)
+        {
+            return AuthResult.Fail(AuthError.NotAllowed);
+        }
+
+        // Begin and complete in one handler, so the challenge stays in this process and the sealed state never has to
+        // travel: on this host the browser half is a call over the live socket rather than a second HTTP request.
+        if (await accounts.BeginAddPasskeyAsync(userId, Origin()).ConfigureAwait(false) is not { } challenge)
+        {
+            return AuthResult.Fail(AuthError.NotAllowed);
+        }
+
+        var created = await webAuthn
+            .CreateAsync(new PublicKeyCredentialCreationOptions
+            {
+                Challenge = challenge.Challenge,
+                Rp = new RelyingParty(challenge.RelyingPartyName, challenge.RelyingPartyId),
+                User = new PublicKeyCredentialUser(challenge.UserId, challenge.UserName, challenge.UserDisplayName),
+                PubKeyCredParams = [new PubKeyCredParam(-7), new PubKeyCredParam(-257)],
+                TimeoutMs = challenge.TimeoutMs,
+                Attestation = "none",
+                AuthenticatorSelection = new AuthenticatorSelection
+                {
+                    // Discoverable and verified, always: a passkey that cannot be found without an email is not what
+                    // "sign in with a passkey" promises, and one that skips the biometric is a single factor.
+                    ResidentKey = "required",
+                    UserVerification = "required",
+                },
+                ExcludeCredentials = [.. challenge.ExcludeCredentials.Select(id => new CredentialDescriptor(id))],
+            })
+            .ConfigureAwait(false);
+
+        if (created is null)
+        {
+            // The visitor dismissed the dialog, or it timed out. Not an error to throw at them.
+            return AuthResult.Fail(AuthError.PasskeyRejected, "No passkey was created.");
+        }
+
+        return await accounts
+            .CompleteAddPasskeyAsync(
+                userId,
+                new PasskeyRegistrationRequest(
+                    challenge.State,
+                    name,
+                    created.RawId,
+                    created.ClientDataJson,
+                    created.AttestationObject,
+                    created.Transports),
+                Origin())
+            .ConfigureAwait(false);
+    }
+
+    public async Task<AuthResult> SignInWithPasskeyAsync(bool remember = false, string? returnUrl = null)
+    {
+        if (accounts.BeginPasskeySignIn(Origin()) is not { } challenge)
+        {
+            return AuthResult.Fail(AuthError.NotAllowed);
+        }
+
+        var assertion = await webAuthn
+            .GetAsync(new PublicKeyCredentialRequestOptions
+            {
+                Challenge = challenge.Challenge,
+                RpId = challenge.RelyingPartyId,
+                TimeoutMs = challenge.TimeoutMs,
+
+                // No allow-list: the authenticator offers what it holds for this site, so the visitor types nothing.
+                UserVerification = "required",
+            })
+            .ConfigureAwait(false);
+
+        if (assertion is null)
+        {
+            return AuthResult.Fail(AuthError.InvalidCredentials);
+        }
+
+        var outcome = await accounts
+            .CompletePasskeySignInAsync(
+                new PasskeyLoginRequest(
+                    challenge.State,
+                    assertion.RawId,
+                    assertion.ClientDataJson,
+                    assertion.AuthenticatorData,
+                    assertion.Signature,
+                    assertion.UserHandle,
+                    remember),
+                Origin(),
+                Client())
+            .ConfigureAwait(false);
+
+        if (outcome is { Result.Succeeded: true, Principal: { } principal })
+        {
+            await signIn.SignInAsync(principal, returnUrl, persistent: remember).ConfigureAwait(false);
+        }
+
+        return outcome.Result;
+    }
+
+    public Task<AuthResult> RemovePasskeyAsync(Guid id) =>
+        AuthPrincipal.UserId(users.Current) is { } userId
+            ? accounts.RemovePasskeyAsync(userId, id)
+            : Task.FromResult(AuthResult.Fail(AuthError.NotAllowed));
+
     private async Task<AuthResult> RegisterCoreAsync(
         string email, string password, Action<TUser>? apply, string? returnUrl, string? firstRunToken)
     {
@@ -96,6 +203,10 @@ internal sealed class ServerAuth<TUser>(
 
     // The socket's own request, when the host flows it to handlers; otherwise the throttle keys on the address alone.
     private string? Client() => http.HttpContext?.Connection.RemoteIpAddress?.ToString();
+
+    // Only consulted when the app configured neither PasskeyOrigins nor PublicOrigin, which is the development case.
+    private string? Origin() =>
+        http.HttpContext is { Request: { } request } ? request.Scheme + "://" + request.Host.Value : null;
 }
 
 /// <summary>Checks a live session's principal against its <see cref="Session" /> row.</summary>

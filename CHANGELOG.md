@@ -7,6 +7,33 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **Passkeys — another way to sign in, verified on the base class library.** A signed-in person adds a passkey on
+  `/devices` (Touch ID, Windows Hello, a phone, a security key) and `/login` then offers "Sign in with a passkey",
+  with no email and no password typed. Passwords are untouched: a passkey is an extra door, and the sign-in starts
+  the same `Session` row and shows up on the same device list.
+  - **`IAuth` gains `AddPasskeyAsync(name)`, `SignInWithPasskeyAsync(remember, returnUrl)` and
+    `RemovePasskeyAsync(id)`** — the same three calls on the Server host, in WebAssembly and from a TypeScript front
+    end (`addPasskey`, `signInWithPasskey`, `removePasskey`, `passkeysSupported` in the `auth` module). A dismissed
+    dialog answers `AuthError.PasskeyRejected` rather than throwing.
+  - **`Passkey` is a Rask-owned aggregate** in `RaskAuthPasskey` (the account, a unique credential id, the COSE
+    public key, the name, transports, the signature counter, when it was last used). Read it like a session:
+    `Passkey.Where(p => p.UserId == me)`.
+  - **WebAuthn is verified by Rask, with no FIDO library** — `System.Formats.Cbor` for the CBOR and `ECDsa`/`RSA`
+    for the signature. Every ceremony must carry the challenge this server issued (sealed with Data Protection,
+    five minutes, good exactly once), come from an allowed origin, hash to the right relying party, and report the
+    user present **and** verified; ES256 and RS256 are accepted and nothing else, and a signature counter that fails
+    to advance is refused as a clone. Attestation is `none`. Failures are throttled per client and answer
+    `InvalidCredentials`, exactly as a wrong password does.
+  - **New options:** `Passkeys` (on), `PasskeyRelyingPartyId`, `PasskeyRelyingPartyName` and `PasskeyOrigins`, all
+    defaulting to what the request or `PublicOrigin` already says — so development needs no configuration.
+  - **New endpoints** under the API prefix: `passkeys/register-options`, `passkeys/register`,
+    `passkeys/login-options`, `passkeys/login` and `passkeys/remove`, behind the same `X-Rask-Auth` header.
+  - **Upgrade:** `rask db add` a migration for the new `RaskAuthPasskey` table. Nothing else changes — an app that
+    wants none turns them off with `o.Passkeys = false`, and the scaffolded `/login` and `/devices` pages gain the
+    passkey UI only when you copy them from a fresh `rask new`.
+
 ### Changed
 
 - **BREAKING: Rask.Auth has its own accounts; ASP.NET Core Identity is gone.** Laravel's and Rails' shape: one `User`
