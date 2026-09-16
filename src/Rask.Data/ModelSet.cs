@@ -267,8 +267,12 @@ public static class ModelSet
 
         if (KeyPredicate<TEntity>(primaryKey, keyValues) is { } predicate)
         {
+            // Loading ONE root by its key loads the aggregate whole — its children come with it. A query
+            // (Product.Where(…)) deliberately does not: listing a thousand roots should not drag in every
+            // line each of them holds. See docs/data.md.
             return await context.Set<TEntity>()
                 .AsNoTracking()
+                .WithChildren(context)
                 .FirstOrDefaultAsync(predicate, cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -276,7 +280,16 @@ public static class ModelSet
         // A key part with no CLR property (a shadow key) or a type with no equality operator cannot be
         // expressed as a predicate here; EF Core's own Find can. The context is disposed on return, so the
         // row it tracks is released with it.
-        return await context.Set<TEntity>().FindAsync(keyValues, cancellationToken).ConfigureAwait(false);
+        var found = await context.Set<TEntity>().FindAsync(keyValues, cancellationToken).ConfigureAwait(false);
+
+        if (found is not null)
+        {
+            await AggregateChildren
+                .LoadChildrenAsync(context, found, cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        return found;
     }
 
     // row => row.K1 == @k1 && row.K2 == @k2. The values are read through a StrongBox rather than inlined

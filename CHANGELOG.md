@@ -37,6 +37,55 @@ them until tagged releases begin.
   platform's rather than reimplemented on buttons.
 - **`UiMenuButton`** is the popover-menu contract — the panel, the placement and the whole keyboard cursor —
   shared by `UiDropdown` and `UiProfile`, so a second menu control cannot ship with half the arrows.
+- **An aggregate's children are part of it: loaded with it, saved with it, versioned with it.** Declare them as
+  `Entity<TId>`, keep them in a field and hand out a read-only view — no `HasMany`, no foreign key, no key
+  generation.
+  - **Loading one root loads it whole.** `Order.FindAsync(id)` and every write that starts from an id bring the
+    children with them, so a domain method can never act on a collection that silently was not loaded. A *query*
+    still does not (`Order.Where(…)`), because listing a thousand roots should not drag in everything each holds.
+  - **A change to any part is a change to the whole.** A line's quantity moving stamps the root's `UpdatedAt` and
+    bumps its `Version`, so `UpdateAsync(id, version, …)` protects the aggregate rather than only the root's own
+    columns. Only those two columns are written, so a bump never reverts another writer's change.
+  - **The form model carries them and a save syncs them.** `OrderModel` gets a `List<OrderLineModel>`, each child
+    model carries an `Id`, and one post edits the lot: a row with no id is added, a row whose id matches a stored
+    child updates it, and **a stored child in none of the posted rows is removed**. An id matching nothing in that
+    aggregate lands as a new child, so a posted id can never reach another aggregate's row.
+  - **New diagnostics.** `RASK087` when an aggregate holds a collection of *aggregates* — that is a reference, not
+    a part, so Rask never loads, saves or deletes it with the parent — and `RASK088` when a child collection has
+    nothing Rask can write, so a save would silently keep what was stored.
+  - **A child cannot outlive its parent.** The relationship is required and its delete cascades, so removing a
+    line deletes the row. EF Core's own convention makes a shadow foreign key nullable, which severed the child by
+    setting the key to `NULL` and left the row in the table — invisible through the navigation and unreachable
+    through the aggregate. Soft-deleting the aggregate still cascades nothing: the row is stamped, not removed.
+  - A child gets a table, timestamps and a model; it gets no reads or writes of its own, no version and no soft
+    delete, because it is not a thing you load on its own.
+- **`rask new` generates the app's Web Push keys.** A scaffold with the push battery on now mints its own VAPID pair
+  (RFC 8292) and writes it to `appsettings.Development.json`, so a fresh app can send a push without any setup. The
+  file is gitignored — the private key signs every push the app sends, so it is a per-developer secret, and the
+  scaffold's `.gitignore` already reserved that exact name. The committed `appsettings.json` keeps `Subject` and now
+  points at where the pair lives; deployed, both keys still come from the environment
+  (`Rask__WebPush__VapidKeys__PublicKey` / `__PrivateKey`), and production should have a pair of its own.
+  - The old next-steps text asked you to run `dotnet user-secrets set` for each key. Neither command worked: no
+    scaffolded csproj carries a `UserSecretsId`, so both failed with *"Could not find the global property
+    'UserSecretsId'"* — the first thing a new project told you was an error. It also said `VapidKeys.Generate()`
+    "prints" a pair, which it does not; it returns one. Both are corrected here, in the scaffolded `Program.cs`
+    (which repeated the same advice) and in `docs/webpush.md`, `docs/pwa.md`, `docs/spa.md`,
+    `docs/configuration.md` and the tutorial.
+  - Every template `.dockerignore` now excludes `appsettings.Development.json` and `appsettings.Local.json`.
+    Gitignoring a file does not keep it out of an image — Docker never reads `.gitignore` — and the Dockerfile's
+    build stage runs `COPY . .` while the Web SDK copies every `appsettings*.json` into the publish output the
+    final stage takes wholesale. Without this, `rask deploy` would build the developer's new VAPID private key
+    into the image it pushes. It is never read there (the container runs Production), but a signing key has no
+    business in a registry.
+
+- **The scaffold's ignore-overlap gate now reads the whole ignore file.** `ScaffoldIgnoreOverlapTests` — the guard
+  added after `push.ts` was scaffolded into a gitignored directory and lost on clone (#957) — matched only `dir/` and
+  `dir/*` entries, so every file-shaped and glob entry (`appsettings.Development.json`, `.env`, `*.db`,
+  `wwwroot/css/app.css`) was waved through unchecked. It understands all four shapes now, and found one real overlap
+  that predated it: the Next.js template writes `client/next-env.d.ts` into a path its own `.gitignore` covers. That
+  one is legitimate — Next.js regenerates the file on every build and says so in its body — so it and the generated
+  key file are recorded as the two exemptions, each with its reason and each asserted to be genuinely written and
+  genuinely ignored.
 - **`rask new` scaffolds a `global.json`, so an app is compiled by an SDK of its own major.** With no pin the
   SDK picks the newest one installed: on a machine that also carries the next major in preview, a `net10.0`
   app is built by an `11.0.x` release candidate — it works, says `NETSDK1057` once per build, and quietly

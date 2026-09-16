@@ -25,18 +25,38 @@ subscription is still good.
 
 ## Use
 
-**1. Generate a key pair once** and keep it in user secrets or the environment — never in source, and never
-regenerated (rotating it invalidates every existing subscription):
+**1. A key pair, once.** A scaffolded app already has one: `rask new` mints a development pair into
+`appsettings.Development.json`, which the scaffold's `.gitignore` keeps out of the repository. There is
+nothing to do to push locally — skip to step 2.
+
+Mint one by hand for an app Rask did not scaffold, or to replace a lost dev pair:
 
 ```csharp
 var keys = VapidKeys.Generate();   // dotnet-run once; persist keys.PublicKey / keys.PrivateKey
 ```
 
-```bash
-dotnet user-secrets set "Rask:WebPush:VapidKeys:PublicKey"  "<public>"
-dotnet user-secrets set "Rask:WebPush:VapidKeys:PrivateKey" "<private>"
-# deployed: Rask__WebPush__VapidKeys__PublicKey and Rask__WebPush__VapidKeys__PrivateKey
+```jsonc
+// appsettings.Development.json — gitignored, so the private key stays out of the repository
+{
+  "Rask": { "WebPush": { "VapidKeys": { "PublicKey": "…", "PrivateKey": "…" } } }
+}
 ```
+
+**Deployed, the keys come from the environment** — `rask deploy --env` sets them, and production should
+have a pair of its own:
+
+```bash
+rask deploy --env "Rask__WebPush__VapidKeys__PublicKey=<public>" \
+            --env "Rask__WebPush__VapidKeys__PrivateKey=<private>"
+```
+
+Never regenerate a live pair: rotating it invalidates every existing subscription, so treat a change as a
+migration rather than routine rotation. `PrivateKey` signs, so it is a secret like a database password;
+`PublicKey` is meant to be public — it is the `applicationServerKey` the browser subscribes with.
+
+> **user-secrets works too**, but a scaffolded csproj has no `UserSecretsId`, so it needs
+> `dotnet user-secrets init` first — without it, `dotnet user-secrets set` fails with *"Could not find the
+> global property 'UserSecretsId'"*.
 
 **2. Register the sender** at startup. It reads `Rask:WebPush`, so the call takes nothing:
 

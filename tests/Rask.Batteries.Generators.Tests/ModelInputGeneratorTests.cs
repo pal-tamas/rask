@@ -685,6 +685,146 @@ public class ModelInputGeneratorTests
     }
 
     [Fact]
+    public void An_aggregates_children_are_carried_on_its_model_as_an_editable_list()
+    {
+        var run = Run("""
+            using System;
+            using System.Collections.Generic;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Order : Aggregate<Guid>
+            {
+                private readonly List<OrderLine> _lines = [];
+                private Order() { }
+                public string Reference { get; private set; } = "";
+                public IReadOnlyCollection<OrderLine> Lines => _lines;
+            }
+            public sealed class OrderLine : Entity<Guid>
+            {
+                private OrderLine() { }
+                public string Product { get; private set; } = "";
+                public int Quantity { get; private set; }
+            }
+            """);
+
+        Assert.Empty(run.Diagnostics);
+        Assert.Empty(run.GeneratedCompileErrors());
+
+        var order = run.GeneratedSource("Shop.OrderModel");
+        Assert.Contains(
+            "public global::System.Collections.Generic.List<global::Shop.OrderLineModel> Lines { get; set; } = [];",
+            order,
+            StringComparison.Ordinal);
+
+        // The child's own model exists, carries an id so a save can match rows, and has no writes of its own:
+        // it is created, changed and removed as part of the order.
+        var line = run.GeneratedSource("Shop.OrderLineModel");
+        Assert.Contains("public global::System.Guid? Id { get; set; }", line, StringComparison.Ordinal);
+        Assert.DoesNotContain("CreateAsync", line, StringComparison.Ordinal);
+        Assert.DoesNotContain("UpdateAsync", line, StringComparison.Ordinal);
+        Assert.DoesNotContain("DeleteAsync", line, StringComparison.Ordinal);
+
+        // The read-only view is written through its backing field.
+        Assert.Contains("Name = \"_lines\"", order, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_writable_collection_is_synced_through_the_property_itself()
+    {
+        var run = Run("""
+            using System;
+            using System.Collections.Generic;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Order : Aggregate<Guid>
+            {
+                private Order() { }
+                public List<OrderLine> Lines { get; private set; } = [];
+            }
+            public sealed class OrderLine : Entity<Guid>
+            {
+                private OrderLine() { }
+                public int Quantity { get; private set; }
+            }
+            """);
+
+        Assert.Empty(run.Diagnostics);
+        Assert.Empty(run.GeneratedCompileErrors());
+
+        var order = run.GeneratedSource("Shop.OrderModel");
+        Assert.Contains("var __children = entity.Lines;", order, StringComparison.Ordinal);
+        Assert.DoesNotContain("UnsafeAccessorKind.Field", order, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_collection_of_aggregates_is_RASK087_and_is_not_a_child()
+    {
+        var run = Run("""
+            using System;
+            using System.Collections.Generic;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Order : Aggregate<Guid>
+            {
+                private readonly List<Shipment> _shipments = [];
+                private Order() { }
+                public IReadOnlyCollection<Shipment> Shipments => _shipments;
+            }
+            public sealed class Shipment : Aggregate<Guid>
+            {
+                private Shipment() { }
+                public string Carrier { get; private set; } = "";
+            }
+            """);
+
+        var diagnostic = Assert.Single(run.Diagnostics);
+        Assert.Equal("RASK087", diagnostic.Id);
+        Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
+        Assert.EndsWith("/docs/diagnostics.md#rask087", diagnostic.Descriptor.HelpLinkUri, StringComparison.Ordinal);
+        Assert.Empty(run.GeneratedCompileErrors());
+
+        // Another aggregate is somebody else's data: nothing about it reaches this model, so a form post on the
+        // order can neither add a shipment nor delete one.
+        var order = run.GeneratedSource("Shop.OrderModel");
+        Assert.DoesNotContain("Shipments", order, StringComparison.Ordinal);
+
+        // And the shipment keeps its own writes, because it is a root.
+        Assert.Contains("CreateAsync", run.GeneratedSource("Shop.ShipmentModel"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_child_collection_with_nothing_to_write_is_RASK088()
+    {
+        var run = Run("""
+            using System;
+            using System.Collections.Generic;
+            using System.Linq;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Order : Aggregate<Guid>
+            {
+                private readonly List<OrderLine> _paid = [];
+                private readonly List<OrderLine> _unpaid = [];
+                private Order() { }
+                public IEnumerable<OrderLine> Lines => _paid.Concat(_unpaid);
+            }
+            public sealed class OrderLine : Entity<Guid>
+            {
+                private OrderLine() { }
+                public int Quantity { get; private set; }
+            }
+            """);
+
+        // Two candidate fields and a property that is not a collection to write: Rask says so rather than
+        // guessing which field the property hands out.
+        var diagnostic = Assert.Single(run.Diagnostics);
+        Assert.Equal("RASK088", diagnostic.Id);
+        Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
+        Assert.EndsWith("/docs/diagnostics.md#rask088", diagnostic.Descriptor.HelpLinkUri, StringComparison.Ordinal);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
     public void A_hand_written_model_of_the_same_name_is_RASK082_and_nothing_is_generated()
     {
         var run = Run("""
