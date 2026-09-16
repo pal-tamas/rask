@@ -19,15 +19,6 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     // The id the sidebar and the hamburger share: the hamburger is a label for the sidebar's own checkbox.
     private const string SidebarId = "docs-sidebar";
 
-    /// <summary>The shape of the two actions in the top bar's trailing edge.</summary>
-    /// <remarks>
-    /// <c>min-h-11</c> below <c>sm</c>: 44px is the smallest reliable touch target, and these are
-    /// <c>text-sm</c>. The height relaxes from <c>sm</c> up, where there is a pointer.
-    /// </remarks>
-    private const string TopAction =
-        "inline-flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-sm font-medium no-underline "
-        + "transition-colors sm:min-h-0 sm:py-1.5";
-
     // MatchPrefix: optional section prefix for parameterised links. When set, the
     // sidebar entry stays highlighted for any URL under that prefix (e.g. switching
     // /realtime/BTC ↔ /realtime/ETH keeps "Live ticker" active). Null means
@@ -75,73 +66,29 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
 
     protected override Component? Render() =>
     [
-        // daisyUI's `navbar`, with its `navbar-start` / `navbar-end` halves, so the showcase, the
-        // operator console and the landing site share one piece of chrome rather than three
-        // near-identical ones. What is NOT daisyUI's is the sidebar below: `menu` covers the rail
-        // itself (see GroupBlock), but nothing in the kit is a filterable, grouped, eighty-guide
-        // accordion, and forcing one into the other would have been worse than sharing neither.
+        // THE LANDING PAGE'S BAR, not one shaped like it. This was daisyUI's `navbar` with its
+        // navbar-start / navbar-end halves, a second brand mark in the display face, a "showcase" pill,
+        // a version badge, a live `path:` readout and a bordered ★ GitHub button; `/` had a <header>, a
+        // bolt, a wordmark and three quiet text links. Both were defensible and neither was the other,
+        // and a visitor crossing from `/` to `/docs` was the only person positioned to notice — which is
+        // exactly who did.
         //
-        // `app-navbar` now names the bar and styles nothing: the rule that used to back it —
-        // `background: rgba(20, 16, 31, .82)`, a leftover from the dark-first showcase — sat UNLAYERED
-        // in global.css, which outranks every layered utility on the page, so it beat the `bg-ui-bg`
-        // written right here. The bar rendered near-black while its own text stayed `text-ui-ink`
-        // (base-content, near-black in this light theme): the wordmark, the "showcase" pill and the
-        // route readout all came out at about 1.4:1, on markup whose class names were entirely correct.
-        // The glass survives — `bg-ui-bg/85` + a backdrop blur — but drawn from the palette, and it now
-        // matches the landing page's header exactly, which is the same three utilities.
-        Nav.Class(
-            "app-navbar navbar sticky top-0 z-50 flex-nowrap gap-3 border-b border-ui-line "
-            + "bg-ui-bg/85 px-3 pt-[calc(0.5rem_+_env(safe-area-inset-top))] text-ui-ink "
-            + "backdrop-blur backdrop-saturate-150")[
-            // w-auto/grow rather than daisyUI's 50/50 split: the leading half is a hamburger and a
-            // wordmark and the trailing half is three controls, so an even split would squeeze the
-            // wider one at exactly the width where it matters.
-            Div.Class("navbar-start w-auto min-w-0 gap-2")[
-                // The kit's sidebar toggle: a label for the sidebar's checkbox, so the drawer opens on a
-                // prerendered page with no runtime, and a keyboard stop the runtime presses on Enter/Space.
-                // size-11 over daisyUI's 2.5rem because 44px is the smallest reliable touch target.
-                UiSidebarToggle
-                    .For(SidebarId)
-                    .Collapsible(UiBreakpoint.Md)
-                    .AccessibleLabel("Toggle navigation")
-                    .Class("hamburger-btn size-11"),
-                NavLink
-                    .Href(PageMeta.LinkTo(Features.Routes.GuidesIndexPage()))
-                    .ActiveClass("")
-                    .Class("app-brand font-semibold font-[family-name:var(--font-display)] tracking-[-0.022em] inline-flex min-w-0 items-center gap-2 text-ui-ink no-underline")[
-                    RaskLogo.Size(24).GradientId("brandBolt"),
-                    Span["Rask"],
-                    // Both badges are hidden below sm, in the markup and nowhere else. The bar carries a
-                    // hamburger, the brand, a GitHub link and the theme picker, and on a 390px screen the
-                    // row measured 399px — a 9px overflow that scrolled the whole document sideways on
-                    // every page of the docs. global.css had its own `display: none` for the first badge
-                    // under a 768px media query, which disagreed with `sm:` (640px) about where the line
-                    // is and only ever hid one of the two; the utility is the one that decides now.
-                    Span.Class("badge badge-sm badge-primary badge-soft hidden sm:inline-flex")["showcase"],
-                    Span.Class("badge badge-sm badge-ghost hidden sm:inline-flex")[$"v{RaskVersion.Current}"]
-                ]
-            ],
-            Div.Class("navbar-end w-auto grow gap-2")[
-                PathDisplay,
-                A
-                    .Href("https://github.com/pal-tamas/rask")
-                    .Target("_blank")
-                    .Rel("noopener")
-                    .Class(TopAction + " border border-ui-line bg-ui-bg text-ui-ink hover:bg-ui-well")[
-                    UiIcon.Name(UiIconName.Star).Class("size-4 shrink-0"),
-                    Span.Class("hidden sm:inline")["GitHub"]
-                ]
-                ,
-                // The light/dark toggle that used to sit here went when the showcase became light on
-                // the kit's palette: there was no second theme to flip to. There are thirty-five now,
-                // so it comes back as the whole set — and the choice is REMEMBERED across this
-                // navigation and the next visit, which it was not before. The picker itself is still
-                // the kit's CSS-only one, deliberately: it writes no C# event handlers, and handler ids
-                // are positional, so a handler here would shift every id after it and break the
-                // islands page. App.ThemeInitJs stores the choice and re-marks the radio instead.
-                UiThemeDropdown.Align(UiAlign.End)
-            ]
-        ],
+        // What is NOT shared is the sidebar below: `menu` covers the rail itself (see GroupBlock), but
+        // nothing in the kit is a filterable, grouped, eighty-guide accordion, and forcing one into the
+        // other would have been worse than sharing neither.
+        //
+        // The hamburger is the only thing the docs add, and it has to be in the bar because that is where
+        // a thumb reaches for it. It stays the kit's sidebar toggle — a label for the sidebar's checkbox,
+        // so the drawer opens on a prerendered page with no runtime, and a keyboard stop the runtime
+        // presses on Enter/Space. size-11 over daisyUI's 2.5rem because 44px is the smallest reliable
+        // touch target.
+        SiteHeader
+            .FullBleed(true)
+            .Leading(UiSidebarToggle
+                .For(SidebarId)
+                .Collapsible(UiBreakpoint.Md)
+                .AccessibleLabel("Toggle navigation")
+                .Class("hamburger-btn size-11")),
         // The kit's sidebar: docked from md up, a drawer below it. The open state is the drawer's checkbox, mirrored
         // in _drawerOpen so a navigation closes it. The docked rail sits under the sticky top bar rather than
         // under its top edge, which is what the two arbitrary variants on the drawer say.
