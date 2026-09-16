@@ -475,10 +475,41 @@ function Step-Summary {
     Write-Say ''
     if ($script:Warnings.Count -gt 0) { Write-Say 'Installed, with warnings above.' }
     else { Write-Say 'Installed.' }
-    if (-not $NoPath) {
+    Write-Say ''
+
+    # THIS session cannot see any of it. Step-Path writes the User-scoped Path and DOTNET_ROOT, and a
+    # process reads its environment once, at start. So the fact leads, and it is followed by lines
+    # that fix it here — re-reading the very variables just written, rather than a `rask new MyApp`
+    # the reader would run next and watch fail. Same reason as the POSIX installer's closing block.
+    #
+    # The branches are ordered by how early Step-Path gave up. -NoPath means it returned before it
+    # printed anything; a non-Windows run means it printed the directories and wrote nothing, because
+    # a 'User'-scope variable is a Windows registry concept. Telling either reader to re-read
+    # variables that were never written is the same class of wrong answer this block exists to remove.
+    if ($NoPath) {
+        Write-Say '-NoPath was given, so nothing was written to your environment. Add this by hand:'
         Write-Say ''
-        Write-Say 'Open a new terminal to pick up the new PATH.'
+        if (Test-LocalDotnet) {
+            Write-Say "  [Environment]::SetEnvironmentVariable('DOTNET_ROOT', '$DotnetRoot', 'User')"
+        }
+        foreach ($dir in (Get-RaskPathEntries)) {
+            Write-Say "  # add to your user Path: $dir"
+        }
     }
+    elseif (-not $IsWindows) {
+        Write-Say 'Nothing was written to your environment (see above). Add those directories to your'
+        Write-Say 'shell profile, or install with rask.sh instead, which does it for you.'
+    }
+    else {
+        Write-Say "This session still can't see ``rask`` — a process reads its environment when it"
+        Write-Say 'starts. Open a new terminal, or reload this one:'
+        Write-Say ''
+        if (Test-LocalDotnet) {
+            Write-Say "  `$env:DOTNET_ROOT = [Environment]::GetEnvironmentVariable('DOTNET_ROOT', 'User')"
+        }
+        Write-Say "  `$env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')"
+    }
+
     Write-Say ''
     Write-Say 'Then:'
     Write-Say '  rask new MyApp; cd MyApp; rask dev'

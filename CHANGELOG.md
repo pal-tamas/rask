@@ -7,6 +7,29 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+
+- **The installer no longer ends by suggesting a command that fails.** `curl -sSL https://rask.sh/rask.sh | sh`
+  finished with two raw `export` lines and then `Then: rask new MyApp && cd MyApp && rask dev` — run in the shell
+  you installed from, that is `command not found`, because a piped installer is a child process and cannot change
+  its parent's environment. The closing block now leads with that fact and gives one line that fixes it, matched to
+  the profile actually written (`source ~/.bashrc`, `source ~/.config/fish/config.fish`, `. ~/.profile`, …). Under
+  `--no-path`/`-NoPath`, which previously printed no guidance at all, it prints what to add by hand. `rask.ps1` got
+  the same treatment, with the two lines that re-read the User-scoped `Path` and `DOTNET_ROOT` it just wrote.
+- **bash got the `PATH` block in only one of the two files bash reads.** A login bash (ssh, a tty) reads the first
+  of `~/.bash_profile`, `~/.bash_login` and `~/.profile` that exists, and never `~/.bashrc`; a terminal emulator
+  reads `~/.bashrc` and never a login profile. Writing `~/.bashrc` alone looks sufficient on a stock box only
+  because Debian, Arch and Fedora ship a skeleton login profile that sources it — for anyone with hand-written
+  dotfiles, ssh had no `rask` while the terminal emulator on the same machine did. The installer now writes both,
+  but never *creates* a login profile, since bash falls back to `~/.profile` only when no `~/.bash_profile` exists
+  and inventing one would silently shadow the user's login environment.
+- **Re-reading the installer's `PATH` block no longer grows `PATH`.** Each directory is added only if it is not
+  already there, in both the POSIX and fish dialects. This matters now the block lands in two files and the
+  Arch/Debian default `~/.bash_profile` sources `~/.bashrc`.
+- **`curl: (23) Failure writing output to destination` no longer appears mid-install.** The Node LTS lookup piped
+  curl straight into a parser that stops at the first match; `head` closing the pipe made curl report the write
+  error onto an install that was going fine. The index is buffered to a file and parsed from there.
+
 ## [0.22.0] - 2026-09-16
 
 ### Added

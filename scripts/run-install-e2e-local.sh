@@ -79,14 +79,39 @@ $premise
 ! command -v dotnet >/dev/null 2>&1 || { echo 'the base image already has dotnet; this case proves nothing'; exit 1; }
 ! command -v node   >/dev/null 2>&1 || { echo 'the base image already has node; this case proves nothing';   exit 1; }
 
+# The shell a real user is running, rather than the empty SHELL a bare docker run leaves behind --
+# which resolves to ~/.profile and so skips bash entirely. Cases 2 and 3 still run with SHELL unset,
+# so the ~/.profile default stays covered.
+#
+# The hand-written ~/.bash_profile is the point of this case, and it is not a contrivance: bash runs a
+# LOGIN shell (ssh, a tty, a macOS Terminal tab) against the first of ~/.bash_profile, ~/.bash_login,
+# ~/.profile that exists, and an interactive non-login shell against ~/.bashrc. Debian, Arch and
+# Fedora all ship a skeleton login profile that sources ~/.bashrc, which is what hides this: writing
+# ~/.bashrc alone looks sufficient on any stock box. It stops being sufficient the moment someone
+# keeps their own dotfiles -- their login profile sources nothing, and ssh has no rask while the
+# terminal emulator on the same machine does. Without these three lines the container cannot tell the
+# difference, and a one-file installer passes the gate.
+export SHELL=/bin/bash
+printf 'export EDITOR=vim\n' >/root/.bash_profile
+
 sh /rask.sh
+
+# Both files, not either. Asserting only ~/.bashrc is what a stock image would let us get away with.
+grep -q 'rask installer' /root/.bashrc       || { echo 'no PATH block in .bashrc: an interactive bash would not find rask'; exit 1; }
+grep -q 'rask installer' /root/.bash_profile || { echo 'no PATH block in .bash_profile: a login bash would not find rask'; exit 1; }
+grep -q 'export EDITOR=vim' /root/.bash_profile || { echo 'the existing .bash_profile was clobbered'; exit 1; }
+
+# And the seam: start each kind of bash the way a terminal does, and ask it for rask. The files alone
+# would still pass if the block they carry were wrong.
+bash -lc 'command -v rask >/dev/null' || { echo 'a LOGIN bash cannot find rask'; exit 1; }
+bash -ic 'command -v rask >/dev/null' 2>/dev/null || { echo 'an INTERACTIVE bash cannot find rask'; exit 1; }
 
 # Pick the toolchain up the way a real user does — by starting a shell that reads the profile the
 # installer wrote — rather than by reconstructing PATH here. Hand-crafting the environment is how a
 # gate ends up proving something the user never gets: PATH alone leaves a global tool unable to find
 # a runtime, and only DOTNET_ROOT fixes it.
-grep -q 'DOTNET_ROOT' /root/.profile || { echo 'the profile sets no DOTNET_ROOT'; exit 1; }
-set +u; . /root/.profile; set -u
+grep -q 'DOTNET_ROOT' /root/.bash_profile || { echo 'the profile sets no DOTNET_ROOT'; exit 1; }
+set +u; . /root/.bash_profile; set -u   # the login profile this case created, and the one the installer wrote into
 
 # Deliberately version-agnostic. This gate installs whatever Rask.Cli is CURRENTLY PUBLISHED, whose
 # command surface lags main by a release or more — asserting on \`rask doctor\` or a \`rask new\` flag
@@ -102,7 +127,7 @@ node --version
 node -e 'const [a,b]=process.versions.node.split(\".\").map(Number); if (a<22 || (a===22 && b<12)) { console.error(\"node too old: \"+process.versions.node); process.exit(1); }'
 
 # The PATH block has to be real, not just printed.
-grep -q 'rask installer' /root/.profile /root/.bashrc 2>/dev/null || { echo 'no PATH block written'; exit 1; }
+grep -q 'rask installer' /root/.bash_profile /root/.bashrc 2>/dev/null || { echo 'no PATH block written'; exit 1; }
 "
 
 # --- 2. the toolchain is not just present, it compiles --------------------------------------------
