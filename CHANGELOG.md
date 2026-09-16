@@ -7,6 +7,33 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **Rask UI's select is Flux UI's combobox too, and the MODEL says which control it is.** `UiSelect` gains
+  `Searchable` (a search box over the drawn list, matching case- and accent-insensitively in the visitor's own
+  culture), `Filter` (what counts as a match, for searching a code as well as a name), `OnSearch` (hands the typing to
+  the page for a server-side query and filters nothing locally), `Loading` with `LoadingText`, `EmptyText`, and
+  `Clearable` (a button that puts the field back to nothing chosen). Asking for any of them draws the list here rather
+  than handing it to the platform, since a `<select>` has nowhere to put them. The drawn list also takes type-ahead
+  without any of this — a letter jumps to the next option starting with it, as a native select does. There is no
+  `UiCombobox`: a box you type into to narrow a fixed set of answers is the same question a select asks.
+- **One name for both selects.** `UiSelect.Bind(() => model.Tags)` over a `List<T>`, `IList<T>`, `HashSet<T>`,
+  `Collection<T>`, `ObservableCollection<T>`, `T[]` or `ICollection<T>` is the MULTIPLE select;
+  `UiSelect.Bind(() => model.Country)` is the single one. The page never chooses between two component names — the
+  field's own type decides, and the controlled form is `UiSelect.Values(…)` beside `UiSelect.Value(…)`.
+
+### Changed
+
+- **BREAKING (Rask UI):** `UiMultiSelect` is no longer a name a call site types. The multi-value select is reached
+  through `UiSelect` — `UiSelect.Bind(() => model.Tags)` or `UiSelect.Values(picked)` — and typing `UiMultiSelect` in
+  markup now names the type rather than the chain, which does not compile.
+
+### Fixed
+
+- **A component joined onto another's chain entry no longer steals its `Of<T>()`.** Two components sharing an entry
+  emit the same parameterless explicit-type opening, and whichever the generator happened to sort second silently
+  decided what `Entry.Of<T>()` built. The entry's namesake owns it now.
+
 ## [0.22.0] - 2026-09-16
 
 ### Added

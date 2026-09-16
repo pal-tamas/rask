@@ -3666,6 +3666,10 @@ Rask.Core.Live.WheelEventArgs.Equals(Rask.Core.Live.WheelEventArgs? other) -> bo
 Rask.Core.Live.WheelEventArgs.Mouse.get -> Rask.Core.Live.MouseEventArgs!
 Rask.Core.Live.WheelEventArgs.Mouse.init -> void
 Rask.Core.Live.WheelEventArgs.WheelEventArgs(Rask.Core.Live.MouseEventArgs! Mouse, double DeltaX, double DeltaY, double DeltaZ, int DeltaMode) -> void
+Rask.Core.Messaging.IBroadcast
+Rask.Core.Messaging.IBroadcast.PublishAsync<T>(Rask.Core.Messaging.Topic<T>! topic, T message, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+Rask.Core.Messaging.IBroadcast.Subscribe<T>(Rask.Core.Component! owner, Rask.Core.Messaging.Topic<T>! topic, System.Action<T>! handler) -> void
+Rask.Core.Messaging.IBroadcast.Subscribe<T>(Rask.Core.Component! owner, Rask.Core.Messaging.Topic<T>! topic, System.Func<T, System.Threading.Tasks.Task!>! handler) -> void
 Rask.Core.Messaging.IToaster
 Rask.Core.Messaging.IToaster.Add(Rask.Core.Messaging.ToastLevel level, string! message, string? title = null) -> void
 Rask.Core.Messaging.IToaster.Changed -> System.Action?
@@ -3697,6 +3701,9 @@ Rask.Core.Messaging.Toaster.Add(Rask.Core.Messaging.ToastLevel level, string! me
 Rask.Core.Messaging.Toaster.Changed -> System.Action?
 Rask.Core.Messaging.Toaster.Consume() -> System.Collections.Generic.IReadOnlyList<Rask.Core.Messaging.ToastMessage!>!
 Rask.Core.Messaging.Toaster.Toaster() -> void
+Rask.Core.Messaging.Topic<T>
+Rask.Core.Messaging.Topic<T>.Name.get -> string!
+Rask.Core.Messaging.Topic<T>.Topic(string! name) -> void
 Rask.Core.MouseModifiers
 Rask.Core.MouseModifiers.Alt.get -> bool
 Rask.Core.MouseModifiers.Alt.init -> void
@@ -3710,6 +3717,9 @@ Rask.Core.MouseModifiers.MouseModifiers() -> void
 Rask.Core.MouseModifiers.MouseModifiers(bool Shift, bool Ctrl, bool Alt, bool Meta) -> void
 Rask.Core.MouseModifiers.Shift.get -> bool
 Rask.Core.MouseModifiers.Shift.init -> void
+Rask.Core.RaskChainEntryAttribute
+Rask.Core.RaskChainEntryAttribute.Entry.get -> string!
+Rask.Core.RaskChainEntryAttribute.RaskChainEntryAttribute(string! entry) -> void
 Rask.Core.RaskHostContracts
 Rask.Core.RaskMarkup
 Rask.Core.RaskMarkup.RaskMarkup() -> void
@@ -4184,6 +4194,7 @@ override Rask.Core.Live.WheelEventArgs.ToString() -> string!
 override Rask.Core.Messaging.ToastMessage.Equals(object? obj) -> bool
 override Rask.Core.Messaging.ToastMessage.GetHashCode() -> int
 override Rask.Core.Messaging.ToastMessage.ToString() -> string!
+override Rask.Core.Messaging.Topic<T>.ToString() -> string!
 override Rask.Core.MouseModifiers.GetHashCode() -> int
 override Rask.Core.Routing.PendingDownload.Equals(object? obj) -> bool
 override Rask.Core.Routing.PendingDownload.GetHashCode() -> int
@@ -4430,6 +4441,8 @@ static Rask.Core.Forms.DataAnnotationsFieldValidator.Validate(object! model, Sys
 static Rask.Core.Forms.EditContextScope.Current.get -> Rask.Core.Forms.EditContext?
 static Rask.Core.Forms.ExpressionAccessor.Accessor.operator !=(Rask.Core.Forms.ExpressionAccessor.Accessor? left, Rask.Core.Forms.ExpressionAccessor.Accessor? right) -> bool
 static Rask.Core.Forms.ExpressionAccessor.Accessor.operator ==(Rask.Core.Forms.ExpressionAccessor.Accessor? left, Rask.Core.Forms.ExpressionAccessor.Accessor? right) -> bool
+static Rask.Core.Forms.ExpressionAccessor.AsCollection<TCollection, T>(System.Linq.Expressions.Expression<System.Func<TCollection>!>! bind) -> System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.ICollection<T>!>!>!
+static Rask.Core.Forms.ExpressionAccessor.NonNullable<T>(System.Linq.Expressions.Expression<System.Func<T?>!>! bind) -> System.Linq.Expressions.Expression<System.Func<T>!>!
 static Rask.Core.Forms.ExpressionAccessor.Parse(System.Linq.Expressions.LambdaExpression! expression) -> Rask.Core.Forms.ExpressionAccessor.Accessor!
 static Rask.Core.Forms.ModelGraphWalker.Resolve(object! root, string! path) -> (object! Owner, string! Property)?
 static Rask.Core.Forms.ModelGraphWalker.Walk(object! root) -> System.Collections.Generic.IEnumerable<object!>!
@@ -6670,12 +6683,3 @@ virtual Rask.Core.Forms.ValidateAsync<T>.Invoke(T value, System.Threading.Cancel
 ~override Rask.Core.ScopedAssets.ScopedAssetRegistry.AssetBytes.ToString() -> string
 ~override Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry.Equals(object obj) -> bool
 ~override Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry.ToString() -> string
-static Rask.Core.Forms.ExpressionAccessor.NonNullable<T>(System.Linq.Expressions.Expression<System.Func<T?>!>! bind) -> System.Linq.Expressions.Expression<System.Func<T>!>!
-Rask.Core.Messaging.IBroadcast
-Rask.Core.Messaging.IBroadcast.PublishAsync<T>(Rask.Core.Messaging.Topic<T>! topic, T message, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
-Rask.Core.Messaging.IBroadcast.Subscribe<T>(Rask.Core.Component! owner, Rask.Core.Messaging.Topic<T>! topic, System.Action<T>! handler) -> void
-Rask.Core.Messaging.IBroadcast.Subscribe<T>(Rask.Core.Component! owner, Rask.Core.Messaging.Topic<T>! topic, System.Func<T, System.Threading.Tasks.Task!>! handler) -> void
-Rask.Core.Messaging.Topic<T>
-Rask.Core.Messaging.Topic<T>.Name.get -> string!
-Rask.Core.Messaging.Topic<T>.Topic(string! name) -> void
-override Rask.Core.Messaging.Topic<T>.ToString() -> string!

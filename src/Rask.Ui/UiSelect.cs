@@ -38,6 +38,8 @@ public sealed partial class UiSelect<T> : UiFormField<T>
 
     private bool _open;
     private int _cursor = -1;
+    private string? _filter;
+    private UiTypeAhead _typeAhead;
 
     /// <summary>
     ///     The options: the value stored, and the words shown.
@@ -53,6 +55,47 @@ public sealed partial class UiSelect<T> : UiFormField<T>
 
     /// <summary>Shown first and unselectable — the prompt, not an answer.</summary>
     public string? Placeholder { get; set; }
+
+    /// <summary>
+    ///     Puts a search box at the top of the drawn list, so a long list is narrowed by typing — Flux UI's
+    ///     searchable select.
+    /// </summary>
+    /// <remarks>
+    ///     Matches an option's words, case- and accent-insensitively, unless <see cref="Filter" /> says what a
+    ///     match is. Implies the drawn list: the platform's <c>&lt;select&gt;</c> has nowhere to put a search box.
+    ///     The drawn list also takes TYPE-AHEAD without this — a letter jumps to the next option starting with it —
+    ///     which is what a native select does and all a short list needs.
+    /// </remarks>
+    public bool? Searchable { get; set; }
+
+    /// <summary>What counts as a match while searching: the option, and what was typed.</summary>
+    /// <remarks>
+    ///     For searching something other than the words shown — a country's code as well as its name, a person's
+    ///     email. Implies <see cref="Searchable" />.
+    /// </remarks>
+    public Fn<T, string, bool>? Filter { get; set; }
+
+    /// <summary>
+    ///     Hands what was typed to the page instead of filtering here, for a list that comes from a server.
+    /// </summary>
+    /// <remarks>
+    ///     With one, nothing is filtered locally: the page runs its own query and hands back new
+    ///     <see cref="Options" />, showing <see cref="Loading" /> while it waits. Implies <see cref="Searchable" />.
+    /// </remarks>
+    public Callback<string>? OnSearch { get; set; }
+
+    /// <summary>Whether the options are still being fetched — shows "Searching…" in place of the list.</summary>
+    public bool? Loading { get; set; }
+
+    /// <summary>What the list says when nothing matches. "No results found" unless this says otherwise.</summary>
+    public string? EmptyText { get; set; }
+
+    /// <summary>What the list says while <see cref="Loading" />. "Searching…" unless this says otherwise.</summary>
+    public string? LoadingText { get; set; }
+
+    /// <summary>Adds a button that puts the field back to nothing chosen.</summary>
+    /// <remarks>Only for a field that may legitimately be empty; it commits <c>default</c>, as the placeholder does.</remarks>
+    public bool? Clearable { get; set; }
 
     /// <summary>
     ///     Draw the list here instead of handing it to the platform. Unset is the real
@@ -123,7 +166,16 @@ public sealed partial class UiSelect<T> : UiFormField<T>
     // An OptionTemplate has nowhere to render inside an <option>, so supplying one chooses the drawn
     // list. An explicit Native(true) beside one is a contradiction rather than a preference, and RASK075
     // reports it at the call site — this is only what happens when nothing was said either way.
-    private bool DrawsOwnList => Native is { } native ? !native : OptionTemplate is not null;
+    private bool DrawsOwnList => Native is { } native
+        ? !native
+        // Every one of these needs somewhere to put markup the platform's control has no room for: templated
+        // options, a search box, a clear button.
+        : OptionTemplate is not null || Searchable == true || Filter is not null || OnSearch is not null
+          || Clearable == true;
+
+    private bool HasSearch => Searchable == true || Filter is not null || OnSearch is not null;
+
+    private string SearchId => Prefix + "-search";
 
     /// <summary>
     ///     Whether a <c>Label</c> floats over the box rather than sitting above it as a legend. On unless this
@@ -138,6 +190,9 @@ public sealed partial class UiSelect<T> : UiFormField<T>
 
     /// <inheritdoc />
     private protected override bool FloatsLabel => Floating != false && !DrawsOwnList;
+
+    // The clock the type-ahead's prefix expires by. Internal, so it is not a chain step; a test hands it its own.
+    internal TimeProvider Clock { get; set; } = TimeProvider.System;
 
     /// <inheritdoc />
     /// <inheritdoc />
@@ -208,7 +263,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
 
         var current = acc is not null ? acc.Getter() is T v ? v : default : Value;
         var layout = UiSelectNav.Build(
-            Options,
+            Shown(),
             OptionGroup is { } g ? o => g.Invoke(o.Value) ?? string.Empty : null);
         var flat = layout.Flat;
         var disabled = Disabledness(flat);
@@ -277,7 +332,13 @@ public sealed partial class UiSelect<T> : UiFormField<T>
                 _cursor = _open
                     ? UiSelectNav.Seed(IndexOf(flat, current), flat.Count, disabled)
                     : -1;
+                if (!_open)
+                {
+                    // A list reopened on yesterday's search shows a narrowed list nobody asked for.
+                    _filter = null;
+                }
             })[
+            SearchBox(acc, ctx, flat, disabled, current, cursor),
             Ul
                 .Id(ListId)
                 .Role("listbox")
@@ -287,12 +348,27 @@ public sealed partial class UiSelect<T> : UiFormField<T>
                 .Aria((Label ?? AccessibleLabel) is { } listName
                     ? new Dictionary<string, string?> { ["label"] = listName }
                     : [])[
-                Rows(layout, acc, ctx, current, cursor)
+                flat.Count == 0 || Loading == true
+                    ? Li.Class("px-3 py-2 text-sm opacity-60")[
+                        Loading == true ? LoadingText ?? "Searching…" : EmptyText ?? "No results found"
+                    ]
+                    : Rows(layout, acc, ctx, current, cursor)
             ]
         ];
 
-        return Div.Class(UiClass.Compose("w-full", Class))[
+        return Div.Class(UiClass.Compose("relative w-full", Class))[
             box[Span.Class("truncate")[Display(current)]],
+            // Beside the box rather than inside it: a button cannot hold another button, and the box is one.
+            Clearable == true && current is not null && Disabled != true
+                ? Button
+                    .Type("button")
+                    .Class("absolute inset-y-0 end-7 my-auto flex size-5 items-center justify-center rounded "
+                           + "opacity-60 hover:opacity-100")
+                    .Aria("label", "Clear " + (Label ?? AccessibleLabel ?? "selection"))
+                    .OnClick(() => CommitAsync(acc, ctx, default!))[
+                    UiIcon.Name(UiIconName.Close).Class("size-4")
+                ]
+                : null,
             panel,
             // A listbox of buttons submits nothing. Without this a control inside a plain <form> would
             // silently drop its field, which is the kind of failure nobody sees until the data is wrong.
@@ -300,6 +376,34 @@ public sealed partial class UiSelect<T> : UiFormField<T>
                 ? Input.Value(current is null ? string.Empty : OptionText(current)).Type(InputType.Hidden).Name(name)
                 : null
         ];
+    }
+
+    // The options to draw: every one of them, unless a search box narrowed them here. With OnSearch the page runs
+    // the query, so what it handed back IS the answer and filtering it again would narrow it twice.
+    private IReadOnlyList<(T Value, string Text)> Shown()
+    {
+        if (!HasSearch || OnSearch is not null || string.IsNullOrEmpty(_filter))
+        {
+            return Options;
+        }
+
+        var needle = _filter;
+        var shown = new List<(T Value, string Text)>();
+        foreach (var option in Options)
+        {
+            var hit = Filter is { } match
+                ? match.Invoke(option.Value, needle) == true
+                // The visitor's culture, and ignoring case and accents: what counts as a match for "ö" is a local
+                // question, and a reader typing "o" means to find "Ö".
+                : CultureInfo.CurrentCulture.CompareInfo.IndexOf(
+                    option.Text, needle, CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace) >= 0;
+            if (hit)
+            {
+                shown.Add(option);
+            }
+        }
+
+        return shown;
     }
 
     private IEnumerable<Component?> Rows(
@@ -369,13 +473,66 @@ public sealed partial class UiSelect<T> : UiFormField<T>
     // Combobox keyboard over the flat option list: arrows move the cursor (skipping disabled options),
     // Home/End jump to the first/last enabled one, Enter picks. Escape is left alone — the browser's
     // own dismissal is what closes the popover, and OnToggle above hears about it.
+    // The search box lives INSIDE the popover, above the list: it opens with the list, takes focus from the
+    // popover's own focusing steps, and carries the cursor's ARIA — aria-activedescendant only announces the
+    // option from the element that actually has focus.
+    private Component? SearchBox(
+        ExpressionAccessor.Accessor? acc,
+        EditContext? ctx,
+        IReadOnlyList<(T Value, string Text)> flat,
+        Func<int, bool> disabled,
+        T? current,
+        int cursor)
+    {
+        if (!HasSearch || !_open)
+        {
+            return null;
+        }
+
+        var aria = new Dictionary<string, string?>(StringComparer.Ordinal)
+        {
+            ["label"] = "Search " + (Label ?? AccessibleLabel ?? "options"),
+            ["controls"] = ListId,
+        };
+        if (cursor >= 0)
+        {
+            aria["activedescendant"] = UiSelectNav.OptId(Prefix, cursor);
+        }
+
+        return Div.Class("px-1 pb-2")[
+            Input
+                .Value(_filter ?? string.Empty)
+                .Id(SearchId)
+                .Type(InputType.Text)
+                .Class("input input-sm w-full")
+                .Placeholder("Search…")
+                .Autocomplete("off")
+                .Autofocus(true)
+                .Role("combobox")
+                .Aria(aria)
+                .OnInput(async raw =>
+                {
+                    _filter = raw;
+                    // Back to the top of the narrowed list, which Normalize snaps onto the first option a reader
+                    // can actually land on.
+                    _cursor = 0;
+                    if (OnSearch is { } onSearch)
+                    {
+                        await (onSearch.Invoke(raw ?? string.Empty) ?? Task.CompletedTask).ConfigureAwait(false);
+                    }
+                })
+                .OnKeyDown(e => OnKeyAsync(e, acc, ctx, flat, disabled, current, fromSearch: true))
+        ];
+    }
+
     private async Task OnKeyAsync(
         KeyboardEventArgs e,
         ExpressionAccessor.Accessor? acc,
         EditContext? ctx,
         IReadOnlyList<(T Value, string Text)> flat,
         Func<int, bool> disabled,
-        T? current)
+        T? current,
+        bool fromSearch = false)
     {
         var count = flat.Count;
         var cursor = UiSelectNav.Normalize(_cursor, count, disabled);
@@ -419,6 +576,25 @@ public sealed partial class UiSelect<T> : UiFormField<T>
                 if (cursor >= 0 && cursor < count && !disabled(cursor))
                 {
                     await CommitAsync(acc, ctx, flat[cursor].Value).ConfigureAwait(false);
+                }
+
+                break;
+            default:
+                // Type-ahead, the way a native select answers a letter — but only with focus on the BOX. In the
+                // search field the same keystroke is what is being searched for.
+                if (!fromSearch && e.Key.Length == 1 && e.Key != " " && !e.Ctrl && !e.Alt && !e.Meta)
+                {
+                    var texts = new string?[count];
+                    for (var i = 0; i < count; i++)
+                    {
+                        texts[i] = disabled(i) ? null : flat[i].Text;
+                    }
+
+                    var hit = _typeAhead.Next(e.Key, cursor, texts, Clock);
+                    if (hit >= 0)
+                    {
+                        _cursor = hit;
+                    }
                 }
 
                 break;
