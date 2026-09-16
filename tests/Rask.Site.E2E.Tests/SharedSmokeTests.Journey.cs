@@ -286,10 +286,10 @@ public abstract partial class SharedSmokeTests
         await Page.Locator(".hamburger-btn").ClickAsync();
         await Expect(Page.Locator(".side-nav")).ToBeInViewportAsync(
             new LocatorAssertionsToBeInViewportOptions { Timeout = 10_000 });
-        // Dismiss by tapping the backdrop. A real tap lands on the visible backdrop strip beside the
-        // drawer, but Playwright's centre-click would be intercepted by the panel that overlays it —
-        // so dispatch the click straight to the backdrop element (its data-rask-on-click still fires).
-        await Page.Locator(".nav-backdrop").DispatchEventAsync("click");
+        // Dismiss by tapping the overlay beside the drawer. A real tap lands on the visible strip, but
+        // Playwright's centre-click would be intercepted by the panel over it — so dispatch the click to the
+        // overlay itself: the kit's sidebar overlay is a label for the drawer's checkbox, so the click closes it.
+        await Page.Locator(".app-shell .drawer-overlay").DispatchEventAsync("click");
         await Expect(Page.Locator(".side-nav")).Not.ToBeInViewportAsync(
             new LocatorAssertionsToBeInViewportOptions { Timeout = 10_000 });
         await Page.SetViewportSizeAsync(1280, 720);
@@ -1438,7 +1438,7 @@ public abstract partial class SharedSmokeTests
         }");
         await Expect(Page.Locator("main h1")).ToHaveTextAsync("Page not found",
             new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
-        await Expect(Page.Locator(".side-nav a.side-nav-link.active")).ToHaveCountAsync(0,
+        await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']")).ToHaveCountAsync(0,
             new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
 
         // "Back to guides" is an in-session nav to "/" — returns us to a known page so the journey

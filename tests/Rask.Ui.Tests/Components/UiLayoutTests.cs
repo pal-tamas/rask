@@ -76,6 +76,26 @@ public partial class UiLayoutTests : global::Rask.Core.RaskMarkup
         Assert.Contains("alt=\"Ada\"", UiAvatar.Src("/me.png").Alt("Ada").ToHtml());
     }
 
+    [Theory]
+    [InlineData(null, "w-10")]
+    [InlineData(UiSize.Xs, "w-6")]
+    [InlineData(UiSize.Xl, "w-24")]
+    public void An_avatar_is_sized_on_the_kit_axis(UiSize? size, string expected)
+    {
+        // A literal the kit's own sheet is built from, not a class string from the call site that nothing
+        // compiled.
+        Assert.Contains(expected, UiAvatar.Src("/me.png").Alt("Ada").Size(size).ToHtml());
+    }
+
+    [Fact]
+    public void A_drawer_opens_from_the_right_only_when_asked()
+    {
+        Assert.DoesNotContain("drawer-end", Drawer(open: null));
+        Assert.Contains(
+            "drawer-end",
+            UiDrawer.Id("nav").Panel(Span["menu"]).Position(UiPosition.Right)[Span["page"]].ToHtml());
+    }
+
     [Fact]
     public void A_kbd_is_a_kbd_element() =>
         Assert.Contains("<kbd", UiKbd.Text("K").ToHtml());
@@ -120,7 +140,7 @@ public partial class UiLayoutTests : global::Rask.Core.RaskMarkup
     private static string Drawer(bool? open) =>
         UiDrawer
             .Id("nav")
-            .Side(UiMenu[UiMenuItem.Text("Home").Href("/")])
+            .Panel(UiMenu[UiMenuItem.Text("Home").Href("/")])
             .Open(open)
             .CloseLabel("Close navigation")[Span["page"]]
             .ToHtml();

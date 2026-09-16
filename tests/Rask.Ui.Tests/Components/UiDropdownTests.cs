@@ -1,97 +1,234 @@
 namespace Rask.Ui.Tests.Components;
 
 /// <summary>
-///     The dropdown's three open states, which are the whole reason it stopped being a
-///     <c>&lt;details&gt;</c>.
+///     The dropdown's markup: a menu button over a popover menu, placed by anchor positioning.
 /// </summary>
+/// <remarks>
+///     What only exists after an event — the cursor, submenus, type-ahead, the open state C# hears — is
+///     <c>UiDropdownInteractionTests</c>'.
+/// </remarks>
 public partial class UiDropdownTests : global::Rask.Core.RaskMarkup
 {
-    [Fact]
-    public void Unset_leaves_the_open_state_to_the_browser()
-    {
-        // Neither class, so daisyUI's `:focus-within` rule is what decides. This is the uncontrolled
-        // shape, and it still works with no runtime attached.
-        var html = UiDropdown.Trigger("Actions").ToHtml();
+    private static string Menu() =>
+        UiDropdown.Trigger("Actions")[
+            UiMenuItem.Key("edit").Text("Edit").Kbd("⌘E"),
+            UiMenuItem.Key("delete").Text("Delete").Tone(UiTone.Error)
+        ].ToHtml();
 
-        Assert.DoesNotContain("dropdown-open", html);
-        Assert.DoesNotContain("dropdown-close", html);
+    [Fact]
+    public void The_trigger_is_a_menu_button_that_names_its_popover()
+    {
+        var html = Menu();
+        var trigger = Tag(html, "<button id=\"uidd-");
+
+        Assert.Contains("aria-haspopup=\"menu\"", trigger);
+        Assert.Contains("aria-expanded=\"false\"", trigger);
+        Assert.Contains("popovertarget=\"uidd-", trigger);
+        Assert.Contains("aria-controls=\"uidd-", trigger);
     }
 
     [Fact]
-    public void Open_writes_the_open_class() =>
-        Assert.Contains("dropdown-open", UiDropdown.Trigger("Actions").Open(true).ToHtml());
+    public void The_panel_is_a_popover_and_the_menu_inside_it_takes_focus_when_it_opens()
+    {
+        // Popover focusing steps move focus to the autofocus descendant, so the arrow keys reach the menu straight
+        // from the click that opened it. `menu` on the list, never on the popover: a display class on a popover
+        // keeps it on screen while closed.
+        var html = Menu();
+
+        Assert.Contains("popover=\"auto\"", Tag(html, "<div id=\"uidd-"));
+        Assert.DoesNotContain("menu", Tag(html, "<div id=\"uidd-").Replace("uidd-", "", StringComparison.Ordinal));
+        var menu = Tag(html, "<ul id=\"uidd-");
+        Assert.Contains("role=\"menu\"", menu);
+        Assert.Contains("tabindex=\"-1\"", menu);
+        Assert.Contains("autofocus", menu);
+        Assert.Contains("aria-labelledby=\"uidd-", menu);
+    }
 
     [Fact]
-    public void Closed_writes_dropdown_close_rather_than_merely_omitting_dropdown_open()
+    public void Items_inside_a_dropdown_are_menu_items_with_ids_and_no_tab_stops()
     {
-        // This is the load-bearing one. Omitting `dropdown-open` is not enough, because daisyUI also
-        // opens on `:focus-within` — so a dropdown the page had just closed would re-open the moment
-        // focus landed inside it, and the state in C# and the state on screen would disagree with
-        // nothing reporting it. `dropdown-close` outranks the focus rule.
-        var html = UiDropdown.Trigger("Actions").Open(false).ToHtml();
+        var html = Menu();
 
-        Assert.Contains("dropdown-close", html);
-        Assert.DoesNotContain("dropdown-open", html);
+        Assert.Contains("role=\"none\"", html);
+        Assert.Equal(2, CountOf(html, "role=\"menuitem\""));
+        Assert.Contains("-mi-0\"", html);
+        Assert.Contains("-mi-1\"", html);
+        // The menu holds focus and moves a cursor; the rows are not Tab stops of their own.
+        Assert.Contains("tabindex=\"-1\"", Tag(html, "<button id=\"uidd-" + FirstIdContaining(html, "-mi-0")));
+        Assert.Contains("tabindex=\"-1\"", Tag(html, "<button id=\"uidd-" + FirstIdContaining(html, "-mi-1")));
+    }
+
+    [Fact]
+    public void An_item_outside_a_dropdown_is_an_ordinary_link_or_button()
+    {
+        // A navigation list: no menu roles, no ids, no cursor.
+        var html = UiMenu[UiMenuItem.Key("home").Text("Home").Href("/").Active(true)].ToHtml();
+
+        Assert.DoesNotContain("role=", html);
+        Assert.Contains("aria-current=\"page\"", html);
+        Assert.Contains("menu-active", html);
+    }
+
+    [Fact]
+    public void A_shortcut_a_danger_tone_and_a_trailing_icon_render_on_the_row()
+    {
+        var html = UiDropdown.Trigger("Actions")[
+            UiMenuItem.Key("edit").Text("Edit").Kbd("⌘E").IconTrailing(UiIconName.ChevronRight),
+            UiMenuItem.Key("delete").Text("Delete").Tone(UiTone.Error)
+        ].ToHtml();
+
+        Assert.Contains("<kbd class=\"kbd kbd-xs ui-menu-kbd\">", html);
+        Assert.Contains("text-error", html);
+        Assert.True(
+            html.IndexOf("Edit", StringComparison.Ordinal) < html.IndexOf("<kbd", StringComparison.Ordinal),
+            "the shortcut comes after the words.");
     }
 
     [Theory]
-    [InlineData(UiPlacement.Start, "dropdown-start")]
-    [InlineData(UiPlacement.Center, "dropdown-center")]
-    [InlineData(UiPlacement.End, "dropdown-end")]
-    [InlineData(UiPlacement.Top, "dropdown-top")]
-    [InlineData(UiPlacement.Bottom, "dropdown-bottom")]
-    [InlineData(UiPlacement.Left, "dropdown-left")]
-    [InlineData(UiPlacement.Right, "dropdown-right")]
-    public void Every_placement_writes_its_own_class(UiPlacement placement, string expected) =>
-        Assert.Contains(expected, UiDropdown.Trigger("Actions").Placement(placement).ToHtml());
+    [InlineData(null, null, "position-area:block-end span-inline-end")]
+    [InlineData(UiPosition.Top, UiAlign.End, "position-area:block-start span-inline-start")]
+    [InlineData(UiPosition.Right, UiAlign.Center, "position-area:inline-end center")]
+    [InlineData(UiPosition.Left, UiAlign.Start, "position-area:inline-start span-block-end")]
+    public void Position_and_align_become_one_anchor_position(UiPosition? position, UiAlign? align, string expected) =>
+        Assert.Contains(expected, UiDropdown.Trigger("Actions").Position(position).Align(align).ToHtml());
 
     [Fact]
-    public void The_default_placement_writes_no_class_at_all() =>
-        Assert.Equal(
-            UiDropdown.Trigger("Actions").ToHtml(),
-            UiDropdown.Trigger("Actions").Placement(UiPlacement.Default).ToHtml());
-
-    [Fact]
-    public void Opening_on_hover_is_opt_in() =>
-        Assert.Contains("dropdown-hover", UiDropdown.Trigger("Actions").OpenOn(UiOpenOn.Hover).ToHtml());
-
-    [Fact]
-    public void Clicking_is_the_default_and_writes_no_class() =>
-        Assert.DoesNotContain("dropdown-hover", UiDropdown.Trigger("Actions").OpenOn(UiOpenOn.Click).ToHtml());
-
-    [Fact]
-    public void The_trigger_announces_the_open_state()
+    public void Gap_and_offset_move_the_panel()
     {
+        var html = UiDropdown.Trigger("Actions").Gap(8).Offset(12).ToHtml();
+
+        Assert.Contains("margin:8px", html);
+        Assert.Contains("translate:12px 0", html);
+        // Flux's default gap when unset.
+        Assert.Contains("margin:4px", UiDropdown.Trigger("Actions").ToHtml());
+    }
+
+    [Fact]
+    public void A_controlled_dropdown_tells_the_runtime_which_state_to_show()
+    {
+        Assert.Contains("data-rask-popover-open=\"true\"", UiDropdown.Trigger("Actions").Open(true).ToHtml());
+        Assert.Contains("data-rask-popover-open=\"false\"", UiDropdown.Trigger("Actions").Open(false).ToHtml());
+        Assert.DoesNotContain("data-rask-popover-open", Menu());
         Assert.Contains("aria-expanded=\"true\"", UiDropdown.Trigger("Actions").Open(true).ToHtml());
-        Assert.Contains("aria-expanded=\"false\"", UiDropdown.Trigger("Actions").Open(false).ToHtml());
     }
 
     [Fact]
-    public void The_trigger_says_it_opens_a_menu() =>
-        Assert.Contains("aria-haspopup=\"menu\"", UiDropdown.Trigger("Actions").ToHtml());
-
-    [Fact]
-    public void An_uncontrolled_trigger_carries_a_tabindex_so_daisyUIs_rules_apply()
+    public void Keep_open_is_marked_where_the_runtime_looks_for_it()
     {
-        // `[tabindex]:first-child` is how daisyUI reaches the trigger, and while uncontrolled that is
-        // what should happen — including the rule that stops the trigger taking clicks while the panel
-        // is open, which is what lets clicking away close it instead of the trigger re-opening it.
-        Assert.Contains("tabindex=\"0\"", UiDropdown.Trigger("Actions").ToHtml());
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void A_controlled_trigger_does_not_because_the_rule_it_opts_into_would_trap_it(bool open)
-    {
-        // daisyUI sets `pointer-events: none` on `[tabindex]:first-child` while the dropdown is open.
-        // For a controlled dropdown that is fatal: the only way to close is OnToggle, OnToggle only
-        // fires on a click, and the click cannot land — so it opens once and stays open. A browser test
-        // found this exactly that way, as a click Playwright reported the container was intercepting.
-        Assert.DoesNotContain("tabindex", UiDropdown.Trigger("Actions").Open(open).ToHtml());
+        Assert.Contains("data-rask-keep-open", UiDropdown.Trigger("Filters").KeepOpen(true).ToHtml());
+        Assert.Contains(
+            "data-rask-keep-open",
+            UiDropdown.Trigger("Actions")[UiMenuItem.Key("pin").Text("Pin").KeepOpen(true)].ToHtml());
+        Assert.DoesNotContain("data-rask-keep-open", Menu());
     }
 
     [Fact]
-    public void The_panel_is_the_element_daisyUI_positions() =>
-        Assert.Contains("dropdown-content", UiDropdown.Trigger("Actions").ToHtml());
+    public void The_trigger_icon_after_the_label_can_be_replaced()
+    {
+        // Instance ids differ per render, so they are blanked first — otherwise these would differ for that alone.
+        static string Trigger(string html) =>
+            System.Text.RegularExpressions.Regex.Replace(html.Split("<div id=\"uidd-")[0], @"uidd-\d+", "uidd");
+
+        Assert.Equal(Trigger(UiDropdown.Trigger("Actions").ToHtml()), Trigger(UiDropdown.Trigger("Actions").ToHtml()));
+        Assert.NotEqual(
+            Trigger(UiDropdown.Trigger("Actions").ToHtml()),
+            Trigger(UiDropdown.Trigger("Actions").IconTrailing(UiIconName.ChevronUpDown).ToHtml()));
+    }
+
+    [Fact]
+    public void Hover_keeps_daisyUIs_CSS_dropdown()
+    {
+        // CSS cannot open a popover, so hovering to open is the one shape that stays daisyUI's.
+        var html = UiDropdown.Trigger("Actions").OpenOn(UiOpenOn.Hover).Align(UiAlign.End).ToHtml();
+
+        Assert.Contains("dropdown-hover", html);
+        Assert.Contains("dropdown-end", html);
+        Assert.DoesNotContain("popover=", html);
+    }
+
+    [Fact]
+    public void A_submenu_is_a_menu_item_that_owns_a_nested_menu()
+    {
+        var html = UiDropdown.Trigger("Actions")[
+            UiMenuSub.Key("sort").Heading("Sort by")[
+                UiMenuItem.Key("name").Text("Name")
+            ]
+        ].ToHtml();
+
+        var trigger = Tag(html, "<button id=\"uidd-" + FirstIdContaining(html, "-mi-0"));
+        Assert.Contains("aria-haspopup=\"menu\"", trigger);
+        Assert.Contains("aria-expanded=\"false\"", trigger);
+        Assert.Contains("ui-menu-flyout", html);
+        Assert.Equal(2, CountOf(html, "role=\"menu\""));
+    }
+
+    [Fact]
+    public void A_submenu_in_a_plain_menu_is_a_disclosure()
+    {
+        var html = UiMenu[UiMenuSub.Key("more").Heading("More")[UiMenuItem.Key("a").Text("A").Href("/a")]].ToHtml();
+
+        Assert.Contains("<details>", html);
+        Assert.Contains("<summary>", html);
+        Assert.DoesNotContain("role=", html);
+    }
+
+    [Fact]
+    public void Checkbox_and_radio_items_say_whether_they_are_checked()
+    {
+        var html = UiDropdown.Trigger("View")[
+            UiMenuCheckbox.Value(true).Key("archived").Text("Show archived"),
+            UiMenuSeparator.Key("sep"),
+            UiMenuRadioGroup.Value("date").Key("sort").Options([("name", "Name"), ("date", "Date")]).Heading("Sort")
+        ].ToHtml();
+
+        Assert.Contains("role=\"menuitemcheckbox\"", html);
+        Assert.Equal(2, CountOf(html, "role=\"menuitemradio\""));
+        Assert.Equal(2, CountOf(html, "aria-checked=\"true\""));
+        Assert.Equal(1, CountOf(html, "aria-checked=\"false\""));
+        Assert.Equal(2, CountOf(html, "data-checked"));
+        Assert.Contains("role=\"separator\"", html);
+        Assert.Contains("menu-title", html);
+        // A checkbox menu keeps the dropdown open by default: flipping three switches should not mean opening it thrice.
+        Assert.Contains("data-rask-keep-open", Tag(html, "<button id=\"uidd-" + FirstIdContaining(html, "-mi-0")));
+    }
+
+    [Fact]
+    public void Attribute_order_on_a_menu_item_holds()
+    {
+        // id, class, data-*, role, tabindex, aria-* — the order every element renders in.
+        var html = Menu();
+        var row = Tag(html, "<button id=\"uidd-" + FirstIdContaining(html, "-mi-1"));
+
+        var id = row.IndexOf(" id=", StringComparison.Ordinal);
+        var cls = row.IndexOf(" class=", StringComparison.Ordinal);
+        var role = row.IndexOf(" role=", StringComparison.Ordinal);
+        var tab = row.IndexOf(" tabindex=", StringComparison.Ordinal);
+        Assert.True(id < cls && cls < role && role < tab, row);
+    }
+
+    private static string FirstIdContaining(string html, string fragment)
+    {
+        var at = html.IndexOf(fragment + "\"", StringComparison.Ordinal);
+        var start = html.LastIndexOf("uidd-", at, StringComparison.Ordinal) + 5;
+        return html[start..at] + fragment;
+    }
+
+    private static int CountOf(string html, string needle)
+    {
+        var count = 0;
+        for (var at = html.IndexOf(needle, StringComparison.Ordinal); at >= 0; at = html.IndexOf(needle, at + 1, StringComparison.Ordinal))
+        {
+            count++;
+        }
+
+        return count;
+    }
+
+    // The opening tag that starts with `prefix`, so an assertion about one element cannot pass on another's.
+    private static string Tag(string html, string prefix)
+    {
+        var start = html.IndexOf(prefix, StringComparison.Ordinal);
+        Assert.True(start >= 0, $"no tag starting {prefix}");
+        return html[start..(html.IndexOf('>', start) + 1)];
+    }
 }

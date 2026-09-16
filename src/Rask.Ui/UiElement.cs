@@ -48,6 +48,16 @@ public abstract partial class UiElement : Element
     /// </remarks>
     private protected virtual string? ResolveRole() => Role;
 
+    /// <summary>
+    ///     The <c>data-*</c> attributes this element renders — by default exactly <see cref="Element.Data" />.
+    /// </summary>
+    /// <remarks>
+    ///     Kit-internal, like <see cref="ResolveRole" />: a button's loading state is the one derived data
+    ///     attribute so far. Swapped in for the walk rather than appended after it, so <c>data-*</c> keeps its
+    ///     documented slot in the attribute order.
+    /// </remarks>
+    private protected virtual IReadOnlyDictionary<string, string?>? ResolveData() => Data;
+
     /// <inheritdoc />
     /// <remarks>
     ///     Core writes <c>role</c> and <c>aria-*</c> from <see cref="Element.Role" /> and <see cref="Element.Aria" />
@@ -62,11 +72,14 @@ public abstract partial class UiElement : Element
     {
         var ownAria = Aria;
         var ownRole = Role;
+        var ownData = Data;
         var aria = ResolveAria();
         var role = ResolveRole();
+        var data = ResolveData();
         var swapAria = !ReferenceEquals(aria, ownAria);
         var swapRole = !string.Equals(role, ownRole, StringComparison.Ordinal);
-        if (!swapAria && !swapRole)
+        var swapData = !ReferenceEquals(data, ownData);
+        if (!swapAria && !swapRole && !swapData)
         {
             base.WriteAttributes(sb);
             return;
@@ -80,6 +93,11 @@ public abstract partial class UiElement : Element
         if (swapRole)
         {
             Role = role;
+        }
+
+        if (swapData)
+        {
+            Data = data;
         }
 
         try
@@ -96,6 +114,11 @@ public abstract partial class UiElement : Element
             if (swapRole)
             {
                 Role = ownRole;
+            }
+
+            if (swapData)
+            {
+                Data = ownData;
             }
         }
     }

@@ -62,22 +62,39 @@ public partial class UiTabsTests : global::Rask.Core.RaskMarkup
         Assert.Contains(expected, UiTabs.Size(size)[Tab("Live", active: true)].ToHtml());
 
     [Theory]
-    [InlineData(UiPlacement.Top, "tabs-top")]
-    [InlineData(UiPlacement.Bottom, "tabs-bottom")]
-    public void The_two_placements_a_tab_row_has_write_their_class(UiPlacement placement, string expected) =>
-        Assert.Contains(expected, UiTabs.Placement(placement)[Tab("Live", active: true)].ToHtml());
+    [InlineData(UiPosition.Top, "tabs-top")]
+    [InlineData(UiPosition.Bottom, "tabs-bottom")]
+    public void The_two_positions_a_tab_row_has_write_their_class(UiPosition position, string expected) =>
+        Assert.Contains(expected, UiTabs.Position(position)[Tab("Live", active: true)].ToHtml());
 
     [Theory]
-    [InlineData(UiPlacement.Start)]
-    [InlineData(UiPlacement.Left)]
-    public void A_placement_a_tab_row_has_no_class_for_writes_nothing(UiPlacement placement)
+    [InlineData(UiPosition.Left)]
+    [InlineData(UiPosition.Right)]
+    public void A_position_a_tab_row_has_no_class_for_writes_nothing(UiPosition position)
     {
-        // Better than inventing `tabs-start`: a class daisyUI never defined is in the markup, absent
+        // Better than inventing `tabs-left`: a class daisyUI never defined is in the markup, absent
         // from the sheet, and does nothing — which reads as a working call site.
-        var html = UiTabs.Placement(placement)[Tab("Live", active: true)].ToHtml();
+        var html = UiTabs.Position(position)[Tab("Live", active: true)].ToHtml();
 
-        Assert.DoesNotContain("tabs-start", html);
         Assert.DoesNotContain("tabs-left", html);
+        Assert.DoesNotContain("tabs-right", html);
+    }
+
+    [Fact]
+    public void The_row_carries_no_outer_margin()
+    {
+        // We style, you space. The phone bleed (`-mx-3 px-3`) this row used to carry pushed it out of any
+        // card it sat in; where a row sits is the page's to say.
+        var html = UiTabs[Tab("Live", active: true)].ToHtml();
+        var classes = html[(html.IndexOf("class=\"", StringComparison.Ordinal) + 7)..];
+        classes = classes[..classes.IndexOf('"')];
+
+        Assert.DoesNotContain(
+            classes.Split(' '),
+            c => c.StartsWith("-m", StringComparison.Ordinal)
+                 || c.StartsWith("m-", StringComparison.Ordinal)
+                 || c.StartsWith("mx-", StringComparison.Ordinal)
+                 || c.StartsWith("sm:mx-", StringComparison.Ordinal));
     }
 
     [Fact]

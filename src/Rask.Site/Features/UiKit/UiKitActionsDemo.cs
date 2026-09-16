@@ -16,6 +16,10 @@ public sealed partial class UiKitActionsDemo : Component
     private bool _muted;
     private UiThemeName _theme = UiThemeName.Light;
     private string _lastAction = "nothing yet";
+    private int _saves;
+    private string _sort = "name";
+    private bool _showArchived;
+    private int _steps;
 
     /// <inheritdoc />
     protected override Component? Render() =>
@@ -38,6 +42,27 @@ public sealed partial class UiKitActionsDemo : Component
             ]),
 
         Section(
+            "Button — waiting on its handler",
+            "No property to set. A button whose handler is still running after 200 ms shows a spinner at the "
+            + "same width, tells a screen reader it is busy, and drops a second press until the first is done. "
+            + "Loading(false) opts a stepper out, so its presses queue.",
+            Div.Data(Testid("ui-button-loading")).Class("flex flex-wrap items-center gap-3")[
+                UiButton.Key("slow-save").Tone(UiTone.Primary).OnClick(async () =>
+                {
+                    await Task.Delay(1500);
+                    _saves++;
+                })["Save"],
+                UiButton.Key("stepper").Loading(false).OnClick(async () =>
+                {
+                    await Task.Delay(400);
+                    _steps++;
+                })[UiIcon.Name(UiIconName.Plus), "Step"],
+                Span.Data(Testid("ui-button-loading-count")).Class("text-sm text-ui-muted")[
+                    $"Saved {_saves} time{(_saves == 1 ? "" : "s")} · stepped {_steps}"
+                ]
+            ]),
+
+        Section(
             "Button and link — going somewhere",
             "Given a generated route, a button or a link is an <a> the runtime routes inside the app, so the "
             + "page changes without reloading. A plain string stays an ordinary link, for a URL that leaves.",
@@ -52,29 +77,42 @@ public sealed partial class UiKitActionsDemo : Component
 
         Section(
             "Dropdown",
-            "Open is nullable, and the three settings mean three different things: unset lets the "
-            + "browser open it on focus, true and false hand the decision to this page.",
+            "A popover menu with Flux UI's keyboard: the arrows move a cursor, Home and End jump, a letter "
+            + "jumps to the next item starting with it, Right opens a submenu and Left closes it, Enter picks, "
+            + "Escape and Tab leave. A pointer crossing diagonally into a submenu keeps it open — the safe "
+            + "triangle. Open is nullable: unset leaves it to the reader, true and false hand it to this page.",
             Div.Data(Testid("ui-dropdown")).Class("flex flex-wrap items-center gap-2")[
                 UiDropdown
                     .Key("controlled")
                     .Trigger(_menuOpen ? "Close menu" : "Open menu")
-                    .Placement(UiPlacement.Bottom)
+                    .Position(UiPosition.Bottom)
                     .Open(_menuOpen)
                     .OnToggle(open => { _menuOpen = open; })[
-                    MenuAction("rename", "Rename"),
-                    MenuAction("duplicate", "Duplicate"),
-                    MenuAction("delete", "Delete")
+                    MenuAction("rename", "Rename", "⌘R"),
+                    MenuAction("duplicate", "Duplicate", "⌘D"),
+                    MenuAction("delete", "Delete", null, UiTone.Error)
                 ],
-                UiDropdown.Key("uncontrolled").Trigger("Uncontrolled").Placement(UiPlacement.End)[
-                    MenuAction("first", "Opens on focus"),
-                    MenuAction("second", "Closes when focus leaves")
+                UiDropdown.Key("rich").Trigger("View").Icon(UiIconName.Sparkles).Align(UiAlign.End)[
+                    UiMenuGroup.Key("sort-group").Heading("Arrange")[
+                        UiMenuSub.Key("sort").Heading("Sort by")[
+                            UiMenuRadioGroup.Value(_sort)
+                                .Options([("name", "Name"), ("date", "Date modified"), ("size", "Size")])
+                                .OnChange(sort => { _sort = sort; _lastAction = "sorted by " + sort; })
+                        ],
+                        UiMenuItem.Key("refresh").Text("Refresh").Kbd("⌘⇧R")
+                            .OnClick(() => { _lastAction = "refreshed"; })
+                    ],
+                    UiMenuSeparator.Key("sep"),
+                    UiMenuCheckbox.Key("archived").Value(_showArchived).Text("Show archived")
+                        .OnChange(on => { _showArchived = on; _lastAction = on ? "showing archived" : "hiding archived"; }),
+                    UiMenuItem.Key("export").Text("Export").Disabled(true)
                 ]
             ]),
 
         Section(
             "Modal — the popover path (the default)",
-            "A real <dialog> with the popover attribute. The browser gives it the top layer, Escape, "
-            + "light-dismiss and a native ::backdrop, none of it implemented here and none of it "
+            "A real modal <dialog>, opened by an invoker command. The browser gives it the top layer, an "
+            + "inert page behind, Escape and focus back on the trigger when it closes, none of it implemented here and none of it "
             + "needing a runtime — this one works with scripting off entirely.",
             Div.Data(Testid("ui-modal-popover"))[
                 UiModal
@@ -82,6 +120,22 @@ public sealed partial class UiKitActionsDemo : Component
                     .Id("demo-shortcuts")
                     .Trigger("Show shortcuts")[
                     P["Press Escape, or click outside, and the browser closes this. No handler ran."]
+                ]
+            ]),
+
+        Section(
+            "Modal — a flyout",
+            "Position Start or End slides it in from that edge at full height — a filter panel, a detail "
+            + "sheet. Dismissible(false) keeps a stray click outside from losing what is being edited.",
+            Div.Data(Testid("ui-modal-flyout"))[
+                UiModal
+                    .Title("Filters")
+                    .Id("demo-filters")
+                    .Trigger("Filters")
+                    .Position(UiModalPosition.End)
+                    .Dismissible(false)
+                    .Footer(UiButton.Tone(UiTone.Primary).Command("close").CommandFor("demo-filters")["Apply"])[
+                    P["Only the close button, Escape, or Apply closes this one."]
                 ]
             ]),
 
@@ -96,7 +150,7 @@ public sealed partial class UiKitActionsDemo : Component
                 _confirming
                     ? UiModal
                         .Title("Delete order")
-                        .Close(() => { _confirming = false; })
+                        .OnClose(() => { _confirming = false; })
                         .Footer(Div.Class("flex flex-wrap gap-2 sm:justify-end")[
                             UiButton.Key("cancel").Variant(UiVariant.Ghost)
                                 .OnClick(() => { _confirming = false; })["Cancel"],
@@ -187,17 +241,12 @@ public sealed partial class UiKitActionsDemo : Component
             .Active(_theme == theme)
             .OnChange(chosen => { _theme = chosen; });
 
-    private Component MenuAction(string key, string label) =>
-        Li.Key(key)[
-            Button
-                .Type("button")
-                .Class("w-full text-left")
-                .OnClick(() =>
-                {
-                    _lastAction = label.ToLowerInvariant();
-                    _menuOpen = false;
-                })[label]
-        ];
+    private Component MenuAction(string key, string label, string? kbd, UiTone? tone = null) =>
+        UiMenuItem.Key(key).Text(label).Kbd(kbd).Tone(tone).OnClick(() =>
+        {
+            _lastAction = label.ToLowerInvariant();
+            _menuOpen = false;
+        });
 
     private static Component Section(string heading, string blurb, Component body) =>
         Div.Key(heading).Class("mb-8")[

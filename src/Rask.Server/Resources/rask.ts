@@ -30,6 +30,14 @@ import { pollDevStatus, showDevError } from "../../Rask.Core/Resources/rask-deve
 import { showHotReloadPill } from "../../Rask.Core/Resources/rask-hotreload.js";
 import { setHost } from "../../Rask.Core/Resources/rask-host.js";
 import {
+    beginLoading,
+    endAllLoading,
+    endLoading,
+    isVisiblyLoading,
+    loadingTarget,
+    type LoadingTicket,
+} from "../../Rask.Core/Resources/rask-loading.js";
+import {
     createTransportChooser,
     openHttpConnection,
     OPEN_TIMEOUT_MS,
@@ -1197,6 +1205,7 @@ import "../../Rask.Core/Resources/rask-events.js";
     function satisfySeq(s: number): void {
         if (typeof s !== "number") return;
         if (s > ackedSeq) ackedSeq = s;
+        settleLoading(ackedSeq);
         if (ackedSeq >= outstandingSeq) clearPending();
     }
 
@@ -1220,6 +1229,28 @@ import "../../Rask.Core/Resources/rask-events.js";
         ackedSeq = outstandingSeq = seqCounter;
         navInFlight = false;
         clearPending();
+        loadingBySeq.clear();
+        endAllLoading();
+    }
+
+    // The control waiting on each handler seq (rask-loading.ts). The server runs one session's handlers in
+    // order and acks each after its render, so an ack for seq N means every seq up to N is done.
+    const loadingBySeq = new Map<number, LoadingTicket>();
+
+    // Marks `owner`'s control as waiting on the dispatch `payload` just became. Nothing to mark when the
+    // send was suppressed (no seq) or the element is not a control that waits.
+    function trackLoading(owner: Element | null, payload: Record<string, unknown>): void {
+        const el = loadingTarget(owner);
+        if (!el || typeof payload.seq !== "number") return;
+        loadingBySeq.set(payload.seq, beginLoading(el));
+    }
+
+    function settleLoading(upTo: number): void {
+        for (const [seq, ticket] of loadingBySeq) {
+            if (seq > upTo) continue;
+            loadingBySeq.delete(seq);
+            endLoading(ticket);
+        }
     }
 
     function forcePendingTimeout() {
@@ -1689,13 +1720,26 @@ import "../../Rask.Core/Resources/rask-events.js";
         // only declines to cancel — so a control can have both a C# state and the browser's top layer,
         // which is exactly what a listbox or a menu built on [popover] needs. Handled here rather than
         // at the call site because nothing at the call site can reach this listener.
-        const invoker = closestFrom(e.target, "[popovertarget]");
+        //
+        // An INVOKER COMMAND (`command` + `commandfor`, the HTML invoker API) is the same case again: its
+        // default action is the command, so a C# handler on a button that also shows a modal must not
+        // cancel the showing.
+        const invoker = closestFrom(e.target, "[popovertarget], [commandfor]");
+        // A second press on a control still visibly waiting on its first is the double submit a spinner
+        // exists to prevent. Before the spinner shows — a fast double-click on a fast handler — it goes
+        // through, which keeps a rapid stepper working.
+        if (isVisiblyLoading(loadingTarget(t))) {
+            if (!invoker) { e.preventDefault(); }
+            return;
+        }
         if (!invoker) { e.preventDefault(); }
         flushInputsNow();
-        send({
+        const payload: Record<string, unknown> = {
             id: t.getAttribute("data-rask-on-click"), type: "click",
             shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, altKey: e.altKey, metaKey: e.metaKey
-        });
+        };
+        send(payload);
+        trackLoading(t, payload);
     });
 
     document.addEventListener("change", (e) => {
@@ -1793,13 +1837,27 @@ import "../../Rask.Core/Resources/rask-events.js";
         const t = closestFrom(e.target, "[data-rask-on-submit]");
         if (!t || !inRoot(t)) return;
         e.preventDefault();
+        // The form's own button waits, not the form: it is what was pressed and what must not be pressed
+        // twice. Enter in a field submits through the form's default button, which the browser reports as
+        // the submitter too.
+        const submitter = loadingTarget((e as SubmitEvent).submitter ?? null);
+        if (isVisiblyLoading(submitter)) return;
         flushInputsNow();
-        submitForm(t as HTMLFormElement).catch((err: unknown) => {
-            console.error("Rask: submit failed", err);
-        });
+        // Started now rather than when the frame goes out, so the files uploading first are waited on too.
+        const ticket = submitter ? beginLoading(submitter) : null;
+        submitForm(t as HTMLFormElement).then(
+            (payload) => {
+                if (ticket && typeof payload.seq === "number") loadingBySeq.set(payload.seq, ticket);
+                else endLoading(ticket);
+            },
+            (err: unknown) => {
+                endLoading(ticket);
+                console.error("Rask: submit failed", err);
+            });
     });
 
-    async function submitForm(form: HTMLFormElement): Promise<void> {
+    // Resolves with the payload it sent, once any files have uploaded and the frame has gone out.
+    async function submitForm(form: HTMLFormElement): Promise<Record<string, unknown>> {
         const obj: Record<string, unknown> = {};
         const fileInputs = form.querySelectorAll<HTMLInputElement>('input[type="file"][name]');
         const pending: Promise<void>[] = [];
@@ -1818,7 +1876,11 @@ import "../../Rask.Core/Resources/rask-events.js";
                 obj[k] = String(v);
             });
             if (Object.keys(fileFields).length > 0) obj.__files = fileFields;
-            send({id: form.getAttribute("data-rask-on-submit"), type: "submit", form: obj});
+            const payload: Record<string, unknown> = {
+                id: form.getAttribute("data-rask-on-submit"), type: "submit", form: obj
+            };
+            send(payload);
+            return payload;
         });
     }
 

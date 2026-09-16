@@ -37,15 +37,19 @@ public partial class UiFeedbackTests : global::Rask.Core.RaskMarkup
     }
 
     [Theory]
-    [InlineData(UiPlacement.Top, "tooltip-top")]
-    [InlineData(UiPlacement.Bottom, "tooltip-bottom")]
-    [InlineData(UiPlacement.Left, "tooltip-left")]
-    [InlineData(UiPlacement.Right, "tooltip-right")]
-    [InlineData(UiPlacement.Start, "tooltip-start")]
-    [InlineData(UiPlacement.Center, "tooltip-center")]
-    [InlineData(UiPlacement.End, "tooltip-end")]
-    public void A_tooltip_defines_all_seven_placements(UiPlacement placement, string expected) =>
-        Assert.Contains(expected, UiTooltip.Tip("Copy").Placement(placement)[Span["c"]].ToHtml());
+    [InlineData(UiPosition.Top, "tooltip-top")]
+    [InlineData(UiPosition.Bottom, "tooltip-bottom")]
+    [InlineData(UiPosition.Left, "tooltip-left")]
+    [InlineData(UiPosition.Right, "tooltip-right")]
+    public void A_tooltip_takes_every_position(UiPosition position, string expected) =>
+        Assert.Contains(expected, UiTooltip.Tip("Copy").Position(position)[Span["c"]].ToHtml());
+
+    [Theory]
+    [InlineData(UiAlign.Start, "tooltip-start")]
+    [InlineData(UiAlign.Center, "tooltip-center")]
+    [InlineData(UiAlign.End, "tooltip-end")]
+    public void A_tooltip_takes_every_alignment(UiAlign align, string expected) =>
+        Assert.Contains(expected, UiTooltip.Tip("Copy").Align(align)[Span["c"]].ToHtml());
 
     [Fact]
     public void A_tooltip_can_be_shown_without_a_hover()
@@ -58,6 +62,31 @@ public partial class UiFeedbackTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_tip_travels_in_the_attribute_daisyUI_reads() =>
         Assert.Contains("data-tip=\"Copy\"", UiTooltip.Tip("Copy")[Span["c"]].ToHtml());
+
+    [Fact]
+    public void A_shortcut_is_a_kbd_inside_the_tip_rather_than_text_in_an_attribute()
+    {
+        // An attribute holds text; the shortcut is an element, so the tip moves into daisyUI's content child.
+        var html = UiTooltip.Tip("Save").Kbd("⌘S")[Span["s"]].ToHtml();
+
+        Assert.DoesNotContain("data-tip", html);
+        Assert.Contains("class=\"tooltip-content\" role=\"tooltip\"", html);
+        Assert.Contains("<kbd class=\"kbd kbd-xs", html);
+        Assert.True(
+            html.IndexOf("tooltip-content", StringComparison.Ordinal) < html.IndexOf("<span>s</span>", StringComparison.Ordinal),
+            "the tip content must come before the thing it points at, which daisyUI's child selector expects.");
+    }
+
+    [Fact]
+    public void A_toggleable_tip_is_reachable_by_a_tap()
+    {
+        // No hover on a touch screen: a focusable wrapper is what a tap can give focus to.
+        var html = UiTooltip.Tip("Why").Toggleable(true)[Span["?"]].ToHtml();
+
+        Assert.Contains("ui-tooltip-toggleable", html);
+        Assert.Contains("tabindex=\"0\"", html);
+        Assert.DoesNotContain("tabindex", UiTooltip.Tip("Why")[Span["?"]].ToHtml());
+    }
 
     [Theory]
     [InlineData(UiTone.Error, "alert-error")]
@@ -98,7 +127,7 @@ public partial class UiFeedbackTests : global::Rask.Core.RaskMarkup
     public void A_toast_only_offers_a_dismiss_when_there_is_something_to_dismiss_it_with()
     {
         Assert.DoesNotContain("Dismiss", UiToast.Message("Saved").ToHtml());
-        Assert.Contains("Dismiss", UiToast.Message("Saved").Dismiss(() => { }).ToHtml());
+        Assert.Contains("Dismiss", UiToast.Message("Saved").OnDismiss(() => { }).ToHtml());
     }
 
     [Fact]

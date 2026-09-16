@@ -210,7 +210,7 @@ public sealed class UiKitDataGridTests(WasmExampleAppFixture app, PlaywrightFixt
     private async Task OpenAsync()
     {
         await Page.GotoAsync(Docs);
-        await Expect(Page.Locator(".side-nav a.side-nav-link.active").First).ToBeVisibleAsync(
+        await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await ClickSidebar("Data grid");

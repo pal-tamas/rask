@@ -7,8 +7,104 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING: Rask.Auth has its own accounts; ASP.NET Core Identity is gone.** Laravel's and Rails' shape: one `User`
+  holds the credentials and the app's own columns, and each signed-in device is a row.
+  - **Your `User` derives from `Authenticatable`**, an `Aggregate<Guid>` carrying `Email`, `EmailConfirmedAt`,
+    `PasswordChangedAt`, `Roles` (`GrantRole`/`RevokeRole`) and an internal password hash. It reads, writes and
+    binds like any aggregate, and its generated `UserModel` never carries the credentials.
+    `IAuth.RegisterAsync(email, password, (User u) => u.Rename(name))` sets your own columns in the same insert.
+  - **Sessions are rows.** Signing in starts a `Session`, the cookie holds only its id, and every request resumes it,
+    so a changed role applies without signing in again. `IAuth.SignOutOtherDevicesAsync()`,
+    `SignOutEverywhereAsync()` and a password reset end sessions at once, a live page re-checks its session before a
+    dispatch (`ISessionRevalidator`), and bearer tokens carry the session too. This fixes a gap: Identity's security
+    stamps were never validated, so a reset used to leave other devices signed in.
+  - **Passwords:** PBKDF2-SHA256 at 600,000 iterations by default, or bcrypt with
+    `o.PasswordHashing = PasswordHashing.Bcrypt`. Every format is read, including bcrypt from other frameworks and
+    Identity's V3 hashes, and rehashed to the configured one on sign-in.
+  - **Throttling instead of lockout.** Five failed sign-ins a minute from one client for one address answer
+    `AuthError.TooManyAttempts` (HTTP 429, renamed from `LockedOut`); nobody can lock the owner out.
+    `MaxFailedAccessAttempts`, `LockoutDuration` and `RequireMixedCasePasswords` are removed; `SignInAttemptsPerMinute`,
+    `PasswordHashing` and `BcryptWorkFactor` are new. `TokenLifetime` now defaults to one hour.
+  - **Remember me works from a component.** `IAuthSignIn.SignInAsync` takes `persistent`, and the Server redeem relay
+    writes a persistent cookie for it; before, the flag reached only the `/api/auth/login` endpoint.
+  - **The sign-in pages are scaffolded, not shipped.** `rask new` writes `/login`, `/register`, `/logout`,
+    `/forgot-password`, `/reset-password`, `/confirm-email` and a new `/devices` into `Features/Auth`, styled by the
+    app's own Tailwind. Rask.Auth no longer registers page routes or embeds a stylesheet.
+  - **Upgrade:** change `User : IdentityUser` to `User : Authenticatable`; replace `UserManager<User>` calls with
+    `IAuth` and `User.FindAsync`/`UpdateAsync`; copy the pages from a fresh `rask new` into `Features/Auth`; then
+    `rask db add` a migration. The `AspNet*` tables become `User` columns and `RaskAuthSession`, and
+    `RaskAuthInstanceClaim.AdminUserId` becomes a `Guid`. Existing password hashes keep working if the rows are copied
+    across.
+
+## [0.22.0] - 2026-09-16
+
 ### Added
 
+- **Rask UI gets Flux UI's application layout.** New `UiSidebar` — an `<aside>` beside the page, docked and sticky from
+  its `Collapsible` breakpoint up and a daisyUI drawer below it, opening with no runtime and mirrored into C# through
+  `Open`/`OnToggle` — and `UiSidebarToggle`, a keyboard-reachable `label[role=button]` the runtime presses on Enter and
+  Space. New `UiNavList` (a named `<nav>`), `UiNavItem` (`Current` worked out from the route, `Match`/`MatchPrefix`,
+  `Icon`, `Badge`) and `UiNavGroup` (a heading, or a `<details>` disclosure with `Expandable`/`Expanded`/`OnToggle`);
+  `UiSpacer`; `UiHeading` (`Level` separate from `Size`), `UiSubheading` and `UiText`. `UiDivider` gains `Subtle` and
+  `Align`, and is a `separator` to assistive tech when it has no words; `UiHeader` and `UiCard` take a `HeadingLevel`.
+  The sidebar beside rask.sh's docs is now `UiSidebar` with `UiNavItem`s.
+- **`NavLink` tells assistive tech which link is the current page.** An active `NavLink` writes `aria-current="page"`
+  beside its active class; an empty `ActiveClass` opts out, and a call site's own `aria-current` wins.
+
+- **Rask UI menus behave like Flux UI's: a popover menu with a keyboard cursor, submenus with a safe triangle, and
+  checkable items.** `UiDropdown`'s panel is now a `[popover]` — top layer, Escape and click-outside, focus handed
+  back to the trigger — placed by CSS anchor positioning, with the menu focused as it opens. The arrows move an
+  `aria-activedescendant` cursor that skips disabled rows and wraps, Home/End jump, a letter jumps to the next row
+  starting with it, Enter/Space press the row, Tab leaves. New `UiMenuSub` flies out beside its row: ArrowRight opens
+  it, ArrowLeft closes it, a tap opens it on a touch screen, and a pointer crossing diagonally toward it keeps it open
+  (a CSS wedge plus a 300 ms close delay — no script). New `UiMenuCheckbox` (`menuitemcheckbox`, keeps the menu open)
+  and `UiMenuRadioGroup<T>` (`menuitemradio`) bind like every kit form control; new `UiMenuGroup` and
+  `UiMenuSeparator`. `UiMenuItem` gains `Kbd`, `Tone(UiTone.Error)` for a danger row, `IconTrailing`, `Disabled`,
+  `KeepOpen`, and `aria-current` for `Active`. `UiDropdown` gains `Gap`, `Offset`, `KeepOpen` and `IconTrailing`
+  (a chevron by default), and styling hooks `data-open` on the dropdown, `data-highlighted` on the cursor row and
+  `data-checked` on a checked row.
+  - **Runtime:** a `[popover][data-rask-popover-open]` is shown or hidden to match whenever the attribute changes, so a
+    controlled `UiDropdown.Open(bool)` works; a `role="menu"` contains its navigation keys, Enter/Space press the
+    active row, ArrowDown on a closed menu button opens it, a pick closes the menu unless `data-rask-keep-open`, and
+    Tab out of a menu closes it.
+  - `UiOpenOn.Hover` keeps daisyUI's CSS dropdown, which CSS can open and a popover cannot.
+
+- **Rask UI's dialog is a real modal, and gains Flux UI's switches.** `UiModal`'s trigger opens it with the HTML
+  invoker command `show-modal`, so the browser makes the page behind inert, contains Tab, closes on Escape and hands
+  focus back to the trigger — no script. Every open and close control still names the dialog as a `popover`, so a
+  browser without invoker commands falls back to today's behaviour. New `Dismissible` (a click outside; daisyUI's
+  backdrop button now closes the modal path too), `Escapable` (`closedby="none"`), and `Closable` (the header's close
+  button); `OnClose` now fires on the modal path as well, from the dialog's own toggle event.
+  `Position(UiModalPosition.Start|End)` is a full-height flyout — the centred box's height and width caps no longer
+  override daisyUI's side modal. The state-driven `Open` path gets containment from the runtime's focus trap: focus
+  moves in, Tab cycles, Escape runs `OnClose`, and focus returns on close — and the trap now follows the
+  `data-rask-focus-trap` ATTRIBUTE, so a dialog kept mounted with `Open(false)` releases it. The kit's stylesheet locks
+  the page's scroll while any kit dialog is open.
+- **`UiTooltip.Kbd` and `UiTooltip.Toggleable`.** `Kbd("⌘S")` renders the shortcut as a `<kbd>` inside the tip, and
+  `Toggleable(true)` shows it on a tap — the wrapper takes focus, and the tip shows while it has it — because a touch
+  screen has no hover to show an ordinary tooltip.
+
+- **A button waiting on its own handler says so, and cannot be pressed twice — automatically, on both hosts.**
+  Flux UI's answer to the double submit. Once a `<button>` (or `<input type=button|submit>`) has waited 200 ms on
+  its handler — or its form's submit, file uploads included — the runtime writes `data-loading` and
+  `aria-busy="true"` on it and drops a second press until the first one's render lands. The Server runtime ends it
+  on that handler seq's ack, the WebAssembly runtime when its dispatch returns, and a dropped connection or a 30 s
+  backstop clears it. It is never `disabled`, which would throw keyboard focus off the control mid-press, and the
+  morph leaves a mark it did not render alone so the handler's own render cannot strip the spinner early. New
+  shared module `rask-loading.ts`. Rask UI's `UiButton` draws a same-width spinner from the mark; new
+  `UiButton.Loading` — unset automatic, `false` opts out (`data-rask-loading="off"`, which also works on any
+  element or ancestor), `true` shows it from C# for work that outlives the handler.
+
+- **Rask UI fields describe themselves to assistive tech, the way Flux UI does.** `UiInput`, `UiTextarea` and
+  `UiSelect` now write `aria-describedby` naming what is visible under the control — the bound validation
+  message, then a controlled `Error` (only while `Tone(UiTone.Error)` reveals it), then the `Hint` — each with an id
+  derived from the field id (`f-email-hint`, `-error`, `-validation`). A bound field is `aria-invalid` whenever its
+  form holds a message for it, not only when a tone says so, and one bound to a `[Required]` member writes
+  `aria-required="true"`. New `Badge` ("Required", "Optional") draws a small badge inside the label, hidden from
+  assistive tech so the accessible name stays the label's text; it is never guessed from the model, because a
+  FluentValidation rule is invisible to the field.
 - **Broadcast: push a change to every open page (#1061).** `IBroadcast.PublishAsync(topic, message)` reaches every
   component subscribed to a `Topic<T>`, in every session the process holds, and re-renders each one where it is:
   a new order appears on every admin's open order list without a refresh.
@@ -799,35 +895,45 @@ them until tagged releases begin.
 
 ### Changed
 
-- **BREAKING: Rask.Auth has its own accounts; ASP.NET Core Identity is gone.** Laravel's and Rails' shape: one `User`
-  holds the credentials and the app's own columns, and each signed-in device is a row.
-  - **Your `User` derives from `Authenticatable`**, an `Aggregate<Guid>` carrying `Email`, `EmailConfirmedAt`,
-    `PasswordChangedAt`, `Roles` (`GrantRole`/`RevokeRole`) and an internal password hash. It reads, writes and
-    binds like any aggregate, and its generated `UserModel` never carries the credentials.
-    `IAuth.RegisterAsync(email, password, (User u) => u.Rename(name))` sets your own columns in the same insert.
-  - **Sessions are rows.** Signing in starts a `Session`, the cookie holds only its id, and every request resumes it,
-    so a changed role applies without signing in again. `IAuth.SignOutOtherDevicesAsync()`,
-    `SignOutEverywhereAsync()` and a password reset end sessions at once, a live page re-checks its session before a
-    dispatch (`ISessionRevalidator`), and bearer tokens carry the session too. This fixes a gap: Identity's security
-    stamps were never validated, so a reset used to leave other devices signed in.
-  - **Passwords:** PBKDF2-SHA256 at 600,000 iterations by default, or bcrypt with
-    `o.PasswordHashing = PasswordHashing.Bcrypt`. Every format is read, including bcrypt from other frameworks and
-    Identity's V3 hashes, and rehashed to the configured one on sign-in.
-  - **Throttling instead of lockout.** Five failed sign-ins a minute from one client for one address answer
-    `AuthError.TooManyAttempts` (HTTP 429, renamed from `LockedOut`); nobody can lock the owner out.
-    `MaxFailedAccessAttempts`, `LockoutDuration` and `RequireMixedCasePasswords` are removed; `SignInAttemptsPerMinute`,
-    `PasswordHashing` and `BcryptWorkFactor` are new. `TokenLifetime` now defaults to one hour.
-  - **Remember me works from a component.** `IAuthSignIn.SignInAsync` takes `persistent`, and the Server redeem relay
-    writes a persistent cookie for it; before, the flag reached only the `/api/auth/login` endpoint.
-  - **The sign-in pages are scaffolded, not shipped.** `rask new` writes `/login`, `/register`, `/logout`,
-    `/forgot-password`, `/reset-password`, `/confirm-email` and a new `/devices` into `Features/Auth`, styled by the
-    app's own Tailwind. Rask.Auth no longer registers page routes or embeds a stylesheet.
-  - **Upgrade:** change `User : IdentityUser` to `User : Authenticatable`; replace `UserManager<User>` calls with
-    `IAuth` and `User.FindAsync`/`UpdateAsync`; copy the pages from a fresh `rask new` into `Features/Auth`; then
-    `rask db add` a migration. The `AspNet*` tables become `User` columns and `RaskAuthSession`, and
-    `RaskAuthInstanceClaim.AdminUserId` becomes a `Guid`. Existing password hashes keep working if the rows are copied
-    across.
+- **`UiDivider` no longer carries daisyUI's 1rem outer margin** — "we style, you space". A divider that relied on it
+  needs a margin from the page, e.g. `.Class("my-4")`.
 
+- **BREAKING — `UiDropdown` renders a popover menu, not daisyUI's `:focus-within` dropdown.** Its children are menu
+  rows — use `UiMenuItem`/`UiMenuCheckbox`/`UiMenuRadioGroup`/`UiMenuSub` rather than hand-written `<li>`s, which still
+  render but get no keyboard cursor. The `dropdown-open`/`dropdown-close` classes are gone except under
+  `OpenOn(UiOpenOn.Hover)`; `OnToggle` now reports every open and close the reader makes, not only trigger clicks.
+
+- **BREAKING — Rask UI places things with one vocabulary, Flux UI's `Position` + `Align`.** `UiPlacement` is gone:
+  it mixed sides and edges in one enum, so `dropdown-top dropdown-end` — a menu above its trigger, flush with
+  its end — could not be said at all. New `UiPosition` (Top/Right/Bottom/Left) and `UiAlign` (Start/Center/End)
+  are two properties that compose. `UiDropdown.Placement` and `UiTooltip.Placement` → `Position` + `Align`;
+  `UiTabs.Placement` → `Position`; `UiThemeDropdown.Placement` (a free-form class string) → typed `Position` +
+  `Align`; `UiModal.Placement`/`UiModalPlacement` → `Position`/`UiModalPosition`. `UiDrawer.Side` → `Panel`, with a
+  new `Position(UiPosition.Right)` for daisyUI's `drawer-end`. Events carry the `On` prefix every element event
+  has: `UiModal.Close` → `OnClose`, `UiToast.Dismiss` → `OnDismiss`. `UiAvatar.Size` takes `UiSize` rather than a
+  Tailwind class string the kit's sheet never compiled.
+- **Rask UI components carry no outer margin — "we style, you space".** `UiTabs` dropped the `-mx-3 px-3` phone
+  bleed from its root, which pushed a tab row out of any card it sat in; where a component sits is the page's to
+  say. `docs/ui-kit.md` records the rule and its two shape-bound exceptions.
+
+- **rask.sh's code samples are drawn by daisyUI (#1101).** `CodeSample` is `mockup-code` with `tabs`, a `btn` and
+  a `status` dot, and its 170-line scoped stylesheet is gone.
+  - The window dots are daisyUI's own now, replacing three spans with literal traffic-light colours.
+  - The file tabs stay on one row that scrolls sideways on a phone, instead of wrapping into the code.
+  - The tabs and the copy button keep a legible label on light themes. daisyUI colours them from the theme, and
+    the code pane stays the site's dark ink, because the syntax palette is tuned for it.
+  - The class names the suites select on stay on the elements.
+  - **The docs sidebar's layout is utilities** where `global.css`'s unlayered `.side-nav*` rules were: the pinned
+    filter over a scrolling list, the sticky md column capped under the bar, and the drawer's top padding. The
+    open/closed drawer stays component state with a backdrop. daisyUI's `drawer` is a checkbox toggle, and it
+    would have taken that state out of C#. The Bootstrap leftovers `display-5`, `text-accent` and
+    `bg-body-tertiary` are gone, and the brand's display face is utilities too.
+  - **The guides are typeset by Tailwind's typography plugin (`prose`)**, whose colours are mapped onto the kit's
+    palette so they follow every theme, replacing about 150 lines of hand-written `.markdown-body` rules. Rask
+    keeps a short list of its own rules on top: headings clear the sticky bar, tables and long identifiers never
+    widen a phone page, inline code is tinted without backticks, and blockquotes stay brand-tinted notes. Inline
+    demos are `not-prose`, which also removes the stray outline the old `.markdown-body pre` rule drew around
+    their code panes. The standalone Tailwind binary bundles the plugin, so no npm install is needed.
 - **BREAKING: `Rask.Data` models are domain-driven design's aggregates, entities and value objects.**
   - **`Model<TId>` is `Aggregate<TId>`**, which derives from the new `Entity<TId>`; the non-generic `Model` is gone.
     An entity carries `Id`, `CreatedAt` and `UpdatedAt`; an aggregate adds `Version`, `DeletedAt` and
@@ -1324,6 +1430,20 @@ them until tagged releases begin.
   ```
 
 ### Fixed
+
+- **A floating-label field was announced twice — "Email Email".** The floating label wraps its control, and
+  daisyUI's caption needs a placeholder, so Chromium computed the name from the caption plus the empty control's
+  placeholder. `UiInput`, `UiTextarea` and the native `UiSelect` now name the control by the caption alone through
+  `aria-labelledby`.
+
+- **A C# click handler cancelled the button's HTML invoker command.** Both runtimes kept a click's default only for a
+  `popovertarget` button, so `UiButton.Command("show-modal").CommandFor("x").OnClick(...)` ran its handler and never
+  showed the dialog. `commandfor` is now exempt the same way.
+
+- **`UiSelect` was named twice, or not at all.** Both modes copied `Label` into `aria-label` beside the visible
+  label, and a select with no label rendered a valueless `aria-label` and ignored `AccessibleLabel`. The drawn
+  combobox also had no `id`, so its label's `for` pointed at nothing. The box now carries the field id and takes its
+  name, invalid state and description from the same place every other field does.
 
 - **A server page no longer drops a render requested just as a dispatch finishes.** A `StateHasChanged` from outside
   the dispatch could land after the dispatch's render loop had settled but before it released its scope. A timer, a

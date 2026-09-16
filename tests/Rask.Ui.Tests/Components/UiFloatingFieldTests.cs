@@ -18,11 +18,24 @@ public partial class UiFloatingFieldTests : global::Rask.Core.RaskMarkup
         var html = UiInput.Value("").Label("Email").ToHtml();
 
         Assert.StartsWith(
-            "<label class=\"floating-label\" for=\"f-email\"><span>Email</span><input ",
+            "<label class=\"floating-label\" for=\"f-email\"><span id=\"f-email-label\">Email</span><input ",
             html,
             StringComparison.Ordinal);
         Assert.Contains("id=\"f-email\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("fieldset-legend", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_floating_field_is_named_by_its_caption_alone()
+    {
+        // The label wraps the control, so a name computed from the label is the caption AND the control inside it,
+        // whose empty value falls back to the placeholder the caption needs — Chromium announced "Email Email".
+        var html = UiInput.Value("").Label("Email").ToHtml();
+
+        Assert.Contains("aria-labelledby=\"f-email-label\"", html, StringComparison.Ordinal);
+        Assert.Contains("<span id=\"f-email-label\">", html, StringComparison.Ordinal);
+        // A legend does not wrap its control, so its plain for/id is right and nothing extra is written.
+        Assert.DoesNotContain("aria-labelledby", UiInput.Value("").Label("Email").Floating(false).ToHtml(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -79,7 +92,8 @@ public partial class UiFloatingFieldTests : global::Rask.Core.RaskMarkup
         var html = UiInput.Value("").Label("Email").Hint("We never share it.").ToHtml();
 
         Assert.StartsWith("<div class=\"fieldset\"><label class=\"floating-label\"", html, StringComparison.Ordinal);
-        Assert.Contains("</label><p class=\"label\">We never share it.</p></div>", html, StringComparison.Ordinal);
+        Assert.Contains("</label><p id=\"f-email-hint\" class=\"label\">We never share it.</p></div>", html,
+            StringComparison.Ordinal);
     }
 
     [Fact]
@@ -87,7 +101,8 @@ public partial class UiFloatingFieldTests : global::Rask.Core.RaskMarkup
     {
         var html = UiInput.Value("x").Label("Email").Tone(UiTone.Error).Error("Enter an email.").ToHtml();
 
-        Assert.Contains("</label><p class=\"validator-hint\">Enter an email.</p>", html, StringComparison.Ordinal);
+        Assert.Contains("</label><p id=\"f-email-error\" class=\"validator-hint\">Enter an email.</p>", html,
+            StringComparison.Ordinal);
     }
 
     [Fact]
@@ -105,7 +120,7 @@ public partial class UiFloatingFieldTests : global::Rask.Core.RaskMarkup
     {
         var html = UiTextarea.Value("").Label("Notes").ToHtml();
 
-        Assert.StartsWith("<label class=\"floating-label\" for=\"f-notes\"><span>Notes</span><textarea ", html,
+        Assert.StartsWith("<label class=\"floating-label\" for=\"f-notes\"><span id=\"f-notes-label\">Notes</span><textarea ", html,
             StringComparison.Ordinal);
         Assert.Contains("placeholder=\"Notes\"", html, StringComparison.Ordinal);
     }
@@ -115,7 +130,7 @@ public partial class UiFloatingFieldTests : global::Rask.Core.RaskMarkup
     {
         var html = UiSelect.Value("a").Options([("a", "A"), ("b", "B")]).Label("Plan").ToHtml();
 
-        Assert.StartsWith("<label class=\"floating-label\" for=\"f-plan\"><span>Plan</span><select ", html,
+        Assert.StartsWith("<label class=\"floating-label\" for=\"f-plan\"><span id=\"f-plan-label\">Plan</span><select ", html,
             StringComparison.Ordinal);
     }
 

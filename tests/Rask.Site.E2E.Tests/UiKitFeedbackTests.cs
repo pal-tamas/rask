@@ -107,10 +107,51 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
         await Expect(open).ToHaveAttributeAsync("data-tip", "Always shown");
     });
 
+    [Fact]
+    public Task ATooltipShowsOnATapOnADisabledButtonAndCarriesItsShortcut() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var scope = Page.Locator("[data-testid='ui-tooltip']");
+
+        // Toggleable: focus — which a tap gives the wrapper — is what shows it, measured on the pseudo-element
+        // daisyUI draws the bubble with.
+        var tap = scope.Locator(".ui-tooltip-toggleable");
+        const string BubbleOpacity = "el => getComputedStyle(el, '::before').opacity";
+        Assert.Equal("0", await tap.EvaluateAsync<string>(BubbleOpacity));
+        await tap.FocusAsync();
+        await OpacityReachesOneAsync(tap, BubbleOpacity);
+
+        // A disabled .btn takes no pointer events, so the hover lands on the wrapper and the tip still shows.
+        var disabled = scope.Locator(".tooltip", new LocatorLocatorOptions { Has = Page.Locator("button[disabled]") });
+        await disabled.HoverAsync();
+        await OpacityReachesOneAsync(disabled, BubbleOpacity);
+
+        // The shortcut is a real <kbd> inside the tip.
+        await Expect(scope.Locator(".tooltip-content[role='tooltip'] kbd")).ToHaveTextAsync("⌘S");
+    });
+
+    // The bubble fades in over daisyUI's 200 ms transition, so the computed opacity is polled rather than read once.
+    private static async Task OpacityReachesOneAsync(ILocator tooltip, string read)
+    {
+        var last = "";
+        for (var i = 0; i < 50; i++)
+        {
+            last = await tooltip.EvaluateAsync<string>(read);
+            if (last == "1")
+            {
+                return;
+            }
+
+            await Task.Delay(100);
+        }
+
+        Assert.Fail($"the tooltip bubble never became visible (opacity {last}).");
+    }
+
     private async Task OpenAsync()
     {
         await Page.GotoAsync(Docs);
-        await Expect(Page.Locator(".side-nav a.side-nav-link.active").First).ToBeVisibleAsync(
+        await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await ClickSidebar("Feedback");

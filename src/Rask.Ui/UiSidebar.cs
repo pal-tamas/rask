@@ -1,0 +1,86 @@
+namespace Rask.Ui;
+
+/// <summary>
+/// An application sidebar beside the page: docked from a breakpoint up, sliding over the page below it.
+/// </summary>
+/// <remarks>
+/// <para>
+/// Flux UI's sidebar layout, on daisyUI's drawer. The children are the SIDEBAR — a brand, a <see cref="UiNavList" />,
+/// a <see cref="UiSpacer" /> and a profile at the bottom — and <see cref="Page" /> is everything beside it, usually
+/// the router outlet. It renders an <c>&lt;aside&gt;</c> landmark, sticky and full-height while docked, so a long page
+/// scrolls under a sidebar that stays put.
+/// </para>
+/// <para>
+/// Below <see cref="Collapsible" /> the sidebar is off-screen and a <see cref="UiSidebarToggle" /> slides it in; a
+/// click on the page beside it slides it back. That open state lives in daisyUI's checkbox, so it works on a
+/// prerendered page with no runtime at all. <see cref="Open" /> and <see cref="OnToggle" /> hand it to C# as well —
+/// what lets a page close it when a navigation completes.
+/// </para>
+/// </remarks>
+public sealed partial class UiSidebar : Component
+{
+    /// <summary>Joins the sidebar to its <see cref="UiSidebarToggle" />. Must be unique on the page.</summary>
+    public required string Id { get; set; }
+
+    /// <summary>The page beside the sidebar — typically the router's outlet.</summary>
+    public required Component Page { get; set; }
+
+    /// <summary>
+    ///     The width below which the sidebar slides over the page instead of sitting beside it. Unset, it is always
+    ///     beside it.
+    /// </summary>
+    public UiBreakpoint? Collapsible { get; set; }
+
+    /// <summary>Which edge the sidebar is on: <see cref="UiPosition.Left" /> by default, or <see cref="UiPosition.Right" />.</summary>
+    public UiPosition? Position { get; set; }
+
+    /// <summary>Whether the sidebar is slid in, while it is collapsed. Unset leaves the state to the checkbox alone.</summary>
+    public bool? Open { get; set; }
+
+    /// <summary>Runs when the sidebar is slid in or out, with the state being asked for.</summary>
+    public Callback<bool>? OnToggle { get; set; }
+
+    /// <summary>The name of the sidebar landmark. "Sidebar" unless this says otherwise.</summary>
+    public string? AccessibleLabel { get; set; }
+
+    /// <summary>The name of the click-away area that closes it. "Close sidebar" unless this says otherwise.</summary>
+    public string? CloseLabel { get; set; }
+
+    /// <summary>Classes for the whole layout — the drawer around the sidebar and the page.</summary>
+    public string? Class { get; set; }
+
+    /// <summary>Classes for the sidebar panel itself, the <c>&lt;aside&gt;</c>: its width, its padding, its ground.</summary>
+    public string? PanelClass { get; set; }
+
+    /// <inheritdoc />
+    protected override Component? Render()
+    {
+        var toggle = Input.Of<bool>().Checked(Open == true).Id(Id).Class("drawer-toggle");
+        if (OnToggle is { } onToggle)
+        {
+            toggle = toggle.OnChange(onToggle);
+        }
+
+        return Div.Class(UiClass.Compose(
+            "drawer min-h-dvh",
+            Collapsible is { } from ? UiClassNames.SidebarInFlowFrom(from) : "drawer-open",
+            Position is { } position ? UiClassNames.DrawerPosition(position) : "",
+            Class))[
+            toggle,
+            Div.Class("drawer-content flex min-w-0 flex-col")[Page],
+            Div.Class("drawer-side z-40")[
+                RaskMarkup.Label
+                    .For(Id)
+                    .Class("drawer-overlay")
+                    .Aria("label", CloseLabel ?? "Close sidebar"),
+                Aside
+                    .Class(UiClass.Compose(
+                        "flex min-h-full w-64 flex-col gap-4 border-e border-base-300 bg-base-100 p-4",
+                        PanelClass))
+                    .Aria("label", AccessibleLabel ?? "Sidebar")[
+                    Children ?? []
+                ]
+            ]
+        ];
+    }
+}

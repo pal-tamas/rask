@@ -17,6 +17,27 @@ Live, on this site: [Actions](/docs/ui/actions) · [Data display](/docs/ui/data-
 [Navigation](/docs/ui/navigation) · [Feedback](/docs/ui/feedback) ·
 [Data input](/docs/ui/data-input) · [Layout & mockups](/docs/ui/layout).
 
+## Principles
+
+The kit's behaviour follows the practices [Flux UI](https://fluxui.dev) set out for Livewire, adapted to a
+C# component framework that ships no script of its own:
+
+- **Use the browser.** A dialog is a modal `<dialog>` opened by an invoker command; a menu, a listbox and a
+  megamenu are `[popover]`s; a sidebar is a checkbox drawer. The top layer, Escape, light-dismiss and focus
+  return are the platform's, and they work before any runtime has booted.
+- **Use CSS.** The submenu's safe triangle is a clipped wedge, the scroll lock under a dialog is a `:has()`
+  rule, a button's spinner is a `[data-loading]` rule. Where something truly needs script — pressing a menu row,
+  marking a button that is waiting on its handler — the framework runtime does it, generically, for every
+  control, not the kit.
+- **Accessible by default.** Fields describe themselves (`aria-describedby`, `aria-invalid`, `aria-required`),
+  menus carry a keyboard cursor, the current navigation item says `aria-current="page"`, a waiting button says
+  `aria-busy` — none of it opt-in.
+- **One vocabulary.** `Position` + `Align` place everything that floats, events are `On…`, `Kbd` shows a shortcut
+  wherever one is shown, `Tone`/`Variant`/`Size` style everything.
+- **We style, you space.** Components bring padding, borders and colour — never an outer margin.
+- **Simple first, composable after.** `UiInput.Label("Email").Hint(…)` is one line; `UiNavList` with
+  `UiNavGroup`s and `UiNavItem`s, or `UiDropdown` with `UiMenuSub`s, is there when one line is not enough.
+
 ## Wiring it up
 
 > **Every project `rask new` creates arrives wired this way already** — the two properties, the two
@@ -245,8 +266,35 @@ Not every component honours every member — daisyUI defines no `input-outline`,
 — and **a member a component has no class for writes nothing**, rather than a class that would sit in
 the markup looking as though it styled something.
 
-Other axes follow the same rule: `UiPlacement`, `UiModalPlacement`, `UiMaskShape`, `UiLoadingShape`,
-`UiSwapAnimation`, `UiAuraStyle`, `UiTabStyle`, `UiMarker`, `UiOpenOn`.
+Other axes follow the same rule: `UiPosition`, `UiAlign`, `UiModalPosition`, `UiMaskShape`,
+`UiLoadingShape`, `UiSwapAnimation`, `UiAuraStyle`, `UiTabStyle`, `UiMarker`, `UiOpenOn`.
+
+### One vocabulary for placing things
+
+Everything that floats against something else is placed with the same two words, the ones Flux UI uses:
+**`Position`** picks the side (`UiPosition` — Top, Right, Bottom, Left) and **`Align`** slides it along that
+side (`UiAlign` — Start, Center, End, following the reading direction). They are two properties because
+daisyUI composes them — a menu above its trigger, flush with the trigger's end edge, is both.
+
+```csharp
+UiDropdown.Trigger("Actions").Position(UiPosition.Top).Align(UiAlign.End)[ … ]
+UiTooltip.Tip("Copy").Position(UiPosition.Right)[ … ]
+UiTabs.Position(UiPosition.Bottom)[ … ]
+UiDrawer.Id("nav").Panel(menu).Position(UiPosition.Right)[ … ]
+UiModal.Title("Details").Position(UiModalPosition.End)[ … ]   // placed against the viewport, not a trigger
+```
+
+Events are always `On…` — `UiModal.OnClose`, `UiToast.OnDismiss` — the same prefix every element event
+carries.
+
+### We style, you space
+
+A kit component brings its padding, its border and its colours, and **never an outer margin**. Where it
+sits — the gap above a row of tabs, the bleed of a scrolling strip to the screen edge — belongs to the
+page that places it, because the same component sits in a card, a toolbar and a page gutter, and a margin
+right for one is wrong for the other two. Two exceptions are part of a component's shape rather than its
+placement: `UiNavTab`'s `-mb-px`, which joins the active tab's border to its nav's hairline, and
+`UiToast`'s `mx-auto`, which centres a fixed overlay in the viewport.
 
 ## Components that are one element
 
@@ -311,6 +359,67 @@ UiButton.Href("https://github.com/pal-tamas/rask").NewTab(true)["GitHub"]     //
 A string that happens to name one of your own pages is still a string: it reloads the whole app to get
 there. Use the route. `NewTab(true)` is never intercepted, because the reader asked for another tab.
 
+## Application layout
+
+Flux UI's layout pieces, drawn with daisyUI. The sidebar beside the docs on this site is exactly this.
+
+```csharp
+UiSidebar.Id("app-nav").Collapsible(UiBreakpoint.Lg).Page(Main[Outlet])[
+    UiBrand.Label("Shop").Href(Routes.HomePage()),
+    UiNavList.AccessibleLabel("Main")[
+        UiNavItem.Label("Orders").Href(Routes.OrdersPage()).Icon(UiIconName.Book).Badge("12"),
+        UiNavGroup.Heading("Catalogue").Expandable(true)[
+            UiNavItem.Label("Products").Href(Routes.ProductsPage()),
+            UiNavItem.Label("Categories").Href(Routes.CategoriesPage())
+        ]
+    ],
+    UiSpacer.Key("spacer"),
+    UiNavList.AccessibleLabel("Account")[UiNavItem.Label("Settings").Href(Routes.SettingsPage())]
+]
+
+// in the top bar, shown only while the sidebar is collapsed:
+UiSidebarToggle.For("app-nav").Collapsible(UiBreakpoint.Lg)
+```
+
+- **`UiSidebar`** is an `<aside>` beside `Page`: docked — sticky, full height — from `Collapsible` up, and a
+  drawer below it that `UiSidebarToggle` slides in and a click beside it slides out. The open state is daisyUI's
+  checkbox, so it opens on a prerendered page with no runtime; `Open`/`OnToggle` mirror it into C#, which is how a
+  navigation closes it. `UiSidebarToggle` is a `<label>` for that checkbox with `role="button"` and a tab stop, and
+  the runtime presses it on Enter and Space.
+- **`UiNavList`** is a named `<nav>` around daisyUI's `menu`. **`UiNavItem`** is a `NavLink` underneath, so
+  **`Current` is worked out from the route** — `menu-active` and `aria-current="page"` — unless you state it;
+  `Match` + `MatchPrefix` keep an item current across a section. **`UiNavGroup`** is a heading over its items, or a
+  `<details>` disclosure with `Expandable`, controlled with `Expanded`/`OnToggle`.
+- **`UiSpacer`** is `flex: 1`: it pushes what follows it to the far end of a row or a column.
+- **`UiDivider`** is Flux's separator: `Vertical`, `Subtle`, and `Align(UiAlign.Start|End)` for its words, a
+  `separator` to assistive tech when it has none, and **no outer margin** — daisyUI's 1rem is zeroed, so the page
+  spaces it.
+- **`UiHeading`** separates how big a heading looks (`Size`) from where it sits in the outline (`Level` 1–6, a
+  `<div>` without one); **`UiSubheading`** and **`UiText`** (`Strong`, `Subtle`, `Tone`, `Inline`) are the rest of the
+  type scale. `UiHeader` and `UiCard` take a `HeadingLevel` instead of a fixed `<h1>`/`<h2>`.
+
+## Buttons that wait
+
+A button whose handler is still running shows it — with nothing to set. Press "Save" on a slow link and,
+once the handler has gone 200 ms without finishing, the button swaps its label for a spinner at the same
+width, carries `aria-busy="true"`, and drops a second press until the first one's render has landed. This
+is Flux UI's answer to the double submit, and it holds on both hosts: the Server runtime ends the wait on
+the handler's ack, the WebAssembly runtime when its dispatch returns.
+
+```csharp
+UiButton.Tone(UiTone.Primary).OnClick(SaveAsync)["Save"]          // waits automatically
+UiButton.Loading(false).OnClick(StepAsync)[UiIcon.Name(UiIconName.Plus)]  // a stepper: presses queue
+UiButton.Loading(_exporting)["Export"]                            // work that outlives the handler
+```
+
+It is the **runtime** that marks the button, not script in the kit, because only the runtime knows when a
+dispatch starts and ends. So every `<button>` with a handler gets the same `data-loading` + `aria-busy`
+attributes — the kit's stylesheet is what turns them into a spinner, and your own CSS can style
+`[data-loading]` on any control. `data-rask-loading="off"` on an element, or on a toolbar around several,
+opts them out; `data-rask-loading` on a non-button element opts it in. It is never `disabled`, which would
+throw keyboard focus off the control mid-press. A Blazor island's buttons get it too — their handlers
+dispatch over the same channel.
+
 ## What is in it
 
 Grouped as daisyUI groups them, so its documentation reads straight across.
@@ -333,28 +442,74 @@ The kit ships no JavaScript, and that constraint decides the shape of every inte
 resolves three ways, and which one a component takes is a property of what the platform can do rather
 than of anyone's preference.
 
-**The browser owns it, declaratively.** `UiModal` with an `Id` and a `Trigger` is a real
-`<dialog popover>`: the browser supplies the top layer, Escape, light-dismiss and a native
-`::backdrop`. `UiMegamenu` is built the same way. `UiFab` opens on `:focus-within` because daisyUI
-defines no class to force it. All of these work on a prerendered page with no runtime booted, and with
-scripting off entirely.
+**The browser owns it, declaratively.** `UiModal` with an `Id` and a `Trigger` is a real **modal**
+`<dialog>`, opened by an HTML invoker command (`command="show-modal" commandfor`): the browser supplies
+the top layer, an inert page behind it so Tab cannot wander out, Escape, and focus handed back to the
+trigger on close. Every open and close control also names the dialog as a `popover`, so a browser
+without invoker commands (before Chrome 135, Firefox 144, Safari 26.2) opens it as a popover instead —
+top layer and Escape, without the inert page. `UiMegamenu` is built on the popover the same way. `UiFab`
+opens on `:focus-within` because daisyUI defines no class to force it. All of these work on a prerendered
+page with no runtime booted, and with scripting off entirely.
 
 ```csharp
 UiModal.Title("Shortcuts").Id("shortcuts").Trigger("Show shortcuts")[ … ]
+UiModal.Title("Filters").Id("filters").Trigger("Filters").Position(UiModalPosition.End)[ … ]  // a flyout
+UiModal.Title("Unsaved work").Id("edit").Dismissible(false).Escapable(false)[ … ]
 ```
 
-**The page owns it, in C#.** `UiDropdown`, `UiCollapse`, `UiAccordion`, `UiSwap`, `UiTabs` and
-`UiModal`'s `Open` path hold their state in a field and redraw through the live diff — which is what
-lets a dropdown close itself when the action inside it completes.
+Flux UI's switches are all here: `Dismissible(false)` ignores a click outside, `Escapable(false)` ignores
+Escape (`closedby="none"`; Safari has not shipped it), `Closable(false)` drops the header's close button, and
+`OnClose` hears every way it closed. `Position(UiModalPosition.Start|End)` makes it a full-height flyout. While
+any kit dialog is open the page behind it does not scroll. The state-driven `Open` path below cannot reach the
+top layer, but it is not left without containment: it carries the runtime's `data-rask-focus-trap`, so focus
+moves in, Tab cycles inside, Escape runs `OnClose`, and focus returns when it closes.
+
+`UiTooltip` takes `Kbd("⌘S")` to teach a shortcut where the reader is already looking, and `Toggleable(true)`
+to show on a tap — a touch screen has no hover, so an ordinary tooltip is never seen there.
+
+**The browser owns the open state, C# owns the cursor.** `UiDropdown` is a menu button over a `[popover]`
+menu: the browser opens and closes it — top layer, Escape, a click outside, focus back on the trigger — and
+the menu takes focus as it opens. What C# owns is the keyboard cursor Flux UI's menus have: the arrows move an
+`aria-activedescendant` cursor that skips disabled rows and wraps, Home/End jump, a letter jumps to the next
+row starting with it, ArrowRight opens a submenu and ArrowLeft closes it, Enter or Space press the row, Tab
+leaves. The runtime supplies the few things C# cannot: pressing the row, closing the popover after a pick, and
+closing it when Tab leaves.
+
+```csharp
+UiDropdown.Trigger("View").Align(UiAlign.End)[
+    UiMenuGroup.Heading("Arrange")[
+        UiMenuSub.Heading("Sort by")[
+            UiMenuRadioGroup.Value(_sort).Options([("name", "Name"), ("date", "Date")]).OnChange(s => _sort = s)
+        ],
+        UiMenuItem.Text("Refresh").Kbd("⌘R").OnClick(Refresh)
+    ],
+    UiMenuSeparator.Key("sep"),
+    UiMenuCheckbox.Key("archived").Value(_archived).Text("Show archived").OnChange(on => _archived = on),
+    UiMenuItem.Text("Delete").Tone(UiTone.Error).OnClick(Delete)
+]
+```
+
+A submenu flies out beside its row, and a pointer moving diagonally toward it — across the row below — does
+not close it: the flyout carries a CSS wedge back to its row and waits 300 ms before closing, Flux's **safe
+triangle** with no script. A tap opens it on a touch screen. `UiMenuCheckbox` keeps the menu open, since
+flipping three switches should not mean opening it three times; any row can ask for the same with `KeepOpen`.
+Style the rows from `data-highlighted` (the cursor), `data-checked` and the dropdown's `data-open`.
+
+A controlled item written as `.Value(x).Key("k")` keeps the value it had when the key first claimed it — put
+`Key` first on a non-generic item (`UiMenuCheckbox.Key("k").Value(x)`), and leave a generic one such as
+`UiMenuRadioGroup` unkeyed.
+
+`Open` is nullable and the three settings mean three things: unset leaves it to the reader; `true` and `false`
+hand it to the page, and the runtime shows or hides the popover to match whenever the page changes its mind,
+which is what lets a dropdown close itself when the action inside it completes. `OpenOn(UiOpenOn.Hover)` keeps
+daisyUI's CSS dropdown, which a pointer can open and a popover cannot — without the keyboard cursor.
 
 ```csharp
 UiDropdown.Trigger("Actions").Open(_open).OnToggle(open => _open = open)[ … ]
 ```
 
-`Open` is nullable and the three settings mean three things: unset is uncontrolled and the browser
-decides; `true` and `false` hand it to the page. Closed writes `dropdown-close` rather than merely
-omitting `dropdown-open`, because daisyUI also opens on `:focus-within` — without it, tabbing into
-the panel would re-open a dropdown the page had just closed.
+**The page owns it, in C#.** `UiCollapse`, `UiAccordion`, `UiSwap`, `UiTabs` and `UiModal`'s `Open` path hold
+their state in a field and redraw through the live diff.
 
 **The markup owns it.** `UiTab` is a real link with a real URL, so a tab is bookmarkable, survives a
 refresh and answers the back button. `UiDrawer` keeps its checkbox because daisyUI's rules are written

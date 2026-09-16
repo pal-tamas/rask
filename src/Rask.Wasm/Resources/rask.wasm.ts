@@ -26,6 +26,12 @@ import { raskReadFileChunk, raskRegisterFiles } from "../../Rask.Core/Resources/
 import { showDevError } from "../../Rask.Core/Resources/rask-deverror.js";
 import { showHotReloadPill } from "../../Rask.Core/Resources/rask-hotreload.js";
 import { setHost } from "../../Rask.Core/Resources/rask-host.js";
+import {
+    beginLoading,
+    endLoading,
+    isVisiblyLoading,
+    loadingTarget,
+} from "../../Rask.Core/Resources/rask-loading.js";
 
 import "../../Rask.Core/Resources/rask-api.js";
 import "../../Rask.Core/Resources/rask-events.js";
@@ -799,13 +805,26 @@ document.addEventListener("click", (e) => {
     // `popovertarget` in the markup and does nothing when pressed. The C# handler still runs — this only
     // declines to cancel — so a control can have both a C# state and the browser's top layer, which is
     // exactly what a listbox or a menu built on [popover] needs. Mirrors rask.ts.
-    const invoker = closestFrom(e.target, "[popovertarget]");
+    //
+    // An INVOKER COMMAND (`command` + `commandfor`) is the same case again: its default action is the
+    // command, so a C# handler on a button that also shows a modal must not cancel the showing. Mirrors rask.ts.
+    const invoker = closestFrom(e.target, "[popovertarget], [commandfor]");
+    // A second press on a control still visibly waiting on its first is the double submit the spinner
+    // exists to prevent (rask-loading.ts). Mirrors rask.ts.
+    const waiting = loadingTarget(t);
+    if (isVisiblyLoading(waiting)) {
+        if (!invoker) { e.preventDefault(); }
+        return;
+    }
     if (!invoker) { e.preventDefault(); }
     flushInputsNow();
+    // The dispatch promise resolves once the handler AND its render are done, which is exactly how long
+    // the control has been waiting.
+    const ticket = waiting ? beginLoading(waiting) : null;
     send({
         id: t.getAttribute("data-rask-on-click"), type: "click",
         shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, altKey: e.altKey, metaKey: e.metaKey
-    });
+    }).finally(() => endLoading(ticket));
 });
 
 document.addEventListener("change", (e) => {
@@ -855,6 +874,9 @@ document.addEventListener("submit", (e) => {
     const t = closestFrom(e.target, "[data-rask-on-submit]");
     if (!t || !inRoot(t)) return;
     e.preventDefault();
+    // The form's own button waits, not the form. Mirrors rask.ts.
+    const submitter = loadingTarget((e as SubmitEvent).submitter ?? null);
+    if (isVisiblyLoading(submitter)) return;
     flushInputsNow();
     const fileInputs = t.querySelectorAll<HTMLInputElement>('input[type="file"][name]');
     const fileFields: Record<string, unknown> = {};
@@ -872,7 +894,9 @@ document.addEventListener("submit", (e) => {
         obj[k] = v;
     });
     if (Object.keys(fileFields).length > 0) obj.__files = fileFields;
-    send({id: t.getAttribute("data-rask-on-submit"), type: "submit", form: obj});
+    const ticket = submitter ? beginLoading(submitter) : null;
+    send({id: t.getAttribute("data-rask-on-submit"), type: "submit", form: obj})
+        .finally(() => endLoading(ticket));
 });
 
 // ----- IJSRuntime bridge -----------------------------------------------------

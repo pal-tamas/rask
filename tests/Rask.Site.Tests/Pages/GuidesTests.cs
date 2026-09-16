@@ -15,7 +15,7 @@ public sealed partial class GuidesTests : global::Rask.Core.RaskMarkup
     public void Markdown_RendersHeadingsAndInlineMarkup()
     {
         var html = Markdown.Source("# Title\n\nHello **world**.").ToHtml();
-        Assert.Contains("<div class=\"markdown-body\">", html);
+        Assert.Contains("<div class=\"markdown-body prose\">", html);
         Assert.Contains("Title", html);
         Assert.Contains("<strong>world</strong>", html);
     }

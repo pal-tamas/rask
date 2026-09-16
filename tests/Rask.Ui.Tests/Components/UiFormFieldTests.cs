@@ -87,7 +87,7 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
         var html = UiInput.Value("").Label("Username").AccessibleLabel("Search").ToHtml();
 
         Assert.Contains("Username", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("aria-label", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-label=", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -101,7 +101,7 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
         var hint = html.IndexOf("At least 12 characters", StringComparison.Ordinal);
 
         Assert.True(close >= 0 && hint > close, "the hint is inside the label.");
-        Assert.DoesNotContain("aria-label", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-label=", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -243,6 +243,138 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
         Assert.Contains("Notes", html, StringComparison.Ordinal);
 
         // One name, not two: the visible label is the name, so no aria-label duplicates it.
-        Assert.DoesNotContain("aria-label", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-label=", html, StringComparison.Ordinal);
     }
+
+    private sealed class SignUp
+    {
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Email { get; set; } = "";
+
+        public string Nickname { get; set; } = "";
+    }
+
+    [Fact]
+    public void The_hint_describes_its_control()
+    {
+        // Next to the control on screen is not next to it for a screen reader: without describedby the hint
+        // is a paragraph somewhere later in the page, reached after the reader has left the field.
+        var html = UiInput.Value("").Label("Password").Hint("At least 12 characters").ToHtml();
+
+        Assert.Contains("id=\"f-password-hint\"", html, StringComparison.Ordinal);
+        Assert.Contains("aria-describedby=\"f-password-hint\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_field_with_nothing_to_describe_it_has_no_describedby() =>
+        Assert.DoesNotContain(
+            "aria-describedby",
+            UiInput.Value("").Label("Email").ToHtml(),
+            StringComparison.Ordinal);
+
+    [Fact]
+    public void A_controlled_error_is_referenced_only_while_it_is_visible()
+    {
+        // daisyUI keeps a validator-hint `visibility: hidden` until the control is invalid, and hidden text
+        // named by describedby is still read aloud — a reader would hear about a mistake they had not made.
+        var hidden = UiInput.Value("").Label("Email").Error("Not an address").ToHtml();
+        Assert.Contains("id=\"f-email-error\"", hidden, StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-describedby", hidden, StringComparison.Ordinal);
+
+        var shown = UiInput.Value("").Label("Email").Error("Not an address").Hint("Work address")
+            .Tone(UiTone.Error).ToHtml();
+
+        // Error first, then the hint: the thing that is wrong before the thing that is always true.
+        Assert.Contains("aria-describedby=\"f-email-error f-email-hint\"", shown, StringComparison.Ordinal);
+        Assert.Contains("id=\"f-email-error\"", shown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_bound_message_marks_the_field_invalid_and_describes_it()
+    {
+        var model = new SignUp();
+        var ctx = new global::Rask.Core.Forms.EditContext(model);
+        var field = new global::Rask.Core.Forms.FieldIdentifier(model, nameof(SignUp.Nickname));
+
+        var page = global::Rask.Testing.RaskTest.Render(() => Form.Model(model).Context(ctx)[
+            UiInput.Bind(() => model.Nickname).Label("Nickname").Hint("Shown to others")
+        ]);
+
+        // Valid: described by the hint alone, and not invalid.
+        Assert.Contains("aria-describedby=\"f-nickname-hint\"", page.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-invalid", page.Html, StringComparison.Ordinal);
+
+        ctx.AddValidationMessage(field, "Taken");
+        var html = page.Render();
+
+        // A bound field is invalid when its form says so, not only when a tone does; the message it renders
+        // is what describes it, ahead of the hint.
+        Assert.Contains("aria-invalid=\"true\"", html, StringComparison.Ordinal);
+        Assert.Contains("aria-describedby=\"f-nickname-validation f-nickname-hint\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"f-nickname-validation\"", html, StringComparison.Ordinal);
+        Assert.True(
+            html.IndexOf("aria-invalid", StringComparison.Ordinal)
+            < html.IndexOf("aria-describedby", StringComparison.Ordinal),
+            "aria-describedby rendered ahead of aria-invalid.");
+    }
+
+    [Fact]
+    public void A_field_that_hides_its_message_is_still_invalid_but_not_described_by_it()
+    {
+        // The message is shown somewhere else — a summary — so there is no element here to point at.
+        var model = new SignUp();
+        var ctx = new global::Rask.Core.Forms.EditContext(model);
+        ctx.AddValidationMessage(new global::Rask.Core.Forms.FieldIdentifier(model, nameof(SignUp.Nickname)), "Taken");
+
+        var html = global::Rask.Testing.RaskTest.Render(() => Form.Model(model).Context(ctx)[
+            UiInput.Bind(() => model.Nickname).Label("Nickname").ShowValidation(false)
+        ]).Html;
+
+        Assert.Contains("aria-invalid=\"true\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-describedby", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_field_bound_to_a_Required_member_says_it_is_required()
+    {
+        var model = new SignUp();
+
+        Assert.Contains(
+            "aria-required=\"true\"",
+            UiInput.Bind(() => model.Email).Label("Email").ToHtml(),
+            StringComparison.Ordinal);
+
+        // Nothing is guessed for a member without [Required] — a FluentValidation rule is invisible here.
+        Assert.DoesNotContain(
+            "aria-required",
+            UiInput.Bind(() => model.Nickname).Label("Nickname").ToHtml(),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_badge_sits_inside_the_label_and_is_hidden_from_assistive_tech()
+    {
+        // Inside the label so it reads as part of it on screen; aria-hidden so the accessible name stays
+        // "Email" rather than "Email Required" on every visit.
+        foreach (var html in new[]
+                 {
+                     UiInput.Value("").Label("Email").Badge("Required").Floating(false).ToHtml(),
+                     UiInput.Value("").Label("Email").Badge("Required").ToHtml(),
+                 })
+        {
+            var badge = html.IndexOf("Required", StringComparison.Ordinal);
+            var close = html.IndexOf("</label>", StringComparison.Ordinal);
+
+            Assert.True(badge >= 0 && close > badge, "the badge is outside its label.");
+            Assert.Contains("aria-hidden=\"true\"", html, StringComparison.Ordinal);
+            Assert.Contains("badge", html, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void A_badge_without_a_label_renders_nothing() =>
+        Assert.DoesNotContain(
+            "Required",
+            UiInput.Value("").Badge("Required").ToHtml(),
+            StringComparison.Ordinal);
 }

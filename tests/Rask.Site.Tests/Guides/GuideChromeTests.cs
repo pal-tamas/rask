@@ -130,7 +130,9 @@ public sealed class GuideChromeTests
 
         // The embedded live demo mounted its CodeSample — the *real* showcase source is shown, proving
         // the marker resolved to a mounted component rather than being dropped as an HTML comment.
-        Assert.Contains("guide-demo", html);
+        // not-prose: the guide around it is Tailwind's `prose`, whose element rules would otherwise restyle the
+        // demo's own headings, lists and code panes.
+        Assert.Contains("class=\"guide-demo not-prose\"", html);
         Assert.Contains("RoutingLayoutDemo", html);
         Assert.DoesNotContain("<!-- demo:", html);
         Assert.DoesNotContain("Unknown demo", html);

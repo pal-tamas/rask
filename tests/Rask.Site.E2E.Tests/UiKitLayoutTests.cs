@@ -36,6 +36,51 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
     });
 
     [Fact]
+    public Task TheFluxLayoutPiecesWork() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var scope = Page.Locator("[data-testid='ui-app-layout']");
+
+        // The item for this page is current without being told, and says so to assistive tech.
+        await Expect(scope.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "Layout" }))
+            .ToHaveAttributeAsync("aria-current", "page", new LocatorAssertionsToHaveAttributeOptions { Timeout = 15_000 });
+        await Expect(scope.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "Actions 5" }))
+            .Not.ToHaveAttributeAsync("aria-current", "page");
+
+        // The spacer pushes "Sign in" to the far end of its row.
+        var row = await Page.Locator("[data-testid='ui-spacer-row']").BoundingBoxAsync();
+        var signIn = await Page.Locator("[data-testid='ui-spacer-row']")
+            .GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Sign in" }).BoundingBoxAsync();
+        Assert.True(row!.X + row.Width - (signIn!.X + signIn.Width) < 16, "the spacer did not push the last button to the end.");
+
+        // The separator has no margin of its own — daisyUI's 1rem is zeroed.
+        var margin = await scope.Locator(".divider").Last.EvaluateAsync<string>("d => getComputedStyle(d).marginTop");
+        Assert.Equal("0px", margin);
+    });
+
+    [Fact]
+    public Task TheDocsSidebarIsTheKitsSidebarAndOpensFromTheKeyboardOnAPhone() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        await Page.SetViewportSizeAsync(390, 844);
+        try
+        {
+            var sideNav = Page.Locator(".side-nav");
+            await Expect(sideNav).Not.ToBeInViewportAsync(new LocatorAssertionsToBeInViewportOptions { Timeout = 10_000 });
+
+            // The hamburger is a label for the sidebar's checkbox: a keyboard stop the runtime presses on Enter.
+            await Page.Locator(".hamburger-btn").FocusAsync();
+            await Page.Keyboard.PressAsync("Enter");
+            await Expect(sideNav).ToBeInViewportAsync(new LocatorAssertionsToBeInViewportOptions { Timeout = 10_000 });
+            await Expect(Page.Locator("aside.side-nav[aria-label='Guides and examples']")).ToHaveCountAsync(1);
+        }
+        finally
+        {
+            await Page.SetViewportSizeAsync(1280, 720);
+        }
+    });
+
+    [Fact]
     public Task TheDrawerOpensAndThePageIsToldAboutIt() => RunAsync(async () =>
     {
         await OpenAsync();
@@ -60,7 +105,7 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
         // into the VALUE attribute, so a control the page said was on arrived off. Asserted through the
         // DOM's own property rather than the attribute, which is what a reader actually sees.
         await Page.GotoAsync(Docs);
-        await Expect(Page.Locator(".side-nav a.side-nav-link.active").First).ToBeVisibleAsync(
+        await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
         await ClickSidebar("Data input");
         await Expect(Page.Locator("main h1")).ToContainTextAsync("Data input",
@@ -88,7 +133,7 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
     private async Task OpenAsync()
     {
         await Page.GotoAsync(Docs);
-        await Expect(Page.Locator(".side-nav a.side-nav-link.active").First).ToBeVisibleAsync(
+        await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await ClickSidebar("Layout & mockups");

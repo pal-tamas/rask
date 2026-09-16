@@ -26,6 +26,10 @@ public sealed partial class UiTab : Component
     protected override Component? Render() =>
         NavLink
             .Href(Href)
+            // A tab states its own selection — tab-active and aria-selected, from Active — so NavLink's route-derived
+            // active state is opted out: a filter tab whose path is the page's would otherwise also claim to be the
+            // current page, beside the section tab that is.
+            .ActiveClass("")
             .Role("tab")
             .Aria(new Dictionary<string, string?> { ["selected"] = Active == true ? "true" : "false" })
             .Class(UiClass.Compose(

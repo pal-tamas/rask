@@ -4,12 +4,12 @@ namespace Rask.Ui;
 /// Where a dialog sits in the viewport.
 /// </summary>
 /// <remarks>
-/// Separate from <see cref="UiPlacement" /> because the vocabularies genuinely differ: a dialog is
-/// placed against the viewport and has a <see cref="Middle" />, while a dropdown is placed against its
-/// trigger and has a <see cref="UiPlacement.Center" />. Sharing one enum would have offered every
-/// component members it has no class for.
+/// Separate from <see cref="UiPosition" /> because the vocabularies genuinely differ: a dialog is placed
+/// against the viewport and has a <see cref="Middle" /> and reading-direction edges, while a dropdown or a
+/// tooltip is placed on a side of its trigger and aligned along it with <see cref="UiAlign" />. Sharing one
+/// enum would have offered every component members it has no class for.
 /// </remarks>
-public enum UiModalPlacement
+public enum UiModalPosition
 {
     /// <summary>The component's own default — a sheet on a phone, centred from <c>sm</c> up.</summary>
     Default = 0,

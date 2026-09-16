@@ -87,9 +87,12 @@ public sealed partial class FloatingLabelsDemoTests : global::Rask.Core.RaskMark
             Assert.Contains($"for=\"ff-{prop}\"", html);
         }
 
-        Assert.Contains("<span>Full name</span>", html);
-        Assert.Contains("<span>Email address</span>", html);
-        Assert.Contains("<span>Short bio</span>", html);
+        // The caption carries an id the control names itself by (aria-labelledby), so a floating field is
+        // announced once rather than as its caption plus its placeholder.
+        Assert.Contains("<span id=\"ff-FullName-label\">Full name</span>", html);
+        Assert.Contains("aria-labelledby=\"ff-FullName-label\"", html);
+        Assert.Contains("<span id=\"ff-Email-label\">Email address</span>", html);
+        Assert.Contains("<span id=\"ff-Bio-label\">Short bio</span>", html);
 
         Assert.Contains(">Create account<", html);
         // No messages until a failed submit.

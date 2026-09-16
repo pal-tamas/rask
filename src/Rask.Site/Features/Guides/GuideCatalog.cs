@@ -395,7 +395,7 @@ public static class GuideCatalog
         new("ui-kit", "UI kit", "The components the framework's own surfaces are drawn with.", "Integration")
         {
             SearchTitle = "daisyUI components as typed C# components",
-            Description = "Use every daisyUI 5 component as a typed C# component with no npm install or Tailwind config: wiring the kit, themes, form controls and who owns state.",
+            Description = "Every daisyUI 5 component as a typed C# component, no npm or Tailwind config: accessible menus, modals, a sidebar layout, form fields and themes.",
         },
         new("data-grid", "Data grid", "Sorting, paging, typed selection, grouping and a card layout on a phone.", "Integration")
         {
