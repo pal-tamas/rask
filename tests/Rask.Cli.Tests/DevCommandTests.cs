@@ -313,6 +313,71 @@ public sealed class DevCommandTests
         Assert.Empty(browser.Opened);
     }
 
+    // ---- browser: the dev host name ----
+    //
+    // Driven through ResolveBrowserOpen rather than ExecuteAsync: standing a real dev host up means a
+    // keychain, /etc/hosts and a packet filter, and the decision under test is a pure function of the
+    // URL that setup handed back.
+
+    [Fact]
+    public void The_dev_host_name_opens_without_being_asked()
+    {
+        // The regression this pins (#1099): `--open` is opt-in, the server template shipped
+        // "launchBrowser": true, so dotnet watch opened the profile's https://localhost:5001 and Rask
+        // stood down. The certificate covers the NAME, so Safari refused the tab it landed on.
+        var console = new StringConsole();
+        var command = new DevCommand(console, new FakeProcessRunner(), SeededServer(), new FakeBrowserLauncher(), "/app");
+
+        var url = command.ResolveBrowserOpen(
+            Target(), open: false, noOpen: false, urls: null, devHostUrl: "https://appname.test");
+
+        Assert.Equal("https://appname.test", url);
+    }
+
+    [Fact]
+    public void No_open_still_wins_over_the_dev_host_name()
+    {
+        var console = new StringConsole();
+        var command = new DevCommand(console, new FakeProcessRunner(), SeededServer(), new FakeBrowserLauncher(), "/app");
+
+        var url = command.ResolveBrowserOpen(
+            Target(), open: false, noOpen: true, urls: null, devHostUrl: "https://appname.test");
+
+        Assert.Null(url);
+    }
+
+    [Fact]
+    public void Without_a_dev_host_opening_is_still_opt_in()
+    {
+        // The other half of the default: a plain localhost run guesses its URL out of a launch profile,
+        // so it keeps waiting to be asked.
+        var console = new StringConsole();
+        var command = new DevCommand(console, new FakeProcessRunner(), SeededServer(), new FakeBrowserLauncher(), "/app");
+
+        Assert.Null(command.ResolveBrowserOpen(Target(), open: false, noOpen: false, urls: null));
+    }
+
+    [Fact]
+    public void A_profile_that_opens_its_own_browser_still_stops_us_and_says_why()
+    {
+        // Two tabs every run is worse than one wrong one, and watch's launch cannot be suppressed from
+        // the environment. An older scaffold lands on localhost instead — which the certificate now
+        // covers — so the message names the trade rather than leaving it a mystery.
+        var console = new StringConsole();
+        var command = new DevCommand(console, new FakeProcessRunner(), SeededServer(), new FakeBrowserLauncher(), "/app");
+
+        var url = command.ResolveBrowserOpen(
+            Target(profileLaunchesBrowser: true), open: false, noOpen: false, urls: null,
+            devHostUrl: "https://appname.test");
+
+        Assert.Null(url);
+        Assert.Contains("launchBrowser", console.OutText, StringComparison.Ordinal);
+        Assert.Contains("https://appname.test", console.OutText, StringComparison.Ordinal);
+    }
+
+    private static DevTarget Target(bool profileLaunchesBrowser = false) =>
+        new(DevTemplateKind.Server, "/app/App.csproj", "/app", "https://localhost:5001", profileLaunchesBrowser);
+
     [Theory]
     [InlineData(nameof(BrowserPlatform.MacOS), "open")]
     [InlineData(nameof(BrowserPlatform.Linux), "xdg-open")]
