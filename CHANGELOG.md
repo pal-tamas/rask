@@ -7,6 +7,8 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-09-16
+
 ### Added
 
 - **Broadcast: push a change to every open page (#1061).** `IBroadcast.PublishAsync(topic, message)` reaches every
