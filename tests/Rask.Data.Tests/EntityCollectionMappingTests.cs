@@ -25,7 +25,9 @@ public sealed class Cart : Aggregate<Guid>
     }
 }
 
-public sealed class CartLine : Aggregate<Guid>
+// A part of the cart, so an Entity<Guid> rather than an Aggregate<Guid>: it has no version of its own, no soft
+// delete, and no reads or writes off its own type. A collection of aggregates here would be RASK087.
+public sealed class CartLine : Entity<Guid>
 {
     private CartLine() { } // EF materialization
 
@@ -36,7 +38,7 @@ public sealed class CartLine : Aggregate<Guid>
     // The line's key is set here, by the aggregate, not by the store. Left to EF Core's own convention a Guid
     // key is ValueGenerated.OnAdd, and a line DetectChanges finds in an already-tracked cart with its Id already
     // set is taken for an existing row and UPDATEd — "expected to affect 1 row(s), but actually affected 0".
-    // Rask.Data's key convention marks every non-integer Aggregate<TId> key never generated, so it is INSERTed; the
+    // Rask.Data's key convention marks every non-integer Entity<TId> key never generated, so it is INSERTed; the
     // last test below fails without that convention.
     internal static CartLine For(string product, int quantity) =>
         new() { Id = Guid.NewGuid(), Product = product, Quantity = quantity };

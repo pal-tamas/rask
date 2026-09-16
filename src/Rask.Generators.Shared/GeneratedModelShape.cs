@@ -133,13 +133,55 @@ internal sealed class ModelValueObjectMember(IPropertySymbol property, ModelValu
     public bool Nullable => Property.Type.NullableAnnotation == NullableAnnotation.Annotated;
 }
 
+/// <summary>How generated code reaches the collection it has to add to and remove from.</summary>
+internal enum ModelChildAccess
+{
+    /// <summary>The property's own type is a writable collection, so the property is used directly.</summary>
+    Property,
+
+    /// <summary>The property hands out a read-only view, so its backing field is written instead.</summary>
+    Field,
+
+    /// <summary>Neither — Rask cannot sync this collection, and says so with RASK088.</summary>
+    None,
+}
+
+/// <summary>A collection of children an aggregate holds: the lines of an order, the items of a basket.</summary>
+/// <remarks>
+/// Only <c>Entity&lt;TId&gt;</c> children are here. A collection of <c>Aggregate&lt;TId&gt;</c> is somebody else's
+/// data — RASK087 says so — and is never carried on the model, never synced, and never deleted on the parent's
+/// behalf.
+/// </remarks>
+internal sealed class ModelChild(
+    IPropertySymbol property,
+    INamedTypeSymbol childType,
+    ModelChildAccess access,
+    IFieldSymbol? field)
+{
+    /// <summary>The aggregate's property: <c>Lines</c>.</summary>
+    public IPropertySymbol Property { get; } = property;
+
+    /// <summary>The child entity type: <c>OrderLine</c>.</summary>
+    public INamedTypeSymbol ChildType { get; } = childType;
+
+    /// <summary>How generated code writes the collection.</summary>
+    public ModelChildAccess Access { get; } = access;
+
+    /// <summary>The backing field, for <see cref="ModelChildAccess.Field" />.</summary>
+    public IFieldSymbol? Field { get; } = field;
+
+    /// <summary>The property's name, which is also the model's.</summary>
+    public string Name => Property.Name;
+}
+
 /// <summary>Everything the generated model of one entity is made of.</summary>
 internal sealed class ModelShape(
     INamedTypeSymbol entity,
     ITypeSymbol? idType,
     IPropertySymbol? key,
     IReadOnlyList<ModelMember> members,
-    IReadOnlyList<ModelValueObject> valueObjects)
+    IReadOnlyList<ModelValueObject> valueObjects,
+    IReadOnlyList<ModelChild> children)
 {
     /// <summary>The entity.</summary>
     public INamedTypeSymbol Entity { get; } = entity;
@@ -164,6 +206,9 @@ internal sealed class ModelShape(
 
     /// <summary>Every nested value-object model, each once, in the order they are emitted.</summary>
     public IReadOnlyList<ModelValueObject> ValueObjects { get; } = valueObjects;
+
+    /// <summary>The child collections this aggregate holds, in the order they are emitted.</summary>
+    public IReadOnlyList<ModelChild> Children { get; } = children;
 
     /// <summary>Whether the model carries a <see cref="ModelMemberRole.Version" />.</summary>
     public bool Versioned => Members.Any(static m => m.Role == ModelMemberRole.Version);
@@ -216,8 +261,15 @@ internal static class GeneratedModelShape
     ///     non-generic AGGREGATE. Only an aggregate is edited through a form. A candidate may still be refused a
     ///     model — see <see cref="GetsModel" />.
     /// </summary>
-    public static bool IsCandidate(INamedTypeSymbol symbol) =>
-        AggregateShape.IsMappedEntity(symbol) && AggregateShape.IsAggregate(symbol);
+    public static bool IsCandidate(INamedTypeSymbol symbol) => AggregateShape.IsMappedEntity(symbol);
+
+    /// <summary>Whether <paramref name="symbol" /> is a child: an entity that is not a root of its own.</summary>
+    /// <remarks>
+    /// A child gets a model so its parent's form can carry it, but no write surface of its own: it is created,
+    /// changed and removed as part of the aggregate that holds it, never off its own type.
+    /// </remarks>
+    public static bool IsChildEntity(INamedTypeSymbol symbol) =>
+        AggregateShape.IsMappedEntity(symbol) && !AggregateShape.IsAggregate(symbol);
 
     /// <summary>
     ///     A hand-written type already occupying the model's name beside <paramref name="entity" /> that the
@@ -417,7 +469,98 @@ internal static class GeneratedModelShape
             members.Add(new ModelMember(version, ModelMemberRole.Version, null, null));
         }
 
-        return new ModelShape(entity, idType, key, members, valueObjects.Shapes);
+        var children = new List<ModelChild>();
+
+        foreach (var property in Properties(entity))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (DescribeChild(entity, property) is { } child)
+            {
+                children.Add(child);
+            }
+        }
+
+        return new ModelShape(entity, idType, key, members, valueObjects.Shapes, children);
+    }
+
+    /// <summary>
+    ///     The child collection <paramref name="property" /> is, or null when it is not one.
+    /// </summary>
+    /// <remarks>
+    ///     A collection of <c>Entity&lt;TId&gt;</c> that is not an <c>Aggregate&lt;TId&gt;</c>. Everything else —
+    ///     a collection of values, of value objects, or of other aggregate roots — is not a child, and the last of
+    ///     those is what RASK087 warns about.
+    /// </remarks>
+    public static ModelChild? DescribeChild(INamedTypeSymbol entity, IPropertySymbol property)
+    {
+        if (property.IsStatic || property.IsIndexer ||
+            property.DeclaredAccessibility != Accessibility.Public ||
+            property.GetMethod is not { DeclaredAccessibility: Accessibility.Public } ||
+            HasAttribute(property, NotMappedAttribute) ||
+            CollectionElement(property.Type) is not { } element ||
+            !AggregateShape.IsEntity(element) ||
+            AggregateShape.IsAggregate(element) ||
+            element is not INamedTypeSymbol childType)
+        {
+            return null;
+        }
+
+        // Written through the property when its own type can be added to — `List<Line> Lines { get; }` — and
+        // through the backing field when it hands out a read-only view, which is the shape Rask recommends.
+        if (ImplementsCollectionOf(property.Type, element))
+        {
+            return new ModelChild(property, childType, ModelChildAccess.Property, null);
+        }
+
+        var fields = entity.GetMembers().OfType<IFieldSymbol>()
+            .Where(f => !f.IsStatic && !f.IsConst && ImplementsCollectionOf(f.Type, element))
+            .ToList();
+
+        // Exactly one, or Rask would be guessing which field the property hands out.
+        return fields.Count == 1
+            ? new ModelChild(property, childType, ModelChildAccess.Field, fields[0])
+            : new ModelChild(property, childType, ModelChildAccess.None, null);
+    }
+
+    /// <summary>The <c>T</c> of the <c>IEnumerable&lt;T&gt;</c> <paramref name="type" /> is, or null.</summary>
+    private static ITypeSymbol? CollectionElement(ITypeSymbol type)
+    {
+        if (type.SpecialType == SpecialType.System_String)
+        {
+            return null;
+        }
+
+        if (type is INamedTypeSymbol { IsGenericType: true } named &&
+            named.ConstructedFrom.SpecialType == SpecialType.System_Collections_Generic_IEnumerable_T)
+        {
+            return named.TypeArguments[0];
+        }
+
+        foreach (var contract in type.AllInterfaces)
+        {
+            if (contract.ConstructedFrom.SpecialType == SpecialType.System_Collections_Generic_IEnumerable_T)
+            {
+                return contract.TypeArguments[0];
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Whether <paramref name="type" /> is an <c>ICollection&lt;TElement&gt;</c> generated code can add to.</summary>
+    private static bool ImplementsCollectionOf(ITypeSymbol type, ITypeSymbol element)
+    {
+        if (type is INamedTypeSymbol { IsGenericType: true } named &&
+            named.ConstructedFrom.SpecialType == SpecialType.System_Collections_Generic_ICollection_T &&
+            SymbolEqualityComparer.Default.Equals(named.TypeArguments[0], element))
+        {
+            return true;
+        }
+
+        return type.AllInterfaces.Any(i =>
+            i.ConstructedFrom.SpecialType == SpecialType.System_Collections_Generic_ICollection_T &&
+            SymbolEqualityComparer.Default.Equals(i.TypeArguments[0], element));
     }
 
     // Derived members first, so a property re-declared lower down hides the base one by name. The walk stops at

@@ -75,7 +75,7 @@ Rask.Data speaks domain-driven design, and the base class you derive from says w
 | You declare | What it is | What it gets |
 | --- | --- | --- |
 | `Aggregate<TId>` | A consistency boundary: the thing you load, change and save as one | Its table, the static reads and writes, a generated form model, `Version`, soft delete, domain events |
-| `Entity<TId>` | Something with identity inside an aggregate, such as an order's line | Its table and its timestamps; it is reached through its aggregate |
+| `Entity<TId>` | Something with identity inside an aggregate, such as an order's line | Its table, its timestamps, and a form model its parent's carries ([below](#children)); it is loaded, saved and deleted with its aggregate |
 | anything else it holds | A value object: `Money`, `Address`, `Email`. No base class, no marker | Columns on the owner's row ([below](#value-objects)) |
 
 `Aggregate<TId>` derives from `Entity<TId>`, and the framework's columns come with the base class. They are
@@ -105,6 +105,106 @@ arguments turns off the generated creates ([RASK086](diagnostics.md#rask086)).
 mutable field on an aggregate, an entity or a value object one of them holds is a build error
 ([RASK084](diagnostics.md#rask084)). EF Core and the generated writes both work through private setters, so
 nothing needs a public one.
+
+### Children
+
+An aggregate holds its parts. Declare them as `Entity<TId>`, keep them in a field, and hand out a read-only
+view — nothing else is configured, and no `HasMany`, no foreign key and no key generation is written anywhere:
+
+```csharp
+public sealed class Order : Aggregate<Guid>
+{
+    private readonly List<OrderLine> _lines = [];
+
+    private Order() { }                                  // EF materialization
+
+    public string Reference { get; private set; } = "";
+
+    public IReadOnlyCollection<OrderLine> Lines => _lines;
+
+    public static Order Place(string reference) =>
+        new() { Id = Guid.CreateVersion7(), Reference = reference };
+
+    public OrderLine Add(string product, int quantity)   // the aggregate guards its own invariants
+    {
+        var line = OrderLine.For(product, quantity);
+        _lines.Add(line);
+        return line;
+    }
+}
+
+public sealed class OrderLine : Entity<Guid>
+{
+    private OrderLine() { }
+
+    public string Product { get; private set; } = "";
+
+    public int Quantity { get; private set; }
+
+    public void SetQuantity(int quantity) => Quantity = quantity;
+
+    internal static OrderLine For(string product, int quantity) =>
+        new() { Id = Guid.CreateVersion7(), Product = product, Quantity = quantity };
+}
+```
+
+**Loading one root loads it whole.** `FindAsync(id)`, and every write that starts from an id, bring the
+children with them. A *query* does not — listing a thousand orders should not drag in every line each of them
+holds, so ask for what you want:
+
+```csharp
+var order = await Order.FindAsync(id);                   // Lines loaded
+await Order.UpdateAsync(id, o => o.Add("anvil", 1));     // loaded, changed, saved
+
+var open = await Order.Where(o => o.Reference.StartsWith("2026")).ToListAsync();   // Lines EMPTY
+var withLines = await Order.All.QueryAsync((q, ct) => q.Include(o => o.Lines).ToListAsync(ct));
+```
+
+**A change to any part is a change to the whole.** A line's quantity moving stamps the order's `UpdatedAt` and
+bumps its `Version`, so the version a caller read stops being current — which is what makes the aggregate, and
+not the row, the unit of concurrency:
+
+```csharp
+await Order.UpdateAsync(id, o => o.Lines.First().SetQuantity(5));
+// UPDATE OrderLine SET Quantity = 5 …
+// UPDATE Order     SET Version = Version + 1, UpdatedAt = @now WHERE Id = @id AND Version = @read
+```
+
+**The form model carries them, and a save syncs them.** `OrderModel` gets a `List<OrderLineModel>`, and each
+child model carries an `Id` so a save knows which stored line each row is:
+
+```csharp
+var model = order.ToModel();
+
+model.Lines.Single(l => l.Product == "anvil").Quantity = 9;    // edits that line
+model.Lines.Add(new OrderLineModel { Product = "rope", Quantity = 2 });   // no Id: a new line
+model.Lines.RemoveAll(l => l.Product == "spring");             // not posted: that line is DELETED
+
+await Order.UpdateAsync(id, model);
+```
+
+> **What the posted list holds is what the aggregate holds afterwards.** A row with no `Id` is added, a row
+> whose `Id` matches a stored child updates it, and **a stored child whose id is in none of the posted rows is
+> removed** — so a form that renders only some of the lines deletes the rest, and an empty list deletes them
+> all. Bind the whole collection, or apply the change through a domain method (`Order.UpdateAsync(id, o =>
+> o.Add(…))`) instead of a partial model.
+
+An `Id` that matches nothing in *this* aggregate is never followed: it lands as a new child with an id of its
+own. A posted id therefore cannot reach — or delete — another aggregate's line.
+
+**A child cannot outlive its parent.** Rask makes the relationship required and its delete a cascade, so taking a
+line out of the collection deletes the row. Left to EF Core's own convention the foreign key would be nullable,
+and severing a child would set that key to `NULL` and leave the row in the table — invisible through the
+navigation, unreachable through the aggregate, and impossible to delete through it either.
+
+Soft-deleting the aggregate is different, and deliberately so: `Order.DeleteAsync(id)` stamps `DeletedAt` rather
+than removing the row, so nothing cascades and the lines are still there if the order comes back.
+
+The child gets a table, `CreatedAt` and `UpdatedAt`, and a model so its parent's form can carry it. It gets no
+reads or writes of its own: there is no `OrderLine.Where(…)`, no `OrderLine.CreateAsync`, no version and no
+soft delete, because it is not a thing you load on its own. A collection of another **aggregate** is not a
+child at all ([RASK087](diagnostics.md#rask087)), and a collection Rask cannot write is
+[RASK088](diagnostics.md#rask088).
 
 ## Reading: the aggregate type is its own query
 

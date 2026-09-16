@@ -9,6 +9,29 @@ them until tagged releases begin.
 
 ### Added
 
+- **An aggregate's children are part of it: loaded with it, saved with it, versioned with it.** Declare them as
+  `Entity<TId>`, keep them in a field and hand out a read-only view — no `HasMany`, no foreign key, no key
+  generation.
+  - **Loading one root loads it whole.** `Order.FindAsync(id)` and every write that starts from an id bring the
+    children with them, so a domain method can never act on a collection that silently was not loaded. A *query*
+    still does not (`Order.Where(…)`), because listing a thousand roots should not drag in everything each holds.
+  - **A change to any part is a change to the whole.** A line's quantity moving stamps the root's `UpdatedAt` and
+    bumps its `Version`, so `UpdateAsync(id, version, …)` protects the aggregate rather than only the root's own
+    columns. Only those two columns are written, so a bump never reverts another writer's change.
+  - **The form model carries them and a save syncs them.** `OrderModel` gets a `List<OrderLineModel>`, each child
+    model carries an `Id`, and one post edits the lot: a row with no id is added, a row whose id matches a stored
+    child updates it, and **a stored child in none of the posted rows is removed**. An id matching nothing in that
+    aggregate lands as a new child, so a posted id can never reach another aggregate's row.
+  - **New diagnostics.** `RASK087` when an aggregate holds a collection of *aggregates* — that is a reference, not
+    a part, so Rask never loads, saves or deletes it with the parent — and `RASK088` when a child collection has
+    nothing Rask can write, so a save would silently keep what was stored.
+  - **A child cannot outlive its parent.** The relationship is required and its delete cascades, so removing a
+    line deletes the row. EF Core's own convention makes a shadow foreign key nullable, which severed the child by
+    setting the key to `NULL` and left the row in the table — invisible through the navigation and unreachable
+    through the aggregate. Soft-deleting the aggregate still cascades nothing: the row is stamped, not removed.
+  - A child gets a table, timestamps and a model; it gets no reads or writes of its own, no version and no soft
+    delete, because it is not a thing you load on its own.
+
 - **Passkeys — another way to sign in, verified on the base class library.** A signed-in person adds a passkey on
   `/devices` (Touch ID, Windows Hello, a phone, a security key) and `/login` then offers "Sign in with a passkey",
   with no email and no password typed. Passwords are untouched: a passkey is an extra door, and the sign-in starts
