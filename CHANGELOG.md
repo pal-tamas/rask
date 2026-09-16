@@ -7,6 +7,16 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+
+- **`RaskVersion.Current` reported `1.0.0` in every app** (#1122). It reads the informational version off the assembly that
+  declares it — `Rask.Core` — and Core is `IsPackable=false`, so the `Condition=" '$(IsPackable)' != 'false' "` on
+  MinVer's `PackageReference` meant nothing ever stamped it and the SDK's `1.0.0` fallback stood. Every reader was
+  wrong with it: the `[Rask.Wasm] Rask 1.0.0 (WASM) starting` banner, the DevTools overview page and its bug reports,
+  and rask.sh's own version badge and guide banner, which advertised `v1.0.0` while 0.22.0 was shipping. MinVer is
+  referenced by every project now. The three existing `RaskVersionTests` were green throughout — non-empty, no build
+  metadata, looks like semver, all of which `"1.0.0"` satisfies — so `Current_MatchesThePackableHostVersion` compares
+  it against a packable assembly, which is the only version in the process known to be real.
 ### Added
 
 - **An aggregate's children are part of it: loaded with it, saved with it, versioned with it.** Declare them as
@@ -31,6 +41,44 @@ them until tagged releases begin.
     through the aggregate. Soft-deleting the aggregate still cascades nothing: the row is stamped, not removed.
   - A child gets a table, timestamps and a model; it gets no reads or writes of its own, no version and no soft
     delete, because it is not a thing you load on its own.
+- **`rask new` generates the app's Web Push keys.** A scaffold with the push battery on now mints its own VAPID pair
+  (RFC 8292) and writes it to `appsettings.Development.json`, so a fresh app can send a push without any setup. The
+  file is gitignored — the private key signs every push the app sends, so it is a per-developer secret, and the
+  scaffold's `.gitignore` already reserved that exact name. The committed `appsettings.json` keeps `Subject` and now
+  points at where the pair lives; deployed, both keys still come from the environment
+  (`Rask__WebPush__VapidKeys__PublicKey` / `__PrivateKey`), and production should have a pair of its own.
+  - The old next-steps text asked you to run `dotnet user-secrets set` for each key. Neither command worked: no
+    scaffolded csproj carries a `UserSecretsId`, so both failed with *"Could not find the global property
+    'UserSecretsId'"* — the first thing a new project told you was an error. It also said `VapidKeys.Generate()`
+    "prints" a pair, which it does not; it returns one. Both are corrected here, in the scaffolded `Program.cs`
+    (which repeated the same advice) and in `docs/webpush.md`, `docs/pwa.md`, `docs/spa.md`,
+    `docs/configuration.md` and the tutorial.
+  - Every template `.dockerignore` now excludes `appsettings.Development.json` and `appsettings.Local.json`.
+    Gitignoring a file does not keep it out of an image — Docker never reads `.gitignore` — and the Dockerfile's
+    build stage runs `COPY . .` while the Web SDK copies every `appsettings*.json` into the publish output the
+    final stage takes wholesale. Without this, `rask deploy` would build the developer's new VAPID private key
+    into the image it pushes. It is never read there (the container runs Production), but a signing key has no
+    business in a registry.
+
+- **The scaffold's ignore-overlap gate now reads the whole ignore file.** `ScaffoldIgnoreOverlapTests` — the guard
+  added after `push.ts` was scaffolded into a gitignored directory and lost on clone (#957) — matched only `dir/` and
+  `dir/*` entries, so every file-shaped and glob entry (`appsettings.Development.json`, `.env`, `*.db`,
+  `wwwroot/css/app.css`) was waved through unchecked. It understands all four shapes now, and found one real overlap
+  that predated it: the Next.js template writes `client/next-env.d.ts` into a path its own `.gitignore` covers. That
+  one is legitimate — Next.js regenerates the file on every build and says so in its body — so it and the generated
+  key file are recorded as the two exemptions, each with its reason and each asserted to be genuinely written and
+  genuinely ignored.
+- **`rask new` scaffolds a `global.json`, so an app is compiled by an SDK of its own major.** With no pin the
+  SDK picks the newest one installed: on a machine that also carries the next major in preview, a `net10.0`
+  app is built by an `11.0.x` release candidate — it works, says `NETSDK1057` once per build, and quietly
+  hands two people on the same repository different compilers. The pin follows `--framework`, and
+  `rollForward: latestFeature` takes the newest SDK *within* the band without ever crossing a major. The
+  version is the band floor (`10.0.0`) rather than a real SDK release, which is load-bearing while a band is
+  in preview: `11.0.100-rc.1` sorts *below* `11.0.100` and roll-forward only goes up, so a pin naming the
+  release resolves nothing at all on a machine holding the candidate — `allowPrerelease` does not rescue it.
+  The trade is that a machine with only a newer major now fails instead of building on it, so `rask doctor`
+  reads the file: an unsatisfiable pin is reported as the pin it is, rather than as a machine with no .NET on
+  it, which is what `dotnet --version` failing looks like from the outside.
 
 - **Passkeys — another way to sign in, verified on the base class library.** A signed-in person adds a passkey on
   `/devices` (Touch ID, Windows Hello, a phone, a security key) and `/login` then offers "Sign in with a passkey",
@@ -77,9 +125,30 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A battery's own polling no longer fills the console.** Jobs, mail and the outbox each poll a table every
+  five seconds, EF Core logs every statement it runs at `Information`, and an idle app with the three of them
+  on therefore wrote a six-line `SELECT` block roughly every 1.7 seconds, forever. Rask's own bookkeeping —
+  the claim, the lease, the purge, the session sweep, the orphan scan, the cache eviction, and the log store's
+  own `INSERT` — now runs on a context that logs its SQL at `Debug` instead. **The application's own queries
+  are untouched**, which is the whole point: turning `Microsoft.EntityFrameworkCore.Database.Command` down in
+  `appsettings.json` would have hidden those too, and they are the ones worth reading. Set that category to
+  `Debug` to watch a battery claim its batch again. An app whose context Rask cannot build from the options it
+  registered — a hand-written `IDbContextFactory<T>`, a context with a constructor this cannot call — keeps its
+  own factory, and its old logging with it.
 - **A component joined onto another's chain entry no longer steals its `Of<T>()`.** Two components sharing an entry
   emit the same parameterless explicit-type opening, and whichever the generator happened to sort second silently
   decided what `Entry.Of<T>()` built. The entry's namesake owns it now.
+- **`rask dev` opens the `https://<name>.test` name it just set up, instead of a URL the certificate rejects.** The
+  server template shipped `"launchBrowser": true`, so `dotnet watch` — which honours that itself, and which neither
+  .NET 10 nor 11 lets you suppress from the environment — opened the launch profile's `https://localhost:5001` and
+  Rask stood down. That tab hit a certificate issued for the `.test` name alone, so the browser refused it on a name
+  mismatch: the flagship dev-host feature ended in an interstitial. The template now leaves the browser to `rask dev`,
+  which opens the name without waiting for `--open` (still opt-in on a plain localhost run, still off under
+  `--no-open`), and an older project whose profile keeps `launchBrowser` gets told why it lands somewhere else.
+- **The dev certificate covers `localhost`, `127.0.0.1` and `::1` as well as its `.test` name.** Kestrel binds
+  loopback, so a bookmark, an IDE's run button, `--no-host` or an older scaffold's launch profile all reach the same
+  app — and every one of them used to hit a name-mismatch warning on a page that *is* the app. Certificates issued
+  before this are re-minted on the next run rather than matching their own name forever and never being replaced.
 ### Fixed
 
 - **The installer no longer ends by suggesting a command that fails.** `curl -sSL https://rask.sh/rask.sh | sh`
@@ -104,6 +173,13 @@ them until tagged releases begin.
   error onto an install that was going fine. The index is buffered to a file and parsed from there.
 
 ### Changed
+
+- **The docs wear the landing page's top bar.** `/` and `/docs` had two bars that agreed on a height and a background
+  and on nothing else: the docs drew daisyUI's `navbar` with a hamburger, a second brand mark in the display face, a
+  "showcase" pill, a version badge, a live `path:` readout and a bordered ★ GitHub button, against the landing page's
+  `<header>`, bolt, wordmark and three quiet text links. There is one `SiteHeader` now; the only thing the docs add is
+  the sidebar's hamburger. The brand mark is the gradient `RaskLogo` on both (the landing page used a generic kit
+  bolt), it links to `/` — a way back the docs never had — and both bars carry the version badge.
 
 - **BREAKING: Rask.Auth has its own accounts; ASP.NET Core Identity is gone.** Laravel's and Rails' shape: one `User`
   holds the credentials and the app's own columns, and each signed-in device is a row.

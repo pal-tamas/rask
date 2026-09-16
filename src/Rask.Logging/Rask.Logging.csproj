@@ -55,6 +55,7 @@
        other battery's: the batteries share no common assembly. -->
   <ItemGroup>
     <Compile Include="..\Rask.Batteries.Shared\BatteryModelCheck.cs" Link="Shared\BatteryModelCheck.cs"/>
+    <Compile Include="..\Rask.Batteries.Shared\HousekeepingContexts.cs" Link="Shared\HousekeepingContexts.cs"/>
   </ItemGroup>
 
   <ItemGroup>

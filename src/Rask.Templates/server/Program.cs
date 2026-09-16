@@ -273,15 +273,17 @@ builder.Services.AddRaskLogging();
 
 // rask:end
 // rask:if push pwa
-// Server-sent Web Push (VAPID + RFC 8291), no external service. Generate a key pair once with
-// VapidKeys.Generate() and store it in user-secrets or the environment under
-// Rask:WebPush:VapidKeys — the PUBLIC key is handed to the browser to subscribe with; the PRIVATE
-// key signs and must never be served. The contact address is Rask:WebPush:Subject.
+// Server-sent Web Push (VAPID + RFC 8291), no external service. `rask new` already generated this
+// app's development key pair into appsettings.Development.json, which is gitignored — the PUBLIC
+// key is handed to the browser to subscribe with; the PRIVATE key signs and must never be served
+// or committed. Deployed, both come from the environment (Rask__WebPush__VapidKeys__PublicKey and
+// __PrivateKey) and production should have a pair of its own. The contact is Rask:WebPush:Subject.
 //
-// Registered only once a key pair is configured: AddRaskWebPush validates its options and
-// refuses to start without them, and a freshly scaffolded app has to run before you have
-// generated any keys. The subscription store is registered either way so the endpoints and
-// the UI compile and work; sending is what needs the keys.
+// Registered only once a key pair is configured: AddRaskWebPush validates its options and refuses
+// to start without them, so this guard is what lets an app whose keys are missing — a fresh clone,
+// which does not carry the gitignored file — still start. Mint a replacement with
+// VapidKeys.Generate(). The subscription store is registered either way so the endpoints and the
+// UI compile and work; sending is what needs the keys.
 if (!string.IsNullOrWhiteSpace(builder.Configuration["Rask:WebPush:VapidKeys:PublicKey"])
     && !string.IsNullOrWhiteSpace(builder.Configuration["Rask:WebPush:VapidKeys:PrivateKey"]))
 {

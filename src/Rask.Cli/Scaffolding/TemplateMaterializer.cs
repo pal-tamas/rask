@@ -11,14 +11,16 @@ namespace Rask.Cli.Scaffolding;
 ///     <para>
 ///         The tree under <c>src/Rask.Templates/&lt;key&gt;/</c> IS the output: editing a file there
 ///         changes what <c>rask new</c> writes, byte for byte, because there is no second copy of the
-///         content anywhere. Three things are applied on the way out, and nothing else:
+///         content anywhere. Four things are applied on the way out, and nothing else:
 ///     </para>
 ///     <list type="number">
 ///         <item>battery conditionals — whole files named in <c>template.json</c>, and regions marked
 ///         inside files (see <see cref="TemplateMarkers"/>);</item>
 ///         <item>the name token, <c>Company.RaskServer</c>, in content AND in paths, which is the
 ///         mechanism the hand-written generators already used;</item>
-///         <item><c>{{RaskVersion}}</c>, the version of the Rask packages the scaffold should pin.</item>
+///         <item><c>{{RaskVersion}}</c>, the version of the Rask packages the scaffold should pin;</item>
+///         <item>a generated <c>global.json</c> (see <see cref="WithGlobalJson" />), which is the one
+///         file no tree commits because its content is the target's own SDK band.</item>
 ///     </list>
 ///     <para>
 ///         What it deliberately does NOT do is run anybody else's scaffolder. The front-end templates
@@ -53,6 +55,9 @@ internal static class TemplateMaterializer
 
     /// <summary>The manifest, at the root of every template tree.</summary>
     internal const string ManifestFile = "template.json";
+
+    /// <summary>The SDK pin every scaffold writes, at its root.</summary>
+    internal const string GlobalJsonFile = "global.json";
 
     /// <summary>
     ///     Files stored without their leading dot, because the VCS would otherwise read them as rules
@@ -140,7 +145,13 @@ internal static class TemplateMaterializer
             written = VsCodeAssembly.Apply(targetDirectory, name, written, vsCode);
         }
 
-        // Last, and over the ASSEMBLED list rather than each asset as it is read: both assemblers above
+        written = WithGlobalJson(targetDirectory, written, dotnet);
+
+        // The development VAPID pair, after the markers have been stripped: it is added only when the
+        // RENDERED appsettings.json carries a WebPush section, so it reads the same text the app will.
+        written = WebPushAssembly.Apply(targetDirectory, written);
+
+        // Last, and over the ASSEMBLED list rather than each asset as it is read: the assemblers above
         // contribute files of their own, and a rewrite inside the loop reached none of them. A no-op for
         // the default target, so a plain `rask new` still writes the committed trees byte for byte.
         written = [.. written.Select(file =>
@@ -148,6 +159,39 @@ internal static class TemplateMaterializer
 
         VerifyFrameworkRewritten(written, dotnet);
         return written;
+    }
+
+    /// <summary>
+    ///     Adds the scaffold's <c>global.json</c>, so the app is built by an SDK of its own major rather
+    ///     than by whatever is newest on the machine.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Generated here rather than committed into all nineteen template trees, for the reason the
+    ///         <c>_vscode</c> fragments are shared: the file is identical everywhere except the one number
+    ///         <see cref="DotnetTarget" /> already owns. Generating it also keeps it off
+    ///         <see cref="DotnetTarget.Rewrite" />'s literal path — a committed one saying <c>10.0.0</c>
+    ///         would be rewritten only if someone remembered to teach the rewrite that spelling, and the
+    ///         silent result is a <c>--framework net11.0</c> scaffold pinned to an SDK that cannot restore
+    ///         it. <see cref="DotnetTarget.StillNamesTheDefault" /> knows the spelling anyway, so a tree
+    ///         that ever does commit one is caught rather than trusted.
+    ///     </para>
+    ///     <para>
+    ///         A file already at that path wins nothing: the generated pin replaces it, the way a later
+    ///         <c>.vscode</c> fragment replaces an earlier one.
+    ///     </para>
+    /// </remarks>
+    private static IReadOnlyList<ScaffoldFile> WithGlobalJson(
+        string targetDirectory, IReadOnlyList<ScaffoldFile> files, DotnetTarget dotnet)
+    {
+        var path = Path.Combine(targetDirectory, GlobalJsonFile);
+        var pin = new ScaffoldFile(path, dotnet.GlobalJson);
+
+        return
+        [
+            .. files.Where(file => !string.Equals(file.Path, path, StringComparison.Ordinal)),
+            pin,
+        ];
     }
 
     /// <summary>

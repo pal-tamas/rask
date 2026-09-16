@@ -39,14 +39,24 @@ fi
 echo "==> Building the CLI"
 dotnet build "$root/src/Rask.Cli" -c Debug -m:1 -v:q --nologo >/dev/null
 
+# The built assembly, not `dotnet run --project`: the db calls below run with the working directory
+# INSIDE the scaffolded app, which now ships a global.json pinning its own .NET band. `dotnet run`
+# evaluates the project even under --no-build, and this repository's RaskRequireSdk11 InitialTargets
+# then fails that evaluation on the scaffold's 10.0.x SDK (RASKSDK001) — so the migration never runs
+# and the app starts against a database with no tables. Running the assembly touches no MSBuild.
+cli="$(ls -1 "$root"/src/Rask.Cli/bin/Debug/*/Rask.Cli.dll 2>/dev/null | head -1)"
+if [ -z "$cli" ]; then
+  echo "The CLI build produced no Rask.Cli.dll under src/Rask.Cli/bin/Debug." >&2
+  exit 1
+fi
+
 rm -rf "$app"
 mkdir -p "$work"
 
 echo "==> Scaffolding $app"
 # --no-restore because the pin does not exist on nuget.org yet; we restore below against the local feed.
 # It also skips the first migration, which is why db add/update run here rather than inside `rask new`.
-dotnet run --project "$root/src/Rask.Cli" --no-build -- \
-  new Shop --output "$app" --no-restore >/dev/null
+dotnet "$cli" new Shop --output "$app" --no-restore >/dev/null
 
 # Whatever `rask new` pinned. Derived rather than hardcoded: NewCommand.ResolvePackageVersion walks a
 # prerelease back to the release it came after, so this moves with the repo's version.
@@ -102,8 +112,8 @@ setup_log="$work/setup.log"
   # The batteries store their state in the database and a hosted service that cannot find its table
   # stops the app, so this has to happen before the first run. `rask new` does it itself when it
   # restores; --no-restore skipped it along with the restore.
-  dotnet run --project "$root/src/Rask.Cli" --no-build -- db add Init >>"$setup_log" 2>&1
-  dotnet run --project "$root/src/Rask.Cli" --no-build -- db update >>"$setup_log" 2>&1
+  dotnet "$cli" db add Init >>"$setup_log" 2>&1
+  dotnet "$cli" db update >>"$setup_log" 2>&1
   dotnet build -m:1 -v:q --nologo >>"$setup_log" 2>&1
 ) || {
   echo "Setting the app up failed — tail of $setup_log:" >&2

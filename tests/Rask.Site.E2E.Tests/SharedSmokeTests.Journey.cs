@@ -73,9 +73,19 @@ public abstract partial class SharedSmokeTests
         // chrome quietly going dark again. The navigation is the kit's now, so it carries the kit's ink
         // token — a hardcoded slate-* would mean the layout drifted back off the shared palette.
         await Expect(Page.Locator("nav button[aria-label='Toggle light / dark theme']")).ToHaveCountAsync(0);
-        await Expect(Page.Locator("nav.app-navbar")).ToHaveClassAsync(new Regex(@"\btext-ui-ink\b"));
-        // …and daisyUI's navbar draws it, rather than a hand-rolled flex row shaped like one.
-        await Expect(Page.Locator("nav.app-navbar")).ToHaveClassAsync(new Regex(@"\bnavbar\b"));
+        await Expect(Page.Locator("header.app-navbar")).ToHaveClassAsync(new Regex(@"\btext-ui-ink\b"));
+
+        // …and the bar is the LANDING PAGE'S, shared with `/` rather than shaped like it: a <header>,
+        // where the docs used to draw daisyUI's navbar and its two halves. SiteHeaderTests compares the
+        // two pages' bars byte for byte from the wordmark rightwards; what a browser adds here is that
+        // the selector resolves to exactly one element on a real page.
+        //
+        // The assertion this replaced was `ToHaveClass(@"\bnavbar\b")` on the same element, and it could
+        // not fail: `-` is not a word character, so \bnavbar\b matches inside "app-navbar" itself. It
+        // would have stayed green through the entire conversion it existed to notice.
+        await Expect(Page.Locator("header.app-navbar")).ToHaveCountAsync(1);
+        await Expect(Page.Locator(".navbar-start")).ToHaveCountAsync(0);
+        await Expect(Page.Locator(".navbar-end")).ToHaveCountAsync(0);
         await AssertTopBarIsLegibleAsync();
 
         await TestSidebarNavAsync();
@@ -282,6 +292,19 @@ public abstract partial class SharedSmokeTests
         // Mobile: the sidebar collapses to an offcanvas drawer behind the hamburger. The static
         // desktop column gives way to an off-screen drawer toggled open, then dismissed by the backdrop.
         await Page.SetViewportSizeAsync(390, 844);
+
+        // …and the top bar fits on that screen. It did not once: hamburger + brand + two badges + a
+        // bordered GitHub button + the theme picker measured 399px against a 390px viewport, and a 9px
+        // overflow scrolls the whole DOCUMENT sideways on every page of the docs — which is why the
+        // measurement is of documentElement and not of the bar. Nothing in the markup said so; both
+        // badges carried `hidden sm:inline-flex`, and global.css hid one of them at a different
+        // breakpoint. The bar is the landing page's now and carries less, but "carries less" is the kind
+        // of thing that comes back.
+        var barOverflow = await Page.EvaluateAsync<int>(
+            "() => document.documentElement.scrollWidth - document.documentElement.clientWidth");
+        Assert.True(barOverflow <= 0,
+            $"the docs page scrolls {barOverflow}px sideways at 390px — the top bar does not fit");
+
         await Expect(Page.Locator(".side-nav")).Not.ToBeInViewportAsync();
         await Page.Locator(".hamburger-btn").ClickAsync();
         await Expect(Page.Locator(".side-nav")).ToBeInViewportAsync(
@@ -1191,7 +1214,7 @@ public abstract partial class SharedSmokeTests
               document.body.appendChild(probe);
               const declared = probe.getBoundingClientRect().height;
               probe.remove();
-              const bar = document.querySelector('nav.app-navbar');
+              const bar = document.querySelector('header.app-navbar');
               return JSON.stringify({ declared, measured: bar ? bar.getBoundingClientRect().height : -1 });
             }
             """);

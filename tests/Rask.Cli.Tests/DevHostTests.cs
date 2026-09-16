@@ -202,6 +202,38 @@ public sealed class DevHostTests
     }
 
     [Fact]
+    public void An_issued_certificate_also_covers_the_loopback_names()
+    {
+        // Kestrel binds loopback, so https://localhost:5001 and https://127.0.0.1:5001 reach the very
+        // same app as the name does. A certificate that covered only the name turned all three of those
+        // — an older scaffold's launchSettings.json, a bookmark, `--no-host` — into a name-mismatch
+        // interstitial on a page that IS the app.
+        using var loaded = DevCertificates.Load(Issue("appname.test"));
+
+        Assert.True(loaded.MatchesHostname("appname.test"));
+        Assert.True(loaded.MatchesHostname("localhost"));
+        Assert.True(loaded.MatchesHostname("127.0.0.1"));
+        Assert.True(loaded.MatchesHostname("::1"));
+
+        // Still not a certificate for anything else.
+        Assert.False(loaded.MatchesHostname("other.test"));
+    }
+
+    [Fact]
+    public void A_certificate_that_predates_the_loopback_names_needs_reissuing()
+    {
+        // The trap this closes: such a certificate matches its own name perfectly, so a hostname-only
+        // check calls it good forever and the machine stays on a certificate that rejects localhost.
+        var nameOnly = IssueWithoutLoopbackNames("appname.test");
+
+        using var loaded = DevCertificates.Load(nameOnly);
+        Assert.True(loaded.MatchesHostname("appname.test"));
+        Assert.False(loaded.MatchesHostname("localhost"));
+
+        Assert.True(DevCertificates.NeedsReissue(nameOnly, "appname.test", DateTimeOffset.Now));
+    }
+
+    [Fact]
     public void An_issued_certificate_is_for_server_authentication()
     {
         using var loaded = DevCertificates.Load(Issue("appname.test"));
@@ -544,6 +576,37 @@ public sealed class DevHostTests
     private static DevCertificate Issue(string hostname) =>
         DevCertificates.IssueServerCertificate(
             DevCertificates.CreateAuthority(DateTimeOffset.Now), hostname, DateTimeOffset.Now);
+
+    /// <summary>
+    ///     A leaf shaped the way Rask issued them before the loopback names were added: the bare host
+    ///     and a wildcard beneath it, and nothing else. Minted here rather than read from a fixture so
+    ///     it is signed by a fresh authority and never expires out from under the test.
+    /// </summary>
+    private static DevCertificate IssueWithoutLoopbackNames(string hostname)
+    {
+        var authority = DevCertificates.CreateAuthority(DateTimeOffset.Now);
+
+        using var authorityCertificate = DevCertificates.Load(authority);
+        using var key = RSA.Create(2048);
+
+        var request = new CertificateRequest(
+            $"CN={hostname}", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+
+        var alternativeNames = new SubjectAlternativeNameBuilder();
+        alternativeNames.AddDnsName(hostname);
+        alternativeNames.AddDnsName("*." + hostname);
+        request.CertificateExtensions.Add(alternativeNames.Build());
+
+        var now = DateTimeOffset.Now;
+        // Fixed and positive: a DER serial is signed, and a random one with the high bit set is
+        // malformed — a flake this test has no reason to court.
+        using var issued = request.Create(
+            authorityCertificate, now.AddHours(-1), now.AddDays(365), [0x01, 0x02, 0x03, 0x04]);
+
+        return new DevCertificate(
+            new string(PemEncoding.Write("CERTIFICATE", issued.RawData)),
+            new string(PemEncoding.Write("PRIVATE KEY", key.ExportPkcs8PrivateKey())));
+    }
 
     private static int CountOccurrences(string text, string value)
     {

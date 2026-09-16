@@ -1,3 +1,4 @@
+using System.Net;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
@@ -59,6 +60,19 @@ internal static class DevCertificates
     ///     mid-session.
     /// </summary>
     public static readonly TimeSpan RenewalWindow = TimeSpan.FromDays(30);
+
+    /// <summary>
+    ///     The loopback names every issued server certificate also covers, beside its own
+    ///     <c>.test</c> name. Kestrel binds loopback, so these reach the very same app.
+    /// </summary>
+    public static readonly IReadOnlyList<string> LoopbackNames = ["localhost"];
+
+    /// <summary>
+    ///     The loopback addresses every issued server certificate also covers. A bare IP in a URL is
+    ///     matched against <c>iPAddress</c> entries, never against a DNS name, so <c>127.0.0.1</c> has
+    ///     to be listed as an address to be accepted.
+    /// </summary>
+    public static readonly IReadOnlyList<IPAddress> LoopbackAddresses = [IPAddress.Loopback, IPAddress.IPv6Loopback];
 
     /// <summary>Mints a fresh local authority.</summary>
     public static DevCertificate CreateAuthority(DateTimeOffset now)
@@ -122,6 +136,23 @@ internal static class DevCertificates
         var alternativeNames = new SubjectAlternativeNameBuilder();
         alternativeNames.AddDnsName(hostname);
         alternativeNames.AddDnsName("*." + hostname);
+
+        // And the loopback names, because this is the same listener. The name is what we open and what
+        // the docs promise, but it is not the only thing that reaches Kestrel: an older scaffold's
+        // launchSettings.json, a bookmark, an IDE's run button or `--no-host` all arrive on
+        // https://localhost:PORT instead. Without these a certificate covering only the `.test` name
+        // turns every one of those into a name-mismatch interstitial — the browser refusing to load a
+        // page that IS the app, which reads as "Rask is broken" rather than "use the other URL".
+        foreach (var loopback in LoopbackNames)
+        {
+            alternativeNames.AddDnsName(loopback);
+        }
+
+        foreach (var address in LoopbackAddresses)
+        {
+            alternativeNames.AddIpAddress(address);
+        }
+
         request.CertificateExtensions.Add(alternativeNames.Build());
 
         request.CertificateExtensions.Add(
@@ -167,7 +198,7 @@ internal static class DevCertificates
         {
             using var loaded = Load(present);
             return loaded.NotAfter - now.LocalDateTime <= RenewalWindow
-                   || (hostname is not null && !loaded.MatchesHostname(hostname));
+                   || (hostname is not null && !CoversEveryName(loaded, hostname));
         }
         catch (CryptographicException)
         {
@@ -176,6 +207,18 @@ internal static class DevCertificates
             return true;
         }
     }
+
+    /// <summary>
+    ///     True when <paramref name="certificate" /> covers its own name AND every loopback name we now
+    ///     add. The loopback check is what re-mints the certificates issued before they were added:
+    ///     those still match their <c>.test</c> name perfectly, so a hostname-only test would call them
+    ///     good forever and leave the machine on a certificate that rejects
+    ///     <c>https://localhost:PORT</c> — the exact URL an older scaffold opens.
+    /// </summary>
+    private static bool CoversEveryName(X509Certificate2 certificate, string hostname) =>
+        certificate.MatchesHostname(hostname)
+        && LoopbackNames.All(name => certificate.MatchesHostname(name))
+        && LoopbackAddresses.All(address => certificate.MatchesHostname(address.ToString()));
 
     /// <summary>Reads a PEM pair back into a usable certificate.</summary>
     public static X509Certificate2 Load(DevCertificate certificate) =>
