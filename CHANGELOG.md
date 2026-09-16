@@ -33,6 +33,36 @@ them until tagged releases begin.
 - **A component joined onto another's chain entry no longer steals its `Of<T>()`.** Two components sharing an entry
   emit the same parameterless explicit-type opening, and whichever the generator happened to sort second silently
   decided what `Entry.Of<T>()` built. The entry's namesake owns it now.
+### Changed
+
+- **BREAKING: Rask.Auth has its own accounts; ASP.NET Core Identity is gone.** Laravel's and Rails' shape: one `User`
+  holds the credentials and the app's own columns, and each signed-in device is a row.
+  - **Your `User` derives from `Authenticatable`**, an `Aggregate<Guid>` carrying `Email`, `EmailConfirmedAt`,
+    `PasswordChangedAt`, `Roles` (`GrantRole`/`RevokeRole`) and an internal password hash. It reads, writes and
+    binds like any aggregate, and its generated `UserModel` never carries the credentials.
+    `IAuth.RegisterAsync(email, password, (User u) => u.Rename(name))` sets your own columns in the same insert.
+  - **Sessions are rows.** Signing in starts a `Session`, the cookie holds only its id, and every request resumes it,
+    so a changed role applies without signing in again. `IAuth.SignOutOtherDevicesAsync()`,
+    `SignOutEverywhereAsync()` and a password reset end sessions at once, a live page re-checks its session before a
+    dispatch (`ISessionRevalidator`), and bearer tokens carry the session too. This fixes a gap: Identity's security
+    stamps were never validated, so a reset used to leave other devices signed in.
+  - **Passwords:** PBKDF2-SHA256 at 600,000 iterations by default, or bcrypt with
+    `o.PasswordHashing = PasswordHashing.Bcrypt`. Every format is read, including bcrypt from other frameworks and
+    Identity's V3 hashes, and rehashed to the configured one on sign-in.
+  - **Throttling instead of lockout.** Five failed sign-ins a minute from one client for one address answer
+    `AuthError.TooManyAttempts` (HTTP 429, renamed from `LockedOut`); nobody can lock the owner out.
+    `MaxFailedAccessAttempts`, `LockoutDuration` and `RequireMixedCasePasswords` are removed; `SignInAttemptsPerMinute`,
+    `PasswordHashing` and `BcryptWorkFactor` are new. `TokenLifetime` now defaults to one hour.
+  - **Remember me works from a component.** `IAuthSignIn.SignInAsync` takes `persistent`, and the Server redeem relay
+    writes a persistent cookie for it; before, the flag reached only the `/api/auth/login` endpoint.
+  - **The sign-in pages are scaffolded, not shipped.** `rask new` writes `/login`, `/register`, `/logout`,
+    `/forgot-password`, `/reset-password`, `/confirm-email` and a new `/devices` into `Features/Auth`, styled by the
+    app's own Tailwind. Rask.Auth no longer registers page routes or embeds a stylesheet.
+  - **Upgrade:** change `User : IdentityUser` to `User : Authenticatable`; replace `UserManager<User>` calls with
+    `IAuth` and `User.FindAsync`/`UpdateAsync`; copy the pages from a fresh `rask new` into `Features/Auth`; then
+    `rask db add` a migration. The `AspNet*` tables become `User` columns and `RaskAuthSession`, and
+    `RaskAuthInstanceClaim.AdminUserId` becomes a `Guid`. Existing password hashes keep working if the rows are copied
+    across.
 
 ## [0.22.0] - 2026-09-16
 

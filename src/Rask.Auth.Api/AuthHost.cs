@@ -1,7 +1,6 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Loader;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Auth;
@@ -13,7 +12,7 @@ namespace Rask.Auth;
 /// <remarks>
 ///     <para>
 ///         This package is the accounts battery for an ASP.NET host that renders no Rask components —
-///         a TypeScript SPA host, a meta-framework host, or a plain ASP.NET app. It carries Identity,
+///         a TypeScript SPA host, a meta-framework host, or a plain ASP.NET app. It carries the accounts,
 ///         the <c>/api/auth</c> endpoints and the cookie, and it deliberately does not reference
 ///         <c>Rask.Core</c>: Core is <c>IsPackable=false</c> and travels inside the host packages that
 ///         render components, so a battery that needs it simply cannot run anywhere else (#1069).
@@ -103,5 +102,5 @@ public interface IAuthHostServices
     /// <typeparam name="TUser">The application's user entity.</typeparam>
     /// <param name="services">The service collection <c>AddRaskAuth</c> is populating.</param>
     void Register<TUser>(IServiceCollection services)
-        where TUser : IdentityUser, new();
+        where TUser : Authenticatable, new();
 }

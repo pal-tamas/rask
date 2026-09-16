@@ -51,8 +51,8 @@ public sealed class RaskAppOptions
     /// </summary>
     /// <remarks>
     /// On by default, which is the point — a scaffolded app can sign somebody in without a line of auth
-    /// code. Accounts are ASP.NET Core Identity's, so the password hashing, lockout and security stamps
-    /// are the standard ones; what Rask adds is the host-neutral surface over them, so the same
+    /// code. The account is the app's own <c>User</c> aggregate, with PBKDF2 or bcrypt password hashing, a
+    /// revocable session row per signed-in device and sign-in throttling; the same
     /// <c>IAuth</c> and <c>IUserProvider</c> mean the same thing on the Server host, in WebAssembly, and
     /// inside an island. The first account to register becomes the administrator.
     /// <para>

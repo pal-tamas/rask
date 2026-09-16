@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Rask.Core.Authentication;
@@ -11,7 +10,7 @@ namespace Rask.Auth;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         The split is <c>Rask.Core</c>: the battery's Identity half, its <c>/api/auth</c> endpoints
+///         The split is <c>Rask.Core</c>: the battery's accounts, its <c>/api/auth</c> endpoints
 ///         and its cookie are host-neutral and live in <c>Rask.Auth.Api</c>, while the two things here
 ///         need a renderer — an <see cref="IAuth" /> that issues its session through the host's
 ///         <see cref="IAuthSignIn" /> relay, and email bodies rendered from real Rask components. A
@@ -45,11 +44,14 @@ internal sealed class RaskAuthHostServices : IAuthHostServices
 
     /// <inheritdoc />
     public void Register<TUser>(IServiceCollection services)
-        where TUser : IdentityUser, new()
+        where TUser : Authenticatable, new()
     {
         ArgumentNullException.ThrowIfNull(services);
 
         services.TryAddScoped<IAuth, ServerAuth<TUser>>();
+
+        // What lets a page that stays open learn its session ended elsewhere. See ISessionRevalidator.
+        services.TryAddSingleton<ISessionRevalidator, SessionRevalidator>();
 
         // AddRaskAuth calls this BEFORE it TryAdds its plain-HTML default, so this registration is
         // the one that takes — see the note there on TryAdd being first-wins.

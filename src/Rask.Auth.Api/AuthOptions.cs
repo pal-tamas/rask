@@ -12,6 +12,7 @@ namespace Rask.Auth;
 /// {
 ///     o.CookieName = "shop.auth";
 ///     o.MinimumPasswordLength = 12;
+///     o.PasswordHashing = PasswordHashing.Bcrypt;
 /// }));
 /// </code>
 /// </example>
@@ -29,9 +30,8 @@ public sealed class AuthOptions
     /// <c>RouteAuthorizationGuard.ChallengePath</c> — the path the route guard has always redirected to.
     /// </summary>
     /// <remarks>
-    /// <b>This moves the redirect, not the page.</b> The built-in sign-in page is routed at <c>/login</c>
-    /// at compile time, so pointing this somewhere else means putting your own page there — which is the
-    /// ordinary way to replace it anyway: declare a component with <c>[Route("…")]</c> and it wins.
+    /// <b>This moves the redirect, not the page.</b> The sign-in page <c>rask new</c> writes into
+    /// <c>Features/Auth</c> is routed at <c>/login</c>; point this somewhere else and move its <c>[Route]</c> with it.
     /// </remarks>
     public string LoginPath { get; set; } = "/login";
 
@@ -69,12 +69,12 @@ public sealed class AuthOptions
     /// </remarks>
     public bool RequireConfirmedEmail { get; set; }
 
-    /// <summary>How long a confirmation or reset link stays valid. Defaults to two hours.</summary>
+    /// <summary>How long a confirmation or reset link stays valid. Defaults to one hour.</summary>
     /// <remarks>
-    /// This is what the email tells the reader, and what Identity's token provider enforces. Both are
-    /// set from here so they cannot drift into a message that promises longer than the token allows.
+    /// This is what the email tells the reader, and what the token check enforces. Both are set from here so
+    /// they cannot drift into a message that promises longer than the token allows.
     /// </remarks>
-    public TimeSpan TokenLifetime { get; set; } = TimeSpan.FromHours(2);
+    public TimeSpan TokenLifetime { get; set; } = TimeSpan.FromHours(1);
 
     /// <summary>The subject line of the confirmation email.</summary>
     public string ConfirmEmailSubject { get; set; } = "Confirm your email address";
@@ -93,7 +93,6 @@ public sealed class AuthOptions
     /// </remarks>
     public string? PublicOrigin { get; set; }
 
-    /// <summary>How long a session stays valid.</summary>
     /// <summary>
     ///     Issues a bearer token from the login endpoint, beside the cookie, for callers that ask for one.
     /// </summary>
@@ -142,6 +141,7 @@ public sealed class AuthOptions
     /// <summary>The <c>aud</c> claim, and what the validator requires.</summary>
     public string BearerAudience { get; set; } = "rask";
 
+    /// <summary>How long a session lasts without being used. Defaults to 14 days.</summary>
     public TimeSpan ExpireTimeSpan { get; set; } = TimeSpan.FromDays(14);
 
     /// <summary>Whether activity extends the session. On by default.</summary>
@@ -193,19 +193,53 @@ public sealed class AuthOptions
         }
     }
 
-    /// <summary>Whether a password must contain a digit, a lowercase and an uppercase letter.</summary>
+    /// <summary>The bcrypt cost <see cref="PasswordHashing.Bcrypt" /> uses when none is configured.</summary>
+    public const int DefaultBcryptWorkFactor = 12;
+
+    private int _bcryptWorkFactor = DefaultBcryptWorkFactor;
+
+    /// <summary>Which algorithm new password hashes are made with. PBKDF2 by default.</summary>
     /// <remarks>
-    /// On by default. Length is the property that actually resists guessing, so
-    /// <see cref="MinimumPasswordLength"/> is the more useful lever — but composition rules are what most
-    /// compliance checklists ask for, and a default that fails an audit is a default people work around.
+    /// Changing it is safe on a live app: every format is still read, and each user's hash moves to this one the next
+    /// time they sign in.
+    /// <example>
+    /// <code>
+    /// app.Configure(c => c.Auth.Configure(o => o.PasswordHashing = PasswordHashing.Bcrypt));
+    /// </code>
+    /// </example>
     /// </remarks>
-    public bool RequireMixedCasePasswords { get; set; } = true;
+    public PasswordHashing PasswordHashing { get; set; } = PasswordHashing.Pbkdf2;
 
-    /// <summary>How many failed attempts lock an account, and for how long.</summary>
-    public int MaxFailedAccessAttempts { get; set; } = 5;
+    /// <summary>The bcrypt cost, from 4 to 31. Defaults to 12. Each step doubles the work.</summary>
+    /// <exception cref="ArgumentOutOfRangeException">The value is below 4 or above 31.</exception>
+    public int BcryptWorkFactor
+    {
+        get => _bcryptWorkFactor;
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(value, 4);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(value, 31);
+            _bcryptWorkFactor = value;
+        }
+    }
 
-    /// <summary>How long an account stays locked after <see cref="MaxFailedAccessAttempts"/>.</summary>
-    public TimeSpan LockoutDuration { get; set; } = TimeSpan.FromMinutes(5);
+    /// <summary>How many failed sign-ins one address may have from one client per minute. Defaults to 5.</summary>
+    /// <remarks>
+    /// The limit is on the attempt, never the account: after it, that client waits out the minute and the account's owner,
+    /// signing in from anywhere else, is not affected.
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException">The value is below 1.</exception>
+    public int SignInAttemptsPerMinute
+    {
+        get => _signInAttemptsPerMinute;
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(value, 1);
+            _signInAttemptsPerMinute = value;
+        }
+    }
+
+    private int _signInAttemptsPerMinute = 5;
 
     /// <summary>
     /// The path the <c>register</c>, <c>login</c>, <c>logout</c> and <c>me</c> endpoints sit under.

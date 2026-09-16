@@ -28,8 +28,10 @@ public sealed class WasmAuthSignIn(HttpClient http, IUserProvider userProvider, 
     /// <param name="principal">Unused.</param>
     /// <param name="returnUrl">Unused.</param>
     /// <param name="scheme">Unused.</param>
+    /// <param name="persistent">Unused.</param>
     /// <exception cref="NotSupportedException">Always.</exception>
-    public Task SignInAsync(ClaimsPrincipal principal, string? returnUrl = null, string? scheme = null) =>
+    public Task SignInAsync(
+        ClaimsPrincipal principal, string? returnUrl = null, string? scheme = null, bool persistent = false) =>
         throw new NotSupportedException(
             "WasmAuthSignIn does not support principal-based sign-in. " +
             "POST credentials to your server endpoint via HttpClient instead.");

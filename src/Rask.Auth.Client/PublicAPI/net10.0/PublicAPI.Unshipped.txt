@@ -20,3 +20,5 @@ Rask.Auth.Client.HttpUserProvider.IsLoading.get -> bool
 Rask.Auth.Client.HttpUserProvider.RefreshAsync() -> System.Threading.Tasks.Task!
 Rask.Auth.Client.RaskAuthClientServiceCollectionExtensions
 static Rask.Auth.Client.RaskAuthClientServiceCollectionExtensions.AddRaskAuthClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Auth.Client.AuthClientOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+Rask.Auth.Client.BrowserAuth.SignOutEverywhereAsync(string? returnUrl = null) -> System.Threading.Tasks.Task!
+Rask.Auth.Client.BrowserAuth.SignOutOtherDevicesAsync() -> System.Threading.Tasks.Task!

@@ -213,9 +213,9 @@ internal static partial class ProjectGenerator
         }
 
         // Accounts, unconditionally: the auth battery is ON by default, so every app with a database
-        // has one. Mapping these is not optional the way the pillars above are — AddRaskAuth registers
-        // Identity's EF stores against this context, so without the tables the app boots happily and
-        // then fails at the first registration on a missing AspNetUsers.
+        // has one. Mapping these is not optional the way the pillars above are — AddRaskAuth reads and
+        // writes the user and its sessions through this context, so without them the app boots happily and
+        // then fails at the first registration.
         //
         // Mapped even when an app writes c.Auth.Off(), which is the documented behaviour for every
         // database-backed battery: turning one off must not produce a destructive migration.

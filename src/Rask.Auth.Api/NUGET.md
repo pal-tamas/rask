@@ -4,9 +4,10 @@ Accounts as **JSON endpoints**, for an ASP.NET Core app that renders no [Rask](h
 components — a TypeScript SPA host, a meta-framework host, or a plain ASP.NET app where the front end
 owns the UI.
 
-Register, sign in, sign out, `/me`, email confirmation and password reset, all at `/api/auth`, backed
-by **ASP.NET Core Identity** (versioned password hashing, lockout, security stamps, token providers).
-The first account to register becomes the administrator.
+Register, sign in, sign out, `/me`, email confirmation and password reset, all at `/api/auth`, on the app's own
+`User` aggregate: PBKDF2 or bcrypt password hashing, a session row per signed-in device that signing out elsewhere
+or a password reset ends at once, and throttling rather than lockout. The first account to register becomes the
+administrator.
 
 ```csharp
 builder.Services.AddRaskAuth<AppDbContext>();
@@ -28,12 +29,13 @@ protected override void OnModelCreating(ModelBuilder modelBuilder) => modelBuild
 rask db add AddAuth && rask db update
 ```
 
-Declare the account type once, anywhere in the app — the generator finds it, and adding a column is
-adding a property:
+Declare the user type once, anywhere in the app — the generator finds it, and adding a column is adding a
+property:
 
 ```csharp
-public class User : IdentityUser
+public sealed class User : Authenticatable
 {
+    public string DisplayName { get; private set; } = "";
 }
 ```
 
@@ -42,7 +44,7 @@ public class User : IdentityUser
 | | |
 | --- | --- |
 | **Rask.Auth.Api** | This one. The front end owns sign-in; the host answers `/api/auth`. No components, no renderer, no `Rask.Core`. |
-| **Rask.Auth** | The app *is* a Rask app. Everything here, plus overridable `/login`, `/register` and `/logout` **pages** and a host-neutral `IAuth` for components. |
+| **Rask.Auth** | The app *is* a Rask app. Everything here, plus a host-neutral `IAuth` for components; `rask new` writes the sign-in pages into the app. |
 | **Rask.Auth.Client** | The same flows called from a WebAssembly client. |
 
 Reference one of the first two, never both: `Rask.Auth` already contains this package.

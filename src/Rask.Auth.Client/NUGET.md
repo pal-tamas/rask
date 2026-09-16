@@ -39,7 +39,7 @@ The current user is loaded before the first render, so a page never paints anony
 
 ## What it deliberately does not carry
 
-ASP.NET Core Identity and Entity Framework. Those live in `Rask.Auth`, on the server, and have no
+The accounts and Entity Framework. Those live in `Rask.Auth`, on the server, and have no
 business in a trimmed browser publish. The two halves agree through the `AuthApi` wire contract in
 Rask.Core rather than by referencing each other.
 

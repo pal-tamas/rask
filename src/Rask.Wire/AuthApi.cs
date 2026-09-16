@@ -6,7 +6,7 @@ namespace Rask.Wire;
 /// <remarks>
 /// <para>
 /// It lives in Rask.Wire because <b>both halves have to agree on it and neither can reference the
-/// other</b>. The server half carries ASP.NET Core Identity and Entity Framework, which must never
+/// other</b>. The server half carries Entity Framework, which must never
 /// reach a trimmed WebAssembly publish; the browser half carries an <c>HttpClient</c> and nothing else.
 /// Rask.Wire is the one package both can take — zero dependencies, trimming-clean, and already the home
 /// of the carriers Rask.Cqrs and Rask.Api share for exactly this reason — so the contract is written
@@ -61,6 +61,12 @@ public static class AuthApi
 
     /// <summary>The <c>logout</c> route, relative to the prefix.</summary>
     public const string Logout = "/logout";
+
+    /// <summary>The route that ends every other session of the caller, relative to the prefix.</summary>
+    public const string LogoutOtherDevices = "/logout-other-devices";
+
+    /// <summary>The route that ends every session of the caller, relative to the prefix.</summary>
+    public const string LogoutEverywhere = "/logout-everywhere";
 
     /// <summary>The <c>me</c> route, relative to the prefix.</summary>
     public const string Me = "/me";

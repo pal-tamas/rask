@@ -3,8 +3,9 @@
 Accounts for a [Rask](https://rask.sh) app: **register, sign in, sign out**, plus **email confirmation
 and password reset**.
 
-Accounts are backed by **ASP.NET Core Identity** (versioned password hashing, lockout, security
-stamps, token providers), wrapped behind Rask's own host-neutral surface. The code you write to read
+The account is the app's own `User : Authenticatable` aggregate — PBKDF2 or bcrypt password hashing, a session
+row per signed-in device you can list and end, throttling rather than lockout — behind Rask's own host-neutral
+surface. The code you write to read
 the current user or gate a page does not change between hosts.
 
 ```csharp
@@ -29,7 +30,7 @@ public sealed class Header(IUserProvider users) : Component
 
 Registering emails a confirmation link; `/forgot-password` emails a reset link. Both go out through
 the app's own mail queue, and `/reset-password` and `/confirm-email` are where those links land —
-built-in pages, overridable exactly like `/login`.
+pages `rask new` writes into the app, like `/login`.
 
 **Confirmation does not block sign-in by default.** A freshly scaffolded app has no SMTP configured,
 so requiring it out of the box would let the first registration succeed and then be unable to sign in,
@@ -48,8 +49,7 @@ host header — that value is attacker-controlled on a request that reaches the 
 reset link built from it would send a working token to a domain of the attacker's choosing.
 
 `/forgot-password` answers the same way whether or not the address has an account, so it cannot be
-used to find out which addresses are registered. A completed reset ends every other session for that
-account.
+used to find out which addresses are registered. A completed reset ends every session for that account.
 
 ## The first account is the administrator
 

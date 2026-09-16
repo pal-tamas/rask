@@ -1,6 +1,5 @@
 using System.Web;
 using Microsoft.Extensions.DependencyInjection;
-using Rask.Auth.Pages;
 using Rask.Core.Authentication;
 using Rask.Testing;
 using Rask.Wire;
@@ -65,7 +64,7 @@ public sealed class AccountRecoveryTests
         var (_, ownersToken) = Parse(harness.Mail!.LastTo(Owner)!.Link!);
         var (secondsId, _) = Parse(harness.Mail!.LastTo("second@example.com")!.Link!);
 
-        // Identity binds a token to the user it was minted for. Worth pinning rather than assuming:
+        // A token is bound to the user it was minted for. Worth pinning rather than assuming:
         // a token that travelled between accounts would let one registration confirm any address.
         var result = await ConfirmAsync(harness, secondsId, ownersToken);
 
@@ -111,8 +110,8 @@ public sealed class AccountRecoveryTests
 
         var result = await ResetAsync(harness, userId, token, "Ab1");
 
-        // A weak password and a dead link are the same failed IdentityResult, and they need different
-        // words: one means "pick a longer password", the other "ask for a new link".
+        // A weak password and a dead link need different words: one means "pick a longer password", the
+        // other "ask for a new link".
         Assert.Equal(AuthError.WeakPassword, result.Error);
         Assert.False(string.IsNullOrWhiteSpace(result.Message));
     }
@@ -210,7 +209,7 @@ public sealed class AccountRecoveryTests
 
         var (userId, token) = Parse(link);
 
-        // Identity's tokens are base64 and routinely carry '+' and '/'. A '+' that reaches the query
+        // A token is binary sealed by Data Protection; a '+' that reaches the query
         // unencoded arrives as a space and the token silently stops matching — which reads as "the link
         // expired" rather than as an encoding bug, so it is worth pinning that the link round-trips.
         Assert.True((await ConfirmAsync(harness, userId, token)).Succeeded, $"link did not round-trip: {link}");
@@ -263,56 +262,22 @@ public sealed class AccountRecoveryTests
     }
 
     [Fact]
-    public void Rendering_the_confirm_page_does_not_spend_the_token()
+    public async Task A_password_reset_ends_every_session_the_account_had()
     {
-        // The actual security property of #1013, and the one a service-level test cannot state: a GET is
-        // not a deliberate act by the person the link was sent to. Mail scanners, link previewers,
-        // corporate URL-rewriting gateways and prefetchers all fetch it first, and whichever arrived
-        // first spent the single-use token — after which the human clicks their own link and is told it
-        // did not work, indistinguishably from a real expiry.
-        //
-        // Asserted against a spy rather than a database, because the claim is precisely "the page does
-        // not CALL this on render", and a spy says that without anything else being able to explain it.
-        var auth = new ConfirmSpy();
-        var services = new ServiceCollection().BuildServiceProvider();
+        // The reason for a reset is often that somebody else has the password. Their session ends here, not when
+        // its cookie happens to expire.
+        await using var harness = await ClaimedAsync();
+        var owner = (await harness.UserAsync(Owner))!;
+        var sessions = harness.Services.GetRequiredService<IAuthSessions>();
+        var theirs = await sessions.StartAsync(owner.Id, "203.0.113.9", "someone else", persistent: true);
+        var mine = await sessions.StartAsync(owner.Id, "10.0.0.1", "me", persistent: false);
 
-        // ActivatorUtilities, as the router itself constructs a page: the spy goes in as the ctor
-        // dependency it takes.
-        var page = ActivatorUtilities.CreateInstance<ConfirmEmailPage>(services, auth);
-        page.UserId = "u1";
-        page.Token = "t1";
+        var sent = await RequestResetAsync(harness, Owner);
+        var (userId, token) = Parse(sent!.Link!);
+        Assert.True((await ResetAsync(harness, userId, token, NewPassword)).Succeeded);
 
-        var html = RaskTest.Render(page, services).Html;
-
-        Assert.Equal(0, auth.Confirms);
-        Assert.Contains("confirm-submit", html, StringComparison.Ordinal);
-    }
-
-    private sealed class ConfirmSpy : IAuth
-    {
-        public int Confirms { get; private set; }
-
-        public Task<AuthResult> ConfirmEmailAsync(string userId, string token)
-        {
-            Confirms++;
-            return Task.FromResult(AuthResult.Success);
-        }
-
-        public Task<AuthResult> RegisterAsync(
-            string email, string password, string? returnUrl = null, string? firstRunToken = null) =>
-            Task.FromResult(AuthResult.Success);
-
-        public Task<AuthResult> SignInAsync(
-            string email, string password, bool remember = false, string? returnUrl = null) =>
-            Task.FromResult(AuthResult.Success);
-
-        public Task SignOutAsync(string? returnUrl = null) => Task.CompletedTask;
-
-        public Task<AuthResult> SendPasswordResetAsync(string email) =>
-            Task.FromResult(AuthResult.Success);
-
-        public Task<AuthResult> ResetPasswordAsync(string userId, string token, string password) =>
-            Task.FromResult(AuthResult.Success);
+        Assert.Null(await sessions.ResumeAsync(theirs));
+        Assert.Null(await sessions.ResumeAsync(mine));
     }
 
     [Fact]
@@ -338,21 +303,21 @@ public sealed class AccountRecoveryTests
     {
         using var scope = harness.NewScope();
         var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
-        return (await accounts.RegisterAsync(email, Password, firstRunToken)).Result;
+        return (await accounts.RegisterAsync(email, Password, firstRunToken, client: null)).Result;
     }
 
     private static async Task<AuthResult> SignInAsync(AuthHarness harness, string email, string password)
     {
         using var scope = harness.NewScope();
         var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
-        return (await accounts.ValidateAsync(email, password)).Result;
+        return (await accounts.ValidateAsync(email, password, client: null)).Result;
     }
 
     private static async Task<AuthResult> SendResetAsync(AuthHarness harness, string email)
     {
         using var scope = harness.NewScope();
         var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
-        return await accounts.SendPasswordResetAsync(email);
+        return await accounts.SendPasswordResetAsync(email, client: null);
     }
 
     /// <summary>Asks for a reset and returns the message that went out.</summary>
@@ -383,15 +348,8 @@ public sealed class AccountRecoveryTests
         return await accounts.ConfirmEmailAsync(userId, token);
     }
 
-    private static async Task<bool> IsConfirmedAsync(AuthHarness harness, string email)
-    {
-        using var scope = harness.NewScope();
-        var users = scope.ServiceProvider
-            .GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<TestUser>>();
-
-        var user = await users.FindByEmailAsync(email);
-        return user is not null && await users.IsEmailConfirmedAsync(user);
-    }
+    private static async Task<bool> IsConfirmedAsync(AuthHarness harness, string email) =>
+        (await harness.UserAsync(email))?.IsEmailConfirmed == true;
 
     /// <summary>Reads the two values back out of a link, the way the landing page's query params do.</summary>
     private static (string UserId, string Token) Parse(string link)

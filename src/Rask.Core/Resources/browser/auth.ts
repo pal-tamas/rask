@@ -61,7 +61,7 @@ export interface CurrentUser {
 /**
  * Why a call was refused.
  *
- * `error` is the name of the server's `AuthError` — `"InvalidCredentials"`, `"LockedOut"`,
+ * `error` is the name of the server's `AuthError` — `"InvalidCredentials"`, `"TooManyAttempts"`,
  * `"DuplicateAccount"`, `"WeakPassword"`, `"FirstRunTokenRequired"`, `"NotAllowed"`,
  * `"InvalidEmail"`, `"InvalidToken"`, `"EmailNotConfirmed"`, `"MailNotConfigured"`,
  * `"MissingRequestHeader"` — carried as a name rather than a number so a value added later cannot

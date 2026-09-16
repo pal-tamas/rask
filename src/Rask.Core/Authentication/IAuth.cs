@@ -47,6 +47,32 @@ public interface IAuth
     Task<AuthResult> RegisterAsync(
         string email, string password, string? returnUrl = null, string? firstRunToken = null);
 
+    /// <summary>Creates an account, sets the app's own columns on it, and signs it in.</summary>
+    /// <typeparam name="TUser">The app's user type.</typeparam>
+    /// <param name="email">The email address.</param>
+    /// <param name="password">The password, held only long enough to hash it.</param>
+    /// <param name="apply">Sets values on the new user before it is saved: <c>(User u) =&gt; u.Rename(name)</c>.</param>
+    /// <param name="returnUrl">Where to land afterwards. Sanitized to a local URL before it is used.</param>
+    /// <param name="firstRunToken">The first-run token, required only while no account exists yet.</param>
+    /// <exception cref="NotSupportedException">The host cannot run code on the new user, such as a browser client.</exception>
+    Task<AuthResult> RegisterAsync<TUser>(
+        string email,
+        string password,
+        Action<TUser> apply,
+        string? returnUrl = null,
+        string? firstRunToken = null)
+        where TUser : class =>
+        throw new NotSupportedException(
+            "This host cannot set values on the new user while registering. Register, then change the user with "
+            + "User.UpdateAsync once the user is signed in.");
+
+    /// <summary>Ends every other session of the signed-in user, leaving this one signed in.</summary>
+    Task SignOutOtherDevicesAsync();
+
+    /// <summary>Ends every session of the signed-in user, this one included.</summary>
+    /// <param name="returnUrl">Where to land afterwards. Sanitized to a local URL before it is used.</param>
+    Task SignOutEverywhereAsync(string? returnUrl = null);
+
     /// <summary>Signs an existing account in.</summary>
     /// <param name="email">The email address.</param>
     /// <param name="password">The password.</param>

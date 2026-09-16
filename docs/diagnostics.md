@@ -107,7 +107,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK071](#rask071) | Error | ASP.NET route attribute on a Rask component |
 | [RASK072](#rask072) | Warning | Entity `Configure` method will not be called |
 | [RASK073](#rask073) | Warning | Strongly-typed id has no usable value |
-| [RASK074](#rask074) | Warning | More than one account type |
+| [RASK074](#rask074) | Warning | More than one user type |
 | [RASK075](#rask075) | Warning | Option template on a native select |
 | [RASK076](#rask076) | Warning | Grid column with no field token |
 | [RASK077](#rask077) | Warning | Package island has no props snapshot |
@@ -1699,25 +1699,24 @@ Ids that need no converter are not reported. Anything the provider already maps 
 
 ## RASK074
 
-**More than one account type** · Warning
+**More than one user type** · Warning
 
-Rask ships no user class. The account type is the one class in your project deriving from ASP.NET Core
-Identity's `IdentityUser`, found at compile time and wired to Identity by a generated
-`[ModuleInitializer]` — which is what lets `AddRaskAuth()` and `modelBuilder.AddRaskAuth()` take no type
-argument.
+Rask ships no user class. The user type is the one class in your project deriving from `Rask.Auth.Authenticatable`,
+found at compile time and named to the accounts by a generated `[ModuleInitializer]` — which is what lets
+`AddRaskAuth()` and `modelBuilder.AddRaskAuth()` take no type argument.
 
-That needs there to be *one*. With two, picking either would map one set of account tables and silently
-strand the other, and the app would look wired until the first sign-in.
+That needs there to be *one*. With two, picking either would map one users table and silently strand the other,
+and the app would look wired until the first sign-in.
 
 ```csharp
-public class User : IdentityUser { }
+public sealed class User : Authenticatable { }
 
-// ✗ RASK074 — which of these is the account?
-public class LegacyUser : IdentityUser { }
+// ✗ RASK074 — which of these is the user?
+public sealed class LegacyUser : Authenticatable { }
 ```
 
-**Fix:** keep one. A second user-shaped entity does not need to derive from `IdentityUser` to be mapped —
-it is an entity like any other, and if it is genuinely a second account store it belongs behind its own
+**Fix:** keep one. A second user-shaped type does not need to derive from `Authenticatable` to be mapped — it is an
+aggregate like any other, and if it is genuinely a second account store it belongs behind its own
 `AddRaskAuth<TContext, TUser>()` call rather than the convention.
 
 Auth is left unwired when this fires, rather than half-wired against a guess.
