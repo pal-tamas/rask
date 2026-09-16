@@ -7,6 +7,107 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **`rask new` generates the app's Web Push keys.** A scaffold with the push battery on now mints its own VAPID pair
+  (RFC 8292) and writes it to `appsettings.Development.json`, so a fresh app can send a push without any setup. The
+  file is gitignored — the private key signs every push the app sends, so it is a per-developer secret, and the
+  scaffold's `.gitignore` already reserved that exact name. The committed `appsettings.json` keeps `Subject` and now
+  points at where the pair lives; deployed, both keys still come from the environment
+  (`Rask__WebPush__VapidKeys__PublicKey` / `__PrivateKey`), and production should have a pair of its own.
+  - The old next-steps text asked you to run `dotnet user-secrets set` for each key. Neither command worked: no
+    scaffolded csproj carries a `UserSecretsId`, so both failed with *"Could not find the global property
+    'UserSecretsId'"* — the first thing a new project told you was an error. It also said `VapidKeys.Generate()`
+    "prints" a pair, which it does not; it returns one. Both are corrected here, in the scaffolded `Program.cs`
+    (which repeated the same advice) and in `docs/webpush.md`, `docs/pwa.md`, `docs/spa.md`,
+    `docs/configuration.md` and the tutorial.
+  - Every template `.dockerignore` now excludes `appsettings.Development.json` and `appsettings.Local.json`.
+    Gitignoring a file does not keep it out of an image — Docker never reads `.gitignore` — and the Dockerfile's
+    build stage runs `COPY . .` while the Web SDK copies every `appsettings*.json` into the publish output the
+    final stage takes wholesale. Without this, `rask deploy` would build the developer's new VAPID private key
+    into the image it pushes. It is never read there (the container runs Production), but a signing key has no
+    business in a registry.
+
+- **The scaffold's ignore-overlap gate now reads the whole ignore file.** `ScaffoldIgnoreOverlapTests` — the guard
+  added after `push.ts` was scaffolded into a gitignored directory and lost on clone (#957) — matched only `dir/` and
+  `dir/*` entries, so every file-shaped and glob entry (`appsettings.Development.json`, `.env`, `*.db`,
+  `wwwroot/css/app.css`) was waved through unchecked. It understands all four shapes now, and found one real overlap
+  that predated it: the Next.js template writes `client/next-env.d.ts` into a path its own `.gitignore` covers. That
+  one is legitimate — Next.js regenerates the file on every build and says so in its body — so it and the generated
+  key file are recorded as the two exemptions, each with its reason and each asserted to be genuinely written and
+  genuinely ignored.
+
+- **Passkeys — another way to sign in, verified on the base class library.** A signed-in person adds a passkey on
+  `/devices` (Touch ID, Windows Hello, a phone, a security key) and `/login` then offers "Sign in with a passkey",
+  with no email and no password typed. Passwords are untouched: a passkey is an extra door, and the sign-in starts
+  the same `Session` row and shows up on the same device list.
+  - **`IAuth` gains `AddPasskeyAsync(name)`, `SignInWithPasskeyAsync(remember, returnUrl)` and
+    `RemovePasskeyAsync(id)`** — the same three calls on the Server host, in WebAssembly and from a TypeScript front
+    end (`addPasskey`, `signInWithPasskey`, `removePasskey`, `passkeysSupported` in the `auth` module). A dismissed
+    dialog answers `AuthError.PasskeyRejected` rather than throwing.
+  - **`Passkey` is a Rask-owned aggregate** in `RaskAuthPasskey` (the account, a unique credential id, the COSE
+    public key, the name, transports, the signature counter, when it was last used). Read it like a session:
+    `Passkey.Where(p => p.UserId == me)`.
+  - **WebAuthn is verified by Rask, with no FIDO library** — `System.Formats.Cbor` for the CBOR and `ECDsa`/`RSA`
+    for the signature. Every ceremony must carry the challenge this server issued (sealed with Data Protection,
+    five minutes, good exactly once), come from an allowed origin, hash to the right relying party, and report the
+    user present **and** verified; ES256 and RS256 are accepted and nothing else, and a signature counter that fails
+    to advance is refused as a clone. Attestation is `none`. Failures are throttled per client and answer
+    `InvalidCredentials`, exactly as a wrong password does.
+  - **New options:** `Passkeys` (on), `PasskeyRelyingPartyId`, `PasskeyRelyingPartyName` and `PasskeyOrigins`, all
+    defaulting to what the request or `PublicOrigin` already says — so development needs no configuration.
+  - **New endpoints** under the API prefix: `passkeys/register-options`, `passkeys/register`,
+    `passkeys/login-options`, `passkeys/login` and `passkeys/remove`, behind the same `X-Rask-Auth` header.
+  - **Upgrade:** `rask db add` a migration for the new `RaskAuthPasskey` table. Nothing else changes — an app that
+    wants none turns them off with `o.Passkeys = false`, and the scaffolded `/login` and `/devices` pages gain the
+    passkey UI only when you copy them from a fresh `rask new`.
+- **Rask UI's select is Flux UI's combobox too, and the MODEL says which control it is.** `UiSelect` gains
+  `Searchable` (a search box over the drawn list, matching case- and accent-insensitively in the visitor's own
+  culture), `Filter` (what counts as a match, for searching a code as well as a name), `OnSearch` (hands the typing to
+  the page for a server-side query and filters nothing locally), `Loading` with `LoadingText`, `EmptyText`, and
+  `Clearable` (a button that puts the field back to nothing chosen). Asking for any of them draws the list here rather
+  than handing it to the platform, since a `<select>` has nowhere to put them. The drawn list also takes type-ahead
+  without any of this — a letter jumps to the next option starting with it, as a native select does. There is no
+  `UiCombobox`: a box you type into to narrow a fixed set of answers is the same question a select asks.
+- **One name for both selects.** `UiSelect.Bind(() => model.Tags)` over a `List<T>`, `IList<T>`, `HashSet<T>`,
+  `Collection<T>`, `ObservableCollection<T>`, `T[]` or `ICollection<T>` is the MULTIPLE select;
+  `UiSelect.Bind(() => model.Country)` is the single one. The page never chooses between two component names — the
+  field's own type decides, and the controlled form is `UiSelect.Values(…)` beside `UiSelect.Value(…)`.
+
+### Changed
+
+- **BREAKING (Rask UI):** `UiMultiSelect` is no longer a name a call site types. The multi-value select is reached
+  through `UiSelect` — `UiSelect.Bind(() => model.Tags)` or `UiSelect.Values(picked)` — and typing `UiMultiSelect` in
+  markup now names the type rather than the chain, which does not compile.
+
+### Fixed
+
+- **A component joined onto another's chain entry no longer steals its `Of<T>()`.** Two components sharing an entry
+  emit the same parameterless explicit-type opening, and whichever the generator happened to sort second silently
+  decided what `Entry.Of<T>()` built. The entry's namesake owns it now.
+### Fixed
+
+- **The installer no longer ends by suggesting a command that fails.** `curl -sSL https://rask.sh/rask.sh | sh`
+  finished with two raw `export` lines and then `Then: rask new MyApp && cd MyApp && rask dev` — run in the shell
+  you installed from, that is `command not found`, because a piped installer is a child process and cannot change
+  its parent's environment. The closing block now leads with that fact and gives one line that fixes it, matched to
+  the profile actually written (`source ~/.bashrc`, `source ~/.config/fish/config.fish`, `. ~/.profile`, …). Under
+  `--no-path`/`-NoPath`, which previously printed no guidance at all, it prints what to add by hand. `rask.ps1` got
+  the same treatment, with the two lines that re-read the User-scoped `Path` and `DOTNET_ROOT` it just wrote.
+- **bash got the `PATH` block in only one of the two files bash reads.** A login bash (ssh, a tty) reads the first
+  of `~/.bash_profile`, `~/.bash_login` and `~/.profile` that exists, and never `~/.bashrc`; a terminal emulator
+  reads `~/.bashrc` and never a login profile. Writing `~/.bashrc` alone looks sufficient on a stock box only
+  because Debian, Arch and Fedora ship a skeleton login profile that sources it — for anyone with hand-written
+  dotfiles, ssh had no `rask` while the terminal emulator on the same machine did. The installer now writes both,
+  but never *creates* a login profile, since bash falls back to `~/.profile` only when no `~/.bash_profile` exists
+  and inventing one would silently shadow the user's login environment.
+- **Re-reading the installer's `PATH` block no longer grows `PATH`.** Each directory is added only if it is not
+  already there, in both the POSIX and fish dialects. This matters now the block lands in two files and the
+  Arch/Debian default `~/.bash_profile` sources `~/.bashrc`.
+- **`curl: (23) Failure writing output to destination` no longer appears mid-install.** The Node LTS lookup piped
+  curl straight into a parser that stops at the first match; `head` closing the pipe made curl report the write
+  error onto an install that was going fine. The index is buffered to a file and parsed from there.
+
 ### Changed
 
 - **BREAKING: Rask.Auth has its own accounts; ASP.NET Core Identity is gone.** Laravel's and Rails' shape: one `User`
@@ -41,34 +142,6 @@ them until tagged releases begin.
 ## [0.22.0] - 2026-09-16
 
 ### Added
-
-- **`rask new` generates the app's Web Push keys.** A scaffold with the push battery on now mints its own VAPID pair
-  (RFC 8292) and writes it to `appsettings.Development.json`, so a fresh app can send a push without any setup. The
-  file is gitignored — the private key signs every push the app sends, so it is a per-developer secret, and the
-  scaffold's `.gitignore` already reserved that exact name. The committed `appsettings.json` keeps `Subject` and now
-  points at where the pair lives; deployed, both keys still come from the environment
-  (`Rask__WebPush__VapidKeys__PublicKey` / `__PrivateKey`), and production should have a pair of its own.
-  - The old next-steps text asked you to run `dotnet user-secrets set` for each key. Neither command worked: no
-    scaffolded csproj carries a `UserSecretsId`, so both failed with *"Could not find the global property
-    'UserSecretsId'"* — the first thing a new project told you was an error. It also said `VapidKeys.Generate()`
-    "prints" a pair, which it does not; it returns one. Both are corrected here, in the scaffolded `Program.cs`
-    (which repeated the same advice) and in `docs/webpush.md`, `docs/pwa.md`, `docs/spa.md`,
-    `docs/configuration.md` and the tutorial.
-  - Every template `.dockerignore` now excludes `appsettings.Development.json` and `appsettings.Local.json`.
-    Gitignoring a file does not keep it out of an image — Docker never reads `.gitignore` — and the Dockerfile's
-    build stage runs `COPY . .` while the Web SDK copies every `appsettings*.json` into the publish output the
-    final stage takes wholesale. Without this, `rask deploy` would build the developer's new VAPID private key
-    into the image it pushes. It is never read there (the container runs Production), but a signing key has no
-    business in a registry.
-
-- **The scaffold's ignore-overlap gate now reads the whole ignore file.** `ScaffoldIgnoreOverlapTests` — the guard
-  added after `push.ts` was scaffolded into a gitignored directory and lost on clone (#957) — matched only `dir/` and
-  `dir/*` entries, so every file-shaped and glob entry (`appsettings.Development.json`, `.env`, `*.db`,
-  `wwwroot/css/app.css`) was waved through unchecked. It understands all four shapes now, and found one real overlap
-  that predated it: the Next.js template writes `client/next-env.d.ts` into a path its own `.gitignore` covers. That
-  one is legitimate — Next.js regenerates the file on every build and says so in its body — so it and the generated
-  key file are recorded as the two exemptions, each with its reason and each asserted to be genuinely written and
-  genuinely ignored.
 
 - **Rask UI gets Flux UI's application layout.** New `UiSidebar` — an `<aside>` beside the page, docked and sticky from
   its `Collapsible` breakpoint up and a daisyUI drawer below it, opening with no runtime and mirrored into C# through

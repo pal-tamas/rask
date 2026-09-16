@@ -182,9 +182,34 @@ async function run(): Promise<Any> {
     const staleReset = await auth.resetPassword("u1", "stale", "Password2longer");
     const authResetFailure = staleReset.ok ? null : staleReset.failure;
 
+    // Passkeys need a browser. There is no navigator.credentials here, which is exactly a server render,
+    // so the two ceremony calls refuse rather than throwing — and never reach the network.
+    const authPasskeysSupported = auth.passkeysSupported();
+
+    captureFetch(500, null);
+    lastRequest = {};
+    const addPasskeyAttempt = await auth.addPasskey("Laptop");
+    const authAddPasskeyFailure = addPasskeyAttempt.ok ? null : addPasskeyAttempt.failure;
+    const signInAttempt = await auth.signInWithPasskey();
+    const authPasskeySignInFailure = signInAttempt.ok ? null : signInAttempt.failure;
+    const authPasskeyCeremonyMadeNoRequest = lastRequest.url === undefined;
+
+    // Removing one is an ordinary POST: no ceremony, so it works wherever the others do not.
+    captureFetch(204, null);
+    const authRemovePasskeyOk = (await auth.removePasskey("p1")).ok;
+    const authRemovePasskeyRequest = lastRequest;
+
     define("fetch", realFetch);
 
     return {
+        // Passkeys: a server render has no authenticator, so the ceremonies refuse without a round trip.
+        authPasskeysSupported,
+        authAddPasskeyFailure,
+        authPasskeySignInFailure,
+        authPasskeyCeremonyMadeNoRequest,
+        authRemovePasskeyOk,
+        authRemovePasskeyRequest,
+
         // Auth: the request built, not a round trip — the URL, the CSRF header on a POST and its
         // absence on a GET, and the cookie a server render forwards itself.
         authLoginRequest,

@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json.Serialization.Metadata;
 using Rask.Core.Authentication;
+using Rask.Core.Browser;
 using Rask.Core.Routing;
 using Rask.Wire;
 
@@ -19,6 +20,7 @@ public sealed class BrowserAuth(
     HttpClient http,
     IUserProvider users,
     Navigator navigator,
+    IWebAuthn webAuthn,
     AuthClientOptions options) : IAuth
 {
     /// <inheritdoc />
@@ -86,6 +88,129 @@ public sealed class BrowserAuth(
             AuthApi.ConfirmEmail,
             new ConfirmEmailRequest(userId, token),
             AuthJsonContext.Default.ConfirmEmailRequest);
+
+    /// <inheritdoc />
+    public async Task<AuthResult> AddPasskeyAsync(string? name = null)
+    {
+        // Two requests, not one: the challenge has to reach the authenticator before anything can be signed. It comes
+        // back sealed, so the server keeps nothing between them.
+        if (await AskAsync(AuthApi.PasskeyRegisterOptions, AuthJsonContext.Default.PasskeyCreationChallenge)
+                .ConfigureAwait(false) is not { } challenge)
+        {
+            return AuthResult.Fail(AuthError.NotAllowed);
+        }
+
+        var created = await webAuthn
+            .CreateAsync(new PublicKeyCredentialCreationOptions
+            {
+                Challenge = challenge.Challenge,
+                Rp = new RelyingParty(challenge.RelyingPartyName, challenge.RelyingPartyId),
+                User = new PublicKeyCredentialUser(challenge.UserId, challenge.UserName, challenge.UserDisplayName),
+                PubKeyCredParams = [new PubKeyCredParam(-7), new PubKeyCredParam(-257)],
+                TimeoutMs = challenge.TimeoutMs,
+                Attestation = "none",
+                AuthenticatorSelection = new AuthenticatorSelection
+                {
+                    // Discoverable and verified, always: a passkey that cannot be found without an email is not what
+                    // "sign in with a passkey" promises, and one that skips the biometric is a single factor.
+                    ResidentKey = "required",
+                    UserVerification = "required",
+                },
+                ExcludeCredentials = [.. challenge.ExcludeCredentials.Select(id => new CredentialDescriptor(id))],
+            })
+            .ConfigureAwait(false);
+
+        if (created is null)
+        {
+            // The visitor dismissed the dialog, or it timed out. Not an error to throw at them.
+            return AuthResult.Fail(AuthError.PasskeyRejected, "No passkey was created.");
+        }
+
+        return await ExchangeAsync(
+                AuthApi.PasskeyRegister,
+                new PasskeyRegistrationRequest(
+                    challenge.State,
+                    name,
+                    created.RawId,
+                    created.ClientDataJson,
+                    created.AttestationObject,
+                    created.Transports),
+                AuthJsonContext.Default.PasskeyRegistrationRequest)
+            .ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public async Task<AuthResult> SignInWithPasskeyAsync(bool remember = false, string? returnUrl = null)
+    {
+        if (await AskAsync(AuthApi.PasskeyLoginOptions, AuthJsonContext.Default.PasskeyRequestChallenge)
+                .ConfigureAwait(false) is not { } challenge)
+        {
+            return AuthResult.Fail(AuthError.NotAllowed);
+        }
+
+        var assertion = await webAuthn
+            .GetAsync(new PublicKeyCredentialRequestOptions
+            {
+                Challenge = challenge.Challenge,
+                RpId = challenge.RelyingPartyId,
+                TimeoutMs = challenge.TimeoutMs,
+
+                // No allow-list: the authenticator offers what it holds for this site, so the visitor types nothing.
+                UserVerification = "required",
+            })
+            .ConfigureAwait(false);
+
+        if (assertion is null)
+        {
+            return AuthResult.Fail(AuthError.InvalidCredentials);
+        }
+
+        return await PostAsync(
+                AuthApi.PasskeyLogin,
+                new PasskeyLoginRequest(
+                    challenge.State,
+                    assertion.RawId,
+                    assertion.ClientDataJson,
+                    assertion.AuthenticatorData,
+                    assertion.Signature,
+                    assertion.UserHandle,
+                    remember),
+                AuthJsonContext.Default.PasskeyLoginRequest,
+                returnUrl)
+            .ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public Task<AuthResult> RemovePasskeyAsync(Guid id) =>
+        ExchangeAsync(
+            AuthApi.PasskeyRemove,
+            new RemovePasskeyRequest(id.ToString()),
+            AuthJsonContext.Default.RemovePasskeyRequest);
+
+    /// <summary>A POST with no body whose answer is the thing being asked for.</summary>
+    /// <remarks>
+    /// POST rather than GET because these mint a challenge, and because the required header is what keeps another
+    /// origin from driving them. <see langword="null" /> for every refusal: the only reasons are that passkeys are off
+    /// or that nobody is signed in, and neither is something a page can act on differently.
+    /// </remarks>
+    private async Task<TResult?> AskAsync<TResult>(string route, JsonTypeInfo<TResult> resultType)
+        where TResult : class
+    {
+        using var request = Request(route);
+
+        try
+        {
+            using var response = await http.SendAsync(request).ConfigureAwait(false);
+
+            return response.IsSuccessStatusCode
+                ? await response.Content.ReadFromJsonAsync(resultType).ConfigureAwait(false)
+                : null;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException)
+        {
+            return null;
+        }
+    }
 
     private async Task<AuthResult> PostAsync<TBody>(
         string route, TBody body, JsonTypeInfo<TBody> bodyType, string? returnUrl)

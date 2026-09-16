@@ -262,6 +262,39 @@ public sealed class AuthOptions
         }
     }
 
+    /// <summary>Whether an account may add passkeys and sign in with them. On by default.</summary>
+    /// <remarks>
+    /// Passwords are unaffected either way: a passkey is another way in, never a replacement. Turning this off hides the
+    /// "Sign in with a passkey" button and refuses the passkey endpoints; passkeys already added stay in the table and
+    /// work again the moment it is turned back on.
+    /// </remarks>
+    public bool Passkeys { get; set; } = true;
+
+    /// <summary>
+    /// The domain passkeys are bound to. Defaults to the host of <see cref="PublicOrigin" />, else the request's.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A bare registrable domain — <c>example.com</c>, never <c>https://example.com</c> and never a port. A passkey
+    /// made for one of these can only ever be used on it, which is what makes passkeys unphishable, and which is also
+    /// why <b>changing it invalidates every passkey already registered</b>. Set it to the parent domain
+    /// (<c>example.com</c>) if the app is served from several subdomains and one passkey should work on all of them.
+    /// </para>
+    /// </remarks>
+    public string? PasskeyRelyingPartyId { get; set; }
+
+    /// <summary>The site name the platform's passkey dialog shows. Defaults to the entry assembly's name.</summary>
+    public string? PasskeyRelyingPartyName { get; set; }
+
+    /// <summary>
+    /// The origins a passkey ceremony may come from. Defaults to <see cref="PublicOrigin" />, else the request's.
+    /// </summary>
+    /// <remarks>
+    /// Full origins, scheme and all — <c>https://app.example.com</c>. Add one per subdomain the app is served from.
+    /// A ceremony from anywhere else is refused, whatever it signed.
+    /// </remarks>
+    public IList<string> PasskeyOrigins { get; } = [];
+
     /// <summary>Throws when the options cannot produce a working app.</summary>
     internal void Validate()
     {
@@ -283,6 +316,16 @@ public sealed class AuthOptions
         {
             throw new ArgumentOutOfRangeException(
                 nameof(TokenLifetime), TokenLifetime, "The token lifetime must be positive.");
+        }
+
+        // Caught at startup rather than at the first ceremony: an RP id with a scheme or a port hashes to something no
+        // browser will ever produce, so every passkey would fail to verify with nothing to point at.
+        if (PasskeyRelyingPartyId is { } rpId
+            && (rpId.Contains("://", StringComparison.Ordinal) || rpId.Contains(':') || rpId.Contains('/')))
+        {
+            throw new ArgumentException(
+                $"The passkey relying party id must be a bare domain such as 'example.com', but was '{rpId}'.",
+                nameof(PasskeyRelyingPartyId));
         }
     }
 }

@@ -4,7 +4,6 @@ Rask.Auth.Client.AuthClientOptions.AuthClientOptions() -> void
 Rask.Auth.Client.AuthClientOptions.Prefix.get -> string!
 Rask.Auth.Client.AuthClientOptions.Prefix.set -> void
 Rask.Auth.Client.BrowserAuth
-Rask.Auth.Client.BrowserAuth.BrowserAuth(System.Net.Http.HttpClient! http, Rask.Core.Authentication.IUserProvider! users, Rask.Core.Routing.Navigator! navigator, Rask.Auth.Client.AuthClientOptions! options) -> void
 Rask.Auth.Client.BrowserAuth.ConfirmEmailAsync(string! userId, string! token) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 Rask.Auth.Client.BrowserAuth.RegisterAsync(string! email, string! password, string? returnUrl = null, string? firstRunToken = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 Rask.Auth.Client.BrowserAuth.ResetPasswordAsync(string! userId, string! token, string! password) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
@@ -22,3 +21,7 @@ Rask.Auth.Client.RaskAuthClientServiceCollectionExtensions
 static Rask.Auth.Client.RaskAuthClientServiceCollectionExtensions.AddRaskAuthClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Auth.Client.AuthClientOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 Rask.Auth.Client.BrowserAuth.SignOutEverywhereAsync(string? returnUrl = null) -> System.Threading.Tasks.Task!
 Rask.Auth.Client.BrowserAuth.SignOutOtherDevicesAsync() -> System.Threading.Tasks.Task!
+Rask.Auth.Client.BrowserAuth.AddPasskeyAsync(string? name = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+Rask.Auth.Client.BrowserAuth.BrowserAuth(System.Net.Http.HttpClient! http, Rask.Core.Authentication.IUserProvider! users, Rask.Core.Routing.Navigator! navigator, Rask.Core.Browser.IWebAuthn! webAuthn, Rask.Auth.Client.AuthClientOptions! options) -> void
+Rask.Auth.Client.BrowserAuth.RemovePasskeyAsync(System.Guid id) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+Rask.Auth.Client.BrowserAuth.SignInWithPasskeyAsync(bool remember = false, string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!

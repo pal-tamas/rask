@@ -128,7 +128,7 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
     public void Chips_zero_collapses_to_a_count_alone()
     {
         // For a box that must keep one width whatever is picked.
-        var html = UiMultiSelect.Value<string>(["core", "ui"]).Options(Packages).Label("Packages")
+        var html = UiSelect.Values<string>(["core", "ui"]).Options(Packages).Label("Packages")
             .Native(false).Chips(0).ToHtml();
 
         Assert.Contains("2 selected", html);
@@ -138,7 +138,7 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void An_empty_selection_shows_the_placeholder_and_no_chips()
     {
-        var html = UiMultiSelect.Value<string>([]).Options(Packages).Label("Packages")
+        var html = UiSelect.Values<string>([]).Options(Packages).Label("Packages")
             .Native(false).Placeholder("Choose packages").ToHtml();
 
         Assert.Contains("Choose packages", html);
@@ -150,7 +150,7 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
     {
         // Unlike the single-select's. A "choose one" row in a list you may choose several from is an
         // answer that contradicts its own question.
-        var html = UiMultiSelect.Value<string>([]).Options(Packages).Label("Packages")
+        var html = UiSelect.Values<string>([]).Options(Packages).Label("Packages")
             .Placeholder("Choose packages").ToHtml();
 
         Assert.DoesNotContain("<option value=\"\"", html);
@@ -161,7 +161,9 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
     {
         // Supplying the predicate is what adds the box: the control never assumes the shape of your
         // data, so it cannot decide on its own what "matches" means.
-        Assert.DoesNotContain("Search…", Custom(["core"]));
+        // The ellipsis is encoded on the way out — spelling it the source's way makes the assertion pass
+        // whether or not the box is there, which is no assertion at all.
+        Assert.DoesNotContain("Search&#x2026;", Custom(["core"]));
     }
 
     [Fact]
@@ -169,14 +171,14 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
     {
         Assert.DoesNotContain("Select all", Custom(["core"]));
         Assert.Contains("Select all",
-            UiMultiSelect.Value<string>(["core"]).Options(Packages).Label("Packages")
+            UiSelect.Values<string>(["core"]).Options(Packages).Label("Packages")
                 .Native(false).SelectAll(true).ToHtml());
     }
 
     [Fact]
     public void Select_all_becomes_clear_all_once_everything_is_in()
     {
-        var html = UiMultiSelect.Value<string>(["core", "ui", "cli", "blazor", "ext"])
+        var html = UiSelect.Values<string>(["core", "ui", "cli", "blazor", "ext"])
             .Options(Packages).Label("Packages").Native(false).SelectAll(true).ToHtml();
 
         Assert.Contains("Clear all", html);
@@ -188,7 +190,7 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
     {
         // Everything selectable is already in, so the bulk action has nothing left to add even though
         // one option is unpicked — it must not offer to select a disabled row.
-        var html = UiMultiSelect.Value<string>(["core", "ui", "cli", "ext"])
+        var html = UiSelect.Values<string>(["core", "ui", "cli", "ext"])
             .Options(Packages).Label("Packages").Native(false).SelectAll(true)
             .OptionDisabled(v => v == "blazor").ToHtml();
 
@@ -198,7 +200,7 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_disabled_option_says_so_and_is_unreachable()
     {
-        var html = UiMultiSelect.Value<string>([]).Options(Packages).Label("Packages")
+        var html = UiSelect.Values<string>([]).Options(Packages).Label("Packages")
             .Native(false).OptionDisabled(v => v == "blazor").ToHtml();
 
         Assert.Contains("aria-disabled=\"true\"", html);
@@ -216,7 +218,7 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Grouping_puts_headers_in_the_list()
     {
-        var html = UiMultiSelect.Value<string>([]).Options(Packages).Label("Packages")
+        var html = UiSelect.Values<string>([]).Options(Packages).Label("Packages")
             .Native(false).OptionGroup(v => v is "core" or "ui" ? "Rendering" : "Tooling").ToHtml();
 
         Assert.Contains("menu-title", html);
@@ -231,7 +233,7 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
         // silently drop its field.
         Assert.DoesNotContain("type=\"hidden\"", Custom(["core", "ui"]));
 
-        var html = UiMultiSelect.Value<string>(["core", "ui"]).Options(Packages).Label("Packages")
+        var html = UiSelect.Values<string>(["core", "ui"]).Options(Packages).Label("Packages")
             .Native(false).Name("packages").ToHtml();
 
         // One per answer, all sharing the name — byte for byte what <select multiple> posts, so a server
@@ -245,7 +247,7 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
     {
         // An <option> holds text and nothing else, so there is nowhere in the platform's control for
         // markup to go — supplying a template is therefore a choice of mode as well.
-        var html = UiMultiSelect.Value<string>(["core"]).Options(Packages).Label("Packages")
+        var html = UiSelect.Values<string>(["core"]).Options(Packages).Label("Packages")
             .OptionTemplate(v => Span.Class("badge-dot")[v]).ToHtml();
 
         Assert.DoesNotContain("<select", html);
@@ -255,7 +257,7 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_chip_template_draws_the_box_while_the_rows_keep_their_words()
     {
-        var html = UiMultiSelect.Value<string>(["core"]).Options(Packages).Label("Packages")
+        var html = UiSelect.Values<string>(["core"]).Options(Packages).Label("Packages")
             .Native(false).ChipTemplate(v => Span.Class("chip-mark")[v]).ToHtml();
 
         Assert.Contains("chip-mark", html);
@@ -275,10 +277,10 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
     {
         // A field that is visibly red and says nothing is half a message.
         Assert.Contains("aria-invalid=\"true\"",
-            UiMultiSelect.Value<string>([]).Options(Packages).Label("Packages")
+            UiSelect.Values<string>([]).Options(Packages).Label("Packages")
                 .Tone(UiTone.Error).ToHtml());
         Assert.Contains("aria-invalid=\"true\"",
-            UiMultiSelect.Value<string>([]).Options(Packages).Label("Packages")
+            UiSelect.Values<string>([]).Options(Packages).Label("Packages")
                 .Native(false).Tone(UiTone.Error).ToHtml());
     }
 
@@ -315,7 +317,7 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
         // Not the DOM's single `value`, which for a multi-select is only the FIRST picked option — the
         // reason this control takes the raw values rather than forwarding Bind to Select.
         var html = global::Rask.Testing.RaskTest.Render(
-            UiMultiSelect.Value<string>(["core"]).Options(Packages).Label("Packages")).Html;
+            UiSelect.Values<string>(["core"]).Options(Packages).Label("Packages")).Html;
 
         Assert.Contains("data-rask-on-change", html);
     }
@@ -333,14 +335,14 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
     }
 
     private static string Native(string[] chosen) =>
-        UiMultiSelect.Value<string>(chosen).Options(Packages).Label("Packages").ToHtml();
+        UiSelect.Values<string>(chosen).Options(Packages).Label("Packages").ToHtml();
 
     private static string Custom(string[] chosen) =>
-        UiMultiSelect.Value<string>(chosen).Options(Packages).Label("Packages").Native(false).ToHtml();
+        UiSelect.Values<string>(chosen).Options(Packages).Label("Packages").Native(false).ToHtml();
 
     // Handlers only exist inside a live render, so the attribute assertions above need one.
     private static string Live() =>
         global::Rask.Testing.RaskTest.Render(
-            UiMultiSelect.Value<string>(["core"]).Options(Packages).Label("Packages")
+            UiSelect.Values<string>(["core"]).Options(Packages).Label("Packages")
                 .Native(false)).Html;
 }

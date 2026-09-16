@@ -347,10 +347,10 @@ public static class GuideCatalog
 
 
         // ---- Integration ----
-        new("authentication", "Authentication", "Cookie sessions and OIDC on Server and WASM, route guards.", "Integration")
+        new("authentication", "Authentication", "Accounts, passkeys, sessions and route guards on Server and WASM.", "Integration")
         {
-            SearchTitle = "Own accounts, sessions and sign-in pages in C#",
-            Description = "Accounts on your own C# User: sign-in pages you own, a session row per device, PBKDF2 or bcrypt, throttling, email confirmation, bearer tokens.",
+            SearchTitle = "Passkeys and your own accounts in C#",
+            Description = "Add passkeys and accounts to a C# app: WebAuthn verified on the BCL, sign-in pages you own, a session row per device, PBKDF2 or bcrypt, throttling.",
         },
         new("authentication-cookie", "Auth — cookie", "Cookie login and session on Server and on a WASM SPA with an API host.", "Integration")
         {

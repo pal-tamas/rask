@@ -530,11 +530,6 @@ Rask.Ui.RaskSeed_UiModal
 Rask.Ui.RaskSeed_UiModal.Key(object? key) -> Rask.Ui.RaskSeed_UiModal
 Rask.Ui.RaskSeed_UiModal.RaskSeed_UiModal() -> void
 Rask.Ui.RaskSeed_UiModal.Title(string! Title) -> Rask.Ui.UiModal!
-Rask.Ui.RaskSeed_UiMultiSelect
-Rask.Ui.RaskSeed_UiMultiSelect.Bind<T>(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.ICollection<T>!>!>! Bind) -> Rask.Ui.RaskPending_UiMultiSelect<T>
-Rask.Ui.RaskSeed_UiMultiSelect.Of<T>() -> Rask.Ui.RaskPending_UiMultiSelect<T>
-Rask.Ui.RaskSeed_UiMultiSelect.RaskSeed_UiMultiSelect() -> void
-Rask.Ui.RaskSeed_UiMultiSelect.Value<T>(System.Collections.Generic.ICollection<T>? Value) -> Rask.Ui.RaskPending_UiMultiSelect<T>
 Rask.Ui.RaskSeed_UiNavGroup
 Rask.Ui.RaskSeed_UiNavGroup.Heading(string! Heading) -> Rask.Ui.UiNavGroup!
 Rask.Ui.RaskSeed_UiNavGroup.Key(object? key) -> Rask.Ui.RaskSeed_UiNavGroup
@@ -593,10 +588,18 @@ Rask.Ui.RaskSeed_UiSearch.Key(object? key) -> Rask.Ui.RaskSeed_UiSearch
 Rask.Ui.RaskSeed_UiSearch.Placeholder(string! Placeholder) -> Rask.Ui.RaskPending_UiSearch_Placeholder
 Rask.Ui.RaskSeed_UiSearch.RaskSeed_UiSearch() -> void
 Rask.Ui.RaskSeed_UiSelect
+Rask.Ui.RaskSeed_UiSelect.Bind<T>(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.HashSet<T>!>!>! Bind) -> Rask.Ui.RaskPending_UiMultiSelect<T>
+Rask.Ui.RaskSeed_UiSelect.Bind<T>(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.ICollection<T>!>!>! Bind) -> Rask.Ui.RaskPending_UiMultiSelect<T>
+Rask.Ui.RaskSeed_UiSelect.Bind<T>(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.IList<T>!>!>! Bind) -> Rask.Ui.RaskPending_UiMultiSelect<T>
+Rask.Ui.RaskSeed_UiSelect.Bind<T>(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.List<T>!>!>! Bind) -> Rask.Ui.RaskPending_UiMultiSelect<T>
+Rask.Ui.RaskSeed_UiSelect.Bind<T>(System.Linq.Expressions.Expression<System.Func<System.Collections.ObjectModel.Collection<T>!>!>! Bind) -> Rask.Ui.RaskPending_UiMultiSelect<T>
+Rask.Ui.RaskSeed_UiSelect.Bind<T>(System.Linq.Expressions.Expression<System.Func<System.Collections.ObjectModel.ObservableCollection<T>!>!>! Bind) -> Rask.Ui.RaskPending_UiMultiSelect<T>
 Rask.Ui.RaskSeed_UiSelect.Bind<T>(System.Linq.Expressions.Expression<System.Func<T>!>! Bind) -> Rask.Ui.RaskPending_UiSelect<T>
+Rask.Ui.RaskSeed_UiSelect.Bind<T>(System.Linq.Expressions.Expression<System.Func<T[]!>!>! Bind) -> Rask.Ui.RaskPending_UiMultiSelect<T>
 Rask.Ui.RaskSeed_UiSelect.Of<T>() -> Rask.Ui.RaskPending_UiSelect<T>
 Rask.Ui.RaskSeed_UiSelect.RaskSeed_UiSelect() -> void
 Rask.Ui.RaskSeed_UiSelect.Value<T>(T? Value) -> Rask.Ui.RaskPending_UiSelect<T>
+Rask.Ui.RaskSeed_UiSelect.Values<T>(System.Collections.Generic.ICollection<T>? Values) -> Rask.Ui.RaskPending_UiMultiSelect<T>
 Rask.Ui.RaskSeed_UiSidebar
 Rask.Ui.RaskSeed_UiSidebar.Id(string! Id) -> Rask.Ui.RaskPending_UiSidebar_Id
 Rask.Ui.RaskSeed_UiSidebar.Key(object? key) -> Rask.Ui.RaskSeed_UiSidebar
@@ -2011,12 +2014,24 @@ Rask.Ui.UiSearch.UiSearch() -> void
 Rask.Ui.UiSearch.Value.get -> string?
 Rask.Ui.UiSearch.Value.set -> void
 Rask.Ui.UiSelect<T>
+Rask.Ui.UiSelect<T>.Clearable.get -> bool?
+Rask.Ui.UiSelect<T>.Clearable.set -> void
+Rask.Ui.UiSelect<T>.EmptyText.get -> string?
+Rask.Ui.UiSelect<T>.EmptyText.set -> void
+Rask.Ui.UiSelect<T>.Filter.get -> Rask.Core.Fn<T, string!, bool>?
+Rask.Ui.UiSelect<T>.Filter.set -> void
 Rask.Ui.UiSelect<T>.Floating.get -> bool?
 Rask.Ui.UiSelect<T>.Floating.set -> void
+Rask.Ui.UiSelect<T>.Loading.get -> bool?
+Rask.Ui.UiSelect<T>.Loading.set -> void
+Rask.Ui.UiSelect<T>.LoadingText.get -> string?
+Rask.Ui.UiSelect<T>.LoadingText.set -> void
 Rask.Ui.UiSelect<T>.Name.get -> string?
 Rask.Ui.UiSelect<T>.Name.set -> void
 Rask.Ui.UiSelect<T>.Native.get -> bool?
 Rask.Ui.UiSelect<T>.Native.set -> void
+Rask.Ui.UiSelect<T>.OnSearch.get -> Rask.Core.Callback<string!>?
+Rask.Ui.UiSelect<T>.OnSearch.set -> void
 Rask.Ui.UiSelect<T>.OptionDisabled.get -> Rask.Core.Fn<T, bool>?
 Rask.Ui.UiSelect<T>.OptionDisabled.set -> void
 Rask.Ui.UiSelect<T>.OptionGroup.get -> Rask.Core.Fn<T, string!>?
@@ -2027,6 +2042,8 @@ Rask.Ui.UiSelect<T>.Options.get -> System.Collections.Generic.IReadOnlyList<(T V
 Rask.Ui.UiSelect<T>.Options.set -> void
 Rask.Ui.UiSelect<T>.Placeholder.get -> string?
 Rask.Ui.UiSelect<T>.Placeholder.set -> void
+Rask.Ui.UiSelect<T>.Searchable.get -> bool?
+Rask.Ui.UiSelect<T>.Searchable.set -> void
 Rask.Ui.UiSelect<T>.UiSelect() -> void
 Rask.Ui.UiShell
 Rask.Ui.UiShell.Theme.get -> Rask.Ui.UiThemeName?
@@ -2647,6 +2664,7 @@ static RaskBuilderSettersRask_Ui.Class<T>(this Rask.Ui.UiMenuRadioGroup<T>! __b,
 static RaskBuilderSettersRask_Ui.Class<T>(this Rask.Ui.UiMultiSelect<T>! __b, string? value) -> Rask.Ui.UiMultiSelect<T>!
 static RaskBuilderSettersRask_Ui.Class<T>(this Rask.Ui.UiSelect<T>! __b, string? value) -> Rask.Ui.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.Class<T>(this Rask.Ui.UiTextarea<T>! __b, string? value) -> Rask.Ui.UiTextarea<T>!
+static RaskBuilderSettersRask_Ui.Clearable<T>(this Rask.Ui.UiSelect<T>! __b, bool? value) -> Rask.Ui.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.Closable(this Rask.Ui.UiModal! __b, bool? value) -> Rask.Ui.UiModal!
 static RaskBuilderSettersRask_Ui.Close(this Rask.Ui.UiFab! __b, Rask.Core.Component? value) -> Rask.Ui.UiFab!
 static RaskBuilderSettersRask_Ui.CloseLabel(this Rask.Ui.UiDrawer! __b, string? value) -> Rask.Ui.UiDrawer!
@@ -2681,6 +2699,7 @@ static RaskBuilderSettersRask_Ui.Disabled<T>(this Rask.Ui.UiSelect<T>! __b, bool
 static RaskBuilderSettersRask_Ui.Disabled<T>(this Rask.Ui.UiTextarea<T>! __b, bool? value) -> Rask.Ui.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.Dismissible(this Rask.Ui.UiModal! __b, bool? value) -> Rask.Ui.UiModal!
 static RaskBuilderSettersRask_Ui.Empty<T, TKey>(this Rask.Ui.UiDataGrid<T, TKey>! __b, Rask.Core.Component? value) -> Rask.Ui.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.EmptyText<T>(this Rask.Ui.UiSelect<T>! __b, string? value) -> Rask.Ui.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.End(this Rask.Ui.UiNavbar! __b, Rask.Core.Component? value) -> Rask.Ui.UiNavbar!
 static RaskBuilderSettersRask_Ui.Error<T>(this Rask.Ui.UiInput<T>! __b, string? value) -> Rask.Ui.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Error<T>(this Rask.Ui.UiSelect<T>! __b, string? value) -> Rask.Ui.UiSelect<T>!
@@ -2693,6 +2712,8 @@ static RaskBuilderSettersRask_Ui.Expanded<T, TKey>(this Rask.Ui.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.Field<T>(this Rask.Ui.UiColumn<T>! __b, System.Linq.Expressions.Expression<System.Func<T, object?>!>? value) -> Rask.Ui.UiColumn<T>!
 static RaskBuilderSettersRask_Ui.Filter<T>(this Rask.Ui.UiMultiSelect<T>! __b, Rask.Core.Fn<T, string!, bool>? value) -> Rask.Ui.UiMultiSelect<T>!
 static RaskBuilderSettersRask_Ui.Filter<T>(this Rask.Ui.UiMultiSelect<T>! __b, System.Func<T, string!, bool>? value) -> Rask.Ui.UiMultiSelect<T>!
+static RaskBuilderSettersRask_Ui.Filter<T>(this Rask.Ui.UiSelect<T>! __b, Rask.Core.Fn<T, string!, bool>? value) -> Rask.Ui.UiSelect<T>!
+static RaskBuilderSettersRask_Ui.Filter<T>(this Rask.Ui.UiSelect<T>! __b, System.Func<T, string!, bool>? value) -> Rask.Ui.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.FirstDay(this Rask.Ui.UiCalendar! __b, System.DayOfWeek? value) -> Rask.Ui.UiCalendar!
 static RaskBuilderSettersRask_Ui.Floating<T>(this Rask.Ui.UiInput<T>! __b, bool? value) -> Rask.Ui.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Floating<T>(this Rask.Ui.UiSelect<T>! __b, bool? value) -> Rask.Ui.UiSelect<T>!
@@ -2822,6 +2843,8 @@ static RaskBuilderSettersRask_Ui.Lines(this Rask.Ui.UiMockupCode! __b, System.Co
 static RaskBuilderSettersRask_Ui.List<T>(this Rask.Ui.UiInput<T>! __b, string? value) -> Rask.Ui.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Loading(this Rask.Ui.UiButton! __b, bool? value) -> Rask.Ui.UiButton!
 static RaskBuilderSettersRask_Ui.Loading<T, TKey>(this Rask.Ui.UiDataGrid<T, TKey>! __b, bool? value) -> Rask.Ui.UiDataGrid<T, TKey>!
+static RaskBuilderSettersRask_Ui.Loading<T>(this Rask.Ui.UiSelect<T>! __b, bool? value) -> Rask.Ui.UiSelect<T>!
+static RaskBuilderSettersRask_Ui.LoadingText<T>(this Rask.Ui.UiSelect<T>! __b, string? value) -> Rask.Ui.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.MainAction(this Rask.Ui.UiFab! __b, Rask.Core.Component? value) -> Rask.Ui.UiFab!
 static RaskBuilderSettersRask_Ui.Marker(this Rask.Ui.UiAccordionSection! __b, Rask.Ui.UiMarker? value) -> Rask.Ui.UiAccordionSection!
 static RaskBuilderSettersRask_Ui.Marker(this Rask.Ui.UiCollapse! __b, Rask.Ui.UiMarker? value) -> Rask.Ui.UiCollapse!
@@ -2962,6 +2985,9 @@ static RaskBuilderSettersRask_Ui.OnRowClick<T, TKey>(this Rask.Ui.UiDataGrid<T, 
 static RaskBuilderSettersRask_Ui.OnSearch(this Rask.Ui.UiSearch! __b, Rask.Core.Callback<string!>? value) -> Rask.Ui.UiSearch!
 static RaskBuilderSettersRask_Ui.OnSearch(this Rask.Ui.UiSearch! __b, System.Action<string!>? value) -> Rask.Ui.UiSearch!
 static RaskBuilderSettersRask_Ui.OnSearch(this Rask.Ui.UiSearch! __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.Ui.UiSearch!
+static RaskBuilderSettersRask_Ui.OnSearch<T>(this Rask.Ui.UiSelect<T>! __b, Rask.Core.Callback<string!>? value) -> Rask.Ui.UiSelect<T>!
+static RaskBuilderSettersRask_Ui.OnSearch<T>(this Rask.Ui.UiSelect<T>! __b, System.Action<string!>? value) -> Rask.Ui.UiSelect<T>!
+static RaskBuilderSettersRask_Ui.OnSearch<T>(this Rask.Ui.UiSelect<T>! __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.Ui.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.OnSelect(this Rask.Ui.UiCrumbSwitcher! __b, Rask.Core.Callback<string!>? value) -> Rask.Ui.UiCrumbSwitcher!
 static RaskBuilderSettersRask_Ui.OnSelect(this Rask.Ui.UiCrumbSwitcher! __b, System.Action<string!>? value) -> Rask.Ui.UiCrumbSwitcher!
 static RaskBuilderSettersRask_Ui.OnSelect(this Rask.Ui.UiCrumbSwitcher! __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.Ui.UiCrumbSwitcher!
@@ -3053,6 +3079,7 @@ static RaskBuilderSettersRask_Ui.RowTone<T, TKey>(this Rask.Ui.UiDataGrid<T, TKe
 static RaskBuilderSettersRask_Ui.RowTone<T, TKey>(this Rask.Ui.UiDataGrid<T, TKey>! __b, System.Func<T, Rask.Ui.UiTone?>? value) -> Rask.Ui.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.Rows<T>(this Rask.Ui.UiTextarea<T>! __b, int? value) -> Rask.Ui.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.Scroll(this Rask.Ui.UiTable! __b, bool? value) -> Rask.Ui.UiTable!
+static RaskBuilderSettersRask_Ui.Searchable<T>(this Rask.Ui.UiSelect<T>! __b, bool? value) -> Rask.Ui.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.SelectAll<T>(this Rask.Ui.UiMultiSelect<T>! __b, bool? value) -> Rask.Ui.UiMultiSelect<T>!
 static RaskBuilderSettersRask_Ui.Selected<T, TKey>(this Rask.Ui.UiDataGrid<T, TKey>! __b, System.Collections.Generic.IReadOnlyList<TKey>? value) -> Rask.Ui.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.Selected<T, TKey>(this Rask.Ui.UiTree<T, TKey>! __b, System.Collections.Generic.IReadOnlyList<TKey>? value) -> Rask.Ui.UiTree<T, TKey>!
@@ -3543,7 +3570,6 @@ static RaskEntriesRask_Ui.UiMockupCode.get -> Rask.Ui.RaskSeed_UiMockupCode
 static RaskEntriesRask_Ui.UiMockupPhone.get -> Rask.Ui.UiMockupPhone!
 static RaskEntriesRask_Ui.UiMockupWindow.get -> Rask.Ui.UiMockupWindow!
 static RaskEntriesRask_Ui.UiModal.get -> Rask.Ui.RaskSeed_UiModal
-static RaskEntriesRask_Ui.UiMultiSelect.get -> Rask.Ui.RaskSeed_UiMultiSelect
 static RaskEntriesRask_Ui.UiNav.get -> Rask.Ui.UiNav!
 static RaskEntriesRask_Ui.UiNavGroup.get -> Rask.Ui.RaskSeed_UiNavGroup
 static RaskEntriesRask_Ui.UiNavItem.get -> Rask.Ui.RaskSeed_UiNavItem
