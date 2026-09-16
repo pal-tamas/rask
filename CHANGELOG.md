@@ -28,6 +28,14 @@ them until tagged releases begin.
   remember it. `UiNavTab` gains `Icon`, `Badge`/`BadgeTone`, `Match`/`MatchPrefix`, and works `Active` out from the
   route when it is unset — as `UiNavItem` already did. `UiBrand` gains `Logo` for a real image mark; `UiTopBar`
   gains `Sticky` and `Class`; `UiMain` gains `Container` and `Class`; `UiNavList` gains `Outline`.
+- **Rask UI gets Flux UI's tab group.** New `UiTabGroup` and `UiTabPanel`, and `UiTab` gains `Name` and `Icon`:
+  a tab with an `Href` is still the real link it was, and one with a `Name` shows a `UiTabPanel` inside a group —
+  one component, because a reader sees one thing. Put the `UiTabs` row inside the group and it becomes the
+  `tablist` and takes the keyboard: ArrowLeft/ArrowRight move and SHOW as they go, Home and End jump, and they
+  wrap. Only the selected tab is a tab stop, so Tab lands in the panel rather than walking every tab; every
+  panel is rendered with the ones not shown carrying `hidden`, so the browser's own find-in-page still reaches
+  them. `Selected`/`OnSelect` hand the choice to the page, and a group without them shows the first tab and
+  keeps track itself.
 - **Rask UI gets Flux UI's checkbox and radio LISTS.** New `UiRadioGroup<T>`, which binds the group's value, and
   `UiCheckboxGroup<T>`, which binds the collection your model declares (with `CheckAll`, reporting
   `aria-checked="mixed"` over a half-filled list rather than claiming "all"). Both take `Layout`
@@ -140,6 +148,9 @@ them until tagged releases begin.
 - **BREAKING (Rask UI):** `UiMultiSelect` is no longer a name a call site types. The multi-value select is reached
   through `UiSelect` — `UiSelect.Bind(() => model.Tags)` or `UiSelect.Values(picked)` — and typing `UiMultiSelect` in
   markup now names the type rather than the chain, which does not compile.
+- **BREAKING (Rask UI):** `UiTab.Href` is no longer required, so `Label` is what opens the chain —
+  `UiTab.Label("All").Href("/orders")` rather than the other way round. That is what lets one `UiTab` be both the
+  link and the tab over a `UiTabPanel`.
 
 ### Fixed
 

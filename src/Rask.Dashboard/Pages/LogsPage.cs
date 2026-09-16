@@ -183,8 +183,8 @@ public sealed partial class LogsPage(
     private Component ModeTab(string? view, string label) =>
         UiTab
             .Key(label)
-            .Href(Routes.LogsPage(View: view, Level: Level, Category: Category))
             .Label(label)
+            .Href(Routes.LogsPage(View: view, Level: Level, Category: Category))
             .Active(IsHistory == (view is not null));
 
     // The grid's toolbar lays these out as one row from sm up and one control per line below it, which is
@@ -204,8 +204,8 @@ public sealed partial class LogsPage(
     private Component LevelPill(LogLevel? level, string label) =>
         UiTab
             .Key(label)
-            .Href(Link(level: level?.ToString(), category: Category))
             .Label(label)
+            .Href(Link(level: level?.ToString(), category: Category))
             .Active(MinimumLevel == level);
 
     // A native select rather than a drawn list: a real application has dozens of logger categories, and the

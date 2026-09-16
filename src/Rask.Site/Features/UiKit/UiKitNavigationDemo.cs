@@ -10,6 +10,8 @@ namespace Rask.Site.Features.UiKit;
 /// </remarks>
 public sealed partial class UiKitNavigationDemo : Component
 {
+    private string _pane = "details";
+
     /// <inheritdoc />
     protected override Component? Render() =>
     [
@@ -44,19 +46,44 @@ public sealed partial class UiKitNavigationDemo : Component
             + "back button.",
             Div.Data(Testid("ui-tabs")).Class("space-y-4")[
                 UiTabs.Style(UiTabStyle.Box)[
-                    UiTab.Key("all").Href("#all").Label("All").Active(true).Count("128"),
-                    UiTab.Key("open").Href("#open").Label("Open").Count("12"),
-                    UiTab.Key("failed").Href("#failed").Label("Failed").Count("3").Alarm(true)
+                    UiTab.Key("all").Label("All").Href("#all").Active(true).Count("128"),
+                    UiTab.Key("open").Label("Open").Href("#open").Count("12"),
+                    UiTab.Key("failed").Label("Failed").Href("#failed").Count("3").Alarm(true)
                 ],
                 UiTabs.Style(UiTabStyle.Border).Size(UiSize.Sm)[
-                    UiTab.Key("b1").Href("#one").Label("Bordered").Active(true),
-                    UiTab.Key("b2").Href("#two").Label("Second"),
-                    UiTab.Key("b3").Href("#three").Label("Unavailable").Disabled(true)
+                    UiTab.Key("b1").Label("Bordered").Href("#one").Active(true),
+                    UiTab.Key("b2").Label("Second").Href("#two"),
+                    UiTab.Key("b3").Label("Unavailable").Href("#three").Disabled(true)
                 ],
                 UiTabs.Style(UiTabStyle.Lift)[
-                    UiTab.Key("l1").Href("#one").Label("Lifted").Active(true),
-                    UiTab.Key("l2").Href("#two").Label("Second")
+                    UiTab.Key("l1").Label("Lifted").Href("#one").Active(true),
+                    UiTab.Key("l2").Label("Second").Href("#two")
                 ]
+            ]),
+
+        Section(
+            "Tab group — panels for views with no URL",
+            "The same UiTab, given a Name instead of an Href, and a UiTabPanel per name. For a detail pane "
+            + "beside a record, where an address would be inventing state the page does not have. The arrows "
+            + "move and show as they go, Home and End jump, and only the selected tab is a tab stop — so Tab "
+            + "lands in the panel rather than walking every remaining tab. Every panel is in the markup, so "
+            + "the browser's own find-in-page reaches the ones that are not shown.",
+            Div.Data(Testid("ui-tab-group"))[
+                UiTabGroup.Selected(_pane).OnSelect(p => { _pane = p; })[
+                    UiTabs.Key("row").Style(UiTabStyle.Border)[
+                        UiTab.Key("t1").Label("Details").Name("details").Icon(UiIconName.Book),
+                        UiTab.Key("t2").Label("History").Name("history").Icon(UiIconName.Clock).Count("4"),
+                        UiTab.Key("t3").Label("Danger").Name("danger").Disabled(true)
+                    ],
+                    UiTabPanel.Key("p1").Name("details").Class("text-sm")[
+                        "Everything about this record that does not change."
+                    ],
+                    UiTabPanel.Key("p2").Name("history").Class("text-sm")[
+                        "Four changes, most recent first."
+                    ],
+                    UiTabPanel.Key("p3").Name("danger").Class("text-sm")["Nothing here."]
+                ],
+                P.Class("mt-2 text-sm text-ui-muted").Data(Testid("ui-tab-group-state"))[$"Showing: {_pane}."]
             ]),
 
         Section(

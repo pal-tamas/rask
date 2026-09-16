@@ -526,9 +526,35 @@ UiDropdown.Trigger("Actions").Open(_open).OnToggle(open => _open = open)[ … ]
 **The page owns it, in C#.** `UiCollapse`, `UiAccordion`, `UiSwap`, `UiTabs` and `UiModal`'s `Open` path hold
 their state in a field and redraw through the live diff.
 
-**The markup owns it.** `UiTab` is a real link with a real URL, so a tab is bookmarkable, survives a
-refresh and answers the back button. `UiDrawer` keeps its checkbox because daisyUI's rules are written
-against `.drawer-toggle:checked`; C# sets it and hears it change, but the input is the component.
+**The markup owns it.** `UiTab` with an `Href` is a real link with a real URL, so a tab is bookmarkable,
+survives a refresh and answers the back button. `UiDrawer` keeps its checkbox because daisyUI's rules are
+written against `.drawer-toggle:checked`; C# sets it and hears it change, but the input is the component.
+
+**And for a view with no URL, the same tab takes a `Name` instead.** Wrap the row in a `UiTabGroup` and give
+each tab a `UiTabPanel`:
+
+```csharp
+UiTabGroup.Selected(_pane).OnSelect(p => _pane = p)[
+    UiTabs[
+        UiTab.Label("Details").Name("details"),
+        UiTab.Label("History").Name("history")
+    ],
+    UiTabPanel.Name("details")[ /* … */ ],
+    UiTabPanel.Name("history")[ /* … */ ]
+]
+```
+
+One component for both, because a reader sees one thing — what it is comes from what it is given. The
+`UiTabs` inside the group is not ceremony: a `tablist` may contain only tabs, so the panels cannot be its
+siblings, and it is the structure Flux uses for the same reason. Leave `Selected` off and the group shows the
+first tab and keeps track itself.
+
+Inside a group the tab is a real `<button>`, not a link — there is nowhere for it to go, and an `href="#"` is
+one the browser follows, putting a stray fragment in the address bar and breaking the back button it was meant
+to protect. The keyboard is the tabs pattern: **ArrowLeft/ArrowRight move and show as they go**, Home and End
+jump to the ends, and they wrap. Only the selected tab is a tab stop, so Tab out of the row lands *in* the
+panel rather than walking every remaining tab. Every panel is rendered, with the ones not shown carrying
+`hidden`, so their content is still findable by the browser's own in-page search.
 
 **And one that lets you choose.** `UiSelect` is the platform's `<select>` by default and draws its own
 list when `Native` is `false` — a `[popover]` `role="listbox"` under a `role="combobox"` box, with the
