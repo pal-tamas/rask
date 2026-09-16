@@ -79,6 +79,21 @@ public static class AuthApi
 
     /// <summary>The <c>reset-password</c> route, relative to the prefix.</summary>
     public const string ResetPassword = "/reset-password";
+
+    /// <summary>The route that starts adding a passkey, relative to the prefix.</summary>
+    public const string PasskeyRegisterOptions = "/passkeys/register-options";
+
+    /// <summary>The route that finishes adding a passkey, relative to the prefix.</summary>
+    public const string PasskeyRegister = "/passkeys/register";
+
+    /// <summary>The route that starts a passkey sign-in, relative to the prefix.</summary>
+    public const string PasskeyLoginOptions = "/passkeys/login-options";
+
+    /// <summary>The route that finishes a passkey sign-in, relative to the prefix.</summary>
+    public const string PasskeyLogin = "/passkeys/login";
+
+    /// <summary>The route that removes a passkey, relative to the prefix.</summary>
+    public const string PasskeyRemove = "/passkeys/remove";
 }
 
 /// <summary>Credentials for a new account.</summary>
@@ -144,3 +159,83 @@ public sealed record BearerSession(
 /// contract deliberately does not reference, so it travels as its name.</param>
 /// <param name="Message">A human-readable detail, when there is one.</param>
 public sealed record AuthFailure(string Error, string? Message);
+
+/// <summary>
+/// What the browser needs to create a passkey, and the sealed state that carries the challenge back.
+/// </summary>
+/// <remarks>
+/// Every binary field is base64url, which is how the browser's own WebAuthn API takes and returns them, so a
+/// TypeScript front end can pass these straight to <c>navigator.credentials.create</c> after decoding.
+/// <see cref="State" /> is opaque: it is the challenge, signed and expiring, and the server will not accept a
+/// registration without it.
+/// </remarks>
+/// <param name="State">The sealed challenge, posted back with the result and never read by the client.</param>
+/// <param name="Challenge">The challenge to sign, base64url.</param>
+/// <param name="RelyingPartyId">The domain the passkey is bound to.</param>
+/// <param name="RelyingPartyName">The site name the platform UI shows.</param>
+/// <param name="UserId">The user handle, base64url — the account id, never the address.</param>
+/// <param name="UserName">What the platform UI lists the account as.</param>
+/// <param name="UserDisplayName">The friendlier name beside it.</param>
+/// <param name="ExcludeCredentials">Credential ids the account already has, base64url, so one key is not added twice.</param>
+/// <param name="TimeoutMs">How long the browser should wait for the user.</param>
+public sealed record PasskeyCreationChallenge(
+    string State,
+    string Challenge,
+    string RelyingPartyId,
+    string RelyingPartyName,
+    string UserId,
+    string UserName,
+    string UserDisplayName,
+    IReadOnlyList<string> ExcludeCredentials,
+    int TimeoutMs);
+
+/// <summary>What the browser needs to sign in with a passkey, and the sealed state that carries the challenge back.</summary>
+/// <remarks>
+/// No credential list: the ceremony is discoverable, so the authenticator offers the accounts it holds for this site
+/// and the visitor types nothing. That is the whole point of passkey sign-in.
+/// </remarks>
+/// <param name="State">The sealed challenge, posted back with the result and never read by the client.</param>
+/// <param name="Challenge">The challenge to sign, base64url.</param>
+/// <param name="RelyingPartyId">The domain the passkey is bound to.</param>
+/// <param name="TimeoutMs">How long the browser should wait for the user.</param>
+public sealed record PasskeyRequestChallenge(
+    string State,
+    string Challenge,
+    string RelyingPartyId,
+    int TimeoutMs);
+
+/// <summary>A created passkey, on its way to be verified and stored.</summary>
+/// <param name="State">The sealed challenge the ceremony started with.</param>
+/// <param name="Name">What to call it in the account's device list.</param>
+/// <param name="RawId">The credential id, base64url.</param>
+/// <param name="ClientDataJson">The client data, base64url.</param>
+/// <param name="AttestationObject">The attestation object, base64url.</param>
+/// <param name="Transports">How the browser says it can reach this authenticator.</param>
+public sealed record PasskeyRegistrationRequest(
+    string State,
+    string? Name,
+    string RawId,
+    string ClientDataJson,
+    string AttestationObject,
+    IReadOnlyList<string>? Transports = null);
+
+/// <summary>A signed challenge, on its way to be verified into a session.</summary>
+/// <param name="State">The sealed challenge the ceremony started with.</param>
+/// <param name="RawId">The credential id, base64url.</param>
+/// <param name="ClientDataJson">The client data, base64url.</param>
+/// <param name="AuthenticatorData">The authenticator data, base64url.</param>
+/// <param name="Signature">The signature over the authenticator data and the client-data hash, base64url.</param>
+/// <param name="UserHandle">The user handle the authenticator returned, base64url, for a discoverable credential.</param>
+/// <param name="Remember">Whether the session should outlive the browser session.</param>
+public sealed record PasskeyLoginRequest(
+    string State,
+    string RawId,
+    string ClientDataJson,
+    string AuthenticatorData,
+    string Signature,
+    string? UserHandle = null,
+    bool Remember = false);
+
+/// <summary>The passkey to remove.</summary>
+/// <param name="Id">Its id, as <c>/me</c> and the device list report it.</param>
+public sealed record RemovePasskeyRequest(string Id);

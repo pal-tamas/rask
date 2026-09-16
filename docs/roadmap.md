@@ -55,13 +55,13 @@ None of these has an implementation today — if your product needs one, you'll 
 
 ### The rest of the account lifecycle
 Accounts themselves [shipped](authentication.md): registration, sign-in, sign-out, password hashing (PBKDF2 or
-bcrypt), throttling and revocable sessions, on by default on the app's own `User`. What is **not** here yet is the rest of the
-lifecycle — email verification, password reset, MFA, and external providers (Google, GitHub, an
-enterprise OIDC). The token providers those flows are built from are already registered, so each is an
-addition rather than a redesign; none of them exists today.
+bcrypt), throttling, revocable sessions, email confirmation, password reset, and **passkeys** — Rask stores the
+credential and verifies WebAuthn itself, on the base class library, with no FIDO library. All on by default on the
+app's own `User`.
 
-Passkeys are closer than they look: `IWebAuthn` is a complete typed wrapper over the browser API, and
-what it lacks is credential storage and server-side challenge verification.
+What is **not** here yet is MFA beyond what a passkey already is (TOTP codes, recovery codes) and external providers
+(Google, GitHub, an enterprise OIDC). Each is an addition rather than a redesign — the sealed-token and session
+machinery those flows need is already here — but none of them exists today.
 
 ### Another database
 The provider packages have shipped: [`Rask.Postgres`](data.md#postgresql) and

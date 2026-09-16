@@ -30,6 +30,10 @@ namespace Rask.Ui;
 /// <c>ICollection&lt;T&gt;</c>, so the chain has nothing to infer from.
 /// </para>
 /// </remarks>
+// One name at the call site: `UiSelect.Bind(() => model.Country)` is this control's single-valued twin and
+// `UiSelect.Bind(() => model.Tags)` is this one. The model already says which it is — a value or a collection
+// of them — so the page never chooses between two component names, and the openings are told apart by type.
+[RaskChainEntry("UiSelect")]
 public sealed partial class UiMultiSelect<T> : Component, IFormControl<ICollection<T>>
 {
     // How many chips the box shows before it collapses the rest into "+N more". Chips(0) turns them off

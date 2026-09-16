@@ -199,13 +199,19 @@ public class HandlerDispatchTests
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
         _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
-        // Now that UseRask<TApp> wraps the App in an implicit RootErrorBoundary, a handler
-        // throw trips the boundary and the next render replaces the App's tree with the
-        // built-in DefaultErrorPage. The dispatcher must remain open afterwards.
+        // UseRask<TApp> wraps the App in an implicit RootErrorBoundary, so a handler throw trips the boundary
+        // and its render replaces the App's tree with the built-in DefaultErrorPage. The dispatcher must remain
+        // open afterwards.
+        //
+        // Read until THAT frame rather than asserting on the next one. The trip is ordered before this
+        // dispatch's render (ErrorBoundary.Trip runs inside the awaited handler, and the dispatch holds the
+        // session lock), so the frame is coming — but a session can also push a render nobody asked for, and on
+        // a loaded machine one of those can arrive here instead. #1120 was exactly that: a pre-trip document
+        // read as a missing error boundary, green on an idle machine and red under the full gate.
         await ws.SendJsonAsync(new { id = throwingId });
-        var afterThrow = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+        var afterThrow = await ws.ReceiveUntilAsync(
+            f => f.Contains("rask-error-boundary", StringComparison.Ordinal), TimeSpan.FromSeconds(5));
         Assert.NotNull(afterThrow);
-        Assert.Contains("rask-error-boundary", afterThrow);
         Assert.Contains("Something went wrong", afterThrow);
         Assert.DoesNotContain("count=", afterThrow);
 

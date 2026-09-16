@@ -393,8 +393,7 @@ points at the error message's `id` (and the help-text `id` when `HelpText:` is s
 appears, associated with the field rather than detached from it. Valid fields with `HelpText:` still get
 `aria-describedby` to the help text.
 
-A combobox control — [`UiSelect<T>`](ui-kit.md) or [`UiMultiSelect<T>`](ui-kit.md) with
-`Native: false` — carries `role="combobox"`,
+A combobox control — [`UiSelect<T>`](ui-kit.md) with `Native: false`, over one answer or many — carries `role="combobox"`,
 which is not a labelable element, so its name is given directly (`aria-label`, or `aria-labelledby`
 pointing at a visible label) rather than through a `<label for>` that would bind to nothing. Alongside
 it goes the popup contract: `aria-haspopup="listbox"`, `aria-expanded`, `aria-controls` naming the

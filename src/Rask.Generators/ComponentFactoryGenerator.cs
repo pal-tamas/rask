@@ -22,6 +22,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     private const string SkipFactoryFullName = "Rask.Core.SkipFactoryAttribute";
     private const string FactoryGenericFullName = "Rask.Core.FactoryGenericAttribute";
     private const string GenerateForwarderFactoryFullName = "Rask.Core.GenerateForwarderFactoryAttribute";
+    private const string ChainEntryFullName = "Rask.Core.RaskChainEntryAttribute";
     private const string FormControlOpenFullName = "Rask.Core.Forms.IFormControl<T>";
     private const string SubmitAwareFullName = "Rask.Core.Forms.ISubmitAware";
     private const string ColumnHostFullName = "Rask.Core.IColumnHost";
@@ -1577,8 +1578,20 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             }
         }
 
-        return openings;
+        return WithCollectionShapes(c, openings);
     }
+
+    // The collection types a model realistically declares for a multi-value field. Each gets its own opening
+    // so the exact-type overload lands on the collection-valued control rather than the single-valued one.
+    private static string[] CollectionShapes(string item) =>
+    [
+        "global::System.Collections.Generic.List<" + item + ">",
+        "global::System.Collections.Generic.IList<" + item + ">",
+        "global::System.Collections.Generic.HashSet<" + item + ">",
+        "global::System.Collections.ObjectModel.Collection<" + item + ">",
+        "global::System.Collections.ObjectModel.ObservableCollection<" + item + ">",
+        item + "[]",
+    ];
 
     // Whether a form control actually has a mode to choose. A control that implements IFormControl<T>
     // EXPLICITLY exposes neither Bind nor Value as a settable property, so there is no opening to build
@@ -1724,19 +1737,19 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             // argument to pin, or a required property. One property per component NAME.
             if (NeedsSeed(c))
             {
-                if (!seeded.Add(c.TypeName))
+                if (!seeded.Add(c.EntryName))
                 {
                     continue;
                 }
 
                 EmitEntryDoc(sb, c);
                 sb.Append(c.IsPublic ? "    protected static " : "    private protected static ")
-                    .Append(SeedFqn(c)).Append(' ').Append(EscapeIdentifier(c.TypeName))
+                    .Append(SeedFqn(c)).Append(' ').Append(EscapeIdentifier(c.EntryName))
                     .AppendLine(" = default;");
 
                 EmitEntryDoc(shared, c);
                 shared.Append(c.IsPublic ? "    public static " : "    internal static ")
-                    .Append(SeedFqn(c)).Append(' ').Append(EscapeIdentifier(c.TypeName))
+                    .Append(SeedFqn(c)).Append(' ').Append(EscapeIdentifier(c.EntryName))
                     .AppendLine(" => default;");
                 continue;
             }
@@ -1827,9 +1840,9 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 sb.AppendLine("{");
             }
 
-            foreach (var name in byNamespace.GroupBy(static c => c.TypeName, StringComparer.Ordinal))
+            foreach (var name in byNamespace.GroupBy(static c => c.EntryName, StringComparer.Ordinal))
             {
-                EmitStateTypes(sb, name.First(), scoped ? "    " : string.Empty, assemblyName, runtimePrefix);
+                EmitStateTypes(sb, [.. name], scoped ? "    " : string.Empty, assemblyName, runtimePrefix);
             }
 
             if (scoped)
@@ -1855,8 +1868,19 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     // ambiguous (CS0121). They also need no `using`, which extensions in another assembly only avoid by
     // living in the global namespace.
     private static void EmitStateTypes(
-        StringBuilder sb, Candidate c, string pad, string assemblyName, string runtimePrefix)
+        StringBuilder sb, List<Candidate> group, string pad, string assemblyName, string runtimePrefix)
     {
+        // The seed is the entry's, and every component joined to it puts its openings inside — so the
+        // states below are emitted for each of them, while the seed is written once.
+        //
+        // The entry is NAMED after one of them, and that one owns the seed's explicit type opening:
+        // `Of<T>()` takes no argument, so every joined component would emit the SAME signature and only
+        // one can survive. Whichever survived would then decide what `UiSelect.Of<string>()` builds —
+        // silently, since the chain that follows is identical. So put the namesake first, however the
+        // candidates happened to be sorted, and let it be the one `primary` means.
+        group = [.. group.OrderBy(static x =>
+            string.Equals(x.EntryName, x.TypeName, StringComparison.Ordinal) ? 0 : 1)];
+        var c = group[0];
         const string hidden =
             "[global::System.ComponentModel.EditorBrowsable("
             + "global::System.ComponentModel.EditorBrowsableState.Never)]";
@@ -1895,7 +1919,32 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             sb.Append(pad).AppendLine();
         }
 
-        EmitExplicitTypeOpening(sb, c, pad + "    ", assemblyName, runtimePrefix, required);
+        foreach (var joined in group)
+        {
+            EmitSeedOpenings(sb, joined, pad + "    ", assemblyName, runtimePrefix, seedCarriesKey, joined == c);
+        }
+
+        sb.Append(pad).AppendLine("}");
+
+        foreach (var joined in group)
+        {
+            EmitStagesAndStates(sb, joined, pad, assemblyName, runtimePrefix);
+        }
+    }
+
+    // What a chain can start with, inside the entry's seed: the explicit type opening (only for the
+    // component the entry is named after — a joined one would emit the same `Of<T>()` signature), then
+    // one step per opening.
+    private static void EmitSeedOpenings(
+        StringBuilder sb, Candidate c, string pad, string assemblyName, string runtimePrefix,
+        bool seedCarriesKey, bool primary)
+    {
+        var required = RequiredSteps(c);
+        var openings = Openings(c);
+        if (primary)
+        {
+            EmitExplicitTypeOpening(sb, c, pad, assemblyName, runtimePrefix, required);
+        }
 
         foreach (var opening in openings)
         {
@@ -1906,7 +1955,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 foreach (var first in required)
                 {
                     EmitBuildingStep(
-                        sb, c, pad + "    ", assemblyName, runtimePrefix, first, [],
+                        sb, c, pad, assemblyName, runtimePrefix, first, [],
                         new HashSet<string>(StringComparer.Ordinal) { first.PropertyName },
                         seedCarriesKey);
                 }
@@ -1919,23 +1968,34 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 // The stage is reached by the opening step, so it is instantiated in the mode that step
                 // chose — the chain is in one from here on.
                 var stageParams = TypeParametersFor(c, opening[0]);
-                sb.Append(pad).Append("    public ")
+                sb.Append(pad).Append("public ")
                     .Append(StageFqn(c, opening[0], stageParams)).Append(' ')
                     .Append(EscapeIdentifier(opening[0].ParamName)).Append(AnnotateDecl(c, stageParams)).Append('(')
                     .Append(StepParamType(opening[0])).Append(' ')
                     .Append(EscapeIdentifier(opening[0].ParamName)).Append(')')
                     .AppendLine(ConstraintsDeclaredBy(c, stageParams));
-                sb.Append(pad).Append("        => new(").Append(EscapeIdentifier(opening[0].ParamName))
+                sb.Append(pad).Append("    => new(").Append(EscapeIdentifier(opening[0].ParamName))
                     .AppendLine(");");
                 continue;
             }
 
             EmitBuildingStep(
-                sb, c, pad + "    ", assemblyName, runtimePrefix, opening[0], [],
+                sb, c, pad, assemblyName, runtimePrefix, opening[0], [],
                 SatisfiedBy(c, opening), seedCarriesKey);
         }
+    }
 
-        sb.Append(pad).AppendLine("}");
+    // The stage an opening of two pins needs, and one state per reachable subset of satisfied required
+    // properties — per joined component, since each keeps its own.
+    private static void EmitStagesAndStates(
+        StringBuilder sb, Candidate c, string pad, string assemblyName, string runtimePrefix)
+    {
+        const string hidden =
+            "[global::System.ComponentModel.EditorBrowsable("
+            + "global::System.ComponentModel.EditorBrowsableState.Never)]";
+        var visibility = c.IsPublic ? "public" : "internal";
+        var required = RequiredSteps(c);
+        var openings = Openings(c);
 
         foreach (var opening in openings.Where(static o => o.Count == 2))
         {
@@ -2337,7 +2397,74 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         var valueFirst = sets
             .Where(s => s.Count != 0 && s[0].PropertyName is "Bind" or "Value")
             .ToList();
-        return valueFirst.Count != 0 ? valueFirst : sets;
+        return WithCollectionShapes(c, valueFirst.Count != 0 ? valueFirst : sets);
+    }
+
+    // A control whose value IS a collection shares an entry with its single-valued sibling, and the two
+    // openings have to be told apart by the argument alone. Bind manages it; Value cannot, and the
+    // difference is the whole shape of this method.
+    //
+    // BIND takes a lambda, so the argument names a CONCRETE type — `() => model.Tags` is
+    // `Expression&lt;Func&lt;List&lt;string&gt;&gt;&gt;`. Against `Expression&lt;Func&lt;T&gt;&gt;` that
+    // is an exact match with T = List&lt;string&gt;, and exact beats the interface conversion to
+    // `ICollection&lt;T&gt;` — so a field holding many answers would quietly get the control that holds
+    // one, compiling and rendering and reporting nothing. One overload per concrete shape puts an exact
+    // match on this side of the choice too, and the shapes never tie with each other because
+    // `Expression&lt;T&gt;` is invariant. Each goes through a widening lift, which rebuilds the
+    // expression around a Convert that ExpressionAccessor.Parse then strips, so the member it reads and
+    // writes is still the model's own.
+    //
+    // VALUE takes the collection itself, and the two arguments people actually write — a collection
+    // expression and a bare null — are target-typed: `["a", "b"]` and `null` fit EVERY shape equally, so
+    // more overloads only turn one silent mistake into an ambiguity error. Nor does overload priority
+    // rescue it: whatever wins `null` wins it for the single-valued control too. So the collection's
+    // controlled opening is named **Values**, takes the interface alone, and collides with nothing —
+    // `UiSelect.Values(["core", "ui"])` beside `UiSelect.Value("core")`, and `Bind` shared by both.
+    private static List<List<EntryInference>> WithCollectionShapes(
+        Candidate c, List<List<EntryInference>> openings)
+    {
+        if (c.FormControl is not { CollectionElementFqn: { } item } fc)
+        {
+            return openings;
+        }
+
+        var widened = new List<List<EntryInference>>();
+        foreach (var opening in openings)
+        {
+            // Only a one-step opening. A two-step one is named after its first step, so every shape
+            // would want the same stage type and they would collide rather than overload.
+            if (opening.Count != 1)
+            {
+                widened.Add(opening);
+                continue;
+            }
+
+            if (string.Equals(opening[0].PropertyName, "Value", StringComparison.Ordinal))
+            {
+                widened.Add([opening[0] with { ParamName = "Values" }]);
+                continue;
+            }
+
+            widened.Add(opening);
+            if (!string.Equals(opening[0].PropertyName, "Bind", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            foreach (var shape in CollectionShapes(item))
+            {
+                widened.Add([
+                    opening[0] with
+                    {
+                        ParamTypeFqn = opening[0].ParamTypeFqn.Replace(fc.ValueTypeFqn, shape),
+                        Lift = "global::Rask.Core.Forms.ExpressionAccessor.AsCollection<"
+                               + shape + ", " + item + ">",
+                    },
+                ]);
+            }
+        }
+
+        return widened;
     }
 
     // Every state a chain can stand in: some required properties set, at least one still missing. Named
@@ -2523,7 +2650,10 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     private static string SeedFqn(Candidate c) =>
         (c.Namespace.Length == 0 ? "global::" : "global::" + c.Namespace + ".") + SeedName(c);
 
-    private static string SeedName(Candidate c) => "RaskSeed_" + c.TypeName;
+    // After the ENTRY, not the type: two components joined by [RaskChainEntry] are reached through one
+    // seed, which is what makes them one name at the call site. Their states and stages keep their own
+    // type names, so nothing else collides.
+    private static string SeedName(Candidate c) => "RaskSeed_" + c.EntryName;
 
     // Named after the step that OPENS it, because two ways in carry different things: `Bind` parks an
     // expression and `Value` parks a value, so one stage type cannot serve both — its constructor would
@@ -2991,12 +3121,20 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     {
         var result = new List<Candidate>();
         foreach (var group in DistinctByType(candidates).Where(c => CanHaveEntry(c, taken))
-                     .GroupBy(static c => c.TypeName, StringComparer.Ordinal))
+                     .GroupBy(static c => c.EntryName, StringComparer.Ordinal))
         {
             var members = group.ToList();
             if (members.Count == 1)
             {
                 result.Add(members[0]);
+                continue;
+            }
+
+            // Joined on purpose: [RaskChainEntry] says these components share an entry, so the openings
+            // sit side by side on one seed and the argument types tell them apart. Not a collision.
+            if (members.Any(static c => !string.Equals(c.EntryName, c.TypeName, StringComparison.Ordinal)))
+            {
+                result.AddRange(members);
                 continue;
             }
 
@@ -3508,11 +3646,11 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             {
                 // One seed property per component NAME; the steps that turn it into a component are
                 // emitted below, as extensions.
-                if (seeded.Add(c.TypeName))
+                if (seeded.Add(c.EntryName))
                 {
                     EmitEntryDoc(sb, c);
                     sb.Append("    ").Append(visibility).Append(" static ").Append(SeedFqn(c)).Append(' ')
-                        .Append(EscapeIdentifier(c.TypeName)).AppendLine(" => default;");
+                        .Append(EscapeIdentifier(c.EntryName)).AppendLine(" => default;");
                 }
 
                 continue;
@@ -3743,14 +3881,14 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         var seeded = new HashSet<string>(StringComparer.Ordinal);
         foreach (var c in entries)
         {
-            if (NeedsSeed(c) && !seeded.Add(c.TypeName))
+            if (NeedsSeed(c) && !seeded.Add(c.EntryName))
             {
                 continue;
             }
 
             refs.Add(new EntryRef(
                 hostFqn,
-                c.TypeName,
+                c.EntryName,
                 NeedsSeed(c) ? SeedFqn(c) : c.FullyQualifiedName,
                 string.Empty,
                 string.Empty,
@@ -4409,11 +4547,19 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         var typeParamAnnotations = TypeParameterAnnotations(symbol.TypeParameters);
         var constraints = BuildConstraintsClause(symbol.TypeParameters);
         GenericFactoryConfig? genericFactory = null;
+        string? chainEntry = null;
         foreach (var attr in symbol.GetAttributes())
         {
             if (attr.AttributeClass?.ToDisplayString() == FactoryGenericFullName)
             {
                 genericFactory = ParseGenericFactoryConfig(attr);
+            }
+            else if (attr.AttributeClass?.ToDisplayString() == ChainEntryFullName
+                     && attr.ConstructorArguments.Length == 1
+                     && attr.ConstructorArguments[0].Value is string entry
+                     && entry.Length > 0)
+            {
+                chainEntry = entry;
             }
         }
 
@@ -4421,6 +4567,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         return new Candidate(
             ns,
             symbol.Name,
+            chainEntry ?? symbol.Name,
             symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
             typeParams,
             new EquatableArray<string>(typeParamAnnotations),
@@ -4482,7 +4629,14 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 var valueType = TypeName(argument, FullyQualifiedNullable, compilation);
                 var lifts = argument is { IsValueType: true, TypeKind: not TypeKind.TypeParameter }
                             && argument.OriginalDefinition.SpecialType != SpecialType.System_Nullable_T;
-                return new FormControlInfo(valueType, lifts);
+                var element = argument is INamedTypeSymbol
+                {
+                    TypeArguments.Length: 1,
+                } collection
+                    && collection.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.ICollection<T>"
+                        ? TypeName(collection.TypeArguments[0], FullyQualifiedNullable, compilation)
+                        : null;
+                return new FormControlInfo(valueType, lifts, element);
             }
         }
 
@@ -5398,6 +5552,10 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     private sealed record Candidate(
         string Namespace,
         string TypeName,
+        // The NAME the chain is reached by, which is the type's own unless [RaskChainEntry] joins it to
+        // another component's entry — two controls that are one control to the page writing them, told
+        // apart by the types their openings take (UiSelect over a value, and over a collection of them).
+        string EntryName,
         string FullyQualifiedName,
         string TypeParameters,
         // One entry per type parameter, in declaration order: the attribute text to repeat in front of
@@ -5461,7 +5619,12 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     //
     // LiftsToNullable: T is a non-nullable value type (`bool`, `int`, `DateOnly`), so the control's chain also
     // opens on `Bind(Expression<Func<T?>>)` — a form model's `bool?` binds as readily as a `bool`.
-    private readonly record struct FormControlInfo(string ValueTypeFqn, bool LiftsToNullable = false);
+    // CollectionElementFqn: the control binds an ICollection<TItem>, so its openings also take the shapes a
+    // model actually declares — List<T>, T[], HashSet<T>. Without them `Bind(() => model.Tags)` over a
+    // `List<string>` binds the SINGLE-valued control of the same entry instead: the exact type wins the
+    // overload, and nothing reports it.
+    private readonly record struct FormControlInfo(
+        string ValueTypeFqn, bool LiftsToNullable = false, string? CollectionElementFqn = null);
 
     private readonly record struct GenericFactoryConfig(
         string TypeParameter,

@@ -51,6 +51,25 @@ public static class ExpressionAccessor
         return Expression.Lambda<Func<T>>(Expression.Convert(bind.Body, typeof(T)), bind.Parameters);
     }
 
+    /// <summary>
+    ///     Widens a bind expression over a concrete collection — <c>List&lt;T&gt;</c>, <c>T[]</c>,
+    ///     <c>HashSet&lt;T&gt;</c> — to the <c>ICollection&lt;T&gt;</c> a multi-value control binds.
+    /// </summary>
+    /// <remarks>
+    ///     The model says which collection it holds, and a control cannot declare an opening per shape without
+    ///     one of them being the <b>single</b>-valued control's exact match instead (see the collection openings
+    ///     in ComponentFactoryGenerator). The rebuilt expression carries a <c>Convert</c> around the same property
+    ///     access, which <see cref="Parse" /> strips — so the accessor still reads and writes the model's own
+    ///     property, in its own type.
+    /// </remarks>
+    public static Expression<Func<ICollection<T>>> AsCollection<TCollection, T>(Expression<Func<TCollection>> bind)
+        where TCollection : ICollection<T>
+    {
+        ArgumentNullException.ThrowIfNull(bind);
+        return Expression.Lambda<Func<ICollection<T>>>(
+            Expression.Convert(bind.Body, typeof(ICollection<T>)), bind.Parameters);
+    }
+
     public static Accessor Parse(LambdaExpression expression)
     {
         if (expression is null)

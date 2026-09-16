@@ -196,3 +196,50 @@ static Rask.Auth.SignedOut.operator !=(Rask.Auth.SignedOut? left, Rask.Auth.Sign
 static Rask.Auth.SignedOut.operator ==(Rask.Auth.SignedOut? left, Rask.Auth.SignedOut? right) -> bool
 static Rask.Auth.UserRegistered.operator !=(Rask.Auth.UserRegistered? left, Rask.Auth.UserRegistered? right) -> bool
 static Rask.Auth.UserRegistered.operator ==(Rask.Auth.UserRegistered? left, Rask.Auth.UserRegistered? right) -> bool
+Rask.Auth.AuthOptions.PasskeyOrigins.get -> System.Collections.Generic.IList<string!>!
+Rask.Auth.AuthOptions.PasskeyRelyingPartyId.get -> string?
+Rask.Auth.AuthOptions.PasskeyRelyingPartyId.set -> void
+Rask.Auth.AuthOptions.PasskeyRelyingPartyName.get -> string?
+Rask.Auth.AuthOptions.PasskeyRelyingPartyName.set -> void
+Rask.Auth.AuthOptions.Passkeys.get -> bool
+Rask.Auth.AuthOptions.Passkeys.set -> void
+Rask.Auth.Passkey
+Rask.Auth.Passkey.BackedUp.get -> bool
+Rask.Auth.Passkey.CredentialId.get -> byte[]!
+Rask.Auth.Passkey.LastUsedAt.get -> System.DateTime?
+Rask.Auth.Passkey.Name.get -> string!
+Rask.Auth.Passkey.Passkey() -> void
+Rask.Auth.Passkey.Transports.get -> string?
+Rask.Auth.Passkey.UserId.get -> System.Guid
+Rask.Auth.PasskeyAdded
+Rask.Auth.PasskeyAdded.<Clone>$() -> Rask.Auth.PasskeyAdded!
+Rask.Auth.PasskeyAdded.Deconstruct(out System.Guid UserId, out System.Guid PasskeyId, out string! Name) -> void
+Rask.Auth.PasskeyAdded.Equals(Rask.Auth.PasskeyAdded? other) -> bool
+Rask.Auth.PasskeyAdded.Name.get -> string!
+Rask.Auth.PasskeyAdded.Name.init -> void
+Rask.Auth.PasskeyAdded.PasskeyAdded(System.Guid UserId, System.Guid PasskeyId, string! Name) -> void
+Rask.Auth.PasskeyAdded.PasskeyId.get -> System.Guid
+Rask.Auth.PasskeyAdded.PasskeyId.init -> void
+Rask.Auth.PasskeyAdded.UserId.get -> System.Guid
+Rask.Auth.PasskeyAdded.UserId.init -> void
+Rask.Auth.PasskeyRemoved
+Rask.Auth.PasskeyRemoved.<Clone>$() -> Rask.Auth.PasskeyRemoved!
+Rask.Auth.PasskeyRemoved.Deconstruct(out System.Guid UserId, out System.Guid PasskeyId, out string! Name) -> void
+Rask.Auth.PasskeyRemoved.Equals(Rask.Auth.PasskeyRemoved? other) -> bool
+Rask.Auth.PasskeyRemoved.Name.get -> string!
+Rask.Auth.PasskeyRemoved.Name.init -> void
+Rask.Auth.PasskeyRemoved.PasskeyId.get -> System.Guid
+Rask.Auth.PasskeyRemoved.PasskeyId.init -> void
+Rask.Auth.PasskeyRemoved.PasskeyRemoved(System.Guid UserId, System.Guid PasskeyId, string! Name) -> void
+Rask.Auth.PasskeyRemoved.UserId.get -> System.Guid
+Rask.Auth.PasskeyRemoved.UserId.init -> void
+override Rask.Auth.PasskeyAdded.Equals(object? obj) -> bool
+override Rask.Auth.PasskeyAdded.GetHashCode() -> int
+override Rask.Auth.PasskeyAdded.ToString() -> string!
+override Rask.Auth.PasskeyRemoved.Equals(object? obj) -> bool
+override Rask.Auth.PasskeyRemoved.GetHashCode() -> int
+override Rask.Auth.PasskeyRemoved.ToString() -> string!
+static Rask.Auth.PasskeyAdded.operator !=(Rask.Auth.PasskeyAdded? left, Rask.Auth.PasskeyAdded? right) -> bool
+static Rask.Auth.PasskeyAdded.operator ==(Rask.Auth.PasskeyAdded? left, Rask.Auth.PasskeyAdded? right) -> bool
+static Rask.Auth.PasskeyRemoved.operator !=(Rask.Auth.PasskeyRemoved? left, Rask.Auth.PasskeyRemoved? right) -> bool
+static Rask.Auth.PasskeyRemoved.operator ==(Rask.Auth.PasskeyRemoved? left, Rask.Auth.PasskeyRemoved? right) -> bool
