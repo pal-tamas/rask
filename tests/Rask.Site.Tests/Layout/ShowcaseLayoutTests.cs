@@ -30,13 +30,14 @@ public sealed class ShowcaseLayoutTests
         Assert.Contains("app-brand", html);
         Assert.Contains("hamburger-btn", html);
 
-        // …and the bar IS daisyUI's, with its two halves, rather than a hand-rolled flex row that
-        // happens to look like one. The hamburger is daisyUI's ghost square button for the same reason:
-        // the CSS that used to draw it (`background: transparent; color: #fff`) existed only to survive
-        // the dark bar above it.
-        Assert.Contains("navbar", html);
-        Assert.Contains("navbar-start", html);
-        Assert.Contains("navbar-end", html);
+        // …and the bar is the LANDING PAGE'S, shared rather than shaped alike: a <header>, not daisyUI's
+        // navbar with its two halves. SiteHeaderTests is what holds the two pages to one bar (it compares
+        // them byte for byte from the wordmark rightwards); this only states that the docs route reaches
+        // it. The hamburger is still daisyUI's ghost square button — the CSS that used to draw it
+        // (`background: transparent; color: #fff`) existed only to survive the dark bar above it.
+        Assert.Contains("<header", html);
+        Assert.DoesNotContain("navbar-start", html);
+        Assert.DoesNotContain("navbar-end", html);
         Assert.Contains("btn btn-ghost btn-square", html);
 
         // The sidebar is the kit's UiSidebar: in the flow from md up and a drawer below it, with the hamburger a
