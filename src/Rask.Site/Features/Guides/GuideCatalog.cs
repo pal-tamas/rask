@@ -349,15 +349,15 @@ public static class GuideCatalog
         // ---- Integration ----
         new("authentication", "Authentication", "Cookie sessions and OIDC on Server and WASM, route guards.", "Integration")
         {
-            SearchTitle = "Authentication with ASP.NET Core Identity",
-            Description = "Built-in sign-in, registration and sign-out on ASP.NET Core Identity: first account as admin, email confirmation, password reset, gating and bearer tokens.",
+            SearchTitle = "Own accounts, sessions and sign-in pages in C#",
+            Description = "Accounts on your own C# User: sign-in pages you own, a session row per device, PBKDF2 or bcrypt, throttling, email confirmation, bearer tokens.",
         },
         new("authentication-cookie", "Auth — cookie", "Cookie login and session on Server and on a WASM SPA with an API host.", "Integration")
         {
             SearchTitle = "Cookie authentication for server and WASM apps",
             Description = "Wire cookie-based login and sessions by hand, for the server-rendered WebSocket host and for a WebAssembly SPA backed by your own ASP.NET Core API.",
         },
-        new("authentication-providers", "Auth — providers", "Identity, Keycloak, Auth0, and other OIDC providers.", "Integration")
+        new("authentication-providers", "Auth — providers", "Keycloak, Auth0, and other OIDC providers, or your own Identity store.", "Integration")
         {
             SearchTitle = "OpenID Connect and external identity providers",
             Description = "Sign in through Keycloak, Auth0, AWS Cognito or Duende IdentityServer over OpenID Connect, or bring your own user store with ASP.NET Identity.",
@@ -395,7 +395,7 @@ public static class GuideCatalog
         new("ui-kit", "UI kit", "The components the framework's own surfaces are drawn with.", "Integration")
         {
             SearchTitle = "daisyUI components as typed C# components",
-            Description = "Use every daisyUI 5 component as a typed C# component with no npm install or Tailwind config: wiring the kit, themes, form controls and who owns state.",
+            Description = "Every daisyUI 5 component as a typed C# component, no npm or Tailwind config: accessible menus, modals, a sidebar layout, form fields and themes.",
         },
         new("data-grid", "Data grid", "Sorting, paging, typed selection, grouping and a card layout on a phone.", "Integration")
         {

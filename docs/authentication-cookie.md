@@ -10,8 +10,8 @@ The lowest-friction, most secure option for the Server (WS) host — the token l
 never reaches JavaScript.
 
 > **You probably do not need this page.** Cookie sign-in is what a Rask app does by default: the
-> [accounts battery](authentication.md) registers the scheme, backs it with ASP.NET Core Identity, and
-> routes `/login`, `/register` and `/logout` for you. What follows is how to wire the same thing by hand
+> [accounts battery](authentication.md) registers the scheme, backs it with your own `User` and a session row
+> per device, and `rask new` writes the `/login`, `/register` and `/logout` pages for you. What follows is how to wire the same thing by hand
 > against **your own** credential store — an existing users table, an internal directory, anything that
 > can answer "is this password right" and hand back claims.
 >

@@ -103,33 +103,38 @@ for everything else.
 
 ## Form validation
 
-A bound form control wires validation state to assistive tech automatically — you don't add
-anything. When a bound field has validation messages the control renders:
+A Rask UI field wires its label, hint, error and validation state to assistive tech on its own — you add
+nothing. `UiInput`, `UiTextarea` and `UiSelect` (both modes) render:
 
-- `aria-invalid="true"` on the input/select/textarea, so the failed state is exposed programmatically
-  (not just the visual `.is-invalid` red border);
-- `aria-describedby` pointing at the error message's `id` (and the help-text `id` when `HelpText:` is
-  set), so a screen reader reads the error together with the field; and
-- the `.invalid-feedback` message as a `role="alert"` live region, so the error is announced the moment
-  validation fails on submit/blur.
+- `aria-invalid="true"` when the field is invalid — a bound field whose form holds a message for it, or a
+  controlled field given `Tone(UiTone.Error)` — so the failed state is exposed programmatically, not only
+  as a red border;
+- `aria-describedby` naming what is **visible** under the control, error first: the bound field's own
+  validation message, then a controlled `Error` (only while the tone reveals it — a hidden message named
+  by `aria-describedby` would still be read aloud), then the `Hint`. Omitted when there is nothing;
+- `aria-required="true"` when the field is bound to a member carrying `[Required]`. It is the one required
+  rule a field can see; a FluentValidation rule or a `Validate` delegate is invisible to it, so nothing is
+  guessed; and
+- a `Badge` ("Required", "Optional") inside the label, `aria-hidden` so the accessible name stays the
+  label's text.
 
 ```csharp
-BsInput.Bind(() => model.Email).Label("Email").HelpText("We never share it.")
-// valid   → <input id="Email" aria-describedby="Email-help" …>
-// invalid → <input id="Email" class="form-control is-invalid"
-//                  aria-invalid="true" aria-describedby="Email-help Email-error" …>
-//           <div id="Email-error" class="invalid-feedback d-block" role="alert">Enter a valid email</div>
+UiInput.Bind(() => model.Email).Label("Email").Badge("Required").Hint("We never share it.")
+// valid   → <input id="f-email" aria-required="true" aria-describedby="f-email-hint" …>
+// invalid → <input id="f-email" aria-required="true" aria-invalid="true"
+//                  aria-describedby="f-email-validation f-email-hint" …>
+//           <p id="f-email-validation" class="label text-ui-danger-ink">Enter a valid email</p>
+//           <p id="f-email-hint" class="label">We never share it.</p>
 ```
 
-The help/error element ids (and the `aria-describedby` that points at them) derive from the control id —
-`Id:` if you set one, otherwise the bound property name or `Name:`. That id also anchors the `<label for>`
-association, so the same rule has always applied: **if you render the same bound field more than once on a
-page** (a repeated form, a list of rows), give each control an explicit unique `Id:` so the ids stay
-document-unique and every `aria-describedby`/`for` resolves to the right field.
+The hint, error and message ids derive from the field id — `Id` if you set one, otherwise the bound
+member's name or the label text. That id also anchors the `<label for>` association, so **if you render
+the same bound field more than once on a page** (a repeated form, a list of rows), give each field an
+explicit unique `Id` so every `for` and `aria-describedby` resolves to the right element.
 
-Building your own control from the core `Input`/`ValidationMessage` primitives? Mirror the same three
-attributes: `Aria: new() { ["invalid"] = "true", ["describedby"] = errorId }` on the control, and render
-the message in a `Div.Id(errorId).Role("alert")`. See [forms-validation.md](forms-validation.md).
+Building your own control from the core `Input`/`ValidationMessage` primitives? Mirror the same
+attributes: `.Aria(new Dictionary<string, string?> { ["invalid"] = "true", ["describedby"] = errorId })`
+on the control, and give the message element that id. See [forms-validation.md](forms-validation.md).
 
 ## Focus trapping (overlays)
 
@@ -138,7 +143,13 @@ runtime — no component library's JavaScript, no per-component wiring. While th
 it on open (its `[autofocus]` element, else the element itself), `Tab`/`Shift+Tab` cycle **within** it
 (focus can't reach the inert page behind), and focus returns to the previously-focused element when it
 closes. If the trap (or a descendant) carries `data-rask-dismiss`, `Escape` closes it by triggering that
-element's click handler — no per-keystroke server round-trip.
+element's click handler — no per-keystroke server round-trip. The trap follows the attribute as well as the
+element: adding or removing `data-rask-focus-trap` on an element that stays mounted engages or releases it,
+which is how Rask UI's state-driven `UiModal` hands focus back when `Open(false)` closes it in place.
+
+Rask UI's declarative `UiModal` needs none of this: it opens with `command="show-modal"`, so the browser's own
+modal dialog makes the page inert, closes on Escape and returns focus to the trigger. While any kit dialog is
+open, the kit's stylesheet also stops the page behind it from scrolling.
 
 A dialog should opt in deliberately: an open modal traps focus, is labelled (`aria-labelledby`
 its title, or `aria-label` from the title text), and dismisses on `Escape` (except with a static backdrop,
@@ -163,7 +174,35 @@ rather than the focus, the runtime also scrolls the named row back into view whe
 and in a virtualized tree — where that row is not rendered at all — it scrolls to where the row will be,
 which is what loads it.
 
+## Menus
+
+An element with `role="menu"` is a focused list with a cursor inside it (`aria-activedescendant`), and the
+runtime treats it like one: the arrows, Home/End, Page keys and Space are contained so they move the cursor
+rather than scrolling the page, and Enter or Space press the row the cursor names — its own click handler, link
+or checkbox runs exactly as a pointer would run it. ArrowDown or ArrowUp on a closed `aria-haspopup="menu"`
+button opens it; a pick closes the popover the menu sits in unless the row or the menu carries
+`data-rask-keep-open`; Tab out of an open menu closes it. Escape is the browser's, and hands focus back to the
+trigger. Rask UI's `UiDropdown` builds on this, with `menuitem`, `menuitemcheckbox` and `menuitemradio` rows.
+
+A `[popover]` carrying `data-rask-popover-open="true"|"false"` is shown or hidden to match whenever the attribute
+changes — how a controlled menu opens from C#, which cannot call `showPopover()`.
+
+## Controls that are waiting
+
+A `<button>` (or `<input type=button|submit>`) whose own handler is still running after 200 ms is marked
+by the runtime with `aria-busy="true"` and `data-loading`, on both hosts, and a second activation is dropped
+until the first handler's render has landed. It is deliberately **not** `disabled`: disabling the control
+the reader just pressed moves keyboard focus to the document body, so the next Tab starts from the top of
+the page. The mark comes off when the dispatch finishes, when the connection drops, or after a 30 s
+backstop. Opt a control — or a container of them — out with `data-rask-loading="off"`
+(`UiButton.Loading(false)`), and opt a non-button element in with `data-rask-loading`. See
+[ui-kit.md](ui-kit.md#buttons-that-wait).
+
 ## Navigation
+
+A `NavLink` to the page being shown writes `aria-current="page"` beside its active class — what a screen reader
+announces as "current page", where a class says nothing. An empty `ActiveClass` opts out of both, and an
+`aria-current` the call site sets wins. Rask UI's `UiNavItem` is built on it.
 
 Client-side (SPA) route changes on the Server live runtime are handled accessibly without any wiring:
 

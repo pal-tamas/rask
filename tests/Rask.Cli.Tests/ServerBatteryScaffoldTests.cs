@@ -33,6 +33,45 @@ public sealed class ServerBatteryScaffoldTests
         { "outbox", "Rask.Outbox", "AddRaskOutbox<AppDbContext>()", "modelBuilder.AddRaskOutbox();" },
     };
 
+    public static TheoryData<string> AuthPages =>
+    [
+        "LoginPage.cs", "RegisterPage.cs", "LogoutPage.cs", "ForgotPasswordPage.cs",
+        "ResetPasswordPage.cs", "ConfirmEmailPage.cs", "DevicesPage.cs",
+    ];
+
+    [Theory]
+    [MemberData(nameof(AuthPages))]
+    public void An_app_with_accounts_gets_the_sign_in_pages_as_its_own_code(string page)
+    {
+        // The pages are the app's to restyle and edit, the way a starter kit writes them, and they are written
+        // against IAuth, so the flows themselves keep coming from Rask.Auth.
+        var files = Generate("data");
+
+        var source = files["Features/Auth/" + page];
+        Assert.Contains("namespace App.Features.Auth;", source, StringComparison.Ordinal);
+        Assert.Contains("[Route(\"/", source, StringComparison.Ordinal);
+
+        // A build-only gate found the first cut of these missing this: the text looked right and did not compile.
+        if (source.Contains("IAuth", StringComparison.Ordinal) || source.Contains("IUserProvider", StringComparison.Ordinal))
+        {
+            Assert.Contains("using Rask.Core.Authentication;", source, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void The_register_page_sets_the_users_own_columns_while_registering()
+    {
+        var register = Generate("data")["Features/Auth/RegisterPage.cs"];
+
+        Assert.Contains("(User user) => user.Rename(model.DisplayName)", register, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_app_without_a_database_gets_no_sign_in_pages()
+    {
+        Assert.DoesNotContain(Generate().Keys, k => k.StartsWith("Features/Auth/", StringComparison.Ordinal));
+    }
+
     [Theory]
     [MemberData(nameof(Pillars))]
     public void A_database_backed_battery_adds_its_package_registration_and_schema(
@@ -54,14 +93,14 @@ public sealed class ServerBatteryScaffoldTests
     [InlineData("cache")]
     public void Every_app_with_a_database_gets_a_User_of_its_own(string flag)
     {
-        // Rask ships no user type. A generator wires Identity to whichever IdentityUser subclass the app
-        // declares, so the app has to declare one — and retrofitting it later is a migration plus a
-        // change to every UserManager<> in the app, which is why it is here from the first commit.
+        // Rask ships no user type. A generator wires the accounts to whichever Authenticatable the app
+        // declares, so the app has to declare one — and retrofitting it later is a migration, which is why it
+        // is here from the first commit.
         var files = Generate(flag);
 
         var user = files["Features/Shared/User.cs"];
-        Assert.Contains("public class User : IdentityUser", user, StringComparison.Ordinal);
-        Assert.Contains("using Microsoft.AspNetCore.Identity;", user, StringComparison.Ordinal);
+        Assert.Contains("public sealed class User : Authenticatable", user, StringComparison.Ordinal);
+        Assert.DoesNotContain("Microsoft.AspNetCore.Identity", user, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -92,9 +131,9 @@ public sealed class ServerBatteryScaffoldTests
     public void Every_app_with_a_database_maps_the_account_tables(string flag)
     {
         // Not conditional on any flag, unlike the pillars above. The auth battery is ON by default in
-        // the Rask package, and AddRaskAuth registers Identity's EF stores against this context — so an
-        // app whose context does not map them boots happily and then fails at the FIRST registration on
-        // a missing AspNetUsers. Nothing else in the scaffold would say so.
+        // the Rask package, and AddRaskAuth reads and writes the user and its sessions through this context —
+        // so an app whose context does not map them boots happily and then fails at the FIRST registration.
+        // Nothing else in the scaffold would say so.
         var files = Generate(flag);
 
         Assert.Contains(

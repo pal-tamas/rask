@@ -165,7 +165,7 @@ public sealed partial class CachePage(
             : null;
 
     private Component? ResultToast() =>
-        _message is { } message ? UiToast.Message(message).Dismiss(Dismiss) : null;
+        _message is { } message ? UiToast.Message(message).OnDismiss(Dismiss) : null;
 
     private void Confirm(bool pending)
     {

@@ -17,7 +17,7 @@ public sealed class AuthDbCollectionGuardTests
             AuthDbCollection.Name,
             // This class only reflects over the assembly; it never builds a context.
             nameof(AuthDbCollectionGuardTests),
-            // Reads the stylesheet embedded in Rask.Auth. No database, and deliberately not collected:
-            // serialising it behind the database suite would cost the whole run for nothing.
-            nameof(AuthStylesheetTests));
+            // Hashes in memory. No database, and deliberately not collected: serialising it behind the
+            // database suite would cost the whole run for nothing.
+            nameof(PasswordHasherTests));
 }

@@ -11,9 +11,8 @@ namespace Rask.Auth;
 
 /// <summary>Names shared by the auth endpoints and the clients that call them.</summary>
 /// <remarks>
-/// The contract itself lives in <see cref="AuthApi" />, in Core, because the browser half cannot
-/// reference this package — it carries Identity and Entity Framework, which must not reach a trimmed
-/// WebAssembly publish.
+/// The contract itself lives in <see cref="AuthApi" />, in Rask.Wire, because the browser half cannot
+/// reference this package — it carries Entity Framework, which must not reach a trimmed WebAssembly publish.
 /// </remarks>
 public static class RaskAuthDefaults
 {
@@ -58,6 +57,8 @@ public static class RaskAuthEndpointExtensions
         // exactly RequestDelegate's shape, so without the cast ASP.NET binds it as one and throws the
         // returned IResult away — the sign-out would happen and the response would not say so.
         group.MapPost(AuthApi.Logout, (Delegate)LogoutAsync);
+        group.MapPost(AuthApi.LogoutOtherDevices, SignOutOtherDevicesAsync);
+        group.MapPost(AuthApi.LogoutEverywhere, SignOutEverywhereAsync);
         group.MapGet(AuthApi.Me, Me);
         group.MapPost(AuthApi.ForgotPassword, ForgotPasswordAsync);
         group.MapPost(AuthApi.ResetPassword, ResetPasswordAsync);
@@ -75,21 +76,23 @@ public static class RaskAuthEndpointExtensions
         }
 
         var outcome = await accounts
-            .RegisterAsync(request.Email, request.Password, request.FirstRunToken, cancellationToken)
+            .RegisterAsync(request.Email, request.Password, request.FirstRunToken, Client(context), cancellationToken)
             .ConfigureAwait(false);
 
         return await CompleteAsync(context, outcome).ConfigureAwait(false);
     }
 
     private static async Task<IResult> LoginAsync(
-        HttpContext context, LoginRequest request, IAccounts accounts)
+        HttpContext context, LoginRequest request, IAccounts accounts, CancellationToken cancellationToken)
     {
         if (!HasRequestHeader(context))
         {
             return MissingRequestHeader();
         }
 
-        var outcome = await accounts.ValidateAsync(request.Email, request.Password).ConfigureAwait(false);
+        var outcome = await accounts
+            .ValidateAsync(request.Email, request.Password, Client(context), cancellationToken)
+            .ConfigureAwait(false);
         return await CompleteAsync(context, outcome, request.Remember).ConfigureAwait(false);
     }
 
@@ -100,6 +103,43 @@ public static class RaskAuthEndpointExtensions
             return MissingRequestHeader();
         }
 
+        await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme).ConfigureAwait(false);
+        return Results.NoContent();
+    }
+
+    /// <summary>Ends every session of the caller except this one. <c>204</c>, or <c>401</c> when nobody is signed in.</summary>
+    private static async Task<IResult> SignOutOtherDevicesAsync(
+        HttpContext context, IAccounts accounts, CancellationToken cancellationToken)
+    {
+        if (!HasRequestHeader(context))
+        {
+            return MissingRequestHeader();
+        }
+
+        if (context.User.Identity?.IsAuthenticated != true)
+        {
+            return Results.Unauthorized();
+        }
+
+        await accounts.SignOutOtherDevicesAsync(context.User, cancellationToken).ConfigureAwait(false);
+        return Results.NoContent();
+    }
+
+    /// <summary>Ends every session of the caller, this one included, and clears its cookie.</summary>
+    private static async Task<IResult> SignOutEverywhereAsync(
+        HttpContext context, IAccounts accounts, CancellationToken cancellationToken)
+    {
+        if (!HasRequestHeader(context))
+        {
+            return MissingRequestHeader();
+        }
+
+        if (context.User.Identity?.IsAuthenticated != true)
+        {
+            return Results.Unauthorized();
+        }
+
+        await accounts.SignOutEverywhereAsync(context.User, cancellationToken).ConfigureAwait(false);
         await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme).ConfigureAwait(false);
         return Results.NoContent();
     }
@@ -117,20 +157,24 @@ public static class RaskAuthEndpointExtensions
         }
 
         var result = await accounts
-            .SendPasswordResetAsync(request.Email, cancellationToken)
+            .SendPasswordResetAsync(request.Email, Client(context), cancellationToken)
             .ConfigureAwait(false);
 
-        // 503, not 401. The one way this refuses is that the app has no mail battery, which is a
-        // misconfiguration of the server rather than anything the caller did wrong — and answering 401
-        // would have a client show "check your email" over a message that never left.
+        // 503 when the app has no mail battery, which is a misconfiguration of the server rather than anything
+        // the caller did wrong — answering 401 would have a client show "check your email" over a message that
+        // never left. 429 when the caller is asking too often.
         return result.Succeeded
             ? Results.Accepted()
-            : Refuse(result, StatusCodes.Status503ServiceUnavailable);
+            : Refuse(
+                result,
+                result.Error == AuthError.TooManyAttempts
+                    ? StatusCodes.Status429TooManyRequests
+                    : StatusCodes.Status503ServiceUnavailable);
     }
 
     /// <summary>Sets a new password from an emailed token.</summary>
     private static async Task<IResult> ResetPasswordAsync(
-        HttpContext context, ResetPasswordRequest request, IAccounts accounts)
+        HttpContext context, ResetPasswordRequest request, IAccounts accounts, CancellationToken cancellationToken)
     {
         if (!HasRequestHeader(context))
         {
@@ -138,7 +182,7 @@ public static class RaskAuthEndpointExtensions
         }
 
         var result = await accounts
-            .ResetPasswordAsync(request.UserId, request.Token, request.Password)
+            .ResetPasswordAsync(request.UserId, request.Token, request.Password, cancellationToken)
             .ConfigureAwait(false);
 
         // No session is issued here, deliberately. A reset link lives in an inbox and gets forwarded;
@@ -149,14 +193,16 @@ public static class RaskAuthEndpointExtensions
 
     /// <summary>Marks an address confirmed from an emailed token.</summary>
     private static async Task<IResult> ConfirmEmailAsync(
-        HttpContext context, ConfirmEmailRequest request, IAccounts accounts)
+        HttpContext context, ConfirmEmailRequest request, IAccounts accounts, CancellationToken cancellationToken)
     {
         if (!HasRequestHeader(context))
         {
             return MissingRequestHeader();
         }
 
-        var result = await accounts.ConfirmEmailAsync(request.UserId, request.Token).ConfigureAwait(false);
+        var result = await accounts
+            .ConfirmEmailAsync(request.UserId, request.Token, cancellationToken)
+            .ConfigureAwait(false);
 
         return result.Succeeded ? Results.NoContent() : Refuse(result, StatusCodes.Status400BadRequest);
     }
@@ -189,8 +235,13 @@ public static class RaskAuthEndpointExtensions
     {
         if (outcome is not { Result.Succeeded: true, Principal: { } principal })
         {
-            // 401 for every refusal, carrying the code but never a hint about which account exists.
-            return Refuse(outcome.Result, StatusCodes.Status401Unauthorized);
+            // 401 for every refusal, carrying the code but never a hint about which account exists; 429 when the
+            // caller is being throttled, so a client can say "wait a minute" rather than "wrong password".
+            return Refuse(
+                outcome.Result,
+                outcome.Result.Error == AuthError.TooManyAttempts
+                    ? StatusCodes.Status429TooManyRequests
+                    : StatusCodes.Status401Unauthorized);
         }
 
         await context
@@ -243,6 +294,10 @@ public static class RaskAuthEndpointExtensions
     /// <summary>A refusal, in the one shape every client already parses.</summary>
     private static IResult Refuse(AuthResult result, int statusCode) =>
         Results.Json(new AuthFailure(result.Error.ToString(), result.Message), statusCode: statusCode);
+
+    // The address a throttle is keyed on. Behind a proxy this is the proxy's address unless the app runs
+    // UseForwardedHeaders, which is the ordinary ASP.NET arrangement for learning the client's.
+    private static string? Client(HttpContext context) => context.Connection.RemoteIpAddress?.ToString();
 
     private static bool HasRequestHeader(HttpContext context) =>
         context.Request.Headers.ContainsKey(RaskAuthDefaults.RequestHeader);

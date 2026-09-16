@@ -951,3 +951,176 @@
     color: var(--color-error);
   }
 }
+
+/*
+  UiDivider carries no outer margin — "we style, you space". daisyUI builds its margin from --divider-m (1rem across,
+  0 1rem down) inside `@layer utilities`, so the correction is the variable, here. Subtle is Flux's faint separator:
+  half the ink daisyUI mixes into the line.
+*/
+@layer rask-ui-corrections {
+  .divider,
+  .divider.divider-horizontal {
+    --divider-m: 0;
+  }
+
+  .divider.ui-divider-subtle {
+    --divider-color: color-mix(in oklab, var(--color-base-content) 5%, transparent);
+  }
+}
+
+/*
+  UiDropdown's menu rows, submenus and the safe triangle.
+
+  In `rask-ui-corrections` because every rule it has to beat — daisyUI's grid row, its nested-list indent and the
+  vertical line it draws with a nested list's ::before — is emitted inside `@layer utilities`.
+
+  A row is a flex row, not daisyUI's column grid, so the words take the slack and a shortcut sits at the end.
+
+  A submenu flies out beside its row. A pointer opens it by hovering and the keyboard by the dropdown writing
+  `data-open`. Closing waits 300 ms, and the flyout carries a WEDGE — its ::before, clipped to a triangle from the
+  middle of the parent row to the flyout's edge — that belongs to the flyout, so hovering it keeps the parent row
+  hovered. Together they are the safe triangle: a diagonal move toward the flyout that crosses the next row down
+  does not close it. Hovering a different submenu row closes this one at once instead of after the delay. There is
+  no hover on a touch screen, so there the wedge is off and a tap opens the flyout.
+*/
+@layer rask-ui-corrections {
+  .menu > li > :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]) {
+    display: flex;
+  }
+
+  .menu .ui-menu-kbd {
+    margin-inline-start: auto;
+    opacity: 0.7;
+  }
+
+  .menu > li.ui-menu-separator {
+    block-size: 1px;
+    margin-block: 0.25rem;
+    padding: 0;
+    background-color: var(--color-base-300);
+  }
+
+  .menu > li.ui-menu-sub {
+    position: relative;
+  }
+
+  .menu > li.ui-menu-sub > .ui-menu-flyout {
+    position: absolute;
+    z-index: 2;
+    inset-block-start: calc(-0.5rem - 1px);
+    inset-inline-start: 100%;
+    margin: 0 0 0 0.25rem;
+    white-space: normal;
+    visibility: hidden;
+    opacity: 0;
+    transition: visibility 0s linear 300ms, opacity 120ms ease-out 180ms;
+  }
+
+  .menu > li.ui-menu-sub:is(:hover, [data-open]) > .ui-menu-flyout {
+    visibility: visible;
+    opacity: 1;
+    transition-delay: 0s;
+  }
+
+  .menu:has(> li.ui-menu-sub:hover) > li.ui-menu-sub:not(:hover, [data-open]) > .ui-menu-flyout {
+    transition-delay: 0s;
+  }
+
+  .menu > li.ui-menu-sub > .ui-menu-flyout::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: auto;
+    inset-inline-end: 100%;
+    inline-size: 3.25rem;
+    opacity: 1;
+    background-color: transparent;
+    clip-path: polygon(100% 0, 100% 100%, 0 var(--ui-menu-apex, 1.25rem));
+    pointer-events: none;
+  }
+
+  [dir="rtl"] .menu > li.ui-menu-sub > .ui-menu-flyout::before {
+    clip-path: polygon(0 0, 0 100%, 100% var(--ui-menu-apex, 1.25rem));
+  }
+
+  .menu > li.ui-menu-sub:hover > .ui-menu-flyout::before {
+    pointer-events: auto;
+  }
+
+  @media (hover: none) {
+    .menu > li.ui-menu-sub > .ui-menu-flyout::before {
+      display: none;
+    }
+  }
+}
+
+/*
+  UiTooltip.Toggleable: the tip shows while anything in its wrapper has focus, which a tap gives it and a tap
+  elsewhere takes away — the touch screen's only way to see a tooltip, with no script. Mirrors the open state
+  daisyUI gives `.tooltip-open`, for both of its shapes (the `data-tip` pseudo-element and `.tooltip-content`).
+*/
+@layer rask-ui-corrections {
+  .tooltip.ui-tooltip-toggleable:focus-within > .tooltip-content,
+  .tooltip.ui-tooltip-toggleable[data-tip]:focus-within::before,
+  .tooltip.ui-tooltip-toggleable:focus-within::after {
+    opacity: 1;
+    --tt-pos: 0rem;
+  }
+}
+
+/*
+  A kit modal locks the page's scroll while it is open, so a long page does not slide underneath a sheet the
+  reader is scrolling. Keyed to an OPEN kit dialog, which is what keeps this — the kit's one rule at the
+  document root — off every page that is not showing one: the modal path (`[open]` from show-modal), the
+  popover fallback, and the state-driven `modal-open`.
+*/
+@layer rask {
+  :root:has(dialog.modal[open], dialog.modal:popover-open, .modal.modal-open) {
+    overflow: hidden;
+  }
+}
+
+/*
+  A button waiting on its own handler (UiButton.Loading; the runtime's rask-loading.ts).
+
+  The runtime writes `data-loading` + `aria-busy` once a dispatch has gone 200 ms without an answer, and a
+  render can write the same `data-loading` for work that outlives the handler. The label stays in the layout
+  and turns transparent, so the button keeps its width and the row around it does not jump; the spinner is
+  drawn over it in the button's own foreground colour. `pointer-events: none` stops a second press by pointer —
+  the runtime drops a keyboard one.
+
+  In `rask-ui-corrections` for the reason given above: daisyUI's `.btn` rules sit in `utilities`. The mask is
+  daisyUI's own `loading-spinner` (MIT), slowed the way daisyUI slows it for reduced motion.
+*/
+@layer rask-ui-corrections {
+  .btn[data-loading] {
+    position: relative;
+    color: transparent;
+    cursor: progress;
+    pointer-events: none;
+  }
+
+  .btn[data-loading] > svg {
+    opacity: 0;
+  }
+
+  .btn[data-loading]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 1.25em;
+    aspect-ratio: 1 / 1;
+    background-color: var(--btn-fg, currentColor);
+    mask-size: 100%;
+    mask-repeat: no-repeat;
+    mask-position: center;
+    mask-image: url("data:image/svg+xml,%3Csvg width='24' height='24' stroke='black' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cg transform-origin='center'%3E%3Ccircle cx='12' cy='12' r='9.5' fill='none' stroke-width='3' stroke-linecap='round'%3E%3CanimateTransform attributeName='transform' type='rotate' from='0 12 12' to='360 12 12' dur='8s' repeatCount='indefinite'/%3E%3Canimate attributeName='stroke-dasharray' values='0,150;42,150;42,150' keyTimes='0;0.475;1' dur='6s' repeatCount='indefinite'/%3E%3Canimate attributeName='stroke-dashoffset' values='0;-16;-59' keyTimes='0;0.475;1' dur='6s' repeatCount='indefinite'/%3E%3C/circle%3E%3C/g%3E%3C/svg%3E");
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .btn[data-loading]::after {
+      mask-image: url("data:image/svg+xml,%3Csvg width='24' height='24' stroke='black' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cg transform-origin='center'%3E%3Ccircle cx='12' cy='12' r='9.5' fill='none' stroke-width='3' stroke-linecap='round'%3E%3CanimateTransform attributeName='transform' type='rotate' from='0 12 12' to='360 12 12' dur='2s' repeatCount='indefinite'/%3E%3Canimate attributeName='stroke-dasharray' values='0,150;42,150;42,150' keyTimes='0;0.475;1' dur='1.5s' repeatCount='indefinite'/%3E%3Canimate attributeName='stroke-dashoffset' values='0;-16;-59' keyTimes='0;0.475;1' dur='1.5s' repeatCount='indefinite'/%3E%3C/circle%3E%3C/g%3E%3C/svg%3E");
+    }
+  }
+}

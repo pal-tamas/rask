@@ -93,8 +93,23 @@ public partial class NavLinkTests : global::Rask.Core.RaskMarkup
     {
         using var _ = BeginRoute("/dashboard");
         Assert.Equal(
-            "<a class=\"menu-link active\" href=\"/dashboard\" data-rask-nav></a>",
+            "<a class=\"menu-link active\" aria-current=\"page\" href=\"/dashboard\" data-rask-nav></a>",
             NavLink.Href("/dashboard").Class("menu-link").ToHtml());
+    }
+
+    [Fact]
+    public void Render_PathsMatch_TellsAssistiveTechItIsTheCurrentPage()
+    {
+        // A class is invisible to a screen reader; aria-current="page" is what it announces. An empty ActiveClass opts
+        // out of the active state altogether, and an aria-current the call site set wins.
+        using var _ = BeginRoute("/dashboard");
+
+        Assert.Contains("aria-current=\"page\"", NavLink.Href("/dashboard").ToHtml());
+        Assert.DoesNotContain("aria-current", NavLink.Href("/dashboard").ActiveClass("").ToHtml());
+        Assert.Contains(
+            "aria-current=\"step\"",
+            NavLink.Href("/dashboard").Aria("current", "step").ToHtml());
+        Assert.DoesNotContain("aria-current", NavLink.Href("/other").ToHtml());
     }
 
     [Fact]
@@ -111,7 +126,7 @@ public partial class NavLinkTests : global::Rask.Core.RaskMarkup
     {
         using var _ = BeginRoute("/dashboard");
         Assert.Equal(
-            "<a class=\"active\" href=\"/dashboard\" data-rask-nav></a>",
+            "<a class=\"active\" aria-current=\"page\" href=\"/dashboard\" data-rask-nav></a>",
             NavLink.Href("/dashboard").ToHtml());
     }
 
@@ -180,7 +195,7 @@ public partial class NavLinkTests : global::Rask.Core.RaskMarkup
         // Match points the active comparison at the section root with Prefix matching.
         using var _ = BeginRoute("/realtime/ETH");
         Assert.Equal(
-            "<a class=\"active\" href=\"/realtime/BTC\" data-rask-nav></a>",
+            "<a class=\"active\" aria-current=\"page\" href=\"/realtime/BTC\" data-rask-nav></a>",
             NavLink.Href("/realtime/BTC").Match("/realtime").ActiveMatch(NavLinkMatch.Prefix).ToHtml());
     }
 

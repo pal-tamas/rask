@@ -45,6 +45,7 @@ export function reviveScript(node: Node): Node {
 }
 
 import {ignoresFormattingText, isElement, isFormattingText} from "./rask-dom-path.js";
+import {runtimeOwnsAttr} from "./rask-loading.js";
 
 export {ignoresFormattingText, isElement, isFormattingText};
 
@@ -523,7 +524,9 @@ export function morph(fromNode: Node, toNode: Node): void {
     // by index from the end to keep the unvisited slots stable.
     for (let i = fa.length - 1; i >= 0; i--) {
         const name = fa[i].name;
-        if (!to.hasAttribute(name)) from.removeAttribute(name);
+        // A loading mark the runtime stamped while a dispatch is in flight is not in any render, so the
+        // render that dispatch itself caused would otherwise strip the spinner mid-wait (rask-loading.ts).
+        if (!to.hasAttribute(name) && !runtimeOwnsAttr(from, name)) from.removeAttribute(name);
     }
     for (const a of ta) {
         if (from.getAttribute(a.name) !== a.value) from.setAttribute(a.name, a.value);

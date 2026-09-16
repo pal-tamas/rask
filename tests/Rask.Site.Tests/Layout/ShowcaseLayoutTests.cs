@@ -39,10 +39,11 @@ public sealed class ShowcaseLayoutTests
         Assert.Contains("navbar-end", html);
         Assert.Contains("btn btn-ghost btn-square", html);
 
-        // The sidebar is in the flow from md up and a drawer below it. It was a Bootstrap responsive
-        // offcanvas; the behaviour is unchanged because the open state was always Rask state.
+        // The sidebar is the kit's UiSidebar: in the flow from md up and a drawer below it, with the hamburger a
+        // UiSidebarToggle for its checkbox. It was a Bootstrap responsive offcanvas, then a hand-rolled aside.
         Assert.Contains("side-nav", html);
-        Assert.Contains("md:flex", html);
+        Assert.Contains("md:drawer-open", html);
+        Assert.Contains("for=\"docs-sidebar\"", html);
     }
 
     [Fact]
@@ -92,7 +93,8 @@ public sealed class ShowcaseLayoutTests
         var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.GuidesIndexPage() };
         var html = RaskTest.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
-        Assert.Contains("side-nav-link active", html);
+        // The kit's nav item says it is the current page to assistive tech, not only with a class.
+        Assert.Matches("class=\"side-nav-link menu-active\"[^>]*aria-current=\"page\"", html);
     }
 
     [Theory]
@@ -178,12 +180,10 @@ public sealed class ShowcaseLayoutTests
         var appsExpanded = GroupExpanded("Apps");
         Assert.DoesNotMatch(appsExpanded, CollapseWhitespace(page.Html));
 
-        // Open the mobile drawer via the hamburger (it toggles _drawerOpen); the backdrop marks it open.
-        var hamburgerId = Regex.Match(page.Html, "hamburger-btn[^\"]*\"[^>]*data-rask-on-click=\"([^\"]+)\"")
-            .Groups[1].Value;
-        Assert.NotEqual("", hamburgerId);
-        // The open drawer renders its own backdrop element; BsOffcanvas called it .offcanvas-backdrop.
-        Assert.Contains("nav-backdrop", await page.InvokeAsync(hamburgerId));
+        // Open the mobile drawer the way a tap on the hamburger does: the hamburger is a label for the sidebar's
+        // checkbox, whose change handler mirrors the state into _drawerOpen — and the checkbox renders checked.
+        var opened = await page.On("#docs-sidebar").ChangeAsync("true");
+        Assert.Matches("<input[^>]*id=\"docs-sidebar\"[^>]*checked|<input[^>]*checked[^>]*id=\"docs-sidebar\"", opened);
 
         // Navigate to /todos → RouteState.Changed fires → OnRouteChanged closes the drawer and expands the
         // group holding /todos. Without the subscription neither happens (the drawer stays open, Apps stays
@@ -191,7 +191,7 @@ public sealed class ShowcaseLayoutTests
         routeState.Path = Rask.Site.Features.Routes.TodosPage();
         var atTodos = CollapseWhitespace(page.Render());
         Assert.Matches(appsExpanded, atTodos);                 // active group auto-expanded
-        Assert.DoesNotContain("nav-backdrop", atTodos);         // drawer closed
+        Assert.DoesNotMatch("<input[^>]*id=\"docs-sidebar\"[^>]*checked|<input[^>]*checked[^>]*id=\"docs-sidebar\"", atTodos); // drawer closed
     }
 
     /// <summary>

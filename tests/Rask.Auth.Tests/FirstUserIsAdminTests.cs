@@ -131,7 +131,7 @@ public sealed class FirstUserIsAdminTests
             gate.SignalAndWait();
 
             return await accounts.RegisterAsync(
-                $"racer{i}@example.com", Password, AuthHarness.FirstRunTokenValue);
+                $"racer{i}@example.com", Password, AuthHarness.FirstRunTokenValue, client: null);
         })));
 
         Assert.All(
@@ -157,7 +157,7 @@ public sealed class FirstUserIsAdminTests
     {
         using var scope = harness.NewScope();
         var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
-        var outcome = await accounts.RegisterAsync(email, Password, token);
+        var outcome = await accounts.RegisterAsync(email, Password, token, client: null);
         return outcome.Result;
     }
 }

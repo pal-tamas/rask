@@ -45,6 +45,28 @@ public sealed class UiStylesheetTests
     }
 
     [Fact]
+    public void The_scroll_lock_at_the_document_root_applies_only_under_an_open_kit_dialog()
+    {
+        // The kit's one rule at :root, which a library stylesheet would otherwise have no business writing. It is
+        // safe only while every selector in it requires an OPEN kit modal to be in the document.
+        var locks = Rules(UiStylesheet.Css)
+            .Where(r => r.Selector.Contains(":root:has(", StringComparison.Ordinal)
+                        && r.Body.Contains("overflow", StringComparison.Ordinal))
+            .ToList();
+
+        Assert.NotEmpty(locks);
+        foreach (var rule in locks)
+        {
+            var inner = rule.Selector[(rule.Selector.IndexOf(":has(", StringComparison.Ordinal) + 5)..];
+            foreach (var alternative in inner.TrimEnd(')').Split(','))
+            {
+                Assert.Contains("modal", alternative, StringComparison.Ordinal);
+                Assert.Matches(@"\[open\]|:popover-open|\.modal-open", alternative);
+            }
+        }
+    }
+
+    [Fact]
     public void No_reset_or_document_rule_reaches_a_page_without_the_console_frame()
     {
         // The kit ships utilities and components, never a reset for an application: an app owns its own

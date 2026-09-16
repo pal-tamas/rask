@@ -22,10 +22,10 @@ public sealed partial class UiTabs : Component
     public UiSize? Size { get; set; }
 
     /// <summary>
-    ///     Which side of its panel the row sits on. Only <see cref="UiPlacement.Top" /> and
-    ///     <see cref="UiPlacement.Bottom" /> mean anything here; anything else draws the default.
+    ///     Which side of its panel the row sits on. Only <see cref="UiPosition.Top" /> and
+    ///     <see cref="UiPosition.Bottom" /> mean anything here; anything else draws the default.
     /// </summary>
-    public UiPlacement? Placement { get; set; }
+    public UiPosition? Position { get; set; }
 
     public string? Class { get; set; }
 
@@ -38,8 +38,11 @@ public sealed partial class UiTabs : Component
                 "tabs",
                 Style is { } style ? UiClassNames.TabsStyle(style) : "",
                 Size is { } size ? UiClassNames.TabsSize(size) : "",
-                Placement is { } placement ? UiClassNames.TabsPlacement(placement) : "",
-                "-mx-3 flex-nowrap overflow-x-auto px-3 sm:mx-0 sm:flex-wrap sm:px-0 "
+                Position is { } position ? UiClassNames.TabsPosition(position) : "",
+                // No outer margin: the kit styles, the page spaces. The phone bleed to the screen edge that
+                // used to live here (`-mx-3 px-3`) is a property of where a row sits, so it is the call
+                // site's to add — a row inside a card had it bleed out of the card.
+                "flex-nowrap overflow-x-auto sm:flex-wrap "
                 + "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
                 Class))[
             Children ?? []

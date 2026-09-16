@@ -19,7 +19,8 @@ public sealed partial class UiToast : Component
     /// <summary><see cref="UiTone.Error" /> when the action failed. Anything else reads as done.</summary>
     public UiTone? Tone { get; set; }
 
-    public Callback? Dismiss { get; set; }
+    /// <summary>Runs when the reader acknowledges it. Without one the toast has no dismiss button.</summary>
+    public Callback? OnDismiss { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render() =>
@@ -35,7 +36,7 @@ public sealed partial class UiToast : Component
                 .Name(Tone == UiTone.Error ? UiIconName.Warning : UiIconName.Check)
                 .Class($"size-5 shrink-0 {(Tone == UiTone.Error ? "text-warning" : "text-success")}"),
             Span.Class("min-w-0 grow break-words")[Message],
-            Dismiss is null
+            OnDismiss is null
                 ? null
                 : Button
                     .Type("button")
@@ -43,6 +44,6 @@ public sealed partial class UiToast : Component
                         "-mr-1 shrink-0 rounded-lg px-2 py-1.5 text-xs font-medium text-ui-bg/70 "
                         + "hover:bg-base-100/10 hover:text-ui-bg")
                     .Aria(new Dictionary<string, string?> { ["label"] = "Dismiss" })
-                    .OnClick(Dismiss)["Dismiss"]
+                    .OnClick(OnDismiss)["Dismiss"]
         ];
 }

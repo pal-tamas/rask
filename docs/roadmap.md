@@ -25,7 +25,7 @@ service to operate.
 | **Production SQLite** | ✅ | [`sqlite.md`](sqlite.md) — WAL/busy-timeout pragmas, continuous backup (Litestream), snapshots. |
 | **The door out of one box** | ❌ | Not shipped — the PostgreSQL and SQL Server providers exist, but `rask new` and `rask deploy` wire SQLite only ([below](#another-database)). Jobs, mail and the outbox do **lease** the work they claim ([`scaling.md`](scaling.md#running-more-than-one-instance)), so the claim is safe when several processors race and a lease bounds, but does not eliminate, a duplicate side effect. See [below](#not-shipped). |
 | **Auth — sign-in** | ✅ | [`authentication.md`](authentication.md) — the cookie session, claims, authorization, and hardening guidance. |
-| **Auth — user store** | ✅ | Accounts on ASP.NET Core Identity, on by default. Register, sign in and sign out work in a fresh app with no auth code; the first account to register is the administrator. Email verification, password reset and MFA are [not shipped](#not-shipped) yet. |
+| **Auth — user store** | ✅ | Accounts on the app's own `User` aggregate, with a revocable session row per device, on by default. Register, sign in and sign out work in a fresh app with no auth code; the first account to register is the administrator. Email verification, password reset and MFA are [not shipped](#not-shipped) yet. |
 | **Web Push (server send)** | ✅ | [`webpush.md`](webpush.md) — `Rask.WebPush`: VAPID (RFC 8292) + aes128gcm (RFC 8291), zero deps. |
 | **Deploy to one box** | ✅ | [`rask deploy`](cli.md) — bare-VPS setup (Docker, deploy login, firewall, SSH hardening), build over SSH, zero-downtime, auto-HTTPS (Caddy), multi-app on one host, GitHub Actions. |
 | **Dead letters & queue health** | ✅ | [`dashboard.md`](dashboard.md) — `Rask.Dashboard` mounts `/_rask` over the outbox, jobs, mail and cache: queue depth, **what has given up**, the error behind it, and one click to retry. Plus the log (a live tail, and searchable history with [`Rask.Logging`](logging.md)) and the live SQLite pragmas. Fail-closed behind an authorization policy. |
@@ -54,8 +54,8 @@ Listed because a roadmap that only says what exists isn't much use when you're d
 None of these has an implementation today — if your product needs one, you'll be writing or renting it.
 
 ### The rest of the account lifecycle
-Accounts themselves [shipped](authentication.md): registration, sign-in, sign-out, password hashing and
-lockout, on by default and backed by ASP.NET Core Identity. What is **not** here yet is the rest of the
+Accounts themselves [shipped](authentication.md): registration, sign-in, sign-out, password hashing (PBKDF2 or
+bcrypt), throttling and revocable sessions, on by default on the app's own `User`. What is **not** here yet is the rest of the
 lifecycle — email verification, password reset, MFA, and external providers (Google, GitHub, an
 enterprise OIDC). The token providers those flows are built from are already registered, so each is an
 addition rather than a redesign; none of them exists today.

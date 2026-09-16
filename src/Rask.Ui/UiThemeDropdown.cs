@@ -24,8 +24,18 @@ public sealed partial class UiThemeDropdown : Component
     /// <summary>The label on the trigger. Defaults to "Theme".</summary>
     public string Trigger { get; set; } = "Theme";
 
-    /// <summary>Alignment, as one of daisyUI's placement classes (for example <c>dropdown-end</c>).</summary>
-    public string? Placement { get; set; }
+    /// <summary>Which side of the trigger the list opens on.</summary>
+    public UiPosition? Position { get; set; }
+
+    /// <summary>
+    ///     Where along that side the list sits. <see cref="UiAlign.End" /> for a trigger at the end of a bar,
+    ///     so the list opens back over the page instead of off its edge.
+    /// </summary>
+    /// <remarks>
+    ///     This used to be a free-form string of daisyUI class names, which is the one shape the kit's class
+    ///     rule forbids: a misspelt class compiles, and styles nothing.
+    /// </remarks>
+    public UiAlign? Align { get; set; }
 
     /// <summary>The radio group's name, passed through to the picker.</summary>
     public string GroupName { get; set; } = "rask-ui-theme";
@@ -43,7 +53,11 @@ public sealed partial class UiThemeDropdown : Component
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        Details.Class(UiClass.Compose("dropdown", Placement, Class))[
+        Details.Class(UiClass.Compose(
+            "dropdown",
+            Position is { } position ? UiClassNames.DropdownPosition(position) : "",
+            Align is { } align ? UiClassNames.DropdownAlign(align) : "",
+            Class))[
             Summary.Class("btn btn-sm")[
                 UiIcon.Name(UiIconName.Sparkles).Class("size-4 shrink-0"),
                 Span[Trigger]

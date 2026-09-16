@@ -10,8 +10,8 @@ using Rask.Generators.Shared;
 namespace Rask.Auth.Generators;
 
 /// <summary>
-/// Finds the application's account type — the one class deriving from ASP.NET Core Identity's
-/// <c>IdentityUser</c> — and emits a <c>[ModuleInitializer]</c> naming it to <c>Rask.Auth.AuthUser</c>,
+/// Finds the application's user type — the one class deriving from <c>Rask.Auth.Authenticatable</c> — and emits a
+/// <c>[ModuleInitializer]</c> naming it to <c>Rask.Auth.AuthUser</c>,
 /// so <c>AddRaskAuth()</c> and <c>modelBuilder.AddRaskAuth()</c> need no type argument.
 /// </summary>
 /// <remarks>
@@ -22,20 +22,20 @@ namespace Rask.Auth.Generators;
 [Generator]
 public sealed class AuthUserGenerator : IIncrementalGenerator
 {
-    private const string IdentityUserBase = "IdentityUser";
-    private const string IdentityNamespace = "Microsoft.AspNetCore.Identity";
+    private const string AuthenticatableBase = "Authenticatable";
+    private const string AuthNamespace = "Rask.Auth";
 
     private static readonly DiagnosticDescriptor Rask074 = new(
         "RASK074",
-        "More than one account type",
-        "'{0}' and '{1}' both derive from IdentityUser, so Rask cannot tell which one is this app's "
-        + "account; auth is left unwired. Keep one user type — the other is an entity like any other, "
-        + "and does not need to derive from IdentityUser to be mapped.",
+        "More than one user type",
+        "'{0}' and '{1}' both derive from Authenticatable, so Rask cannot tell which one is this app's "
+        + "user; auth is left unwired. Keep one user type — the other is an aggregate like any other, "
+        + "and does not need to derive from Authenticatable to be mapped.",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
-        description: "The account type is found rather than named, which needs there to be one. With two, "
-                     + "picking either would map one set of account tables and silently strand the other, "
+        description: "The user type is found rather than named, which needs there to be one. With two, "
+                     + "picking either would map one users table and silently strand the other, "
                      + "and the app would look wired until the first sign-in.",
         helpLinkUri: DiagnosticHelp.Link("RASK074"));
 
@@ -61,8 +61,8 @@ public sealed class AuthUserGenerator : IIncrementalGenerator
         }
 
         // Abstract or generic cannot be closed over; a user type also needs the parameterless
-        // constructor Identity's stores use to materialise one.
-        if (symbol.IsAbstract || symbol.IsStatic || symbol.IsGenericType || !DerivesFromIdentityUser(symbol))
+        // constructor registration builds a new user with.
+        if (symbol.IsAbstract || symbol.IsStatic || symbol.IsGenericType || !DerivesFromAuthenticatable(symbol))
         {
             return null;
         }
@@ -78,12 +78,12 @@ public sealed class AuthUserGenerator : IIncrementalGenerator
             SymbolLocation.From(symbol));
     }
 
-    private static bool DerivesFromIdentityUser(INamedTypeSymbol symbol)
+    private static bool DerivesFromAuthenticatable(INamedTypeSymbol symbol)
     {
         for (var current = symbol.BaseType; current is not null; current = current.BaseType)
         {
-            if (current.Name == IdentityUserBase &&
-                current.ContainingNamespace?.ToDisplayString() == IdentityNamespace)
+            if (current.Name == AuthenticatableBase &&
+                current.ContainingNamespace?.ToDisplayString() == AuthNamespace)
             {
                 return true;
             }
@@ -120,7 +120,7 @@ public sealed class AuthUserGenerator : IIncrementalGenerator
         source.AppendLine();
         source.AppendLine("namespace Rask.Auth.Generated;");
         source.AppendLine();
-        source.AppendLine("/// <summary>Names this assembly's account type to Rask.Auth.</summary>");
+        source.AppendLine("/// <summary>Names this assembly's user type to Rask.Auth.</summary>");
         source.AppendLine("internal static class __RaskAuthUser");
         source.AppendLine("{");
         source.AppendLine("    [global::System.Runtime.CompilerServices.ModuleInitializer]");

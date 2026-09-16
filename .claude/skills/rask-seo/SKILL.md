@@ -24,6 +24,7 @@ own ("blazor", "react"). Map every new page to one:
 | background jobs / outbox / cache .NET without Redis | `jobs`, `outbox`, `cache` |
 | file uploads ASP.NET Core to disk / S3 / Azure Blob, presigned URLs without the AWS SDK | `file-storage` |
 | Tailwind CSS .NET without npm | `tailwind` |
+| accessible C# UI components, keyboard menus / modal / sidebar layout for ASP.NET Core or WebAssembly | `ui-kit` |
 | inspect a running C# web app, component tree / render counts / interaction timing / errors / network devtools for .NET | `devtools` |
 | Web Push from ASP.NET Core, VAPID | `webpush` |
 | PWA in C#, browser API (Geolocation, WebUSB, …) in C# | `pwa`, `apis/*` |

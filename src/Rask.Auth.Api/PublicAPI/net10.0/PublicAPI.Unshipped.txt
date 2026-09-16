@@ -5,7 +5,6 @@ Rask.Auth.AuthEmailBodies.Confirm(string! link, string! subject) -> string!
 Rask.Auth.AuthEmailBodies.Reset(string! link, string! subject, System.TimeSpan lifetime) -> string!
 Rask.Auth.AuthHost
 Rask.Auth.AuthInstanceClaim
-Rask.Auth.AuthInstanceClaim.AdminUserId.get -> string!
 Rask.Auth.AuthInstanceClaim.AdminUserId.set -> void
 Rask.Auth.AuthInstanceClaim.AuthInstanceClaim() -> void
 Rask.Auth.AuthInstanceClaim.ClaimedUtc.get -> System.DateTime
@@ -46,14 +45,10 @@ Rask.Auth.AuthOptions.FirstUserIsAdmin.get -> bool
 Rask.Auth.AuthOptions.FirstUserIsAdmin.set -> void
 Rask.Auth.AuthOptions.ForgotPasswordPath.get -> string!
 Rask.Auth.AuthOptions.ForgotPasswordPath.set -> void
-Rask.Auth.AuthOptions.LockoutDuration.get -> System.TimeSpan
-Rask.Auth.AuthOptions.LockoutDuration.set -> void
 Rask.Auth.AuthOptions.LoginPath.get -> string!
 Rask.Auth.AuthOptions.LoginPath.set -> void
 Rask.Auth.AuthOptions.LogoutPath.get -> string!
 Rask.Auth.AuthOptions.LogoutPath.set -> void
-Rask.Auth.AuthOptions.MaxFailedAccessAttempts.get -> int
-Rask.Auth.AuthOptions.MaxFailedAccessAttempts.set -> void
 Rask.Auth.AuthOptions.MinimumPasswordLength.get -> int
 Rask.Auth.AuthOptions.MinimumPasswordLength.set -> void
 Rask.Auth.AuthOptions.PublicOrigin.get -> string?
@@ -64,8 +59,6 @@ Rask.Auth.AuthOptions.RequireConfirmedEmail.get -> bool
 Rask.Auth.AuthOptions.RequireConfirmedEmail.set -> void
 Rask.Auth.AuthOptions.RequireFirstRunToken.get -> bool
 Rask.Auth.AuthOptions.RequireFirstRunToken.set -> void
-Rask.Auth.AuthOptions.RequireMixedCasePasswords.get -> bool
-Rask.Auth.AuthOptions.RequireMixedCasePasswords.set -> void
 Rask.Auth.AuthOptions.ResetPasswordPath.get -> string!
 Rask.Auth.AuthOptions.ResetPasswordPath.set -> void
 Rask.Auth.AuthOptions.ResetPasswordSubject.get -> string!
@@ -105,3 +98,101 @@ static Rask.Auth.RaskAuthEndpointExtensions.MapRaskAuth(this Microsoft.AspNetCor
 static Rask.Auth.RaskAuthServiceCollectionExtensions.AddRaskAuth<TContext, TUser>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Auth.AuthOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Auth.RaskAuthServiceCollectionExtensions.AddRaskAuth<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Auth.AuthOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Auth.RaskRoles.All.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Rask.Auth.AuthInstanceClaim.AdminUserId.get -> System.Guid
+Rask.Auth.AuthOptions.BcryptWorkFactor.get -> int
+Rask.Auth.AuthOptions.BcryptWorkFactor.set -> void
+Rask.Auth.AuthOptions.PasswordHashing.get -> Rask.Auth.PasswordHashing
+Rask.Auth.AuthOptions.PasswordHashing.set -> void
+Rask.Auth.AuthOptions.SignInAttemptsPerMinute.get -> int
+Rask.Auth.AuthOptions.SignInAttemptsPerMinute.set -> void
+Rask.Auth.Authenticatable
+Rask.Auth.Authenticatable.Authenticatable() -> void
+Rask.Auth.Authenticatable.Email.get -> string!
+Rask.Auth.Authenticatable.EmailConfirmedAt.get -> System.DateTime?
+Rask.Auth.Authenticatable.GrantRole(string! role) -> void
+Rask.Auth.Authenticatable.IsEmailConfirmed.get -> bool
+Rask.Auth.Authenticatable.IsInRole(string! role) -> bool
+Rask.Auth.Authenticatable.PasswordChangedAt.get -> System.DateTime?
+Rask.Auth.Authenticatable.RevokeRole(string! role) -> void
+Rask.Auth.Authenticatable.Roles.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Rask.Auth.EmailConfirmed
+Rask.Auth.EmailConfirmed.<Clone>$() -> Rask.Auth.EmailConfirmed!
+Rask.Auth.EmailConfirmed.Deconstruct(out System.Guid UserId, out string! Email) -> void
+Rask.Auth.EmailConfirmed.Email.get -> string!
+Rask.Auth.EmailConfirmed.Email.init -> void
+Rask.Auth.EmailConfirmed.EmailConfirmed(System.Guid UserId, string! Email) -> void
+Rask.Auth.EmailConfirmed.Equals(Rask.Auth.EmailConfirmed? other) -> bool
+Rask.Auth.EmailConfirmed.UserId.get -> System.Guid
+Rask.Auth.EmailConfirmed.UserId.init -> void
+Rask.Auth.PasswordHashing
+Rask.Auth.PasswordHashing.Bcrypt = 1 -> Rask.Auth.PasswordHashing
+Rask.Auth.PasswordHashing.Pbkdf2 = 0 -> Rask.Auth.PasswordHashing
+Rask.Auth.PasswordReset
+Rask.Auth.PasswordReset.<Clone>$() -> Rask.Auth.PasswordReset!
+Rask.Auth.PasswordReset.Deconstruct(out System.Guid UserId) -> void
+Rask.Auth.PasswordReset.Equals(Rask.Auth.PasswordReset? other) -> bool
+Rask.Auth.PasswordReset.PasswordReset(System.Guid UserId) -> void
+Rask.Auth.PasswordReset.UserId.get -> System.Guid
+Rask.Auth.PasswordReset.UserId.init -> void
+Rask.Auth.Session
+Rask.Auth.Session.ExpiresAt.get -> System.DateTime
+Rask.Auth.Session.IpAddress.get -> string?
+Rask.Auth.Session.LastSeenAt.get -> System.DateTime
+Rask.Auth.Session.Persistent.get -> bool
+Rask.Auth.Session.Session() -> void
+Rask.Auth.Session.UserAgent.get -> string?
+Rask.Auth.Session.UserId.get -> System.Guid
+Rask.Auth.SignedIn
+Rask.Auth.SignedIn.<Clone>$() -> Rask.Auth.SignedIn!
+Rask.Auth.SignedIn.Deconstruct(out System.Guid UserId, out System.Guid SessionId) -> void
+Rask.Auth.SignedIn.Equals(Rask.Auth.SignedIn? other) -> bool
+Rask.Auth.SignedIn.SessionId.get -> System.Guid
+Rask.Auth.SignedIn.SessionId.init -> void
+Rask.Auth.SignedIn.SignedIn(System.Guid UserId, System.Guid SessionId) -> void
+Rask.Auth.SignedIn.UserId.get -> System.Guid
+Rask.Auth.SignedIn.UserId.init -> void
+Rask.Auth.SignedOut
+Rask.Auth.SignedOut.<Clone>$() -> Rask.Auth.SignedOut!
+Rask.Auth.SignedOut.Deconstruct(out System.Guid UserId, out System.Guid SessionId) -> void
+Rask.Auth.SignedOut.Equals(Rask.Auth.SignedOut? other) -> bool
+Rask.Auth.SignedOut.SessionId.get -> System.Guid
+Rask.Auth.SignedOut.SessionId.init -> void
+Rask.Auth.SignedOut.SignedOut(System.Guid UserId, System.Guid SessionId) -> void
+Rask.Auth.SignedOut.UserId.get -> System.Guid
+Rask.Auth.SignedOut.UserId.init -> void
+Rask.Auth.UserRegistered
+Rask.Auth.UserRegistered.<Clone>$() -> Rask.Auth.UserRegistered!
+Rask.Auth.UserRegistered.Deconstruct(out System.Guid UserId, out string! Email) -> void
+Rask.Auth.UserRegistered.Email.get -> string!
+Rask.Auth.UserRegistered.Email.init -> void
+Rask.Auth.UserRegistered.Equals(Rask.Auth.UserRegistered? other) -> bool
+Rask.Auth.UserRegistered.UserId.get -> System.Guid
+Rask.Auth.UserRegistered.UserId.init -> void
+Rask.Auth.UserRegistered.UserRegistered(System.Guid UserId, string! Email) -> void
+const Rask.Auth.AuthOptions.DefaultBcryptWorkFactor = 12 -> int
+override Rask.Auth.EmailConfirmed.Equals(object? obj) -> bool
+override Rask.Auth.EmailConfirmed.GetHashCode() -> int
+override Rask.Auth.EmailConfirmed.ToString() -> string!
+override Rask.Auth.PasswordReset.Equals(object? obj) -> bool
+override Rask.Auth.PasswordReset.GetHashCode() -> int
+override Rask.Auth.PasswordReset.ToString() -> string!
+override Rask.Auth.SignedIn.Equals(object? obj) -> bool
+override Rask.Auth.SignedIn.GetHashCode() -> int
+override Rask.Auth.SignedIn.ToString() -> string!
+override Rask.Auth.SignedOut.Equals(object? obj) -> bool
+override Rask.Auth.SignedOut.GetHashCode() -> int
+override Rask.Auth.SignedOut.ToString() -> string!
+override Rask.Auth.UserRegistered.Equals(object? obj) -> bool
+override Rask.Auth.UserRegistered.GetHashCode() -> int
+override Rask.Auth.UserRegistered.ToString() -> string!
+static Rask.Auth.Authenticatable.NormalizeEmail(string! email) -> string!
+static Rask.Auth.EmailConfirmed.operator !=(Rask.Auth.EmailConfirmed? left, Rask.Auth.EmailConfirmed? right) -> bool
+static Rask.Auth.EmailConfirmed.operator ==(Rask.Auth.EmailConfirmed? left, Rask.Auth.EmailConfirmed? right) -> bool
+static Rask.Auth.PasswordReset.operator !=(Rask.Auth.PasswordReset? left, Rask.Auth.PasswordReset? right) -> bool
+static Rask.Auth.PasswordReset.operator ==(Rask.Auth.PasswordReset? left, Rask.Auth.PasswordReset? right) -> bool
+static Rask.Auth.SignedIn.operator !=(Rask.Auth.SignedIn? left, Rask.Auth.SignedIn? right) -> bool
+static Rask.Auth.SignedIn.operator ==(Rask.Auth.SignedIn? left, Rask.Auth.SignedIn? right) -> bool
+static Rask.Auth.SignedOut.operator !=(Rask.Auth.SignedOut? left, Rask.Auth.SignedOut? right) -> bool
+static Rask.Auth.SignedOut.operator ==(Rask.Auth.SignedOut? left, Rask.Auth.SignedOut? right) -> bool
+static Rask.Auth.UserRegistered.operator !=(Rask.Auth.UserRegistered? left, Rask.Auth.UserRegistered? right) -> bool
+static Rask.Auth.UserRegistered.operator ==(Rask.Auth.UserRegistered? left, Rask.Auth.UserRegistered? right) -> bool

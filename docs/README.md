@@ -42,7 +42,7 @@ and reach for the [**Recipes**](recipes.md) when you need "how do I do X?".
 | [Validation](validation.md) | Built in and on: `[Required]` and `AbstractValidator<T>` run in a form and on every dispatched request, with nothing declared. The off switch, validators that need services, and what a rejected request looks like on the wire. |
 | [Live pages](render-modes.md) | How a Server page reaches the browser: every page live with a session of its own, waiting for async data before the first byte, cache headers, and setting a status or redirecting on load. |
 | [Lifecycle](lifecycle.md) | `OnMount` / `OnPropsChanged` / `OnRendered` / `OnUnmount`, async-hook rules, cancellation, common gotchas. |
-| [Authentication](authentication.md) | Production auth: the cookie session on Server & WASM, `Authorize`, route guards, Identity / Keycloak / Auth0 / Cognito / Duende. |
+| [Authentication](authentication.md) | Accounts on your own `User`: sessions you can list and end, PBKDF2 or bcrypt, `Authorize`, route guards, OIDC (Keycloak / Auth0 / Cognito / Duende). |
 | [Accessibility](accessibility.md) | Setting ARIA attributes, `Role`/`TabIndex`, and focus on any element; the `Img` alt-text analyzer (RASK023). |
 | [Localization](localization.md) | Ship in more than one language: the visitor's culture negotiated per request, dates and numbers in their format, text from typed JSON catalogs (a missing key is a compile error), plural grammar per language, `<html lang>`/`dir`, and the WASM ICU opt-in. |
 | [Testing](testing.md) | Unit-testing components with `Rask.Testing`, driving event handlers, when to reach for E2E. |

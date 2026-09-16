@@ -508,30 +508,30 @@ internal static class UiClassNames
         _ => "",
     };
 
-    /// <remarks>
-    ///     daisyUI has no <c>dropdown-center</c>: a dropdown is placed against its trigger, and centring
-    ///     it there is what <c>dropdown-start</c>/<c>-end</c> already choose between. The member returns
-    ///     nothing rather than a class that styles nothing.
-    /// </remarks>
-    internal static string DropdownPlacement(UiPlacement value) => value switch
+    internal static string DropdownPosition(UiPosition value) => value switch
     {
-        UiPlacement.Start => "dropdown-start",
-        UiPlacement.Center => "dropdown-center",
-        UiPlacement.End => "dropdown-end",
-        UiPlacement.Top => "dropdown-top",
-        UiPlacement.Bottom => "dropdown-bottom",
-        UiPlacement.Left => "dropdown-left",
-        UiPlacement.Right => "dropdown-right",
+        UiPosition.Top => "dropdown-top",
+        UiPosition.Bottom => "dropdown-bottom",
+        UiPosition.Left => "dropdown-left",
+        UiPosition.Right => "dropdown-right",
         _ => "",
     };
 
-    internal static string ModalPlacement(UiModalPlacement value) => value switch
+    internal static string DropdownAlign(UiAlign value) => value switch
     {
-        UiModalPlacement.Top => "modal-top",
-        UiModalPlacement.Middle => "modal-middle",
-        UiModalPlacement.Bottom => "modal-bottom",
-        UiModalPlacement.Start => "modal-start",
-        UiModalPlacement.End => "modal-end",
+        UiAlign.Start => "dropdown-start",
+        UiAlign.Center => "dropdown-center",
+        UiAlign.End => "dropdown-end",
+        _ => "",
+    };
+
+    internal static string ModalPosition(UiModalPosition value) => value switch
+    {
+        UiModalPosition.Top => "modal-top",
+        UiModalPosition.Middle => "modal-middle",
+        UiModalPosition.Bottom => "modal-bottom",
+        UiModalPosition.Start => "modal-start",
+        UiModalPosition.End => "modal-end",
         _ => "",
     };
 
@@ -580,12 +580,12 @@ internal static class UiClassNames
 
     /// <remarks>
     ///     A row of tabs sits above or below its panel and nowhere else, so the horizontal members of
-    ///     <see cref="UiPlacement" /> return nothing rather than a class daisyUI never defined.
+    ///     <see cref="UiPosition" /> return nothing rather than a class daisyUI never defined.
     /// </remarks>
-    internal static string TabsPlacement(UiPlacement value) => value switch
+    internal static string TabsPosition(UiPosition value) => value switch
     {
-        UiPlacement.Top => "tabs-top",
-        UiPlacement.Bottom => "tabs-bottom",
+        UiPosition.Top => "tabs-top",
+        UiPosition.Bottom => "tabs-bottom",
         _ => "",
     };
 
@@ -642,17 +642,105 @@ internal static class UiClassNames
         _ => "loading-spinner",
     };
 
-    /// <remarks>A tooltip is the one component daisyUI defines all seven placements for.</remarks>
-    internal static string TooltipPlacement(UiPlacement value) => value switch
+    internal static string TooltipPosition(UiPosition value) => value switch
     {
-        UiPlacement.Start => "tooltip-start",
-        UiPlacement.Center => "tooltip-center",
-        UiPlacement.End => "tooltip-end",
-        UiPlacement.Top => "tooltip-top",
-        UiPlacement.Bottom => "tooltip-bottom",
-        UiPlacement.Left => "tooltip-left",
-        UiPlacement.Right => "tooltip-right",
+        UiPosition.Top => "tooltip-top",
+        UiPosition.Bottom => "tooltip-bottom",
+        UiPosition.Left => "tooltip-left",
+        UiPosition.Right => "tooltip-right",
         _ => "",
+    };
+
+    internal static string TooltipAlign(UiAlign value) => value switch
+    {
+        UiAlign.Start => "tooltip-start",
+        UiAlign.Center => "tooltip-center",
+        UiAlign.End => "tooltip-end",
+        _ => "",
+    };
+
+    /// <remarks>
+    ///     A drawer opens from the left or the right edge, and daisyUI's one class for it is <c>drawer-end</c>,
+    ///     so only <see cref="UiPosition.Right" /> writes anything.
+    /// </remarks>
+    /// <remarks>daisyUI hides one side of a divider's line with these, so its words sit at that edge.</remarks>
+    internal static string DividerAlign(UiAlign value) => value switch
+    {
+        UiAlign.Start => "divider-start",
+        UiAlign.End => "divider-end",
+        _ => "",
+    };
+
+    /// <remarks>
+    ///     The width from which a sidebar sits in the page's flow instead of sliding over it. Every member a complete
+    ///     literal: <c>"lg:" + "drawer-open"</c> is invisible to Tailwind's scan, and the sidebar would never open.
+    /// </remarks>
+    internal static string SidebarInFlowFrom(UiBreakpoint value) => value switch
+    {
+        UiBreakpoint.Sm => "sm:drawer-open",
+        UiBreakpoint.Md => "md:drawer-open",
+        UiBreakpoint.Lg => "lg:drawer-open",
+        UiBreakpoint.Xl => "xl:drawer-open",
+        _ => "lg:drawer-open",
+    };
+
+    /// <remarks>The toggle is only needed while the sidebar slides over the page, so it hides where the sidebar docks.</remarks>
+    internal static string HiddenFrom(UiBreakpoint value) => value switch
+    {
+        UiBreakpoint.Sm => "sm:hidden",
+        UiBreakpoint.Md => "md:hidden",
+        UiBreakpoint.Lg => "lg:hidden",
+        UiBreakpoint.Xl => "xl:hidden",
+        _ => "lg:hidden",
+    };
+
+    internal static string SubheadingSize(UiSize value) => value switch
+    {
+        UiSize.Xs => "text-xs",
+        UiSize.Lg => "text-base",
+        UiSize.Xl => "text-lg",
+        _ => "text-sm",
+    };
+
+    internal static string TextSize(UiSize value) => value switch
+    {
+        UiSize.Xs => "text-xs",
+        UiSize.Sm => "text-sm",
+        UiSize.Lg => "text-base",
+        UiSize.Xl => "text-lg",
+        _ => "text-sm",
+    };
+
+    /// <remarks>The ink colours, which are what keep body text readable on every theme's base.</remarks>
+    internal static string TextTone(UiTone value) => value switch
+    {
+        UiTone.Primary => "text-primary",
+        UiTone.Secondary => "text-secondary",
+        UiTone.Accent => "text-accent",
+        UiTone.Info => "text-info",
+        UiTone.Success => "text-success",
+        UiTone.Warning => "text-warning",
+        UiTone.Error => "text-error",
+        _ => "",
+    };
+
+    internal static string DrawerPosition(UiPosition value) => value switch
+    {
+        UiPosition.Right => "drawer-end",
+        _ => "",
+    };
+
+    /// <remarks>
+    ///     daisyUI's avatar has no size classes of its own — its docs size the inner box with a width
+    ///     utility — so the literals live here, where Tailwind can see them.
+    /// </remarks>
+    internal static string AvatarSize(UiSize value) => value switch
+    {
+        UiSize.Xs => "w-6",
+        UiSize.Sm => "w-8",
+        UiSize.Lg => "w-16",
+        UiSize.Xl => "w-24",
+        _ => "w-10",
     };
 
     internal static string MegamenuSize(UiSize value) => value switch

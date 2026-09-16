@@ -42,6 +42,11 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
         await OpenAsync();
 
         var email = Page.Locator("[data-testid='ui-text-controls'] input[type='email']");
+
+        // Described by its hint while valid; the badge beside the label is not part of the field's name.
+        await Expect(email).ToHaveAccessibleDescriptionAsync("For example, you@example.com.");
+        await Expect(email).ToHaveAccessibleNameAsync("Email");
+
         await email.FillAsync("not-an-address");
         await email.BlurAsync();
 
@@ -51,9 +56,15 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         await Expect(email).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("input-error"));
 
+        // aria-describedby resolves to the VISIBLE text, error first — what a screen reader reads with the field.
+        await Expect(email).ToHaveAttributeAsync("aria-invalid", "true");
+        await Expect(email).ToHaveAccessibleDescriptionAsync(
+            "That does not look like an email address. For example, you@example.com.");
+
         await email.FillAsync("ada@example.com");
         await email.BlurAsync();
         await Expect(Page.Locator(".validator-hint")).ToHaveCountAsync(0);
+        await Expect(email).ToHaveAccessibleDescriptionAsync("For example, you@example.com.");
     });
 
     [Fact]
@@ -309,7 +320,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     private async Task OpenAsync()
     {
         await Page.GotoAsync(Docs);
-        await Expect(Page.Locator(".side-nav a.side-nav-link.active").First).ToBeVisibleAsync(
+        await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await ClickSidebar("Data input");
