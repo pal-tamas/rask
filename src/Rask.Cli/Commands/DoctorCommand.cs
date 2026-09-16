@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using Rask.Cli.Scaffolding;
 using Spectre.Console;
 
@@ -182,11 +183,28 @@ internal sealed class DoctorCommand(
     ///     tool IS there, and `dotnet --version` answers for the SDK selected in this directory, which a
     ///     global.json can pin below a newer one that is also installed.
     /// </remarks>
-    private static DoctorCheck SdkCheck(string? sdk)
+    private DoctorCheck SdkCheck(string? sdk)
     {
         if (sdk is null)
         {
             // The one environment check that IS fatal to everything: every command shells out to it.
+            //
+            // Inside a project there are two ways to get here and they look identical, because the thing
+            // that failed is `dotnet --version` itself: no SDK at all, or an SDK pin that nothing
+            // installed satisfies. Every scaffold ships a global.json, so the second is the likelier one
+            // — and the SDK's own words for it ("the command could not be loaded") name neither the file
+            // nor the version it wanted, which leaves the fix nowhere on screen.
+            var pin = Path.Combine(_workingDirectory, TemplateMaterializer.GlobalJsonFile);
+            if (_fileSystem.FileExists(pin))
+            {
+                var wanted = PinnedSdkVersion(pin);
+                return new DoctorCheck(
+                    "dotnet sdk", DoctorStatus.Fail, "not found",
+                    $"No installed SDK satisfies this project's {TemplateMaterializer.GlobalJsonFile}"
+                    + (wanted is null ? "" : $", which asks for {wanted}")
+                    + ". Install that .NET from https://dot.net, or edit the pin.");
+            }
+
             return new DoctorCheck("dotnet sdk", DoctorStatus.Fail, "not found", "Install .NET from https://dot.net.");
         }
 
@@ -200,6 +218,35 @@ internal sealed class DoctorCommand(
         }
 
         return new DoctorCheck("dotnet sdk", DoctorStatus.Ok, sdk, null);
+    }
+
+    /// <summary>
+    ///     The version a <c>global.json</c> asks for, or <see langword="null" /> if it cannot be read.
+    /// </summary>
+    /// <remarks>
+    ///     Best-effort, and deliberately so: this runs on the path where something is ALREADY wrong, and
+    ///     a doctor that threw while explaining a failure would replace a bad message with a worse one.
+    ///     A hand-edited or half-written file simply drops the version from the advice, which still
+    ///     names the file.
+    /// </remarks>
+    private string? PinnedSdkVersion(string path)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(_fileSystem.ReadAllText(path));
+            return document.RootElement.TryGetProperty("sdk", out var sdk)
+                && sdk.TryGetProperty("version", out var version)
+                    ? version.GetString()
+                    : null;
+        }
+        // InvalidOperationException belongs here as much as JsonException does: a file that parses but
+        // holds the wrong SHAPE — `"sdk": "10.0.0"`, or a version written as a number — throws from
+        // TryGetProperty/GetString rather than from Parse, and that is a plausible hand-edit.
+        catch (Exception e)
+            when (e is JsonException or InvalidOperationException or IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
     }
 
     /// <summary>The Node row, measured against the LTS line the scaffolders themselves track.</summary>

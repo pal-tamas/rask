@@ -30,6 +30,17 @@ them until tagged releases begin.
   gains `Sticky` and `Class`; `UiMain` gains `Container` and `Class`; `UiNavList` gains `Outline`.
 - **`UiMenuButton`** is the popover-menu contract — the panel, the placement and the whole keyboard cursor —
   shared by `UiDropdown` and `UiProfile`, so a second menu control cannot ship with half the arrows.
+- **`rask new` scaffolds a `global.json`, so an app is compiled by an SDK of its own major.** With no pin the
+  SDK picks the newest one installed: on a machine that also carries the next major in preview, a `net10.0`
+  app is built by an `11.0.x` release candidate — it works, says `NETSDK1057` once per build, and quietly
+  hands two people on the same repository different compilers. The pin follows `--framework`, and
+  `rollForward: latestFeature` takes the newest SDK *within* the band without ever crossing a major. The
+  version is the band floor (`10.0.0`) rather than a real SDK release, which is load-bearing while a band is
+  in preview: `11.0.100-rc.1` sorts *below* `11.0.100` and roll-forward only goes up, so a pin naming the
+  release resolves nothing at all on a machine holding the candidate — `allowPrerelease` does not rescue it.
+  The trade is that a machine with only a newer major now fails instead of building on it, so `rask doctor`
+  reads the file: an unsatisfiable pin is reported as the pin it is, rather than as a machine with no .NET on
+  it, which is what `dotnet --version` failing looks like from the outside.
 
 - **Passkeys — another way to sign in, verified on the base class library.** A signed-in person adds a passkey on
   `/devices` (Touch ID, Windows Hello, a phone, a security key) and `/login` then offers "Sign in with a passkey",
