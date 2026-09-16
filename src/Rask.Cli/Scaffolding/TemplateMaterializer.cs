@@ -140,6 +140,10 @@ internal static class TemplateMaterializer
             written = VsCodeAssembly.Apply(targetDirectory, name, written, vsCode);
         }
 
+        // The development VAPID pair, after the markers have been stripped: it is added only when the
+        // RENDERED appsettings.json carries a WebPush section, so it reads the same text the app will.
+        written = WebPushAssembly.Apply(targetDirectory, written);
+
         // Last, and over the ASSEMBLED list rather than each asset as it is read: both assemblers above
         // contribute files of their own, and a rewrite inside the loop reached none of them. A no-op for
         // the default target, so a plain `rask new` still writes the committed trees byte for byte.

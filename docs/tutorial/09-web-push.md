@@ -38,14 +38,20 @@ builder.Services.AddSingleton<PushSubscriptionStore>();
 `/_push/key`, `/_push/subscribe`, `/_push/unsubscribe` — mapped by `app.MapPushSubscriptions()` **before**
 `UseRask<App>()`, since its catch-all serves the app for anything unmatched.
 
-Note what is and isn't gated. Sending needs keys, so `AddRaskWebPush` is behind the config check — a fresh
-scaffold has to start before you've generated any. The store and its endpoints are always registered, so
-`/_push/key` answers with an empty key rather than 500-ing, and the UI can say "push isn't set up yet".
+Note what is and isn't gated. Sending needs keys, so `AddRaskWebPush` is behind the config check — an app
+whose keys are missing still starts. The store and its endpoints are always registered, so `/_push/key`
+answers with an empty key rather than 500-ing, and the UI can say "push isn't set up yet".
 
-## 2. Generate your VAPID keys
+## 2. Your VAPID keys
 
-VAPID is how a push service knows the message really came from your server. You generate one keypair, once,
-and keep it forever — rotating it invalidates every existing subscription.
+VAPID is how a push service knows the message really came from your server. One keypair, once, kept forever
+— rotating it invalidates every existing subscription.
+
+**You already have one.** `rask new` generated a development pair for this app and wrote it to
+`appsettings.Development.json`, which is gitignored so the private key stays out of your repository. Open
+the file if you want to see it; otherwise there is nothing to do here.
+
+Lost it, or working in an app Rask didn't scaffold? Mint another:
 
 ```csharp
 var keys = VapidKeys.Generate();
@@ -53,14 +59,20 @@ Console.WriteLine(keys.PublicKey);
 Console.WriteLine(keys.PrivateKey);
 ```
 
-```bash
-dotnet user-secrets set "Rask:WebPush:VapidKeys:PublicKey"  "<public>"
-dotnet user-secrets set "Rask:WebPush:VapidKeys:PrivateKey" "<private>"
+```jsonc
+// appsettings.Development.json
+{
+  "Rask": { "WebPush": { "VapidKeys": { "PublicKey": "…", "PrivateKey": "…" } } }
+}
 ```
 
 Change `Rask:WebPush:Subject` in `appsettings.json` to an address you read — it is not a secret. When you
-deploy, the keys go in the environment instead: `Rask__WebPush__VapidKeys__PublicKey` and
-`Rask__WebPush__VapidKeys__PrivateKey`.
+deploy, the keys come from the environment instead, and production should have a pair of its own:
+
+```bash
+rask deploy --env "Rask__WebPush__VapidKeys__PublicKey=<public>" \
+            --env "Rask__WebPush__VapidKeys__PrivateKey=<private>"
+```
 
 The **public** key is handed to the browser to subscribe with. The **private** key signs the request and
 must never be served — which is why `/_push/key` returns only the public one.

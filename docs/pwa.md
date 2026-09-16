@@ -301,8 +301,9 @@ builder.Services.AddRaskWebPush();
 ```
 
 ```jsonc
-// appsettings.json — the keys go in user secrets (Rask:WebPush:VapidKeys:PublicKey / :PrivateKey)
-// or the environment (Rask__WebPush__VapidKeys__PrivateKey), never in this committed file
+// appsettings.json — the keys are NOT here. `rask new` wrote a development pair to the gitignored
+// appsettings.Development.json; deployed, they come from the environment
+// (Rask__WebPush__VapidKeys__PublicKey / __PrivateKey). Never in this committed file.
 {
   "Rask": {
     "WebPush": {

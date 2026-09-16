@@ -42,6 +42,34 @@ them until tagged releases begin.
 
 ### Added
 
+- **`rask new` generates the app's Web Push keys.** A scaffold with the push battery on now mints its own VAPID pair
+  (RFC 8292) and writes it to `appsettings.Development.json`, so a fresh app can send a push without any setup. The
+  file is gitignored — the private key signs every push the app sends, so it is a per-developer secret, and the
+  scaffold's `.gitignore` already reserved that exact name. The committed `appsettings.json` keeps `Subject` and now
+  points at where the pair lives; deployed, both keys still come from the environment
+  (`Rask__WebPush__VapidKeys__PublicKey` / `__PrivateKey`), and production should have a pair of its own.
+  - The old next-steps text asked you to run `dotnet user-secrets set` for each key. Neither command worked: no
+    scaffolded csproj carries a `UserSecretsId`, so both failed with *"Could not find the global property
+    'UserSecretsId'"* — the first thing a new project told you was an error. It also said `VapidKeys.Generate()`
+    "prints" a pair, which it does not; it returns one. Both are corrected here, in the scaffolded `Program.cs`
+    (which repeated the same advice) and in `docs/webpush.md`, `docs/pwa.md`, `docs/spa.md`,
+    `docs/configuration.md` and the tutorial.
+  - Every template `.dockerignore` now excludes `appsettings.Development.json` and `appsettings.Local.json`.
+    Gitignoring a file does not keep it out of an image — Docker never reads `.gitignore` — and the Dockerfile's
+    build stage runs `COPY . .` while the Web SDK copies every `appsettings*.json` into the publish output the
+    final stage takes wholesale. Without this, `rask deploy` would build the developer's new VAPID private key
+    into the image it pushes. It is never read there (the container runs Production), but a signing key has no
+    business in a registry.
+
+- **The scaffold's ignore-overlap gate now reads the whole ignore file.** `ScaffoldIgnoreOverlapTests` — the guard
+  added after `push.ts` was scaffolded into a gitignored directory and lost on clone (#957) — matched only `dir/` and
+  `dir/*` entries, so every file-shaped and glob entry (`appsettings.Development.json`, `.env`, `*.db`,
+  `wwwroot/css/app.css`) was waved through unchecked. It understands all four shapes now, and found one real overlap
+  that predated it: the Next.js template writes `client/next-env.d.ts` into a path its own `.gitignore` covers. That
+  one is legitimate — Next.js regenerates the file on every build and says so in its body — so it and the generated
+  key file are recorded as the two exemptions, each with its reason and each asserted to be genuinely written and
+  genuinely ignored.
+
 - **Rask UI gets Flux UI's application layout.** New `UiSidebar` — an `<aside>` beside the page, docked and sticky from
   its `Collapsible` breakpoint up and a daisyUI drawer below it, opening with no runtime and mirrored into C# through
   `Open`/`OnToggle` — and `UiSidebarToggle`, a keyboard-reachable `label[role=button]` the runtime presses on Enter and
