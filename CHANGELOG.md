@@ -82,6 +82,16 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A battery's own polling no longer fills the console.** Jobs, mail and the outbox each poll a table every
+  five seconds, EF Core logs every statement it runs at `Information`, and an idle app with the three of them
+  on therefore wrote a six-line `SELECT` block roughly every 1.7 seconds, forever. Rask's own bookkeeping —
+  the claim, the lease, the purge, the session sweep, the orphan scan, the cache eviction, and the log store's
+  own `INSERT` — now runs on a context that logs its SQL at `Debug` instead. **The application's own queries
+  are untouched**, which is the whole point: turning `Microsoft.EntityFrameworkCore.Database.Command` down in
+  `appsettings.json` would have hidden those too, and they are the ones worth reading. Set that category to
+  `Debug` to watch a battery claim its batch again. An app whose context Rask cannot build from the options it
+  registered — a hand-written `IDbContextFactory<T>`, a context with a constructor this cannot call — keeps its
+  own factory, and its old logging with it.
 - **A component joined onto another's chain entry no longer steals its `Of<T>()`.** Two components sharing an entry
   emit the same parameterless explicit-type opening, and whichever the generator happened to sort second silently
   decided what `Entry.Of<T>()` built. The entry's namesake owns it now.

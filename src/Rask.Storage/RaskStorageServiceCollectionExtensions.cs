@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Rask.Batteries;
 using Rask.Hosting.Shared;
 using Rask.Storage.Backends;
 using Rask.Storage.Serving;
@@ -76,7 +77,10 @@ public static class RaskStorageServiceCollectionExtensions
         // only then does the sweep start. AddHostedService uses TryAddEnumerable, so a repeat call adds none.
         services.AddHostedService<StorageModelCheck<TContext>>();
         services.AddHostedService<StorageStartupCheck>();
-        services.AddHostedService<OrphanSweeper<TContext>>();
+        // The poll is Rask's bookkeeping, not the application's query log, so it runs on a context
+        // whose SQL logs at Debug — see HousekeepingContextFactory. Deduplicates on repeat, as
+        // AddHostedService does.
+        services.AddHousekeepingService<OrphanSweeper<TContext>, TContext>();
         return services;
     }
 

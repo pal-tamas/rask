@@ -3,6 +3,7 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Rask.Batteries;
 using Rask.Hosting.Shared;
 
 namespace Rask.Cache;
@@ -35,8 +36,10 @@ public static class RaskCacheServiceCollectionExtensions
         // the wrong place to notice. See BatteryModelCheck: this reads the MODEL, never the database.
         services.AddHostedService<CacheModelCheck<TContext>>();
 
-        // AddHostedService uses TryAddEnumerable, so a repeated call registers only one purger.
-        services.AddHostedService<CachePurger<TContext>>();
+        // The poll is Rask's bookkeeping, not the application's query log, so it runs on a context
+        // whose SQL logs at Debug — see HousekeepingContextFactory. Deduplicates on repeat, as
+        // AddHostedService does.
+        services.AddHousekeepingService<CachePurger<TContext>, TContext>();
         return services;
     }
 

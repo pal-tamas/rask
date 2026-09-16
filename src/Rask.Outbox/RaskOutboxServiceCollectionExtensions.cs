@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Rask.Batteries;
 using Rask.Data;
 using Rask.Hosting.Shared;
 
@@ -57,7 +58,10 @@ public static class RaskOutboxServiceCollectionExtensions
         // database, so an app that has not run `rask db update` yet still starts.
         services.AddHostedService<OutboxModelCheck<TContext>>();
 
-        services.AddHostedService<OutboxProcessor<TContext>>();
+        // The poll is Rask's bookkeeping, not the application's query log, so it runs on a context
+        // whose SQL logs at Debug — see HousekeepingContextFactory. Deduplicates on repeat, as
+        // AddHostedService does.
+        services.AddHousekeepingService<OutboxProcessor<TContext>, TContext>();
         return services;
     }
 }
