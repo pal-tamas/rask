@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Rask.Core.Authentication;
 using Rask.Core.Routing;
 using Rask.Wire;
 
@@ -29,7 +30,7 @@ public sealed partial class LoginPage(IAuth auth) : AuthPage
     protected override Component? HeadAssets => Title["Sign in"];
 
     protected override Component? Content =>
-        Fragment[
+        [
             H1.Class("text-2xl font-bold")["Sign in"],
             _error is AuthError.None ? null : Error("login-error", AuthMessages.For(_error)),
             Form.Model(_model).OnValidSubmit(SubmitAsync)[

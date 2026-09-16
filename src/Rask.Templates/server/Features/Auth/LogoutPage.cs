@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Rask.Core.Authentication;
 using Rask.Core.Routing;
 
 namespace Company.RaskServer.Features.Auth;
@@ -15,14 +16,14 @@ public sealed partial class LogoutPage(IAuth auth, IUserProvider users) : AuthPa
 
     protected override Component? Content =>
         users.Current.Identity?.IsAuthenticated == true
-            ? Fragment[
+            ? [
                 H1.Class("text-2xl font-bold")["Sign out"],
                 P.Class("text-sm opacity-70")[$"You are signed in as {users.Current.Identity.Name}."],
                 Div.Class("card-actions mt-2")[
                     Button.Type("button").Id("logout-submit").Class("btn btn-primary btn-block").OnClick(SignOutAsync)["Sign out"]
                 ]
             ]
-            : Fragment[
+            : [
                 H1.Class("text-2xl font-bold")["Signed out"],
                 P.Class("text-sm opacity-70")[
                     "You are not signed in. ",

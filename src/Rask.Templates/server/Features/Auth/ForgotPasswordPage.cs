@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Rask.Core.Authentication;
 using Rask.Core.Routing;
 using Rask.Wire;
 
@@ -24,7 +25,7 @@ public sealed partial class ForgotPasswordPage(IAuth auth) : AuthPage
     protected override Component? Content => _sent ? Sent : Ask;
 
     private Component Sent =>
-        Fragment[
+        [
             H1.Class("text-2xl font-bold")["Check your email"],
             Ok("forgot-sent", "If an account exists for that address, a link to choose a new password is on its way."),
             P.Class("text-sm opacity-70")[
@@ -33,7 +34,7 @@ public sealed partial class ForgotPasswordPage(IAuth auth) : AuthPage
         ];
 
     private Component Ask =>
-        Fragment[
+        [
             H1.Class("text-2xl font-bold")["Reset your password"],
             _error is AuthError.None ? null : Error("forgot-error", AuthMessages.For(_error)),
             P.Class("text-sm opacity-70")["Tell us the address you signed up with and we will send you a link."],

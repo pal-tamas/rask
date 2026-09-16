@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Rask.Core.Authentication;
 using Rask.Core.Routing;
 using Rask.Wire;
 
@@ -30,7 +31,7 @@ public sealed partial class ConfirmEmailPage(IAuth auth) : AuthPage
         : Ready;
 
     private Component Ready =>
-        Fragment[
+        [
             H1.Class("text-2xl font-bold")["Confirm your email"],
             P.Class("text-sm opacity-70")["Press the button to finish confirming this address."],
             Div.Class("card-actions mt-2")[
@@ -39,28 +40,28 @@ public sealed partial class ConfirmEmailPage(IAuth auth) : AuthPage
         ];
 
     private Component AlreadyConfirmed =>
-        Fragment[
+        [
             H1.Class("text-2xl font-bold")["Already confirmed"],
             Ok("confirm-already", AuthMessages.For(_error)),
             P.Class("text-sm opacity-70")[NavLink.Href(Routes.LoginPage()).Class("link link-primary")["Sign in"], "."]
         ];
 
     private Component Confirmed =>
-        Fragment[
+        [
             H1.Class("text-2xl font-bold")["Email confirmed"],
             Ok("confirm-ok", "Your email address is confirmed."),
             P.Class("text-sm opacity-70")[NavLink.Href(Routes.LoginPage()).Class("link link-primary")["Sign in"], "."]
         ];
 
     private Component Failed =>
-        Fragment[
+        [
             H1.Class("text-2xl font-bold")["That link did not work"],
             Error("confirm-error", AuthMessages.For(_error)),
             P.Class("text-sm opacity-70")[NavLink.Href(Routes.LoginPage()).Class("link link-primary")["Back to sign in"], "."]
         ];
 
     private static Component Working =>
-        Fragment[
+        [
             H1.Class("text-2xl font-bold")["Confirming…"],
             Span.Class("loading loading-spinner").Attributes(("aria-hidden", "true"))
         ];

@@ -1,5 +1,6 @@
 using Company.RaskServer.Features.Shared;
 using Microsoft.AspNetCore.Authorization;
+using Rask.Core.Authentication;
 using Rask.Core.Routing;
 using Rask.Wire;
 
@@ -32,7 +33,7 @@ public sealed partial class RegisterPage(IAuth auth, FirstRunToken firstRun) : A
     protected override Component? HeadAssets => Title["Create an account"];
 
     protected override Component? Content =>
-        Fragment[
+        [
             H1.Class("text-2xl font-bold")[firstRun.IsPending ? "Claim this app" : "Create an account"],
             _error is AuthError.None ? null : Error("register-error", _detail ?? AuthMessages.For(_error)),
             firstRun.IsPending

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Rask.Core.Authentication;
 using Rask.Core.Routing;
 using Rask.Wire;
 
@@ -36,14 +37,14 @@ public sealed partial class ResetPasswordPage(IAuth auth) : AuthPage
         : Ask;
 
     private Component Done =>
-        Fragment[
+        [
             H1.Class("text-2xl font-bold")["Password changed"],
             Ok("reset-done", "Your password has been changed, and every session for this account is signed out."),
             P.Class("text-sm opacity-70")[NavLink.Href(Routes.LoginPage()).Class("link link-primary")["Sign in"], "."]
         ];
 
     private Component Incomplete =>
-        Fragment[
+        [
             H1.Class("text-2xl font-bold")["That link is incomplete"],
             Error("reset-error", "Open the link from your email in full, or ask for a new one."),
             P.Class("text-sm opacity-70")[
@@ -51,7 +52,7 @@ public sealed partial class ResetPasswordPage(IAuth auth) : AuthPage
         ];
 
     private Component Ask =>
-        Fragment[
+        [
             H1.Class("text-2xl font-bold")["Choose a new password"],
             Message is null ? null : Error("reset-error", Message),
             Form.Model(_model).OnValidSubmit(SubmitAsync)[

@@ -1,5 +1,6 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Authorization;
+using Rask.Core.Authentication;
 using Rask.Core.Routing;
 
 namespace Company.RaskServer.Features.Auth;
@@ -18,7 +19,7 @@ public sealed partial class DevicesPage(IAuth auth, IUserProvider users) : AuthP
     protected override async Task OnMountAsync() => await LoadAsync();
 
     protected override Component? Content =>
-        Fragment[
+        [
             H1.Class("text-2xl font-bold")["Your devices"],
             _signedOutOthers ? Ok("devices-signed-out", "Every other device is signed out.") : null,
             Ul.Class("list")[

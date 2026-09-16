@@ -50,6 +50,12 @@ public sealed class ServerBatteryScaffoldTests
         var source = files["Features/Auth/" + page];
         Assert.Contains("namespace App.Features.Auth;", source, StringComparison.Ordinal);
         Assert.Contains("[Route(\"/", source, StringComparison.Ordinal);
+
+        // A build-only gate found the first cut of these missing this: the text looked right and did not compile.
+        if (source.Contains("IAuth", StringComparison.Ordinal) || source.Contains("IUserProvider", StringComparison.Ordinal))
+        {
+            Assert.Contains("using Rask.Core.Authentication;", source, StringComparison.Ordinal);
+        }
     }
 
     [Fact]
@@ -125,9 +131,9 @@ public sealed class ServerBatteryScaffoldTests
     public void Every_app_with_a_database_maps_the_account_tables(string flag)
     {
         // Not conditional on any flag, unlike the pillars above. The auth battery is ON by default in
-        // the Rask package, and AddRaskAuth registers Identity's EF stores against this context — so an
-        // app whose context does not map them boots happily and then fails at the FIRST registration on
-        // a missing AspNetUsers. Nothing else in the scaffold would say so.
+        // the Rask package, and AddRaskAuth reads and writes the user and its sessions through this context —
+        // so an app whose context does not map them boots happily and then fails at the FIRST registration.
+        // Nothing else in the scaffold would say so.
         var files = Generate(flag);
 
         Assert.Contains(

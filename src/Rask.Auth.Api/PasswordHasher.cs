@@ -200,8 +200,12 @@ internal sealed class PasswordHasher
         {
             matched = BCrypt.Net.BCrypt.Verify(password, encoded);
         }
-        catch (BCrypt.Net.SaltParseException)
+        catch (Exception exception) when (
+            exception is BCrypt.Net.SaltParseException or BCrypt.Net.BcryptAuthenticationException
+                or BCrypt.Net.HashInformationException or ArgumentException or FormatException)
         {
+            // A stored value that looks like bcrypt but is not parses no further. Checking a password is not the
+            // place to throw: it fails closed, like every other unreadable hash.
             return PasswordCheck.Failed;
         }
 
