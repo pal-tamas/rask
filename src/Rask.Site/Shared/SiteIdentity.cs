@@ -35,6 +35,26 @@ public static class SiteIdentity
         "Rask is the .NET One Person Framework: build, run and ship a whole C# web app — UI, data, auth, "
         + "jobs and deploy — from one codebase on one server.";
 
+    /// <summary>
+    ///     The version this site says it is — the top bar's badge and the guide banner read it.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         It is the version of the Rask the site itself is built on, taken from the assembly MinVer
+    ///         stamped. That was the string <c>"1.0.0"</c> on every page of rask.sh (#1122) until the MinVer
+    ///         reference in <c>Directory.Build.props</c> stopped being conditional, whatever was actually
+    ///         shipping: <c>RaskVersion</c> is declared in Rask.Core, Core is <c>IsPackable=false</c>, and
+    ///         MinVer was only referenced by packable projects, so nothing ever stamped the assembly the
+    ///         number was read from.
+    ///     </para>
+    ///     <para>
+    ///         <c>pages.yml</c> deploys on every push to <c>main</c>, so between releases this is MinVer's
+    ///         prerelease — <c>0.22.1-alpha.0.2</c> — rather than the tag. That is the honest answer to
+    ///         "what is this site running", which is the question the badge and the guide banner both ask.
+    ///     </para>
+    /// </remarks>
+    public static string Version => RaskVersion.Current;
+
     /// <summary>The author, as the NuGet packages name him — the legal name, deliberately.</summary>
     public const string Author = "Tamás Pál";
 
