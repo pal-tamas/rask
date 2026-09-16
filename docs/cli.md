@@ -144,9 +144,38 @@ question skipped, so `rask new --template wasm --no-pwa` asks only for the name,
 already typed skips the checklist entirely. Piped or in a script (no terminal), a missing name is a
 plain error instead, and bare `rask` prints the command list — so automation stays predictable.
 
-Every project also gets a `.gitignore`, an `.editorconfig`, and a `.slnx` solution, and is initialized
-as a git repository with one commit — `--no-git` skips that, and it is skipped automatically inside an
-existing repository.
+Every project also gets a `.gitignore`, an `.editorconfig`, a `.slnx` solution and a `global.json`, and
+is initialized as a git repository with one commit — `--no-git` skips that, and it is skipped
+automatically inside an existing repository.
+
+**`global.json` decides which SDK compiles the app**, and it names the band your `--framework` asked
+for:
+
+```json
+{
+  "sdk": {
+    "version": "10.0.0",
+    "rollForward": "latestFeature"
+  }
+}
+```
+
+Without it the SDK picks the newest one installed. On a machine that also carries the next major in
+preview, that means a `net10.0` app is compiled by an `11.0.x` release candidate — it builds, tells you
+so once per build (`NETSDK1057`), and quietly hands two people on the same repository different
+compilers. `latestFeature` takes the newest SDK **within** the band and never crosses a major, so you
+get `10.0.400` if you have it and the next patch when you install one.
+
+The version is the band floor, `10.0.0`, rather than a real SDK release, and that matters while a band
+is still in preview: `11.0.100-rc.1` sorts *below* `11.0.100`, and roll-forward only ever goes up — so
+pinning `11.0.100` would resolve nothing at all on a machine holding the release candidate, and
+`allowPrerelease` does not rescue it. The floor is satisfied by every SDK in the band.
+
+The trade is that a machine with **only** a newer major fails outright instead of building on it. Run
+[`rask doctor`](#rask-doctor--check-before-you-hit-it) if a scaffold will not restore: it reads this
+file and names it, rather than reporting a machine with no .NET on it — which is what a pin nothing
+satisfies looks like from the outside, since `dotnet --version` is the thing that fails. Delete the
+file if you would rather track whatever SDK is newest.
 
 **Styling is not a choice: every project is Tailwind and [daisyUI](ui-kit.md).** The compiler ships
 inside the host package, so the build compiles `Styles/app.css` into `wwwroot/css/app.css` by scanning

@@ -35,10 +35,11 @@ public sealed class ProjectGeneratorTests
 
     /// <summary>
     /// A template's own files plus the hygiene set every template writes regardless of flags — the
-    /// .gitignore, the .editorconfig and the solution (see ProjectGenerator.ProjectHygiene).
+    /// .gitignore, the .editorconfig, the solution, and the global.json that pins the SDK band
+    /// (TemplateMaterializer.WithGlobalJson).
     /// </summary>
     private static string[] WithHygiene(IEnumerable<string> files) =>
-        [.. files, ".gitignore", ".editorconfig", "App.slnx"];
+        [.. files, ".gitignore", ".editorconfig", "App.slnx", "global.json"];
 
     [Fact]
     public void Base_project_emits_the_core_files_and_packages_with_no_flags()
