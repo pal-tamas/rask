@@ -55,7 +55,10 @@ public sealed partial class UiKitLayoutDemo : Component
                         UiButton["Inbox"]
                     ],
                     UiAvatar.Key("a").Src("/img/favicon.svg").Alt("The Rask mark").Round(true)
-                        .Class("w-12")
+                        .Class("w-12"),
+                    // No picture: the monogram stands in. Most accounts have none, and a broken image is
+                    // worse than two letters — the NAME is still what a screen reader announces.
+                    UiAvatar.Key("a2").Name("Ada Lovelace").Size(UiSize.Lg)
                 ]
             ]),
 

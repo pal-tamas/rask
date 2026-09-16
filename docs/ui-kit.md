@@ -647,6 +647,19 @@ Form.Model(_order)[
 ]
 ```
 
+**A text field's box can hold more than what is typed.** `UiInput` takes `Icon` and `IconTrailing`, a `Kbd`
+for the shortcut that focuses it, and `Clearable` for a button that empties it — Flux's input affordances.
+Any of them turns the box into a container around a bare `<input>`, which is daisyUI's own icon-input shape,
+and the label then stays **above** the field: a floating caption rises through exactly the room the icon now
+occupies. The container is a `<div>`, not a `<label>`, because a wrapping label implicitly names the input it
+holds and the field already has a label — two names on one control is the "Email Email" problem.
+
+**`UiAvatar` draws initials when there is no picture.** `Src` is optional; give it a `Name` and it renders the
+monogram — the first letter of each of the first two words, deliberately not first-and-last, since a name is
+not reliably two words in that order. The letters are `aria-hidden` and the frame carries the name, because
+"AL" read letter by letter tells a reader nothing. Same frame, same rounding either way, so a list does not
+change shape when somebody removes their photo.
+
 **A labelled text field floats its label.** `UiInput`, `UiTextarea` and a native `UiSelect` draw `Label`
 as daisyUI's `floating-label`: the caption sits in the field until there is content, then rises out of the
 way. It is still the field's real `<label>`, linked to the control. `Floating(false)` puts it back above

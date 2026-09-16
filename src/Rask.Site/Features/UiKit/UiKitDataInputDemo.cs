@@ -20,6 +20,7 @@ public sealed partial class UiKitDataInputDemo : Component
     private string? _country;
     private string? _framework;
     private string? _home;
+    private string _search = "";
     private readonly List<string> _packages = ["core", "ui"];
     private string _plan = "pro";
     private string _density = "cosy";
@@ -64,7 +65,13 @@ public sealed partial class UiKitDataInputDemo : Component
                         ? "That does not look like an email address."
                         : null)
                     .OnChange(v => { _email = v; }),
-                UiInput.Of<string>().Key("ghost").Label("Search").Variant(UiVariant.Ghost),
+                // Anything inside the box — an icon, a shortcut, a clear button — makes the box a container
+                // around the input, and the label keeps its place above the field: a floating caption rises
+                // through exactly the room the icon now occupies.
+                UiInput.Value(_search).Key("search").Label("Search")
+                    .Icon(UiIconName.Search).Kbd("⌘K").Clearable(true)
+                    .Placeholder("Find a package")
+                    .OnInput(v => _search = v ?? ""),
                 UiTextarea.Value(_notes).Key("notes").Label("Notes").Badge("Optional").Rows(3)
                     .Hint("Anything else?")
                     .OnChange(v => { _notes = v; }),

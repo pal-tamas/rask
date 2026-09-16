@@ -85,7 +85,7 @@ public partial class UiProfileTests : global::Rask.Core.RaskMarkup
     [InlineData("ada lovelace king", "AL")]
     [InlineData("   ", "?")]
     public void The_monogram_is_the_first_letter_of_the_first_two_words(string name, string expected) =>
-        Assert.Equal(expected, global::Rask.Ui.UiProfile.Initials(name));
+        Assert.Equal(expected, global::Rask.Ui.UiAvatar.Initials(name));
 
     [Fact]
     public void The_caption_is_a_second_line_rather_than_part_of_the_name() =>

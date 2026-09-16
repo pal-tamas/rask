@@ -28,6 +28,15 @@ them until tagged releases begin.
   remember it. `UiNavTab` gains `Icon`, `Badge`/`BadgeTone`, `Match`/`MatchPrefix`, and works `Active` out from the
   route when it is unset — as `UiNavItem` already did. `UiBrand` gains `Logo` for a real image mark; `UiTopBar`
   gains `Sticky` and `Class`; `UiMain` gains `Container` and `Class`; `UiNavList` gains `Outline`.
+- **Flux UI's input affordances.** `UiInput` gains `Icon`, `IconTrailing`, `Kbd` (the shortcut that focuses the
+  field) and `Clearable`. Any of them turns the box into a container around a bare `<input>` — daisyUI's own
+  icon-input shape — and the label then stays above the field, because a floating caption rises through exactly
+  the room the icon occupies. The container is a `<div>` rather than a `<label>`: a wrapping label implicitly
+  names the input it holds, and the field already has one.
+- **`UiAvatar` no longer requires a picture.** `Src` is optional; give it a `Name` and it draws the initials
+  instead, which is what makes the component usable for a signed-in account — most have no photo, and a broken
+  image is worse than a monogram. The letters are `aria-hidden` and the frame carries the name, since "AL" read
+  letter by letter tells a reader nothing. `UiProfile` shares the same fallback.
 - **Rask UI gets Flux UI's tab group.** New `UiTabGroup` and `UiTabPanel`, and `UiTab` gains `Name` and `Icon`:
   a tab with an `Href` is still the real link it was, and one with a `Name` shows a `UiTabPanel` inside a group —
   one component, because a reader sees one thing. Put the `UiTabs` row inside the group and it becomes the
