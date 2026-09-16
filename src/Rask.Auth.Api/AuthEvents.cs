@@ -25,3 +25,15 @@ public sealed record SignedIn(Guid UserId, Guid SessionId) : INotification;
 /// <param name="UserId">The user's id.</param>
 /// <param name="SessionId">The ended session's id.</param>
 public sealed record SignedOut(Guid UserId, Guid SessionId) : INotification;
+
+/// <summary>A user added a passkey.</summary>
+/// <param name="UserId">The user's id.</param>
+/// <param name="PasskeyId">The new passkey's id.</param>
+/// <param name="Name">What the user called it.</param>
+public sealed record PasskeyAdded(Guid UserId, Guid PasskeyId, string Name) : INotification;
+
+/// <summary>A user removed a passkey. It can no longer sign anybody in.</summary>
+/// <param name="UserId">The user's id.</param>
+/// <param name="PasskeyId">The removed passkey's id.</param>
+/// <param name="Name">What the user called it.</param>
+public sealed record PasskeyRemoved(Guid UserId, Guid PasskeyId, string Name) : INotification;

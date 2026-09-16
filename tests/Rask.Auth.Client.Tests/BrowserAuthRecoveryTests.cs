@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using Rask.Core.Authentication;
+using Rask.Core.Browser;
 using Rask.Core.Routing;
 using Rask.Wire;
 
@@ -119,6 +120,43 @@ public sealed class BrowserAuthRecoveryTests
         Assert.Equal("/internal/auth/confirm-email", handler.LastPath);
     }
 
+    /// <summary>A ceremony the visitor dismissed is a refusal to render, never an exception to handle.</summary>
+    [Fact]
+    public async Task A_dismissed_passkey_dialog_is_reported_rather_than_thrown()
+    {
+        var handler = new StubHandler(
+            HttpStatusCode.OK,
+            """
+            {"state":"s","challenge":"AAAA","relyingPartyId":"localhost","relyingPartyName":"Test",
+             "userId":"AAAA","userName":"a@b.c","userDisplayName":"A","excludeCredentials":[],"timeoutMs":1000}
+            """);
+
+        var auth = Auth(handler, out var users, out var route);
+
+        var result = await auth.AddPasskeyAsync("Laptop");
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(AuthError.PasskeyRejected, result.Error);
+
+        // It asked for options and stopped there: nothing was registered, nobody was re-rendered, and the
+        // visitor stayed where they were.
+        Assert.Equal("/api/auth/passkeys/register-options", handler.LastPath);
+        Assert.Equal(0, users.Refreshes);
+        Assert.Equal("/", route.Path);
+    }
+
+    [Fact]
+    public async Task Removing_a_passkey_posts_its_id()
+    {
+        var handler = new StubHandler(HttpStatusCode.NoContent);
+        var auth = Auth(handler, out _, out _);
+        var id = Guid.NewGuid();
+
+        Assert.True((await auth.RemovePasskeyAsync(id)).Succeeded);
+        Assert.Equal("/api/auth/passkeys/remove", handler.LastPath);
+        Assert.Contains(id.ToString(), handler.LastBody, StringComparison.Ordinal);
+    }
+
     private static BrowserAuth Auth(
         StubHandler handler,
         out SpyUserProvider users,
@@ -132,7 +170,23 @@ public sealed class BrowserAuthRecoveryTests
             new HttpClient(handler) { BaseAddress = new Uri("https://localhost") },
             users,
             new Navigator(route),
+            new StubWebAuthn(),
             options ?? new AuthClientOptions());
+    }
+
+    /// <summary>A browser with no authenticator, which is what a support check is for.</summary>
+    private sealed class StubWebAuthn : IWebAuthn
+    {
+        public ValueTask<bool> IsSupportedAsync() => ValueTask.FromResult(false);
+
+        public ValueTask<bool> IsPlatformAuthenticatorAvailableAsync() => ValueTask.FromResult(false);
+
+        // What the browser returns when the visitor dismisses the dialog or it times out.
+        public ValueTask<AttestationResult?> CreateAsync(PublicKeyCredentialCreationOptions options) =>
+            ValueTask.FromResult<AttestationResult?>(null);
+
+        public ValueTask<AssertionResult?> GetAsync(PublicKeyCredentialRequestOptions options) =>
+            ValueTask.FromResult<AssertionResult?>(null);
     }
 
     private sealed class SpyUserProvider : IUserProvider

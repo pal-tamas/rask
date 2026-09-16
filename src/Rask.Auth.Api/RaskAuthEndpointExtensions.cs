@@ -64,6 +64,15 @@ public static class RaskAuthEndpointExtensions
         group.MapPost(AuthApi.ResetPassword, ResetPasswordAsync);
         group.MapPost(AuthApi.ConfirmEmail, ConfirmEmailAsync);
 
+        if (options.Passkeys)
+        {
+            group.MapPost(AuthApi.PasskeyRegisterOptions, PasskeyRegisterOptionsAsync);
+            group.MapPost(AuthApi.PasskeyRegister, PasskeyRegisterAsync);
+            group.MapPost(AuthApi.PasskeyLoginOptions, PasskeyLoginOptions);
+            group.MapPost(AuthApi.PasskeyLogin, PasskeyLoginAsync);
+            group.MapPost(AuthApi.PasskeyRemove, PasskeyRemoveAsync);
+        }
+
         return endpoints;
     }
 
@@ -207,6 +216,109 @@ public static class RaskAuthEndpointExtensions
         return result.Succeeded ? Results.NoContent() : Refuse(result, StatusCodes.Status400BadRequest);
     }
 
+    /// <summary>The options for adding a passkey to the signed-in account.</summary>
+    private static async Task<IResult> PasskeyRegisterOptionsAsync(
+        HttpContext context, IAccounts accounts, CancellationToken cancellationToken)
+    {
+        if (!HasRequestHeader(context))
+        {
+            return MissingRequestHeader();
+        }
+
+        // Adding a passkey is adding a way into an account, so only that account's own live session may start it.
+        if (AuthPrincipal.UserId(context.User) is not { } userId)
+        {
+            return Results.Unauthorized();
+        }
+
+        var challenge = await accounts
+            .BeginAddPasskeyAsync(userId, Origin(context), cancellationToken)
+            .ConfigureAwait(false);
+
+        return challenge is null
+            ? Refuse(AuthResult.Fail(AuthError.NotAllowed), StatusCodes.Status400BadRequest)
+            : Results.Ok(challenge);
+    }
+
+    /// <summary>Stores a verified passkey on the signed-in account.</summary>
+    private static async Task<IResult> PasskeyRegisterAsync(
+        HttpContext context,
+        PasskeyRegistrationRequest request,
+        IAccounts accounts,
+        CancellationToken cancellationToken)
+    {
+        if (!HasRequestHeader(context))
+        {
+            return MissingRequestHeader();
+        }
+
+        if (AuthPrincipal.UserId(context.User) is not { } userId)
+        {
+            return Results.Unauthorized();
+        }
+
+        var result = await accounts
+            .CompleteAddPasskeyAsync(userId, request, Origin(context), cancellationToken)
+            .ConfigureAwait(false);
+
+        return result.Succeeded ? Results.NoContent() : Refuse(result, StatusCodes.Status400BadRequest);
+    }
+
+    /// <summary>The options for signing in with a passkey. Anonymous, and says nothing about any account.</summary>
+    private static IResult PasskeyLoginOptions(HttpContext context, IAccounts accounts)
+    {
+        if (!HasRequestHeader(context))
+        {
+            return MissingRequestHeader();
+        }
+
+        return accounts.BeginPasskeySignIn(Origin(context)) is { } challenge
+            ? Results.Ok(challenge)
+            : Refuse(AuthResult.Fail(AuthError.NotAllowed), StatusCodes.Status400BadRequest);
+    }
+
+    /// <summary>Signs in whoever signed the challenge.</summary>
+    private static async Task<IResult> PasskeyLoginAsync(
+        HttpContext context, PasskeyLoginRequest request, IAccounts accounts, CancellationToken cancellationToken)
+    {
+        if (!HasRequestHeader(context))
+        {
+            return MissingRequestHeader();
+        }
+
+        var outcome = await accounts
+            .CompletePasskeySignInAsync(request, Origin(context), Client(context), cancellationToken)
+            .ConfigureAwait(false);
+
+        // Exactly the password path from here: the same cookie, the same session row, the same bearer option.
+        return await CompleteAsync(context, outcome, request.Remember).ConfigureAwait(false);
+    }
+
+    /// <summary>Removes one of the signed-in account's passkeys.</summary>
+    private static async Task<IResult> PasskeyRemoveAsync(
+        HttpContext context, RemovePasskeyRequest request, IAccounts accounts, CancellationToken cancellationToken)
+    {
+        if (!HasRequestHeader(context))
+        {
+            return MissingRequestHeader();
+        }
+
+        if (AuthPrincipal.UserId(context.User) is not { } userId)
+        {
+            return Results.Unauthorized();
+        }
+
+        if (!Guid.TryParse(request.Id, out var passkeyId))
+        {
+            return Refuse(
+                AuthResult.Fail(AuthError.PasskeyRejected, "That passkey is not on this account."),
+                StatusCodes.Status400BadRequest);
+        }
+
+        var result = await accounts.RemovePasskeyAsync(userId, passkeyId, cancellationToken).ConfigureAwait(false);
+        return result.Succeeded ? Results.NoContent() : Refuse(result, StatusCodes.Status400BadRequest);
+    }
+
     /// <summary>Who the caller is, or <c>204</c> when nobody.</summary>
     /// <remarks>
     /// This is the one endpoint every non-C# host needs: a TypeScript front end reads it on load, and a
@@ -298,6 +410,12 @@ public static class RaskAuthEndpointExtensions
     // The address a throttle is keyed on. Behind a proxy this is the proxy's address unless the app runs
     // UseForwardedHeaders, which is the ordinary ASP.NET arrangement for learning the client's.
     private static string? Client(HttpContext context) => context.Connection.RemoteIpAddress?.ToString();
+
+    // Where this app is being served from, used only when the app configured neither PasskeyOrigins nor PublicOrigin.
+    // Built from the request's own scheme and host rather than the Origin header: a host is what the server was asked
+    // for and what host filtering already governs, while the header is whatever the caller chose to send.
+    private static string Origin(HttpContext context) =>
+        context.Request.Scheme + "://" + context.Request.Host.Value;
 
     private static bool HasRequestHeader(HttpContext context) =>
         context.Request.Headers.ContainsKey(RaskAuthDefaults.RequestHeader);

@@ -64,7 +64,7 @@ export interface CurrentUser {
  * `error` is the name of the server's `AuthError` — `"InvalidCredentials"`, `"TooManyAttempts"`,
  * `"DuplicateAccount"`, `"WeakPassword"`, `"FirstRunTokenRequired"`, `"NotAllowed"`,
  * `"InvalidEmail"`, `"InvalidToken"`, `"EmailNotConfirmed"`, `"MailNotConfigured"`,
- * `"MissingRequestHeader"` — carried as a name rather than a number so a value added later cannot
+ * `"PasskeyRejected"`, `"MissingRequestHeader"` — carried as a name rather than a number so a value added later cannot
  * silently become a different one. `"NetworkError"` is this module's own, for a call that never
  * reached a server.
  */
@@ -182,6 +182,214 @@ export function confirmEmail(
     request?: AuthRequest,
 ): Promise<AuthCommandResult> {
     return command("/confirm-email", {userId, token}, request);
+}
+
+/**
+ * Whether this browser can do passkeys at all.
+ *
+ * Gate the "Sign in with a passkey" button on it. `false` on a server render, where there is no
+ * `navigator` — which is the right answer: the ceremony needs a browser and a user gesture.
+ */
+export function passkeysSupported(): boolean {
+    return (
+        typeof window !== "undefined" &&
+        typeof navigator !== "undefined" &&
+        !!navigator.credentials &&
+        typeof PublicKeyCredential !== "undefined"
+    );
+}
+
+/**
+ * Adds a passkey to the signed-in account — Touch ID, Windows Hello, a phone, or a security key.
+ *
+ * CALL IT FROM A CLICK HANDLER: browsers only show the passkey dialog for a real user gesture. A
+ * visitor who dismisses the dialog gets `{ok: false}` with `"PasskeyRejected"`, not a throw.
+ *
+ * Two round-trips, because the challenge has to reach the authenticator before anything can be
+ * signed. The server stores nothing between them: the challenge comes back sealed and is posted
+ * with the result.
+ */
+export async function addPasskey(
+    name?: string,
+    request?: AuthRequest,
+): Promise<AuthCommandResult> {
+    if (!passkeysSupported()) {
+        return {ok: false, failure: {error: "NotAllowed", message: "This browser has no passkeys."}};
+    }
+
+    const challenge = await ask<PasskeyCreationChallenge>("/passkeys/register-options", request);
+
+    if (!challenge) {
+        return {ok: false, failure: {error: "NotAllowed", message: null}};
+    }
+
+    let created: PublicKeyCredential | null;
+
+    try {
+        created = (await navigator.credentials.create({
+            publicKey: {
+                challenge: decode(challenge.challenge),
+                rp: {id: challenge.relyingPartyId, name: challenge.relyingPartyName},
+                user: {
+                    id: decode(challenge.userId),
+                    name: challenge.userName,
+                    displayName: challenge.userDisplayName,
+                },
+                pubKeyCredParams: [
+                    {type: "public-key", alg: -7},
+                    {type: "public-key", alg: -257},
+                ],
+                timeout: challenge.timeoutMs,
+                attestation: "none",
+                authenticatorSelection: {residentKey: "required", userVerification: "required"},
+                excludeCredentials: challenge.excludeCredentials.map((id) => ({
+                    type: "public-key" as const,
+                    id: decode(id),
+                })),
+            },
+        })) as PublicKeyCredential | null;
+    } catch {
+        // NotAllowedError is a dismissed or timed-out dialog, which is a refusal rather than a fault.
+        created = null;
+    }
+
+    if (!created) {
+        return {ok: false, failure: {error: "PasskeyRejected", message: "No passkey was created."}};
+    }
+
+    const response = created.response as AuthenticatorAttestationResponse;
+
+    return command(
+        "/passkeys/register",
+        {
+            state: challenge.state,
+            name: name ?? null,
+            rawId: encode(created.rawId),
+            clientDataJson: encode(response.clientDataJSON),
+            attestationObject: encode(response.attestationObject),
+            transports: response.getTransports ? response.getTransports() : null,
+        },
+        request,
+    );
+}
+
+/**
+ * Signs in with a passkey, with no email and no password typed.
+ *
+ * Discoverable: the authenticator offers whichever accounts it holds for this site. CALL IT FROM A
+ * CLICK HANDLER. The session it starts is the same session a password sign-in starts.
+ */
+export async function signInWithPasskey(
+    options?: {remember?: boolean},
+    request?: AuthRequest,
+): Promise<AuthResult> {
+    if (!passkeysSupported()) {
+        return {ok: false, failure: {error: "NotAllowed", message: "This browser has no passkeys."}};
+    }
+
+    const challenge = await ask<PasskeyRequestChallenge>("/passkeys/login-options", request);
+
+    if (!challenge) {
+        return {ok: false, failure: {error: "NotAllowed", message: null}};
+    }
+
+    let assertion: PublicKeyCredential | null;
+
+    try {
+        assertion = (await navigator.credentials.get({
+            publicKey: {
+                challenge: decode(challenge.challenge),
+                rpId: challenge.relyingPartyId,
+                timeout: challenge.timeoutMs,
+
+                // No allowCredentials: that is what makes it usernameless.
+                userVerification: "required",
+            },
+        })) as PublicKeyCredential | null;
+    } catch {
+        assertion = null;
+    }
+
+    if (!assertion) {
+        return {ok: false, failure: {error: "InvalidCredentials", message: null}};
+    }
+
+    const response = assertion.response as AuthenticatorAssertionResponse;
+
+    return post(
+        "/passkeys/login",
+        {
+            state: challenge.state,
+            rawId: encode(assertion.rawId),
+            clientDataJson: encode(response.clientDataJSON),
+            authenticatorData: encode(response.authenticatorData),
+            signature: encode(response.signature),
+            userHandle: response.userHandle ? encode(response.userHandle) : null,
+            remember: options?.remember ?? false,
+        },
+        request,
+    );
+}
+
+/** Removes one of the signed-in account's passkeys. It stops signing anybody in at once. */
+export function removePasskey(id: string, request?: AuthRequest): Promise<AuthCommandResult> {
+    return command("/passkeys/remove", {id}, request);
+}
+
+/** What the browser needs to create a passkey. Binary fields are base64url. */
+interface PasskeyCreationChallenge {
+    state: string;
+    challenge: string;
+    relyingPartyId: string;
+    relyingPartyName: string;
+    userId: string;
+    userName: string;
+    userDisplayName: string;
+    excludeCredentials: string[];
+    timeoutMs: number;
+}
+
+/** What the browser needs to sign in with a passkey. Binary fields are base64url. */
+interface PasskeyRequestChallenge {
+    state: string;
+    challenge: string;
+    relyingPartyId: string;
+    timeoutMs: number;
+}
+
+/** A POST with no body whose answer is the thing being asked for, or `null` for any refusal. */
+async function ask<T>(route: string, request?: AuthRequest): Promise<T | null> {
+    try {
+        const response = await send(route, "POST", undefined, request);
+        return response.ok ? ((await response.json()) as T) : null;
+    } catch {
+        return null;
+    }
+}
+
+// WebAuthn speaks ArrayBuffers and this API speaks base64url, which is what the C# clients send too,
+// so both halves of Rask hand the server the same strings.
+function decode(value: string): ArrayBuffer {
+    const padded = value.replace(/-/g, "+").replace(/_/g, "/");
+    const binary = atob(padded.padEnd(padded.length + ((4 - (padded.length % 4)) % 4), "="));
+    const bytes = new Uint8Array(binary.length);
+
+    for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+
+    return bytes.buffer;
+}
+
+function encode(buffer: ArrayBuffer): string {
+    const bytes = new Uint8Array(buffer);
+    let binary = "";
+
+    for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+
+    return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
 async function post(route: string, body: unknown, request?: AuthRequest): Promise<AuthResult> {

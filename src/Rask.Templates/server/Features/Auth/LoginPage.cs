@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Rask.Core.Authentication;
+using Rask.Core.Browser;
 using Rask.Core.Routing;
 using Rask.Wire;
 
@@ -17,10 +18,11 @@ public sealed class SignInModel
 // /login is where the route guard sends a visitor who is not signed in.
 [AllowAnonymous]
 [Route("/login")]
-public sealed partial class LoginPage(IAuth auth) : AuthPage
+public sealed partial class LoginPage(IAuth auth, IWebAuthn webAuthn) : AuthPage
 {
     private readonly SignInModel _model = new();
     private AuthError _error;
+    private bool _passkeysSupported;
 
     // Appended by the challenge redirect. Sanitised to a local URL before use, so a crafted link cannot turn
     // this page into an open redirect.
@@ -28,6 +30,19 @@ public sealed partial class LoginPage(IAuth auth) : AuthPage
     public string? ReturnUrl { get; set; }
 
     protected override Component? HeadAssets => Title["Sign in"];
+
+    // The support check is JavaScript, so it waits for a browser to exist: on the first render this page is HTML
+    // on its way out, with nothing to ask.
+    protected override async Task OnRenderedAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        _passkeysSupported = await webAuthn.IsSupportedAsync();
+        StateHasChanged();
+    }
 
     protected override Component? Content =>
         [
@@ -44,6 +59,13 @@ public sealed partial class LoginPage(IAuth auth) : AuthPage
                     Button.Type("submit").Id("login-submit").Class("btn btn-primary btn-block")["Sign in"]
                 ]
             ],
+            _passkeysSupported
+                ? Div[
+                    Div.Class("divider")["or"],
+                    Button.Type("button").Id("login-passkey").Class("btn btn-outline btn-block").OnClick(PasskeyAsync)[
+                        "Sign in with a passkey"]
+                ]
+                : null,
             P.Class("text-sm opacity-70")[
                 "No account yet? ",
                 NavLink.Href(Routes.RegisterPage()).Class("link link-primary")["Create one"],
@@ -55,6 +77,14 @@ public sealed partial class LoginPage(IAuth auth) : AuthPage
     private async Task SubmitAsync(SignInModel model)
     {
         var result = await auth.SignInAsync(model.Email, model.Password, model.Remember, ReturnUrl);
+        _error = result.Error;
+    }
+
+    // No email and no password: the authenticator offers whichever accounts it holds for this site, and the one
+    // the visitor picks is the one that signs in.
+    private async Task PasskeyAsync()
+    {
+        var result = await auth.SignInWithPasskeyAsync(_model.Remember, ReturnUrl);
         _error = result.Error;
     }
 }

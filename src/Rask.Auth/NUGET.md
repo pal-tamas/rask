@@ -4,8 +4,8 @@ Accounts for a [Rask](https://rask.sh) app: **register, sign in, sign out**, plu
 and password reset**.
 
 The account is the app's own `User : Authenticatable` aggregate — PBKDF2 or bcrypt password hashing, a session
-row per signed-in device you can list and end, throttling rather than lockout — behind Rask's own host-neutral
-surface. The code you write to read
+row per signed-in device you can list and end, throttling rather than lockout, and **passkeys** beside the
+password — behind Rask's own host-neutral surface. The code you write to read
 the current user or gate a page does not change between hosts.
 
 ```csharp

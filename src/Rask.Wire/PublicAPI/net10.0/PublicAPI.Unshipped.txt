@@ -217,3 +217,113 @@ virtual Rask.Wire.RemoteFile.LastModified.get -> System.DateTimeOffset?
 Rask.Wire.AuthError.TooManyAttempts = 2 -> Rask.Wire.AuthError
 const Rask.Wire.AuthApi.LogoutEverywhere = "/logout-everywhere" -> string!
 const Rask.Wire.AuthApi.LogoutOtherDevices = "/logout-other-devices" -> string!
+Rask.Wire.AuthError.PasskeyRejected = 12 -> Rask.Wire.AuthError
+Rask.Wire.PasskeyCreationChallenge
+Rask.Wire.PasskeyCreationChallenge.<Clone>$() -> Rask.Wire.PasskeyCreationChallenge!
+Rask.Wire.PasskeyCreationChallenge.Challenge.get -> string!
+Rask.Wire.PasskeyCreationChallenge.Challenge.init -> void
+Rask.Wire.PasskeyCreationChallenge.Deconstruct(out string! State, out string! Challenge, out string! RelyingPartyId, out string! RelyingPartyName, out string! UserId, out string! UserName, out string! UserDisplayName, out System.Collections.Generic.IReadOnlyList<string!>! ExcludeCredentials, out int TimeoutMs) -> void
+Rask.Wire.PasskeyCreationChallenge.Equals(Rask.Wire.PasskeyCreationChallenge? other) -> bool
+Rask.Wire.PasskeyCreationChallenge.ExcludeCredentials.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Rask.Wire.PasskeyCreationChallenge.ExcludeCredentials.init -> void
+Rask.Wire.PasskeyCreationChallenge.PasskeyCreationChallenge(string! State, string! Challenge, string! RelyingPartyId, string! RelyingPartyName, string! UserId, string! UserName, string! UserDisplayName, System.Collections.Generic.IReadOnlyList<string!>! ExcludeCredentials, int TimeoutMs) -> void
+Rask.Wire.PasskeyCreationChallenge.RelyingPartyId.get -> string!
+Rask.Wire.PasskeyCreationChallenge.RelyingPartyId.init -> void
+Rask.Wire.PasskeyCreationChallenge.RelyingPartyName.get -> string!
+Rask.Wire.PasskeyCreationChallenge.RelyingPartyName.init -> void
+Rask.Wire.PasskeyCreationChallenge.State.get -> string!
+Rask.Wire.PasskeyCreationChallenge.State.init -> void
+Rask.Wire.PasskeyCreationChallenge.TimeoutMs.get -> int
+Rask.Wire.PasskeyCreationChallenge.TimeoutMs.init -> void
+Rask.Wire.PasskeyCreationChallenge.UserDisplayName.get -> string!
+Rask.Wire.PasskeyCreationChallenge.UserDisplayName.init -> void
+Rask.Wire.PasskeyCreationChallenge.UserId.get -> string!
+Rask.Wire.PasskeyCreationChallenge.UserId.init -> void
+Rask.Wire.PasskeyCreationChallenge.UserName.get -> string!
+Rask.Wire.PasskeyCreationChallenge.UserName.init -> void
+Rask.Wire.PasskeyLoginRequest
+Rask.Wire.PasskeyLoginRequest.<Clone>$() -> Rask.Wire.PasskeyLoginRequest!
+Rask.Wire.PasskeyLoginRequest.AuthenticatorData.get -> string!
+Rask.Wire.PasskeyLoginRequest.AuthenticatorData.init -> void
+Rask.Wire.PasskeyLoginRequest.ClientDataJson.get -> string!
+Rask.Wire.PasskeyLoginRequest.ClientDataJson.init -> void
+Rask.Wire.PasskeyLoginRequest.Deconstruct(out string! State, out string! RawId, out string! ClientDataJson, out string! AuthenticatorData, out string! Signature, out string? UserHandle, out bool Remember) -> void
+Rask.Wire.PasskeyLoginRequest.Equals(Rask.Wire.PasskeyLoginRequest? other) -> bool
+Rask.Wire.PasskeyLoginRequest.PasskeyLoginRequest(string! State, string! RawId, string! ClientDataJson, string! AuthenticatorData, string! Signature, string? UserHandle = null, bool Remember = false) -> void
+Rask.Wire.PasskeyLoginRequest.RawId.get -> string!
+Rask.Wire.PasskeyLoginRequest.RawId.init -> void
+Rask.Wire.PasskeyLoginRequest.Remember.get -> bool
+Rask.Wire.PasskeyLoginRequest.Remember.init -> void
+Rask.Wire.PasskeyLoginRequest.Signature.get -> string!
+Rask.Wire.PasskeyLoginRequest.Signature.init -> void
+Rask.Wire.PasskeyLoginRequest.State.get -> string!
+Rask.Wire.PasskeyLoginRequest.State.init -> void
+Rask.Wire.PasskeyLoginRequest.UserHandle.get -> string?
+Rask.Wire.PasskeyLoginRequest.UserHandle.init -> void
+Rask.Wire.PasskeyRegistrationRequest
+Rask.Wire.PasskeyRegistrationRequest.<Clone>$() -> Rask.Wire.PasskeyRegistrationRequest!
+Rask.Wire.PasskeyRegistrationRequest.AttestationObject.get -> string!
+Rask.Wire.PasskeyRegistrationRequest.AttestationObject.init -> void
+Rask.Wire.PasskeyRegistrationRequest.ClientDataJson.get -> string!
+Rask.Wire.PasskeyRegistrationRequest.ClientDataJson.init -> void
+Rask.Wire.PasskeyRegistrationRequest.Deconstruct(out string! State, out string? Name, out string! RawId, out string! ClientDataJson, out string! AttestationObject, out System.Collections.Generic.IReadOnlyList<string!>? Transports) -> void
+Rask.Wire.PasskeyRegistrationRequest.Equals(Rask.Wire.PasskeyRegistrationRequest? other) -> bool
+Rask.Wire.PasskeyRegistrationRequest.Name.get -> string?
+Rask.Wire.PasskeyRegistrationRequest.Name.init -> void
+Rask.Wire.PasskeyRegistrationRequest.PasskeyRegistrationRequest(string! State, string? Name, string! RawId, string! ClientDataJson, string! AttestationObject, System.Collections.Generic.IReadOnlyList<string!>? Transports = null) -> void
+Rask.Wire.PasskeyRegistrationRequest.RawId.get -> string!
+Rask.Wire.PasskeyRegistrationRequest.RawId.init -> void
+Rask.Wire.PasskeyRegistrationRequest.State.get -> string!
+Rask.Wire.PasskeyRegistrationRequest.State.init -> void
+Rask.Wire.PasskeyRegistrationRequest.Transports.get -> System.Collections.Generic.IReadOnlyList<string!>?
+Rask.Wire.PasskeyRegistrationRequest.Transports.init -> void
+Rask.Wire.PasskeyRequestChallenge
+Rask.Wire.PasskeyRequestChallenge.<Clone>$() -> Rask.Wire.PasskeyRequestChallenge!
+Rask.Wire.PasskeyRequestChallenge.Challenge.get -> string!
+Rask.Wire.PasskeyRequestChallenge.Challenge.init -> void
+Rask.Wire.PasskeyRequestChallenge.Deconstruct(out string! State, out string! Challenge, out string! RelyingPartyId, out int TimeoutMs) -> void
+Rask.Wire.PasskeyRequestChallenge.Equals(Rask.Wire.PasskeyRequestChallenge? other) -> bool
+Rask.Wire.PasskeyRequestChallenge.PasskeyRequestChallenge(string! State, string! Challenge, string! RelyingPartyId, int TimeoutMs) -> void
+Rask.Wire.PasskeyRequestChallenge.RelyingPartyId.get -> string!
+Rask.Wire.PasskeyRequestChallenge.RelyingPartyId.init -> void
+Rask.Wire.PasskeyRequestChallenge.State.get -> string!
+Rask.Wire.PasskeyRequestChallenge.State.init -> void
+Rask.Wire.PasskeyRequestChallenge.TimeoutMs.get -> int
+Rask.Wire.PasskeyRequestChallenge.TimeoutMs.init -> void
+Rask.Wire.RemovePasskeyRequest
+Rask.Wire.RemovePasskeyRequest.<Clone>$() -> Rask.Wire.RemovePasskeyRequest!
+Rask.Wire.RemovePasskeyRequest.Deconstruct(out string! Id) -> void
+Rask.Wire.RemovePasskeyRequest.Equals(Rask.Wire.RemovePasskeyRequest? other) -> bool
+Rask.Wire.RemovePasskeyRequest.Id.get -> string!
+Rask.Wire.RemovePasskeyRequest.Id.init -> void
+Rask.Wire.RemovePasskeyRequest.RemovePasskeyRequest(string! Id) -> void
+const Rask.Wire.AuthApi.PasskeyLogin = "/passkeys/login" -> string!
+const Rask.Wire.AuthApi.PasskeyLoginOptions = "/passkeys/login-options" -> string!
+const Rask.Wire.AuthApi.PasskeyRegister = "/passkeys/register" -> string!
+const Rask.Wire.AuthApi.PasskeyRegisterOptions = "/passkeys/register-options" -> string!
+const Rask.Wire.AuthApi.PasskeyRemove = "/passkeys/remove" -> string!
+override Rask.Wire.PasskeyCreationChallenge.Equals(object? obj) -> bool
+override Rask.Wire.PasskeyCreationChallenge.GetHashCode() -> int
+override Rask.Wire.PasskeyCreationChallenge.ToString() -> string!
+override Rask.Wire.PasskeyLoginRequest.Equals(object? obj) -> bool
+override Rask.Wire.PasskeyLoginRequest.GetHashCode() -> int
+override Rask.Wire.PasskeyLoginRequest.ToString() -> string!
+override Rask.Wire.PasskeyRegistrationRequest.Equals(object? obj) -> bool
+override Rask.Wire.PasskeyRegistrationRequest.GetHashCode() -> int
+override Rask.Wire.PasskeyRegistrationRequest.ToString() -> string!
+override Rask.Wire.PasskeyRequestChallenge.Equals(object? obj) -> bool
+override Rask.Wire.PasskeyRequestChallenge.GetHashCode() -> int
+override Rask.Wire.PasskeyRequestChallenge.ToString() -> string!
+override Rask.Wire.RemovePasskeyRequest.Equals(object? obj) -> bool
+override Rask.Wire.RemovePasskeyRequest.GetHashCode() -> int
+override Rask.Wire.RemovePasskeyRequest.ToString() -> string!
+static Rask.Wire.PasskeyCreationChallenge.operator !=(Rask.Wire.PasskeyCreationChallenge? left, Rask.Wire.PasskeyCreationChallenge? right) -> bool
+static Rask.Wire.PasskeyCreationChallenge.operator ==(Rask.Wire.PasskeyCreationChallenge? left, Rask.Wire.PasskeyCreationChallenge? right) -> bool
+static Rask.Wire.PasskeyLoginRequest.operator !=(Rask.Wire.PasskeyLoginRequest? left, Rask.Wire.PasskeyLoginRequest? right) -> bool
+static Rask.Wire.PasskeyLoginRequest.operator ==(Rask.Wire.PasskeyLoginRequest? left, Rask.Wire.PasskeyLoginRequest? right) -> bool
+static Rask.Wire.PasskeyRegistrationRequest.operator !=(Rask.Wire.PasskeyRegistrationRequest? left, Rask.Wire.PasskeyRegistrationRequest? right) -> bool
+static Rask.Wire.PasskeyRegistrationRequest.operator ==(Rask.Wire.PasskeyRegistrationRequest? left, Rask.Wire.PasskeyRegistrationRequest? right) -> bool
+static Rask.Wire.PasskeyRequestChallenge.operator !=(Rask.Wire.PasskeyRequestChallenge? left, Rask.Wire.PasskeyRequestChallenge? right) -> bool
+static Rask.Wire.PasskeyRequestChallenge.operator ==(Rask.Wire.PasskeyRequestChallenge? left, Rask.Wire.PasskeyRequestChallenge? right) -> bool
+static Rask.Wire.RemovePasskeyRequest.operator !=(Rask.Wire.RemovePasskeyRequest? left, Rask.Wire.RemovePasskeyRequest? right) -> bool
+static Rask.Wire.RemovePasskeyRequest.operator ==(Rask.Wire.RemovePasskeyRequest? left, Rask.Wire.RemovePasskeyRequest? right) -> bool
