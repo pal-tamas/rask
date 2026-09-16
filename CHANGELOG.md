@@ -7,6 +7,8 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-09-16
+
 ### Added
 
 - **Rask UI gets Flux UI's application layout.** New `UiSidebar` — an `<aside>` beside the page, docked and sticky from
