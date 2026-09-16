@@ -568,7 +568,13 @@ public sealed class SiteExampleTests
         //     tab bar, Chrome-on-Android's address bar), so no page screenshot can see it; every value the
         //     tag ever holds is recorded instead.
         //   * the "path:" badge said /docs in the prerender and /docs/ once hydrated, because the page is
-        //     served at the directory URL and the prerender seeded the route's bare spelling.
+        //     served at the directory URL and the prerender seeded the route's bare spelling. THE BADGE IS
+        //     GONE — the docs wear the landing page's bar now, and it carries no route readout — so what
+        //     was the flicker's only visible surface is asserted ABSENT rather than stable. Kept as a leg
+        //     rather than deleted: the prerender still seeds a different spelling than the runtime settles
+        //     on, and a readout put back into the chrome brings the flicker back with it. PathDisplay
+        //     itself survives as docs/routing.md's worked example, and SiteHeaderTests holds it out of the
+        //     bar.
         //   * <body class> arrived only with the runtime's first frame; the published page kept the shell's tag.
         //
         // Loaded at /docs/, the URL a reader lands on (GitHub Pages 301s /docs to it), not /docs/index.html.
@@ -609,9 +615,17 @@ public sealed class SiteExampleTests
             var tints = await page.EvaluateAsync<string[]>("() => window.__raskHandover.tints.filter(t => t !== '')");
             Assert.True(tints.Length == 1, $"theme-color changed during boot: {string.Join(" -> ", tints)}");
 
+            // Read back exactly the way the init script read it — startsWith on a span's own text, not a
+            // :has-text selector, which would also match any guide whose prose or code sample happens to
+            // contain "path: ".
+            const string findBadge =
+                "() => { const b = [...document.querySelectorAll('span')]"
+                + ".find(s => s.textContent.startsWith('path: ')); "
+                + "return b ? b.querySelector('code').textContent : '(no badge)'; }";
+
             var prerenderedPath = await page.EvaluateAsync<string>("() => window.__raskHandover.path");
-            Assert.Equal("/docs/", prerenderedPath);
-            await Expect(page.Locator("span:has-text('path:') > code")).ToHaveTextAsync(prerenderedPath);
+            Assert.Equal("(no badge)", prerenderedPath);
+            Assert.Equal(prerenderedPath, await page.EvaluateAsync<string>(findBadge));
 
             var prerenderedBodyClass = await page.EvaluateAsync<string?>("() => window.__raskHandover.bodyClass");
             Assert.False(string.IsNullOrEmpty(prerenderedBodyClass), "the prerendered <body> carries no class");

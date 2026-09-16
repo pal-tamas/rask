@@ -7,6 +7,16 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+
+- **`RaskVersion.Current` reported `1.0.0` in every app** (#1122). It reads the informational version off the assembly that
+  declares it — `Rask.Core` — and Core is `IsPackable=false`, so the `Condition=" '$(IsPackable)' != 'false' "` on
+  MinVer's `PackageReference` meant nothing ever stamped it and the SDK's `1.0.0` fallback stood. Every reader was
+  wrong with it: the `[Rask.Wasm] Rask 1.0.0 (WASM) starting` banner, the DevTools overview page and its bug reports,
+  and rask.sh's own version badge and guide banner, which advertised `v1.0.0` while 0.22.0 was shipping. MinVer is
+  referenced by every project now. The three existing `RaskVersionTests` were green throughout — non-empty, no build
+  metadata, looks like semver, all of which `"1.0.0"` satisfies — so `Current_MatchesThePackableHostVersion` compares
+  it against a packable assembly, which is the only version in the process known to be real.
 ### Added
 
 - **`rask new` generates the app's Web Push keys.** A scaffold with the push battery on now mints its own VAPID pair
@@ -130,6 +140,13 @@ them until tagged releases begin.
   error onto an install that was going fine. The index is buffered to a file and parsed from there.
 
 ### Changed
+
+- **The docs wear the landing page's top bar.** `/` and `/docs` had two bars that agreed on a height and a background
+  and on nothing else: the docs drew daisyUI's `navbar` with a hamburger, a second brand mark in the display face, a
+  "showcase" pill, a version badge, a live `path:` readout and a bordered ★ GitHub button, against the landing page's
+  `<header>`, bolt, wordmark and three quiet text links. There is one `SiteHeader` now; the only thing the docs add is
+  the sidebar's hamburger. The brand mark is the gradient `RaskLogo` on both (the landing page used a generic kit
+  bolt), it links to `/` — a way back the docs never had — and both bars carry the version badge.
 
 - **BREAKING: Rask.Auth has its own accounts; ASP.NET Core Identity is gone.** Laravel's and Rails' shape: one `User`
   holds the credentials and the app's own columns, and each signed-in device is a row.
