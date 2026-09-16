@@ -27,16 +27,24 @@ Rask.Core.Authentication.AuthInstruction.Ticket.get -> string!
 Rask.Core.Authentication.AuthInstruction.Ticket.init -> void
 Rask.Core.Authentication.AuthSignIn
 Rask.Core.Authentication.AuthSignIn.AuthSignIn() -> void
+Rask.Core.Authentication.AuthSignIn.SignInAsync(System.Security.Claims.ClaimsPrincipal! principal, string? returnUrl = null, string? scheme = null, bool persistent = false) -> System.Threading.Tasks.Task!
 Rask.Core.Authentication.AuthSignIn.SignOutAsync(string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
+Rask.Core.Authentication.ClaimsPrincipalExtensions
 Rask.Core.Authentication.IAuth
 Rask.Core.Authentication.IAuth.ConfirmEmailAsync(string! userId, string! token) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 Rask.Core.Authentication.IAuth.RegisterAsync(string! email, string! password, string? returnUrl = null, string? firstRunToken = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+Rask.Core.Authentication.IAuth.RegisterAsync<TUser>(string! email, string! password, System.Action<TUser!>! apply, string? returnUrl = null, string? firstRunToken = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 Rask.Core.Authentication.IAuth.ResetPasswordAsync(string! userId, string! token, string! password) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 Rask.Core.Authentication.IAuth.SendPasswordResetAsync(string! email) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 Rask.Core.Authentication.IAuth.SignInAsync(string! email, string! password, bool remember = false, string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 Rask.Core.Authentication.IAuth.SignOutAsync(string? returnUrl = null) -> System.Threading.Tasks.Task!
+Rask.Core.Authentication.IAuth.SignOutEverywhereAsync(string? returnUrl = null) -> System.Threading.Tasks.Task!
+Rask.Core.Authentication.IAuth.SignOutOtherDevicesAsync() -> System.Threading.Tasks.Task!
 Rask.Core.Authentication.IAuthSignIn
+Rask.Core.Authentication.IAuthSignIn.SignInAsync(System.Security.Claims.ClaimsPrincipal! principal, string? returnUrl = null, string? scheme = null, bool persistent = false) -> System.Threading.Tasks.Task!
 Rask.Core.Authentication.IAuthSignIn.SignOutAsync(string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
+Rask.Core.Authentication.ISessionRevalidator
+Rask.Core.Authentication.ISessionRevalidator.RevalidateAsync(System.Security.Claims.ClaimsPrincipal! principal, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<System.Security.Claims.ClaimsPrincipal?>
 Rask.Core.Authentication.IUserProvider
 Rask.Core.Authentication.IUserProvider.Changed -> System.Action?
 Rask.Core.Authentication.IUserProvider.Current.get -> System.Security.Claims.ClaimsPrincipal!
@@ -47,7 +55,11 @@ Rask.Core.Authentication.PendingAuth
 Rask.Core.Authentication.PendingAuth.<Clone>$() -> Rask.Core.Authentication.PendingAuth!
 Rask.Core.Authentication.PendingAuth.Action.get -> Rask.Core.Authentication.AuthAction
 Rask.Core.Authentication.PendingAuth.Action.init -> void
+Rask.Core.Authentication.PendingAuth.Deconstruct(out Rask.Core.Authentication.AuthAction Action, out System.Security.Claims.ClaimsPrincipal? Principal, out string? ReturnUrl, out string? Scheme, out bool Persistent) -> void
 Rask.Core.Authentication.PendingAuth.Equals(Rask.Core.Authentication.PendingAuth? other) -> bool
+Rask.Core.Authentication.PendingAuth.PendingAuth(Rask.Core.Authentication.AuthAction Action, System.Security.Claims.ClaimsPrincipal? Principal, string? ReturnUrl, string? Scheme, bool Persistent = false) -> void
+Rask.Core.Authentication.PendingAuth.Persistent.get -> bool
+Rask.Core.Authentication.PendingAuth.Persistent.init -> void
 Rask.Core.Authentication.PendingAuth.Principal.get -> System.Security.Claims.ClaimsPrincipal?
 Rask.Core.Authentication.PendingAuth.Principal.init -> void
 Rask.Core.Authentication.PendingAuth.ReturnUrl.get -> string?
@@ -3662,6 +3674,10 @@ Rask.Core.Live.WheelEventArgs.Equals(Rask.Core.Live.WheelEventArgs? other) -> bo
 Rask.Core.Live.WheelEventArgs.Mouse.get -> Rask.Core.Live.MouseEventArgs!
 Rask.Core.Live.WheelEventArgs.Mouse.init -> void
 Rask.Core.Live.WheelEventArgs.WheelEventArgs(Rask.Core.Live.MouseEventArgs! Mouse, double DeltaX, double DeltaY, double DeltaZ, int DeltaMode) -> void
+Rask.Core.Messaging.IBroadcast
+Rask.Core.Messaging.IBroadcast.PublishAsync<T>(Rask.Core.Messaging.Topic<T>! topic, T message, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+Rask.Core.Messaging.IBroadcast.Subscribe<T>(Rask.Core.Component! owner, Rask.Core.Messaging.Topic<T>! topic, System.Action<T>! handler) -> void
+Rask.Core.Messaging.IBroadcast.Subscribe<T>(Rask.Core.Component! owner, Rask.Core.Messaging.Topic<T>! topic, System.Func<T, System.Threading.Tasks.Task!>! handler) -> void
 Rask.Core.Messaging.IToaster
 Rask.Core.Messaging.IToaster.Add(Rask.Core.Messaging.ToastLevel level, string! message, string? title = null) -> void
 Rask.Core.Messaging.IToaster.Changed -> System.Action?
@@ -3693,6 +3709,9 @@ Rask.Core.Messaging.Toaster.Add(Rask.Core.Messaging.ToastLevel level, string! me
 Rask.Core.Messaging.Toaster.Changed -> System.Action?
 Rask.Core.Messaging.Toaster.Consume() -> System.Collections.Generic.IReadOnlyList<Rask.Core.Messaging.ToastMessage!>!
 Rask.Core.Messaging.Toaster.Toaster() -> void
+Rask.Core.Messaging.Topic<T>
+Rask.Core.Messaging.Topic<T>.Name.get -> string!
+Rask.Core.Messaging.Topic<T>.Topic(string! name) -> void
 Rask.Core.MouseModifiers
 Rask.Core.MouseModifiers.Alt.get -> bool
 Rask.Core.MouseModifiers.Alt.init -> void
@@ -3706,6 +3725,9 @@ Rask.Core.MouseModifiers.MouseModifiers() -> void
 Rask.Core.MouseModifiers.MouseModifiers(bool Shift, bool Ctrl, bool Alt, bool Meta) -> void
 Rask.Core.MouseModifiers.Shift.get -> bool
 Rask.Core.MouseModifiers.Shift.init -> void
+Rask.Core.RaskChainEntryAttribute
+Rask.Core.RaskChainEntryAttribute.Entry.get -> string!
+Rask.Core.RaskChainEntryAttribute.RaskChainEntryAttribute(string! entry) -> void
 Rask.Core.RaskHostContracts
 Rask.Core.RaskMarkup
 Rask.Core.RaskMarkup.RaskMarkup() -> void
@@ -4180,6 +4202,7 @@ override Rask.Core.Live.WheelEventArgs.ToString() -> string!
 override Rask.Core.Messaging.ToastMessage.Equals(object? obj) -> bool
 override Rask.Core.Messaging.ToastMessage.GetHashCode() -> int
 override Rask.Core.Messaging.ToastMessage.ToString() -> string!
+override Rask.Core.Messaging.Topic<T>.ToString() -> string!
 override Rask.Core.MouseModifiers.GetHashCode() -> int
 override Rask.Core.Routing.PendingDownload.Equals(object? obj) -> bool
 override Rask.Core.Routing.PendingDownload.GetHashCode() -> int
@@ -4203,6 +4226,8 @@ override Rask.Core.Virtualization.VirtualItem<T>.GetHashCode() -> int
 override Rask.Core.Virtualization.VirtualItem<T>.ToString() -> string!
 static Rask.Core.Authentication.AuthInstruction.operator !=(Rask.Core.Authentication.AuthInstruction? left, Rask.Core.Authentication.AuthInstruction? right) -> bool
 static Rask.Core.Authentication.AuthInstruction.operator ==(Rask.Core.Authentication.AuthInstruction? left, Rask.Core.Authentication.AuthInstruction? right) -> bool
+static Rask.Core.Authentication.ClaimsPrincipalExtensions.SessionId(this System.Security.Claims.ClaimsPrincipal! principal) -> System.Guid?
+static Rask.Core.Authentication.ClaimsPrincipalExtensions.UserId(this System.Security.Claims.ClaimsPrincipal! principal) -> System.Guid?
 static Rask.Core.Authentication.PendingAuth.operator !=(Rask.Core.Authentication.PendingAuth? left, Rask.Core.Authentication.PendingAuth? right) -> bool
 static Rask.Core.Authentication.PendingAuth.operator ==(Rask.Core.Authentication.PendingAuth? left, Rask.Core.Authentication.PendingAuth? right) -> bool
 static Rask.Core.Authorization.RouteAuthorizationGuard.EvaluateAsync(System.IServiceProvider! services, System.Collections.Generic.IReadOnlyList<System.Type!>! chain, System.Security.Claims.ClaimsPrincipal! user) -> System.Threading.Tasks.Task<Rask.Core.Authorization.RouteAuthorizationResult!>!
@@ -4426,6 +4451,8 @@ static Rask.Core.Forms.DataAnnotationsFieldValidator.Validate(object! model, Sys
 static Rask.Core.Forms.EditContextScope.Current.get -> Rask.Core.Forms.EditContext?
 static Rask.Core.Forms.ExpressionAccessor.Accessor.operator !=(Rask.Core.Forms.ExpressionAccessor.Accessor? left, Rask.Core.Forms.ExpressionAccessor.Accessor? right) -> bool
 static Rask.Core.Forms.ExpressionAccessor.Accessor.operator ==(Rask.Core.Forms.ExpressionAccessor.Accessor? left, Rask.Core.Forms.ExpressionAccessor.Accessor? right) -> bool
+static Rask.Core.Forms.ExpressionAccessor.AsCollection<TCollection, T>(System.Linq.Expressions.Expression<System.Func<TCollection>!>! bind) -> System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.ICollection<T>!>!>!
+static Rask.Core.Forms.ExpressionAccessor.NonNullable<T>(System.Linq.Expressions.Expression<System.Func<T?>!>! bind) -> System.Linq.Expressions.Expression<System.Func<T>!>!
 static Rask.Core.Forms.ExpressionAccessor.Parse(System.Linq.Expressions.LambdaExpression! expression) -> Rask.Core.Forms.ExpressionAccessor.Accessor!
 static Rask.Core.Forms.ModelGraphWalker.Resolve(object! root, string! path) -> (object! Owner, string! Property)?
 static Rask.Core.Forms.ModelGraphWalker.Walk(object! root) -> System.Collections.Generic.IEnumerable<object!>!
@@ -6666,29 +6693,6 @@ virtual Rask.Core.Forms.ValidateAsync<T>.Invoke(T value, System.Threading.Cancel
 ~override Rask.Core.ScopedAssets.ScopedAssetRegistry.AssetBytes.ToString() -> string
 ~override Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry.Equals(object obj) -> bool
 ~override Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry.ToString() -> string
-static Rask.Core.Forms.ExpressionAccessor.NonNullable<T>(System.Linq.Expressions.Expression<System.Func<T?>!>! bind) -> System.Linq.Expressions.Expression<System.Func<T>!>!
-Rask.Core.Messaging.IBroadcast
-Rask.Core.Messaging.IBroadcast.PublishAsync<T>(Rask.Core.Messaging.Topic<T>! topic, T message, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
-Rask.Core.Messaging.IBroadcast.Subscribe<T>(Rask.Core.Component! owner, Rask.Core.Messaging.Topic<T>! topic, System.Action<T>! handler) -> void
-Rask.Core.Messaging.IBroadcast.Subscribe<T>(Rask.Core.Component! owner, Rask.Core.Messaging.Topic<T>! topic, System.Func<T, System.Threading.Tasks.Task!>! handler) -> void
-Rask.Core.Messaging.Topic<T>
-Rask.Core.Messaging.Topic<T>.Name.get -> string!
-Rask.Core.Messaging.Topic<T>.Topic(string! name) -> void
-override Rask.Core.Messaging.Topic<T>.ToString() -> string!
-Rask.Core.Authentication.AuthSignIn.SignInAsync(System.Security.Claims.ClaimsPrincipal! principal, string? returnUrl = null, string? scheme = null, bool persistent = false) -> System.Threading.Tasks.Task!
-Rask.Core.Authentication.ClaimsPrincipalExtensions
-Rask.Core.Authentication.IAuth.RegisterAsync<TUser>(string! email, string! password, System.Action<TUser!>! apply, string? returnUrl = null, string? firstRunToken = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
-Rask.Core.Authentication.IAuth.SignOutEverywhereAsync(string? returnUrl = null) -> System.Threading.Tasks.Task!
-Rask.Core.Authentication.IAuth.SignOutOtherDevicesAsync() -> System.Threading.Tasks.Task!
-Rask.Core.Authentication.IAuthSignIn.SignInAsync(System.Security.Claims.ClaimsPrincipal! principal, string? returnUrl = null, string? scheme = null, bool persistent = false) -> System.Threading.Tasks.Task!
-Rask.Core.Authentication.ISessionRevalidator
-Rask.Core.Authentication.ISessionRevalidator.RevalidateAsync(System.Security.Claims.ClaimsPrincipal! principal, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<System.Security.Claims.ClaimsPrincipal?>
-Rask.Core.Authentication.PendingAuth.Deconstruct(out Rask.Core.Authentication.AuthAction Action, out System.Security.Claims.ClaimsPrincipal? Principal, out string? ReturnUrl, out string? Scheme, out bool Persistent) -> void
-Rask.Core.Authentication.PendingAuth.PendingAuth(Rask.Core.Authentication.AuthAction Action, System.Security.Claims.ClaimsPrincipal? Principal, string? ReturnUrl, string? Scheme, bool Persistent = false) -> void
-Rask.Core.Authentication.PendingAuth.Persistent.get -> bool
-Rask.Core.Authentication.PendingAuth.Persistent.init -> void
-static Rask.Core.Authentication.ClaimsPrincipalExtensions.UserId(this System.Security.Claims.ClaimsPrincipal! principal) -> System.Guid?
-static Rask.Core.Authentication.ClaimsPrincipalExtensions.SessionId(this System.Security.Claims.ClaimsPrincipal! principal) -> System.Guid?
 Rask.Core.Authentication.IAuth.AddPasskeyAsync(string? name = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 Rask.Core.Authentication.IAuth.RemovePasskeyAsync(System.Guid id) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 Rask.Core.Authentication.IAuth.SignInWithPasskeyAsync(bool remember = false, string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!

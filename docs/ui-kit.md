@@ -430,7 +430,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | **Data display** | `UiAccordion` `UiAccordionSection` `UiCollapse` `UiAvatar` `UiAura` `UiBadge` `UiCard` `UiCarousel` `UiChatBubble` `UiCountdown` `UiDiff` `UiEmpty` `UiHover3d` `UiHoverGallery` `UiKbd` `UiHighlight` `UiList` `UiListRow` `UiStat` `UiStatusDot` `UiTable` `UiDataGrid` `UiColumn` `UiTree` `UiTextRotate` `UiTimeline` |
 | **Navigation** | `UiBreadcrumbs` `UiDock` `UiLink` `UiMegamenu` `UiMegamenuPanel` `UiMenu` `UiMenuItem` `UiNavbar` `UiPagination` `UiSteps` `UiStep` `UiTabs` `UiTab` |
 | **Feedback** | `UiAlert` `UiLoading` `UiProgress` `UiRadialProgress` `UiSkeleton` `UiToast` `UiTooltip` |
-| **Data input** | `UiInput` `UiTextarea` `UiSelect` `UiMultiSelect` `UiFileInput` `UiCheckbox` `UiToggle` `UiRadio` `UiRange` `UiRating` `UiFieldset` `UiValidator` `UiLabel` `UiOtp` `UiFilter` `UiCalendar` |
+| **Data input** | `UiInput` `UiTextarea` `UiSelect` `UiFileInput` `UiCheckbox` `UiToggle` `UiRadio` `UiRange` `UiRating` `UiFieldset` `UiValidator` `UiLabel` `UiOtp` `UiFilter` `UiCalendar` |
 | **Layout** | `UiDivider` `UiDrawer` `UiFooter` `UiHero` `UiIndicator` `UiJoin` `UiStack` `UiMask` |
 | **Mockup** | `UiMockupBrowser` `UiMockupCode` `UiMockupPhone` `UiMockupWindow` |
 | **Chrome** | `UiShell` `UiTopBar` `UiBrand` `UiNav` `UiNavTab` `UiCrumbSwitcher` `UiCrumbSeparator` `UiTopLink` `UiMain` `UiHeader` `UiGrid` `UiMetricRow` `UiMetric` `UiDetailList` `UiDetailRow` `UiCode` `UiSearch` |
@@ -523,15 +523,43 @@ options. Reach for it when the list must carry more than the platform will show,
 differs is that the drawn list **needs the runtime**, where the native control works on a prerendered
 page and with scripting off. That is why the default is native.
 
-**And one that lets you choose several.** `UiMultiSelect` is the same control for a field that holds a
-collection. Native is a real `<select multiple>`; `Native: false` draws the list, shows the chosen
-answers as removable chips in the box, and — unlike the single-select — leaves the list OPEN as you
-pick, because choosing three answers should not mean opening it three times. `SelectAll` adds a bulk
-row, `Filter` adds a search box (you supply the predicate, so it works for any `T`), and `Chips` caps
-how many chips the box shows before the rest collapse into "+N more". It binds the `List<T>`, `T[]` or
-`HashSet<T>` your model already declares, refilling a get-only collection in place; the write-back
-builds whatever the property declares. A field typed `IReadOnlyList<T>` is the one shape that cannot
-bind — it is not an `ICollection<T>`, so the chain has nothing to infer from.
+**And one that lets you choose several — under the same name.** Bind a collection and `UiSelect` IS the
+multi-select. There is no second component to remember and no `Multiple` flag to set: the field's own
+type is the answer, so a model that holds many answers cannot accidentally get the control that holds
+one.
+
+```csharp
+UiSelect.Bind(() => _order.Country)   // string        → one answer
+UiSelect.Bind(() => _order.Tags)      // List<string>  → several
+UiSelect.Values(_picked)              // controlled, several
+UiSelect.Value(_country)              // controlled, one
+```
+
+`List<T>`, `IList<T>`, `HashSet<T>`, `Collection<T>`, `ObservableCollection<T>`, `T[]` and
+`ICollection<T>` all open the multi-value control; the write-back refills a get-only collection in
+place and otherwise builds whatever the property declares. A field typed `IReadOnlyList<T>` is the one
+shape that cannot bind — it is not an `ICollection<T>`, so there is nothing to write back through.
+The controlled opening is spelled `Values` rather than `Value` because `["a", "b"]` and `null` are
+target-typed: they fit every collection shape equally, so one name could not tell the two controls
+apart without guessing.
+
+Native is a real `<select multiple>`; `Native: false` draws the list, shows the chosen answers as
+removable chips in the box, and — unlike the single-select — leaves the list OPEN as you pick, because
+choosing three answers should not mean opening it three times. `SelectAll` adds a bulk row and `Chips`
+caps how many chips the box shows before the rest collapse into "+N more".
+
+**And one you type into.** There is no `UiCombobox`, because a box you type into to narrow a fixed set
+of answers is the same question a select asks. `Searchable` puts a search box at the top of the drawn
+list, matching the option's words case- and accent-insensitively **in the visitor's own culture** —
+somebody typing `oster` means to find `Österreich`. `Filter` says what a match is when the words shown
+are not the whole answer (a country's code as well as its name); `OnSearch` hands the typing to the
+page instead, for a list that comes from a server, and filters nothing locally — what the page handed
+back IS the answer. `Loading` shows "Searching…" while it waits, `EmptyText` and `LoadingText` say it
+in your own words, and `Clearable` adds a button that puts the field back to nothing chosen. Each of
+these implies the drawn list, because a `<select>` has nowhere to put them.
+
+A short list needs none of it: the drawn list already has **type-ahead**, where a letter jumps to the
+next option starting with it, which is what a native select does.
 
 Both controls take an `OptionTemplate` for rows that need more than words. Setting one implies the
 drawn list, because an `<option>` holds text and nothing else — writing `Native(true)` beside a
@@ -550,7 +578,7 @@ shapes every Rask input does:
 Form.Model(_order)[
     UiSelect.Bind(() => _order.Country).Options(countries).Label("Country"),
     UiSelect.Value(_country).Options(countries).Label("Country").OnChange(v => _country = v),
-    UiMultiSelect.Bind(() => _order.Tags).Options(tags).Label("Tags")
+    UiSelect.Bind(() => _order.Tags).Options(tags).Label("Tags")
 ]
 ```
 
@@ -594,7 +622,7 @@ would have exactly one legal argument.
 | | Binds |
 |---|---|
 | `UiInput<T>` `UiTextarea<T>` `UiSelect<T>` | what the field holds |
-| `UiMultiSelect<T>` | the ELEMENT type — it binds an `ICollection<T>` |
+| `UiSelect<T>` over a collection | the ELEMENT type — it binds an `ICollection<T>` |
 | `UiFilter<T>` | the chosen option of a whole radio group |
 | `UiRadio` | whether **this** option is the chosen one — the group's value belongs to `UiFilter<T>` |
 | `UiCheckbox` `UiToggle` | on or off |

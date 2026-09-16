@@ -33,6 +33,52 @@ them until tagged releases begin.
   - **Upgrade:** `rask db add` a migration for the new `RaskAuthPasskey` table. Nothing else changes — an app that
     wants none turns them off with `o.Passkeys = false`, and the scaffolded `/login` and `/devices` pages gain the
     passkey UI only when you copy them from a fresh `rask new`.
+- **Rask UI's select is Flux UI's combobox too, and the MODEL says which control it is.** `UiSelect` gains
+  `Searchable` (a search box over the drawn list, matching case- and accent-insensitively in the visitor's own
+  culture), `Filter` (what counts as a match, for searching a code as well as a name), `OnSearch` (hands the typing to
+  the page for a server-side query and filters nothing locally), `Loading` with `LoadingText`, `EmptyText`, and
+  `Clearable` (a button that puts the field back to nothing chosen). Asking for any of them draws the list here rather
+  than handing it to the platform, since a `<select>` has nowhere to put them. The drawn list also takes type-ahead
+  without any of this — a letter jumps to the next option starting with it, as a native select does. There is no
+  `UiCombobox`: a box you type into to narrow a fixed set of answers is the same question a select asks.
+- **One name for both selects.** `UiSelect.Bind(() => model.Tags)` over a `List<T>`, `IList<T>`, `HashSet<T>`,
+  `Collection<T>`, `ObservableCollection<T>`, `T[]` or `ICollection<T>` is the MULTIPLE select;
+  `UiSelect.Bind(() => model.Country)` is the single one. The page never chooses between two component names — the
+  field's own type decides, and the controlled form is `UiSelect.Values(…)` beside `UiSelect.Value(…)`.
+
+### Changed
+
+- **BREAKING (Rask UI):** `UiMultiSelect` is no longer a name a call site types. The multi-value select is reached
+  through `UiSelect` — `UiSelect.Bind(() => model.Tags)` or `UiSelect.Values(picked)` — and typing `UiMultiSelect` in
+  markup now names the type rather than the chain, which does not compile.
+
+### Fixed
+
+- **A component joined onto another's chain entry no longer steals its `Of<T>()`.** Two components sharing an entry
+  emit the same parameterless explicit-type opening, and whichever the generator happened to sort second silently
+  decided what `Entry.Of<T>()` built. The entry's namesake owns it now.
+### Fixed
+
+- **The installer no longer ends by suggesting a command that fails.** `curl -sSL https://rask.sh/rask.sh | sh`
+  finished with two raw `export` lines and then `Then: rask new MyApp && cd MyApp && rask dev` — run in the shell
+  you installed from, that is `command not found`, because a piped installer is a child process and cannot change
+  its parent's environment. The closing block now leads with that fact and gives one line that fixes it, matched to
+  the profile actually written (`source ~/.bashrc`, `source ~/.config/fish/config.fish`, `. ~/.profile`, …). Under
+  `--no-path`/`-NoPath`, which previously printed no guidance at all, it prints what to add by hand. `rask.ps1` got
+  the same treatment, with the two lines that re-read the User-scoped `Path` and `DOTNET_ROOT` it just wrote.
+- **bash got the `PATH` block in only one of the two files bash reads.** A login bash (ssh, a tty) reads the first
+  of `~/.bash_profile`, `~/.bash_login` and `~/.profile` that exists, and never `~/.bashrc`; a terminal emulator
+  reads `~/.bashrc` and never a login profile. Writing `~/.bashrc` alone looks sufficient on a stock box only
+  because Debian, Arch and Fedora ship a skeleton login profile that sources it — for anyone with hand-written
+  dotfiles, ssh had no `rask` while the terminal emulator on the same machine did. The installer now writes both,
+  but never *creates* a login profile, since bash falls back to `~/.profile` only when no `~/.bash_profile` exists
+  and inventing one would silently shadow the user's login environment.
+- **Re-reading the installer's `PATH` block no longer grows `PATH`.** Each directory is added only if it is not
+  already there, in both the POSIX and fish dialects. This matters now the block lands in two files and the
+  Arch/Debian default `~/.bash_profile` sources `~/.bashrc`.
+- **`curl: (23) Failure writing output to destination` no longer appears mid-install.** The Node LTS lookup piped
+  curl straight into a parser that stops at the first match; `head` closing the pipe made curl report the write
+  error onto an install that was going fine. The index is buffered to a file and parsed from there.
 
 ### Changed
 
