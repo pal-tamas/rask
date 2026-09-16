@@ -152,6 +152,86 @@ check "unknown shell"    "$HOME/.profile"                 "$(rask_profile_file /
 # and resolves from the environment — correct for every real caller, which passes nothing.
 check "unset SHELL"      "$HOME/.profile"                 "$(unset SHELL && rask_profile_file '' Linux)"
 
+# --- rask_profile_files ----------------------------------------------------------------------
+# rask_profile_file names ONE profile; rask_profile_files names every profile the block is written
+# into. They differ only for bash, and only because bash is the shell where one file is provably not
+# enough: a login bash (ssh, a tty, a macOS Terminal tab) reads .bash_profile and never .bashrc,
+# while a Linux terminal emulator reads .bashrc and never .bash_profile.
+
+files_for() { rask_profile_files "$1" "$2" | tr '\n' ' ' | sed 's/ $//'; }
+
+echo "==> rask_profile_files"
+check "zsh: one file covers login and interactive" \
+    "$HOME/.zshrc" "$(files_for /bin/zsh Linux)"
+check "fish: one file" \
+    "$HOME/.config/fish/config.fish" "$(files_for /usr/bin/fish Linux)"
+check "unknown shell: one file" \
+    "$HOME/.profile" "$(files_for /bin/ksh Linux)"
+check "bash on Darwin: .bash_profile primary, plus .bashrc" \
+    "$HOME/.bash_profile $HOME/.bashrc" "$(files_for /bin/bash Darwin)"
+
+# The bash-on-Linux cases run against a fake HOME, because the answer depends on which login profile
+# is already on disk. Creating one that is not there would SHADOW the user's .profile — bash reads
+# .profile only when no .bash_profile exists — so a missing login profile means .bashrc alone.
+bash_linux_files() (
+    HOME="$tmp/home-$1"
+    mkdir -p "$HOME"
+    shift
+    for f in "$@"; do : >"$HOME/$f"; done
+    rask_profile_files /bin/bash Linux | sed "s|^$HOME/||" | tr '\n' ' ' | sed 's/ $//'
+)
+
+check "bash on Linux, no login profile: .bashrc only" \
+    ".bashrc" "$(bash_linux_files bare)"
+check "bash on Linux, .profile exists: both" \
+    ".bashrc .profile" "$(bash_linux_files debian .profile)"
+check "bash on Linux, .bash_profile wins over .profile" \
+    ".bashrc .bash_profile" "$(bash_linux_files arch .profile .bash_profile)"
+check "bash on Linux, .bash_login is the middle fallback" \
+    ".bashrc .bash_login" "$(bash_linux_files login .profile .bash_login)"
+
+# --- rask_reload_command ---------------------------------------------------------------------
+# What the closing message tells the user to run in the terminal they are already sitting in.
+# `source` is not POSIX, so .profile — where an unrecognised shell lands — gets the dot form.
+
+echo "==> rask_reload_command"
+check "zshrc"        "source $HOME/.zshrc"       "$(rask_reload_command "$HOME/.zshrc")"
+check "bashrc"       "source $HOME/.bashrc"      "$(rask_reload_command "$HOME/.bashrc")"
+check "config.fish"  "source $HOME/.config/fish/config.fish" \
+    "$(rask_reload_command "$HOME/.config/fish/config.fish")"
+check "profile: dot, not source" ". $HOME/.profile" "$(rask_reload_command "$HOME/.profile")"
+
+# --- rask_path_block -------------------------------------------------------------------------
+# The block lands in more than one file for bash, and the Arch/Debian default .bash_profile sources
+# .bashrc, so a login shell reads it twice. Sourcing it N times must leave PATH as it was after 1 —
+# otherwise PATH grows without bound across nested shells, which is how a $PATH ends up 4KB long.
+
+echo "==> rask_path_block"
+block_path_after() (
+    RASK_INSTALL_DOTNET_ROOT="$tmp/dotnet"
+    RASK_INSTALL_PREFIX="$tmp/prefix"
+    rask_path_block "$HOME/.bashrc" >"$tmp/block.sh"
+    PATH="/usr/bin:/bin"
+    local i
+    for ((i = 0; i < $1; i++)); do . "$tmp/block.sh"; done
+    printf '%s' "$PATH"
+)
+
+check "sourcing once prepends all three directories" \
+    "$tmp/prefix/node/bin:$tmp/dotnet/tools:$tmp/dotnet:/usr/bin:/bin" "$(block_path_after 1)"
+check "sourcing three times is identical to once" \
+    "$(block_path_after 1)" "$(block_path_after 3)"
+check "the block leaves no loop variable behind" \
+    "unset" "$(block_path_after 1 >/dev/null; printf '%s' "${rask_dir-unset}")"
+
+# fish is a different language, so its block is asserted on shape rather than executed.
+fish_block="$(RASK_INSTALL_DOTNET_ROOT="$tmp/dotnet" RASK_INSTALL_PREFIX="$tmp/prefix" \
+    rask_path_block "$HOME/.config/fish/config.fish")"
+check "fish block guards with contains, not a bare set" \
+    "yes" "$(grep -q 'if not contains \$rask_dir \$PATH' <<<"$fish_block" && echo yes || echo no)"
+check "fish block uses no POSIX case/esac" \
+    "yes" "$(grep -q 'esac' <<<"$fish_block" && echo no || echo yes)"
+
 # --- rask_parse_args -------------------------------------------------------------------------
 # Each case runs in a subshell so the flag state cannot leak into the next.
 
@@ -223,6 +303,44 @@ check "block is closed" 1 \
 )
 check "--dry-run leaves the profile untouched" 1 \
     "$(grep -c '^# >>> rask installer >>>$' "$tmp/home/.profile")"
+
+# bash on Linux is the case the whole multi-file change exists for: a terminal emulator starts a
+# non-login interactive bash, which reads .bashrc, while ssh and a tty start a login bash, which
+# reads .bash_profile and never .bashrc. Whichever one is missed is a `command not found` the user
+# cannot explain. The block must land in both — and re-running must still leave one copy in each.
+mkdir -p "$tmp/bash-linux"
+(
+    HOME="$tmp/bash-linux"
+    SHELL=/bin/bash
+    RASK_DRY_RUN=0
+    RASK_DO_PATH=1
+    printf 'export EDITOR=vim\n' >"$HOME/.bash_profile"
+    uname() { echo Linux; }
+    step_path >/dev/null
+    step_path >/dev/null
+)
+check "bash/Linux: the block reaches .bashrc" 1 \
+    "$(grep -c '^# >>> rask installer >>>$' "$tmp/bash-linux/.bashrc" || true)"
+check "bash/Linux: the block reaches .bash_profile too" 1 \
+    "$(grep -c '^# >>> rask installer >>>$' "$tmp/bash-linux/.bash_profile" || true)"
+check "bash/Linux: the existing .bash_profile survives" 1 \
+    "$(grep -c '^export EDITOR=vim$' "$tmp/bash-linux/.bash_profile" || true)"
+
+# The other half of that rule: bash reads .profile ONLY when no .bash_profile exists, so creating one
+# would silently shadow the user's login environment. A HOME with no login profile gets .bashrc alone.
+mkdir -p "$tmp/bash-bare"
+(
+    HOME="$tmp/bash-bare"
+    SHELL=/bin/bash
+    RASK_DRY_RUN=0
+    RASK_DO_PATH=1
+    uname() { echo Linux; }
+    step_path >/dev/null
+)
+check "bash/Linux: no .bash_profile is invented" "absent" \
+    "$([ -e "$tmp/bash-bare/.bash_profile" ] && echo present || echo absent)"
+check "bash/Linux: .bashrc still written" 1 \
+    "$(grep -c '^# >>> rask installer >>>$' "$tmp/bash-bare/.bashrc" || true)"
 
 # DOTNET_ROOT, both directions. PATH alone is not enough for a global tool: its apphost does not
 # search PATH for a runtime, so an SDK outside the default location leaves `rask` reporting "You must
