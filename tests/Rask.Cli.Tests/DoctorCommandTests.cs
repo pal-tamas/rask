@@ -37,6 +37,53 @@ public class DoctorCommandTests
         Assert.Contains("https://dot.net", console.OutText, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    ///     An SDK pin nothing satisfies is named, rather than reported as a machine with no .NET on it.
+    /// </summary>
+    /// <remarks>
+    ///     Every scaffold ships a global.json, so this is the likelier of the two ways
+    ///     <c>dotnet --version</c> comes back empty inside a project — and it is the one whose fix is
+    ///     invisible otherwise. The SDK's own words are "the command could not be loaded", which name
+    ///     neither the file nor the version it wanted.
+    /// </remarks>
+    [Fact]
+    public async Task An_sdk_pin_that_nothing_satisfies_is_named()
+    {
+        var (console, fs, command) = Build(sdk: string.Empty);
+        fs.Seed($"{ProjectDir}/global.json", DotnetTarget.Preview.GlobalJson);
+
+        var exit = await command.ExecuteAsync([], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("global.json", console.OutText, StringComparison.Ordinal);
+        Assert.Contains("11.0.0", console.OutText, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    ///     A pin that cannot be read still names the file, rather than throwing.
+    /// </summary>
+    /// <remarks>
+    ///     This path runs when something is ALREADY wrong, so a doctor that threw while explaining a
+    ///     failure would replace a bad message with a worse one. Both shapes are covered because they
+    ///     fail in different places: unparseable text throws from <c>JsonDocument.Parse</c>, while text
+    ///     that parses into the wrong shape throws from <c>TryGetProperty</c>/<c>GetString</c> — which is
+    ///     an <c>InvalidOperationException</c>, not a <c>JsonException</c>, and was missed the first time.
+    /// </remarks>
+    [Theory]
+    [InlineData("{ \"sdk\": oops }")]           // does not parse at all
+    [InlineData("{ \"sdk\": \"10.0.0\" }")]     // sdk is a string, not an object
+    [InlineData("{ \"sdk\": { \"version\": 10 } }")] // version is a number, not a string
+    public async Task An_unreadable_pin_still_names_the_file_rather_than_throwing(string json)
+    {
+        var (console, fs, command) = Build(sdk: string.Empty);
+        fs.Seed($"{ProjectDir}/global.json", json);
+
+        var exit = await command.ExecuteAsync([], CancellationToken.None);
+
+        Assert.Equal(1, exit);
+        Assert.Contains("global.json", console.OutText, StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task A_corrupt_deploy_config_is_a_failure_rather_than_a_shrug()
     {

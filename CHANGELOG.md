@@ -9,6 +9,18 @@ them until tagged releases begin.
 
 ### Added
 
+- **`rask new` scaffolds a `global.json`, so an app is compiled by an SDK of its own major.** With no pin the
+  SDK picks the newest one installed: on a machine that also carries the next major in preview, a `net10.0`
+  app is built by an `11.0.x` release candidate — it works, says `NETSDK1057` once per build, and quietly
+  hands two people on the same repository different compilers. The pin follows `--framework`, and
+  `rollForward: latestFeature` takes the newest SDK *within* the band without ever crossing a major. The
+  version is the band floor (`10.0.0`) rather than a real SDK release, which is load-bearing while a band is
+  in preview: `11.0.100-rc.1` sorts *below* `11.0.100` and roll-forward only goes up, so a pin naming the
+  release resolves nothing at all on a machine holding the candidate — `allowPrerelease` does not rescue it.
+  The trade is that a machine with only a newer major now fails instead of building on it, so `rask doctor`
+  reads the file: an unsatisfiable pin is reported as the pin it is, rather than as a machine with no .NET on
+  it, which is what `dotnet --version` failing looks like from the outside.
+
 - **Rask UI's select is Flux UI's combobox too, and the MODEL says which control it is.** `UiSelect` gains
   `Searchable` (a search box over the drawn list, matching case- and accent-insensitively in the visitor's own
   culture), `Filter` (what counts as a match, for searching a code as well as a name), `OnSearch` (hands the typing to
