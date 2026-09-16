@@ -206,7 +206,7 @@ public sealed class TemplateJourneyE2ETests(PlaywrightFixture browser) : IClassF
         // so a server scaffold WITH one answered every request 503 from UseRaskSpa's missing-bundle page, and the
         // server journey could not reach the component it asserts on (#1105). The SPA and meta templates carry no
         // `wasm` flag, so this changes nothing for them.
-        var result = TemplateBuildE2ETests.Scaffold(key, projectDirectory, name, version, islands: [], wasm: false);
+        var result = TemplateBuildE2ETests.Scaffold(key, projectDirectory, name, version, islands: []);
         TemplateBuildE2ETests.Write(result, projectDirectory, feed);
 
         var projectFile = Path.Combine(projectDirectory, name + ".csproj");

@@ -206,7 +206,33 @@ function Step-Dotnet {
     Write-Step "Checking for the .NET $DotnetChannel SDK"
 
     if (Test-DotnetSdk) {
-        Write-Detail "found $(& (Get-DotnetPath) --version 2>$null) — leaving it alone"
+        $found = & (Get-DotnetPath) --version 2>$null
+
+        # An SDK WE installed is ours to keep current; anybody else's is not. The twin of the same
+        # decision in rask.sh, and for the same reason: this installer is per-user and never elevates,
+        # so a machine-wide SDK (Visual Studio's, a CI image's) is reported and left exactly as it was,
+        # while the one under $DotnetRoot is there because this script put it there — and leaving it on
+        # whatever patch shipped on the day of first install is how a box ends up months behind with
+        # nothing ever saying so.
+        #
+        # dotnet-install.ps1 is idempotent: on an up-to-date SDK it reports "already installed" and
+        # returns, so this costs a version check and nothing else.
+        if ($NoSdk) {
+            Write-Detail "found $found — leaving it alone (-NoSdk)"
+            return
+        }
+
+        if (Test-Path (Join-Path $DotnetRoot 'dotnet.exe')) {
+            Write-Detail "found $found in $DotnetRoot — updating it to the latest $DotnetChannel"
+            Install-Dotnet
+            if (-not $DryRun) {
+                $now = & (Join-Path $DotnetRoot 'dotnet.exe') --version 2>$null
+                Write-Detail "now $(if ($now) { $now } else { $found })"
+            }
+            return
+        }
+
+        Write-Detail "found $found, installed outside $DotnetRoot — leaving it alone"
         return
     }
     if ($NoSdk) {
@@ -217,6 +243,12 @@ function Step-Dotnet {
     }
 
     Write-Detail "not found — installing it into $DotnetRoot (per-user, no elevation)"
+    Install-Dotnet
+}
+
+# Fetch and run Microsoft's dotnet-install.ps1 into $DotnetRoot. Used both for a first install and to
+# bring our own SDK up to date, so the two can never diverge in how they install.
+function Install-Dotnet {
     if ($DryRun) {
         # Naming the quality too, when there is one: a dry run that prints a command the real run does
         # not issue is worse than printing nothing.

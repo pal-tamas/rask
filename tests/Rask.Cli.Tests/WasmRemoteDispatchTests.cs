@@ -4,8 +4,8 @@ using Rask.Cli.Scaffolding;
 namespace Rask.Cli.Tests;
 
 /// <summary>
-/// What <c>rask new --wasm</c> writes: a browser app in <c>Client/</c> served by the server, and remote CQRS
-/// dispatch between them.
+/// What <c>rask new --template wasm-hosted</c> writes: a browser app in <c>Client/</c> served by the host,
+/// and remote CQRS dispatch between them.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -24,17 +24,24 @@ public sealed class WasmRemoteDispatchTests
     private const string Version = "9.9.9";
 
     // Flags in, files out — the same path `rask new` takes, so the flag names are under test too.
-    private static Dictionary<string, string> Generate(params string[] flags) =>
-        ProjectGenerator.GenerateServer(Root, "App", NewCommand.BatteriesOf(flags), Version).Files
-            .ToDictionary(
-                f => Path.GetRelativePath(Root, f.Path).Replace('\\', '/'),
-                f => f.Content,
-                StringComparer.Ordinal);
+    private static Dictionary<string, string> Index(ScaffoldResult result) =>
+        result.Files.ToDictionary(
+            f => Path.GetRelativePath(Root, f.Path).Replace('\\', '/'),
+            f => f.Content,
+            StringComparer.Ordinal);
+
+    /// <summary>The wasm-hosted template. CQRS is not passed: the generator forces it on.</summary>
+    private static Dictionary<string, string> Hosted(params string[] flags) =>
+        Index(ProjectGenerator.GenerateWasmHosted(Root, "App", NewCommand.BatteriesOf(flags), Version));
+
+    /// <summary>The server template, for the assertions about what it must NOT carry.</summary>
+    private static Dictionary<string, string> Server(params string[] flags) =>
+        Index(ProjectGenerator.GenerateServer(Root, "App", NewCommand.BatteriesOf(flags), Version));
 
     [Fact]
     public void The_browser_app_lives_in_Client_and_the_server_writes_no_pages_of_its_own()
     {
-        var files = Generate("wasm");
+        var files = Hosted();
 
         Assert.Contains("Client/Program.cs", files.Keys);
         Assert.Contains("Client/App.cs", files.Keys);
@@ -54,9 +61,9 @@ public sealed class WasmRemoteDispatchTests
     }
 
     [Fact]
-    public void Without_wasm_the_server_keeps_its_pages_and_writes_no_client()
+    public void The_server_template_keeps_its_pages_and_writes_no_client()
     {
-        var files = Generate("cqrs");
+        var files = Server("cqrs");
 
         Assert.Contains("Features/Home/HomePage.cs", files.Keys);
         Assert.Contains("Features/Shared/App.cs", files.Keys);
@@ -83,7 +90,7 @@ public sealed class WasmRemoteDispatchTests
     [Fact]
     public void The_browser_app_registers_its_client_in_its_own_entry_point()
     {
-        var client = Generate("wasm", "cqrs")["Client/Program.cs"];
+        var client = Hosted()["Client/Program.cs"];
 
         Assert.Contains("host.Services.AddRaskCqrsClient();", client, StringComparison.Ordinal);
 
@@ -93,33 +100,24 @@ public sealed class WasmRemoteDispatchTests
     }
 
     [Fact]
-    public void Without_a_mediator_the_browser_app_registers_no_client()
+    public void Asking_for_no_mediator_still_wires_both_halves()
     {
-        var files = Generate("wasm");
+        // There is no such thing as a wasm-hosted app without the mediator: the wire between the halves IS
+        // the template, so the generator forces CQRS back on and NewCommand refuses --no-cqrs outright
+        // (NewCommandTests holds the refusal). This pins the generator's half — a template that quietly
+        // honoured the flag would scaffold a browser app with no way to reach its own server.
+        var files = Hosted([.. NewCommand.BatteryFlags.Where(f => f != "cqrs")]);
 
-        Assert.DoesNotContain("AddRaskCqrsClient", files["Client/Program.cs"], StringComparison.Ordinal);
-        Assert.DoesNotContain("Rask.Cqrs.Client", files["App.csproj"], StringComparison.Ordinal);
-
-        // The endpoint half belongs to the browser rung too. Its package and using are written only with
-        // --wasm, so a call written without them is an app that does not compile: the database-free
-        // AddRaskCqrsServer once sat outside the wasm region, and --cqrs alone failed with CS1061.
-        Assert.DoesNotContain("AddRaskCqrsServer", files["Program.cs"], StringComparison.Ordinal);
-        Assert.DoesNotContain("Rask.Cqrs.Server", files["App.csproj"], StringComparison.Ordinal);
-
-        // Nor its setting: an app with no endpoints has no sign-in for them to waive, and a note warning
-        // that every message would answer 401 describes endpoints this app does not have.
-        Assert.DoesNotContain("RequireAuthenticatedUser", files["appsettings.json"], StringComparison.Ordinal);
-
-        // Nor the bare comment line that joined that call's paragraph to the one before it, which was left
-        // dangling straight after the query cache's registration.
-        Assert.DoesNotContain(
-            "builder.Services.AddRaskQuery();\n//\n", files["Program.cs"], StringComparison.Ordinal);
+        Assert.Contains("AddRaskCqrsClient", files["Client/Program.cs"], StringComparison.Ordinal);
+        Assert.Contains("Rask.Cqrs.Client", files["App.csproj"], StringComparison.Ordinal);
+        Assert.Contains("AddRaskCqrsServer", files["Program.cs"], StringComparison.Ordinal);
+        Assert.Contains("Rask.Cqrs.Server", files["App.csproj"], StringComparison.Ordinal);
     }
 
     [Fact]
     public void The_client_transport_reaches_the_bundle_and_never_the_server()
     {
-        var csproj = Generate("wasm", "cqrs")["App.csproj"];
+        var csproj = Hosted()["App.csproj"];
 
         // RaskClientPackageReference is the seam: one project, two halves, one reference list.
         Assert.Contains(
@@ -142,7 +140,7 @@ public sealed class WasmRemoteDispatchTests
     [Fact]
     public void The_endpoints_are_mapped_before_the_fallback_that_would_answer_them()
     {
-        var program = Generate("wasm", "cqrs")["Program.cs"];
+        var program = Hosted()["Program.cs"];
 
         var map = program.IndexOf("app.MapRaskCqrs();", StringComparison.Ordinal);
         var spa = program.IndexOf("app.UseRaskSpa();", StringComparison.Ordinal);
@@ -156,7 +154,7 @@ public sealed class WasmRemoteDispatchTests
     [Fact]
     public void The_dashboard_is_the_one_server_rendered_part()
     {
-        var program = Generate("wasm", "cqrs", "data", "ops")["Program.cs"];
+        var program = Hosted("data", "ops")["Program.cs"];
 
         Assert.Contains("builder.Services.AddRaskServer();", program, StringComparison.Ordinal);
         Assert.Contains(
@@ -176,7 +174,7 @@ public sealed class WasmRemoteDispatchTests
         // This app does not, so left on every message answers 401 — and the failure reads as broken
         // transport rather than as the secure default doing its job: a browser app that cannot reach its own
         // server. It is a setting, so it lives in appsettings.json beside the note on when to turn it back on.
-        var files = Generate("wasm", "cqrs");
+        var files = Hosted();
 
         Assert.Contains("builder.Services.AddRaskCqrsServer();", files["Program.cs"], StringComparison.Ordinal);
         Assert.Contains("\"RequireAuthenticatedUser\": false", files["appsettings.json"], StringComparison.Ordinal);
@@ -185,7 +183,7 @@ public sealed class WasmRemoteDispatchTests
     [Fact]
     public void With_a_database_the_secure_default_stands()
     {
-        var files = Generate("wasm", "cqrs", "data");
+        var files = Hosted("data");
 
         // A database means accounts, so there is something to authenticate — and the scaffold must not
         // hand the app a loosening it never asked for, in either file. A message reachable by anyone is a

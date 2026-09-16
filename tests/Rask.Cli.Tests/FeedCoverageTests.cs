@@ -40,6 +40,7 @@ public sealed class FeedCoverageTests
     [Theory]
     [InlineData("server")]
     [InlineData("wasm")]
+    [InlineData("wasm-hosted")]
     public void Every_package_a_template_references_can_be_restored_from_the_local_feed(string template)
     {
         var batteries = new ServerBatteries();
@@ -48,6 +49,11 @@ public sealed class FeedCoverageTests
         {
             "wasm" => ProjectGenerator.GenerateWasm(
                 Root, "App", pwa: false, docker: false, Version, batteries),
+            // Bare batteries here, as every case in this theory has: the generator forces CQRS on, so
+            // this still reaches Rask.Cqrs.Server and Rask.Spa.Hosting — the two packages that left the
+            // server template's list with the --wasm flag (#1103) and would otherwise be covered by
+            // nothing.
+            "wasm-hosted" => ProjectGenerator.GenerateWasmHosted(Root, "App", batteries, Version),
             _ => ProjectGenerator.GenerateServer(Root, "App", batteries, Version),
         };
 
@@ -76,7 +82,6 @@ public sealed class FeedCoverageTests
             Snapshots = true,
             Logs = true,
             Ops = true,
-            Wasm = true,
             Localization = true,
             CultureList = "en",
         };
@@ -100,6 +105,12 @@ public sealed class FeedCoverageTests
 
         AssertFeedCovers(
             ProjectGenerator.GenerateServer(Root, "App", batteries, Version), "the server template with every battery");
+
+        // wasm-hosted supports the same batteries AND adds two packages of its own, so the combination
+        // that pulls in the most is this one rather than the server's.
+        AssertFeedCovers(
+            ProjectGenerator.GenerateWasmHosted(Root, "App", batteries, Version),
+            "the wasm-hosted template with every battery");
     }
 
     /// <summary>Every front-end template, since each contributes the same host-side packages.</summary>

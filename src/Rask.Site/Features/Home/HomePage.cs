@@ -287,7 +287,7 @@ public sealed partial class HomePage : Component
                     "Rask is a superset, not a rival: React, Vue, Svelte, Angular and Lit components, a real Blazor component, a TypeScript SPA or a Nuxt or Next.js app all run on it, against the same C# back end over the same typed wire. Pick one per project; islands also compose inside a Rask component tree, so those two mix freely."),
                 Div.Class("grid gap-4 md:grid-cols-2")[
                     LaneCard(UiIconName.CodeBracket, "Rask.Core", "Rask components", "render-modes", "rask new Shop",
-                        "C# components server-rendered over a WebSocket, every state change streaming as a minimal diff. Add ", Code["--wasm"], " and the same components also publish as a WebAssembly bundle out of the same project."),
+                        "C# components server-rendered over a WebSocket, every state change streaming as a minimal diff. Pick ", Code["-t wasm-hosted"], " and the same components publish as a WebAssembly bundle the host serves, out of the same project."),
                     LaneCard(UiIconName.Puzzle, "Rask.External", "Islands", "islands", "class Chart : ReactComponent",
                         "A ", Code[".tsx"], ", ", Code[".vue"], ", ", Code[".svelte"], " or Lit file as an ordinary Rask component — props declared in C#, callbacks re-entering C#, and the live diff leaving the subtree to its own renderer. A real Blazor component too."),
                     LaneCard(UiIconName.Desktop, "Rask.Spa.Hosting", "TypeScript SPA", "spa", "rask new Shop --template react",

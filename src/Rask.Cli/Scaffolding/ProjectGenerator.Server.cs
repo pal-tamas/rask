@@ -25,7 +25,7 @@ internal static partial class ProjectGenerator
         return new ScaffoldResult(
             TemplateMaterializer.Files(
                 targetDirectory, "server", name, batteries, version, dotnet ?? DotnetTarget.Default, islands,
-                vsCode: batteries.Wasm ? VsCodeSetup.WasmHost : VsCodeSetup.Host),
+                vsCode: VsCodeSetup.Host),
             ServerNextSteps(name, batteries))
         {
             Packages = ServerPackages(batteries),
@@ -118,18 +118,6 @@ internal static partial class ProjectGenerator
         if (batteries.Ops)
         {
             packages.Add("Rask.Dashboard");
-        }
-
-        if (batteries.Wasm)
-        {
-            packages.Add("Rask.Spa.Hosting");
-
-            if (batteries.Cqrs)
-            {
-                // The endpoint half. Its counterpart, Rask.Cqrs.Client, is declared as a
-                // browser-only reference so it never reaches this process.
-                packages.Add("Rask.Cqrs.Server");
-            }
         }
 
         return packages;

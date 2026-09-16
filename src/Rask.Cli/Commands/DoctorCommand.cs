@@ -89,6 +89,7 @@ internal sealed class DoctorCommand(
             {
                 DoctorStatus.Ok => ("ok", ConsoleStyle.Success),
                 DoctorStatus.Warn => ("warn", ConsoleStyle.Warning),
+                DoctorStatus.Skip => ("--", ConsoleStyle.Dim),
                 _ => ("fail", ConsoleStyle.Error),
             };
 
@@ -267,7 +268,7 @@ internal sealed class DoctorCommand(
         {
             return new DoctorCheck(
                 "wasm-tools", DoctorStatus.Warn, "not installed",
-                "Every browser-WASM build needs it — `rask new --wasm`, the wasm template, and "
+                "Every browser-WASM build needs it — the wasm and wasm-hosted templates, and "
                 + "`dotnet publish` of either. Without it the build fails with NETSDK1147, which reads "
                 + "like a broken machine rather than a missing install. Fix: dotnet workload install wasm-tools");
         }
@@ -325,10 +326,12 @@ internal sealed class DoctorCommand(
 
         if (project is null)
         {
-            // Not a failure. `rask new` is meant to be run outside a project, and so is `rask doctor`
-            // itself when you are checking a fresh machine.
+            // Skip, not Warn. `rask new` is meant to be run outside a project, and so is `rask doctor`
+            // itself when you are checking a fresh machine — which is exactly when this row appeared, in
+            // warning yellow, on the last line of an install that had just gone perfectly. Nothing about
+            // the machine is wrong, so nothing here is a warning.
             checks.Add(new DoctorCheck(
-                "project", DoctorStatus.Warn,
+                "project", DoctorStatus.Skip,
                 ProjectLocator.DescribeMissing(_fileSystem, _workingDirectory),
                 "Run this inside a project to check it too."));
             return checks;

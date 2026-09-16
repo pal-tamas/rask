@@ -9,14 +9,15 @@ namespace Rask.Cli.Scaffolding;
 /// version the caller passes (the CLI's own version).
 /// </summary>
 /// <remarks>
-/// One template per partial file — <c>.Server.cs</c>, <c>.Wasm.cs</c>, <c>.Spa.cs</c> — with the content
+/// One template per partial file — <c>.Server.cs</c>, <c>.Wasm.cs</c>, <c>.WasmHosted.cs</c>, <c>.Spa.cs</c> — with the content
 /// more than one of them emits in <c>.Shared.cs</c>. This remark is the map a reader uses to find the
 /// emitter for a template, so it has to name files that exist.
 /// <para>
-/// Every template is a SINGLE project now. <c>--wasm</c> on the server template does not scaffold a
-/// second one: it writes the browser app into <c>Client/</c>, and the build generates the browser half
-/// into <c>obj/</c> from <c>Client/</c> and <c>Shared/</c>. The multi-project Client/Server/Shared trio was
-/// <c>wasm-hosted</c>, removed in #877 along with <c>.WasmHosted.cs</c>.
+/// Every template is a SINGLE project. <c>wasm-hosted</c> does not scaffold a second one: it writes the
+/// browser app into <c>Client/</c>, and the build generates the browser half into <c>obj/</c> from
+/// <c>Client/</c> and <c>Shared/</c>. The name is back (#1103) but the shape is not — the original
+/// <c>wasm-hosted</c> was a hand-written Client/Server/Shared trio with its own <c>.sln</c> and six
+/// GUIDs, removed in #877 precisely because the one-project build now does that automatically.
 /// </para>
 /// </remarks>
 internal static partial class ProjectGenerator

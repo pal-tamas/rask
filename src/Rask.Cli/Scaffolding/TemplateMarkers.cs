@@ -20,10 +20,10 @@ namespace Rask.Cli.Scaffolding;
 ///     /* rask:if data */       …   /* rask:end */       CSS
 ///     </code>
 ///     <para>
-///         A condition is a CONJUNCTION — <c>rask:if wasm cqrs</c> keeps its lines only when both are on.
-///         That is not generality for its own sake: the dashboard's server-rendered mount in a
-///         <c>--wasm</c> app's Program.cs needs <c>--wasm</c>, the database and the dashboard at once, and
-///         each of those is reachable without the others, so no single flag describes it. Whole files carry
+///         A condition is a CONJUNCTION — <c>rask:if cqrs data</c> keeps its lines only when both are on.
+///         That is not generality for its own sake: the dashboard's mount needs the database, CQRS and the
+///         dashboard at once, and each of those is reachable without the others, so no single flag
+///         describes it. Whole files carry
 ///         their conditions in <c>template.json</c> instead, where <c>!flag</c> is the negation.
 ///         <c>rask:ifnot</c> is the negation here, for the
 ///         handful of places where turning a battery off SUBSTITUTES text rather than removing it (the

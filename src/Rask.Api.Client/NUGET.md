@@ -32,7 +32,7 @@ Minimal APIs are read from the `MapGet`/`MapPost` invocations themselves and gro
 `Results<Ok<T>, NotFound>`, `NoContent` — carries the response type.
 
 Reflection-free JSON throughout, so it publishes clean under the WASM/AOT trimmer. In a one-project
-`--wasm` app the client crosses into the browser bundle automatically, even though the controller under
+`wasm-hosted` app the client crosses into the browser bundle automatically, even though the controller under
 `Server/` is never compiled there.
 
 ## Failures

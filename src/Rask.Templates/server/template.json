@@ -3,82 +3,52 @@
     ".dockerignore": [
       "docker"
     ],
-    "Client/App.cs": [
-      "wasm"
-    ],
-    "Client/Pages/HomePage.cs": [
-      "wasm"
-    ],
-    "Client/Program.cs": [
-      "wasm"
-    ],
-    "Client/wwwroot/index.html": [
-      "wasm"
-    ],
     "Dockerfile": [
       "docker"
     ],
     "Features/Auth/AuthMessages.cs": [
       "cqrs",
-      "data",
-      "!wasm"
+      "data"
     ],
     "Features/Auth/AuthPage.cs": [
       "cqrs",
-      "data",
-      "!wasm"
+      "data"
     ],
     "Features/Auth/ConfirmEmailPage.cs": [
       "cqrs",
-      "data",
-      "!wasm"
+      "data"
     ],
     "Features/Auth/DevicesPage.cs": [
       "cqrs",
-      "data",
-      "!wasm"
+      "data"
     ],
     "Features/Auth/ForgotPasswordPage.cs": [
       "cqrs",
-      "data",
-      "!wasm"
+      "data"
     ],
     "Features/Auth/LoginPage.cs": [
       "cqrs",
-      "data",
-      "!wasm"
+      "data"
     ],
     "Features/Auth/LogoutPage.cs": [
       "cqrs",
-      "data",
-      "!wasm"
+      "data"
     ],
     "Features/Auth/RegisterPage.cs": [
       "cqrs",
-      "data",
-      "!wasm"
+      "data"
     ],
     "Features/Auth/ResetPasswordPage.cs": [
       "cqrs",
-      "data",
-      "!wasm"
-    ],
-    "Features/Home/HomePage.cs": [
-      "!wasm"
+      "data"
     ],
     "Features/Push/PushSubscriptions.cs": [
       "push",
       "pwa"
     ],
-    "Features/Shared/App.cs": [
-      "!wasm"
-    ],
     "Features/Shared/AppDbContext.cs": [
       "cqrs",
       "data"
-    ],
-    "Features/Shared/ErrorPage.cs": [
-      "!wasm"
     ],
     "Features/Shared/User.cs": [
       "cqrs",
@@ -91,8 +61,7 @@
       "pwa"
     ],
     "wwwroot/offline.html": [
-      "pwa",
-      "!wasm"
+      "pwa"
     ]
   },
   "template": "server"

@@ -296,8 +296,9 @@ public sealed class NewCommandTests
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
         Assert.Contains("Option '--template' does not accept 'cobol'.", console.ErrorText, StringComparison.Ordinal);
-        Assert.Contains("Choose one of: server, wasm, react, preact, vue, angular, solid, svelte, lit, "
-            + "nuxt, nextjs, sveltekit, solidstart, tanstack-start, analog.", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Choose one of: server, wasm, wasm-hosted, react, preact, vue, angular, solid, "
+            + "svelte, lit, nuxt, nextjs, sveltekit, solidstart, tanstack-start, analog.",
+            console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -393,39 +394,36 @@ public sealed class NewCommandTests
     {
         var (console, fs, runner, command) = Build();
 
-        // Typing/pressing flips the console to interactive. The flow, in order:
+        // Typing/pressing flips the console to interactive. The whole flow is now two answers:
         //   name → project type (down = wasm)
-        //   → batteries, offered PRE-TICKED as [pwa, docker]: down to docker, space to UNTICK it, enter.
-        // Two keypresses shorter than it was: the styling question is gone because Tailwind is built
-        // in, and the auth question because an app with a database has accounts.
+        // and the scaffold starts. The styling question went when Tailwind became built in, the auth
+        // question when an app with a database got accounts regardless, and the battery checklist when
+        // batteries became simply included (#1103) — it arrived fully ticked, so it was a question whose
+        // answer was "yes" every time. Dropping something is still `--no-<battery>` on the command line.
         console.Type("Spa")
-            .Press(ConsoleKey.DownArrow, ConsoleKey.Enter)
-            .Press(ConsoleKey.DownArrow, ConsoleKey.Spacebar, ConsoleKey.Enter);
+            .Press(ConsoleKey.DownArrow, ConsoleKey.Enter);
 
         var exit = await command.ExecuteAsync([], CancellationToken.None);
 
         Assert.Equal(0, exit);
         Assert.True(fs.FileExists("/proj/Spa/Spa.csproj"));
         Assert.True(fs.FileExists("/proj/Spa/wwwroot/index.html")); // wasm template
-        Assert.True(fs.FileExists("/proj/Spa/wwwroot/icon.svg"));   // the PWA was left ticked
-        Assert.False(fs.FileExists("/proj/Spa/Dockerfile"));            // docker unticked
+        Assert.True(fs.FileExists("/proj/Spa/wwwroot/icon.svg"));   // every battery it supports, on
+        Assert.True(fs.FileExists("/proj/Spa/Dockerfile"));
         Assert.Contains(runner.Invocations, i => i.Arguments.Contains("restore"));
     }
 
     /// <summary>
-    /// The other half of the pre-ticked checklist: pressing enter through it keeps everything, so the
-    /// wizard's fastest path and a bare <c>rask new</c> produce the same project.
+    /// The wizard's fastest path and a bare <c>rask new</c> produce the same project — which is now true by
+    /// construction rather than by everyone pressing enter through a ticked checklist.
     /// </summary>
     [Fact]
     public async Task Accepting_the_wizards_defaults_keeps_every_battery()
     {
         var (console, fs, _, command) = Build();
 
-        // name → project type (enter = server) → styling (enter = plain) → batteries (enter).
+        // name → project type (enter = server), and that is the whole wizard.
         console.Type("Shop")
-            .Press(ConsoleKey.Enter)
-            .Press(ConsoleKey.Enter)
-            .Type("n")
             .Press(ConsoleKey.Enter);
 
         var exit = await command.ExecuteAsync(["--no-restore"], CancellationToken.None);
@@ -756,7 +754,6 @@ public sealed class NewCommandTests
     /// </summary>
     [Theory]
     [InlineData("native")]
-    [InlineData("wasm-hosted")]
     public async Task The_removed_template_is_a_usage_error_and_scaffolds_nothing(string removed)
     {
         var (console, fs, _, command) = Build();

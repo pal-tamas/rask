@@ -464,7 +464,34 @@ step_dotnet() {
 
     if { rask_local_dotnet || command -v dotnet >/dev/null 2>&1; } &&
         rask_dotnet --list-sdks 2>/dev/null | rask_dotnet_ok; then
-        rask_detail "found $(rask_dotnet --version 2>/dev/null || echo "an SDK") — leaving it alone"
+
+        _dn_found="$(rask_dotnet --version 2>/dev/null || echo "an SDK")"
+
+        # An SDK WE installed is ours to keep current; anybody else's is not.
+        #
+        # The distinction is the whole of this script's contract: no sudo, nothing outside $HOME. A
+        # system SDK is shared with everything else on the box — another project's global.json, a CI
+        # image, whatever Visual Studio put there — so moving it is not ours to do, and it is reported
+        # and left exactly as it was. The one under $HOME/.dotnet exists because rask.sh put it there,
+        # and leaving it pinned to whatever patch shipped on the day of first install is how a machine
+        # ends up months behind with nothing ever saying so.
+        #
+        # dotnet-install.sh is idempotent: on an up-to-date SDK it reports "already installed" and
+        # exits 0, so this costs a version check and nothing else.
+        if [ "$RASK_DO_SDK" = 0 ]; then
+            rask_detail "found $_dn_found — leaving it alone (--no-sdk)"
+            return 0
+        fi
+
+        if rask_local_dotnet; then
+            rask_detail "found $_dn_found in $RASK_INSTALL_DOTNET_ROOT — updating it to the latest $RASK_INSTALL_DOTNET_CHANNEL"
+            rask_install_dotnet
+            [ "$RASK_DRY_RUN" = 1 ] && return 0
+            rask_detail "now $("$RASK_INSTALL_DOTNET_ROOT/dotnet" --version 2>/dev/null || echo "$_dn_found")"
+            return 0
+        fi
+
+        rask_detail "found $_dn_found, installed outside \$HOME — leaving it alone"
         return 0
     fi
 
@@ -476,6 +503,12 @@ step_dotnet() {
     fi
 
     rask_detail "not found — installing it into $RASK_INSTALL_DOTNET_ROOT (no sudo, nothing outside \$HOME)"
+    rask_install_dotnet
+}
+
+# Fetch and run Microsoft's dotnet-install.sh into $RASK_INSTALL_DOTNET_ROOT. Used both for a first
+# install and to bring our own SDK up to date, so the two can never diverge in how they install.
+rask_install_dotnet() {
 
     # Downloaded to a file and then run, never piped into a shell: a truncated download would
     # otherwise execute half of Microsoft's installer. Same reasoning as HostBootstrap.cs:397.

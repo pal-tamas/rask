@@ -33,7 +33,7 @@ public sealed class VsCodeScaffoldTests
     private static IEnumerable<(string Label, ScaffoldResult Result)> HostScaffolds()
     {
         yield return ("server", ProjectGenerator.GenerateServer(Root, "App", new ServerBatteries(), Version));
-        yield return ("server --wasm", ProjectGenerator.GenerateServer(Root, "App", new ServerBatteries { Wasm = true }, Version));
+        yield return ("wasm-hosted", ProjectGenerator.GenerateWasmHosted(Root, "App", new ServerBatteries(), Version));
         yield return ("server --islands react", ProjectGenerator.GenerateServer(Root, "App", new ServerBatteries(), Version, ["react"]));
 
         foreach (var framework in SpaFramework.All)
@@ -91,9 +91,9 @@ public sealed class VsCodeScaffoldTests
     }
 
     [Fact]
-    public void A_server_with_a_wasm_client_debugs_the_client_in_the_browser_once_the_host_is_up()
+    public void A_wasm_hosted_app_debugs_the_client_in_the_browser_once_the_host_is_up()
     {
-        var files = Index(ProjectGenerator.GenerateServer(Root, "App", new ServerBatteries { Wasm = true }, Version));
+        var files = Index(ProjectGenerator.GenerateWasmHosted(Root, "App", new ServerBatteries(), Version));
         using var launch = JsonDocument.Parse(files[".vscode/launch.json"], Jsonc);
         using var settings = JsonDocument.Parse(files["Properties/launchSettings.json"], Jsonc);
         var configurations = launch.RootElement.GetProperty("configurations").EnumerateArray().ToList();

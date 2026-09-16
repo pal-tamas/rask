@@ -40,7 +40,7 @@ Open `Program.cs` and skim it. It's long — a dozen commented registrations —
 come back to the sharpest one in [Chapter 7](07-outbox-events.md).
 
 > **Other hosts.** `--template wasm` builds the same components as a browser-WebAssembly SPA instead,
-> and `rask new Shop --wasm` keeps the server for the API and data while the pages run in WebAssembly from
+> and `rask new Shop --template wasm-hosted` keeps the server for the API and data while the pages run in WebAssembly from
 > a `Client/` folder in this one project. This tutorial uses `server`, whose pages the server renders
 > live, because it runs with no extra tooling. See [the CLI guide](../cli.md) for the full template matrix.
 

@@ -154,7 +154,7 @@ its principal from `/api/me`.
 > E2E; they are gone, so this page is now the whole of it and nothing verifies it end to end. Read it as
 > a design, not as tested code.
 >
-> Building something new? A server app with `--wasm` serves its browser app from the same origin, so the
+> Building something new? The `wasm-hosted` template serves its browser app from the same origin, so the
 > cookie is simply the host's, as in the section above — one project, one pipeline. What it does not have
 > yet is sign-in pages of its own: Rask.Auth's are server-rendered, so the browser app's UI for them is
 > yours to write against `IAuth` from `Rask.Auth.Client`.

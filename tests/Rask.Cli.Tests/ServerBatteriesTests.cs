@@ -93,16 +93,42 @@ public sealed class ServerBatteriesTests
     }
 
     [Fact]
-    public void Wasm_is_the_one_thing_the_defaults_leave_off()
+    public void The_defaults_leave_nothing_off()
     {
-        // Shipping a browser bundle changes what the app IS rather than what it can do — every publish
-        // links a WebAssembly runtime and pages start leaving the server — so it stays a decision.
-        // Authentication used to be the other one; it is not a decision any more, because an app with a
-        // database has accounts.
+        // There is no opt-in left. Wasm was the last one and is not a flag any more (#1103): shipping a
+        // browser bundle changes what the app IS rather than what it can do, so it is a template
+        // (wasm-hosted) rather than a switch on this one. Authentication went the same way earlier — an
+        // app with a database has accounts.
+        //
+        // Asserted over the whole flag list rather than property by property, so a battery added with a
+        // default of off cannot slip in here unnoticed.
         var all = NewCommand.ToBatteries(TemplateCatalog.Default, []);
 
-        Assert.False(all.Wasm);
-        Assert.True(NewCommand.ToBatteries(TemplateCatalog.Default, [], wasm: true).Wasm);
+        var off = TemplateCatalog.Default.SupportedFlags
+            .Where(flag => !NewCommand.Includes(all, flag))
+            .OrderBy(flag => flag, StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.True(
+            off.Length == 0,
+            $"The server template supports --{string.Join(", --", off)} but a bare `rask new` leaves "
+            + "them off. Batteries are included: anything a template supports is on unless --no-* says "
+            + "otherwise.");
+    }
+
+    [Fact]
+    public void Wasm_hosted_cannot_drop_the_wire_between_its_halves()
+    {
+        // The browser half dispatches to the host over Rask.Cqrs.Client, so CQRS is the template rather
+        // than a battery in it — the same reason GenerateSpa forces it. The generator forcing it is only
+        // half the contract; NewCommand refusing --no-cqrs is the other, and NewCommandTests holds that.
+        _ = TemplateCatalog.TryGet("wasm-hosted", out var hosted);
+
+        var dropped = ProjectGenerator.GenerateWasmHosted(
+            "/proj/App", "App", NewCommand.ToBatteries(hosted, ["cqrs"]), "9.9.9");
+
+        Assert.Contains("Rask.Cqrs.Server", dropped.Packages);
+        Assert.Contains("Rask.Spa.Hosting", dropped.Packages);
     }
 
     [Fact]
@@ -206,19 +232,6 @@ public sealed class ServerBatteriesTests
 
         Assert.Equal(once, once.Reduced());
         Assert.Equal(once, once.Reduced().Normalized());
-    }
-
-    [Fact]
-    public void Every_battery_the_wizard_offers_has_a_description()
-    {
-        // The checklist reads from BatteryDescriptions rather than the schema, whose text is written for
-        // the --no- spelling. A battery added without a line here would render a blank row.
-        foreach (var battery in NewCommand.BatteryFlags)
-        {
-            Assert.True(
-                NewCommand.BatteryDescriptions.ContainsKey(battery),
-                $"--{battery} has no wizard description.");
-        }
     }
 
     [Fact]
