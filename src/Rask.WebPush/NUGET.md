@@ -17,13 +17,19 @@ dotnet add package Rask.WebPush
 
 ## Use
 
-The key pair and the contact come from the `Rask:WebPush` configuration section. Generate the pair once with
-`VapidKeys.Generate()` and keep it in user secrets or the environment, never in source:
+The key pair and the contact come from the `Rask:WebPush` configuration section. A `rask new` app already
+has a development pair in its (gitignored) `appsettings.Development.json`. Otherwise mint one with
+`VapidKeys.Generate()` and keep it out of source — the private key signs every push you send:
 
-```bash
-dotnet user-secrets set "Rask:WebPush:VapidKeys:PublicKey"  "<public>"
-dotnet user-secrets set "Rask:WebPush:VapidKeys:PrivateKey" "<private>"
+```jsonc
+// appsettings.Development.json — gitignored
+{
+  "Rask": { "WebPush": { "VapidKeys": { "PublicKey": "…", "PrivateKey": "…" } } }
+}
 ```
+
+Deployed, both keys come from the environment instead: `Rask__WebPush__VapidKeys__PublicKey` and
+`Rask__WebPush__VapidKeys__PrivateKey`.
 
 ```jsonc
 // appsettings.json

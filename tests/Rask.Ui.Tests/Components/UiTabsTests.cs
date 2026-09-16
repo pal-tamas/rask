@@ -111,7 +111,7 @@ public partial class UiTabsTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_disabled_tab_is_drawn_as_unavailable() =>
         Assert.Contains("tab-disabled",
-            UiTab.Href("/logs").Label("Live").Disabled(true).ToHtml());
+            UiTab.Label("Live").Href("/logs").Disabled(true).ToHtml());
 
     [Fact]
     public void A_tab_keeps_a_touch_sized_target_on_a_phone()
@@ -123,5 +123,5 @@ public partial class UiTabsTests : global::Rask.Core.RaskMarkup
 
     private UiTab Tab(
         string label, bool active, string? count = null, bool? alarm = null) =>
-        UiTab.Href("/logs").Label(label).Active(active).Count(count).Alarm(alarm);
+        UiTab.Label(label).Href("/logs").Active(active).Count(count).Alarm(alarm);
 }

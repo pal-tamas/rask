@@ -22,6 +22,7 @@ internal static class AuthMessages
             "Confirm your email address before signing in. The link was sent when you registered.",
         AuthError.EmailAlreadyConfirmed => "That address is already confirmed. You can sign in.",
         AuthError.InvalidToken => "That link has expired or has already been used. Ask for a new one.",
+        AuthError.PasskeyRejected => "That passkey could not be used. Try again, or use your password.",
         AuthError.MailNotConfigured =>
             "This app cannot send email yet, so a reset link cannot be sent. "
             + "Configure the mail battery with a From address and an SMTP host.",

@@ -53,10 +53,12 @@ public sealed partial class UiNavItem : Component
         Component[] content =
         [
             Icon is { } icon ? UiIcon.Name(icon).Class("size-4 shrink-0") : null!,
-            Span.Class("grow")[Label],
+            // ui-rail-hide: the words go when a collapsable sidebar is narrowed to its rail, and the icon stays.
+            // Marked here rather than guessed by a CSS rule, which could not tell a label from content.
+            Span.Class("ui-rail-hide grow")[Label],
             Badge is { } badge
                 ? Span.Class(UiClass.Compose(
-                    "badge badge-sm",
+                    "ui-rail-hide badge badge-sm",
                     BadgeTone is { } tone ? UiClassNames.BadgeTone(tone) : "badge-ghost"))[badge]
                 : null!
         ];

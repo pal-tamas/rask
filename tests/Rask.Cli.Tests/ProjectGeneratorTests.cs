@@ -35,10 +35,11 @@ public sealed class ProjectGeneratorTests
 
     /// <summary>
     /// A template's own files plus the hygiene set every template writes regardless of flags — the
-    /// .gitignore, the .editorconfig and the solution (see ProjectGenerator.ProjectHygiene).
+    /// .gitignore, the .editorconfig, the solution, and the global.json that pins the SDK band
+    /// (TemplateMaterializer.WithGlobalJson).
     /// </summary>
     private static string[] WithHygiene(IEnumerable<string> files) =>
-        [.. files, ".gitignore", ".editorconfig", "App.slnx"];
+        [.. files, ".gitignore", ".editorconfig", "App.slnx", "global.json"];
 
     [Fact]
     public void Base_project_emits_the_core_files_and_packages_with_no_flags()
@@ -453,6 +454,21 @@ public sealed class ProjectGeneratorTests
         {
             yield return [(mask & 1) != 0, (mask & 2) != 0, (mask & 4) != 0];
         }
+    }
+
+    [Fact]
+    public void The_server_template_leaves_the_browser_to_rask()
+    {
+        // The template and `rask dev`'s open default are one change (#1099). dotnet watch honours
+        // launchBrowser itself and cannot be suppressed from the environment, so leaving this true hands
+        // watch the browser and every run lands on the profile's https://localhost:5001 — not the
+        // https://appname.test the command just configured, and not what the certificate is issued for.
+        var (files, _) = Generate();
+
+        using var document = JsonDocument.Parse(files["Properties/launchSettings.json"]);
+        var profile = document.RootElement.GetProperty("profiles").EnumerateObject().First().Value;
+
+        Assert.False(profile.GetProperty("launchBrowser").GetBoolean());
     }
 
     private static (Dictionary<string, string> Files, ScaffoldResult Result) Generate(

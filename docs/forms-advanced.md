@@ -182,13 +182,13 @@ Select.Of<string>().Multiple(true).OnSelect(picked => _chosen = Map(picked))[
 
 It is the way past the string-element limit above: a control that rendered its own options already
 knows how to turn those values back into its own type, so it needs none of the binding machinery that
-limit belongs to. That is exactly how [`UiMultiSelect<T>`](ui-kit.md) is generic over any `T` — an int,
-an enum, a Guid — while this control is not. Controlled mode only, and it takes precedence over
+limit belongs to. That is exactly how a collection-bound [`UiSelect<T>`](ui-kit.md) is generic over any `T` — an
+int, an enum, a Guid — while this control is not. Controlled mode only, and it takes precedence over
 `OnChange`: both write the one `data-rask-on-change` attribute, so a control cannot have two.
 
 **The kit has a control for this.** Everything above is the raw `<select>`. For a field a person fills
-in, [`UiMultiSelect<T>`](ui-kit.md) is the one to reach for — chips, a search box, select-all, a
-keyboard, and a drawn list that stays open while you pick.
+in, [`UiSelect<T>`](ui-kit.md) bound to a collection is the one to reach for — chips, a search box,
+select-all, a keyboard, and a drawn list that stays open while you pick.
 
 ## Surviving a redeploy
 

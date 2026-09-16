@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Rask.Batteries;
 using Rask.Hosting.Shared;
 using Rask.Wire;
 
@@ -108,6 +109,10 @@ public static class RaskAuthServiceCollectionExtensions
             Limit = sp.GetRequiredService<AuthOptions>().SignInAttemptsPerMinute,
         });
         services.TryAddSingleton<AuthTokens>();
+
+        // Passkey ceremonies: the sealed challenges, and what a ceremony is verified against.
+        services.TryAddSingleton<PasskeyChallenges>();
+        services.TryAddSingleton<PasskeySite>();
         services.TryAddSingleton<IAuthSessions, AuthSessions<TContext, TUser>>();
         services.TryAddScoped<AuthCookieEvents>();
 
@@ -139,7 +144,10 @@ public static class RaskAuthServiceCollectionExtensions
         services.AddHostedService<AuthModelCheck<TContext, TUser>>();
 
         services.AddHostedService<FirstRunTokenInitializer>();
-        services.AddHostedService<SessionSweep<TContext>>();
+        // The poll is Rask's bookkeeping, not the application's query log, so it runs on a context
+        // whose SQL logs at Debug — see HousekeepingContextFactory. Deduplicates on repeat, as
+        // AddHostedService does.
+        services.AddHousekeepingService<SessionSweep<TContext>, TContext>();
 
         // The cookie scheme is Rask.Auth's, unconditionally: cookies are the only session Rask
         // authenticates, so the battery owns the scheme rather than standing down when the app has

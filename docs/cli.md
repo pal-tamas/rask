@@ -145,9 +145,38 @@ question skipped, so `rask new --template wasm --no-pwa` asks only for the name,
 already typed skips the checklist entirely. Piped or in a script (no terminal), a missing name is a
 plain error instead, and bare `rask` prints the command list — so automation stays predictable.
 
-Every project also gets a `.gitignore`, an `.editorconfig`, and a `.slnx` solution, and is initialized
-as a git repository with one commit — `--no-git` skips that, and it is skipped automatically inside an
-existing repository.
+Every project also gets a `.gitignore`, an `.editorconfig`, a `.slnx` solution and a `global.json`, and
+is initialized as a git repository with one commit — `--no-git` skips that, and it is skipped
+automatically inside an existing repository.
+
+**`global.json` decides which SDK compiles the app**, and it names the band your `--framework` asked
+for:
+
+```json
+{
+  "sdk": {
+    "version": "10.0.0",
+    "rollForward": "latestFeature"
+  }
+}
+```
+
+Without it the SDK picks the newest one installed. On a machine that also carries the next major in
+preview, that means a `net10.0` app is compiled by an `11.0.x` release candidate — it builds, tells you
+so once per build (`NETSDK1057`), and quietly hands two people on the same repository different
+compilers. `latestFeature` takes the newest SDK **within** the band and never crosses a major, so you
+get `10.0.400` if you have it and the next patch when you install one.
+
+The version is the band floor, `10.0.0`, rather than a real SDK release, and that matters while a band
+is still in preview: `11.0.100-rc.1` sorts *below* `11.0.100`, and roll-forward only ever goes up — so
+pinning `11.0.100` would resolve nothing at all on a machine holding the release candidate, and
+`allowPrerelease` does not rescue it. The floor is satisfied by every SDK in the band.
+
+The trade is that a machine with **only** a newer major fails outright instead of building on it. Run
+[`rask doctor`](#rask-doctor--check-before-you-hit-it) if a scaffold will not restore: it reads this
+file and names it, rather than reporting a machine with no .NET on it — which is what a pin nothing
+satisfies looks like from the outside, since `dotnet --version` is the thing that fails. Delete the
+file if you would rather track whatever SDK is newest.
 
 **Styling is not a choice: every project is Tailwind and [daisyUI](ui-kit.md).** The compiler ships
 inside the host package, so the build compiles `Styles/app.css` into `wwwroot/css/app.css` by scanning
@@ -440,8 +469,9 @@ network, or the host — is `1`.
 ## `rask dev` — run with hot reload
 
 ```bash
-rask dev                             # find the project, run it under dotnet watch
-rask dev --open                      # …and open a browser once it's listening
+rask dev                             # find the project, run it, open https://<name>.test
+rask dev --no-open                   # …without the browser
+rask dev --open                      # open a browser even on a plain localhost run
 rask dev --project src/MyApp/MyApp.csproj
 rask dev --urls http://localhost:5005
 rask dev -- --my-app-flag            # everything after -- goes to the app
@@ -482,6 +512,14 @@ An app called `AppName` is served on **`https://appname.test`** — a real name,
 Nothing to install and nothing to configure: the name comes from the project, and `rask dev` sets the
 machine up the first time you run it. macOS, Windows and Linux.
 
+**`rask dev` opens it for you.** Not behind `--open`: that flag is opt-in on a plain localhost run
+because the URL there is a guess out of a launch profile, while the `.test` name is one the command just
+configured the machine for and issued a certificate covering. `--no-open` still stops it. The one case
+it stands down is a `launchSettings.json` whose profile sets `"launchBrowser": true` — `dotnet watch`
+honours that itself and no environment variable suppresses it, so opening as well would give you two
+tabs every run. The scaffolded templates set it to `false` for exactly this reason; an older project
+that still has it `true` opens the profile's `https://localhost:PORT` instead, and `rask dev` says so.
+
 The first run asks for permission once, showing exactly what it will change:
 
 ```text
@@ -510,6 +548,12 @@ cookie behaves in development the way it will in production, and there is nothin
 the app unencrypted. `dotnet dev-certs https` cannot provide this — it has no hostname option of any
 kind and only ever mints `CN=localhost` — so Rask issues the certificate itself from its own local
 authority, using .NET's X.509 stack rather than an installed `openssl` or `mkcert`.
+
+The certificate covers the name, `*.appname.test` beneath it, and **the loopback names too** —
+`localhost`, `127.0.0.1` and `::1`. Kestrel binds loopback, so those reach the very same app, and a
+certificate that covered only the name turned every other way in — an older scaffold's launch profile, a
+bookmark, an IDE's run button, `--no-host` — into a name-mismatch interstitial on a page that *is* your
+app. A certificate issued before this covered the name alone, so `rask dev` re-mints it on the next run.
 
 Everything it stores lives in `~/.rask/certs`, with private keys readable only by you.
 
@@ -570,7 +614,7 @@ localhost URL that does work.
 | `--project`, `-p` | Project to run. Accepts a `.csproj` or a directory. |
 | `--urls` | URLs to listen on (sets `ASPNETCORE_URLS`). |
 | `--launch-profile` | launchSettings profile to use. |
-| `--open` | Open a browser once the app answers. Skipped if the launch profile already opens one. |
+| `--open` | Open a browser once the app answers. Implied when the app is on its `.test` name. Skipped if the launch profile already opens one. |
 | `--no-open` | Never open a browser. |
 | `--no-hot-reload` | Keep watching, but restart on change instead of applying live. |
 | `--no-restart` | Ask before restarting on an edit hot reload can't apply. |

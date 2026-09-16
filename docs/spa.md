@@ -597,9 +597,9 @@ binds a flat `PushSubscription(Endpoint, P256dh, Auth)`. Post the browser's shap
 request **still answers 204**: `endpoint` binds, both keys arrive null, and every later send fails to
 encrypt for a subscription that looked like it registered. `push.ts` flattens it.
 
-Generate a key pair with `VapidKeys.Generate()` and put it in user-secrets; until you do, `/_push/key`
-answers with an empty key and `subscribeToPush()` returns `null` rather than throwing. See
-[Web Push](pwa.md).
+A scaffolded app's development key pair is already in its gitignored `appsettings.Development.json`;
+elsewhere, mint one with `VapidKeys.Generate()`. Until a pair is configured, `/_push/key` answers with an
+empty key and `subscribeToPush()` returns `null` rather than throwing. See [Web Push](pwa.md).
 
 ## Signing people in
 

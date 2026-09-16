@@ -5,7 +5,7 @@ namespace Rask.Ui;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <see cref="Open" /> works exactly as <see cref="UiDropdown.Open" /> does, for the same reason: unset
+/// <see cref="Open" /> works exactly as <see cref="UiMenuButton.Open" /> does, for the same reason: unset
 /// is uncontrolled, and closed writes <c>collapse-close</c> rather than merely omitting
 /// <c>collapse-open</c>, because daisyUI also opens on <c>:focus-within</c>.
 /// </para>

@@ -29,7 +29,10 @@ public sealed partial class HomePage : Component
     // The page's vocabulary. Constants rather than @apply: @apply moves the decision into a stylesheet
     // Tailwind then has to be told about, which is the coupling this rewrite removed. A constant is read
     // by the compiler, renamed by the IDE, and found by Tailwind's scanner like any other literal.
-    private const string Wrap = "mx-auto w-full max-w-[1100px] px-5 sm:px-6";
+    //
+    // The column itself moved to SiteLayout when the top bar became SiteHeader: the bar centres in the
+    // same column these sections do, and two files spelling out one width is how the two drift apart.
+    private const string Wrap = SiteLayout.Wrap;
 
     private const string Eyebrow =
         "mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-ui-brand-ink";
@@ -78,7 +81,10 @@ public sealed partial class HomePage : Component
 
     protected override Component? Render() =>
     [
-        TopBar(),
+        // The shared bar, centred in this page's own column. It used to be written out here; /docs wore
+        // a different one, and "different" had grown to a daisyUI navbar, a second brand mark, two
+        // badges, a route readout and a bordered button.
+        SiteHeader.FullBleed(false),
         Hero(),
         FeaturesSection(),
         WholeBackEndSection(),
@@ -87,68 +93,6 @@ public sealed partial class HomePage : Component
         InstallSection(),
         FooterSection()
     ];
-
-    // ---- top bar ----
-    private Component TopBar() =>
-        Header.Class("sticky top-0 z-50 border-b border-ui-line bg-ui-bg/85 backdrop-blur")[
-            Div.Class($"{Wrap} flex h-16 items-center justify-between")[
-                Span.Class("flex items-center gap-2 text-lg font-semibold tracking-tight text-ui-ink")[
-                    UiIcon.Name(UiIconName.Bolt).Class("size-5 shrink-0 text-ui-brand-ink"), "Rask"
-                ],
-                Nav.Class("flex items-center gap-1 text-sm sm:gap-2")[
-                    // Hidden on a narrow viewport rather than wrapped: the bar is chrome, and links
-                    // stacking over two lines push the hero below the fold on a phone.
-                    NavItem("Docs", Rask.Site.Features.Routes.GuidesIndexPage(), hideOnPhone: true),
-                    ExternalNavItem("GitHub", "https://github.com/pal-tamas/rask", hideOnPhone: false),
-
-                    // Every theme the kit ships, switched in CSS — and now REMEMBERED, by the boot
-                    // script rather than by this component (see App.ThemeInitJs). It stays the kit's
-                    // handler-free picker on purpose: a C# one puts handlers in the chrome of every
-                    // page, and handler ids are positional, which silently broke the islands.
-                    UiThemeDropdown.Align(UiAlign.End)
-                ]
-            ]
-        ];
-
-    private const string NavItemClass =
-        "min-h-11 items-center gap-1 rounded-lg px-2 text-ui-muted no-underline "
-        + "hover:bg-ui-well hover:text-ui-ink";
-
-    /// <summary>
-    ///     A link to another page OF THIS APP — so it stays in the tab and navigates as an SPA.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///         There used to be one NavItem, and it stamped <c>target="_blank"</c> and an external-link
-    ///         glyph on everything, "Docs" included. That is what made the front door's own Docs link open
-    ///         a SECOND TAB and cold-boot the entire WASM app — several MB of runtime, a boot screen, and
-    ///         the hydration reflow all over again.
-    ///     </para>
-    ///     <para>
-    ///         <b>NavLink, not A, and that is the whole difference.</b> The runtime intercepts clicks on
-    ///         <c>a[data-rask-nav]</c>, and NavLink is what writes that attribute — a bare
-    ///         <c>&lt;a href&gt;</c> is a plain document navigation no matter how internal its URL is, so
-    ///         every link on this page reloaded the app from scratch. It also takes a type-safe
-    ///         <c>RouteUrl</c>, so a renamed route is a build error rather than a dead link.
-    ///         <c>ActiveClass("")</c> opts out of active styling: this is chrome, not a section nav.
-    ///     </para>
-    /// </remarks>
-    private static Component NavItem(string label, RouteUrl href, bool hideOnPhone) =>
-        NavLink
-            .Href(PageMeta.LinkTo(href))
-            .ActiveClass("")
-            .Class((hideOnPhone ? "hidden sm:inline-flex " : "inline-flex ") + NavItemClass)[label];
-
-    /// <summary>A link that leaves the site — new tab, and it says so.</summary>
-    private static Component ExternalNavItem(string label, string href, bool hideOnPhone) =>
-        A
-            .Class((hideOnPhone ? "hidden sm:inline-flex " : "inline-flex ") + NavItemClass)
-            .Href(href)
-            .Target("_blank")
-            .Rel("noopener")[
-            label,
-            UiIcon.Name(UiIconName.ExternalLink).Class("size-3.5 shrink-0 opacity-60")
-        ];
 
     // ---- hero ----
     private Component Hero() =>

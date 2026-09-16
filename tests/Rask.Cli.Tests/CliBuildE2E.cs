@@ -29,7 +29,7 @@ internal static class CliBuildE2E
     internal static readonly string[] FeedPackages =
     [
         "Rask.Server",                      // server template
-        "Rask.Wasm",                        // the wasm template, and the --wasm companion project
+        "Rask.Wasm",                        // the wasm template, and wasm-hosted's browser half
         "Rask.Cqrs",                        // server template --cqrs, and every generated feature
         "Rask.Wire",                        // Rask.Cqrs depends on it: the wire primitives its codecs call
         "Rask.Api",                         // API hosting + the client generator (server half)

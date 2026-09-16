@@ -14,6 +14,16 @@ obj/
 **/.svelte-kit/
 **/dist/
 
+# Local configuration, and the reason this matters more than it looks: the Web SDK copies every
+# appsettings*.json into the publish output, and the build stage above runs `COPY . .` before it.
+# Without these two lines a developer's appsettings.Development.json — which for a push app holds
+# the VAPID PRIVATE KEY `rask new` generated — is published into /app and then carried into the
+# final image by `COPY --from=build`. It is never read there (the container runs Production), but a
+# signing key has no business inside an image that gets pushed to a registry. Gitignoring the file
+# does not cover this: .dockerignore is a separate list, and Docker never reads .gitignore.
+appsettings.Development.json
+appsettings.Local.json
+
 .git/
 .gitignore
 .vs/

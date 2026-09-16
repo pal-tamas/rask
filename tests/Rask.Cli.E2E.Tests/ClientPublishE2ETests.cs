@@ -5,7 +5,7 @@ using Xunit;
 namespace Rask.Cli.E2E.Tests;
 
 /// <summary>
-///     Does <c>rask new --wasm</c> actually publish its browser app into the server's output?
+///     Does <c>rask new --template wasm-hosted</c> actually publish its browser app into the host's output?
 /// </summary>
 /// <remarks>
 ///     <para>

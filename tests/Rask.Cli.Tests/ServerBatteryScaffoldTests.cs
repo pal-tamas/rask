@@ -67,6 +67,28 @@ public sealed class ServerBatteryScaffoldTests
     }
 
     [Fact]
+    public void The_sign_in_and_device_pages_offer_passkeys()
+    {
+        var files = Generate("data");
+
+        // A passkey is another way in, so the sign-in page has to offer it beside the password, and the device
+        // list is where one is added and taken away. Both go through IAuth, so the ceremony stays in Rask.Auth.
+        var login = files["Features/Auth/LoginPage.cs"];
+        Assert.Contains("SignInWithPasskeyAsync", login, StringComparison.Ordinal);
+        Assert.Contains("Sign in with a passkey", login, StringComparison.Ordinal);
+
+        var devices = files["Features/Auth/DevicesPage.cs"];
+        Assert.Contains("AddPasskeyAsync", devices, StringComparison.Ordinal);
+        Assert.Contains("RemovePasskeyAsync", devices, StringComparison.Ordinal);
+
+        // The support check is a browser call, so both pages must name the API they inject it from.
+        foreach (var page in new[] { login, devices })
+        {
+            Assert.Contains("using Rask.Core.Browser;", page, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
     public void The_register_page_sets_the_users_own_columns_while_registering()
     {
         var register = Generate("data")["Features/Auth/RegisterPage.cs"];

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Rask.Batteries;
 using Rask.Hosting.Shared;
 
 namespace Rask.Jobs;
@@ -40,8 +41,10 @@ public static class RaskJobsServiceCollectionExtensions
         // wrong place to notice. See BatteryModelCheck: this reads the MODEL, never the database.
         services.AddHostedService<JobsModelCheck<TContext>>();
 
-        // AddHostedService uses TryAddEnumerable, so a repeated call registers only one processor.
-        services.AddHostedService<JobProcessor<TContext>>();
+        // The poll is Rask's bookkeeping, not the application's query log, so it runs on a context
+        // whose SQL logs at Debug — see HousekeepingContextFactory. Deduplicates on repeat, as
+        // AddHostedService does.
+        services.AddHousekeepingService<JobProcessor<TContext>, TContext>();
         return services;
     }
 }

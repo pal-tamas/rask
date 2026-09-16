@@ -151,7 +151,7 @@ public sealed class FeedCoverageTests
 
         Assert.True(
             feed.Contains("Rask.Cqrs.Client"),
-            "Rask.Cqrs.Client is declared as a browser-only reference by `rask new --wasm --cqrs`, but "
+            "Rask.Cqrs.Client is declared as a browser-only reference by `rask new --template wasm-hosted`, but "
             + "CliBuildE2E.FeedPackages does not pack it — so the browser companion could not restore "
             + "and no build gate covering it can exist.");
     }

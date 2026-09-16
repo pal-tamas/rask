@@ -85,7 +85,54 @@ public static class ModelBuilderExtensions
             }
         }
 
+        BindChildrenToTheirParents(modelBuilder);
+
         return modelBuilder;
+    }
+
+    /// <summary>
+    /// Makes every child's relationship to its aggregate required, and its delete a cascade.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A child exists only as part of its aggregate, so it must not be able to outlive it. EF Core's own
+    /// convention makes a shadow foreign key <b>nullable</b>, which means severing a child from its parent's
+    /// collection — <c>order.Remove(line)</c>, or a form post that no longer holds that row — sets the key to NULL
+    /// and <b>leaves the row in the table</b>: invisible through the navigation, unreachable through the
+    /// aggregate, and impossible to delete through it either. The table grows a tombstone on every removal.
+    /// </para>
+    /// <para>
+    /// Required plus cascade is what turns that severing into a delete, and what makes deleting the parent take
+    /// its children with it. Only collections of <see cref="Entity{TId}" /> are touched: a collection of
+    /// <see cref="Aggregate{TId}" /> is a reference to somebody else's data (RASK087), and making that required
+    /// would let one aggregate's delete cascade into another's.
+    /// </para>
+    /// </remarks>
+    private static void BindChildrenToTheirParents(ModelBuilder modelBuilder)
+    {
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            foreach (var navigation in entityType.GetNavigations().ToList())
+            {
+                if (!navigation.IsCollection ||
+                    !typeof(IEntity).IsAssignableFrom(navigation.TargetEntityType.ClrType) ||
+                    typeof(IAggregate).IsAssignableFrom(navigation.TargetEntityType.ClrType))
+                {
+                    continue;
+                }
+
+                var foreignKey = navigation.ForeignKey;
+
+                // An application that said otherwise keeps what it said: this is a convention, not a rule.
+                if (foreignKey.IsRequired && foreignKey.DeleteBehavior == DeleteBehavior.Cascade)
+                {
+                    continue;
+                }
+
+                foreignKey.IsRequired = true;
+                foreignKey.DeleteBehavior = DeleteBehavior.Cascade;
+            }
+        }
     }
 
     // An Entity<TId> key is the entity's to set, except an integer one, which the store's identity produces —

@@ -16,8 +16,19 @@ public sealed partial class UiBrand : Component
     /// <summary>Where the mark goes. Home, for whatever this surface calls home.</summary>
     public required RouteUrl Href { get; set; }
 
-    /// <summary>The mark itself. The overview glyph unless said otherwise.</summary>
+    /// <summary>The mark itself. The overview glyph unless said otherwise, or <see cref="Logo" /> instead.</summary>
     public UiIconName? Icon { get; set; }
+
+    /// <summary>
+    ///     A real logo, as the URL of an image, in place of <see cref="Icon" />.
+    /// </summary>
+    /// <remarks>
+    ///     Flux UI's <c>logo</c>. A product's own mark is an SVG or a PNG it ships, never a glyph from someone
+    ///     else's icon set, and until this existed the only way to show one was to drop out of the kit and write
+    ///     the anchor by hand. It is decorative — <see cref="Label" /> is already the accessible name of the
+    ///     link — so it carries an empty <c>alt</c> rather than repeating the name.
+    /// </remarks>
+    public string? Logo { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render()
@@ -28,10 +39,13 @@ public sealed partial class UiBrand : Component
 
         Component[] content =
         [
-            UiIcon.Name(Icon ?? UiIconName.Overview).Class("size-5 shrink-0"),
+            Logo is { Length: > 0 } logo
+                ? Img.Src(logo).Alt("").Class("size-5 shrink-0 object-contain")
+                : UiIcon.Name(Icon ?? UiIconName.Overview).Class("size-5 shrink-0"),
             // The wordmark is the first thing to go: on a phone the crumb beside it says where you are,
-            // which is the part someone actually needs.
-            Span.Class("hidden sm:inline")[Label]
+            // which is the part someone actually needs. ui-rail-hide takes it for the same reason when a
+            // collapsable sidebar is narrowed to its rail.
+            Span.Class("ui-rail-hide hidden sm:inline")[Label]
         ];
 
         // A generated route navigates inside the app; a string is an ordinary link — the path base is not added to

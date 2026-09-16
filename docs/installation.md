@@ -95,6 +95,30 @@ RASK_INSTALL_DOTNET_CHANNEL=11.0 RASK_INSTALL_DOTNET_MAJOR=11 RASK_INSTALL_DOTNE
 Rask itself ships for .NET 10 and .NET 11, so this only decides which SDK the installer fetches — and
 `rask new` still scaffolds for .NET 10 unless you pass `--framework net11.0`.
 
+### Which shell profile it writes
+
+The block goes between `# >>> rask installer >>>` and `# <<< rask installer <<<`, and it adds each
+directory only if it is not already on `PATH`, so reading it twice costs nothing.
+
+| Your shell | Files written |
+|---|---|
+| zsh | `~/.zshrc` |
+| fish | `~/.config/fish/config.fish` |
+| bash, macOS | `~/.bash_profile` and `~/.bashrc` |
+| bash, Linux | `~/.bashrc`, plus `~/.bash_profile`, `~/.bash_login` or `~/.profile` if one exists |
+| anything else | `~/.profile` |
+
+bash gets two files because it reads different ones depending on how it was started: a login shell
+(ssh, a tty, a macOS Terminal tab) reads the first of `~/.bash_profile`, `~/.bash_login` and
+`~/.profile` that exists, and never `~/.bashrc`, while a terminal emulator reads `~/.bashrc` and never
+a login profile. On a stock box you never notice, because Debian, Arch and Fedora all ship a skeleton
+login profile that sources `~/.bashrc`. If you keep your own dotfiles and yours does not, one file
+would mean ssh has no `rask` while the terminal on the same machine does.
+
+On Linux the installer will not *create* a login profile that is not already there: bash reads
+`~/.profile` only when no `~/.bash_profile` exists, so inventing one would silently shadow your login
+environment. `--no-path` writes nothing at all and prints the lines to add yourself.
+
 ## Upgrading
 
 Re-run the same one-liner. The script is idempotent: it updates the tool rather than failing on an
@@ -118,9 +142,19 @@ entries from your user `Path`.
 
 ## Troubleshooting
 
-**`rask: command not found` right after installing.** The script writes to a shell profile, which
-your *current* shell has already read. Open a new terminal, or run the `export PATH=…` line the
-script printed.
+**`rask: command not found` right after installing.** Expected, and not a failed install — `dotnet`
+and `node` will be missing from that shell too. A shell reads its profile when it *starts*, and the
+installer ran as a child process, which cannot reach into the environment of the shell that launched
+it. No installer can. Open a new terminal, or reload the current one with the exact line the script
+printed just above `Then:` — `source ~/.bashrc`, `source ~/.zshrc`, `source ~/.config/fish/config.fish`
+or `. ~/.profile`, whichever matches your shell.
+
+If a *new* terminal still cannot find it, the block went into a profile that terminal does not read.
+Check which file has it:
+
+```bash
+grep -l 'rask installer' ~/.bashrc ~/.bash_profile ~/.profile ~/.zshrc ~/.config/fish/config.fish 2>/dev/null
+```
 
 **`rask` says "You must install .NET to run this application" — but `dotnet` works.** A .NET global
 tool is an *apphost*, and an apphost does not look on `PATH` for a runtime: it reads `DOTNET_ROOT`,

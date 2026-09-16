@@ -243,6 +243,60 @@ rask_profile_file() {
     esac
 }
 
+# Every profile the block is written into, newline-separated, the primary one first.
+#
+# bash is the awkward one. A LOGIN bash (ssh, a tty, a macOS Terminal tab) reads the first of
+# .bash_profile, .bash_login and .profile that exists, and never .bashrc; a Linux terminal emulator
+# starts a non-login interactive bash, which reads .bashrc and never a login profile.
+#
+# On a stock box that difference is invisible, which is exactly why writing .bashrc alone survived
+# this long: Debian, Arch and Fedora all ship a skeleton login profile whose job is to source
+# ~/.bashrc, so one file covers both. It stops covering both the moment someone keeps their own
+# dotfiles and their login profile sources nothing — then ssh has no `rask` while the terminal
+# emulator on the same machine does, with nothing on screen to connect the two. Which kind of session
+# you are in is not something you chose or can see, so bash gets both files.
+#
+# With one exception, which is why this is a list and not a second unconditional path: CREATING a
+# .bash_profile where none existed SHADOWS the user's .profile, because bash reads .profile only when
+# no .bash_profile is there. Silently dropping someone's login environment is a far worse bug than
+# the one being fixed. So on Linux the extra login file is whichever of the three already exists, and
+# if none does, .bashrc alone is correct anyway — a machine with no login profile is not reading one.
+# On Darwin .bash_profile stays the primary and is still created, as it always was.
+rask_profile_files() {
+    _pfs_shell="${1:-${SHELL:-}}"
+    _pfs_os="${2:-$(uname -s)}"
+    rask_profile_file "$_pfs_shell" "$_pfs_os"
+    printf '\n'
+    case "$_pfs_shell" in
+        */bash)
+            if [ "$_pfs_os" = "Darwin" ]; then
+                printf '%s\n' "$HOME/.bashrc"
+            else
+                for _pfs_login in "$HOME/.bash_profile" "$HOME/.bash_login" "$HOME/.profile"; do
+                    if [ -f "$_pfs_login" ]; then
+                        printf '%s\n' "$_pfs_login"
+                        break
+                    fi
+                done
+            fi
+            ;;
+    esac
+    # Explicit: with no login profile on disk the `for` above ends on a failed `[ -f ]`, and this
+    # file runs under `set -e`. Nothing downstream would abort today, but leaving a helper's exit
+    # status to be whatever its last test happened to return is how that changes silently later.
+    return 0
+}
+
+# The command that loads a profile into the shell the user is sitting in. `source` is not POSIX, so
+# the one profile reachable by a shell that may not have it — .profile, which is where an unrecognised
+# shell lands — gets the dot form instead.
+rask_reload_command() {
+    case "${1:-}" in
+        *.profile) printf '. %s' "$1" ;;
+        *) printf 'source %s' "$1" ;;
+    esac
+}
+
 # True when the SDK to use is the user-local one, i.e. it is actually there.
 #
 # This gates DOTNET_ROOT, which is not optional and not the same thing as PATH. A global tool ships as
@@ -288,6 +342,10 @@ rask_cli() {
 }
 
 # The PATH block we manage, in the dialect of the profile we are writing into.
+#
+# Each directory is added only if it is not already there. That is not tidiness: the block now lands
+# in more than one file for bash, and the Arch/Debian default .bash_profile sources .bashrc, so a
+# login shell reads it twice. An unguarded `PATH="x:$PATH"` would grow PATH on every nested shell.
 rask_path_block() {
     _pb_profile="${1:-}"
     printf '# >>> rask installer >>>\n'
@@ -296,15 +354,27 @@ rask_path_block() {
             if rask_local_dotnet; then
                 printf 'set -gx DOTNET_ROOT "%s"\n' "$RASK_INSTALL_DOTNET_ROOT"
             fi
-            printf 'set -gx PATH "%s" "%s/tools" $PATH\n' "$RASK_INSTALL_DOTNET_ROOT" "$RASK_INSTALL_DOTNET_ROOT"
-            printf 'set -gx PATH "%s/node/bin" $PATH\n' "$RASK_INSTALL_PREFIX"
+            printf 'for rask_dir in "%s" "%s/tools" "%s/node/bin"\n' \
+                "$RASK_INSTALL_DOTNET_ROOT" "$RASK_INSTALL_DOTNET_ROOT" "$RASK_INSTALL_PREFIX"
+            printf '    if not contains $rask_dir $PATH\n'
+            printf '        set -gx PATH $rask_dir $PATH\n'
+            printf '    end\n'
+            printf 'end\n'
+            printf 'set -e rask_dir\n'
             ;;
         *)
             if rask_local_dotnet; then
                 printf 'export DOTNET_ROOT="%s"\n' "$RASK_INSTALL_DOTNET_ROOT"
             fi
-            printf 'export PATH="%s:%s/tools:$PATH"\n' "$RASK_INSTALL_DOTNET_ROOT" "$RASK_INSTALL_DOTNET_ROOT"
-            printf 'export PATH="%s/node/bin:$PATH"\n' "$RASK_INSTALL_PREFIX"
+            printf 'for rask_dir in "%s" "%s/tools" "%s/node/bin"; do\n' \
+                "$RASK_INSTALL_DOTNET_ROOT" "$RASK_INSTALL_DOTNET_ROOT" "$RASK_INSTALL_PREFIX"
+            printf '    case ":$PATH:" in\n'
+            printf '        *":$rask_dir:"*) ;;\n'
+            printf '        *) PATH="$rask_dir:$PATH" ;;\n'
+            printf '    esac\n'
+            printf 'done\n'
+            printf 'unset rask_dir\n'
+            printf 'export PATH\n'
             ;;
     esac
     printf '# <<< rask installer <<<\n'
@@ -406,14 +476,6 @@ rask_fetch() {
         "$RASK_CURL" -fsSL --retry 3 --retry-delay 1 -o "$2" "$1"
     else
         "$RASK_WGET" -q -O "$2" "$1"
-    fi
-}
-
-rask_fetch_stdout() {
-    if [ -n "${RASK_CURL:-}" ]; then
-        "$RASK_CURL" -fsSL --retry 3 --retry-delay 1 "$1"
-    else
-        "$RASK_WGET" -q -O - "$1"
     fi
 }
 
@@ -675,7 +737,16 @@ step_node() {
         return 0
     fi
 
-    _nd_version="$(rask_fetch_stdout "$RASK_INSTALL_NODE_DIST/index.json" | rask_node_lts_version)"
+    _nd_tmp="$(mktemp -d)"
+    trap 'rm -rf "$_nd_tmp"' EXIT INT TERM
+
+    # Buffered to a file rather than piped straight into the parser. The parser stops at the first LTS
+    # line, and a `head` that closes the pipe early makes curl write `curl: (23) Failure writing output
+    # to destination` into the middle of an install that is going fine. The exit status was never
+    # wrong — the line on the user's screen was, and a first run has no budget for noise it then has
+    # to explain away.
+    rask_fetch "$RASK_INSTALL_NODE_DIST/index.json" "$_nd_tmp/index.json"
+    _nd_version="$(rask_node_lts_version <"$_nd_tmp/index.json")"
     if [ -z "$_nd_version" ]; then
         rask_warn "could not resolve the current Node LTS from $RASK_INSTALL_NODE_DIST/index.json — skipping it."
         return 0
@@ -683,8 +754,6 @@ step_node() {
     rask_detail "installing Node $_nd_version ($_nd_triple) into $RASK_INSTALL_PREFIX/node"
 
     _nd_name="node-v$_nd_version-$_nd_triple.tar.gz"
-    _nd_tmp="$(mktemp -d)"
-    trap 'rm -rf "$_nd_tmp"' EXIT INT TERM
 
     # .tar.gz rather than the smaller .tar.xz: a slim container image has tar but often no xz.
     rask_fetch "$RASK_INSTALL_NODE_DIST/v$_nd_version/$_nd_name" "$_nd_tmp/$_nd_name"
@@ -725,24 +794,28 @@ step_docker() {
 
 step_path() {
     [ "$RASK_DO_PATH" = 1 ] || return 0
-    _sp_profile="$(rask_profile_file)"
-    rask_step "Putting rask on your PATH ($_sp_profile)"
+    rask_step "Putting rask on your PATH"
 
-    if [ "$RASK_DRY_RUN" = 1 ]; then
-        rask_detail "(dry-run) would rewrite the rask block in $_sp_profile"
-        return 0
-    fi
+    rask_profile_files | while IFS= read -r _sp_profile; do
+        [ -n "$_sp_profile" ] || continue
 
-    mkdir -p "$(dirname "$_sp_profile")"
-    [ -f "$_sp_profile" ] || : >"$_sp_profile"
+        if [ "$RASK_DRY_RUN" = 1 ]; then
+            rask_detail "(dry-run) would rewrite the rask block in $_sp_profile"
+            continue
+        fi
 
-    # Strip any block a previous run wrote before appending, so re-running rewrites rather than
-    # stacking a second copy.
-    _sp_tmp="$(mktemp)"
-    rask_strip_path_block <"$_sp_profile" >"$_sp_tmp"
-    rask_path_block "$_sp_profile" >>"$_sp_tmp"
-    cat "$_sp_tmp" >"$_sp_profile"
-    rm -f "$_sp_tmp"
+        mkdir -p "$(dirname "$_sp_profile")"
+        [ -f "$_sp_profile" ] || : >"$_sp_profile"
+
+        # Strip any block a previous run wrote before appending, so re-running rewrites rather than
+        # stacking a second copy.
+        _sp_tmp="$(mktemp)"
+        rask_strip_path_block <"$_sp_profile" >"$_sp_tmp"
+        rask_path_block "$_sp_profile" >>"$_sp_tmp"
+        cat "$_sp_tmp" >"$_sp_profile"
+        rm -f "$_sp_tmp"
+        rask_detail "$_sp_profile"
+    done
 }
 
 step_verify() {
@@ -793,16 +866,30 @@ step_summary() {
     else
         rask_say "Installed."
     fi
+    rask_say ""
+
+    # THIS shell cannot see any of it. A piped installer is a child process and cannot reach into its
+    # parent's environment — no installer can. That is not a footnote, it is the next thing that will
+    # happen to the reader, so it leads, and it is followed by ONE line that fixes it rather than by
+    # two raw exports to reassemble. The previous wording put the exports first and then suggested
+    # `rask new MyApp`, which is precisely the command that then fails with `command not found`.
     if [ "$RASK_DO_PATH" = 1 ]; then
+        _ss_profile="$(rask_profile_file)"
+        rask_say "This terminal still can't see \`rask\` — a shell only picks up a new PATH when it"
+        rask_say "starts. Open a new terminal, or reload this one:"
         rask_say ""
-        rask_say "Open a new terminal, or load the new environment into this one:"
-        # Must match what step_path wrote, DOTNET_ROOT included. Printing the PATH line alone would
-        # hand the user a copy-paste that reproduces exactly the failure DOTNET_ROOT exists to prevent.
+        rask_say "  $(rask_reload_command "$_ss_profile")"
+    else
+        rask_say "--no-path was given, so no shell profile was touched. Add this to yours by hand:"
+        rask_say ""
+        # Must match what step_path would have written, DOTNET_ROOT included. Printing the PATH line
+        # alone hands the user a copy-paste that reproduces exactly the failure DOTNET_ROOT prevents.
         if rask_local_dotnet; then
             rask_say "  export DOTNET_ROOT=\"$RASK_INSTALL_DOTNET_ROOT\""
         fi
         rask_say "  export PATH=\"$RASK_INSTALL_DOTNET_ROOT:$RASK_INSTALL_DOTNET_ROOT/tools:$RASK_INSTALL_PREFIX/node/bin:\$PATH\""
     fi
+
     rask_say ""
     rask_say "Then:"
     rask_say "  rask new MyApp && cd MyApp && rask dev"

@@ -19,12 +19,25 @@ public sealed partial class UiKitDataInputDemo : Component
     private string _shipping = "standard";
     private string? _country;
     private string? _framework;
+    private string? _home;
+    private string _search = "";
     private readonly List<string> _packages = ["core", "ui"];
+    private string _plan = "pro";
+    private string _density = "cosy";
+    private List<string> _topics = ["releases"];
     private double _volume = 40;
     private int _stars = 4;
     private DateOnly _month = DateOnly.FromDateTime(DateTime.Today);
     private DateOnly? _date;
     private readonly Signup _signup = new();
+
+    // Words with an accent in them, on purpose: the default match ignores case AND accents in the
+    // visitor's own culture, so "oster" finds Österreich.
+    private static readonly (string Value, string Text)[] Countries =
+    [
+        ("at", "Österreich"), ("ch", "Schweiz"), ("cz", "Česko"), ("de", "Deutschland"),
+        ("es", "España"), ("hu", "Magyarország"), ("ie", "Ireland"), ("gb", "United Kingdom")
+    ];
 
     /// <inheritdoc />
     protected override Component? Render() =>
@@ -52,7 +65,13 @@ public sealed partial class UiKitDataInputDemo : Component
                         ? "That does not look like an email address."
                         : null)
                     .OnChange(v => { _email = v; }),
-                UiInput.Of<string>().Key("ghost").Label("Search").Variant(UiVariant.Ghost),
+                // Anything inside the box — an icon, a shortcut, a clear button — makes the box a container
+                // around the input, and the label keeps its place above the field: a floating caption rises
+                // through exactly the room the icon now occupies.
+                UiInput.Value(_search).Key("search").Label("Search")
+                    .Icon(UiIconName.Search).Kbd("⌘K").Clearable(true)
+                    .Placeholder("Find a package")
+                    .OnInput(v => _search = v ?? ""),
                 UiTextarea.Value(_notes).Key("notes").Label("Notes").Badge("Optional").Rows(3)
                     .Hint("Anything else?")
                     .OnChange(v => { _notes = v; }),
@@ -89,14 +108,38 @@ public sealed partial class UiKitDataInputDemo : Component
             ]),
 
         Section(
+            "Searchable — the same control, typed into",
+            "There is no separate combobox: a box you type into to narrow a fixed set of answers is the "
+            + "same question a select asks. Searchable adds the search box, matching case- and "
+            + "accent-insensitively in your own culture — type \"oster\" to find Österreich. Filter says "
+            + "what a match is when the words shown are not the whole answer; this one searches the "
+            + "country CODE as well. Clearable puts the field back to nothing chosen.",
+            Div.Data(Testid("ui-select-search")).Class("grid gap-3 sm:grid-cols-2")[
+                UiSelect.Value(_home).Key("home")
+                    .Options(Countries)
+                    .Label("Country")
+                    .Placeholder("Search countries")
+                    .Searchable(true)
+                    .Clearable(true)
+                    .Filter((v, text) =>
+                        v.Contains(text, StringComparison.OrdinalIgnoreCase)
+                        || Countries.Any(o => o.Value == v
+                                              && o.Text.Contains(text, StringComparison.CurrentCultureIgnoreCase)))
+                    .OnChange(v => { _home = v; }),
+                P.Class("self-center text-sm text-ui-muted").Data(Testid("ui-select-search-state"))[
+                    _home is null ? "Nothing chosen." : $"Chosen: {_home}."
+                ]
+            ]),
+
+        Section(
             "Multi-select — several answers, one field",
-            "The same control, for a field that holds a collection. Native is a real multi-select: no "
-            + "script, and it posts on its own. The drawn one shows the answers as chips you can remove "
-            + "one at a time, keeps the list open while you pick, and adds the search box and "
-            + "select-all a long list needs. It binds the List, array or HashSet your model already "
-            + "declares.",
+            "The same name, for a field that holds a collection: bind a List, array or HashSet and "
+            + "UiSelect is a multi-select — the model says so, not a flag. Native is a real "
+            + "multi-select: no script, and it posts on its own. The drawn one shows the answers as "
+            + "chips you can remove one at a time, keeps the list open while you pick, and adds the "
+            + "search box and select-all a long list needs.",
             Div.Data(Testid("ui-multiselect")).Class("grid gap-3 sm:grid-cols-2")[
-                UiMultiSelect.Value(_packages).Key("pkgs")
+                UiSelect.Values(_packages).Key("pkgs")
                     .Options([
                         ("core", "Rask.Core"), ("ui", "Rask.Ui"), ("cli", "Rask.Cli"),
                         ("blazor", "Rask.Blazor"), ("ext", "Rask.External")
@@ -113,6 +156,46 @@ public sealed partial class UiKitDataInputDemo : Component
                     _packages.Count == 0
                         ? "Nothing chosen."
                         : $"Chosen: {string.Join(", ", _packages)}."
+                ]
+            ]),
+
+        Section(
+            "Choice lists — a whole set as one field",
+            "A radio group binds the GROUP's value and a checkbox group binds the collection your model "
+            + "declares, so each is one field rather than one per option. Layout is Flux's set of looks: a "
+            + "list, cards with room for a description, pills, buttons, or one segmented strip. Every one of "
+            + "them keeps a real input inside its label — a card and a pill look like buttons, and a button "
+            + "is the one thing a choice must not be, because the grouping, the arrow keys, the space bar "
+            + "and the form post all come from the input being there.",
+            Div.Data(Testid("ui-choice-lists")).Class("grid gap-5 lg:grid-cols-2")[
+                UiRadioGroup.Value(_plan).Key("plan")
+                    .Options([("free", "Free"), ("pro", "Pro"), ("team", "Team")])
+                    .Label("Plan")
+                    .Layout(UiChoiceLayout.Cards)
+                    .OptionDescription(v => v switch
+                    {
+                        "pro" => "Everything, billed monthly.",
+                        "team" => "Seats, roles and shared billing.",
+                        _ => "For trying it out."
+                    })
+                    .OnChange(v => { _plan = v; }),
+                Div.Class("flex flex-col gap-5")[
+                    UiRadioGroup.Value(_density).Key("density")
+                        .Options([("cosy", "Cosy"), ("compact", "Compact")])
+                        .Label("Density")
+                        .Layout(UiChoiceLayout.Segmented)
+                        .OnChange(v => { _density = v; }),
+                    UiCheckboxGroup.Values(_topics).Key("topics")
+                        .Options([("news", "News"), ("releases", "Releases"), ("jobs", "Jobs")])
+                        .Label("Email me about")
+                        .Layout(UiChoiceLayout.Pills)
+                        .CheckAll(true)
+                        .OnChange(v => { _topics = [.. v]; }),
+                    P.Class("text-sm text-ui-muted").Data(Testid("ui-choice-state"))[
+                        _topics.Count == 0
+                            ? $"{_plan}, {_density}, nothing subscribed."
+                            : $"{_plan}, {_density}, {string.Join(", ", _topics)}."
+                    ]
                 ]
             ]),
 

@@ -390,6 +390,21 @@ UiSidebarToggle.For("app-nav").Collapsible(UiBreakpoint.Lg)
   **`Current` is worked out from the route** — `menu-active` and `aria-current="page"` — unless you state it;
   `Match` + `MatchPrefix` keep an item current across a section. **`UiNavGroup`** is a heading over its items, or a
   `<details>` disclosure with `Expandable`, controlled with `Expanded`/`OnToggle`.
+- **`UiSidebarHeader`** and **`UiSidebarFooter`** hold their place while the navigation between them scrolls —
+  Flux's `sidebar.header` and `sidebar.footer`. The footer needs no `UiSpacer` in front of it: it pins itself, so
+  a nav list long enough to scroll scrolls *between* the two rather than pushing the account row off the bottom.
+- **`UiProfile`** is that account row: an avatar, a name, an optional caption, and — given children — the button
+  that opens the account menu, with the same keyboard contract `UiDropdown` has, because both are
+  **`UiMenuButton`** underneath. Without an `Avatar` it draws the **initials** of `Name`, since most accounts have
+  no picture and a broken image is worse than a monogram. Its menu opens upward by default, because the row sits
+  at the bottom of the sidebar.
+- **A docked sidebar can narrow to a rail of icons**, which is a different question from `Collapsible`:
+  `Collapsible` says at what width the sidebar stops being beside the page at all, `Collapsable(true)` keeps it
+  beside the page and takes the words away. **`UiSidebarCollapse`** is the control, a `<label>` for a second
+  checkbox — so it needs no runtime either — and it appears exactly where `UiSidebarToggle` disappears.
+  `Collapsed`/`OnCollapse` hand it to C#, which is what lets a page *remember* the choice across a full page
+  load. The words that go are marked `ui-rail-hide` by the components that own them, so a CSS rule never has to
+  guess which text is a label and which is content.
 - **`UiSpacer`** is `flex: 1`: it pushes what follows it to the far end of a row or a column.
 - **`UiDivider`** is Flux's separator: `Vertical`, `Subtle`, and `Align(UiAlign.Start|End)` for its words, a
   `separator` to assistive tech when it has none, and **no outer margin** — daisyUI's 1rem is zeroed, so the page
@@ -430,7 +445,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | **Data display** | `UiAccordion` `UiAccordionSection` `UiCollapse` `UiAvatar` `UiAura` `UiBadge` `UiCard` `UiCarousel` `UiChatBubble` `UiCountdown` `UiDiff` `UiEmpty` `UiHover3d` `UiHoverGallery` `UiKbd` `UiHighlight` `UiList` `UiListRow` `UiStat` `UiStatusDot` `UiTable` `UiDataGrid` `UiColumn` `UiTree` `UiTextRotate` `UiTimeline` |
 | **Navigation** | `UiBreadcrumbs` `UiDock` `UiLink` `UiMegamenu` `UiMegamenuPanel` `UiMenu` `UiMenuItem` `UiNavbar` `UiPagination` `UiSteps` `UiStep` `UiTabs` `UiTab` |
 | **Feedback** | `UiAlert` `UiLoading` `UiProgress` `UiRadialProgress` `UiSkeleton` `UiToast` `UiTooltip` |
-| **Data input** | `UiInput` `UiTextarea` `UiSelect` `UiMultiSelect` `UiFileInput` `UiCheckbox` `UiToggle` `UiRadio` `UiRange` `UiRating` `UiFieldset` `UiValidator` `UiLabel` `UiOtp` `UiFilter` `UiCalendar` |
+| **Data input** | `UiInput` `UiTextarea` `UiSelect` `UiFileInput` `UiCheckbox` `UiToggle` `UiRadio` `UiRange` `UiRating` `UiFieldset` `UiValidator` `UiLabel` `UiOtp` `UiFilter` `UiCalendar` |
 | **Layout** | `UiDivider` `UiDrawer` `UiFooter` `UiHero` `UiIndicator` `UiJoin` `UiStack` `UiMask` |
 | **Mockup** | `UiMockupBrowser` `UiMockupCode` `UiMockupPhone` `UiMockupWindow` |
 | **Chrome** | `UiShell` `UiTopBar` `UiBrand` `UiNav` `UiNavTab` `UiCrumbSwitcher` `UiCrumbSeparator` `UiTopLink` `UiMain` `UiHeader` `UiGrid` `UiMetricRow` `UiMetric` `UiDetailList` `UiDetailRow` `UiCode` `UiSearch` |
@@ -511,9 +526,35 @@ UiDropdown.Trigger("Actions").Open(_open).OnToggle(open => _open = open)[ … ]
 **The page owns it, in C#.** `UiCollapse`, `UiAccordion`, `UiSwap`, `UiTabs` and `UiModal`'s `Open` path hold
 their state in a field and redraw through the live diff.
 
-**The markup owns it.** `UiTab` is a real link with a real URL, so a tab is bookmarkable, survives a
-refresh and answers the back button. `UiDrawer` keeps its checkbox because daisyUI's rules are written
-against `.drawer-toggle:checked`; C# sets it and hears it change, but the input is the component.
+**The markup owns it.** `UiTab` with an `Href` is a real link with a real URL, so a tab is bookmarkable,
+survives a refresh and answers the back button. `UiDrawer` keeps its checkbox because daisyUI's rules are
+written against `.drawer-toggle:checked`; C# sets it and hears it change, but the input is the component.
+
+**And for a view with no URL, the same tab takes a `Name` instead.** Wrap the row in a `UiTabGroup` and give
+each tab a `UiTabPanel`:
+
+```csharp
+UiTabGroup.Selected(_pane).OnSelect(p => _pane = p)[
+    UiTabs[
+        UiTab.Label("Details").Name("details"),
+        UiTab.Label("History").Name("history")
+    ],
+    UiTabPanel.Name("details")[ /* … */ ],
+    UiTabPanel.Name("history")[ /* … */ ]
+]
+```
+
+One component for both, because a reader sees one thing — what it is comes from what it is given. The
+`UiTabs` inside the group is not ceremony: a `tablist` may contain only tabs, so the panels cannot be its
+siblings, and it is the structure Flux uses for the same reason. Leave `Selected` off and the group shows the
+first tab and keeps track itself.
+
+Inside a group the tab is a real `<button>`, not a link — there is nowhere for it to go, and an `href="#"` is
+one the browser follows, putting a stray fragment in the address bar and breaking the back button it was meant
+to protect. The keyboard is the tabs pattern: **ArrowLeft/ArrowRight move and show as they go**, Home and End
+jump to the ends, and they wrap. Only the selected tab is a tab stop, so Tab out of the row lands *in* the
+panel rather than walking every remaining tab. Every panel is rendered, with the ones not shown carrying
+`hidden`, so their content is still findable by the browser's own in-page search.
 
 **And one that lets you choose.** `UiSelect` is the platform's `<select>` by default and draws its own
 list when `Native` is `false` — a `[popover]` `role="listbox"` under a `role="combobox"` box, with the
@@ -523,17 +564,69 @@ options. Reach for it when the list must carry more than the platform will show,
 differs is that the drawn list **needs the runtime**, where the native control works on a prerendered
 page and with scripting off. That is why the default is native.
 
-**And one that lets you choose several.** `UiMultiSelect` is the same control for a field that holds a
-collection. Native is a real `<select multiple>`; `Native: false` draws the list, shows the chosen
-answers as removable chips in the box, and — unlike the single-select — leaves the list OPEN as you
-pick, because choosing three answers should not mean opening it three times. `SelectAll` adds a bulk
-row, `Filter` adds a search box (you supply the predicate, so it works for any `T`), and `Chips` caps
-how many chips the box shows before the rest collapse into "+N more". It binds the `List<T>`, `T[]` or
-`HashSet<T>` your model already declares, refilling a get-only collection in place; the write-back
-builds whatever the property declares. A field typed `IReadOnlyList<T>` is the one shape that cannot
-bind — it is not an `ICollection<T>`, so the chain has nothing to infer from.
+**And one that lets you choose several — under the same name.** Bind a collection and `UiSelect` IS the
+multi-select. There is no second component to remember and no `Multiple` flag to set: the field's own
+type is the answer, so a model that holds many answers cannot accidentally get the control that holds
+one.
 
-Both controls take an `OptionTemplate` for rows that need more than words. Setting one implies the
+```csharp
+UiSelect.Bind(() => _order.Country)   // string        → one answer
+UiSelect.Bind(() => _order.Tags)      // List<string>  → several
+UiSelect.Values(_picked)              // controlled, several
+UiSelect.Value(_country)              // controlled, one
+```
+
+`List<T>`, `IList<T>`, `HashSet<T>`, `Collection<T>`, `ObservableCollection<T>`, `T[]` and
+`ICollection<T>` all open the multi-value control; the write-back refills a get-only collection in
+place and otherwise builds whatever the property declares. A field typed `IReadOnlyList<T>` is the one
+shape that cannot bind — it is not an `ICollection<T>`, so there is nothing to write back through.
+The controlled opening is spelled `Values` rather than `Value` because `["a", "b"]` and `null` are
+target-typed: they fit every collection shape equally, so one name could not tell the two controls
+apart without guessing.
+
+Native is a real `<select multiple>`; `Native: false` draws the list, shows the chosen answers as
+removable chips in the box, and — unlike the single-select — leaves the list OPEN as you pick, because
+choosing three answers should not mean opening it three times. `SelectAll` adds a bulk row and `Chips`
+caps how many chips the box shows before the rest collapse into "+N more".
+
+**And one you type into.** There is no `UiCombobox`, because a box you type into to narrow a fixed set
+of answers is the same question a select asks. `Searchable` puts a search box at the top of the drawn
+list, matching the option's words case- and accent-insensitively **in the visitor's own culture** —
+somebody typing `oster` means to find `Österreich`. `Filter` says what a match is when the words shown
+are not the whole answer (a country's code as well as its name); `OnSearch` hands the typing to the
+page instead, for a list that comes from a server, and filters nothing locally — what the page handed
+back IS the answer. `Loading` shows "Searching…" while it waits, `EmptyText` and `LoadingText` say it
+in your own words, and `Clearable` adds a button that puts the field back to nothing chosen. Each of
+these implies the drawn list, because a `<select>` has nowhere to put them.
+
+A short list needs none of it: the drawn list already has **type-ahead**, where a letter jumps to the
+next option starting with it, which is what a native select does.
+
+**A whole set of choices is one field too.** `UiRadioGroup<T>` binds the group's value and
+`UiCheckboxGroup<T>` binds the collection your model declares — one field, not one per option, which is what
+a bare `UiRadio` (bound to its own `bool`) could never give a form.
+
+```csharp
+UiRadioGroup.Bind(() => _account.Plan).Options(plans).Label("Plan")
+    .Layout(UiChoiceLayout.Cards)
+    .OptionDescription(v => v == "pro" ? "Everything, billed monthly" : null)
+
+UiCheckboxGroup.Bind(() => _account.Topics).Options(topics).Label("Email me about").CheckAll(true)
+```
+
+`Layout` is Flux's set of looks — `List`, `Cards`, `Pills`, `Buttons`, `Segmented`. It is not called
+`Variant` because every field already has one (`UiVariant`: Solid, Outline, Ghost…) and two properties of
+that name meaning different things on one control is worse than one with a plainer name.
+
+**Every layout keeps a real `<input>` inside its label.** A card, a pill and a segment look like buttons, and
+a button is the one thing a choice must not be: the browser's own grouping, the arrow keys inside a radio
+group, the space bar, the form post and every assistive technology all come from the input being there. The
+look is `has-[:checked]:` rules on the label around it — CSS reading the input's own state, with nothing to
+keep in sync. Where the whole label is the affordance the box is `sr-only`, never `hidden`, which would take
+it out of the tab order too. `CheckAll` reports `aria-checked="mixed"` while only some of the list is in,
+rather than claiming "all" over a half-filled one.
+
+Both selects take an `OptionTemplate` for rows that need more than words. Setting one implies the
 drawn list, because an `<option>` holds text and nothing else — writing `Native(true)` beside a
 template is [RASK075](diagnostics.md#rask075).
 
@@ -550,9 +643,22 @@ shapes every Rask input does:
 Form.Model(_order)[
     UiSelect.Bind(() => _order.Country).Options(countries).Label("Country"),
     UiSelect.Value(_country).Options(countries).Label("Country").OnChange(v => _country = v),
-    UiMultiSelect.Bind(() => _order.Tags).Options(tags).Label("Tags")
+    UiSelect.Bind(() => _order.Tags).Options(tags).Label("Tags")
 ]
 ```
+
+**A text field's box can hold more than what is typed.** `UiInput` takes `Icon` and `IconTrailing`, a `Kbd`
+for the shortcut that focuses it, and `Clearable` for a button that empties it — Flux's input affordances.
+Any of them turns the box into a container around a bare `<input>`, which is daisyUI's own icon-input shape,
+and the label then stays **above** the field: a floating caption rises through exactly the room the icon now
+occupies. The container is a `<div>`, not a `<label>`, because a wrapping label implicitly names the input it
+holds and the field already has a label — two names on one control is the "Email Email" problem.
+
+**`UiAvatar` draws initials when there is no picture.** `Src` is optional; give it a `Name` and it renders the
+monogram — the first letter of each of the first two words, deliberately not first-and-last, since a name is
+not reliably two words in that order. The letters are `aria-hidden` and the frame carries the name, because
+"AL" read letter by letter tells a reader nothing. Same frame, same rounding either way, so a list does not
+change shape when somebody removes their photo.
 
 **A labelled text field floats its label.** `UiInput`, `UiTextarea` and a native `UiSelect` draw `Label`
 as daisyUI's `floating-label`: the caption sits in the field until there is content, then rises out of the
@@ -594,7 +700,7 @@ would have exactly one legal argument.
 | | Binds |
 |---|---|
 | `UiInput<T>` `UiTextarea<T>` `UiSelect<T>` | what the field holds |
-| `UiMultiSelect<T>` | the ELEMENT type — it binds an `ICollection<T>` |
+| `UiSelect<T>` over a collection | the ELEMENT type — it binds an `ICollection<T>` |
 | `UiFilter<T>` | the chosen option of a whole radio group |
 | `UiRadio` | whether **this** option is the chosen one — the group's value belongs to `UiFilter<T>` |
 | `UiCheckbox` `UiToggle` | on or off |

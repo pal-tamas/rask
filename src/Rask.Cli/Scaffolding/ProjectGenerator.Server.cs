@@ -134,6 +134,25 @@ internal static partial class ProjectGenerator
             steps.Append("  docker build -t ").Append(name.ToLowerInvariant()).Append(" .   # then: docker run -p 8080:8080 …\n");
         }
 
+        AppendBatteryNextSteps(steps, batteries);
+
+        return steps.ToString();
+    }
+
+    /// <summary>
+    ///     The next-steps paragraphs that depend only on the batteries, not on the template: the first
+    ///     entity, and Web Push's keys.
+    /// </summary>
+    /// <remarks>
+    ///     Shared by every template that ships an ASP.NET host with the database batteries —
+    ///     <c>server</c> and <c>wasm-hosted</c> — because they are about the batteries, and two copies of
+    ///     the same text drift. That is not hypothetical: <c>wasm-hosted</c> was split off with a copy of
+    ///     the push paragraph just before that paragraph was fixed on <c>main</c>, and went on printing two
+    ///     <c>dotnet user-secrets set</c> lines that fail on every scaffold, because no scaffolded csproj
+    ///     carries a <c>UserSecretsId</c>.
+    /// </remarks>
+    private static void AppendBatteryNextSteps(StringBuilder steps, ServerBatteries batteries)
+    {
         // Nothing about whether migrations ran: this text is written before `rask new` restores, builds and
         // migrates, so it cannot know. It used to say "The first migration is already applied to app.db" here,
         // which a failed restore then contradicted two lines later (#1083). NewCommand says it only once the
@@ -154,13 +173,20 @@ internal static partial class ProjectGenerator
 
         if (batteries.Push)
         {
-            steps.Append("\nWeb Push needs a VAPID key pair. Generate one and save it to user-secrets:\n");
-            steps.Append("  dotnet user-secrets set \"Rask:WebPush:VapidKeys:PublicKey\" \"<public>\"\n");
-            steps.Append("  dotnet user-secrets set \"Rask:WebPush:VapidKeys:PrivateKey\" \"<private>\"\n");
-            steps.Append("  (VapidKeys.Generate() prints a pair; the private key must never be served.)\n");
+            // It used to say "Web Push needs a VAPID key pair, generate one and save it to user-secrets",
+            // and then printed two `dotnet user-secrets set` lines that could not work: no scaffolded
+            // csproj carries a UserSecretsId, so both failed with "Could not find the global property
+            // 'UserSecretsId'" — the first thing a reader met after `rask new` was an error. The keys are
+            // minted here now (WebPushAssembly), so this reports what happened instead of assigning work.
+            steps.Append("\nWeb Push needs a VAPID key pair, so one was generated for this app and written to\n");
+            steps.Append("appsettings.Development.json. It is gitignored: the private key signs every push you\n");
+            steps.Append("send, so it never belongs in the repository. Nothing else to do to push locally.\n");
+            steps.Append("\nDeployed, both keys come from the environment — give production a pair of its own:\n");
+            steps.Append("  rask deploy --env \"Rask__WebPush__VapidKeys__PublicKey=<public>\" \\\n");
+            steps.Append("              --env \"Rask__WebPush__VapidKeys__PrivateKey=<private>\"\n");
+            steps.Append("  (VapidKeys.Generate() returns a fresh pair. Replacing a pair unsubscribes\n");
+            steps.Append("   everyone already subscribed to the old one.)\n");
         }
-
-        return steps.ToString();
     }
 
     private static string AppDbContextCs(ServerBatteries batteries)

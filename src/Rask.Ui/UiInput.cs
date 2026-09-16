@@ -48,8 +48,32 @@ public sealed partial class UiInput<T> : UiFormField<T>
     /// </remarks>
     public bool? Floating { get; set; }
 
-    /// <inheritdoc />
-    private protected override bool FloatsLabel => Floating != false;
+    /// <summary>An icon inside the box, before what is typed — a magnifier on a search, a badge on a key.</summary>
+    /// <remarks>
+    ///     daisyUI's icon input puts the icon INSIDE the box, which is the same room a floating caption rises
+    ///     through — so a field with an icon keeps its label above it as a legend. See <see cref="Floating" />.
+    /// </remarks>
+    public UiIconName? Icon { get; set; }
+
+    /// <summary>An icon inside the box, after what is typed.</summary>
+    public UiIconName? IconTrailing { get; set; }
+
+    /// <summary>A shortcut shown at the end of the box — <c>"⌘K"</c> on a search field.</summary>
+    /// <remarks>Decoration: it says which key focuses the field, and the page is what binds that key.</remarks>
+    public string? Kbd { get; set; }
+
+    /// <summary>Adds a button inside the box that empties the field.</summary>
+    /// <remarks>Shown only when there is something to clear, and never on a disabled field.</remarks>
+    public bool? Clearable { get; set; }
+
+    // Anything that lives INSIDE the box needs the box to be a container rather than the <input> itself.
+    private bool HasAffordance =>
+        Icon is not null || IconTrailing is not null || Kbd is not null || Clearable == true;
+
+    // A floating caption rises through the inside of the box, which is exactly where an icon, a shortcut or a
+    // clear button sits — so a field with any of those keeps its label above it. Stating Floating(true) beside
+    // one is a contradiction rather than a preference, and this resolves it the way that keeps both readable.
+    private protected override bool FloatsLabel => Floating != false && !HasAffordance;
 
     private string PlaceholderText => Label is not null && FloatsLabel ? Label : Placeholder ?? string.Empty;
 
@@ -116,8 +140,52 @@ public sealed partial class UiInput<T> : UiFormField<T>
     public string? Name { get; set; }
 
     /// <inheritdoc />
-    /// <inheritdoc />
-    protected override Component Control()
+    protected override Component Control() =>
+        HasAffordance ? Boxed(Field()) : Field();
+
+    // daisyUI's icon input: the BOX is the container and the <input> inside it is bare. A <div> rather than a
+    // <label>, because the field already has one — a wrapping label implicitly names the input it holds, and a
+    // second name is what produced "Email Email" the last time this happened.
+    private Component Boxed(Component field) =>
+        Div.Class(BoxClass())[
+            Icon is { } icon ? UiIcon.Name(icon).Class("size-4 shrink-0 opacity-60") : null,
+            field,
+            Kbd is { } kbd ? Span.Class("kbd kbd-sm shrink-0")[kbd] : null,
+            Clearable == true && !string.IsNullOrEmpty(Current()?.ToString()) && Disabled != true
+                ? Button
+                    .Type("button")
+                    .Class("shrink-0 opacity-60 hover:opacity-100")
+                    .Aria("label", "Clear " + (Label ?? AccessibleLabel ?? "field"))
+                    .OnClick(ClearAsync)[
+                    UiIcon.Name(UiIconName.Close).Class("size-4")
+                ]
+                : null,
+            IconTrailing is { } trailing ? UiIcon.Name(trailing).Class("size-4 shrink-0 opacity-60") : null
+        ];
+
+    // What the field is showing, which in BOUND mode is the model's, not Value — that one is null there, and
+    // reading it would mean a bound field never offered to clear anything.
+    private T? Current() =>
+        Bind is { } bind && ExpressionAccessor.Parse(bind).Getter() is T v ? v : Value;
+
+    private async Task ClearAsync()
+    {
+        var self = (IFormControl<T>)this;
+        if (Bind is { } bind)
+        {
+            var acc = Rask.Core.Forms.ExpressionAccessor.Parse(bind);
+            acc.Setter(default!);
+            await Rask.Core.Forms.BindingHelpers
+                .NotifyAndValidateFieldAsync(Rask.Core.Forms.BindingHelpers.ResolveBindingContext(acc.Target), acc.Field)
+                .ConfigureAwait(false);
+            await self.InvokeAfterBindAsync(default!).ConfigureAwait(false);
+            return;
+        }
+
+        await self.InvokeOnChangeAsync(default!).ConfigureAwait(false);
+    }
+
+    private Component Field()
     {
         // Bound and controlled are different chain TYPES, not two settings on one — Bind and Value are
         // mutually exclusive openings — so each is built as its own complete expression.
@@ -141,7 +209,7 @@ public sealed partial class UiInput<T> : UiFormField<T>
                 .Placeholder(PlaceholderText)
                 .Aria(ControlAria())
                 .Disabled(Disabled == true)
-                .Class(BoxClass());
+                .Class(FieldClass());
         }
 
         return Input
@@ -161,8 +229,13 @@ public sealed partial class UiInput<T> : UiFormField<T>
             .Placeholder(PlaceholderText)
             .Aria(ControlAria())
             .Disabled(Disabled == true)
-            .Class(BoxClass());
+            .Class(FieldClass());
     }
+
+    // What the <input> itself wears. Inside a box the box carries the look, so the input keeps only its
+    // validator hook and the growth that fills the room left beside the icons.
+    private string FieldClass() =>
+        HasAffordance ? "validator grow" : BoxClass();
 
     private string BoxClass() =>
         UiClass.Compose(

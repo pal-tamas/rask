@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using Rask.Batteries;
 using Rask.Hosting.Shared;
 
 namespace Rask.Logging;
@@ -82,8 +83,10 @@ public static class RaskLoggingServiceCollectionExtensions
         // error. It reads the MODEL, never the database — see BatteryModelCheck.
         services.AddHostedService<LogsModelCheck<TContext>>();
 
+        // On a context whose own SQL logs at Debug: the store's INSERT is not an event worth
+        // logging, and on the console it would echo every line the app writes as a second one.
         return AddStore(services, configure, static sp => new DbContextLogStore<TContext>(
-            sp.GetRequiredService<IDbContextFactory<TContext>>(),
+            new HousekeepingContextFactory<TContext>(sp),
             sp.GetRequiredService<TimeProvider>()));
     }
 

@@ -46,10 +46,12 @@
       and is meant to be stable anyway; the real version still rides on FileVersion/InformationalVersion,
       which MinVer keeps stamping.
 
-      It only ever bit the PACKABLE projects, which is why it survived so long: MinVer is referenced
-      under `Condition=" '$(IsPackable)' != 'false' "` below, so an unpackable project reads 1.0.0.0
-      both on disk and under EnC and never mismatches. The error named Rask.Bootstrap, never Rask.Core —
-      and anyone investigating via Rask.Core sees nothing wrong.
+      It only ever bit the PACKABLE projects, which is why it survived so long: MinVer used to be
+      referenced under `Condition=" '$(IsPackable)' != 'false' "`, so an unpackable project read 1.0.0.0
+      both on disk and under EnC and never mismatched. The error named Rask.Bootstrap, never Rask.Core —
+      and anyone investigating via Rask.Core saw nothing wrong. MinVer is referenced by EVERY project
+      now (see the ItemGroup below), so this pin is what keeps evaluation and target agreeing
+      everywhere, not only where a package comes out the other end.
 
       0.0.0.0 is right only while the major is 0. AssemblyVersionStabilityTests fails when the shipped
       major leaves 0.x, so this gets moved rather than silently understating compatibility at v1.0.0.
@@ -125,7 +127,29 @@
     <None Include="$(MSBuildThisFileDirectory)assets\rask-icon.png" Pack="true" PackagePath="" Visible="false"/>
   </ItemGroup>
 
-  <ItemGroup Condition=" '$(IsPackable)' != 'false' ">
+  <!--
+    EVERY project, not just the packable ones — the condition that used to be here shipped a wrong
+    version number to every app built on Rask (#1122).
+
+    MinVer stamps InformationalVersion from the tag, and RaskVersion.Current reads it off the assembly
+    that DECLARES it: Rask.Core. Core is IsPackable=false (it has no package of its own; it travels
+    inside every host package), so under `Condition=" '$(IsPackable)' != 'false' "` MinVer never ran for
+    it, the SDK fell back to Version 1.0.0, and the public RaskVersion.Current returned "1.0.0" in every
+    build of every downstream app — the Rask.Wasm startup banner, the DevTools overview page and its bug
+    reports, the site's version badge and the guide banner. rask.sh advertised "v1.0.0" while shipping
+    0.22.0, and pages.yml checks out with fetch-depth 0 specifically so MinVer can resolve a version
+    this ItemGroup then declined to ask for.
+
+    The three RaskVersionTests were green throughout: non-empty, no build metadata, looks like semver.
+    "1.0.0" passes every one of them. RaskVersionTests.Current_MatchesThePackableHostVersion is the one
+    that would have failed.
+
+    PrivateAssets="all" keeps it out of every consumer's graph, and MinVer 8 caches the resolved version
+    across the projects of one build (CacheGet/CacheSet in MinVer.targets), so referencing it everywhere
+    costs one resolve per build rather than one per project. The gates pass -p:MinVerSkip=true and are
+    unaffected either way.
+  -->
+  <ItemGroup>
     <PackageReference Include="MinVer" PrivateAssets="all"/>
   </ItemGroup>
 

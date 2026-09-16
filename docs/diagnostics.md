@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK086, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK088, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -120,6 +120,8 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK084](#rask084) | Error | Model state can be changed from outside the type |
 | [RASK085](#rask085) | Warning | Entity exposes a mutable collection of entities |
 | [RASK086](#rask086) | Warning | Aggregate has no parameterless constructor, so `CreateAsync` is not generated |
+| [RASK087](#rask087) | Warning | Aggregate holds a collection of aggregates, so Rask leaves it alone |
+| [RASK088](#rask088) | Warning | Child collection cannot be synced, so a save cannot add or remove one |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -2072,6 +2074,94 @@ constructor goes, everything that works on a row that already exists is still ge
 
 This rule was RASK081 before the generated writes were dropped and brought back; a retired id is never
 recycled, so it returned under a new one.
+
+---
+
+## RASK087
+
+**Aggregate holds a collection of aggregates, so Rask leaves it alone** · Warning
+
+An aggregate is a consistency boundary: what it holds is loaded with it, saved with it and deleted with it. A
+collection of `Entity<TId>` children is part of it that way ([data guide](data.md#children)). A collection of
+another **`Aggregate<TId>`** is not — that type is a boundary of its own, with its own version, its own soft
+delete and its own reads and writes.
+
+So Rask treats it as a reference rather than a part, and says so: it is not loaded with the parent, not carried
+on the parent's model, and never saved or deleted with it.
+
+```csharp
+public sealed class Order : Aggregate<Guid>
+{
+    private readonly List<Shipment> _shipments = [];
+
+    public IReadOnlyCollection<Shipment> Shipments => _shipments;   // ⚠ RASK087: Shipment is an Aggregate
+}
+```
+
+**Fix, when it really is part of the order** — derive it from `Entity<TId>`, and it becomes a child:
+
+```csharp
+public sealed class OrderLine : Entity<Guid>   // ✓ a part: no version, no soft delete, no reads of its own
+{
+    public string Product { get; private set; } = "";
+}
+```
+
+**Fix, when it is its own aggregate** — hold the id and read it when you need it:
+
+```csharp
+public sealed class Order : Aggregate<Guid>
+{
+    public Guid ShipmentId { get; private set; }   // ✓ a reference across a boundary
+}
+
+var shipment = await Shipment.FindAsync(order.ShipmentId);
+```
+
+The warning exists because the alternative is worse than either fix: a navigation that *looks* like a child,
+renders like one, and silently is not saved with its parent. Were it treated as a child instead, a form post on
+the order could delete a shipment that other code owns.
+
+---
+
+## RASK088
+
+**Child collection cannot be synced, so a save cannot add or remove one** · Warning
+
+A child collection on a form model is editable: what the posted list holds is what the aggregate holds after
+the save ([data guide](data.md#children)). Writing it needs something to add to and remove from — either the
+property's own type is an `ICollection<T>`, or there is exactly one field behind it holding the children.
+
+With neither, Rask would have to guess, so it generates the model without the sync: the children still render,
+and a save keeps whatever was stored — which looks exactly like a form that did not submit.
+
+```csharp
+public sealed class Order : Aggregate<Guid>
+{
+    private readonly List<OrderLine> _paid = [];
+    private readonly List<OrderLine> _unpaid = [];
+
+    // ⚠ RASK088: not a writable collection, and two fields could be behind it
+    public IEnumerable<OrderLine> Lines => _paid.Concat(_unpaid);
+}
+```
+
+**Fix:** keep the children in one collection, and project in a separate member:
+
+```csharp
+public sealed class Order : Aggregate<Guid>
+{
+    private readonly List<OrderLine> _lines = [];
+
+    public IReadOnlyCollection<OrderLine> Lines => _lines;                       // ✓ synced
+
+    [NotMapped]
+    public IEnumerable<OrderLine> Unpaid => _lines.Where(l => !l.Paid);          // ✓ a view, not a collection
+}
+```
+
+Exposing the collection as `ICollection<OrderLine>` works too, at the cost of letting any caller add to it
+without going through the aggregate.
 
 ---
 

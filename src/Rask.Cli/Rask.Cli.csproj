@@ -88,6 +88,17 @@
     <Compile Include="..\Rask.Hosting.Shared\Dev\*.cs" Link="Shared\Dev\%(Filename)%(Extension)" />
   </ItemGroup>
 
+  <!-- VAPID key generation, source-linked from Rask.WebPush rather than referenced. A scaffold with the
+       push battery on mints its own development key pair, and these two internal files are the whole of
+       what that needs: a package reference would put the library inside the tool for twenty lines of
+       ECDsa, and source-linking the public VapidKeys record instead would put a type on this tool's
+       public API surface, which is deliberately empty. The pair the tool writes is therefore produced by
+       the same code the sender later verifies it with. -->
+  <ItemGroup>
+    <Compile Include="..\Rask.WebPush\VapidKeyMaterial.cs" Link="Shared\WebPush\VapidKeyMaterial.cs" />
+    <Compile Include="..\Rask.WebPush\Base64Url.cs" Link="Shared\WebPush\Base64Url.cs" />
+  </ItemGroup>
+
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Cli.Tests" />
     <!-- The template gate scaffolds through the same generator dispatch NewCommand uses, so the arm

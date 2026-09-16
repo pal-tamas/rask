@@ -95,26 +95,7 @@ internal static partial class ProjectGenerator
         steps.Append("and commands over CQRS — a handler in Features/ is reached from the browser through\n");
         steps.Append("IDispatcher, with the same message record compiled into both halves.\n");
 
-        // Same reasoning as the server template's: this text is written before `rask new` restores, builds
-        // and migrates, so it cannot claim the first migration ran. NewCommand says that once it has.
-        if (batteries.Data)
-        {
-            steps.Append("\nFor your first entity, declare a class deriving from Aggregate<TId> — no DbSet, no\n");
-            steps.Append("configuration class, no registration:\n");
-            steps.Append("\n  public sealed class Product : Aggregate<Guid>\n");
-            steps.Append("  {\n");
-            steps.Append("      public string Name { get; private set; } = \"\";\n");
-            steps.Append("  }\n");
-            steps.Append("\nThen `rask db add <Name>` and `rask db update` to migrate it into app.db.\n");
-        }
-
-        if (batteries.Push)
-        {
-            steps.Append("\nWeb Push needs a VAPID key pair. Generate one and save it to user-secrets:\n");
-            steps.Append("  dotnet user-secrets set \"Rask:WebPush:VapidKeys:PublicKey\" \"<public>\"\n");
-            steps.Append("  dotnet user-secrets set \"Rask:WebPush:VapidKeys:PrivateKey\" \"<private>\"\n");
-            steps.Append("  (VapidKeys.Generate() prints a pair; the private key must never be served.)\n");
-        }
+        AppendBatteryNextSteps(steps, batteries);
 
         return steps.ToString();
     }

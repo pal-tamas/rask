@@ -69,6 +69,39 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
                      + "already exists — the model itself, UpdateAsync and DeleteAsync — is still generated.",
         helpLinkUri: DiagnosticHelp.Link("RASK086"));
 
+    internal static readonly DiagnosticDescriptor Rask087 = new(
+        "RASK087",
+        "Aggregate holds a collection of aggregates",
+        "'{0}.{1}' is a collection of '{2}', which is an Aggregate — so it is not part of {0} and Rask leaves "
+        + "it alone: it is not loaded with {0}, not carried on {0}Model, and never saved or deleted with it; "
+        + "derive '{2}' from Entity<TId> if it is part of {0}, or hold its id instead",
+        DiagnosticHelp.Category,
+        DiagnosticSeverity.Warning,
+        true,
+        description: "An aggregate is a consistency boundary: what it holds is loaded, saved and deleted with "
+                     + "it. Another AGGREGATE is a boundary of its own, with its own version, its own soft "
+                     + "delete and its own reads and writes — so a form post on the parent must never add to "
+                     + "it, and must never delete from it. Rask therefore treats a collection of aggregates as "
+                     + "a reference rather than a part, and this warning says so, because the alternative is a "
+                     + "navigation that looks like a child and silently is not one.",
+        helpLinkUri: DiagnosticHelp.Link("RASK087"));
+
+    internal static readonly DiagnosticDescriptor Rask088 = new(
+        "RASK088",
+        "Child collection cannot be synced",
+        "'{0}.{1}' holds children, but Rask cannot find a collection to write: its type is not an "
+        + "ICollection<T> and '{0}' has {2}, so the model can show these children but a save cannot add or "
+        + "remove one; expose the collection as ICollection<T>, or keep it in a single backing field",
+        DiagnosticHelp.Category,
+        DiagnosticSeverity.Warning,
+        true,
+        description: "A child collection on the model is editable: what the form posts is what the aggregate "
+                     + "holds afterwards. Writing it needs something to add to and remove from — the property "
+                     + "itself when it is an ICollection<T>, or the one field behind it when it hands out a "
+                     + "read-only view. With neither, a save would silently keep whatever was stored, which "
+                     + "looks exactly like a form that did not submit.",
+        helpLinkUri: DiagnosticHelp.Link("RASK088"));
+
     internal static readonly DiagnosticDescriptor Rask082 = new(
         "RASK082",
         "A type already has the generated model's name",
@@ -164,7 +197,61 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             Refusal.None,
             null,
             new EquatableArray<Member>(shape.Members.Select((m, index) => ToMember(m, index, converted))),
-            new EquatableArray<ValueObjectShape>(shape.ValueObjects.Select(v => ToShape(v, converted))));
+            new EquatableArray<ValueObjectShape>(shape.ValueObjects.Select(v => ToShape(v, converted))),
+            GeneratedModelShape.IsChildEntity(symbol),
+            new EquatableArray<ChildShape>(shape.Children
+                .Where(static c => c.Access != ModelChildAccess.None)
+                .Select(ToChild)),
+            new EquatableArray<string>(AggregateCollectionsOf(symbol)),
+            new EquatableArray<string>(shape.Children
+                .Where(static c => c.Access == ModelChildAccess.None)
+                .Select(static c => c.Name)));
+    }
+
+    private static ChildShape ToChild(ModelChild child) => new(
+        child.Name,
+        child.ChildType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+        GeneratedModelShape.ModelFqn(child.ChildType),
+        GeneratedModelShape.TryGetIdType(child.ChildType, out var idType) && idType is not null
+            ? idType.ToDisplayString(TypeFormat)
+            : "global::System.Guid",
+        child.Access == ModelChildAccess.Field,
+        child.Field?.Name,
+        child.Field?.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+        ?? child.Property.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+
+    /// <summary>
+    ///     The properties that hold a collection of other AGGREGATES — what RASK087 warns about.
+    /// </summary>
+    /// <remarks>
+    ///     Found here rather than in the shape because it is the one thing the shape deliberately does not
+    ///     describe: these are not children, so nothing is generated for them and there is nothing to carry.
+    /// </remarks>
+    private static IEnumerable<string> AggregateCollectionsOf(INamedTypeSymbol symbol)
+    {
+        foreach (var property in symbol.GetMembers().OfType<IPropertySymbol>())
+        {
+            if (property.IsStatic || property.IsIndexer ||
+                property.DeclaredAccessibility != Accessibility.Public ||
+                property.GetMethod is not { DeclaredAccessibility: Accessibility.Public })
+            {
+                continue;
+            }
+
+            foreach (var contract in property.Type.AllInterfaces.Concat(
+                         property.Type is INamedTypeSymbol named ? [named] : Array.Empty<INamedTypeSymbol>()))
+            {
+                if (contract.ConstructedFrom.SpecialType != SpecialType.System_Collections_Generic_IEnumerable_T ||
+                    contract.TypeArguments[0] is not INamedTypeSymbol element ||
+                    !AggregateShape.IsAggregate(element))
+                {
+                    continue;
+                }
+
+                yield return property.Name + "|" + element.Name;
+                break;
+            }
+        }
     }
 
     // Who can produce the key of a row inserted WITHOUT one — which decides whether CreateAsync(model) exists.
@@ -439,6 +526,23 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
                 context.ReportDiagnostic(Diagnostic.Create(Rask086, entity.Location?.ToLocation(), entity.Name));
             }
 
+            foreach (var held in entity.AggregateCollections)
+            {
+                var parts = held.Split('|');
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Rask087, entity.Location?.ToLocation(), entity.Name, parts[0], parts[1]));
+            }
+
+            foreach (var unsyncable in entity.UnsyncableChildren)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Rask088,
+                    entity.Location?.ToLocation(),
+                    entity.Name,
+                    unsyncable,
+                    "no single field of that collection type"));
+            }
+
             var hint = entity.FullyQualifiedName.Replace("global::", "") + ModelSuffix + ".g.cs";
             context.AddSource(hint, SourceText.From(Render(entity), Encoding.UTF8));
         }
@@ -471,8 +575,10 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         // Names only the writes this entity actually got — a model without a parameterless constructor has
         // no CreateAsync at all, one whose key only the caller can supply has no id-less one, and one without
         // no id has none to create or update by.
-        var idLessCreate = IdLessCreate(entity);
-        var createWithId = CreateWithId(entity);
+        // A child is created, changed and removed as part of the aggregate that holds it — never off its own
+        // type — so it gets the model and the plumbing, and none of the writes.
+        var idLessCreate = !entity.IsChild && IdLessCreate(entity);
+        var createWithId = !entity.IsChild && CreateWithId(entity);
         var writes = new List<string>();
         if (idLessCreate)
         {
@@ -484,7 +590,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             writes.Add("<c>" + entity.Name + ".CreateAsync(id, model)</c>");
         }
 
-        if (entity.IdTypeName is not null)
+        if (!entity.IsChild && entity.IdTypeName is not null)
         {
             writes.Add("<c>" + entity.Name + ".UpdateAsync(id, model)</c>");
         }
@@ -492,7 +598,14 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         s.Append("/// Bind it with <c>Form.Model(model)</c>")
             .Append(writes.Count == 0 ? "" : "; persist it with " + JoinWrites(writes))
             .AppendLine(".");
-        if (entity.IdTypeName is not null)
+        if (entity.IsChild)
+        {
+            s.Append("/// It is a CHILD model: it belongs to the <c>")
+                .Append(entity.Name)
+                .AppendLine("</c> list on its aggregate's model, and is saved with it.");
+            s.AppendLine("/// It carries an <c>Id</c> so a save knows which stored child each row is — a row with none is a new one.");
+        }
+        else if (entity.IdTypeName is not null)
         {
             s.AppendLine("/// It carries no id: the id is passed beside it, so a posted form cannot point a write at another row.");
         }
@@ -511,6 +624,33 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             s.AppendLine();
             s.AppendLine("    /// <summary>A model with no values yet, filled by the generated <c>ToModel()</c>.</summary>");
             s.Append("    internal ").Append(modelName).AppendLine("(bool blank) => _ = blank;");
+            s.AppendLine();
+        }
+
+        if (entity.IsChild && entity.IdTypeName is not null)
+        {
+            s.Append("    /// <summary>Which stored <see cref=\"").Append(entityType)
+                .AppendLine("\" /> this row is, or <c>null</c> for one the form just added.</summary>");
+            s.AppendLine("    /// <remarks>");
+            s.AppendLine("    /// Safe to post, unlike an aggregate's own id: it only ever picks a child of the aggregate being");
+            s.AppendLine("    /// saved. An id that matches none of them is treated as a new child rather than followed.");
+            s.AppendLine("    /// </remarks>");
+            s.Append("    public ").Append(entity.IdTypeName).AppendLine("? Id { get; set; }");
+            s.AppendLine();
+        }
+
+        foreach (var child in entity.Children)
+        {
+            s.Append("    /// <summary>The form models of <see cref=\"").Append(entityType).Append('.')
+                .Append(child.Name).AppendLine("\" />.</summary>");
+            s.AppendLine("    /// <remarks>");
+            s.AppendLine("    /// <b>What this list holds is what the aggregate holds after the save.</b> A row with no");
+            s.AppendLine("    /// <c>Id</c> is added, a row whose <c>Id</c> matches a stored child updates it, and a stored");
+            s.AppendLine("    /// child whose id is in none of these rows is REMOVED — so a form that posts a subset deletes");
+            s.AppendLine("    /// the rest, and an empty list deletes them all.");
+            s.AppendLine("    /// </remarks>");
+            s.Append("    public global::System.Collections.Generic.List<").Append(child.ChildModelName)
+                .Append("> ").Append(child.Name).AppendLine(" { get; set; } = [];");
             s.AppendLine();
         }
 
@@ -652,7 +792,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             s.AppendLine();
         }
 
-        if (entity.IdTypeName is { } idType)
+        if (!entity.IsChild && entity.IdTypeName is { } idType)
         {
             var version = entity.Versioned ? "model.Version" : "null";
             const string NotFoundDoc = "        /// <exception cref=\"global::System.Collections.Generic.KeyNotFoundException\">No row has the id, or it is soft-deleted.</exception>";
@@ -758,7 +898,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         // A model save writes what the form holds. A null clears a property the aggregate declares nullable — the user
         // emptied that field — and leaves a non-nullable one as it is, since it can only mean the form never set it. A
         // nested value-object model merges what it gives over the value object the aggregate holds.
-        s.Append("    private static void __Apply(").Append(entityType).Append(" entity, ").Append(modelType)
+        s.Append("    internal static void __Apply(").Append(entityType).Append(" entity, ").Append(modelType)
             .AppendLine(" model)");
         s.AppendLine("    {");
         var local = 0;
@@ -786,6 +926,11 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             }
         }
 
+        foreach (var child in entity.Children)
+        {
+            EmitChildSync(s, child);
+        }
+
         s.AppendLine("    }");
         s.AppendLine();
 
@@ -799,6 +944,32 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             s.Append("        model.").Append(member.Name).Append(" = ").Append(value).AppendLine(";");
         }
 
+        foreach (var child in entity.Children)
+        {
+            s.Append("        model.").Append(child.Name).Append(" = new global::System.Collections.Generic.List<")
+                .Append(child.ChildModelName).AppendLine(">();");
+            s.Append("        foreach (var __child in entity.").Append(child.Name).AppendLine(")");
+            s.AppendLine("        {");
+            s.Append("            var __childModel = ").Append(child.ChildModelName)
+                .AppendLine("Extensions.__ToModel(__child);");
+            s.AppendLine("            __childModel.Id = __child.Id;");
+            s.Append("            model.").Append(child.Name).AppendLine(".Add(__childModel);");
+            s.AppendLine("        }");
+            s.AppendLine();
+        }
+
+        s.AppendLine("    }");
+
+        s.AppendLine();
+
+        // The same thing ToModel() does, callable by name: a parent fills its children through this rather than
+        // through the extension member, which would have to be in scope where the parent's file is generated.
+        s.Append("    internal static ").Append(modelType).Append(" __ToModel(").Append(entityType)
+            .AppendLine(" entity)");
+        s.AppendLine("    {");
+        s.Append("        var model = new ").Append(modelType).AppendLine(entity.Constructible ? "(blank: true);" : "();");
+        s.AppendLine("        __Fill(model, entity);");
+        s.AppendLine("        return model;");
         s.AppendLine("    }");
 
         if (entity.Constructible)
@@ -808,6 +979,29 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             s.AppendLine();
             s.Append("    [").Append(UnsafeAccessor).Append('(').Append(UnsafeAccessorKind).AppendLine(".Constructor)]");
             s.Append("    private static extern ").Append(entityType).AppendLine(" __New();");
+        }
+
+        // What a parent's sync creates for a posted row that matches no stored child: a new child carrying the
+        // key its own type assigns, never the one the form sent.
+        if (entity.IsChild && entity.Constructible)
+        {
+            s.AppendLine();
+            s.Append("    internal static ").Append(entityType).AppendLine(" __NewChild()");
+            s.AppendLine("    {");
+            AppendNewEntity(s, entity, withId: false);
+            s.AppendLine("        return entity;");
+            s.AppendLine("    }");
+        }
+
+        foreach (var child in entity.Children.Where(static c => c.ThroughField))
+        {
+            s.AppendLine();
+            s.Append("    /// <summary>The field behind <c>").Append(child.Name)
+                .AppendLine("</c>, which hands out a read-only view.</summary>");
+            s.Append("    [").Append(UnsafeAccessor).Append('(').Append(UnsafeAccessorKind)
+                .Append(".Field, Name = \"").Append(child.FieldName).AppendLine("\")]");
+            s.Append("    private static extern ref ").Append(child.FieldTypeName).Append(" __Field_")
+                .Append(child.Name).Append('(').Append(entityType).AppendLine(" entity);");
         }
 
         if (entity.KeyWrite is { Kind: not ModelWriteKind.Public } key)
@@ -945,6 +1139,80 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
 
                 break;
         }
+    }
+
+    /// <summary>
+    ///     The child reconcile: after this, the aggregate holds exactly what the posted list holds.
+    /// </summary>
+    /// <remarks>
+    ///     Three rules, in the order they are safe to apply. A stored child whose id nobody posted is removed
+    ///     first, so the list shrinks before anything is matched against it. A posted row whose id matches a
+    ///     stored child updates that child. A posted row that matches nothing is a new child — including one
+    ///     carrying an id that matches nothing, which is never followed: a forged id adds a row rather than
+    ///     reaching one.
+    /// </remarks>
+    private static void EmitChildSync(StringBuilder s, ChildShape child)
+    {
+        var comparer = "global::System.Collections.Generic.EqualityComparer<" + child.ChildIdTypeName + ">.Default";
+        var collection = child.ThroughField ? "__Field_" + child.Name + "(entity)" : "entity." + child.Name;
+        var extensions = child.ChildModelName + "Extensions";
+
+        s.AppendLine();
+        s.AppendLine("        {");
+        s.Append("            var __children = ").Append(collection).AppendLine(";");
+        s.AppendLine();
+        s.AppendLine("            if (__children is not null)");
+        s.AppendLine("            {");
+        s.Append("                var __posted = model.").Append(child.Name)
+            .Append(" is { } __given ? __given : new global::System.Collections.Generic.List<")
+            .Append(child.ChildModelName).AppendLine(">();");
+        s.AppendLine();
+        s.AppendLine("                foreach (var __stored in global::System.Linq.Enumerable.ToArray(__children))");
+        s.AppendLine("                {");
+        s.AppendLine("                    var __keep = false;");
+        s.AppendLine();
+        s.AppendLine("                    foreach (var __row in __posted)");
+        s.AppendLine("                    {");
+        s.Append("                        if (__row.Id is { } __rowId && ").Append(comparer)
+            .AppendLine(".Equals(__rowId, __stored.Id))");
+        s.AppendLine("                        {");
+        s.AppendLine("                            __keep = true;");
+        s.AppendLine("                            break;");
+        s.AppendLine("                        }");
+        s.AppendLine("                    }");
+        s.AppendLine();
+        s.AppendLine("                    if (!__keep)");
+        s.AppendLine("                    {");
+        s.AppendLine("                        __children.Remove(__stored);");
+        s.AppendLine("                    }");
+        s.AppendLine("                }");
+        s.AppendLine();
+        s.AppendLine("                foreach (var __row in __posted)");
+        s.AppendLine("                {");
+        s.Append("                    ").Append(child.ChildTypeName).AppendLine("? __target = null;");
+        s.AppendLine();
+        s.AppendLine("                    if (__row.Id is { } __rowId)");
+        s.AppendLine("                    {");
+        s.AppendLine("                        foreach (var __stored in __children)");
+        s.AppendLine("                        {");
+        s.Append("                            if (").Append(comparer).AppendLine(".Equals(__rowId, __stored.Id))");
+        s.AppendLine("                            {");
+        s.AppendLine("                                __target = __stored;");
+        s.AppendLine("                                break;");
+        s.AppendLine("                            }");
+        s.AppendLine("                        }");
+        s.AppendLine("                    }");
+        s.AppendLine();
+        s.AppendLine("                    if (__target is null)");
+        s.AppendLine("                    {");
+        s.Append("                        __target = ").Append(extensions).AppendLine(".__NewChild();");
+        s.AppendLine("                        __children.Add(__target);");
+        s.AppendLine("                    }");
+        s.AppendLine();
+        s.Append("                    ").Append(extensions).AppendLine(".__Apply(__target, __row);");
+        s.AppendLine("                }");
+        s.AppendLine("            }");
+        s.AppendLine("        }");
     }
 
     private static void EmitAccessor(StringBuilder s, Write write, string memberName)
@@ -1097,12 +1365,27 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         Refusal Refusal,
         string? RefusalDetail,
         EquatableArray<Member> Members,
-        EquatableArray<ValueObjectShape> ValueObjects)
+        EquatableArray<ValueObjectShape> ValueObjects,
+        bool IsChild,
+        EquatableArray<ChildShape> Children,
+        EquatableArray<string> AggregateCollections,
+        EquatableArray<string> UnsyncableChildren)
     {
         public static Entity Refused(string fullyQualifiedName, string name, SymbolLocation? location, Refusal refusal, string detail) =>
             new(fullyQualifiedName, name, "", "public", null, false, false, null, KeySource.None, null, false, location, refusal, detail,
-                new EquatableArray<Member>([]), new EquatableArray<ValueObjectShape>([]));
+                new EquatableArray<Member>([]), new EquatableArray<ValueObjectShape>([]), false,
+                new EquatableArray<ChildShape>([]), new EquatableArray<string>([]), new EquatableArray<string>([]));
     }
+
+    /// <summary>One child collection, as the generator needs it: what to emit, and what to write it through.</summary>
+    private sealed record ChildShape(
+        string Name,
+        string ChildTypeName,
+        string ChildModelName,
+        string ChildIdTypeName,
+        bool ThroughField,
+        string? FieldName,
+        string FieldTypeName);
 
     private sealed record Member(
         string Name,

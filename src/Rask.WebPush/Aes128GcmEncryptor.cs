@@ -30,8 +30,8 @@ internal static class Aes128GcmEncryptor
         ECParameters sp = serverEcdh.ExportParameters(includePrivateParameters: false);
         var asPublic = new byte[65];
         asPublic[0] = 0x04;
-        VapidKeys.CopyRightAligned(sp.Q.X!, asPublic, 1, 32);
-        VapidKeys.CopyRightAligned(sp.Q.Y!, asPublic, 33, 32);
+        VapidKeyMaterial.CopyRightAligned(sp.Q.X!, asPublic, 1, 32);
+        VapidKeyMaterial.CopyRightAligned(sp.Q.Y!, asPublic, 33, 32);
 
         // 2. Raw ECDH shared secret (32-byte X coordinate). DeriveRawSecretAgreement gives the bytes
         //    RFC 8291 wants — DeriveKeyFromHash/DeriveKeyMaterial would hash them and break decryption.

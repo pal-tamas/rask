@@ -136,12 +136,23 @@ public static class GeneratedModelWrites
         return await write(context).ConfigureAwait(false);
     }
 
+    // Tracked, and whole: a write that applied a change to a collection which had not been loaded would see an
+    // empty one and sync it away. The read path loads by key the same way, so both halves of "load one root"
+    // agree about what a root is.
     private static async Task<TEntity> LoadAsync<TEntity>(DbContext context, object key, CancellationToken cancellationToken)
-        where TEntity : class, IAggregate =>
-        await context.Set<TEntity>().FindAsync([key], cancellationToken).ConfigureAwait(false)
-        ?? throw new KeyNotFoundException(
-            $"There is no {typeof(TEntity).Name} with key '{key}' — it was never created, or it has been " +
-            "deleted since it was read.");
+        where TEntity : class, IAggregate
+    {
+        var entity = await context.Set<TEntity>().FindAsync([key], cancellationToken).ConfigureAwait(false)
+                     ?? throw new KeyNotFoundException(
+                         $"There is no {typeof(TEntity).Name} with key '{key}' — it was never created, or it has " +
+                         "been deleted since it was read.");
+
+        await AggregateChildren
+            .LoadChildrenAsync(context, entity, cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+
+        return entity;
+    }
 
     // The save's WHERE clause compares against the ORIGINAL value of a concurrency token, and a freshly
     // loaded row's original is whatever the database holds now — which would make every check pass. Pinning

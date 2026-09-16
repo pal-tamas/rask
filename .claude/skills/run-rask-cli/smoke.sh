@@ -20,7 +20,16 @@ PASS=0; FAIL=0
 cleanup() { rm -rf "$WORK"; }
 trap cleanup EXIT
 
-rask() { dotnet run --project "$CLI_PROJ" --no-build -- "$@"; }
+# The built assembly, run directly — NOT `dotnet run --project`.
+#
+# `dotnet run` evaluates the project even under --no-build, and this repository declares
+# RaskRequireSdk11 as an InitialTargets (Directory.Build.targets), so that evaluation resolves an SDK
+# against the CURRENT DIRECTORY. Nearly every check below runs inside a scaffolded app, and a scaffold
+# now ships a global.json pinning its own .NET band — a 10.0.x SDK. The repository then refuses to
+# evaluate at all (RASKSDK001), and seven checks fail reporting an error about the FRAMEWORK's build
+# rather than anything about the tool's behaviour. Running the assembly needs no SDK resolution and no
+# MSBuild, so the driver tests the tool from wherever it likes.
+rask() { dotnet "$CLI_DLL" "$@"; }
 
 # check <name> <expected-exit> <grep-pattern|-> -- <rask args...>   (runs in the current dir)
 check() { checkin "." "$@"; }
@@ -51,6 +60,14 @@ if [ "${RASK_CLI_NO_BUILD:-}" != "1" ]; then
   dotnet build "$CLI_PROJ" -c Debug -m:1 --nologo | tail -2
 fi
 
+# Resolved once, here rather than inside rask(): every check runs it in a $( ) subshell, so a lookup
+# done in there is thrown away with the subshell and repeated on all thirty-odd calls.
+CLI_DLL="$(ls -1 "$CLI_PROJ"/bin/Debug/*/Rask.Cli.dll 2>/dev/null | head -1)"
+if [ -z "$CLI_DLL" ]; then
+  echo "No built Rask.Cli.dll under $CLI_PROJ/bin/Debug — run without RASK_CLI_NO_BUILD=1." >&2
+  exit 1
+fi
+
 echo "==> Environment"
 check "info"            0 "Rask CLI"          -- info
 check "--version"       0 "[0-9]+\.[0-9]+"    -- --version
@@ -74,6 +91,17 @@ check "new Shop"        0 "Created Shop"      -- new Shop --template server --ou
 have "$WORK/Shop/Shop.csproj"
 have "$WORK/Shop/Program.cs"
 have "$WORK/Shop/Features/Shared/App.cs"
+have "$WORK/Shop/global.json"
+# The pin decides which SDK compiles the app. Asserted on the bytes rather than trusted, because the
+# two ways to get it wrong are both silent: latestMajor still selects a preview SDK of the NEXT major
+# (which is the behaviour the file exists to stop), and a version naming a real SDK release resolves
+# nothing at all while that band is still a release candidate.
+if grep -q '"version": "10.0.0"' "$WORK/Shop/global.json" \
+   && grep -q '"rollForward": "latestFeature"' "$WORK/Shop/global.json"; then
+  echo "  PASS  global.json pins the 10.0 band"; PASS=$((PASS+1))
+else
+  echo "  FAIL  global.json does not pin the 10.0 band"; sed 's/^/        | /' "$WORK/Shop/global.json"; FAIL=$((FAIL+1))
+fi
 
 echo "==> Deploy scaffolding + preview (hermetic: no host, no docker, no network)"
 # `deploy` itself needs Docker + SSH + a real box, so it can't run here. Its two offline modes can:
