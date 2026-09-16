@@ -15,7 +15,7 @@ internal interface IInstanceClaimStore
     /// <c>false</c> means somebody else claimed it — either earlier, or concurrently. The caller
     /// becomes an ordinary user; it must not retry or treat this as an error.
     /// </remarks>
-    Task<bool> TryClaimAsync(string userId, CancellationToken cancellationToken = default);
+    Task<bool> TryClaimAsync(Guid userId, CancellationToken cancellationToken = default);
 }
 
 /// <inheritdoc cref="IInstanceClaimStore"/>
@@ -33,9 +33,8 @@ internal sealed class InstanceClaimStore<TContext>(
             .ConfigureAwait(false);
     }
 
-    public async Task<bool> TryClaimAsync(string userId, CancellationToken cancellationToken = default)
+    public async Task<bool> TryClaimAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(userId);
 
         await using var db = await factory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
 
@@ -72,18 +71,18 @@ internal sealed class InstanceClaimStore<TContext>(
                 throw;
             }
 
-            return string.Equals(claimant, userId, StringComparison.Ordinal);
+            return claimant == userId;
         }
     }
 
-    private async Task<string?> ClaimantAsync(CancellationToken cancellationToken)
+    private async Task<Guid?> ClaimantAsync(CancellationToken cancellationToken)
     {
         await using var db = await factory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
 
         return await db.Set<AuthInstanceClaim>()
             .AsNoTracking()
             .Where(static c => c.Id == AuthInstanceClaim.SingletonId)
-            .Select(static c => c.AdminUserId)
+            .Select(static c => (Guid?)c.AdminUserId)
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
     }

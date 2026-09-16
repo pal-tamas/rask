@@ -7,11 +7,12 @@ public sealed class AuthSignIn : IAuthSignIn
     private bool _inHandler;
     private PendingAuth? _pending;
 
-    public Task SignInAsync(ClaimsPrincipal principal, string? returnUrl = null, string? scheme = null)
+    public Task SignInAsync(
+        ClaimsPrincipal principal, string? returnUrl = null, string? scheme = null, bool persistent = false)
     {
         EnsureInHandler();
         ArgumentNullException.ThrowIfNull(principal);
-        _pending = PendingAuth.SignIn(principal, returnUrl, scheme);
+        _pending = PendingAuth.SignIn(principal, returnUrl, scheme, persistent);
         return Task.CompletedTask;
     }
 
@@ -67,10 +68,11 @@ public sealed record PendingAuth(
     AuthAction Action,
     ClaimsPrincipal? Principal,
     string? ReturnUrl,
-    string? Scheme)
+    string? Scheme,
+    bool Persistent = false)
 {
-    internal static PendingAuth SignIn(ClaimsPrincipal principal, string? returnUrl, string? scheme) =>
-        new(AuthAction.SignIn, principal, returnUrl, scheme);
+    internal static PendingAuth SignIn(ClaimsPrincipal principal, string? returnUrl, string? scheme, bool persistent) =>
+        new(AuthAction.SignIn, principal, returnUrl, scheme, persistent);
 
     internal static PendingAuth SignOut(string? returnUrl, string? scheme) =>
         new(AuthAction.SignOut, null, returnUrl, scheme);

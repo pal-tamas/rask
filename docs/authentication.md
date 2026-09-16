@@ -3,16 +3,16 @@
 > **In practice:** [Tutorial Ch 3](tutorial/03-orders-and-auth.md) · recipe [require login on a page](recipes.md#require-login-on-a-page) · [cheat sheet](cheatsheet.md).
 
 **Authentication is on by default.** A fresh app can register somebody, sign them in and sign them out
-without a line of auth code: accounts are backed by ASP.NET Core Identity, the flows are routed at
-`/login`, `/register` and `/logout`, and the first account to register becomes the administrator.
+without a line of auth code. The account is your own `User` aggregate, each signed-in device is a session
+row you can list and end, and the first account to register becomes the administrator. There is no ASP.NET
+Core Identity underneath: Rask.Auth hashes passwords, issues links, throttles guessing and tracks sessions
+itself, on standard .NET pieces (PBKDF2 or bcrypt, Data Protection, cookie authentication).
 
-**The built-in pages are drawn with [daisyUI](ui-kit.md)**, so they match the rest of a scaffolded app
-rather than looking like something bolted on. They carry their own stylesheet — compiled at
-`Rask.Auth`'s build from the six pages themselves, so it is a fraction of the kit's size — because a
-page's class names live in a compiled assembly that no application's Tailwind can scan. That is what
-keeps the promise that these pages render on an app with no CSS of its own, and it is scoped to their
-own wrapper, so referencing the package cannot repaint your application. An app that wants them in its
-own colours declares its own page at the same route, which takes precedence.
+**The sign-in pages are yours.** `rask new` writes them into `Features/Auth` — `/login`, `/register`,
+`/logout`, `/forgot-password`, `/reset-password`, `/confirm-email` and `/devices` — drawn with
+[daisyUI](ui-kit.md) and compiled by the app's own Tailwind like every other page, so restyling them is
+editing them. They are ordinary components written against `IAuth`, so the flows themselves keep coming
+from `Rask.Auth`.
 
 The API is the same on every host. A component injects `IAuth` to move somebody between signed-out and
 signed-in, and `IUserProvider` to read who that is — identical on the Server host, in WebAssembly, and
@@ -23,8 +23,8 @@ through `/api/auth`.
 
 | Package | Use it when | What it adds |
 | --- | --- | --- |
-| `Rask.Auth.Api` | The host renders **no** Rask components — a SPA template, a meta template, or a plain ASP.NET app | Identity, the `/api/auth` endpoints, the cookie, bearer tokens, the account lifecycle |
-| `Rask.Auth` | The app **is** a Rask app — the `server` and `wasm` templates | All of the above, plus the built-in `/login`, `/register` and recovery **pages**, and `IAuth` for components |
+| `Rask.Auth.Api` | The host renders **no** Rask components — a SPA template, a meta template, or a plain ASP.NET app | Accounts and sessions, the `/api/auth` endpoints, the cookie, bearer tokens, the account lifecycle |
+| `Rask.Auth` | The app **is** a Rask app — the `server` and `wasm` templates | All of the above, plus `IAuth` for components and email bodies written as components; `rask new` adds the pages |
 
 Reference one or the other, never both: `Rask.Auth` already contains `Rask.Auth.Api`. Both put their
 types in the `Rask.Auth` namespace and both call the battery `AddRaskAuth` / `MapRaskAuth`, so moving an
@@ -39,8 +39,8 @@ dependency removed; it speaks the wire contract in `Rask.Wire` — the `/api/aut
 response shapes, `AuthResult` — which the browser-side `Rask.Auth.Client` also takes, so both halves
 agree without either one carrying the renderer.
 
-What you give up on `Rask.Auth.Api` is exactly what needs a renderer: there are no built-in sign-in
-pages (the front end owns that UI) and no `IAuth` (there are no components to inject it into). The
+What you give up on `Rask.Auth.Api` is exactly what needs a renderer: no `IAuth` (there are no components to
+inject it into) — the front end owns the sign-in UI, which it does on every lane anyway. The
 endpoints, the options, the roles and the emails are the same code.
 
 ```csharp
@@ -128,13 +128,15 @@ choice between, not a layering.
 
 ## On this page
 
+- [Your `User`](#your-user)
+- [Sessions and devices](#sessions-and-devices)
+- [Passwords and throttling](#passwords-and-throttling)
 - [Concepts](#concepts)
 - [The first account is the administrator](#the-first-account-is-the-administrator)
 - [Confirming an address, and resetting a password](#confirming-an-address-and-resetting-a-password)
 - [Configuration](#configuration)
 - [Declarative gating — the `Authorize` component](#declarative-gating)
 - [Cookie authentication](authentication-cookie.md) — cookie login/session on Server and WASM.
-- [ASP.NET Identity](authentication-providers.md#aspnet-identity)
 - [Keycloak / OpenID Connect](authentication-providers.md#keycloak--openid-connect)
 - [Other OIDC providers — Auth0, AWS Cognito, Duende IdentityServer](authentication-providers.md#other-oidc-providers)
 - [Hardening reference](authentication-hardening.md#hardening-reference)
@@ -145,53 +147,107 @@ choice between, not a layering.
 
 ## Your `User`
 
-Rask ships no user class. Your app declares one — `rask new` writes it into
-`Features/Shared/User.cs` — and that is the account:
+Rask ships no user class. Your app declares one — `rask new` writes it into `Features/Shared/User.cs` — and
+that is the account:
 
 ```csharp
-using Microsoft.AspNetCore.Identity;
-
-public class User : IdentityUser
+public sealed class User : Authenticatable
 {
+    [MaxLength(100)]
+    public string DisplayName { get; private set; } = "";
+
+    public void Rename(string displayName) => DisplayName = displayName.Trim();
 }
 ```
 
-Everything an account already has comes from Identity: the password hash, the security stamp, the
-lockout counters, the confirmation flags, and `ConcurrencyStamp`. Add the columns your app needs —
-a display name, a locale, a team id — then `rask db add AddUserColumns && rask db update`.
+`Authenticatable` carries what a sign-in needs: `Email` (stored trimmed and lower-cased, unique),
+`EmailConfirmedAt`, `PasswordChangedAt`, `Roles`, and the password hash — which is `internal`, so nothing that
+serializes a `User`'s public properties can ever carry it. Add the columns your app needs, then
+`rask db add AddUserColumns && rask db update`.
 
-**Nothing has to name it.** A source generator finds the one `IdentityUser` subclass in your project and
-wires Identity to it, so `AddRaskAuth()` and `modelBuilder.AddRaskAuth()` take no type argument. Two user
-types is [RASK074](diagnostics.md#rask074) — with two, picking either would map one set of account tables
-and silently strand the other. Declare none and you have no accounts, and auth is not wired.
-
-An app that would rather be explicit can be: `AddRaskAuth<AppDbContext, User>()` and
-`modelBuilder.AddRaskAuth<User>()` still exist.
-
-### Accounts and your aggregates
-
-Your `User` is an Identity type, not an [`Aggregate<TId>`](data.md): C# has single inheritance, so it cannot be
-both. So the framework's columns (`CreatedAt`, `UpdatedAt`, `Version`, `DeletedAt`) are not added to it, and it has
-no `User.Where(…)` static surface. Accounts go through `UserManager<User>`, which is the right tool for them
-anyway, since it owns password hashing, lockout, the security stamp and Identity's own `ConcurrencyStamp`. Your
-aggregates reference an account by its key, which Identity types as a `string`:
+**It is an [aggregate](data.md) like any other.** `Authenticatable` derives from `Aggregate<Guid>`, so a `User`
+has the reads, the writes, a generated `UserModel` for a profile form (never with the credentials on it), a
+`Version`, soft delete and domain events:
 
 ```csharp
-public sealed class Order : Aggregate<Guid>
-{
-    public string OwnerId { get; private set; } = "";   // AspNetUsers.Id
-}
+var me = users.Current.UserId() is { } id ? await User.FindAsync(id, CancellationToken) : null;
+await User.UpdateAsync(id, u => u.Rename(name));
+await User.UpdateAsync(id, u => u.GrantRole("editor"));
 ```
+
+Other aggregates refer to a user by id — `public Guid OwnerId { get; private set; }` — rather than holding one.
+
+**Set your own columns while registering.** `IAuth.RegisterAsync` takes a lambda that runs on the new user
+before it is saved, in the same insert; the scaffolded register page uses it for the display name:
+
+```csharp
+await auth.RegisterAsync(model.Email, model.Password, (User user) => user.Rename(model.DisplayName), ReturnUrl);
+```
+
+**Nothing has to name it.** A source generator finds the one `Authenticatable` in your project, so
+`AddRaskAuth()` and `modelBuilder.AddRaskAuth()` take no type argument. Two user types is
+[RASK074](diagnostics.md#rask074). Declare none and you have no accounts, and auth is not wired. An app that
+would rather be explicit can be: `AddRaskAuth<AppDbContext, User>()` and `modelBuilder.AddRaskAuth<User>()`.
+
+## Sessions and devices
+
+**Each signed-in device is a row.** Signing in starts a `Session` (the user, the address and browser it came from,
+when it was last seen, when it expires, whether it is remembered) and the cookie carries only that session's id,
+sealed. Every request loads the session and rebuilds the user's claims from it, so a role granted or removed shows
+up without signing in again. Signing out ends the row.
+
+```csharp
+var devices = await Session.Where(s => s.UserId == me).OrderByDescending(s => s.LastSeenAt).ToListAsync();
+
+await auth.SignOutOtherDevicesAsync();   // every session but this one
+await auth.SignOutEverywhereAsync();     // this one too
+```
+
+The scaffolded `/devices` page lists them and has the button. An ended session stops working on that device's
+**next request** — and on a live page, before its next handler runs: the Server host re-checks a page's session at
+most every 30 seconds (`ISessionRevalidator`), so a page left open for hours is signed out rather than staying
+signed in until its socket reconnects. A resumed session is cached for up to 30 seconds per process, which is the
+longest another replica can keep honouring one.
+
+**Remember me** makes the cookie outlive the browser; without it the cookie is a session cookie. The session lasts
+`ExpireTimeSpan` (14 days) from its last use either way, sliding while it is in use. Bearer tokens carry the session
+too, so ending it ends the token.
+
+## Passwords and throttling
+
+**Passwords are hashed with PBKDF2-SHA256 at 600,000 iterations** by default, from the base class library. Choose
+bcrypt instead with one option — the format other frameworks write, so hashes imported from them keep working:
+
+```csharp
+app.Configure(c => c.Auth.Configure(o =>
+{
+    o.PasswordHashing = PasswordHashing.Bcrypt;
+    o.BcryptWorkFactor = 12;
+}));
+```
+
+Changing it is safe on a live app: every format is read — Rask's PBKDF2, bcrypt (`$2a$`, `$2b$`, `$2y$`) and ASP.NET
+Core Identity's V3 hashes — and a user's hash moves to the configured one the next time they sign in. bcrypt uses
+only the first 72 bytes of a password, so with bcrypt on a longer one is refused rather than silently cut.
+
+**Guessing is throttled, never locked out.** After `SignInAttemptsPerMinute` (5) failed sign-ins for one address from
+one client, that client is told to wait a minute (`AuthError.TooManyAttempts`, HTTP 429). The account is not locked:
+somebody typing your address five times cannot keep *you* out. Registration and reset requests are throttled the
+same way. Behind a proxy, run `UseForwardedHeaders` so the client address is the visitor's rather than the proxy's.
+
+An unknown address costs a password check anyway, a reset request answers the same for every address, and "confirm
+your email" is only said after the right password — so no answer tells anybody which addresses have an account.
 
 ## Concepts
 
 | Piece | What it is |
 |---|---|
-| `IAuth` | The flows: `RegisterAsync` / `SignInAsync` / `SignOutAsync`, plus `SendPasswordResetAsync` / `ResetPasswordAsync` / `ConfirmEmailAsync`. The same injected type on every host — the server implementation validates against the account store and drives the handshake below; the browser one posts to `/api/auth`. |
+| `IAuth` | The flows: `RegisterAsync` / `SignInAsync` / `SignOutAsync`, `SignOutOtherDevicesAsync` / `SignOutEverywhereAsync`, plus `SendPasswordResetAsync` / `ResetPasswordAsync` / `ConfirmEmailAsync`. The same injected type on every host — the server implementation validates against the account store and drives the handshake below; the browser one posts to `/api/auth`. |
 | `IUserProvider` | Scoped source of the current `ClaimsPrincipal` (`Current`), a `Changed` event, `EnsureLoadedAsync`/`RefreshAsync`, and `IsLoading`. Server: `SessionUserProvider` (seeded from `HttpContext.User`). WASM: `HttpUserProvider`, from `AddRaskAuthClient()`. |
 | Injecting `IUserProvider` | Inject it via the constructor and read `.Current` — the never-null `ClaimsPrincipal` for the active render scope. Gate in `Render()` on `provider.Current.Identity?.IsAuthenticated` / `provider.Current.IsInRole(...)`. |
 | `Authorize` component | Headless declarative gate with `Authorized` / `NotAuthorized` / `Authorizing` slots (see below). |
-| `IAuthSignIn` | Event-handler-only `SignInAsync(principal, returnUrl)` / `SignOutAsync(returnUrl)`. Server drives the cookie handshake; WASM signs out via `/auth/logout`. |
+| `ClaimsPrincipal.UserId()` / `SessionId()` | The signed-in user's id (for `User.FindAsync`) and the session's id (to mark "this device"). |
+| `IAuthSignIn` | Event-handler-only `SignInAsync(principal, returnUrl, persistent)` / `SignOutAsync(returnUrl)`. Server drives the cookie handshake; WASM signs out via `/auth/logout`. |
 | `[Authorize]` / `[AllowAnonymous]` | Route-level gating evaluated by `RouteAuthorizationGuard` → redirect to the auth scheme's `LoginPath` (401) or `AccessDeniedPath` (403). |
 
 ## The first account is the administrator
@@ -248,22 +304,26 @@ first registration would succeed and then be unable to sign in — including you
 to fix it is the one that cannot be sent. In development the mail battery writes each message to
 `./mail-pickup` as an `.eml`, so the link is there to open even with no mail server anywhere.
 
-Three built-in pages, overridable exactly like `/login` by declaring your own route:
+Three scaffolded pages, yours to edit like `/login`:
 
 | Route | What it does |
 |---|---|
 | `/forgot-password` | Takes an address and emails a link. Answers the same way whether or not that address has an account, so it cannot be used to find out which addresses are registered. |
-| `/reset-password` | Where the emailed link lands, carrying `?userId=&token=`. Sets the new password, and signs out every other session for that account. |
-| `/confirm-email` | Where a confirmation link lands. Confirms on arrival — the click in the inbox was the deliberate act. |
+| `/reset-password` | Where the emailed link lands, carrying `?userId=&token=`. Sets the new password, and ends every session for that account. |
+| `/confirm-email` | Where a confirmation link lands. Confirms behind a button, never on arrival: mail scanners and link previewers fetch a link first, and would spend it. |
 
 A completed reset also confirms the address: holding that token proves the same thing the confirmation
 link proves. Without it, an account created before `RequireConfirmedEmail` was switched on could reset
 its password and still not get in.
 
-The reset **ends every other session for the account**, not just the one that asked. Identity rolls the
-security stamp, and Rask revalidates it on every socket reconnect and before every handler dispatch — so
-if the reason for the reset was that somebody else had the password, their open page stops working
-rather than staying signed in until its cookie expires.
+The reset **ends every session for the account** — its rows are deleted — so if the reason for the reset was
+that somebody else had the password, their next request, and their open page's next handler, finds nobody signed
+in rather than staying signed in until a cookie expires.
+
+**The links are signed and single-use.** A token is sealed with Data Protection — the keys the cookie is sealed
+with — and fingerprints the state it may change: the password hash for a reset, the address and its confirmation
+for a confirm. Using it changes that state, so the same link does not work twice, and a password changed any other
+way kills every reset link already sent. Nothing is stored.
 
 **Set `PublicOrigin` behind a proxy.** An emailed link has to be absolute. Rask uses `PublicOrigin`
 first, then the current request's own origin — never a forwarded host header, because that is
@@ -275,7 +335,7 @@ app.Configure(c => c.Auth.Configure(o =>
 {
     o.PublicOrigin = "https://app.example.com";   // required behind a proxy
     o.RequireConfirmedEmail = true;
-    o.TokenLifetime = TimeSpan.FromHours(2);      // what the email promises AND what the token honours
+    o.TokenLifetime = TimeSpan.FromHours(1);      // what the email promises AND what the token honours
 }));
 ```
 
@@ -300,7 +360,8 @@ additional OIDC scheme are still configured through ASP.NET's own primitives.
 app.Configure(c => c.Auth.Configure(o =>
 {
     o.MinimumPasswordLength = 12;
-    o.MaxFailedAccessAttempts = 5;
+    o.SignInAttemptsPerMinute = 5;
+    o.PasswordHashing = PasswordHashing.Bcrypt;
     o.ExpireTimeSpan = TimeSpan.FromDays(14);
 }));
 ```
@@ -380,8 +441,8 @@ And the declarative `Authorize` component, live — sign in as *user* or *admin*
 
 The provider integrations and the hardening reference now live in focused companion pages:
 
-- **[Identity providers](authentication-providers.md)** — ASP.NET Identity, Keycloak / OpenID Connect,
-  Auth0, AWS Cognito, and Duende IdentityServer.
+- **[Identity providers](authentication-providers.md)** — Keycloak / OpenID Connect, Auth0, AWS Cognito, and
+  Duende IdentityServer.
 - **[Production hardening](authentication-hardening.md)** — the hardening reference, running behind a reverse
   proxy, Content-Security-Policy, and the security checklist.
 
@@ -393,7 +454,8 @@ The provider integrations and the hardening reference now live in focused compan
 | Server (WS) app, simplest + safest | **Cookie + Server** |
 | WASM SPA talking to your own ASP.NET API, simplest + safest | **Cookie + WASM** |
 | Static-file WASM SPA against an API on another origin | **Cookie + WASM**, with the API setting the cookie for its own origin — CORS with credentials, `SameSite=None; Secure` |
-| Existing user database, password hashing, 2FA | **ASP.NET Identity** (+ cookie) |
+| Your own accounts, sessions you can list and end | **Rask.Auth** (on by default) |
+| An existing ASP.NET Core Identity database | **Rask.Auth** reads its V3 password hashes: copy the rows into `User` and each rehashes on first sign-in |
 | Central SSO / social login / corporate IdP | **OIDC** (+ cookie) — Keycloak, Auth0, AWS Cognito, Duende IdentityServer |
 
 See the [`Authorize`](#declarative-gating) component and [Configuration](#configuration) for how each of

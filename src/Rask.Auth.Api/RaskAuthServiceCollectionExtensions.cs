@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,7 +19,7 @@ namespace Rask.Auth;
 public static class RaskAuthServiceCollectionExtensions
 {
     /// <summary>
-    /// Adds ASP.NET Core Identity over the application's own context, the cookie scheme, and the
+    /// Adds accounts over the application's own context and user type: sessions, the cookie scheme, and the
     /// host-neutral <c>IAuth</c> the pages and endpoints are written against.
     /// </summary>
     /// <typeparam name="TContext">The application context that owns the account tables.</typeparam>
@@ -60,11 +59,11 @@ public static class RaskAuthServiceCollectionExtensions
     public static IServiceCollection AddRaskAuth<TContext, TUser>(
         this IServiceCollection services, Action<AuthOptions>? configure = null)
         where TContext : DbContext
-        where TUser : IdentityUser, new()
+        where TUser : Authenticatable, new()
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        // A repeat call is a no-op rather than a second Identity registration beside the first.
+        // A repeat call is a no-op rather than a second registration beside the first.
         if (!services.AddRaskOptions<AuthOptions>(
                 "Rask:Auth", static (section, o) => section.Bind(o), configure, Validate))
         {
@@ -89,51 +88,31 @@ public static class RaskAuthServiceCollectionExtensions
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<FirstRunToken>();
         services.TryAddSingleton<IInstanceClaimStore, InstanceClaimStore<TContext>>();
+        services.TryAddSingleton<IAuthContexts, AuthContexts<TContext>>();
 
-        // Identity's EF stores resolve the context from DI as a scoped service, but a Rask app
-        // registers an IDbContextFactory (every battery creates its own short-lived context). Bridge
-        // the two rather than making the app register the context twice — TryAdd, so an app that does
-        // register one keeps it.
-        services.TryAddScoped(sp => sp.GetRequiredService<IDbContextFactory<TContext>>().CreateDbContext());
+        // The resumed-session cache, and the keys reset and confirmation links are sealed with — the same keys the cookie is.
+        services.AddMemoryCache();
+        services.AddDataProtection();
 
-        // SignInManager takes an IHttpContextAccessor even for the checks that never touch a request.
+        // The client address a throttle is keyed on, for a sign-in that arrives through a component rather than a request.
         services.AddHttpContextAccessor();
 
-        services
-            .AddIdentityCore<TUser>()
-            .AddRoles<IdentityRole>()
-            .AddEntityFrameworkStores<TContext>()
-            .AddSignInManager()
-            // What the confirmation and reset links are minted from.
-            .AddDefaultTokenProviders();
-
-        // Every setting below is read off the BUILT AuthOptions rather than captured here: nothing is built
-        // until the container is, because the Rask:Auth section cannot be read any earlier.
-        services.AddOptions<IdentityOptions>().Configure<AuthOptions>(static (o, auth) =>
+        // Built from the built options: nothing here can read the Rask:Auth section any earlier than the container.
+        services.TryAddSingleton(static sp =>
         {
-            o.User.RequireUniqueEmail = true;
-
-            o.Password.RequiredLength = auth.MinimumPasswordLength;
-            o.Password.RequireDigit = auth.RequireMixedCasePasswords;
-            o.Password.RequireLowercase = auth.RequireMixedCasePasswords;
-            o.Password.RequireUppercase = auth.RequireMixedCasePasswords;
-            // Length is what resists guessing; demanding punctuation mostly produces "Password1!".
-            o.Password.RequireNonAlphanumeric = false;
-
-            o.Lockout.MaxFailedAccessAttempts = auth.MaxFailedAccessAttempts;
-            o.Lockout.DefaultLockoutTimeSpan = auth.LockoutDuration;
-            o.Lockout.AllowedForNewUsers = true;
+            var auth = sp.GetRequiredService<AuthOptions>();
+            return new PasswordHasher(auth.PasswordHashing, auth.BcryptWorkFactor);
         });
-
-        // One lifetime, set in one place. The email tells the reader how long the link lasts and the
-        // provider decides when it stops working; read from separate settings they drift, and the
-        // symptom is a message promising two hours about a token that expired in one.
-        services.AddOptions<DataProtectionTokenProviderOptions>()
-            .Configure<AuthOptions>(static (o, auth) => o.TokenLifespan = auth.TokenLifetime);
+        services.TryAddSingleton(static sp => new AuthThrottle(sp.GetRequiredService<TimeProvider>())
+        {
+            Limit = sp.GetRequiredService<AuthOptions>().SignInAttemptsPerMinute,
+        });
+        services.TryAddSingleton<AuthTokens>();
+        services.TryAddSingleton<IAuthSessions, AuthSessions<TContext, TUser>>();
+        services.TryAddScoped<AuthCookieEvents>();
 
         services.TryAddScoped<AuthMail>();
 
-        services.TryAddSingleton<IRoleSeedContexts, RoleSeedContexts<TContext>>();
         services.AddScoped<AccountService<TUser>>();
 
         // The endpoints resolve the store without naming the user type — MapRaskAuth() is a
@@ -155,12 +134,12 @@ public static class RaskAuthServiceCollectionExtensions
         services.TryAddSingleton<IAuthEmailBodies, AuthEmailBodies>();
 
         // Before the first-run token initializer, so an app whose model never mapped the account tables
-        // fails the boot with the line to type rather than at the first registration — Identity's EF
-        // stores resolve lazily, so nothing above this notices. See BatteryModelCheck: this reads the
+        // fails the boot with the line to type rather than at the first registration. See BatteryModelCheck: this reads the
         // MODEL, never the database, so an app that has not run `rask db update` yet still starts.
         services.AddHostedService<AuthModelCheck<TContext, TUser>>();
 
         services.AddHostedService<FirstRunTokenInitializer>();
+        services.AddHostedService<SessionSweep<TContext>>();
 
         // The cookie scheme is Rask.Auth's, unconditionally: cookies are the only session Rask
         // authenticates, so the battery owns the scheme rather than standing down when the app has
@@ -213,6 +192,9 @@ public static class RaskAuthServiceCollectionExtensions
                 o.AccessDeniedPath = auth.AccessDeniedPath;
                 o.ExpireTimeSpan = auth.ExpireTimeSpan;
                 o.SlidingExpiration = auth.SlidingExpiration;
+
+                // The session rows: a sign-in starts one, a sign-out ends it, every request resumes it. See AuthCookieEvents.
+                o.EventsType = typeof(AuthCookieEvents);
             });
 
         // AddRask() also calls this; it is idempotent, and Rask.Auth must not depend on being wired
@@ -297,6 +279,10 @@ public static class RaskAuthServiceCollectionExtensions
                     // one-minute token and makes a short lifetime mean something other than it says.
                     ClockSkew = TimeSpan.Zero,
                 };
+
+                // A token names its session, so signing out, or a password reset, ends the token too.
+                o.Events ??= new JwtBearerEvents();
+                o.Events.OnTokenValidated = AuthBearerEvents.OnTokenValidated;
             });
     }
 }

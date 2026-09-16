@@ -6,18 +6,11 @@
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
 
-    <!--
-      Styles/auth.css is a Tailwind INPUT, not a component's scoped stylesheet. Without this,
-      Rask.Core's `**/*.css` glob claims it and the build reports RASK015 for a file that is not one —
-      the same opt-out Rask.Ui takes for the same reason.
-    -->
-    <RaskScopedCssAutoInclude>false</RaskScopedCssAutoInclude>
-
     <PackageId>Rask.Auth</PackageId>
     <Title>Rask.Auth — accounts, sign-in, and the account lifecycle</Title>
-    <Description>Register, sign in and sign out for a Rask app, on by default. Accounts are backed by ASP.NET Core Identity (versioned password hashing, lockout, security stamps) and exposed through Rask's own host-neutral surface — the same IUserProvider, Authorize component and [Authorize] routes work unchanged on the Server, WebAssembly, island, SPA and meta-framework hosts. Ships built-in overridable /login, /register and /logout pages plus the matching /api/auth endpoints, so a TypeScript front end gets the same flows. Email confirmation and password reset go out through the app's own mail queue, with /confirm-email, /forgot-password and /reset-password pages to match. The first account to register becomes the admin.</Description>
+    <Description>Register, sign in and sign out for a Rask app, on by default. Accounts are the app's own User aggregate (PBKDF2 or bcrypt password hashing, one revocable session row per signed-in device, sign-in throttling) and are exposed through Rask's own host-neutral surface — the same IUserProvider, Authorize component and [Authorize] routes work unchanged on the Server, WebAssembly, island, SPA and meta-framework hosts. rask new writes the /login, /register, /logout and /devices pages into the app, and the matching /api/auth endpoints give a TypeScript front end the same flows. Email confirmation and password reset go out through the app's own mail queue, with /confirm-email, /forgot-password and /reset-password pages scaffolded to match. The first account to register becomes the admin.</Description>
     <!-- Override the framework default tags (web/component/wasm) — this is the accounts/sign-in half. -->
-    <PackageTags>authentication authorization identity login register aspnet-identity cookie-auth claims dotnet net10 net11</PackageTags>
+    <PackageTags>authentication authorization login register sessions bcrypt cookie-auth claims dotnet net10 net11</PackageTags>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
@@ -28,8 +21,7 @@
     <None Include="NUGET.md" Pack="true" PackagePath="" Visible="false" />
   </ItemGroup>
 
-  <!-- SignInManager, the cookie handler and the authorization services are in the shared framework,
-       not in the Identity EF stores package. -->
+  <!-- The cookie handler, Data Protection and the authorization services are in the shared framework. -->
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
   </ItemGroup>
@@ -41,21 +33,19 @@
          standard ASP.NET handler rather than anything hand-rolled: JWT validation is the last place to
          write our own crypto. -->
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer"/>
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore"/>
     <PackageReference Include="Microsoft.EntityFrameworkCore"/>
   </ItemGroup>
 
-  <!-- The pages and the host-neutral auth surface (IUserProvider, IAuthSignIn, Authorize) live in
-       Core and Html. PrivateAssets="all" mirrors Rask.Dashboard: this package renders components, but
+  <!-- The host-neutral auth surface (IUserProvider, IAuthSignIn, Authorize) lives in Core. PrivateAssets="all" mirrors Rask.Dashboard: this package renders components, but
        a consumer gets Core through the host package rather than transitively through this one.
        Deliberately NOT Rask.Server — no battery references it, which is what keeps the meta-package
        free of reference cycles. -->
   <ItemGroup>
     <!-- The /api/auth wire contract (paths, headers, DTOs). In Rask.Wire rather than Core so the
          server half and the browser half can both take it without either taking the renderer. -->
-    <!-- The host-neutral half of this battery: Identity, the /api/auth endpoints, the cookie and
+    <!-- The host-neutral half of this battery: the accounts, the /api/auth endpoints, the cookie and
          the options. This package is that plus the two things a renderer makes possible — an IAuth on
-         the host's sign-in relay, and the built-in sign-in pages. See RaskAuthHostServices. -->
+         the host's sign-in relay, and email bodies written as components. See RaskAuthHostServices. -->
     <ProjectReference Include="..\Rask.Auth.Api\Rask.Auth.Api.csproj"/>
 
     <ProjectReference Include="..\Rask.Wire\Rask.Wire.csproj"/>
@@ -70,9 +60,8 @@
          cannot send a reset link rather than silently queueing one nowhere. -->
     <ProjectReference Include="..\Rask.Mail\Rask.Mail.csproj"/>
 
-    <!-- Emits this assembly's own Generated.* chain entries and the __RaskRoutesRegistry module
-         initializer that registers the built-in [Route] pages into the host's RouteRegistry — the
-         same way Rask.Dashboard ships /_rask. -->
+    <!-- Emits this assembly's own chain entries, which the email bodies are written with. The sign-in
+         pages are not here: `rask new` writes them into the app's Features/Auth. -->
     <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
@@ -96,58 +85,5 @@
   <ItemGroup>
     <None Include="build\**" Pack="true" PackagePath="build\"/>
   </ItemGroup>
-
-  <!--
-    These pages carry their own stylesheet, compiled here.
-
-    They ship inside a package, so their class names are in a compiled assembly no application's
-    Tailwind can scan — which rules out borrowing the host's sheet. Compiling here and embedding the
-    result is what keeps the promise that they render on an app with no CSS of its own.
-
-    A build-order edge only. Rask.Tailwind is netstandard2.0 and has no face this project could
-    reference; SkipGetTargetFrameworkProperties and UndefineProperties are what stop MSBuild trying to
-    match one. Copied from Rask.Ui, which compiles its sheet the same way.
-  -->
-  <ItemGroup>
-    <ProjectReference Include="..\Rask.Tailwind\Rask.Tailwind.csproj"
-                      PrivateAssets="all"
-                      ReferenceOutputAssembly="false"
-                      SkipGetTargetFrameworkProperties="true"
-                      UndefineProperties="TargetFramework"/>
-  </ItemGroup>
-
-  <!--
-    Conditioned on an INNER build, for the reason Rask.Ui records at length. This project's frameworks
-    are a list (Directory.Build.props), so it is also evaluated once with NO TargetFramework — the outer
-    pass that dispatches to the inner ones, and the pass `dotnet pack` starts from. Unconditioned, the
-    path there reads obj//auth.generated.css and pack fails NU5019 on a file no build ever writes, while
-    `dotnet build` stays green because the outer pass compiles nothing. Leaving the input unset in that
-    pass means Tailwind has nothing to compile, so it skips.
-  -->
-  <PropertyGroup Condition=" '$(TargetFramework)' != '' ">
-    <RaskTailwindInput>Styles/auth.css</RaskTailwindInput>
-    <RaskTailwindOutput>obj/$(TargetFramework)/auth.generated.css</RaskTailwindOutput>
-    <RaskTailwindMinify>true</RaskTailwindMinify>
-  </PropertyGroup>
-
-  <!--
-    Added from a TARGET rather than a static ItemGroup, for the reason Rask.Ui records: a static
-    item's Condition is evaluated before any target runs, so on a fresh clone the generated sheet does
-    not exist yet, the item is silently absent, and the package ships with no stylesheet at all — the
-    pages then render unstyled and a SECOND build embeds it, which is why every incremental tree
-    looks fine.
-
-    Embedded only, never packed as a loose file, so unlike Rask.Ui there is nothing for the outer build
-    to pack separately.
-  -->
-  <Target Name="EmbedRaskAuthStylesheet"
-          AfterTargets="_RaskTailwindBuild"
-          BeforeTargets="PrepareResourceNames">
-    <Error Condition="!Exists('$(RaskTailwindOutput)')"
-           Text="Rask.Auth: $(RaskTailwindOutput) was not produced. The built-in sign-in pages carry their own stylesheet, compiled by _RaskTailwindBuild from $(RaskTailwindInput); shipping without it renders every one of them unstyled."/>
-    <ItemGroup>
-      <EmbeddedResource Include="$(RaskTailwindOutput)" LogicalName="Rask.Auth.auth.css"/>
-    </ItemGroup>
-  </Target>
 
 </Project>

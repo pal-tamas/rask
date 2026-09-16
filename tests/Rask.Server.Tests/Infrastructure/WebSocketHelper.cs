@@ -41,6 +41,45 @@ internal static class WebSocketHelper
     }
 
     /// <summary>
+    ///     Receives frames until one satisfies <paramref name="predicate" />, and returns it (null if the budget
+    ///     runs out first). Frames that do not match are skipped.
+    /// </summary>
+    /// <remarks>
+    ///     For an assertion about a PARTICULAR frame rather than about the next one. A live session may push a
+    ///     render the test did not ask for — a catch-up on attach, or the intermediate paint an async handler
+    ///     emits while it is still awaiting — and which of those exist depends on timing, so "the first frame
+    ///     after my message" is not a property the dispatcher promises. A test that assumes it passes on an idle
+    ///     machine and reports the wrong thing on a loaded one: #1120 read a pre-trip document and blamed a
+    ///     missing error boundary.
+    ///     Ordering IS promised where it matters, and this preserves the assertions that rest on it: frames stay
+    ///     in order, so a match here is still the first frame that qualifies.
+    /// </remarks>
+    public static async Task<string?> ReceiveUntilAsync(
+        this WebSocket ws, Func<string, bool> predicate, TimeSpan budget)
+    {
+        var deadline = DateTime.UtcNow + budget;
+        while (true)
+        {
+            var remaining = deadline - DateTime.UtcNow;
+            if (remaining <= TimeSpan.Zero)
+            {
+                return null;
+            }
+
+            var text = await ws.TryReceiveTextAsync(remaining);
+            if (text is null)
+            {
+                return null;
+            }
+
+            if (predicate(text))
+            {
+                return text;
+            }
+        }
+    }
+
+    /// <summary>
     ///     Receives until the peer's close frame arrives and returns its status and reason, or
     ///     <c>null</c> if the socket was aborted instead (no close frame — a <see cref="WebSocketException" />
     ///     out of the receive) or nothing arrived in time. The distinction is the whole point: a graceful

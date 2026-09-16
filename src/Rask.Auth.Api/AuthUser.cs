@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -10,7 +9,7 @@ namespace Rask.Auth;
 /// <remarks>
 /// <para>
 /// Rask ships no user class of its own. An app declares one — <c>rask new</c> writes
-/// <c>public class User : IdentityUser</c> into <c>Features/Shared</c> — and a source generator emits a
+/// <c>public sealed class User : Authenticatable</c> into <c>Features/Shared</c> — and a source generator emits a
 /// <c>[ModuleInitializer]</c> calling <see cref="Use{TUser}" />, so <c>AddRaskAuth()</c> and
 /// <c>modelBuilder.AddRaskAuth()</c> work with no type argument and no registration.
 /// </para>
@@ -34,9 +33,9 @@ public static class AuthUser
     internal static IAuthUserBinding? Binding { get; private set; }
 
     /// <summary>Names the application's user type. Called by generated code.</summary>
-    /// <typeparam name="TUser">The application's <see cref="IdentityUser" />.</typeparam>
+    /// <typeparam name="TUser">The application's <see cref="Authenticatable" /> user.</typeparam>
     public static void Use<TUser>()
-        where TUser : IdentityUser, new() =>
+        where TUser : Authenticatable, new() =>
         Binding = new UserBinding<TUser>();
 
     /// <summary>Forgets the declared user type. Test seam.</summary>
@@ -45,7 +44,7 @@ public static class AuthUser
     // A generic METHOD on a non-generic interface is what makes this work with no reflection: TUser is
     // closed by the generated call, TContext stays open for the caller, and the compiler emits both.
     private sealed class UserBinding<TUser> : IAuthUserBinding
-        where TUser : IdentityUser, new()
+        where TUser : Authenticatable, new()
     {
         public Type UserType => typeof(TUser);
 

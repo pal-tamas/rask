@@ -1,13 +1,17 @@
-using Microsoft.AspNetCore.Identity;
+using System.ComponentModel.DataAnnotations;
 
 namespace Company.RaskServer.Features.Shared;
 
-// Your account. Add the columns your app needs — a display name, a locale, a team id — and create
-// the migration with `rask db add AddUserColumns && rask db update`.
+// Your user. Add the columns your app needs — a locale, a team id — and create the migration with
+// `rask db add AddUserColumns && rask db update`.
 //
-// Everything an account already has comes from Identity: the password hash, the security stamp,
-// the lockout counters and the confirmation flags. Inject UserManager<User> to work with
-// accounts, or Rask's IAuth for the surface that works on every host.
-public class User : IdentityUser
+// Everything a sign-in needs comes from Authenticatable: the email, the password hash, the confirmation and
+// the roles. It is an aggregate like any other, so read it with User.FindAsync(id) and change it with
+// User.UpdateAsync(id, u => u.Rename(name)); register, sign in and reset passwords through Rask's IAuth.
+public sealed class User : Authenticatable
 {
+    [MaxLength(100)]
+    public string DisplayName { get; private set; } = "";
+
+    public void Rename(string displayName) => DisplayName = displayName.Trim();
 }

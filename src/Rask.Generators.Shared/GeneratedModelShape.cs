@@ -426,7 +426,9 @@ internal static class GeneratedModelShape
     {
         var seen = new HashSet<string>(StringComparer.Ordinal);
 
-        for (var type = entity; type is not null && !IsRaskDataType(type); type = type.BaseType)
+        // Stops at the framework's bases: Rask.Data's (Id, the timestamps, Version) and Rask.Auth's Authenticatable, whose
+        // credentials a form must never write.
+        for (var type = entity; type is not null && !IsRaskDataType(type) && !IsRaskAuthBase(type); type = type.BaseType)
         {
             foreach (var property in type.GetMembers().OfType<IPropertySymbol>())
             {
@@ -642,6 +644,9 @@ internal static class GeneratedModelShape
 
     private static bool IsRaskDataType(INamedTypeSymbol? type) =>
         type?.ContainingNamespace?.ToDisplayString() == RaskDataNamespace;
+
+    private static bool IsRaskAuthBase(INamedTypeSymbol type) =>
+        type is { Name: "Authenticatable" } && type.ContainingNamespace?.ToDisplayString() == "Rask.Auth";
 
     private static bool SameTypeIgnoringNullability(ITypeSymbol left, ITypeSymbol right) =>
         SymbolEqualityComparer.Default.Equals(

@@ -36,7 +36,7 @@ public sealed class AuthInstanceClaim
     public int Id { get; set; } = SingletonId;
 
     /// <summary>The id of the account that claimed this instance and holds the admin role.</summary>
-    public string AdminUserId { get; set; } = "";
+    public Guid AdminUserId { get; set; }
 
     /// <summary>When it was claimed (UTC).</summary>
     public DateTime ClaimedUtc { get; set; }
@@ -57,6 +57,5 @@ public sealed class AuthInstanceClaimConfiguration : IEntityTypeConfiguration<Au
         entity.HasKey(x => x.Id);
         entity.Property(x => x.Id).ValueGeneratedNever();
 
-        entity.Property(x => x.AdminUserId).HasMaxLength(256).IsRequired();
     }
 }

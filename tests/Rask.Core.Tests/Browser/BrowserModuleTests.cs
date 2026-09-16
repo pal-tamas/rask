@@ -89,7 +89,7 @@ public class BrowserModuleTests
 
         // The NAME rather than a number, so a value added to AuthError later cannot silently become a
         // different one on the wire.
-        Assert.Equal("LockedOut", failure.GetProperty("error").GetString());
+        Assert.Equal("TooManyAttempts", failure.GetProperty("error").GetString());
         Assert.Equal("Too many attempts.", failure.GetProperty("message").GetString());
     }
 

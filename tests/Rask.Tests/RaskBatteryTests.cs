@@ -12,12 +12,11 @@ using Rask.Storage;
 namespace Rask.Tests;
 
 /// <summary>
-///     The account type this app declares. Rask ships none — a generator finds the one
-///     <see cref="Microsoft.AspNetCore.Identity.IdentityUser" /> in the project and wires Identity to it
-///     — so a test app that asserts "auth is on by default" has to be an app that has one, the same way
-///     a scaffolded app does.
+///     The user type this app declares. Rask ships none — a generator finds the one
+///     <see cref="Authenticatable" /> in the project and wires the accounts to it — so a test app that asserts
+///     "auth is on by default" has to be an app that has one, the same way a scaffolded app does.
 /// </summary>
-public sealed class TestUser : Microsoft.AspNetCore.Identity.IdentityUser;
+public sealed class TestUser : Authenticatable;
 
 /// <summary>Collects log messages so a test can assert on what the host said at startup.</summary>
 internal sealed class CapturingLoggerProvider : Microsoft.Extensions.Logging.ILoggerProvider
@@ -179,7 +178,7 @@ public sealed class RaskBatteryTests
             app.Services.AddDbContextFactory<TestDbContext>(o => o.UseSqlite("Data Source=:memory:"));
             app.Build<TestApp>();
 
-            Assert.Contains(logs.Messages, m => m.Contains("declares no account type", StringComparison.Ordinal));
+            Assert.Contains(logs.Messages, m => m.Contains("declares no user type", StringComparison.Ordinal));
         }
         finally
         {

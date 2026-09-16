@@ -8,7 +8,6 @@ Rask.Wire.AuthError.FirstRunTokenRequired = 5 -> Rask.Wire.AuthError
 Rask.Wire.AuthError.InvalidCredentials = 1 -> Rask.Wire.AuthError
 Rask.Wire.AuthError.InvalidEmail = 7 -> Rask.Wire.AuthError
 Rask.Wire.AuthError.InvalidToken = 8 -> Rask.Wire.AuthError
-Rask.Wire.AuthError.LockedOut = 2 -> Rask.Wire.AuthError
 Rask.Wire.AuthError.MailNotConfigured = 10 -> Rask.Wire.AuthError
 Rask.Wire.AuthError.None = 0 -> Rask.Wire.AuthError
 Rask.Wire.AuthError.NotAllowed = 6 -> Rask.Wire.AuthError
@@ -215,3 +214,6 @@ static Rask.Wire.WireJson.WriteTimeOnlyValue(System.Text.Json.Utf8JsonWriter! wr
 static Rask.Wire.WireJson.WriteTimeSpanValue(System.Text.Json.Utf8JsonWriter! writer, System.TimeSpan value) -> void
 static Rask.Wire.WireJson.WriteUriValue(System.Text.Json.Utf8JsonWriter! writer, System.Uri? value) -> void
 virtual Rask.Wire.RemoteFile.LastModified.get -> System.DateTimeOffset?
+Rask.Wire.AuthError.TooManyAttempts = 2 -> Rask.Wire.AuthError
+const Rask.Wire.AuthApi.LogoutEverywhere = "/logout-everywhere" -> string!
+const Rask.Wire.AuthApi.LogoutOtherDevices = "/logout-other-devices" -> string!

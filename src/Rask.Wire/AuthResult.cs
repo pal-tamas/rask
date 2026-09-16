@@ -12,8 +12,8 @@ public enum AuthError
     /// <summary>The email or the password was wrong. Deliberately does not say which.</summary>
     InvalidCredentials = 1,
 
-    /// <summary>Too many failed attempts; the account is locked for a while.</summary>
-    LockedOut = 2,
+    /// <summary>Too many attempts from this client in the last minute. The account is not locked; wait and try again.</summary>
+    TooManyAttempts = 2,
 
     /// <summary>An account with that email already exists.</summary>
     DuplicateAccount = 3,

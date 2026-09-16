@@ -1,4 +1,4 @@
-namespace Rask.Auth.Pages;
+namespace Rask.Auth;
 
 /// <summary>
 /// The bodies of the two emails the account lifecycle sends.
@@ -9,7 +9,7 @@ namespace Rask.Auth.Pages;
 /// <para>
 /// Deliberately plain. These are transactional messages read once, often in a client that strips most
 /// styling anyway, and the one thing that has to survive is the link. An app that wants its own
-/// branding overrides the pages and sends its own.
+/// branding registers its own <c>IAuthEmailBodies</c>.
 /// </para>
 /// </remarks>
 // [RaskMarkup] because this is a static class and so cannot derive from RaskMarkup: the chain's entries

@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Rask.Core.Authentication;
+using Rask.Data;
 using Rask.Wire;
 
 namespace Rask.Auth.Tests;
@@ -160,6 +161,96 @@ public sealed class AuthEndpointTests
     }
 
     /// <summary>An app wired the way the auth battery wires one, served by <c>TestServer</c>.</summary>
+    [Fact]
+    public async Task Signing_in_starts_a_session_row_and_signing_out_ends_it()
+    {
+        using var app = new EndpointApp();
+        using var client = app.Client();
+
+        await RegisterOwnerAsync(client);
+        Assert.Equal(1, await ActiveSessionsAsync(app));
+
+        var logout = await Post(client, "/api/auth/logout", new { });
+        Assert.Equal(HttpStatusCode.NoContent, logout.StatusCode);
+
+        Assert.Equal(0, await ActiveSessionsAsync(app));
+        Assert.Equal(HttpStatusCode.NoContent, (await client.GetAsync("/api/auth/me")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Signing_out_other_devices_signs_them_out_on_their_next_request()
+    {
+        using var app = new EndpointApp();
+        using var laptop = app.Client();
+        using var phone = app.Client();
+
+        await RegisterOwnerAsync(laptop);
+        var login = await Post(phone, "/api/auth/login", new { email = "owner@example.com", password = Password });
+        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await phone.GetAsync("/api/auth/me")).StatusCode);
+
+        var others = await Post(laptop, "/api/auth/logout-other-devices", new { });
+        Assert.Equal(HttpStatusCode.NoContent, others.StatusCode);
+
+        // The phone still holds its cookie, and it is no longer honoured.
+        Assert.Equal(HttpStatusCode.NoContent, (await phone.GetAsync("/api/auth/me")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await laptop.GetAsync("/api/auth/me")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Remember_me_is_what_makes_the_cookie_outlive_the_browser()
+    {
+        using var app = new EndpointApp();
+        using var client = app.Client();
+        await RegisterOwnerAsync(client);
+
+        var forgetting = await Post(app.Client(), "/api/auth/login", new { email = "owner@example.com", password = Password, remember = false });
+        var remembering = await Post(app.Client(), "/api/auth/login", new { email = "owner@example.com", password = Password, remember = true });
+
+        Assert.DoesNotContain("expires=", SetCookie(forgetting), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("expires=", SetCookie(remembering), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Too_many_wrong_passwords_answer_429_so_a_client_can_say_wait()
+    {
+        using var app = new EndpointApp();
+        using var client = app.Client();
+        await RegisterOwnerAsync(client);
+
+        using var guesser = app.Client();
+        for (var i = 0; i < 3; i++)
+        {
+            await Post(guesser, "/api/auth/login", new { email = "owner@example.com", password = "WrongPassword1" });
+        }
+
+        var response = await Post(guesser, "/api/auth/login", new { email = "owner@example.com", password = Password });
+
+        Assert.Equal(HttpStatusCode.TooManyRequests, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(nameof(AuthError.TooManyAttempts), body.GetProperty("error").GetString());
+    }
+
+    private static async Task RegisterOwnerAsync(HttpClient client)
+    {
+        var response = await Post(client, "/api/auth/register", new
+        {
+            email = "owner@example.com",
+            password = Password,
+            firstRunToken = Token,
+        });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    private static async Task<int> ActiveSessionsAsync(EndpointApp app)
+    {
+        await using var db = app.NewContext();
+        return await db.Set<Session>().CountAsync();
+    }
+
+    private static string SetCookie(HttpResponseMessage response) =>
+        string.Join("; ", response.Headers.TryGetValues("Set-Cookie", out var values) ? values : []);
+
     private sealed class EndpointApp : IDisposable
     {
         private readonly IHost _host;
@@ -177,8 +268,16 @@ public sealed class AuthEndpointTests
                     {
                         services.AddLogging(b => b.ClearProviders());
                         services.AddRouting();
-                        services.AddDbContextFactory<AuthDbContext>(o => o.UseSqlite($"Data Source={_dbPath}"));
-                        services.AddRaskAuth<AuthDbContext>(o => o.FirstRunToken = Token);
+                        services.AddRaskData(o => o.DispatchDomainEventsInProcess = false);
+                        services.AddDbContextFactory<AuthDbContext>((sp, o) => o
+                            .UseSqlite($"Data Source={_dbPath};Pooling=False")
+                            .AddInterceptors(sp.GetServices<Microsoft.EntityFrameworkCore.Diagnostics.ISaveChangesInterceptor>()));
+                        services.AddSingleton(new PasswordHasher(iterations: 1_000));
+                        services.AddRaskAuth<AuthDbContext>(o =>
+                        {
+                            o.FirstRunToken = Token;
+                            o.SignInAttemptsPerMinute = 3;
+                        });
                     });
                     web.Configure(app =>
                     {
@@ -190,9 +289,12 @@ public sealed class AuthEndpointTests
                 })
                 .Start();
 
-            using var scope = _host.Services.CreateScope();
-            scope.ServiceProvider.GetRequiredService<AuthDbContext>().Database.EnsureCreated();
+            using var db = NewContext();
+            db.Database.EnsureCreated();
         }
+
+        public AuthDbContext NewContext() =>
+            _host.Services.GetRequiredService<IDbContextFactory<AuthDbContext>>().CreateDbContext();
 
         /// <summary>A client that keeps cookies, over https.</summary>
         /// <remarks>

@@ -50,6 +50,23 @@ public sealed class BrowserAuth(
     }
 
     /// <inheritdoc />
+    public async Task SignOutOtherDevicesAsync()
+    {
+        using var request = Request(AuthApi.LogoutOtherDevices);
+        await http.SendAsync(request).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public async Task SignOutEverywhereAsync(string? returnUrl = null)
+    {
+        using var request = Request(AuthApi.LogoutEverywhere);
+        await http.SendAsync(request).ConfigureAwait(false);
+
+        await users.RefreshAsync().ConfigureAwait(false);
+        navigator.NavigateTo(LocalUrl.Sanitize(returnUrl));
+    }
+
+    /// <inheritdoc />
     public Task<AuthResult> SendPasswordResetAsync(string email) =>
         ExchangeAsync(
             AuthApi.ForgotPassword,
