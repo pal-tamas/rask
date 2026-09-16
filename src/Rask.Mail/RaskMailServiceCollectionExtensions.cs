@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using Rask.Batteries;
 using Rask.Hosting.Shared;
 
 namespace Rask.Mail;
@@ -45,8 +46,10 @@ public static class RaskMailServiceCollectionExtensions
         // database, so an app that has not run `rask db update` yet still starts.
         services.AddHostedService<MailModelCheck<TContext>>();
 
-        // AddHostedService uses TryAddEnumerable, so a repeated call registers only one processor.
-        services.AddHostedService<MailProcessor<TContext>>();
+        // The poll is Rask's bookkeeping, not the application's query log, so it runs on a context
+        // whose SQL logs at Debug — see HousekeepingContextFactory. Deduplicates on repeat, as
+        // AddHostedService does.
+        services.AddHousekeepingService<MailProcessor<TContext>, TContext>();
         return services;
     }
 

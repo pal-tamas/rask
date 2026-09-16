@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -217,13 +218,21 @@ public sealed class StorageRegistrationTests
         await using var harness = new StorageHarness();
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddRaskStorage<StorageDbContext>();
-        services.AddRaskStorage<StorageDbContext>();
+        services.AddDataProtection().UseEphemeralDataProtectionProvider();
+        services.AddRaskStorage<StorageDbContext>(o => o.Disk.Root = harness.Root);
+        services.AddRaskStorage<StorageDbContext>(o => o.Disk.Root = harness.Root);
+        services.AddDbContextFactory<StorageDbContext>(o => o.UseSqlite($"Data Source={harness.DbPath}"));
 
-        var hosted = services.Where(d => d.ServiceType == typeof(IHostedService)).Select(d => d.ImplementationType).ToList();
-        Assert.Single(hosted, t => t == typeof(OrphanSweeper<StorageDbContext>));
-        Assert.Single(hosted, t => t == typeof(StorageStartupCheck));
-        Assert.Single(hosted, t => t == typeof(StorageModelCheck<StorageDbContext>));
+        await using var provider = services.BuildServiceProvider();
+
+        // Resolved, not read off the descriptors: the sweeper is registered through a factory now — it
+        // takes a context whose SQL logs at Debug, so an idle app's console is not the orphan scan — and a
+        // factory descriptor carries no ImplementationType to read. What has to hold is that the container
+        // yields ONE of each, which is what this now asks it directly.
+        var hosted = provider.GetServices<IHostedService>().ToList();
+        Assert.Single(hosted.OfType<OrphanSweeper<StorageDbContext>>());
+        Assert.Single(hosted.OfType<StorageStartupCheck>());
+        Assert.Single(hosted.OfType<StorageModelCheck<StorageDbContext>>());
     }
 
     [Fact]
