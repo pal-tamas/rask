@@ -153,6 +153,19 @@ will contain. Two levers, and the first is usually the right one:
 "Rask": { "Logging": { "ExcludedCategories": [ "Microsoft.EntityFrameworkCore.Database" ] } }
 ```
 
+**What is already quiet: Rask's own.** The batteries poll — jobs, mail and the outbox every five seconds each,
+plus the cache purge, the orphan scan and the session sweep — and none of that bookkeeping is a thing you asked
+to read. It runs on a context that logs its SQL at `Debug`, along with the log store's own `INSERT`, so what
+these two levers decide is the volume of **your** queries, not the framework's heartbeat. To watch a battery
+claim its batch, turn the same category *up*:
+
+```jsonc
+"Logging": { "LogLevel": { "Microsoft.EntityFrameworkCore.Database.Command": "Debug" } }
+```
+
+An app that registers a hand-written `IDbContextFactory<T>` keeps it — Rask will not copy a factory whose job is
+to pick a connection — so there the batteries log at `Information` like everything else.
+
 > **`MinimumLevel` is a floor, not an override.** The logging pipeline applies your `Logging:LogLevel`
 > configuration *first*, so an entry filtered there never reaches the store however low you set this. If the
 > store looks emptier than you expect, check `appsettings.Production.json` before you check this.
