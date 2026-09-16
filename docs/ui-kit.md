@@ -390,6 +390,21 @@ UiSidebarToggle.For("app-nav").Collapsible(UiBreakpoint.Lg)
   **`Current` is worked out from the route** — `menu-active` and `aria-current="page"` — unless you state it;
   `Match` + `MatchPrefix` keep an item current across a section. **`UiNavGroup`** is a heading over its items, or a
   `<details>` disclosure with `Expandable`, controlled with `Expanded`/`OnToggle`.
+- **`UiSidebarHeader`** and **`UiSidebarFooter`** hold their place while the navigation between them scrolls —
+  Flux's `sidebar.header` and `sidebar.footer`. The footer needs no `UiSpacer` in front of it: it pins itself, so
+  a nav list long enough to scroll scrolls *between* the two rather than pushing the account row off the bottom.
+- **`UiProfile`** is that account row: an avatar, a name, an optional caption, and — given children — the button
+  that opens the account menu, with the same keyboard contract `UiDropdown` has, because both are
+  **`UiMenuButton`** underneath. Without an `Avatar` it draws the **initials** of `Name`, since most accounts have
+  no picture and a broken image is worse than a monogram. Its menu opens upward by default, because the row sits
+  at the bottom of the sidebar.
+- **A docked sidebar can narrow to a rail of icons**, which is a different question from `Collapsible`:
+  `Collapsible` says at what width the sidebar stops being beside the page at all, `Collapsable(true)` keeps it
+  beside the page and takes the words away. **`UiSidebarCollapse`** is the control, a `<label>` for a second
+  checkbox — so it needs no runtime either — and it appears exactly where `UiSidebarToggle` disappears.
+  `Collapsed`/`OnCollapse` hand it to C#, which is what lets a page *remember* the choice across a full page
+  load. The words that go are marked `ui-rail-hide` by the components that own them, so a CSS rule never has to
+  guess which text is a label and which is content.
 - **`UiSpacer`** is `flex: 1`: it pushes what follows it to the far end of a row or a column.
 - **`UiDivider`** is Flux's separator: `Vertical`, `Subtle`, and `Align(UiAlign.Start|End)` for its words, a
   `separator` to assistive tech when it has none, and **no outer margin** — daisyUI's 1rem is zeroed, so the page

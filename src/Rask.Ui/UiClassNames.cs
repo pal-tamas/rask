@@ -694,6 +694,21 @@ internal static class UiClassNames
         _ => "lg:hidden",
     };
 
+    /// <remarks>
+    ///     The mirror of <see cref="HiddenFrom" />, for the collapse control: narrowing the sidebar to a rail only
+    ///     means anything once it is DOCKED, so the control is hidden until then. ONE class name, as every member
+    ///     here is — the call site pairs it with its own <c>hidden</c>, because a member returning two names would
+    ///     be a name built by concatenation in everything but spelling, which is what this file exists to avoid.
+    /// </remarks>
+    internal static string ShownFrom(UiBreakpoint value) => value switch
+    {
+        UiBreakpoint.Sm => "sm:inline-flex",
+        UiBreakpoint.Md => "md:inline-flex",
+        UiBreakpoint.Lg => "lg:inline-flex",
+        UiBreakpoint.Xl => "xl:inline-flex",
+        _ => "lg:inline-flex",
+    };
+
     internal static string SubheadingSize(UiSize value) => value switch
     {
         UiSize.Xs => "text-xs",

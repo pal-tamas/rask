@@ -16,6 +16,16 @@ public sealed partial class UiNavList : Component
     /// <summary>Row density, as on a menu.</summary>
     public UiSize? Size { get; set; }
 
+    /// <summary>
+    ///     Draws the current row as an outlined pill rather than a filled one — Flux UI's <c>outline</c> navlist.
+    /// </summary>
+    /// <remarks>
+    ///     For a navigation that sits on a coloured ground, where a filled current row disappears into it. The only
+    ///     variant daisyUI's menu has a rule for; the other <see cref="UiVariant" /> members would name classes
+    ///     that do not exist, so this is a flag rather than the shared axis.
+    /// </remarks>
+    public bool? Outline { get; set; }
+
     public string? Class { get; set; }
 
     /// <inheritdoc />
@@ -28,7 +38,10 @@ public sealed partial class UiNavList : Component
         }
 
         return nav[
-            Ul.Class(UiClass.Compose("menu w-full p-0", Size is { } size ? UiClassNames.MenuSize(size) : ""))[
+            Ul.Class(UiClass.Compose(
+                "menu w-full p-0",
+                Size is { } size ? UiClassNames.MenuSize(size) : "",
+                Outline == true ? "ui-navlist-outline" : ""))[
                 Children ?? []
             ]
         ];

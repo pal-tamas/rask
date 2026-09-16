@@ -38,7 +38,9 @@ public sealed partial class UiNavGroup : Component
         Component heading =
         [
             Icon is { } icon ? UiIcon.Name(icon).Class("size-4 shrink-0") : null!,
-            Span[Heading]
+            // ui-rail-hide: the heading goes when a collapsable sidebar is narrowed to its rail; an icon, if the
+            // group has one, is what is left to say which group this is.
+            Span.Class("ui-rail-hide")[Heading]
         ];
 
         if (Expandable != true)

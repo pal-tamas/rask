@@ -1124,3 +1124,111 @@
     }
   }
 }
+
+/*
+  The sidebar's icon-only RAIL (UiSidebar.Collapsable; UiSidebarCollapse).
+
+  A second checkbox beside the drawer's, so narrowing the sidebar needs no script and survives a prerendered
+  page — the same trade the drawer itself makes. What it hides is marked `ui-rail-hide` by the components that
+  own the words (UiNavItem's label and badge, UiBrand's wordmark, UiNavGroup's heading, UiProfile's name), so
+  the rule never has to guess which text is a label and which is content.
+
+  Keyed by `data-ui-rail` rather than a Tailwind variant, because the rail applies only while the sidebar is
+  DOCKED and no variant can say "while this drawer is open in the flow" — the breakpoint travels as a value and
+  the media query is written out per breakpoint, each one complete.
+
+  In `rask-ui-corrections`, which the browser places after `utilities`: the panel's width is the Tailwind
+  utility `w-64`, and a layer earlier than `utilities` cannot narrow it however specific the selector is.
+*/
+@layer rask-ui-corrections {
+  /*
+    Never seen, never a tab stop — the label is the control. Not `display: none`: a hidden-that-way checkbox is
+    removed from the box tree, and the sibling combinator the rules below rely on has nothing to select from in
+    some engines. The drawer's own toggle avoids it for the same reason.
+  */
+  .ui-sidebar-rail {
+    position: absolute;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  @media (min-width: 40rem) {
+    [data-ui-rail="sm"] .ui-sidebar-rail:checked ~ .drawer-side .ui-sidebar-panel {
+      width: 4.5rem;
+      padding-inline: 0.5rem;
+    }
+
+    [data-ui-rail="sm"] .ui-sidebar-rail:checked ~ .drawer-side .ui-rail-hide {
+      display: none;
+    }
+
+    [data-ui-rail="sm"] .ui-sidebar-rail:checked ~ .drawer-side .ui-rail-flip {
+      rotate: 180deg;
+    }
+  }
+
+  @media (min-width: 48rem) {
+    [data-ui-rail="md"] .ui-sidebar-rail:checked ~ .drawer-side .ui-sidebar-panel {
+      width: 4.5rem;
+      padding-inline: 0.5rem;
+    }
+
+    [data-ui-rail="md"] .ui-sidebar-rail:checked ~ .drawer-side .ui-rail-hide {
+      display: none;
+    }
+
+    [data-ui-rail="md"] .ui-sidebar-rail:checked ~ .drawer-side .ui-rail-flip {
+      rotate: 180deg;
+    }
+  }
+
+  @media (min-width: 64rem) {
+    [data-ui-rail="lg"] .ui-sidebar-rail:checked ~ .drawer-side .ui-sidebar-panel {
+      width: 4.5rem;
+      padding-inline: 0.5rem;
+    }
+
+    [data-ui-rail="lg"] .ui-sidebar-rail:checked ~ .drawer-side .ui-rail-hide {
+      display: none;
+    }
+
+    [data-ui-rail="lg"] .ui-sidebar-rail:checked ~ .drawer-side .ui-rail-flip {
+      rotate: 180deg;
+    }
+  }
+
+  @media (min-width: 80rem) {
+    [data-ui-rail="xl"] .ui-sidebar-rail:checked ~ .drawer-side .ui-sidebar-panel {
+      width: 4.5rem;
+      padding-inline: 0.5rem;
+    }
+
+    [data-ui-rail="xl"] .ui-sidebar-rail:checked ~ .drawer-side .ui-rail-hide {
+      display: none;
+    }
+
+    [data-ui-rail="xl"] .ui-sidebar-rail:checked ~ .drawer-side .ui-rail-flip {
+      rotate: 180deg;
+    }
+  }
+}
+
+/*
+  The outlined navlist (UiNavList.Outline) — Flux UI's `outline` variant.
+
+  daisyUI's `menu-active` fills the current row with the base content colour, which vanishes on a coloured
+  ground. This draws the row's outline instead and leaves the ground alone.
+
+  In `rask-ui-corrections` because daisyUI's own `.menu :where(li > *):is(.menu-active)` lives in `utilities`,
+  which outranks `rask` however specific a selector there is.
+*/
+@layer rask-ui-corrections {
+  .ui-navlist-outline :where(li > *).menu-active,
+  .ui-navlist-outline :where(li > *)[aria-current="page"] {
+    background-color: transparent;
+    color: inherit;
+    box-shadow: inset 0 0 0 1px currentcolor;
+  }
+}

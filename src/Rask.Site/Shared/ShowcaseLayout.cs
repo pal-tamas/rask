@@ -174,7 +174,9 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     // position:sticky child because sticky-in-flexbox is unreliable in Safari (the filter would scroll
     // away with the list), and this keeps it rock-solid across browsers with a clean hairline divider.
     private Component SidebarBody() => [
-        Div.Class("side-nav-search mb-1 flex-none border-b border-ui-line bg-ui-well pb-2")[
+        // UiSidebarHeader is the kit's own word for "holds its place while the list below scrolls", which is
+        // exactly what this is. It brings the shrink-0; the rest is this sidebar's own look.
+        UiSidebarHeader.Class("side-nav-search mb-1 block border-b border-ui-line bg-ui-well pb-2")[
             UiInput.Value(_filter).AccessibleLabel("Filter guides & examples…")
                 .OnInput(v => _filter = v ?? "")
                 .Placeholder("Filter guides & examples…").Class("side-nav-filter rounded-lg")

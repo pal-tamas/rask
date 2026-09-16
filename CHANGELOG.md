@@ -9,6 +9,18 @@ them until tagged releases begin.
 
 ### Added
 
+- **Rask UI's application layout gains the rest of Flux UI's.** New `UiProfile` — the sidebar's account row, with
+  an avatar, a name, a caption and, given children, the account menu; without a picture it draws the INITIALS of
+  the name, because most accounts have none. New `UiSidebarHeader` and `UiSidebarFooter`, which hold their place
+  while the navigation between them scrolls — the footer pins itself, so it needs no `UiSpacer` in front of it.
+  New `UiSidebarCollapse` and `UiSidebar.Collapsable`, Flux's icon-only rail for a DOCKED sidebar (a second
+  checkbox, so it works with no runtime), with `Collapsed`/`OnCollapse` to hand the choice to a page that wants to
+  remember it. `UiNavTab` gains `Icon`, `Badge`/`BadgeTone`, `Match`/`MatchPrefix`, and works `Active` out from the
+  route when it is unset — as `UiNavItem` already did. `UiBrand` gains `Logo` for a real image mark; `UiTopBar`
+  gains `Sticky` and `Class`; `UiMain` gains `Container` and `Class`; `UiNavList` gains `Outline`.
+- **`UiMenuButton`** is the popover-menu contract — the panel, the placement and the whole keyboard cursor —
+  shared by `UiDropdown` and `UiProfile`, so a second menu control cannot ship with half the arrows.
+
 - **Rask UI's select is Flux UI's combobox too, and the MODEL says which control it is.** `UiSelect` gains
   `Searchable` (a search box over the drawn list, matching case- and accent-insensitively in the visitor's own
   culture), `Filter` (what counts as a match, for searching a code as well as a name), `OnSearch` (hands the typing to

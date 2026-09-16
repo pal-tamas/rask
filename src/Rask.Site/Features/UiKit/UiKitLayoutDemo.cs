@@ -63,11 +63,16 @@ public sealed partial class UiKitLayoutDemo : Component
             "Application layout — sidebar, navigation, separator, spacer, type",
             "Flux UI's layout pieces. The sidebar beside these docs IS UiSidebar: docked from md up, a drawer "
             + "behind the hamburger below it, with no runtime needed to open it. The current item says so with "
-            + "aria-current, worked out from the route. A separator carries no margin — the page spaces it — and a "
-            + "spacer pushes what follows it to the far end of its row.",
+            + "aria-current, worked out from the route. UiSidebarHeader and UiSidebarFooter hold their place "
+            + "while the navigation between them scrolls, and UiProfile is the account row — with the same "
+            + "keyboard menu a dropdown has, and a monogram when there is no picture. A separator carries no "
+            + "margin — the page spaces it — and a spacer pushes what follows it to the far end of its row.",
             Div.Data(Testid("ui-app-layout")).Class("grid gap-6 md:grid-cols-[16rem_1fr]")[
-                Div.Class("rounded-xl border border-base-300 p-3")[
-                    UiNavList.AccessibleLabel("Demo")[
+                Div.Class("flex h-80 flex-col rounded-xl border border-base-300 p-3")[
+                    UiSidebarHeader.Key("head").Class("mb-2 border-b border-base-300 pb-2")[
+                        UiBrand.Key("brand").Label("Rask").Href(PageMeta.LinkTo(Routes.UiKitLayoutPage()))
+                    ],
+                    UiNavList.Key("nav").AccessibleLabel("Demo")[
                         UiNavItem.Key("layout").Label("Layout").Href(PageMeta.LinkTo(Routes.UiKitLayoutPage()))
                             .Icon(UiIconName.Book),
                         UiNavItem.Key("actions").Label("Actions").Href(PageMeta.LinkTo(Routes.UiKitActionsPage()))
@@ -77,6 +82,15 @@ public sealed partial class UiKitLayoutDemo : Component
                                 .Href(PageMeta.LinkTo(Routes.UiKitFeedbackPage())),
                             UiNavItem.Key("navigation").Label("Navigation")
                                 .Href(PageMeta.LinkTo(Routes.UiKitNavigationPage()))
+                        ]
+                    ],
+                    // No UiSpacer in front of it: the footer pins itself, so a nav list long enough to scroll
+                    // scrolls between the header and this rather than pushing the account row off the bottom.
+                    UiSidebarFooter.Key("foot")[
+                        UiProfile.Key("me").Name("Ada Lovelace").Caption("ada@example.com")[
+                            UiMenuItem.Key("settings").Text("Settings").Icon(UiIconName.Gear),
+                            UiMenuSeparator.Key("sep"),
+                            UiMenuItem.Key("out").Text("Sign out").Tone(UiTone.Error)
                         ]
                     ]
                 ],
