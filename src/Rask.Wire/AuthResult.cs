@@ -72,6 +72,16 @@ public enum AuthError
     /// one that worked, and the person waiting for the email has no way to tell.
     /// </remarks>
     MailNotConfigured = 10,
+
+    /// <summary>
+    /// A passkey ceremony did not verify, or the passkey is not one this account can use.
+    /// </summary>
+    /// <remarks>
+    /// Only ever returned to somebody already signed in — adding or removing a passkey — so it may carry a message
+    /// saying which it was. A passkey <em>sign-in</em> that fails answers <see cref="InvalidCredentials" /> like a
+    /// wrong password, because anyone can reach that endpoint.
+    /// </remarks>
+    PasskeyRejected = 12,
 }
 
 /// <summary>The outcome of a register or sign-in attempt.</summary>

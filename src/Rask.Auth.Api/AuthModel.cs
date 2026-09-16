@@ -67,6 +67,28 @@ public static class AuthModelBuilderExtensions
             b.Property(s => s.UserAgent).HasMaxLength(Session.UserAgentLength);
         });
 
+        modelBuilder.Entity<Passkey>(b =>
+        {
+            b.ToTable("RaskAuthPasskey");
+            b.HasIndex(p => p.UserId);
+
+            // Unique, because a credential id is how an assertion finds its account: two rows claiming one id would make
+            // "whose passkey is this?" a question with two answers.
+            // Bounded because a unique index needs a bounded column on SQL Server, and because nothing legitimate is
+            // larger: 1023 bytes is WebAuthn's own ceiling for a credential id.
+            b.Property(p => p.CredentialId).HasMaxLength(Passkey.CredentialIdLength).IsRequired();
+            b.Property(p => p.PublicKey).HasMaxLength(Passkey.PublicKeyLength).IsRequired();
+
+            // Named explicitly because they are internal, and EF maps only public properties by convention. Leaving
+            // the counter unmapped would have read back as zero on every sign-in, which is clone detection switched
+            // off without anything saying so.
+            b.Property(p => p.Algorithm);
+            b.Property(p => p.SignCount);
+            b.HasIndex(p => p.CredentialId).IsUnique();
+            b.Property(p => p.Name).HasMaxLength(Passkey.NameLength).IsRequired();
+            b.Property(p => p.Transports).HasMaxLength(Passkey.TransportsLength);
+        });
+
         // The one row that makes "the first account is the administrator" a database guarantee.
         modelBuilder.ApplyConfiguration(new AuthInstanceClaimConfiguration());
 

@@ -1,3 +1,4 @@
+using System.Buffers.Text;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -145,6 +146,121 @@ public sealed class AuthEndpointTests
 
         var me = await client.GetAsync("/api/auth/me");
         Assert.Equal(HttpStatusCode.NoContent, me.StatusCode);
+    }
+
+    /// <summary>The whole passkey round-trip over HTTP: options, register, sign out, options, sign in.</summary>
+    /// <remarks>
+    /// The part that only exists over HTTP is the point of testing it here: the options endpoints need the session
+    /// cookie and the CSRF header, and the sign-in has to end on a cookie that the NEXT request is accepted with.
+    /// </remarks>
+    [Fact]
+    public async Task A_passkey_registers_over_http_and_then_signs_somebody_in()
+    {
+        using var app = new EndpointApp();
+        using var client = app.Client();
+
+        var registered = await Post(client, "/api/auth/register", new
+        {
+            email = "owner@example.com",
+            password = Password,
+            firstRunToken = Token,
+        });
+
+        var userId = (await registered.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
+
+        var options = await Post(client, "/api/auth/passkeys/register-options", null);
+        Assert.Equal(HttpStatusCode.OK, options.StatusCode);
+
+        var challenge = await options.Content.ReadFromJsonAsync<JsonElement>();
+        var relyingPartyId = challenge.GetProperty("relyingPartyId").GetString()!;
+        var origin = "https://" + relyingPartyId;
+
+        using var authenticator = new TestAuthenticator();
+        var credential = authenticator.Register(
+            relyingPartyId,
+            origin,
+            Base64Url.DecodeFromChars(challenge.GetProperty("challenge").GetString()!),
+            challenge.GetProperty("state").GetString()!,
+            "Test key");
+
+        var added = await Post(client, "/api/auth/passkeys/register", new
+        {
+            state = credential.State,
+            name = credential.Name,
+            rawId = credential.RawId,
+            clientDataJson = credential.ClientDataJson,
+            attestationObject = credential.AttestationObject,
+            transports = credential.Transports,
+        });
+
+        Assert.Equal(HttpStatusCode.NoContent, added.StatusCode);
+
+        await Post(client, "/api/auth/logout", null);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.GetAsync("/api/auth/me")).StatusCode);
+
+        var loginOptions = await Post(client, "/api/auth/passkeys/login-options", null);
+        Assert.Equal(HttpStatusCode.OK, loginOptions.StatusCode);
+
+        var loginChallenge = await loginOptions.Content.ReadFromJsonAsync<JsonElement>();
+        authenticator.SignCount = 1;
+
+        var assertion = authenticator.SignIn(
+            relyingPartyId,
+            origin,
+            Base64Url.DecodeFromChars(loginChallenge.GetProperty("challenge").GetString()!),
+            Guid.Parse(userId),
+            loginChallenge.GetProperty("state").GetString()!);
+
+        var signedIn = await Post(client, "/api/auth/passkeys/login", new
+        {
+            state = assertion.State,
+            rawId = assertion.RawId,
+            clientDataJson = assertion.ClientDataJson,
+            authenticatorData = assertion.AuthenticatorData,
+            signature = assertion.Signature,
+            userHandle = assertion.UserHandle,
+            remember = true,
+        });
+
+        Assert.Equal(HttpStatusCode.OK, signedIn.StatusCode);
+        Assert.Equal(
+            "owner@example.com",
+            (await signedIn.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("email").GetString());
+
+        // The cookie the sign-in set is what the next request is accepted with, exactly as for a password.
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/auth/me")).StatusCode);
+
+        // And it started a session row, so the passkey sign-in shows up on the device list like any other.
+        await using var db = app.NewContext();
+        Assert.True(await db.Set<Session>().AnyAsync(session => session.UserId == Guid.Parse(userId)));
+    }
+
+    [Fact]
+    public async Task Adding_a_passkey_needs_a_session()
+    {
+        using var app = new EndpointApp();
+        using var client = app.Client();
+
+        Assert.Equal(
+            HttpStatusCode.Unauthorized,
+            (await Post(client, "/api/auth/passkeys/register-options", null)).StatusCode);
+
+        Assert.Equal(
+            HttpStatusCode.Unauthorized,
+            (await Post(client, "/api/auth/passkeys/remove", new { id = Guid.NewGuid().ToString() })).StatusCode);
+    }
+
+    /// <summary>Anonymous, because signing in is what it is for — but still behind the CSRF header.</summary>
+    [Fact]
+    public async Task Passkey_sign_in_options_are_anonymous_but_need_the_header()
+    {
+        using var app = new EndpointApp();
+        using var client = app.Client();
+
+        Assert.Equal(HttpStatusCode.OK, (await Post(client, "/api/auth/passkeys/login-options", null)).StatusCode);
+
+        using var bare = new HttpRequestMessage(HttpMethod.Post, "/api/auth/passkeys/login-options");
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.SendAsync(bare)).StatusCode);
     }
 
     private static async Task<HttpResponseMessage> Post(HttpClient client, string path, object? body)
