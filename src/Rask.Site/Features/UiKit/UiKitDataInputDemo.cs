@@ -21,6 +21,9 @@ public sealed partial class UiKitDataInputDemo : Component
     private string? _framework;
     private string? _home;
     private readonly List<string> _packages = ["core", "ui"];
+    private string _plan = "pro";
+    private string _density = "cosy";
+    private List<string> _topics = ["releases"];
     private double _volume = 40;
     private int _stars = 4;
     private DateOnly _month = DateOnly.FromDateTime(DateTime.Today);
@@ -146,6 +149,46 @@ public sealed partial class UiKitDataInputDemo : Component
                     _packages.Count == 0
                         ? "Nothing chosen."
                         : $"Chosen: {string.Join(", ", _packages)}."
+                ]
+            ]),
+
+        Section(
+            "Choice lists — a whole set as one field",
+            "A radio group binds the GROUP's value and a checkbox group binds the collection your model "
+            + "declares, so each is one field rather than one per option. Layout is Flux's set of looks: a "
+            + "list, cards with room for a description, pills, buttons, or one segmented strip. Every one of "
+            + "them keeps a real input inside its label — a card and a pill look like buttons, and a button "
+            + "is the one thing a choice must not be, because the grouping, the arrow keys, the space bar "
+            + "and the form post all come from the input being there.",
+            Div.Data(Testid("ui-choice-lists")).Class("grid gap-5 lg:grid-cols-2")[
+                UiRadioGroup.Value(_plan).Key("plan")
+                    .Options([("free", "Free"), ("pro", "Pro"), ("team", "Team")])
+                    .Label("Plan")
+                    .Layout(UiChoiceLayout.Cards)
+                    .OptionDescription(v => v switch
+                    {
+                        "pro" => "Everything, billed monthly.",
+                        "team" => "Seats, roles and shared billing.",
+                        _ => "For trying it out."
+                    })
+                    .OnChange(v => { _plan = v; }),
+                Div.Class("flex flex-col gap-5")[
+                    UiRadioGroup.Value(_density).Key("density")
+                        .Options([("cosy", "Cosy"), ("compact", "Compact")])
+                        .Label("Density")
+                        .Layout(UiChoiceLayout.Segmented)
+                        .OnChange(v => { _density = v; }),
+                    UiCheckboxGroup.Values(_topics).Key("topics")
+                        .Options([("news", "News"), ("releases", "Releases"), ("jobs", "Jobs")])
+                        .Label("Email me about")
+                        .Layout(UiChoiceLayout.Pills)
+                        .CheckAll(true)
+                        .OnChange(v => { _topics = [.. v]; }),
+                    P.Class("text-sm text-ui-muted").Data(Testid("ui-choice-state"))[
+                        _topics.Count == 0
+                            ? $"{_plan}, {_density}, nothing subscribed."
+                            : $"{_plan}, {_density}, {string.Join(", ", _topics)}."
+                    ]
                 ]
             ]),
 

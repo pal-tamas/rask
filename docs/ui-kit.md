@@ -576,7 +576,31 @@ these implies the drawn list, because a `<select>` has nowhere to put them.
 A short list needs none of it: the drawn list already has **type-ahead**, where a letter jumps to the
 next option starting with it, which is what a native select does.
 
-Both controls take an `OptionTemplate` for rows that need more than words. Setting one implies the
+**A whole set of choices is one field too.** `UiRadioGroup<T>` binds the group's value and
+`UiCheckboxGroup<T>` binds the collection your model declares — one field, not one per option, which is what
+a bare `UiRadio` (bound to its own `bool`) could never give a form.
+
+```csharp
+UiRadioGroup.Bind(() => _account.Plan).Options(plans).Label("Plan")
+    .Layout(UiChoiceLayout.Cards)
+    .OptionDescription(v => v == "pro" ? "Everything, billed monthly" : null)
+
+UiCheckboxGroup.Bind(() => _account.Topics).Options(topics).Label("Email me about").CheckAll(true)
+```
+
+`Layout` is Flux's set of looks — `List`, `Cards`, `Pills`, `Buttons`, `Segmented`. It is not called
+`Variant` because every field already has one (`UiVariant`: Solid, Outline, Ghost…) and two properties of
+that name meaning different things on one control is worse than one with a plainer name.
+
+**Every layout keeps a real `<input>` inside its label.** A card, a pill and a segment look like buttons, and
+a button is the one thing a choice must not be: the browser's own grouping, the arrow keys inside a radio
+group, the space bar, the form post and every assistive technology all come from the input being there. The
+look is `has-[:checked]:` rules on the label around it — CSS reading the input's own state, with nothing to
+keep in sync. Where the whole label is the affordance the box is `sr-only`, never `hidden`, which would take
+it out of the tab order too. `CheckAll` reports `aria-checked="mixed"` while only some of the list is in,
+rather than claiming "all" over a half-filled one.
+
+Both selects take an `OptionTemplate` for rows that need more than words. Setting one implies the
 drawn list, because an `<option>` holds text and nothing else — writing `Native(true)` beside a
 template is [RASK075](diagnostics.md#rask075).
 

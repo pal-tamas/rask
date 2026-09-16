@@ -28,6 +28,13 @@ them until tagged releases begin.
   remember it. `UiNavTab` gains `Icon`, `Badge`/`BadgeTone`, `Match`/`MatchPrefix`, and works `Active` out from the
   route when it is unset — as `UiNavItem` already did. `UiBrand` gains `Logo` for a real image mark; `UiTopBar`
   gains `Sticky` and `Class`; `UiMain` gains `Container` and `Class`; `UiNavList` gains `Outline`.
+- **Rask UI gets Flux UI's checkbox and radio LISTS.** New `UiRadioGroup<T>`, which binds the group's value, and
+  `UiCheckboxGroup<T>`, which binds the collection your model declares (with `CheckAll`, reporting
+  `aria-checked="mixed"` over a half-filled list rather than claiming "all"). Both take `Layout`
+  (`UiChoiceLayout.List|Cards|Pills|Buttons|Segmented`), `OptionDescription` and `OptionDisabled`. Every layout
+  keeps a real `<input>` inside its label — the card and pill looks are `has-[:checked]:` rules reading the
+  input's own state — so the browser's grouping, the arrow keys, the space bar and the form post are the
+  platform's rather than reimplemented on buttons.
 - **`UiMenuButton`** is the popover-menu contract — the panel, the placement and the whole keyboard cursor —
   shared by `UiDropdown` and `UiProfile`, so a second menu control cannot ship with half the arrows.
 - **`rask new` scaffolds a `global.json`, so an app is compiled by an SDK of its own major.** With no pin the
