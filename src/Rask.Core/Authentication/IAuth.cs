@@ -103,4 +103,49 @@ public interface IAuth
     /// <param name="userId">The account id the link carried.</param>
     /// <param name="token">The confirmation token the link carried.</param>
     Task<AuthResult> ConfirmEmailAsync(string userId, string token);
+
+    /// <summary>
+    /// Adds a passkey to the signed-in account: Touch ID, Windows Hello, a phone, or a security key.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Runs the whole ceremony — the browser prompts, the authenticator signs, the server verifies and stores the
+    /// public key. <b>Call it from a click handler</b>: browsers only show the passkey dialog for a real gesture, and
+    /// a visitor who dismisses it gets <see cref="AuthError.PasskeyRejected" /> rather than an exception.
+    /// </para>
+    /// <para>
+    /// A passkey is an extra way in, never a replacement: the account keeps its password, and
+    /// <see cref="RemovePasskeyAsync" /> takes one away again.
+    /// </para>
+    /// <example>
+    /// <code>
+    /// Button.OnClick(() => auth.AddPasskeyAsync("MacBook"))["Add a passkey"]
+    /// </code>
+    /// </example>
+    /// </remarks>
+    /// <param name="name">What to call it in the account's device list. Defaults to "Passkey".</param>
+    /// <exception cref="NotSupportedException">The host cannot run a passkey ceremony.</exception>
+    Task<AuthResult> AddPasskeyAsync(string? name = null) =>
+        throw new NotSupportedException(
+            "This host cannot run a passkey ceremony. Passkeys need a browser: use the Server or WebAssembly host.");
+
+    /// <summary>Signs in with a passkey, with no email and no password typed.</summary>
+    /// <remarks>
+    /// Discoverable: the authenticator offers whichever accounts it holds for this site, so nothing identifies the
+    /// visitor beforehand. <b>Call it from a click handler.</b> The session it starts is the same session a password
+    /// sign-in starts, and shows up on the device list beside the others.
+    /// </remarks>
+    /// <param name="remember">Whether the session should outlive the browser session.</param>
+    /// <param name="returnUrl">Where to land afterwards. Sanitized to a local URL before it is used.</param>
+    /// <exception cref="NotSupportedException">The host cannot run a passkey ceremony.</exception>
+    Task<AuthResult> SignInWithPasskeyAsync(bool remember = false, string? returnUrl = null) =>
+        throw new NotSupportedException(
+            "This host cannot run a passkey ceremony. Passkeys need a browser: use the Server or WebAssembly host.");
+
+    /// <summary>Removes one of the signed-in account's passkeys. It stops signing anybody in at once.</summary>
+    /// <param name="id">The passkey's id.</param>
+    /// <exception cref="NotSupportedException">The host cannot run a passkey ceremony.</exception>
+    Task<AuthResult> RemovePasskeyAsync(Guid id) =>
+        throw new NotSupportedException(
+            "This host cannot run a passkey ceremony. Passkeys need a browser: use the Server or WebAssembly host.");
 }
