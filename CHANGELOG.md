@@ -77,6 +77,17 @@ them until tagged releases begin.
 - **A component joined onto another's chain entry no longer steals its `Of<T>()`.** Two components sharing an entry
   emit the same parameterless explicit-type opening, and whichever the generator happened to sort second silently
   decided what `Entry.Of<T>()` built. The entry's namesake owns it now.
+- **`rask dev` opens the `https://<name>.test` name it just set up, instead of a URL the certificate rejects.** The
+  server template shipped `"launchBrowser": true`, so `dotnet watch` — which honours that itself, and which neither
+  .NET 10 nor 11 lets you suppress from the environment — opened the launch profile's `https://localhost:5001` and
+  Rask stood down. That tab hit a certificate issued for the `.test` name alone, so the browser refused it on a name
+  mismatch: the flagship dev-host feature ended in an interstitial. The template now leaves the browser to `rask dev`,
+  which opens the name without waiting for `--open` (still opt-in on a plain localhost run, still off under
+  `--no-open`), and an older project whose profile keeps `launchBrowser` gets told why it lands somewhere else.
+- **The dev certificate covers `localhost`, `127.0.0.1` and `::1` as well as its `.test` name.** Kestrel binds
+  loopback, so a bookmark, an IDE's run button, `--no-host` or an older scaffold's launch profile all reach the same
+  app — and every one of them used to hit a name-mismatch warning on a page that *is* the app. Certificates issued
+  before this are re-minted on the next run rather than matching their own name forever and never being replaced.
 ### Fixed
 
 - **The installer no longer ends by suggesting a command that fails.** `curl -sSL https://rask.sh/rask.sh | sh`

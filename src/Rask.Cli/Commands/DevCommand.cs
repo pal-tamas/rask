@@ -74,7 +74,7 @@ internal sealed class DevCommand(
             // so `rask dev -o ./somewhere` silently took the path as a positional instead of rejecting
             // it. A short that is a value on four commands and a boolean on a fifth is the one collision
             // that fails quietly rather than loudly (#601).
-            .Flag("open", description: "Open the app in your browser once it is listening.")
+            .Flag("open", description: "Open the app in your browser once it is listening (implied on a .test name).")
             .Flag("no-open", description: "Never open a browser.")
             .Flag("no-hot-reload", description: "Restart on change instead of applying edits live (still watches).")
             .Flag("no-restart", description: "Ask before restarting on an edit hot reload can't apply.")
@@ -536,21 +536,36 @@ internal sealed class DevCommand(
         return await setup.TryPrepareAsync(target.Name, !nonInteractive, cancellationToken).ConfigureAwait(false);
     }
 
-    // Which URL, if any, we should open ourselves. Null when nobody should, or when watch is already
-    // going to: the profile's own launchBrowser is honoured by dotnet watch and .NET 10 has no
-    // environment variable to suppress it, so opening as well would just produce two tabs.
-    private string? ResolveBrowserOpen(DevTarget target, bool open, bool noOpen, string? urls, string? devHostUrl = null)
+    // Which URL, if any, we should open ourselves. Null when nobody should, and null when watch is
+    // already going to — the two reasons are spelled out at the branches below.
+    internal string? ResolveBrowserOpen(DevTarget target, bool open, bool noOpen, string? urls, string? devHostUrl = null)
     {
-        if (noOpen || !open)
+        if (noOpen)
+        {
+            return null;
+        }
+
+        // A dev host opens without being asked. `--open` is opt-in on a plain localhost run because the
+        // URL there is a guess — a port out of a launch profile that may not be the one you want. The
+        // `.test` name is not a guess: we set the machine up for it, we issued the certificate that
+        // covers it, and nothing else on the machine answers to it. Making you pass a flag to reach the
+        // address the command just spent a password configuring is the wrong default.
+        if (!open && devHostUrl is null)
         {
             return null;
         }
 
         if (target.ProfileLaunchesBrowser)
         {
+            // dotnet watch honours launchBrowser itself and neither .NET 10 nor 11 ships an environment
+            // variable to suppress it (only DOTNET_WATCH_SUPPRESS_EMOJIS), so opening as well is the one
+            // thing we must not do — it would produce two tabs every single run.
             Console.WriteLine(
-                "launchSettings.json already opens a browser for this profile — skipping --open. " +
-                "Set \"launchBrowser\": false there to change that.",
+                devHostUrl is null
+                    ? "launchSettings.json already opens a browser for this profile — skipping --open. " +
+                      "Set \"launchBrowser\": false there to change that."
+                    : $"launchSettings.json opens this profile's own URL, so {devHostUrl} is not what you will land on. " +
+                      "Set \"launchBrowser\": false there to open the name instead.",
                 ConsoleStyle.Dim);
             return null;
         }
