@@ -469,8 +469,9 @@ network, or the host — is `1`.
 ## `rask dev` — run with hot reload
 
 ```bash
-rask dev                             # find the project, run it under dotnet watch
-rask dev --open                      # …and open a browser once it's listening
+rask dev                             # find the project, run it, open https://<name>.test
+rask dev --no-open                   # …without the browser
+rask dev --open                      # open a browser even on a plain localhost run
 rask dev --project src/MyApp/MyApp.csproj
 rask dev --urls http://localhost:5005
 rask dev -- --my-app-flag            # everything after -- goes to the app
@@ -511,6 +512,14 @@ An app called `AppName` is served on **`https://appname.test`** — a real name,
 Nothing to install and nothing to configure: the name comes from the project, and `rask dev` sets the
 machine up the first time you run it. macOS, Windows and Linux.
 
+**`rask dev` opens it for you.** Not behind `--open`: that flag is opt-in on a plain localhost run
+because the URL there is a guess out of a launch profile, while the `.test` name is one the command just
+configured the machine for and issued a certificate covering. `--no-open` still stops it. The one case
+it stands down is a `launchSettings.json` whose profile sets `"launchBrowser": true` — `dotnet watch`
+honours that itself and no environment variable suppresses it, so opening as well would give you two
+tabs every run. The scaffolded templates set it to `false` for exactly this reason; an older project
+that still has it `true` opens the profile's `https://localhost:PORT` instead, and `rask dev` says so.
+
 The first run asks for permission once, showing exactly what it will change:
 
 ```text
@@ -539,6 +548,12 @@ cookie behaves in development the way it will in production, and there is nothin
 the app unencrypted. `dotnet dev-certs https` cannot provide this — it has no hostname option of any
 kind and only ever mints `CN=localhost` — so Rask issues the certificate itself from its own local
 authority, using .NET's X.509 stack rather than an installed `openssl` or `mkcert`.
+
+The certificate covers the name, `*.appname.test` beneath it, and **the loopback names too** —
+`localhost`, `127.0.0.1` and `::1`. Kestrel binds loopback, so those reach the very same app, and a
+certificate that covered only the name turned every other way in — an older scaffold's launch profile, a
+bookmark, an IDE's run button, `--no-host` — into a name-mismatch interstitial on a page that *is* your
+app. A certificate issued before this covered the name alone, so `rask dev` re-mints it on the next run.
 
 Everything it stores lives in `~/.rask/certs`, with private keys readable only by you.
 
@@ -599,7 +614,7 @@ localhost URL that does work.
 | `--project`, `-p` | Project to run. Accepts a `.csproj` or a directory. |
 | `--urls` | URLs to listen on (sets `ASPNETCORE_URLS`). |
 | `--launch-profile` | launchSettings profile to use. |
-| `--open` | Open a browser once the app answers. Skipped if the launch profile already opens one. |
+| `--open` | Open a browser once the app answers. Implied when the app is on its `.test` name. Skipped if the launch profile already opens one. |
 | `--no-open` | Never open a browser. |
 | `--no-hot-reload` | Keep watching, but restart on change instead of applying live. |
 | `--no-restart` | Ask before restarting on an edit hot reload can't apply. |

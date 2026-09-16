@@ -9,7 +9,7 @@ and scannable. For the prose reference see [the `rask` CLI](cli.md); to learn it
 ```bash
 # scaffold & run
 rask new Shop                        # new app: the whole stack, accounts included
-rask dev                              # dotnet watch run — hot reload (--open for a browser)
+rask dev                              # dotnet watch run — hot reload, opens https://<name>.test
 rask info                             # what rask sees: project, packages, versions
 
 # database (wraps dotnet-ef; installs it on first use)

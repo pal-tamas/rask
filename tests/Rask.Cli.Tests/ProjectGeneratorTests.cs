@@ -456,6 +456,21 @@ public sealed class ProjectGeneratorTests
         }
     }
 
+    [Fact]
+    public void The_server_template_leaves_the_browser_to_rask()
+    {
+        // The template and `rask dev`'s open default are one change (#1099). dotnet watch honours
+        // launchBrowser itself and cannot be suppressed from the environment, so leaving this true hands
+        // watch the browser and every run lands on the profile's https://localhost:5001 — not the
+        // https://appname.test the command just configured, and not what the certificate is issued for.
+        var (files, _) = Generate();
+
+        using var document = JsonDocument.Parse(files["Properties/launchSettings.json"]);
+        var profile = document.RootElement.GetProperty("profiles").EnumerateObject().First().Value;
+
+        Assert.False(profile.GetProperty("launchBrowser").GetBoolean());
+    }
+
     private static (Dictionary<string, string> Files, ScaffoldResult Result) Generate(
         bool pwa = false, bool cqrs = false, bool docker = false, bool data = false)
     {
