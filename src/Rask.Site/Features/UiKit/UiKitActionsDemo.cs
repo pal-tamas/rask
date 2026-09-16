@@ -18,6 +18,7 @@ public sealed partial class UiKitActionsDemo : Component
     private string _lastAction = "nothing yet";
     private int _saves;
     private string _sort = "name";
+    private List<string> _filters = ["open"];
     private bool _showArchived;
     private int _steps;
 
@@ -106,6 +107,24 @@ public sealed partial class UiKitActionsDemo : Component
                     UiMenuCheckbox.Key("archived").Value(_showArchived).Text("Show archived")
                         .OnChange(on => { _showArchived = on; _lastAction = on ? "showing archived" : "hiding archived"; }),
                     UiMenuItem.Key("export").Text("Export").Disabled(true)
+                ]
+            ]),
+
+        Section(
+            "Popover — a panel, not a menu",
+            "The gap a dropdown leaves. A dropdown IS a menu: its children are rows you pick from, it says "
+            + "role=menu and it walks a cursor over them with the arrow keys. A filter panel is none of those, "
+            + "and putting one in a menu tells a screen reader it is a list of commands and traps the arrows "
+            + "inside it. Same machinery, no menu semantics — a [popover] the browser lifts, dismisses on "
+            + "Escape and on a click outside, placed with the same Position and Align everything else uses.",
+            Div.Data(Testid("ui-popover"))[
+                UiPopover.Trigger("Filters").Icon(UiIconName.Gear).Align(UiAlign.Start)
+                    .PanelClass("w-72")[
+                    UiHeading.Key("h").Level(3).Size(UiSize.Sm).Class("mb-2")["Narrow the list"],
+                    UiCheckboxGroup.Values(_filters).Key("f")
+                        .Options([("open", "Open"), ("mine", "Assigned to me"), ("old", "Older than a week")])
+                        .Label("Show")
+                        .OnChange(v => { _filters = [.. v]; })
                 ]
             ]),
 

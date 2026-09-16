@@ -81,10 +81,15 @@ public sealed partial class UiKitFeedbackDemo : Component
 
         Section(
             "Skeleton",
-            "The shape of what is coming, so the layout does not jump when it arrives.",
-            Div.Data(Testid("ui-skeleton")).Class("max-w-sm space-y-2")[
-                UiSkeleton.Key("a").Class("h-4 w-3/4"),
-                UiSkeleton.Key("b").Class("h-4 w-full"),
+            "The shape of what is coming, so the layout does not jump when it arrives. Lines draws a "
+            + "paragraph — the last one short, because a stack of equal bars reads as a table — and Circle is "
+            + "the one an avatar leaves behind. It is aria-hidden throughout: a row of empty boxes read aloud "
+            + "is worse than silence.",
+            Div.Data(Testid("ui-skeleton")).Class("max-w-sm space-y-3")[
+                Div.Class("flex items-center gap-3")[
+                    UiSkeleton.Key("av").Circle(true).Class("size-10"),
+                    Div.Class("grow")[UiSkeleton.Key("lines").Lines(2)]
+                ],
                 UiSkeleton.Key("c").Class("h-24 w-full")
             ]),
 

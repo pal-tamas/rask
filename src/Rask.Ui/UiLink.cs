@@ -33,6 +33,24 @@ public sealed partial class UiLink : Component
     /// <summary>Underlines on hover. Default true.</summary>
     public bool? Underline { get; set; }
 
+    /// <summary>
+    ///     Marks a link that leaves the site: it opens in a new tab and says so.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     Flux UI's <c>external</c>. Three things together, because any one of them alone is worse than none:
+    ///     <c>target="_blank"</c> to open it away from the page, <c>rel="noopener noreferrer"</c> because a new
+    ///     tab opened without it can reach back through <c>window.opener</c>, and a small mark with a
+    ///     screen-reader-only "(opens in a new tab)" — a tab that opens unannounced takes the back button away
+    ///     from a reader who did not ask for it.
+    ///     </para>
+    ///     <para>
+    ///     For a <c>RouteUrl</c> that is a plain string. A generated route is one of your own pages and is not
+    ///     external by definition, so this is ignored there rather than opening your own app in a second tab.
+    ///     </para>
+    /// </remarks>
+    public bool? External { get; set; }
+
     public string? Class { get; set; }
 
     /// <inheritdoc />
@@ -42,11 +60,26 @@ public sealed partial class UiLink : Component
             "link",
             Underline == false ? "" : "link-hover",
             Tone is { } tone ? UiClassNames.LinkTone(tone) : "",
+            External == true && Href.PageType is null ? "inline-flex items-center gap-1" : "",
             Class);
 
-        return Href.PageType is null
-            ? A.Href(Href.ToString()).Class(classes)[Text]
+        if (Href.PageType is not null)
+        {
             // No active class: a link in running text has no "you are here" state to show.
-            : NavLink.Href(Href).ActiveClass("").Class(classes)[Text];
+            return NavLink.Href(Href).ActiveClass("").Class(classes)[Text];
+        }
+
+        var anchor = A.Href(Href.ToString()).Class(classes);
+        if (External != true)
+        {
+            return anchor[Text];
+        }
+
+        return anchor.Target("_blank").Rel("noopener noreferrer")[
+            Text,
+            // UiIcon is aria-hidden throughout, so the mark is decoration and the words below carry the meaning.
+            UiIcon.Name(UiIconName.ExternalLink).Class("size-3.5 shrink-0"),
+            Span.Class("sr-only")[" (opens in a new tab)"]
+        ];
     }
 }

@@ -684,6 +684,18 @@ internal static class UiClassNames
         _ => "lg:drawer-open",
     };
 
+    /// <remarks>
+    ///     Tailwind's own resize utilities, one complete literal per member — <c>"resize-" + value</c> is invisible
+    ///     to the scan, and a textarea that asked for a fixed size would silently keep its handle.
+    /// </remarks>
+    internal static string Resize(UiResize value) => value switch
+    {
+        UiResize.Horizontal => "resize-x",
+        UiResize.Both => "resize",
+        UiResize.None => "resize-none",
+        _ => "resize-y",
+    };
+
     /// <remarks>The toggle is only needed while the sidebar slides over the page, so it hides where the sidebar docks.</remarks>
     internal static string HiddenFrom(UiBreakpoint value) => value switch
     {

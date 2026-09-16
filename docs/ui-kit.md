@@ -647,6 +647,27 @@ Form.Model(_order)[
 ]
 ```
 
+**`UiPopover` is a panel, not a menu.** `UiDropdown` IS a menu — its children are rows you pick from, it says
+`role="menu"` and it walks a keyboard cursor over them. A filter panel, a colour picker or a bubble of help is
+none of those, and putting one in a menu tells a screen reader it is a list of commands and traps the arrow
+keys inside it. `UiPopover` is the same machinery — a `[popover]` the browser lifts into the top layer and
+dismisses on Escape and on a click outside, placed with the same `Position`/`Align` — with `role="dialog"` and
+ordinary Tab movement inside.
+
+**`UiTextarea` grows, or does not.** `Resize` says which way the handle drags (`None` for a box in a layout the
+extra height would break), and `AutoSize` grows the box to fit what is typed. That one is CSS —
+`field-sizing: content` — so it needs no runtime and works on a prerendered page; where an engine has not
+shipped it the box keeps its `Rows` and scrolls, which is what it does today, so the feature degrades to the
+current behaviour rather than to a broken one.
+
+**`UiLink.External` opens away and says so.** `target="_blank"`, `rel="noopener noreferrer"` (a new tab opened
+without it can reach back through `window.opener`), a small mark and a screen-reader-only "opens in a new
+tab" — all three, because any one alone is worse than none. A generated route is one of your own pages and is
+never external, so it is ignored there.
+
+**`UiSkeleton` has shapes.** `Lines(3)` draws a paragraph with the last line short, because a stack of equal
+bars reads as a table; `Circle` is what an avatar leaves behind. It stays `aria-hidden` throughout.
+
 **A text field's box can hold more than what is typed.** `UiInput` takes `Icon` and `IconTrailing`, a `Kbd`
 for the shortcut that focuses it, and `Clearable` for a button that empties it — Flux's input affordances.
 Any of them turns the box into a container around a bare `<input>`, which is daisyUI's own icon-input shape,

@@ -72,8 +72,12 @@ public sealed partial class UiKitDataInputDemo : Component
                     .Icon(UiIconName.Search).Kbd("⌘K").Clearable(true)
                     .Placeholder("Find a package")
                     .OnInput(v => _search = v ?? ""),
-                UiTextarea.Value(_notes).Key("notes").Label("Notes").Badge("Optional").Rows(3)
-                    .Hint("Anything else?")
+                // AutoSize is CSS — `field-sizing: content` — so the box grows as you type with no runtime at
+                // all, and where an engine has not shipped it the box keeps its Rows and scrolls.
+                UiTextarea.Value(_notes).Key("notes").Label("Notes").Badge("Optional").Rows(2)
+                    .AutoSize(true)
+                    .Resize(UiResize.None)
+                    .Hint("Anything else? The box grows as you type.")
                     .OnChange(v => { _notes = v; }),
                 UiSelect.Value(_country).Key("country")
                     .Options([("hu", "Hungary"), ("gb", "United Kingdom")])

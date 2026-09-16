@@ -37,7 +37,27 @@ public sealed partial class UiTextarea<T> : UiFormField<T>
     ///     that shows its edges on focus. The rest draw the default rather than a class that does nothing.
     /// </summary>
 
-    /// <inheritdoc />
+    /// <summary>
+    ///     Which way the reader may drag the box bigger. Vertically, unless this says otherwise.
+    /// </summary>
+    /// <remarks>
+    ///     <see cref="UiResize.None" /> is for a box in a layout the extra height would break — a row in a
+    ///     table, a cell in a grid. Taking the handle away is a real cost to somebody writing a long answer,
+    ///     so it wants a reason; <see cref="AutoSize" /> is usually the better one.
+    /// </remarks>
+    public UiResize? Resize { get; set; }
+
+    /// <summary>
+    ///     Grows the box to fit what is typed, instead of scrolling inside a fixed height.
+    /// </summary>
+    /// <remarks>
+    ///     CSS, not script: `field-sizing: content` is the platform's own answer, so it works with no runtime
+    ///     and on a prerendered page. Where an engine has not shipped it the box keeps its <see cref="Rows" />
+    ///     and scrolls, which is exactly what it does today — the feature degrades to the current behaviour
+    ///     rather than to a broken one. <see cref="Rows" /> becomes the SMALLEST it will be.
+    /// </remarks>
+    public bool? AutoSize { get; set; }
+
     /// <inheritdoc />
     protected override Component Control()
     {
@@ -73,6 +93,8 @@ public sealed partial class UiTextarea<T> : UiFormField<T>
     private string BoxClass() =>
         UiClass.Compose(
             "textarea validator",
+            AutoSize == true ? "ui-textarea-auto" : "",
+            Resize is { } resize ? UiClassNames.Resize(resize) : "",
             Tone is { } tone ? UiClassNames.TextareaTone(tone) : "",
             Variant is { } variant ? UiClassNames.TextareaVariant(variant) : "",
             Size is { } size ? UiClassNames.TextareaSize(size) : "",
