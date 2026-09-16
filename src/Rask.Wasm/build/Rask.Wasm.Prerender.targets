@@ -48,9 +48,23 @@
         Microsoft.NET.ILLink.Tasks arrive implicitly from the WebAssembly SDK, mean nothing to a desktop
         build, and carry versions the SDK owns — which Central Package Management then refuses, because
         under CPM a PackageReference may not name its own version.
+
+        …and minus the ones Directory.Build.props already adds, which the companion would otherwise
+        declare TWICE. It is generated into the app's own obj/, so MSBuild's walk up from there finds the
+        same Directory.Build.props the app imported: everything that file adds to every project, it adds
+        to the companion on its own, and copying those across produces
+
+          warning NU1504: Duplicate 'PackageReference' items found … MinVer , MinVer
+
+        DefiningProjectFullPath is well-known metadata MSBuild puts on every item, so this asks where each
+        reference was written rather than naming packages — a repo that adds a second one to that file
+        does not have to find this target. $(DirectoryBuildPropsPath) is empty when there is no such file
+        (or its import is disabled), and the condition then keeps everything.
       -->
       <_RaskAppPackage Include="@(PackageReference)"
-                       Condition=" '%(PackageReference.IsImplicitlyDefined)' != 'true' "/>
+                       Condition=" '%(PackageReference.IsImplicitlyDefined)' != 'true'
+                                   AND ( '$(DirectoryBuildPropsPath)' == ''
+                                         OR '%(PackageReference.DefiningProjectFullPath)' != '$(DirectoryBuildPropsPath)' ) "/>
     </ItemGroup>
 
     <!--
