@@ -19,6 +19,29 @@ them until tagged releases begin.
   it against a packable assembly, which is the only version in the process known to be real.
 ### Added
 
+- **Every mapped entity gets a generated READ FACE, and the aggregate keeps its borders.** `Order` now has an
+  `OrderRead` beside it and `Order.Read` to query it: a class of primitives with no behaviour, in a context of
+  its own that holds no aggregate, so there is nothing there to track, change or save. A value object flattens
+  to the columns it maps to (`Money Total` becomes `decimal TotalAmount` + `string TotalCurrency`, on the
+  existing `Total_Amount` and `Total_Currency` columns — no migration), children come through as read faces of
+  the same shape, and a child is queryable on its own with a navigation back to its root, because reads have no
+  borders even where writes do.
+
+  **The navigations are inferred from the ids the write model already holds.** An aggregate references another
+  by id and never by navigation, which is what stops a write crossing a boundary by accident — and that same
+  `Guid CustomerId` gives `OrderRead.Customer`, so a query may join across as many aggregates as it likes.
+  Matching is by name and key type, exactly (`CustomerId` → `Customer`) or by suffix
+  (`ShippedByUserId` → `User`), and the navigation is named after the PROPERTY so two references to one
+  aggregate do not collide. An id that matches nothing stays an ordinary column; one that matches a name but
+  not the key type, or two aggregates at once, is **RASK089** rather than a join that silently never appears.
+
+  The read faces are mapped by MIRRORING the built write model at runtime, not by deriving the mapping a
+  second time: table, column names, value converters, lengths — and an `Ignore()` for a member whose write
+  property was ignored. An entity's own static `Configure` can rename a column or drop a property, and none of
+  that is visible to a generator that only sees symbols, so nothing is interpreted twice and the two halves
+  cannot drift. Reads stay untracked and open their own context, as they always have. `TestDatabase` points
+  both halves at the same database, so `Order.Read` works in a test exactly as it does in an app.
+
 - **Rask UI's application layout gains the rest of Flux UI's.** New `UiProfile` — the sidebar's account row, with
   an avatar, a name, a caption and, given children, the account menu; without a picture it draws the INITIALS of
   the name, because most accounts have none. New `UiSidebarHeader` and `UiSidebarFooter`, which hold their place

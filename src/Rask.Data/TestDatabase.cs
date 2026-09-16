@@ -26,8 +26,9 @@ namespace Rask.Data;
 ///     <para>
 ///         It builds the generated model (so every <see cref="Aggregate{TId}" /> in the test assembly is mapped),
 ///         creates the schema, wires the auditing and soft-delete interceptors so the conventions behave
-///         as they do in production, and points <see cref="Db" /> at it. Disposing clears it again, so one
-///         test cannot leak its database into the next.
+///         as they do in production, and points both <see cref="Db" /> and <see cref="ReadDb" /> at it —
+///         so <c>Order.Read</c> queries the same rows the write side just saved. Disposing clears them
+///         again, so one test cannot leak its database into the next.
 ///     </para>
 ///     <para>
 ///         <b>Provider-agnostic on purpose.</b> The options callback is yours, so this adds no provider
@@ -45,8 +46,13 @@ namespace Rask.Data;
 public sealed class TestDatabase : IAsyncDisposable
 {
     private readonly RaskDbContext _schemaOwner;
+    private readonly Func<RaskReadDbContext> _openRead;
 
-    private TestDatabase(RaskDbContext schemaOwner) => _schemaOwner = schemaOwner;
+    private TestDatabase(RaskDbContext schemaOwner, Func<RaskReadDbContext> openRead)
+    {
+        _schemaOwner = schemaOwner;
+        _openRead = openRead;
+    }
 
     /// <summary>Builds the database, creates its schema, and makes it the ambient one.</summary>
     /// <param name="configure">
@@ -83,7 +89,19 @@ public sealed class TestDatabase : IAsyncDisposable
         await schemaOwner.Database.EnsureCreatedAsync(cancellationToken).ConfigureAwait(false);
 
         Db.Configure(Create);
-        return new TestDatabase(schemaOwner);
+
+        // The read side is the same database through a context of its own, so `Order.Read` works in a test
+        // exactly as it does in an app — and it is configured AFTER Db, because building the read model
+        // mirrors the write model and so needs the write side already pointed somewhere.
+        RaskReadDbContext CreateRead()
+        {
+            var builder = new DbContextOptionsBuilder<RaskReadDbContext>();
+            configure(builder);
+            return new RaskReadDbContext(builder.Options);
+        }
+
+        ReadDb.Configure(CreateRead);
+        return new TestDatabase(schemaOwner, CreateRead);
     }
 
     /// <summary>The fixture's own context — the way to seed rows and to run a domain operation under test.</summary>
@@ -94,10 +112,18 @@ public sealed class TestDatabase : IAsyncDisposable
     /// </remarks>
     public RaskDbContext Context => _schemaOwner;
 
+    /// <summary>A fresh read context, for asserting on the read model itself.</summary>
+    /// <remarks>
+    ///     <c>Order.Read</c> opens its own and disposes it, so a test only needs this to look at what the
+    ///     read side was MAPPED to — a column name, a navigation, an empty change tracker.
+    /// </remarks>
+    public RaskReadDbContext OpenRead() => _openRead();
+
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
         Db.Reset();
+        ReadDb.Reset();
         await _schemaOwner.DisposeAsync().ConfigureAwait(false);
     }
 }

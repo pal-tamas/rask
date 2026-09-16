@@ -31,7 +31,7 @@ namespace Rask.Data;
 /// </remarks>
 /// <typeparam name="TEntity">The entity being queried.</typeparam>
 public sealed class ModelQuery<TEntity>
-    where TEntity : class, IAggregate
+    where TEntity : class
 {
     private readonly Func<IQueryable<TEntity>, IQueryable<TEntity>>? _compose;
     private readonly bool _ordered;
@@ -223,7 +223,7 @@ public sealed class ModelQuery<TEntity>
     public async IAsyncEnumerable<TEntity> AsAsyncEnumerable(
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        await using var context = Db.CreateContext();
+        await using var context = ReadDb.OpenFor<TEntity>();
 
         await foreach (var entity in Apply(context.Set<TEntity>())
                            .AsAsyncEnumerable()
@@ -250,7 +250,7 @@ public sealed class ModelQuery<TEntity>
     {
         ArgumentNullException.ThrowIfNull(query);
 
-        await using var context = Db.CreateContext();
+        await using var context = ReadDb.OpenFor<TEntity>();
         return await query(Apply(context.Set<TEntity>()), cancellationToken).ConfigureAwait(false);
     }
 
@@ -284,7 +284,7 @@ public sealed class ModelQuery<TEntity>
         Func<IQueryable<TEntity>, CancellationToken, Task<TResult>> run,
         CancellationToken cancellationToken)
     {
-        await using var context = Db.CreateContext();
+        await using var context = ReadDb.OpenFor<TEntity>();
         return await run(Apply(context.Set<TEntity>()), cancellationToken).ConfigureAwait(false);
     }
 }
@@ -300,7 +300,7 @@ public sealed class ModelQuery<TEntity>
 /// <typeparam name="TEntity">The entity being read.</typeparam>
 /// <typeparam name="TResult">What each row is projected to.</typeparam>
 public sealed class Projection<TEntity, TResult>
-    where TEntity : class, IAggregate
+    where TEntity : class
 {
     private readonly Func<IQueryable<TEntity>, IQueryable<TEntity>> _source;
     private readonly Expression<Func<TEntity, TResult>> _selector;
@@ -337,7 +337,7 @@ public sealed class Projection<TEntity, TResult>
         Func<IQueryable<TResult>, CancellationToken, Task<TValue>> run,
         CancellationToken cancellationToken)
     {
-        await using var context = Db.CreateContext();
+        await using var context = ReadDb.OpenFor<TEntity>();
         var projected = _source(context.Set<TEntity>()).Select(_selector);
         return await run(projected, cancellationToken).ConfigureAwait(false);
     }

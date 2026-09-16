@@ -238,6 +238,12 @@ internal static class RaskBatteryWiring
         // The pillars need the application's DbContext as a type argument. The app already named it, in
         // its own AddDbContextFactory call — and because this runs last, that registration is sitting in
         // the collection. Reading it there beats asking for the name a second time.
+        // The read faces are queried through a context of their own — two entity types cannot map one
+        // table, and an aggregate has no business being reachable from a query surface with no borders. It
+        // is pointed at the same database by the same setting, so there is still one place that says where
+        // the data is. An app whose read side is somewhere else entirely says so with ReadDb.Configure.
+        services.AddDbContextFactory<RaskReadDbContext>(static (sp, o) => o.UseRaskDatabase(sp));
+
         if (appContext is not null)
         {
             WireContextBatteries(services, options, appContext, provider);

@@ -165,6 +165,10 @@ public sealed class RaskApp
         if (app.Services.GetService<AmbientContextBinding>() is not null)
         {
             Db.Configure(app.Services);
+
+            // And the other half: `Order.Read` opens a context of its own, holding the generated read faces
+            // and no aggregate. Same database, same setting — see RaskBatteryWiring.
+            ReadDb.Configure(app.Services);
         }
 
         // Auth is on, the database is there, and yet no account type was found — so nothing was wired and

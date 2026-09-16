@@ -53,6 +53,7 @@
     <Compile Include="..\Rask.Generators.Shared\TypeScriptEmitter.cs" Link="Shared\TypeScriptEmitter.cs"/>
     <Compile Include="..\Rask.Generators.Shared\GeneratedModelShape.cs" Link="Shared\GeneratedModelShape.cs"/>
     <Compile Include="..\Rask.Generators.Shared\AggregateShape.cs" Link="Shared\AggregateShape.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ReadModelShape.cs" Link="Shared\ReadModelShape.cs"/>
   </ItemGroup>
 
 </Project>

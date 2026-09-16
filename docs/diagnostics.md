@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK088, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK089, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -122,6 +122,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK086](#rask086) | Warning | Aggregate has no parameterless constructor, so `CreateAsync` is not generated |
 | [RASK087](#rask087) | Warning | Aggregate holds a collection of aggregates, so Rask leaves it alone |
 | [RASK088](#rask088) | Warning | Child collection cannot be synced, so a save cannot add or remove one |
+| [RASK089](#rask089) | Warning | Id looks like a reference but no navigation was inferred |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -2162,6 +2163,50 @@ public sealed class Order : Aggregate<Guid>
 
 Exposing the collection as `ICollection<OrderLine>` works too, at the cost of letting any caller add to it
 without going through the aggregate.
+
+---
+
+## RASK089
+
+**Id looks like a reference but no navigation was inferred** · Warning
+
+An aggregate references another by id and never by navigation — that is the border, and it is what stops a
+write crossing one by accident ([data guide](data.md)). The join you lose on the write side comes back on the
+read side: Rask infers a navigation on the generated read face from each `{X}Id` whose type is the key of an
+aggregate `X`, so `Order.CustomerId` gives you `OrderRead.Customer`.
+
+Inference is by name and by key type, both. A property that matches an aggregate's name but not its key type,
+or that matches two aggregates at once, produces no navigation at all — and the only symptom would be a join
+the author expected and never got.
+
+```csharp
+public sealed class Customer : Aggregate<Guid> { }
+
+public sealed class Order : Aggregate<Guid>
+{
+    public Guid CustomerId { get; private set; }   // ✓ OrderRead.Customer
+
+    // ⚠ RASK089: names Customer, but Customer's key is Guid
+    public int BillingCustomerId { get; private set; }
+}
+```
+
+**Fix:** give the id the aggregate's own key type, so the navigation appears:
+
+```csharp
+public Guid BillingCustomerId { get; private set; }   // ✓ OrderRead.BillingCustomer
+```
+
+Or rename it, if it was never meant to point at a `Customer` — an id that matches no aggregate is an ordinary
+column and says nothing:
+
+```csharp
+public int BillingReference { get; private set; }     // ✓ just an int
+```
+
+The second case is ambiguity: two aggregates whose names both end where the property does — `Customer` and
+`KeyCustomer` against a `PrimeKeyCustomerId`. Rask refuses to guess; rename the property so one match is
+longest.
 
 ---
 
