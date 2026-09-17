@@ -1,0 +1,36 @@
+/*
+  The layer order for the whole document, declared before anything can imply another one.
+
+  daisyUI emits its rules into a `daisyui` layer, and Tailwind's own import only ranks
+  theme/base/components/utilities — so `daisyui` would otherwise be ranked by wherever it
+  first appeared in the output, which lands it ABOVE utilities. That makes `class="btn px-8"`
+  give you .btn's padding and not px-8: correct markup, quietly ignored.
+*/
+@layer properties, theme, base, components, daisyui, utilities;
+
+@import "tailwindcss";
+
+/*
+  The plugin bundle is NOT a source file, and saying so is load-bearing.
+
+  Tailwind scans the project it runs in, and vendor/daisyui.mjs is inside it: daisyUI's own
+  code, naming every class daisyUI defines. Scanned, it acts as a safelist for the whole
+  library and this sheet carries every component whether or not you use one — which reads as
+  correct, because a sheet containing too much looks exactly like a sheet containing enough.
+*/
+@source not "./vendor";
+
+/*
+  daisyUI, compiled from the copy Rask.Ui ships — no npm, no node_modules, no package.json.
+  The build copies it here; it is generated, and .gitignore'd for the same reason wwwroot is.
+
+  By relative path because Tailwind resolves a plugin the way Node does, by walking up for a
+  node_modules, and the standalone engine carries no package tree.
+*/
+@plugin "./vendor/daisyui.mjs";
+
+/* Your own CSS goes here. Anything below participates in the same build, so @apply and
+   @theme work, and the output still contains only what this project actually uses.
+
+   Redefining a daisyUI token in your own @theme re-skins every component without overriding
+   a single rule — that is the intended way to make this yours. */

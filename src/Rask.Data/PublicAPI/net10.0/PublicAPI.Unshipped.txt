@@ -169,6 +169,7 @@ override Rask.Data.RangeExclusionSpec.Equals(object? obj) -> bool
 override Rask.Data.RangeExclusionSpec.GetHashCode() -> int
 override Rask.Data.RangeExclusionSpec.ToString() -> string!
 override Rask.Data.RaskDbContext.ConfigureConventions(Microsoft.EntityFrameworkCore.ModelConfigurationBuilder! configurationBuilder) -> void
+override Rask.Data.RaskDbContext.OnConfiguring(Microsoft.EntityFrameworkCore.DbContextOptionsBuilder! optionsBuilder) -> void
 override Rask.Data.RaskDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> void
 override Rask.Data.RaskReadDbContext.ConfigureConventions(Microsoft.EntityFrameworkCore.ModelConfigurationBuilder! configurationBuilder) -> void
 override Rask.Data.RaskReadDbContext.OnConfiguring(Microsoft.EntityFrameworkCore.DbContextOptionsBuilder! optionsBuilder) -> void

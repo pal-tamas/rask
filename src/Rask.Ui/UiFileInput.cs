@@ -19,6 +19,13 @@ namespace Rask.Ui;
 /// the reader's choice and drives validation, and a model value never draws a filename back into the
 /// box. That is the platform's rule, not a gap.
 /// </para>
+/// <para>
+/// <see cref="Dropzone" /> draws Flux UI's drop area instead of the compact box, and it is still the same
+/// native input: stretched invisibly over the whole area, so a click anywhere opens the picker and a file
+/// dropped anywhere lands in the input the way the browser already handles a drop on one. No script decides
+/// where a drop goes, so it works before the runtime boots; the runtime only marks the area while a file is
+/// dragged over it, because no CSS state says "something is being dragged here".
+/// </para>
 /// </remarks>
 public sealed partial class UiFileInput : Component, IFormControl<string>
 {
@@ -62,6 +69,25 @@ public sealed partial class UiFileInput : Component, IFormControl<string>
 
     public string? Class { get; set; }
 
+    /// <summary>
+    ///     Draws a large area to drop files on, or click, in place of the compact box. The words in it come
+    ///     from <see cref="Heading" /> and <see cref="Text" />.
+    /// </summary>
+    public bool? Dropzone { get; set; }
+
+    /// <summary>
+    ///     The line the drop area leads with. Defaults to <see cref="Label" />, which is also the input's
+    ///     accessible name — so a heading that says what to drop keeps both halves of the message.
+    /// </summary>
+    public string? Heading { get; set; }
+
+    /// <summary>
+    ///     The smaller line under the heading — what is accepted and how much. Linked to the input as its
+    ///     description when the control has an <see cref="Id" />, since the input is what a screen reader
+    ///     lands on and the words are drawn beside it rather than inside it.
+    /// </summary>
+    public string? Text { get; set; }
+
     /// <inheritdoc cref="Element.Id" />
     public string? Id { get; set; }
 
@@ -92,7 +118,7 @@ public sealed partial class UiFileInput : Component, IFormControl<string>
         // Of<string>() rather than Value(…) or Bind(…): both of those would render a `value` attribute,
         // which a browser rejects on a file input. So the write-back is driven from the file list here
         // instead of by Input<T>, and the box is left for the platform to fill.
-        return Input
+        var input = Input
             .Of<string>()
             .Id(Id)
             .OnFiles(async files =>
@@ -108,19 +134,62 @@ public sealed partial class UiFileInput : Component, IFormControl<string>
             .Type(InputType.File)
             .Multiple(Multiple == true)
             .Accept(Accept ?? string.Empty)
-            // aria-invalid is what makes daisyUI reveal a following UiValidator, and what a screen
-            // reader needs: a field that is visibly red and says nothing is half a message. It is
-            // OMITTED rather than nulled — a null renders the attribute valueless, and a valueless
-            // aria-invalid reads as "true", which would mark every field in the kit invalid.
-            .Aria(Tone == UiTone.Error
-                ? new Dictionary<string, string?> { ["label"] = Label, ["invalid"] = "true" }
-                : new Dictionary<string, string?> { ["label"] = Label })
-            .Disabled(Disabled == true)
-            .Class(UiClass.Compose(
+            .Aria(Aria(Dropzone == true && Text is not null && Id is not null ? Id + "-text" : null))
+            .Disabled(Disabled == true);
+
+        if (Dropzone != true)
+        {
+            return input.Class(UiClass.Compose(
                 "file-input validator",
                 Tone is { } tone ? UiClassNames.FileInputTone(tone) : "",
                 Variant is { } variant ? UiClassNames.FileInputVariant(variant) : "",
                 Size is { } size ? UiClassNames.FileInputSize(size) : "",
                 Class));
+        }
+
+        // The input is the WHOLE area, transparent and on top: a click anywhere is a click on it, and a file
+        // dropped anywhere is dropped on it, which every engine already turns into a chosen file and a change
+        // event. `validator` stays so a following UiValidator still reads its aria-invalid.
+        return Div
+            .Data(new Dictionary<string, string?> { ["rask-dropzone"] = null })
+            .Class(UiClass.Compose(
+                "relative flex flex-col items-center justify-center gap-1 rounded-box border-2 border-dashed "
+                + "bg-base-100 px-6 py-8 text-center transition-colors",
+                Tone == UiTone.Error ? "border-error" : "border-base-300",
+                Disabled == true
+                    ? "opacity-60"
+                    : "hover:bg-base-200 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 "
+                      + "has-[:focus-visible]:outline-primary data-[dragging]:border-primary "
+                      + "data-[dragging]:bg-primary/5",
+                Class))[
+            UiIcon.Name(UiIconName.Upload).Class("mb-1 size-8 text-ui-muted"),
+            P.Class("text-sm font-medium")[Heading ?? Label],
+            Text is null
+                ? null
+                : P.Id(Id is null ? null : Id + "-text").Class("text-xs text-ui-muted")[Text],
+            input.Class(Disabled == true
+                ? "validator absolute inset-0 size-full cursor-not-allowed opacity-0"
+                : "validator absolute inset-0 size-full cursor-pointer opacity-0")
+        ];
+    }
+
+    // aria-invalid is what makes daisyUI reveal a following UiValidator, and what a screen reader needs: a field
+    // that is visibly red and says nothing is half a message. It is OMITTED rather than nulled — a null renders
+    // the attribute valueless, and a valueless aria-invalid reads as "true", which would mark every field in the
+    // kit invalid.
+    private Dictionary<string, string?> Aria(string? describedBy)
+    {
+        var aria = new Dictionary<string, string?> { ["label"] = Label };
+        if (Tone == UiTone.Error)
+        {
+            aria["invalid"] = "true";
+        }
+
+        if (describedBy is not null)
+        {
+            aria["describedby"] = describedBy;
+        }
+
+        return aria;
     }
 }

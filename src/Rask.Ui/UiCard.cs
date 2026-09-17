@@ -27,6 +27,13 @@ public sealed partial class UiCard : Component
     /// <summary>Shown before the heading.</summary>
     public UiIconName? Icon { get; set; }
 
+    /// <summary>How tight the card's padding is — daisyUI's own card sizes.</summary>
+    /// <remarks>
+    ///     The class map for this already existed and nothing reached it: a card could not be made denser
+    ///     without a raw class string, which is the one thing a call site drawn with the kit must not need.
+    /// </remarks>
+    public UiSize? Size { get; set; }
+
     /// <summary>Makes the whole card one link.</summary>
     /// <remarks>
     /// A link rather than a click handler, so it is reachable by keyboard, opens in a new tab and says where it
@@ -57,6 +64,7 @@ public sealed partial class UiCard : Component
 
         var classes = UiClass.Compose(
             UiStyles.Card,
+            Size is { } size ? UiClassNames.CardSize(size) : "",
             Href is null ? "" : "block no-underline transition-colors hover:bg-base-200",
             Class);
 

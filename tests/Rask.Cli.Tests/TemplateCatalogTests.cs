@@ -68,7 +68,6 @@ public sealed class TemplateCatalogTests
     /// </remarks>
     [Theory]
     [InlineData("native")]
-    [InlineData("wasm-hosted")]
     public void A_removed_template_is_gone(string key)
     {
         Assert.False(TemplateCatalog.TryGet(key, out _));

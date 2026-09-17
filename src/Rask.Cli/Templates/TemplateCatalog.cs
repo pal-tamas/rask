@@ -82,12 +82,12 @@ internal static class TemplateCatalog
 
     public static IReadOnlyList<TemplateInfo> All { get; } =
     [
-        // --wasm is listed on this template alone. It writes the browser app into Client/ of this same
-        // project, and the server serves it with UseRaskSpa instead of rendering pages of its own. The
-        // other templates either already ARE a browser app or carry a front end of their own.
+        // Server is just a server. It used to carry a --wasm flag that turned it into a two-half app, and
+        // that shape is the wasm-hosted template below now (#1103): a project type answers "what is this
+        // app" far better than a yes/no asked after the type has already been chosen.
         new("server", "Rask Server app",
             new HashSet<string>(
-                [.. WebFlags, .. DatabaseFlags, "ops", "push", "wasm"],
+                [.. WebFlags, .. DatabaseFlags, "ops", "push"],
                 StringComparer.Ordinal),
             // The server runtime carries ICU regardless, so scaffolding the registration costs nothing.
             ShipsLocalization: true),
@@ -96,6 +96,23 @@ internal static class TemplateCatalog
         // carries <RaskGlobalization> commented with the reason beside it.
         new("wasm", "Rask browser-WASM SPA",
             new HashSet<string>(WebFlags, StringComparer.Ordinal)),
+        // The same lane as react/angular below — a front end on an ASP.NET host — except the front end is
+        // C#. It lives in Client/ (capital, because it IS a C# project; the JS lanes use lowercase
+        // client/), the host serves it with UseRaskSpa, and the two halves talk over remote CQRS.
+        //
+        // "ops" is here and is NOT on the SPA lane, which is not an inconsistency: this host still
+        // references Rask.Server, so Rask.Dashboard's components have the Rask.Core they need and
+        // UseRask<TApp>() to mount them. Rask.Spa.Hosting alone ships no Core, which is what rules ops out
+        // for the TypeScript templates (#1069).
+        //
+        // ShipsLocalization stays false for the same reason as wasm above: the browser half is where a
+        // culture would have to resolve, and that means ICU on the wire.
+        new(
+            "wasm-hosted",
+            "Rask WebAssembly front end + ASP.NET host",
+            new HashSet<string>(
+                [.. WebFlags, .. DatabaseFlags, "ops", "push"],
+                StringComparer.Ordinal)),
         // The TypeScript front-end templates, one per framework: a client on an ASP.NET host, talking to
         // it over generated TypeScript. CQRS is listed but never optional here — the wire IS the template,
         // so the generator forces it on and --no-cqrs is refused rather than silently ignored.

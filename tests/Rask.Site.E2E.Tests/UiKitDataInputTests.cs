@@ -23,7 +23,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
         foreach (var id in new[]
                  {
                      "ui-text-controls", "ui-labels", "ui-choices", "ui-range", "ui-otp", "ui-filter",
-                     "ui-calendar", "ui-bound", "ui-mask",
+                     "ui-calendar", "ui-dates", "ui-dropzone", "ui-bound", "ui-mask",
                  })
         {
             var node = Page.Locator($"[data-testid='{id}']");
@@ -315,6 +315,126 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
         // a list positioned inside the flow would be clipped to nothing. In the top layer it is not.
         var height = (await list.BoundingBoxAsync())!.Height;
         Assert.True(height > 96, $"the list was clipped to {height}px by its overflow-hidden ancestor.");
+    });
+
+    [Fact]
+    public Task ARangeIsWrittenOnlyOnceItHasBothEnds() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-dates']");
+        var calendar = scope.GetByRole(AriaRole.Group, new LocatorGetByRoleOptions { Name = "Stay", Exact = true });
+        await calendar.ScrollIntoViewIfNeededAsync();
+        var days = calendar.Locator("tbody button:not([disabled])");
+        var state = Page.Locator("[data-testid='ui-dates-stay']");
+
+        // The later day first. The first click is drawn but written nowhere: the page still has no stay.
+        await days.Nth(14).ClickAsync();
+        await Expect(days.Nth(14)).ToHaveAttributeAsync("aria-pressed", "true",
+            new LocatorAssertionsToHaveAttributeOptions { Timeout = 15_000 });
+        await Expect(state).ToHaveTextAsync("No stay chosen.");
+
+        await days.Nth(9).ClickAsync();
+        await Expect(state).ToContainTextAsync("-10 to ", new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        await Expect(state).ToContainTextAsync("-15");
+    });
+
+    [Fact]
+    public Task APickerOpensTheGridAndClosesOnThePick() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-dates']");
+        var field = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Arrival" });
+        await field.ScrollIntoViewIfNeededAsync();
+        await field.ClickAsync();
+
+        var dialog = scope.GetByRole(AriaRole.Dialog, new LocatorGetByRoleOptions { Name = "Arrival" });
+        await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        await Expect(field).ToHaveAttributeAsync("aria-expanded", "true");
+
+        await dialog.Locator("tbody button:not([disabled])").Nth(4).ClickAsync();
+
+        // Closed by the same click, the choice reached C#, and the field shows it.
+        await Expect(dialog).ToBeHiddenAsync();
+        await Expect(Page.Locator("[data-testid='ui-dates-picked']")).ToContainTextAsync("Arrival: ",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        await Expect(field).Not.ToContainTextAsync("Choose a date");
+    });
+
+    [Fact]
+    public Task SeveralDaysKeepThePickerOpen() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-dates']");
+        var field = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Days off" });
+        await field.ScrollIntoViewIfNeededAsync();
+        await field.ClickAsync();
+
+        var dialog = scope.GetByRole(AriaRole.Dialog, new LocatorGetByRoleOptions { Name = "Days off" });
+        await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        var days = dialog.Locator("tbody button:not([disabled])");
+
+        await days.Nth(2).ClickAsync();
+        await Expect(days.Nth(2)).ToHaveAttributeAsync("aria-pressed", "true",
+            new LocatorAssertionsToHaveAttributeOptions { Timeout = 15_000 });
+        await days.Nth(5).ClickAsync();
+
+        await Expect(Page.Locator("[data-testid='ui-dates-picked']")).ToContainTextAsync("2 days off",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        await Expect(dialog).ToBeVisibleAsync();
+
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(dialog).ToBeHiddenAsync();
+    });
+
+    [Fact]
+    public Task TheDropAreaIsTheNativeInputAndLightsUpUnderADraggedFile() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var zone = Page.Locator("[data-testid='ui-dropzone'] [data-rask-dropzone]");
+        await Expect(zone).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        await zone.ScrollIntoViewIfNeededAsync();
+
+        // No script routes a drop: the input IS the area. What is under the middle of the area — and under a
+        // corner of it — is the file input itself, so a real click or a real drop lands there.
+        var hits = await zone.EvaluateAsync<string[]>(
+            @"z => { const r = z.getBoundingClientRect();
+                     return [[r.left + r.width / 2, r.top + r.height / 2], [r.left + 4, r.top + 4]]
+                       .map(([x, y]) => { const el = document.elementFromPoint(x, y);
+                                          return el ? el.tagName + ':' + el.getAttribute('type') : 'none'; }); }");
+        Assert.All(hits, hit => Assert.Equal("INPUT:file", hit));
+
+        // A chosen file reaches C# through OnFiles, same as the compact box.
+        await zone.Locator("input[type=file]").SetInputFilesAsync(new[]
+        {
+            new FilePayload { Name = "march.pdf", MimeType = "application/pdf", Buffer = [1, 2, 3] },
+            new FilePayload { Name = "april.jpg", MimeType = "image/jpeg", Buffer = [4, 5, 6] },
+        });
+        await Expect(Page.Locator("[data-testid='ui-dropzone-state']")).ToHaveTextAsync(
+            "Chosen: march.pdf, april.jpg", new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+
+        // The highlight is the runtime's: counted across the children a drag crosses, and only for FILES.
+        await Page.EvaluateAsync(
+            @"() => { const zone = document.querySelector('[data-testid=ui-dropzone] [data-rask-dropzone]');
+                      const input = zone.querySelector('input');
+                      const files = new DataTransfer(); files.items.add(new File(['x'], 'x.pdf'));
+                      const fire = (type, el, dt) => el.dispatchEvent(new DragEvent(type, {bubbles: true, dataTransfer: dt}));
+                      window.__dz = [];
+                      fire('dragenter', zone, files); fire('dragenter', input, files);
+                      window.__dz.push(zone.hasAttribute('data-dragging'));
+                      fire('dragleave', zone, files);
+                      window.__dz.push(zone.hasAttribute('data-dragging'));
+                      fire('dragleave', input, files);
+                      window.__dz.push(zone.hasAttribute('data-dragging'));
+                      const text = new DataTransfer(); text.setData('text/plain', 'row');
+                      fire('dragenter', input, text);
+                      window.__dz.push(zone.hasAttribute('data-dragging')); }");
+        var marks = await Page.EvaluateAsync<bool[]>("() => window.__dz");
+        // In; still in after crossing out of one child; out once the last one is left; never for a text drag.
+        Assert.Equal(new[] { true, true, false, false }, marks);
     });
 
     private async Task OpenAsync()

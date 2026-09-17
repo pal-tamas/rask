@@ -24,6 +24,14 @@ public sealed class ServerBatteryScaffoldTests
                 f => f.Content,
                 StringComparer.Ordinal);
 
+    /// <summary>The same, on the wasm-hosted template — the host that serves a browser app.</summary>
+    private static Dictionary<string, string> GenerateHosted(params string[] flags) =>
+        ProjectGenerator.GenerateWasmHosted(Root, "App", NewCommand.BatteriesOf(flags), Version).Files
+            .ToDictionary(
+                f => Path.GetRelativePath(Root, f.Path).Replace('\\', '/'),
+                f => f.Content,
+                StringComparer.Ordinal);
+
     public static TheoryData<string, string, string, string> Pillars => new()
     {
         { "jobs", "Rask.Jobs", "AddRaskJobs<AppDbContext>()", "modelBuilder.AddRaskJobs();" },
@@ -372,7 +380,7 @@ public sealed class ServerBatteryScaffoldTests
     [Fact]
     public void Every_battery_setting_lands_in_appsettings_and_the_file_still_loads()
     {
-        var files = Generate("cqrs", "data", "mail", "snapshots", "logs", "push", "pwa", "wasm");
+        var files = GenerateHosted("cqrs", "data", "mail", "snapshots", "logs", "push", "pwa");
         var settings = files["appsettings.json"];
 
         var options = new System.Text.Json.JsonDocumentOptions
@@ -391,7 +399,7 @@ public sealed class ServerBatteryScaffoldTests
         Assert.Equal(7, rask.GetProperty("Snapshots").GetProperty("Retain").GetInt32());
         Assert.Equal("mailto:admin@example.com", rask.GetProperty("WebPush").GetProperty("Subject").GetString());
 
-        // A --wasm server renders no pages of its own, so it tunes no live runtime and ships no culture list:
+        // A wasm-hosted host renders no pages of its own, so it tunes no live runtime and ships no culture list:
         // those sections would be settings nothing reads.
         Assert.False(rask.TryGetProperty("Server", out _));
         Assert.False(rask.TryGetProperty("Culture", out _));
@@ -399,7 +407,7 @@ public sealed class ServerBatteryScaffoldTests
         // …and none of the old spellings survive in the code that used to read them.
         var program = files["Program.cs"];
 
-        // Nor does either file's settings note name AddRask, which a --wasm server never calls.
+        // Nor does either file's settings note name AddRask, which a wasm-hosted host never calls.
         Assert.DoesNotContain("AddRask reads", settings, StringComparison.Ordinal);
         Assert.DoesNotContain("AddRask reads", program, StringComparison.Ordinal);
         Assert.DoesNotContain("GetConnectionString(", program, StringComparison.Ordinal);

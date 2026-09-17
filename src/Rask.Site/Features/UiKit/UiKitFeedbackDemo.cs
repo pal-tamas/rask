@@ -10,7 +10,10 @@ namespace Rask.Site.Features.UiKit;
 /// </remarks>
 public sealed partial class UiKitFeedbackDemo : Component
 {
-    private string? _toast;
+    // The page owns the list, which is the whole contract: a toast leaves by the page removing it, whether
+    // the reader pressed Dismiss or the runtime pressed it for them after the Duration ran out.
+    private readonly List<Notice> _toasts = [];
+    private int _nextToast;
     private int _progress = 62;
 
     /// <inheritdoc />
@@ -81,34 +84,65 @@ public sealed partial class UiKitFeedbackDemo : Component
 
         Section(
             "Skeleton",
-            "The shape of what is coming, so the layout does not jump when it arrives.",
-            Div.Data(Testid("ui-skeleton")).Class("max-w-sm space-y-2")[
-                UiSkeleton.Key("a").Class("h-4 w-3/4"),
-                UiSkeleton.Key("b").Class("h-4 w-full"),
+            "The shape of what is coming, so the layout does not jump when it arrives. Lines draws a "
+            + "paragraph — the last one short, because a stack of equal bars reads as a table — and Circle is "
+            + "the one an avatar leaves behind. It is aria-hidden throughout: a row of empty boxes read aloud "
+            + "is worse than silence.",
+            Div.Data(Testid("ui-skeleton")).Class("max-w-sm space-y-3")[
+                Div.Class("flex items-center gap-3")[
+                    UiSkeleton.Key("av").Circle(true).Class("size-10"),
+                    Div.Class("grow")[UiSkeleton.Key("lines").Lines(2)]
+                ],
                 UiSkeleton.Key("c").Class("h-24 w-full")
             ]),
 
         Section(
             "Toast",
             "Pinned to the viewport rather than pushed into the page's flow: an inline notice moves "
-            + "everything below it the moment an action completes.",
+            + "everything below it the moment an action completes. A UiToaster stacks several in a corner, "
+            + "and the PAGE owns the list — which is why Duration dismisses by clicking the toast's own "
+            + "button rather than hiding the element: the page's handler runs, so the page takes the toast "
+            + "off its list and the next render agrees with the screen. The countdown pauses while the "
+            + "pointer is over it or focus is inside it, so reaching for Undo does not lose it. A failure "
+            + "says role=alert; everything else is announced politely.",
             Div.Data(Testid("ui-toast"))[
-                Div.Class("flex gap-2")[
+                Div.Class("flex flex-wrap gap-2")[
                     UiButton.Key("ok").Tone(UiTone.Primary)
-                        .OnClick(() => { _toast = "Saved."; })["Save"],
+                        .OnClick(() => Push("Saved.", null, UiTone.Success))["Save"],
+                    UiButton.Key("undo").Variant(UiVariant.Outline)
+                        .OnClick(() => Push("Moved to the bin.", "Order deleted", UiTone.Success))["Delete"],
                     UiButton.Key("bad").Tone(UiTone.Error)
-                        .OnClick(() => { _toast = "Payment failed."; })["Fail"]
+                        .OnClick(() => Push("Payment failed.", null, UiTone.Error))["Fail"]
                 ],
-                _toast is { } message
-                    ? UiToast
-                        .Message(message)
-                        .Tone(message.Contains("failed", StringComparison.Ordinal)
-                            ? UiTone.Error
-                            : UiTone.Success)
-                        .OnDismiss(() => { _toast = null; })
-                    : null
+                UiToaster.Key("toaster").Position(UiPosition.Bottom).Align(UiAlign.End)[
+                    _toasts.Select(t =>
+                        UiToast
+                            .Key(t.Id)
+                            .Message(t.Message)
+                            .Heading(t.Heading)
+                            .Tone(t.Tone)
+                            .Duration(TimeSpan.FromSeconds(6))
+                            .Action(t.Heading is null
+                                ? null
+                                : UiButton.Size(UiSize.Xs).Variant(UiVariant.Ghost)
+                                    .OnClick(() => Drop(t.Id))["Undo"])
+                            .OnDismiss(() => Drop(t.Id)))
+                ]
             ])
     ];
+
+    private void Push(string message, string? heading, UiTone tone)
+    {
+        _toasts.Add(new Notice(
+            "t" + _nextToast++.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            message,
+            heading,
+            tone));
+    }
+
+    private void Drop(string id) => _toasts.RemoveAll(t => t.Id == id);
+
+    private sealed record Notice(string Id, string Message, string? Heading, UiTone Tone);
 
     private static Dictionary<string, string?> Testid(string value) => new() { ["testid"] = value };
 

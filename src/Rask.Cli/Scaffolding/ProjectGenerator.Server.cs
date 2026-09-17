@@ -25,7 +25,7 @@ internal static partial class ProjectGenerator
         return new ScaffoldResult(
             TemplateMaterializer.Files(
                 targetDirectory, "server", name, batteries, version, dotnet ?? DotnetTarget.Default, islands,
-                vsCode: batteries.Wasm ? VsCodeSetup.WasmHost : VsCodeSetup.Host),
+                vsCode: VsCodeSetup.Host),
             ServerNextSteps(name, batteries))
         {
             Packages = ServerPackages(batteries),
@@ -120,18 +120,6 @@ internal static partial class ProjectGenerator
             packages.Add("Rask.Dashboard");
         }
 
-        if (batteries.Wasm)
-        {
-            packages.Add("Rask.Spa.Hosting");
-
-            if (batteries.Cqrs)
-            {
-                // The endpoint half. Its counterpart, Rask.Cqrs.Client, is declared as a
-                // browser-only reference so it never reaches this process.
-                packages.Add("Rask.Cqrs.Server");
-            }
-        }
-
         return packages;
     }
 
@@ -146,6 +134,25 @@ internal static partial class ProjectGenerator
             steps.Append("  docker build -t ").Append(name.ToLowerInvariant()).Append(" .   # then: docker run -p 8080:8080 …\n");
         }
 
+        AppendBatteryNextSteps(steps, batteries);
+
+        return steps.ToString();
+    }
+
+    /// <summary>
+    ///     The next-steps paragraphs that depend only on the batteries, not on the template: the first
+    ///     entity, and Web Push's keys.
+    /// </summary>
+    /// <remarks>
+    ///     Shared by every template that ships an ASP.NET host with the database batteries —
+    ///     <c>server</c> and <c>wasm-hosted</c> — because they are about the batteries, and two copies of
+    ///     the same text drift. That is not hypothetical: <c>wasm-hosted</c> was split off with a copy of
+    ///     the push paragraph just before that paragraph was fixed on <c>main</c>, and went on printing two
+    ///     <c>dotnet user-secrets set</c> lines that fail on every scaffold, because no scaffolded csproj
+    ///     carries a <c>UserSecretsId</c>.
+    /// </remarks>
+    private static void AppendBatteryNextSteps(StringBuilder steps, ServerBatteries batteries)
+    {
         // Nothing about whether migrations ran: this text is written before `rask new` restores, builds and
         // migrates, so it cannot know. It used to say "The first migration is already applied to app.db" here,
         // which a failed restore then contradicted two lines later (#1083). NewCommand says it only once the
@@ -180,8 +187,6 @@ internal static partial class ProjectGenerator
             steps.Append("  (VapidKeys.Generate() returns a fresh pair. Replacing a pair unsubscribes\n");
             steps.Append("   everyone already subscribed to the old one.)\n");
         }
-
-        return steps.ToString();
     }
 
     private static string AppDbContextCs(ServerBatteries batteries)

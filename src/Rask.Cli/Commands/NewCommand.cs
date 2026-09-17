@@ -18,36 +18,63 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     private readonly IProcessRunner _process = process;
     private readonly string _workingDirectory = workingDirectory;
 
-    /// <summary>The opt-in feature flags <c>rask new</c> forwards to a template (as <c>--flag</c>).</summary>
-    /// <summary>Every template-scoped flag <c>rask new</c> understands — the batteries plus <c>wasm</c>.</summary>
+    /// <summary>Every template-scoped flag <c>rask new</c> understands, all of them batteries.</summary>
+    /// <remarks>
+    /// <c>wasm</c> used to be here and is not a flag any more (#1103). Shipping a browser bundle changes
+    /// what the app <em>is</em> rather than what it can do, so it is a TEMPLATE — <c>wasm-hosted</c>,
+    /// beside <c>react</c> and the rest of the front-end-plus-host lane — and the flag that turned the
+    /// server template into a different kind of app is gone. <c>server</c> is just a server.
+    /// </remarks>
     internal static readonly string[] FeatureFlags =
     [
-        "wasm", "pwa", "cqrs", "data", "docker",
+        "pwa", "cqrs", "data", "docker",
         "jobs", "mail", "cache", "storage", "outbox", "push", "snapshots", "logs", "ops",
     ];
 
     /// <summary>
-    /// The batteries — everything a template supports <em>except</em> wasm, and therefore exactly what a
-    /// bare <c>rask new</c> turns on.
+    /// The batteries — exactly what a bare <c>rask new</c> turns on.
     /// </summary>
     /// <remarks>
-    /// Derived from <see cref="FeatureFlags"/> minus <c>wasm</c> rather than listed a second time. The
-    /// default set is then <c>template.SupportedFlags</c> intersected with this, so a template that cannot
-    /// host a database gets the right answer without anyone maintaining a per-template default list — the
-    /// same reasoning that keeps <see cref="TemplateCatalog"/> derived from <see cref="SpaFramework.All"/>.
+    /// The same list as <see cref="FeatureFlags"/> now that <c>wasm</c> has left it, and kept as its own
+    /// name because the two mean different things: one is "every flag the parser accepts", the other is
+    /// "everything a bare <c>rask new</c> gives you". The default set is <c>template.SupportedFlags</c>
+    /// intersected with this, so a template that cannot host a database gets the right answer without
+    /// anyone maintaining a per-template default list — the same reasoning that keeps
+    /// <see cref="TemplateCatalog"/> derived from <see cref="SpaFramework.All"/>.
     ///
     /// <para>
-    /// Wasm is the one left off, because it is the one that changes what the app <em>is</em> rather than
-    /// what it can do: shipping a browser bundle makes every publish link a WebAssembly runtime and starts
-    /// moving pages off the server. Styling is not a decision — Tailwind is built in — and neither is
-    /// authentication any more: an app with a database has accounts.
+    /// Styling is not a decision — Tailwind is built in — and neither is authentication any more: an app
+    /// with a database has accounts.
     /// </para>
     /// </remarks>
-    internal static readonly string[] BatteryFlags =
-        [.. FeatureFlags.Where(f => f is not "wasm")];
+    internal static readonly string[] BatteryFlags = FeatureFlags;
 
     /// <summary>The <c>--no-*</c> spelling of a battery.</summary>
     internal static string OffFlag(string battery) => "no-" + battery;
+
+    /// <summary>The template key for a Rask WebAssembly front end on an ASP.NET host.</summary>
+    /// <remarks>
+    /// Named once and shared, because it is the one template key that is not derived from a table:
+    /// <see cref="SpaFramework.All"/> and <see cref="MetaTemplate.All"/> supply theirs, and a literal
+    /// spelled out at each of the four places that ask about it is how a key comes to be accepted by the
+    /// parser and then generate something else.
+    /// </remarks>
+    internal const string WasmHostedKey = "wasm-hosted";
+
+    /// <summary>
+    /// Whether <paramref name="templateKey"/> is one of the templates that pair a front end with an
+    /// ASP.NET host — the SPA lane, the meta lane, and <c>wasm-hosted</c>.
+    /// </summary>
+    /// <remarks>
+    /// What they share is the thing this is asked about: the wire between the two halves is generated, so
+    /// CQRS is the template rather than a battery in it, and every one of these generators forces it back
+    /// on. Asking the tables the generators dispatch on, rather than a fourth list, is what keeps the
+    /// refusal and the generation agreeing.
+    /// </remarks>
+    private static bool IsFrontEndPlusHost(string templateKey) =>
+        templateKey == WasmHostedKey
+        || SpaFramework.TryGet(templateKey, out _)
+        || MetaTemplate.TryGet(templateKey, out _);
 
 
     public override string Name => "new";
@@ -63,7 +90,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
     public override IReadOnlyList<string> Examples =>
     [
         "rask new Shop",
-        "rask new Shop --wasm",
+        "rask new Shop --template wasm-hosted",
         "rask new Shop --islands react angular",
         "rask new Shop --template wasm",
         "rask new Blog --no-push --no-ops",
@@ -88,7 +115,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 + ", the LTS release). " + DotnetTarget.Preview.Moniker + " needs the matching SDK installed; "
                 + "Rask itself ships for both.",
                 choices: DotnetTarget.Monikers)
-            .Flag("wasm", description: "Also publish a browser bundle from this project, so an eligible page moves into WebAssembly once it has downloaded. Publish takes minutes longer; `dotnet run` is unaffected.")
             .MultiOption(
                 "islands",
                 valueHint: "runtime",
@@ -197,7 +223,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         // Everything the template can do is on unless it was turned off, so the only per-battery input is
         // the --no-* set. Auth is the exception in both directions: off by default, and asked for by name.
         var off = BatteryFlags.Where(flag => parsed.HasFlag(OffFlag(flag))).ToArray();
-        var wasm = parsed.HasFlag("wasm");
 
         // Turning off something this template never had is a mistake worth naming: it means the command
         // line was written against a different template, and silently accepting it would hide that.
@@ -214,21 +239,25 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 $"Template '{template.Key}' has nothing to change for: {rejected}. It supports: {supported}.");
         }
 
-        // The generated TypeScript contracts ARE the mediator's wire on these templates, so there is no
-        // project left without it. Refused rather than ignored, for the same reason --tailwind is below:
+        // The generated contracts ARE the mediator's wire on the front-end-plus-host templates, so there is
+        // no project left without it. Refused rather than ignored, for the same reason --tailwind is below:
         // a flag the CLI accepts and then disregards is the most expensive kind to discover.
         //
-        // Both front-end lanes, not only the SPA one. The meta generator forces CQRS back on just as the SPA one
+        // All three lanes, not only the SPA one. The meta generator forces CQRS back on just as the SPA one
         // does, so a meta template used to accept the flag, keep the mediator it was asked to drop, and lose the
-        // database instead (#1106).
-        if (off.Contains("cqrs") && (SpaFramework.TryGet(template.Key, out _) || MetaTemplate.TryGet(template.Key, out _)))
+        // database instead (#1106); wasm-hosted joined them when it became a template (#1103), and its client
+        // is C# over Rask.Cqrs.Client rather than generated TypeScript — the same wire, a different language.
+        if (off.Contains("cqrs") && IsFrontEndPlusHost(template.Key))
         {
+            var wire = template.Key == WasmHostedKey
+                ? "the browser half dispatches through it over Rask.Cqrs.Client"
+                : "the generated TypeScript client dispatches through it";
             return Fail(
-                $"Template '{template.Key}' can't drop CQRS — the generated TypeScript client dispatches "
-                + "through it, so it is the template rather than a battery in it.");
+                $"Template '{template.Key}' can't drop CQRS — {wire}, so it is the template rather than a "
+                + "battery in it.");
         }
 
-        var batteries = ToBatteries(template, off, wasm);
+        var batteries = ToBatteries(template, off);
 
         // Islands ride on a C# host: the SPA and meta templates ARE a front end already, and a second
         // bundler inside one is not a shape this supports.
@@ -297,6 +326,8 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
                 {
                     "wasm" => ProjectGenerator.GenerateWasm(
                         dir, name, batteries.Pwa, batteries.Docker, version, batteries, islands, dotnet),
+                    WasmHostedKey => ProjectGenerator.GenerateWasmHosted(
+                        dir, name, batteries, version, islands, dotnet),
                     _ => ProjectGenerator.GenerateServer(dir, name, batteries, version, islands, dotnet),
                 };
             },
@@ -447,7 +478,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         new()
         {
             Localization = on.Contains("localization"),
-            Wasm = on.Contains("wasm"),
             Pwa = on.Contains("pwa"),
             Cqrs = on.Contains("cqrs"),
             Data = on.Contains("data"),
@@ -465,8 +495,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
 
     internal static ServerBatteries ToBatteries(
         TemplateInfo template,
-        IReadOnlyCollection<string> off,
-        bool wasm = false)
+        IReadOnlyCollection<string> off)
     {
         // Every battery a template supports is on unless it was turned off. There is no longer an
         // opt-in exception: localization was the only one, and it is not a flag any more (#854).
@@ -475,8 +504,6 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
 
         return new ServerBatteries
         {
-            // Asked for by name, and only honoured by a template that can host it.
-            Wasm = wasm && template.SupportedFlags.Contains("wasm"),
             // Not a flag any more (#854): the languages an app ships are configured in Program.cs, so
             // this is only "does this template scaffold the registration at all". CultureList stays empty
             // here — Normalized() fills in "en", the default a scaffolded app starts from and edits.
@@ -546,74 +573,24 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
 
         // Styling asks nothing: Tailwind is built in, so there is no answer a project could give.
 
-        // The browser rung gets a question of its own because it is the one thing still off by default.
-        // Everything else on the list is already on, so the checklist below is about taking things away;
-        // mixing something you ADD into a list of things you remove would read as the opposite of what it
-        // does. Authentication used to be asked here and is not any more: an app with a database has
-        // accounts, so there is no longer a question to put.
+        // The browser no longer gets a question of its own: it is a project TYPE now (wasm-hosted, beside
+        // wasm and the front-end templates), so it is answered by the list above rather than by a yes/no
+        // afterwards (#1103). That also keeps the checklist below honest — it is about taking things away,
+        // and mixing something you ADD into a list of things you remove read as the opposite of what it did.
+        // Authentication used to be asked here and is not any more: an app with a database has accounts.
 
-        // The cost is named in the question. It is the one answer here that makes every later publish
-        // minutes slower, and finding that out afterwards is worse than being asked.
-        if (!parsed.HasFlag("wasm") && template.SupportedFlags.Contains("wasm")
-            && prompt.Confirm(
-                "Also run pages in the [bold]browser[/] — publishes a WebAssembly bundle (slower publish)?",
-                @default: false))
-        {
-            filled.Add("--wasm");
-        }
-
-        // Pre-ticked, because this is what a bare `rask new` already gives you. The question is "anything
-        // you don't want?", and unticking an entry becomes the --no-<battery> that says so. A battery this
-        // template supports but leaves out is offered UNticked, so the list still shows everything on
-        // offer and the checklist stays the one place that says what you are getting.
-        // Every offered battery is standard now: localization was the one exception, and it left the
-        // command line entirely with #854.
-        var offered = BatteryFlags.Where(template.SupportedFlags.Contains).ToArray();
-        var standard = offered;
-
-        // A command line that already answered this — either way round — is not re-asked.
-        var batteriesGiven = BatteryFlags.Any(f => parsed.HasFlag(OffFlag(f)));
-        if (!batteriesGiven && offered.Length > 0)
-        {
-            var kept = prompt.MultiSelect(
-                offered.Length == standard.Length
-                    ? "Batteries [dim](all on — space to untick)[/]"
-                    : "Batteries [dim](space to tick or untick)[/]",
-                [.. offered.Select(f => (f, $"[bold]{f}[/] [dim]— {BatteryDescriptions[f]}[/]"))],
-                selected: standard);
-
-            filled.AddRange(standard.Except(kept).Select(f => "--" + OffFlag(f)));
-        }
+        // The batteries are NOT asked about. Batteries are included: every one the template supports is on,
+        // and the wizard's job is the handful of answers that decide what the app is, not a menu over
+        // thirteen things that are all already the right answer. Anyone who wants one gone says so on the
+        // command line — `rask new Shop --no-ops` — and the summary below still prints the full list, so
+        // what you are getting is stated either way.
+        //
+        // The checklist that used to stand here arrived fully ticked, which made it a question whose
+        // answer was "yes" every time: thirteen rows to read past before the scaffold could start.
 
         WriteWizardSummary(filled, template, DotnetTarget.For(parsed.Option("framework")));
         return filled;
     }
-
-    /// <summary>
-    /// One line per battery for the wizard's checklist, phrased as what you <em>get</em>.
-    /// </summary>
-    /// <remarks>
-    /// Not the schema's own descriptions: those are written for <c>--no-jobs</c> and so read "leave out
-    /// …", which is exactly backwards next to a ticked box. Kept honest by a test that asserts every
-    /// <see cref="BatteryFlags"/> entry has an entry here.
-    /// </remarks>
-    internal static readonly IReadOnlyDictionary<string, string> BatteryDescriptions =
-        new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["pwa"] = "installable: a manifest, an icon, and an offline page",
-            ["cqrs"] = "the source-generated mediator your writes, jobs, the outbox and domain events go through",
-            ["data"] = "a SQLite database and an AppDbContext your features map through",
-            ["docker"] = "a production Dockerfile and .dockerignore",
-            ["jobs"] = "durable background jobs on the app's own database",
-            ["mail"] = "transactional email, queued and sent off the request thread",
-            ["cache"] = "a database-backed ICache and IDistributedCache",
-            ["storage"] = "file storage for uploads, on disk or in a bucket, with a row per file",
-            ["outbox"] = "a transactional outbox for durable domain events",
-            ["push"] = "server-sent Web Push, with the subscribe endpoints",
-            ["snapshots"] = "scheduled point-in-time backups of the SQLite file",
-            ["logs"] = "a durable log store, so the log survives a restart",
-            ["ops"] = "an operator dashboard at /_rask over every battery's table",
-        };
 
     /// <summary>
     /// Restate the answers before the files start appearing, so the scaffolding output is read as the
@@ -630,9 +607,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
         // summary's whole job is to be what happens next, and a second reading of the same answers is how
         // it comes to say something the generator then contradicts.
         var off = BatteryFlags.Where(f => args.Contains("--" + OffFlag(f), StringComparer.Ordinal)).ToArray();
-        var batteries = ToBatteries(
-            template, off,
-            wasm: args.Contains("--wasm", StringComparer.Ordinal));
+        var batteries = ToBatteries(template, off);
 
         var on = BatteryFlags.Where(f => f != "docker" && Includes(batteries, f)).ToArray();
 

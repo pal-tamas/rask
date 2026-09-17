@@ -18,6 +18,7 @@ public sealed partial class UiKitActionsDemo : Component
     private string _lastAction = "nothing yet";
     private int _saves;
     private string _sort = "name";
+    private List<string> _filters = ["open"];
     private bool _showArchived;
     private int _steps;
 
@@ -106,6 +107,65 @@ public sealed partial class UiKitActionsDemo : Component
                     UiMenuCheckbox.Key("archived").Value(_showArchived).Text("Show archived")
                         .OnChange(on => { _showArchived = on; _lastAction = on ? "showing archived" : "hiding archived"; }),
                     UiMenuItem.Key("export").Text("Export").Disabled(true)
+                ]
+            ]),
+
+        Section(
+            "Context menu",
+            "Right-click the card. It is the same menu a dropdown draws — the same rows, the same keyboard — opened "
+            + "at the pointer instead of from a button. The runtime opens it, so it appears at once on either host, "
+            + "and the ContextMenu key or Shift+F10 opens it at the focused element. Nothing in it should be the "
+            + "only way to do something: iOS never fires the event.",
+            Div.Data(Testid("ui-context-menu"))[
+                UiContextMenu.Target(
+                    Div.TabIndex(0)
+                        .Class("rounded-box border border-dashed border-base-300 p-6 text-center text-sm text-ui-muted")[
+                        "Right-click this card"
+                    ])[
+                    UiMenuItem.Key("open").Text("Open").OnClick(() => { _lastAction = "opened the card"; }),
+                    UiMenuItem.Key("copy").Text("Copy link").OnClick(() => { _lastAction = "copied the link"; }),
+                    UiMenuSeparator.Key("sep"),
+                    UiMenuItem.Key("delete").Text("Delete").Tone(UiTone.Error)
+                        .OnClick(() => { _lastAction = "deleted the card"; })
+                ]
+            ]),
+
+        Section(
+            "Command palette",
+            "Click the field, or press ⌘K (Ctrl K off a Mac) anywhere on this page. The commands are the rows a "
+            + "dropdown takes; typing narrows them, the arrows move the highlight while focus stays in the box, "
+            + "and Enter runs the highlighted one — its handler, or its link — and closes the palette. The "
+            + "shortcut is a runtime hook that clicks the field, so it opens the same dialog a click does.",
+            Div.Data(Testid("ui-command")).Class("max-w-sm")[
+                UiCommand.Label("Search commands").Shortcut("mod+k")[
+                    UiMenuGroup.Heading("Invoices")[
+                        UiMenuItem.Text("New invoice").Icon(UiIconName.Plus)
+                            .OnClick(() => { _lastAction = "started a new invoice"; }),
+                        UiMenuItem.Text("Export all").Icon(UiIconName.Download).Disabled(true)
+                    ],
+                    UiMenuSeparator,
+                    UiMenuItem.Text("Copy invoice link").Icon(UiIconName.Clipboard)
+                        .OnClick(() => { _lastAction = "copied the invoice link"; }),
+                    UiMenuItem.Text("Sign out").Tone(UiTone.Error)
+                        .OnClick(() => { _lastAction = "signed out"; })
+                ]
+            ]),
+
+        Section(
+            "Popover — a panel, not a menu",
+            "The gap a dropdown leaves. A dropdown IS a menu: its children are rows you pick from, it says "
+            + "role=menu and it walks a cursor over them with the arrow keys. A filter panel is none of those, "
+            + "and putting one in a menu tells a screen reader it is a list of commands and traps the arrows "
+            + "inside it. Same machinery, no menu semantics — a [popover] the browser lifts, dismisses on "
+            + "Escape and on a click outside, placed with the same Position and Align everything else uses.",
+            Div.Data(Testid("ui-popover"))[
+                UiPopover.Trigger("Filters").Icon(UiIconName.Gear).Align(UiAlign.Start)
+                    .PanelClass("w-72")[
+                    UiHeading.Key("h").Level(3).Size(UiSize.Sm).Class("mb-2")["Narrow the list"],
+                    UiCheckboxGroup.Values(_filters).Key("f")
+                        .Options([("open", "Open"), ("mine", "Assigned to me"), ("old", "Older than a week")])
+                        .Label("Show")
+                        .OnChange(v => { _filters = [.. v]; })
                 ]
             ]),
 

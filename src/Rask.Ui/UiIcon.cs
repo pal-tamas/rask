@@ -452,6 +452,10 @@ public sealed partial class UiIcon : Component
             + "H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1."
             + "563A6 6 0 1 1 21.75 8.25Z"),
 
+        UiIconName.Upload => SvgPath.D(
+            "M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 "
+            + "3v13.5"),
+
         // Unreachable for a declared name. A new enum member without a shape would otherwise draw an empty
         // box and read as a styling fault rather than a missing case.
         _ => throw new ArgumentOutOfRangeException(nameof(Name), Name, "No shape is defined for this icon."),

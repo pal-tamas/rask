@@ -93,33 +93,8 @@ public sealed partial class UiProfile : UiMenuButton
                 Div.Class(UiClass.Compose("size-8 bg-neutral text-neutral-content", shape))[
                     // Hidden, for the same reason: the name is right there, and "TP" read aloud before it is
                     // noise.
-                    Span.Class("text-xs font-medium").Aria("hidden", "true")[Initials(Name)]
+                    Span.Class("text-xs font-medium").Aria("hidden", "true")[global::Rask.Ui.UiAvatar.Initials(Name)]
                 ]
             ];
-    }
-
-    /// <summary>The monogram for a name: the first letter of each of its first two words.</summary>
-    /// <remarks>
-    ///     Deliberately not "first and last". A name is not reliably two words in that order — "Pál Tamás" and
-    ///     "Tamás Pál" are the same person written the way each culture writes it — so taking the ends would
-    ///     give one person two different monograms depending on which form was stored.
-    /// </remarks>
-    internal static string Initials(string name)
-    {
-        var taken = new char[2];
-        var count = 0;
-
-        foreach (var word in name.Split(' ', StringSplitOptions.RemoveEmptyEntries))
-        {
-            if (count == taken.Length)
-            {
-                break;
-            }
-
-            taken[count++] = char.ToUpperInvariant(word[0]);
-        }
-
-        // A name of nothing but spaces still has to draw something, and an empty circle looks broken.
-        return count == 0 ? "?" : new string(taken, 0, count);
     }
 }

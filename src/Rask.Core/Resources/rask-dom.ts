@@ -1053,3 +1053,387 @@ export function applyFrameInvokes(
         }
     });
 })();
+
+// ----- Toast auto-dismiss (data-rask-dismiss-after) ----------------------
+// A toast reports what just happened and then gets out of the way. The waiting is the one part of that a
+// render cannot do: CSS can fade an element out, but the element stays in the DOM and in the accessibility
+// tree, so a screen reader would still find a notice that is visually gone.
+//
+// So the runtime does it, generically — any element carrying data-rask-dismiss-after="<ms>" is dismissed
+// after that long by CLICKING its own [data-rask-dismiss] control, which is the convention the focus trap
+// already uses. That matters: the click runs the page's own handler, so the page removes the toast from its
+// state and the render agrees with the screen. Hiding the element here instead would leave the page
+// believing a toast is up that nobody can see, and the next render would put it back.
+//
+// The timer PAUSES while the pointer is over the toast or focus is inside it: a notice that disappears while
+// somebody is reading it, or mid-way through reaching for its action, is worse than one that stays.
+(function installRaskToastDismiss() {
+    if (typeof document === "undefined" || typeof MutationObserver !== "function"
+        || typeof window === "undefined" || window.__raskToastDismiss) {
+        return;
+    }
+    window.__raskToastDismiss = true;
+
+    // Per element, so a re-render that keeps the same node does not restart its countdown — a toast whose
+    // message is re-rendered every second would otherwise never expire.
+    const armed = new WeakMap<Element, {left: number; since: number; timer: number}>();
+
+    function dismiss(el: Element): void {
+        const control = el.hasAttribute("data-rask-dismiss")
+            ? el
+            : el.querySelector("[data-rask-dismiss]");
+        if (control instanceof HTMLElement) {
+            control.click();
+        }
+    }
+
+    function arm(el: Element): void {
+        if (armed.has(el)) {
+            return;
+        }
+        const ms = Number(el.getAttribute("data-rask-dismiss-after"));
+        if (!(ms > 0)) {
+            return;
+        }
+
+        const state = {left: ms, since: Date.now(), timer: 0};
+        armed.set(el, state);
+
+        const start = function () {
+            if (state.timer) {
+                return;
+            }
+            state.since = Date.now();
+            state.timer = window.setTimeout(function () {
+                state.timer = 0;
+                if (el.isConnected) {
+                    dismiss(el);
+                }
+            }, state.left);
+        };
+        const pause = function () {
+            if (!state.timer) {
+                return;
+            }
+            window.clearTimeout(state.timer);
+            state.timer = 0;
+            state.left = Math.max(0, state.left - (Date.now() - state.since));
+        };
+
+        el.addEventListener("pointerenter", pause);
+        el.addEventListener("pointerleave", start);
+        el.addEventListener("focusin", pause);
+        el.addEventListener("focusout", start);
+        start();
+    }
+
+    function scan(root: Node): void {
+        if (!(root instanceof Element)) {
+            return;
+        }
+        if (root.hasAttribute("data-rask-dismiss-after")) {
+            arm(root);
+        }
+        for (const el of root.querySelectorAll("[data-rask-dismiss-after]")) {
+            arm(el);
+        }
+    }
+
+    new MutationObserver(function (records) {
+        for (const record of records) {
+            if (record.type === "attributes") {
+                scan(record.target);
+                continue;
+            }
+            for (const node of record.addedNodes) {
+                scan(node);
+            }
+        }
+    }).observe(document.documentElement, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeFilter: ["data-rask-dismiss-after"],
+    });
+
+    scan(document.documentElement);
+})();
+
+// ----- Drop zone highlight (data-rask-dropzone) --------------------------
+// A drop area is a native <input type=file> stretched over the area, so where a dropped file goes is the
+// browser's business and needs nothing from here. What CSS cannot say is "a file is being dragged over this":
+// :hover does not update during a drag in every engine, and there is no drag pseudo-class at all. So the
+// runtime sets data-dragging on the nearest [data-rask-dropzone] while a drag carrying FILES is over it, and
+// the area styles itself from that.
+//
+// Counted, because dragenter and dragleave fire for every child crossed on the way in and out — the icon,
+// the heading, the input on top — and a plain toggle would flicker off the moment the pointer crossed one.
+// A drop or the end of a drag clears everything, which also rescues a count an engine got wrong.
+//
+// Files only: dragging a row of an in-page sortable list across a drop area is not an offer to upload it.
+(function installRaskDropzone() {
+    if (typeof document === "undefined" || typeof document.addEventListener !== "function"
+        || typeof window === "undefined" || window.__raskDropzone) {
+        return;
+    }
+    window.__raskDropzone = true;
+
+    const depth = new Map<Element, number>();
+
+    function zoneOf(e: DragEvent): Element | null {
+        const types = e.dataTransfer ? e.dataTransfer.types : null;
+        if (!types || Array.prototype.indexOf.call(types, "Files") < 0) {
+            return null;
+        }
+        return e.target instanceof Element ? e.target.closest("[data-rask-dropzone]") : null;
+    }
+
+    function clear(): void {
+        for (const zone of depth.keys()) {
+            zone.removeAttribute("data-dragging");
+        }
+        depth.clear();
+    }
+
+    document.addEventListener("dragenter", function (e: DragEvent) {
+        const zone = zoneOf(e);
+        if (!zone) {
+            return;
+        }
+        depth.set(zone, (depth.get(zone) || 0) + 1);
+        zone.setAttribute("data-dragging", "");
+    }, true);
+
+    document.addEventListener("dragleave", function (e: DragEvent) {
+        const zone = zoneOf(e);
+        if (!zone || !depth.has(zone)) {
+            return;
+        }
+        const left = (depth.get(zone) || 0) - 1;
+        if (left > 0) {
+            depth.set(zone, left);
+            return;
+        }
+        depth.delete(zone);
+        zone.removeAttribute("data-dragging");
+    }, true);
+
+    document.addEventListener("drop", clear, true);
+    document.addEventListener("dragend", clear, true);
+})();
+
+// ----- Context menus (data-rask-contextmenu) -----------------------------
+// An element carrying data-rask-contextmenu="<popover id>" opens that popover where the reader right-clicks it,
+// in place of the browser's own menu. Here rather than as a C# handler because the menu has to appear under the
+// pointer at once: a round trip before the menu shows is a lag the reader feels on every right-click, and a page
+// that has not booted yet would get the browser's menu instead.
+//
+// The position goes on <html> as --rask-context-x / --rask-context-y, which the panel's own style reads. Not on
+// the panel: a render rewrites the panel's style attribute, and the cursor moving is a render. Only one menu is
+// open at a time — an auto popover closes the others — so one pair is enough.
+//
+// The ContextMenu key and Shift+F10 fire the same event with no pointer position, so the menu opens at the
+// element that has focus instead. After it is shown the panel is measured and pulled back inside the viewport,
+// since a right-click near an edge would otherwise open a menu half off the screen.
+//
+// An engine without the popover API keeps the browser's own menu: nothing is prevented that cannot be replaced.
+(function installRaskContextMenu() {
+    if (typeof document === "undefined" || typeof document.addEventListener !== "function"
+        || typeof window === "undefined" || window.__raskContextMenu) {
+        return;
+    }
+    window.__raskContextMenu = true;
+
+    const EDGE = 4;
+
+    document.addEventListener("contextmenu", function (e: MouseEvent) {
+        const target = e.target instanceof Element ? e.target : null;
+        const host = target ? target.closest("[data-rask-contextmenu]") : null;
+        if (!target || !host) {
+            return;
+        }
+        const panel = document.getElementById(host.getAttribute("data-rask-contextmenu") || "") as
+            (HTMLElement & { showPopover?: () => void; hidePopover?: () => void }) | null;
+        if (!panel || typeof panel.showPopover !== "function") {
+            return;
+        }
+        e.preventDefault();
+        if (panel.contains(target)) {
+            return; // a right-click inside the open menu is not a request for another one
+        }
+
+        let x = e.clientX;
+        let y = e.clientY;
+        if (x === 0 && y === 0) {
+            const box = target.getBoundingClientRect();
+            x = box.left;
+            y = box.bottom;
+        }
+
+        // macOS and Linux fire contextmenu on the PRESS, with the button still down. Shown now, the release that
+        // follows is a click outside a freshly opened popover and the browser light-dismisses it at once — so wait
+        // for the release, and open after the browser has finished handling it. Windows fires on the release, with
+        // no button down, and opens straight away.
+        if (e.buttons > 0) {
+            document.addEventListener("pointerup", function () {
+                window.setTimeout(function () {
+                    open(panel, x, y);
+                }, 0);
+            }, {capture: true, once: true});
+            return;
+        }
+        open(panel, x, y);
+    });
+
+    function open(panel: HTMLElement & { showPopover?: () => void; hidePopover?: () => void }, x: number, y: number): void {
+        const vars = document.documentElement.style;
+        try {
+            if (panel.matches(":popover-open")) {
+                panel.hidePopover!(); // open again at the new point, not where it was
+            }
+            vars.setProperty("--rask-context-x", x + "px");
+            vars.setProperty("--rask-context-y", y + "px");
+            panel.showPopover!();
+        } catch (err) {
+            return; // not connected, or mid-transition
+        }
+
+        const menu = panel.getBoundingClientRect();
+        const fitX = Math.max(EDGE, Math.min(x, window.innerWidth - menu.width - EDGE));
+        const fitY = y + menu.height > window.innerHeight - EDGE ? Math.max(EDGE, y - menu.height) : y;
+        vars.setProperty("--rask-context-x", fitX + "px");
+        vars.setProperty("--rask-context-y", fitY + "px");
+    }
+})();
+
+// ----- Keyboard shortcuts (data-rask-shortcut) ---------------------------
+// An element carrying data-rask-shortcut="mod+k" is CLICKED when that combination is pressed anywhere on the
+// page — so whatever the element does on a click (open a dialog through its invoker command, run its handler,
+// follow its link) is what the shortcut does, and nothing has to be wired twice. `mod` is ⌘ on a Mac and Ctrl
+// elsewhere; ctrl, alt, shift and meta are themselves. Case-insensitive, one key.
+//
+// A shortcut with no modifier does not fire while the reader is typing in a field, where the key is a character
+// they meant. A disabled or disconnected element is never pressed. The first matching element on the page wins,
+// and the browser's own handling of the combination is prevented only when one did.
+//
+// The same install marks <html> with data-rask-mac on a Mac, which is how a stylesheet shows ⌘K there and Ctrl K
+// everywhere else: the server rendering the page cannot know what the reader is holding.
+(function installRaskShortcuts() {
+    // The same guard as every block in this file: the module is loaded in Node by the runtime fixtures, where there
+    // is a stub document at most — and Node DOES have a navigator, whose platform on a Mac says so.
+    if (typeof document === "undefined" || typeof document.addEventListener !== "function"
+        || typeof window === "undefined" || window.__raskShortcuts) {
+        return;
+    }
+    window.__raskShortcuts = true;
+
+    const nav = typeof navigator !== "undefined" ? navigator : null;
+    const mac = !!nav && /Mac|iPhone|iPad|iPod/.test(nav.platform || nav.userAgent || "");
+    const root = document.documentElement;
+    if (mac && root && typeof root.setAttribute === "function") {
+        root.setAttribute("data-rask-mac", "");
+    }
+
+    function matches(spec: string, e: KeyboardEvent): boolean {
+        const parts = spec.toLowerCase().split("+").map(function (p) { return p.trim(); }).filter(Boolean);
+        const key = parts.pop();
+        if (!key || e.key.toLowerCase() !== key) {
+            return false;
+        }
+        let ctrl = false;
+        let meta = false;
+        let alt = false;
+        let shift = false;
+        for (const part of parts) {
+            if (part === "mod") {
+                if (mac) meta = true; else ctrl = true;
+            } else if (part === "ctrl") {
+                ctrl = true;
+            } else if (part === "meta") {
+                meta = true;
+            } else if (part === "alt") {
+                alt = true;
+            } else if (part === "shift") {
+                shift = true;
+            } else {
+                return false;
+            }
+        }
+        return e.ctrlKey === ctrl && e.metaKey === meta && e.altKey === alt && e.shiftKey === shift;
+    }
+
+    function typing(target: EventTarget | null): boolean {
+        return target instanceof HTMLElement
+            && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
+    }
+
+    document.addEventListener("keydown", function (e: KeyboardEvent) {
+        if (e.repeat || !e.key) {
+            return;
+        }
+        const plain = !e.ctrlKey && !e.metaKey && !e.altKey;
+        for (const el of document.querySelectorAll("[data-rask-shortcut]")) {
+            if (!(el instanceof HTMLElement) || !matches(el.getAttribute("data-rask-shortcut") || "", e)) {
+                continue;
+            }
+            if ((plain && typing(e.target)) || el.hasAttribute("disabled")) {
+                return;
+            }
+            e.preventDefault();
+            el.click();
+            return;
+        }
+    });
+})();
+
+// ----- Command palettes (data-rask-press-active, data-rask-close-on-pick) --
+// A combobox over a list of COMMANDS, rather than a list of values: Enter has to do whatever the highlighted
+// option does — run its handler, follow its link — and only a click reaches either, since C# cannot follow an
+// href. So Enter on an element carrying data-rask-press-active clicks the element its aria-activedescendant names,
+// unless that one is aria-disabled. The combobox block above already keeps Enter from submitting a form.
+//
+// And a pick closes the palette: a click on an [role=option] inside [data-rask-close-on-pick] closes that dialog —
+// after the click has reached its own handler, not before, or focus would leave the option ahead of it.
+(function installRaskCommandPalette() {
+    if (typeof document === "undefined" || typeof document.addEventListener !== "function"
+        || typeof window === "undefined" || window.__raskCommandPalette) {
+        return;
+    }
+    window.__raskCommandPalette = true;
+
+    document.addEventListener("keydown", function (e: KeyboardEvent) {
+        if (e.key !== "Enter" || e.isComposing) {
+            return;
+        }
+        const box = e.target instanceof Element ? e.target.closest("[data-rask-press-active]") : null;
+        const id = box ? box.getAttribute("aria-activedescendant") : null;
+        const option = id ? document.getElementById(id) : null;
+        if (!option || option.getAttribute("aria-disabled") === "true") {
+            return;
+        }
+        e.preventDefault();
+        option.click();
+    });
+
+    document.addEventListener("click", function (e: MouseEvent) {
+        const option = e.target instanceof Element ? e.target.closest("[role=option]") : null;
+        const host = option ? option.closest("[data-rask-close-on-pick]") : null;
+        if (!option || !host || option.getAttribute("aria-disabled") === "true") {
+            return;
+        }
+        window.setTimeout(function () {
+            try {
+                if (host instanceof HTMLDialogElement && host.open) {
+                    host.close();
+                    return;
+                }
+                const popover = host as HTMLElement & { hidePopover?: () => void };
+                if (host.matches(":popover-open") && typeof popover.hidePopover === "function") {
+                    popover.hidePopover();
+                }
+            } catch (err) {
+                // already gone
+            }
+        }, 0);
+    });
+})();

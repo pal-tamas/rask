@@ -20,6 +20,7 @@ public sealed partial class UiKitDataInputDemo : Component
     private string? _country;
     private string? _framework;
     private string? _home;
+    private string _search = "";
     private readonly List<string> _packages = ["core", "ui"];
     private string _plan = "pro";
     private string _density = "cosy";
@@ -28,6 +29,10 @@ public sealed partial class UiKitDataInputDemo : Component
     private int _stars = 4;
     private DateOnly _month = DateOnly.FromDateTime(DateTime.Today);
     private DateOnly? _date;
+    private readonly List<string> _dropped = [];
+    private UiDateRange _stay;
+    private DateOnly _arrival;
+    private List<DateOnly> _daysOff = [];
     private readonly Signup _signup = new();
 
     // Words with an accent in them, on purpose: the default match ignores case AND accents in the
@@ -64,9 +69,19 @@ public sealed partial class UiKitDataInputDemo : Component
                         ? "That does not look like an email address."
                         : null)
                     .OnChange(v => { _email = v; }),
-                UiInput.Of<string>().Key("ghost").Label("Search").Variant(UiVariant.Ghost),
-                UiTextarea.Value(_notes).Key("notes").Label("Notes").Badge("Optional").Rows(3)
-                    .Hint("Anything else?")
+                // Anything inside the box — an icon, a shortcut, a clear button — makes the box a container
+                // around the input, and the label keeps its place above the field: a floating caption rises
+                // through exactly the room the icon now occupies.
+                UiInput.Value(_search).Key("search").Label("Search")
+                    .Icon(UiIconName.Search).Kbd("⌘K").Clearable(true)
+                    .Placeholder("Find a package")
+                    .OnInput(v => _search = v ?? ""),
+                // AutoSize is CSS — `field-sizing: content` — so the box grows as you type with no runtime at
+                // all, and where an engine has not shipped it the box keeps its Rows and scrolls.
+                UiTextarea.Value(_notes).Key("notes").Label("Notes").Badge("Optional").Rows(2)
+                    .AutoSize(true)
+                    .Resize(UiResize.None)
+                    .Hint("Anything else? The box grows as you type.")
                     .OnChange(v => { _notes = v; }),
                 UiSelect.Value(_country).Key("country")
                     .Options([("hu", "Hungary"), ("gb", "United Kingdom")])
@@ -284,6 +299,58 @@ public sealed partial class UiKitDataInputDemo : Component
             ]),
 
         Section(
+            "Several days, a range, and a picker",
+            "The same entries. Bind a collection of days and UiCalendar picks several; bind a UiDateRange and it "
+            + "picks a range — the first click is held and drawn, the second writes the whole range, so the model "
+            + "never holds half of one. UiDatePicker is the field-shaped button that opens the grid in a popover: "
+            + "a single day closes it on the pick, several days keep it open, a range closes on its second click.",
+            Div.Data(Testid("ui-dates")).Class("grid gap-4 md:grid-cols-2")[
+                Div.Class("space-y-2")[
+                    UiCalendar.Value(_stay).Label("Stay").Class("max-w-xs")
+                        .OnChange(r => { _stay = r; }),
+                    P.Class("text-sm text-ui-muted").Data(Testid("ui-dates-stay"))[
+                        _stay == default
+                            ? "No stay chosen."
+                            : $"Stay: {Iso(_stay.Start)} to {Iso(_stay.End)}"
+                    ]
+                ],
+                Div.Class("space-y-3")[
+                    UiDatePicker.Value(_arrival).Label("Arrival")
+                        .OnChange(d => { _arrival = d; }),
+                    UiDatePicker.Values(_daysOff).Label("Days off")
+                        .OnChange(days => { _daysOff = [.. days]; }),
+                    UiDatePicker.Value(_stay).Label("Stay, as a field")
+                        .OnChange(r => { _stay = r; }),
+                    P.Class("text-sm text-ui-muted").Data(Testid("ui-dates-picked"))[
+                        _arrival == default ? "No arrival chosen." : $"Arrival: {Iso(_arrival)}",
+                        $" · {_daysOff.Count} days off"
+                    ]
+                ]
+            ]),
+
+        Section(
+            "File drop area",
+            "Still the native file input, stretched invisibly over the whole area: a click anywhere opens the "
+            + "picker and a file dropped anywhere lands in the input, which the browser already does with no "
+            + "script. The runtime only marks the area while a file is dragged over it.",
+            Div.Data(Testid("ui-dropzone")).Class("max-w-md space-y-2")[
+                UiFileInput.Value("").Key("receipts").Label("Receipts").Id("demo-receipts")
+                    .Dropzone(true)
+                    .Heading("Drop receipts here, or click to choose")
+                    .Text("PDF or JPG, several at once")
+                    .Accept(".pdf,.jpg,.jpeg")
+                    .Multiple(true)
+                    .OnFiles(files =>
+                    {
+                        _dropped.Clear();
+                        _dropped.AddRange(files.Select(f => f.Name));
+                    }),
+                P.Class("text-sm text-ui-muted").Data(Testid("ui-dropzone-state"))[
+                    _dropped.Count == 0 ? "No files yet." : "Chosen: " + string.Join(", ", _dropped)
+                ]
+            ]),
+
+        Section(
             "Bound to a model",
             "The same controls, with no OnChange between them and the model. Bind is the other opening "
             + "of the same chain: it two-way binds, drives the surrounding Form's per-field validation, "
@@ -321,6 +388,9 @@ public sealed partial class UiKitDataInputDemo : Component
     ];
 
     private static Dictionary<string, string?> Testid(string value) => new() { ["testid"] = value };
+
+    private static string Iso(DateOnly date) =>
+        date.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
 
     private static Component Masked(string key, UiMaskShape shape) =>
         UiMask.Key(key).Shape(shape).Class("size-14 bg-primary");

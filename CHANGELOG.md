@@ -9,6 +9,20 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A WebAssembly app's nested build no longer runs on a different SDK than the build that started it.** Every
+  package that shells out to build a companion — `Rask.Server` for a `wasm-hosted` app's browser half,
+  `Rask.Wasm` for the prerender pass, `Rask.Spa.Hosting` for a WASM client — ran a bare `dotnet build` or
+  `dotnet publish`. That re-resolves the SDK from the `global.json` in the app's folder, which every scaffold
+  now writes, while the outer build resolved its SDK from wherever it was started. So
+  `dotnet build path/to/App.csproj` from a solution root, an IDE or CI built the host on the newest SDK
+  installed and the companion on the pinned band — and the child, having inherited the parent's
+  `MSBuildSDKsPath`, loaded the other SDK's targets into its own runtime and failed with MSB4216 ("could not
+  create or connect to a task host"). All four sites now run `$(_RaskSdkDotnet)`: this build's own
+  `dotnet.dll` through `DOTNET_HOST_PATH`, falling back to `dotnet` only under Visual Studio's MSBuild.
+  Clearing the inherited variables was not an option — `Exec` cannot unset one, and an empty value is read as
+  a path, after which no SDK resolves at all. `NestedDotnetContractTests` fails if a packed `.targets` file
+  runs a bare SDK command again or the definitions drift apart.
+
 - **`RaskVersion.Current` reported `1.0.0` in every app** (#1122). It reads the informational version off the assembly that
   declares it — `Rask.Core` — and Core is `IsPackable=false`, so the `Condition=" '$(IsPackable)' != 'false' "` on
   MinVer's `PackageReference` meant nothing ever stamped it and the SDK's `1.0.0` fallback stood. Every reader was
@@ -112,6 +126,79 @@ them until tagged releases begin.
   remember it. `UiNavTab` gains `Icon`, `Badge`/`BadgeTone`, `Match`/`MatchPrefix`, and works `Active` out from the
   route when it is unset — as `UiNavItem` already did. `UiBrand` gains `Logo` for a real image mark; `UiTopBar`
   gains `Sticky` and `Class`; `UiMain` gains `Container` and `Class`; `UiNavList` gains `Outline`.
+- **Flux UI's command palette: new `UiCommand`.** `UiCommand.Label("Search commands").Shortcut("mod+k")[UiMenuItem…]`
+  is a search field that opens a modal dialog of commands — the same `UiMenuItem`s a dropdown takes, with their
+  `Icon`, `Kbd`, `Href`, `OnClick`, `Tone` and `Disabled`, arranged by `UiMenuGroup` and `UiMenuSeparator`. Typing
+  narrows them in C#, case- and accent-insensitively, and a command that does not match is not rendered; the search
+  box is a `combobox` over a `listbox` of `option`s, so focus stays in it while the arrows move the highlight, and
+  Enter presses the highlighted command and closes the palette. The field shows the shortcut as ⌘K on a Mac and
+  Ctrl K elsewhere.
+  - **Runtime:** three generic hooks. `data-rask-shortcut="mod+k"` clicks its element when the combination is
+    pressed anywhere on the page (`mod` is ⌘ on a Mac, Ctrl elsewhere; an unmodified shortcut does not fire while
+    typing), and marks a Mac with `data-rask-mac` on `<html>`. `data-rask-press-active` makes Enter click the
+    element a combobox's `aria-activedescendant` names. `data-rask-close-on-pick` closes a dialog after a click on
+    an option in it has reached its handler.
+- **Flux UI's date picking: several days, a range, and `UiDatePicker`.** `UiCalendar` binds a collection of days
+  (`List<DateOnly>`, `HashSet<DateOnly>`, … or `.Values([...])`) or a new `UiDateRange(Start, End)` (or
+  `.Value(new UiDateRange(a, b))`) as well as one `DateOnly`, and the bound type decides the control, as it does
+  for `UiSelect`. A range is always whole: the first click is held and drawn, and the model only changes when the
+  second gives it an end, in date order. New `UiDatePicker` is the field — a field-shaped button showing the choice
+  in the reader's short date format, with the grid in a popover — and a form field like `UiInput`, with the same
+  three openings: one day closes on the pick, several keep it open, a range closes on its second click.
+  `UiCalendar` also pages between months by itself when `Month` is unset; before, its arrows did nothing without
+  an `OnMonth`.
+  - **Generator:** a generic base's `T? Value` closed over a STRUCT (`UiFormField<DateOnly>`) reset to `null`,
+    which does not convert to `DateOnly`, so such a component did not compile. It resets to `default`.
+- **Flux UI's context menu: new `UiContextMenu`.** `UiContextMenu.Target(card)[UiMenuItem…]` opens a menu where the
+  reader right-clicks the target. The children are the same rows a `UiDropdown` takes, and the menu is the same
+  control, so the arrows, Home/End, type-ahead, submenus, Enter and Escape behave identically; the ContextMenu key
+  and Shift+F10 open it at the focused element. The menu half of `UiMenuButton` moves into a new public base,
+  `UiMenuSurface` (`Open`, `OnToggle`, `KeepOpen`, `Class`), which both derive from — so a context menu does not
+  carry a button's `Position`/`Align`/`Gap`/`Offset`, which mean nothing at a pointer.
+  - **Runtime:** a new generic hook — an element carrying `data-rask-contextmenu="<popover id>"` shows that popover
+    at the pointer in place of the browser's menu, at once and on either host rather than after a round trip, and
+    pulls it back inside the viewport near an edge. The position lives on `<html>` as `--rask-context-x`/`-y`,
+    because a render rewrites the panel's own style attribute. An engine without the popover API keeps the
+    browser's own menu.
+- **Flux UI's file drop area: `UiFileInput.Dropzone(true)`.** A large area to drop files on or click, with
+  `Heading` (defaulting to the `Label`) and `Text` (linked as the input's description when the control has an
+  `Id`). It is still the native file input, stretched invisibly over the whole area, so a click anywhere opens the
+  picker and a file dropped anywhere lands in the input the way the browser already handles a drop on one —
+  nothing routes the drop, so it works before the runtime boots, and `OnFiles` and binding behave exactly as they
+  do for the compact box. `UiIconName` gains `Upload`.
+  - **Runtime:** a new generic hook sets `data-dragging` on the nearest `[data-rask-dropzone]` while a drag
+    carrying FILES is over it — counted across the children a drag crosses, so it does not flicker, and ignored
+    for an in-page drag of anything else. No CSS state can say "a file is being dragged here".
+- **Flux UI's toasts.** New `UiToaster` stacks a page's toasts in a corner (`Position` + `Align`, newest last,
+  rendering nothing when empty); `UiToast` gains `Heading`, `Action`, `Duration`, `Position` and `Align`, and an
+  `UiTone.Error` toast now says `role="alert"` rather than waiting politely for a pause. **`Duration` does not
+  hide the element** — it asks the runtime to click the toast's own dismiss control, so the page's `OnDismiss`
+  runs and the page takes the toast off its own list; hiding it would leave the page believing a toast is up
+  that nobody can see, and the next render would put it back. A toast with no `OnDismiss` writes no timer,
+  because there would be nothing to press.
+  - **Runtime:** a new generic hook — any element carrying `data-rask-dismiss-after="<ms>"` is dismissed after
+    that long by clicking its own `[data-rask-dismiss]`, the same convention the focus trap presses on Escape.
+    The countdown pauses while the pointer is over the element or focus is inside it.
+- **New `UiPopover` — a panel, not a menu.** The gap `UiDropdown` left: a dropdown IS a menu, so it says
+  `role="menu"` and walks a keyboard cursor over its rows, and putting a filter panel or a colour picker in one
+  tells a screen reader it is a list of commands and traps the arrow keys inside it. Same machinery — a
+  `[popover]` the browser lifts, dismisses on Escape and on a click outside, placed by anchor positioning with
+  the same `Position`/`Align` — with `role="dialog"` and ordinary Tab movement.
+- **Smaller Flux affordances.** `UiTextarea` gains `Resize` (a new `UiResize`) and `AutoSize`, which is CSS
+  (`field-sizing: content`) so it needs no runtime and degrades to today's scrolling box where an engine has
+  not shipped it. `UiLink` gains `External`: `target="_blank"`, `rel="noopener noreferrer"` and a
+  screen-reader-only "opens in a new tab", all three together, and ignored for a generated route since that is
+  one of your own pages. `UiSkeleton` gains `Lines` (a paragraph, last line short), `Circle` and `Animate`.
+  `UiCard` gains `Size` — the class map already existed and nothing could reach it.
+- **Flux UI's input affordances.** `UiInput` gains `Icon`, `IconTrailing`, `Kbd` (the shortcut that focuses the
+  field) and `Clearable`. Any of them turns the box into a container around a bare `<input>` — daisyUI's own
+  icon-input shape — and the label then stays above the field, because a floating caption rises through exactly
+  the room the icon occupies. The container is a `<div>` rather than a `<label>`: a wrapping label implicitly
+  names the input it holds, and the field already has one.
+- **`UiAvatar` no longer requires a picture.** `Src` is optional; give it a `Name` and it draws the initials
+  instead, which is what makes the component usable for a signed-in account — most have no photo, and a broken
+  image is worse than a monogram. The letters are `aria-hidden` and the frame carries the name, since "AL" read
+  letter by letter tells a reader nothing. `UiProfile` shares the same fallback.
 - **Rask UI gets Flux UI's tab group.** New `UiTabGroup` and `UiTabPanel`, and `UiTab` gains `Name` and `Icon`:
   a tab with an `Href` is still the real link it was, and one with a `Name` shows a `UiTabPanel` inside a group —
   one component, because a reader sees one thing. Put the `UiTabs` row inside the group and it becomes the
@@ -229,6 +316,66 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: `server` is just a server, and `wasm-hosted` is a template again.** `rask new --wasm` is gone;
+  the shape it built is now `rask new --template wasm-hosted`, sitting in the project-type list beside
+  `react`, `vue` and the rest of the front-end-plus-host lane. It is the same lane, with C# on both sides of
+  the wire instead of TypeScript.
+  - **Why a template and not a flag.** "Where does the UI run" is the question the project type already asks.
+    Asking it again afterwards, as a yes/no, meant the list said `server` and the app turned out to be
+    something else — and the flag quietly *replaced* the server's own pages, `App` and error page rather than
+    adding to them, which is a different app rather than a server with an extra battery.
+  - **The name is back; the old shape is not.** The original `wasm-hosted`, removed in #877, was a hand-written
+    Client/Server/Shared trio with its own `.sln` and six GUIDs. This one is a single project, as every
+    template is: the browser half lives in `Client/`, its project is generated into `obj/`, and the packages
+    only the browser needs are `RaskClientPackageReference`s that never reach the server process.
+  - **CQRS is the template, not a battery in it.** `--no-cqrs` is refused here exactly as it is on the SPA and
+    meta lanes: the browser half dispatches to the host over `Rask.Cqrs.Client`, so an app without it is a
+    browser app with no way to reach its own server. This also gives remote CQRS dispatch a scaffold again —
+    #877 noted it lost its only one.
+  - **`ops` is supported**, which it is not on the TypeScript front-end templates. That host still references
+    `Rask.Server`, so `Rask.Dashboard` has the `Rask.Core` it needs and a `wasm-hosted` app serves a browser
+    app *and* server-renders the dashboard at `/_rask`.
+  - `ServerBatteries.Wasm` is gone, and `--wasm` is no longer a `rask new` flag on any template. `wasm`
+    (backendless, static-hostable) is unchanged.
+
+- **The `rask new` wizard stopped asking about batteries.** The checklist arrived fully ticked, which made it a
+  question whose answer was "yes" every time — thirteen rows to read past before the scaffold could start. The
+  wizard is now name → project type, and nothing else. Batteries are included; dropping one is still
+  `rask new Shop --no-ops` on the command line, and the summary still prints the full list either way. The
+  browser question went with it, because it is the project type now (above).
+
+- **`rask db` updates `dotnet-ef` when it is behind, instead of letting EF recite the fix.** An older tool than
+  the app's EF Core runtime made every command open with "The Entity Framework tools version '10.0.5' is older
+  than that of the runtime '10.0.12'. Update the tools…" — a chore with a known fix, on a tool this CLI
+  installed in the first place. `EfToolProbe` now reads `dotnet ef --version` and runs
+  `dotnet tool update --global dotnet-ef` against the EF major Rask pins. A failed update is not fatal: the
+  tool that is there still works, so it says so and carries on. The floor mirrors
+  `Directory.Packages.props`, and `EfToolProbeTests` fails if the two ever drift.
+
+- **A scaffolded app no longer warns that it has no `IEntityTypeConfiguration`.** EF Core's event 10632 ("No
+  instantiatable types implementing `IEntityTypeConfiguration` were found while scanning assembly…") is a
+  typo-catcher in an EF app and the *normal state* in a Rask one: deriving from `Aggregate<TId>` is precisely
+  what means there is no DbSet, no configuration class and no registration to write. `RaskDbContext` ignores
+  that warning, so it is true of every Rask context however its options were built, while the scaffold keeps
+  its `ApplyConfigurationsFromAssembly` call so adding a configuration class later still works. An app that
+  wants the check back can `Throw` or `Log` it — a later `ConfigureWarnings` wins.
+
+- **`rask.sh` and `rask.ps1` keep their own .NET SDK current.** An SDK found *outside* `$HOME` is still reported
+  and left exactly as it was — this installer never elevates and never writes outside `$HOME`, so a machine-wide
+  SDK is not its to move. The one in `~/.dotnet` is there because the installer put it there, and re-running now
+  brings it to the latest patch of its channel rather than leaving it on whatever shipped the day it was first
+  installed. `dotnet-install` is idempotent, so an up-to-date SDK costs a version check. `--no-sdk` / `-NoSdk`
+  still opts out of both.
+
+- **`rask doctor` no longer warns that you are not in a project.** The row said "Couldn't find a .csproj at or
+  above …" in warning yellow, as the last line of an install that had just gone perfectly — and the code beside
+  it already said "Not a failure". There is a fourth `DoctorStatus` now, `Skip`, for a check that had nothing to
+  check; it renders dim and, like `Warn`, never decides the exit code.
+
+- **The CLI's logo is one line.** `⚡ rask`, the word rather than a two-row half-block wordmark. Block art is
+  drawn from glyphs whose weights the terminal picks independently, so `█▄▀` and `█ █` landed at different
+  thicknesses in most monospace fonts and the word read as uneven — and it cost two lines plus a blank one
+  every time the tool spoke.
 - **BREAKING (Rask UI):** `UiMultiSelect` is no longer a name a call site types. The multi-value select is reached
   through `UiSelect` — `UiSelect.Bind(() => model.Tags)` or `UiSelect.Values(picked)` — and typing `UiMultiSelect` in
   markup now names the type rather than the chain, which does not compile.

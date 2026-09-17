@@ -128,7 +128,7 @@ nothing checks them against the server. Rename the route on the controller and t
 The codecs are the reflection-free ones the CQRS wire uses, so a shape means the same thing on either,
 and the client publishes clean under the WASM/AOT trimmer.
 
-### In a one-project `--wasm` app
+### In a one-project `wasm-hosted` app
 
 The client reaches the browser app in `Client/` on its own. That is worth spelling out, because the
 controller it was generated from cannot: the browser app compiles only `Client/` and `Shared/`, so a

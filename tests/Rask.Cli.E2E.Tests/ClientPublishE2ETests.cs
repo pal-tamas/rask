@@ -5,7 +5,7 @@ using Xunit;
 namespace Rask.Cli.E2E.Tests;
 
 /// <summary>
-///     Does <c>rask new --wasm</c> actually publish its browser app into the server's output?
+///     Does <c>rask new --template wasm-hosted</c> actually publish its browser app into the host's output?
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -34,8 +34,9 @@ public sealed class ClientPublishE2ETests
 
         try
         {
-            // Wasm alone: the batteries are irrelevant here and each one costs build time.
-            Scaffold(projectDir, name, new ServerBatteries { Wasm = true }, version, feed);
+            // Bare batteries: the rest are irrelevant here and each one costs build time. The
+            // generator forces CQRS on regardless, because the wire IS this template.
+            Scaffold(projectDir, name, new ServerBatteries(), version, feed);
 
             var csproj = Path.Combine(projectDir, name + ".csproj");
             var publishDir = Path.Combine(temp, "published");
@@ -90,9 +91,9 @@ public sealed class ClientPublishE2ETests
 
         try
         {
-            // Wasm AND cqrs — whether RaskClientPackageReference restores, and whether Client/Program.cs
+            // Whether RaskClientPackageReference restores, and whether Client/Program.cs
             // compiles against a package the server never sees, only a real publish answers.
-            Scaffold(projectDir, name, new ServerBatteries { Wasm = true, Cqrs = true }, version, feed);
+            Scaffold(projectDir, name, new ServerBatteries { Cqrs = true }, version, feed);
 
             var csproj = Path.Combine(projectDir, name + ".csproj");
             var publishDir = Path.Combine(temp, "published");
@@ -138,7 +139,7 @@ public sealed class ClientPublishE2ETests
 
         try
         {
-            Scaffold(projectDir, name, new ServerBatteries { Wasm = true }, version, feed);
+            Scaffold(projectDir, name, new ServerBatteries(), version, feed);
 
             // The shape that crosses the wire is SHARED, exactly as a CQRS message record is.
             WriteFile(projectDir, "Shared/Pong.cs", $$"""
@@ -233,7 +234,11 @@ public sealed class ClientPublishE2ETests
 
     private static void Scaffold(string projectDir, string name, ServerBatteries batteries, string version, string feed)
     {
-        var result = ProjectGenerator.GenerateServer(projectDir, name, batteries, version);
+        // wasm-hosted, not server: this file is about the BROWSER half — the project generated into obj/
+        // from Client/, and whether it restores and publishes. The server template writes no Client/ at
+        // all now that --wasm is gone (#1103), so pointing this at GenerateServer would have published a
+        // plain server and asserted nothing.
+        var result = ProjectGenerator.GenerateWasmHosted(projectDir, name, batteries, version);
 
         var fs = new SystemFileSystem();
         foreach (var file in result.Files)
