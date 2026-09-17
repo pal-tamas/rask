@@ -647,6 +647,30 @@ Form.Model(_order)[
 ]
 ```
 
+**Toasts: the page owns the list.** One `UiToast` is one notice; `UiToaster` stacks them in a corner
+(`Position` + `Align`, newest last so an arriving toast never pushes the one being read out from under the
+eye). A toast takes `Heading`, an `Action` (an Undo, a link to what was made) and `Duration`.
+
+`Duration` is the interesting one. It does **not** hide the element — it asks the runtime to *click the
+toast's own dismiss control*, which runs your `OnDismiss`, which takes the toast off your list. Hiding it
+instead would leave the page believing a toast is up that nobody can see, and the next render would put it
+back. The countdown **pauses** while the pointer is over the toast or focus is inside it, so reaching for the
+action does not lose it, and a toast with no `OnDismiss` writes no timer at all, because there would be
+nothing to press.
+
+```csharp
+UiToaster.Position(UiPosition.Bottom).Align(UiAlign.End)[
+    _notices.Select(n => UiToast.Key(n.Id).Message(n.Text)
+        .Duration(TimeSpan.FromSeconds(6))
+        .OnDismiss(() => _notices.Remove(n)))
+]
+```
+
+The hook is the **runtime's**, not the kit's, and it is generic: any element with
+`data-rask-dismiss-after="<ms>"` is dismissed by clicking its own `[data-rask-dismiss]` — the same convention
+the focus trap presses on Escape. An `UiTone.Error` toast says `role="alert"`; every other outcome is
+announced politely as `status`.
+
 **`UiPopover` is a panel, not a menu.** `UiDropdown` IS a menu — its children are rows you pick from, it says
 `role="menu"` and it walks a keyboard cursor over them. A filter panel, a colour picker or a bubble of help is
 none of those, and putting one in a menu tells a screen reader it is a list of commands and traps the arrow

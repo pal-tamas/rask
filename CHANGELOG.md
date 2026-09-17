@@ -28,6 +28,16 @@ them until tagged releases begin.
   remember it. `UiNavTab` gains `Icon`, `Badge`/`BadgeTone`, `Match`/`MatchPrefix`, and works `Active` out from the
   route when it is unset — as `UiNavItem` already did. `UiBrand` gains `Logo` for a real image mark; `UiTopBar`
   gains `Sticky` and `Class`; `UiMain` gains `Container` and `Class`; `UiNavList` gains `Outline`.
+- **Flux UI's toasts.** New `UiToaster` stacks a page's toasts in a corner (`Position` + `Align`, newest last,
+  rendering nothing when empty); `UiToast` gains `Heading`, `Action`, `Duration`, `Position` and `Align`, and an
+  `UiTone.Error` toast now says `role="alert"` rather than waiting politely for a pause. **`Duration` does not
+  hide the element** — it asks the runtime to click the toast's own dismiss control, so the page's `OnDismiss`
+  runs and the page takes the toast off its own list; hiding it would leave the page believing a toast is up
+  that nobody can see, and the next render would put it back. A toast with no `OnDismiss` writes no timer,
+  because there would be nothing to press.
+  - **Runtime:** a new generic hook — any element carrying `data-rask-dismiss-after="<ms>"` is dismissed after
+    that long by clicking its own `[data-rask-dismiss]`, the same convention the focus trap presses on Escape.
+    The countdown pauses while the pointer is over the element or focus is inside it.
 - **New `UiPopover` — a panel, not a menu.** The gap `UiDropdown` left: a dropdown IS a menu, so it says
   `role="menu"` and walks a keyboard cursor over its rows, and putting a filter panel or a colour picker in one
   tells a screen reader it is a list of commands and traps the arrow keys inside it. Same machinery — a

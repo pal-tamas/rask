@@ -1053,3 +1053,108 @@ export function applyFrameInvokes(
         }
     });
 })();
+
+// ----- Toast auto-dismiss (data-rask-dismiss-after) ----------------------
+// A toast reports what just happened and then gets out of the way. The waiting is the one part of that a
+// render cannot do: CSS can fade an element out, but the element stays in the DOM and in the accessibility
+// tree, so a screen reader would still find a notice that is visually gone.
+//
+// So the runtime does it, generically — any element carrying data-rask-dismiss-after="<ms>" is dismissed
+// after that long by CLICKING its own [data-rask-dismiss] control, which is the convention the focus trap
+// already uses. That matters: the click runs the page's own handler, so the page removes the toast from its
+// state and the render agrees with the screen. Hiding the element here instead would leave the page
+// believing a toast is up that nobody can see, and the next render would put it back.
+//
+// The timer PAUSES while the pointer is over the toast or focus is inside it: a notice that disappears while
+// somebody is reading it, or mid-way through reaching for its action, is worse than one that stays.
+(function installRaskToastDismiss() {
+    if (typeof document === "undefined" || typeof MutationObserver !== "function"
+        || typeof window === "undefined" || window.__raskToastDismiss) {
+        return;
+    }
+    window.__raskToastDismiss = true;
+
+    // Per element, so a re-render that keeps the same node does not restart its countdown — a toast whose
+    // message is re-rendered every second would otherwise never expire.
+    const armed = new WeakMap<Element, {left: number; since: number; timer: number}>();
+
+    function dismiss(el: Element): void {
+        const control = el.hasAttribute("data-rask-dismiss")
+            ? el
+            : el.querySelector("[data-rask-dismiss]");
+        if (control instanceof HTMLElement) {
+            control.click();
+        }
+    }
+
+    function arm(el: Element): void {
+        if (armed.has(el)) {
+            return;
+        }
+        const ms = Number(el.getAttribute("data-rask-dismiss-after"));
+        if (!(ms > 0)) {
+            return;
+        }
+
+        const state = {left: ms, since: Date.now(), timer: 0};
+        armed.set(el, state);
+
+        const start = function () {
+            if (state.timer) {
+                return;
+            }
+            state.since = Date.now();
+            state.timer = window.setTimeout(function () {
+                state.timer = 0;
+                if (el.isConnected) {
+                    dismiss(el);
+                }
+            }, state.left);
+        };
+        const pause = function () {
+            if (!state.timer) {
+                return;
+            }
+            window.clearTimeout(state.timer);
+            state.timer = 0;
+            state.left = Math.max(0, state.left - (Date.now() - state.since));
+        };
+
+        el.addEventListener("pointerenter", pause);
+        el.addEventListener("pointerleave", start);
+        el.addEventListener("focusin", pause);
+        el.addEventListener("focusout", start);
+        start();
+    }
+
+    function scan(root: Node): void {
+        if (!(root instanceof Element)) {
+            return;
+        }
+        if (root.hasAttribute("data-rask-dismiss-after")) {
+            arm(root);
+        }
+        for (const el of root.querySelectorAll("[data-rask-dismiss-after]")) {
+            arm(el);
+        }
+    }
+
+    new MutationObserver(function (records) {
+        for (const record of records) {
+            if (record.type === "attributes") {
+                scan(record.target);
+                continue;
+            }
+            for (const node of record.addedNodes) {
+                scan(node);
+            }
+        }
+    }).observe(document.documentElement, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeFilter: ["data-rask-dismiss-after"],
+    });
+
+    scan(document.documentElement);
+})();
