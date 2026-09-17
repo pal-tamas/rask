@@ -5,7 +5,8 @@ namespace Rask.Core.Tests.ScopedAssets;
 
 /// <summary>
 ///     Proves that a scoped asset is in <c>@(Watch)</c>, which is what makes <c>rask dev</c>'s
-///     "scoped .css/.ts apply live" true.
+///     "scoped .css/.ts apply live" true — and that SQLite's sidecar files stay out of what the watcher
+///     reacts to, which is what keeps a running app's own database from re-triggering it.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -59,6 +60,16 @@ public sealed class ScopedAssetWatchTests : IDisposable
         Write("obj/Debug/stale.ts", "export const stale = 1;");
         Write("wwwroot/site.css", "body {}");
         Write("node_modules/pkg/index.ts", "export const vendor = 1;");
+
+        // What a running app leaves beside it: the batteries' databases in WAL mode, and a rollback
+        // journal for one that is not.
+        Write("app.db", string.Empty);
+        Write("app.db-wal", string.Empty);
+        Write("app.db-shm", string.Empty);
+        Write("logs.db-journal", string.Empty);
+        Write("Data/local.sqlite-wal", string.Empty);
+        Write("Data/local.sqlite3-shm", string.Empty);
+        Write("notes.txt", "not a database");
     }
 
     [Fact]
@@ -120,6 +131,28 @@ public sealed class ScopedAssetWatchTests : IDisposable
             Watched(), path => path.Contains("rask-globals", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void SQLite_sidecar_files_are_outside_the_default_items_dotnet_watch_reacts_to()
+    {
+        // dotnet watch accepts a change anywhere in the project tree unless DefaultItemExcludes
+        // matches it, and a file ADDED there re-evaluates the whole project. SQLite creates its -wal
+        // and -shm on every start, so without the exclusion each `rask dev` start and restart set
+        // off another evaluation. The None glob is **/* minus DefaultItemExcludes, so it is exactly
+        // the set the watcher's exclusion globs leave standing.
+        var items = Evaluated("None");
+
+        Assert.DoesNotContain("app.db-wal", items);
+        Assert.DoesNotContain("app.db-shm", items);
+        Assert.DoesNotContain("logs.db-journal", items);
+        Assert.DoesNotContain("Data/local.sqlite-wal", items);
+        Assert.DoesNotContain("Data/local.sqlite3-shm", items);
+
+        // The decoys: the database itself stays an item (a seed database copied to the output must
+        // keep working), and so does everything else.
+        Assert.Contains("app.db", items);
+        Assert.Contains("notes.txt", items);
+    }
+
     public void Dispose()
     {
         try
@@ -133,14 +166,17 @@ public sealed class ScopedAssetWatchTests : IDisposable
     }
 
     /// <summary>The <c>@(Watch)</c> item list MSBuild evaluates, as forward-slashed relative paths.</summary>
-    private IReadOnlyList<string> Watched(params string[] properties)
+    private IReadOnlyList<string> Watched(params string[] properties) => Evaluated("Watch", properties);
+
+    /// <summary>An item list MSBuild evaluates for the probe, as forward-slashed relative paths.</summary>
+    private IReadOnlyList<string> Evaluated(string itemType, params string[] properties)
     {
         // -getItem: evaluates and prints; it runs no target, so this costs an evaluation rather than
         // a build. nodeReuse off because a persisted node would hold this temp directory open and
         // outlive the test that made it.
         var arguments = new List<string>
         {
-            "msbuild", Path.Combine(_project, "probe.csproj"), "-getItem:Watch", "-nologo", "-nodeReuse:false",
+            "msbuild", Path.Combine(_project, "probe.csproj"), $"-getItem:{itemType}", "-nologo", "-nodeReuse:false",
         };
         arguments.AddRange(properties);
 
@@ -148,7 +184,7 @@ public sealed class ScopedAssetWatchTests : IDisposable
         Assert.True(exitCode == 0, $"evaluating the probe project failed:\n{output}");
 
         using var json = JsonDocument.Parse(output);
-        if (!json.RootElement.GetProperty("Items").TryGetProperty("Watch", out var items))
+        if (!json.RootElement.GetProperty("Items").TryGetProperty(itemType, out var items))
         {
             return [];
         }

@@ -9,6 +9,16 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **`rask dev` no longer reacts to the app's own SQLite files.** `dotnet watch` watches the whole project
+  folder, not just `@(Watch)`: it accepts a change to any file `DefaultItemExcludes` does not match, and a file
+  ADDED there costs a full project re-evaluation (design-time build and restore) plus a hot reload pass. The
+  batteries open `app.db` and `logs.db` in WAL mode beside the project, so every start and every restart
+  created `app.db-wal`, `app.db-shm`, `logs.db-wal` and `logs.db-shm`, and the watcher answered each time with
+  "Files added: ./app.db-shm, ./logs.db-shm" and another reload of the project. `Rask.Core.targets` now adds
+  SQLite's `-wal`, `-shm` and `-journal` files (for `.db`, `.sqlite` and `.sqlite3`) to `DefaultItemExcludes`,
+  the list the watcher honours. The database file itself stays an ordinary item, so a seed database copied to
+  the output still works. `ScopedAssetWatchTests` fails if the sidecars reach the default items again.
+
 - **`rask dev` on macOS stopped asking for your password on every run — and stopped falling back to localhost
   when it could not.** The port-443 redirect it loads into pf does not survive a reboot, so `rask dev` records
   the boot it loaded it on and reloads after a new one. It compared that record to `sysctl kern.boottime` as a

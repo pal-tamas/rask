@@ -661,6 +661,12 @@ One thing it does not cover:
 - **A rude edit is not announced.** `dotnet watch` restarts the process, so nothing in Rask observes the
   edit; what you see is the app coming back and the page reloading.
 
+**The database is not a source edit.** `dotnet watch` reacts to any file that appears in the project
+folder, not only to what the project compiles, and SQLite writes `app.db-wal` and `app.db-shm` beside the
+database every time the app starts. Rask adds SQLite's `-wal`, `-shm` and `-journal` files (for `.db`,
+`.sqlite` and `.sqlite3`) to `DefaultItemExcludes`, the list the watcher skips, so the app's own writes
+never set off another project load. The database file itself stays an ordinary project item.
+
 **WASM is covered** — a client-plus-host app hot-reloads under `rask dev` like a Server one. To make that
 possible the host serves the client's *build* output for the session rather than its published bundle:
 the published bundle is trimmed, and trimming disables the runtime's metadata-update support outright,
