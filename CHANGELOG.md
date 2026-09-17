@@ -28,6 +28,17 @@ them until tagged releases begin.
   remember it. `UiNavTab` gains `Icon`, `Badge`/`BadgeTone`, `Match`/`MatchPrefix`, and works `Active` out from the
   route when it is unset — as `UiNavItem` already did. `UiBrand` gains `Logo` for a real image mark; `UiTopBar`
   gains `Sticky` and `Class`; `UiMain` gains `Container` and `Class`; `UiNavList` gains `Outline`.
+- **Flux UI's context menu: new `UiContextMenu`.** `UiContextMenu.Target(card)[UiMenuItem…]` opens a menu where the
+  reader right-clicks the target. The children are the same rows a `UiDropdown` takes, and the menu is the same
+  control, so the arrows, Home/End, type-ahead, submenus, Enter and Escape behave identically; the ContextMenu key
+  and Shift+F10 open it at the focused element. The menu half of `UiMenuButton` moves into a new public base,
+  `UiMenuSurface` (`Open`, `OnToggle`, `KeepOpen`, `Class`), which both derive from — so a context menu does not
+  carry a button's `Position`/`Align`/`Gap`/`Offset`, which mean nothing at a pointer.
+  - **Runtime:** a new generic hook — an element carrying `data-rask-contextmenu="<popover id>"` shows that popover
+    at the pointer in place of the browser's menu, at once and on either host rather than after a round trip, and
+    pulls it back inside the viewport near an edge. The position lives on `<html>` as `--rask-context-x`/`-y`,
+    because a render rewrites the panel's own style attribute. An engine without the popover API keeps the
+    browser's own menu.
 - **Flux UI's file drop area: `UiFileInput.Dropzone(true)`.** A large area to drop files on or click, with
   `Heading` (defaulting to the `Label`) and `Text` (linked as the input's description when the control has an
   `Id`). It is still the native file input, stretched invisibly over the whole area, so a click anywhere opens the

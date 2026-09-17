@@ -111,6 +111,26 @@ public sealed partial class UiKitActionsDemo : Component
             ]),
 
         Section(
+            "Context menu",
+            "Right-click the card. It is the same menu a dropdown draws — the same rows, the same keyboard — opened "
+            + "at the pointer instead of from a button. The runtime opens it, so it appears at once on either host, "
+            + "and the ContextMenu key or Shift+F10 opens it at the focused element. Nothing in it should be the "
+            + "only way to do something: iOS never fires the event.",
+            Div.Data(Testid("ui-context-menu"))[
+                UiContextMenu.Target(
+                    Div.TabIndex(0)
+                        .Class("rounded-box border border-dashed border-base-300 p-6 text-center text-sm text-ui-muted")[
+                        "Right-click this card"
+                    ])[
+                    UiMenuItem.Key("open").Text("Open").OnClick(() => { _lastAction = "opened the card"; }),
+                    UiMenuItem.Key("copy").Text("Copy link").OnClick(() => { _lastAction = "copied the link"; }),
+                    UiMenuSeparator.Key("sep"),
+                    UiMenuItem.Key("delete").Text("Delete").Tone(UiTone.Error)
+                        .OnClick(() => { _lastAction = "deleted the card"; })
+                ]
+            ]),
+
+        Section(
             "Popover — a panel, not a menu",
             "The gap a dropdown leaves. A dropdown IS a menu: its children are rows you pick from, it says "
             + "role=menu and it walks a cursor over them with the arrow keys. A filter panel is none of those, "

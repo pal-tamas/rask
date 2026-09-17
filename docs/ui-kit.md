@@ -441,7 +441,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 
 | | |
 | --- | --- |
-| **Actions** | `UiButton` `UiDropdown` `UiModal` `UiSwap` `UiThemeController` `UiFab` |
+| **Actions** | `UiButton` `UiDropdown` `UiContextMenu` `UiPopover` `UiModal` `UiSwap` `UiThemeController` `UiFab` |
 | **Data display** | `UiAccordion` `UiAccordionSection` `UiCollapse` `UiAvatar` `UiAura` `UiBadge` `UiCard` `UiCarousel` `UiChatBubble` `UiCountdown` `UiDiff` `UiEmpty` `UiHover3d` `UiHoverGallery` `UiKbd` `UiHighlight` `UiList` `UiListRow` `UiStat` `UiStatusDot` `UiTable` `UiDataGrid` `UiColumn` `UiTree` `UiTextRotate` `UiTimeline` |
 | **Navigation** | `UiBreadcrumbs` `UiDock` `UiLink` `UiMegamenu` `UiMegamenuPanel` `UiMenu` `UiMenuItem` `UiNavbar` `UiPagination` `UiSteps` `UiStep` `UiTabs` `UiTab` |
 | **Feedback** | `UiAlert` `UiLoading` `UiProgress` `UiRadialProgress` `UiSkeleton` `UiToast` `UiTooltip` |
@@ -670,6 +670,23 @@ The hook is the **runtime's**, not the kit's, and it is generic: any element wit
 `data-rask-dismiss-after="<ms>"` is dismissed by clicking its own `[data-rask-dismiss]` — the same convention
 the focus trap presses on Escape. An `UiTone.Error` toast says `role="alert"`; every other outcome is
 announced politely as `status`.
+
+**`UiContextMenu` is the same menu, opened by a right-click.** Its children are the rows a `UiDropdown` takes,
+and it is the same control underneath (`UiMenuSurface`), so the keyboard is identical; only the opening differs:
+
+```csharp
+UiContextMenu.Target(Div.TabIndex(0).Class("card")["Invoice 42"])[
+    UiMenuItem.Text("Open").OnClick(Open),
+    UiMenuSeparator,
+    UiMenuItem.Text("Delete").Tone(UiTone.Error).OnClick(Delete)
+]
+```
+
+The runtime opens it: an element carrying `data-rask-contextmenu="<popover id>"` shows that popover at the pointer
+in place of the browser's menu, straight away and on either host — a round trip first would be a lag felt on every
+right-click — and pulls it back inside the viewport near an edge. The ContextMenu key and Shift+F10 open it at the
+focused element, which is why the target above is focusable. Nothing in a context menu should be the ONLY way to
+do something: iOS Safari never fires the event, so put the same actions somewhere visible too.
 
 **`UiPopover` is a panel, not a menu.** `UiDropdown` IS a menu — its children are rows you pick from, it says
 `role="menu"` and it walks a keyboard cursor over them. A filter panel, a colour picker or a bubble of help is

@@ -60,6 +60,7 @@ interface Window {
     __raskReload?: boolean;
     __raskToastDismiss?: boolean;
     __raskDropzone?: boolean;
+    __raskContextMenu?: boolean;
 
     /**
      * The legacy IE clipboard object. lib.dom no longer declares it; the one read of it is a fallback

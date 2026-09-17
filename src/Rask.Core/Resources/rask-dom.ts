@@ -1220,3 +1220,86 @@ export function applyFrameInvokes(
     document.addEventListener("drop", clear, true);
     document.addEventListener("dragend", clear, true);
 })();
+
+// ----- Context menus (data-rask-contextmenu) -----------------------------
+// An element carrying data-rask-contextmenu="<popover id>" opens that popover where the reader right-clicks it,
+// in place of the browser's own menu. Here rather than as a C# handler because the menu has to appear under the
+// pointer at once: a round trip before the menu shows is a lag the reader feels on every right-click, and a page
+// that has not booted yet would get the browser's menu instead.
+//
+// The position goes on <html> as --rask-context-x / --rask-context-y, which the panel's own style reads. Not on
+// the panel: a render rewrites the panel's style attribute, and the cursor moving is a render. Only one menu is
+// open at a time — an auto popover closes the others — so one pair is enough.
+//
+// The ContextMenu key and Shift+F10 fire the same event with no pointer position, so the menu opens at the
+// element that has focus instead. After it is shown the panel is measured and pulled back inside the viewport,
+// since a right-click near an edge would otherwise open a menu half off the screen.
+//
+// An engine without the popover API keeps the browser's own menu: nothing is prevented that cannot be replaced.
+(function installRaskContextMenu() {
+    if (typeof document === "undefined" || typeof window === "undefined" || window.__raskContextMenu) {
+        return;
+    }
+    window.__raskContextMenu = true;
+
+    const EDGE = 4;
+
+    document.addEventListener("contextmenu", function (e: MouseEvent) {
+        const target = e.target instanceof Element ? e.target : null;
+        const host = target ? target.closest("[data-rask-contextmenu]") : null;
+        if (!target || !host) {
+            return;
+        }
+        const panel = document.getElementById(host.getAttribute("data-rask-contextmenu") || "") as
+            (HTMLElement & { showPopover?: () => void; hidePopover?: () => void }) | null;
+        if (!panel || typeof panel.showPopover !== "function") {
+            return;
+        }
+        e.preventDefault();
+        if (panel.contains(target)) {
+            return; // a right-click inside the open menu is not a request for another one
+        }
+
+        let x = e.clientX;
+        let y = e.clientY;
+        if (x === 0 && y === 0) {
+            const box = target.getBoundingClientRect();
+            x = box.left;
+            y = box.bottom;
+        }
+
+        // macOS and Linux fire contextmenu on the PRESS, with the button still down. Shown now, the release that
+        // follows is a click outside a freshly opened popover and the browser light-dismisses it at once — so wait
+        // for the release, and open after the browser has finished handling it. Windows fires on the release, with
+        // no button down, and opens straight away.
+        if (e.buttons > 0) {
+            document.addEventListener("pointerup", function () {
+                window.setTimeout(function () {
+                    open(panel, x, y);
+                }, 0);
+            }, {capture: true, once: true});
+            return;
+        }
+        open(panel, x, y);
+    });
+
+    function open(panel: HTMLElement & { showPopover?: () => void; hidePopover?: () => void }, x: number, y: number): void {
+        const vars = document.documentElement.style;
+        try {
+            if (panel.matches(":popover-open")) {
+                panel.hidePopover!(); // open again at the new point, not where it was
+            }
+            vars.setProperty("--rask-context-x", x + "px");
+            vars.setProperty("--rask-context-y", y + "px");
+            panel.showPopover!();
+        } catch (err) {
+            return; // not connected, or mid-transition
+        }
+
+        const menu = panel.getBoundingClientRect();
+        const fitX = Math.max(EDGE, Math.min(x, window.innerWidth - menu.width - EDGE));
+        const fitY = y + menu.height > window.innerHeight - EDGE ? Math.max(EDGE, y - menu.height) : y;
+        vars.setProperty("--rask-context-x", fitX + "px");
+        vars.setProperty("--rask-context-y", fitY + "px");
+    }
+})();

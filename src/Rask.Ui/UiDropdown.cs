@@ -18,11 +18,11 @@ namespace Rask.Ui;
 /// button; the keyboard cursor is what arrives with the runtime.
 /// </para>
 /// <para>
-/// <b><see cref="UiMenuButton.Open" /> decides who owns the open state, and it has three settings rather than
+/// <b><see cref="UiMenuSurface.Open" /> decides who owns the open state, and it has three settings rather than
 /// two.</b> Unset, the dropdown is UNCONTROLLED: the reader opens and closes it and the page is not asked. Set to
 /// <c>true</c> or <c>false</c> it is CONTROLLED — the runtime shows or hides the popover to match whenever the page
 /// changes it, which is what lets a page close the menu when the action inside it completes, and
-/// <see cref="UiMenuButton.OnToggle" /> is how the page hears the reader open or close it.
+/// <see cref="UiMenuSurface.OnToggle" /> is how the page hears the reader open or close it.
 /// </para>
 /// <para>
 /// <see cref="UiOpenOn.Hover" /> keeps daisyUI's CSS dropdown, because CSS cannot open a popover: it opens on a
