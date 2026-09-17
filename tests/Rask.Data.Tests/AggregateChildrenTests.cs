@@ -59,7 +59,7 @@ public sealed class AggregateChildrenTests : IDisposable
         await using var database = await StartDatabaseAsync();
         var id = await OpenBasketAsync(database);
 
-        var order = await Basket.FindAsync(id);
+        var order = await database.LoadAsync<Basket>(id);
 
         Assert.NotNull(order);
         Assert.Equal(
@@ -76,7 +76,7 @@ public sealed class AggregateChildrenTests : IDisposable
         await using var database = await StartDatabaseAsync();
         await OpenBasketAsync(database);
 
-        var orders = await Basket.Where(o => o.Customer == "ada").ToListAsync();
+        var orders = await Basket.Read.Where(o => o.Customer == "ada").ToListAsync();
 
         Assert.Single(orders);
         Assert.Empty(orders[0].Lines);
@@ -89,13 +89,13 @@ public sealed class AggregateChildrenTests : IDisposable
         await using var database = await StartDatabaseAsync();
         var id = await OpenBasketAsync(database);
 
-        var before = (await Basket.FindAsync(id))!;
+        var before = (await database.LoadAsync<Basket>(id))!;
         _clock.UtcNow = _clock.UtcNow.AddHours(1);
 
         // The root's own columns are untouched: only the line changes.
         await Basket.UpdateAsync(id, o => o.Lines.First(l => l.Product == "apple").SetQuantity(9));
 
-        var after = (await Basket.FindAsync(id))!;
+        var after = (await database.LoadAsync<Basket>(id))!;
 
         Assert.Equal(before.Version + 1, after.Version);
         Assert.Equal(_clock.UtcNow.UtcDateTime, after.UpdatedAt);
@@ -110,11 +110,11 @@ public sealed class AggregateChildrenTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
         var id = await OpenBasketAsync(database);
-        var before = (await Basket.FindAsync(id))!.Version;
+        var before = (await database.LoadAsync<Basket>(id))!.Version;
 
         await Basket.UpdateAsync(id, o => o.Add("plum", 2));
 
-        Assert.Equal(before + 1, (await Basket.FindAsync(id))!.Version);
+        Assert.Equal(before + 1, (await database.LoadAsync<Basket>(id))!.Version);
     }
 
     /// <summary>
@@ -125,11 +125,11 @@ public sealed class AggregateChildrenTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
         var id = await OpenBasketAsync(database);
-        var before = (await Basket.FindAsync(id))!.Version;
+        var before = (await database.LoadAsync<Basket>(id))!.Version;
 
         await Basket.UpdateAsync(id, o => o.Remove(o.Lines.First(l => l.Product == "pear")));
 
-        var after = (await Basket.FindAsync(id))!;
+        var after = (await database.LoadAsync<Basket>(id))!;
 
         Assert.Equal(before + 1, after.Version);
         Assert.Equal(["apple"], after.Lines.Select(l => l.Product));
@@ -167,7 +167,7 @@ public sealed class AggregateChildrenTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
         var id = await OpenBasketAsync(database);
-        var stale = (await Basket.FindAsync(id))!.Version;
+        var stale = (await database.LoadAsync<Basket>(id))!.Version;
 
         await Basket.UpdateAsync(id, o => o.Lines.First().SetQuantity(4));
 
@@ -182,12 +182,12 @@ public sealed class AggregateChildrenTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
         var id = await OpenBasketAsync(database);
-        var before = (await Basket.FindAsync(id))!.Version;
+        var before = (await database.LoadAsync<Basket>(id))!.Version;
 
         // Loads the whole aggregate and saves without changing anything.
         await Basket.UpdateAsync(id, _ => { });
 
-        Assert.Equal(before, (await Basket.FindAsync(id))!.Version);
+        Assert.Equal(before, (await database.LoadAsync<Basket>(id))!.Version);
     }
 
     private async Task<Guid> OpenBasketAsync(TestDatabase database)

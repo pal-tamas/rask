@@ -27,6 +27,14 @@ public sealed class ModelSetTests : IDisposable
             .UseSqlite($"Data Source={_dbPath}")
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
+        // The read faces are queried through a context of their own, over the same file. A Rask host
+        // registers this beside the app's own context; an app wiring EF itself says it here.
+        services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite($"Data Source={_dbPath}"));
+
+        // The read faces are queried through a context of their own, over the same file. A Rask host
+        // registers this beside the app's own context; an app wiring EF itself says it here.
+        services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite($"Data Source={_dbPath}"));
+
         _provider = services.BuildServiceProvider();
 
         using (var db = _provider.GetRequiredService<IDbContextFactory<TestDbContext>>().CreateDbContext())
@@ -49,11 +57,11 @@ public sealed class ModelSetTests : IDisposable
     {
         await SeedAsync("alpha", "beta", "gamma");
 
-        var all = await Widget.All.ToListAsync();
-        var ordered = await Widget.OrderBy(w => w.Name).ToListAsync();
-        var filtered = await Widget.Where(w => w.Name != "beta").OrderByDescending(w => w.Name).ToListAsync();
-        var page = await Widget.OrderBy(w => w.Name).Skip(1).Take(1).ToListAsync();
-        var names = await Widget.OrderBy(w => w.Name).Select(w => w.Name).ToListAsync();
+        var all = await Widget.Read.ToListAsync();
+        var ordered = await Widget.Read.OrderBy(w => w.Name).ToListAsync();
+        var filtered = await Widget.Read.Where(w => w.Name != "beta").OrderByDescending(w => w.Name).ToListAsync();
+        var page = await Widget.Read.OrderBy(w => w.Name).Skip(1).Take(1).ToListAsync();
+        var names = await Widget.Read.OrderBy(w => w.Name).Select(w => w.Name).ToListAsync();
 
         Assert.Equal(3, all.Count);
         Assert.Equal(["alpha", "beta", "gamma"], ordered.Select(w => w.Name));
@@ -67,15 +75,15 @@ public sealed class ModelSetTests : IDisposable
     {
         await SeedAsync("alpha", "beta");
 
-        Assert.Equal(2, await Widget.CountAsync());
-        Assert.Equal(1, await Widget.CountAsync(w => w.Name == "alpha"));
-        Assert.Equal(2L, await Widget.LongCountAsync());
-        Assert.True(await Widget.AnyAsync());
-        Assert.True(await Widget.AnyAsync(w => w.Name == "beta"));
-        Assert.False(await Widget.AnyAsync(w => w.Name == "nope"));
-        Assert.Equal(2, (await Widget.ToArrayAsync()).Length);
-        Assert.NotNull(await Widget.SingleOrDefaultAsync(w => w.Name == "alpha"));
-        Assert.Null(await Widget.FirstOrDefaultAsync(w => w.Name == "nope"));
+        Assert.Equal(2, await Widget.Read.CountAsync());
+        Assert.Equal(1, await Widget.Read.CountAsync(w => w.Name == "alpha"));
+        Assert.Equal(2L, await Widget.Read.LongCountAsync());
+        Assert.True(await Widget.Read.AnyAsync());
+        Assert.True(await Widget.Read.AnyAsync(w => w.Name == "beta"));
+        Assert.False(await Widget.Read.AnyAsync(w => w.Name == "nope"));
+        Assert.Equal(2, (await Widget.Read.ToArrayAsync()).Length);
+        Assert.NotNull(await Widget.Read.SingleOrDefaultAsync(w => w.Name == "alpha"));
+        Assert.Null(await Widget.Read.FirstOrDefaultAsync(w => w.Name == "nope"));
     }
 
     [Fact]
@@ -83,7 +91,7 @@ public sealed class ModelSetTests : IDisposable
     {
         // Every terminal opens its own context, so a half-built query kept in a field is not pinned to
         // what the database held when it was built.
-        var live = Widget.Where(w => w.Name != "hidden");
+        var live = Widget.Read.Where(w => w.Name != "hidden");
         Assert.Equal(0, await live.CountAsync());
 
         await SeedAsync("alpha", "hidden");
@@ -95,7 +103,7 @@ public sealed class ModelSetTests : IDisposable
     [Fact]
     public void ThenBy_before_any_ordering_says_what_to_call_first()
     {
-        var error = Assert.Throws<InvalidOperationException>(() => Widget.All.ThenBy(w => w.Name));
+        var error = Assert.Throws<InvalidOperationException>(() => Widget.Read.ThenBy(w => w.Name));
 
         Assert.Contains("OrderBy", error.Message, StringComparison.Ordinal);
     }
@@ -112,10 +120,10 @@ public sealed class ModelSetTests : IDisposable
         }
 
         // Gone from ordinary queries — the global filter ApplyRaskConventions added.
-        Assert.Equal(0, await Widget.CountAsync());
+        Assert.Equal(0, await Widget.Read.CountAsync());
 
         // Still there, stamped, behind IgnoreQueryFilters.
-        var deleted = await Widget.IgnoreQueryFilters().ToListAsync();
+        var deleted = await Widget.Read.IgnoreQueryFilters().ToListAsync();
         Assert.Single(deleted);
         Assert.NotNull(deleted[0].DeletedAt);
     }
@@ -141,7 +149,7 @@ public sealed class ModelSetTests : IDisposable
         }
 
         Assert.Contains(_recorder.Events, e => e is WidgetRenamed renamed && renamed.Id == widget.Id);
-        Assert.Equal(1, await Widget.CountAsync(w => w.Name == "after"));
+        Assert.Equal(1, await Widget.Read.CountAsync(w => w.Name == "after"));
     }
 
     [Fact]
@@ -149,7 +157,7 @@ public sealed class ModelSetTests : IDisposable
     {
         await SeedAsync("alpha", "beta", "gamma");
 
-        var initials = await Widget.QueryAsync((q, ct) => q
+        var initials = await Widget.Read.QueryAsync((q, ct) => q
             .GroupBy(w => w.Name.Substring(0, 1))
             .Select(g => new { Initial = g.Key, Count = g.Count() })
             .OrderBy(x => x.Initial)
@@ -166,12 +174,12 @@ public sealed class ModelSetTests : IDisposable
 
         Assert.False(Db.IsConfigured);
 
-        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => Widget.CountAsync());
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => Widget.Read.CountAsync());
         Assert.Contains("Db.Configure", error.Message, StringComparison.Ordinal);
 
         // A queryable composed before startup (a page field, say) fails the same way when it runs, not
         // when it is built.
-        var query = Widget.AsQueryable().Where(w => w.Name != "");
+        var query = Widget.Read.AsQueryable().Where(w => w.Name != "");
         Assert.Throws<InvalidOperationException>(() => query.Count());
     }
 

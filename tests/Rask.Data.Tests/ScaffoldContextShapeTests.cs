@@ -68,6 +68,7 @@ public sealed class ScaffoldContextShapeTests
         var services = new ServiceCollection();
         services.AddRaskData();
         services.AddDbContextFactory<RaskShapedContext>(o => o.UseSqlite("Data Source=:memory:"));
+        services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite("Data Source=:memory:"));
 
         using var provider = services.BuildServiceProvider();
 
@@ -82,6 +83,7 @@ public sealed class ScaffoldContextShapeTests
         services.AddRaskCqrs();
         services.AddRaskData<RaskShapedContext>();
         services.AddDbContextFactory<RaskShapedContext>(o => o.UseSqlite("Data Source=:memory:"));
+        services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite("Data Source=:memory:"));
 
         using var provider = services.BuildServiceProvider();
         try
@@ -91,7 +93,7 @@ public sealed class ScaffoldContextShapeTests
 
             // Translating a query needs the bound context's model but no table, so an in-memory database
             // with no schema is enough to prove the read opened RaskShapedContext and found Doodad mapped.
-            var sql = await Doodad.QueryAsync((q, _) => Task.FromResult(q.ToQueryString()));
+            var sql = await Doodad.Read.QueryAsync((q, _) => Task.FromResult(q.ToQueryString()));
             Assert.Contains("Doodad", sql, StringComparison.Ordinal);
         }
         finally

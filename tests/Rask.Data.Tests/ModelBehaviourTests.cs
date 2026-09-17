@@ -149,7 +149,7 @@ public sealed class ModelBehaviourTests : IDisposable
         Assert.True(await order.TryCancelAsync(database.Context, Now));
         await database.Context.SaveChangesAsync();
 
-        var reloaded = await Order.FindAsync(order.Id);
+        var reloaded = await database.LoadAsync<Order>(order.Id);
         Assert.Equal(OrderStatus.Cancelled, reloaded!.Status);
         Assert.Equal(Now, reloaded.CancelledAt);
     }
@@ -165,7 +165,7 @@ public sealed class ModelBehaviourTests : IDisposable
         Assert.False(await order.TryCancelAsync(database.Context, Now));
         Assert.Equal(0, await database.Context.SaveChangesAsync());
 
-        var reloaded = await Order.FindAsync(order.Id);
+        var reloaded = await database.LoadAsync<Order>(order.Id);
         Assert.Equal(OrderStatus.Open, reloaded!.Status);
         Assert.Null(reloaded.CancelledAt);
     }
@@ -183,11 +183,11 @@ public sealed class ModelBehaviourTests : IDisposable
 
         Assert.True(await first.TryCancelAsync(database.Context, Now));
         Assert.True(await second.TryCancelAsync(database.Context, Now));
-        Assert.Equal(0, await Order.CountAsync(o => o.Status == OrderStatus.Cancelled));
+        Assert.Equal(0, await Order.Read.CountAsync(o => o.Status == OrderStatus.Cancelled));
 
         await database.Context.SaveChangesAsync();
 
-        Assert.Equal(2, await Order.CountAsync(o => o.Status == OrderStatus.Cancelled));
+        Assert.Equal(2, await Order.Read.CountAsync(o => o.Status == OrderStatus.Cancelled));
     }
 
     [Fact]
@@ -199,7 +199,7 @@ public sealed class ModelBehaviourTests : IDisposable
         var order = Order.Place("B-3");
         await SeedAsync(database, order);
 
-        var reloaded = await Order.FindAsync(order.Id);
+        var reloaded = await database.LoadAsync<Order>(order.Id);
 
         Assert.Equal(Now, reloaded!.CreatedAt);
     }
@@ -216,8 +216,8 @@ public sealed class ModelBehaviourTests : IDisposable
         await database.Context.SaveChangesAsync();
 
         // The interceptors are wired by the fixture, so the conventions behave as they do in production.
-        Assert.Equal(0, await Order.CountAsync());
-        Assert.Single(await Order.IgnoreQueryFilters().Where(o => o.Id == order.Id).ToListAsync());
+        Assert.Equal(0, await Order.Read.CountAsync());
+        Assert.Single(await Order.Read.IgnoreQueryFilters().Where(o => o.Id == order.Id).ToListAsync());
     }
 
     private Task<TestDatabase> StartDatabaseAsync(TimeProvider? clock = null) =>

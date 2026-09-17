@@ -157,7 +157,7 @@ public sealed class GeneratedInputModelTests : IDisposable
 
         Assert.NotEqual(Guid.Empty, created.Id);
 
-        var stored = await Invoice.FindAsync(created.Id);
+        var stored = await database.LoadAsync<Invoice>(created.Id);
         Assert.NotNull(stored);
         Assert.Equal("March", stored.Title);
         Assert.Equal(120.5m, stored.Balance);
@@ -189,7 +189,7 @@ public sealed class GeneratedInputModelTests : IDisposable
         var created = await Invoice.CreateAsync(id, NewModel());
 
         Assert.Equal(id, created.Id);
-        Assert.Equal("March", (await Invoice.FindAsync(id))!.Title);
+        Assert.Equal("March", (await database.LoadAsync<Invoice>(id))!.Title);
     }
 
     [Fact]
@@ -203,7 +203,7 @@ public sealed class GeneratedInputModelTests : IDisposable
             invoice.Viewed();                     // a value the form never carries
         });
 
-        Assert.Equal(1, (await Invoice.FindAsync(created.Id))!.Views);
+        Assert.Equal(1, (await database.LoadAsync<Invoice>(created.Id))!.Views);
     }
 
     [Fact]
@@ -218,14 +218,14 @@ public sealed class GeneratedInputModelTests : IDisposable
         });
 
         Assert.Equal(7, created.Id.Version);
-        var stored = (await Invoice.FindAsync(created.Id))!;
+        var stored = (await database.LoadAsync<Invoice>(created.Id))!;
         Assert.Equal("Walk-in", stored.Title);
         Assert.Equal(1, stored.Views);
         Assert.Equal(Start.UtcDateTime, stored.CreatedAt);
 
         // The same shape, one write later.
         await Invoice.UpdateAsync(created.Id, invoice => invoice.Retitle("Walk-in, paid"));
-        Assert.Equal("Walk-in, paid", (await Invoice.FindAsync(created.Id))!.Title);
+        Assert.Equal("Walk-in, paid", (await database.LoadAsync<Invoice>(created.Id))!.Title);
     }
 
     [Fact]
@@ -238,7 +238,7 @@ public sealed class GeneratedInputModelTests : IDisposable
 
         Assert.Equal(id, created.Id);
         Assert.Equal(EntityState.Unchanged, database.Context.Entry(created).State);
-        Assert.Equal("Keyed", (await Invoice.FindAsync(id))!.Title);
+        Assert.Equal("Keyed", (await database.LoadAsync<Invoice>(id))!.Title);
     }
 
     [Fact]
@@ -250,7 +250,7 @@ public sealed class GeneratedInputModelTests : IDisposable
         var created = await Invoice.CreateAsync(draft);
 
         Assert.Same(draft, created);
-        Assert.Equal("Built", (await Invoice.FindAsync(created.Id))!.Title);
+        Assert.Equal("Built", (await database.LoadAsync<Invoice>(created.Id))!.Title);
         Assert.Equal(Start.UtcDateTime, created.CreatedAt);
     }
 
@@ -261,13 +261,13 @@ public sealed class GeneratedInputModelTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
         var created = await Invoice.CreateAsync(NewModel());
-        var edit = EditOf((await Invoice.FindAsync(created.Id))!);
+        var edit = EditOf((await database.LoadAsync<Invoice>(created.Id))!);
 
         edit.Title = "April";
         edit.Total!.Amount = 150m;
         var updated = await Invoice.UpdateAsync(created.Id, edit);
 
-        var stored = await Invoice.FindAsync(created.Id);
+        var stored = await database.LoadAsync<Invoice>(created.Id);
         Assert.Equal("April", stored!.Title);
         Assert.Equal(new InvoiceTotal(150m, "HUF"), stored.Total);
         Assert.Equal(1, stored.Version);
@@ -286,7 +286,7 @@ public sealed class GeneratedInputModelTests : IDisposable
         var edit = new InvoiceModel(blank: true) { Title = "April", Note = null, Version = created.Version };
         await Invoice.UpdateAsync(created.Id, edit);
 
-        var stored = (await Invoice.FindAsync(created.Id))!;
+        var stored = (await database.LoadAsync<Invoice>(created.Id))!;
         Assert.Equal("April", stored.Title);
         Assert.Null(stored.Note);
         Assert.Equal(120.5m, stored.Balance);
@@ -299,8 +299,8 @@ public sealed class GeneratedInputModelTests : IDisposable
         await using var database = await StartDatabaseAsync();
         var created = await Invoice.CreateAsync(NewModel());
 
-        var first = EditOf((await Invoice.FindAsync(created.Id))!);
-        var second = EditOf((await Invoice.FindAsync(created.Id))!);
+        var first = EditOf((await database.LoadAsync<Invoice>(created.Id))!);
+        var second = EditOf((await database.LoadAsync<Invoice>(created.Id))!);
 
         first.Title = "First";
         await Invoice.UpdateAsync(created.Id, first);
@@ -308,7 +308,7 @@ public sealed class GeneratedInputModelTests : IDisposable
         second.Title = "Second";
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => Invoice.UpdateAsync(created.Id, second));
 
-        Assert.Equal("First", (await Invoice.FindAsync(created.Id))!.Title);
+        Assert.Equal("First", (await database.LoadAsync<Invoice>(created.Id))!.Title);
     }
 
     [Fact]
@@ -321,7 +321,7 @@ public sealed class GeneratedInputModelTests : IDisposable
 
         await Invoice.UpdateAsync(created.Id, edit, invoice => invoice.Viewed());
 
-        var stored = (await Invoice.FindAsync(created.Id))!;
+        var stored = (await database.LoadAsync<Invoice>(created.Id))!;
         Assert.Equal("April", stored.Title);
         Assert.Equal(1, stored.Views);
     }
@@ -338,7 +338,7 @@ public sealed class GeneratedInputModelTests : IDisposable
 
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() =>
             Invoice.UpdateAsync(created.Id, invoice => invoice.Viewed(), version: 0));
-        Assert.Equal(1, (await Invoice.FindAsync(created.Id))!.Views);
+        Assert.Equal(1, (await database.LoadAsync<Invoice>(created.Id))!.Views);
     }
 
     [Fact]
@@ -363,10 +363,10 @@ public sealed class GeneratedInputModelTests : IDisposable
         await Invoice.UpdateAsync(created.Id, edit);    // version 0 -> 1
 
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => Invoice.DeleteAsync(created.Id, version: 0));
-        Assert.NotNull(await Invoice.FindAsync(created.Id));
+        Assert.NotNull(await database.LoadAsync<Invoice>(created.Id));
 
         await Invoice.DeleteAsync(created.Id);
-        Assert.Null(await Invoice.FindAsync(created.Id));
+        Assert.Null(await database.LoadAsync<Invoice>(created.Id));
     }
 
     // ---- a caller's context -------------------------------------------------------------------------
@@ -386,10 +386,10 @@ public sealed class GeneratedInputModelTests : IDisposable
         // A row that context already tracks is the one updated, not a second copy.
         var updated = await Invoice.UpdateAsync(created.Id, invoice => invoice.Viewed(), db: db);
         Assert.Same(created, updated);
-        Assert.Equal(1, (await Invoice.FindAsync(created.Id))!.Views);
+        Assert.Equal(1, (await database.LoadAsync<Invoice>(created.Id))!.Views);
 
         await Invoice.DeleteAsync(created.Id, db: db);
-        Assert.Null(await Invoice.FindAsync(created.Id));
+        Assert.Null(await database.LoadAsync<Invoice>(created.Id));
         Assert.Equal(0, await db.Set<Invoice>().CountAsync());
     }
 
@@ -409,7 +409,7 @@ public sealed class GeneratedInputModelTests : IDisposable
         }
 
         db.ChangeTracker.Clear();
-        Assert.Null(await Invoice.FindAsync(discarded));
-        Assert.Equal(0, (await Invoice.FindAsync(kept.Id))!.Views);
+        Assert.Null(await database.LoadAsync<Invoice>(discarded));
+        Assert.Equal(0, (await database.LoadAsync<Invoice>(kept.Id))!.Views);
     }
 }

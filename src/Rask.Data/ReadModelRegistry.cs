@@ -224,7 +224,20 @@ public static class ReadModelRegistry
             }
         }
 
-        if (mapping.IsRoot)
+        // Rask's own annotations travel with the face. The full-text index is declared on the ENTITY —
+        // builder.HasFullTextSearch(x => new { x.Title, x.Body }) — and Search is now a read-side operator,
+        // so without this Post.Read.Search would refuse with "no full-text index" while the table plainly
+        // has one. Copied rather than re-derived, like every other part of the mapping.
+        if (write?.FindAnnotation(FullTextSearchSpec.AnnotationName)?.Value is { } fullText)
+        {
+            builder.HasAnnotation(FullTextSearchSpec.AnnotationName, fullText);
+        }
+
+        // Only where there is something to filter on. An aggregate normally has DeletedAt from Rask's
+        // conventions, but an app that maps its own context without them — or that ignored the column —
+        // would otherwise get a query filter over a property this face does not map, and EF refuses the
+        // model with an error naming neither the filter nor the reason.
+        if (mapping.IsRoot && builder.Metadata.FindProperty(Columns.DeletedAt) is not null)
         {
             builder.HasQueryFilter(ModelBuilderExtensions.BuildNotDeletedFilter(builder, mapping.ReadType));
         }

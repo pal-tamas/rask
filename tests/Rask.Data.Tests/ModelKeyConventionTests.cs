@@ -47,7 +47,7 @@ public sealed class ModelKeyConventionTests : IDisposable
         database.Context.Add(voucher);
         await database.Context.SaveChangesAsync();
 
-        Assert.NotNull(await Voucher.FindAsync(voucher.Id));
+        Assert.NotNull(await database.LoadAsync<Voucher>(voucher.Id));
     }
 
     [Fact]

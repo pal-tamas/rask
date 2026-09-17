@@ -164,11 +164,9 @@ public sealed class RaskApp
         // the Data battery having been wired — an app with `c.Data.Off()` has no database to point at.
         if (app.Services.GetService<AmbientContextBinding>() is not null)
         {
+            // Points BOTH halves: the aggregates at the app's context, and `Order.Read` at the read
+            // context registered beside it in RaskBatteryWiring.
             Db.Configure(app.Services);
-
-            // And the other half: `Order.Read` opens a context of its own, holding the generated read faces
-            // and no aggregate. Same database, same setting — see RaskBatteryWiring.
-            ReadDb.Configure(app.Services);
         }
 
         // Auth is on, the database is there, and yet no account type was found — so nothing was wired and

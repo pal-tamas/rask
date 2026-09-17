@@ -203,9 +203,28 @@ public sealed class ModelQuery<TEntity>
     public Task<TEntity?> SingleOrDefaultAsync(CancellationToken cancellationToken = default) =>
         RunAsync(static (q, ct) => q.SingleOrDefaultAsync(ct), cancellationToken);
 
+    /// <summary>Filters, then returns the only match or <c>null</c>.</summary>
+    /// <exception cref="InvalidOperationException">More than one row matched.</exception>
+    public Task<TEntity?> SingleOrDefaultAsync(
+        Expression<Func<TEntity, bool>> predicate,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(predicate);
+        return Where(predicate).SingleOrDefaultAsync(cancellationToken);
+    }
+
     /// <summary>Counts the matching rows.</summary>
     public Task<int> CountAsync(CancellationToken cancellationToken = default) =>
         RunAsync(static (q, ct) => q.CountAsync(ct), cancellationToken);
+
+    /// <summary>Filters, then counts.</summary>
+    public Task<int> CountAsync(
+        Expression<Func<TEntity, bool>> predicate,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(predicate);
+        return Where(predicate).CountAsync(cancellationToken);
+    }
 
     /// <summary>Counts the matching rows as a <see cref="long" />.</summary>
     public Task<long> LongCountAsync(CancellationToken cancellationToken = default) =>
@@ -214,6 +233,15 @@ public sealed class ModelQuery<TEntity>
     /// <summary>Whether the query matches any row.</summary>
     public Task<bool> AnyAsync(CancellationToken cancellationToken = default) =>
         RunAsync(static (q, ct) => q.AnyAsync(ct), cancellationToken);
+
+    /// <summary>Whether any row matches <paramref name="predicate" />.</summary>
+    public Task<bool> AnyAsync(
+        Expression<Func<TEntity, bool>> predicate,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(predicate);
+        return Where(predicate).AnyAsync(cancellationToken);
+    }
 
     /// <summary>Enumerates the query, streaming rows as the database produces them.</summary>
     /// <remarks>

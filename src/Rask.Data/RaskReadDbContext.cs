@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Rask.Data;
@@ -77,6 +78,13 @@ public class RaskReadDbContext : DbContext
         // what the read side is for — showing what is there now.
         optionsBuilder.ConfigureWarnings(static w => w.Ignore(
             CoreEventId.PossibleIncorrectRequiredNavigationWithQueryFilterInteractionWarning));
+
+        // EF Core caches a context's model by its TYPE, and this one's model is mirrored from whichever
+        // write context was ambient when it was first built. One cache entry would therefore pin the first
+        // write model the process ever saw — right in an app with one database, and wrong the moment there
+        // are two, or a test suite that points Db somewhere new per class. Keying on Db's generation
+        // rebuilds the mirror exactly when the write side moved, and never otherwise.
+        optionsBuilder.ReplaceService<IModelCacheKeyFactory, ReadModelCacheKeyFactory>();
     }
 
     // Opened once, while the read model is built, and disposed immediately. Building a DbContext's model is
@@ -91,5 +99,14 @@ public class RaskReadDbContext : DbContext
 
         using var write = Db.CreateContext();
         return write.Model;
+    }
+
+    private sealed class ReadModelCacheKeyFactory : IModelCacheKeyFactory
+    {
+        public object Create(DbContext context, bool designTime)
+        {
+            ArgumentNullException.ThrowIfNull(context);
+            return (context.GetType(), designTime, Db.Generation);
+        }
     }
 }

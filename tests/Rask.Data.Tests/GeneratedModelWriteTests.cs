@@ -28,7 +28,7 @@ public sealed class GeneratedModelWriteTests : IDisposable
 
         Assert.Equal(Start.UtcDateTime, widget.CreatedAt);
 
-        var stored = await Widget.FindAsync(widget.Id);
+        var stored = await database.LoadAsync<Widget>(widget.Id);
         Assert.NotNull(stored);
         Assert.Equal("anvil", stored.Name);
         Assert.Equal(Start.UtcDateTime, stored.CreatedAt);
@@ -48,7 +48,7 @@ public sealed class GeneratedModelWriteTests : IDisposable
 
         Assert.Equal(1, updated.Version);
 
-        var stored = await Widget.FindAsync(widget.Id);
+        var stored = await database.LoadAsync<Widget>(widget.Id);
         Assert.Equal("hammer", stored!.Name);
         Assert.Equal(1, stored.Version);
         Assert.Equal(Start.AddHours(2).UtcDateTime, stored.UpdatedAt);
@@ -72,7 +72,7 @@ public sealed class GeneratedModelWriteTests : IDisposable
             loaded.Cancel(Start.UtcDateTime);
         });
 
-        var stored = await Order.FindAsync(order.Id);
+        var stored = await database.LoadAsync<Order>(order.Id);
         Assert.Equal(OrderStatus.Cancelled, stored!.Status);
         Assert.Equal("A-1-renamed", stored.Reference);
     }
@@ -88,7 +88,7 @@ public sealed class GeneratedModelWriteTests : IDisposable
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() =>
             GeneratedModelWrites.UpdateAsync<Widget>(widget.Id, version: 0, w => w.Rename("stale-edit")));
 
-        var stored = await Widget.FindAsync(widget.Id);
+        var stored = await database.LoadAsync<Widget>(widget.Id);
         Assert.Equal("first-edit", stored!.Name);
         Assert.Equal(1, stored.Version);
     }
@@ -102,7 +102,7 @@ public sealed class GeneratedModelWriteTests : IDisposable
 
         await GeneratedModelWrites.UpdateAsync<Widget>(widget.Id, version: null, w => w.Rename("last-edit"));
 
-        var stored = await Widget.FindAsync(widget.Id);
+        var stored = await database.LoadAsync<Widget>(widget.Id);
         Assert.Equal("last-edit", stored!.Name);
         Assert.Equal(2, stored.Version);
     }
@@ -140,9 +140,9 @@ public sealed class GeneratedModelWriteTests : IDisposable
         _clock.UtcNow = Start.AddHours(1);
         await GeneratedModelWrites.DeleteAsync<Widget>(widget.Id, version: 0);
 
-        Assert.Equal(0, await Widget.CountAsync());
+        Assert.Equal(0, await Widget.Read.CountAsync());
 
-        var stored = await Widget.IgnoreQueryFilters().FirstOrDefaultAsync(w => w.Id == widget.Id);
+        var stored = await Widget.Read.IgnoreQueryFilters().FirstOrDefaultAsync(w => w.Id == widget.Id);
         Assert.NotNull(stored);
         Assert.Equal(Start.AddHours(1).UtcDateTime, stored.DeletedAt);
         Assert.Equal(1, stored.Version);
@@ -158,7 +158,7 @@ public sealed class GeneratedModelWriteTests : IDisposable
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() =>
             GeneratedModelWrites.DeleteAsync<Widget>(widget.Id, version: 0));
 
-        Assert.Equal(1, await Widget.CountAsync());
+        Assert.Equal(1, await Widget.Read.CountAsync());
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>

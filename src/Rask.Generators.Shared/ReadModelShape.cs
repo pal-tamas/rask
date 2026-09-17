@@ -131,11 +131,28 @@ internal static class ReadModelShape
     /// Every mapped entity gets one, children included: reads have no borders, so a part is queryable on its
     /// own even though it is only writable through its root.
     /// </remarks>
-    public static bool IsCandidate(INamedTypeSymbol symbol) =>
-        AggregateShape.IsMappedEntity(symbol) && symbol.ContainingType is null;
+    public static bool IsCandidate(INamedTypeSymbol symbol) => AggregateShape.IsMappedEntity(symbol);
 
-    /// <summary>The read face's simple name: <c>OrderRead</c>.</summary>
-    public static string ReadName(INamedTypeSymbol entity) => entity.Name + ReadSuffix;
+    /// <summary>
+    ///     The read face's simple name: <c>OrderRead</c>, or <c>OuterOrderRead</c> for a nested entity.
+    /// </summary>
+    /// <remarks>
+    ///     A read face is always emitted at the top level — nesting it would need the containing type to be
+    ///     <c>partial</c>, which is not something declaring an entity should require. The containing names
+    ///     are carried into the face's own name so two entities called <c>Post</c> under different parents
+    ///     do not collide, and nobody types the result: <c>Post.Read</c> is the door.
+    /// </remarks>
+    public static string ReadName(INamedTypeSymbol entity)
+    {
+        var name = entity.Name + ReadSuffix;
+
+        for (var parent = entity.ContainingType; parent is not null; parent = parent.ContainingType)
+        {
+            name = parent.Name + name;
+        }
+
+        return name;
+    }
 
     /// <summary>The read face's fully-qualified name, ready to emit.</summary>
     public static string ReadFqn(INamedTypeSymbol entity) =>

@@ -87,7 +87,7 @@ public sealed class EntityCollectionMappingTests : IDisposable
         await database.Context.SaveChangesAsync();
 
         // The model surface opens a context of its own, so this reads what was saved, not what is tracked.
-        var loaded = await Cart.All.QueryAsync((q, ct) => q.Include(c => c.Lines).SingleAsync(ct));
+        var loaded = await Cart.Read.QueryAsync((q, ct) => q.Include(c => c.Lines).SingleAsync(ct));
 
         Assert.Equal("ada", loaded.Owner);
         Assert.Equal(

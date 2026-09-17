@@ -86,6 +86,7 @@ public sealed class GeneratedModelTests : IDisposable
         services.AddRaskCqrs();
         services.AddRaskData<RaskDbContext>();
         services.AddDbContextFactory<RaskDbContext>(o => o.UseSqlite($"Data Source={_dbPath}"));
+        services.AddDbContextFactory<RaskReadDbContext>(o => o.UseSqlite($"Data Source={_dbPath}"));
 
         _provider = services.BuildServiceProvider();
 
@@ -95,11 +96,13 @@ public sealed class GeneratedModelTests : IDisposable
         }
 
         Db.Configure(_provider);
+        ReadDb.Configure(_provider);
     }
 
     public void Dispose()
     {
         Db.Reset();
+        ReadDb.Reset();
         _provider.Dispose();
         File.Delete(_dbPath);
     }
@@ -125,8 +128,8 @@ public sealed class GeneratedModelTests : IDisposable
     {
         await SeedAsync(Doodad.Create("plain"));
 
-        Assert.Equal(1, await Doodad.CountAsync());
-        Assert.Equal("plain", (await Doodad.FirstOrDefaultAsync(d => d.Label == "plain"))!.Label);
+        Assert.Equal(1, await Doodad.Read.CountAsync());
+        Assert.Equal("plain", (await Doodad.Read.FirstOrDefaultAsync(d => d.Label == "plain"))!.Label);
     }
 
     [Fact]
@@ -183,12 +186,29 @@ public sealed class GeneratedModelTests : IDisposable
     {
         await SeedAsync(Gadget.Create("priced", "P1", 19.99m));
 
-        var gadget = await Gadget.FirstOrDefaultAsync(g => g.Code == "P1");
+        // Through a context, because a VALUE OBJECT is what is being round-tripped and only the aggregate
+        // still has one. How the same data looks flattened is the next test.
+        await using var db = NewContext();
+        var gadget = await db.Set<Gadget>().AsNoTracking().FirstOrDefaultAsync(g => g.Code == "P1");
 
         Assert.NotNull(gadget);
         Assert.Equal(new Money(19.99m, "EUR"), gadget.Price);
         Assert.Equal("card", gadget.Box.Material);
         Assert.Equal(1m, gadget.Box.Cost.Amount);
+    }
+
+    [Fact]
+    public async Task A_value_object_is_flat_columns_on_the_read_face()
+    {
+        await SeedAsync(Gadget.Create("priced", "P1", 19.99m));
+
+        var row = await Gadget.Read.FirstOrDefaultAsync(g => g.Code == "P1");
+
+        Assert.NotNull(row);
+        Assert.Equal(19.99m, row.PriceAmount);
+        Assert.Equal("EUR", row.PriceCurrency);
+        Assert.Equal("card", row.BoxMaterial);
+        Assert.Equal(1m, row.BoxCostAmount);
     }
 
     [Fact]
@@ -211,8 +231,9 @@ public sealed class GeneratedModelTests : IDisposable
         var id = gadget.Id;
 
         // Both routes: through the key, and through a predicate comparing the id type itself.
-        Assert.NotNull(await Gadget.FindAsync(id));
-        Assert.Equal("typed", (await Gadget.FirstOrDefaultAsync(g => g.Id == id))!.Name);
+        await using var db = NewContext();
+        Assert.NotNull(await db.Set<Gadget>().FindAsync([id]));
+        Assert.Equal("typed", (await Gadget.Read.FirstOrDefaultAsync(g => g.Id == id))!.Name);
     }
 
     [Fact]

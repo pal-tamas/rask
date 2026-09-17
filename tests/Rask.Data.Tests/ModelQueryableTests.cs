@@ -24,10 +24,10 @@ public sealed class ModelQueryableTests : IDisposable
         await SeedAsync(database, "echo", "alpha", "delta", "bravo", "charlie");
 
         // The grid's own shape: the sort key is boxed to object, which EF Core has to see through.
-        Expression<Func<Widget, object?>> byName = w => w.Name;
-        Expression<Func<Widget, object?>> byId = w => w.Id;
+        Expression<Func<WidgetRead, object?>> byName = w => w.Name;
+        Expression<Func<WidgetRead, object?>> byId = w => w.Id;
 
-        var query = Widget.AsQueryable();
+        var query = Widget.Read.AsQueryable();
         var total = query.Count();
         var rows = query.OrderBy(byName).ThenBy(byId).Skip(2).Take(2).ToList();
         var descending = query.OrderByDescending(byName).Skip(0).Take(2).ToList();
@@ -47,7 +47,7 @@ public sealed class ModelQueryableTests : IDisposable
         // context would answer the second run from that context's identity map — the renamed row would
         // come back under its old name.
         await using var database = await StartDatabaseAsync();
-        var query = Widget.AsQueryable().Where(w => w.Name != "hidden");
+        var query = Widget.Read.AsQueryable().Where(w => w.Name != "hidden");
 
         Assert.Equal(0, query.Count());
 
@@ -70,7 +70,7 @@ public sealed class ModelQueryableTests : IDisposable
         await using var database = await StartDatabaseAsync();
         await SeedAsync(database, "alpha", "bravo", "charlie");
 
-        var query = Widget.AsQueryable();
+        var query = Widget.Read.AsQueryable();
 
         Assert.Equal(3, (await query.ToListAsync()).Count);
         Assert.Equal(3, await query.CountAsync());
@@ -96,10 +96,10 @@ public sealed class ModelQueryableTests : IDisposable
         database.Context.Remove(gone);
         await database.Context.SaveChangesAsync();
 
-        Assert.Equal(1, Widget.AsQueryable().Count());
-        Assert.Equal(2, Widget.IgnoreQueryFilters().AsQueryable().Count());
-        Assert.Equal(2, await Widget.IgnoreQueryFilters().AsQueryable().CountAsync());
-        Assert.Equal(1, Widget.Where(w => w.Name == "gone").IgnoreQueryFilters().AsQueryable().Count());
+        Assert.Equal(1, Widget.Read.AsQueryable().Count());
+        Assert.Equal(2, Widget.Read.IgnoreQueryFilters().AsQueryable().Count());
+        Assert.Equal(2, await Widget.Read.IgnoreQueryFilters().AsQueryable().CountAsync());
+        Assert.Equal(1, Widget.Read.Where(w => w.Name == "gone").IgnoreQueryFilters().AsQueryable().Count());
     }
 
     [Fact]
@@ -108,7 +108,7 @@ public sealed class ModelQueryableTests : IDisposable
         await using var database = await StartDatabaseAsync();
         await SeedAsync(database, "bravo", "alpha");
 
-        var query = Widget.AsQueryable();
+        var query = Widget.Read.AsQueryable();
 
         Assert.Equal(["alpha", "bravo"], query.OrderBy(w => w.Name).Select(w => w.Name).ToList());
         Assert.Equal(["alpha", "bravo"], await query.OrderBy(w => w.Name).Select(w => w.Name).ToListAsync());
@@ -117,7 +117,7 @@ public sealed class ModelQueryableTests : IDisposable
     [Fact]
     public void The_non_generic_CreateQuery_is_refused_rather_than_guessed_at()
     {
-        var query = Widget.AsQueryable();
+        var query = Widget.Read.AsQueryable();
 
         Assert.Throws<NotSupportedException>(() => query.Provider.CreateQuery(query.Expression));
     }
@@ -131,7 +131,7 @@ public sealed class ModelQueryableTests : IDisposable
         await SeedAsync(database, "alpha", "bravo", "charlie");
         var tally = ConfigureCountingContexts();
 
-        var query = Widget.AsQueryable();
+        var query = Widget.Read.AsQueryable();
 
         _ = query.Count();
         _ = query.OrderBy(w => w.Name).Skip(1).Take(1).ToList();
@@ -152,7 +152,7 @@ public sealed class ModelQueryableTests : IDisposable
         await SeedAsync(database, "alpha", "bravo", "charlie");
         var tally = ConfigureCountingContexts();
 
-        var query = Widget.AsQueryable();
+        var query = Widget.Read.AsQueryable();
 
         _ = await query.ToListAsync();
         _ = await query.CountAsync();
@@ -174,7 +174,7 @@ public sealed class ModelQueryableTests : IDisposable
         await SeedAsync(database, "alpha");
         var tally = ConfigureCountingContexts();
 
-        var untranslatable = Widget.AsQueryable().Where(w => IsInteresting(w.Name));
+        var untranslatable = Widget.Read.AsQueryable().Where(w => IsInteresting(w.Name));
 
         Assert.Throws<InvalidOperationException>(() => untranslatable.Count());
         await Assert.ThrowsAsync<InvalidOperationException>(() => untranslatable.CountAsync());
@@ -186,13 +186,16 @@ public sealed class ModelQueryableTests : IDisposable
     // A local method EF Core cannot translate to SQL, so a Where over it fails at execution.
     private static bool IsInteresting(string name) => name.Length > 0;
 
-    // Points Db at contexts that count themselves, over the database the fixture created. TestDatabase's
-    // DisposeAsync resets Db, so this never outlives the test.
+    // Points the READ side at contexts that count themselves, over the database the fixture created —
+    // a read opens a read context now, so that is the one whose release is worth proving. TestDatabase's
+    // DisposeAsync resets both halves, so this never outlives the test.
     private ContextTally ConfigureCountingContexts()
     {
         var tally = new ContextTally();
-        var options = new DbContextOptionsBuilder<RaskDbContext>().UseSqlite($"Data Source={_dbPath}").Options;
-        Db.Configure(() => new DisposalCountingContext(options, tally));
+        var options = new DbContextOptionsBuilder<RaskReadDbContext>()
+            .UseSqlite($"Data Source={_dbPath}").Options;
+
+        ReadDb.Configure(() => new DisposalCountingReadContext(options, tally));
         return tally;
     }
 
@@ -233,6 +236,41 @@ public sealed class ModelQueryableTests : IDisposable
     }
 
     // Counts each instance once however it is disposed — EF Core may route DisposeAsync through Dispose.
+    // The read half of the same idea: a read opens a READ context, so this is the one whose open/release
+    // pairing the tests above actually watch.
+    private sealed class DisposalCountingReadContext : RaskReadDbContext
+    {
+        private readonly ContextTally _tally;
+        private int _released;
+
+        public DisposalCountingReadContext(DbContextOptions options, ContextTally tally)
+            : base(options)
+        {
+            _tally = tally;
+            tally.Open();
+        }
+
+        public override void Dispose()
+        {
+            Release();
+            base.Dispose();
+        }
+
+        public override ValueTask DisposeAsync()
+        {
+            Release();
+            return base.DisposeAsync();
+        }
+
+        private void Release()
+        {
+            if (Interlocked.Exchange(ref _released, 1) == 0)
+            {
+                _tally.Release();
+            }
+        }
+    }
+
     private sealed class DisposalCountingContext : RaskDbContext
     {
         private readonly ContextTally _tally;
