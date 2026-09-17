@@ -46,6 +46,13 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
     /// <summary>The suffix the generated model takes after the entity's name.</summary>
     internal const string ModelSuffix = GeneratedModelShape.ModelSuffix;
 
+    // Mirrors Rask.Data.ModelWrites. A generator targets netstandard2.0 and never loads the runtime
+    // assembly, so the values are restated here and pinned against the enum by a test.
+    private const int NoWrites = 0;
+    private const int CreateWrite = 1;
+    private const int UpdateWrite = 2;
+    internal const int AllWrites = CreateWrite | UpdateWrite;
+
     private const string DataAnnotationsNamespace = "System.ComponentModel.DataAnnotations";
     private const string ValidationAttribute = "System.ComponentModel.DataAnnotations.ValidationAttribute";
     private const string UnsafeAccessor = "global::System.Runtime.CompilerServices.UnsafeAccessor";
@@ -129,6 +136,21 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
                      + "but gets no form model.",
         helpLinkUri: DiagnosticHelp.Link("RASK083"));
 
+    internal static readonly DiagnosticDescriptor Rask091 = new(
+        "RASK091",
+        "A child cannot choose its own form writes",
+        "'{0}' is a child of another aggregate, so its 'Writes' const is ignored — a child model exists to "
+        + "carry the ROOT's form and is generated with it; put the const on the aggregate that holds '{0}'",
+        DiagnosticHelp.Category,
+        DiagnosticSeverity.Warning,
+        true,
+        description: "ModelWrites narrows the form surface of an AGGREGATE. A child has no writes of its own "
+                     + "to narrow — it is created, changed and removed through its root — and its model is "
+                     + "part of the root's, which is what a form posts. Honouring the const here would leave "
+                     + "the root's model holding a list of a child model that was never generated, so it is "
+                     + "reported rather than obeyed.",
+        helpLinkUri: DiagnosticHelp.Link("RASK091"));
+
     /// <inheritdoc />
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -205,7 +227,35 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             new EquatableArray<string>(AggregateReferencesOf(symbol)),
             new EquatableArray<string>(shape.Children
                 .Where(static c => c.Access == ModelChildAccess.None)
-                .Select(static c => c.Name)));
+                .Select(static c => c.Name)),
+            WritesOf(symbol, out var declaresWrites),
+            declaresWrites);
+    }
+
+    /// <summary>
+    ///     What <c>public const ModelWrites Writes</c> says, or <see cref="AllWrites" /> when the aggregate
+    ///     does not say — so an entity that declares nothing is unchanged.
+    /// </summary>
+    /// <remarks>
+    ///     A const rather than an attribute or a static property, because C# refuses a non-constant
+    ///     initializer: the value is always there to be read, so this can never quietly find nothing and
+    ///     emit the whole surface anyway. Carried out as an int, since an ISymbol must not cross an
+    ///     incremental-generator step.
+    /// </remarks>
+    private static int WritesOf(INamedTypeSymbol symbol, out bool declared)
+    {
+        foreach (var field in symbol.GetMembers("Writes").OfType<IFieldSymbol>())
+        {
+            if (field is { IsConst: true, ConstantValue: int value } &&
+                field.Type is { Name: "ModelWrites", ContainingNamespace: { Name: "Data", ContainingNamespace: { Name: "Rask", ContainingNamespace.IsGlobalNamespace: true } } })
+            {
+                declared = true;
+                return value;
+            }
+        }
+
+        declared = false;
+        return AllWrites;
     }
 
     private static ChildShape ToChild(ModelChild child) => new(
@@ -530,8 +580,28 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         }
 
         // Distinct because a partial entity contributes one candidate per declaration with a base list.
-        foreach (var entity in candidates.Distinct().OrderBy(static e => e.FullyQualifiedName, StringComparer.Ordinal))
+        var entities = candidates.Distinct().OrderBy(static e => e.FullyQualifiedName, StringComparer.Ordinal).ToList();
+
+        // A child model exists to carry its ROOT's form — it is the element type of the list the root's model
+        // holds — so it follows the root rather than deciding for itself. A child of a root that wants no form
+        // gets no model either; a child held by two roots keeps one as long as either still has a form.
+        var childrenWithAForm = new HashSet<string>(
+            entities
+                .Where(static e => !e.IsChild && e.Writes != NoWrites)
+                .SelectMany(static e => e.Children.Select(static c => c.ChildTypeName)),
+            StringComparer.Ordinal);
+
+        foreach (var candidate in entities)
         {
+            // A child's form surface is the ROOT's, always — its own const is reported by RASK091 and then
+            // genuinely ignored, rather than half-obeyed into a root model holding a type nobody generated.
+            var entity = candidate.IsChild
+                ? candidate with
+                {
+                    Writes = childrenWithAForm.Contains(candidate.FullyQualifiedName) ? AllWrites : NoWrites,
+                }
+                : candidate;
+
             switch (entity.Refusal)
             {
                 case Refusal.Nested:
@@ -547,6 +617,11 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             if (!entity.Constructible)
             {
                 context.ReportDiagnostic(Diagnostic.Create(Rask086, entity.Location?.ToLocation(), entity.Name));
+            }
+
+            if (entity.IsChild && entity.DeclaresWrites)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(Rask091, entity.Location?.ToLocation(), entity.Name));
             }
 
             foreach (var held in entity.AggregateReferences)
@@ -597,7 +672,23 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         const string Token = "global::System.Threading.CancellationToken";
         const string Writes = "global::Rask.Data.GeneratedModelWrites";
 
+        // What `public const ModelWrites Writes` narrows. It reaches the FORM surface only: the behaviour
+        // writes below take no model, and the read face is generated elsewhere and not negotiable.
+        var formCreate = (entity.Writes & CreateWrite) != 0;
+        var formUpdate = (entity.Writes & UpdateWrite) != 0;
+        var formModel = entity.Writes != NoWrites;
+
         var s = new StringBuilder();
+
+        // A section is written and then dropped rather than guarded line by line, so there is ONE piece of
+        // code deciding what a form write looks like instead of two that have to agree about it.
+        void Keep(bool wanted, int from)
+        {
+            if (!wanted)
+            {
+                s.Length = from;
+            }
+        }
         s.AppendLine("// <auto-generated/>");
         s.AppendLine("#nullable enable");
         s.AppendLine();
@@ -609,6 +700,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         }
 
         // ---- the model ----
+        var modelMark = s.Length;
         s.Append("/// <summary>The form model for <see cref=\"").Append(entityType)
             .AppendLine("\" />, generated by Rask from its mapped properties.</summary>");
         s.AppendLine("/// <remarks>");
@@ -732,6 +824,8 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         s.AppendLine("}");
         s.AppendLine();
 
+        Keep(formModel, modelMark);
+
         // ---- the members on the entity ----
         // Every write ends in the same two optional parameters: `apply`, for values that do not come from the form
         // (a timestamp, the signed-in user), run after the model so it has the last word; and `db`, a context to
@@ -753,6 +847,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         // `CreateAsync(apply)` beside `UpdateAsync(id, apply)` for a row with no form behind it.
         if (idLessCreate)
         {
+            var createMark = s.Length;
             s.Append("        /// <summary>Inserts a new <see cref=\"").Append(entityType)
                 .AppendLine("\" /> built from <paramref name=\"model\" />.</summary>");
             s.AppendLine("        /// <param name=\"model\">The values to create it with.</param>");
@@ -772,6 +867,8 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             s.Append("            return ").Append(Writes).AppendLine(".CreateAsync(entity, db, cancellationToken);");
             s.AppendLine("        }");
             s.AppendLine();
+
+            Keep(formCreate, createMark);
 
             s.Append("        /// <summary>Inserts a new <see cref=\"").Append(entityType)
                 .AppendLine("\" /> whose values <paramref name=\"apply\" /> sets.</summary>");
@@ -793,6 +890,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
 
         if (createWithId)
         {
+            var keyedMark = s.Length;
             s.Append("        /// <summary>Inserts a new <see cref=\"").Append(entityType)
                 .AppendLine("\" /> under <paramref name=\"id\" />, built from <paramref name=\"model\" />.</summary>");
             s.AppendLine("        /// <param name=\"id\">The key of the new row.</param>");
@@ -812,6 +910,8 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             s.Append("            return ").Append(Writes).AppendLine(".CreateAsync(entity, db, cancellationToken);");
             s.AppendLine("        }");
             s.AppendLine();
+
+            Keep(formCreate, keyedMark);
 
             s.Append("        /// <summary>Inserts a new <see cref=\"").Append(entityType)
                 .AppendLine("\" /> under <paramref name=\"id\" />, whose values <paramref name=\"apply\" /> sets.</summary>");
@@ -839,6 +939,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             const string ConflictDoc = "        /// <exception cref=\"global::Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException\">The row was saved by someone else since it was read.</exception>";
             const string VersionDoc = "        /// <param name=\"version\">The version last read, to refuse a write to a row saved since; <c>null</c> skips the check.</param>";
 
+            var updateMark = s.Length;
             s.Append("        /// <summary>Writes <paramref name=\"model\" /> onto the stored <see cref=\"").Append(entityType)
                 .AppendLine("\" /> with <paramref name=\"id\" /> — only the values that changed.</summary>");
             s.AppendLine("        /// <param name=\"id\">The id of the row to update.</param>");
@@ -864,6 +965,8 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
                 .AppendLine(", entity => { __Apply(entity, model); apply?.Invoke(entity); }, db, cancellationToken);");
             s.AppendLine("        }");
             s.AppendLine();
+
+            Keep(formUpdate, updateMark);
 
             // The write with no form behind it: `Product.UpdateAsync(id, p => p.ShippedAt = now)`.
             s.Append("        /// <summary>Loads the stored <see cref=\"").Append(entityType)
@@ -918,6 +1021,8 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
                 .Append(entity.Versioned ? "version" : "null").AppendLine(", db, cancellationToken);");
             s.AppendLine();
 
+            var modelAsyncMark = s.Length;
+
             // The form loop's fill. Deliberately not a read-face query: the read face is flat primitives and
             // the form model keeps value objects nested, so this loads the aggregate and reuses __Fill rather
             // than maintaining a second projection that could drift from it.
@@ -941,11 +1046,14 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
                 .AppendLine(">(id!, db, cancellationToken).ConfigureAwait(false);");
             s.AppendLine("            return entity?.ToModel();");
             s.AppendLine("        }");
+
+            Keep(formModel, modelAsyncMark);
         }
 
         s.AppendLine("    }");
         s.AppendLine();
 
+        var toModelMark = s.Length;
         s.Append("    extension(").Append(entityType).AppendLine(" entity)");
         s.AppendLine("    {");
         s.Append("        /// <summary>Copies this aggregate into a new <see cref=\"").Append(modelType)
@@ -958,6 +1066,10 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         s.AppendLine("        }");
         s.AppendLine("    }");
         s.AppendLine();
+
+        Keep(formModel, toModelMark);
+
+        var plumbingMark = s.Length;
 
         // ---- plumbing ----
         // A model save writes what the form holds. A null clears a property the aggregate declares nullable — the user
@@ -1037,6 +1149,11 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         s.AppendLine("        return model;");
         s.AppendLine("    }");
 
+        // Everything above reads or writes a MODEL, so it goes with one. Everything below is still needed:
+        // a behaviour create constructs the entity through __New and stamps its key, neither of which is a
+        // form write.
+        Keep(formModel, plumbingMark);
+
         if (entity.Constructible)
         {
             s.AppendLine();
@@ -1074,6 +1191,8 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             EmitAccessor(s, key, "Id");
         }
 
+        var accessorMark = s.Length;
+
         foreach (var member in entity.Members)
         {
             if (member.Write is { Kind: not ModelWriteKind.Public } write)
@@ -1086,6 +1205,8 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         {
             EmitValueObjectBuild(s, valueObject);
         }
+
+        Keep(formModel, accessorMark);
 
         s.AppendLine("}");
         return s.ToString();
@@ -1434,12 +1555,15 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         bool IsChild,
         EquatableArray<ChildShape> Children,
         EquatableArray<string> AggregateReferences,
-        EquatableArray<string> UnsyncableChildren)
+        EquatableArray<string> UnsyncableChildren,
+        int Writes,
+        bool DeclaresWrites)
     {
         public static Entity Refused(string fullyQualifiedName, string name, SymbolLocation? location, Refusal refusal, string detail) =>
             new(fullyQualifiedName, name, "", "public", null, false, false, null, KeySource.None, null, false, location, refusal, detail,
                 new EquatableArray<Member>([]), new EquatableArray<ValueObjectShape>([]), false,
-                new EquatableArray<ChildShape>([]), new EquatableArray<string>([]), new EquatableArray<string>([]));
+                new EquatableArray<ChildShape>([]), new EquatableArray<string>([]), new EquatableArray<string>([]),
+                AllWrites, false);
     }
 
     /// <summary>One child collection, as the generator needs it: what to emit, and what to write it through.</summary>

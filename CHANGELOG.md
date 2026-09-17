@@ -92,6 +92,24 @@ them until tagged releases begin.
 
 ### Added
 
+- **An aggregate can decline the generated form surface.** `public const ModelWrites Writes =
+  ModelWrites.None;` on an aggregate drops its `{X}Model`, `CreateAsync(model)`, `UpdateAsync(id, model)`,
+  `ModelAsync(id)` and `ToModel()` — for a row a form has no business creating: a passkey minted by a
+  WebAuthn ceremony, a session started by signing in. `ModelWrites.Create` and `ModelWrites.Update` keep the
+  model and one half, for a row a form may make but never edit, or edit but never make. No const means
+  `All`, so nothing existing changes.
+
+  **It reaches the form surface and nothing else.** The behaviour writes — `CreateAsync(x => …)`,
+  `UpdateAsync(id, x => …)`, `DeleteAsync(id)` — take no model and are always generated. So is the read
+  face: querying works through read models, so an aggregate able to switch its own off would be one that
+  nothing can read.
+
+  A `const` rather than an attribute or a static property because C# itself refuses a non-constant
+  initializer — the value is always there to be read at compile time, so the generator can never quietly
+  fail to find it and emit the whole surface anyway. A child takes its root's answer, since its model is an
+  element of the root's list; a child declaring its own is **RASK091** and is ignored rather than
+  half-obeyed into a root model holding a type nobody generated.
+
 - **`Product.ModelAsync(id)` — the form loop's fill.** The edit shape of one aggregate by id, or `null` when no
   row has it. Not a read-face query: the read face is flat primitives while the form model keeps value objects
   nested and its children as child models, so this loads the aggregate whole and reuses the generated fill —

@@ -757,6 +757,186 @@ public class ModelInputGeneratorTests
         Assert.DoesNotContain("UnsafeAccessorKind.Field", order, StringComparison.Ordinal);
     }
 
+    // ---- ModelWrites: narrowing the FORM surface ----------------------------------------------------
+
+    [Fact]
+    public void The_generators_copy_of_ModelWrites_still_matches_the_enum()
+    {
+        // The generator targets netstandard2.0 and never loads Rask.Data, so it restates these values. A
+        // member reordered or renumbered on the enum would otherwise silently narrow the wrong surface.
+        Assert.Equal(0, (int)global::Rask.Data.ModelWrites.None);
+        Assert.Equal(1, (int)global::Rask.Data.ModelWrites.Create);
+        Assert.Equal(2, (int)global::Rask.Data.ModelWrites.Update);
+        Assert.Equal(ModelInputGenerator.AllWrites, (int)global::Rask.Data.ModelWrites.All);
+    }
+
+    [Fact]
+    public void ModelWrites_None_drops_the_model_and_every_write_that_takes_one()
+    {
+        var run = Run("""
+            using System;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Passkey : Aggregate<Guid>
+            {
+                public const ModelWrites Writes = ModelWrites.None;
+                public string Name { get; private set; } = "";
+                public void Rename(string name) => Name = name;
+            }
+            """);
+
+        Assert.Empty(run.Diagnostics);
+        Assert.Empty(run.GeneratedCompileErrors());
+
+        var source = run.GeneratedSource("Shop.PasskeyModel");
+
+        // No model type, and nothing that takes one.
+        Assert.DoesNotContain("partial class PasskeyModel", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("ModelAsync", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("ToModel()", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("__Apply", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("__Fill", source, StringComparison.Ordinal);
+
+        // The BEHAVIOUR writes are untouched — none of them ever took a model.
+        Assert.Contains("CreateAsync(global::System.Action<global::Shop.Passkey> apply", source, StringComparison.Ordinal);
+        Assert.Contains("UpdateAsync(global::System.Guid id, global::System.Action<global::Shop.Passkey> apply", source, StringComparison.Ordinal);
+        Assert.Contains("DeleteAsync(global::System.Guid id", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ModelWrites_None_keeps_the_read_face()
+    {
+        // The read face is not negotiable: querying works through read models, so an aggregate able to switch
+        // its own off would be one that nothing can read.
+        var run = GeneratorHarness.Run(
+            """
+            using System;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Passkey : Aggregate<Guid>
+            {
+                public const ModelWrites Writes = ModelWrites.None;
+                public string Name { get; private set; } = "";
+            }
+            """,
+            new ReadModelGenerator(),
+            "Rask.Data",
+            "Rask.Cqrs",
+            "Microsoft.EntityFrameworkCore");
+
+        Assert.Contains("class PasskeyRead", run.GeneratedSource("Shop_PasskeyRead"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ModelWrites_Update_keeps_the_model_and_drops_only_the_create_that_takes_it()
+    {
+        var run = Run("""
+            using System;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Invoice : Aggregate<Guid>
+            {
+                public const ModelWrites Writes = ModelWrites.Update;
+                public string Title { get; private set; } = "";
+            }
+            """);
+
+        Assert.Empty(run.Diagnostics);
+        Assert.Empty(run.GeneratedCompileErrors());
+
+        var source = run.GeneratedSource("Shop.InvoiceModel");
+
+        Assert.Contains("partial class InvoiceModel", source, StringComparison.Ordinal);
+        Assert.Contains("UpdateAsync(global::System.Guid id, global::Shop.InvoiceModel model", source, StringComparison.Ordinal);
+        Assert.Contains("ModelAsync", source, StringComparison.Ordinal);
+
+        // A row a form may edit but never make.
+        Assert.DoesNotContain("CreateAsync(global::Shop.InvoiceModel model", source, StringComparison.Ordinal);
+        Assert.Contains("CreateAsync(global::System.Action<global::Shop.Invoice> apply", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void No_Writes_const_generates_everything_it_always_did()
+    {
+        var run = Run("""
+            using System;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Invoice : Aggregate<Guid>
+            {
+                public string Title { get; private set; } = "";
+            }
+            """);
+
+        Assert.Empty(run.Diagnostics);
+        var source = run.GeneratedSource("Shop.InvoiceModel");
+
+        Assert.Contains("partial class InvoiceModel", source, StringComparison.Ordinal);
+        Assert.Contains("CreateAsync(global::Shop.InvoiceModel model", source, StringComparison.Ordinal);
+        Assert.Contains("UpdateAsync(global::System.Guid id, global::Shop.InvoiceModel model", source, StringComparison.Ordinal);
+        Assert.Contains("ModelAsync", source, StringComparison.Ordinal);
+        Assert.Contains("ToModel()", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_child_declaring_its_own_Writes_is_RASK091_and_is_ignored()
+    {
+        var run = Run("""
+            using System;
+            using System.Collections.Generic;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Order : Aggregate<Guid>
+            {
+                private readonly List<OrderLine> _lines = [];
+                public IReadOnlyCollection<OrderLine> Lines => _lines;
+            }
+            public sealed class OrderLine : Entity<Guid>
+            {
+                public const ModelWrites Writes = ModelWrites.None;
+                public int Quantity { get; private set; }
+            }
+            """);
+
+        var diagnostic = Assert.Single(run.Diagnostics);
+        Assert.Equal("RASK091", diagnostic.Id);
+        Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
+
+        // Ignored, not obeyed: the root's model holds a list of the child model, so honouring this would
+        // leave the root pointing at a type that was never generated.
+        Assert.Contains("partial class OrderLineModel", run.GeneratedSource("Shop.OrderLineModel"), StringComparison.Ordinal);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
+    public void A_child_of_a_root_with_no_form_gets_no_model_either()
+    {
+        var run = Run("""
+            using System;
+            using System.Collections.Generic;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Order : Aggregate<Guid>
+            {
+                public const ModelWrites Writes = ModelWrites.None;
+                private readonly List<OrderLine> _lines = [];
+                public IReadOnlyCollection<OrderLine> Lines => _lines;
+            }
+            public sealed class OrderLine : Entity<Guid>
+            {
+                public int Quantity { get; private set; }
+            }
+            """);
+
+        Assert.Empty(run.Diagnostics);
+        Assert.Empty(run.GeneratedCompileErrors());
+
+        // A child model exists to be an element of the root's list. With no root form there is nothing to
+        // be an element of, and a child has no writes of its own that could want one.
+        Assert.DoesNotContain("partial class OrderModel", run.GeneratedSource("Shop.OrderModel"), StringComparison.Ordinal);
+        Assert.DoesNotContain("partial class OrderLineModel", run.GeneratedSource("Shop.OrderLineModel"), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void A_collection_of_aggregates_is_RASK087_and_is_not_a_child()
     {

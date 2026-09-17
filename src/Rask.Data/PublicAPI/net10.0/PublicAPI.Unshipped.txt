@@ -78,6 +78,11 @@ Rask.Data.ModelQuery<TEntity>.Where(System.Linq.Expressions.Expression<System.Fu
 Rask.Data.ModelRegistry
 Rask.Data.ModelSet
 Rask.Data.ModelSet.extension<TEntity>(TEntity!)
+Rask.Data.ModelWrites
+Rask.Data.ModelWrites.All = Rask.Data.ModelWrites.Create | Rask.Data.ModelWrites.Update -> Rask.Data.ModelWrites
+Rask.Data.ModelWrites.Create = 1 -> Rask.Data.ModelWrites
+Rask.Data.ModelWrites.None = 0 -> Rask.Data.ModelWrites
+Rask.Data.ModelWrites.Update = 2 -> Rask.Data.ModelWrites
 Rask.Data.Projection<TEntity, TResult>
 Rask.Data.Projection<TEntity, TResult>.AnyAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 Rask.Data.Projection<TEntity, TResult>.CountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!

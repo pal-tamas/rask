@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK090, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK091, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -124,6 +124,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK088](#rask088) | Warning | Child collection cannot be synced, so a save cannot add or remove one |
 | [RASK089](#rask089) | Warning | Id looks like a reference but no navigation was inferred |
 | [RASK090](#rask090) | Warning | Two entities want one DbContext set name, so neither is generated |
+| [RASK091](#rask091) | Warning | A child cannot choose its own form writes — its root decides |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -2259,6 +2260,42 @@ itself always wins over an extension member, so the accessor would compile and q
 ```csharp
 db.Set<Shop.Order>()
 db.Set<Warehouse.Order>()
+```
+
+---
+
+## RASK091
+
+**A child cannot choose its own form writes — its root decides** · Warning
+
+[`ModelWrites`](data.md#turning-the-form-surface-off) narrows the form surface of an **aggregate**. A child
+entity has no writes of its own to narrow — it is created, changed and removed through its root — and its
+model is part of the root's, which is what a form actually posts.
+
+```csharp
+public sealed class Order : Aggregate<Guid>
+{
+    private readonly List<OrderLine> _lines = [];
+    public IReadOnlyCollection<OrderLine> Lines => _lines;
+}
+
+public sealed class OrderLine : Entity<Guid>
+{
+    public const ModelWrites Writes = ModelWrites.None;   // ⚠ RASK091: ignored
+}
+```
+
+The const is **reported and then ignored**, not half-obeyed: `OrderModel.Lines` is a
+`List<OrderLineModel>`, so honouring it would leave the root's model holding a list of a type that was never
+generated.
+
+**Fix:** put the const on the aggregate that holds it, where it means something:
+
+```csharp
+public sealed class Order : Aggregate<Guid>
+{
+    public const ModelWrites Writes = ModelWrites.None;   // ✓ the order takes no form — nor do its lines
+}
 ```
 
 ---

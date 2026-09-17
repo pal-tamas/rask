@@ -551,6 +551,48 @@ The list those pages link from is a [data grid](data-grid.md) over `Product.Read
 ([above](#handing-a-query-to-a-component-asqueryable)): the rows are read faces, read-only by construction, and
 each links to its edit page.
 
+### Turning the form surface off
+
+Not every aggregate should be creatable from a form. A passkey is minted by a WebAuthn ceremony; a session
+is started by signing in. Declare a `Writes` const and the generated **form** surface narrows:
+
+```csharp
+public sealed class Passkey : Aggregate<Guid>
+{
+    public const ModelWrites Writes = ModelWrites.None;
+
+    public string Name { get; private set; } = "";
+
+    public void Rename(string name) => Name = name;
+}
+```
+
+| `Writes` | What is generated |
+|---|---|
+| *(no const)* — same as `All` | everything, as always |
+| `ModelWrites.Create` | `PasskeyModel`, `CreateAsync(model)`, `ModelAsync(id)`, `ToModel()` |
+| `ModelWrites.Update` | `PasskeyModel`, `UpdateAsync(id, model)`, `ModelAsync(id)`, `ToModel()` |
+| `ModelWrites.None` | no `PasskeyModel` at all, and nothing that takes one |
+
+**It reaches the form surface and nothing else.** These are always generated, whatever the const says:
+
+```csharp
+await Passkey.CreateAsync(p => p.Rename("laptop"));       // behaviour — takes no model
+await Passkey.UpdateAsync(id, p => p.Rename("desktop"));  // behaviour
+await Passkey.DeleteAsync(id);                            // never took a model
+await Passkey.Read.Where(p => p.UserId == me).ToListAsync();   // the read face is not negotiable
+```
+
+The read face stays because querying works through read models: an aggregate that could switch its own off
+would be an aggregate nothing can read.
+
+**Why a `const` and not an attribute.** C# itself refuses a non-constant initializer, so the value is always
+there to be read at compile time — the generator can never quietly fail to find it and emit the whole
+surface anyway. A wrong value is a compile error at the declaration, not a surprise at the call site.
+
+A **child** takes its root's answer: its model exists to be an element of the root's list, so a child
+declaring its own `Writes` is [RASK091](diagnostics.md#rask091) and is ignored.
+
 ### How a form save writes
 
 A save writes **what the form holds**, property by property:
