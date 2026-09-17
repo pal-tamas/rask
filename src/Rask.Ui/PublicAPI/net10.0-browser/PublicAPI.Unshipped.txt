@@ -1221,6 +1221,10 @@ Rask.Ui.UiFileInput.Class.get -> string?
 Rask.Ui.UiFileInput.Class.set -> void
 Rask.Ui.UiFileInput.Disabled.get -> bool?
 Rask.Ui.UiFileInput.Disabled.set -> void
+Rask.Ui.UiFileInput.Dropzone.get -> bool?
+Rask.Ui.UiFileInput.Dropzone.set -> void
+Rask.Ui.UiFileInput.Heading.get -> string?
+Rask.Ui.UiFileInput.Heading.set -> void
 Rask.Ui.UiFileInput.Id.get -> string?
 Rask.Ui.UiFileInput.Id.set -> void
 Rask.Ui.UiFileInput.Label.get -> string!
@@ -1233,6 +1237,8 @@ Rask.Ui.UiFileInput.OnFiles.get -> Rask.Core.Callback<System.Collections.Generic
 Rask.Ui.UiFileInput.OnFiles.set -> void
 Rask.Ui.UiFileInput.Size.get -> Rask.Ui.UiSize?
 Rask.Ui.UiFileInput.Size.set -> void
+Rask.Ui.UiFileInput.Text.get -> string?
+Rask.Ui.UiFileInput.Text.set -> void
 Rask.Ui.UiFileInput.Tone.get -> Rask.Ui.UiTone?
 Rask.Ui.UiFileInput.Tone.set -> void
 Rask.Ui.UiFileInput.UiFileInput() -> void
@@ -1464,6 +1470,7 @@ Rask.Ui.UiIconName.Ticket = 71 -> Rask.Ui.UiIconName
 Rask.Ui.UiIconName.Trash = 17 -> Rask.Ui.UiIconName
 Rask.Ui.UiIconName.Undo = 40 -> Rask.Ui.UiIconName
 Rask.Ui.UiIconName.Unlock = 72 -> Rask.Ui.UiIconName
+Rask.Ui.UiIconName.Upload = 77 -> Rask.Ui.UiIconName
 Rask.Ui.UiIconName.UserPlus = 67 -> Rask.Ui.UiIconName
 Rask.Ui.UiIconName.VideoCamera = 49 -> Rask.Ui.UiIconName
 Rask.Ui.UiIconName.Warning = 10 -> Rask.Ui.UiIconName
@@ -2954,6 +2961,7 @@ static RaskBuilderSettersRask_Ui.Disabled<T>(this Rask.Ui.UiRadioGroup<T>! __b, 
 static RaskBuilderSettersRask_Ui.Disabled<T>(this Rask.Ui.UiSelect<T>! __b, bool? value) -> Rask.Ui.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.Disabled<T>(this Rask.Ui.UiTextarea<T>! __b, bool? value) -> Rask.Ui.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.Dismissible(this Rask.Ui.UiModal! __b, bool? value) -> Rask.Ui.UiModal!
+static RaskBuilderSettersRask_Ui.Dropzone(this Rask.Ui.UiFileInput! __b, bool? value) -> Rask.Ui.UiFileInput!
 static RaskBuilderSettersRask_Ui.Duration(this Rask.Ui.UiToast! __b, System.TimeSpan? value) -> Rask.Ui.UiToast!
 static RaskBuilderSettersRask_Ui.Empty<T, TKey>(this Rask.Ui.UiDataGrid<T, TKey>! __b, Rask.Core.Component? value) -> Rask.Ui.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.EmptyText<T>(this Rask.Ui.UiSelect<T>! __b, string? value) -> Rask.Ui.UiSelect<T>!
@@ -3008,6 +3016,7 @@ static RaskBuilderSettersRask_Ui.Grow(this Rask.Ui.UiListRow! __b, Rask.Core.Com
 static RaskBuilderSettersRask_Ui.HandleLabel(this Rask.Ui.UiDiff! __b, string? value) -> Rask.Ui.UiDiff!
 static RaskBuilderSettersRask_Ui.Heading(this Rask.Ui.UiCard! __b, string? value) -> Rask.Ui.UiCard!
 static RaskBuilderSettersRask_Ui.Heading(this Rask.Ui.UiEmpty! __b, string! value) -> Rask.Ui.UiEmpty!
+static RaskBuilderSettersRask_Ui.Heading(this Rask.Ui.UiFileInput! __b, string? value) -> Rask.Ui.UiFileInput!
 static RaskBuilderSettersRask_Ui.Heading(this Rask.Ui.UiHeader! __b, string! value) -> Rask.Ui.UiHeader!
 static RaskBuilderSettersRask_Ui.Heading(this Rask.Ui.UiMenuGroup! __b, string? value) -> Rask.Ui.UiMenuGroup!
 static RaskBuilderSettersRask_Ui.Heading(this Rask.Ui.UiMenuSub! __b, string! value) -> Rask.Ui.UiMenuSub!
@@ -3488,6 +3497,7 @@ static RaskBuilderSettersRask_Ui.SystemLabel(this Rask.Ui.UiThemePicker! __b, st
 static RaskBuilderSettersRask_Ui.Text(this Rask.Ui.UiCheckbox! __b, string! value) -> Rask.Ui.UiCheckbox!
 static RaskBuilderSettersRask_Ui.Text(this Rask.Ui.UiDivider! __b, string? value) -> Rask.Ui.UiDivider!
 static RaskBuilderSettersRask_Ui.Text(this Rask.Ui.UiFieldset! __b, string! value) -> Rask.Ui.UiFieldset!
+static RaskBuilderSettersRask_Ui.Text(this Rask.Ui.UiFileInput! __b, string? value) -> Rask.Ui.UiFileInput!
 static RaskBuilderSettersRask_Ui.Text(this Rask.Ui.UiHighlight! __b, string! value) -> Rask.Ui.UiHighlight!
 static RaskBuilderSettersRask_Ui.Text(this Rask.Ui.UiKbd! __b, string! value) -> Rask.Ui.UiKbd!
 static RaskBuilderSettersRask_Ui.Text(this Rask.Ui.UiLabel! __b, string? value) -> Rask.Ui.UiLabel!

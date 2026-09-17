@@ -23,7 +23,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
         foreach (var id in new[]
                  {
                      "ui-text-controls", "ui-labels", "ui-choices", "ui-range", "ui-otp", "ui-filter",
-                     "ui-calendar", "ui-bound", "ui-mask",
+                     "ui-calendar", "ui-dropzone", "ui-bound", "ui-mask",
                  })
         {
             var node = Page.Locator($"[data-testid='{id}']");
@@ -315,6 +315,54 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
         // a list positioned inside the flow would be clipped to nothing. In the top layer it is not.
         var height = (await list.BoundingBoxAsync())!.Height;
         Assert.True(height > 96, $"the list was clipped to {height}px by its overflow-hidden ancestor.");
+    });
+
+    [Fact]
+    public Task TheDropAreaIsTheNativeInputAndLightsUpUnderADraggedFile() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var zone = Page.Locator("[data-testid='ui-dropzone'] [data-rask-dropzone]");
+        await Expect(zone).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        await zone.ScrollIntoViewIfNeededAsync();
+
+        // No script routes a drop: the input IS the area. What is under the middle of the area — and under a
+        // corner of it — is the file input itself, so a real click or a real drop lands there.
+        var hits = await zone.EvaluateAsync<string[]>(
+            @"z => { const r = z.getBoundingClientRect();
+                     return [[r.left + r.width / 2, r.top + r.height / 2], [r.left + 4, r.top + 4]]
+                       .map(([x, y]) => { const el = document.elementFromPoint(x, y);
+                                          return el ? el.tagName + ':' + el.getAttribute('type') : 'none'; }); }");
+        Assert.All(hits, hit => Assert.Equal("INPUT:file", hit));
+
+        // A chosen file reaches C# through OnFiles, same as the compact box.
+        await zone.Locator("input[type=file]").SetInputFilesAsync(new[]
+        {
+            new FilePayload { Name = "march.pdf", MimeType = "application/pdf", Buffer = [1, 2, 3] },
+            new FilePayload { Name = "april.jpg", MimeType = "image/jpeg", Buffer = [4, 5, 6] },
+        });
+        await Expect(Page.Locator("[data-testid='ui-dropzone-state']")).ToHaveTextAsync(
+            "Chosen: march.pdf, april.jpg", new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+
+        // The highlight is the runtime's: counted across the children a drag crosses, and only for FILES.
+        await Page.EvaluateAsync(
+            @"() => { const zone = document.querySelector('[data-testid=ui-dropzone] [data-rask-dropzone]');
+                      const input = zone.querySelector('input');
+                      const files = new DataTransfer(); files.items.add(new File(['x'], 'x.pdf'));
+                      const fire = (type, el, dt) => el.dispatchEvent(new DragEvent(type, {bubbles: true, dataTransfer: dt}));
+                      window.__dz = [];
+                      fire('dragenter', zone, files); fire('dragenter', input, files);
+                      window.__dz.push(zone.hasAttribute('data-dragging'));
+                      fire('dragleave', zone, files);
+                      window.__dz.push(zone.hasAttribute('data-dragging'));
+                      fire('dragleave', input, files);
+                      window.__dz.push(zone.hasAttribute('data-dragging'));
+                      const text = new DataTransfer(); text.setData('text/plain', 'row');
+                      fire('dragenter', input, text);
+                      window.__dz.push(zone.hasAttribute('data-dragging')); }");
+        var marks = await Page.EvaluateAsync<bool[]>("() => window.__dz");
+        // In; still in after crossing out of one child; out once the last one is left; never for a text drag.
+        Assert.Equal(new[] { true, true, false, false }, marks);
     });
 
     private async Task OpenAsync()

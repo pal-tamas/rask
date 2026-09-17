@@ -29,6 +29,7 @@ public sealed partial class UiKitDataInputDemo : Component
     private int _stars = 4;
     private DateOnly _month = DateOnly.FromDateTime(DateTime.Today);
     private DateOnly? _date;
+    private readonly List<string> _dropped = [];
     private readonly Signup _signup = new();
 
     // Words with an accent in them, on purpose: the default match ignores case AND accents in the
@@ -291,6 +292,28 @@ public sealed partial class UiKitDataInputDemo : Component
                     _date is { } picked
                         ? $"Chosen: {picked.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)}"
                         : "No date chosen."
+                ]
+            ]),
+
+        Section(
+            "File drop area",
+            "Still the native file input, stretched invisibly over the whole area: a click anywhere opens the "
+            + "picker and a file dropped anywhere lands in the input, which the browser already does with no "
+            + "script. The runtime only marks the area while a file is dragged over it.",
+            Div.Data(Testid("ui-dropzone")).Class("max-w-md space-y-2")[
+                UiFileInput.Value("").Key("receipts").Label("Receipts").Id("demo-receipts")
+                    .Dropzone(true)
+                    .Heading("Drop receipts here, or click to choose")
+                    .Text("PDF or JPG, several at once")
+                    .Accept(".pdf,.jpg,.jpeg")
+                    .Multiple(true)
+                    .OnFiles(files =>
+                    {
+                        _dropped.Clear();
+                        _dropped.AddRange(files.Select(f => f.Name));
+                    }),
+                P.Class("text-sm text-ui-muted").Data(Testid("ui-dropzone-state"))[
+                    _dropped.Count == 0 ? "No files yet." : "Chosen: " + string.Join(", ", _dropped)
                 ]
             ]),
 

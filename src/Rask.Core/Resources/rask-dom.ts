@@ -1158,3 +1158,65 @@ export function applyFrameInvokes(
 
     scan(document.documentElement);
 })();
+
+// ----- Drop zone highlight (data-rask-dropzone) --------------------------
+// A drop area is a native <input type=file> stretched over the area, so where a dropped file goes is the
+// browser's business and needs nothing from here. What CSS cannot say is "a file is being dragged over this":
+// :hover does not update during a drag in every engine, and there is no drag pseudo-class at all. So the
+// runtime sets data-dragging on the nearest [data-rask-dropzone] while a drag carrying FILES is over it, and
+// the area styles itself from that.
+//
+// Counted, because dragenter and dragleave fire for every child crossed on the way in and out — the icon,
+// the heading, the input on top — and a plain toggle would flicker off the moment the pointer crossed one.
+// A drop or the end of a drag clears everything, which also rescues a count an engine got wrong.
+//
+// Files only: dragging a row of an in-page sortable list across a drop area is not an offer to upload it.
+(function installRaskDropzone() {
+    if (typeof document === "undefined" || typeof window === "undefined" || window.__raskDropzone) {
+        return;
+    }
+    window.__raskDropzone = true;
+
+    const depth = new Map<Element, number>();
+
+    function zoneOf(e: DragEvent): Element | null {
+        const types = e.dataTransfer ? e.dataTransfer.types : null;
+        if (!types || Array.prototype.indexOf.call(types, "Files") < 0) {
+            return null;
+        }
+        return e.target instanceof Element ? e.target.closest("[data-rask-dropzone]") : null;
+    }
+
+    function clear(): void {
+        for (const zone of depth.keys()) {
+            zone.removeAttribute("data-dragging");
+        }
+        depth.clear();
+    }
+
+    document.addEventListener("dragenter", function (e: DragEvent) {
+        const zone = zoneOf(e);
+        if (!zone) {
+            return;
+        }
+        depth.set(zone, (depth.get(zone) || 0) + 1);
+        zone.setAttribute("data-dragging", "");
+    }, true);
+
+    document.addEventListener("dragleave", function (e: DragEvent) {
+        const zone = zoneOf(e);
+        if (!zone || !depth.has(zone)) {
+            return;
+        }
+        const left = (depth.get(zone) || 0) - 1;
+        if (left > 0) {
+            depth.set(zone, left);
+            return;
+        }
+        depth.delete(zone);
+        zone.removeAttribute("data-dragging");
+    }, true);
+
+    document.addEventListener("drop", clear, true);
+    document.addEventListener("dragend", clear, true);
+})();

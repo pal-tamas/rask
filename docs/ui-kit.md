@@ -753,6 +753,27 @@ would have exactly one legal argument.
 | `UiOtp` | the code — `OnComplete` fires on the transition into a full one, in both modes |
 | `UiFileInput` | the chosen file's name, **write-only** — a browser refuses to have a file input's value set, so binding fills the model and never the box. The bytes come through `OnFiles`. |
 
+
+**A file drop area is the same file input.** `UiFileInput.Dropzone(true)` draws Flux UI's large area in place
+of the compact box, with `Heading` (the `Label` by default) and `Text` for what is accepted:
+
+```csharp
+UiFileInput.Value("").Label("Receipts").Id("receipts")
+    .Dropzone(true)
+    .Heading("Drop receipts here, or click to choose")
+    .Text("PDF or JPG, several at once")
+    .Accept(".pdf,.jpg")
+    .Multiple(true)
+    .OnFiles(files => _receipts.AddRange(files.Select(f => f.Name)))
+```
+
+The native input is stretched invisibly over the whole area, so a click anywhere opens the picker and a file
+dropped anywhere lands in the input — the browser already turns a drop on a file input into a chosen file, so no
+script decides where a drop goes and it works before the runtime boots. The one thing CSS cannot say is "a file is
+being dragged over this", so the runtime sets `data-dragging` on the nearest `[data-rask-dropzone]` while a drag
+carrying files is over it, and the area styles itself from that. Give the control an `Id` and `Text` becomes the
+input's `aria-describedby`; without one there is nothing to point at.
+
 **A field with no value yet opens on its type alone**: `UiInput.Of<string>().Label("Search")`. A form
 control's openings are its mode pins, so a required step like `Label` never gets to pin `T` — without
 `Of` a controlled field with nothing in it would have to invent a value to compile. `Of` is the

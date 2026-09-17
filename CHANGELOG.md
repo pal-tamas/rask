@@ -28,6 +28,15 @@ them until tagged releases begin.
   remember it. `UiNavTab` gains `Icon`, `Badge`/`BadgeTone`, `Match`/`MatchPrefix`, and works `Active` out from the
   route when it is unset — as `UiNavItem` already did. `UiBrand` gains `Logo` for a real image mark; `UiTopBar`
   gains `Sticky` and `Class`; `UiMain` gains `Container` and `Class`; `UiNavList` gains `Outline`.
+- **Flux UI's file drop area: `UiFileInput.Dropzone(true)`.** A large area to drop files on or click, with
+  `Heading` (defaulting to the `Label`) and `Text` (linked as the input's description when the control has an
+  `Id`). It is still the native file input, stretched invisibly over the whole area, so a click anywhere opens the
+  picker and a file dropped anywhere lands in the input the way the browser already handles a drop on one —
+  nothing routes the drop, so it works before the runtime boots, and `OnFiles` and binding behave exactly as they
+  do for the compact box. `UiIconName` gains `Upload`.
+  - **Runtime:** a new generic hook sets `data-dragging` on the nearest `[data-rask-dropzone]` while a drag
+    carrying FILES is over it — counted across the children a drag crosses, so it does not flicker, and ignored
+    for an in-page drag of anything else. No CSS state can say "a file is being dragged here".
 - **Flux UI's toasts.** New `UiToaster` stacks a page's toasts in a corner (`Position` + `Align`, newest last,
   rendering nothing when empty); `UiToast` gains `Heading`, `Action`, `Duration`, `Position` and `Align`, and an
   `UiTone.Error` toast now says `role="alert"` rather than waiting politely for a pause. **`Duration` does not
