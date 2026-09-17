@@ -39,7 +39,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         // below, on the floating element itself.
         foreach (var id in new[]
                  {
-                     "ui-button", "ui-dropdown", "ui-modal", "ui-modal-popover", "ui-swap",
+                     "ui-button", "ui-dropdown", "ui-context-menu", "ui-modal", "ui-modal-popover", "ui-swap",
                      "ui-theme-controller",
                  })
         {
@@ -192,6 +192,91 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
 
         Assert.Fail($"the menu cursor never reached \"{expected}\" (it is on \"{last}\").");
     }
+
+    [Fact]
+    public Task ARightClickOpensTheMenuAtThePointerWithTheMenuKeyboard() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-context-menu']");
+        var card = scope.GetByText("Right-click this card");
+        await card.ScrollIntoViewIfNeededAsync();
+        var box = (await card.BoundingBoxAsync())!;
+        var x = box.X + 24;
+        var y = box.Y + 8;
+        var panel = scope.Locator("[popover]");
+
+        // The hook is installed when the runtime loads; a right-click that lands on the prerendered page first gets
+        // the browser's own menu, so press again until the runtime is there to replace it.
+        for (var attempt = 0; attempt < 10 && !await panel.IsVisibleAsync(); attempt++)
+        {
+            await Page.Mouse.ClickAsync(x, y, new MouseClickOptions { Button = MouseButton.Right });
+            await Page.WaitForTimeoutAsync(300);
+        }
+
+        await Expect(panel).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // Still open once the button is released — the press opens it on macOS and Linux, and the release that
+        // follows would light-dismiss a menu shown before it.
+        await Page.WaitForTimeoutAsync(300);
+        await Expect(panel).ToBeVisibleAsync();
+
+        // At the pointer, not centred on the screen the way an unplaced popover would be.
+        var at = (await panel.BoundingBoxAsync())!;
+        Assert.InRange(at.X, x - 2, x + 2);
+        Assert.InRange(at.Y, y - 2, y + 2);
+
+        // The same keyboard a dropdown has: focus is on the menu, the arrows move the cursor, Enter presses the row.
+        var menu = scope.Locator("[role='menu']");
+        await Expect(menu).ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 10_000 });
+
+        async Task<string> CursorAsync() =>
+            await menu.EvaluateAsync<string>(
+                "m => { const r = document.getElementById(m.getAttribute('aria-activedescendant') || ''); "
+                + "return r ? r.textContent.trim() : ''; }");
+
+        await WaitForCursorAsync(CursorAsync, "Open");
+        await Page.Keyboard.PressAsync("ArrowDown");
+        await WaitForCursorAsync(CursorAsync, "Copy link");
+        await Page.Keyboard.PressAsync("Enter");
+
+        await Expect(Page.Locator("[data-testid='ui-actions-log']")).ToContainTextAsync("copied the link");
+        await Expect(panel).ToBeHiddenAsync();
+    });
+
+    [Fact]
+    public Task AContextMenuOpenedAtTheEdgeOfTheViewportStaysOnScreen() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-context-menu']");
+        var card = scope.GetByText("Right-click this card");
+        await card.ScrollIntoViewIfNeededAsync();
+        var panel = scope.Locator("[popover]");
+
+        // A real MouseEvent on the card, reporting a pointer at the bottom-right corner of the viewport — where a menu
+        // placed at the pointer would open off both edges. The card is not under that corner, so a real mouse cannot
+        // be sent there; the event is what the runtime reads either way.
+        var size = Page.ViewportSize!;
+        for (var attempt = 0; attempt < 10 && !await panel.IsVisibleAsync(); attempt++)
+        {
+            await card.EvaluateAsync(
+                "(el, p) => el.dispatchEvent(new MouseEvent('contextmenu', "
+                + "{ bubbles: true, cancelable: true, button: 2, clientX: p[0], clientY: p[1] }))",
+                new[] { size.Width - 2, size.Height - 2 });
+            await Page.WaitForTimeoutAsync(300);
+        }
+
+        await Expect(panel).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        var at = (await panel.BoundingBoxAsync())!;
+        Assert.True(at.X + at.Width <= size.Width, $"the menu ran off the right edge ({at.X}+{at.Width}).");
+        Assert.True(at.Y + at.Height <= size.Height, $"the menu ran off the bottom edge ({at.Y}+{at.Height}).");
+        // Pulled back only as far as it had to be: still in the corner the pointer was in, not reset to the origin.
+        Assert.True(at.X > size.Width / 2 && at.Y > size.Height / 2, $"the menu left the pointer's corner ({at.X},{at.Y}).");
+
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(panel).ToBeHiddenAsync();
+    });
 
     [Fact]
     public Task TheModalOpensOnDemandAndClosesFromItsFooter() => RunAsync(async () =>

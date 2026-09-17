@@ -684,6 +684,38 @@ internal static class UiClassNames
         _ => "lg:drawer-open",
     };
 
+    /// <remarks>
+    ///     Where a toast or a stack of them is pinned. SIX complete literals rather than an edge joined to an
+    ///     alignment: <c>"top-3 " + side</c> is two names Tailwind can see and one it cannot, and the toast would
+    ///     appear in the middle of the screen with the build green.
+    ///     <para>
+    ///     Every one keeps the side inset on a phone (<c>inset-x-3</c> until <c>sm</c>), because a toast pinned to
+    ///     a corner of a 360px screen is a toast with no room to say anything.
+    ///     </para>
+    /// </remarks>
+    internal static string ToastCorner(UiPosition? position, UiAlign? align) =>
+        (position, align) switch
+        {
+            (UiPosition.Top, UiAlign.Start) => "inset-x-3 top-3 sm:inset-x-auto sm:left-3",
+            (UiPosition.Top, UiAlign.End) => "inset-x-3 top-3 sm:inset-x-auto sm:right-3",
+            (UiPosition.Top, _) => "inset-x-3 top-3 sm:inset-x-0",
+            (_, UiAlign.Start) => "inset-x-3 bottom-3 sm:inset-x-auto sm:left-3",
+            (_, UiAlign.End) => "inset-x-3 bottom-3 sm:inset-x-auto sm:right-3",
+            _ => "inset-x-3 bottom-3 sm:inset-x-0",
+        };
+
+    /// <remarks>
+    ///     Tailwind's own resize utilities, one complete literal per member — <c>"resize-" + value</c> is invisible
+    ///     to the scan, and a textarea that asked for a fixed size would silently keep its handle.
+    /// </remarks>
+    internal static string Resize(UiResize value) => value switch
+    {
+        UiResize.Horizontal => "resize-x",
+        UiResize.Both => "resize",
+        UiResize.None => "resize-none",
+        _ => "resize-y",
+    };
+
     /// <remarks>The toggle is only needed while the sidebar slides over the page, so it hides where the sidebar docks.</remarks>
     internal static string HiddenFrom(UiBreakpoint value) => value switch
     {

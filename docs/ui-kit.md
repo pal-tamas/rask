@@ -441,7 +441,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 
 | | |
 | --- | --- |
-| **Actions** | `UiButton` `UiDropdown` `UiModal` `UiSwap` `UiThemeController` `UiFab` |
+| **Actions** | `UiButton` `UiDropdown` `UiContextMenu` `UiPopover` `UiModal` `UiSwap` `UiThemeController` `UiFab` |
 | **Data display** | `UiAccordion` `UiAccordionSection` `UiCollapse` `UiAvatar` `UiAura` `UiBadge` `UiCard` `UiCarousel` `UiChatBubble` `UiCountdown` `UiDiff` `UiEmpty` `UiHover3d` `UiHoverGallery` `UiKbd` `UiHighlight` `UiList` `UiListRow` `UiStat` `UiStatusDot` `UiTable` `UiDataGrid` `UiColumn` `UiTree` `UiTextRotate` `UiTimeline` |
 | **Navigation** | `UiBreadcrumbs` `UiDock` `UiLink` `UiMegamenu` `UiMegamenuPanel` `UiMenu` `UiMenuItem` `UiNavbar` `UiPagination` `UiSteps` `UiStep` `UiTabs` `UiTab` |
 | **Feedback** | `UiAlert` `UiLoading` `UiProgress` `UiRadialProgress` `UiSkeleton` `UiToast` `UiTooltip` |
@@ -647,6 +647,68 @@ Form.Model(_order)[
 ]
 ```
 
+**Toasts: the page owns the list.** One `UiToast` is one notice; `UiToaster` stacks them in a corner
+(`Position` + `Align`, newest last so an arriving toast never pushes the one being read out from under the
+eye). A toast takes `Heading`, an `Action` (an Undo, a link to what was made) and `Duration`.
+
+`Duration` is the interesting one. It does **not** hide the element — it asks the runtime to *click the
+toast's own dismiss control*, which runs your `OnDismiss`, which takes the toast off your list. Hiding it
+instead would leave the page believing a toast is up that nobody can see, and the next render would put it
+back. The countdown **pauses** while the pointer is over the toast or focus is inside it, so reaching for the
+action does not lose it, and a toast with no `OnDismiss` writes no timer at all, because there would be
+nothing to press.
+
+```csharp
+UiToaster.Position(UiPosition.Bottom).Align(UiAlign.End)[
+    _notices.Select(n => UiToast.Key(n.Id).Message(n.Text)
+        .Duration(TimeSpan.FromSeconds(6))
+        .OnDismiss(() => _notices.Remove(n)))
+]
+```
+
+The hook is the **runtime's**, not the kit's, and it is generic: any element with
+`data-rask-dismiss-after="<ms>"` is dismissed by clicking its own `[data-rask-dismiss]` — the same convention
+the focus trap presses on Escape. An `UiTone.Error` toast says `role="alert"`; every other outcome is
+announced politely as `status`.
+
+**`UiContextMenu` is the same menu, opened by a right-click.** Its children are the rows a `UiDropdown` takes,
+and it is the same control underneath (`UiMenuSurface`), so the keyboard is identical; only the opening differs:
+
+```csharp
+UiContextMenu.Target(Div.TabIndex(0).Class("card")["Invoice 42"])[
+    UiMenuItem.Text("Open").OnClick(Open),
+    UiMenuSeparator,
+    UiMenuItem.Text("Delete").Tone(UiTone.Error).OnClick(Delete)
+]
+```
+
+The runtime opens it: an element carrying `data-rask-contextmenu="<popover id>"` shows that popover at the pointer
+in place of the browser's menu, straight away and on either host — a round trip first would be a lag felt on every
+right-click — and pulls it back inside the viewport near an edge. The ContextMenu key and Shift+F10 open it at the
+focused element, which is why the target above is focusable. Nothing in a context menu should be the ONLY way to
+do something: iOS Safari never fires the event, so put the same actions somewhere visible too.
+
+**`UiPopover` is a panel, not a menu.** `UiDropdown` IS a menu — its children are rows you pick from, it says
+`role="menu"` and it walks a keyboard cursor over them. A filter panel, a colour picker or a bubble of help is
+none of those, and putting one in a menu tells a screen reader it is a list of commands and traps the arrow
+keys inside it. `UiPopover` is the same machinery — a `[popover]` the browser lifts into the top layer and
+dismisses on Escape and on a click outside, placed with the same `Position`/`Align` — with `role="dialog"` and
+ordinary Tab movement inside.
+
+**`UiTextarea` grows, or does not.** `Resize` says which way the handle drags (`None` for a box in a layout the
+extra height would break), and `AutoSize` grows the box to fit what is typed. That one is CSS —
+`field-sizing: content` — so it needs no runtime and works on a prerendered page; where an engine has not
+shipped it the box keeps its `Rows` and scrolls, which is what it does today, so the feature degrades to the
+current behaviour rather than to a broken one.
+
+**`UiLink.External` opens away and says so.** `target="_blank"`, `rel="noopener noreferrer"` (a new tab opened
+without it can reach back through `window.opener`), a small mark and a screen-reader-only "opens in a new
+tab" — all three, because any one alone is worse than none. A generated route is one of your own pages and is
+never external, so it is ignored there.
+
+**`UiSkeleton` has shapes.** `Lines(3)` draws a paragraph with the last line short, because a stack of equal
+bars reads as a table; `Circle` is what an avatar leaves behind. It stays `aria-hidden` throughout.
+
 **A text field's box can hold more than what is typed.** `UiInput` takes `Icon` and `IconTrailing`, a `Kbd`
 for the shortcut that focuses it, and `Clearable` for a button that empties it — Flux's input affordances.
 Any of them turns the box into a container around a bare `<input>`, which is daisyUI's own icon-input shape,
@@ -707,6 +769,27 @@ would have exactly one legal argument.
 | `UiRange` `UiRating` `UiCalendar` | the position, the star count, the day |
 | `UiOtp` | the code — `OnComplete` fires on the transition into a full one, in both modes |
 | `UiFileInput` | the chosen file's name, **write-only** — a browser refuses to have a file input's value set, so binding fills the model and never the box. The bytes come through `OnFiles`. |
+
+
+**A file drop area is the same file input.** `UiFileInput.Dropzone(true)` draws Flux UI's large area in place
+of the compact box, with `Heading` (the `Label` by default) and `Text` for what is accepted:
+
+```csharp
+UiFileInput.Value("").Label("Receipts").Id("receipts")
+    .Dropzone(true)
+    .Heading("Drop receipts here, or click to choose")
+    .Text("PDF or JPG, several at once")
+    .Accept(".pdf,.jpg")
+    .Multiple(true)
+    .OnFiles(files => _receipts.AddRange(files.Select(f => f.Name)))
+```
+
+The native input is stretched invisibly over the whole area, so a click anywhere opens the picker and a file
+dropped anywhere lands in the input — the browser already turns a drop on a file input into a chosen file, so no
+script decides where a drop goes and it works before the runtime boots. The one thing CSS cannot say is "a file is
+being dragged over this", so the runtime sets `data-dragging` on the nearest `[data-rask-dropzone]` while a drag
+carrying files is over it, and the area styles itself from that. Give the control an `Id` and `Text` becomes the
+input's `aria-describedby`; without one there is nothing to point at.
 
 **A field with no value yet opens on its type alone**: `UiInput.Of<string>().Label("Search")`. A form
 control's openings are its mode pins, so a required step like `Label` never gets to pin `T` — without

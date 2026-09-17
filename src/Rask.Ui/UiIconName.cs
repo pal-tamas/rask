@@ -259,4 +259,7 @@ public enum UiIconName
 
     /// <summary>A credential.</summary>
     Key,
+
+    /// <summary>Send it up — the mark of a place to put a file.</summary>
+    Upload,
 }

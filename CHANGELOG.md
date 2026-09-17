@@ -42,6 +42,47 @@ them until tagged releases begin.
   remember it. `UiNavTab` gains `Icon`, `Badge`/`BadgeTone`, `Match`/`MatchPrefix`, and works `Active` out from the
   route when it is unset — as `UiNavItem` already did. `UiBrand` gains `Logo` for a real image mark; `UiTopBar`
   gains `Sticky` and `Class`; `UiMain` gains `Container` and `Class`; `UiNavList` gains `Outline`.
+- **Flux UI's context menu: new `UiContextMenu`.** `UiContextMenu.Target(card)[UiMenuItem…]` opens a menu where the
+  reader right-clicks the target. The children are the same rows a `UiDropdown` takes, and the menu is the same
+  control, so the arrows, Home/End, type-ahead, submenus, Enter and Escape behave identically; the ContextMenu key
+  and Shift+F10 open it at the focused element. The menu half of `UiMenuButton` moves into a new public base,
+  `UiMenuSurface` (`Open`, `OnToggle`, `KeepOpen`, `Class`), which both derive from — so a context menu does not
+  carry a button's `Position`/`Align`/`Gap`/`Offset`, which mean nothing at a pointer.
+  - **Runtime:** a new generic hook — an element carrying `data-rask-contextmenu="<popover id>"` shows that popover
+    at the pointer in place of the browser's menu, at once and on either host rather than after a round trip, and
+    pulls it back inside the viewport near an edge. The position lives on `<html>` as `--rask-context-x`/`-y`,
+    because a render rewrites the panel's own style attribute. An engine without the popover API keeps the
+    browser's own menu.
+- **Flux UI's file drop area: `UiFileInput.Dropzone(true)`.** A large area to drop files on or click, with
+  `Heading` (defaulting to the `Label`) and `Text` (linked as the input's description when the control has an
+  `Id`). It is still the native file input, stretched invisibly over the whole area, so a click anywhere opens the
+  picker and a file dropped anywhere lands in the input the way the browser already handles a drop on one —
+  nothing routes the drop, so it works before the runtime boots, and `OnFiles` and binding behave exactly as they
+  do for the compact box. `UiIconName` gains `Upload`.
+  - **Runtime:** a new generic hook sets `data-dragging` on the nearest `[data-rask-dropzone]` while a drag
+    carrying FILES is over it — counted across the children a drag crosses, so it does not flicker, and ignored
+    for an in-page drag of anything else. No CSS state can say "a file is being dragged here".
+- **Flux UI's toasts.** New `UiToaster` stacks a page's toasts in a corner (`Position` + `Align`, newest last,
+  rendering nothing when empty); `UiToast` gains `Heading`, `Action`, `Duration`, `Position` and `Align`, and an
+  `UiTone.Error` toast now says `role="alert"` rather than waiting politely for a pause. **`Duration` does not
+  hide the element** — it asks the runtime to click the toast's own dismiss control, so the page's `OnDismiss`
+  runs and the page takes the toast off its own list; hiding it would leave the page believing a toast is up
+  that nobody can see, and the next render would put it back. A toast with no `OnDismiss` writes no timer,
+  because there would be nothing to press.
+  - **Runtime:** a new generic hook — any element carrying `data-rask-dismiss-after="<ms>"` is dismissed after
+    that long by clicking its own `[data-rask-dismiss]`, the same convention the focus trap presses on Escape.
+    The countdown pauses while the pointer is over the element or focus is inside it.
+- **New `UiPopover` — a panel, not a menu.** The gap `UiDropdown` left: a dropdown IS a menu, so it says
+  `role="menu"` and walks a keyboard cursor over its rows, and putting a filter panel or a colour picker in one
+  tells a screen reader it is a list of commands and traps the arrow keys inside it. Same machinery — a
+  `[popover]` the browser lifts, dismisses on Escape and on a click outside, placed by anchor positioning with
+  the same `Position`/`Align` — with `role="dialog"` and ordinary Tab movement.
+- **Smaller Flux affordances.** `UiTextarea` gains `Resize` (a new `UiResize`) and `AutoSize`, which is CSS
+  (`field-sizing: content`) so it needs no runtime and degrades to today's scrolling box where an engine has
+  not shipped it. `UiLink` gains `External`: `target="_blank"`, `rel="noopener noreferrer"` and a
+  screen-reader-only "opens in a new tab", all three together, and ignored for a generated route since that is
+  one of your own pages. `UiSkeleton` gains `Lines` (a paragraph, last line short), `Circle` and `Animate`.
+  `UiCard` gains `Size` — the class map already existed and nothing could reach it.
 - **Flux UI's input affordances.** `UiInput` gains `Icon`, `IconTrailing`, `Kbd` (the shortcut that focuses the
   field) and `Clearable`. Any of them turns the box into a container around a bare `<input>` — daisyUI's own
   icon-input shape — and the label then stays above the field, because a floating caption rises through exactly
