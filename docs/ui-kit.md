@@ -442,7 +442,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | | |
 | --- | --- |
 | **Actions** | `UiButton` `UiDropdown` `UiContextMenu` `UiCommand` `UiPopover` `UiModal` `UiSwap` `UiThemeController` `UiFab` |
-| **Data display** | `UiAccordion` `UiAccordionSection` `UiCollapse` `UiAvatar` `UiAura` `UiBadge` `UiCard` `UiCarousel` `UiChatBubble` `UiCountdown` `UiDiff` `UiEmpty` `UiHover3d` `UiHoverGallery` `UiKbd` `UiHighlight` `UiList` `UiListRow` `UiStat` `UiStatusDot` `UiTable` `UiDataGrid` `UiColumn` `UiTree` `UiTextRotate` `UiTimeline` |
+| **Data display** | `UiAccordion` `UiAccordionSection` `UiCollapse` `UiAvatar` `UiAura` `UiBadge` `UiCard` `UiCarousel` `UiChatBubble` `UiCountdown` `UiDiff` `UiEmpty` `UiHover3d` `UiHoverGallery` `UiKbd` `UiHighlight` `UiList` `UiListRow` `UiStat` `UiStatusDot` `UiTable` `UiDataGrid` `UiColumn` `UiTree` `UiTextRotate` `UiTimeline` `UiChart` |
 | **Navigation** | `UiBreadcrumbs` `UiDock` `UiLink` `UiMegamenu` `UiMegamenuPanel` `UiMenu` `UiMenuItem` `UiNavbar` `UiPagination` `UiSteps` `UiStep` `UiTabs` `UiTab` |
 | **Feedback** | `UiAlert` `UiLoading` `UiProgress` `UiRadialProgress` `UiSkeleton` `UiToast` `UiTooltip` |
 | **Data input** | `UiInput` `UiTextarea` `UiSelect` `UiFileInput` `UiCheckbox` `UiToggle` `UiRadio` `UiRange` `UiRating` `UiFieldset` `UiValidator` `UiLabel` `UiOtp` `UiFilter` `UiCalendar` `UiDatePicker` |
@@ -720,6 +720,26 @@ none of those, and putting one in a menu tells a screen reader it is a list of c
 keys inside it. `UiPopover` is the same machinery — a `[popover]` the browser lifts into the top layer and
 dismisses on Escape and on a click outside, placed with the same `Position`/`Align` — with `role="dialog"` and
 ordinary Tab movement inside.
+
+**`UiChart` draws lines, areas and bars as SVG on the server.** No script and no chart library. The series arrive
+through a factory whose parameter is the chart, as a data grid's columns do, which is what gives each lambda its
+row type:
+
+```csharp
+UiChart.Data(months).Label("Revenue and costs").Format("C0").Class("h-64")[c => [
+    c.X(m => m.Name),
+    c.Area(m => m.Revenue).Label("Revenue"),
+    c.Line(m => m.Costs).Label("Costs").Tone(UiTone.Warning),
+    showOrders ? c.Bar(m => m.Orders).Label("Orders") : null
+]]
+```
+
+`Line`, `Area` and `Bar` read a `double`, `decimal`, `int` or `long` without a cast, and share one value axis whose
+ends are round numbers with zero on it. A series with no `Tone` takes the next colour in turn, and a legend appears
+once there is more than one. Size it with a height class: the plot stretches to the box while its strokes keep
+their width, and the axis labels are HTML beside it so they never stretch. Hovering a column shows that row's
+values in CSS. The figure is named by `Label`, the drawing is hidden from assistive technology, and a visually
+hidden table carries every value it draws — series as columns, rows as rows.
 
 **`UiTextarea` grows, or does not.** `Resize` says which way the handle drags (`None` for a box in a layout the
 extra height would break), and `AutoSize` grows the box to fit what is typed. That one is CSS —

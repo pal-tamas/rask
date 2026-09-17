@@ -193,6 +193,62 @@ internal static class UiClassNames
         _ => "",
     };
 
+    // A chart's colours, one table per use. Tailwind's own colour utilities over daisyUI's theme colours, so a series
+    // follows the theme; every one a complete literal for the reason this file exists.
+    internal static string ChartStroke(UiTone value) => value switch
+    {
+        UiTone.Neutral => "stroke-neutral",
+        UiTone.Primary => "stroke-primary",
+        UiTone.Secondary => "stroke-secondary",
+        UiTone.Accent => "stroke-accent",
+        UiTone.Info => "stroke-info",
+        UiTone.Success => "stroke-success",
+        UiTone.Warning => "stroke-warning",
+        UiTone.Error => "stroke-error",
+        _ => "",
+    };
+
+    internal static string ChartFill(UiTone value) => value switch
+    {
+        UiTone.Neutral => "fill-neutral",
+        UiTone.Primary => "fill-primary",
+        UiTone.Secondary => "fill-secondary",
+        UiTone.Accent => "fill-accent",
+        UiTone.Info => "fill-info",
+        UiTone.Success => "fill-success",
+        UiTone.Warning => "fill-warning",
+        UiTone.Error => "fill-error",
+        _ => "",
+    };
+
+    // The area under a line: the line's colour, faint enough that a second area and the grid show through it.
+    internal static string ChartArea(UiTone value) => value switch
+    {
+        UiTone.Neutral => "fill-neutral/15",
+        UiTone.Primary => "fill-primary/15",
+        UiTone.Secondary => "fill-secondary/15",
+        UiTone.Accent => "fill-accent/15",
+        UiTone.Info => "fill-info/15",
+        UiTone.Success => "fill-success/15",
+        UiTone.Warning => "fill-warning/15",
+        UiTone.Error => "fill-error/15",
+        _ => "",
+    };
+
+    // The dot beside a series' name in the legend and a tooltip.
+    internal static string ChartSwatch(UiTone value) => value switch
+    {
+        UiTone.Neutral => "bg-neutral",
+        UiTone.Primary => "bg-primary",
+        UiTone.Secondary => "bg-secondary",
+        UiTone.Accent => "bg-accent",
+        UiTone.Info => "bg-info",
+        UiTone.Success => "bg-success",
+        UiTone.Warning => "bg-warning",
+        UiTone.Error => "bg-error",
+        _ => "",
+    };
+
     internal static string FileInputTone(UiTone value) => value switch
     {
         UiTone.Neutral => "file-input-neutral",
