@@ -1,0 +1,35 @@
+# Keep the build context small and reproducible — the image restores/publishes from source.
+bin/
+obj/
+
+# The front-end templates' dependencies and build output. The image runs its own `npm ci`, and
+# `COPY . .` happens AFTER it — so a developer's host node_modules would land on top of the
+# container's, replacing linux binaries (esbuild, rollup, @tailwindcss/oxide) with darwin or
+# windows ones. The publish then fails inside the image with a platform mismatch, or ships a
+# tree that cannot run.
+**/node_modules/
+**/.output/
+**/.next/
+**/.nuxt/
+**/.svelte-kit/
+**/dist/
+
+# Local configuration, and the reason this matters more than it looks: the Web SDK copies every
+# appsettings*.json into the publish output, and the build stage above runs `COPY . .` before it.
+# Without these two lines a developer's appsettings.Development.json — which for a push app holds
+# the VAPID PRIVATE KEY `rask new` generated — is published into /app and then carried into the
+# final image by `COPY --from=build`. It is never read there (the container runs Production), but a
+# signing key has no business inside an image that gets pushed to a registry. Gitignoring the file
+# does not cover this: .dockerignore is a separate list, and Docker never reads .gitignore.
+appsettings.Development.json
+appsettings.Local.json
+
+.git/
+.gitignore
+.vs/
+.vscode/
+.idea/
+*.user
+**/.DS_Store
+Dockerfile
+.dockerignore

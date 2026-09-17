@@ -22,10 +22,10 @@ whole story — the script exists for the case where you don't.
 
 | | What | Why | If it's already there |
 |---|---|---|---|
-| **Always** | **.NET SDK** into `~/.dotnet` | `rask` is a `net10.0` [global tool](https://learn.microsoft.com/dotnet/core/tools/global-tools), and every command shells out to `dotnet` | left alone — any SDK 10 or newer satisfies it |
+| **Always** | **.NET SDK** into `~/.dotnet` | `rask` is a `net10.0` [global tool](https://learn.microsoft.com/dotnet/core/tools/global-tools), and every command shells out to `dotnet` | any SDK 10 or newer satisfies it. One **outside `$HOME`** is left alone; the one in `~/.dotnet` is this installer's own, so re-running brings it to the latest patch |
 | **Always** | **`Rask.Cli`** as a global tool | the `rask` command itself | updated instead of installed |
-| **Always** | **`dotnet-ef`** | `rask db add` / `update` / `list` / `drop` | left alone |
-| **Always** | **`wasm-tools` workload** | every browser build (`net10.0-browser` or `net11.0-browser`) — the WASM templates, and `--wasm` on a server app | left alone |
+| **Always** | **`dotnet-ef`** | `rask db add` / `update` / `list` / `drop` | installed if missing; `rask db` updates it when it is older than the EF Core runtime the app uses, rather than letting every command open with a version notice |
+| **Always** | **`wasm-tools` workload** | every browser build (`net10.0-browser` or `net11.0-browser`) — the `wasm` and `wasm-hosted` templates | left alone |
 | **Always** | **Node.js LTS** into `~/.local/share/rask/node` | `rask new --template react\|vue\|svelte\|solid\|lit\|preact\|angular` and the meta framework templates (`nuxt\|nextjs\|sveltekit\|solidstart\|tanstack-start\|analog`), and `rask dev`'s dev server. The meta lane also needs node **at runtime**, not just at build time. | left alone if `node --version` is ≥ 24.15 (the Active LTS line the scaffolders track) |
 | **Never** | Docker | `rask deploy`, `rask db backup --remote` | detected and reported only |
 

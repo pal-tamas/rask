@@ -27,7 +27,7 @@ dotnet --version      # must be ≥ 10.0
 If that prints an older version (or errors), install the .NET 10 or 11 SDK from
 [dotnet.microsoft.com](https://dotnet.microsoft.com/download) first.
 
-> **WASM only:** the `wasm` template — and `--wasm` on a server app — also need the browser
+> **WASM only:** the `wasm` and `wasm-hosted` templates also need the browser
 > WebAssembly tooling — install it once with `dotnet workload install wasm-tools`. If you're starting
 > with the server template (recommended below), you can skip this.
 

@@ -56,7 +56,7 @@ freely.
 ### Rask components
 
 C# components, server-rendered, with every state change streaming to the browser as a minimal diff
-over a WebSocket. Add `--wasm` and the pages run in the browser instead: a WebAssembly app in the
+over a WebSocket. Pick `--template wasm-hosted` and the pages run in the browser instead: a WebAssembly app in the
 project's `Client/` folder, served by the same server that answers its API — no second project to
 maintain, and message records in `Shared/` compile into both halves.
 

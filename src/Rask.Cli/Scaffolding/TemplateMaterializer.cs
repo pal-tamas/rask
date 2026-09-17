@@ -253,7 +253,6 @@ internal static class TemplateMaterializer
         Add(batteries.Snapshots, "snapshots");
         Add(batteries.Logs, "logs");
         Add(batteries.Ops, "ops");
-        Add(batteries.Wasm, "wasm");
 
         // Not a `rask new` flag — it is whether the template ships the language registration at all
         // (TemplateInfo.ShipsLocalization, true for the server template and false in the browser, where
@@ -319,9 +318,10 @@ internal static class TemplateMaterializer
     ///     it off.
     /// </summary>
     /// <remarks>
-    ///     The negation exists for files a battery REPLACES rather than adds. Under <c>--wasm</c> the pages
-    ///     move into <c>Client/</c>, so the server's own copies of them must not be written at all — and a
-    ///     region marker cannot say that about a whole file without leaving an empty one behind.
+    ///     The negation exists for files a battery REPLACES rather than adds — the home page's nav links
+    ///     to the docs when there are no accounts to sign into, rather than to a sign-in page that was
+    ///     never scaffolded. A region marker cannot say that about a whole file without leaving an empty
+    ///     one behind.
     /// </remarks>
     internal static bool Satisfied(IEnumerable<string> conditions, IReadOnlySet<string> on)
     {

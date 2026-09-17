@@ -149,7 +149,7 @@ builder.Services.AddRaskCqrsServer();
 app.MapRaskCqrs();
 ```
 
-**`rask new --wasm` scaffolds all of it, in one project.** The browser app lives in `Client/`, and three
+**`rask new --template wasm-hosted` scaffolds all of it, in one project.** The browser app lives in `Client/`, and three
 places say which half a file belongs to:
 
 | Folder | Compiled into |

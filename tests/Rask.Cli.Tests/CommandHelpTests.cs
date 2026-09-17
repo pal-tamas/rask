@@ -19,7 +19,7 @@ public sealed class CommandHelpTests
         Assert.Contains("Options:", text, StringComparison.Ordinal);
         Assert.Contains("-t, --template <name>", text, StringComparison.Ordinal);
         Assert.Contains("Template to scaffold", text, StringComparison.Ordinal);
-        Assert.Contains("--wasm", text, StringComparison.Ordinal);
+        Assert.Contains("--no-cqrs", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -94,8 +94,8 @@ public sealed class CommandHelpTests
 
         await app.RunAsync(["new", "--help"], CancellationToken.None);
 
-        Assert.Contains("[server|wasm|react|preact|vue|angular|solid|svelte|lit|nuxt|nextjs|sveltekit"
-            + "|solidstart|tanstack-start|analog]", console.OutText, StringComparison.Ordinal);
+        Assert.Contains("[server|wasm|wasm-hosted|react|preact|vue|angular|solid|svelte|lit|nuxt|nextjs"
+            + "|sveltekit|solidstart|tanstack-start|analog]", console.OutText, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -396,7 +396,7 @@ solution you own its Dockerfile; it needs the `wasm-tools` workload installed be
 Server host bakes in the browser client), and it runs `MyApp.Server` on the aspnet runtime image —
 same port and TLS story as the server app above.
 
-**If you are starting today, you want `--wasm` on a server app instead**
+**If you are starting today, you want the `wasm-hosted` template instead**
 ([single-page apps](spa.md#a-rask-webassembly-app)): one project whose browser app lives in `Client/`, and
 `dotnet publish` emits its bundle into the server's `wwwroot`, where `UseRaskSpa()` serves it. That path
 *is* scaffolded, Dockerfile included.

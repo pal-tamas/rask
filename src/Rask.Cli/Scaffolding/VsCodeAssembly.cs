@@ -12,7 +12,7 @@ internal enum VsCodeSetup
     Host,
 
     /// <summary>
-    ///     An ASP.NET host with a Rask WebAssembly client (<c>server --wasm</c>): the host under the C# debugger,
+    ///     An ASP.NET host with a Rask WebAssembly client (the <c>wasm-hosted</c> template): the host under the C# debugger,
     ///     then the client in a browser under the JavaScript debugger, through the host's debug proxy.
     /// </summary>
     WasmHost,

@@ -737,7 +737,7 @@ mapping that makes `@rask/<Name>.props` resolve, and the package reference:
 
 ```bash
 rask new Shop --islands react                  # one
-rask new Shop --islands react angular blazor   # several, on a server, --wasm or wasm host
+rask new Shop --islands react angular blazor   # several, on a server, wasm or wasm-hosted app
 ```
 
 It refuses `--islands react preact` by name, because npm cannot install both plugins (below), and

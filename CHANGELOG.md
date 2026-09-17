@@ -9,6 +9,20 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A WebAssembly app's nested build no longer runs on a different SDK than the build that started it.** Every
+  package that shells out to build a companion — `Rask.Server` for a `wasm-hosted` app's browser half,
+  `Rask.Wasm` for the prerender pass, `Rask.Spa.Hosting` for a WASM client — ran a bare `dotnet build` or
+  `dotnet publish`. That re-resolves the SDK from the `global.json` in the app's folder, which every scaffold
+  now writes, while the outer build resolved its SDK from wherever it was started. So
+  `dotnet build path/to/App.csproj` from a solution root, an IDE or CI built the host on the newest SDK
+  installed and the companion on the pinned band — and the child, having inherited the parent's
+  `MSBuildSDKsPath`, loaded the other SDK's targets into its own runtime and failed with MSB4216 ("could not
+  create or connect to a task host"). All four sites now run `$(_RaskSdkDotnet)`: this build's own
+  `dotnet.dll` through `DOTNET_HOST_PATH`, falling back to `dotnet` only under Visual Studio's MSBuild.
+  Clearing the inherited variables was not an option — `Exec` cannot unset one, and an empty value is read as
+  a path, after which no SDK resolves at all. `NestedDotnetContractTests` fails if a packed `.targets` file
+  runs a bare SDK command again or the definitions drift apart.
+
 - **`RaskVersion.Current` reported `1.0.0` in every app** (#1122). It reads the informational version off the assembly that
   declares it — `Rask.Core` — and Core is `IsPackable=false`, so the `Condition=" '$(IsPackable)' != 'false' "` on
   MinVer's `PackageReference` meant nothing ever stamped it and the SDK's `1.0.0` fallback stood. Every reader was
@@ -206,6 +220,66 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: `server` is just a server, and `wasm-hosted` is a template again.** `rask new --wasm` is gone;
+  the shape it built is now `rask new --template wasm-hosted`, sitting in the project-type list beside
+  `react`, `vue` and the rest of the front-end-plus-host lane. It is the same lane, with C# on both sides of
+  the wire instead of TypeScript.
+  - **Why a template and not a flag.** "Where does the UI run" is the question the project type already asks.
+    Asking it again afterwards, as a yes/no, meant the list said `server` and the app turned out to be
+    something else — and the flag quietly *replaced* the server's own pages, `App` and error page rather than
+    adding to them, which is a different app rather than a server with an extra battery.
+  - **The name is back; the old shape is not.** The original `wasm-hosted`, removed in #877, was a hand-written
+    Client/Server/Shared trio with its own `.sln` and six GUIDs. This one is a single project, as every
+    template is: the browser half lives in `Client/`, its project is generated into `obj/`, and the packages
+    only the browser needs are `RaskClientPackageReference`s that never reach the server process.
+  - **CQRS is the template, not a battery in it.** `--no-cqrs` is refused here exactly as it is on the SPA and
+    meta lanes: the browser half dispatches to the host over `Rask.Cqrs.Client`, so an app without it is a
+    browser app with no way to reach its own server. This also gives remote CQRS dispatch a scaffold again —
+    #877 noted it lost its only one.
+  - **`ops` is supported**, which it is not on the TypeScript front-end templates. That host still references
+    `Rask.Server`, so `Rask.Dashboard` has the `Rask.Core` it needs and a `wasm-hosted` app serves a browser
+    app *and* server-renders the dashboard at `/_rask`.
+  - `ServerBatteries.Wasm` is gone, and `--wasm` is no longer a `rask new` flag on any template. `wasm`
+    (backendless, static-hostable) is unchanged.
+
+- **The `rask new` wizard stopped asking about batteries.** The checklist arrived fully ticked, which made it a
+  question whose answer was "yes" every time — thirteen rows to read past before the scaffold could start. The
+  wizard is now name → project type, and nothing else. Batteries are included; dropping one is still
+  `rask new Shop --no-ops` on the command line, and the summary still prints the full list either way. The
+  browser question went with it, because it is the project type now (above).
+
+- **`rask db` updates `dotnet-ef` when it is behind, instead of letting EF recite the fix.** An older tool than
+  the app's EF Core runtime made every command open with "The Entity Framework tools version '10.0.5' is older
+  than that of the runtime '10.0.12'. Update the tools…" — a chore with a known fix, on a tool this CLI
+  installed in the first place. `EfToolProbe` now reads `dotnet ef --version` and runs
+  `dotnet tool update --global dotnet-ef` against the EF major Rask pins. A failed update is not fatal: the
+  tool that is there still works, so it says so and carries on. The floor mirrors
+  `Directory.Packages.props`, and `EfToolProbeTests` fails if the two ever drift.
+
+- **A scaffolded app no longer warns that it has no `IEntityTypeConfiguration`.** EF Core's event 10632 ("No
+  instantiatable types implementing `IEntityTypeConfiguration` were found while scanning assembly…") is a
+  typo-catcher in an EF app and the *normal state* in a Rask one: deriving from `Aggregate<TId>` is precisely
+  what means there is no DbSet, no configuration class and no registration to write. `RaskDbContext` ignores
+  that warning, so it is true of every Rask context however its options were built, while the scaffold keeps
+  its `ApplyConfigurationsFromAssembly` call so adding a configuration class later still works. An app that
+  wants the check back can `Throw` or `Log` it — a later `ConfigureWarnings` wins.
+
+- **`rask.sh` and `rask.ps1` keep their own .NET SDK current.** An SDK found *outside* `$HOME` is still reported
+  and left exactly as it was — this installer never elevates and never writes outside `$HOME`, so a machine-wide
+  SDK is not its to move. The one in `~/.dotnet` is there because the installer put it there, and re-running now
+  brings it to the latest patch of its channel rather than leaving it on whatever shipped the day it was first
+  installed. `dotnet-install` is idempotent, so an up-to-date SDK costs a version check. `--no-sdk` / `-NoSdk`
+  still opts out of both.
+
+- **`rask doctor` no longer warns that you are not in a project.** The row said "Couldn't find a .csproj at or
+  above …" in warning yellow, as the last line of an install that had just gone perfectly — and the code beside
+  it already said "Not a failure". There is a fourth `DoctorStatus` now, `Skip`, for a check that had nothing to
+  check; it renders dim and, like `Warn`, never decides the exit code.
+
+- **The CLI's logo is one line.** `⚡ rask`, the word rather than a two-row half-block wordmark. Block art is
+  drawn from glyphs whose weights the terminal picks independently, so `█▄▀` and `█ █` landed at different
+  thicknesses in most monospace fonts and the word read as uneven — and it cost two lines plus a blank one
+  every time the tool spoke.
 - **BREAKING (Rask UI):** `UiMultiSelect` is no longer a name a call site types. The multi-value select is reached
   through `UiSelect` — `UiSelect.Bind(() => model.Tags)` or `UiSelect.Values(picked)` — and typing `UiMultiSelect` in
   markup now names the type rather than the chain, which does not compile.

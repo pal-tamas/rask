@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace Rask.Data;
 
@@ -49,6 +50,39 @@ public class RaskDbContext : DbContext
 
         base.OnModelCreating(modelBuilder);
         ModelRegistry.Apply(modelBuilder);
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    ///     <para>
+    ///         Silences EF Core's <c>NoEntityTypeConfigurationsWarning</c> (event 10632): "No
+    ///         instantiatable types implementing <c>IEntityTypeConfiguration</c> were found while scanning
+    ///         assembly '…'".
+    ///     </para>
+    ///     <para>
+    ///         In an EF app that warning is a typo-catcher — you called
+    ///         <c>ApplyConfigurationsFromAssembly</c> and pointed it at the wrong assembly. In a Rask app it
+    ///         is the <b>normal state</b>: the whole point of deriving from <c>Aggregate&lt;TId&gt;</c> is
+    ///         that there is no DbSet, no configuration class and no registration to write, so an app can
+    ///         map its entire model and still own not one <c>IEntityTypeConfiguration</c>. The scaffold
+    ///         keeps the <c>ApplyConfigurationsFromAssembly</c> call — so that adding a configuration class
+    ///         later Just Works — and it therefore warned on the first <c>rask db update</c> of every new
+    ///         project, about a file the user was never told to write.
+    ///     </para>
+    ///     <para>
+    ///         Suppressed here rather than in the template, so it is true of every Rask context however its
+    ///         options were built, and <c>Ignore</c> rather than the app's own
+    ///         <c>ConfigureWarnings</c> so an app that genuinely wants the check back can still
+    ///         <c>Throw</c> or <c>Log</c> it — a later call wins.
+    ///     </para>
+    /// </remarks>
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        ArgumentNullException.ThrowIfNull(optionsBuilder);
+
+        base.OnConfiguring(optionsBuilder);
+        optionsBuilder.ConfigureWarnings(warnings =>
+            warnings.Ignore(CoreEventId.NoEntityTypeConfigurationsWarning));
     }
 
     /// <inheritdoc />

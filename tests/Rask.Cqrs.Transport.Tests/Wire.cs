@@ -32,7 +32,7 @@ namespace Rask.Cqrs.Transport.Tests;
 ///     </para>
 ///     <para>
 ///         <b>What this cannot prove.</b> The wire codecs are generated once per compilation, so both
-///         halves here share one copy — the same arrangement the one-project <c>rask new --wasm</c> build
+///         halves here share one copy — the same arrangement the one-project <c>rask new --template wasm-hosted</c> build
 ///         produces, and a faithful one for a two-project app since the same generator emits both. A codec
 ///         change that alters the encoding on both sides symmetrically stays invisible to this project, as
 ///         it does to a real deployment. What it does prove is that the request one half <em>builds</em> is
