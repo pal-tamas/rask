@@ -9,6 +9,19 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **`rask dev` on macOS stopped asking for your password on every run — and stopped falling back to localhost
+  when it could not.** The port-443 redirect it loads into pf does not survive a reboot, so `rask dev` records
+  the boot it loaded it on and reloads after a new one. It compared that record to `sysctl kern.boottime` as a
+  STRING, and macOS derives the boot time from the wall clock minus the uptime, so every clock adjustment moves
+  its microseconds: `{ sec = 1788161786, usec = 431499 }` one day, `usec = 547268` seventeen days later, with no
+  reboot in between. Every run therefore believed the machine had rebooted and wanted `sudo` to reload a
+  redirect that was still loaded; run without a terminal to ask on — an editor, a script, an agent — it printed
+  "setting up https://appname.test needs permission" and served `https://localhost:5001` instead, which is
+  how `https://appname.test` came to look broken in Safari. Boot times are now compared by their seconds,
+  within five seconds: a real reboot moves them by far more, and clock drift by a fraction of one. An existing
+  `~/.rask/pf-state.json` is read as it is, so a machine that already set the redirect up stops being asked at
+  once.
+
 - **A WebAssembly app's nested build no longer runs on a different SDK than the build that started it.** Every
   package that shells out to build a companion — `Rask.Server` for a `wasm-hosted` app's browser half,
   `Rask.Wasm` for the prerender pass, `Rask.Spa.Hosting` for a WASM client — ran a bare `dotnet build` or

@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Rask.Hosting.Shared;
 
 namespace Rask.Cli.Dev;
@@ -12,7 +13,7 @@ namespace Rask.Cli.Dev;
 ///     Rooted at a directory the caller supplies (<c>~/.rask</c> in production) so tests drive the real
 ///     code against a temporary directory instead of the developer's own machine.
 /// </remarks>
-internal sealed class DevHostStore(string root)
+internal sealed partial class DevHostStore(string root)
 {
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
 
@@ -161,6 +162,60 @@ internal sealed class DevHostStore(string root)
             // boot time on reloads at most once a day rather than on every run.
             ? DateTime.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
             : rawBootTime.Trim();
+
+    /// <summary>
+    ///     How far apart two readings of the boot time may be and still describe the same boot.
+    /// </summary>
+    /// <remarks>
+    ///     Tight on purpose, because the two ways of being wrong are not equal. Too loose, and a genuine
+    ///     reboot inside the window reads as the same boot: the note says the redirect is loaded, pf is empty,
+    ///     and <c>https://appname.test</c> simply does not answer, with nothing saying why. Too tight costs one
+    ///     password prompt, after which the new reading is recorded. Rebooting within five seconds of the
+    ///     previous boot is not something a machine can do, while the drift this tolerates is fractions of a
+    ///     second — 0.116 s over seventeen days on the machine that found this.
+    /// </remarks>
+    internal static readonly TimeSpan BootTimeTolerance = TimeSpan.FromSeconds(5);
+
+    /// <summary>Whether two <see cref="BootId" /> readings describe the same boot.</summary>
+    /// <remarks>
+    ///     <para>
+    ///         NOT string equality, which is what this was, and it asked for a password on every run.
+    ///         <c>sysctl -n kern.boottime</c> prints <c>{ sec = 1788161786, usec = 431499 } Mon Aug 31 …</c>,
+    ///         and macOS derives that from the wall clock minus the uptime, so every clock adjustment moves the
+    ///         <c>usec</c> part. A reading recorded one day never matched the next: <c>rask dev</c> decided
+    ///         the machine had rebooted, wanted <c>sudo</c> to reload a redirect that was still loaded, and —
+    ///         with no terminal to ask on — served localhost instead of the <c>.test</c> name it had set up.
+    ///     </para>
+    ///     <para>
+    ///         So the seconds are compared, within <see cref="BootTimeTolerance" />. A reading without a
+    ///         <c>sec =</c> field (the date fallback above, or a format this does not recognise) falls back to
+    ///         exact equality, and one parseable reading against one unparseable one counts as a reboot:
+    ///         the cost of a wrong "rebooted" is a prompt, the cost of a wrong "same boot" is a dead URL.
+    ///     </para>
+    /// </remarks>
+    public static bool IsSameBoot(string recorded, string current)
+    {
+        var a = BootSeconds(recorded);
+        var b = BootSeconds(current);
+
+        if (a is null && b is null)
+        {
+            return string.Equals(recorded, current, StringComparison.Ordinal);
+        }
+
+        return a is { } x && b is { } y && Math.Abs(x - y) <= BootTimeTolerance.TotalSeconds;
+    }
+
+    private static long? BootSeconds(string bootId)
+    {
+        var match = BootSecondsPattern.Match(bootId);
+        return match.Success && long.TryParse(match.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var seconds)
+            ? seconds
+            : null;
+    }
+
+    [GeneratedRegex(@"\bsec\s*=\s*(\d+)")]
+    private static partial Regex BootSecondsPattern { get; }
 
     private sealed record PfState(string? Rules, string? BootId);
 }
