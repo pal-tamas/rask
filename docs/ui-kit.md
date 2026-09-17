@@ -441,7 +441,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 
 | | |
 | --- | --- |
-| **Actions** | `UiButton` `UiDropdown` `UiContextMenu` `UiPopover` `UiModal` `UiSwap` `UiThemeController` `UiFab` |
+| **Actions** | `UiButton` `UiDropdown` `UiContextMenu` `UiCommand` `UiPopover` `UiModal` `UiSwap` `UiThemeController` `UiFab` |
 | **Data display** | `UiAccordion` `UiAccordionSection` `UiCollapse` `UiAvatar` `UiAura` `UiBadge` `UiCard` `UiCarousel` `UiChatBubble` `UiCountdown` `UiDiff` `UiEmpty` `UiHover3d` `UiHoverGallery` `UiKbd` `UiHighlight` `UiList` `UiListRow` `UiStat` `UiStatusDot` `UiTable` `UiDataGrid` `UiColumn` `UiTree` `UiTextRotate` `UiTimeline` |
 | **Navigation** | `UiBreadcrumbs` `UiDock` `UiLink` `UiMegamenu` `UiMegamenuPanel` `UiMenu` `UiMenuItem` `UiNavbar` `UiPagination` `UiSteps` `UiStep` `UiTabs` `UiTab` |
 | **Feedback** | `UiAlert` `UiLoading` `UiProgress` `UiRadialProgress` `UiSkeleton` `UiToast` `UiTooltip` |
@@ -687,6 +687,32 @@ in place of the browser's menu, straight away and on either host — a round tri
 right-click — and pulls it back inside the viewport near an edge. The ContextMenu key and Shift+F10 open it at the
 focused element, which is why the target above is focusable. Nothing in a context menu should be the ONLY way to
 do something: iOS Safari never fires the event, so put the same actions somewhere visible too.
+
+**`UiCommand` is a command palette.** A search field that opens a dialog of commands — from a click, or from
+anywhere on the page with its `Shortcut`:
+
+```csharp
+UiCommand.Label("Search commands").Shortcut("mod+k")[
+    UiMenuGroup.Heading("Invoices")[
+        UiMenuItem.Text("New invoice").Icon(UiIconName.Plus).OnClick(NewInvoice)
+    ],
+    UiMenuItem.Text("Settings").Href(Routes.Settings())
+]
+```
+
+The commands are the same `UiMenuItem`s a dropdown takes. The dialog is the platform's modal `<dialog>`, opened by
+the invoker command as `UiModal` is. Inside, the search box is a `combobox` over a `listbox` whose options are the
+commands: typing narrows them in C# (case- and accent-insensitive, and a command that does not match is not
+rendered, so the keyboard cannot land on it), ArrowUp and ArrowDown move the highlight while focus stays in the box,
+and Enter presses the highlighted command — its handler runs or its link is followed — and closes the palette.
+
+Three generic runtime hooks do what C# cannot. `data-rask-shortcut="mod+k"` CLICKS its element when the combination
+is pressed (`mod` is ⌘ on a Mac and Ctrl elsewhere; `ctrl`, `alt`, `shift`, `meta`; a shortcut with no modifier
+does not fire while the reader is typing), so a shortcut does exactly what a click on its element does.
+`data-rask-press-active` makes Enter click the element a combobox's `aria-activedescendant` names, because following
+a link is only reachable by clicking it. `data-rask-close-on-pick` closes a dialog after a click on an option in it
+has reached its handler. The field shows the shortcut in both platforms' words and the runtime marks a Mac
+(`data-rask-mac` on `<html>`), so the stylesheet shows ⌘K there and Ctrl K everywhere else.
 
 **`UiPopover` is a panel, not a menu.** `UiDropdown` IS a menu — its children are rows you pick from, it says
 `role="menu"` and it walks a keyboard cursor over them. A filter panel, a colour picker or a bubble of help is

@@ -56,6 +56,12 @@ public sealed partial class UiMenuItem : Component
     protected override Component? Render()
     {
         var level = Context.Get<UiMenuLevel>();
+        if (level?.Scope.Hides(Text) == true)
+        {
+            // Not rendered and not registered, so the keyboard cursor can never land on a command out of sight.
+            return null;
+        }
+
         var ordinal = level?.Scope.Register(level.Parent, Text, Disabled == true, isSub: false) ?? -1;
         var content = Row(Icon, Text, Kbd, IconTrailing, indicator: null);
 
@@ -103,6 +109,13 @@ public sealed partial class UiMenuItem : Component
         if (Disabled == true)
         {
             aria["disabled"] = "true";
+        }
+
+        if (level.Scope.AsOptions)
+        {
+            // An option says whether it is the highlighted one; focus stays in the palette's search box.
+            aria["selected"] = ordinal == level.Scope.Active ? "true" : "false";
+            return UiMenuItemMarkup.AsMenuItem(element, level, ordinal, "option", aria, KeepOpen == true, isChecked: false);
         }
 
         return UiMenuItemMarkup.AsMenuItem(element, level, ordinal, "menuitem", aria, KeepOpen == true, isChecked: false);
