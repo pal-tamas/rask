@@ -1,6 +1,17 @@
 <Project>
 
   <!--
+    `$(_RaskSdkDotnet) build` / `publish` — this build's own SDK, never a bare `dotnet` that re-resolves one
+    from the app's global.json and then loads the parent SDK's inherited MSBuild paths into the wrong
+    runtime. The reasoning is in Rask.Server's Rask.Server.Client.targets; the definition is identical in
+    every package that shells out, and NestedDotnetContractTests holds it so.
+  -->
+  <PropertyGroup>
+    <_RaskSdkDotnet Condition=" '$(_RaskSdkDotnet)' == '' AND '$(DOTNET_HOST_PATH)' != '' AND Exists('$(MSBuildBinPath)/dotnet.dll') ">&quot;$(DOTNET_HOST_PATH)&quot; &quot;$(MSBuildBinPath)/dotnet.dll&quot;</_RaskSdkDotnet>
+    <_RaskSdkDotnet Condition=" '$(_RaskSdkDotnet)' == '' ">dotnet</_RaskSdkDotnet>
+  </PropertyGroup>
+
+  <!--
     Rask.Spa.Hosting build integration: run the front end's own toolchain, then hand the result to the
     ASP.NET host.
 
@@ -444,7 +455,7 @@
       hid a bundle that shipped without /_rask/a/.
     -->
     <Exec Condition="'$(_RaskSpaDoWasmPublish)' == 'true'"
-          Command="dotnet publish &quot;$(_RaskSpaWasmProject)&quot; -c $(Configuration) --nologo -v:minimal -nodeReuse:false"/>
+          Command="$(_RaskSdkDotnet) publish &quot;$(_RaskSpaWasmProject)&quot; -c $(Configuration) --nologo -v:minimal -nodeReuse:false"/>
   </Target>
 
   <Target Name="_RaskSpaSetWasmClientMetadata" BeforeTargets="GetAssemblyAttributes" DependsOnTargets="_RaskSpaComputeWasmClient">

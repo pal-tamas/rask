@@ -1,6 +1,17 @@
 <Project>
 
   <!--
+    `$(_RaskSdkDotnet) build` / `publish` — this build's own SDK, never a bare `dotnet` that re-resolves one
+    from the app's global.json and then loads the parent SDK's inherited MSBuild paths into the wrong
+    runtime. The reasoning is in Rask.Server's Rask.Server.Client.targets; the definition is identical in
+    every package that shells out, and NestedDotnetContractTests holds it so.
+  -->
+  <PropertyGroup>
+    <_RaskSdkDotnet Condition=" '$(_RaskSdkDotnet)' == '' AND '$(DOTNET_HOST_PATH)' != '' AND Exists('$(MSBuildBinPath)/dotnet.dll') ">&quot;$(DOTNET_HOST_PATH)&quot; &quot;$(MSBuildBinPath)/dotnet.dll&quot;</_RaskSdkDotnet>
+    <_RaskSdkDotnet Condition=" '$(_RaskSdkDotnet)' == '' ">dotnet</_RaskSdkDotnet>
+  </PropertyGroup>
+
+  <!--
     Build-time prerendering for a browser-WebAssembly app.
 
     Such an app has no server, so the first thing anything receives is the boot shell: a spinner, and
@@ -280,7 +291,7 @@
       started it. nodeReuse:false because a reused node holds the previous build's assemblies loaded,
       and this is a nested build of a project that did not exist when the outer one began.
     -->
-    <Exec Command="dotnet build &quot;$(RaskPrerenderCompanionProject)&quot; -c $(Configuration) -o &quot;$(RaskPrerenderCompanionOutput)&quot; --nologo -v:minimal -nodeReuse:false"
+    <Exec Command="$(_RaskSdkDotnet) build &quot;$(RaskPrerenderCompanionProject)&quot; -c $(Configuration) -o &quot;$(RaskPrerenderCompanionOutput)&quot; --nologo -v:minimal -nodeReuse:false"
           WorkingDirectory="$(MSBuildProjectDirectory)"/>
 
     <!--

@@ -59,6 +59,38 @@
   </PropertyGroup>
 
   <!--
+    `$(_RaskSdkDotnet) build` / `publish`, never `dotnet build` / `publish`, for every nested SDK command.
+
+    It starts THIS build's own SDK (`"$(DOTNET_HOST_PATH)" "$(MSBuildBinPath)/dotnet.dll"`) instead of
+    letting a bare `dotnet` pick one again. A bare `dotnet` resolves the SDK from global.json in the
+    directory it runs in — and it runs in the APP's directory — while the build that launched it resolved
+    its SDK from wherever IT was started. Every scaffold now writes a global.json pinning its SDK band, so
+    `dotnet build path/to/App.csproj` from anywhere but the app's own folder (a solution root, an IDE, CI,
+    this repo's own template gate) runs the outer build on the newest SDK installed and the nested one on
+    the pinned band.
+
+    That is not merely two compilers. The child inherits the parent's MSBuildSDKsPath and
+    MSBuildExtensionsPath, which point into the PARENT's SDK, so the child's MSBuild loads another SDK's
+    targets into its own runtime and dies: "System.Runtime, Version=11.0.0.0" cannot be loaded, or, with
+    MSBuild server on, MSB4216 "could not create or connect to a task host" naming the other SDK's MSBuild.
+    Clearing those variables is not an option: Exec cannot unset a variable, and an empty value is read as
+    a path, after which no SDK resolves at all. Running the parent's own dotnet.dll makes the inherited
+    variables true instead of fighting them.
+
+    `dotnet` alone only where there is no .NET host to name — Visual Studio's MSBuild, whose bin path has
+    no dotnet.dll — which is the behaviour that was there before.
+
+    Defined identically, and first-definition-wins, in each package that shells out: Rask.Server,
+    Rask.Wasm and Rask.Spa.Hosting. One app can import two of them (a wasm-hosted app references both
+    Rask.Server and Rask.Spa.Hosting). NestedDotnetContractTests fails if the definitions drift apart or
+    if a packed .targets file runs a bare `dotnet build` or `dotnet publish` again.
+  -->
+  <PropertyGroup>
+    <_RaskSdkDotnet Condition=" '$(_RaskSdkDotnet)' == '' AND '$(DOTNET_HOST_PATH)' != '' AND Exists('$(MSBuildBinPath)/dotnet.dll') ">&quot;$(DOTNET_HOST_PATH)&quot; &quot;$(MSBuildBinPath)/dotnet.dll&quot;</_RaskSdkDotnet>
+    <_RaskSdkDotnet Condition=" '$(_RaskSdkDotnet)' == '' ">dotnet</_RaskSdkDotnet>
+  </PropertyGroup>
+
+  <!--
     The server half leaves Client/ alone. The scoped CSS/TypeScript globs in Rask.Core.targets read
     RaskScopedSourceExclude; Compile and Content are removed here. EmitCompilerGeneratedFiles is what puts
     the typed API client the server's generator writes on disk, for the companion to compile (below).
@@ -313,7 +345,7 @@
 
     <Message Importance="high" Text="Rask: publishing the browser app (this links a WebAssembly runtime and takes a while)"/>
 
-    <Exec Command="dotnet publish &quot;$(RaskClientCompanionProject)&quot; -c $(Configuration) -o &quot;$(RaskClientCompanionOutput)&quot; --nologo -v:minimal -nodeReuse:false"
+    <Exec Command="$(_RaskSdkDotnet) publish &quot;$(RaskClientCompanionProject)&quot; -c $(Configuration) -o &quot;$(RaskClientCompanionOutput)&quot; --nologo -v:minimal -nodeReuse:false"
           WorkingDirectory="$(MSBuildProjectDirectory)"/>
   </Target>
 
@@ -349,7 +381,7 @@
           DependsOnTargets="RaskGenerateClientCompanion"
           AfterTargets="Build">
 
-    <Exec Command="dotnet build &quot;$(RaskClientCompanionProject)&quot; -c $(Configuration) --nologo -v:minimal -nodeReuse:false"
+    <Exec Command="$(_RaskSdkDotnet) build &quot;$(RaskClientCompanionProject)&quot; -c $(Configuration) --nologo -v:minimal -nodeReuse:false"
           WorkingDirectory="$(MSBuildProjectDirectory)"/>
   </Target>
 

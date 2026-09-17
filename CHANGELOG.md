@@ -9,6 +9,20 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A WebAssembly app's nested build no longer runs on a different SDK than the build that started it.** Every
+  package that shells out to build a companion — `Rask.Server` for a `wasm-hosted` app's browser half,
+  `Rask.Wasm` for the prerender pass, `Rask.Spa.Hosting` for a WASM client — ran a bare `dotnet build` or
+  `dotnet publish`. That re-resolves the SDK from the `global.json` in the app's folder, which every scaffold
+  now writes, while the outer build resolved its SDK from wherever it was started. So
+  `dotnet build path/to/App.csproj` from a solution root, an IDE or CI built the host on the newest SDK
+  installed and the companion on the pinned band — and the child, having inherited the parent's
+  `MSBuildSDKsPath`, loaded the other SDK's targets into its own runtime and failed with MSB4216 ("could not
+  create or connect to a task host"). All four sites now run `$(_RaskSdkDotnet)`: this build's own
+  `dotnet.dll` through `DOTNET_HOST_PATH`, falling back to `dotnet` only under Visual Studio's MSBuild.
+  Clearing the inherited variables was not an option — `Exec` cannot unset one, and an empty value is read as
+  a path, after which no SDK resolves at all. `NestedDotnetContractTests` fails if a packed `.targets` file
+  runs a bare SDK command again or the definitions drift apart.
+
 - **`RaskVersion.Current` reported `1.0.0` in every app** (#1122). It reads the informational version off the assembly that
   declares it — `Rask.Core` — and Core is `IsPackable=false`, so the `Condition=" '$(IsPackable)' != 'false' "` on
   MinVer's `PackageReference` meant nothing ever stamped it and the SDK's `1.0.0` fallback stood. Every reader was
