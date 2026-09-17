@@ -444,6 +444,75 @@ public sealed class DevHostTests
         Assert.Equal("{ sec = 1 }", DevHostStore.BootId("  { sec = 1 }  "));
     }
 
+    // The two readings of `sysctl -n kern.boottime` that found this, seventeen days apart on one machine
+    // that had not rebooted. macOS derives the boot time from the wall clock minus the uptime, so the
+    // microseconds move with every clock adjustment. String equality called this a reboot and asked for
+    // sudo on every run of `rask dev`.
+    private const string RecordedBoot = "{ sec = 1788161786, usec = 431499 } Mon Aug 31 09:36:26 2026";
+    private const string SameBootLater = "{ sec = 1788161786, usec = 547268 } Mon Aug 31 09:36:26 2026";
+
+    [Fact]
+    public void A_boot_time_whose_microseconds_drifted_is_the_same_boot() =>
+        Assert.True(DevHostStore.IsSameBoot(RecordedBoot, SameBootLater));
+
+    [Theory]
+    // A clock slew across a second boundary is still the same boot…
+    [InlineData("{ sec = 1788161786, usec = 999000 }", "{ sec = 1788161787, usec = 1000 }", true)]
+    // …and a real reboot, even an immediate one, is well outside the tolerance.
+    [InlineData("{ sec = 1788161786, usec = 0 }", "{ sec = 1788161846, usec = 0 }", false)]
+    [InlineData("{ sec = 1788161786, usec = 0 }", "{ sec = 1789000000, usec = 0 }", false)]
+    public void Boot_times_are_compared_by_seconds_within_a_tolerance(string recorded, string current, bool same) =>
+        Assert.Equal(same, DevHostStore.IsSameBoot(recorded, current));
+
+    [Theory]
+    // The daily fallback for a machine whose boot time cannot be read: exact equality, as before.
+    [InlineData("2026-09-17", "2026-09-17", true)]
+    [InlineData("2026-09-17", "2026-09-18", false)]
+    // One readable reading against one unreadable one is a reboot. A wrong "rebooted" costs a prompt; a
+    // wrong "same boot" leaves the .test name dead with nothing saying why.
+    [InlineData("{ sec = 1788161786, usec = 0 }", "2026-09-17", false)]
+    public void An_unparseable_boot_id_falls_back_to_exact_equality(string recorded, string current, bool same) =>
+        Assert.Equal(same, DevHostStore.IsSameBoot(recorded, current));
+
+    [Fact]
+    public async Task Macos_does_not_ask_to_reload_a_redirect_that_is_still_loaded()
+    {
+        // Driven through the platform rather than the helper alone, because the bug was in the calling
+        // site: the platform compared the strings itself.
+        using var directory = new TemporaryDirectory();
+        var store = new DevHostStore(directory.Path);
+        var process = new FakeProcessRunner
+        {
+            CaptureByExecutable = (file, _) => file == "/usr/sbin/sysctl"
+                ? new ProcessResult(0, SameBootLater + "\n", "")
+                : new ProcessResult(1, "", "unexpected"),
+        };
+        var mac = new MacDevHostPlatform(process, new StringConsole(), store);
+
+        store.WritePfState(DevHostFiles.PfRules(mac.HttpsPort)!, RecordedBoot);
+
+        Assert.Null(await mac.RequiredPortSetupAsync(CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Macos_asks_to_reload_the_redirect_after_a_reboot()
+    {
+        using var directory = new TemporaryDirectory();
+        var store = new DevHostStore(directory.Path);
+        var process = new FakeProcessRunner
+        {
+            CaptureByExecutable = (file, _) => file == "/usr/sbin/sysctl"
+                ? new ProcessResult(0, "{ sec = 1789000000, usec = 1 } Wed Sep 16 08:00:00 2026\n", "")
+                : new ProcessResult(1, "", "unexpected"),
+        };
+        var mac = new MacDevHostPlatform(process, new StringConsole(), store);
+        var rules = DevHostFiles.PfRules(mac.HttpsPort)!;
+
+        store.WritePfState(rules, RecordedBoot);
+
+        Assert.Equal(rules, await mac.RequiredPortSetupAsync(CancellationToken.None));
+    }
+
     // ---- the plan ----
 
     [Fact]

@@ -78,7 +78,9 @@ internal sealed class MacDevHostPlatform(IProcessRunner process, IConsole consol
             return rules;
         }
 
-        return string.Equals(state.BootId, await BootIdAsync(cancellationToken).ConfigureAwait(false), StringComparison.Ordinal)
+        // Same boot within a tolerance, not the same string: the boot time's microseconds move with every
+        // clock adjustment, and exact equality asked for sudo on every run. See DevHostStore.IsSameBoot.
+        return DevHostStore.IsSameBoot(state.BootId, await BootIdAsync(cancellationToken).ConfigureAwait(false))
             ? null
             : rules;
     }
