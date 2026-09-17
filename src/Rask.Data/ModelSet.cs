@@ -1,15 +1,10 @@
-using System.Linq.Expressions;
-using System.Reflection;
-using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Rask.Data;
 
 /// <summary>
-///     Puts the read half of <see cref="DbSet{TEntity}" /> on the model type itself, so
-///     <c>Product.Where(…)</c>, <c>Product.FindAsync(…)</c> and <c>Product.AsQueryable()</c> need no
-///     <see cref="DbContext" /> in scope to reach them through.
+///     Puts the writes on the model type itself, so <c>Product.CreateAsync(entity)</c> needs no
+///     <see cref="DbContext" /> in scope to reach it through.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -18,13 +13,39 @@ namespace Rask.Data;
 ///         today has them.
 ///     </para>
 ///     <para>
-///         <b>Every read is untracked, and every read opens and disposes its own context.</b> A Rask page
-///         lives as long as the browser keeps its socket open, and a <see cref="DbContext" /> is neither
-///         thread-safe nor meant to accumulate a session's worth of entities — so nothing here holds one
-///         between calls, and nothing a read returns is being watched for changes.
+///         <b>An aggregate is not a query surface.</b> <c>Product.Where(…)</c>, <c>Product.All</c>,
+///         <c>Product.FindAsync(id)</c> and the terminals that went with them are gone: querying works
+///         through the generated read face, <c>Product.Read</c>, which is made of primitives and carries the
+///         navigations an aggregate is not allowed to have. An aggregate holds another's id and nothing more,
+///         so the two sides cannot be the same surface — a query that reached across a border on the write
+///         side would be the border failing.
 ///     </para>
 ///     <para>
-///         <b>Writes are on the type too.</b> <c>Product.CreateAsync(entity)</c> is here; the source generator
+///         The three doors that replace it, each for a different need:
+///     </para>
+///     <list type="bullet">
+///         <item>
+///             <description>
+///                 <b>Show one, or many, or joined</b> — <c>Product.Read.Where(p =&gt; p.Active)</c>. Untracked,
+///                 opens its own context, and by-id is just the narrowest case:
+///                 <c>Product.Read.Where(p =&gt; p.Id == id).FirstOrDefaultAsync()</c>.
+///             </description>
+///         </item>
+///         <item>
+///             <description>
+///                 <b>Fill a form</b> — <c>Product.ModelAsync(id)</c>, which is the edit shape the generated
+///                 model declares, nested value objects and children included.
+///             </description>
+///         </item>
+///         <item>
+///             <description>
+///                 <b>Load it to change it</b> — <c>Product.UpdateAsync(id, p =&gt; p.Rename(name))</c>, or a
+///                 context when the decision needs the row in hand first.
+///             </description>
+///         </item>
+///     </list>
+///     <para>
+///         <b>Writes stay on the type.</b> <c>Product.CreateAsync(entity)</c> is here; the source generator
 ///         adds the form-model writes beside the entity — <c>Product.CreateAsync(ProductModel)</c>,
 ///         <c>Product.UpdateAsync(id, ProductModel)</c>, <c>Product.DeleteAsync(id)</c>. Each goes through the
 ///         change tracker, so the interceptors always run, and each takes an optional context to join. Plain
@@ -32,201 +53,14 @@ namespace Rask.Data;
 ///     </para>
 ///     <para>
 ///         A member declared on the entity itself always wins over one of these, so an entity with its own
-///         static <c>Find</c> keeps it.
+///         static <c>CreateAsync</c> keeps it.
 ///     </para>
 /// </remarks>
 public static class ModelSet
 {
-    private static readonly FieldInfo BoxedValue = typeof(StrongBox<object?>).GetField(nameof(StrongBox<object?>.Value))!;
-
     extension<TEntity>(TEntity)
         where TEntity : class, IAggregate
     {
-        // ---- The set itself -------------------------------------------------------------------
-
-        /// <summary>
-        ///     The whole set, as a query — the starting point for anything the operators below do not open
-        ///     directly.
-        /// </summary>
-        /// <example>
-        ///     <code>
-        /// var deleted = await Product.All
-        ///     .IgnoreQueryFilters()
-        ///     .Where(p =&gt; p.DeletedAt != null)
-        ///     .ToListAsync();
-        ///     </code>
-        /// </example>
-        public static ModelQuery<TEntity> All => new();
-
-        /// <summary>
-        ///     The whole set as a standard <see cref="IQueryable{T}" /> that holds no context — the shape a
-        ///     component that composes its own LINQ, such as a data grid, takes.
-        /// </summary>
-        /// <remarks>
-        ///     <para>
-        ///         <c>UiDataGrid.Data(Product.AsQueryable())</c> sorts with <c>ORDER BY</c> and pages with
-        ///         <c>Skip</c>/<c>Take</c> in the database. Each time the queryable is executed — a
-        ///         <c>Count()</c>, a <c>ToList()</c>, an <c>await ToListAsync()</c> — a context is opened
-        ///         for that execution and disposed after it, so the queryable is safe to keep in a field of
-        ///         a page for as long as the page lives.
-        ///     </para>
-        ///     <para>
-        ///         EF Core's own operators (<c>Include</c>, <c>IgnoreQueryFilters</c>, <c>AsSplitQuery</c>)
-        ///         only apply to EF's own query provider, so put them on the model query first:
-        ///         <c>Product.Include(p =&gt; p.Reviews).AsQueryable()</c>.
-        ///     </para>
-        /// </remarks>
-        public static IQueryable<TEntity> AsQueryable() => new ModelQuery<TEntity>().AsQueryable();
-
-        // ---- Query entry points: each runs against its own context ------------------------------
-
-        /// <summary>Filters the set.</summary>
-        public static ModelQuery<TEntity> Where(Expression<Func<TEntity, bool>> predicate) =>
-            new ModelQuery<TEntity>().Where(predicate);
-
-        /// <summary>
-        ///     The rows whose indexed text contains every word of <paramref name="text" />, best match first. The
-        ///     entity must declare <c>HasFullTextSearch</c>.
-        /// </summary>
-        /// <example>
-        ///     <code>
-        /// var hits = await Post.Search(query).Where(p =&gt; p.Published).Take(20).ToListAsync();
-        ///     </code>
-        /// </example>
-        public static ModelQuery<TEntity> Search(string? text) =>
-            new ModelQuery<TEntity>().Search(text);
-
-        /// <summary>Orders the set ascending.</summary>
-        public static ModelQuery<TEntity> OrderBy<TKey>(Expression<Func<TEntity, TKey>> keySelector) =>
-            new ModelQuery<TEntity>().OrderBy(keySelector);
-
-        /// <summary>Orders the set descending.</summary>
-        public static ModelQuery<TEntity> OrderByDescending<TKey>(Expression<Func<TEntity, TKey>> keySelector) =>
-            new ModelQuery<TEntity>().OrderByDescending(keySelector);
-
-        /// <summary>Eager-loads a related navigation.</summary>
-        public static ModelQuery<TEntity> Include<TProperty>(Expression<Func<TEntity, TProperty>> navigation) =>
-            new ModelQuery<TEntity>().Include(navigation);
-
-        /// <summary>Eager-loads a related navigation named by a path.</summary>
-        public static ModelQuery<TEntity> Include(string navigationPropertyPath) =>
-            new ModelQuery<TEntity>().Include(navigationPropertyPath);
-
-        /// <summary>Projects the set, reading only the columns the projection names.</summary>
-        public static Projection<TEntity, TResult> Select<TResult>(Expression<Func<TEntity, TResult>> selector) =>
-            new ModelQuery<TEntity>().Select(selector);
-
-        /// <summary>Takes the first <paramref name="count" /> rows of the unordered set.</summary>
-        public static ModelQuery<TEntity> Take(int count) => new ModelQuery<TEntity>().Take(count);
-
-        /// <summary>Skips <paramref name="count" /> rows of the unordered set.</summary>
-        public static ModelQuery<TEntity> Skip(int count) => new ModelQuery<TEntity>().Skip(count);
-
-        /// <summary>
-        ///     Drops the model's global query filters, including the one that hides soft-deleted rows.
-        /// </summary>
-        public static ModelQuery<TEntity> IgnoreQueryFilters() => new ModelQuery<TEntity>().IgnoreQueryFilters();
-
-        /// <summary>Splits the query's joins into separate round trips.</summary>
-        public static ModelQuery<TEntity> AsSplitQuery() => new ModelQuery<TEntity>().AsSplitQuery();
-
-        // ---- Terminal reads over the whole set --------------------------------------------------
-
-        /// <summary>Finds the row with this primary key, or <c>null</c>.</summary>
-        /// <remarks>
-        ///     <para>
-        ///         An untracked query by key, like every other read here — the row that comes back is a
-        ///         plain object nothing is watching. Global query filters apply, so a soft-deleted row is
-        ///         not found.
-        ///     </para>
-        ///     <para>
-        ///         The key is typed <see cref="object" /> for the same reason EF Core types it that way: an
-        ///         entity's key may be composite, and the key type is not inferable from the entity type at
-        ///         a static call site.
-        ///     </para>
-        /// </remarks>
-        /// <exception cref="ArgumentException">The key is null or not of the key property's type.</exception>
-        public static Task<TEntity?> FindAsync(object key, CancellationToken cancellationToken = default)
-        {
-            ArgumentNullException.ThrowIfNull(key);
-            return FindByKeyAsync<TEntity>([key], cancellationToken);
-        }
-
-        /// <summary>Finds the row with this composite key, or <c>null</c>.</summary>
-        /// <exception cref="ArgumentException">
-        ///     The number of values does not match the key, or one is null or of the wrong type.
-        /// </exception>
-        public static Task<TEntity?> FindAsync(object?[] keyValues, CancellationToken cancellationToken = default)
-        {
-            ArgumentNullException.ThrowIfNull(keyValues);
-            return FindByKeyAsync<TEntity>(keyValues, cancellationToken);
-        }
-
-        /// <summary>Reads the whole set.</summary>
-        public static Task<List<TEntity>> ToListAsync(CancellationToken cancellationToken = default) =>
-            new ModelQuery<TEntity>().ToListAsync(cancellationToken);
-
-        /// <summary>Reads the whole set as an array.</summary>
-        public static Task<TEntity[]> ToArrayAsync(CancellationToken cancellationToken = default) =>
-            new ModelQuery<TEntity>().ToArrayAsync(cancellationToken);
-
-        /// <summary>The first row matching <paramref name="predicate" />, or <c>null</c>.</summary>
-        public static Task<TEntity?> FirstOrDefaultAsync(
-            Expression<Func<TEntity, bool>> predicate,
-            CancellationToken cancellationToken = default) =>
-            new ModelQuery<TEntity>().Where(predicate).FirstOrDefaultAsync(cancellationToken);
-
-        /// <summary>The only row matching <paramref name="predicate" />, or <c>null</c>.</summary>
-        /// <exception cref="InvalidOperationException">More than one row matched.</exception>
-        public static Task<TEntity?> SingleOrDefaultAsync(
-            Expression<Func<TEntity, bool>> predicate,
-            CancellationToken cancellationToken = default) =>
-            new ModelQuery<TEntity>().Where(predicate).SingleOrDefaultAsync(cancellationToken);
-
-        /// <summary>How many rows the set has.</summary>
-        public static Task<int> CountAsync(CancellationToken cancellationToken = default) =>
-            new ModelQuery<TEntity>().CountAsync(cancellationToken);
-
-        /// <summary>How many rows match <paramref name="predicate" />.</summary>
-        public static Task<int> CountAsync(
-            Expression<Func<TEntity, bool>> predicate,
-            CancellationToken cancellationToken = default) =>
-            new ModelQuery<TEntity>().Where(predicate).CountAsync(cancellationToken);
-
-        /// <summary>How many rows the set has, as a <see cref="long" />.</summary>
-        public static Task<long> LongCountAsync(CancellationToken cancellationToken = default) =>
-            new ModelQuery<TEntity>().LongCountAsync(cancellationToken);
-
-        /// <summary>Whether the set has any row at all.</summary>
-        public static Task<bool> AnyAsync(CancellationToken cancellationToken = default) =>
-            new ModelQuery<TEntity>().AnyAsync(cancellationToken);
-
-        /// <summary>Whether any row matches <paramref name="predicate" />.</summary>
-        public static Task<bool> AnyAsync(
-            Expression<Func<TEntity, bool>> predicate,
-            CancellationToken cancellationToken = default) =>
-            new ModelQuery<TEntity>().Where(predicate).AnyAsync(cancellationToken);
-
-        /// <summary>Streams the whole set, a row at a time.</summary>
-        public static IAsyncEnumerable<TEntity> AsAsyncEnumerable(CancellationToken cancellationToken = default) =>
-            new ModelQuery<TEntity>().AsAsyncEnumerable(cancellationToken);
-
-        /// <summary>
-        ///     Runs <paramref name="query" /> against the set's live <see cref="IQueryable{T}" />, for the
-        ///     shapes this surface does not wrap — a group-by, a join, an aggregate.
-        /// </summary>
-        /// <remarks>
-        ///     The context is opened for the call and disposed after it. Do not let the
-        ///     <see cref="IQueryable{T}" /> escape the callback — reach for <c>AsQueryable()</c> when the
-        ///     query has to outlive one call.
-        /// </remarks>
-        public static Task<TResult> QueryAsync<TResult>(
-            Func<IQueryable<TEntity>, CancellationToken, Task<TResult>> query,
-            CancellationToken cancellationToken = default) =>
-            new ModelQuery<TEntity>().QueryAsync(query, cancellationToken);
-
-        // ---- Writes -------------------------------------------------------------------------------
-
         /// <summary>Inserts an entity the caller built — through its own factory and methods — and saves.</summary>
         /// <remarks>
         ///     The domain-operation form of create: the entity's constructor keeps its invariants, and Rask only
@@ -245,99 +79,5 @@ public static class ModelSet
             DbContext? db = null,
             CancellationToken cancellationToken = default) =>
             GeneratedModelWrites.CreateAsync(entity, db, cancellationToken);
-    }
-
-    private static async Task<TEntity?> FindByKeyAsync<TEntity>(object?[] keyValues, CancellationToken cancellationToken)
-        where TEntity : class, IAggregate
-    {
-        await using var context = Db.CreateContext();
-
-        var primaryKey = context.Model.FindEntityType(typeof(TEntity))?.FindPrimaryKey()
-                         ?? throw new InvalidOperationException(
-                             $"'{typeof(TEntity).Name}' is not mapped with a primary key by the configured " +
-                             "context, so there is nothing to find it by.");
-
-        if (primaryKey.Properties.Count != keyValues.Length)
-        {
-            throw new ArgumentException(
-                $"'{typeof(TEntity).Name}' has a key of {primaryKey.Properties.Count} value(s), but " +
-                $"{keyValues.Length} were given.",
-                nameof(keyValues));
-        }
-
-        if (KeyPredicate<TEntity>(primaryKey, keyValues) is { } predicate)
-        {
-            // Loading ONE root by its key loads the aggregate whole — its children come with it. A query
-            // (Product.Where(…)) deliberately does not: listing a thousand roots should not drag in every
-            // line each of them holds. See docs/data.md.
-            return await context.Set<TEntity>()
-                .AsNoTracking()
-                .WithChildren(context)
-                .FirstOrDefaultAsync(predicate, cancellationToken)
-                .ConfigureAwait(false);
-        }
-
-        // A key part with no CLR property (a shadow key) or a type with no equality operator cannot be
-        // expressed as a predicate here; EF Core's own Find can. The context is disposed on return, so the
-        // row it tracks is released with it.
-        var found = await context.Set<TEntity>().FindAsync(keyValues, cancellationToken).ConfigureAwait(false);
-
-        if (found is not null)
-        {
-            await AggregateChildren
-                .LoadChildrenAsync(context, found, cancellationToken: cancellationToken)
-                .ConfigureAwait(false);
-        }
-
-        return found;
-    }
-
-    // row => row.K1 == @k1 && row.K2 == @k2. The values are read through a StrongBox rather than inlined
-    // as constants, so EF Core sees parameters: one cached query plan for every key, not one per value.
-    private static Expression<Func<TEntity, bool>>? KeyPredicate<TEntity>(IKey primaryKey, object?[] keyValues)
-    {
-        var row = Expression.Parameter(typeof(TEntity), "row");
-        Expression? body = null;
-
-        for (var i = 0; i < keyValues.Length; i++)
-        {
-            var property = primaryKey.Properties[i];
-            var value = keyValues[i]
-                        ?? throw new ArgumentException(
-                            $"The key value at position {i} is null, and '{typeof(TEntity).Name}.{property.Name}' " +
-                            "is part of the primary key.",
-                            nameof(keyValues));
-
-            if (!property.ClrType.IsInstanceOfType(value))
-            {
-                throw new ArgumentException(
-                    $"The key value at position {i} is a {value.GetType().Name}, but " +
-                    $"'{typeof(TEntity).Name}.{property.Name}' is a {property.ClrType.Name}.",
-                    nameof(keyValues));
-            }
-
-            if (property.PropertyInfo is not { } clrProperty)
-            {
-                return null;
-            }
-
-            var parameter = Expression.Convert(
-                Expression.Field(Expression.Constant(new StrongBox<object?>(value)), BoxedValue),
-                property.ClrType);
-
-            BinaryExpression equal;
-            try
-            {
-                equal = Expression.Equal(Expression.Property(row, clrProperty), parameter);
-            }
-            catch (InvalidOperationException)
-            {
-                return null;
-            }
-
-            body = body is null ? equal : Expression.AndAlso(body, equal);
-        }
-
-        return body is null ? null : Expression.Lambda<Func<TEntity, bool>>(body, row);
     }
 }

@@ -60,7 +60,7 @@ public sealed class FrameworkColumnTests : IDisposable
         memo.Edit("twice");
         await database.Context.SaveChangesAsync();
 
-        var stored = (await Memo.FindAsync(memo.Id))!;
+        var stored = (await database.LoadAsync<Memo>(memo.Id))!;
         Assert.Equal("twice", stored.Text);
         Assert.Equal(start.UtcDateTime, stored.CreatedAt);
         Assert.Equal(start.AddHours(1).UtcDateTime, stored.UpdatedAt);
@@ -79,8 +79,8 @@ public sealed class FrameworkColumnTests : IDisposable
         database.Context.Remove(memo);
         await database.Context.SaveChangesAsync();
 
-        Assert.Equal(0, await Memo.CountAsync());
-        var deleted = Assert.Single(await Memo.IgnoreQueryFilters().ToListAsync());
+        Assert.Equal(0, await Memo.Read.CountAsync());
+        var deleted = Assert.Single(await Memo.Read.IgnoreQueryFilters().ToListAsync());
         Assert.NotNull(deleted.DeletedAt);
     }
 

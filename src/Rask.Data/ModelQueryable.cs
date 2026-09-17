@@ -70,7 +70,7 @@ internal interface IModelQueryProvider : IAsyncQueryProvider
 ///     </para>
 /// </remarks>
 internal sealed class ModelQueryProvider<TEntity> : IModelQueryProvider
-    where TEntity : class, IAggregate
+    where TEntity : class
 {
     private readonly ModelQuery<TEntity> _query;
     private readonly ModelQueryable<TEntity> _root;
@@ -181,7 +181,7 @@ internal sealed class ModelQueryProvider<TEntity> : IModelQueryProvider
 
     private Bound Bind(Expression expression)
     {
-        var context = Db.CreateContext();
+        var context = ReadDb.OpenFor<TEntity>();
         try
         {
             var source = _query.Apply(context.Set<TEntity>());

@@ -31,7 +31,7 @@ namespace Rask.Data;
 /// </remarks>
 /// <typeparam name="TEntity">The entity being queried.</typeparam>
 public sealed class ModelQuery<TEntity>
-    where TEntity : class, IAggregate
+    where TEntity : class
 {
     private readonly Func<IQueryable<TEntity>, IQueryable<TEntity>>? _compose;
     private readonly bool _ordered;
@@ -203,9 +203,28 @@ public sealed class ModelQuery<TEntity>
     public Task<TEntity?> SingleOrDefaultAsync(CancellationToken cancellationToken = default) =>
         RunAsync(static (q, ct) => q.SingleOrDefaultAsync(ct), cancellationToken);
 
+    /// <summary>Filters, then returns the only match or <c>null</c>.</summary>
+    /// <exception cref="InvalidOperationException">More than one row matched.</exception>
+    public Task<TEntity?> SingleOrDefaultAsync(
+        Expression<Func<TEntity, bool>> predicate,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(predicate);
+        return Where(predicate).SingleOrDefaultAsync(cancellationToken);
+    }
+
     /// <summary>Counts the matching rows.</summary>
     public Task<int> CountAsync(CancellationToken cancellationToken = default) =>
         RunAsync(static (q, ct) => q.CountAsync(ct), cancellationToken);
+
+    /// <summary>Filters, then counts.</summary>
+    public Task<int> CountAsync(
+        Expression<Func<TEntity, bool>> predicate,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(predicate);
+        return Where(predicate).CountAsync(cancellationToken);
+    }
 
     /// <summary>Counts the matching rows as a <see cref="long" />.</summary>
     public Task<long> LongCountAsync(CancellationToken cancellationToken = default) =>
@@ -215,6 +234,15 @@ public sealed class ModelQuery<TEntity>
     public Task<bool> AnyAsync(CancellationToken cancellationToken = default) =>
         RunAsync(static (q, ct) => q.AnyAsync(ct), cancellationToken);
 
+    /// <summary>Whether any row matches <paramref name="predicate" />.</summary>
+    public Task<bool> AnyAsync(
+        Expression<Func<TEntity, bool>> predicate,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(predicate);
+        return Where(predicate).AnyAsync(cancellationToken);
+    }
+
     /// <summary>Enumerates the query, streaming rows as the database produces them.</summary>
     /// <remarks>
     ///     The context stays open for the lifetime of the enumeration, so consume it promptly — this is for
@@ -223,7 +251,7 @@ public sealed class ModelQuery<TEntity>
     public async IAsyncEnumerable<TEntity> AsAsyncEnumerable(
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        await using var context = Db.CreateContext();
+        await using var context = ReadDb.OpenFor<TEntity>();
 
         await foreach (var entity in Apply(context.Set<TEntity>())
                            .AsAsyncEnumerable()
@@ -250,7 +278,7 @@ public sealed class ModelQuery<TEntity>
     {
         ArgumentNullException.ThrowIfNull(query);
 
-        await using var context = Db.CreateContext();
+        await using var context = ReadDb.OpenFor<TEntity>();
         return await query(Apply(context.Set<TEntity>()), cancellationToken).ConfigureAwait(false);
     }
 
@@ -284,7 +312,7 @@ public sealed class ModelQuery<TEntity>
         Func<IQueryable<TEntity>, CancellationToken, Task<TResult>> run,
         CancellationToken cancellationToken)
     {
-        await using var context = Db.CreateContext();
+        await using var context = ReadDb.OpenFor<TEntity>();
         return await run(Apply(context.Set<TEntity>()), cancellationToken).ConfigureAwait(false);
     }
 }
@@ -300,7 +328,7 @@ public sealed class ModelQuery<TEntity>
 /// <typeparam name="TEntity">The entity being read.</typeparam>
 /// <typeparam name="TResult">What each row is projected to.</typeparam>
 public sealed class Projection<TEntity, TResult>
-    where TEntity : class, IAggregate
+    where TEntity : class
 {
     private readonly Func<IQueryable<TEntity>, IQueryable<TEntity>> _source;
     private readonly Expression<Func<TEntity, TResult>> _selector;
@@ -337,7 +365,7 @@ public sealed class Projection<TEntity, TResult>
         Func<IQueryable<TResult>, CancellationToken, Task<TValue>> run,
         CancellationToken cancellationToken)
     {
-        await using var context = Db.CreateContext();
+        await using var context = ReadDb.OpenFor<TEntity>();
         var projected = _source(context.Set<TEntity>()).Select(_selector);
         return await run(projected, cancellationToken).ConfigureAwait(false);
     }

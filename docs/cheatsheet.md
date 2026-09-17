@@ -71,7 +71,7 @@ Db.Configure(app.Services);                            // Product.Where(…) now
 ```
 
 The type argument and `Db.Configure` are a pair: the bare `AddRaskData()` registers only the
-interceptors, and without both, the first `Product.Where(…)` throws `The model database has not been
+interceptors, and without both, the first `Product.Read.Where(…)` throws `The model database has not been
 configured`. Your context should derive from `RaskDbContext`, which is what maps the models you declare.
 
 The other pillars are **one registration + one `modelBuilder` line + a migration** you add by hand:
@@ -111,13 +111,13 @@ Authorize.Roles(["admin"])[ DeleteProductButton(id) ]
 public sealed class Product : Aggregate<Guid> { public string Name { get; private set; } = ""; }
 
 // Read and write it — no context injected; or send a command whose handler does the save:
-var products = await Product.Where(p => p.Price > 0).OrderBy(p => p.Name).ToListAsync(CancellationToken);
+var products = await Product.Read.Where(p => p.Price > 0).OrderBy(p => p.Name).ToListAsync(CancellationToken);
 var product  = await Product.CreateAsync(model, cancellationToken: CancellationToken);          // ProductModel from a form
 var edit     = product.ToModel();                                                               // fills an edit form
 await Product.UpdateAsync(id, edit, p => p.Touch(now), cancellationToken: CancellationToken);   // + values not from the form
 await Product.DeleteAsync(id, db: db, cancellationToken: CancellationToken);                   // join a context you hold
 await dispatcher.SendAsync(new EditProduct { Id = id, Name = name, Version = version }, CancellationToken);
-UiDataGrid.Data(Product.AsQueryable()).RowKey(p => p.Id)[c => [ c.Field(p => p.Name) ]];   // pages in SQL
+UiDataGrid.Data(Product.Read.AsQueryable()).RowKey(p => p.Id)[c => [ c.Field(p => p.Name) ]];   // pages in SQL
 
 // Cache an expensive read; invalidate on write:
 var products = await cache.GetOrAddAsync("products", async _ => await LoadAsync(), CancellationToken);

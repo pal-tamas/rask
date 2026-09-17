@@ -18,7 +18,7 @@ public sealed class ModelFindTests : IDisposable
         await using var database = await StartDatabaseAsync();
         var (_, bravo) = await SeedAsync(database, Widget.Create("alpha"), Widget.Create("bravo"));
 
-        var found = await Widget.FindAsync(bravo.Id);
+        var found = await database.LoadAsync<Widget>(bravo.Id);
 
         Assert.NotNull(found);
         Assert.Equal("bravo", found.Name);
@@ -30,7 +30,7 @@ public sealed class ModelFindTests : IDisposable
         await using var database = await StartDatabaseAsync();
         await SeedAsync(database, Widget.Create("alpha"), Widget.Create("bravo"));
 
-        Assert.Null(await Widget.FindAsync(Guid.NewGuid()));
+        Assert.Null(await database.LoadAsync<Widget>(Guid.NewGuid()));
     }
 
     [Fact]
@@ -42,8 +42,8 @@ public sealed class ModelFindTests : IDisposable
         database.Context.Remove(doomed);
         await database.Context.SaveChangesAsync();
 
-        Assert.Null(await Widget.FindAsync(doomed.Id));
-        Assert.NotNull(await Widget.IgnoreQueryFilters().FirstOrDefaultAsync(w => w.Id == doomed.Id));
+        Assert.Null(await database.LoadAsync<Widget>(doomed.Id));
+        Assert.NotNull(await Widget.Read.IgnoreQueryFilters().FirstOrDefaultAsync(w => w.Id == doomed.Id));
     }
 
     [Fact]
@@ -54,12 +54,12 @@ public sealed class ModelFindTests : IDisposable
         database.Context.Add(gadget);
         await database.Context.SaveChangesAsync();
 
-        Assert.Equal("typed", (await Gadget.FindAsync(gadget.Id))!.Name);
-        Assert.Equal("typed", (await Gadget.FindAsync([gadget.Id]))!.Name);
-        Assert.Null(await Gadget.FindAsync(new GadgetId(Guid.NewGuid())));
+        Assert.Equal("typed", (await database.LoadAsync<Gadget>(gadget.Id))!.Name);
+        Assert.Equal("typed", (await database.LoadAsync<Gadget>([gadget.Id]))!.Name);
+        Assert.Null(await database.LoadAsync<Gadget>(new GadgetId(Guid.NewGuid())));
 
         // The raw Guid underneath is not a GadgetId — the point of having one.
-        var error = await Assert.ThrowsAsync<ArgumentException>(() => Gadget.FindAsync(gadget.Id.Value));
+        var error = await Assert.ThrowsAsync<ArgumentException>(() => database.LoadAsync<Gadget>(gadget.Id.Value));
         Assert.Contains(nameof(GadgetId), error.Message, StringComparison.Ordinal);
     }
 
@@ -69,14 +69,14 @@ public sealed class ModelFindTests : IDisposable
         await using var database = await StartDatabaseAsync();
         var (widget, _) = await SeedAsync(database, Widget.Create("alpha"), Widget.Create("bravo"));
 
-        var first = await Widget.FindAsync(widget.Id);
-        var second = await Widget.FindAsync(widget.Id);
+        var first = await database.LoadAsync<Widget>(widget.Id);
+        var second = await database.LoadAsync<Widget>(widget.Id);
 
         // Two contexts, no identity map shared between them: a change to one copy is invisible to the other.
         Assert.NotSame(first, second);
         first!.Rename("changed-in-memory");
         Assert.Equal("alpha", second!.Name);
-        Assert.Equal("alpha", (await Widget.FindAsync(widget.Id))!.Name);
+        Assert.Equal("alpha", (await database.LoadAsync<Widget>(widget.Id))!.Name);
     }
 
     [Fact]
@@ -85,8 +85,8 @@ public sealed class ModelFindTests : IDisposable
         await using var database = await StartDatabaseAsync();
 
         var tooMany = await Assert.ThrowsAsync<ArgumentException>(() =>
-            Widget.FindAsync([Guid.NewGuid(), Guid.NewGuid()]));
-        await Assert.ThrowsAsync<ArgumentException>(() => Widget.FindAsync(Array.Empty<object?>()));
+            database.LoadAsync<Widget>([Guid.NewGuid(), Guid.NewGuid()]));
+        await Assert.ThrowsAsync<ArgumentException>(() => database.LoadAsync<Widget>(Array.Empty<object?>()));
 
         Assert.Contains("1 value(s)", tooMany.Message, StringComparison.Ordinal);
     }
@@ -96,9 +96,9 @@ public sealed class ModelFindTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
 
-        await Assert.ThrowsAsync<ArgumentException>(() => Widget.FindAsync([null]));
-        await Assert.ThrowsAsync<ArgumentNullException>(() => Widget.FindAsync((object)null!));
-        await Assert.ThrowsAsync<ArgumentNullException>(() => Widget.FindAsync((object?[])null!));
+        await Assert.ThrowsAsync<ArgumentException>(() => database.LoadAsync<Widget>([null]));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => database.LoadAsync<Widget>((object)null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => database.LoadAsync<Widget>((object?[])null!));
     }
 
     [Fact]
@@ -106,7 +106,7 @@ public sealed class ModelFindTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
 
-        var error = await Assert.ThrowsAsync<ArgumentException>(() => Widget.FindAsync("not-a-guid"));
+        var error = await Assert.ThrowsAsync<ArgumentException>(() => database.LoadAsync<Widget>("not-a-guid"));
 
         Assert.Contains(nameof(Guid), error.Message, StringComparison.Ordinal);
     }

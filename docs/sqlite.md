@@ -202,7 +202,7 @@ support for it at all. Rask adds it: declare the index on the model, and search 
 builder.HasFullTextSearch(p => new { p.Title, p.Body });   // in the entity's configuration
 
 var hits = await db.Set<Post>().Search(query).Where(p => p.Published).Take(20).ToListAsync();
-var page = await Post.Search(query).Take(20).ToListAsync();      // Rask.Data's model reads
+var page = await Post.Read.Search(query).Take(20).ToListAsync();      // Rask.Data's read face
 ```
 
 `Search(text)` returns the rows containing every word of `text`, **best match first** (FTS5's `bm25`
@@ -220,7 +220,7 @@ with no word in it (empty, blank, punctuation) filters nothing, so an empty box 
 **Show why each row matched** by projecting the matched terms:
 
 ```csharp
-var hits = await Post.Search(query)
+var hits = await Post.Read.Search(query)
     .Select(p => new { p.Id, Title = FullText.Highlight(p.Title), Excerpt = FullText.Snippet(p.Body, 12) })
     .ToListAsync();
 

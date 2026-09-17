@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Rask.Data.Generators;
@@ -779,9 +780,14 @@ public class ModelInputGeneratorTests
 
         var diagnostic = Assert.Single(run.Diagnostics);
         Assert.Equal("RASK087", diagnostic.Id);
-        Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
+        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
         Assert.EndsWith("/docs/diagnostics.md#rask087", diagnostic.Descriptor.HelpLinkUri, StringComparison.Ordinal);
         Assert.Empty(run.GeneratedCompileErrors());
+
+        // A collection is fixed on the OTHER side — the shipment holds the order's id, not the reverse.
+        var message = diagnostic.GetMessage(CultureInfo.InvariantCulture);
+        Assert.Contains("let each 'Shipment' hold Order's id", message, StringComparison.Ordinal);
+        Assert.Contains("Shipment.Read", message, StringComparison.Ordinal);
 
         // Another aggregate is somebody else's data: nothing about it reaches this model, so a form post on the
         // order can neither add a shipment nor delete one.
@@ -790,6 +796,63 @@ public class ModelInputGeneratorTests
 
         // And the shipment keeps its own writes, because it is a root.
         Assert.Contains("CreateAsync", run.GeneratedSource("Shop.ShipmentModel"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_reference_to_one_aggregate_is_RASK087_and_names_the_id_that_replaces_it()
+    {
+        var run = Run("""
+            using System;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Order : Aggregate<Guid>
+            {
+                private Order() { }
+                public Customer Customer { get; private set; } = null!;
+            }
+            public sealed class Customer : Aggregate<Guid>
+            {
+                private Customer() { }
+                public string Name { get; private set; } = "";
+            }
+            """);
+
+        var diagnostic = Assert.Single(run.Diagnostics);
+        Assert.Equal("RASK087", diagnostic.Id);
+        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
+
+        // The fix is the id on THIS side, spelled with the target's own key type, and the reader is told
+        // where the join went rather than being left to wonder.
+        var message = diagnostic.GetMessage(CultureInfo.InvariantCulture);
+        Assert.Contains("'Guid CustomerId'", message, StringComparison.Ordinal);
+        Assert.Contains("Order.Read", message, StringComparison.Ordinal);
+        Assert.Contains("inferred back as 'Customer'", message, StringComparison.Ordinal);
+
+        // Nothing about the customer reaches the order's form model.
+        Assert.DoesNotContain("Customer", run.GeneratedSource("Shop.OrderModel"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_reference_to_a_CHILD_entity_is_not_RASK087()
+    {
+        var run = Run("""
+            using System;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Order : Aggregate<Guid>
+            {
+                private Order() { }
+                public OrderNote Note { get; private set; } = null!;
+            }
+            public sealed class OrderNote : Entity<Guid>
+            {
+                private OrderNote() { }
+                public string Text { get; private set; } = "";
+            }
+            """);
+
+        // The border is between AGGREGATES. A part of this one is a part, and holding it is the point.
+        Assert.DoesNotContain(run.Diagnostics, d => d.Id == "RASK087");
     }
 
     [Fact]

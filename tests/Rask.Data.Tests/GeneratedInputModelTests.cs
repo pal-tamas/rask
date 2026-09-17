@@ -157,7 +157,7 @@ public sealed class GeneratedInputModelTests : IDisposable
 
         Assert.NotEqual(Guid.Empty, created.Id);
 
-        var stored = await Invoice.FindAsync(created.Id);
+        var stored = await database.LoadAsync<Invoice>(created.Id);
         Assert.NotNull(stored);
         Assert.Equal("March", stored.Title);
         Assert.Equal(120.5m, stored.Balance);
@@ -189,7 +189,7 @@ public sealed class GeneratedInputModelTests : IDisposable
         var created = await Invoice.CreateAsync(id, NewModel());
 
         Assert.Equal(id, created.Id);
-        Assert.Equal("March", (await Invoice.FindAsync(id))!.Title);
+        Assert.Equal("March", (await database.LoadAsync<Invoice>(id))!.Title);
     }
 
     [Fact]
@@ -203,7 +203,7 @@ public sealed class GeneratedInputModelTests : IDisposable
             invoice.Viewed();                     // a value the form never carries
         });
 
-        Assert.Equal(1, (await Invoice.FindAsync(created.Id))!.Views);
+        Assert.Equal(1, (await database.LoadAsync<Invoice>(created.Id))!.Views);
     }
 
     [Fact]
@@ -218,27 +218,31 @@ public sealed class GeneratedInputModelTests : IDisposable
         });
 
         Assert.Equal(7, created.Id.Version);
-        var stored = (await Invoice.FindAsync(created.Id))!;
+        var stored = (await database.LoadAsync<Invoice>(created.Id))!;
         Assert.Equal("Walk-in", stored.Title);
         Assert.Equal(1, stored.Views);
         Assert.Equal(Start.UtcDateTime, stored.CreatedAt);
 
         // The same shape, one write later.
         await Invoice.UpdateAsync(created.Id, invoice => invoice.Retitle("Walk-in, paid"));
-        Assert.Equal("Walk-in, paid", (await Invoice.FindAsync(created.Id))!.Title);
+        Assert.Equal("Walk-in, paid", (await database.LoadAsync<Invoice>(created.Id))!.Title);
     }
 
     [Fact]
-    public async Task CreateAsync_without_a_form_joins_a_given_context_and_takes_a_given_id()
+    public async Task CreateAsync_without_a_form_stages_on_a_given_context_and_takes_a_given_id()
     {
         await using var database = await StartDatabaseAsync();
         var id = Guid.NewGuid();
 
         var created = await Invoice.CreateAsync(id, invoice => invoice.Retitle("Keyed"), db: database.Context);
 
+        // The caller chose the key, so it is already there — but the row is not, because `db:` stages.
         Assert.Equal(id, created.Id);
-        Assert.Equal(EntityState.Unchanged, database.Context.Entry(created).State);
-        Assert.Equal("Keyed", (await Invoice.FindAsync(id))!.Title);
+        Assert.Equal(EntityState.Added, database.Context.Entry(created).State);
+        Assert.Null(await database.LoadAsync<Invoice>(id));
+
+        await database.Context.SaveChangesAsync();
+        Assert.Equal("Keyed", (await database.LoadAsync<Invoice>(id))!.Title);
     }
 
     [Fact]
@@ -250,7 +254,7 @@ public sealed class GeneratedInputModelTests : IDisposable
         var created = await Invoice.CreateAsync(draft);
 
         Assert.Same(draft, created);
-        Assert.Equal("Built", (await Invoice.FindAsync(created.Id))!.Title);
+        Assert.Equal("Built", (await database.LoadAsync<Invoice>(created.Id))!.Title);
         Assert.Equal(Start.UtcDateTime, created.CreatedAt);
     }
 
@@ -261,13 +265,13 @@ public sealed class GeneratedInputModelTests : IDisposable
     {
         await using var database = await StartDatabaseAsync();
         var created = await Invoice.CreateAsync(NewModel());
-        var edit = EditOf((await Invoice.FindAsync(created.Id))!);
+        var edit = EditOf((await database.LoadAsync<Invoice>(created.Id))!);
 
         edit.Title = "April";
         edit.Total!.Amount = 150m;
         var updated = await Invoice.UpdateAsync(created.Id, edit);
 
-        var stored = await Invoice.FindAsync(created.Id);
+        var stored = await database.LoadAsync<Invoice>(created.Id);
         Assert.Equal("April", stored!.Title);
         Assert.Equal(new InvoiceTotal(150m, "HUF"), stored.Total);
         Assert.Equal(1, stored.Version);
@@ -286,7 +290,7 @@ public sealed class GeneratedInputModelTests : IDisposable
         var edit = new InvoiceModel(blank: true) { Title = "April", Note = null, Version = created.Version };
         await Invoice.UpdateAsync(created.Id, edit);
 
-        var stored = (await Invoice.FindAsync(created.Id))!;
+        var stored = (await database.LoadAsync<Invoice>(created.Id))!;
         Assert.Equal("April", stored.Title);
         Assert.Null(stored.Note);
         Assert.Equal(120.5m, stored.Balance);
@@ -299,8 +303,8 @@ public sealed class GeneratedInputModelTests : IDisposable
         await using var database = await StartDatabaseAsync();
         var created = await Invoice.CreateAsync(NewModel());
 
-        var first = EditOf((await Invoice.FindAsync(created.Id))!);
-        var second = EditOf((await Invoice.FindAsync(created.Id))!);
+        var first = EditOf((await database.LoadAsync<Invoice>(created.Id))!);
+        var second = EditOf((await database.LoadAsync<Invoice>(created.Id))!);
 
         first.Title = "First";
         await Invoice.UpdateAsync(created.Id, first);
@@ -308,7 +312,7 @@ public sealed class GeneratedInputModelTests : IDisposable
         second.Title = "Second";
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => Invoice.UpdateAsync(created.Id, second));
 
-        Assert.Equal("First", (await Invoice.FindAsync(created.Id))!.Title);
+        Assert.Equal("First", (await database.LoadAsync<Invoice>(created.Id))!.Title);
     }
 
     [Fact]
@@ -321,7 +325,7 @@ public sealed class GeneratedInputModelTests : IDisposable
 
         await Invoice.UpdateAsync(created.Id, edit, invoice => invoice.Viewed());
 
-        var stored = (await Invoice.FindAsync(created.Id))!;
+        var stored = (await database.LoadAsync<Invoice>(created.Id))!;
         Assert.Equal("April", stored.Title);
         Assert.Equal(1, stored.Views);
     }
@@ -338,7 +342,7 @@ public sealed class GeneratedInputModelTests : IDisposable
 
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() =>
             Invoice.UpdateAsync(created.Id, invoice => invoice.Viewed(), version: 0));
-        Assert.Equal(1, (await Invoice.FindAsync(created.Id))!.Views);
+        Assert.Equal(1, (await database.LoadAsync<Invoice>(created.Id))!.Views);
     }
 
     [Fact]
@@ -363,53 +367,130 @@ public sealed class GeneratedInputModelTests : IDisposable
         await Invoice.UpdateAsync(created.Id, edit);    // version 0 -> 1
 
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => Invoice.DeleteAsync(created.Id, version: 0));
-        Assert.NotNull(await Invoice.FindAsync(created.Id));
+        Assert.NotNull(await database.LoadAsync<Invoice>(created.Id));
 
         await Invoice.DeleteAsync(created.Id);
-        Assert.Null(await Invoice.FindAsync(created.Id));
+        Assert.Null(await database.LoadAsync<Invoice>(created.Id));
+    }
+
+    // ---- the form loop's fill -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task ModelAsync_fills_the_edit_shape_by_id()
+    {
+        await using var database = await StartDatabaseAsync();
+        var created = await Invoice.CreateAsync(NewModel());
+
+        var model = await Invoice.ModelAsync(created.Id);
+
+        Assert.NotNull(model);
+        Assert.Equal("March", model!.Title);
+
+        // Nested, not flattened: this is the FORM's shape, which is why it is not a read-face query.
+        Assert.Equal(99m, model.Total!.Amount);
+        Assert.Equal("HUF", model.Total.Currency);
+
+        Assert.Null(await Invoice.ModelAsync(Guid.NewGuid()));
+    }
+
+    [Fact]
+    public async Task ModelAsync_does_not_open_a_form_on_a_deleted_row()
+    {
+        await using var database = await StartDatabaseAsync();
+        var created = await Invoice.CreateAsync(NewModel());
+        await Invoice.DeleteAsync(created.Id);
+
+        // EF Core's Find would hand this back — it skips query filters. ModelAsync is a query, so it does not.
+        Assert.Null(await Invoice.ModelAsync(created.Id));
+    }
+
+    // ---- named sets ---------------------------------------------------------------------------------
+
+    [Fact]
+    public async Task An_entity_is_reachable_by_name_on_the_context()
+    {
+        await using var database = await StartDatabaseAsync();
+        var created = await Invoice.CreateAsync(NewModel());
+
+        // db.Invoices is an extension member on DbContext itself — so a context Rask never declared has it,
+        // and it is the very set Set<T>() returns rather than a second one built beside it.
+        var db = database.Context;
+        Assert.Same(db.Set<Invoice>(), db.Invoices);
+        Assert.Equal(created.Id, (await db.Invoices.SingleAsync()).Id);
     }
 
     // ---- a caller's context -------------------------------------------------------------------------
 
     [Fact]
-    public async Task A_write_given_a_context_saves_through_it_and_leaves_it_open()
+    public async Task A_write_given_a_context_stages_and_leaves_the_save_to_the_caller()
     {
         await using var database = await StartDatabaseAsync();
         var db = database.Context;
 
         var created = await Invoice.CreateAsync(NewModel(), db: db);
 
-        // Tracked by the caller's context — the write happened there — and the context is still usable.
-        Assert.Equal(EntityState.Unchanged, db.Entry(created).State);
-        Assert.Equal(1, await db.Set<Invoice>().CountAsync());
+        // Staged, not saved: `db:` hands the unit of work to the caller, so nothing is in the table yet.
+        Assert.Equal(EntityState.Added, db.Entry(created).State);
+        Assert.Null(await database.LoadAsync<Invoice>(created.Id));
 
-        // A row that context already tracks is the one updated, not a second copy.
+        await db.SaveChangesAsync();
+        Assert.Equal(EntityState.Unchanged, db.Entry(created).State);
+        Assert.NotNull(await database.LoadAsync<Invoice>(created.Id));
+
+        // A row that context already tracks is the one updated, not a second copy — and it is staged too.
         var updated = await Invoice.UpdateAsync(created.Id, invoice => invoice.Viewed(), db: db);
         Assert.Same(created, updated);
-        Assert.Equal(1, (await Invoice.FindAsync(created.Id))!.Views);
+        Assert.Equal(0, (await database.LoadAsync<Invoice>(created.Id))!.Views);
 
+        await db.SaveChangesAsync();
+        Assert.Equal(1, (await database.LoadAsync<Invoice>(created.Id))!.Views);
+
+        // And the delete, which is a soft delete, is no different: stamped in the tracker, written on save.
         await Invoice.DeleteAsync(created.Id, db: db);
-        Assert.Null(await Invoice.FindAsync(created.Id));
-        Assert.Equal(0, await db.Set<Invoice>().CountAsync());
+        Assert.NotNull(await database.LoadAsync<Invoice>(created.Id));
+
+        await db.SaveChangesAsync();
+        Assert.Null(await database.LoadAsync<Invoice>(created.Id));
     }
 
     [Fact]
-    public async Task Writes_given_a_context_join_its_transaction_and_roll_back_with_it()
+    public async Task Two_writes_staged_on_one_context_commit_under_one_save()
     {
         await using var database = await StartDatabaseAsync();
         var db = database.Context;
         var kept = await Invoice.CreateAsync(NewModel());
 
-        Guid discarded;
-        await using (var transaction = await db.Database.BeginTransactionAsync())
-        {
-            discarded = (await Invoice.CreateAsync(NewModel(), db: db)).Id;
-            await Invoice.UpdateAsync(kept.Id, invoice => invoice.Viewed(), db: db);
-            await transaction.RollbackAsync();
-        }
+        // Two aggregates changed together, with no BeginTransactionAsync anywhere: one SaveChangesAsync
+        // already IS one transaction, which is the whole point of `db:` no longer saving on its own.
+        var placed = await Invoice.CreateAsync(NewModel(), db: db);
+        await Invoice.UpdateAsync(kept.Id, invoice => invoice.Viewed(), db: db);
 
+        Assert.Null(await database.LoadAsync<Invoice>(placed.Id));
+        Assert.Equal(0, (await database.LoadAsync<Invoice>(kept.Id))!.Views);
+
+        await db.SaveChangesAsync();
+
+        Assert.NotNull(await database.LoadAsync<Invoice>(placed.Id));
+        Assert.Equal(1, (await database.LoadAsync<Invoice>(kept.Id))!.Views);
+    }
+
+    [Fact]
+    public async Task A_save_that_fails_takes_every_write_staged_beside_it_with_it()
+    {
+        await using var database = await StartDatabaseAsync();
+        var db = database.Context;
+        var taken = await Invoice.CreateAsync(NewModel());
+        var kept = await Invoice.CreateAsync(NewModel());
+
+        // An insert the database will refuse — that key is already a row — staged beside an update that
+        // would have succeeded on its own.
+        await Invoice.CreateAsync(taken.Id, NewModel(), db: db);
+        await Invoice.UpdateAsync(kept.Id, invoice => invoice.Viewed(), db: db);
+
+        await Assert.ThrowsAnyAsync<DbUpdateException>(() => db.SaveChangesAsync());
+
+        // Neither landed. Before `db:` staged, the update was its own transaction and would have survived.
         db.ChangeTracker.Clear();
-        Assert.Null(await Invoice.FindAsync(discarded));
-        Assert.Equal(0, (await Invoice.FindAsync(kept.Id))!.Views);
+        Assert.Equal(0, (await database.LoadAsync<Invoice>(kept.Id))!.Views);
     }
 }

@@ -30,9 +30,16 @@ namespace Rask.Data;
 public static class Db
 {
     private static Func<DbContext>? _factory;
+    private static int _generation;
 
     /// <summary>Whether <see cref="Configure(IServiceProvider)" /> (or an overload) has run.</summary>
     public static bool IsConfigured => _factory is not null;
+
+    /// <summary>
+    ///     How many times the model surface has been pointed at a database. Part of the read context's
+    ///     model cache key — see <see cref="RaskReadDbContext" />.
+    /// </summary>
+    internal static int Generation => Volatile.Read(ref _generation);
 
     /// <summary>
     ///     Points the model surface at the application's <c>DbContext</c>, read off its own
@@ -63,6 +70,13 @@ public static class Db
                           "Db.Configure(IDbContextFactory<AppDbContext>) with the factory directly.");
 
         _factory = binding.CreateContext;
+        Interlocked.Increment(ref _generation);
+
+        // Both halves from one call. Forgetting the read side would not fail here — it would fail at the
+        // first Product.Read in some page, which is the worst place to learn about a line of startup you
+        // did not write. ReadDb resolves its factory lazily, so an app with no read context registered pays
+        // nothing and still gets a message that names what to register.
+        ReadDb.Configure(services);
     }
 
     /// <summary>Points the model surface at <paramref name="factory" />.</summary>
@@ -75,6 +89,7 @@ public static class Db
     {
         ArgumentNullException.ThrowIfNull(factory);
         _factory = factory.CreateDbContext;
+        Interlocked.Increment(ref _generation);
     }
 
     /// <summary>
@@ -89,14 +104,20 @@ public static class Db
     {
         ArgumentNullException.ThrowIfNull(createContext);
         _factory = createContext;
+        Interlocked.Increment(ref _generation);
     }
 
-    /// <summary>Forgets the configured factory. Test seam.</summary>
+    /// <summary>Forgets the configured factory, on both halves. Test seam.</summary>
     /// <remarks>
     ///     Only a test suite that configures the database differently per class needs this; an
     ///     application configures it once at startup and never unconfigures it.
     /// </remarks>
-    public static void Reset() => _factory = null;
+    public static void Reset()
+    {
+        _factory = null;
+        Interlocked.Increment(ref _generation);
+        ReadDb.Reset();
+    }
 
     /// <summary>A fresh context the caller owns and disposes.</summary>
     /// <exception cref="InvalidOperationException">The model surface has not been configured.</exception>

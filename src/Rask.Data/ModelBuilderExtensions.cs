@@ -192,7 +192,7 @@ public static class ModelBuilderExtensions
     // `e => e.DeletedAt == null`, or `e => EF.Property<DateTime?>(e, "DeletedAt") == null` when the class
     // does not declare the property and the column is a shadow one. EF's non-generic HasQueryFilter takes
     // a LambdaExpression, so the typed lambda is synthesized here either way.
-    private static LambdaExpression BuildNotDeletedFilter(EntityTypeBuilder builder, Type clrType)
+    internal static LambdaExpression BuildNotDeletedFilter(EntityTypeBuilder builder, Type clrType)
     {
         var parameter = Expression.Parameter(clrType, "e");
         var isShadow = builder.Metadata.FindProperty(Columns.DeletedAt)?.IsShadowProperty() ?? true;

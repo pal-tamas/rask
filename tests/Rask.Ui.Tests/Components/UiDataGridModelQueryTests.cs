@@ -6,7 +6,7 @@ using Rask.Testing;
 namespace Rask.Ui.Tests.Components;
 
 /// <summary>
-///     The calling site of <c>Product.AsQueryable()</c>: a data grid handed a Rask.Data model query,
+///     The calling site of <c>Product.Read.AsQueryable()</c>: a data grid handed a Rask.Data read face,
 ///     rendered against a real SQLite file.
 /// </summary>
 /// <remarks>
@@ -44,18 +44,25 @@ public sealed partial class UiDataGridModelQueryTests : global::Rask.Core.RaskMa
         }
 
         Db.Configure(() => new GizmoContext(_options));
+
+        // The grid reads through the read face, which opens a context of its own over the same file. Its
+        // model is mirrored from the write model, so the hand-mapped GizmoContext above is still what
+        // decides the table and the columns.
+        var read = new DbContextOptionsBuilder<RaskReadDbContext>().UseSqlite($"Data Source={_dbPath}").Options;
+        ReadDb.Configure(() => new RaskReadDbContext(read));
     }
 
     public void Dispose()
     {
         Db.Reset();
+        ReadDb.Reset();
         File.Delete(_dbPath);
     }
 
     [Fact]
     public void A_sorted_page_of_a_model_query_is_read_from_the_database()
     {
-        var html = UiDataGrid.Data(Gizmo.AsQueryable()).RowKey(g => g.Id).PageSize(2).Sort("stock")[c => [
+        var html = UiDataGrid.Data(Gizmo.Read.AsQueryable()).RowKey(g => g.Id).PageSize(2).Sort("stock")[c => [
             c.Field(g => g.Name).Title("Gizmo"),
             c.Field(g => g.Stock).Title("Stock").Sortable(true),
         ]].ToHtml();
@@ -68,7 +75,7 @@ public sealed partial class UiDataGridModelQueryTests : global::Rask.Core.RaskMa
     [Fact]
     public async Task Sorting_and_paging_by_click_query_the_database_again()
     {
-        var page = RaskTest.Render(UiDataGrid.Data(Gizmo.AsQueryable()).RowKey(g => g.Id).PageSize(2)[c => [
+        var page = RaskTest.Render(UiDataGrid.Data(Gizmo.Read.AsQueryable()).RowKey(g => g.Id).PageSize(2)[c => [
             c.Field(g => g.Name).Title("Gizmo").Sortable(true),
             c.Field(g => g.Stock).Title("Stock"),
         ]]);

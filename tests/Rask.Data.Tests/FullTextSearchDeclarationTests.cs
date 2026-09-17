@@ -88,7 +88,7 @@ public sealed class FullTextSearchDeclarationTests
     {
         var error = Assert.Throws<InvalidOperationException>(() => FullText.Highlight("x"));
 
-        Assert.Contains("Post.Search(text).Select(p => FullText.Highlight(p.Title))", error.Message, StringComparison.Ordinal);
+        Assert.Contains("Post.Read.Search(text).Select(p => FullText.Highlight(p.Title))", error.Message, StringComparison.Ordinal);
     }
 
     private static Microsoft.EntityFrameworkCore.Metadata.IModel BuildModel(Action<ModelBuilder> configure)

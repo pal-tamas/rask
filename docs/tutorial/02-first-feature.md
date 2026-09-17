@@ -61,10 +61,16 @@ Two rules shape the class, and the build enforces both:
 form checks it as the user types. `[Range]` is only for the form. `InStock`'s `= true` is the default a new
 product starts with, on the create form too.
 
-**Reading needs nothing more.** `Product.Where(…)`, `Product.FindAsync(id)` and `Product.AsQueryable()` are
-on the type already. Each opens its own database context, runs, and disposes it before it returns, and
-hands back rows nothing is tracking. That's what makes it safe to call them straight from a page: a Rask
-page lives as long as the browser keeps its socket open, and nothing here holds a context between calls.
+**Reading needs nothing more.** The build generates a **read face** beside the aggregate —
+`Product.Read.Where(…)`, `Product.Read.AsQueryable()` — whose rows are `ProductRead`: plain columns, no
+behaviour, nothing to save. Each read opens its own database context, runs, and disposes it before it
+returns. That's what makes it safe to call straight from a page: a Rask page lives as long as the browser
+keeps its socket open, and nothing here holds a context between calls.
+
+Why a separate type to read from? Because an aggregate is a consistency *boundary*: it holds another
+aggregate's id and never a navigation to it, so a write cannot cross a boundary by accident. The read face
+has no such rule — it carries the joins those ids imply — and keeping the two apart is what lets both be
+true at once. [The data guide](../data.md#reading-the-read-face) has the whole of it.
 
 ## 2. The form model and the writes
 
@@ -178,11 +184,11 @@ public sealed partial class UpdateProduct(Navigator navigator) : Component
     protected override async Task OnPropsChangedAsync()
     {
         _loaded = false;
-        var product = await Product.FindAsync(Id, CancellationToken);
-        _found = product is not null;
-        if (product is not null)
+        var model = await Product.ModelAsync(Id, cancellationToken: CancellationToken);
+        _found = model is not null;
+        if (model is not null)
         {
-            _model = product.ToModel();
+            _model = model;
         }
 
         _loaded = true;
@@ -315,7 +321,7 @@ public sealed partial class ProductsPage : Component
 {
     // A query, not a list. It holds no database connection: the grid runs it — sorted and paged in
     // SQL — each time it renders, and each run opens and disposes its own context.
-    private readonly IQueryable<Product> _products = Product.OrderBy(p => p.Name).AsQueryable();
+    private readonly IQueryable<ProductRead> _products = Product.Read.OrderBy(p => p.Name).AsQueryable();
 
     protected override Component? HeadAssets => Title["Products"];
 
@@ -337,15 +343,15 @@ public sealed partial class ProductsPage : Component
 }
 ```
 
-`Product.AsQueryable()` is a standard `IQueryable<Product>` that holds no context, which is the shape
-[`UiDataGrid`](../data-grid.md) wants: clicking a sortable header becomes `ORDER BY`, and the pager becomes
-`Skip`/`Take`, so the database does the work however large the catalog grows. `RowKey` is required — it
-is what the grid identifies a row by when it redraws. The grid shows the aggregates themselves, read-only;
-`UpdatedAt` is one of the columns `Aggregate<Guid>` brought, sortable like any other.
+`Product.Read.AsQueryable()` is a standard `IQueryable<ProductRead>` that holds no context, which is the
+shape [`UiDataGrid`](../data-grid.md) wants: clicking a sortable header becomes `ORDER BY`, and the pager
+becomes `Skip`/`Take`, so the database does the work however large the catalog grows. `RowKey` is required —
+it is what the grid identifies a row by when it redraws. The grid shows read faces, read-only by
+construction; `UpdatedAt` is one of the columns `Aggregate<Guid>` brought, sortable like any other.
 
 Note what the page doesn't have: an `OnMountAsync`. Nothing needs loading up front, because the grid runs
 the query when it renders. When a page does need data before it draws — a count for a heading, say —
-that's where it goes: `_count = await Product.CountAsync(CancellationToken);`.
+that's where it goes: `_count = await Product.Read.CountAsync(CancellationToken);`.
 
 ## 6. Already registered
 
@@ -379,8 +385,8 @@ Db.Configure(app.Services);
 ```
 
 - `AddRaskData<AppDbContext>()` registers the interceptors (timestamps, versions, soft delete and events)
-  **and names the context to the model surface**. The type argument is what makes `Product.Where(…)` and
-  `Product.CreateAsync(…)` know which database to open.
+  **and names the context to the model surface**. The type argument is what makes `Product.Read.Where(…)`
+  and `Product.CreateAsync(…)` know which database to open.
 - `Db.Configure(app.Services)` points the model surface at it, once, after the container exists. Without
   this pair the app builds and serves, and throws `The model database has not been configured` on the first
   line of data code.

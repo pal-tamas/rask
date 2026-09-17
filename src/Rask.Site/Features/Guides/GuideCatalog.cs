@@ -172,7 +172,7 @@ public static class GuideCatalog
             SearchTitle = "A .NET CLI to scaffold, run, migrate and deploy apps",
             Description = "Reference for the rask .NET tool: rask new to scaffold projects, rask dev for hot reload, rask db for EF Core migrations and backups, rask deploy over SSH.",
         },
-        new("data", "Rask.Data", "Declare aggregates, read and write them off the type, bind generated form models.", "One Person Framework")
+        new("data", "Rask.Data", "Declare aggregates, write them off the type, query their generated read faces, bind generated form models.", "One Person Framework")
         {
             SearchTitle = "EF Core aggregates without writing a DbContext in C#",
             Description = "Declare DDD aggregates, entities and value objects in C# with EF Core: read, full-text search, write off the type, and edit child collections from form models.",

@@ -315,7 +315,7 @@ public sealed class ProjectGeneratorTests
         Assert.Contains("builder.Services.AddRaskData<AppDbContext>();", program, StringComparison.Ordinal);
 
         // …and the one call that points the model surface at it, after the container is built. Without
-        // this the app boots and serves, and throws on the first Product.Where(…).
+        // this the app boots and serves, and throws on the first Product.Read.Where(…).
         Assert.Contains("Db.Configure(app.Services);", program, StringComparison.Ordinal);
         Assert.True(
             program.IndexOf("var app = builder.Build();", StringComparison.Ordinal)

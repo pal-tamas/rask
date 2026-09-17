@@ -45,7 +45,7 @@ public sealed class GeneratedModelOverrideTests : IDisposable
         var created = await Ticket.CreateAsync(new TicketModel { Title = "  printer jam " });
 
         Assert.Equal("PRINTER JAM", created.Title);
-        Assert.Equal("PRINTER JAM", (await Ticket.FindAsync(created.Id))!.Title);
+        Assert.Equal("PRINTER JAM", (await database.LoadAsync<Ticket>(created.Id))!.Title);
     }
 
     [Fact]
@@ -55,7 +55,7 @@ public sealed class GeneratedModelOverrideTests : IDisposable
         var created = await Ticket.CreateAsync(new TicketModel { Title = "fax" });
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => Ticket.DeleteAsync(created.Id));
-        Assert.NotNull(await Ticket.FindAsync(created.Id));
+        Assert.NotNull(await database.LoadAsync<Ticket>(created.Id));
     }
 
     [Fact]
@@ -66,7 +66,7 @@ public sealed class GeneratedModelOverrideTests : IDisposable
 
         await Ticket.UpdateAsync(created.Id, new TicketModel { Title = created.Title, Urgent = true });
 
-        Assert.True((await Ticket.FindAsync(created.Id))!.Urgent);
+        Assert.True((await database.LoadAsync<Ticket>(created.Id))!.Urgent);
     }
 
     [Fact]
@@ -77,6 +77,6 @@ public sealed class GeneratedModelOverrideTests : IDisposable
 
         await TicketModelExtensions.DeleteAsync(created.Id);
 
-        Assert.Null(await Ticket.FindAsync(created.Id));
+        Assert.Null(await database.LoadAsync<Ticket>(created.Id));
     }
 }

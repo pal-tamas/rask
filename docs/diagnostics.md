@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK088, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK090, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -120,8 +120,10 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK084](#rask084) | Error | Model state can be changed from outside the type |
 | [RASK085](#rask085) | Warning | Entity exposes a mutable collection of entities |
 | [RASK086](#rask086) | Warning | Aggregate has no parameterless constructor, so `CreateAsync` is not generated |
-| [RASK087](#rask087) | Warning | Aggregate holds a collection of aggregates, so Rask leaves it alone |
+| [RASK087](#rask087) | Error | Aggregate reaches across a boundary instead of holding an id |
 | [RASK088](#rask088) | Warning | Child collection cannot be synced, so a save cannot add or remove one |
+| [RASK089](#rask089) | Warning | Id looks like a reference but no navigation was inferred |
+| [RASK090](#rask090) | Warning | Two entities want one DbContext set name, so neither is generated |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -2079,48 +2081,62 @@ recycled, so it returned under a new one.
 
 ## RASK087
 
-**Aggregate holds a collection of aggregates, so Rask leaves it alone** · Warning
+**Aggregate reaches across a boundary instead of holding an id** · Error
 
-An aggregate is a consistency boundary: what it holds is loaded with it, saved with it and deleted with it. A
-collection of `Entity<TId>` children is part of it that way ([data guide](data.md#children)). A collection of
-another **`Aggregate<TId>`** is not — that type is a boundary of its own, with its own version, its own soft
-delete and its own reads and writes.
+An aggregate is a consistency boundary, and **the border is what one aggregate can see of another**. An
+aggregate may hold another's *id* and nothing else: that is what makes crossing a boundary by accident
+impossible, because there is nothing to walk.
 
-So Rask treats it as a reference rather than a part, and says so: it is not loaded with the parent, not carried
-on the parent's model, and never saved or deleted with it.
+A property whose type is another **`Aggregate<TId>`** — one of them, or a collection of them — is that border
+failing. That type has its own version, its own soft delete and its own reads and writes, so a form post on
+this one must never add to it and must never delete from it.
 
 ```csharp
 public sealed class Order : Aggregate<Guid>
 {
     private readonly List<Shipment> _shipments = [];
 
-    public IReadOnlyCollection<Shipment> Shipments => _shipments;   // ⚠ RASK087: Shipment is an Aggregate
+    public Customer Customer { get; private set; }                  // ✗ RASK087: Customer is an Aggregate
+    public IReadOnlyCollection<Shipment> Shipments => _shipments;   // ✗ RASK087: Shipment is an Aggregate
 }
 ```
 
-**Fix, when it really is part of the order** — derive it from `Entity<TId>`, and it becomes a child:
+**Fix, when it really is part of the order** — derive it from `Entity<TId>`, and it becomes a child that *is*
+loaded, saved and deleted with its root ([data guide](data.md#children)):
 
 ```csharp
-public sealed class OrderLine : Entity<Guid>   // ✓ a part: no version, no soft delete, no reads of its own
+public sealed class OrderLine : Entity<Guid>   // ✓ a part: no version, no soft delete, no writes of its own
 {
     public string Product { get; private set; } = "";
 }
 ```
 
-**Fix, when it is its own aggregate** — hold the id and read it when you need it:
+**Fix, when it is its own aggregate** — hold the id. The id is the reference, on whichever side owns it: a
+single reference becomes a column on *this* aggregate, and a collection becomes a column on the *other* one.
 
 ```csharp
 public sealed class Order : Aggregate<Guid>
 {
-    public Guid ShipmentId { get; private set; }   // ✓ a reference across a boundary
+    public Guid CustomerId { get; private set; }   // ✓ one customer: the id lives here
 }
 
-var shipment = await Shipment.FindAsync(order.ShipmentId);
+public sealed class Shipment : Aggregate<Guid>
+{
+    public Guid OrderId { get; private set; }      // ✓ many shipments: the id lives there
+}
 ```
 
-The warning exists because the alternative is worse than either fix: a navigation that *looks* like a child,
-renders like one, and silently is not saved with its parent. Were it treated as a child instead, a form post on
-the order could delete a shipment that other code owns.
+**Nothing is lost.** The join you wanted is on the read face, where there are no borders, and it is inferred
+from exactly that id — so it is still one expression:
+
+```csharp
+await Order.Read.Where(o => o.Customer.Country == "HU").ToListAsync();
+await Shipment.Read.Where(s => s.Order.Status == OrderStatus.Open).ToListAsync();
+```
+
+It is an error rather than a warning because the alternative is worse than either fix: a navigation that
+*looks* like a child, renders like one, and silently is not saved with its parent — or, worse, one that a
+`SaveChanges` drags across a boundary that other code owns.
 
 ---
 
@@ -2162,6 +2178,88 @@ public sealed class Order : Aggregate<Guid>
 
 Exposing the collection as `ICollection<OrderLine>` works too, at the cost of letting any caller add to it
 without going through the aggregate.
+
+---
+
+## RASK089
+
+**Id looks like a reference but no navigation was inferred** · Warning
+
+An aggregate references another by id and never by navigation — that is the border, and it is what stops a
+write crossing one by accident ([data guide](data.md)). The join you lose on the write side comes back on the
+read side: Rask infers a navigation on the generated read face from each `{X}Id` whose type is the key of an
+aggregate `X`, so `Order.CustomerId` gives you `OrderRead.Customer`.
+
+Inference is by name and by key type, both. A property that matches an aggregate's name but not its key type,
+or that matches two aggregates at once, produces no navigation at all — and the only symptom would be a join
+the author expected and never got.
+
+```csharp
+public sealed class Customer : Aggregate<Guid> { }
+
+public sealed class Order : Aggregate<Guid>
+{
+    public Guid CustomerId { get; private set; }   // ✓ OrderRead.Customer
+
+    // ⚠ RASK089: names Customer, but Customer's key is Guid
+    public int BillingCustomerId { get; private set; }
+}
+```
+
+**Fix:** give the id the aggregate's own key type, so the navigation appears:
+
+```csharp
+public Guid BillingCustomerId { get; private set; }   // ✓ OrderRead.BillingCustomer
+```
+
+Or rename it, if it was never meant to point at a `Customer` — an id that matches no aggregate is an ordinary
+column and says nothing:
+
+```csharp
+public int BillingReference { get; private set; }     // ✓ just an int
+```
+
+The second case is ambiguity: two aggregates whose names both end where the property does — `Customer` and
+`KeyCustomer` against a `PrimeKeyCustomerId`. Rask refuses to guess; rename the property so one match is
+longest.
+
+---
+
+## RASK090
+
+**Two entities want one DbContext set name, so neither is generated** · Warning
+
+Every mapped entity gets a named set on `DbContext` beside the `Set<T>()` that always worked — `db.Orders`,
+`db.OrderLines` — from one documented rule:
+
+| Type name ends with | Set name | Example |
+|---|---|---|
+| `s`, `x`, `z`, `ch`, `sh` | `+ es` | `Address` → `db.Addresses` |
+| a consonant then `y` | `y` → `ies` | `Category` → `db.Categories` |
+| anything else | `+ s` | `Order` → `db.Orders` |
+
+Nothing cleverer, on purpose: an irregular-plural dictionary would be right more often and wrong
+unpredictably, and a name you cannot guess from the type is worse than one you can. A `Person` becomes
+`db.Persons` and a `Quiz` becomes `db.Quizes` — both wrong as English, both exactly what the table above
+says, and that is the trade.
+
+The rule cannot serve two entities that land on the same name, so Rask generates **neither** accessor rather
+than picking a winner or inventing a name nobody could predict:
+
+```csharp
+namespace Shop      { public sealed class Order : Aggregate<Guid> { } }
+namespace Warehouse { public sealed class Order : Aggregate<Guid> { } }   // ⚠ RASK090: both want db.Orders
+```
+
+The same applies to a name `DbContext` already declares — `db.Models`, say — because a member on the type
+itself always wins over an extension member, so the accessor would compile and quietly mean something else.
+
+**Fix:** rename one of the entities, or reach them explicitly, which is unambiguous and always available:
+
+```csharp
+db.Set<Shop.Order>()
+db.Set<Warehouse.Order>()
+```
 
 ---
 

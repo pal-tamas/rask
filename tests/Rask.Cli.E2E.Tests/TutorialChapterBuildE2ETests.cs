@@ -25,8 +25,9 @@ namespace Rask.Cli.E2E.Tests;
 /// the old <c>--force</c> regeneration papered over and a reader patching by hand cannot.
 /// </para>
 /// <para>
-/// The pages read and write through the aggregate type — <c>Product.FindAsync</c>, <c>Product.AsQueryable()</c>,
-/// <c>Product.CreateAsync(model)</c> — and bind the generated <c>ProductModel</c>, which only exists once the
+/// The pages read through the generated read face — <c>Product.Read.AsQueryable()</c> — write through the
+/// aggregate type — <c>Product.CreateAsync(model)</c> — and fill a form with <c>Product.ModelAsync(id)</c>,
+/// binding the generated <c>ProductModel</c>, which only exists once the
 /// model generator has run over the chapter's <c>Product</c>. So this walk is what proves the generated form
 /// model binds to the Ui kit's controls the way the chapter types it.
 /// </para>
@@ -108,7 +109,7 @@ public sealed partial class TutorialChapterBuildE2ETests
             // --- Chapter 4: a durable job, whose handler reads the Order chapter 3 added ---
             // The chapter shows the record and the filled-in handler as separate snippets, the handler's
             // `using` above it; they are joined into one file the way a reader would join them.
-            var jobHandler = Pick(ch4, "Order.FindAsync(job.OrderId", "4");
+            var jobHandler = Pick(ch4, "Order.Read.Where(o => o.Id == job.OrderId", "4");
             var shared = Path.Combine(projectDir, "Features", "Shared");
             Write(
                 fs, shared, "SendOrderReceipt.cs",

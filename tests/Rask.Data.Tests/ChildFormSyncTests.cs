@@ -23,7 +23,7 @@ public sealed class ChildFormSyncTests : IDisposable
         await using var database = await StartDatabaseAsync();
         var id = await StockedBasketAsync(database);
 
-        var model = (await Basket.FindAsync(id))!.ToModel();
+        var model = (await database.LoadAsync<Basket>(id))!.ToModel();
 
         Assert.Equal("ada", model.Customer);
         Assert.Equal(
@@ -40,12 +40,12 @@ public sealed class ChildFormSyncTests : IDisposable
         await using var database = await StartDatabaseAsync();
         var id = await StockedBasketAsync(database);
 
-        var model = (await Basket.FindAsync(id))!.ToModel();
+        var model = (await database.LoadAsync<Basket>(id))!.ToModel();
         model.Lines.Single(l => l.Product == "apple").Quantity = 9;
 
         await Basket.UpdateAsync(id, model);
 
-        var after = (await Basket.FindAsync(id))!;
+        var after = (await database.LoadAsync<Basket>(id))!;
         Assert.Equal(9, after.Lines.Single(l => l.Product == "apple").Quantity);
         Assert.Equal(2, after.Lines.Count);
     }
@@ -56,12 +56,12 @@ public sealed class ChildFormSyncTests : IDisposable
         await using var database = await StartDatabaseAsync();
         var id = await StockedBasketAsync(database);
 
-        var model = (await Basket.FindAsync(id))!.ToModel();
+        var model = (await database.LoadAsync<Basket>(id))!.ToModel();
         model.Lines.Add(new BasketLineModel { Product = "plum", Quantity = 4 });
 
         await Basket.UpdateAsync(id, model);
 
-        var after = (await Basket.FindAsync(id))!;
+        var after = (await database.LoadAsync<Basket>(id))!;
         Assert.Equal(["apple", "pear", "plum"], after.Lines.Select(l => l.Product).Order(StringComparer.Ordinal));
         Assert.NotEqual(Guid.Empty, after.Lines.Single(l => l.Product == "plum").Id);
     }
@@ -72,12 +72,12 @@ public sealed class ChildFormSyncTests : IDisposable
         await using var database = await StartDatabaseAsync();
         var id = await StockedBasketAsync(database);
 
-        var model = (await Basket.FindAsync(id))!.ToModel();
+        var model = (await database.LoadAsync<Basket>(id))!.ToModel();
         model.Lines.RemoveAll(l => l.Product == "pear");
 
         await Basket.UpdateAsync(id, model);
 
-        Assert.Equal(["apple"], (await Basket.FindAsync(id))!.Lines.Select(l => l.Product));
+        Assert.Equal(["apple"], (await database.LoadAsync<Basket>(id))!.Lines.Select(l => l.Product));
     }
 
     /// <summary>The documented edge of the rule the owner chose: an empty list empties the aggregate.</summary>
@@ -87,12 +87,12 @@ public sealed class ChildFormSyncTests : IDisposable
         await using var database = await StartDatabaseAsync();
         var id = await StockedBasketAsync(database);
 
-        var model = (await Basket.FindAsync(id))!.ToModel();
+        var model = (await database.LoadAsync<Basket>(id))!.ToModel();
         model.Lines.Clear();
 
         await Basket.UpdateAsync(id, model);
 
-        Assert.Empty((await Basket.FindAsync(id))!.Lines);
+        Assert.Empty((await database.LoadAsync<Basket>(id))!.Lines);
     }
 
     /// <summary>
@@ -106,16 +106,16 @@ public sealed class ChildFormSyncTests : IDisposable
         var mine = await StockedBasketAsync(database);
         var theirs = await StockedBasketAsync(database, "grace");
 
-        var stolen = (await Basket.FindAsync(theirs))!.Lines.First().Id;
+        var stolen = (await database.LoadAsync<Basket>(theirs))!.Lines.First().Id;
 
-        var model = (await Basket.FindAsync(mine))!.ToModel();
+        var model = (await database.LoadAsync<Basket>(mine))!.ToModel();
         model.Lines.Clear();
         model.Lines.Add(new BasketLineModel { Id = stolen, Product = "forged", Quantity = 1 });
 
         await Basket.UpdateAsync(mine, model);
 
-        var updated = (await Basket.FindAsync(mine))!;
-        var untouched = (await Basket.FindAsync(theirs))!;
+        var updated = (await database.LoadAsync<Basket>(mine))!;
+        var untouched = (await database.LoadAsync<Basket>(theirs))!;
 
         // The forged row landed as a NEW line, with a new id of its own.
         Assert.Equal(["forged"], updated.Lines.Select(l => l.Product));
@@ -132,13 +132,13 @@ public sealed class ChildFormSyncTests : IDisposable
         await using var database = await StartDatabaseAsync();
         var id = await StockedBasketAsync(database);
 
-        var before = (await Basket.FindAsync(id))!;
+        var before = (await database.LoadAsync<Basket>(id))!;
         var model = before.ToModel();
         model.Lines.Single(l => l.Product == "pear").Quantity = 7;
 
         await Basket.UpdateAsync(id, model);
 
-        Assert.Equal(before.Version + 1, (await Basket.FindAsync(id))!.Version);
+        Assert.Equal(before.Version + 1, (await database.LoadAsync<Basket>(id))!.Version);
     }
 
     private async Task<Guid> StockedBasketAsync(TestDatabase database, string customer = "ada")
