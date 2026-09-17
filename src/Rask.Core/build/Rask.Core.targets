@@ -286,6 +286,24 @@
   </ItemGroup>
 
   <!--
+    SQLite's sidecar files, kept out of `dotnet watch`. The batteries open app.db and logs.db in the
+    project directory in WAL mode, so every start creates app.db-wal and app.db-shm beside them, and
+    a shutdown deletes them again. dotnet watch does not only look at @(Watch): it watches the whole
+    project tree and accepts ANY change there that DefaultItemExcludes does not match, and a file
+    ADDED there costs a full project re-evaluation (design-time build and restore) followed by a hot
+    reload pass. So `rask dev` re-evaluated on every start and every restart, and the database's own
+    churn fed straight back into the loop meant to react to source edits.
+
+    DefaultItemExcludes is the one list the watcher itself honours ("Exclusion glob" in its verbose
+    log). The database file stays an ordinary item: only the sidecars are pure runtime state, so a
+    seed database copied to the output keeps working. A property in a .targets file still reaches
+    the default globs, because MSBuild evaluates every property before any item.
+  -->
+  <PropertyGroup>
+    <DefaultItemExcludes>$(DefaultItemExcludes);**/*.db-wal;**/*.db-shm;**/*.db-journal;**/*.sqlite-wal;**/*.sqlite-shm;**/*.sqlite-journal;**/*.sqlite3-wal;**/*.sqlite3-shm;**/*.sqlite3-journal</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <!--
     Do NOT gate this UsingTask on Exists(...Rask.TypeScript.Tasks.dll) — the same rule
     Rask.Wasm.targets states for its own task, and for the same reason.
 

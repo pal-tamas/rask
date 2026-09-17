@@ -9,6 +9,16 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **`rask dev` no longer reacts to the app's own SQLite files.** `dotnet watch` watches the whole project
+  folder, not just `@(Watch)`: it accepts a change to any file `DefaultItemExcludes` does not match, and a file
+  ADDED there costs a full project re-evaluation (design-time build and restore) plus a hot reload pass. The
+  batteries open `app.db` and `logs.db` in WAL mode beside the project, so every start and every restart
+  created `app.db-wal`, `app.db-shm`, `logs.db-wal` and `logs.db-shm`, and the watcher answered each time with
+  "Files added: ./app.db-shm, ./logs.db-shm" and another reload of the project. `Rask.Core.targets` now adds
+  SQLite's `-wal`, `-shm` and `-journal` files (for `.db`, `.sqlite` and `.sqlite3`) to `DefaultItemExcludes`,
+  the list the watcher honours. The database file itself stays an ordinary item, so a seed database copied to
+  the output still works. `ScopedAssetWatchTests` fails if the sidecars reach the default items again.
+
 - **`rask dev` on macOS stopped asking for your password on every run — and stopped falling back to localhost
   when it could not.** The port-443 redirect it loads into pf does not survive a reboot, so `rask dev` records
   the boot it loaded it on and reloads after a new one. It compared that record to `sysctl kern.boottime` as a
@@ -157,6 +167,14 @@ them until tagged releases begin.
   remember it. `UiNavTab` gains `Icon`, `Badge`/`BadgeTone`, `Match`/`MatchPrefix`, and works `Active` out from the
   route when it is unset — as `UiNavItem` already did. `UiBrand` gains `Logo` for a real image mark; `UiTopBar`
   gains `Sticky` and `Class`; `UiMain` gains `Container` and `Class`; `UiNavList` gains `Outline`.
+- **Flux UI's chart: new `UiChart`.** `UiChart.Data(rows).Label(...)[c => [c.X(...), c.Line(...), c.Area(...),
+  c.Bar(...)]]` draws lines, areas and bars as SVG on the server — no script, no chart library. The series arrive
+  through a factory whose parameter is the chart, as `UiDataGrid`'s columns do, so each lambda has its row type;
+  they read a `double`, `decimal`, `int` or `long` without a cast and share one value axis with round ends and zero
+  on it, and take `Label` and `Tone` (the next colour in turn when unset). `Format`, `Min`, `Max`, `Legend` and
+  `Grid` tune it. The plot stretches to its box with strokes that keep their width, the axis labels are HTML so they
+  never stretch, hovering a column shows its values in CSS, and a visually hidden table carries every value for a
+  screen reader while the drawing itself is hidden from one.
 - **Flux UI's command palette: new `UiCommand`.** `UiCommand.Label("Search commands").Shortcut("mod+k")[UiMenuItem…]`
   is a search field that opens a modal dialog of commands — the same `UiMenuItem`s a dropdown takes, with their
   `Icon`, `Kbd`, `Href`, `OnClick`, `Tone` and `Disabled`, arranged by `UiMenuGroup` and `UiMenuSeparator`. Typing
