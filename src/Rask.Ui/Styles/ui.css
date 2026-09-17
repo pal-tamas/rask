@@ -1266,3 +1266,26 @@
     animation: none;
   }
 }
+
+/*
+  A shortcut in the reader's platform's words (UiCommand.Shortcut).
+
+  The server cannot know whether the reader is on a Mac, so the kit renders both — ⌘K and Ctrl K — and the runtime
+  marks <html> with data-rask-mac on one. Until the runtime has run, a page shows the non-Mac form, which is also
+  what a reader without scripts gets.
+
+  A command palette's "No results" row, shown only while the list holds no option: CSS reading the list, so there
+  is no count to keep in step with what the filter left.
+
+  In `rask-ui-corrections` because daisyUI's `.kbd` display and `.menu li` rules live in `utilities`.
+*/
+@layer rask-ui-corrections {
+  :root[data-rask-mac] .ui-kbd-other,
+  :root:not([data-rask-mac]) .ui-kbd-mac {
+    display: none;
+  }
+
+  .ui-command-list:has([role="option"]) > .ui-command-empty {
+    display: none;
+  }
+}

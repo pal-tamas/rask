@@ -30,7 +30,9 @@ internal sealed class UiMenuScope(
     int active,
     IReadOnlySet<int> openSubs,
     bool keepOpen,
-    Func<int, Task> toggleSub)
+    Func<int, Task> toggleSub,
+    string? query = null,
+    bool options = false)
 {
     private readonly List<UiMenuEntry> _entries = [];
 
@@ -51,6 +53,26 @@ internal sealed class UiMenuScope(
 
     /// <summary>The element id of the entry at <paramref name="ordinal" />, which aria-activedescendant names.</summary>
     internal string ItemId(int ordinal) => prefix + "-mi-" + ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    /// <summary>
+    ///     Whether the entries are a <c>listbox</c>'s <c>option</c>s rather than a menu's items — a command palette,
+    ///     where focus stays in the search box and the list is what it controls.
+    /// </summary>
+    internal bool AsOptions => options;
+
+    /// <summary>Whether a query is narrowing the list, which is when a separator has nothing left to separate.</summary>
+    internal bool Filtering => !string.IsNullOrEmpty(query);
+
+    /// <summary>
+    ///     Whether an entry with <paramref name="text" /> is filtered out by the query: case- and accent-insensitive,
+    ///     in the reader's culture, as <c>UiSelect.Searchable</c> matches.
+    /// </summary>
+    internal bool Hides(string text) =>
+        Filtering
+        && System.Globalization.CultureInfo.CurrentCulture.CompareInfo.IndexOf(
+            text,
+            query!,
+            System.Globalization.CompareOptions.IgnoreCase | System.Globalization.CompareOptions.IgnoreNonSpace) < 0;
 
     /// <summary>Takes the next ordinal for an entry rendering now.</summary>
     internal int Register(int parent, string text, bool disabled, bool isSub)

@@ -55,6 +55,18 @@ them until tagged releases begin.
   remember it. `UiNavTab` gains `Icon`, `Badge`/`BadgeTone`, `Match`/`MatchPrefix`, and works `Active` out from the
   route when it is unset — as `UiNavItem` already did. `UiBrand` gains `Logo` for a real image mark; `UiTopBar`
   gains `Sticky` and `Class`; `UiMain` gains `Container` and `Class`; `UiNavList` gains `Outline`.
+- **Flux UI's command palette: new `UiCommand`.** `UiCommand.Label("Search commands").Shortcut("mod+k")[UiMenuItem…]`
+  is a search field that opens a modal dialog of commands — the same `UiMenuItem`s a dropdown takes, with their
+  `Icon`, `Kbd`, `Href`, `OnClick`, `Tone` and `Disabled`, arranged by `UiMenuGroup` and `UiMenuSeparator`. Typing
+  narrows them in C#, case- and accent-insensitively, and a command that does not match is not rendered; the search
+  box is a `combobox` over a `listbox` of `option`s, so focus stays in it while the arrows move the highlight, and
+  Enter presses the highlighted command and closes the palette. The field shows the shortcut as ⌘K on a Mac and
+  Ctrl K elsewhere.
+  - **Runtime:** three generic hooks. `data-rask-shortcut="mod+k"` clicks its element when the combination is
+    pressed anywhere on the page (`mod` is ⌘ on a Mac, Ctrl elsewhere; an unmodified shortcut does not fire while
+    typing), and marks a Mac with `data-rask-mac` on `<html>`. `data-rask-press-active` makes Enter click the
+    element a combobox's `aria-activedescendant` names. `data-rask-close-on-pick` closes a dialog after a click on
+    an option in it has reached its handler.
 - **Flux UI's date picking: several days, a range, and `UiDatePicker`.** `UiCalendar` binds a collection of days
   (`List<DateOnly>`, `HashSet<DateOnly>`, … or `.Values([...])`) or a new `UiDateRange(Start, End)` (or
   `.Value(new UiDateRange(a, b))`) as well as one `DateOnly`, and the bound type decides the control, as it does

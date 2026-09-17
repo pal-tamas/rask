@@ -1172,7 +1172,8 @@ export function applyFrameInvokes(
 //
 // Files only: dragging a row of an in-page sortable list across a drop area is not an offer to upload it.
 (function installRaskDropzone() {
-    if (typeof document === "undefined" || typeof window === "undefined" || window.__raskDropzone) {
+    if (typeof document === "undefined" || typeof document.addEventListener !== "function"
+        || typeof window === "undefined" || window.__raskDropzone) {
         return;
     }
     window.__raskDropzone = true;
@@ -1237,7 +1238,8 @@ export function applyFrameInvokes(
 //
 // An engine without the popover API keeps the browser's own menu: nothing is prevented that cannot be replaced.
 (function installRaskContextMenu() {
-    if (typeof document === "undefined" || typeof window === "undefined" || window.__raskContextMenu) {
+    if (typeof document === "undefined" || typeof document.addEventListener !== "function"
+        || typeof window === "undefined" || window.__raskContextMenu) {
         return;
     }
     window.__raskContextMenu = true;
@@ -1302,4 +1304,136 @@ export function applyFrameInvokes(
         vars.setProperty("--rask-context-x", fitX + "px");
         vars.setProperty("--rask-context-y", fitY + "px");
     }
+})();
+
+// ----- Keyboard shortcuts (data-rask-shortcut) ---------------------------
+// An element carrying data-rask-shortcut="mod+k" is CLICKED when that combination is pressed anywhere on the
+// page — so whatever the element does on a click (open a dialog through its invoker command, run its handler,
+// follow its link) is what the shortcut does, and nothing has to be wired twice. `mod` is ⌘ on a Mac and Ctrl
+// elsewhere; ctrl, alt, shift and meta are themselves. Case-insensitive, one key.
+//
+// A shortcut with no modifier does not fire while the reader is typing in a field, where the key is a character
+// they meant. A disabled or disconnected element is never pressed. The first matching element on the page wins,
+// and the browser's own handling of the combination is prevented only when one did.
+//
+// The same install marks <html> with data-rask-mac on a Mac, which is how a stylesheet shows ⌘K there and Ctrl K
+// everywhere else: the server rendering the page cannot know what the reader is holding.
+(function installRaskShortcuts() {
+    // The same guard as every block in this file: the module is loaded in Node by the runtime fixtures, where there
+    // is a stub document at most — and Node DOES have a navigator, whose platform on a Mac says so.
+    if (typeof document === "undefined" || typeof document.addEventListener !== "function"
+        || typeof window === "undefined" || window.__raskShortcuts) {
+        return;
+    }
+    window.__raskShortcuts = true;
+
+    const nav = typeof navigator !== "undefined" ? navigator : null;
+    const mac = !!nav && /Mac|iPhone|iPad|iPod/.test(nav.platform || nav.userAgent || "");
+    const root = document.documentElement;
+    if (mac && root && typeof root.setAttribute === "function") {
+        root.setAttribute("data-rask-mac", "");
+    }
+
+    function matches(spec: string, e: KeyboardEvent): boolean {
+        const parts = spec.toLowerCase().split("+").map(function (p) { return p.trim(); }).filter(Boolean);
+        const key = parts.pop();
+        if (!key || e.key.toLowerCase() !== key) {
+            return false;
+        }
+        let ctrl = false;
+        let meta = false;
+        let alt = false;
+        let shift = false;
+        for (const part of parts) {
+            if (part === "mod") {
+                if (mac) meta = true; else ctrl = true;
+            } else if (part === "ctrl") {
+                ctrl = true;
+            } else if (part === "meta") {
+                meta = true;
+            } else if (part === "alt") {
+                alt = true;
+            } else if (part === "shift") {
+                shift = true;
+            } else {
+                return false;
+            }
+        }
+        return e.ctrlKey === ctrl && e.metaKey === meta && e.altKey === alt && e.shiftKey === shift;
+    }
+
+    function typing(target: EventTarget | null): boolean {
+        return target instanceof HTMLElement
+            && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
+    }
+
+    document.addEventListener("keydown", function (e: KeyboardEvent) {
+        if (e.repeat || !e.key) {
+            return;
+        }
+        const plain = !e.ctrlKey && !e.metaKey && !e.altKey;
+        for (const el of document.querySelectorAll("[data-rask-shortcut]")) {
+            if (!(el instanceof HTMLElement) || !matches(el.getAttribute("data-rask-shortcut") || "", e)) {
+                continue;
+            }
+            if ((plain && typing(e.target)) || el.hasAttribute("disabled")) {
+                return;
+            }
+            e.preventDefault();
+            el.click();
+            return;
+        }
+    });
+})();
+
+// ----- Command palettes (data-rask-press-active, data-rask-close-on-pick) --
+// A combobox over a list of COMMANDS, rather than a list of values: Enter has to do whatever the highlighted
+// option does — run its handler, follow its link — and only a click reaches either, since C# cannot follow an
+// href. So Enter on an element carrying data-rask-press-active clicks the element its aria-activedescendant names,
+// unless that one is aria-disabled. The combobox block above already keeps Enter from submitting a form.
+//
+// And a pick closes the palette: a click on an [role=option] inside [data-rask-close-on-pick] closes that dialog —
+// after the click has reached its own handler, not before, or focus would leave the option ahead of it.
+(function installRaskCommandPalette() {
+    if (typeof document === "undefined" || typeof document.addEventListener !== "function"
+        || typeof window === "undefined" || window.__raskCommandPalette) {
+        return;
+    }
+    window.__raskCommandPalette = true;
+
+    document.addEventListener("keydown", function (e: KeyboardEvent) {
+        if (e.key !== "Enter" || e.isComposing) {
+            return;
+        }
+        const box = e.target instanceof Element ? e.target.closest("[data-rask-press-active]") : null;
+        const id = box ? box.getAttribute("aria-activedescendant") : null;
+        const option = id ? document.getElementById(id) : null;
+        if (!option || option.getAttribute("aria-disabled") === "true") {
+            return;
+        }
+        e.preventDefault();
+        option.click();
+    });
+
+    document.addEventListener("click", function (e: MouseEvent) {
+        const option = e.target instanceof Element ? e.target.closest("[role=option]") : null;
+        const host = option ? option.closest("[data-rask-close-on-pick]") : null;
+        if (!option || !host || option.getAttribute("aria-disabled") === "true") {
+            return;
+        }
+        window.setTimeout(function () {
+            try {
+                if (host instanceof HTMLDialogElement && host.open) {
+                    host.close();
+                    return;
+                }
+                const popover = host as HTMLElement & { hidePopover?: () => void };
+                if (host.matches(":popover-open") && typeof popover.hidePopover === "function") {
+                    popover.hidePopover();
+                }
+            } catch (err) {
+                // already gone
+            }
+        }, 0);
+    });
 })();

@@ -185,7 +185,9 @@ button opens it; a pick closes the popover the menu sits in unless the row or th
 trigger. Rask UI's `UiDropdown` builds on this, with `menuitem`, `menuitemcheckbox` and `menuitemradio` rows. `UiContextMenu` is the
 same menu opened by a right-click: the runtime shows its popover at the pointer (`data-rask-contextmenu`), the
 ContextMenu key and Shift+F10 open it at the focused element, and focus goes back where it was when it closes —
-so give its target something focusable, or a keyboard user has no way in.
+so give its target something focusable, or a keyboard user has no way in. `UiCommand`, the command palette,
+is the combobox pattern instead: focus stays in its search box, the commands are the `option`s of the `listbox` it
+controls, the highlighted one is `aria-activedescendant` and says `aria-selected="true"`, and Enter presses it.
 
 A `[popover]` carrying `data-rask-popover-open="true"|"false"` is shown or hidden to match whenever the attribute
 changes — how a controlled menu opens from C#, which cannot call `showPopover()`.

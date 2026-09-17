@@ -39,7 +39,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         // below, on the floating element itself.
         foreach (var id in new[]
                  {
-                     "ui-button", "ui-dropdown", "ui-context-menu", "ui-modal", "ui-modal-popover", "ui-swap",
+                     "ui-button", "ui-dropdown", "ui-context-menu", "ui-command", "ui-modal", "ui-modal-popover", "ui-swap",
                      "ui-theme-controller",
                  })
         {
@@ -276,6 +276,68 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
 
         await Page.Keyboard.PressAsync("Escape");
         await Expect(panel).ToBeHiddenAsync();
+    });
+
+    [Fact]
+    public Task TheShortcutOpensThePaletteAndEnterRunsTheNarrowedCommand() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-command']");
+        var dialog = scope.Locator("dialog");
+        await Expect(scope.Locator("[data-rask-shortcut]")).ToBeVisibleAsync(
+            new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+
+        // The hook is installed when the runtime loads, so press until it is there to answer.
+        for (var attempt = 0; attempt < 10 && !await dialog.IsVisibleAsync(); attempt++)
+        {
+            await Page.Keyboard.PressAsync("ControlOrMeta+k");
+            await Page.WaitForTimeoutAsync(300);
+        }
+
+        await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        var box = dialog.GetByRole(AriaRole.Combobox);
+        await Expect(box).ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 10_000 });
+
+        await box.PressSequentiallyAsync("copy");
+        await Expect(dialog.GetByRole(AriaRole.Option)).ToHaveCountAsync(1,
+            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        await Expect(box).ToHaveAttributeAsync("aria-activedescendant",
+            (await dialog.GetByRole(AriaRole.Option).GetAttributeAsync("id"))!);
+
+        await Page.Keyboard.PressAsync("Enter");
+
+        await Expect(Page.Locator("[data-testid='ui-actions-log']")).ToContainTextAsync("copied the invoice link",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        await Expect(dialog).ToBeHiddenAsync();
+    });
+
+    [Fact]
+    public Task ThePaletteFieldOpensItAndTheArrowsSkipADisabledCommand() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-command']");
+        var field = scope.Locator("[data-rask-shortcut]");
+        await field.ScrollIntoViewIfNeededAsync();
+        await field.ClickAsync();
+
+        var dialog = scope.Locator("dialog");
+        await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        var box = dialog.GetByRole(AriaRole.Combobox);
+        await Expect(box).ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 10_000 });
+
+        async Task<string> HighlightedAsync() =>
+            await box.EvaluateAsync<string>(
+                "b => { const r = document.getElementById(b.getAttribute('aria-activedescendant') || ''); "
+                + "return r ? r.textContent.trim() : ''; }");
+
+        await Page.Keyboard.PressAsync("ArrowDown");
+        // "Export all" is disabled, so one step from "New invoice" lands past it.
+        await WaitForCursorAsync(HighlightedAsync, "Copy invoice link");
+
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(dialog).ToBeHiddenAsync();
     });
 
     [Fact]
