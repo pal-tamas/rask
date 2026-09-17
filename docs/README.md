@@ -58,7 +58,7 @@ in the [Tutorial](tutorial/00-overview.md); the reference for each is here.
 
 | Guide | What it covers |
 |-------|----------------|
-| [Rask.Data](data.md) | Declare an `Aggregate<TId>` and nothing else: reads and writes off the type (`Product.Where(…)`, `Product.CreateAsync(model)`), generated form models (`ProductModel`), value objects with no marker, audit stamps, soft delete, optimistic concurrency, domain events and ranked full-text search (`Product.Search(text)`). |
+| [Rask.Data](data.md) | Declare an `Aggregate<TId>` and nothing else: writes off the type (`Product.CreateAsync(model)`), reads off its generated read face (`Product.Read.Where(…)`) whose navigations are inferred from the ids the aggregates hold, generated form models (`ProductModel`), value objects with no marker, audit stamps, soft delete, optimistic concurrency, domain events and ranked full-text search (`Product.Read.Search(text)`). |
 | [Data access (EF Core)](data-access.md) | Plain EF Core + SQLite with a `DbContext` of your own: `IDbContextFactory`, loading in the lifecycle, vertical slices, a DDD aggregate + value objects, and the SQLite decimal gotcha. |
 | [SQLite production pragmas](sqlite.md) | Production SQLite via `UseRaskSqlite` / `AddRaskSqlite` (standalone `Rask.SQLite`): WAL, `foreign_keys`, `busy_timeout` & friends applied on every connection open, STRICT tables, FTS5 full-text search through EF Core, plus Litestream backup. |
 | [CQRS](cqrs.md) | Source-generated, trim-safe queries / commands / notifications and pipeline behaviors via `AddRaskCqrs()` + `IDispatcher` (standalone `Rask.Cqrs`). |

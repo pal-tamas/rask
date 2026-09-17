@@ -13,10 +13,11 @@ namespace Rask.Data;
 ///         <c>internal</c> member. Not an API to write against: call the members on the model type.
 ///     </para>
 ///     <para>
-///         Each write makes one change through the change tracker — so the auditing, soft-delete and
-///         domain-event interceptors all see it — and saves. Without a context it opens one and disposes it
-///         afterwards; handed one, it works in that context, saves it, and leaves it open, so the write joins
-///         whatever transaction the caller started there.
+///         Each write makes one change through the change tracker, so the auditing, soft-delete and
+///         domain-event interceptors all see it. <b>Who saves depends on who owns the context.</b> Without one
+///         the write opens its own, saves, and disposes it — the whole write is one transaction. Handed one,
+///         the write only STAGES its change and returns: the caller saves, which is what makes several writes
+///         on one context a single transaction with no explicit transaction to start.
 ///     </para>
 /// </remarks>
 [EditorBrowsable(EditorBrowsableState.Never)]
@@ -25,11 +26,15 @@ public static class GeneratedModelWrites
     /// <summary>Inserts <paramref name="entity" />.</summary>
     /// <param name="entity">The entity to insert.</param>
     /// <param name="db">
-    ///     The context to insert through, or <c>null</c> to open one. A given context is saved — with anything
-    ///     else pending on it — and is not disposed.
+    ///     The context to insert through, or <c>null</c> to open one. A given context is only STAGED — the
+    ///     caller saves it, and it is not disposed.
     /// </param>
     /// <param name="cancellationToken">Cancels the save.</param>
-    /// <returns>The inserted entity, with any store-generated key filled in.</returns>
+    /// <returns>
+    ///     The inserted entity. Its store-generated key is filled in only once the row is saved, so with
+    ///     <paramref name="db" /> given an integer key is still 0 until the caller saves; a Guid key was
+    ///     assigned before the insert and is already there.
+    /// </returns>
     public static Task<TEntity> CreateAsync<TEntity>(
         TEntity entity,
         DbContext? db = null,
@@ -38,12 +43,11 @@ public static class GeneratedModelWrites
     {
         ArgumentNullException.ThrowIfNull(entity);
 
-        return InContextAsync(db, async context =>
+        return InContextAsync(db, context =>
         {
             context.Add(entity);
-            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-            return entity;
-        });
+            return Task.FromResult(entity);
+        }, cancellationToken);
     }
 
     /// <summary>
@@ -57,8 +61,8 @@ public static class GeneratedModelWrites
     /// </param>
     /// <param name="apply">Sets the caller's values on the loaded entity.</param>
     /// <param name="db">
-    ///     The context to load and save through, or <c>null</c> to open one. A given context is saved — with
-    ///     anything else pending on it — and is not disposed; a row it already tracks is the one updated.
+    ///     The context to load and change through, or <c>null</c> to open one. A given context is only STAGED
+    ///     — the caller saves it, and it is not disposed; a row it already tracks is the one updated.
     /// </param>
     /// <param name="cancellationToken">Cancels the load and the save.</param>
     /// <returns>The updated entity.</returns>
@@ -82,9 +86,8 @@ public static class GeneratedModelWrites
             ExpectVersion(context, entity, version);
             apply(entity);
 
-            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             return entity;
-        });
+        }, cancellationToken);
     }
 
     /// <summary>
@@ -97,8 +100,8 @@ public static class GeneratedModelWrites
     ///     current version is.
     /// </param>
     /// <param name="db">
-    ///     The context to load and save through, or <c>null</c> to open one. A given context is saved — with
-    ///     anything else pending on it — and is not disposed.
+    ///     The context to load and delete through, or <c>null</c> to open one. A given context is only STAGED
+    ///     — the caller saves it, and it is not disposed.
     /// </param>
     /// <param name="cancellationToken">Cancels the load and the save.</param>
     /// <exception cref="KeyNotFoundException">No row has <paramref name="key" /> (or it is soft-deleted).</exception>
@@ -119,13 +122,48 @@ public static class GeneratedModelWrites
             ExpectVersion(context, entity, version);
             context.Remove(entity);
 
-            return await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        });
+            return entity;
+        }, cancellationToken);
     }
 
-    // The one place the "given or owned" rule lives: a caller's context is theirs to dispose, one opened here
-    // is disposed here — including when the write throws.
-    private static async Task<TResult> InContextAsync<TResult>(DbContext? db, Func<DbContext, Task<TResult>> write)
+    /// <summary>
+    ///     Loads the aggregate with <paramref name="key" /> whole and untracked — what
+    ///     <c>Product.ModelAsync(id)</c> fills a form from.
+    /// </summary>
+    /// <param name="key">The primary key of the row to load.</param>
+    /// <param name="db">The context to read through, or <c>null</c> to open one. A given context is not disposed.</param>
+    /// <param name="cancellationToken">Cancels the load.</param>
+    /// <returns>The aggregate and its children, or <c>null</c> when no row has that key.</returns>
+    /// <remarks>
+    ///     Not a read-face query: the form model keeps value objects nested and its children as child MODELS,
+    ///     while the read face is flat primitives. This loads the aggregate itself so the generated fill can
+    ///     be reused verbatim, which is also why there is exactly one mapping to keep right.
+    /// </remarks>
+    public static async Task<TEntity?> ModelSourceAsync<TEntity>(
+        object key,
+        DbContext? db = null,
+        CancellationToken cancellationToken = default)
+        where TEntity : class, IAggregate
+    {
+        ArgumentNullException.ThrowIfNull(key);
+
+        if (db is not null)
+        {
+            return await AggregateLoad.FindAsync<TEntity>(db, [key], cancellationToken).ConfigureAwait(false);
+        }
+
+        await using var context = Db.CreateContext();
+        return await AggregateLoad.FindAsync<TEntity>(context, [key], cancellationToken).ConfigureAwait(false);
+    }
+
+    // The one place the "given or owned" rule lives, and it decides BOTH questions: a caller's context is
+    // theirs to dispose and theirs to save, one opened here is disposed and saved here — including when the
+    // write throws. That is what makes `db:` mean "the caller owns the unit of work": two writes staged on one
+    // context commit together under the caller's single SaveChangesAsync, with no transaction to start by hand.
+    private static async Task<TResult> InContextAsync<TResult>(
+        DbContext? db,
+        Func<DbContext, Task<TResult>> write,
+        CancellationToken cancellationToken)
     {
         if (db is not null)
         {
@@ -133,7 +171,10 @@ public static class GeneratedModelWrites
         }
 
         await using var context = Db.CreateContext();
-        return await write(context).ConfigureAwait(false);
+        var result = await write(context).ConfigureAwait(false);
+
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return result;
     }
 
     // Tracked, and whole: a write that applied a change to a collection which had not been loaded would see an

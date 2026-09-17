@@ -48,13 +48,13 @@ public sealed class SendOrderReceiptHandler : ICommandHandler<SendOrderReceipt>
 {
     public async Task HandleAsync(SendOrderReceipt job, CancellationToken ct)
     {
-        var order = await Order.FindAsync(job.OrderId, ct);
+        var order = await Order.Read.Where(o => o.Id == job.OrderId).FirstOrDefaultAsync(ct);
         // … process the order …
     }
 }
 ```
 
-There's nothing to inject for that read. `Order.FindAsync` opens its own context and disposes it before it
+There's nothing to inject for that read. `Order.Read` opens its own context and disposes it before it
 returns, which is as right on a background worker as it is on a page.
 
 ## 2. What's already wired

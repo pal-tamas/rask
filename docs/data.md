@@ -6,11 +6,19 @@
 all**. No `DbContext` class, no `DbSet` property, no `IEntityTypeConfiguration`, no registration, and
 no `IDbContextFactory` injected into every page that reads a row.
 
-Underneath it is ordinary EF Core, and nothing is hidden from you. **The aggregate type reads and writes**:
-`Product.Where(…)`, `Product.CreateAsync(model)`, `Product.UpdateAsync(id, model)`, `Product.DeleteAsync(id)`
-([below](#writing-create-update-delete)). Anything richer is EF Core exactly as you know it, a domain method
+Underneath it is ordinary EF Core, and nothing is hidden from you. **The aggregate type writes**:
+`Product.CreateAsync(model)`, `Product.UpdateAsync(id, model)`, `Product.DeleteAsync(id)`
+([below](#writing-create-update-delete)). **Its read face queries**: `Product.Read.Where(…)`
+([below](#reading-the-read-face)). Anything richer is EF Core exactly as you know it, a domain method
 saved through a context ([below](#writing-plain-ef-core)), and an app that outgrows the conventions writes its
 own context and Rask steps aside ([below](#using-ef-core-the-usual-way)).
+
+**Why two faces and not one.** An aggregate is a consistency boundary, and it holds another aggregate's *id*
+and never a navigation to it — that is what stops a write crossing a boundary by accident, and
+[RASK087](diagnostics.md#rask087) enforces it. A query that reached across a boundary from the write side
+would be that border failing. So reading moves to a generated **read face** — primitives, no behaviour, not in
+the write context — which carries the navigations the aggregate is not allowed to have. **The border is on
+the write side only; the read side has none.**
 
 > Included in the [`Rask`](../README.md) package, so there is nothing to install. It is **on**; an app that does without it says so:
 >
@@ -42,13 +50,18 @@ public sealed class Product : Aggregate<Guid>
 ```
 
 That compiles into a mapped table, a generated `ProductModel` [for its forms](#a-create-and-an-edit-form),
-and everything a screen needs to read it:
+a `db.Products` accessor on any `DbContext`, and a read face — `ProductRead`, reached as `Product.Read` —
+which is everything a screen needs:
 
 ```csharp
-var cheap = await Product.Where(p => p.Price.Amount < 10).OrderBy(p => p.Name).ToListAsync();
-var anvil = await Product.FindAsync(id);
-var grid  = Product.OrderBy(p => p.Name).AsQueryable();   // for UiDataGrid, sorted and paged in SQL
+var cheap = await Product.Read.Where(p => p.PriceAmount < 10).OrderBy(p => p.Name).ToListAsync();
+var anvil = await Product.Read.Where(p => p.Id == id).FirstOrDefaultAsync();
+var grid  = Product.Read.OrderBy(p => p.Name).AsQueryable();   // for UiDataGrid, sorted and paged in SQL
 ```
+
+Note `p.PriceAmount`: the read face is **primitives**, so the `Money Price` value object arrives as the two
+columns it is stored in. That is the whole of the translation — [the read face](#reading-the-read-face) has
+the rules.
 
 And to write it, from a form, from code, or inside a transaction you already hold:
 
@@ -148,16 +161,19 @@ public sealed class OrderLine : Entity<Guid>
 }
 ```
 
-**Loading one root loads it whole.** `FindAsync(id)`, and every write that starts from an id, bring the
-children with them. A *query* does not — listing a thousand orders should not drag in every line each of them
-holds, so ask for what you want:
+**Loading one root loads it whole.** Every write that starts from an id brings the children with it, and so
+does `db.Orders.FindAsync(id)`. On the read face the children are an ordinary navigation, so you ask for them
+when you want them — listing a thousand orders should not drag in every line each of them holds:
 
 ```csharp
-var order = await Order.FindAsync(id);                   // Lines loaded
-await Order.UpdateAsync(id, o => o.Add("anvil", 1));     // loaded, changed, saved
+await Order.UpdateAsync(id, o => o.Add("anvil", 1));                 // loaded whole, changed, saved
 
-var open = await Order.Where(o => o.Reference.StartsWith("2026")).ToListAsync();   // Lines EMPTY
-var withLines = await Order.All.QueryAsync((q, ct) => q.Include(o => o.Lines).ToListAsync(ct));
+var open = await Order.Read.Where(o => o.Reference.StartsWith("2026")).ToListAsync();   // Lines EMPTY
+var withLines = await Order.Read.QueryAsync((q, ct) => q.Include(o => o.Lines).ToListAsync(ct));
+
+// …and a child is queryable on its own, because the read side has no borders:
+var heavy = await OrderLine.Read.Where(l => l.Quantity > 10 && l.Order.Reference.StartsWith("2026"))
+                               .ToListAsync();
 ```
 
 **A change to any part is a change to the whole.** A line's quantity moving stamps the order's `UpdatedAt` and
@@ -200,34 +216,96 @@ navigation, unreachable through the aggregate, and impossible to delete through 
 Soft-deleting the aggregate is different, and deliberately so: `Order.DeleteAsync(id)` stamps `DeletedAt` rather
 than removing the row, so nothing cascades and the lines are still there if the order comes back.
 
-The child gets a table, `CreatedAt` and `UpdatedAt`, and a model so its parent's form can carry it. It gets no
-reads or writes of its own: there is no `OrderLine.Where(…)`, no `OrderLine.CreateAsync`, no version and no
-soft delete, because it is not a thing you load on its own. A collection of another **aggregate** is not a
-child at all ([RASK087](diagnostics.md#rask087)), and a collection Rask cannot write is
-[RASK088](diagnostics.md#rask088).
+The child gets a table, `CreatedAt` and `UpdatedAt`, a model so its parent's form can carry it, and a read
+face of its own — `OrderLine.Read` — because the read side has no borders. It gets no **writes** of its own:
+there is no `OrderLine.CreateAsync`, no version and no soft delete, because it is not a thing you save on its
+own. A collection of another **aggregate** is not a child at all ([RASK087](diagnostics.md#rask087)), and a
+collection Rask cannot write is [RASK088](diagnostics.md#rask088).
 
-## Reading: the aggregate type is its own query
+## Reading: the read face
 
-Every aggregate gains the read half of `DbSet` as static members, so a query needs no context in scope:
+An aggregate is not a query surface. Querying goes through its generated **read face** — `Product.Read`,
+which returns rows of `ProductRead`:
 
 ```csharp
-await Product.All.ToListAsync();
-await Product.Where(p => p.Active).OrderBy(p => p.Name).ToListAsync();
-await Product.Where(p => p.Price > 10).OrderByDescending(p => p.Price).Skip(20).Take(20).ToListAsync();
-await Product.Include(p => p.Reviews).Where(p => p.Active).ToListAsync();
-await Product.OrderBy(p => p.Name).Select(p => p.Name).ToListAsync();   // reads one column
-await Product.All.IgnoreQueryFilters().ToListAsync();                   // soft-deleted rows too
-await Product.FindAsync(id);
-await Product.FirstOrDefaultAsync(p => p.Name == "Anvil");
-await Product.CountAsync(p => p.Active);
-await Product.AnyAsync();
-await Product.Search("red anvil").Take(20).ToListAsync();           // full-text, best match first
-await foreach (var p in Product.AsAsyncEnumerable()) { }
+await Product.Read.ToListAsync();
+await Product.Read.Where(p => p.Active).OrderBy(p => p.Name).ToListAsync();
+await Product.Read.Where(p => p.PriceAmount > 10).OrderByDescending(p => p.PriceAmount).Skip(20).Take(20).ToListAsync();
+await Product.Read.OrderBy(p => p.Name).Select(p => p.Name).ToListAsync();   // reads one column
+await Product.Read.IgnoreQueryFilters().ToListAsync();                       // soft-deleted rows too
+await Product.Read.Where(p => p.Id == id).FirstOrDefaultAsync();             // by id
+await Product.Read.FirstOrDefaultAsync(p => p.Name == "Anvil");
+await Product.Read.CountAsync(p => p.Active);
+await Product.Read.AnyAsync();
+await Product.Read.Search("red anvil").Take(20).ToListAsync();               // full-text, best match first
+await foreach (var p in Product.Read.AsAsyncEnumerable()) { }
 ```
 
-These are C# 14 static extension members over `Aggregate<TId>`, which is why nothing has to be declared or
-derived from a second base. A member declared on the aggregate itself always wins, so your own `Find` is
-untouched.
+`Read` is a C# 14 static extension member, which is why nothing has to be declared or derived from a second
+base. A member declared on the aggregate itself always wins, so your own `Read` would be untouched.
+
+### What the read face is
+
+One is generated for **every mapped entity**, children included — the read side has no borders, so a part is
+queryable on its own even though it is only writable through its root.
+
+**A read face is generated into the assembly that DECLARES the aggregate**, the same as the form model and
+the writes. Your own aggregates have one. An aggregate a *package* declares — Rask.Auth's `Session` and
+`Passkey` — has one only if that package generates it, so reach those through the context
+(`db.Set<Session>()`), which is how every battery-owned table is reached.
+
+| On the aggregate | On the read face |
+|---|---|
+| `string Name` | `string Name` — unchanged |
+| `Money Price` (value object) | `decimal PriceAmount`, `string PriceCurrency` — **flattened to its columns** |
+| `OrderStatus Status` (enum) | `OrderStatus Status` — one column, unchanged |
+| `Guid CustomerId` | `Guid CustomerId`, **and** `CustomerRead Customer` — the navigation, inferred |
+| `IReadOnlyCollection<OrderLine> Lines` | `IReadOnlyList<OrderLineRead> Lines` |
+| `bool IsShipped => …` (computed) | *dropped* — no column behind it |
+| `[NotMapped] string Display` | *dropped* |
+| every method, every domain event | *dropped* — there is nothing here to change or save |
+
+**Member names are C#-shaped; the columns are untouched.** `PriceAmount` maps to the existing `Price_Amount`
+column, so no migration is involved in any of this.
+
+**The navigations are inferred from the ids**, which is what gives the read side its freedom: you write the
+DDD-correct id on the aggregate and the join appears on the read face, having declared nothing.
+
+| Property on the aggregate | Target | Navigation |
+|---|---|---|
+| `Guid CustomerId` + a `Customer : Aggregate<Guid>` | exact name match | `Customer` |
+| `Guid? ShippedByUserId` + a `User : Aggregate<Guid>` | name *ends with* an aggregate's name | `ShippedByUser` (nullable) |
+| `Guid CustomerId`, no `Customer` aggregate | none | none — an ordinary `Guid` column |
+| `int CustomerId` + a `Customer : Aggregate<Guid>` | name matches, key type does not | none, **and [RASK089](diagnostics.md#rask089)** |
+| `Guid CustomerId` where two aggregates end in `Customer` | ambiguous | none, **and [RASK089](diagnostics.md#rask089)** |
+
+The navigation is named after the **property**, not the target, so two references to the same aggregate never
+collide. And it is the one thing the write model cannot do, so this is the join you came for:
+
+```csharp
+await Order.Read
+    .Where(o => o.Customer.Country == "HU"
+             && o.ShippedByUser!.Name == "ada"
+             && o.TotalAmount > 100
+             && o.Lines.Any(l => l.Product.Sku == "ANVIL"))
+    .OrderByDescending(o => o.ShippedAt)
+    .Select(o => new { o.Reference, Customer = o.Customer.Name, o.TotalAmount })
+    .ToListAsync();
+```
+
+Four aggregates in one statement, from a write model that holds nothing but ids.
+
+### There is no `Read.FindAsync`
+
+By id is the narrowest query, and it is spelled as one:
+
+```csharp
+var product = await Product.Read.Where(p => p.Id == id).FirstOrDefaultAsync();
+```
+
+Deliberately, there is no `FindAsync` beside it. EF Core's `Find` **bypasses query filters**, so it would
+return a soft-deleted row that `Where` hides — two spellings of one read, disagreeing about deleted rows. One
+spelling that is always right beats two that are usually the same.
 
 **Every read is untracked, and every read opens and disposes its own context.** Composing holds nothing
 open: the terminal call opens a context, runs, and disposes it before it returns — so this is a complete
@@ -235,7 +313,7 @@ statement anywhere, including a component's `OnMountAsync`:
 
 ```csharp
 protected override async Task OnMountAsync() =>
-    _products = await Product.Where(p => p.Active).OrderBy(p => p.Name).ToListAsync(CancellationToken);
+    _products = await Product.Read.Where(p => p.Active).OrderBy(p => p.Name).ToListAsync(CancellationToken);
 ```
 
 That is the shape a live page needs, not a default to tune. A Rask page lives as long as the browser
@@ -244,21 +322,18 @@ of entities — so nothing here holds one between calls, and there is no `AsTrac
 Most reads are rendered and never written back anyway, and tracking them would cost a graph walk and an
 identity-map entry to buy nothing.
 
-**The consequence to know:** a row that comes back is a plain object nothing is watching, so changing it
-and expecting a save does nothing. A change goes back through [a write on the type](#writing-create-update-delete)
-or [a context](#writing-plain-ef-core), and both load the entity they are about to change.
-
-`FindAsync(id)` is a read like the others: an untracked query by primary key, with the global query
-filters applied, so a soft-deleted row is not found. Its key is typed `object`, as EF Core's is, because
-a key may be composite — an overload takes the values of one.
+**The consequence is now in the type system.** A `ProductRead` has no behaviour and is not in the write
+context, so there is nothing on it to change and nothing that could save it. A change goes back through
+[a write on the type](#writing-create-update-delete) or [a context](#writing-plain-ef-core), and both load
+the entity they are about to change.
 
 For a shape this does not wrap — a group-by, a join, an aggregate — `QueryAsync` hands you the live
 `IQueryable` inside a managed context:
 
 ```csharp
-var byMonth = await Product.All.QueryAsync((q, ct) =>
+var byMonth = await Product.Read.QueryAsync((q, ct) =>
     q.GroupBy(p => p.CreatedAt.Month)
-     .Select(g => new { Month = g.Key, Total = g.Sum(p => p.Price) })
+     .Select(g => new { Month = g.Key, Total = g.Sum(p => p.PriceAmount) })
      .ToListAsync(ct));
 ```
 
@@ -266,7 +341,7 @@ var byMonth = await Product.All.QueryAsync((q, ct) =>
 
 A data grid composes its own LINQ — it sorts with `OrderBy`, pages with `Skip`/`Take`, counts with
 `Count()` — so what it wants is a standard `IQueryable<T>`, not a query somebody has to run.
-`Product.AsQueryable()` is that, and it holds no context either: **each time it is executed, a context is
+`Product.Read.AsQueryable()` is that, and it holds no context either: **each time it is executed, a context is
 opened for that one execution and disposed after it.** So it is safe to keep in a field for as long as
 the page lives:
 
@@ -274,15 +349,18 @@ the page lives:
 [Route("/products")]
 public sealed partial class ProductsPage : Component
 {
-    private readonly IQueryable<Product> _products = Product.Where(p => p.Price > 0).AsQueryable();
+    private readonly IQueryable<ProductRead> _products = Product.Read.Where(p => p.PriceAmount > 0).AsQueryable();
 
     protected override Component Render() =>
         UiDataGrid.Data(_products).RowKey(p => p.Id).PageSize(25)[c => [
             c.Field(p => p.Name).Title("Product").Sortable(true),
-            c.Field(p => p.Price).Title("Price").Sortable(true),
+            c.Field(p => p.PriceAmount).Title("Price").Sortable(true),
         ]];
 }
 ```
+
+A grid spanning two aggregates is possible for the first time here, because the read face carries the
+navigation: `c.Field(o => o.Customer.Name)` needs nothing declared.
 
 The grid's sort becomes `ORDER BY` and its page becomes `LIMIT`/`OFFSET`, in the database — the table
 never reaches memory, however large it is. A synchronous `Count()` and an awaited `ToListAsync()` both
@@ -294,10 +372,10 @@ extension methods, and EF applies them only to its own query provider — called
 `AsQueryable()` returns, they do nothing, silently. Put them on the model query, before the hand-off:
 
 ```csharp
-Product.Include(p => p.Reviews).AsQueryable();        // ✓ travels with the queryable
-Product.IgnoreQueryFilters().AsQueryable();           // ✓ soft-deleted rows too
+Product.Read.Include(p => p.Reviews).AsQueryable();        // ✓ travels with the queryable
+Product.Read.IgnoreQueryFilters().AsQueryable();           // ✓ soft-deleted rows too
 
-Product.AsQueryable().Include(p => p.Reviews);        // ✗ compiles, loads no reviews
+Product.Read.AsQueryable().Include(p => p.Reviews);        // ✗ compiles, loads no reviews
 ```
 
 ## Writing: create, update, delete
@@ -341,23 +419,58 @@ A create needs the parameterless constructor an aggregate has when it declares n
 constructor with arguments still gets `UpdateAsync` and `DeleteAsync`, and the build says why it has no
 `CreateAsync` ([RASK086](diagnostics.md#rask086)).
 
-### Joining a context you already have
+### Changing two aggregates together: `db:`
 
-Without a context, each write opens one, saves and disposes it, the same as a read. Pass `db:` and it works in
-**that** context instead: it saves it, with anything else pending there, and leaves it open, so writes to several
-aggregates share one transaction:
+**No `db:` means the write owns its unit of work; `db:` means you do.** Without a context, a write opens one,
+saves and disposes it. Pass `db:` and it **stages** its change in that context and returns — you save:
 
 ```csharp
 await using var db = await contexts.CreateDbContextAsync(ct);
-await using var transaction = await db.Database.BeginTransactionAsync(ct);
 
-var order = await Order.CreateAsync(orderModel, db: db, cancellationToken: ct);
-await StockItem.UpdateAsync(stockId, s => s.Reserve(quantity), db: db, cancellationToken: ct);
+var order = await Order.CreateAsync(orderModel, db: db, cancellationToken: ct);          // staged
+await StockItem.UpdateAsync(stockId, s => s.Reserve(quantity), db: db, cancellationToken: ct);   // staged
 
-await transaction.CommitAsync(ct);   // both rows, or (on an exception before this line) neither
+await db.SaveChangesAsync(ct);   // both rows, or neither
 ```
 
+There is no `BeginTransactionAsync` here, and there should not be: **one `SaveChangesAsync` is already one
+transaction.** Several writes staged on one context commit together by construction.
+
+This is also why a Rask app can change two aggregates at once without eventual consistency. Having had to
+load each root by its own id, the write is deliberate — and a local transaction is a better answer than a
+message for an app on one box. [Domain events](#keeping-state-inside-the-aggregate) remain there for when
+eventual consistency is genuinely what you want.
+
+Two things to know:
+
+- **A staged `CreateAsync` returns an entity that is not yet persisted.** A `Guid` key is already set (the
+  factory assigned it); a store-generated `int` key is `0` until you save.
+- **The concurrency check still works and is still automatic.** `UpdateAsync(id, model)` pins the original
+  `Version` from `model.Version`, and EF compares it at *your* save.
+
 A row that context already tracks is the one updated, not a second copy.
+
+### Named sets: `db.Orders`
+
+Every mapped entity also gets an accessor on `DbContext`, beside the `Set<T>()` that always worked:
+
+```csharp
+await using var db = await contexts.CreateDbContextAsync(ct);
+
+var order = await db.Orders.FindAsync([id], ct);   // children come with it
+if (order!.TotalAmount > limit) { order.Hold(); }
+
+await db.SaveChangesAsync(ct);
+```
+
+`db.Orders`, `db.OrderLines` — children too, since they are in the write context even though they are only
+*writable* through their root. These are extension members on `DbContext` itself, so an app that brings its
+own context gets them without the context having to be `partial`.
+
+The name comes from one documented rule — `s`, `es` after `s`/`x`/`z`/`ch`/`sh`, and `y` → `ies` after a
+consonant — and nothing cleverer, because an irregular guess is worse than a predictable one. A name two
+entities want, or one `DbContext` already declares, is [RASK090](diagnostics.md#rask090) rather than a silent
+rename.
 
 ### A create and an edit form
 
@@ -407,7 +520,7 @@ public sealed partial class EditProductPage(Navigator nav) : Component
     private string? _conflict;
 
     protected override async Task OnMountAsync() =>
-        _product = (await Product.FindAsync(Id, CancellationToken))?.ToModel();
+        _product = await Product.ModelAsync(Id, cancellationToken: CancellationToken);
 
     protected override Component? Render() =>
         _product is null ? P["Loading…"] :
@@ -434,9 +547,9 @@ public sealed partial class EditProductPage(Navigator nav) : Component
 }
 ```
 
-The list those pages link from is a [data grid](data-grid.md) over `Product.AsQueryable()`
-([above](#handing-a-query-to-a-component-asqueryable)): the rows are the aggregates, read-only, and each links to
-its edit page.
+The list those pages link from is a [data grid](data-grid.md) over `Product.Read.AsQueryable()`
+([above](#handing-a-query-to-a-component-asqueryable)): the rows are read faces, read-only by construction, and
+each links to its edit page.
 
 ### How a form save writes
 
@@ -578,9 +691,9 @@ public sealed partial class OrderPage(IDbContextFactory<RaskAppDbContext> contex
 }
 ```
 
-The one thing to remember is the one from [Reading](#reading-the-aggregate-type-is-its-own-query): rows from
-`Product.Where(…)` are untracked, so load the entity you are about to change from the context that is going
-to save it.
+The one thing to remember is the one from [Reading](#reading-the-read-face): a `ProductRead` is not a
+`Product` and nothing is tracking it, so load the entity you are about to change from the context that is
+going to save it.
 
 ### Keeping state inside the aggregate
 
@@ -624,7 +737,7 @@ the save, by name, rather than inserted with an empty key. A key you configured 
 (`ValueGeneratedOnAdd()`, a database default) is left as you set it.
 
 **One aggregate refers to another by id.** `Order` holds a `Guid ProductId`, not a `Product`: each aggregate is
-loaded and saved on its own, and a change that spans two is [one context](#joining-a-context-you-already-have).
+loaded and saved on its own, and a change that spans two is [one context, saved once](#changing-two-aggregates-together-db).
 
 ### Batch update and delete
 
@@ -696,14 +809,14 @@ await database.Context.SaveChangesAsync();
 anvil.Reprice(12.50m);
 await database.Context.SaveChangesAsync();   // stamped and versioned, exactly as in production
 
-Assert.Equal(12.50m, (await Product.FindAsync(anvil.Id))!.Price);
+Assert.Equal(12.50m, (await database.LoadAsync<Product>(anvil.Id))!.Price);
 ```
 
 ```csharp
 database.Context.AddRange(Order.Place("B-2"), Order.Place("B-3"));
 await database.Context.SaveChangesAsync();
 
-Assert.Equal(2, await Order.CountAsync());
+Assert.Equal(2, await Order.Read.CountAsync());
 ```
 
 `TestDatabase.StartAsync` maps every entity the build found — so no fixture has to list entities — creates the
@@ -864,7 +977,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : RaskD
 ```
 
 Over plain `DbContext` this compiles, boots and migrates with every entity silently absent, so the first
-`Product.Where(…)` or `Product.FindAsync(…)` throws saying the type is not part of the model. If you
+`Product.Read.Where(…)` throws saying the type is not part of the model. If you
 cannot change the base type — it is already someone else's — call `ModelRegistry.Apply(modelBuilder)` in
 place of `base.OnModelCreating`, and `ModelRegistry.ApplyConventions(configurationBuilder)` from an
 overridden `ConfigureConventions`.
@@ -1073,9 +1186,9 @@ modelBuilder.Entity<Product>().HasFullTextSearch(p => new { p.Name, p.Descriptio
 Then search from the model type, a context, or a grid:
 
 ```csharp
-await Product.Search(query).Where(p => p.Active).Take(20).ToListAsync();
+await Product.Read.Search(query).Where(p => p.Active).Take(20).ToListAsync();
 await db.Set<Product>().Search(query).CountAsync();
-UiDataGrid.Data(Product.Search(query).AsQueryable())
+UiDataGrid.Data(Product.Read.Search(query).AsQueryable())
 ```
 
 `Search(text)` keeps every row containing all of the typed words — any order, any case, diacritics

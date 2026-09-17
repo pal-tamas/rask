@@ -71,19 +71,19 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
 
     internal static readonly DiagnosticDescriptor Rask087 = new(
         "RASK087",
-        "Aggregate holds a collection of aggregates",
-        "'{0}.{1}' is a collection of '{2}', which is an Aggregate — so it is not part of {0} and Rask leaves "
-        + "it alone: it is not loaded with {0}, not carried on {0}Model, and never saved or deleted with it; "
-        + "derive '{2}' from Entity<TId> if it is part of {0}, or hold its id instead",
+        "Aggregate reaches across a boundary",
+        "'{0}.{1}' is {3}, which is an aggregate of its own — a boundary {0} may not reach across, so Rask "
+        + "never loads, carries, saves or deletes it with {0}; {4}",
         DiagnosticHelp.Category,
-        DiagnosticSeverity.Warning,
+        DiagnosticSeverity.Error,
         true,
-        description: "An aggregate is a consistency boundary: what it holds is loaded, saved and deleted with "
-                     + "it. Another AGGREGATE is a boundary of its own, with its own version, its own soft "
-                     + "delete and its own reads and writes — so a form post on the parent must never add to "
-                     + "it, and must never delete from it. Rask therefore treats a collection of aggregates as "
-                     + "a reference rather than a part, and this warning says so, because the alternative is a "
-                     + "navigation that looks like a child and silently is not one.",
+        description: "An aggregate is a consistency boundary, and the border is what one aggregate can SEE of "
+                     + "another: holding nothing but an id is what makes crossing a boundary by accident "
+                     + "impossible. Another AGGREGATE has its own version, its own soft delete and its own "
+                     + "reads and writes, so a form post on this one must never add to it and never delete "
+                     + "from it. Nothing is lost by holding the id: the generated read face carries the "
+                     + "navigation the write model is not allowed to have, so the join you wanted is still one "
+                     + "expression — it just cannot be reached from the side that saves.",
         helpLinkUri: DiagnosticHelp.Link("RASK087"));
 
     internal static readonly DiagnosticDescriptor Rask088 = new(
@@ -202,7 +202,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             new EquatableArray<ChildShape>(shape.Children
                 .Where(static c => c.Access != ModelChildAccess.None)
                 .Select(ToChild)),
-            new EquatableArray<string>(AggregateCollectionsOf(symbol)),
+            new EquatableArray<string>(AggregateReferencesOf(symbol)),
             new EquatableArray<string>(shape.Children
                 .Where(static c => c.Access == ModelChildAccess.None)
                 .Select(static c => c.Name)));
@@ -221,13 +221,22 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         ?? child.Property.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
 
     /// <summary>
-    ///     The properties that hold a collection of other AGGREGATES — what RASK087 warns about.
+    ///     The properties that reach another AGGREGATE — one of them, or a collection of them. This is what
+    ///     RASK087 refuses, and it is the whole write-side border: an aggregate may hold another's id and
+    ///     nothing else.
     /// </summary>
     /// <remarks>
-    ///     Found here rather than in the shape because it is the one thing the shape deliberately does not
-    ///     describe: these are not children, so nothing is generated for them and there is nothing to carry.
+    ///     <para>
+    ///         Found here rather than in the shape because it is the one thing the shape deliberately does not
+    ///         describe: these are not children, so nothing is generated for them and there is nothing to carry.
+    ///     </para>
+    ///     <para>
+    ///         Each entry is <c>property|target|idType|kind</c>, where kind is <c>one</c> or <c>many</c> — the two
+    ///         want different fixes, on opposite sides of the relationship — and the id type is what the
+    ///         replacement property would be declared as.
+    ///     </para>
     /// </remarks>
-    private static IEnumerable<string> AggregateCollectionsOf(INamedTypeSymbol symbol)
+    private static IEnumerable<string> AggregateReferencesOf(INamedTypeSymbol symbol)
     {
         foreach (var property in symbol.GetMembers().OfType<IPropertySymbol>())
         {
@@ -235,6 +244,13 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
                 property.DeclaredAccessibility != Accessibility.Public ||
                 property.GetMethod is not { DeclaredAccessibility: Accessibility.Public })
             {
+                continue;
+            }
+
+            // One of them: a navigation EF would map, which is the traversal the border exists to stop.
+            if (property.Type is INamedTypeSymbol single && AggregateShape.IsAggregate(single))
+            {
+                yield return Reference(property.Name, single, "one");
                 continue;
             }
 
@@ -248,10 +264,17 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
                     continue;
                 }
 
-                yield return property.Name + "|" + element.Name;
+                yield return Reference(property.Name, element, "many");
                 break;
             }
         }
+
+        static string Reference(string property, INamedTypeSymbol target, string kind) =>
+            property + "|" + target.Name + "|"
+            + (AggregateShape.TryGetIdType(target, out var id) && id is not null
+                ? id.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)
+                : "Guid")
+            + "|" + kind;
     }
 
     // Who can produce the key of a row inserted WITHOUT one — which decides whether CreateAsync(model) exists.
@@ -526,11 +549,28 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
                 context.ReportDiagnostic(Diagnostic.Create(Rask086, entity.Location?.ToLocation(), entity.Name));
             }
 
-            foreach (var held in entity.AggregateCollections)
+            foreach (var held in entity.AggregateReferences)
             {
                 var parts = held.Split('|');
+                var (property, target, idType, many) = (parts[0], parts[1], parts[2], parts[3] == "many");
+
+                // The diagnosis is one rule; the fix is not. A single reference becomes an id on THIS side and
+                // a collection becomes an id on the OTHER, so telling an author to add '{target}Id' to an
+                // aggregate that needs the parent's id instead would name the wrong half of the relationship.
                 context.ReportDiagnostic(Diagnostic.Create(
-                    Rask087, entity.Location?.ToLocation(), entity.Name, parts[0], parts[1]));
+                    Rask087,
+                    entity.Location?.ToLocation(),
+                    entity.Name,
+                    property,
+                    target,
+                    many ? $"a collection of '{target}'" : $"a reference to '{target}'",
+                    many
+                        ? $"let each '{target}' hold {entity.Name}'s id and read them back through "
+                          + $"{target}.Read, whose navigation those ids infer, or derive '{target}' from "
+                          + $"Entity<TId> if they are genuinely part of {entity.Name}"
+                        : $"hold its id instead — '{idType} {property}Id' — and read the join through "
+                          + $"{entity.Name}.Read, where it is inferred back as '{property}', or derive "
+                          + $"'{target}' from Entity<TId> if it is genuinely part of {entity.Name}"));
             }
 
             foreach (var unsyncable in entity.UnsyncableChildren)
@@ -699,7 +739,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         var applyParameter = "global::System.Action<" + entityType + ">? apply = null, ";
         const string DbParameter = "global::Microsoft.EntityFrameworkCore.DbContext? db = null, ";
         const string ApplyDoc = "        /// <param name=\"apply\">Sets values that do not come from the form, after the model's; <c>null</c> for none.</param>";
-        const string DbDoc = "        /// <param name=\"db\">The context to work in, or <c>null</c> to open one. A given context is saved — with anything else pending on it — and is not disposed.</param>";
+        const string DbDoc = "        /// <param name=\"db\">The context to work in, or <c>null</c> to open one. A given context is only STAGED — the caller saves it — and is not disposed.</param>";
 
         s.Append("/// <summary>The writes Rask generates for <see cref=\"").Append(entityType)
             .Append("\" />, taking its <see cref=\"").Append(modelType).AppendLine("\" />.</summary>");
@@ -876,6 +916,31 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             s.Append(DbParameter).Append(Token).AppendLine(" cancellationToken = default) =>");
             s.Append("            ").Append(Writes).Append(".DeleteAsync<").Append(entityType).Append(">(id!, ")
                 .Append(entity.Versioned ? "version" : "null").AppendLine(", db, cancellationToken);");
+            s.AppendLine();
+
+            // The form loop's fill. Deliberately not a read-face query: the read face is flat primitives and
+            // the form model keeps value objects nested, so this loads the aggregate and reuses __Fill rather
+            // than maintaining a second projection that could drift from it.
+            s.Append("        /// <summary>The edit shape of the <see cref=\"").Append(entityType)
+                .AppendLine("\" /> with <paramref name=\"id\" />, ready to bind to a form.</summary>");
+            s.AppendLine("        /// <param name=\"id\">The id of the row to fill the form from.</param>");
+            s.AppendLine("        /// <param name=\"db\">The context to read through, or <c>null</c> to open one. A given context is not disposed.</param>");
+            s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the load.</param>");
+            s.Append("        /// <returns>The model, or <c>null</c> when no <see cref=\"").Append(entityType)
+                .AppendLine("\" /> has that id.</returns>");
+            s.AppendLine("        /// <remarks>");
+            s.Append("        ///     The aggregate is loaded whole, so its children arrive as child models. A soft-deleted")
+                .AppendLine();
+            s.AppendLine("        ///     row is not found, exactly as it is not found by a query.");
+            s.AppendLine("        /// </remarks>");
+            s.Append("        public static async ").Append(Task).Append('<').Append(modelType)
+                .Append("?> ModelAsync(").Append(idType).Append(" id, ").Append(DbParameter).Append(Token)
+                .AppendLine(" cancellationToken = default)");
+            s.AppendLine("        {");
+            s.Append("            var entity = await ").Append(Writes).Append(".ModelSourceAsync<").Append(entityType)
+                .AppendLine(">(id!, db, cancellationToken).ConfigureAwait(false);");
+            s.AppendLine("            return entity?.ToModel();");
+            s.AppendLine("        }");
         }
 
         s.AppendLine("    }");
@@ -1368,7 +1433,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         EquatableArray<ValueObjectShape> ValueObjects,
         bool IsChild,
         EquatableArray<ChildShape> Children,
-        EquatableArray<string> AggregateCollections,
+        EquatableArray<string> AggregateReferences,
         EquatableArray<string> UnsyncableChildren)
     {
         public static Entity Refused(string fullyQualifiedName, string name, SymbolLocation? location, Refusal refusal, string detail) =>

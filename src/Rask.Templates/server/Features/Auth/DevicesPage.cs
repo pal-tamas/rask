@@ -1,5 +1,7 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using Company.RaskServer.Features.Shared;
 using Rask.Core.Authentication;
 using Rask.Core.Browser;
 using Rask.Core.Routing;
@@ -17,7 +19,11 @@ public sealed class PasskeyModel
 // thing a person keeps on a device, and taking one away is the same kind of decision.
 [Authorize]
 [Route("/devices")]
-public sealed partial class DevicesPage(IAuth auth, IUserProvider users, IWebAuthn webAuthn) : AuthPage
+public sealed partial class DevicesPage(
+    IAuth auth,
+    IUserProvider users,
+    IWebAuthn webAuthn,
+    IDbContextFactory<AppDbContext> contexts) : AuthPage
 {
     private readonly PasskeyModel _passkey = new();
     private IReadOnlyList<Session> _sessions = [];
@@ -139,12 +145,19 @@ public sealed partial class DevicesPage(IAuth auth, IUserProvider users, IWebAut
             return;
         }
 
-        _sessions = await Session
+        // Session and Passkey are Rask.Auth's own tables, so they are reached through the context rather
+        // than off the type: a read face is generated into the assembly that DECLARES an aggregate, and the
+        // auth package declares these. Your own aggregates have one — Product.Read.Where(…).
+        await using var db = await contexts.CreateDbContextAsync(CancellationToken);
+
+        _sessions = await db.Set<Session>()
+            .AsNoTracking()
             .Where(s => s.UserId == me)
             .OrderByDescending(s => s.LastSeenAt)
             .ToListAsync(CancellationToken);
 
-        _passkeys = await Passkey
+        _passkeys = await db.Set<Passkey>()
+            .AsNoTracking()
             .Where(p => p.UserId == me)
             .OrderByDescending(p => p.CreatedAt)
             .ToListAsync(CancellationToken);

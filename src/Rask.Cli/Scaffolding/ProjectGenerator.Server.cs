@@ -159,8 +159,8 @@ internal static partial class ProjectGenerator
             steps.Append("      public string Name { get; private set; } = \"\";\n");
             steps.Append("  }\n");
             steps.Append("\nThen `rask db add <Name>` and `rask db update` to migrate it into app.db. Read it off\n");
-            steps.Append("the type itself — Product.Where(...), Product.FindAsync(id) — bind a form to the generated\n");
-            steps.Append("ProductModel, and write it off the type too — Product.CreateAsync(model),\n");
+            steps.Append("its generated read face — Product.Read.Where(...) — fill a form with Product.ModelAsync(id),\n");
+            steps.Append("and write it off the type — Product.CreateAsync(model),\n");
             steps.Append("Product.UpdateAsync(id, model), Product.DeleteAsync(id).\n");
         }
 

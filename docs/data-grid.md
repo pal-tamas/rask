@@ -63,7 +63,7 @@ UiDataGrid.Data(db.Products).RowKey(p => p.Id).PageSize(25)[c => [
 ]]
 ```
 
-A [`Rask.Data`](data.md) model hands one over with no context held open. `UiDataGrid.Data(Product.AsQueryable())`
+A [`Rask.Data`](data.md) read face hands one over with no context held open. `UiDataGrid.Data(Product.Read.AsQueryable())`
 opens a context for each execution and disposes it, so the queryable can live in a page's field — see
 [handing a query to a component](data.md#handing-a-query-to-a-component-asqueryable).
 
@@ -222,7 +222,7 @@ For a search box over a model with a [full-text index](data.md#full-text-search)
 itself — it still counts, sorts and pages in the database, and a column sort replaces best-match order:
 
 ```csharp
-UiDataGrid.Data(Entry.Search(_query).AsQueryable())
+UiDataGrid.Data(Entry.Read.Search(_query).AsQueryable())
 ```
 
 ## Cells, clicks, and the rule behind them

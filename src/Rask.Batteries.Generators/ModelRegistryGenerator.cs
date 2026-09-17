@@ -64,6 +64,21 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
                      + "message names the property and not the reason.",
         helpLinkUri: DiagnosticHelp.Link("RASK073"));
 
+    private static readonly DiagnosticDescriptor Rask090 = new(
+        "RASK090",
+        "DbContext set name cannot be generated",
+        "'db.{1}' is not generated for '{0}' because {2}",
+        DiagnosticHelp.Category,
+        DiagnosticSeverity.Warning,
+        true,
+        description: "Every mapped entity gets a named set on DbContext — db.Orders beside db.Set<Order>() — "
+                     + "from one documented rule, because an irregular guess is worse than a predictable one. "
+                     + "A name two entities land on, or one DbContext already declares, is the case that rule "
+                     + "cannot serve: renaming quietly would leave an accessor nobody could predict, and "
+                     + "emitting it anyway would give a name that means something other than it says. Rask "
+                     + "generates neither and says so; Set<T>() is unambiguous and still there.",
+        helpLinkUri: DiagnosticHelp.Link("RASK090"));
+
     /// <inheritdoc />
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -99,6 +114,10 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
         return new Candidate(
             name,
             symbol.Name,
+            symbol.ContainingNamespace.IsGlobalNamespace
+                ? ""
+                : symbol.ContainingNamespace.ToDisplayString(),
+            symbol.DeclaredAccessibility == Accessibility.Public,
             configures,
             configureProblem,
             SymbolLocation.From(symbol),
@@ -275,7 +294,174 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
         source.AppendLine("}");
 
         context.AddSource("__RaskModelRegistry.g.cs", SourceText.From(source.ToString(), Encoding.UTF8));
+
+        EmitDbSets(context, entities);
     }
+
+    /// <summary>
+    ///     A named set on <c>DbContext</c> for every mapped entity — <c>db.Orders</c> beside the
+    ///     <c>db.Set&lt;Order&gt;()</c> that still works.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Extension members, not properties on a generated context, so an application that brings its own
+    ///         DbContext gets them too and nothing has to be <c>partial</c> — the same way <c>Order.Read</c>
+    ///         reaches the aggregate.
+    ///     </para>
+    ///     <para>
+    ///         Emitted into the entity's own namespace, which is where code that mentions the entity is already
+    ///         looking. One class per namespace, so two namespaces' entities never share a declaration.
+    ///     </para>
+    /// </remarks>
+    private static void EmitDbSets(SourceProductionContext context, List<Candidate> entities)
+    {
+        // The name is what makes an accessor, so a name two entities claim makes none. Grouped over the whole
+        // compilation rather than per namespace: the extension member is reached by name once its namespace is
+        // imported, so two namespaces colliding is exactly as ambiguous as one.
+        var byName = new Dictionary<string, List<Candidate>>(StringComparer.Ordinal);
+        foreach (var entity in entities)
+        {
+            var name = SetNameOf(entity.SimpleName);
+            if (!byName.TryGetValue(name, out var claimants))
+            {
+                byName[name] = claimants = [];
+            }
+
+            claimants.Add(entity);
+        }
+
+        var named = new List<(Candidate Entity, string Name)>();
+        foreach (var pair in byName.OrderBy(static p => p.Key, StringComparer.Ordinal))
+        {
+            var (name, claimants) = (pair.Key, pair.Value);
+
+            if (claimants.Count == 1 && !IsDbContextMember(name))
+            {
+                named.Add((claimants[0], name));
+                continue;
+            }
+
+            // A name DbContext already declares would lose silently — a member on the type itself wins over an
+            // extension member — so it is refused for the same reason a clash between two entities is.
+            if (claimants.Count == 1)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Rask090,
+                    claimants[0].Location?.ToLocation(),
+                    claimants[0].SimpleName,
+                    name,
+                    $"DbContext already declares '{name}', and a member on the type itself always wins over an "
+                    + $"extension member; reach it as 'db.Set<{claimants[0].SimpleName}>()'"));
+                continue;
+            }
+
+            foreach (var claimant in claimants)
+            {
+                var others = string.Join(
+                    ", ",
+                    claimants.Where(c => !ReferenceEquals(c, claimant)).Select(static c => "'" + c.SimpleName + "'"));
+
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Rask090,
+                    claimant.Location?.ToLocation(),
+                    claimant.SimpleName,
+                    name,
+                    $"{others} want it too, and an accessor that could mean either is worse than none; rename "
+                    + $"one of them, or reach this one as 'db.Set<{claimant.SimpleName}>()'"));
+            }
+        }
+
+        foreach (var group in named.GroupBy(static e => e.Entity.Namespace, StringComparer.Ordinal)
+                     .OrderBy(static g => g.Key, StringComparer.Ordinal))
+        {
+            var source = new StringBuilder();
+            source.AppendLine("// <auto-generated/>");
+            source.AppendLine("#nullable enable");
+            source.AppendLine();
+
+            if (group.Key.Length > 0)
+            {
+                source.Append("namespace ").Append(group.Key).AppendLine(";");
+                source.AppendLine();
+            }
+
+            source.AppendLine("/// <summary>The named sets of this namespace's entities.</summary>");
+            source.AppendLine("/// <remarks>");
+            source.AppendLine("/// On <c>DbContext</c> itself, so an application's own context has them without");
+            source.AppendLine("/// being partial. A set resolves for the context that maps the entity — the same");
+            source.AppendLine("/// rule <c>Set&lt;T&gt;()</c> follows, because that is all this is.");
+            source.AppendLine("/// </remarks>");
+            source.AppendLine("public static class __RaskDbSets");
+            source.AppendLine("{");
+            source.AppendLine("    extension(global::Microsoft.EntityFrameworkCore.DbContext db)");
+            source.AppendLine("    {");
+
+            var first = true;
+            foreach (var (entity, name) in group.OrderBy(static e => e.Name, StringComparer.Ordinal))
+            {
+                if (!first)
+                {
+                    source.AppendLine();
+                }
+
+                first = false;
+
+                source.Append("        /// <summary>The <see cref=\"").Append(entity.FullyQualifiedName)
+                    .AppendLine("\" /> table.</summary>");
+                source.Append("        ").Append(entity.IsPublic ? "public" : "internal")
+                    .Append(" global::Microsoft.EntityFrameworkCore.DbSet<").Append(entity.FullyQualifiedName)
+                    .Append("> ").Append(name).Append(" => db.Set<").Append(entity.FullyQualifiedName)
+                    .AppendLine(">();");
+            }
+
+            source.AppendLine("    }");
+            source.AppendLine("}");
+
+            var file = group.Key.Length > 0 ? "__RaskDbSets." + group.Key + ".g.cs" : "__RaskDbSets.g.cs";
+            context.AddSource(file, SourceText.From(source.ToString(), Encoding.UTF8));
+        }
+    }
+
+    /// <summary>
+    ///     The documented pluralisation: <c>s</c>, <c>es</c> after s/x/z/ch/sh, and <c>y</c> to <c>ies</c>
+    ///     after a consonant.
+    /// </summary>
+    /// <remarks>
+    ///     Deliberately not clever. An irregular-plural dictionary would be right more often and wrong
+    ///     unpredictably, and a name you cannot guess from the type is worse than one you can — a Person
+    ///     becomes db.Persons here, and that is the trade.
+    /// </remarks>
+    internal static string SetNameOf(string name)
+    {
+        if (name.Length == 0)
+        {
+            return name;
+        }
+
+        if (name.EndsWith("s", StringComparison.Ordinal) || name.EndsWith("x", StringComparison.Ordinal) ||
+            name.EndsWith("z", StringComparison.Ordinal) || name.EndsWith("ch", StringComparison.Ordinal) ||
+            name.EndsWith("sh", StringComparison.Ordinal))
+        {
+            return name + "es";
+        }
+
+        if (name.EndsWith("y", StringComparison.Ordinal) && name.Length > 1 && !IsVowel(name[name.Length - 2]))
+        {
+            return name.Substring(0, name.Length - 1) + "ies";
+        }
+
+        return name + "s";
+
+        static bool IsVowel(char c) => "aeiouAEIOU".IndexOf(c) >= 0;
+    }
+
+    // What a DbContext already declares. An extension member never wins against one of these, so a set that
+    // lands on the name would compile and quietly mean something else.
+    private static bool IsDbContextMember(string name) => name is
+        "Database" or "ChangeTracker" or "Model" or "ContextId" or "Add" or "AddAsync" or "AddRange" or
+        "AddRangeAsync" or "Attach" or "AttachRange" or "Dispose" or "DisposeAsync" or "Entry" or "Find" or
+        "FindAsync" or "GetService" or "Remove" or "RemoveRange" or "SaveChanges" or "SaveChangesAsync" or
+        "Set" or "Update" or "UpdateRange" or "Equals" or "GetHashCode" or "GetType" or "ToString";
 
     private static void EmitMapEntities(StringBuilder source, List<Candidate> entities, HashSet<string> idTypes)
     {
@@ -489,6 +675,8 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
     private sealed record Candidate(
         string FullyQualifiedName,
         string SimpleName,
+        string Namespace,
+        bool IsPublic,
         bool Configures,
         string? ConfigureProblem,
         SymbolLocation? Location,

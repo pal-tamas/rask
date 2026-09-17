@@ -17,7 +17,68 @@ them until tagged releases begin.
   referenced by every project now. The three existing `RaskVersionTests` were green throughout — non-empty, no build
   metadata, looks like semver, all of which `"1.0.0"` satisfies — so `Current_MatchesThePackableHostVersion` compares
   it against a packable assembly, which is the only version in the process known to be real.
+### Changed
+
+- **An aggregate is no longer a query surface — reads move to the read face.** `Product.All`,
+  `Product.Where(…)`, `Product.FindAsync(id)`, `Product.AsQueryable()`, `Product.Select(…)` and the terminals
+  that went with them are **removed**. Querying goes through `Product.Read`, which is primitives and carries
+  the navigations an aggregate is not allowed to have. The two cannot be one surface: an aggregate holds
+  another's id and nothing more, which is what stops a write crossing a boundary by accident, and a query that
+  reached across one from the write side would be that border failing. Three doors replace it —
+  `Product.Read.Where(…)` to show one, many or joined; `Product.ModelAsync(id)` to fill a form;
+  `Product.UpdateAsync(id, p => …)` or a context to load one in order to change it. By id is just the narrowest
+  query (`Product.Read.Where(p => p.Id == id).FirstOrDefaultAsync()`) and deliberately gets no `FindAsync` of
+  its own: EF Core's `Find` skips query filters, so a soft-deleted row would come back from it and not from
+  `Where` — two spellings of one read, disagreeing about deleted rows. `ModelQuery` gained the predicate
+  terminals the aggregate had (`SingleOrDefaultAsync`, `CountAsync`, `AnyAsync`) so nothing else is lost.
+
+  Four bugs the migration exposed, all fixed: the read model was cached against the WRONG write model (EF caches
+  a context's model by TYPE, so the mirror was built once from whichever write context happened to be ambient
+  first — right in an app with one database, wrong the moment there are two); the full-text index annotation did
+  not travel, so `Post.Read.Search(…)` refused over a table that plainly had one; the soft-delete query filter
+  was applied unconditionally, breaking a hand-mapped context with no `DeletedAt`; and a nested entity got no
+  read face at all, silently.
+
+- **RASK087 is now an ERROR, and covers a single reference as well as a collection.** It was a warning about a
+  collection of aggregates; it is the write-side border rule: **an aggregate may hold another aggregate's id
+  and nothing else.** `public Customer Customer { get; private set; }` no longer compiles. Nothing is lost by
+  holding the id — the generated read face carries the navigation inferred from exactly that id, so the join is
+  still one expression; it just cannot be reached from the side that saves. The message names the fix for the
+  shape you wrote, which differs by side: a single reference becomes an id on THIS aggregate, a collection an
+  id on the OTHER one.
+
+- **`db:` now STAGES a write instead of saving it.** Handed a context, a write applies its change and returns;
+  the caller saves. That makes several writes on one context a single transaction by construction, with no
+  `BeginTransactionAsync` to write — one `SaveChangesAsync` already is one:
+
+  ```csharp
+  await Order.CreateAsync(orderModel, db: db, cancellationToken: ct);                    // staged
+  await StockItem.UpdateAsync(stockId, s => s.Reserve(n), db: db, cancellationToken: ct); // staged
+  await db.SaveChangesAsync(ct);                                                          // both, or neither
+  ```
+
+  **This is a behavioural break:** code passing `db:` and relying on the write having saved will no longer
+  persist without an explicit `SaveChangesAsync`. No `db:` still means the write owns its own unit of work.
+  Two consequences to know: a staged `CreateAsync` returns an entity that is not yet persisted (a `Guid` key is
+  already set, a store-generated integer key is `0` until you save), and the concurrency check still works and
+  stays automatic — the original `Version` is pinned and EF compares it at the caller's save.
+
 ### Added
+
+- **`Product.ModelAsync(id)` — the form loop's fill.** The edit shape of one aggregate by id, or `null` when no
+  row has it. Not a read-face query: the read face is flat primitives while the form model keeps value objects
+  nested and its children as child models, so this loads the aggregate whole and reuses the generated fill —
+  one mapping to keep right rather than two that can drift. It is a query rather than EF Core's `Find`, so a
+  soft-deleted row does not open an edit form.
+
+- **A named set on `DbContext` for every mapped entity** — `db.Orders`, `db.OrderLines` — beside the
+  `db.Set<Order>()` that still works. Children get one too: they are in the write context even though they are
+  only writable through their root. Emitted as C# 14 extension members on `DbContext` itself, so an app that
+  brings its own context gets them without the context having to be `partial`. The name follows one documented
+  rule and nothing cleverer — `s`, `es` after `s`/`x`/`z`/`ch`/`sh`, `y` → `ies` after a consonant — because an
+  irregular guess is worse than a predictable one, so a `Person` becomes `db.Persons` and a `Quiz` becomes
+  `db.Quizes`. A name two entities want, or one `DbContext` already declares (where a member on the type itself
+  would silently win), is **RASK090** and generates neither accessor rather than picking a winner.
 
 - **Every mapped entity gets a generated READ FACE, and the aggregate keeps its borders.** `Order` now has an
   `OrderRead` beside it and `Order.Read` to query it: a class of primitives with no behaviour, in a context of

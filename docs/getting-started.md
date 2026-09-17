@@ -428,7 +428,7 @@ shipped product — and the **[zero-to-deploy tutorial](tutorial/00-overview.md)
 step by step (database, auth, jobs, email, cache, events, and deployment). In short:
 
 1. **Build a feature** → [tutorial chapter 2](tutorial/02-first-feature.md) builds a database-backed
-   Products catalog by hand: declare the entity, read it off the type (`Product.Where(…)`), write through
+   Products catalog by hand: declare the entity, read it off its face (`Product.Read.Where(…)`), write through
    commands whose handlers save with EF Core, build list, create, edit and delete pages, then `rask db add` /
    `rask db update`. `rask new`
    already wired the database into `Program.cs`, so there is nothing to register.
