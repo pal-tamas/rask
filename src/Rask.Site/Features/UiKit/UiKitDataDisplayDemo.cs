@@ -12,6 +12,12 @@ public sealed partial class UiKitDataDisplayDemo : Component
     private string? _section = "ship";
     private bool _advanced;
 
+    private static readonly Month[] Months =
+    [
+        new("Jan", 12_400m, 8_100, 41), new("Feb", 15_900m, 9_300, 55), new("Mar", 14_200m, 8_800, 48),
+        new("Apr", 19_800m, 10_900, 67), new("May", 22_300m, 11_600, 72), new("Jun", 21_100m, 12_400, 69),
+    ];
+
     /// <inheritdoc />
     protected override Component? Render() =>
     [
@@ -129,6 +135,23 @@ public sealed partial class UiKitDataDisplayDemo : Component
             ]),
 
         Section(
+            "Chart",
+            "Drawn as SVG on the server — no script, no chart library. Series arrive through a factory, as a data "
+            + "grid's columns do, so every lambda knows the row type; lines, areas and bars share one set of axes. "
+            + "Hover a month for its values. A screen reader gets a table of every number instead of the drawing.",
+            Div.Data(Testid("ui-chart")).Class("grid gap-6 lg:grid-cols-2")[
+                UiChart.Data(Months).Label("Revenue and costs by month").Format("C0").Class("h-64")[c => [
+                    c.X(m => m.Name),
+                    c.Area(m => m.Revenue).Label("Revenue"),
+                    c.Line(m => m.Costs).Label("Costs").Tone(UiTone.Warning)
+                ]],
+                UiChart.Data(Months).Label("Orders by month").Class("h-64")[c => [
+                    c.X(m => m.Name),
+                    c.Bar(m => m.Orders).Label("Orders")
+                ]]
+            ]),
+
+        Section(
             "The rest of the category",
             "Static, and covered by unit tests for their class composition.",
             Div.Data(Testid("ui-display-rest")).Class("flex flex-wrap items-center gap-3")[
@@ -143,6 +166,8 @@ public sealed partial class UiKitDataDisplayDemo : Component
                 UiChatBubble.Key("chat").Message("On my way").Author("Ada").When("09:14")
             ])
     ];
+
+    private sealed record Month(string Name, decimal Revenue, int Costs, int Orders);
 
     private static Dictionary<string, string?> Testid(string value) => new() { ["testid"] = value };
 

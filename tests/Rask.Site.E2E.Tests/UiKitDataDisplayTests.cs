@@ -24,7 +24,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
         foreach (var id in new[]
                  {
                      "ui-accordion", "ui-collapse", "ui-aura", "ui-text-rotate", "ui-hover-3d",
-                     "ui-hover-gallery", "ui-console-pieces", "ui-display-rest",
+                     "ui-hover-gallery", "ui-console-pieces", "ui-chart", "ui-display-rest",
                  })
         {
             var node = Page.Locator($"[data-testid='{id}']");
@@ -157,6 +157,40 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
         Assert.DoesNotContain('', text);
         Assert.DoesNotContain('', text);
         Assert.Contains("SQLite is small, and fast", text, StringComparison.Ordinal);
+    });
+
+    [Fact]
+    public Task AChartDrawsItsSeriesAndShowsAMonthsValuesOnHover() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var chart = Page.GetByRole(AriaRole.Figure, new PageGetByRoleOptions { Name = "Revenue and costs by month" });
+        await chart.ScrollIntoViewIfNeededAsync();
+        await Expect(chart).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+
+        // The plot stretched to the box it was given, and a line was drawn with a real colour — a stroke class the
+        // sheet never compiled would leave the path there and invisible.
+        var plot = chart.Locator("svg");
+        var box = (await plot.BoundingBoxAsync())!;
+        var boxes = await chart.EvaluateAsync<string>(
+            "f => [f, f.children[1], f.children[1].children[1], f.querySelector('svg')]"
+            + ".map(e => { const r = e.getBoundingClientRect(); const s = getComputedStyle(e); "
+            + "return e.tagName + '.' + e.getAttribute('class') + ' ' + Math.round(r.width) + 'x' + Math.round(r.height) "
+            + "+ ' display=' + s.display + ' grow=' + s.flexGrow + ' pos=' + s.position; }).join(' | ')");
+        Assert.True(box.Height > 100 && box.Width > 200, $"the plot is {box.Width}x{box.Height}: {boxes}");
+        var stroke = await chart.Locator("path.stroke-warning").EvaluateAsync<string>("p => getComputedStyle(p).stroke");
+        Assert.NotEqual("none", stroke);
+
+        // Hover a month: its values appear, in CSS.
+        var columns = chart.Locator(".group");
+        await Expect(columns).ToHaveCountAsync(6);
+        var april = columns.Nth(3);
+        await april.HoverAsync();
+        await Expect(april.Locator("div.group-hover\\:block").Last).ToBeVisibleAsync();
+        await Expect(april).ToContainTextAsync("Apr");
+
+        // And the numbers are there for a screen reader, one row per month.
+        await Expect(chart.Locator("table.sr-only tbody tr")).ToHaveCountAsync(6);
     });
 
     private async Task OpenAsync()
