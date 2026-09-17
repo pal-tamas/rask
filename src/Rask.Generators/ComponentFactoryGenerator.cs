@@ -5405,7 +5405,14 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         // Otherwise the optional set is exactly the nullable props (a non-nullable prop with no
         // initializer is a required factory param with no default). A type-parameter prop must use
         // `default` — `null` has no conversion to an unconstrained T.
-        return p.IsNullable && !p.IsTypeParameter ? "null" : "default";
+        //
+        // So must a base's `T? Value` closed over a STRUCT (`UiFormField<DateOnly>`): the property keeps its
+        // annotation, so it is optional, but `T?` on an unconstrained T is not Nullable<T> — the substituted type
+        // is plain `DateOnly`, which `null` does not convert to. Every type that CAN hold null is written with
+        // its `?` (an annotated reference type, or Nullable<T>), so the missing `?` is what gives it away.
+        return p.IsNullable && !p.IsTypeParameter && p.TypeFqn.EndsWith("?", StringComparison.Ordinal)
+            ? "null"
+            : "default";
     }
 
     // The same rule straight off the symbol, for the shared Element/Component surface — which is
@@ -5431,7 +5438,11 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         var isNullable = p.Type.NullableAnnotation == NullableAnnotation.Annotated
                          || (p.Type.IsValueType
                              && p.Type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T);
-        return (isNullable && p.Type is not ITypeParameterSymbol ? "null" : "default",
+        // A struct reached through an annotated `T?` (a generic base closed over DateOnly) is optional, but holds no
+        // null — see the PropInfo overload above.
+        var holdsNull = !p.Type.IsValueType
+                        || p.Type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T;
+        return (isNullable && holdsNull && p.Type is not ITypeParameterSymbol ? "null" : "default",
             !isNullable && !hasInitializer);
     }
 

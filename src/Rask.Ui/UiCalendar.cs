@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Linq.Expressions;
 using Rask.Core.Forms;
 
@@ -23,7 +22,14 @@ namespace Rask.Ui;
 /// <c>.Bind(() =&gt; model.Delivery)</c> two-way binds and drives the surrounding <c>Form</c>'s
 /// validation; <see cref="Value" /> with <see cref="OnChange" /> leaves it with the parent. Note the
 /// pair that is NOT the value: <see cref="Month" /> and <see cref="OnMonth" /> are the view, and paging
-/// through months changes nothing a form would submit.
+/// through months changes nothing a form would submit. Leave <see cref="Month" /> unset and the calendar
+/// keeps track of the month it is showing itself.
+/// </para>
+/// <para>
+/// <b>The same entry picks several days or a range.</b> Bind a collection of days — <c>List&lt;DateOnly&gt;</c>,
+/// <c>HashSet&lt;DateOnly&gt;</c> and the rest, or <c>.Values([...])</c> — and it is
+/// <see cref="UiCalendarMultiple" />; bind a <see cref="UiDateRange" />, or <c>.Value(new UiDateRange(a, b))</c>,
+/// and it is <see cref="UiCalendarRange" />. The model says which, so there is no mode to set.
 /// </para>
 /// <para>
 /// It has no text field of its own. Pair it with one where a date can also be typed — typing is faster
@@ -33,10 +39,15 @@ namespace Rask.Ui;
 /// </remarks>
 public sealed partial class UiCalendar : Component, IFormControl<DateOnly>
 {
+    private DateOnly? _month;
+
     /// <summary>The accessible name — what the date is for.</summary>
     public required string Label { get; set; }
 
-    /// <summary>Any day in the month being shown. Defaults to the month of the chosen day, or today.</summary>
+    /// <summary>
+    ///     Any day in the month being shown. Leave it unset and the calendar opens on the month of the chosen day,
+    ///     or today, and pages by itself; set it to own the view, and pair it with <see cref="OnMonth" />.
+    /// </summary>
     public DateOnly? Month { get; set; }
 
     /// <summary>Runs with the first day of the month the reader asked for.</summary>
@@ -75,107 +86,31 @@ public sealed partial class UiCalendar : Component, IFormControl<DateOnly>
     /// <inheritdoc />
     public Callback<DateOnly>? AfterBind { get; set; }
 
+    // The view month is a FIELD when the page leaves it unset, which the render cache cannot see.
+    /// <inheritdoc />
+    protected override bool BypassRenderCache => true;
 
     /// <inheritdoc />
     protected override Component? Render()
     {
         var (acc, ctx, chosen) = UiFormCommit.Resolve<DateOnly>(this);
 
-        // default(DateOnly) is year 1, which is not a month anybody meant to look at, so it does not get
-        // to choose the view the way a real chosen day does.
-        var shown = Month ?? (chosen == default ? DateOnly.FromDateTime(DateTime.Today) : chosen);
-        var first = new DateOnly(shown.Year, shown.Month, 1);
-        var firstDay = FirstDay ?? DayOfWeek.Monday;
-
-        // How many blanks before the 1st. The +7 keeps it non-negative whichever day the week starts on.
-        var lead = ((int)first.DayOfWeek - (int)firstDay + 7) % 7;
-        var days = DateTime.DaysInMonth(first.Year, first.Month);
-
-        return Div
-            .Role("group")
-            .Aria(new Dictionary<string, string?> { ["label"] = Label })
-            .Class(UiClass.Compose("calendar rounded-box border border-base-300 bg-base-100 p-3", Class))[
-            Div.Class("mb-2 flex items-center justify-between gap-2")[
-                MonthStep("prev", first.AddMonths(-1), "Previous month", UiIconName.ArrowLeft),
-                Div.Class("text-sm font-semibold")[
-                    first.ToString("MMMM yyyy", CultureInfo.CurrentCulture)
-                ],
-                MonthStep("next", first.AddMonths(1), "Next month", UiIconName.ArrowRight)
-            ],
-            Table.Class("calendar-month w-full")[
-                Thead[
-                    Tr[
-                        Enumerable.Range(0, 7).Select(i =>
-                        {
-                            var day = (DayOfWeek)(((int)firstDay + i) % 7);
-                            var name = CultureInfo.CurrentCulture.DateTimeFormat.GetShortestDayName(day);
-
-                            return Th.Key(day).Class("text-xs font-normal opacity-60")[name];
-                        })
-                    ]
-                ],
-                Tbody[
-                    Enumerable.Range(0, (lead + days + 6) / 7).Select(week =>
-                        Tr.Key(week)[
-                            Enumerable.Range(0, 7).Select(slot =>
-                            {
-                                var number = (week * 7) + slot - lead + 1;
-
-                                return number < 1 || number > days
-                                    ? Td.Key(slot)
-                                    : Td.Key(slot)[
-                                        Day(new DateOnly(first.Year, first.Month, number), chosen, acc, ctx)
-                                    ];
-                            })
-                        ])
-                ]
-            ]
-        ];
+        return UiDayGrid.Render(new UiDayGrid.View(
+            Label,
+            UiDayGrid.MonthOf(Month, _month, chosen),
+            FirstDay,
+            Min,
+            Max,
+            Class,
+            PageAsync,
+            date => new UiDayGrid.DayState(chosen == date, false),
+            date => UiFormCommit.CommitAsync(this, acc, ctx, date),
+            static _ => null));
     }
 
-    private Component MonthStep(object key, DateOnly target, string label, UiIconName icon)
+    private Task PageAsync(DateOnly month)
     {
-        var button = Button
-            .Key(key)
-            .Type("button")
-            .Class("btn btn-ghost btn-sm btn-square")
-            .Aria(new Dictionary<string, string?> { ["label"] = label });
-
-        if (OnMonth is { } onMonth)
-        {
-            button = button.OnClick(() => onMonth.Invoke(target) ?? Task.CompletedTask);
-        }
-
-        return button[UiIcon.Name(icon).Class("size-4 shrink-0")];
-    }
-
-    private Component Day(
-        DateOnly date,
-        DateOnly chosen,
-        ExpressionAccessor.Accessor? accessor,
-        EditContext? context)
-    {
-        var picked = chosen == date;
-        var blocked = (Min is { } min && date < min) || (Max is { } max && date > max);
-
-        var button = Button
-            .Key(date.Day)
-            .Type("button")
-            .Class(UiClass.Compose("btn btn-ghost btn-sm btn-square", picked ? "btn-active" : ""))
-            .Disabled(blocked)
-            .Aria(new Dictionary<string, string?>
-            {
-                // The full date, not the number: "14" is not something you can act on once the month
-                // has scrolled out of earshot.
-                ["label"] = date.ToString("D", CultureInfo.CurrentCulture),
-                ["pressed"] = picked ? "true" : "false",
-            });
-
-        if (!blocked)
-        {
-            button = button.OnClick(() => UiFormCommit.CommitAsync(this, accessor, context, date));
-        }
-
-        return button[date.Day.ToString(CultureInfo.CurrentCulture)];
+        _month = month;
+        return OnMonth?.Invoke(month) ?? Task.CompletedTask;
     }
 }

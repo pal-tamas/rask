@@ -445,7 +445,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | **Data display** | `UiAccordion` `UiAccordionSection` `UiCollapse` `UiAvatar` `UiAura` `UiBadge` `UiCard` `UiCarousel` `UiChatBubble` `UiCountdown` `UiDiff` `UiEmpty` `UiHover3d` `UiHoverGallery` `UiKbd` `UiHighlight` `UiList` `UiListRow` `UiStat` `UiStatusDot` `UiTable` `UiDataGrid` `UiColumn` `UiTree` `UiTextRotate` `UiTimeline` |
 | **Navigation** | `UiBreadcrumbs` `UiDock` `UiLink` `UiMegamenu` `UiMegamenuPanel` `UiMenu` `UiMenuItem` `UiNavbar` `UiPagination` `UiSteps` `UiStep` `UiTabs` `UiTab` |
 | **Feedback** | `UiAlert` `UiLoading` `UiProgress` `UiRadialProgress` `UiSkeleton` `UiToast` `UiTooltip` |
-| **Data input** | `UiInput` `UiTextarea` `UiSelect` `UiFileInput` `UiCheckbox` `UiToggle` `UiRadio` `UiRange` `UiRating` `UiFieldset` `UiValidator` `UiLabel` `UiOtp` `UiFilter` `UiCalendar` |
+| **Data input** | `UiInput` `UiTextarea` `UiSelect` `UiFileInput` `UiCheckbox` `UiToggle` `UiRadio` `UiRange` `UiRating` `UiFieldset` `UiValidator` `UiLabel` `UiOtp` `UiFilter` `UiCalendar` `UiDatePicker` |
 | **Layout** | `UiDivider` `UiDrawer` `UiFooter` `UiHero` `UiIndicator` `UiJoin` `UiStack` `UiMask` |
 | **Mockup** | `UiMockupBrowser` `UiMockupCode` `UiMockupPhone` `UiMockupWindow` |
 | **Chrome** | `UiShell` `UiTopBar` `UiBrand` `UiNav` `UiNavTab` `UiCrumbSwitcher` `UiCrumbSeparator` `UiTopLink` `UiMain` `UiHeader` `UiGrid` `UiMetricRow` `UiMetric` `UiDetailList` `UiDetailRow` `UiCode` `UiSearch` |
@@ -797,7 +797,38 @@ control's openings are its mode pins, so a required step like `Label` never gets
 controlled mode: the parent still owns whatever the field ends up with.
 
 `UiCalendar` is the one to read twice. `Month` and `OnMonth` are the **view**, not the value — paging
-through months changes nothing a form would submit, which is why they sit outside the binding.
+through months changes nothing a form would submit, which is why they sit outside the binding. Leave `Month`
+unset and the calendar pages by itself.
+
+**Several days and a range are the same entry, told apart by the model** — the way `UiSelect` becomes the
+multiple select when it binds a collection:
+
+```csharp
+UiCalendar.Bind(() => model.Delivery).Label("Delivery")   // DateOnly: one day
+UiCalendar.Bind(() => model.DaysOff).Label("Days off")    // List<DateOnly>, HashSet<DateOnly>, …: several
+UiCalendar.Bind(() => model.Stay).Label("Stay")           // UiDateRange: a range
+UiCalendar.Values([monday, friday]).Label("Days off")     // several, controlled
+UiCalendar.Value(new UiDateRange(from, to)).Label("Stay") // a range, controlled
+```
+
+`UiDateRange(Start, End)` is always whole: the reader's first click is held by the control and drawn as the
+start, and the model changes only when the second click gives the range an end — in date order, whichever end
+was clicked first. So a bound model never holds half a range. `default(UiDateRange)` is nothing chosen, as
+`default(DateOnly)` is for one day; bind the nullable where the two must differ.
+
+**`UiDatePicker` is the field.** A field-shaped button showing the choice in the reader's short date format, with
+the grid in a popover — the browser's, so the top layer, Escape, a click outside and focus back on the button
+come with it. It is a form field like `UiInput` (`Label`, `Hint`, `Error`, `Badge`, validation), and it takes the
+same three openings: one day closes the popover on the pick, several days keep it open while they are added, and
+a range closes on the click that gives it its end.
+
+```csharp
+UiDatePicker.Bind(() => booking.Stay).Label("Stay").Min(DateOnly.FromDateTime(DateTime.Today))
+```
+
+Nothing in either is typed. Where a date may be months away, a `UiInput` of type date is faster than paging, and
+it is the only route for somebody who cannot use a pointer comfortably. There is no drawn time picker:
+`UiInput.Type(InputType.Time)` is the platform's own.
 
 ## The rule the whole kit rests on
 

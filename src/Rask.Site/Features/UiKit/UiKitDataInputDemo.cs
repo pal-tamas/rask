@@ -30,6 +30,9 @@ public sealed partial class UiKitDataInputDemo : Component
     private DateOnly _month = DateOnly.FromDateTime(DateTime.Today);
     private DateOnly? _date;
     private readonly List<string> _dropped = [];
+    private UiDateRange _stay;
+    private DateOnly _arrival;
+    private List<DateOnly> _daysOff = [];
     private readonly Signup _signup = new();
 
     // Words with an accent in them, on purpose: the default match ignores case AND accents in the
@@ -296,6 +299,36 @@ public sealed partial class UiKitDataInputDemo : Component
             ]),
 
         Section(
+            "Several days, a range, and a picker",
+            "The same entries. Bind a collection of days and UiCalendar picks several; bind a UiDateRange and it "
+            + "picks a range — the first click is held and drawn, the second writes the whole range, so the model "
+            + "never holds half of one. UiDatePicker is the field-shaped button that opens the grid in a popover: "
+            + "a single day closes it on the pick, several days keep it open, a range closes on its second click.",
+            Div.Data(Testid("ui-dates")).Class("grid gap-4 md:grid-cols-2")[
+                Div.Class("space-y-2")[
+                    UiCalendar.Value(_stay).Label("Stay").Class("max-w-xs")
+                        .OnChange(r => { _stay = r; }),
+                    P.Class("text-sm text-ui-muted").Data(Testid("ui-dates-stay"))[
+                        _stay == default
+                            ? "No stay chosen."
+                            : $"Stay: {Iso(_stay.Start)} to {Iso(_stay.End)}"
+                    ]
+                ],
+                Div.Class("space-y-3")[
+                    UiDatePicker.Value(_arrival).Label("Arrival")
+                        .OnChange(d => { _arrival = d; }),
+                    UiDatePicker.Values(_daysOff).Label("Days off")
+                        .OnChange(days => { _daysOff = [.. days]; }),
+                    UiDatePicker.Value(_stay).Label("Stay, as a field")
+                        .OnChange(r => { _stay = r; }),
+                    P.Class("text-sm text-ui-muted").Data(Testid("ui-dates-picked"))[
+                        _arrival == default ? "No arrival chosen." : $"Arrival: {Iso(_arrival)}",
+                        $" · {_daysOff.Count} days off"
+                    ]
+                ]
+            ]),
+
+        Section(
             "File drop area",
             "Still the native file input, stretched invisibly over the whole area: a click anywhere opens the "
             + "picker and a file dropped anywhere lands in the input, which the browser already does with no "
@@ -355,6 +388,9 @@ public sealed partial class UiKitDataInputDemo : Component
     ];
 
     private static Dictionary<string, string?> Testid(string value) => new() { ["testid"] = value };
+
+    private static string Iso(DateOnly date) =>
+        date.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
 
     private static Component Masked(string key, UiMaskShape shape) =>
         UiMask.Key(key).Shape(shape).Class("size-14 bg-primary");

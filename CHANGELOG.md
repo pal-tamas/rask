@@ -28,6 +28,17 @@ them until tagged releases begin.
   remember it. `UiNavTab` gains `Icon`, `Badge`/`BadgeTone`, `Match`/`MatchPrefix`, and works `Active` out from the
   route when it is unset — as `UiNavItem` already did. `UiBrand` gains `Logo` for a real image mark; `UiTopBar`
   gains `Sticky` and `Class`; `UiMain` gains `Container` and `Class`; `UiNavList` gains `Outline`.
+- **Flux UI's date picking: several days, a range, and `UiDatePicker`.** `UiCalendar` binds a collection of days
+  (`List<DateOnly>`, `HashSet<DateOnly>`, … or `.Values([...])`) or a new `UiDateRange(Start, End)` (or
+  `.Value(new UiDateRange(a, b))`) as well as one `DateOnly`, and the bound type decides the control, as it does
+  for `UiSelect`. A range is always whole: the first click is held and drawn, and the model only changes when the
+  second gives it an end, in date order. New `UiDatePicker` is the field — a field-shaped button showing the choice
+  in the reader's short date format, with the grid in a popover — and a form field like `UiInput`, with the same
+  three openings: one day closes on the pick, several keep it open, a range closes on its second click.
+  `UiCalendar` also pages between months by itself when `Month` is unset; before, its arrows did nothing without
+  an `OnMonth`.
+  - **Generator:** a generic base's `T? Value` closed over a STRUCT (`UiFormField<DateOnly>`) reset to `null`,
+    which does not convert to `DateOnly`, so such a component did not compile. It resets to `default`.
 - **Flux UI's context menu: new `UiContextMenu`.** `UiContextMenu.Target(card)[UiMenuItem…]` opens a menu where the
   reader right-clicks the target. The children are the same rows a `UiDropdown` takes, and the menu is the same
   control, so the arrows, Home/End, type-ahead, submenus, Enter and Escape behave identically; the ContextMenu key

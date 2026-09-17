@@ -487,6 +487,34 @@ public class BuilderSetterEmissionTests
             StringComparison.Ordinal);
     }
 
+    // A generic base's `T? Value` closed over a STRUCT keeps its annotation, so the prop is optional — but
+    // `T?` on an unconstrained T is not Nullable<T>, the substituted type is plain `DateOnly`, and `null`
+    // does not convert to it. The reset has to write `default`, or the component does not compile at all:
+    // Rask.Ui's date picker (`UiFormField<DateOnly>`) was the first to close one over a struct.
+    [Fact]
+    public void A_nullable_T_closed_over_a_struct_resets_to_default_not_null()
+    {
+        var output = Run("""
+                         using System;
+                         using Rask.Core;
+                         namespace Demo;
+                         public abstract partial class Field<T> : Component
+                         {
+                             public T? Value { get; set; }
+                             public string? Hint { get; set; }
+                         }
+                         public partial class DayField : Field<DateOnly>
+                         {
+                         }
+                         """);
+
+        var reset = PendingReset(output, "DayField");
+        Assert.Contains("__c.Value = default;", reset, StringComparison.Ordinal);
+        Assert.DoesNotContain("__c.Value = null;", reset, StringComparison.Ordinal);
+        // A reference type through the same base still resets to null.
+        Assert.Contains("__c.Hint = null;", reset, StringComparison.Ordinal);
+    }
+
     private static string Run(string source, string hintName = "RaskBuilderSetters.g.cs") =>
         BuilderGeneratorHarness.Run(source).Source(hintName);
 }

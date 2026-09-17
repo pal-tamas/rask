@@ -23,7 +23,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
         foreach (var id in new[]
                  {
                      "ui-text-controls", "ui-labels", "ui-choices", "ui-range", "ui-otp", "ui-filter",
-                     "ui-calendar", "ui-dropzone", "ui-bound", "ui-mask",
+                     "ui-calendar", "ui-dates", "ui-dropzone", "ui-bound", "ui-mask",
                  })
         {
             var node = Page.Locator($"[data-testid='{id}']");
@@ -315,6 +315,78 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
         // a list positioned inside the flow would be clipped to nothing. In the top layer it is not.
         var height = (await list.BoundingBoxAsync())!.Height;
         Assert.True(height > 96, $"the list was clipped to {height}px by its overflow-hidden ancestor.");
+    });
+
+    [Fact]
+    public Task ARangeIsWrittenOnlyOnceItHasBothEnds() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-dates']");
+        var calendar = scope.GetByRole(AriaRole.Group, new LocatorGetByRoleOptions { Name = "Stay", Exact = true });
+        await calendar.ScrollIntoViewIfNeededAsync();
+        var days = calendar.Locator("tbody button:not([disabled])");
+        var state = Page.Locator("[data-testid='ui-dates-stay']");
+
+        // The later day first. The first click is drawn but written nowhere: the page still has no stay.
+        await days.Nth(14).ClickAsync();
+        await Expect(days.Nth(14)).ToHaveAttributeAsync("aria-pressed", "true",
+            new LocatorAssertionsToHaveAttributeOptions { Timeout = 15_000 });
+        await Expect(state).ToHaveTextAsync("No stay chosen.");
+
+        await days.Nth(9).ClickAsync();
+        await Expect(state).ToContainTextAsync("-10 to ", new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        await Expect(state).ToContainTextAsync("-15");
+    });
+
+    [Fact]
+    public Task APickerOpensTheGridAndClosesOnThePick() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-dates']");
+        var field = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Arrival" });
+        await field.ScrollIntoViewIfNeededAsync();
+        await field.ClickAsync();
+
+        var dialog = scope.GetByRole(AriaRole.Dialog, new LocatorGetByRoleOptions { Name = "Arrival" });
+        await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        await Expect(field).ToHaveAttributeAsync("aria-expanded", "true");
+
+        await dialog.Locator("tbody button:not([disabled])").Nth(4).ClickAsync();
+
+        // Closed by the same click, the choice reached C#, and the field shows it.
+        await Expect(dialog).ToBeHiddenAsync();
+        await Expect(Page.Locator("[data-testid='ui-dates-picked']")).ToContainTextAsync("Arrival: ",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        await Expect(field).Not.ToContainTextAsync("Choose a date");
+    });
+
+    [Fact]
+    public Task SeveralDaysKeepThePickerOpen() => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        var scope = Page.Locator("[data-testid='ui-dates']");
+        var field = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Days off" });
+        await field.ScrollIntoViewIfNeededAsync();
+        await field.ClickAsync();
+
+        var dialog = scope.GetByRole(AriaRole.Dialog, new LocatorGetByRoleOptions { Name = "Days off" });
+        await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        var days = dialog.Locator("tbody button:not([disabled])");
+
+        await days.Nth(2).ClickAsync();
+        await Expect(days.Nth(2)).ToHaveAttributeAsync("aria-pressed", "true",
+            new LocatorAssertionsToHaveAttributeOptions { Timeout = 15_000 });
+        await days.Nth(5).ClickAsync();
+
+        await Expect(Page.Locator("[data-testid='ui-dates-picked']")).ToContainTextAsync("2 days off",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        await Expect(dialog).ToBeVisibleAsync();
+
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(dialog).ToBeHiddenAsync();
     });
 
     [Fact]
