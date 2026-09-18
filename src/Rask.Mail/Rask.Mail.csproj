@@ -58,6 +58,9 @@
        arrangement as Rask.Bootstrap). Enforced by PackageDependencyTests. -->
   <ItemGroup>
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+
+    <!-- The table is an Entity<TId> so it has a read face, which is what this brings. -->
+    <ProjectReference Include="..\Rask.Data\Rask.Data.csproj"/>
     <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
   </ItemGroup>
@@ -65,6 +68,27 @@
   <!-- Ship the global `using Rask.Mail;` to downstream consumers. -->
   <ItemGroup>
     <None Include="build\**" Pack="true" PackagePath="build\"/>
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+  <!--
+    READ FACES ONLY — see Rask.Outbox.csproj for the argument in full. This package maps its own table through
+    modelBuilder.AddRaskMail(), so a registry contribution here would map it into every app that merely references
+    the package and a second time for one that calls AddRaskMail. Nothing posts one of these rows either, so the
+    form surface would be meaningless.
+  -->
+  <PropertyGroup>
+    <RaskReadFacesOnly>true</RaskReadFacesOnly>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <CompilerVisibleProperty Include="RaskReadFacesOnly"/>
   </ItemGroup>
 
 </Project>

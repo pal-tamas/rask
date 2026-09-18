@@ -10,7 +10,7 @@ namespace Rask.Storage;
 /// <para>
 /// Every saved file is a <see cref="StoredFile"/> row on the application's database plus its bytes in the
 /// configured store — a directory, an S3-compatible bucket or an Azure container. Keep the
-/// <see cref="StoredFile.Id"/> on your own entity; everything here is addressed by it.
+/// <c>StoredFile.Id</c> on your own entity; everything here is addressed by it.
 /// </para>
 /// <para>
 /// <b>The bytes are written before the row.</b> A save that fails half way leaves bytes with no row, never a

@@ -36,7 +36,6 @@ internal static class MailSerializer
             TextBody = email.TextBody,
             Attachments = ToJsonOrNull(email.Attachments),
             RunAt = runAt,
-            CreatedAt = createdAt,
         };
     }
 

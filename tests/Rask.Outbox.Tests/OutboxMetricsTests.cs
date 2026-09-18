@@ -44,12 +44,8 @@ public sealed class OutboxMetricsTests : IDisposable
 
         await using (var db = NewContext())
         {
-            db.Set<OutboxMessage>().Add(new OutboxMessage
-            {
-                Type = "Nothing.Registered.Here",
-                Payload = "{}",
-                OccurredAt = DateTime.UtcNow,
-            });
+            db.Set<OutboxMessage>().Add(
+                OutboxMessage.For("Nothing.Registered.Here", "{}", DateTime.UtcNow));
             await db.SaveChangesAsync();
         }
 

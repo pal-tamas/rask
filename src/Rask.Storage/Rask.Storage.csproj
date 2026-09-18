@@ -62,4 +62,34 @@
     <None Include="build\**" Pack="true" PackagePath="build\"/>
   </ItemGroup>
 
+
+  <!--
+    The table is an Entity<TId> so that it has a read face, which is what this brings. EF Core was already a
+    dependency of this package; what is new is Rask.Data itself.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Data\Rask.Data.csproj"/>
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+  <!--
+    READ FACES ONLY — see Rask.Outbox.csproj for the argument in full. This package maps its own table through
+    modelBuilder.AddRaskStorage(), so a registry contribution here would map it into every app that merely references
+    the package and a second time for one that calls AddRaskStorage. Nothing posts one of these rows either, so the
+    form surface would be meaningless.
+  -->
+  <PropertyGroup>
+    <RaskReadFacesOnly>true</RaskReadFacesOnly>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <CompilerVisibleProperty Include="RaskReadFacesOnly"/>
+  </ItemGroup>
+
 </Project>

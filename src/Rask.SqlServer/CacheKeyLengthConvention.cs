@@ -36,12 +36,20 @@ internal sealed class CacheKeyLengthConvention : IModelFinalizingConvention
     {
         foreach (var entityType in modelBuilder.Metadata.GetEntityTypes())
         {
-            if (entityType.ClrType.FullName != CacheEntryTypeName || entityType.FindPrimaryKey() is not { } key)
+            if (entityType.ClrType.FullName != CacheEntryTypeName)
             {
                 continue;
             }
 
-            foreach (var property in key.Properties)
+            // Every INDEXED string on the row, not just the primary key's. The cache key stopped being the
+            // primary key when CacheEntry took a surrogate Id — it is a UNIQUE index now — and SQL Server's
+            // 900-byte limit applies to an index key whether or not it is the primary one. Looking only at the
+            // primary key would have left an nvarchar(512) unique index that SQL Server creates with a warning
+            // and then refuses to insert into.
+            var indexed = entityType.GetIndexes().SelectMany(static i => i.Properties)
+                .Concat(entityType.FindPrimaryKey()?.Properties ?? []);
+
+            foreach (var property in indexed)
             {
                 // The length was set explicitly by Rask.Cache's own configuration, which a convention-sourced
                 // SetMaxLength would not override; the mutable surface sets it at explicit precedence.

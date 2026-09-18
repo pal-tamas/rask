@@ -29,13 +29,7 @@ public sealed class JobQueue<TContext>(IDbContextFactory<TContext> contextFactor
         ArgumentNullException.ThrowIfNull(job);
         var (type, payload) = JobSerializerRegistry.Serialize(job);
         await using var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
-        db.Set<Job>().Add(new Job
-        {
-            Type = type,
-            Payload = payload,
-            RunAt = runAt,
-            CreatedAt = timeProvider.GetUtcNow().UtcDateTime,
-        });
+        db.Set<Job>().Add(Job.For(type, payload, runAt));
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 }

@@ -66,13 +66,7 @@ public sealed class JobMetricsTests
         await using (var db = h.NewContext())
         {
             var now = h.Clock.GetUtcNow().UtcDateTime;
-            db.Set<Job>().Add(new Job
-            {
-                Type = "Nothing.Registered.Here",
-                Payload = "{}",
-                RunAt = now,
-                CreatedAt = now,
-            });
+            db.Set<Job>().Add(Job.For("Nothing.Registered.Here", "{}", now));
             await db.SaveChangesAsync();
         }
 

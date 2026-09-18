@@ -87,7 +87,7 @@ Rask.Data speaks domain-driven design, and the base class you derive from says w
 
 | You declare | What it is | What it gets |
 | --- | --- | --- |
-| `Aggregate<TId>` | A consistency boundary: the thing you load, change and save as one | Its table, the static reads and writes, a generated form model, `Version`, soft delete, domain events |
+| `Aggregate<TId>` | A consistency boundary: the thing you load, change and save as one | Its table, the static writes, its read face, a generated form model, `Version`, domain events |
 | `Entity<TId>` | Something with identity inside an aggregate, such as an order's line | Its table, its timestamps, and a form model its parent's carries ([below](#children)); it is loaded, saved and deleted with its aggregate |
 | anything else it holds | A value object: `Money`, `Address`, `Email`. No base class, no marker | Columns on the owner's row ([below](#value-objects)) |
 
@@ -98,9 +98,9 @@ framework writes them:
 | Property | Declared on | Effect |
 |-----------|--------|--------|
 | `Id` | `Entity<TId>` | The key. A `Guid` or strongly-typed id is assigned in the factory; an integer is the store's identity. |
-| `CreatedAt`, `UpdatedAt` | `Entity<TId>` | Stamped (UTC) on insert and on every update. |
-| `Version` | `Aggregate<TId>` | The optimistic-concurrency token, bumped on every update. |
-| `DeletedAt` | `Aggregate<TId>` | A delete becomes a `DeletedAt` stamp, and a global query filter hides the row. |
+| `CreatedAt`, `UpdatedAt` | `Entity<TId>` | Stamped (UTC) on insert and on every update. Narrow with [`Stamps`](#choosing-what-a-table-carries). |
+| `Version` | `Aggregate<TId>` | The optimistic-concurrency token, bumped on every update. Decline with [`Checks`](#choosing-what-a-table-carries). |
+| `DeletedAt` | `Aggregate<TId>` | **Only when the aggregate asks.** A delete removes the row unless it declares [`Deletes = Deletion.Soft`](#choosing-what-a-table-carries). |
 
 ```csharp
 var recent = await Product.OrderByDescending(p => p.CreatedAt).Take(10).ToListAsync();
@@ -400,12 +400,14 @@ update just names the row first:
 - **`Product.CreateAsync(entity)`** inserts an aggregate you built with its own factory:
   `Product.CreateAsync(Product.Create("Anvil", new(30m, "EUR")))`.
 - **An update** loads the row, applies the model and then the lambda, and saves **only the columns that changed**.
-- **`Product.DeleteAsync(id)`** loads the row and soft-deletes it: `DeletedAt` is stamped and every read stops
-  seeing it.
+- **`Product.DeleteAsync(id)`** loads the row and **removes** it. An aggregate that declares
+  `public const Deletion Deletes = Deletion.Soft;` keeps the row instead: `DeletedAt` is stamped and every read
+  stops seeing it.
 
 Each write is one unit of work for one aggregate, and each goes through EF Core's change tracker, so the
-interceptors run exactly as for a hand-written save: `CreatedAt`/`UpdatedAt` are stamped, `Version` is bumped, a
-delete becomes a stamp, and the aggregate's domain events are published after the commit.
+interceptors run exactly as for a hand-written save: `CreatedAt`/`UpdatedAt` are stamped, `Version` is bumped,
+a delete becomes a stamp *for an aggregate that asked for soft delete*, and the aggregate's domain events are
+published after the commit.
 
 - **The id is always yours.** The model carries none; the row is addressed by the `id` you pass, never by anything
   a form posted.
@@ -552,6 +554,68 @@ public sealed partial class EditProductPage(Navigator nav) : Component
 The list those pages link from is a [data grid](data-grid.md) over `Product.Read.AsQueryable()`
 ([above](#handing-a-query-to-a-component-asqueryable)): the rows are read faces, read-only by construction, and
 each links to its edit page.
+
+### Choosing what a table carries
+
+Four `const`s narrow what Rask generates and maps for one entity. Each is read at compile time, so a wrong
+value is an error at the declaration rather than a surprise at the call site — and leaving one off means the
+default, so an entity that says nothing is unchanged.
+
+| const | type | default | what it decides |
+|---|---|---|---|
+| `Writes` | `ModelWrites` | `All` | the form model, and the writes that take one |
+| `Stamps` | `Timestamps` | `All` | `CreatedAt` and `UpdatedAt` |
+| `Deletes` | `Deletion` | `Hard` | whether `DeleteAsync` removes the row or stamps `DeletedAt` |
+| `Checks` | `Concurrency` | `Version` | the optimistic-concurrency token |
+
+```csharp
+public sealed class Order : Aggregate<Guid>
+{
+    public const Deletion Deletes = Deletion.Soft;   // keep the row when it is deleted
+}
+
+public sealed class Reading : Aggregate<Guid>
+{
+    public const Timestamps Stamps = Timestamps.Created;   // append-only: nothing updates one
+    public const Concurrency Checks = Concurrency.None;    // and nothing edits one twice
+}
+```
+
+**Why a `const` and not an attribute.** C# refuses a non-constant initializer, so the value is always there to
+be read at compile time — the generator can never quietly fail to find it and emit the whole surface anyway.
+It is also read at compile time rather than reflected over at run time, because a `const` is inlined at every
+use site and the field itself is free to be trimmed: a reflected read would find nothing in a trimmed publish
+and silently fall back to the default, giving an app one shape in debug and another in release.
+
+**Four is the whole family.** Anything per-property or expression-shaped — a column name, an index, a value
+converter, a length — stays in [`static Configure`](#mapping-rules-the-conventions-dont-cover), which is where
+it can actually be expressed.
+
+#### Why soft delete is off and the version check is on
+
+They look symmetrical and are not.
+
+Soft delete used to be the default and is not any more, because it costs an ordinary application more than the
+recovery is worth. A stamped row still occupies its UNIQUE constraints, so deleting the account `a@b.com` and
+letting that person sign up again fails on a row nobody can see. "Delete my account" has to be able to mean
+delete. And Rask already ships real recovery — [SQLite snapshots and Litestream](sqlite.md) — so keeping the
+row was solving that problem a second time, worse, while charging every query a predicate.
+
+The version check stays on because **a lost delete is visible and a lost update is not**. A deleted row is
+gone and somebody notices; two people editing one form both see "Saved" and the second silently erases the
+first. The cost that would normally argue for turning it off — an unhandled `DbUpdateConcurrencyException` —
+Rask already absorbs: the scaffolded edit page catches it and says somebody else changed the row.
+
+#### An entity that knows its own time
+
+`CreatedAt` and `UpdatedAt` are normally the framework's, stamped by Rask's auditing interceptor on save. An
+entity in a package that does **not** own the `DbContext` cannot rely on that, and a column nobody stamped
+reads as `0001-01-01` — which is not obviously wrong anywhere it is used. Rask's own file store found this the
+hard way: an unstamped `CreatedAt` became a `Last-Modified` header and the cutoff of an orphan sweep.
+
+So `Entity<TId>` has a `protected void Stamp(DateTime at)`, and the interceptor fills only what is still
+unset. An entity that knows its own creation time says so; one that does not gets the framework's; neither can
+end up at `0001-01-01`.
 
 ### Turning the form surface off
 

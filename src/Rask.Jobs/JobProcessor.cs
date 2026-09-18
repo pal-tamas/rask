@@ -219,9 +219,8 @@ public sealed class JobProcessor<TContext>(
                     await using var scope = scopeFactory.CreateAsyncScope();
                     var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
                     await dispatcher.SendAsync(command, graceToken).ConfigureAwait(false);
-                    job.ProcessedAt = timeProvider.GetUtcNow().UtcDateTime;
-                    job.Error = null;
-                    Release(job);
+                    job.Completed(timeProvider.GetUtcNow().UtcDateTime);
+                    job.Release();
                     metrics.Processed(job.Type, timeProvider.GetElapsedTime(startedAt).TotalMilliseconds);
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -295,16 +294,8 @@ public sealed class JobProcessor<TContext>(
     // still counts toward MaxAttempts instead of being retried forever.
     private void Fail(Job job, string error)
     {
-        job.Error = error;
-        job.RunAt = timeProvider.GetUtcNow().UtcDateTime + options.RetryDelay(job.Attempts);
-        Release(job);
-    }
-
-    // Hand the row back so the next poll can see it without waiting for the lease to expire.
-    private static void Release(Job job)
-    {
-        job.ClaimToken = null;
-        job.ClaimedUntil = null;
+        job.Failed(error, timeProvider.GetUtcNow().UtcDateTime + options.RetryDelay(job.Attempts));
+        job.Release();
     }
 
     /// <inheritdoc/>
@@ -405,7 +396,7 @@ public sealed class JobProcessor<TContext>(
             }
 
             var (type, payload) = JobSerializerRegistry.Serialize(definition.Factory());
-            db.Set<Job>().Add(new Job { Type = type, Payload = payload, RunAt = now, CreatedAt = now });
+            db.Set<Job>().Add(Job.For(type, payload, now));
             await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
     }
@@ -416,7 +407,7 @@ public sealed class JobProcessor<TContext>(
     /// </summary>
     private static async Task<bool> TryCreateStateAsync(TContext db, string name, CancellationToken cancellationToken)
     {
-        var state = new RecurringJobState { Name = name };
+        var state = RecurringJobState.For(name);
         db.Set<RecurringJobState>().Add(state);
         try
         {
@@ -425,8 +416,8 @@ public sealed class JobProcessor<TContext>(
         }
         catch (DbUpdateException)
         {
-            // Name is the primary key, so the loser gets a constraint violation. Detach it, or the next
-            // SaveChanges on this context retries the same doomed insert.
+            // Name is UNIQUE, so the loser gets a constraint violation just as it did when Name was the
+            // primary key. Detach it, or the next SaveChanges on this context retries the same doomed insert.
             db.Entry(state).State = EntityState.Detached;
             return false;
         }

@@ -221,8 +221,8 @@ public sealed class OutboxProcessor<TContext>(
             var notification = OutboxSerializerRegistry.Deserialize(message.Type, message.Payload);
             if (notification is null)
             {
-                message.Error = $"No registered outbox event type '{message.Type}'.";
-                Release(message);
+                message.Failed($"No registered outbox event type '{message.Type}'.");
+                message.Release();
 
                 // An unregistered type is a failure like any other, and counts toward the dead letter it
                 // will become — a renamed event that nobody re-registered is the most ordinary way a
@@ -241,9 +241,8 @@ public sealed class OutboxProcessor<TContext>(
                 try
                 {
                     await dispatcher.PublishAsync(notification, graceToken).ConfigureAwait(false);
-                    message.ProcessedAt = timeProvider.GetUtcNow().UtcDateTime;
-                    message.Error = null;
-                    Release(message);
+                    message.Published(timeProvider.GetUtcNow().UtcDateTime);
+                    message.Release();
                     metrics.Processed(message.Type, timeProvider.GetElapsedTime(startedAt).TotalMilliseconds);
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -273,8 +272,8 @@ public sealed class OutboxProcessor<TContext>(
                 catch (Exception ex)
 #pragma warning restore CA1031
                 {
-                    message.Error = ex.Message;
-                    Release(message);
+                    message.Failed(ex.Message);
+                    message.Release();
                     metrics.Failed(message.Type);
                     if (message.Attempts >= options.MaxAttempts)
                     {
@@ -310,13 +309,6 @@ public sealed class OutboxProcessor<TContext>(
                 db.Entry(message).State = EntityState.Detached;
             }
         }
-    }
-
-    // Hand the row back so the next poll can see it without waiting for the lease to expire.
-    private static void Release(OutboxMessage message)
-    {
-        message.ClaimToken = null;
-        message.ClaimedUntil = null;
     }
 
     // Retention. Published messages are history; a busy app writes them faster than anyone reads them, and

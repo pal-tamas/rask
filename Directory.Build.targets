@@ -206,13 +206,13 @@
       layout the same everywhere means a project that gains a second framework later gets a new
       empty baseline to fill in, rather than a gate that quietly starts contradicting itself.
     -->
-    <AdditionalFiles Include="$(RaskPublicApiDir)$(RaskPublicApiTfm)\PublicAPI.Shipped.txt" Condition=" Exists('$(RaskPublicApiDir)$(RaskPublicApiTfm)\PublicAPI.Shipped.txt') "/>
-    <AdditionalFiles Include="$(RaskPublicApiDir)$(RaskPublicApiTfm)\PublicAPI.Unshipped.txt" Condition=" Exists('$(RaskPublicApiDir)$(RaskPublicApiTfm)\PublicAPI.Unshipped.txt') "/>
+    <AdditionalFiles Include="$(RaskPublicApiEffectiveDir)$(RaskPublicApiTfm)\PublicAPI.Shipped.txt" Condition=" Exists('$(RaskPublicApiEffectiveDir)$(RaskPublicApiTfm)\PublicAPI.Shipped.txt') "/>
+    <AdditionalFiles Include="$(RaskPublicApiEffectiveDir)$(RaskPublicApiTfm)\PublicAPI.Unshipped.txt" Condition=" Exists('$(RaskPublicApiEffectiveDir)$(RaskPublicApiTfm)\PublicAPI.Unshipped.txt') "/>
     <!--
       For scripts/tests/public-api-gate.test.sh ONLY: compiles one extra file into the project, so the gate's self-test
       can add an unrecorded public member without writing into src/. Empty everywhere else, which declares nothing.
     -->
-    <Compile Include="$(RaskPublicApiGateProbe)" Condition=" '$(RaskPublicApiGateProbe)' != '' "/>
+    <Compile Include="$(RaskPublicApiEffectiveProbe)" Condition=" '$(RaskPublicApiEffectiveProbe)' != '' "/>
   </ItemGroup>
 
   <!--
@@ -238,8 +238,30 @@
       found a directory vanishing under them (#1084). Every reader below goes through it, so none is left looking
       at the real folder while the analyzer reads another.
     -->
+    <!--
+      An override applies to the project it NAMES and to nothing else. A global property reaches every project
+      in the build, references included, so without this a test pointing one project at a copied baseline also
+      pointed its dependencies there — and they reported every public symbol of their own as unrecorded. Only
+      ever hit once Rask.Cache gained its first ProjectReference, which is exactly the kind of latent trap that
+      surfaces years later on an unrelated change.
+    -->
     <RaskPublicApiDir Condition=" '$(RaskPublicApiDir)' == '' ">$(MSBuildProjectDirectory)\PublicAPI\</RaskPublicApiDir>
     <RaskPublicApiDir>$([MSBuild]::EnsureTrailingSlash('$(RaskPublicApiDir)'))</RaskPublicApiDir>
+
+    <!--
+      RaskPublicApiFor names the ONE project an override belongs to, and every reader below goes through the
+      two properties it decides. A -p: property is GLOBAL: it reaches every project in the build, references
+      included, and cannot be overridden by a PropertyGroup — so a test pointing one project at a copied
+      baseline was pointing its dependencies there too, and they reported every public symbol of their own as
+      unrecorded. That stayed invisible for as long as the project under test had no ProjectReference; it
+      surfaced the day Rask.Cache gained its first one.
+    -->
+    <RaskPublicApiEffectiveDir>$(RaskPublicApiDir)</RaskPublicApiEffectiveDir>
+    <RaskPublicApiEffectiveDir Condition=" '$(RaskPublicApiFor)' != '' and '$(MSBuildProjectName)' != '$(RaskPublicApiFor)' ">$(MSBuildProjectDirectory)\PublicAPI\</RaskPublicApiEffectiveDir>
+    <RaskPublicApiEffectiveDir>$([MSBuild]::EnsureTrailingSlash('$(RaskPublicApiEffectiveDir)'))</RaskPublicApiEffectiveDir>
+
+    <RaskPublicApiEffectiveProbe>$(RaskPublicApiGateProbe)</RaskPublicApiEffectiveProbe>
+    <RaskPublicApiEffectiveProbe Condition=" '$(RaskPublicApiFor)' != '' and '$(MSBuildProjectName)' != '$(RaskPublicApiFor)' "/>
   </PropertyGroup>
 
   <!--
@@ -250,7 +272,7 @@
   -->
   <Target Name="RaskVerifyPublicApiBaseline" BeforeTargets="CoreCompile"
           Condition=" '$(RaskPublicApiTracked)' == 'true' AND '$(TargetFramework)' != '' ">
-    <Error Condition=" !Exists('$(RaskPublicApiDir)$(RaskPublicApiTfm)\PublicAPI.Unshipped.txt') "
+    <Error Condition=" !Exists('$(RaskPublicApiEffectiveDir)$(RaskPublicApiTfm)\PublicAPI.Unshipped.txt') "
            Text="$(MSBuildProjectName) is covered by the public-API gate but has no baseline for $(TargetFramework). Create PublicAPI\$(RaskPublicApiTfm)\PublicAPI.Unshipped.txt (first line '#nullable enable') and PublicAPI.Shipped.txt (empty), then build: every public member is reported as RS0016 with the exact line to record. See docs/api-style.md. To exempt this project instead, set &lt;RaskPublicApiTracked&gt;false&lt;/RaskPublicApiTracked&gt; in its .csproj and say why." />
     <!-- A baseline nothing reads is a gate that passes by not running: every edit to it would go unchecked. -->
     <Error Condition=" '$(RaskPublicApiTfm)' != '$(TargetFramework)' AND Exists('$(RaskPublicApiDir)$(TargetFramework)') "

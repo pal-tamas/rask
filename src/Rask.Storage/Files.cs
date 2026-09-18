@@ -230,18 +230,16 @@ internal sealed class Files<TContext>(IDbContextFactory<TContext> contextFactory
                 save.Public ? StoredFileHeaders.PublicCacheControl : StoredFileHeaders.PrivateCacheControl);
             await backend.PutFileAsync(key, spool, size, headers, cancellationToken).ConfigureAwait(false);
 
-            var stored = new StoredFile
-            {
-                Id = id,
-                Name = fileName,
-                ContentType = contentType,
-                Size = size,
-                Sha256 = Convert.ToHexStringLower(hash.GetHashAndReset()),
-                Provider = backend.Provider,
-                Key = key,
-                Public = save.Public,
-                CreatedAt = runtime.Time.GetUtcNow().UtcDateTime,
-            };
+            var stored = StoredFile.For(
+                id,
+                fileName,
+                contentType,
+                size,
+                Convert.ToHexStringLower(hash.GetHashAndReset()),
+                backend.Provider,
+                key,
+                save.Public,
+                runtime.Time.GetUtcNow().UtcDateTime);
 
             var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
             await using (db.ConfigureAwait(false))

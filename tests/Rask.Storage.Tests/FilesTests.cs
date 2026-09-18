@@ -27,8 +27,19 @@ public sealed class FilesTests
         Assert.Equal(KeyLayout.KeyOf("", file.Id, isPublic: false), file.Key);
         Assert.False(file.Public);
 
+        // Field by field, not instance by instance: StoredFile is an Entity<Guid> now rather than a record,
+        // so Equals is reference equality and the row read back is a different object than the one saved.
         var stored = await harness.Files.FindAsync(file.Id);
-        Assert.Equal(file, stored);
+        Assert.NotNull(stored);
+        Assert.Equal(file.Id, stored.Id);
+        Assert.Equal(file.Name, stored.Name);
+        Assert.Equal(file.ContentType, stored.ContentType);
+        Assert.Equal(file.Size, stored.Size);
+        Assert.Equal(file.Sha256, stored.Sha256);
+        Assert.Equal(file.Provider, stored.Provider);
+        Assert.Equal(file.Key, stored.Key);
+        Assert.Equal(file.Public, stored.Public);
+        Assert.Equal(file.CreatedAt, stored.CreatedAt);
         Assert.Equal(bytes, await File.ReadAllBytesAsync(Path.Combine(harness.Root, file.Key)));
         Assert.Empty(harness.SpoolPaths());
     }

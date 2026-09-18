@@ -43,7 +43,9 @@ checked=0
 build_log() {
   local name="$1" log="$tmp/$1.log" rc=0
   shift
-  CI=true dotnet build "$project" -m:1 --nologo "$@" > "$log" 2>&1 || rc=$?
+  # RaskPublicApiFor scopes the overrides below to this project: a global property would otherwise reach
+  # its ProjectReferences too, and they would be compiled against somebody else's baseline.
+  CI=true dotnet build "$project" -m:1 --nologo -p:RaskPublicApiFor=Rask.Cache "$@" > "$log" 2>&1 || rc=$?
   echo "$rc"
 }
 

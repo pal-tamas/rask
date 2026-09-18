@@ -4,27 +4,45 @@ Rask.Outbox.OutboxInterceptor
 Rask.Outbox.OutboxInterceptor.OutboxInterceptor(System.TimeProvider! timeProvider) -> void
 Rask.Outbox.OutboxMessage
 Rask.Outbox.OutboxMessage.Attempts.get -> int
-Rask.Outbox.OutboxMessage.Attempts.set -> void
 Rask.Outbox.OutboxMessage.ClaimToken.get -> System.Guid?
-Rask.Outbox.OutboxMessage.ClaimToken.set -> void
 Rask.Outbox.OutboxMessage.ClaimedUntil.get -> System.DateTime?
-Rask.Outbox.OutboxMessage.ClaimedUntil.set -> void
 Rask.Outbox.OutboxMessage.Error.get -> string?
-Rask.Outbox.OutboxMessage.Error.set -> void
-Rask.Outbox.OutboxMessage.Id.get -> long
-Rask.Outbox.OutboxMessage.Id.set -> void
+Rask.Outbox.OutboxMessage.Failed(string! error) -> void
 Rask.Outbox.OutboxMessage.OccurredAt.get -> System.DateTime
-Rask.Outbox.OutboxMessage.OccurredAt.set -> void
-Rask.Outbox.OutboxMessage.OutboxMessage() -> void
 Rask.Outbox.OutboxMessage.Payload.get -> string!
-Rask.Outbox.OutboxMessage.Payload.set -> void
 Rask.Outbox.OutboxMessage.ProcessedAt.get -> System.DateTime?
-Rask.Outbox.OutboxMessage.ProcessedAt.set -> void
+Rask.Outbox.OutboxMessage.Published(System.DateTime at) -> void
+Rask.Outbox.OutboxMessage.Release() -> void
 Rask.Outbox.OutboxMessage.Type.get -> string!
-Rask.Outbox.OutboxMessage.Type.set -> void
 Rask.Outbox.OutboxMessageConfiguration
 Rask.Outbox.OutboxMessageConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Rask.Outbox.OutboxMessage!>! entity) -> void
 Rask.Outbox.OutboxMessageConfiguration.OutboxMessageConfiguration() -> void
+Rask.Outbox.OutboxMessageRead
+Rask.Outbox.OutboxMessageRead.Attempts.get -> int
+Rask.Outbox.OutboxMessageRead.Attempts.init -> void
+Rask.Outbox.OutboxMessageRead.ClaimToken.get -> System.Guid?
+Rask.Outbox.OutboxMessageRead.ClaimToken.init -> void
+Rask.Outbox.OutboxMessageRead.ClaimedUntil.get -> System.DateTime?
+Rask.Outbox.OutboxMessageRead.ClaimedUntil.init -> void
+Rask.Outbox.OutboxMessageRead.CreatedAt.get -> System.DateTime
+Rask.Outbox.OutboxMessageRead.CreatedAt.init -> void
+Rask.Outbox.OutboxMessageRead.Error.get -> string?
+Rask.Outbox.OutboxMessageRead.Error.init -> void
+Rask.Outbox.OutboxMessageRead.Id.get -> long
+Rask.Outbox.OutboxMessageRead.Id.init -> void
+Rask.Outbox.OutboxMessageRead.OccurredAt.get -> System.DateTime
+Rask.Outbox.OutboxMessageRead.OccurredAt.init -> void
+Rask.Outbox.OutboxMessageRead.OutboxMessageRead() -> void
+Rask.Outbox.OutboxMessageRead.Payload.get -> string!
+Rask.Outbox.OutboxMessageRead.Payload.init -> void
+Rask.Outbox.OutboxMessageRead.ProcessedAt.get -> System.DateTime?
+Rask.Outbox.OutboxMessageRead.ProcessedAt.init -> void
+Rask.Outbox.OutboxMessageRead.Type.get -> string!
+Rask.Outbox.OutboxMessageRead.Type.init -> void
+Rask.Outbox.OutboxMessageRead.UpdatedAt.get -> System.DateTime
+Rask.Outbox.OutboxMessageRead.UpdatedAt.init -> void
+Rask.Outbox.OutboxMessageReadAccess
+Rask.Outbox.OutboxMessageReadAccess.extension(Rask.Outbox.OutboxMessage!)
 Rask.Outbox.OutboxMetrics
 Rask.Outbox.OutboxMetrics.DeadLettered(string! messageType) -> void
 Rask.Outbox.OutboxMetrics.Dispose() -> void
@@ -53,10 +71,15 @@ Rask.Outbox.OutboxProcessor<TContext>
 Rask.Outbox.OutboxProcessor<TContext>.OutboxProcessor(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! contextFactory, Microsoft.Extensions.DependencyInjection.IServiceScopeFactory! scopeFactory, Rask.Outbox.OutboxOptions! options, System.TimeProvider! timeProvider, Rask.Outbox.OutboxMetrics! metrics, Microsoft.Extensions.Logging.ILogger<Rask.Outbox.OutboxProcessor<TContext!>!>! logger) -> void
 Rask.Outbox.OutboxSerializerRegistry
 Rask.Outbox.RaskOutboxServiceCollectionExtensions
+const Rask.Outbox.OutboxMessage.Stamps = Rask.Data.Timestamps.Updated -> Rask.Data.Timestamps
+const Rask.Outbox.OutboxMessage.Writes = Rask.Data.ModelWrites.None -> Rask.Data.ModelWrites
 const Rask.Outbox.OutboxMetrics.MeterName = "Rask.Outbox" -> string!
 override Rask.Outbox.OutboxInterceptor.SavingChanges(Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData! eventData, Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result) -> Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>
 override Rask.Outbox.OutboxInterceptor.SavingChangesAsync(Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData! eventData, Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>>
 override Rask.Outbox.OutboxProcessor<TContext>.StopAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+static Rask.Outbox.OutboxMessage.For(string! type, string! payload, System.DateTime occurredAt) -> Rask.Outbox.OutboxMessage!
+static Rask.Outbox.OutboxMessageReadAccess.extension(Rask.Outbox.OutboxMessage!).Read.get -> Rask.Data.ModelQuery<Rask.Outbox.OutboxMessageRead!>!
+static Rask.Outbox.OutboxMessageReadAccess.get_Read() -> Rask.Data.ModelQuery<Rask.Outbox.OutboxMessageRead!>!
 static Rask.Outbox.OutboxModelBuilderExtensions.AddRaskOutbox(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
 static Rask.Outbox.OutboxSerializerRegistry.Deserialize(string! typeName, string! payload) -> Rask.Cqrs.INotification?
 static Rask.Outbox.OutboxSerializerRegistry.RegisterEvent(string! typeName, System.Type! type) -> void

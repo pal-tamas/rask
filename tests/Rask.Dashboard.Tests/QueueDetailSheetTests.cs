@@ -68,17 +68,7 @@ public sealed class QueueDetailSheetTests
 
     private static Task SeedDeadLetterAsync(DashboardHarness harness, DateTime now, int maxAttempts)
     {
-        var job = new Job
-        {
-            Type = "Some.Job",
-            Payload = "{}",
-            RunAt = now.AddHours(-1),
-            CreatedAt = now.AddHours(-1),
-            Attempts = maxAttempts,      // out of attempts and unprocessed: a dead letter
-            Error = "boom",
-        };
-
-        return SaveAsync(harness, job);
+        return SaveAsync(harness, QueueRowBuilder.DeadLetter(now.AddHours(-1), maxAttempts));
     }
 
     private static async Task SaveAsync(DashboardHarness harness, Job job)

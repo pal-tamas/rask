@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
+using Rask.Data;
+
 namespace Rask.Mail;
 
 /// <summary>
@@ -10,52 +12,57 @@ namespace Rask.Mail;
 /// <c>QueuedMail</c> rather than <c>MailMessage</c> to avoid clashing with <c>System.Net.Mail.MailMessage</c>,
 /// since this package ships a global <c>using Rask.Mail</c>.)
 /// </summary>
-public sealed class QueuedMail
+/// <remarks>
+/// An <see cref="Entity{TId}"/> rather than an <see cref="Aggregate{TId}"/>: an aggregate's soft-delete query
+/// filter would hide rows from the send query and turn the dashboard's purge into a stamp, and its
+/// <c>Version</c> would be a second concurrency token beside <see cref="ClaimToken"/> that the processor's
+/// <c>ExecuteUpdate</c> never maintains. <c>CreatedAt</c> comes from the base — the same column it always was.
+/// The setters are <c>internal</c>: this package writes its own rows through <see cref="MailSerializer"/>,
+/// and nothing outside it should.
+/// </remarks>
+public sealed class QueuedMail : Entity<long>
 {
-    /// <summary>Database-generated, monotonically increasing key — the tiebreak for send order.</summary>
-    public long Id { get; set; }
+    /// <summary>No form model: an email is enqueued by code, never posted.</summary>
+    public const ModelWrites Writes = ModelWrites.None;
 
     /// <summary>The sender address, as JSON (see <see cref="MailSerializer"/>).</summary>
-    public string From { get; set; } = "";
+    public string From { get; internal set; } = "";
 
     /// <summary>The <c>To</c> recipients, as a JSON array.</summary>
-    public string To { get; set; } = "";
+    public string To { get; internal set; } = "";
 
     /// <summary>The <c>Cc</c> recipients, as a JSON array (or <c>null</c>).</summary>
-    public string? Cc { get; set; }
+    public string? Cc { get; internal set; }
 
     /// <summary>The <c>Bcc</c> recipients, as a JSON array (or <c>null</c>).</summary>
-    public string? Bcc { get; set; }
+    public string? Bcc { get; internal set; }
 
     /// <summary>The <c>Reply-To</c> address, as JSON (or <c>null</c>).</summary>
-    public string? ReplyTo { get; set; }
+    public string? ReplyTo { get; internal set; }
 
     /// <summary>The subject line.</summary>
-    public string Subject { get; set; } = "";
+    public string Subject { get; internal set; } = "";
 
     /// <summary>The HTML body, if any.</summary>
-    public string? HtmlBody { get; set; }
+    public string? HtmlBody { get; internal set; }
 
     /// <summary>The <c>text/plain</c> body, if any.</summary>
-    public string? TextBody { get; set; }
+    public string? TextBody { get; internal set; }
 
     /// <summary>The attachments, as a JSON array (or <c>null</c>).</summary>
-    public string? Attachments { get; set; }
+    public string? Attachments { get; internal set; }
 
     /// <summary>The earliest time (UTC) the email is eligible to send — enqueue time, or later for a delayed send or a backed-off retry.</summary>
-    public DateTime RunAt { get; set; }
+    public DateTime RunAt { get; internal set; }
 
     /// <summary>When the email was sent successfully (UTC), or <c>null</c> while it is pending.</summary>
-    public DateTime? ProcessedAt { get; set; }
+    public DateTime? ProcessedAt { get; internal set; }
 
     /// <summary>How many times delivery has been attempted.</summary>
-    public int Attempts { get; set; }
+    public int Attempts { get; internal set; }
 
     /// <summary>The last failure message, if any.</summary>
-    public string? Error { get; set; }
-
-    /// <summary>When the email was enqueued (UTC).</summary>
-    public DateTime CreatedAt { get; set; }
+    public string? Error { get; internal set; }
 
     /// <summary>
     /// The processor instance currently holding this email, or <c>null</c> when nobody does.
@@ -64,13 +71,13 @@ public sealed class QueuedMail
     /// Also the optimistic-concurrency token, which is what stops an instance whose lease expired
     /// mid-send from stamping its outcome over the row another instance has since taken.
     /// </remarks>
-    public Guid? ClaimToken { get; set; }
+    public Guid? ClaimToken { get; internal set; }
 
     /// <summary>
     /// When the current claim expires (UTC). Null or in the past means the email is claimable — which is
     /// also how a processor that died mid-send releases its work: the lease simply runs out.
     /// </summary>
-    public DateTime? ClaimedUntil { get; set; }
+    public DateTime? ClaimedUntil { get; internal set; }
 }
 
 /// <summary>The EF Core mapping for <see cref="QueuedMail"/>.</summary>

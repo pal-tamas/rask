@@ -143,7 +143,7 @@ public sealed class SqlServerClaimTests : IAsyncLifetime
         for (var i = 0; i < count; i++)
         {
             var (type, payload) = JobSerializerRegistry.Serialize(new ProbeJob($"j{i}"));
-            db.Set<Job>().Add(new Job { Type = type, Payload = payload, RunAt = now, CreatedAt = now });
+            db.Set<Job>().Add(Job.For(type, payload, now));
         }
 
         await db.SaveChangesAsync();

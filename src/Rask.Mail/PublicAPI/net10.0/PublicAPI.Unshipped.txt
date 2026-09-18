@@ -110,43 +110,64 @@ Rask.Mail.PickupDirectoryMailSender.PickupDirectoryMailSender(Rask.Mail.MailOpti
 Rask.Mail.PickupDirectoryMailSender.SendAsync(Rask.Mail.OutgoingMail! mail, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Mail.QueuedMail
 Rask.Mail.QueuedMail.Attachments.get -> string?
-Rask.Mail.QueuedMail.Attachments.set -> void
 Rask.Mail.QueuedMail.Attempts.get -> int
-Rask.Mail.QueuedMail.Attempts.set -> void
 Rask.Mail.QueuedMail.Bcc.get -> string?
-Rask.Mail.QueuedMail.Bcc.set -> void
 Rask.Mail.QueuedMail.Cc.get -> string?
-Rask.Mail.QueuedMail.Cc.set -> void
 Rask.Mail.QueuedMail.ClaimToken.get -> System.Guid?
-Rask.Mail.QueuedMail.ClaimToken.set -> void
 Rask.Mail.QueuedMail.ClaimedUntil.get -> System.DateTime?
-Rask.Mail.QueuedMail.ClaimedUntil.set -> void
-Rask.Mail.QueuedMail.CreatedAt.get -> System.DateTime
-Rask.Mail.QueuedMail.CreatedAt.set -> void
 Rask.Mail.QueuedMail.Error.get -> string?
-Rask.Mail.QueuedMail.Error.set -> void
 Rask.Mail.QueuedMail.From.get -> string!
-Rask.Mail.QueuedMail.From.set -> void
 Rask.Mail.QueuedMail.HtmlBody.get -> string?
-Rask.Mail.QueuedMail.HtmlBody.set -> void
-Rask.Mail.QueuedMail.Id.get -> long
-Rask.Mail.QueuedMail.Id.set -> void
 Rask.Mail.QueuedMail.ProcessedAt.get -> System.DateTime?
-Rask.Mail.QueuedMail.ProcessedAt.set -> void
 Rask.Mail.QueuedMail.QueuedMail() -> void
 Rask.Mail.QueuedMail.ReplyTo.get -> string?
-Rask.Mail.QueuedMail.ReplyTo.set -> void
 Rask.Mail.QueuedMail.RunAt.get -> System.DateTime
-Rask.Mail.QueuedMail.RunAt.set -> void
 Rask.Mail.QueuedMail.Subject.get -> string!
-Rask.Mail.QueuedMail.Subject.set -> void
 Rask.Mail.QueuedMail.TextBody.get -> string?
-Rask.Mail.QueuedMail.TextBody.set -> void
 Rask.Mail.QueuedMail.To.get -> string!
-Rask.Mail.QueuedMail.To.set -> void
 Rask.Mail.QueuedMailConfiguration
 Rask.Mail.QueuedMailConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Rask.Mail.QueuedMail!>! entity) -> void
 Rask.Mail.QueuedMailConfiguration.QueuedMailConfiguration() -> void
+Rask.Mail.QueuedMailRead
+Rask.Mail.QueuedMailRead.Attachments.get -> string?
+Rask.Mail.QueuedMailRead.Attachments.init -> void
+Rask.Mail.QueuedMailRead.Attempts.get -> int
+Rask.Mail.QueuedMailRead.Attempts.init -> void
+Rask.Mail.QueuedMailRead.Bcc.get -> string?
+Rask.Mail.QueuedMailRead.Bcc.init -> void
+Rask.Mail.QueuedMailRead.Cc.get -> string?
+Rask.Mail.QueuedMailRead.Cc.init -> void
+Rask.Mail.QueuedMailRead.ClaimToken.get -> System.Guid?
+Rask.Mail.QueuedMailRead.ClaimToken.init -> void
+Rask.Mail.QueuedMailRead.ClaimedUntil.get -> System.DateTime?
+Rask.Mail.QueuedMailRead.ClaimedUntil.init -> void
+Rask.Mail.QueuedMailRead.CreatedAt.get -> System.DateTime
+Rask.Mail.QueuedMailRead.CreatedAt.init -> void
+Rask.Mail.QueuedMailRead.Error.get -> string?
+Rask.Mail.QueuedMailRead.Error.init -> void
+Rask.Mail.QueuedMailRead.From.get -> string!
+Rask.Mail.QueuedMailRead.From.init -> void
+Rask.Mail.QueuedMailRead.HtmlBody.get -> string?
+Rask.Mail.QueuedMailRead.HtmlBody.init -> void
+Rask.Mail.QueuedMailRead.Id.get -> long
+Rask.Mail.QueuedMailRead.Id.init -> void
+Rask.Mail.QueuedMailRead.ProcessedAt.get -> System.DateTime?
+Rask.Mail.QueuedMailRead.ProcessedAt.init -> void
+Rask.Mail.QueuedMailRead.QueuedMailRead() -> void
+Rask.Mail.QueuedMailRead.ReplyTo.get -> string?
+Rask.Mail.QueuedMailRead.ReplyTo.init -> void
+Rask.Mail.QueuedMailRead.RunAt.get -> System.DateTime
+Rask.Mail.QueuedMailRead.RunAt.init -> void
+Rask.Mail.QueuedMailRead.Subject.get -> string!
+Rask.Mail.QueuedMailRead.Subject.init -> void
+Rask.Mail.QueuedMailRead.TextBody.get -> string?
+Rask.Mail.QueuedMailRead.TextBody.init -> void
+Rask.Mail.QueuedMailRead.To.get -> string!
+Rask.Mail.QueuedMailRead.To.init -> void
+Rask.Mail.QueuedMailRead.UpdatedAt.get -> System.DateTime
+Rask.Mail.QueuedMailRead.UpdatedAt.init -> void
+Rask.Mail.QueuedMailReadAccess
+Rask.Mail.QueuedMailReadAccess.extension(Rask.Mail.QueuedMail!)
 Rask.Mail.RaskMailServiceCollectionExtensions
 Rask.Mail.SmtpOptions
 Rask.Mail.SmtpOptions.Host.get -> string!
@@ -167,6 +188,7 @@ Rask.Mail.SmtpSecurity.SslOnConnect = 2 -> Rask.Mail.SmtpSecurity
 Rask.Mail.SmtpSecurity.StartTls = 1 -> Rask.Mail.SmtpSecurity
 RaskBuilderSettersRask_Mail
 const Rask.Mail.MailMetrics.MeterName = "Rask.Mail" -> string!
+const Rask.Mail.QueuedMail.Writes = Rask.Data.ModelWrites.None -> Rask.Data.ModelWrites
 override Rask.Mail.EmailAddress.Equals(object? obj) -> bool
 override Rask.Mail.EmailAddress.GetHashCode() -> int
 override Rask.Mail.EmailAddress.ToString() -> string!
@@ -180,4 +202,6 @@ static Rask.Mail.EmailAddress.operator ==(Rask.Mail.EmailAddress? left, Rask.Mai
 static Rask.Mail.EmailAttachment.operator !=(Rask.Mail.EmailAttachment? left, Rask.Mail.EmailAttachment? right) -> bool
 static Rask.Mail.EmailAttachment.operator ==(Rask.Mail.EmailAttachment? left, Rask.Mail.EmailAttachment? right) -> bool
 static Rask.Mail.MailModelBuilderExtensions.AddRaskMail(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
+static Rask.Mail.QueuedMailReadAccess.extension(Rask.Mail.QueuedMail!).Read.get -> Rask.Data.ModelQuery<Rask.Mail.QueuedMailRead!>!
+static Rask.Mail.QueuedMailReadAccess.get_Read() -> Rask.Data.ModelQuery<Rask.Mail.QueuedMailRead!>!
 static Rask.Mail.RaskMailServiceCollectionExtensions.AddRaskMail<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Mail.MailOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

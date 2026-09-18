@@ -136,16 +136,7 @@ public sealed class QueueActionTests
     }
 
     private static Job Job(DateTime runAt, int attempts = 0, DateTime? processedAt = null, string? error = null) =>
-        new()
-        {
-            Type = "Some.Job",
-            Payload = "{}",
-            RunAt = runAt,
-            CreatedAt = runAt,
-            Attempts = attempts,
-            ProcessedAt = processedAt,
-            Error = error,
-        };
+        QueueRowBuilder.Job(runAt, attempts, processedAt, error);
 
     private static async Task<long> SeedAsync(DashboardHarness harness, Job job)
     {

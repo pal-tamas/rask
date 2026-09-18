@@ -16,15 +16,7 @@ public sealed class DashboardKitMarkupTests
     {
         await using var h = new DashboardHarness(Batteries.Jobs);
         var now = h.Clock.GetUtcNow().UtcDateTime;
-        await SaveAsync(h, new Job
-        {
-            Type = "Some.Job",
-            Payload = "{}",
-            RunAt = now.AddHours(-1),
-            CreatedAt = now.AddHours(-1),
-            Attempts = h.Get<JobOptions>().MaxAttempts,   // out of attempts and unprocessed: a dead letter
-            Error = "boom",
-        });
+        await SaveAsync(h, QueueRowBuilder.DeadLetter(now.AddHours(-1), h.Get<JobOptions>().MaxAttempts));
 
         var component = ActivatorUtilities.CreateInstance<QueuePage>(h.Services);
         component.Queue = "jobs";
@@ -61,15 +53,7 @@ public sealed class DashboardKitMarkupTests
             Batteries.Jobs,
             configure: o => o.Actions = RaskDashboardActions.Safe | RaskDashboardActions.Destructive);
         var now = h.Clock.GetUtcNow().UtcDateTime;
-        await SaveAsync(h, new Job
-        {
-            Type = "Some.Job",
-            Payload = "{}",
-            RunAt = now.AddHours(-1),
-            CreatedAt = now.AddHours(-1),
-            Attempts = h.Get<JobOptions>().MaxAttempts,
-            Error = "boom",
-        });
+        await SaveAsync(h, QueueRowBuilder.DeadLetter(now.AddHours(-1), h.Get<JobOptions>().MaxAttempts));
 
         var component = ActivatorUtilities.CreateInstance<QueuePage>(h.Services);
         component.Queue = "jobs";

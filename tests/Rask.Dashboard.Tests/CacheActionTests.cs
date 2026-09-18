@@ -47,10 +47,10 @@ public sealed class CacheActionTests
         await using (var db = h.NewContext())
         {
             db.Set<CacheEntry>().AddRange(
-                new CacheEntry { Key = "fresh", Value = new byte[10], ExpiresAt = now.AddHours(1), CreatedAt = now },
+                CacheEntry.For("fresh", new byte[10], now.AddHours(1), now),
                 // Past its expiry but still a row: the purge sweep runs on its own schedule, and the gap
                 // between "stops being served" and "actually deleted" is worth showing.
-                new CacheEntry { Key = "stale", Value = new byte[5], ExpiresAt = now.AddHours(-1), CreatedAt = now });
+                CacheEntry.For("stale", new byte[5], now.AddHours(-1), now));
             await db.SaveChangesAsync();
         }
 
@@ -84,13 +84,8 @@ public sealed class CacheActionTests
     {
         var now = harness.Clock.GetUtcNow().UtcDateTime;
         await using var db = harness.NewContext();
-        db.Set<CacheEntry>().AddRange(keys.Select(k => new CacheEntry
-        {
-            Key = k,
-            Value = [1, 2, 3],
-            ExpiresAt = now.AddHours(1),
-            CreatedAt = now,
-        }));
+        db.Set<CacheEntry>().AddRange(
+            keys.Select(k => CacheEntry.For(k, [1, 2, 3], now.AddHours(1), now)));
         await db.SaveChangesAsync();
     }
 }

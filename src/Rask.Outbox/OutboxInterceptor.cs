@@ -55,7 +55,7 @@ public sealed class OutboxInterceptor(TimeProvider timeProvider) : SaveChangesIn
             foreach (var domainEvent in events)
             {
                 var (type, payload) = OutboxSerializerRegistry.Serialize(domainEvent);
-                context.Add(new OutboxMessage { Type = type, Payload = payload, OccurredAt = now });
+                context.Add(OutboxMessage.For(type, payload, now));
             }
 
             // The outbox owns these events now; clear them so the in-process publisher (if any) skips them.

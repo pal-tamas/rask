@@ -56,6 +56,66 @@ them until tagged releases begin.
   it against a packable assembly, which is the only version in the process known to be real.
 ### Changed
 
+- **Soft delete is now OPT-IN, and `DeleteAsync` deletes.** An aggregate keeps its row only if it says so:
+
+  ```csharp
+  public sealed class Order : Aggregate<Guid>
+  {
+      public const Deletion Deletes = Deletion.Soft;
+  }
+  ```
+
+  **Upgrading: if you relied on soft delete, add that const — otherwise the `DeletedAt` column is dropped and
+  every row you had "deleted" COMES BACK**, because the column and its query filter go together. And
+  `DeleteAsync(id)` now removes a row that used to be recoverable. Both are one line to keep as they were.
+
+  It was the default and should not have been. A stamped row still occupies its UNIQUE constraints, so
+  deleting the account `a@b.com` and letting that person sign up again fails on a row nobody can see. "Delete
+  my account" has to be able to mean delete. And Rask already ships real recovery — SQLite snapshots and
+  Litestream — so keeping the row solved that problem a second time, worse, while charging every query a
+  predicate. The optimistic-concurrency check deliberately did NOT move with it: a lost delete is visible and
+  a lost update is not, so `Version` stays on by default and is declined with `Checks = Concurrency.None`.
+
+- **Rask's own battery tables are entities now, so each has a read face.** `OutboxMessage`, `Job`,
+  `QueuedMail`, `CacheEntry`, `StoredFile` and `RecurringJobState` derive from `Entity<TId>` and get
+  `OutboxMessage.Read` and friends, generated under `<RaskReadFacesOnly>` so no form surface and no registry
+  contribution comes with them. Consequences worth reading before upgrading:
+
+  - **`Rask.Jobs`, `Rask.Mail`, `Rask.Cache` and `Rask.Storage` now depend on `Rask.Data`.** EF Core was
+    already a dependency of each; `Rask.Data` (and through it `Rask.Cqrs`) is new.
+  - **`StoredFile` is a class rather than a record**, since a record can only derive from a record. Nothing
+    used `with` or its value equality, but `Equals` is now reference equality.
+  - **`CacheEntry` and `RecurringJobState` gained a surrogate `Id`**, keeping their old key (`Key`, `Name`) as
+    a UNIQUE index. Nothing looked either up by primary key and nothing holds a foreign key to them, so no
+    lookup changed. SQL Server's index-key cap follows every indexed string now rather than only the primary
+    key's, which is what kept `CacheEntry.Key` at `nvarchar(450)` there.
+  - Each table gains `UpdatedAt`; the four that already had a `CreatedAt` of their own now take the base's
+    (same column). `Rask.Logging`'s table is deliberately unchanged — it is `internal`, so a read face would
+    be too.
+
+### Added
+
+- **Four consts choose what an entity carries** — `Writes` (`ModelWrites`), `Stamps` (`Timestamps`),
+  `Deletes` (`Deletion`) and `Checks` (`Concurrency`). Each is read at compile time, so a wrong value is an
+  error at the declaration; leaving one off means the default, so an entity that says nothing is unchanged.
+  They are read at compile time and emitted as a registration rather than reflected over at run time, because
+  a `const` is inlined at every use site and the field is free to be trimmed — a reflected read would fall
+  back to the default in a trimmed publish and give an app one shape in debug and another in release.
+
+  Anything per-property or expression-shaped — a column name, an index, a converter, a length — stays in
+  `static Configure(EntityTypeBuilder<T>)`, where it can actually be expressed. Four is the whole family.
+
+- **`Entity<TId>.Stamp(at)`**, `protected`, for an entity whose package writes it and knows when. The auditing
+  interceptor now fills `CreatedAt` only when it is still unset, so an entity that stamped itself keeps its
+  stamp and one that did not gets the framework's. Neither can end up at `0001-01-01` — which is what
+  `StoredFile` was heading for, since its `CreatedAt` is both an orphan sweep's cutoff and the `Last-Modified`
+  of every file response, and `Rask.Storage` can be pointed at a `DbContext` carrying none of Rask's
+  interceptors.
+
+- **`<RaskReadFacesOnly>true</RaskReadFacesOnly>`** — a package that maps its own tables generates its read
+  faces and nothing else. Without it the model registry's `[ModuleInitializer]` would map those tables into
+  every application that merely references the package, and a second time for one that maps them by hand.
+
 - **An aggregate is no longer a query surface — reads move to the read face.** `Product.All`,
   `Product.Where(…)`, `Product.FindAsync(id)`, `Product.AsQueryable()`, `Product.Select(…)` and the terminals
   that went with them are **removed**. Querying goes through `Product.Read`, which is primitives and carries

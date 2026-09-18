@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
@@ -169,17 +170,31 @@ public sealed class OutboxRetentionTests : IDisposable
         await db.SaveChangesAsync();
     }
 
+    // A row in a state the production API cannot reach on its own: retention is about rows that have
+    // already been published, or already failed their way to a dead letter. Written through the entity's own
+    // private setters with [UnsafeAccessor] — the same mechanism Rask's generated writes use — rather than
+    // widening OutboxMessage so a test can reach them.
     private OutboxMessage Message(
-        DateTime? occurredAt = null, DateTime? processedAt = null, int attempts = 0, string? error = null) =>
-        new()
+        DateTime? occurredAt = null, DateTime? processedAt = null, int attempts = 0, string? error = null)
+    {
+        var message = OutboxMessage.For("Some.Event", "{}", occurredAt ?? _clock.GetUtcNow().UtcDateTime);
+
+        if (processedAt is { } published)
         {
-            Type = "Some.Event",
-            Payload = "{}",
-            OccurredAt = occurredAt ?? _clock.GetUtcNow().UtcDateTime,
-            ProcessedAt = processedAt,
-            Attempts = attempts,
-            Error = error,
-        };
+            message.Published(published);
+        }
+
+        if (error is not null)
+        {
+            message.Failed(error);
+        }
+
+        SetAttempts(message) = attempts;
+        return message;
+    }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "<Attempts>k__BackingField")]
+    private static extern ref int SetAttempts(OutboxMessage message);
 
     private sealed class FakeClock(DateTimeOffset start) : TimeProvider
     {

@@ -133,20 +133,12 @@ public sealed class RaskDistributedCache<TContext>(
             entry.AbsoluteExpiration = absolute;
             entry.SlidingSeconds = sliding?.TotalSeconds;
             entry.ExpiresAt = expiresAt;
-            entry.CreatedAt = now;
             await db.SaveChangesAsync(token).ConfigureAwait(false);
             return;
         }
 
-        db.Set<CacheEntry>().Add(new CacheEntry
-        {
-            Key = key,
-            Value = value,
-            AbsoluteExpiration = absolute,
-            SlidingSeconds = sliding?.TotalSeconds,
-            ExpiresAt = expiresAt,
-            CreatedAt = now,
-        });
+        db.Set<CacheEntry>().Add(
+            CacheEntry.For(key, value, expiresAt, now, absolute, sliding?.TotalSeconds));
         try
         {
             await db.SaveChangesAsync(token).ConfigureAwait(false);

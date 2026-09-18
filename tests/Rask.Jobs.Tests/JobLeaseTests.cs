@@ -141,7 +141,7 @@ public sealed class JobLeaseTests
         b.Clock.Advance(TimeSpan.FromMinutes(6));
         Assert.Single(await ClaimAsync(b)); // b takes it over
 
-        mine[0].ProcessedAt = a.Clock.GetUtcNow().UtcDateTime;
+        mine[0].Completed(a.Clock.GetUtcNow().UtcDateTime);
 
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => slow.SaveChangesAsync());
     }

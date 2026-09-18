@@ -10,21 +10,34 @@ Rask.Cache.Cache.SetAsync<T>(string! key, T value, Microsoft.Extensions.Caching.
 Rask.Cache.Cache.SetAsync<T>(string! key, T value, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! typeInfo, Microsoft.Extensions.Caching.Distributed.DistributedCacheEntryOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Cache.CacheEntry
 Rask.Cache.CacheEntry.AbsoluteExpiration.get -> System.DateTime?
-Rask.Cache.CacheEntry.AbsoluteExpiration.set -> void
 Rask.Cache.CacheEntry.CacheEntry() -> void
-Rask.Cache.CacheEntry.CreatedAt.get -> System.DateTime
-Rask.Cache.CacheEntry.CreatedAt.set -> void
 Rask.Cache.CacheEntry.ExpiresAt.get -> System.DateTime
-Rask.Cache.CacheEntry.ExpiresAt.set -> void
 Rask.Cache.CacheEntry.Key.get -> string!
-Rask.Cache.CacheEntry.Key.set -> void
 Rask.Cache.CacheEntry.SlidingSeconds.get -> double?
-Rask.Cache.CacheEntry.SlidingSeconds.set -> void
 Rask.Cache.CacheEntry.Value.get -> byte[]!
-Rask.Cache.CacheEntry.Value.set -> void
 Rask.Cache.CacheEntryConfiguration
 Rask.Cache.CacheEntryConfiguration.CacheEntryConfiguration() -> void
 Rask.Cache.CacheEntryConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Rask.Cache.CacheEntry!>! entity) -> void
+Rask.Cache.CacheEntryRead
+Rask.Cache.CacheEntryRead.AbsoluteExpiration.get -> System.DateTime?
+Rask.Cache.CacheEntryRead.AbsoluteExpiration.init -> void
+Rask.Cache.CacheEntryRead.CacheEntryRead() -> void
+Rask.Cache.CacheEntryRead.CreatedAt.get -> System.DateTime
+Rask.Cache.CacheEntryRead.CreatedAt.init -> void
+Rask.Cache.CacheEntryRead.ExpiresAt.get -> System.DateTime
+Rask.Cache.CacheEntryRead.ExpiresAt.init -> void
+Rask.Cache.CacheEntryRead.Id.get -> System.Guid
+Rask.Cache.CacheEntryRead.Id.init -> void
+Rask.Cache.CacheEntryRead.Key.get -> string!
+Rask.Cache.CacheEntryRead.Key.init -> void
+Rask.Cache.CacheEntryRead.SlidingSeconds.get -> double?
+Rask.Cache.CacheEntryRead.SlidingSeconds.init -> void
+Rask.Cache.CacheEntryRead.UpdatedAt.get -> System.DateTime
+Rask.Cache.CacheEntryRead.UpdatedAt.init -> void
+Rask.Cache.CacheEntryRead.Value.get -> byte[]!
+Rask.Cache.CacheEntryRead.Value.init -> void
+Rask.Cache.CacheEntryReadAccess
+Rask.Cache.CacheEntryReadAccess.extension(Rask.Cache.CacheEntry!)
 Rask.Cache.CacheModelBuilderExtensions
 Rask.Cache.CacheOptions
 Rask.Cache.CacheOptions.CacheOptions() -> void
@@ -53,6 +66,10 @@ Rask.Cache.RaskDistributedCache<TContext>.Remove(string! key) -> void
 Rask.Cache.RaskDistributedCache<TContext>.RemoveAsync(string! key, System.Threading.CancellationToken token = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Cache.RaskDistributedCache<TContext>.Set(string! key, byte[]! value, Microsoft.Extensions.Caching.Distributed.DistributedCacheEntryOptions! options) -> void
 Rask.Cache.RaskDistributedCache<TContext>.SetAsync(string! key, byte[]! value, Microsoft.Extensions.Caching.Distributed.DistributedCacheEntryOptions! options, System.Threading.CancellationToken token = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+const Rask.Cache.CacheEntry.Writes = Rask.Data.ModelWrites.None -> Rask.Data.ModelWrites
+static Rask.Cache.CacheEntry.For(string! key, byte[]! value, System.DateTime expiresAt, System.DateTime savedAt, System.DateTime? absoluteExpiration = null, double? slidingSeconds = null) -> Rask.Cache.CacheEntry!
+static Rask.Cache.CacheEntryReadAccess.extension(Rask.Cache.CacheEntry!).Read.get -> Rask.Data.ModelQuery<Rask.Cache.CacheEntryRead!>!
+static Rask.Cache.CacheEntryReadAccess.get_Read() -> Rask.Data.ModelQuery<Rask.Cache.CacheEntryRead!>!
 static Rask.Cache.CacheModelBuilderExtensions.AddRaskCache(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
 static Rask.Cache.RaskCacheServiceCollectionExtensions.AddRaskCache(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Cache.RaskCacheServiceCollectionExtensions.AddRaskCache<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Cache.CacheOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

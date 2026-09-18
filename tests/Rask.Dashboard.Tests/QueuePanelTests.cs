@@ -116,12 +116,7 @@ public sealed class QueuePanelTests
 
         await using (var db = h.NewContext())
         {
-            db.Set<OutboxMessage>().Add(new OutboxMessage
-            {
-                Type = "Some.Event",
-                Payload = "{}",
-                OccurredAt = occurred,
-            });
+            db.Set<OutboxMessage>().Add(OutboxMessage.For("Some.Event", "{}", occurred));
             await db.SaveChangesAsync();
         }
 
@@ -136,16 +131,7 @@ public sealed class QueuePanelTests
     }
 
     private static Job Job(DateTime runAt, int attempts = 0, DateTime? processedAt = null, string? error = null) =>
-        new()
-        {
-            Type = "Some.Job",
-            Payload = "{}",
-            RunAt = runAt,
-            CreatedAt = runAt,
-            Attempts = attempts,
-            ProcessedAt = processedAt,
-            Error = error,
-        };
+        QueueRowBuilder.Job(runAt, attempts, processedAt, error);
 
     private static async Task SeedJobsAsync(DashboardHarness harness, params Job[] jobs)
     {

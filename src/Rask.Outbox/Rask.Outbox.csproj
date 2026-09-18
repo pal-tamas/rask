@@ -62,6 +62,22 @@
                       ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
+  <!--
+    READ FACES ONLY. OutboxMessage is an Entity<long> so that `OutboxMessage.Read` exists, but this package
+    maps its own table through modelBuilder.AddRaskOutbox(), which an app calls when it wants the outbox.
+    The write-side generators must therefore stay off: the registry's contribution is registered by a
+    [ModuleInitializer] that runs when the assembly LOADS, so it would map the table into every app that
+    merely references the package — outbox switched off included — and a second time for one calling
+    AddRaskOutbox. The form surface would be meaningless besides: nothing posts an outbox row.
+  -->
+  <PropertyGroup>
+    <RaskReadFacesOnly>true</RaskReadFacesOnly>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <CompilerVisibleProperty Include="RaskReadFacesOnly"/>
+  </ItemGroup>
+
   <!-- Ship the global `using Rask.Outbox;` to downstream consumers. -->
   <ItemGroup>
     <None Include="build\**" Pack="true" PackagePath="build\"/>
