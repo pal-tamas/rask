@@ -7,6 +7,28 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **A collection of values on an aggregate is mapped, queryable and editable.** `IReadOnlyList<string> Tags`
+  becomes a primitive collection and `IReadOnlyList<Stop> Stops` a JSON column, both carried on the form model
+  and on the read face, and both filtered in SQL:
+
+  ```csharp
+  await Trip.Read.Where(t => t.Stops.Any(s => s.City == "Vienna")).ToListAsync();
+  ```
+
+  Neither worked before, and neither failed loudly. A collection of value objects made EF Core take the element
+  for an entity type and refuse the whole model with *"The entity type 'Stop' requires a primary key to be
+  defined"* — advice a value object must not take. A collection of plain values behind the read-only view Rask
+  recommends everywhere else was **not mapped at all**: the build was green, no diagnostic fired, and what a
+  domain method added was gone on the next read.
+
+  Values are replaced wholesale rather than reconciled — they have no id to match a posted row against — so
+  what a form posts is what the aggregate holds afterwards, and an empty list clears the collection. A
+  collection whose elements need identity, or an index over every element on SQLite, should be
+  `Entity<TId>` children instead; `docs/data.md` has the per-provider table. `byte[]` stays one BLOB column,
+  and a collection the entity's own `Configure` already mapped is left exactly as it is.
+
 ### Changed
 
 - **Soft delete is now OPT-IN, and `DeleteAsync` deletes.** An aggregate keeps its row only if it says so:

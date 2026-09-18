@@ -606,7 +606,7 @@ public class ModelInputGeneratorTests
     }
 
     [Fact]
-    public void Navigations_collections_and_computed_properties_are_left_off_but_backing_fields_are_written()
+    public void A_navigation_and_a_computed_property_are_left_off_but_backing_fields_are_written()
     {
         var run = Run("""
             using System;
@@ -634,10 +634,60 @@ public class ModelInputGeneratorTests
         var source = run.GeneratedSource("Shop.OrderModel");
         Assert.Contains("public global::System.Guid? CustomerId { get; set; }", source, StringComparison.Ordinal);
         Assert.DoesNotContain("public global::Shop.Customer Customer", source, StringComparison.Ordinal);
-        Assert.DoesNotContain("Tags", source, StringComparison.Ordinal);
         Assert.DoesNotContain("Label", source, StringComparison.Ordinal);
         Assert.Contains("Name = \"<Code>k__BackingField\"", source, StringComparison.Ordinal);
         Assert.Contains("Name = \"<Quantity>k__BackingField\"", source, StringComparison.Ordinal);
+
+        // A collection of VALUES is carried — it is a column, not somebody else's data.
+        Assert.Contains(
+            "public global::System.Collections.Generic.List<string> Tags { get; set; } = [];",
+            source,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_value_collection_is_carried_on_the_model_and_replaced_wholesale()
+    {
+        var run = Run("""
+            using System;
+            using System.Collections.Generic;
+            using Rask.Data;
+            namespace Shop;
+            public sealed record Stop(string City, int Day);
+            public sealed class Trip : Aggregate<Guid>
+            {
+                private readonly List<string> _tags = new();
+                private readonly List<Stop> _stops = new();
+                private Trip() { }
+                public IReadOnlyList<string> Tags => _tags;
+                public IReadOnlyList<Stop> Stops => _stops;
+                public byte[] Thumbnail { get; private set; } = Array.Empty<byte>();
+            }
+            """);
+
+        Assert.Empty(run.GeneratedCompileErrors());
+
+        var source = run.GeneratedSource("Shop.TripModel");
+
+        // Plain values as themselves; value objects as the same nested model a single one would use.
+        Assert.Contains(
+            "public global::System.Collections.Generic.List<string> Tags { get; set; } = [];",
+            source,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "public global::System.Collections.Generic.List<StopModel> Stops { get; set; } = [];",
+            source,
+            StringComparison.Ordinal);
+
+        // The read-only view is written through its backing field, exactly as a child collection is.
+        Assert.Contains("Name = \"_tags\"", source, StringComparison.Ordinal);
+        Assert.Contains("Name = \"_stops\"", source, StringComparison.Ordinal);
+
+        // Replaced, not reconciled: a value has no id to match a posted row against.
+        Assert.Contains("__values.Clear();", source, StringComparison.Ordinal);
+
+        // A byte[] is a BLOB, not a collection of bytes.
+        Assert.DoesNotContain("List<byte> Thumbnail", source, StringComparison.Ordinal);
     }
 
     [Fact]

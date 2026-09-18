@@ -147,6 +147,11 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
             taken.Add(child.Name);
         }
 
+        foreach (var collection in shape.ValueCollections)
+        {
+            taken.Add(collection.Name);
+        }
+
         foreach (var reference in shape.References)
         {
             var navigation = ReadModelShape.Resolve(reference, shape.SourceTypeName, aggregates, out var problem);
@@ -238,6 +243,15 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
             s.AppendLine();
         }
 
+        foreach (var collection in shape.ValueCollections)
+        {
+            s.Append("    /// <summary>The <c>").Append(collection.Name).Append("</c> column")
+                .AppendLine(collection.IsValueObject ? ", held as JSON.</summary>" : ".</summary>");
+            s.Append("    public global::System.Collections.Generic.List<").Append(collection.ElementTypeName)
+                .Append("> ").Append(collection.Name).AppendLine(" { get; init; } = [];");
+            s.AppendLine();
+        }
+
         s.AppendLine("}");
         s.AppendLine();
 
@@ -318,6 +332,17 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
                     .Append(child.ChildReadType).Append("), typeof(")
                     .Append(child.ChildWriteType).Append("), ")
                     .Append(Literal(child.Inverse)).AppendLine("),");
+            }
+
+            s.AppendLine("            ],");
+
+            s.AppendLine("            [");
+            foreach (var collection in shape.ValueCollections)
+            {
+                s.Append("                new global::Rask.Data.ReadValueCollectionMapping(")
+                    .Append(Literal(collection.Name))
+                    .Append(collection.IsValueObject ? ", typeof(" + collection.ElementTypeName + ")" : ", null")
+                    .AppendLine("),");
             }
 
             s.AppendLine("            ]),");

@@ -62,6 +62,20 @@ public sealed class ReadChildMapping(string collection, Type childReadType, Type
     public string Inverse { get; } = inverse;
 }
 
+/// <summary>A collection of values on a read face: one column, mapped as JSON or as a primitive collection.</summary>
+/// <param name="member">The member's name — <c>Tags</c>, <c>Stops</c>.</param>
+/// <param name="valueObject">
+///     The value object the collection holds, which makes the column JSON; null for plain values.
+/// </param>
+public sealed class ReadValueCollectionMapping(string member, Type? valueObject)
+{
+    /// <summary>The member's name.</summary>
+    public string Member { get; } = member;
+
+    /// <summary>The value object held, or null for a primitive collection.</summary>
+    public Type? ValueObject { get; } = valueObject;
+}
+
 /// <summary>Everything one read face is mapped from.</summary>
 /// <param name="readType">The generated read face — <c>OrderRead</c>.</param>
 /// <param name="writeType">The entity it reads — <c>Order</c>.</param>
@@ -70,6 +84,7 @@ public sealed class ReadChildMapping(string collection, Type childReadType, Type
 /// <param name="columns">Its columns.</param>
 /// <param name="references">Its inferred navigations.</param>
 /// <param name="children">Its child collections.</param>
+/// <param name="valueCollections">Its collections of values.</param>
 public sealed class ReadEntityMapping(
     Type readType,
     Type writeType,
@@ -77,7 +92,8 @@ public sealed class ReadEntityMapping(
     string tableName,
     IReadOnlyList<ReadColumnMapping> columns,
     IReadOnlyList<ReadReferenceMapping> references,
-    IReadOnlyList<ReadChildMapping> children)
+    IReadOnlyList<ReadChildMapping> children,
+    IReadOnlyList<ReadValueCollectionMapping> valueCollections)
 {
     /// <summary>The generated read face.</summary>
     public Type ReadType { get; } = readType;
@@ -99,6 +115,9 @@ public sealed class ReadEntityMapping(
 
     /// <summary>Its child collections.</summary>
     public IReadOnlyList<ReadChildMapping> Children { get; } = children;
+
+    /// <summary>Its collections of values.</summary>
+    public IReadOnlyList<ReadValueCollectionMapping> ValueCollections { get; } = valueCollections;
 }
 
 /// <summary>
@@ -222,6 +241,20 @@ public static class ReadModelRegistry
             {
                 property.IsUnicode(unicode);
             }
+        }
+
+        // One column each, so they are mapped the same way the write side maps them rather than as a
+        // property per element. The kind is settled at compile time and carried here, for the same reason
+        // the write side carries it: whether an element is a value object is the generator's rule to apply.
+        foreach (var collection in mapping.ValueCollections)
+        {
+            if (collection.ValueObject is { } element)
+            {
+                builder.OwnsMany(element, collection.Member, owned => owned.ToJson());
+                continue;
+            }
+
+            builder.PrimitiveCollection(collection.Member);
         }
 
         // Rask's own annotations travel with the face. The full-text index is declared on the ENTITY —

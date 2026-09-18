@@ -174,6 +174,40 @@ internal sealed class ModelChild(
     public string Name => Property.Name;
 }
 
+/// <summary>A collection of values an entity holds: the tags of a note, the stops of a trip.</summary>
+/// <remarks>
+/// One column either way — a primitive collection for plain values, a JSON column for value objects — and
+/// replaced wholesale on save, because a value has no identity to reconcile against.
+/// </remarks>
+internal sealed class ModelValueCollection(
+    IPropertySymbol property,
+    ITypeSymbol element,
+    INamedTypeSymbol? valueObject,
+    IFieldSymbol? field,
+    ModelValueObject? elementModel = null)
+{
+    /// <summary>The entity's property: <c>Tags</c>.</summary>
+    public IPropertySymbol Property { get; } = property;
+
+    /// <summary>What the collection holds: <c>string</c>, <c>Stop</c>.</summary>
+    public ITypeSymbol Element { get; } = element;
+
+    /// <summary>The element as a value object, or null when it is a plain value.</summary>
+    public INamedTypeSymbol? ValueObject { get; } = valueObject;
+
+    /// <summary>The backing field to write through, or null when the property itself is writable.</summary>
+    public IFieldSymbol? Field { get; } = field;
+
+    /// <summary>
+    ///     The nested model each element is carried as on the form — <c>StopModel</c> — or null for a plain
+    ///     value, which is carried as itself.
+    /// </summary>
+    public ModelValueObject? ElementModel { get; } = elementModel;
+
+    /// <summary>The property's name, which is also the model's and the read face's.</summary>
+    public string Name => Property.Name;
+}
+
 /// <summary>Everything the generated model of one entity is made of.</summary>
 internal sealed class ModelShape(
     INamedTypeSymbol entity,
@@ -181,7 +215,8 @@ internal sealed class ModelShape(
     IPropertySymbol? key,
     IReadOnlyList<ModelMember> members,
     IReadOnlyList<ModelValueObject> valueObjects,
-    IReadOnlyList<ModelChild> children)
+    IReadOnlyList<ModelChild> children,
+    IReadOnlyList<ModelValueCollection> valueCollections)
 {
     /// <summary>The entity.</summary>
     public INamedTypeSymbol Entity { get; } = entity;
@@ -209,6 +244,9 @@ internal sealed class ModelShape(
 
     /// <summary>The child collections this aggregate holds, in the order they are emitted.</summary>
     public IReadOnlyList<ModelChild> Children { get; } = children;
+
+    /// <summary>The collections of values it holds, in the order they are emitted.</summary>
+    public IReadOnlyList<ModelValueCollection> ValueCollections { get; } = valueCollections;
 
     /// <summary>Whether the model carries a <see cref="ModelMemberRole.Version" />.</summary>
     public bool Versioned => Members.Any(static m => m.Role == ModelMemberRole.Version);
@@ -470,6 +508,7 @@ internal static class GeneratedModelShape
         }
 
         var children = new List<ModelChild>();
+        var collections = new List<ModelValueCollection>();
 
         foreach (var property in Properties(entity))
         {
@@ -478,10 +517,25 @@ internal static class GeneratedModelShape
             if (DescribeChild(entity, property) is { } child)
             {
                 children.Add(child);
+                continue;
+            }
+
+            // The element's nested model is registered through the SAME collector as every other value
+            // object, so `Money` reached through a collection and `Money` reached directly are one class.
+            if (DescribeValueCollection(entity, property) is { } collection)
+            {
+                collections.Add(new ModelValueCollection(
+                    collection.Property,
+                    collection.Element,
+                    collection.ValueObject,
+                    collection.Field,
+                    collection.ValueObject is null
+                        ? null
+                        : valueObjects.Of(collection.ValueObject, 0, ImmutableHashSet<string>.Empty)));
             }
         }
 
-        return new ModelShape(entity, idType, key, members, valueObjects.Shapes, children);
+        return new ModelShape(entity, idType, key, members, valueObjects.Shapes, children, collections);
     }
 
     /// <summary>
@@ -521,6 +575,86 @@ internal static class GeneratedModelShape
         return fields.Count == 1
             ? new ModelChild(property, childType, ModelChildAccess.Field, fields[0])
             : new ModelChild(property, childType, ModelChildAccess.None, null);
+    }
+
+    /// <summary>
+    ///     The collection of values <paramref name="property" /> is, or null when it is not one.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         A collection whose element is neither an entity nor an aggregate: <c>IReadOnlyList&lt;string&gt;
+    ///         Tags</c>, <c>IReadOnlyList&lt;Stop&gt; Stops</c>. Both are one column — a primitive collection for
+    ///         plain values, a JSON column for value objects — and both are replaced wholesale, which is what a
+    ///         value is. A collection that wants its own identity is a collection of <c>Entity&lt;TId&gt;</c>
+    ///         instead, and <see cref="DescribeChild" /> answers for that one.
+    ///     </para>
+    ///     <para>
+    ///         Null for anything Rask has no column for — a <c>Dictionary</c>, a collection of some framework
+    ///         type — which is left to the entity's own <c>Configure</c> rather than guessed at.
+    ///     </para>
+    /// </remarks>
+    public static ModelValueCollection? DescribeValueCollection(INamedTypeSymbol entity, IPropertySymbol property)
+    {
+        if (property.IsStatic || property.IsIndexer ||
+            property.DeclaredAccessibility != Accessibility.Public ||
+            property.GetMethod is not { DeclaredAccessibility: Accessibility.Public } ||
+            HasAttribute(property, NotMappedAttribute) ||
+            // A byte[] is a BLOB, not a collection of bytes — and it implements IEnumerable<byte>, so
+            // without this it would be mapped as one and every file column would change shape.
+            property.Type is IArrayTypeSymbol { ElementType.SpecialType: SpecialType.System_Byte } ||
+            CollectionElement(property.Type) is not { } element ||
+            AggregateShape.IsEntity(element))
+        {
+            return null;
+        }
+
+        var valueObject = AggregateShape.IsValueObjectType(element) ? element as INamedTypeSymbol : null;
+
+        if (valueObject is null && !IsStorableValue(element))
+        {
+            return null;
+        }
+
+        // Written through the property when it has a setter, and through the one backing field when it hands
+        // out a read-only view — the shape Rask recommends, and the shape that is silently unmapped today.
+        if (property.SetMethod is { IsInitOnly: false })
+        {
+            return new ModelValueCollection(property, element, valueObject, null);
+        }
+
+        var fields = entity.GetMembers().OfType<IFieldSymbol>()
+            .Where(f => !f.IsStatic && !f.IsConst && ImplementsCollectionOf(f.Type, element))
+            .ToList();
+
+        // Exactly one, or Rask would be guessing which field the property hands out. None means the property
+        // is computed, which is not stored state at all.
+        return fields.Count == 1 ? new ModelValueCollection(property, element, valueObject, fields[0]) : null;
+    }
+
+    /// <summary>Every collection of values <paramref name="entity" /> holds, its bases included.</summary>
+    /// <param name="entity">The entity to walk.</param>
+    public static IEnumerable<ModelValueCollection> ValueCollectionsOf(INamedTypeSymbol entity)
+    {
+        foreach (var property in Properties(entity))
+        {
+            if (DescribeValueCollection(entity, property) is { } collection)
+            {
+                yield return collection;
+            }
+        }
+    }
+
+    /// <summary>Whether <paramref name="type" /> is a value a column can hold on its own.</summary>
+    private static bool IsStorableValue(ITypeSymbol type)
+    {
+        var bare = type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable
+            ? nullable.TypeArguments[0]
+            : type;
+
+        return bare.TypeKind == TypeKind.Enum ||
+               bare.SpecialType is >= SpecialType.System_Boolean and <= SpecialType.System_String ||
+               bare.ToDisplayString() is "System.Guid" or "System.DateTime" or "System.DateTimeOffset"
+                   or "System.TimeSpan" or "System.DateOnly" or "System.TimeOnly" or "System.Uri";
     }
 
     /// <summary>The <c>T</c> of the <c>IEnumerable&lt;T&gt;</c> <paramref name="type" /> is, or null.</summary>

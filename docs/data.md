@@ -222,6 +222,59 @@ there is no `OrderLine.CreateAsync`, no version and no soft delete, because it i
 own. A collection of another **aggregate** is not a child at all ([RASK087](diagnostics.md#rask087)), and a
 collection Rask cannot write is [RASK088](diagnostics.md#rask088).
 
+### Collections of values
+
+A collection whose elements are **values** rather than entities is one column, not a table. Declare it the same
+way as a child — a private field and a read-only view — and nothing else is configured:
+
+```csharp
+public sealed class Trip : Aggregate<Guid>
+{
+    private readonly List<string> _tags = [];
+    private readonly List<Stop> _stops = [];
+
+    private Trip() { }
+
+    public IReadOnlyList<string> Tags => _tags;        // one column of plain values
+    public IReadOnlyList<Stop> Stops => _stops;        // one JSON column of value objects
+
+    public void Tag(string tag) => _tags.Add(tag);
+    public void StopAt(string city, int day) => _stops.Add(new Stop(city, day));
+}
+
+public sealed record Stop(string City, int Day);
+```
+
+`Tags` becomes a **primitive collection** and `Stops` a **JSON column**. Both appear on the form model and on
+the read face, and both are **queryable in SQL**:
+
+```csharp
+await Trip.Read.Where(t => t.Tags.Contains("urgent")).ToListAsync();
+await Trip.Read.Where(t => t.Stops.Any(s => s.City == "Vienna" && s.Day >= 2)).ToListAsync();
+```
+
+**Values are replaced wholesale, not reconciled.** A child has an id, so a form post updates the rows it names
+and deletes the rest. A value has no id, so there is nothing to match against: what the form posts is what the
+aggregate holds afterwards, and an empty list clears the collection.
+
+**Choose a child entity instead when the elements need identity** — to be referenced, updated one at a time, or
+indexed. That is the real trade-off, and the deciding factor is usually the index:
+
+| | SQLite | PostgreSQL | SQL Server |
+|---|---|---|---|
+| plain values | `json_each` | native `text[]` | `OPENJSON` |
+| value objects | `json_each` | `jsonb` | `OPENJSON` |
+| index over every element | **none** | GIN | — |
+
+PostgreSQL can index straight into both. SQLite needs no extension for JSON (`json_extract` is core since
+3.38), and it can index a **fixed** path through a generated column — but it has no equivalent of GIN, so a
+filter over *any* element of the collection is a scan. If that filter is hot on SQLite, make the elements
+`Entity<TId>` children and index the column.
+
+`byte[]` is never a collection of bytes: it stays one BLOB column. Anything Rask has no column for — a
+`Dictionary`, a collection of some framework type — is left alone for the entity's own `Configure` to map, and
+so is any collection that `Configure` already mapped.
+
 ## Reading: the read face
 
 An aggregate is not a query surface. Querying goes through its generated **read face** — `Product.Read`,

@@ -143,7 +143,23 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
             StronglyTypedId.For(idType),
             ConstOf(symbol, "Stamps", "Timestamps"),
             ConstOf(symbol, "Deletes", "Deletion"),
-            ConstOf(symbol, "Checks", "Concurrency"));
+            ConstOf(symbol, "Checks", "Concurrency"),
+            ValueCollections(symbol));
+    }
+
+    // Every collection of values the entity holds, read here rather than at runtime: deciding whether an
+    // element type is a value object needs the same rule the rest of the generator applies, and a second
+    // implementation over reflection would be free to disagree with it.
+    private static EquatableArray<ValueCollectionSpec> ValueCollections(INamedTypeSymbol entity)
+    {
+        var collections = GeneratedModelShape.ValueCollectionsOf(entity)
+            .Select(static c => new ValueCollectionSpec(
+                c.Name,
+                c.Field?.Name,
+                c.ValueObject?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)))
+            .ToArray();
+
+        return new EquatableArray<ValueCollectionSpec>(collections);
     }
 
     // Every path from the entity down to a value-object property, so nested value objects are mapped all
@@ -497,7 +513,8 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
 
         var declared = candidates
             .Distinct()
-            .Where(static c => c.Stamps is not null || c.Deletes is not null || c.Checks is not null)
+            .Where(static c => c.Stamps is not null || c.Deletes is not null || c.Checks is not null ||
+                               c.Collections.Count > 0)
             .OrderBy(static c => c.FullyQualifiedName, StringComparer.Ordinal)
             .ToList();
 
@@ -524,12 +541,24 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
             Declare(source, entity.FullyQualifiedName, "Timestamps", entity.Stamps);
             Declare(source, entity.FullyQualifiedName, "Deletion", entity.Deletes);
             Declare(source, entity.FullyQualifiedName, "Concurrency", entity.Checks);
+
+            foreach (var collection in entity.Collections)
+            {
+                source.Append("        global::Rask.Data.ConventionRegistry.DeclareCollection(typeof(")
+                    .Append(entity.FullyQualifiedName).Append("), ").Append(Literal(collection.Property))
+                    .Append(", ").Append(Literal(collection.Field)).Append(", ")
+                    .Append(collection.ElementTypeName is { } element ? "typeof(" + element + ")" : "null")
+                    .AppendLine(");");
+            }
         }
 
         source.AppendLine("    }");
         source.AppendLine("}");
 
         context.AddSource("__RaskConventions.g.cs", SourceText.From(source.ToString(), Encoding.UTF8));
+
+        static string Literal(string? value) =>
+            value is null ? "null" : "\"" + value + "\"";
 
         static void Declare(StringBuilder source, string entity, string enumName, int? value)
         {
@@ -700,6 +729,10 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
 
     // Segments and Types run in step, root first. SingleValue names the one stored property of a one-value type;
     // ColumnPrefix is the owning path's column name once a path has been re-rooted under a nested builder.
+    // A collection of values the entity holds. Symbols cannot cross a pipeline step, so the element travels
+    // as its fully-qualified name, and null there means a primitive collection rather than a JSON one.
+    private readonly record struct ValueCollectionSpec(string Property, string? Field, string? ElementTypeName);
+
     private readonly record struct ValueObjectPath(
         EquatableArray<string> Segments,
         EquatableArray<string> Types,
@@ -788,5 +821,6 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
         StronglyTypedId Id,
         int? Stamps,
         int? Deletes,
-        int? Checks);
+        int? Checks,
+        EquatableArray<ValueCollectionSpec> Collections);
 }

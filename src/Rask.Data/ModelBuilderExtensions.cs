@@ -129,9 +129,84 @@ public static class ModelBuilderExtensions
             }
         }
 
+        MapValueCollections(modelBuilder, clrTypes);
         BindChildrenToTheirParents(modelBuilder);
 
         return modelBuilder;
+    }
+
+    /// <summary>
+    /// Maps every collection of values an entity holds: a JSON column for value objects, a primitive
+    /// collection for plain ones.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Without this, both shapes fail — and neither fails loudly. A collection of value objects makes EF Core
+    /// take the element for an entity type and refuse the whole model with <em>"requires a primary key to be
+    /// defined"</em>, which is advice a value object must not take. A collection of plain values behind the
+    /// read-only view Rask recommends everywhere else — <c>IReadOnlyList&lt;string&gt; Tags =&gt; _tags</c> — is
+    /// not mapped at all: the build is green, no diagnostic fires, and what a domain method added is simply
+    /// gone on the next read.
+    /// </para>
+    /// <para>
+    /// Both are replaced wholesale, which is what a value is: there are no keys, no identity and nothing to
+    /// reconcile row by row. A collection that needs its own identity is a collection of
+    /// <see cref="Entity{TId}" /> children instead, and keeps its own table.
+    /// </para>
+    /// <para>
+    /// What the entity's own <c>Configure</c> already mapped is left exactly as it is — this runs last, so
+    /// mapping over it would silently undo the author's own answer.
+    /// </para>
+    /// </remarks>
+    private static void MapValueCollections(ModelBuilder modelBuilder, List<Type> clrTypes)
+    {
+        foreach (var clrType in clrTypes)
+        {
+            var declared = ConventionRegistry.CollectionsFor(clrType);
+            if (declared.Count == 0)
+            {
+                continue;
+            }
+
+            var builder = modelBuilder.Entity(clrType);
+
+            var conventional = (IConventionEntityType)builder.Metadata;
+
+            foreach (var collection in declared)
+            {
+                // What the author configured stays exactly as it is — but EF Core's OWN convention has
+                // already been here, and for a collection of value objects it has already made the element a
+                // navigation to an entity type. Only an explicit answer counts as "said otherwise"; a
+                // conventional one is the thing being corrected.
+                if (IsDeclared(conventional.FindProperty(collection.Property)?.GetConfigurationSource()) ||
+                    IsDeclared(conventional.FindNavigation(collection.Property)?.GetConfigurationSource()))
+                {
+                    continue;
+                }
+
+                if (collection.Element is { } element)
+                {
+                    builder.OwnsMany(element, collection.Property, owned => owned.ToJson());
+
+                    if (collection.Field is { } ownedField)
+                    {
+                        builder.Navigation(collection.Property).HasField(ownedField);
+                    }
+
+                    continue;
+                }
+
+                var primitive = builder.PrimitiveCollection(collection.Property);
+
+                if (collection.Field is { } field)
+                {
+                    primitive.HasField(field);
+                }
+            }
+        }
+
+        static bool IsDeclared(ConfigurationSource? source) =>
+            source is ConfigurationSource.Explicit or ConfigurationSource.DataAnnotation;
     }
 
     /// <summary>

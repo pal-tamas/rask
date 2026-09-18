@@ -144,10 +144,11 @@ Rask.Data.ReadEntityMapping
 Rask.Data.ReadEntityMapping.Children.get -> System.Collections.Generic.IReadOnlyList<Rask.Data.ReadChildMapping!>!
 Rask.Data.ReadEntityMapping.Columns.get -> System.Collections.Generic.IReadOnlyList<Rask.Data.ReadColumnMapping!>!
 Rask.Data.ReadEntityMapping.IsRoot.get -> bool
-Rask.Data.ReadEntityMapping.ReadEntityMapping(System.Type! readType, System.Type! writeType, bool isRoot, string! tableName, System.Collections.Generic.IReadOnlyList<Rask.Data.ReadColumnMapping!>! columns, System.Collections.Generic.IReadOnlyList<Rask.Data.ReadReferenceMapping!>! references, System.Collections.Generic.IReadOnlyList<Rask.Data.ReadChildMapping!>! children) -> void
+Rask.Data.ReadEntityMapping.ReadEntityMapping(System.Type! readType, System.Type! writeType, bool isRoot, string! tableName, System.Collections.Generic.IReadOnlyList<Rask.Data.ReadColumnMapping!>! columns, System.Collections.Generic.IReadOnlyList<Rask.Data.ReadReferenceMapping!>! references, System.Collections.Generic.IReadOnlyList<Rask.Data.ReadChildMapping!>! children, System.Collections.Generic.IReadOnlyList<Rask.Data.ReadValueCollectionMapping!>! valueCollections) -> void
 Rask.Data.ReadEntityMapping.ReadType.get -> System.Type!
 Rask.Data.ReadEntityMapping.References.get -> System.Collections.Generic.IReadOnlyList<Rask.Data.ReadReferenceMapping!>!
 Rask.Data.ReadEntityMapping.TableName.get -> string!
+Rask.Data.ReadEntityMapping.ValueCollections.get -> System.Collections.Generic.IReadOnlyList<Rask.Data.ReadValueCollectionMapping!>!
 Rask.Data.ReadEntityMapping.WriteType.get -> System.Type!
 Rask.Data.ReadModelRegistry
 Rask.Data.ReadReferenceMapping
@@ -155,6 +156,10 @@ Rask.Data.ReadReferenceMapping.ForeignKey.get -> string!
 Rask.Data.ReadReferenceMapping.Navigation.get -> string!
 Rask.Data.ReadReferenceMapping.ReadReferenceMapping(string! navigation, System.Type! targetReadType, string! foreignKey) -> void
 Rask.Data.ReadReferenceMapping.TargetReadType.get -> System.Type!
+Rask.Data.ReadValueCollectionMapping
+Rask.Data.ReadValueCollectionMapping.Member.get -> string!
+Rask.Data.ReadValueCollectionMapping.ReadValueCollectionMapping(string! member, System.Type? valueObject) -> void
+Rask.Data.ReadValueCollectionMapping.ValueObject.get -> System.Type?
 Rask.Data.SoftDeleteInterceptor
 Rask.Data.SoftDeleteInterceptor.SoftDeleteInterceptor(System.TimeProvider! timeProvider) -> void
 Rask.Data.TestDatabase
@@ -199,6 +204,7 @@ static Rask.Data.BulkInsertExtensions.BulkInsertAsync<TEntity>(this Microsoft.En
 static Rask.Data.ConventionRegistry.Declare(System.Type! entity, Rask.Data.Concurrency checks) -> void
 static Rask.Data.ConventionRegistry.Declare(System.Type! entity, Rask.Data.Deletion deletes) -> void
 static Rask.Data.ConventionRegistry.Declare(System.Type! entity, Rask.Data.Timestamps stamps) -> void
+static Rask.Data.ConventionRegistry.DeclareCollection(System.Type! entity, string! property, string? field, System.Type? element) -> void
 static Rask.Data.Db.Configure(System.Func<Microsoft.EntityFrameworkCore.DbContext!>! createContext) -> void
 static Rask.Data.Db.Configure(System.IServiceProvider! services) -> void
 static Rask.Data.Db.Configure<TContext>(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! factory) -> void

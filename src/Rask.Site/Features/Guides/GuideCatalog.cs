@@ -175,7 +175,7 @@ public static class GuideCatalog
         new("data", "Rask.Data", "Declare aggregates, write them off the type, query their generated read faces, bind generated form models.", "One Person Framework")
         {
             SearchTitle = "EF Core aggregates without writing a DbContext in C#",
-            Description = "Declare DDD aggregates, entities and value objects in C# with EF Core: read, full-text search, write off the type, and edit child collections from form models.",
+            Description = "Declare DDD aggregates, entities and value objects in C# with EF Core: query generated read faces, write off the type, map value collections to JSON.",
         },
         new("cqrs", "CQRS", "Source-generated queries, commands, notifications, behaviors.", "One Person Framework")
         {

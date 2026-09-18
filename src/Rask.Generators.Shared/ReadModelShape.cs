@@ -68,6 +68,21 @@ internal sealed record ReadChildCollection(
     string ChildWriteType,
     string Inverse);
 
+/// <summary>A collection of values on a read face: one column, queryable like any other.</summary>
+/// <remarks>
+/// A value object is NOT flattened here, the way a single one is. Flattening is what turns <c>Money Total</c>
+/// into two columns; a collection of them is a single JSON column, so there is nothing to flatten it into. The
+/// face carries the value object's own type, which is safe for exactly the reason it is a value object: no
+/// identity, no behaviour, nothing to save through.
+/// </remarks>
+/// <param name="Name">The collection's name — <c>Tags</c>, <c>Stops</c>.</param>
+/// <param name="ElementTypeName">What it holds — <c>string</c>, <c>global::Trips.Stop</c>.</param>
+/// <param name="IsValueObject">Whether the element is a value object, which makes the column JSON.</param>
+internal sealed record ReadValueCollection(
+    string Name,
+    string ElementTypeName,
+    bool IsValueObject);
+
 /// <summary>Everything the read face of one entity is made of.</summary>
 /// <remarks>
 /// Strings and equatable arrays only: an incremental generator that carries an <c>ISymbol</c> between steps
@@ -85,6 +100,7 @@ internal sealed record ReadChildCollection(
 /// <param name="Members">The primitive columns, in the order they are emitted.</param>
 /// <param name="References">The ids that might be references, for the emit pass to resolve.</param>
 /// <param name="Children">The child collections.</param>
+/// <param name="ValueCollections">The collections of values: tags, stops.</param>
 /// <param name="Location">Where the entity is declared, for a diagnostic to point at.</param>
 internal sealed record ReadShape(
     string Name,
@@ -99,6 +115,7 @@ internal sealed record ReadShape(
     EquatableArray<ReadMember> Members,
     EquatableArray<ReadReference> References,
     EquatableArray<ReadChildCollection> Children,
+    EquatableArray<ReadValueCollection> ValueCollections,
     SymbolLocation? Location);
 
 /// <summary>
@@ -175,6 +192,7 @@ internal static class ReadModelShape
         var members = new List<ReadMember>();
         var references = new List<ReadReference>();
         var children = new List<ReadChildCollection>();
+        var valueCollections = new List<ReadValueCollection>();
 
         foreach (var property in StoredProperties(entity))
         {
@@ -192,6 +210,14 @@ internal static class ReadModelShape
 
             if (IsIgnored(property) || IsCollectionOfEntities(property.Type))
             {
+                continue;
+            }
+
+            // One column, not a set of flattened ones — see ReadValueCollection.
+            if (GeneratedModelShape.DescribeValueCollection(entity, property) is { } values)
+            {
+                valueCollections.Add(new ReadValueCollection(
+                    property.Name, TypeOf(values.Element), values.ValueObject is not null));
                 continue;
             }
 
@@ -242,6 +268,7 @@ internal static class ReadModelShape
             new EquatableArray<ReadMember>([.. members]),
             new EquatableArray<ReadReference>([.. references]),
             new EquatableArray<ReadChildCollection>([.. children]),
+            new EquatableArray<ReadValueCollection>([.. valueCollections]),
             SymbolLocation.From(entity));
     }
 
@@ -463,9 +490,12 @@ internal static class ReadModelShape
                 }
 
                 // Computed — no setter and no backing field — so the write model does not map it either.
-                // A child collection is the exception: `IReadOnlyCollection<OrderLine> Lines => _lines` has
-                // neither, and it is the most important member on the entity.
-                if (property.SetMethod is null && !HasBackingField(property) && !IsCollectionOfEntities(property.Type))
+                // Collections are the exception: `IReadOnlyCollection<OrderLine> Lines => _lines` and
+                // `IReadOnlyList<string> Tags => _tags` have neither, and both are stored state Rask maps
+                // through the backing field.
+                if (property.SetMethod is null && !HasBackingField(property) &&
+                    !IsCollectionOfEntities(property.Type) &&
+                    GeneratedModelShape.DescribeValueCollection(entity, property) is null)
                 {
                     continue;
                 }

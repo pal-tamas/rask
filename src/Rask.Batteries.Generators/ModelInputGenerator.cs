@@ -236,6 +236,8 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             new EquatableArray<string>(shape.Children
                 .Where(static c => c.Access == ModelChildAccess.None)
                 .Select(static c => c.Name)),
+            new EquatableArray<ValueCollectionShape>(
+                shape.ValueCollections.Select(c => ToValueCollection(c, converted))),
             WritesOf(symbol, out var declaresWrites),
             declaresWrites);
     }
@@ -265,6 +267,16 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         declared = false;
         return AllWrites;
     }
+
+    private static ValueCollectionShape ToValueCollection(
+        ModelValueCollection collection, Dictionary<ModelValueObject, ValueObjectShape> converted) => new(
+        collection.Name,
+        collection.Element.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+        collection.ElementModel is null ? null : ToShape(collection.ElementModel, converted),
+        collection.Field is not null,
+        collection.Field?.Name,
+        collection.Field?.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+        ?? collection.Property.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
 
     private static ChildShape ToChild(ModelChild child) => new(
         child.Name,
@@ -794,6 +806,21 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             s.AppendLine();
         }
 
+        foreach (var collection in entity.ValueCollections)
+        {
+            s.Append("    /// <summary>The form values of <see cref=\"").Append(entityType).Append('.')
+                .Append(collection.Name).AppendLine("\" />.</summary>");
+            s.AppendLine("    /// <remarks>");
+            s.AppendLine("    /// <b>What this list holds is what the aggregate holds after the save.</b> These are values,");
+            s.AppendLine("    /// so there is no id to match on and nothing to reconcile: the stored collection is replaced by");
+            s.AppendLine("    /// this one, and an empty list clears it.");
+            s.AppendLine("    /// </remarks>");
+            s.Append("    public global::System.Collections.Generic.List<")
+                .Append(ElementModelType(collection)).Append("> ").Append(collection.Name)
+                .AppendLine(" { get; set; } = [];");
+            s.AppendLine();
+        }
+
         foreach (var member in entity.Members)
         {
             s.Append("    /// <summary>The form value of <see cref=\"").Append(entityType).Append('.')
@@ -1116,6 +1143,11 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             EmitChildSync(s, child);
         }
 
+        foreach (var collection in entity.ValueCollections)
+        {
+            EmitValueCollectionSync(s, collection);
+        }
+
         s.AppendLine("    }");
         s.AppendLine();
 
@@ -1139,6 +1171,26 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
                 .AppendLine("Extensions.__ToModel(__child);");
             s.AppendLine("            __childModel.Id = __child.Id;");
             s.Append("            model.").Append(child.Name).AppendLine(".Add(__childModel);");
+            s.AppendLine("        }");
+            s.AppendLine();
+        }
+
+        foreach (var collection in entity.ValueCollections)
+        {
+            s.Append("        model.").Append(collection.Name)
+                .Append(" = new global::System.Collections.Generic.List<")
+                .Append(ElementModelType(collection, modelType)).AppendLine(">();");
+            s.Append("        foreach (var __value in entity.").Append(collection.Name).AppendLine(")");
+            s.AppendLine("        {");
+            s.Append("            model.").Append(collection.Name).Append(".Add(")
+                // The trailing `!` because ToModelExpression guards a reference-typed value object against
+                // null, and an element of the collection is never null — the list holds values, not slots.
+                .Append(collection.ElementModel is { SingleValue: false } elementShape
+                    ? ToModelExpression("__value", elementShape, nullable: false, modelType) + "!"
+                    : collection.ElementModel is { } single
+                        ? ToModelExpression("__value", single, nullable: false, modelType)
+                        : "__value")
+                .AppendLine(");");
             s.AppendLine("        }");
             s.AppendLine();
         }
@@ -1181,6 +1233,17 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             AppendNewEntity(s, entity, withId: false);
             s.AppendLine("        return entity;");
             s.AppendLine("    }");
+        }
+
+        foreach (var collection in entity.ValueCollections.Where(static c => c.ThroughField))
+        {
+            s.AppendLine();
+            s.Append("    /// <summary>The field behind <c>").Append(collection.Name)
+                .AppendLine("</c>, which hands out a read-only view.</summary>");
+            s.Append("    [").Append(UnsafeAccessor).Append('(').Append(UnsafeAccessorKind)
+                .Append(".Field, Name = \"").Append(collection.FieldName).AppendLine("\")]");
+            s.Append("    private static extern ref ").Append(collection.FieldTypeName).Append(" __Values_")
+                .Append(collection.Name).Append('(').Append(entityType).AppendLine(" entity);");
         }
 
         foreach (var child in entity.Children.Where(static c => c.ThroughField))
@@ -1345,6 +1408,38 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
     ///     carrying an id that matches nothing, which is never followed: a forged id adds a row rather than
     ///     reaching one.
     /// </remarks>
+    // Values have no identity, so there is nothing to match a posted row against and nothing to keep: the
+    // stored collection is cleared and refilled from the form. That is the whole difference from a child
+    // collection, which reconciles row by row so an untouched child keeps its key and its unposted columns.
+    private static void EmitValueCollectionSync(StringBuilder s, ValueCollectionShape collection)
+    {
+        var source = collection.ThroughField
+            ? "__Values_" + collection.Name + "(entity)"
+            : "entity." + collection.Name;
+
+        s.AppendLine();
+        s.AppendLine("        {");
+        s.Append("            var __values = ").Append(source)
+            .Append(" as global::System.Collections.Generic.ICollection<")
+            .Append(collection.ElementTypeName).AppendLine(">;");
+        s.AppendLine();
+        s.AppendLine("            if (__values is not null)");
+        s.AppendLine("            {");
+        s.AppendLine("                __values.Clear();");
+        s.AppendLine();
+        s.Append("                if (model.").Append(collection.Name).AppendLine(" is { } __posted)");
+        s.AppendLine("                {");
+        s.AppendLine("                    foreach (var __value in __posted)");
+        s.AppendLine("                    {");
+        s.Append("                        __values.Add(")
+            .Append(collection.ElementModel is { } shape ? FromElementExpression("__value", shape) : "__value")
+            .AppendLine(");");
+        s.AppendLine("                    }");
+        s.AppendLine("                }");
+        s.AppendLine("            }");
+        s.AppendLine("        }");
+    }
+
     private static void EmitChildSync(StringBuilder s, ChildShape child)
     {
         var comparer = "global::System.Collections.Generic.EqualityComparer<" + child.ChildIdTypeName + ">.Default";
@@ -1507,6 +1602,34 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         return built;
     }
 
+    // What one element is carried as on the form model, declared INSIDE the model class.
+    private static string ElementModelType(ValueCollectionShape collection) =>
+        collection.ElementModel switch
+        {
+            null => collection.ElementTypeName,
+            { SingleValue: true } single => single.Members[0].ModelType,
+            { } nested => nested.ModelName,
+        };
+
+    // The same, named from outside the model class — __Fill and __Apply live in the extensions class.
+    private static string ElementModelType(ValueCollectionShape collection, string modelType) =>
+        collection.ElementModel is { SingleValue: false } nested
+            ? modelType + "." + nested.ModelName
+            : ElementModelType(collection);
+
+    // One element, rebuilt from its form model. Unlike a single value object there is nothing to merge with:
+    // a value in a collection has no identity, so nothing addresses the element that was there before. A
+    // member the form did not set therefore takes its type's default, which is what an unbound field means.
+    private static string FromElementExpression(string source, ValueObjectShape shape) =>
+        shape.SingleValue
+            ? BuildExpression(shape, member => Fallback(source, member))
+            : BuildExpression(shape, member => member.ValueObject is null
+                ? Fallback(source + "." + member.Name, member)
+                : FromElementExpression(source + "." + member.Name, member.ValueObject));
+
+    private static string Fallback(string access, ValueObjectMember member) =>
+        "(" + access + " ?? default(" + member.ValueTypeName + ")!)";
+
     // The model's copy of a value object: the value itself for a one-value one, a nested model otherwise.
     private static string ToModelExpression(string source, ValueObjectShape shape, bool nullable, string modelType)
     {
@@ -1564,6 +1687,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         EquatableArray<ChildShape> Children,
         EquatableArray<string> AggregateReferences,
         EquatableArray<string> UnsyncableChildren,
+        EquatableArray<ValueCollectionShape> ValueCollections,
         int Writes,
         bool DeclaresWrites)
     {
@@ -1571,8 +1695,18 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             new(fullyQualifiedName, name, "", "public", null, false, false, null, KeySource.None, null, false, location, refusal, detail,
                 new EquatableArray<Member>([]), new EquatableArray<ValueObjectShape>([]), false,
                 new EquatableArray<ChildShape>([]), new EquatableArray<string>([]), new EquatableArray<string>([]),
-                AllWrites, false);
+                new EquatableArray<ValueCollectionShape>([]), AllWrites, false);
     }
+
+    // A collection of values on the form model. The element is carried as its nested model when it is a value
+    // object, exactly as a single value object is, so a form binds the same shape either way.
+    private sealed record ValueCollectionShape(
+        string Name,
+        string ElementTypeName,
+        ValueObjectShape? ElementModel,
+        bool ThroughField,
+        string? FieldName,
+        string FieldTypeName);
 
     /// <summary>One child collection, as the generator needs it: what to emit, and what to write it through.</summary>
     private sealed record ChildShape(
