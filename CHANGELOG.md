@@ -7,98 +7,7 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
-### Fixed
-
-- **`rask dev` no longer reacts to the app's own SQLite files.** `dotnet watch` watches the whole project
-  folder, not just `@(Watch)`: it accepts a change to any file `DefaultItemExcludes` does not match, and a file
-  ADDED there costs a full project re-evaluation (design-time build and restore) plus a hot reload pass. The
-  batteries open `app.db` and `logs.db` in WAL mode beside the project, so every start and every restart
-  created `app.db-wal`, `app.db-shm`, `logs.db-wal` and `logs.db-shm`, and the watcher answered each time with
-  "Files added: ./app.db-shm, ./logs.db-shm" and another reload of the project. `Rask.Core.targets` now adds
-  SQLite's `-wal`, `-shm` and `-journal` files (for `.db`, `.sqlite` and `.sqlite3`) to `DefaultItemExcludes`,
-  the list the watcher honours. The database file itself stays an ordinary item, so a seed database copied to
-  the output still works. `ScopedAssetWatchTests` fails if the sidecars reach the default items again.
-
-- **`rask dev` on macOS stopped asking for your password on every run — and stopped falling back to localhost
-  when it could not.** The port-443 redirect it loads into pf does not survive a reboot, so `rask dev` records
-  the boot it loaded it on and reloads after a new one. It compared that record to `sysctl kern.boottime` as a
-  STRING, and macOS derives the boot time from the wall clock minus the uptime, so every clock adjustment moves
-  its microseconds: `{ sec = 1788161786, usec = 431499 }` one day, `usec = 547268` seventeen days later, with no
-  reboot in between. Every run therefore believed the machine had rebooted and wanted `sudo` to reload a
-  redirect that was still loaded; run without a terminal to ask on — an editor, a script, an agent — it printed
-  "setting up https://appname.test needs permission" and served `https://localhost:5001` instead, which is
-  how `https://appname.test` came to look broken in Safari. Boot times are now compared by their seconds,
-  within five seconds: a real reboot moves them by far more, and clock drift by a fraction of one. An existing
-  `~/.rask/pf-state.json` is read as it is, so a machine that already set the redirect up stops being asked at
-  once.
-
-- **A WebAssembly app's nested build no longer runs on a different SDK than the build that started it.** Every
-  package that shells out to build a companion — `Rask.Server` for a `wasm-hosted` app's browser half,
-  `Rask.Wasm` for the prerender pass, `Rask.Spa.Hosting` for a WASM client — ran a bare `dotnet build` or
-  `dotnet publish`. That re-resolves the SDK from the `global.json` in the app's folder, which every scaffold
-  now writes, while the outer build resolved its SDK from wherever it was started. So
-  `dotnet build path/to/App.csproj` from a solution root, an IDE or CI built the host on the newest SDK
-  installed and the companion on the pinned band — and the child, having inherited the parent's
-  `MSBuildSDKsPath`, loaded the other SDK's targets into its own runtime and failed with MSB4216 ("could not
-  create or connect to a task host"). All four sites now run `$(_RaskSdkDotnet)`: this build's own
-  `dotnet.dll` through `DOTNET_HOST_PATH`, falling back to `dotnet` only under Visual Studio's MSBuild.
-  Clearing the inherited variables was not an option — `Exec` cannot unset one, and an empty value is read as
-  a path, after which no SDK resolves at all. `NestedDotnetContractTests` fails if a packed `.targets` file
-  runs a bare SDK command again or the definitions drift apart.
-
-- **`RaskVersion.Current` reported `1.0.0` in every app** (#1122). It reads the informational version off the assembly that
-  declares it — `Rask.Core` — and Core is `IsPackable=false`, so the `Condition=" '$(IsPackable)' != 'false' "` on
-  MinVer's `PackageReference` meant nothing ever stamped it and the SDK's `1.0.0` fallback stood. Every reader was
-  wrong with it: the `[Rask.Wasm] Rask 1.0.0 (WASM) starting` banner, the DevTools overview page and its bug reports,
-  and rask.sh's own version badge and guide banner, which advertised `v1.0.0` while 0.22.0 was shipping. MinVer is
-  referenced by every project now. The three existing `RaskVersionTests` were green throughout — non-empty, no build
-  metadata, looks like semver, all of which `"1.0.0"` satisfies — so `Current_MatchesThePackableHostVersion` compares
-  it against a packable assembly, which is the only version in the process known to be real.
-### Changed
-
-- **An aggregate is no longer a query surface — reads move to the read face.** `Product.All`,
-  `Product.Where(…)`, `Product.FindAsync(id)`, `Product.AsQueryable()`, `Product.Select(…)` and the terminals
-  that went with them are **removed**. Querying goes through `Product.Read`, which is primitives and carries
-  the navigations an aggregate is not allowed to have. The two cannot be one surface: an aggregate holds
-  another's id and nothing more, which is what stops a write crossing a boundary by accident, and a query that
-  reached across one from the write side would be that border failing. Three doors replace it —
-  `Product.Read.Where(…)` to show one, many or joined; `Product.ModelAsync(id)` to fill a form;
-  `Product.UpdateAsync(id, p => …)` or a context to load one in order to change it. By id is just the narrowest
-  query (`Product.Read.Where(p => p.Id == id).FirstOrDefaultAsync()`) and deliberately gets no `FindAsync` of
-  its own: EF Core's `Find` skips query filters, so a soft-deleted row would come back from it and not from
-  `Where` — two spellings of one read, disagreeing about deleted rows. `ModelQuery` gained the predicate
-  terminals the aggregate had (`SingleOrDefaultAsync`, `CountAsync`, `AnyAsync`) so nothing else is lost.
-
-  Four bugs the migration exposed, all fixed: the read model was cached against the WRONG write model (EF caches
-  a context's model by TYPE, so the mirror was built once from whichever write context happened to be ambient
-  first — right in an app with one database, wrong the moment there are two); the full-text index annotation did
-  not travel, so `Post.Read.Search(…)` refused over a table that plainly had one; the soft-delete query filter
-  was applied unconditionally, breaking a hand-mapped context with no `DeletedAt`; and a nested entity got no
-  read face at all, silently.
-
-- **RASK087 is now an ERROR, and covers a single reference as well as a collection.** It was a warning about a
-  collection of aggregates; it is the write-side border rule: **an aggregate may hold another aggregate's id
-  and nothing else.** `public Customer Customer { get; private set; }` no longer compiles. Nothing is lost by
-  holding the id — the generated read face carries the navigation inferred from exactly that id, so the join is
-  still one expression; it just cannot be reached from the side that saves. The message names the fix for the
-  shape you wrote, which differs by side: a single reference becomes an id on THIS aggregate, a collection an
-  id on the OTHER one.
-
-- **`db:` now STAGES a write instead of saving it.** Handed a context, a write applies its change and returns;
-  the caller saves. That makes several writes on one context a single transaction by construction, with no
-  `BeginTransactionAsync` to write — one `SaveChangesAsync` already is one:
-
-  ```csharp
-  await Order.CreateAsync(orderModel, db: db, cancellationToken: ct);                    // staged
-  await StockItem.UpdateAsync(stockId, s => s.Reserve(n), db: db, cancellationToken: ct); // staged
-  await db.SaveChangesAsync(ct);                                                          // both, or neither
-  ```
-
-  **This is a behavioural break:** code passing `db:` and relying on the write having saved will no longer
-  persist without an explicit `SaveChangesAsync`. No `db:` still means the write owns its own unit of work.
-  Two consequences to know: a staged `CreateAsync` returns an entity that is not yet persisted (a `Guid` key is
-  already set, a store-generated integer key is `0` until you save), and the concurrency check still works and
-  stays automatic — the original `Version` is pinned and EF compares it at the caller's save.
+## [0.23.0] - 2026-09-18
 
 ### Added
 
@@ -365,6 +274,51 @@ them until tagged releases begin.
 
 ### Changed
 
+- **An aggregate is no longer a query surface — reads move to the read face.** `Product.All`,
+  `Product.Where(…)`, `Product.FindAsync(id)`, `Product.AsQueryable()`, `Product.Select(…)` and the terminals
+  that went with them are **removed**. Querying goes through `Product.Read`, which is primitives and carries
+  the navigations an aggregate is not allowed to have. The two cannot be one surface: an aggregate holds
+  another's id and nothing more, which is what stops a write crossing a boundary by accident, and a query that
+  reached across one from the write side would be that border failing. Three doors replace it —
+  `Product.Read.Where(…)` to show one, many or joined; `Product.ModelAsync(id)` to fill a form;
+  `Product.UpdateAsync(id, p => …)` or a context to load one in order to change it. By id is just the narrowest
+  query (`Product.Read.Where(p => p.Id == id).FirstOrDefaultAsync()`) and deliberately gets no `FindAsync` of
+  its own: EF Core's `Find` skips query filters, so a soft-deleted row would come back from it and not from
+  `Where` — two spellings of one read, disagreeing about deleted rows. `ModelQuery` gained the predicate
+  terminals the aggregate had (`SingleOrDefaultAsync`, `CountAsync`, `AnyAsync`) so nothing else is lost.
+
+  Four bugs the migration exposed, all fixed: the read model was cached against the WRONG write model (EF caches
+  a context's model by TYPE, so the mirror was built once from whichever write context happened to be ambient
+  first — right in an app with one database, wrong the moment there are two); the full-text index annotation did
+  not travel, so `Post.Read.Search(…)` refused over a table that plainly had one; the soft-delete query filter
+  was applied unconditionally, breaking a hand-mapped context with no `DeletedAt`; and a nested entity got no
+  read face at all, silently.
+
+- **RASK087 is now an ERROR, and covers a single reference as well as a collection.** It was a warning about a
+  collection of aggregates; it is the write-side border rule: **an aggregate may hold another aggregate's id
+  and nothing else.** `public Customer Customer { get; private set; }` no longer compiles. Nothing is lost by
+  holding the id — the generated read face carries the navigation inferred from exactly that id, so the join is
+  still one expression; it just cannot be reached from the side that saves. The message names the fix for the
+  shape you wrote, which differs by side: a single reference becomes an id on THIS aggregate, a collection an
+  id on the OTHER one.
+
+- **`db:` now STAGES a write instead of saving it.** Handed a context, a write applies its change and returns;
+  the caller saves. That makes several writes on one context a single transaction by construction, with no
+  `BeginTransactionAsync` to write — one `SaveChangesAsync` already is one:
+
+  ```csharp
+  await Order.CreateAsync(orderModel, db: db, cancellationToken: ct);                    // staged
+  await StockItem.UpdateAsync(stockId, s => s.Reserve(n), db: db, cancellationToken: ct); // staged
+  await db.SaveChangesAsync(ct);                                                          // both, or neither
+  ```
+
+  **This is a behavioural break:** code passing `db:` and relying on the write having saved will no longer
+  persist without an explicit `SaveChangesAsync`. No `db:` still means the write owns its own unit of work.
+  Two consequences to know: a staged `CreateAsync` returns an entity that is not yet persisted (a `Guid` key is
+  already set, a store-generated integer key is `0` until you save), and the concurrency check still works and
+  stays automatic — the original `Version` is pinned and EF compares it at the caller's save.
+
+
 - **BREAKING: `server` is just a server, and `wasm-hosted` is a template again.** `rask new --wasm` is gone;
   the shape it built is now `rask new --template wasm-hosted`, sitting in the project-type list beside
   `react`, `vue` and the rest of the front-end-plus-host lane. It is the same lane, with C# on both sides of
@@ -432,56 +386,6 @@ them until tagged releases begin.
   `UiTab.Label("All").Href("/orders")` rather than the other way round. That is what lets one `UiTab` be both the
   link and the tab over a `UiTabPanel`.
 
-### Fixed
-
-- **A battery's own polling no longer fills the console.** Jobs, mail and the outbox each poll a table every
-  five seconds, EF Core logs every statement it runs at `Information`, and an idle app with the three of them
-  on therefore wrote a six-line `SELECT` block roughly every 1.7 seconds, forever. Rask's own bookkeeping —
-  the claim, the lease, the purge, the session sweep, the orphan scan, the cache eviction, and the log store's
-  own `INSERT` — now runs on a context that logs its SQL at `Debug` instead. **The application's own queries
-  are untouched**, which is the whole point: turning `Microsoft.EntityFrameworkCore.Database.Command` down in
-  `appsettings.json` would have hidden those too, and they are the ones worth reading. Set that category to
-  `Debug` to watch a battery claim its batch again. An app whose context Rask cannot build from the options it
-  registered — a hand-written `IDbContextFactory<T>`, a context with a constructor this cannot call — keeps its
-  own factory, and its old logging with it.
-- **A component joined onto another's chain entry no longer steals its `Of<T>()`.** Two components sharing an entry
-  emit the same parameterless explicit-type opening, and whichever the generator happened to sort second silently
-  decided what `Entry.Of<T>()` built. The entry's namesake owns it now.
-- **`rask dev` opens the `https://<name>.test` name it just set up, instead of a URL the certificate rejects.** The
-  server template shipped `"launchBrowser": true`, so `dotnet watch` — which honours that itself, and which neither
-  .NET 10 nor 11 lets you suppress from the environment — opened the launch profile's `https://localhost:5001` and
-  Rask stood down. That tab hit a certificate issued for the `.test` name alone, so the browser refused it on a name
-  mismatch: the flagship dev-host feature ended in an interstitial. The template now leaves the browser to `rask dev`,
-  which opens the name without waiting for `--open` (still opt-in on a plain localhost run, still off under
-  `--no-open`), and an older project whose profile keeps `launchBrowser` gets told why it lands somewhere else.
-- **The dev certificate covers `localhost`, `127.0.0.1` and `::1` as well as its `.test` name.** Kestrel binds
-  loopback, so a bookmark, an IDE's run button, `--no-host` or an older scaffold's launch profile all reach the same
-  app — and every one of them used to hit a name-mismatch warning on a page that *is* the app. Certificates issued
-  before this are re-minted on the next run rather than matching their own name forever and never being replaced.
-### Fixed
-
-- **The installer no longer ends by suggesting a command that fails.** `curl -sSL https://rask.sh/rask.sh | sh`
-  finished with two raw `export` lines and then `Then: rask new MyApp && cd MyApp && rask dev` — run in the shell
-  you installed from, that is `command not found`, because a piped installer is a child process and cannot change
-  its parent's environment. The closing block now leads with that fact and gives one line that fixes it, matched to
-  the profile actually written (`source ~/.bashrc`, `source ~/.config/fish/config.fish`, `. ~/.profile`, …). Under
-  `--no-path`/`-NoPath`, which previously printed no guidance at all, it prints what to add by hand. `rask.ps1` got
-  the same treatment, with the two lines that re-read the User-scoped `Path` and `DOTNET_ROOT` it just wrote.
-- **bash got the `PATH` block in only one of the two files bash reads.** A login bash (ssh, a tty) reads the first
-  of `~/.bash_profile`, `~/.bash_login` and `~/.profile` that exists, and never `~/.bashrc`; a terminal emulator
-  reads `~/.bashrc` and never a login profile. Writing `~/.bashrc` alone looks sufficient on a stock box only
-  because Debian, Arch and Fedora ship a skeleton login profile that sources it — for anyone with hand-written
-  dotfiles, ssh had no `rask` while the terminal emulator on the same machine did. The installer now writes both,
-  but never *creates* a login profile, since bash falls back to `~/.profile` only when no `~/.bash_profile` exists
-  and inventing one would silently shadow the user's login environment.
-- **Re-reading the installer's `PATH` block no longer grows `PATH`.** Each directory is added only if it is not
-  already there, in both the POSIX and fish dialects. This matters now the block lands in two files and the
-  Arch/Debian default `~/.bash_profile` sources `~/.bashrc`.
-- **`curl: (23) Failure writing output to destination` no longer appears mid-install.** The Node LTS lookup piped
-  curl straight into a parser that stops at the first match; `head` closing the pipe made curl report the write
-  error onto an install that was going fine. The index is buffered to a file and parsed from there.
-
-### Changed
 
 - **The docs wear the landing page's top bar.** `/` and `/docs` had two bars that agreed on a height and a background
   and on nothing else: the docs drew daisyUI's `navbar` with a hamburger, a second brand mark in the display face, a
@@ -518,6 +422,100 @@ them until tagged releases begin.
     `rask db add` a migration. The `AspNet*` tables become `User` columns and `RaskAuthSession`, and
     `RaskAuthInstanceClaim.AdminUserId` becomes a `Guid`. Existing password hashes keep working if the rows are copied
     across.
+
+### Fixed
+
+- **`rask dev` no longer reacts to the app's own SQLite files.** `dotnet watch` watches the whole project
+  folder, not just `@(Watch)`: it accepts a change to any file `DefaultItemExcludes` does not match, and a file
+  ADDED there costs a full project re-evaluation (design-time build and restore) plus a hot reload pass. The
+  batteries open `app.db` and `logs.db` in WAL mode beside the project, so every start and every restart
+  created `app.db-wal`, `app.db-shm`, `logs.db-wal` and `logs.db-shm`, and the watcher answered each time with
+  "Files added: ./app.db-shm, ./logs.db-shm" and another reload of the project. `Rask.Core.targets` now adds
+  SQLite's `-wal`, `-shm` and `-journal` files (for `.db`, `.sqlite` and `.sqlite3`) to `DefaultItemExcludes`,
+  the list the watcher honours. The database file itself stays an ordinary item, so a seed database copied to
+  the output still works. `ScopedAssetWatchTests` fails if the sidecars reach the default items again.
+
+- **`rask dev` on macOS stopped asking for your password on every run — and stopped falling back to localhost
+  when it could not.** The port-443 redirect it loads into pf does not survive a reboot, so `rask dev` records
+  the boot it loaded it on and reloads after a new one. It compared that record to `sysctl kern.boottime` as a
+  STRING, and macOS derives the boot time from the wall clock minus the uptime, so every clock adjustment moves
+  its microseconds: `{ sec = 1788161786, usec = 431499 }` one day, `usec = 547268` seventeen days later, with no
+  reboot in between. Every run therefore believed the machine had rebooted and wanted `sudo` to reload a
+  redirect that was still loaded; run without a terminal to ask on — an editor, a script, an agent — it printed
+  "setting up https://appname.test needs permission" and served `https://localhost:5001` instead, which is
+  how `https://appname.test` came to look broken in Safari. Boot times are now compared by their seconds,
+  within five seconds: a real reboot moves them by far more, and clock drift by a fraction of one. An existing
+  `~/.rask/pf-state.json` is read as it is, so a machine that already set the redirect up stops being asked at
+  once.
+
+- **A WebAssembly app's nested build no longer runs on a different SDK than the build that started it.** Every
+  package that shells out to build a companion — `Rask.Server` for a `wasm-hosted` app's browser half,
+  `Rask.Wasm` for the prerender pass, `Rask.Spa.Hosting` for a WASM client — ran a bare `dotnet build` or
+  `dotnet publish`. That re-resolves the SDK from the `global.json` in the app's folder, which every scaffold
+  now writes, while the outer build resolved its SDK from wherever it was started. So
+  `dotnet build path/to/App.csproj` from a solution root, an IDE or CI built the host on the newest SDK
+  installed and the companion on the pinned band — and the child, having inherited the parent's
+  `MSBuildSDKsPath`, loaded the other SDK's targets into its own runtime and failed with MSB4216 ("could not
+  create or connect to a task host"). All four sites now run `$(_RaskSdkDotnet)`: this build's own
+  `dotnet.dll` through `DOTNET_HOST_PATH`, falling back to `dotnet` only under Visual Studio's MSBuild.
+  Clearing the inherited variables was not an option — `Exec` cannot unset one, and an empty value is read as
+  a path, after which no SDK resolves at all. `NestedDotnetContractTests` fails if a packed `.targets` file
+  runs a bare SDK command again or the definitions drift apart.
+
+- **`RaskVersion.Current` reported `1.0.0` in every app** (#1122). It reads the informational version off the assembly that
+  declares it — `Rask.Core` — and Core is `IsPackable=false`, so the `Condition=" '$(IsPackable)' != 'false' "` on
+  MinVer's `PackageReference` meant nothing ever stamped it and the SDK's `1.0.0` fallback stood. Every reader was
+  wrong with it: the `[Rask.Wasm] Rask 1.0.0 (WASM) starting` banner, the DevTools overview page and its bug reports,
+  and rask.sh's own version badge and guide banner, which advertised `v1.0.0` while 0.22.0 was shipping. MinVer is
+  referenced by every project now. The three existing `RaskVersionTests` were green throughout — non-empty, no build
+  metadata, looks like semver, all of which `"1.0.0"` satisfies — so `Current_MatchesThePackableHostVersion` compares
+  it against a packable assembly, which is the only version in the process known to be real.
+
+- **A battery's own polling no longer fills the console.** Jobs, mail and the outbox each poll a table every
+  five seconds, EF Core logs every statement it runs at `Information`, and an idle app with the three of them
+  on therefore wrote a six-line `SELECT` block roughly every 1.7 seconds, forever. Rask's own bookkeeping —
+  the claim, the lease, the purge, the session sweep, the orphan scan, the cache eviction, and the log store's
+  own `INSERT` — now runs on a context that logs its SQL at `Debug` instead. **The application's own queries
+  are untouched**, which is the whole point: turning `Microsoft.EntityFrameworkCore.Database.Command` down in
+  `appsettings.json` would have hidden those too, and they are the ones worth reading. Set that category to
+  `Debug` to watch a battery claim its batch again. An app whose context Rask cannot build from the options it
+  registered — a hand-written `IDbContextFactory<T>`, a context with a constructor this cannot call — keeps its
+  own factory, and its old logging with it.
+- **A component joined onto another's chain entry no longer steals its `Of<T>()`.** Two components sharing an entry
+  emit the same parameterless explicit-type opening, and whichever the generator happened to sort second silently
+  decided what `Entry.Of<T>()` built. The entry's namesake owns it now.
+- **`rask dev` opens the `https://<name>.test` name it just set up, instead of a URL the certificate rejects.** The
+  server template shipped `"launchBrowser": true`, so `dotnet watch` — which honours that itself, and which neither
+  .NET 10 nor 11 lets you suppress from the environment — opened the launch profile's `https://localhost:5001` and
+  Rask stood down. That tab hit a certificate issued for the `.test` name alone, so the browser refused it on a name
+  mismatch: the flagship dev-host feature ended in an interstitial. The template now leaves the browser to `rask dev`,
+  which opens the name without waiting for `--open` (still opt-in on a plain localhost run, still off under
+  `--no-open`), and an older project whose profile keeps `launchBrowser` gets told why it lands somewhere else.
+- **The dev certificate covers `localhost`, `127.0.0.1` and `::1` as well as its `.test` name.** Kestrel binds
+  loopback, so a bookmark, an IDE's run button, `--no-host` or an older scaffold's launch profile all reach the same
+  app — and every one of them used to hit a name-mismatch warning on a page that *is* the app. Certificates issued
+  before this are re-minted on the next run rather than matching their own name forever and never being replaced.
+
+- **The installer no longer ends by suggesting a command that fails.** `curl -sSL https://rask.sh/rask.sh | sh`
+  finished with two raw `export` lines and then `Then: rask new MyApp && cd MyApp && rask dev` — run in the shell
+  you installed from, that is `command not found`, because a piped installer is a child process and cannot change
+  its parent's environment. The closing block now leads with that fact and gives one line that fixes it, matched to
+  the profile actually written (`source ~/.bashrc`, `source ~/.config/fish/config.fish`, `. ~/.profile`, …). Under
+  `--no-path`/`-NoPath`, which previously printed no guidance at all, it prints what to add by hand. `rask.ps1` got
+  the same treatment, with the two lines that re-read the User-scoped `Path` and `DOTNET_ROOT` it just wrote.
+- **bash got the `PATH` block in only one of the two files bash reads.** A login bash (ssh, a tty) reads the first
+  of `~/.bash_profile`, `~/.bash_login` and `~/.profile` that exists, and never `~/.bashrc`; a terminal emulator
+  reads `~/.bashrc` and never a login profile. Writing `~/.bashrc` alone looks sufficient on a stock box only
+  because Debian, Arch and Fedora ship a skeleton login profile that sources it — for anyone with hand-written
+  dotfiles, ssh had no `rask` while the terminal emulator on the same machine did. The installer now writes both,
+  but never *creates* a login profile, since bash falls back to `~/.profile` only when no `~/.bash_profile` exists
+  and inventing one would silently shadow the user's login environment.
+- **Re-reading the installer's `PATH` block no longer grows `PATH`.** Each directory is added only if it is not
+  already there, in both the POSIX and fish dialects. This matters now the block lands in two files and the
+  Arch/Debian default `~/.bash_profile` sources `~/.bashrc`.
+- **`curl: (23) Failure writing output to destination` no longer appears mid-install.** The Node LTS lookup piped
+  curl straight into a parser that stops at the first match; `head` closing the pipe made curl report the write
+  error onto an install that was going fine. The index is buffered to a file and parsed from there.
 
 ## [0.22.0] - 2026-09-16
 
