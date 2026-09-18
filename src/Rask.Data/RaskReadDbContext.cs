@@ -23,7 +23,7 @@ namespace Rask.Data;
 ///         itself, rather than on a second derivation of them that could drift.
 ///     </para>
 /// </remarks>
-public class RaskReadDbContext : DbContext
+public class RaskReadDbContext : DbContext, ITenantScoped
 {
     /// <summary>Creates the context with the options the host registered.</summary>
     public RaskReadDbContext(DbContextOptions<RaskReadDbContext> options)
@@ -43,7 +43,7 @@ public class RaskReadDbContext : DbContext
         ArgumentNullException.ThrowIfNull(modelBuilder);
 
         base.OnModelCreating(modelBuilder);
-        ReadModelRegistry.Apply(modelBuilder, WriteModel());
+        ReadModelRegistry.Apply(modelBuilder, WriteModel(), this);
     }
 
     /// <inheritdoc />

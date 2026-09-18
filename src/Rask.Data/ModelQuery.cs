@@ -135,11 +135,18 @@ public sealed class ModelQuery<TEntity>
     }
 
     /// <summary>
-    ///     Drops the model's global query filters — notably the one
-    ///     <see cref="ModelBuilderExtensions.ApplyRaskConventions" /> adds to every
+    ///     Includes soft-deleted rows: drops the filter
+    ///     <see cref="ModelBuilderExtensions.ApplyRaskConventions(Microsoft.EntityFrameworkCore.ModelBuilder)" /> adds to every
     ///     <see cref="Aggregate{TId}" />, so this is how soft-deleted rows are listed or restored.
     /// </summary>
-    public ModelQuery<TEntity> IgnoreQueryFilters() => Then(q => q.IgnoreQueryFilters(), _ordered, _unrankedSearch);
+    /// <remarks>
+    ///     <b>It does not cross tenants.</b> The tenant filter is a separate, named filter and stays exactly
+    ///     where it is, so an existing call to this never quietly becomes a cross-tenant read the day an
+    ///     aggregate declares <see cref="Tenancy.PerTenant" />. Spanning tenants is
+    ///     <see cref="Tenant.Across" />, deliberately and visibly.
+    /// </remarks>
+    public ModelQuery<TEntity> IgnoreQueryFilters() =>
+        Then(q => q.IgnoreQueryFilters([ModelBuilderExtensions.SoftDeleteFilter]), _ordered, _unrankedSearch);
 
     /// <summary>Splits the query's joins into separate round trips.</summary>
     public ModelQuery<TEntity> AsSplitQuery() => Then(q => q.AsSplitQuery(), _ordered, _unrankedSearch);

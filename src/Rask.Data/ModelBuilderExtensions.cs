@@ -44,7 +44,36 @@ public static class ModelBuilderExtensions
     /// Call after the entity type configurations are applied — they establish the entity types this walks.
     /// </para>
     /// </remarks>
-    public static ModelBuilder ApplyRaskConventions(this ModelBuilder modelBuilder)
+    public static ModelBuilder ApplyRaskConventions(this ModelBuilder modelBuilder) =>
+        Apply(modelBuilder, context: null);
+
+    /// <summary>
+    /// Applies Rask.Data's model conventions, including the tenant filter, which needs the context.
+    /// </summary>
+    /// <param name="modelBuilder">The model builder.</param>
+    /// <param name="context">The context being built — pass <c>this</c> from <c>OnModelCreating</c>.</param>
+    /// <returns>The same model builder.</returns>
+    /// <remarks>
+    /// <para>
+    /// The tenant filter has to reach the current tenant through an instance member of the context, which is
+    /// why this overload exists. A query filter is compiled into the model and the model is CACHED, so a
+    /// static read is evaluated once and inlined into the SQL as a literal — the first tenant to run a query
+    /// then pins that value for every tenant after it. Reaching the same value through the context instance
+    /// makes EF Core lift it to a real parameter and re-bind it per query.
+    /// </para>
+    /// <para>
+    /// <paramref name="context" /> must implement <see cref="ITenantScoped" /> once anything is
+    /// <see cref="Tenancy.PerTenant" />; the parameterless overload refuses rather than mapping a table whose
+    /// filter could not be built.
+    /// </para>
+    /// </remarks>
+    public static ModelBuilder ApplyRaskConventions(this ModelBuilder modelBuilder, DbContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        return Apply(modelBuilder, context);
+    }
+
+    private static ModelBuilder Apply(ModelBuilder modelBuilder, DbContext? context)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
 
@@ -120,7 +149,9 @@ public static class ModelBuilderExtensions
                 if (ConventionRegistry.DeletesFor(clrType) == Deletion.Soft)
                 {
                     builder.Property(typeof(DateTime?), Columns.DeletedAt);
-                    builder.HasQueryFilter(BuildNotDeletedFilter(builder, clrType));
+
+                    // NAMED, so IgnoreQueryFilters() can lift this one and leave the tenant filter standing.
+                    builder.HasQueryFilter(SoftDeleteFilter, BuildNotDeletedFilter(builder, clrType));
                 }
                 else
                 {
@@ -130,9 +161,117 @@ public static class ModelBuilderExtensions
         }
 
         MapValueCollections(modelBuilder, clrTypes);
+        ApplyTenancy(modelBuilder, clrTypes, context);
         BindChildrenToTheirParents(modelBuilder);
 
         return modelBuilder;
+    }
+
+    // EF.Property<Guid?>(entity, "TenantId"), captured from a real expression rather than through
+    // MakeGenericMethod — no reflection for the trimmer to be unable to follow, as with the DeletedAt one.
+    private static readonly MethodInfo EfPropertyNullableGuid =
+        ((MethodCallExpression)((Expression<Func<object, Guid?>>)(e => EF.Property<Guid?>(e, Columns.TenantId))).Body)
+        .Method;
+
+    /// <summary>The name of the soft-delete query filter, which <c>IgnoreQueryFilters()</c> lifts.</summary>
+    internal const string SoftDeleteFilter = "SoftDelete";
+
+    /// <summary>The name of the tenant query filter, which nothing lifts except <see cref="Tenant.Across" />.</summary>
+    internal const string TenantFilter = "Tenant";
+
+    /// <summary>
+    /// Gives every <see cref="Tenancy.PerTenant" /> table its <c>TenantId</c> column, its query filter and a
+    /// <c>TenantId</c> prefix on each of its indexes.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The index prefix is not a nicety. <c>HasIndex(p =&gt; p.Sku).IsUnique()</c> on a partitioned table
+    /// otherwise means "no two tenants may ever use the same SKU", and the symptom is one tenant unable to
+    /// create a row because a different tenant already has it — with nothing in the code saying so.
+    /// </para>
+    /// <para>
+    /// <c>TenantId</c> is ignored on a table that did not ask, exactly as <c>DeletedAt</c> and
+    /// <c>Version</c> are: it is a real property on <see cref="Entity{TId}" /> so a child carries it too, and
+    /// EF Core maps a real property by its own convention whatever this does.
+    /// </para>
+    /// </remarks>
+    private static void ApplyTenancy(ModelBuilder modelBuilder, List<Type> clrTypes, DbContext? context)
+    {
+        foreach (var clrType in clrTypes)
+        {
+            if (!typeof(IEntity).IsAssignableFrom(clrType))
+            {
+                continue;
+            }
+
+            var builder = modelBuilder.Entity(clrType);
+
+            if (ConventionRegistry.ScopeFor(clrType) != Tenancy.PerTenant)
+            {
+                builder.Ignore(Columns.TenantId);
+                continue;
+            }
+
+            if (context is not ITenantScoped)
+            {
+                throw new InvalidOperationException(
+                    $"'{clrType.Name}' declares Scope = Tenancy.PerTenant, but its DbContext " +
+                    $"('{context?.GetType().Name ?? "none"}') cannot supply the current tenant. Declare the " +
+                    "context as ': DbContext, ITenantScoped' and call " +
+                    "modelBuilder.ApplyRaskConventions(this) — the filter has to read the tenant through the " +
+                    "context, or EF Core inlines one tenant's id into the cached query for every tenant.");
+            }
+
+            builder.Property(typeof(Guid?), Columns.TenantId);
+            builder.HasQueryFilter(TenantFilter, BuildTenantFilter(clrType, context));
+
+            PrefixIndexesWithTenant(builder);
+        }
+    }
+
+    // e => current == null || EF.Property<Guid?>(e, "TenantId") == current
+    //
+    // The `current == null` arm is what makes Tenant.Across() mean "every tenant" rather than "the rows
+    // nobody owns". Without it a null ambient narrows to TenantId IS NULL, which returns nothing on a table
+    // where every row is owned — a cross-tenant admin view that is silently, plausibly empty.
+    internal static LambdaExpression BuildTenantFilter(Type clrType, DbContext context)
+    {
+        var entity = Expression.Parameter(clrType, "e");
+
+        var stored = Expression.Call(EfPropertyNullableGuid, entity, Expression.Constant(Columns.TenantId));
+
+        var current = Expression.Property(
+            Expression.Convert(Expression.Constant(context), typeof(ITenantScoped)),
+            nameof(ITenantScoped.CurrentTenant));
+
+        var unrestricted = Expression.Equal(current, Expression.Constant(null, typeof(Guid?)));
+
+        return Expression.Lambda(
+            Expression.OrElse(unrestricted, Expression.Equal(stored, current)), entity);
+    }
+
+    // Every index gains TenantId at the FRONT: uniqueness then means "within this tenant", and the filtered
+    // query can use the index rather than scanning and discarding.
+    private static void PrefixIndexesWithTenant(EntityTypeBuilder builder)
+    {
+        foreach (var index in builder.Metadata.GetIndexes().ToList())
+        {
+            var names = index.Properties.Select(static p => p.Name).ToList();
+
+            if (names.Contains(Columns.TenantId, StringComparer.Ordinal))
+            {
+                continue;
+            }
+
+            var replacement = builder.HasIndex([Columns.TenantId, .. names]);
+
+            if (index.IsUnique)
+            {
+                replacement.IsUnique();
+            }
+
+            builder.Metadata.RemoveIndex(index.Properties);
+        }
     }
 
     /// <summary>

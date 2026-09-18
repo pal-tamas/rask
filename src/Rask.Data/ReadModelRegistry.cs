@@ -165,7 +165,21 @@ public static class ReadModelRegistry
     ///     The built write model to mirror, or null when there is none to read — in which case the
     ///     convention's own answer stands, which is the same answer for an app that configures nothing.
     /// </param>
-    public static ModelBuilder Apply(ModelBuilder modelBuilder, IModel? writeModel)
+    public static ModelBuilder Apply(ModelBuilder modelBuilder, IModel? writeModel) =>
+        Apply(modelBuilder, writeModel, context: null);
+
+    /// <summary>
+    ///     Maps every read face, giving it the context the tenant filter reads through.
+    /// </summary>
+    /// <param name="modelBuilder">The read context's builder.</param>
+    /// <param name="writeModel">The built write model to mirror, or null when there is none.</param>
+    /// <param name="context">The read context being built, or null when nothing is tenant-scoped.</param>
+    /// <returns>The same model builder.</returns>
+    /// <remarks>
+    ///     The read face carries the tenant filter as well as the write side, and for a better reason: a read
+    ///     face is the ONLY way an app queries, so a face without it would be the leak itself.
+    /// </remarks>
+    public static ModelBuilder Apply(ModelBuilder modelBuilder, IModel? writeModel, DbContext? context)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
 
@@ -173,7 +187,7 @@ public static class ReadModelRegistry
 
         foreach (var mapping in all)
         {
-            MapColumns(modelBuilder, mapping, writeModel?.FindEntityType(mapping.WriteType));
+            MapColumns(modelBuilder, mapping, writeModel?.FindEntityType(mapping.WriteType), context);
         }
 
         // Relationships last: both ends have to be entity types before one can point at the other.
@@ -185,7 +199,8 @@ public static class ReadModelRegistry
         return modelBuilder;
     }
 
-    private static void MapColumns(ModelBuilder modelBuilder, ReadEntityMapping mapping, IEntityType? write)
+    private static void MapColumns(
+        ModelBuilder modelBuilder, ReadEntityMapping mapping, IEntityType? write, DbContext? context)
     {
         var builder = modelBuilder.Entity(mapping.ReadType);
 
@@ -272,7 +287,28 @@ public static class ReadModelRegistry
         // model with an error naming neither the filter nor the reason.
         if (mapping.IsRoot && builder.Metadata.FindProperty(Columns.DeletedAt) is not null)
         {
-            builder.HasQueryFilter(ModelBuilderExtensions.BuildNotDeletedFilter(builder, mapping.ReadType));
+            builder.HasQueryFilter(
+                ModelBuilderExtensions.SoftDeleteFilter,
+                ModelBuilderExtensions.BuildNotDeletedFilter(builder, mapping.ReadType));
+        }
+
+        // The write side's answer, mirrored like everything else here rather than re-derived: if the entity
+        // behind this face is partitioned, so is the face — children included, which is why a child's own
+        // read face is safe to query on its own.
+        if (ConventionRegistry.ScopeFor(mapping.WriteType) == Tenancy.PerTenant)
+        {
+            if (context is not ITenantScoped)
+            {
+                throw new InvalidOperationException(
+                    $"'{mapping.WriteType.Name}' is tenant-scoped, but the read context " +
+                    $"('{context?.GetType().Name ?? "none"}') cannot supply the current tenant. It must be " +
+                    "declared ': DbContext, ITenantScoped'.");
+            }
+
+            builder.Property(typeof(Guid?), Columns.TenantId);
+            builder.HasQueryFilter(
+                ModelBuilderExtensions.TenantFilter,
+                ModelBuilderExtensions.BuildTenantFilter(mapping.ReadType, context));
         }
     }
 

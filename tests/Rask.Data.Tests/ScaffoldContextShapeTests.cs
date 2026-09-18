@@ -7,12 +7,12 @@ namespace Rask.Data.Tests;
 // plain DbContext whose OnModelCreating applies configurations, the battery tables and the Rask
 // conventions. Nothing here reaches ModelRegistry, which is the point of the test.
 internal sealed class ScaffoldShapedContext(DbContextOptions<ScaffoldShapedContext> options)
-    : DbContext(options)
+    : DbContext(options), ITenantScoped
 {
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ScaffoldShapedContext).Assembly);
-        modelBuilder.ApplyRaskConventions();
+        modelBuilder.ApplyRaskConventions(this);
     }
 }
 
@@ -24,7 +24,7 @@ internal sealed class RaskShapedContext(DbContextOptions<RaskShapedContext> opti
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(RaskShapedContext).Assembly);
-        modelBuilder.ApplyRaskConventions();
+        modelBuilder.ApplyRaskConventions(this);
     }
 }
 

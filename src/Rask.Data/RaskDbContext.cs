@@ -29,7 +29,7 @@ namespace Rask.Data;
 ///         the generated model too) from its <c>OnModelCreating</c>.
 ///     </para>
 /// </remarks>
-public class RaskDbContext : DbContext
+public class RaskDbContext : DbContext, ITenantScoped
 {
     /// <summary>Creates the context with the options the host registered.</summary>
     public RaskDbContext(DbContextOptions<RaskDbContext> options)
@@ -49,7 +49,7 @@ public class RaskDbContext : DbContext
         ArgumentNullException.ThrowIfNull(modelBuilder);
 
         base.OnModelCreating(modelBuilder);
-        ModelRegistry.Apply(modelBuilder);
+        ModelRegistry.Apply(modelBuilder, this);
     }
 
     /// <inheritdoc />

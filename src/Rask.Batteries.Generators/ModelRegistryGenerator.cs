@@ -144,7 +144,27 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
             ConstOf(symbol, "Stamps", "Timestamps"),
             ConstOf(symbol, "Deletes", "Deletion"),
             ConstOf(symbol, "Checks", "Concurrency"),
-            ValueCollections(symbol));
+            ValueCollections(symbol),
+            ConstOf(symbol, "Scope", "Tenancy"),
+            ChildTypeNames(symbol));
+    }
+
+    // The child entities this aggregate holds. Needed because tenancy is declared on the ROOT and a child
+    // has to take its root's answer: a child is part of that aggregate, so it belongs to whichever tenant the
+    // root does, and it carries its own TenantId because its own read face is queryable on its own.
+    private static EquatableArray<string> ChildTypeNames(INamedTypeSymbol entity)
+    {
+        var names = new List<string>();
+
+        foreach (var member in entity.GetMembers().OfType<IPropertySymbol>())
+        {
+            if (GeneratedModelShape.DescribeChild(entity, member) is { } child)
+            {
+                names.Add(child.ChildType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+            }
+        }
+
+        return new EquatableArray<string>([.. names]);
     }
 
     // Every collection of values the entity holds, read here rather than at runtime: deciding whether an
@@ -511,10 +531,25 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
             return;
         }
 
-        var declared = candidates
-            .Distinct()
-            .Where(static c => c.Stamps is not null || c.Deletes is not null || c.Checks is not null ||
-                               c.Collections.Count > 0)
+        var distinct = candidates.Distinct().ToList();
+
+        // A child's tenancy is its root's, always. Declared on the root because that is where the aggregate
+        // boundary is; carried on the child because the child's own read face would otherwise be unfiltered.
+        var scopeByType = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        foreach (var entity in distinct.Where(static c => c.Scope is not null))
+        {
+            scopeByType[entity.FullyQualifiedName] = entity.Scope!.Value;
+
+            foreach (var child in entity.ChildTypeNames)
+            {
+                scopeByType[child] = entity.Scope!.Value;
+            }
+        }
+
+        var declared = distinct
+            .Where(c => c.Stamps is not null || c.Deletes is not null || c.Checks is not null ||
+                        c.Collections.Count > 0 || scopeByType.ContainsKey(c.FullyQualifiedName))
             .OrderBy(static c => c.FullyQualifiedName, StringComparer.Ordinal)
             .ToList();
 
@@ -539,6 +574,11 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
         foreach (var entity in declared)
         {
             Declare(source, entity.FullyQualifiedName, "Timestamps", entity.Stamps);
+            Declare(
+                source,
+                entity.FullyQualifiedName,
+                "Tenancy",
+                scopeByType.TryGetValue(entity.FullyQualifiedName, out var scope) ? scope : null);
             Declare(source, entity.FullyQualifiedName, "Deletion", entity.Deletes);
             Declare(source, entity.FullyQualifiedName, "Concurrency", entity.Checks);
 
@@ -822,5 +862,7 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
         int? Stamps,
         int? Deletes,
         int? Checks,
-        EquatableArray<ValueCollectionSpec> Collections);
+        EquatableArray<ValueCollectionSpec> Collections,
+        int? Scope,
+        EquatableArray<string> ChildTypeNames);
 }

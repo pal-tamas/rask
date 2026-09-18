@@ -9,7 +9,7 @@ namespace Rask.Data;
 /// <remarks>
 ///     <para>
 ///         Populated by generated <c>[ModuleInitializer]</c> code, and consulted by
-///         <see cref="ModelBuilderExtensions.ApplyRaskConventions" /> when it decides whether to add
+///         <see cref="ModelBuilderExtensions.ApplyRaskConventions(Microsoft.EntityFrameworkCore.ModelBuilder)" /> when it decides whether to add
 ///         <c>CreatedAt</c> and <c>UpdatedAt</c>.
 ///     </para>
 ///     <para>
@@ -31,6 +31,7 @@ public static class ConventionRegistry
     private static readonly ConcurrentDictionary<Type, Deletion> DeclaredDeletes = new();
     private static readonly ConcurrentDictionary<Type, Concurrency> DeclaredChecks = new();
     private static readonly ConcurrentDictionary<Type, List<ValueCollection>> DeclaredCollections = new();
+    private static readonly ConcurrentDictionary<Type, Tenancy> DeclaredScopes = new();
 
     /// <summary>Records what <paramref name="entity" /> declared. Called by generated code.</summary>
     /// <param name="entity">The entity type.</param>
@@ -59,9 +60,26 @@ public static class ConventionRegistry
         DeclaredChecks[entity] = checks;
     }
 
+    /// <summary>Records what <paramref name="entity" /> declared. Called by generated code.</summary>
+    /// <param name="entity">The entity type.</param>
+    /// <param name="scope">The value of its <c>Scope</c> const, or its aggregate root&apos;s for a child.</param>
+    public static void Declare(Type entity, Tenancy scope)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+        DeclaredScopes[entity] = scope;
+    }
+
+    /// <summary>Whether <paramref name="entity" /> is partitioned by tenant. It is not unless it asked.</summary>
+    /// <param name="entity">The entity type.</param>
+    internal static Tenancy ScopeFor(Type entity) =>
+        DeclaredScopes.TryGetValue(entity, out var scope) ? scope : Tenancy.Shared;
+
+    /// <summary>Whether any entity at all has asked to be partitioned by tenant.</summary>
+    internal static bool AnyTenantScoped => !DeclaredScopes.IsEmpty && DeclaredScopes.Values.Any(static s => s == Tenancy.PerTenant);
+
     /// <summary>
     ///     Records a collection of values <paramref name="entity" /> holds, for
-    ///     <see cref="ModelBuilderExtensions.ApplyRaskConventions" /> to map. Called by generated code.
+    ///     <see cref="ModelBuilderExtensions.ApplyRaskConventions(Microsoft.EntityFrameworkCore.ModelBuilder)" /> to map. Called by generated code.
     /// </summary>
     /// <param name="entity">The entity type holding the collection.</param>
     /// <param name="property">The property's name — <c>Tags</c>, <c>Stops</c>.</param>

@@ -12,7 +12,7 @@ namespace Rask.Data;
 /// <see cref="RaskDataServiceCollectionExtensions.AddRaskData"/> after the <see cref="SoftDeleteInterceptor"/>,
 /// so a soft delete (rewritten to <see cref="EntityState.Modified"/>) is stamped and versioned too. It also
 /// refuses an added <see cref="Aggregate{TId}"/> whose non-integer key is still at its default — see
-/// <see cref="ModelBuilderExtensions.ApplyRaskConventions"/>.
+/// <see cref="ModelBuilderExtensions.ApplyRaskConventions(Microsoft.EntityFrameworkCore.ModelBuilder)"/>.
 /// </summary>
 public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChangesInterceptor
 {
@@ -55,10 +55,12 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
                 // and keeps it. One that did not gets the framework's, so neither can end up at 0001-01-01.
                 Stamp(entry, Columns.CreatedAt, now, onlyWhenUnset: true);
                 Stamp(entry, Columns.UpdatedAt, now, onlyWhenUnset: true);
+                StampTenant(entry);
             }
             else if (entry.State == EntityState.Modified)
             {
                 Stamp(entry, Columns.UpdatedAt, now);
+                RefuseTenantChange(entry);
             }
         }
 
@@ -69,6 +71,62 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
                 var version = entry.Property(Columns.Version);
                 version.CurrentValue = (int)(version.CurrentValue ?? 0) + 1;
             }
+        }
+    }
+
+    // A tenant-scoped row records its tenant on insert, from the ambient scope. The column is only mapped on
+    // a table whose Scope const asked for it, so an unmapped one means the entity is not partitioned.
+    //
+    // Tenant.Required throws when nothing is set, which is the whole point: writing a tenant-scoped row with
+    // no tenant would otherwise store a NULL that every tenant's filter then excludes — a row nobody can read.
+    private static void StampTenant(EntityEntry entry)
+    {
+        // The REGISTRY decides, not whether the column happens to be mapped. TenantId is a real property on
+        // Entity<TId>, so EF Core's own convention maps it on any entity the conventions did not reach — a
+        // context that maps a battery's tables AFTER ApplyRaskConventions, for one. Keying off the column
+        // would then demand a tenant for a table that never asked to be partitioned.
+        if (ConventionRegistry.ScopeFor(entry.Metadata.ClrType) != Tenancy.PerTenant ||
+            entry.Metadata.FindProperty(Columns.TenantId) is null)
+        {
+            return;
+        }
+
+        var property = entry.Property(Columns.TenantId);
+
+        // Already set deliberately — a cross-tenant tool creating a row on somebody's behalf inside
+        // Tenant.Across(), or a test — is left alone.
+        if (property.CurrentValue is Guid existing && existing != Guid.Empty)
+        {
+            return;
+        }
+
+        property.CurrentValue = Tenant.IsAcrossTenants
+            ? throw new InvalidOperationException(
+                $"'{entry.Metadata.ClrType.Name}' is tenant-scoped and is being inserted inside " +
+                "Tenant.Across(), which says which tenant it belongs to for nobody. Set TenantId on the row, " +
+                "or open Tenant.Use(id) around the insert.")
+            : Tenant.Required;
+    }
+
+    // A row does not move between tenants. The query filter already stops you LOADING another tenant's row,
+    // so this catches the case the filter cannot: a row loaded inside Tenant.Across(), or one whose TenantId
+    // was assigned in code, being saved into a different tenant than it was read from.
+    private static void RefuseTenantChange(EntityEntry entry)
+    {
+        if (ConventionRegistry.ScopeFor(entry.Metadata.ClrType) != Tenancy.PerTenant ||
+            entry.Metadata.FindProperty(Columns.TenantId) is null)
+        {
+            return;
+        }
+
+        var property = entry.Property(Columns.TenantId);
+
+        if (property.IsModified && !Equals(property.OriginalValue, property.CurrentValue))
+        {
+            throw new InvalidOperationException(
+                $"'{entry.Metadata.ClrType.Name}' would move from tenant {property.OriginalValue} to " +
+                $"{property.CurrentValue}. A row belongs to the tenant it was created in; copy it into the " +
+                "other tenant instead of reassigning it.");
         }
     }
 

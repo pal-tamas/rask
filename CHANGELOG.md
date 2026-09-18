@@ -9,6 +9,41 @@ them until tagged releases begin.
 
 ### Added
 
+- **Multi-tenancy: a fifth const partitions a table by tenant.** Opt-in, so a table that says nothing is
+  unchanged:
+
+  ```csharp
+  public sealed class Invoice : Aggregate<Guid>
+  {
+      public const Tenancy Scope = Tenancy.PerTenant;
+  }
+  ```
+
+  That adds a `TenantId` column, a query filter, and a `TenantId` prefix on every index — the last one
+  because `HasIndex(p => p.Sku).IsUnique()` would otherwise mean "no two tenants may ever use the same SKU".
+  A child entity takes its root's answer and carries the column itself, because a child's read face is
+  queryable on its own. Rows are stamped from the ambient tenant on insert and refused if something tries to
+  move them.
+
+  `Tenant.Use(id)` sets the tenant, `Tenant.Across()` is the one deliberate way over a boundary, and a
+  tenant-scoped read with **no** tenant set **throws** — returning nothing would be indistinguishable from an
+  empty database.
+
+  **`IgnoreQueryFilters()` no longer lifts every filter.** It means "include soft-deleted rows" and leaves the
+  tenant filter standing, so an existing call never quietly becomes a cross-tenant read. Crossing tenants is
+  `Tenant.Across()`. This uses EF Core 10's named query filters.
+
+  **Scaffolded contexts now call `modelBuilder.ApplyRaskConventions(this)`** — one word, and the parameterless
+  overload still works for an app with no tenant-scoped table. The context is needed because a query filter is
+  compiled into the CACHED model: reading the ambient tenant through a `static` is evaluated once and inlined
+  into the SQL as a literal, so the first tenant to run a query pins that value for everyone. Measured, not
+  assumed — the second tenant read the first tenant's rows. Reaching it through the context instance makes EF
+  lift it to a real parameter, which is what `ITenantScoped` is for.
+
+  **Not wired up yet:** `Rask.Auth` does not carry a tenant, and the batteries (jobs, outbox, mail, cache,
+  storage) do not record one on their rows, so background work has no tenant to re-enter. Declaring `Scope`
+  today partitions your own tables and nothing else.
+
 - **A collection of values on an aggregate is mapped, queryable and editable.** `IReadOnlyList<string> Tags`
   becomes a primitive collection and `IReadOnlyList<Stop> Stops` a JSON column, both carried on the form model
   and on the read face, and both filtered in SQL:

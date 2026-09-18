@@ -51,6 +51,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : RaskD
         modelBuilder.AddRaskStorage();
         // rask:end
         modelBuilder.AddRaskAuth();
-        modelBuilder.ApplyRaskConventions();
+        modelBuilder.ApplyRaskConventions(this);
     }
 }

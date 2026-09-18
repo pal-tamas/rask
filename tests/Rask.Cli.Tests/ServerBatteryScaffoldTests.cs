@@ -144,7 +144,7 @@ public sealed class ServerBatteryScaffoldTests
         // entity was stamped — and silently wrong the moment one is.
         var context = Generate(flag)["Features/Shared/AppDbContext.cs"];
 
-        var conventions = context.IndexOf("ApplyRaskConventions()", StringComparison.Ordinal);
+        var conventions = context.IndexOf("ApplyRaskConventions(this)", StringComparison.Ordinal);
         var accounts = context.IndexOf("AddRaskAuth()", StringComparison.Ordinal);
 
         Assert.True(conventions >= 0, "the context should apply the Rask conventions");

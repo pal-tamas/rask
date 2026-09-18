@@ -63,7 +63,7 @@ public static class ModelRegistry
 
     /// <summary>Registers every assembly's strongly-typed id conversions.</summary>
     /// <remarks>
-    ///     Separate from <see cref="Apply" /> because EF Core asks for conventions before it builds the
+    ///     Separate from <see cref="Apply(Microsoft.EntityFrameworkCore.ModelBuilder)" /> because EF Core asks for conventions before it builds the
     ///     model — a converter registered in <c>OnModelCreating</c> is already too late for the key it was
     ///     meant to convert.
     /// </remarks>
@@ -88,7 +88,15 @@ public static class ModelRegistry
     ///     <c>Configure</c> runs <b>last</b> so it can overrule a convention — replace the soft-delete
     ///     query filter, drop the concurrency token — rather than being quietly overwritten by one.
     /// </remarks>
-    public static ModelBuilder Apply(ModelBuilder modelBuilder)
+    public static ModelBuilder Apply(ModelBuilder modelBuilder) => Apply(modelBuilder, context: null);
+
+    /// <summary>
+    ///     Builds the model, giving the conventions the context they need for the tenant filter.
+    /// </summary>
+    /// <param name="modelBuilder">The model builder.</param>
+    /// <param name="context">The context being built, or null when nothing is tenant-scoped.</param>
+    /// <returns>The same model builder.</returns>
+    public static ModelBuilder Apply(ModelBuilder modelBuilder, DbContext? context)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
 
@@ -97,7 +105,14 @@ public static class ModelRegistry
             contribution.MapEntities(modelBuilder);
         }
 
-        modelBuilder.ApplyRaskConventions();
+        if (context is null)
+        {
+            modelBuilder.ApplyRaskConventions();
+        }
+        else
+        {
+            modelBuilder.ApplyRaskConventions(context);
+        }
 
         foreach (var contribution in Contributions.Values)
         {

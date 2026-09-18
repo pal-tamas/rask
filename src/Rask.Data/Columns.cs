@@ -36,4 +36,7 @@ public static class Columns
 
     /// <summary>The optimistic-concurrency token. Added by <see cref="Aggregate{TId}" />, which must declare it.</summary>
     public const string Version = "Version";
+
+    /// <summary>Which tenant owns the row. Added only to a table whose <c>Scope</c> const says <c>PerTenant</c>.</summary>
+    public const string TenantId = "TenantId";
 }

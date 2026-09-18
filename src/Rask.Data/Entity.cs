@@ -36,6 +36,28 @@ public abstract class Entity<TId> : IEntity
     public DateTime UpdatedAt { get; private set; }
 
     /// <summary>
+    ///     Which tenant owns this row, on a table whose <c>Scope</c> const says
+    ///     <see cref="Tenancy.PerTenant" />.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Stamped from <see cref="Tenant.Current" /> on insert and refused thereafter: a row does not
+    ///         move between tenants. It is never on the generated form model, so a post cannot set it.
+    ///     </para>
+    ///     <para>
+    ///         Declared here rather than on <see cref="Aggregate{TId}" /> so a CHILD carries it too. A child
+    ///         is queryable through its own read face, which would otherwise return every tenant&apos;s rows.
+    ///         On a table that is not tenant-scoped the column is ignored, exactly as <c>DeletedAt</c> and
+    ///         <c>Version</c> are when their consts decline them.
+    ///     </para>
+    /// </remarks>
+    public Guid? TenantId { get; private set; }
+
+    /// <summary>Records which tenant owns this row. Called by the framework on insert.</summary>
+    /// <param name="tenant">The owning tenant.</param>
+    internal void AssignTenant(Guid tenant) => TenantId = tenant;
+
+    /// <summary>
     ///     Stamps this row's own times, for an entity whose package writes it and knows when.
     /// </summary>
     /// <param name="at">The moment to record (UTC).</param>

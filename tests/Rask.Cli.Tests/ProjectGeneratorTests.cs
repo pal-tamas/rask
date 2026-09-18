@@ -305,7 +305,7 @@ public sealed class ProjectGeneratorTests
         Assert.True(on.ContainsKey("Features/Shared/AppDbContext.cs"));
         var context = on["Features/Shared/AppDbContext.cs"];
         Assert.Contains("public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : RaskDbContext(options)", context, StringComparison.Ordinal);
-        Assert.Contains("modelBuilder.ApplyRaskConventions();", context, StringComparison.Ordinal);
+        Assert.Contains("modelBuilder.ApplyRaskConventions(this);", context, StringComparison.Ordinal);
 
         // Program.cs wires AddRaskData + a UseRaskSqlite DbContext factory that reads Rask:ConnectionStrings:App,
         // which appsettings.json carries and `rask deploy` redirects to a mounted volume.

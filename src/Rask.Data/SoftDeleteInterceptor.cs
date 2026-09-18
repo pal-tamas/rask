@@ -7,7 +7,7 @@ namespace Rask.Data;
 /// Makes deletion of an <see cref="Aggregate{TId}"/> transparent: before each save, any entry marked
 /// <see cref="EntityState.Deleted"/> is rewritten to an update of <c>DeletedAt</c> alone, set to now, so
 /// <c>db.Remove(entity)</c> updates the row instead of removing it — and writes no other column back, so a
-/// delete never reverts a change another writer made since the entity was loaded. The global query filter added by <see cref="ModelBuilderExtensions.ApplyRaskConventions"/>
+/// delete never reverts a change another writer made since the entity was loaded. The global query filter added by <see cref="ModelBuilderExtensions.ApplyRaskConventions(Microsoft.EntityFrameworkCore.ModelBuilder)"/>
 /// then hides it. Runs before the <see cref="AuditingInterceptor"/> so the soft delete is also timestamped
 /// and versioned.
 /// </summary>

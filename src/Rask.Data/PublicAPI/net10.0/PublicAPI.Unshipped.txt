@@ -37,6 +37,7 @@ Rask.Data.Entity<TId>.Entity() -> void
 Rask.Data.Entity<TId>.Id.get -> TId
 Rask.Data.Entity<TId>.Id.set -> void
 Rask.Data.Entity<TId>.Stamp(System.DateTime at) -> void
+Rask.Data.Entity<TId>.TenantId.get -> System.Guid?
 Rask.Data.Entity<TId>.UpdatedAt.get -> System.DateTime
 Rask.Data.FullText
 Rask.Data.FullTextQueryableExtensions
@@ -54,6 +55,8 @@ Rask.Data.IHasDomainEvents
 Rask.Data.IHasDomainEvents.ClearDomainEvents() -> void
 Rask.Data.IHasDomainEvents.DomainEvents.get -> System.Collections.Generic.IReadOnlyList<Rask.Cqrs.INotification!>!
 Rask.Data.IReadModel
+Rask.Data.ITenantScoped
+Rask.Data.ITenantScoped.CurrentTenant.get -> System.Guid?
 Rask.Data.ModelBuilderExtensions
 Rask.Data.ModelQuery<TEntity>
 Rask.Data.ModelQuery<TEntity>.AnyAsync(System.Linq.Expressions.Expression<System.Func<TEntity!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
@@ -162,6 +165,10 @@ Rask.Data.ReadValueCollectionMapping.ReadValueCollectionMapping(string! member, 
 Rask.Data.ReadValueCollectionMapping.ValueObject.get -> System.Type?
 Rask.Data.SoftDeleteInterceptor
 Rask.Data.SoftDeleteInterceptor.SoftDeleteInterceptor(System.TimeProvider! timeProvider) -> void
+Rask.Data.Tenancy
+Rask.Data.Tenancy.PerTenant = 1 -> Rask.Data.Tenancy
+Rask.Data.Tenancy.Shared = 0 -> Rask.Data.Tenancy
+Rask.Data.Tenant
 Rask.Data.TestDatabase
 Rask.Data.TestDatabase.Context.get -> Rask.Data.RaskDbContext!
 Rask.Data.TestDatabase.DisposeAsync() -> System.Threading.Tasks.ValueTask
@@ -175,6 +182,7 @@ Rask.Data.Timestamps.None = 0 -> Rask.Data.Timestamps
 Rask.Data.Timestamps.Updated = 2 -> Rask.Data.Timestamps
 const Rask.Data.Columns.CreatedAt = "CreatedAt" -> string!
 const Rask.Data.Columns.DeletedAt = "DeletedAt" -> string!
+const Rask.Data.Columns.TenantId = "TenantId" -> string!
 const Rask.Data.Columns.UpdatedAt = "UpdatedAt" -> string!
 const Rask.Data.Columns.Version = "Version" -> string!
 const Rask.Data.FullText.MatchEnd = '' -> char
@@ -203,6 +211,7 @@ static Rask.Data.BulkInsertExtensions.BulkInsertAsync<TEntity>(this Microsoft.En
 static Rask.Data.BulkInsertExtensions.BulkInsertAsync<TEntity>(this Microsoft.EntityFrameworkCore.DbSet<TEntity!>! set, System.Collections.Generic.IEnumerable<TEntity!>! entities, System.Action<Rask.Data.BulkInsertOptions!>? configure = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
 static Rask.Data.ConventionRegistry.Declare(System.Type! entity, Rask.Data.Concurrency checks) -> void
 static Rask.Data.ConventionRegistry.Declare(System.Type! entity, Rask.Data.Deletion deletes) -> void
+static Rask.Data.ConventionRegistry.Declare(System.Type! entity, Rask.Data.Tenancy scope) -> void
 static Rask.Data.ConventionRegistry.Declare(System.Type! entity, Rask.Data.Timestamps stamps) -> void
 static Rask.Data.ConventionRegistry.DeclareCollection(System.Type! entity, string! property, string? field, System.Type? element) -> void
 static Rask.Data.Db.Configure(System.Func<Microsoft.EntityFrameworkCore.DbContext!>! createContext) -> void
@@ -220,7 +229,9 @@ static Rask.Data.GeneratedModelWrites.ModelSourceAsync<TEntity>(object! key, Mic
 static Rask.Data.GeneratedModelWrites.UpdateAsync<TEntity>(object! key, int? version, System.Action<TEntity!>! apply, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity!>!
 static Rask.Data.GeneratedReadQuery.Of<TRead>() -> Rask.Data.ModelQuery<TRead!>!
 static Rask.Data.ModelBuilderExtensions.ApplyRaskConventions(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
+static Rask.Data.ModelBuilderExtensions.ApplyRaskConventions(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder, Microsoft.EntityFrameworkCore.DbContext! context) -> Microsoft.EntityFrameworkCore.ModelBuilder!
 static Rask.Data.ModelRegistry.Apply(Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
+static Rask.Data.ModelRegistry.Apply(Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder, Microsoft.EntityFrameworkCore.DbContext? context) -> Microsoft.EntityFrameworkCore.ModelBuilder!
 static Rask.Data.ModelRegistry.ApplyConventions(Microsoft.EntityFrameworkCore.ModelConfigurationBuilder! configurationBuilder) -> Microsoft.EntityFrameworkCore.ModelConfigurationBuilder!
 static Rask.Data.ModelRegistry.IsEmpty.get -> bool
 static Rask.Data.ModelRegistry.Replace(System.Type! group, System.Action<Microsoft.EntityFrameworkCore.ModelBuilder!>! mapEntities, System.Action<Microsoft.EntityFrameworkCore.ModelBuilder!>! applyConfigurations, System.Action<Microsoft.EntityFrameworkCore.ModelConfigurationBuilder!>! configureConventions) -> void
@@ -238,6 +249,13 @@ static Rask.Data.ReadDb.Configure(System.IServiceProvider! services) -> void
 static Rask.Data.ReadDb.IsConfigured.get -> bool
 static Rask.Data.ReadDb.Reset() -> void
 static Rask.Data.ReadModelRegistry.Apply(Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder, Microsoft.EntityFrameworkCore.Metadata.IModel? writeModel) -> Microsoft.EntityFrameworkCore.ModelBuilder!
+static Rask.Data.ReadModelRegistry.Apply(Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder, Microsoft.EntityFrameworkCore.Metadata.IModel? writeModel, Microsoft.EntityFrameworkCore.DbContext? context) -> Microsoft.EntityFrameworkCore.ModelBuilder!
 static Rask.Data.ReadModelRegistry.IsEmpty.get -> bool
 static Rask.Data.ReadModelRegistry.Replace(System.Type! group, System.Collections.Generic.IReadOnlyList<Rask.Data.ReadEntityMapping!>! entities) -> void
+static Rask.Data.Tenant.Across() -> System.IDisposable!
+static Rask.Data.Tenant.Current.get -> System.Guid?
+static Rask.Data.Tenant.IsAcrossTenants.get -> bool
+static Rask.Data.Tenant.None() -> System.IDisposable!
+static Rask.Data.Tenant.Required.get -> System.Guid
+static Rask.Data.Tenant.Use(System.Guid tenant) -> System.IDisposable!
 static Rask.Data.TestDatabase.StartAsync(System.Action<Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!>! configure, System.TimeProvider? timeProvider = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.TestDatabase!>!
