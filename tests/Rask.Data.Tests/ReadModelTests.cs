@@ -6,6 +6,9 @@ namespace Rask.Data.Tests;
 // A supplier an order points at by id — never by navigation, which is the whole border.
 public sealed class Supplier : Aggregate<Guid>
 {
+    // These tests are about soft delete, which is opt-in now.
+    public const Deletion Deletes = Deletion.Soft;
+
     private Supplier() { } // EF materialization
 
     public string Country { get; private set; } = "";
@@ -16,6 +19,9 @@ public sealed class Supplier : Aggregate<Guid>
 // The courier, to prove a SUFFIX match: PickedUpByCourierId -> Courier.
 public sealed class Courier : Aggregate<Guid>
 {
+    // These tests are about soft delete, which is opt-in now.
+    public const Deletion Deletes = Deletion.Soft;
+
     private Courier() { } // EF materialization
 
     public string Name { get; private set; } = "";
@@ -27,6 +33,9 @@ public sealed record Freight(decimal Amount, string Currency);
 
 public sealed class Consignment : Aggregate<Guid>
 {
+    // These tests are about soft delete, which is opt-in now.
+    public const Deletion Deletes = Deletion.Soft;
+
     private readonly List<ConsignmentLine> _lines = [];
 
     private Consignment() { } // EF materialization

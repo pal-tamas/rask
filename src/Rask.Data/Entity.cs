@@ -34,6 +34,35 @@ public abstract class Entity<TId> : IEntity
 
     /// <summary>When the row last changed, in UTC. Stamped by the framework on every insert and update.</summary>
     public DateTime UpdatedAt { get; private set; }
+
+    /// <summary>
+    ///     Stamps this row's own times, for an entity whose package writes it and knows when.
+    /// </summary>
+    /// <param name="at">The moment to record (UTC).</param>
+    /// <remarks>
+    ///     <para>
+    ///         <c>CreatedAt</c> and <c>UpdatedAt</c> are normally the framework's: Rask's auditing interceptor
+    ///         fills them on save. An entity whose table lives in a package that does NOT own the DbContext
+    ///         cannot rely on that — the interceptor may simply not be installed — and a column nobody
+    ///         stamped reads as <c>0001-01-01</c>, which is not obviously wrong anywhere it is used. Rask's own
+    ///         file store found this the hard way: an unstamped <c>CreatedAt</c> became a
+    ///         <c>Last-Modified</c> header and the cutoff of an orphan sweep.
+    ///     </para>
+    ///     <para>
+    ///         So an entity that knows its own creation time says so, and the interceptor fills only what is
+    ///         still unset. <c>protected</c>, because forging an audit trail from outside is not a thing an
+    ///         application should be able to do.
+    ///     </para>
+    /// </remarks>
+    protected void Stamp(DateTime at)
+    {
+        if (CreatedAt == default)
+        {
+            CreatedAt = at;
+        }
+
+        UpdatedAt = at;
+    }
 }
 
 /// <summary>

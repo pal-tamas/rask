@@ -41,7 +41,9 @@ public sealed class SoftDeleteInterceptor(TimeProvider timeProvider) : SaveChang
 
         foreach (var entry in context.ChangeTracker.Entries<IAggregate>())
         {
-            if (entry.State == EntityState.Deleted)
+            // Only an aggregate that asked for soft delete has the column. The default is a real delete, so
+            // the absence of DeletedAt is the answer rather than something to work around.
+            if (entry.State == EntityState.Deleted && entry.Metadata.FindProperty(Columns.DeletedAt) is not null)
             {
                 // Unchanged first, then the one column. Setting Modified marks EVERY property modified, so the UPDATE
                 // wrote back every column the deleting context had loaded — and a delete of a row someone else had

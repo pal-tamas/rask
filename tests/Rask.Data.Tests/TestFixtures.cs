@@ -6,6 +6,9 @@ namespace Rask.Data.Tests;
 // concurrency version — and it raises a domain event when renamed.
 public sealed class Widget : Aggregate<Guid>
 {
+    // Soft delete is opt-in now: this aggregate is one whose tests are about it.
+    public const Deletion Deletes = Deletion.Soft;
+
     private Widget() { } // EF materialization
 
     public string Name { get; private set; } = "";

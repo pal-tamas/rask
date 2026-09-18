@@ -88,6 +88,9 @@ internal sealed class RenamedColumnContext(DbContextOptions options) : DbContext
 
 internal sealed class Lease : Aggregate<int>
 {
+    // This suite is about a soft-deleted row freeing its range, so it opts in.
+    public const Deletion Deletes = Deletion.Soft;
+
     public int AssetId { get; private set; }
 
     public long StartsAt { get; private set; }

@@ -47,14 +47,18 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
 
         foreach (var entry in context.ChangeTracker.Entries<IEntity>())
         {
+            // Only what the entity actually maps: an append-only table declines UpdatedAt with a Stamps
+            // const, and asking an entry for a property that is not mapped throws rather than no-ops.
             if (entry.State == EntityState.Added)
             {
-                entry.Property(Columns.CreatedAt).CurrentValue = now;
-                entry.Property(Columns.UpdatedAt).CurrentValue = now;
+                // Fill, not overwrite: an entity that stamped itself (Entity<TId>.Stamp) knows its own time
+                // and keeps it. One that did not gets the framework's, so neither can end up at 0001-01-01.
+                Stamp(entry, Columns.CreatedAt, now, onlyWhenUnset: true);
+                Stamp(entry, Columns.UpdatedAt, now, onlyWhenUnset: true);
             }
             else if (entry.State == EntityState.Modified)
             {
-                entry.Property(Columns.UpdatedAt).CurrentValue = now;
+                Stamp(entry, Columns.UpdatedAt, now);
             }
         }
 
@@ -67,6 +71,26 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
             }
         }
     }
+
+    // Mapped or not. Both stamps are always on the CLR type — they come from Entity<TId> — so the MODEL is
+    // what decides, and an entity that narrowed its Stamps leaves one unmapped.
+    private static void Stamp(EntityEntry entry, string column, DateTime now, bool onlyWhenUnset = false)
+    {
+        if (entry.Metadata.FindProperty(column) is null)
+        {
+            return;
+        }
+
+        var property = entry.Property(column);
+
+        if (onlyWhenUnset && property.CurrentValue is DateTime { } existing && existing != default)
+        {
+            return;
+        }
+
+        property.CurrentValue = now;
+    }
+
 
     /// <summary>
     /// Marks the root of every changed child as changed too, so the aggregate is the unit of concurrency.

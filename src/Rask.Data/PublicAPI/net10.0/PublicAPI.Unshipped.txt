@@ -21,7 +21,14 @@ Rask.Data.BulkInsertOptions.SingleTransaction.set -> void
 Rask.Data.BulkInsertOptions.SkipChangeTracking.get -> bool
 Rask.Data.BulkInsertOptions.SkipChangeTracking.set -> void
 Rask.Data.Columns
+Rask.Data.Concurrency
+Rask.Data.Concurrency.None = 0 -> Rask.Data.Concurrency
+Rask.Data.Concurrency.Version = 1 -> Rask.Data.Concurrency
+Rask.Data.ConventionRegistry
 Rask.Data.Db
+Rask.Data.Deletion
+Rask.Data.Deletion.Hard = 0 -> Rask.Data.Deletion
+Rask.Data.Deletion.Soft = 1 -> Rask.Data.Deletion
 Rask.Data.DomainEventInterceptor
 Rask.Data.DomainEventInterceptor.DomainEventInterceptor(Microsoft.Extensions.DependencyInjection.IServiceScopeFactory! scopeFactory, Rask.Data.RaskDataOptions! options, System.Collections.Generic.IEnumerable<Rask.Data.IDomainEventDeliveryOwner!>! deliveryOwners) -> void
 Rask.Data.Entity<TId>
@@ -29,6 +36,7 @@ Rask.Data.Entity<TId>.CreatedAt.get -> System.DateTime
 Rask.Data.Entity<TId>.Entity() -> void
 Rask.Data.Entity<TId>.Id.get -> TId
 Rask.Data.Entity<TId>.Id.set -> void
+Rask.Data.Entity<TId>.Stamp(System.DateTime at) -> void
 Rask.Data.Entity<TId>.UpdatedAt.get -> System.DateTime
 Rask.Data.FullText
 Rask.Data.FullTextQueryableExtensions
@@ -155,6 +163,11 @@ Rask.Data.TestDatabase.DisposeAsync() -> System.Threading.Tasks.ValueTask
 Rask.Data.TestDatabase.LoadAsync<TEntity>(object! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
 Rask.Data.TestDatabase.LoadAsync<TEntity>(object?[]! keyValues, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
 Rask.Data.TestDatabase.OpenRead() -> Rask.Data.RaskReadDbContext!
+Rask.Data.Timestamps
+Rask.Data.Timestamps.All = Rask.Data.Timestamps.Created | Rask.Data.Timestamps.Updated -> Rask.Data.Timestamps
+Rask.Data.Timestamps.Created = 1 -> Rask.Data.Timestamps
+Rask.Data.Timestamps.None = 0 -> Rask.Data.Timestamps
+Rask.Data.Timestamps.Updated = 2 -> Rask.Data.Timestamps
 const Rask.Data.Columns.CreatedAt = "CreatedAt" -> string!
 const Rask.Data.Columns.DeletedAt = "DeletedAt" -> string!
 const Rask.Data.Columns.UpdatedAt = "UpdatedAt" -> string!
@@ -183,6 +196,9 @@ override Rask.Data.SoftDeleteInterceptor.SavingChanges(Microsoft.EntityFramework
 override Rask.Data.SoftDeleteInterceptor.SavingChangesAsync(Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData! eventData, Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>>
 static Rask.Data.BulkInsertExtensions.BulkInsertAsync<TEntity>(this Microsoft.EntityFrameworkCore.DbContext! context, System.Collections.Generic.IEnumerable<TEntity!>! entities, System.Action<Rask.Data.BulkInsertOptions!>? configure = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
 static Rask.Data.BulkInsertExtensions.BulkInsertAsync<TEntity>(this Microsoft.EntityFrameworkCore.DbSet<TEntity!>! set, System.Collections.Generic.IEnumerable<TEntity!>! entities, System.Action<Rask.Data.BulkInsertOptions!>? configure = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.ConventionRegistry.Declare(System.Type! entity, Rask.Data.Concurrency checks) -> void
+static Rask.Data.ConventionRegistry.Declare(System.Type! entity, Rask.Data.Deletion deletes) -> void
+static Rask.Data.ConventionRegistry.Declare(System.Type! entity, Rask.Data.Timestamps stamps) -> void
 static Rask.Data.Db.Configure(System.Func<Microsoft.EntityFrameworkCore.DbContext!>! createContext) -> void
 static Rask.Data.Db.Configure(System.IServiceProvider! services) -> void
 static Rask.Data.Db.Configure<TContext>(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! factory) -> void

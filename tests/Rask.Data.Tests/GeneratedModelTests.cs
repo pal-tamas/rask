@@ -36,6 +36,9 @@ public sealed class Packaging
 // registration, no interface to implement. The generator finds it and RaskDbContext maps it.
 public sealed class Gadget : Aggregate<GadgetId>
 {
+    // Soft delete is opt-in now: this aggregate is one whose tests are about it.
+    public const Deletion Deletes = Deletion.Soft;
+
     private Gadget() { } // EF materialization
 
     public string Name { get; private set; } = "";
@@ -67,6 +70,9 @@ public sealed class Gadget : Aggregate<GadgetId>
 // A second entity with no configuration and no value objects, to pin that both are optional.
 public sealed class Doodad : Aggregate<Guid>
 {
+    // Soft delete is opt-in now: this aggregate is one whose tests are about it.
+    public const Deletion Deletes = Deletion.Soft;
+
     private Doodad() { }
 
     public string Label { get; private set; } = "";

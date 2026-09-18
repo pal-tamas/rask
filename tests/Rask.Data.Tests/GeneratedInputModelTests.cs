@@ -9,6 +9,9 @@ namespace Rask.Data.Tests;
 // generator really emitted for it in this compilation, not the hook underneath them.
 public sealed class Invoice : Aggregate<Guid>
 {
+    // Soft delete is opt-in now: this aggregate is one whose tests are about it.
+    public const Deletion Deletes = Deletion.Soft;
+
     [Required]
     [MaxLength(40)]
     public string Title { get; private set; } = "";

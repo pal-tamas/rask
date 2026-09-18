@@ -6,6 +6,9 @@ namespace Rask.Data.Tests;
 // — and one method that has to ask the database something before it can decide.
 public sealed class Order : Aggregate<Guid>
 {
+    // These tests are about soft delete, which is opt-in now.
+    public const Deletion Deletes = Deletion.Soft;
+
     private Order() { } // EF materialization
 
     public string Reference { get; private set; } = "";
@@ -73,6 +76,9 @@ public enum OrderStatus
 
 public sealed class Shipment : Aggregate<Guid>
 {
+    // These tests are about soft delete, which is opt-in now.
+    public const Deletion Deletes = Deletion.Soft;
+
     private Shipment() { }
 
     public Guid OrderId { get; private set; }

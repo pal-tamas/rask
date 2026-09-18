@@ -18,6 +18,13 @@ namespace Rask.Auth;
 /// </remarks>
 public sealed class Session : Aggregate<Guid>
 {
+    /// <summary>
+    ///     Ending a session KEEPS the row: the devices list shows it, and an audit of who signed in from
+    ///     where would be worthless if signing out erased the evidence. Soft delete is opt-in now, so this
+    ///     says so.
+    /// </summary>
+    public const Deletion Deletes = Deletion.Soft;
+
     /// <summary>The signed-in user.</summary>
     public Guid UserId { get; private set; }
 

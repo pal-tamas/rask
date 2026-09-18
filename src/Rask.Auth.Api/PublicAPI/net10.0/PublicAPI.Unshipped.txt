@@ -247,6 +247,7 @@ const Rask.Auth.AuthOptions.DefaultBcryptWorkFactor = 12 -> int
 const Rask.Auth.RaskAuthDefaults.RequestHeader = "X-Rask-Auth" -> string!
 const Rask.Auth.RaskRoles.Admin = "admin" -> string!
 const Rask.Auth.RaskRoles.User = "user" -> string!
+const Rask.Auth.Session.Deletes = Rask.Data.Deletion.Soft -> Rask.Data.Deletion
 override Rask.Auth.EmailConfirmed.Equals(object? obj) -> bool
 override Rask.Auth.EmailConfirmed.GetHashCode() -> int
 override Rask.Auth.EmailConfirmed.ToString() -> string!

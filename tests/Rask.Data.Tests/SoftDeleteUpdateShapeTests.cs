@@ -8,6 +8,9 @@ namespace Rask.Data.Tests;
 // the generated model registry maps every aggregate in the assembly, and cannot name a private nested one.
 public sealed class ShapeCard : Aggregate<string>
 {
+    // These tests are about soft delete, which is opt-in now.
+    public const Deletion Deletes = Deletion.Soft;
+
     private ShapeCard() { }
 
     public string Title { get; private set; } = "";
@@ -19,6 +22,9 @@ public sealed class ShapeCard : Aggregate<string>
 
 public sealed class ShapeTicket : Aggregate<string>
 {
+    // These tests are about soft delete, which is opt-in now.
+    public const Deletion Deletes = Deletion.Soft;
+
     private ShapeTicket() { }
 
     public string Subject { get; private set; } = "";

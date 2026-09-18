@@ -69,19 +69,63 @@ public static class ModelBuilderExtensions
 
             if (timestamped)
             {
-                builder.Property(typeof(DateTime), Columns.CreatedAt);
-                builder.Property(typeof(DateTime), Columns.UpdatedAt);
+                // Both, unless the entity declared a `Stamps` const saying otherwise — an append-only table
+                // has nothing an UpdatedAt could mean. Read from the registry the generator filled at
+                // compile time, never reflected over: see TimestampRegistry.
+                var stamps = ConventionRegistry.StampsFor(clrType);
+
+                // Ignore, not merely "do not add": both are real properties on Entity<TId>, so EF Core's own
+                // convention maps them whatever this does. Declining one has to say so out loud.
+                if ((stamps & Timestamps.Created) != 0)
+                {
+                    builder.Property(typeof(DateTime), Columns.CreatedAt);
+                }
+                else
+                {
+                    builder.Ignore(Columns.CreatedAt);
+                }
+
+                if ((stamps & Timestamps.Updated) != 0)
+                {
+                    builder.Property(typeof(DateTime), Columns.UpdatedAt);
+                }
+                else
+                {
+                    builder.Ignore(Columns.UpdatedAt);
+                }
             }
 
+            // On unless the aggregate declined: a lost update is invisible, which is why this default is
+            // not the one soft delete got.
             if (versioned)
             {
-                builder.Property(typeof(int), Columns.Version).IsConcurrencyToken();
+                if (ConventionRegistry.ChecksFor(clrType) == Concurrency.Version)
+                {
+                    builder.Property(typeof(int), Columns.Version).IsConcurrencyToken();
+                }
+                else
+                {
+                    builder.Ignore(Columns.Version);
+                }
             }
 
+            // OFF unless the aggregate asked. A stamped row still occupies its UNIQUE constraints, "delete my
+            // account" has to be able to mean delete, and Rask already ships snapshots and Litestream for
+            // getting data back — so keeping the row is a choice an aggregate makes, not one it inherits.
             if (softDeletable)
             {
-                builder.Property(typeof(DateTime?), Columns.DeletedAt);
-                builder.HasQueryFilter(BuildNotDeletedFilter(builder, clrType));
+                // Ignore, not merely "do not add" — the same rule as the timestamps above. Version and
+                // DeletedAt are real properties on Aggregate<TId>, so EF Core maps them by its own convention
+                // whatever this does; declining one has to say so out loud.
+                if (ConventionRegistry.DeletesFor(clrType) == Deletion.Soft)
+                {
+                    builder.Property(typeof(DateTime?), Columns.DeletedAt);
+                    builder.HasQueryFilter(BuildNotDeletedFilter(builder, clrType));
+                }
+                else
+                {
+                    builder.Ignore(Columns.DeletedAt);
+                }
             }
         }
 

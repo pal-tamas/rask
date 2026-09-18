@@ -9,6 +9,9 @@ namespace Rask.Data.Tests;
 // through its extension class for an override that only wants to add to it.
 public sealed class Ticket : Aggregate<Guid>
 {
+    // Soft delete is opt-in now: this aggregate is one whose tests are about it.
+    public const Deletion Deletes = Deletion.Soft;
+
     private Ticket() { }
 
     [Required]
