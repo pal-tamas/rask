@@ -161,7 +161,15 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             .Where(static entity => entity is not null)
             .Select(static (entity, _) => entity!);
 
-        context.RegisterSourceOutput(entities.Collect(), static (spc, all) => Emit(spc, all));
+        context.RegisterSourceOutput(
+            entities.Collect().Combine(ReadFacesOnly.Of(context)),
+            static (spc, pair) =>
+            {
+                if (!pair.Right)
+                {
+                    Emit(spc, pair.Left);
+                }
+            });
     }
 
     // ---- discovery ------------------------------------------------------------------------------

@@ -757,6 +757,70 @@ public class ModelInputGeneratorTests
         Assert.DoesNotContain("UnsafeAccessorKind.Field", order, StringComparison.Ordinal);
     }
 
+    // ---- RaskReadFacesOnly: a package that maps its own tables ---------------------------------------
+
+    private static GeneratorRun RunAll(string source, IReadOnlyDictionary<string, string>? options) =>
+        GeneratorHarness.Run(
+            source,
+            [new ModelInputGenerator(), new ModelRegistryGenerator(), new ReadModelGenerator()],
+            options,
+            "Rask.Data",
+            "Rask.Cqrs",
+            "Microsoft.EntityFrameworkCore");
+
+    [Fact]
+    public void RaskReadFacesOnly_emits_the_read_face_and_nothing_else()
+    {
+        var run = RunAll(
+            """
+            using System;
+            using Rask.Data;
+            namespace Rask.Auth;
+            public sealed class Session : Aggregate<Guid>
+            {
+                public Guid UserId { get; private set; }
+            }
+            """,
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["build_property.RaskReadFacesOnly"] = "true",
+            });
+
+        // What a package querying somebody else's table needs.
+        Assert.True(run.HasGeneratedSource("SessionRead"));
+        Assert.True(run.HasGeneratedSource("__RaskReadModelRegistry"));
+
+        // NOT the registry: it is applied from a [ModuleInitializer], so a contribution here would map this
+        // table into every app that references the package — auth switched off included — and a second time
+        // for one that maps it by hand.
+        Assert.False(run.HasGeneratedSource("__RaskModelRegistry"));
+        Assert.False(run.HasGeneratedSource("__RaskDbSets"));
+
+        // And not the form surface: nothing should create one of these from a posted form.
+        Assert.False(run.HasGeneratedSource("SessionModel"));
+    }
+
+    [Fact]
+    public void Without_the_property_everything_is_generated_as_before()
+    {
+        var run = RunAll(
+            """
+            using System;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Order : Aggregate<Guid>
+            {
+                public string Reference { get; private set; } = "";
+            }
+            """,
+            options: null);
+
+        Assert.True(run.HasGeneratedSource("OrderRead"));
+        Assert.True(run.HasGeneratedSource("__RaskModelRegistry"));
+        Assert.True(run.HasGeneratedSource("__RaskDbSets"));
+        Assert.True(run.HasGeneratedSource("OrderModel"));
+    }
+
     // ---- ModelWrites: narrowing the FORM surface ----------------------------------------------------
 
     [Fact]

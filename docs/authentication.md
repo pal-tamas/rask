@@ -200,11 +200,8 @@ sealed. Every request loads the session and rebuilds the user's claims from it, 
 up without signing in again. Signing out ends the row.
 
 ```csharp
-await using var db = await contexts.CreateDbContextAsync(ct);   // IDbContextFactory<AppDbContext>
-
-var devices = await db.Set<Session>().AsNoTracking()
-                      .Where(s => s.UserId == me)
-                      .OrderByDescending(s => s.LastSeenAt).ToListAsync(ct);
+var devices = await Session.Read.Where(s => s.UserId == me)
+                                .OrderByDescending(s => s.LastSeenAt).ToListAsync();
 
 await auth.SignOutOtherDevicesAsync();   // every session but this one
 await auth.SignOutEverywhereAsync();     // this one too
@@ -256,8 +253,7 @@ await auth.AddPasskeyAsync("MacBook");                          // signed in; ru
 await auth.SignInWithPasskeyAsync(remember: true, returnUrl);   // discoverable — nothing is typed
 await auth.RemovePasskeyAsync(passkeyId);
 
-var keys = await db.Set<Passkey>().AsNoTracking()
-                   .Where(p => p.UserId == me).ToListAsync(ct);   // list them like sessions
+var keys = await Passkey.Read.Where(p => p.UserId == me).ToListAsync();   // list them like sessions
 ```
 
 **Call these from a click handler.** Browsers only show the passkey dialog for a real gesture. A dismissed dialog

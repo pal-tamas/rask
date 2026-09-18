@@ -63,6 +63,35 @@
          HTML strings, never as a Component: Email.Body(Component) is the one member of Rask.Mail that
          would drag Rask.Core in. -->
     <ProjectReference Include="..\Rask.Mail\Rask.Mail.csproj"/>
+
+    <!-- Session and Passkey are aggregates declared HERE, and a read face is generated into the assembly
+         that declares one — so without this there is no Session.Read for an application to query. Analyzer
+         only: no runtime assembly reference. -->
+    <ProjectReference Include="..\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+  <!--
+    READ FACES ONLY. This package maps its own tables through modelBuilder.AddRaskAuth(), which an app calls
+    when it wants auth, so the write-side generators must stay off:
+
+      * the registry's contribution is registered by a [ModuleInitializer] that runs when the assembly LOADS,
+        and ModelRegistry.Apply maps every contribution — so Session and Passkey would map into every app
+        that merely references the package, `c.Auth.Off()` included, and a second time for one that calls
+        AddRaskAuth;
+      * the form surface would ship a public PasskeyModel and Passkey.CreateAsync(model) — a form-shaped way
+        to mint a passkey, beside the WebAuthn ceremony that exists to prevent exactly that.
+
+    What is left is SessionRead/PasskeyRead and Session.Read/Passkey.Read, which map into the READ context
+    and are what an application actually needs.
+  -->
+  <PropertyGroup>
+    <RaskReadFacesOnly>true</RaskReadFacesOnly>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <CompilerVisibleProperty Include="RaskReadFacesOnly"/>
   </ItemGroup>
 
   <ItemGroup>

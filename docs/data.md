@@ -250,9 +250,11 @@ One is generated for **every mapped entity**, children included — the read sid
 queryable on its own even though it is only writable through its root.
 
 **A read face is generated into the assembly that DECLARES the aggregate**, the same as the form model and
-the writes. Your own aggregates have one. An aggregate a *package* declares — Rask.Auth's `Session` and
-`Passkey` — has one only if that package generates it, so reach those through the context
-(`db.Set<Session>()`), which is how every battery-owned table is reached.
+the writes. Your own aggregates have one, and so do the aggregates a Rask package declares —
+`Session.Read` and `Passkey.Read` are [Rask.Auth's](authentication.md). A package can ask for the read faces
+*alone* with `<RaskReadFacesOnly>true</RaskReadFacesOnly>`, which is what those two do: they are mapped by
+`modelBuilder.AddRaskAuth()` rather than by the registry, and nothing should be able to create a passkey
+from a form.
 
 | On the aggregate | On the read face |
 |---|---|

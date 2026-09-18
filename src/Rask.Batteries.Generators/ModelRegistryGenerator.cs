@@ -89,7 +89,19 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
             .Where(static candidate => candidate is not null)
             .Select(static (candidate, _) => candidate!);
 
-        context.RegisterSourceOutput(candidates.Collect(), static (spc, all) => Emit(spc, all));
+        // `RaskReadFacesOnly` assemblies map their own tables by hand (Rask.Auth's AddRaskAuth does), so a
+        // contribution from here would map them a SECOND time — and into every app that merely references
+        // the package, auth switched off included, because the contribution is registered by a module
+        // initializer that runs when the assembly loads.
+        context.RegisterSourceOutput(
+            candidates.Collect().Combine(ReadFacesOnly.Of(context)),
+            static (spc, pair) =>
+            {
+                if (!pair.Right)
+                {
+                    Emit(spc, pair.Left);
+                }
+            });
     }
 
     private static Candidate? GetCandidate(GeneratorSyntaxContext ctx)
@@ -273,7 +285,7 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
         source.AppendLine("namespace Rask.Data.Generated;");
         source.AppendLine();
         source.AppendLine("/// <summary>This assembly's contribution to the Rask entity model.</summary>");
-        source.AppendLine("internal static class __RaskModelRegistry");
+        source.AppendLine("file static class __RaskModelRegistry");
         source.AppendLine("{");
         source.AppendLine("    [global::System.Runtime.CompilerServices.ModuleInitializer]");
         source.AppendLine("    internal static void Initialize() =>");

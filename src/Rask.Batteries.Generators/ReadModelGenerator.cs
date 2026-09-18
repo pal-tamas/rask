@@ -271,7 +271,7 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
         s.AppendLine("namespace Rask.Data.Generated;");
         s.AppendLine();
         s.AppendLine("/// <summary>This assembly's contribution to the Rask read model.</summary>");
-        s.AppendLine("internal static class __RaskReadModelRegistry");
+        s.AppendLine("file static class __RaskReadModelRegistry");
         s.AppendLine("{");
         s.AppendLine("    [global::System.Runtime.CompilerServices.ModuleInitializer]");
         s.AppendLine("    internal static void Initialize() =>");
