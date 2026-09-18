@@ -44,6 +44,14 @@ public class RaskDbContext : DbContext, ITenantScoped
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    ///     An explicit <see cref="Tenant.Use" /> or <see cref="Tenant.Across" /> wins; otherwise the tenant
+    ///     is the one on the signed-in principal, which is what makes a page filter correctly without
+    ///     anything being passed to it.
+    /// </remarks>
+    public Guid? CurrentTenant => Tenant.Resolve();
+
+    /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);

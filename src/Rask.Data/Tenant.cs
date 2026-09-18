@@ -20,6 +20,15 @@ namespace Rask.Data;
 /// </remarks>
 public static class Tenant
 {
+    /// <summary>
+    ///     The claim the signed-in principal carries its tenant on.
+    /// </summary>
+    /// <remarks>
+    ///     Declared here rather than in Rask.Auth because it is the contract between them: the data layer
+    ///     filters by it and the auth layer issues it, and neither references the other.
+    /// </remarks>
+    public const string ClaimType = "rask:tenant";
+
     private static readonly AsyncLocal<State> Ambient = new();
 
     /// <summary>The tenant in flight, or <see langword="null" /> when none is set.</summary>
@@ -61,6 +70,36 @@ public static class Tenant
     /// <returns>A scope that restores the previous tenant.</returns>
     /// <remarks>For a test, or for the sign-in that has to find a user before it can know their tenant.</remarks>
     public static IDisposable None() => new Scope(new State(Tenant: null, Across: false));
+
+    /// <summary>
+    ///     What a context's tenant filter compares against: an explicit scope first, then the principal.
+    /// </summary>
+    /// <returns>The tenant to filter by, or <see langword="null" /> to filter by nothing.</returns>
+    /// <remarks>
+    ///     <para>
+    ///         Order matters. <see cref="Use" /> and <see cref="Across" /> win over the principal, because a
+    ///         background job runs for the tenant its own row recorded rather than for whoever enqueued it,
+    ///         and an admin who has switched tenant is working in the one they chose.
+    ///     </para>
+    ///     <para>
+    ///         Null means "do not restrict", never "the rows nobody owns" — see
+    ///         <see cref="ITenantScoped.CurrentTenant" />.
+    ///     </para>
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    ///     Nothing says which tenant: no scope is open and the principal carries no tenant.
+    /// </exception>
+    public static Guid? Resolve()
+    {
+        var ambient = Ambient.Value;
+
+        if (ambient.Across)
+        {
+            return null;
+        }
+
+        return ambient.Tenant ?? Db.TenantFromScope() ?? Required;
+    }
 
     private readonly record struct State(Guid? Tenant, bool Across);
 
@@ -122,5 +161,5 @@ public interface ITenantScoped
     ///         silently returning nothing.
     ///     </para>
     /// </remarks>
-    Guid? CurrentTenant => Tenant.IsAcrossTenants ? null : Tenant.Required;
+    Guid? CurrentTenant => Tenant.Resolve();
 }

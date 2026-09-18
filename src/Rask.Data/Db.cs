@@ -29,6 +29,7 @@ namespace Rask.Data;
 /// </remarks>
 public static class Db
 {
+    private static readonly AsyncLocal<IServiceProvider?> AmbientScope = new();
     private static Func<DbContext>? _factory;
     private static int _generation;
 
@@ -119,11 +120,79 @@ public static class Db
         ReadDb.Reset();
     }
 
+    /// <summary>
+    ///     Builds every context from <paramref name="scope" /> until the returned scope is disposed.
+    /// </summary>
+    /// <param name="scope">The service scope to resolve the context factory from.</param>
+    /// <returns>A scope that restores the previous binding.</returns>
+    /// <remarks>
+    ///     <para>
+    ///         A Rask read is a static call — <c>Product.Read.Where(…)</c> — so it runs outside any DI scope
+    ///         and normally builds its context from the factory <see cref="Configure(IServiceProvider)" />
+    ///         captured once at startup. That is the right default and stays the fallback.
+    ///     </para>
+    ///     <para>
+    ///         It is not enough when the context needs something <b>scoped</b> to answer correctly — the
+    ///         signed-in principal, and through it the tenant. The host opens this around the work of a live
+    ///         session, whose <c>IServiceScope</c> already holds that session's <c>IUserProvider</c>, and
+    ///         every read inside then builds its context from the same scope the user belongs to.
+    ///     </para>
+    ///     <para>
+    ///         Additive on purpose: with no ambient scope open, nothing about how a context is built changes.
+    ///     </para>
+    /// </remarks>
+    public static IDisposable UseScope(IServiceProvider scope)
+    {
+        ArgumentNullException.ThrowIfNull(scope);
+        return new ScopeBinding(scope);
+    }
+
+    /// <summary>
+    ///     The signed-in principal's tenant, read from the scope <see cref="UseScope" /> opened, or null.
+    /// </summary>
+    /// <remarks>
+    ///     Resolved per call rather than captured, because the scope is the session's and the principal in it
+    ///     can change — an admin switching tenant is the case that matters.
+    /// </remarks>
+    internal static Guid? TenantFromScope() =>
+        AmbientScope.Value?.GetService<ITenantSource>()?.Current;
+
     /// <summary>A fresh context the caller owns and disposes.</summary>
     /// <exception cref="InvalidOperationException">The model surface has not been configured.</exception>
-    internal static DbContext CreateContext() =>
-        (_factory ?? throw new InvalidOperationException(
+    internal static DbContext CreateContext()
+    {
+        // The ambient scope wins when one is open, because it is the only thing that can build a context
+        // carrying the current user — and therefore the current tenant.
+        if (AmbientScope.Value is { } scope &&
+            scope.GetService<AmbientContextBinding>() is { } scoped)
+        {
+            return scoped.CreateContext();
+        }
+
+        return (_factory ?? throw new InvalidOperationException(
             "The model database has not been configured. A Rask app gets this from the host; elsewhere " +
             "call `Db.Configure(app.Services)` once after building the container, having registered the " +
             "context with `services.AddRaskData<AppDbContext>()`."))();
+    }
+
+    private sealed class ScopeBinding : IDisposable
+    {
+        private readonly IServiceProvider? _previous;
+        private bool _disposed;
+
+        internal ScopeBinding(IServiceProvider scope)
+        {
+            _previous = AmbientScope.Value;
+            AmbientScope.Value = scope;
+        }
+
+        public void Dispose()
+        {
+            if (!_disposed)
+            {
+                _disposed = true;
+                AmbientScope.Value = _previous;
+            }
+        }
+    }
 }

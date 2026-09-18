@@ -57,6 +57,8 @@ Rask.Data.IHasDomainEvents.DomainEvents.get -> System.Collections.Generic.IReadO
 Rask.Data.IReadModel
 Rask.Data.ITenantScoped
 Rask.Data.ITenantScoped.CurrentTenant.get -> System.Guid?
+Rask.Data.ITenantSource
+Rask.Data.ITenantSource.Current.get -> System.Guid?
 Rask.Data.ModelBuilderExtensions
 Rask.Data.ModelQuery<TEntity>
 Rask.Data.ModelQuery<TEntity>.AnyAsync(System.Linq.Expressions.Expression<System.Func<TEntity!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
@@ -126,6 +128,7 @@ Rask.Data.RaskDataOptions.DispatchDomainEventsInProcess.set -> void
 Rask.Data.RaskDataOptions.RaskDataOptions() -> void
 Rask.Data.RaskDataServiceCollectionExtensions
 Rask.Data.RaskDbContext
+Rask.Data.RaskDbContext.CurrentTenant.get -> System.Guid?
 Rask.Data.RaskDbContext.RaskDbContext(Microsoft.EntityFrameworkCore.DbContextOptions! options) -> void
 Rask.Data.RaskDbContext.RaskDbContext(Microsoft.EntityFrameworkCore.DbContextOptions<Rask.Data.RaskDbContext!>! options) -> void
 Rask.Data.RaskReadDbContext
@@ -188,6 +191,7 @@ const Rask.Data.Columns.Version = "Version" -> string!
 const Rask.Data.FullText.MatchEnd = '' -> char
 const Rask.Data.FullText.MatchStart = '' -> char
 const Rask.Data.RangeExclusionSpec.AnnotationName = "Rask:RangeExclusion" -> string!
+const Rask.Data.Tenant.ClaimType = "rask:tenant" -> string!
 override Rask.Data.AuditingInterceptor.SavingChanges(Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData! eventData, Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result) -> Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>
 override Rask.Data.AuditingInterceptor.SavingChangesAsync(Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData! eventData, Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>>
 override Rask.Data.DomainEventInterceptor.SaveChangesFailed(Microsoft.EntityFrameworkCore.Diagnostics.DbContextErrorEventData! eventData) -> void
@@ -219,6 +223,7 @@ static Rask.Data.Db.Configure(System.IServiceProvider! services) -> void
 static Rask.Data.Db.Configure<TContext>(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! factory) -> void
 static Rask.Data.Db.IsConfigured.get -> bool
 static Rask.Data.Db.Reset() -> void
+static Rask.Data.Db.UseScope(System.IServiceProvider! scope) -> System.IDisposable!
 static Rask.Data.FullText.Highlight(string? property) -> string?
 static Rask.Data.FullText.Snippet(string? property, int words = 12) -> string?
 static Rask.Data.FullTextQueryableExtensions.Search<TEntity>(this System.Linq.IQueryable<TEntity>! source, string? text) -> System.Linq.IQueryable<TEntity>!
@@ -257,5 +262,6 @@ static Rask.Data.Tenant.Current.get -> System.Guid?
 static Rask.Data.Tenant.IsAcrossTenants.get -> bool
 static Rask.Data.Tenant.None() -> System.IDisposable!
 static Rask.Data.Tenant.Required.get -> System.Guid
+static Rask.Data.Tenant.Resolve() -> System.Guid?
 static Rask.Data.Tenant.Use(System.Guid tenant) -> System.IDisposable!
 static Rask.Data.TestDatabase.StartAsync(System.Action<Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!>! configure, System.TimeProvider? timeProvider = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.TestDatabase!>!
