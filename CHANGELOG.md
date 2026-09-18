@@ -7,53 +7,6 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
-### Fixed
-
-- **`rask dev` no longer reacts to the app's own SQLite files.** `dotnet watch` watches the whole project
-  folder, not just `@(Watch)`: it accepts a change to any file `DefaultItemExcludes` does not match, and a file
-  ADDED there costs a full project re-evaluation (design-time build and restore) plus a hot reload pass. The
-  batteries open `app.db` and `logs.db` in WAL mode beside the project, so every start and every restart
-  created `app.db-wal`, `app.db-shm`, `logs.db-wal` and `logs.db-shm`, and the watcher answered each time with
-  "Files added: ./app.db-shm, ./logs.db-shm" and another reload of the project. `Rask.Core.targets` now adds
-  SQLite's `-wal`, `-shm` and `-journal` files (for `.db`, `.sqlite` and `.sqlite3`) to `DefaultItemExcludes`,
-  the list the watcher honours. The database file itself stays an ordinary item, so a seed database copied to
-  the output still works. `ScopedAssetWatchTests` fails if the sidecars reach the default items again.
-
-- **`rask dev` on macOS stopped asking for your password on every run — and stopped falling back to localhost
-  when it could not.** The port-443 redirect it loads into pf does not survive a reboot, so `rask dev` records
-  the boot it loaded it on and reloads after a new one. It compared that record to `sysctl kern.boottime` as a
-  STRING, and macOS derives the boot time from the wall clock minus the uptime, so every clock adjustment moves
-  its microseconds: `{ sec = 1788161786, usec = 431499 }` one day, `usec = 547268` seventeen days later, with no
-  reboot in between. Every run therefore believed the machine had rebooted and wanted `sudo` to reload a
-  redirect that was still loaded; run without a terminal to ask on — an editor, a script, an agent — it printed
-  "setting up https://appname.test needs permission" and served `https://localhost:5001` instead, which is
-  how `https://appname.test` came to look broken in Safari. Boot times are now compared by their seconds,
-  within five seconds: a real reboot moves them by far more, and clock drift by a fraction of one. An existing
-  `~/.rask/pf-state.json` is read as it is, so a machine that already set the redirect up stops being asked at
-  once.
-
-- **A WebAssembly app's nested build no longer runs on a different SDK than the build that started it.** Every
-  package that shells out to build a companion — `Rask.Server` for a `wasm-hosted` app's browser half,
-  `Rask.Wasm` for the prerender pass, `Rask.Spa.Hosting` for a WASM client — ran a bare `dotnet build` or
-  `dotnet publish`. That re-resolves the SDK from the `global.json` in the app's folder, which every scaffold
-  now writes, while the outer build resolved its SDK from wherever it was started. So
-  `dotnet build path/to/App.csproj` from a solution root, an IDE or CI built the host on the newest SDK
-  installed and the companion on the pinned band — and the child, having inherited the parent's
-  `MSBuildSDKsPath`, loaded the other SDK's targets into its own runtime and failed with MSB4216 ("could not
-  create or connect to a task host"). All four sites now run `$(_RaskSdkDotnet)`: this build's own
-  `dotnet.dll` through `DOTNET_HOST_PATH`, falling back to `dotnet` only under Visual Studio's MSBuild.
-  Clearing the inherited variables was not an option — `Exec` cannot unset one, and an empty value is read as
-  a path, after which no SDK resolves at all. `NestedDotnetContractTests` fails if a packed `.targets` file
-  runs a bare SDK command again or the definitions drift apart.
-
-- **`RaskVersion.Current` reported `1.0.0` in every app** (#1122). It reads the informational version off the assembly that
-  declares it — `Rask.Core` — and Core is `IsPackable=false`, so the `Condition=" '$(IsPackable)' != 'false' "` on
-  MinVer's `PackageReference` meant nothing ever stamped it and the SDK's `1.0.0` fallback stood. Every reader was
-  wrong with it: the `[Rask.Wasm] Rask 1.0.0 (WASM) starting` banner, the DevTools overview page and its bug reports,
-  and rask.sh's own version badge and guide banner, which advertised `v1.0.0` while 0.22.0 was shipping. MinVer is
-  referenced by every project now. The three existing `RaskVersionTests` were green throughout — non-empty, no build
-  metadata, looks like semver, all of which `"1.0.0"` satisfies — so `Current_MatchesThePackableHostVersion` compares
-  it against a packable assembly, which is the only version in the process known to be real.
 ### Changed
 
 - **Soft delete is now OPT-IN, and `DeleteAsync` deletes.** An aggregate keeps its row only if it says so:
@@ -112,56 +65,13 @@ them until tagged releases begin.
   of every file response, and `Rask.Storage` can be pointed at a `DbContext` carrying none of Rask's
   interceptors.
 
-- **`<RaskReadFacesOnly>true</RaskReadFacesOnly>`** — a package that maps its own tables generates its read
-  faces and nothing else. Without it the model registry's `[ModuleInitializer]` would map those tables into
-  every application that merely references the package, and a second time for one that maps them by hand.
-
-- **An aggregate is no longer a query surface — reads move to the read face.** `Product.All`,
-  `Product.Where(…)`, `Product.FindAsync(id)`, `Product.AsQueryable()`, `Product.Select(…)` and the terminals
-  that went with them are **removed**. Querying goes through `Product.Read`, which is primitives and carries
-  the navigations an aggregate is not allowed to have. The two cannot be one surface: an aggregate holds
-  another's id and nothing more, which is what stops a write crossing a boundary by accident, and a query that
-  reached across one from the write side would be that border failing. Three doors replace it —
-  `Product.Read.Where(…)` to show one, many or joined; `Product.ModelAsync(id)` to fill a form;
-  `Product.UpdateAsync(id, p => …)` or a context to load one in order to change it. By id is just the narrowest
-  query (`Product.Read.Where(p => p.Id == id).FirstOrDefaultAsync()`) and deliberately gets no `FindAsync` of
-  its own: EF Core's `Find` skips query filters, so a soft-deleted row would come back from it and not from
-  `Where` — two spellings of one read, disagreeing about deleted rows. `ModelQuery` gained the predicate
-  terminals the aggregate had (`SingleOrDefaultAsync`, `CountAsync`, `AnyAsync`) so nothing else is lost.
-
-  Four bugs the migration exposed, all fixed: the read model was cached against the WRONG write model (EF caches
-  a context's model by TYPE, so the mirror was built once from whichever write context happened to be ambient
-  first — right in an app with one database, wrong the moment there are two); the full-text index annotation did
-  not travel, so `Post.Read.Search(…)` refused over a table that plainly had one; the soft-delete query filter
-  was applied unconditionally, breaking a hand-mapped context with no `DeletedAt`; and a nested entity got no
-  read face at all, silently.
-
-- **RASK087 is now an ERROR, and covers a single reference as well as a collection.** It was a warning about a
-  collection of aggregates; it is the write-side border rule: **an aggregate may hold another aggregate's id
-  and nothing else.** `public Customer Customer { get; private set; }` no longer compiles. Nothing is lost by
-  holding the id — the generated read face carries the navigation inferred from exactly that id, so the join is
-  still one expression; it just cannot be reached from the side that saves. The message names the fix for the
-  shape you wrote, which differs by side: a single reference becomes an id on THIS aggregate, a collection an
-  id on the OTHER one.
-
-- **`db:` now STAGES a write instead of saving it.** Handed a context, a write applies its change and returns;
-  the caller saves. That makes several writes on one context a single transaction by construction, with no
-  `BeginTransactionAsync` to write — one `SaveChangesAsync` already is one:
-
-  ```csharp
-  await Order.CreateAsync(orderModel, db: db, cancellationToken: ct);                    // staged
-  await StockItem.UpdateAsync(stockId, s => s.Reserve(n), db: db, cancellationToken: ct); // staged
-  await db.SaveChangesAsync(ct);                                                          // both, or neither
-  ```
-
-  **This is a behavioural break:** code passing `db:` and relying on the write having saved will no longer
-  persist without an explicit `SaveChangesAsync`. No `db:` still means the write owns its own unit of work.
-  Two consequences to know: a staged `CreateAsync` returns an entity that is not yet persisted (a `Guid` key is
-  already set, a store-generated integer key is `0` until you save), and the concurrency check still works and
-  stays automatic — the original `Version` is pinned and EF compares it at the caller's save.
 ## [0.23.0] - 2026-09-18
 
 ### Added
+
+- **`<RaskReadFacesOnly>true</RaskReadFacesOnly>`** — a package that maps its own tables generates its read
+  faces and nothing else. Without it the model registry's `[ModuleInitializer]` would map those tables into
+  every application that merely references the package, and a second time for one that maps them by hand.
 
 - **An aggregate can decline the generated form surface.** `public const ModelWrites Writes =
   ModelWrites.None;` on an aggregate drops its `{X}Model`, `CreateAsync(model)`, `UpdateAsync(id, model)`,
