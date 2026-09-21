@@ -6,10 +6,10 @@ namespace Rask.Query.Tests;
 /// </summary>
 public class PlaceholderDataTests
 {
-    private static (QueryClient Client, CountingDispatcher Dispatcher) NewClient()
+    private static (SessionQueryClient Client, CountingDispatcher Dispatcher) NewClient()
     {
         var dispatcher = new CountingDispatcher();
-        return (new QueryClient(dispatcher, new TestClock(DateTimeOffset.UnixEpoch)), dispatcher);
+        return (new SessionQueryClient(dispatcher, new TestClock(DateTimeOffset.UnixEpoch)), dispatcher);
     }
 
     private static QueryOptions Keeping => new()
@@ -31,13 +31,14 @@ public class PlaceholderDataTests
     public async Task The_previous_page_stays_on_screen_while_the_next_one_loads()
     {
         var (client, dispatcher) = NewClient();
-        using var query = client.Query(new GetOrders(1), Keeping);
+        var page = 1;
+        using var query = client.Query(() => new GetOrders(page), Keeping);
         await Settle(query);
         Assert.Equal("first", query.Data);
 
         dispatcher.Block();
         dispatcher.Result = "page two";
-        query.SetMessage(new GetOrders(2));
+        page = 2;
 
         // Page one's rows are still there, and the query reports success rather than pending — so a
         // component renders the table it already has instead of a spinner over it.
@@ -58,11 +59,12 @@ public class PlaceholderDataTests
     {
         var (client, dispatcher) = NewClient();
         var plain = new QueryOptions { StaleTime = TimeSpan.FromHours(1) };
-        using var query = client.Query(new GetOrders(1), plain);
+        var page = 1;
+        using var query = client.Query(() => new GetOrders(page), plain);
         await Settle(query);
 
         dispatcher.Block();
-        query.SetMessage(new GetOrders(2));
+        page = 2;
 
         // The default: nothing to show, which is what a spinner is for.
         Assert.Null(query.Data);
@@ -86,12 +88,13 @@ public class PlaceholderDataTests
         await Settle(warm);
 
         dispatcher.Result = "page one";
-        using var query = client.Query(new GetOrders(1), Keeping);
+        var page = 1;
+        using var query = client.Query(() => new GetOrders(page), Keeping);
         await Settle(query);
         Assert.Equal("page one", query.Data);
 
         dispatcher.Block();
-        query.SetMessage(new GetOrders(2));
+        page = 2;
 
         // The placeholder is only for a key with nothing behind it. Showing page one here would be a
         // step backwards from data already in hand.

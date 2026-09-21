@@ -6,13 +6,13 @@ namespace Rask.Query;
 internal interface IOptimisticUpdate
 {
     /// <summary>Applies the edit and returns what is needed to undo it.</summary>
-    IOptimisticSnapshot Apply(QueryClient client);
+    IOptimisticSnapshot Apply(SessionQueryClient client);
 }
 
 /// <summary>What an entry held before a command touched it.</summary>
 internal interface IOptimisticSnapshot
 {
-    void Restore(QueryClient client);
+    void Restore(SessionQueryClient client);
 }
 
 /// <summary>
@@ -26,7 +26,7 @@ internal interface IOptimisticSnapshot
 internal sealed class OptimisticUpdate<TResult>(IQuery<TResult> message, Func<TResult, TResult> update)
     : IOptimisticUpdate
 {
-    public IOptimisticSnapshot Apply(QueryClient client)
+    public IOptimisticSnapshot Apply(SessionQueryClient client)
     {
         var had = client.TryGetData(message, out var current);
         var snapshot = new Snapshot(message, had, current);
@@ -43,7 +43,7 @@ internal sealed class OptimisticUpdate<TResult>(IQuery<TResult> message, Func<TR
 
     private sealed record Snapshot(IQuery<TResult> Message, bool Had, TResult? Previous) : IOptimisticSnapshot
     {
-        public void Restore(QueryClient client)
+        public void Restore(SessionQueryClient client)
         {
             if (Had && Previous is not null)
             {

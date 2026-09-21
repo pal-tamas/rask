@@ -24,7 +24,7 @@ public static class RaskQueryServiceCollectionExtensions
     public static IServiceCollection AddRaskQuery(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
-        services.TryAddScoped<IQueryClient, QueryClient>();
+        services.TryAddScoped<IQueryClient, SessionQueryClient>();
         return services;
     }
 }

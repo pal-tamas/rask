@@ -155,7 +155,7 @@ What the rules above settled, so a new package has one place to look rather than
 | Background work | `IJobs` | `EnqueueAsync`, `ScheduleAsync` |
 | Cache | `ICache` | `GetAsync`, `SetAsync`, `GetOrAddAsync`, `RemoveAsync` |
 | Mediator | `IDispatcher` | `QueryAsync`, `SendAsync`, `PublishAsync` |
-| Cached reads | `IQueryClient` | `Query`, `SendAsync`, `Command`, `Invalidate` |
+| Cached reads | `QueryClient` (static) / `IQueryClient` | `Query`, `SendAsync`, `Command`, `Invalidate` |
 | Durable log | `ILogs` | `SearchAsync` |
 | SQLite connections | `ISqlite` | `InImmediateTransactionAsync` |
 | Web Push | `IWebPush` | `SubscribeAsync` (browser), `SendAsync` (server) |

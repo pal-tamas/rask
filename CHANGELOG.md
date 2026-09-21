@@ -156,6 +156,33 @@ them until tagged releases begin.
 
 ### Changed
 
+- **`Rask.Query`: a query follows its inputs, from `Render`, a property or the constructor — and needs
+  nothing injected** (breaking: `Query<T>.SetMessage` is gone). A query built once kept showing page one
+  for ever unless `OnPropsChanged` re-pointed it by hand, and every component had to take `IQueryClient`
+  through its constructor to get one. The static `QueryClient` reaches the session's cache from wherever a
+  component runs — the handler being dispatched, else the render in progress; never a process-wide cache —
+  and a query can be declared in three places:
+
+  ```csharp
+  // in Render, from the current values: the same call is the same query every render
+  var orders = QueryClient.Query(new GetOrders(Page));
+
+  // in a property or the constructor, from a lambda re-run at every read
+  Query<Customer> Customer => field ??= QueryClient.Query(() => Selected is { } id ? new GetCustomer(id) : null);
+
+  // a function query is handed the input its key was built from
+  var hits = QueryClient.Query(QueryKey.For<Person>(), _search, (s, ct) => Search(s, ct));
+  ```
+
+  A `Render` query is known by its call site and which time it runs there, so loops and `if`s are safe
+  (`Command<T>(key: row.Id)` gives each row its own pending state); one a render stops using is set aside
+  as that render returns — suspended rather than disposed, so a query a constructor made and a component
+  keeps is never found dead. A lambda first runs at the first read, never in the constructor, and
+  returning null pauses the query until its input exists. An unchanged value-type input is compared
+  before any key is built, so a read costs nothing. `IQueryClient` gains the two lambda forms and stays
+  the way in for code with no component. Migrating: delete the `OnPropsChanged` override and pass a
+  lambda — `client.Query(() => new GetOrders(Page))`.
+
 - **`Rask.Query`: a mutation is a `Command<T>`, and it is sent with `SendAsync`** (breaking). Telling
   the system to do something had three verbs — `IDispatcher.SendAsync`, `IQueryClient.MutateAsync` and
   `Mutation<T>.RunAsync` — for one idea, which is exactly what `docs/api-style.md` §3 forbids: the query

@@ -44,7 +44,7 @@ internal static class FileListReader
 
     public static IBrowserFileBackend? ResolveBackend()
     {
-        var services = DispatchServicesScope.Current ?? LiveRenderContext.Current?.Services;
+        var services = AmbientServices.Current;
         return services?.GetService<IBrowserFileBackend>();
     }
 }
