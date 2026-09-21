@@ -9,6 +9,12 @@ them until tagged releases begin.
 
 ### Added
 
+- **The Rask.Query guide has a live demo on rask.sh (#1128).** A parcel list on one small page shows every query
+  shape the guide describes: a query declared in `Render` that follows the URL's `?page=` with `KeepPreviousData`, a
+  dependent query that stays paused until a pick, a function query keyed `QueryKey.For<Parcel>(input)`, and a
+  per-row `QueryClient.Command<ShipParcel>(key: row.Id)` whose `IsPending` disables its button and whose success
+  refetches the page and the picked parcel through `[Invalidates]`. The site's E2E journey walks all four.
+
 - **Broadcast across servers: `Rask.Redis` (#1115).** `AddRaskRedisBackplane()` carries `IBroadcast` messages
   between the instances behind a load balancer over Redis pub/sub, so a publish on one instance re-renders the
   subscribed pages on every instance. Only a topic declared with a source-generated JSON contract crosses —

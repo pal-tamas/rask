@@ -45,6 +45,9 @@ internal static class TestServices
         sc.AddWasmBrowserApis(ServiceLifetime.Singleton);
         sc.AddSingleton<IToaster, Toaster>();
         sc.AddSingleton<Rask.Core.Messaging.IBroadcast, Rask.Core.Messaging.BroadcastHub>();
+        // The query cache the Rask.Query demo reads through QueryClient. The site gets it from the Rask meta project's
+        // WASM host wiring, which this hand-composed container does not run.
+        Rask.Query.RaskQueryServiceCollectionExtensions.AddRaskQuery(sc);
 
         routeState ??= new RouteState();
         sc.AddSingleton(routeState);

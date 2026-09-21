@@ -224,6 +224,14 @@ public static partial class DemoRegistry
                 + "and a pipeline behaviour (DispatchLogBehavior) that wraps every dispatch — the "
                 + "generator wires them with no runtime reflection.")
                 .Result(CqrsCounterDemo),
+
+            // --- Rask.Query guide: a Render query on ?page=, a dependent query, a function query and a
+            //     per-row command, over the in-process parcel slice. ---
+            ["query-parcels"] = () => CodeSample
+                .Files(["QueryParcelsDemo.cs", "ParcelSlice.cs"])
+                .Notes("Nothing here loads data by hand: each query follows its input, keeps its cache, and refetches "
+                + "when a Ship command it is named by succeeds.")
+                .Result(QueryParcelsDemo),
             ["asset-basic-css"] = () => CodeSample
                 .Files(["BasicScopedCss.cs", "BasicScopedCss.css"])
                 .Result(BasicScopedCss),

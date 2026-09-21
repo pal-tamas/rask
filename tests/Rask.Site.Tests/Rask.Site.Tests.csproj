@@ -133,6 +133,8 @@
     <ProjectReference Include="..\..\src\Rask.Wasm\Rask.Wasm.csproj"/>
     <ProjectReference Include="..\..\src\Rask.External\Rask.External.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cqrs\Rask.Cqrs.csproj"/>
+    <!-- The Rask.Query guide demo (QueryParcelsDemo); the site gets it through the Rask meta project. -->
+    <ProjectReference Include="..\..\src\Rask.Query\Rask.Query.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Validation.FluentValidation\Rask.Validation.FluentValidation.csproj"/>
     <!-- The CQRS handler registry is GENERATED, and this project compiles the handlers' sources rather
          than referencing a built assembly — so without this analyzer the handlers exist and nothing

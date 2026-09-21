@@ -99,6 +99,7 @@ public abstract partial class SharedSmokeTests
         await WalkElementsGuideAsync();
         await WalkHttpAndFilesGuideAsync();
         await WalkCqrsGuideAsync();
+        await WalkQueryGuideAsync();
         await WalkAuthGuideAsync();
         await WalkFormsPagesAsync();
         await WalkStylingDataAndAppPagesAsync(opts);
@@ -323,6 +324,46 @@ public abstract partial class SharedSmokeTests
     // that returns a value and publishes a notification, and a pipeline behaviour logs every dispatch.
     // If AddRaskCqrs / the generated ModuleInitializer hadn't wired up on this transport, the demo
     // would throw "No handler is registered" and trip the root error boundary instead.
+    // #1128: Rask.Query on the site — a Render query on ?page=, a dependent query that stays paused, a function query,
+    // and a per-row command whose success refetches what it invalidates.
+    protected async Task WalkQueryGuideAsync()
+    {
+        var text = new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 };
+        var contains = new LocatorAssertionsToContainTextOptions { Timeout = 15_000 };
+        await SideAsync("Rask.Query", "the dispatcher, cached", "main .markdown-body h1");
+        await AssertGuideDemosAsync(1, "query");
+
+        var demo = Page.Locator("#query-demo");
+        await Expect(demo.Locator("#query-page")).ToHaveTextAsync("Page 1 of 3", text);
+        await Expect(demo.Locator(".query-row")).ToHaveCountAsync(4, new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        await Expect(demo.Locator("#query-picked")).ToContainTextAsync("Paused", contains);
+        await Expect(demo.Locator("#query-search")).ToHaveTextAsync("book: #6, #12", text);
+
+        // The page follows the URL: Next writes ?page=2, and the query re-points at the second page.
+        await demo.Locator("#query-next").ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("[?&]page=2"));
+        await Expect(demo.Locator("#query-page")).ToHaveTextAsync("Page 2 of 3", text);
+        await Expect(demo.Locator(".query-row").First).ToContainTextAsync("#5 Ken", contains);
+        await Expect(demo.Locator("#query-status")).ToHaveTextAsync("fresh", text);
+
+        // Picking a parcel un-pauses the dependent query.
+        var row = demo.Locator(".query-row").First;
+        await row.Locator(".query-pick").ClickAsync();
+        await Expect(demo.Locator("#query-picked")).ToHaveTextAsync("#5 to Ken: a keyboard, waiting", text);
+
+        // The row's own command: disabled while pending, and its success refetches the page and the picked parcel.
+        await row.Locator(".query-ship").ClickAsync();
+        await Expect(row.Locator(".query-ship")).ToBeDisabledAsync();
+        await Expect(row.Locator(".query-shipped")).ToHaveTextAsync("shipped", text);
+        await Expect(demo.Locator("#query-picked")).ToHaveTextAsync("#5 to Ken: a keyboard, shipped", text);
+
+        // The function query follows its input.
+        await demo.Locator("#query-search-tea").ClickAsync();
+        await Expect(demo.Locator("#query-search")).ToHaveTextAsync("tea: #4, #10", text);
+
+        await AssertNoGlobalCrashAsync();
+    }
+
     protected async Task WalkCqrsGuideAsync()
     {
         await ClickSidebar("CQRS");

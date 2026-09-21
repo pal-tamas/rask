@@ -43,6 +43,8 @@ public static class ExampleServiceCollectionExtensions
         // live session counts independently, and the sample-defined DispatchLogBehavior is the
         // decorator hook in action.
         services.AddScoped<CqrsCounterStore>();
+        // The Rask.Query showcase's parcels (docs/query.md), scoped for the same reason: each session ships its own.
+        services.AddScoped<ParcelStore>();
         services.AddRaskCqrs(o => o.AddOpenBehavior(typeof(DispatchLogBehavior<,>)));
 
         // The Todos screen's persistence seam. Transient — a fresh seeded in-memory store per page, so

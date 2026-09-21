@@ -299,6 +299,16 @@ Three things it deliberately does not do:
   commit, and a rollback tells nobody — a refetch before the commit could read the rows as they were and
   cache that.
 
+## Try it
+
+Every shape above on one small page. The parcel list is a query declared in `Render` that follows the URL's
+`?page=` — watch the address bar — and keeps the previous page on screen while the next one loads. **Details** feeds
+a dependent query that stays paused until you pick a parcel. The contents search is a function query keyed
+`QueryKey.For<Parcel>(input)`. Each **Ship** button is its own keyed command: it disables itself while pending, and
+its success refetches the page and the picked parcel, because `ShipParcel` names both with `[Invalidates]`.
+
+<!-- demo:query-parcels -->
+
 ## Defaults
 
 TanStack's, deliberately: `StaleTime` 0 and `GcTime` five minutes. A query is stale the moment it
