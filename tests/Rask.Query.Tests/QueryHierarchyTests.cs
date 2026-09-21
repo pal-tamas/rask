@@ -120,7 +120,7 @@ public class QueryHierarchyTests
         await SettleAsync(list);
 
         var before = dispatcher.QueryCount;
-        await client.MutateAsync(new ArchiveEverything(1));
+        await client.SendAsync(new ArchiveEverything(1));
         await SettleAsync(list);
 
         Assert.Equal(before + 1, dispatcher.QueryCount);
@@ -138,7 +138,7 @@ public class QueryHierarchyTests
         await SettleAsync(byPrefix);
 
         var before = dispatcher.QueryCount;
-        await client.MutateAsync(new SweepingChange(1));
+        await client.SendAsync(new SweepingChange(1));
         await SettleAsync(byType);
         await SettleAsync(byPrefix);
 

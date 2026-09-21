@@ -106,7 +106,10 @@ value until the new one arrives, which is the point.
 Prefer a key that expresses the relationship over a predicate. A predicate is invisible to anyone
 reading the query's own declaration.
 
-## Mutations
+## Commands
+
+What TanStack calls a *mutation* is a CQRS **command** here, and it is sent with the same verb the
+dispatcher uses, `SendAsync`: the only thing the query client adds is the invalidation afterwards.
 
 A command declares what it makes out of date, on itself:
 
@@ -115,7 +118,7 @@ A command declares what it makes out of date, on itself:
 [Invalidates("orders")]                                    // one key prefix
 public sealed record ShipOrder(Guid Id) : ICommand;
 
-await client.MutateAsync(new ShipOrder(id));
+await client.SendAsync(new ShipOrder(id));   // throws if the handler does
 ```
 
 Several **types** are several prefixes; several **strings** are one path of several parts. The
@@ -128,13 +131,24 @@ adding an affected query is one edit in one place rather than a hunt through cal
 after a save that clearly succeeded is the most common complaint about every cache of this kind, and
 it is almost always a missing invalidation somebody had to remember to write.
 
-For a command you want to *render* — whether it is in flight, whether it failed — hold a `Mutation`:
+For a command you want to *render* — whether it is in flight, whether it failed — hold a `Command<T>`
+(TanStack's `useMutation`):
 
 ```csharp
-private readonly Mutation<ShipOrder> _ship;
+private readonly Command<ShipOrder> _ship;
 
-public OrdersPage(IQueryClient client) => _ship = client.Mutation<ShipOrder>();
+public OrdersPage(IQueryClient client) => _ship = client.Command<ShipOrder>();
+
+Button.Disabled(_ship.IsPending)
+      .OnClick(() => _ship.SendAsync(new ShipOrder(id)))
+      [_ship.IsPending ? "Shipping…" : "Ship"]
 ```
+
+`Command<T>.SendAsync` does **not** throw: it runs from an event handler, where an exception has
+nowhere to go, so the failure lands on `Error` and `Status` for the component to render. Use
+`IQueryClient.SendAsync` when you want the exception. `Command<TCommand, TResult>` adds `Data`, the
+last successful result; `.Optimistic(query, update)` edits a cached result before the server answers
+and restores it if the command fails.
 
 ## Defaults
 

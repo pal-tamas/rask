@@ -2,11 +2,11 @@ using Rask.Cqrs;
 
 namespace Rask.Query.Tests;
 
-/// <summary>A command that returns a value, for the two-parameter mutation shape.</summary>
+/// <summary>A command that returns a value, for the two-parameter command shape.</summary>
 [Invalidates(typeof(GetOrders))]
 public sealed record CountOrders : ICommand<int>;
 
-public class MutationTests
+public class CommandTests
 {
     private static (QueryClient Client, CountingDispatcher Dispatcher, TestClock Time) NewClient()
     {
@@ -25,53 +25,53 @@ public class MutationTests
     }
 
     [Fact]
-    public async Task A_mutation_starts_idle_and_ends_successful()
+    public async Task A_command_starts_idle_and_ends_successful()
     {
         var (client, _, _) = NewClient();
-        var ship = client.Mutation<ShipOrder>();
+        var ship = client.Command<ShipOrder>();
 
-        Assert.Equal(MutationStatus.Idle, ship.Status);
+        Assert.Equal(CommandStatus.Idle, ship.Status);
         Assert.False(ship.IsPending);
 
-        await ship.RunAsync(new ShipOrder(7));
+        await ship.SendAsync(new ShipOrder(7));
 
-        Assert.Equal(MutationStatus.Success, ship.Status);
+        Assert.Equal(CommandStatus.Success, ship.Status);
         Assert.True(ship.IsSuccess);
         Assert.Null(ship.Error);
     }
 
     [Fact]
-    public async Task A_failed_mutation_records_the_error_and_does_not_throw()
+    public async Task A_failed_command_records_the_error_and_does_not_throw()
     {
         var (client, dispatcher, _) = NewClient();
         dispatcher.ThrowOnCommand = new InvalidOperationException("refused");
-        var ship = client.Mutation<ShipOrder>();
+        var ship = client.Command<ShipOrder>();
 
         // It is called from an event handler, where an exception has nowhere to go and would surface
         // as an unhandled framework error rather than as something the screen can show.
-        await ship.RunAsync(new ShipOrder(7));
+        await ship.SendAsync(new ShipOrder(7));
 
-        Assert.Equal(MutationStatus.Error, ship.Status);
+        Assert.Equal(CommandStatus.Error, ship.Status);
         Assert.True(ship.IsError);
         Assert.Equal("refused", ship.Error?.Message);
     }
 
     [Fact]
-    public async Task Reset_returns_a_failed_mutation_to_idle()
+    public async Task Reset_returns_a_failed_command_to_idle()
     {
         var (client, dispatcher, _) = NewClient();
         dispatcher.ThrowOnCommand = new InvalidOperationException("refused");
-        var ship = client.Mutation<ShipOrder>();
-        await ship.RunAsync(new ShipOrder(7));
+        var ship = client.Command<ShipOrder>();
+        await ship.SendAsync(new ShipOrder(7));
 
         ship.Reset();
 
-        Assert.Equal(MutationStatus.Idle, ship.Status);
+        Assert.Equal(CommandStatus.Idle, ship.Status);
         Assert.Null(ship.Error);
     }
 
     [Fact]
-    public async Task A_mutation_invalidates_what_its_command_declares()
+    public async Task A_command_invalidates_what_its_command_declares()
     {
         var (client, dispatcher, _) = NewClient();
         var keep = new QueryOptions { StaleTime = TimeSpan.FromHours(1) };
@@ -79,7 +79,7 @@ public class MutationTests
         await Settle(orders);
 
         dispatcher.Result = "after ship";
-        await client.Mutation<ShipOrder>().RunAsync(new ShipOrder(7));
+        await client.Command<ShipOrder>().SendAsync(new ShipOrder(7));
         await Settle(orders);
 
         Assert.Equal(2, dispatcher.QueryCountFor<GetOrders>());
@@ -87,17 +87,17 @@ public class MutationTests
     }
 
     [Fact]
-    public async Task A_value_returning_mutation_exposes_its_result()
+    public async Task A_value_returning_command_exposes_its_result()
     {
         var (client, dispatcher, _) = NewClient();
         dispatcher.CommandResult = 7;
-        var count = client.Mutation<CountOrders, int>();
+        var count = client.Command<CountOrders, int>();
 
-        var returned = await count.RunAsync(new CountOrders());
+        var returned = await count.SendAsync(new CountOrders());
 
         Assert.Equal(7, returned);
         Assert.Equal(7, count.Data);
-        Assert.Equal(MutationStatus.Success, count.Status);
+        Assert.Equal(CommandStatus.Success, count.Status);
     }
 
     // ---------------------------------------------------------------- optimistic
@@ -112,10 +112,10 @@ public class MutationTests
         Assert.Equal("first", orders.Data);
 
         dispatcher.Block();
-        var ship = client.Mutation<ShipOrder>()
+        var ship = client.Command<ShipOrder>()
             .Optimistic(new GetOrders(1), current => current + " (shipping)");
 
-        var running = ship.RunAsync(new ShipOrder(7));
+        var running = ship.SendAsync(new ShipOrder(7));
 
         Assert.Equal("first (shipping)", orders.Data);
 
@@ -132,15 +132,15 @@ public class MutationTests
         await Settle(orders);
 
         dispatcher.ThrowOnCommand = new InvalidOperationException("refused");
-        var ship = client.Mutation<ShipOrder>()
+        var ship = client.Command<ShipOrder>()
             .Optimistic(new GetOrders(1), current => current + " (shipping)");
 
-        await ship.RunAsync(new ShipOrder(7));
+        await ship.SendAsync(new ShipOrder(7));
 
         // The whole point. A screen still showing the optimistic result after a refused save tells
         // the user something happened that did not, which is worse than never having shown it.
         Assert.Equal("first", orders.Data);
-        Assert.Equal(MutationStatus.Error, ship.Status);
+        Assert.Equal(CommandStatus.Error, ship.Status);
     }
 
     [Fact]
@@ -152,10 +152,10 @@ public class MutationTests
         await Settle(orders);
 
         dispatcher.Result = "shipped";
-        var ship = client.Mutation<ShipOrder>()
+        var ship = client.Command<ShipOrder>()
             .Optimistic(new GetOrders(1), current => current + " (shipping)");
 
-        await ship.RunAsync(new ShipOrder(7));
+        await ship.SendAsync(new ShipOrder(7));
         await Settle(orders);
 
         // The guess is not kept: the command's [Invalidates] refetches and the truth wins.
@@ -169,15 +169,15 @@ public class MutationTests
         dispatcher.ThrowOnCommand = new InvalidOperationException("refused");
 
         // Nothing is cached for this query, so there is nothing to edit and nothing to put back.
-        var ship = client.Mutation<ShipOrder>()
+        var ship = client.Command<ShipOrder>()
             .Optimistic(new GetOrders(9), current => current + " (shipping)");
-        await ship.RunAsync(new ShipOrder(7));
+        await ship.SendAsync(new ShipOrder(7));
 
         var keep = new QueryOptions { StaleTime = TimeSpan.FromHours(1) };
         using var orders = client.Query(new GetOrders(9), keep);
         await Settle(orders);
 
-        // It must fetch rather than serve whatever the failed mutation might have left behind.
+        // It must fetch rather than serve whatever the failed command might have left behind.
         Assert.Equal("first", orders.Data);
         Assert.Equal(1, dispatcher.QueryCountFor<GetOrders>());
     }
@@ -193,11 +193,11 @@ public class MutationTests
         await Settle(two);
 
         dispatcher.ThrowOnCommand = new InvalidOperationException("refused");
-        var ship = client.Mutation<ShipOrder>()
+        var ship = client.Command<ShipOrder>()
             .Optimistic(new GetOrders(1), c => c + " (a)")
             .Optimistic(new GetOrders(2), c => c + " (b)");
 
-        await ship.RunAsync(new ShipOrder(7));
+        await ship.SendAsync(new ShipOrder(7));
 
         // A rollback covering only the edits made before the failure leaves the rest applied.
         Assert.Equal("first", one.Data);

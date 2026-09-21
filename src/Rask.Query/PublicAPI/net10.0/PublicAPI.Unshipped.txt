@@ -1,9 +1,35 @@
 #nullable enable
+Rask.Query.Command<TCommand, TResult>
+Rask.Query.Command<TCommand, TResult>.Data.get -> TResult?
+Rask.Query.Command<TCommand, TResult>.Error.get -> System.Exception?
+Rask.Query.Command<TCommand, TResult>.IsError.get -> bool
+Rask.Query.Command<TCommand, TResult>.IsPending.get -> bool
+Rask.Query.Command<TCommand, TResult>.IsSuccess.get -> bool
+Rask.Query.Command<TCommand, TResult>.Optimistic<TQueryResult>(Rask.Cqrs.IQuery<TQueryResult>! query, System.Func<TQueryResult, TQueryResult>! update) -> Rask.Query.Command<TCommand, TResult>!
+Rask.Query.Command<TCommand, TResult>.Reset() -> void
+Rask.Query.Command<TCommand, TResult>.SendAsync(TCommand command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult?>!
+Rask.Query.Command<TCommand, TResult>.Status.get -> Rask.Query.CommandStatus
+Rask.Query.Command<TCommand>
+Rask.Query.Command<TCommand>.Error.get -> System.Exception?
+Rask.Query.Command<TCommand>.IsError.get -> bool
+Rask.Query.Command<TCommand>.IsPending.get -> bool
+Rask.Query.Command<TCommand>.IsSuccess.get -> bool
+Rask.Query.Command<TCommand>.Optimistic<TResult>(Rask.Cqrs.IQuery<TResult>! query, System.Func<TResult, TResult>! update) -> Rask.Query.Command<TCommand>!
+Rask.Query.Command<TCommand>.Reset() -> void
+Rask.Query.Command<TCommand>.SendAsync(TCommand command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Query.Command<TCommand>.Status.get -> Rask.Query.CommandStatus
+Rask.Query.CommandStatus
+Rask.Query.CommandStatus.Error = 2 -> Rask.Query.CommandStatus
+Rask.Query.CommandStatus.Idle = 0 -> Rask.Query.CommandStatus
+Rask.Query.CommandStatus.Pending = 1 -> Rask.Query.CommandStatus
+Rask.Query.CommandStatus.Success = 3 -> Rask.Query.CommandStatus
 Rask.Query.FetchStatus
 Rask.Query.FetchStatus.Fetching = 1 -> Rask.Query.FetchStatus
 Rask.Query.FetchStatus.Idle = 0 -> Rask.Query.FetchStatus
 Rask.Query.FetchStatus.Paused = 2 -> Rask.Query.FetchStatus
 Rask.Query.IQueryClient
+Rask.Query.IQueryClient.Command<TCommand, TResult>() -> Rask.Query.Command<TCommand, TResult>!
+Rask.Query.IQueryClient.Command<TCommand>() -> Rask.Query.Command<TCommand>!
 Rask.Query.IQueryClient.FetchAsync<TResult>(Rask.Cqrs.IQuery<TResult>! message, Rask.Query.QueryOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
 Rask.Query.IQueryClient.Invalidate(Rask.Query.QueryKey key, bool exact = false) -> void
 Rask.Query.IQueryClient.Invalidate(System.Func<Rask.Query.QueryKey, bool>! predicate) -> void
@@ -11,13 +37,11 @@ Rask.Query.IQueryClient.Invalidate(System.Type! queryType) -> void
 Rask.Query.IQueryClient.Invalidate(string! key) -> void
 Rask.Query.IQueryClient.Invalidate<TQuery>() -> void
 Rask.Query.IQueryClient.InvalidateAll() -> void
-Rask.Query.IQueryClient.MutateAsync(Rask.Cqrs.ICommand! command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-Rask.Query.IQueryClient.MutateAsync<TResult>(Rask.Cqrs.ICommand<TResult>! command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
-Rask.Query.IQueryClient.Mutation<TCommand, TResult>() -> Rask.Query.Mutation<TCommand, TResult>!
-Rask.Query.IQueryClient.Mutation<TCommand>() -> Rask.Query.Mutation<TCommand>!
 Rask.Query.IQueryClient.PrefetchAsync<TResult>(Rask.Cqrs.IQuery<TResult>! message, Rask.Query.QueryOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Query.IQueryClient.Query<TResult>(Rask.Cqrs.IQuery<TResult>! message, Rask.Query.QueryOptions? options = null, Rask.Query.QueryKey? key = null) -> Rask.Query.Query<TResult>!
 Rask.Query.IQueryClient.Query<TResult>(Rask.Query.QueryKey key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! fetch, Rask.Query.QueryOptions? options = null) -> Rask.Query.Query<TResult>!
+Rask.Query.IQueryClient.SendAsync(Rask.Cqrs.ICommand! command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Query.IQueryClient.SendAsync<TResult>(Rask.Cqrs.ICommand<TResult>! command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
 Rask.Query.IQueryClient.SetData<TResult>(Rask.Cqrs.IQuery<TResult>! message, TResult data) -> void
 Rask.Query.IQueryClient.SetData<TResult>(Rask.Query.QueryKey key, TResult data) -> void
 Rask.Query.InvalidatesAttribute
@@ -25,30 +49,6 @@ Rask.Query.InvalidatesAttribute.InvalidatesAttribute(params System.Type![]! quer
 Rask.Query.InvalidatesAttribute.InvalidatesAttribute(params string![]! keyPrefix) -> void
 Rask.Query.InvalidatesAttribute.KeyPrefix.get -> System.Collections.Generic.IReadOnlyList<string!>!
 Rask.Query.InvalidatesAttribute.QueryTypes.get -> System.Collections.Generic.IReadOnlyList<System.Type!>!
-Rask.Query.Mutation<TCommand, TResult>
-Rask.Query.Mutation<TCommand, TResult>.Data.get -> TResult?
-Rask.Query.Mutation<TCommand, TResult>.Error.get -> System.Exception?
-Rask.Query.Mutation<TCommand, TResult>.IsError.get -> bool
-Rask.Query.Mutation<TCommand, TResult>.IsPending.get -> bool
-Rask.Query.Mutation<TCommand, TResult>.IsSuccess.get -> bool
-Rask.Query.Mutation<TCommand, TResult>.Optimistic<TQueryResult>(Rask.Cqrs.IQuery<TQueryResult>! query, System.Func<TQueryResult, TQueryResult>! update) -> Rask.Query.Mutation<TCommand, TResult>!
-Rask.Query.Mutation<TCommand, TResult>.Reset() -> void
-Rask.Query.Mutation<TCommand, TResult>.RunAsync(TCommand command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult?>!
-Rask.Query.Mutation<TCommand, TResult>.Status.get -> Rask.Query.MutationStatus
-Rask.Query.Mutation<TCommand>
-Rask.Query.Mutation<TCommand>.Error.get -> System.Exception?
-Rask.Query.Mutation<TCommand>.IsError.get -> bool
-Rask.Query.Mutation<TCommand>.IsPending.get -> bool
-Rask.Query.Mutation<TCommand>.IsSuccess.get -> bool
-Rask.Query.Mutation<TCommand>.Optimistic<TResult>(Rask.Cqrs.IQuery<TResult>! query, System.Func<TResult, TResult>! update) -> Rask.Query.Mutation<TCommand>!
-Rask.Query.Mutation<TCommand>.Reset() -> void
-Rask.Query.Mutation<TCommand>.RunAsync(TCommand command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-Rask.Query.Mutation<TCommand>.Status.get -> Rask.Query.MutationStatus
-Rask.Query.MutationStatus
-Rask.Query.MutationStatus.Error = 2 -> Rask.Query.MutationStatus
-Rask.Query.MutationStatus.Idle = 0 -> Rask.Query.MutationStatus
-Rask.Query.MutationStatus.Pending = 1 -> Rask.Query.MutationStatus
-Rask.Query.MutationStatus.Success = 3 -> Rask.Query.MutationStatus
 Rask.Query.Query<TResult>
 Rask.Query.Query<TResult>.Data.get -> TResult?
 Rask.Query.Query<TResult>.Dispose() -> void

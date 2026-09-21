@@ -8,7 +8,7 @@ namespace Rask.Query;
 ///     re-render when it changes.
 /// </summary>
 /// <remarks>
-///     Shared by <see cref="Query{TResult}" /> and the mutation types, which need exactly the same
+///     Shared by <see cref="Query{TResult}" /> and the command types, which need exactly the same
 ///     thing: notice who is looking, tell them when it moves.
 /// </remarks>
 internal sealed class ComponentReaders

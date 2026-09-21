@@ -154,13 +154,13 @@ public class QueryClientTests
         await SettleAsync(orders);
         Assert.Equal(1, dispatcher.QueryCount);
 
-        // Set before the mutate: the declared invalidation refetches during MutateAsync, so a value
+        // Set before the send: the declared invalidation refetches during SendAsync, so a value
         // assigned afterwards would arrive too late to be what the refetch saw.
         dispatcher.Result = "after ship";
 
         // Still well inside the stale window, so only the declared invalidation can cause a refetch.
         time.Advance(TimeSpan.FromSeconds(1));
-        await client.MutateAsync(new ShipOrder(7));
+        await client.SendAsync(new ShipOrder(7));
         await SettleAsync(orders);
 
         Assert.Equal(2, dispatcher.QueryCount);
@@ -176,7 +176,7 @@ public class QueryClientTests
         using var orders = client.Query(new GetOrders(1), options);
         await SettleAsync(orders);
 
-        await client.MutateAsync(new UnrelatedCommand(7));
+        await client.SendAsync(new UnrelatedCommand(7));
         await SettleAsync(orders);
 
         Assert.Equal(1, dispatcher.QueryCount);

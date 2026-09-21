@@ -2,7 +2,7 @@ namespace Rask.Query;
 
 /// <summary>
 ///     Names the queries a command makes out of date, so dispatching it through
-///     <see cref="IQueryClient.MutateAsync(Rask.Cqrs.ICommand, System.Threading.CancellationToken)" />
+///     <see cref="IQueryClient.SendAsync(Rask.Cqrs.ICommand, System.Threading.CancellationToken)" />
 ///     refetches them wherever they are on screen.
 /// </summary>
 /// <remarks>

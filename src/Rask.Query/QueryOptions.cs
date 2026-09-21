@@ -42,7 +42,7 @@ public sealed record QueryOptions
     /// <remarks>
     ///     Safe to default on because it applies to <b>queries only</b>, and a Rask query is defined
     ///     as safe and idempotent — the transport enforces that by refusing to send a command as a
-    ///     GET. Mutations get no retry at all, for the same reason TanStack gives them none: running
+    ///     GET. Commands get no retry at all, for the same reason TanStack gives them none: running
     ///     a command twice is not a free action.
     /// </remarks>
     public int Retry { get; init; } = 3;

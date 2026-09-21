@@ -93,14 +93,14 @@ internal sealed class QueryClient : IQueryClient
         }
     }
 
-    public async Task MutateAsync(ICommand command, CancellationToken cancellationToken = default)
+    public async Task SendAsync(ICommand command, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(command);
         await _dispatcher.SendAsync(command, cancellationToken).ConfigureAwait(false);
         InvalidateDeclared(command);
     }
 
-    public async Task<TResult> MutateAsync<TResult>(
+    public async Task<TResult> SendAsync<TResult>(
         ICommand<TResult> command,
         CancellationToken cancellationToken = default)
     {
@@ -110,10 +110,10 @@ internal sealed class QueryClient : IQueryClient
         return result;
     }
 
-    public Mutation<TCommand> Mutation<TCommand>()
+    public Command<TCommand> Command<TCommand>()
         where TCommand : ICommand => new(this);
 
-    public Mutation<TCommand, TResult> Mutation<TCommand, TResult>()
+    public Command<TCommand, TResult> Command<TCommand, TResult>()
         where TCommand : ICommand<TResult> => new(this);
 
     public void Invalidate<TQuery>() => Invalidate(typeof(TQuery));
@@ -154,11 +154,11 @@ internal sealed class QueryClient : IQueryClient
     public void SetData<TResult>(QueryKey key, TResult data) =>
         GetOrAdd(key).Succeeded(data, _time.GetUtcNow());
 
-    /// <summary>Dispatches a void command, for a Mutation that owns the surrounding state.</summary>
+    /// <summary>Dispatches a void command, for a Command that owns the surrounding state.</summary>
     internal Task DispatchCommandAsync(ICommand command, CancellationToken cancellationToken) =>
         _dispatcher.SendAsync(command, cancellationToken);
 
-    /// <summary>Dispatches a value-returning command, for a Mutation that owns the surrounding state.</summary>
+    /// <summary>Dispatches a value-returning command, for a Command that owns the surrounding state.</summary>
     internal Task<TResult> DispatchCommandAsync<TResult>(
         ICommand<TResult> command,
         CancellationToken cancellationToken) =>
