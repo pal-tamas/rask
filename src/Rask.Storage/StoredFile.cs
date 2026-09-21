@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-
 using Rask.Data;
 
 namespace Rask.Storage;
@@ -80,6 +79,10 @@ public sealed class StoredFile : Entity<Guid>
         // bearing here: it is the orphan sweep's cutoff and the Last-Modified of every file response. So the
         // row records its own time rather than hoping something else will.
         file.Stamp(savedAt);
+
+        // And which tenant it belongs to, for the same reason: the interceptors may not be there. Null when
+        // there is none, which is an ordinary answer — a file saved by the host itself belongs to nobody.
+        file.RecordTenant(Tenant.InFlight);
         return file;
     }
 }
@@ -98,6 +101,12 @@ internal sealed class StoredFileConfiguration : IEntityTypeConfiguration<StoredF
         entity.Property(f => f.Key).HasMaxLength(512).IsRequired();
         // The dashboard lists newest first.
         entity.HasIndex(f => f.CreatedAt);
+
+        // Mapped EXPLICITLY, and the table is deliberately not Tenancy.PerTenant. A partitioned table takes
+        // a query filter, and a filter would hide other tenants' rows from the orphan sweep — which has to
+        // see every file to decide what is unreferenced. The tenant is data on the row, scoped at the two
+        // places a file is reached by id, and ApplyRaskConventions leaves a tenant mapped by hand alone.
+        entity.Property(f => f.TenantId);
     }
 }
 

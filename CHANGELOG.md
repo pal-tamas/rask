@@ -97,7 +97,15 @@ them until tagged releases begin.
   rows from the background purger, and would refuse an anonymous write outright. Scoping the key makes the
   isolation exact rather than enforced — a tenant cannot form another tenant's key.
 
-  **Not wired up yet:** storage does not carry a tenant, and an administrator cannot yet switch into one.
+  **A file belongs to the tenant that saved it.** `StoredFile` records the tenant in flight, and the two
+  places a file is reached by id — `FindAsync` and `DeleteAsync`, which `OpenReadAsync` and
+  `TemporaryUrlAsync` both route through — are scoped to it. One tenant cannot read or delete another's file
+  even holding its id. A file saved by the host itself belongs to nobody, which is an ordinary answer.
+
+  Scoped at the query rather than by a filter on the table, because the orphan sweep has to see every file to
+  decide what is unreferenced — the same reason the queues carry a tenant without being partitioned by one.
+
+  **Not wired up yet:** an administrator cannot yet switch into a tenant.
 
 - **A collection of values on an aggregate is mapped, queryable and editable.** `IReadOnlyList<string> Tags`
   becomes a primitive collection and `IReadOnlyList<Stop> Stops` a JSON column, both carried on the form model

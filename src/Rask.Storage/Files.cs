@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Rask.Data;
 using Rask.Storage.Backends;
 using Rask.Storage.Serving;
 using Rask.Storage.Upload;
@@ -48,9 +49,13 @@ internal sealed class Files<TContext>(IDbContextFactory<TContext> contextFactory
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using (db.ConfigureAwait(false))
         {
+            // Scoped to the tenant in flight, so one tenant cannot reach another's file even holding its
+            // id. Null matches the files that belong to nobody, which is what the host's own saves produce.
+            var tenant = Tenant.InFlight;
+
             return await db.Set<StoredFile>()
                 .AsNoTracking()
-                .FirstOrDefaultAsync(f => f.Id == id, cancellationToken)
+                .FirstOrDefaultAsync(f => f.Id == id && f.TenantId == tenant, cancellationToken)
                 .ConfigureAwait(false);
         }
     }
@@ -85,8 +90,11 @@ internal sealed class Files<TContext>(IDbContextFactory<TContext> contextFactory
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using (db.ConfigureAwait(false))
         {
+            // Scoped like the read: deleting another tenant's file has to be as impossible as reading it.
+            var tenant = Tenant.InFlight;
+
             var removed = await db.Set<StoredFile>()
-                .Where(f => f.Id == id)
+                .Where(f => f.Id == id && f.TenantId == tenant)
                 .ExecuteDeleteAsync(cancellationToken)
                 .ConfigureAwait(false);
             if (removed == 0)
