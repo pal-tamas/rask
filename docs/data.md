@@ -618,7 +618,7 @@ default, so an entity that says nothing is unchanged.
 |---|---|---|---|
 | `Writes` | `ModelWrites` | `All` | the form model, and the writes that take one |
 | `Stamps` | `Timestamps` | `All` | `CreatedAt` and `UpdatedAt` |
-| `Deletes` | `Deletion` | `Hard` | whether `DeleteAsync` removes the row or stamps `DeletedAt` |
+| `Deletes` | `Deletion` | `Hard` | whether `DeleteAsync` removes the row, stamps `DeletedAt`, or [is not generated at all](#behaviour-rich-aggregates) (`None`) |
 | `Checks` | `Concurrency` | `Version` | the optimistic-concurrency token |
 | `Scope` | `Tenancy` | `Shared` | whether the table is partitioned by tenant — see [Multi-tenancy](#multi-tenancy) |
 
@@ -626,6 +626,11 @@ default, so an entity that says nothing is unchanged.
 public sealed class Order : Aggregate<Guid>
 {
     public const Deletion Deletes = Deletion.Soft;   // keep the row when it is deleted
+}
+
+public sealed class Invoice : Aggregate<Guid>
+{
+    public const Deletion Deletes = Deletion.None;   // never deleted: Invoice.DeleteAsync does not exist
 }
 
 public sealed class Reading : Aggregate<Guid>
@@ -699,7 +704,7 @@ public sealed class Passkey : Aggregate<Guid>
 ```csharp
 await Passkey.CreateAsync(p => p.Rename("laptop"));       // behaviour — takes no model
 await Passkey.UpdateAsync(id, p => p.Rename("desktop"));  // behaviour
-await Passkey.DeleteAsync(id);                            // never took a model
+await Passkey.DeleteAsync(id);                            // never took a model (gone under Deletes = Deletion.None)
 await Passkey.Read.Where(p => p.UserId == me).ToListAsync();   // the read face is not negotiable
 ```
 
@@ -712,6 +717,63 @@ surface anyway. A wrong value is a compile error at the declaration, not a surpr
 
 A **child** takes its root's answer: its model exists to be an element of the root's list, so a child
 declaring its own `Writes` is [RASK091](diagnostics.md#rask091) and is ignored.
+
+### Behaviour-rich aggregates
+
+Create, update and delete fit data whose only rule is "the fields are valid" — a product, a category, a
+setting. They do not fit an aggregate whose state moves through steps that each have rules of their own. An
+order is not *updated*: it is placed, paid, shipped or cancelled. An invoice is never deleted: it is voided,
+and a mistake is corrected by a credit note. Nothing new is needed for these — the same writes, used this way:
+
+```csharp
+public enum OrderStatus { Placed, Paid, Shipped, Cancelled }
+
+public sealed class Order : Aggregate<Guid>
+{
+    public const ModelWrites Writes = ModelWrites.None;   // no form writes past the methods below
+    public const Deletion Deletes = Deletion.None;        // cancelled, never deleted
+
+    public string Reference { get; private set; } = "";
+    public OrderStatus Status { get; private set; }
+    public string? Tracking { get; private set; }
+
+    public static Order Place(string reference) =>
+        new() { Id = Guid.CreateVersion7(), Reference = reference, Status = OrderStatus.Placed };
+
+    public void Pay() => Status = Status == OrderStatus.Placed
+        ? OrderStatus.Paid
+        : throw new InvalidOperationException($"A {Status} order cannot be paid.");
+
+    public void Ship(string tracking)
+    {
+        if (Status != OrderStatus.Paid) throw new InvalidOperationException($"A {Status} order cannot ship.");
+        (Status, Tracking) = (OrderStatus.Shipped, tracking);
+    }
+
+    public void Cancel() => Status = Status is OrderStatus.Placed or OrderStatus.Paid
+        ? OrderStatus.Cancelled
+        : throw new InvalidOperationException($"A {Status} order cannot be cancelled.");
+}
+```
+
+```csharp
+var order = await Order.CreateAsync(Order.Place("A-1001"));          // the factory decides what a new order is
+await Order.UpdateAsync(order.Id, o => o.Pay());                     // load whole, run the rule, save
+await Order.UpdateAsync(order.Id, o => o.Ship("1Z999"), version: v); // stale version throws
+await Order.UpdateAsync(order.Id, o => o.Cancel());
+```
+
+- **Only the methods are callable.** The properties have private setters, so `o => o.Status = OrderStatus.Shipped`
+  is a compile error (CS0272) — the lambda can do what the aggregate's public surface allows and nothing else.
+  Each call is one unit of work: the aggregate is loaded with its children, the method runs, the version is
+  checked, and any events it [raises](#keeping-state-inside-the-aggregate) are saved in the same transaction.
+- **`Writes = ModelWrites.None` closes the form path.** The form update copies each field of `OrderModel`
+  onto the private setters directly, which is right for a product and wrong here: a posted form could set
+  `Status` without going through `Ship`. Use `ModelWrites.Create` instead if a form may place an order but
+  never edit one.
+- **`Deletes = Deletion.None` removes `DeleteAsync`.** `Order.DeleteAsync(id)` is then a compile error, and
+  the underlying `GeneratedModelWrites.DeleteAsync<Order>` throws. Retiring an order is `Cancel`, which keeps
+  the row, its history and everything that refers to it.
 
 ### How a form save writes
 

@@ -24,6 +24,18 @@ namespace Rask.Data;
 ///         while charging every query a predicate.
 ///     </para>
 ///     <para>
+///         <see cref="None" /> takes the delete away altogether, for an aggregate that is cancelled or archived
+///         rather than removed:
+///     </para>
+///     <example>
+///         <code>
+///         public sealed class Invoice : Aggregate&lt;Guid&gt;
+///         {
+///             public const Deletion Deletes = Deletion.None;   // Invoice.DeleteAsync does not exist
+///         }
+///         </code>
+///     </example>
+///     <para>
 ///         The one to weigh it against is <see cref="Concurrency" />, which stays ON by default: a lost delete
 ///         is visible, and a lost update is not.
 ///     </para>
@@ -38,4 +50,11 @@ public enum Deletion
     ///     <c>IgnoreQueryFilters()</c> lifts.
     /// </summary>
     Soft,
+
+    /// <summary>
+    ///     The aggregate is never deleted: no <c>DeleteAsync</c> is generated for it. For a record the domain
+    ///     corrects by adding another (a refund, a reversal) or retires through a method of its own
+    ///     (<c>Cancel</c>, <c>Archive</c>) — an invoice, a payment, a ledger entry.
+    /// </summary>
+    None,
 }

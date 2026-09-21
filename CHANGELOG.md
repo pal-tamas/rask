@@ -9,6 +9,14 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Rask.Data`: `Deletion.None` — an aggregate that is never deleted.** Every aggregate got a
+  `DeleteAsync(id)`, whatever it was: an invoice, a payment or a ledger entry is corrected by a new record
+  and an order is cancelled, so a generated delete was a way to lose one by mistake. Declare
+  `public const Deletion Deletes = Deletion.None;` and `DeleteAsync` is not generated — calling it is a
+  compile error, and the underlying `GeneratedModelWrites.DeleteAsync<T>` throws. `docs/data.md` gains a
+  *Behaviour-rich aggregates* recipe: a factory to create, `UpdateAsync(id, o => o.Ship(…))` to change state
+  (private setters leave only the methods callable), `Writes = ModelWrites.None` so no form writes past them,
+  and `Deletes = Deletion.None`.
 - **`Rask.Query`: a command can be a function, and a key can be about a type.** Not everything a
   component changes is a CQRS record — a Rask.Data write, a third-party HTTP call — and until now only a
   record could be a renderable command. `client.Command(invalidates: …)` creates one that is handed the
