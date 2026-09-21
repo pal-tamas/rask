@@ -116,6 +116,8 @@
         <Project Path="tests/Rask.SQLite.Litestream.Tests/Rask.SQLite.Litestream.Tests.csproj" />
         <Project Path="tests/Rask.SQLite.Snapshots.Tests/Rask.SQLite.Snapshots.Tests.csproj" />
         <Project Path="tests/Rask.SQLite.Browser.Tests/Rask.SQLite.Browser.Tests.csproj" />
+        <Project Path="tests/Rask.SQLite.Browser.E2E.Tests/Rask.SQLite.Browser.E2E.Tests.csproj" />
+        <Project Path="tests/Rask.SQLite.Browser.Fixture.Wasm/Rask.SQLite.Browser.Fixture.Wasm.csproj" />
         <Project Path="tests/Rask.TestSupport/Rask.TestSupport.csproj" />
         <Project Path="tests/Rask.Validation.Tests/Rask.Validation.Tests.csproj" />
         <Project Path="tests/Rask.Validation.FluentValidation.Tests/Rask.Validation.FluentValidation.Tests.csproj" />

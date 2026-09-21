@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+
+  <!--
+    The smallest browser-WASM app that searches a real SQLite database with EF Core (#1129): a plain
+    UseSqlite(BrowserSqlite.ConnectionString(...)) plus UseRaskFullTextSearch(), a table declaring HasFullTextSearch,
+    and Search / FullText.Highlight / FullText.Snippet. Published by scripts/run-browser-sqlite-e2e-local.sh and driven
+    by tests/Rask.SQLite.Browser.E2E.Tests. Two things only fail here, never on the .NET SQLite build the unit tests
+    use: FTS5 compiled into the e_sqlite3.a a browser app links, and EF's query pipeline under the WASM runtime.
+
+    It must be published WITH native linking (no -p:WasmBuildNative=false, so the wasm-tools workload is needed):
+    without it e_sqlite3 is not linked in and every database call fails at runtime.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-browser</TargetFramework>
+    <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+    <OutputType>Exe</OutputType>
+    <UseAppHost>false</UseAppHost>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RaskWasm>true</RaskWasm>
+    <IsPackable>false</IsPackable>
+    <RaskPublicApiTracked>false</RaskPublicApiTracked>
+    <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+    <!-- EF Core does not survive the trimmer in a browser build (MissingMethodException at the first EF call), so a
+         browser app on EF ships untrimmed, and so does this one. AOT is off for the same reason. -->
+    <PublishTrimmed>false</PublishTrimmed>
+    <RunAOTCompilation Condition=" '$(WasmBuildNative)' != 'false' ">false</RunAOTCompilation>
+    <!-- The SQLite native build reports two varargs functions it cannot call (sqlite3_config, sqlite3_db_config);
+         nothing here reaches them, and the repo builds warnings-as-errors. -->
+    <NoWarn>$(NoWarn);WASM0001;IL2104</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Wasm\Rask.Wasm.csproj"/>
+    <!-- PrivateAssets="all" from Rask.Wasm, so an in-repo app names it itself. -->
+    <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.SQLite.Browser\Rask.SQLite.Browser.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.SQLite.EntityFrameworkCore\Rask.SQLite.EntityFrameworkCore.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Data\Rask.Data.csproj"/>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"/>
+    <!-- The patched SQLitePCLRaw bundle, and what supplies the browser-wasm e_sqlite3.a and its NativeFileReference. -->
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3"/>
+    <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+</Project>

@@ -107,6 +107,7 @@ form gate "run-e2e-local.sh"
 # made every one of these invisible.
 form gate "bash -x scripts/run-e2e-local.sh"
 form gate "bash scripts/run-devtools-e2e-local.sh"
+form gate "bash scripts/run-browser-sqlite-e2e-local.sh"
 form gate "bash -eu ./scripts/run-e2e-local.sh"
 
 form not  "vim scripts/run-e2e-local.sh"

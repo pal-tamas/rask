@@ -14,6 +14,12 @@ them until tagged releases begin.
   dependent query that stays paused until a pick, a function query keyed `QueryKey.For<Parcel>(input)`, and a
   per-row `QueryClient.Command<ShipParcel>(key: row.Id)` whose `IsPending` disables its button and whose success
   refetches the page and the picked parcel through `[Invalidates]`. The site's E2E journey walks all four.
+- **Full-text search is proven inside WebAssembly: `scripts/run-browser-sqlite-e2e-local.sh` (#1129).** A test-only
+  browser app (`tests/Rask.SQLite.Browser.Fixture.Wasm`) opens a plain `UseSqlite(BrowserSqlite.ConnectionString(…))`
+  with `UseRaskFullTextSearch()`, migrates a table declaring `HasFullTextSearch`, and Playwright drives `Search`,
+  `FullText.Highlight` and `FullText.Snippet` in Chromium. It is the only gate that links `e_sqlite3` natively into a
+  WASM bundle (it needs the `wasm-tools` workload), so it proves the FTS5 build and EF's query rewrite a browser app
+  actually ships. Listed in `run-all-gates.sh`.
 
 - **Broadcast across servers: `Rask.Redis` (#1115).** `AddRaskRedisBackplane()` carries `IBroadcast` messages
   between the instances behind a load balancer over Redis pub/sub, so a publish on one instance re-renders the
