@@ -917,6 +917,102 @@ public class ModelInputGeneratorTests
         Assert.Contains("DeleteAsync(global::System.Guid id", source, StringComparison.Ordinal);
     }
 
+    // ---- Deletion.None: an aggregate that is never deleted -------------------------------------------
+
+    [Fact]
+    public void The_generators_copy_of_Deletion_None_still_matches_the_enum()
+    {
+        Assert.Equal(ModelInputGenerator.NoDeletion, (int)global::Rask.Data.Deletion.None);
+    }
+
+    [Fact]
+    public void Deletion_None_drops_DeleteAsync_and_keeps_every_other_write()
+    {
+        var run = Run("""
+            using System;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Invoice : Aggregate<Guid>
+            {
+                public const Deletion Deletes = Deletion.None;
+                public string Status { get; private set; } = "Open";
+                public void Cancel() => Status = "Cancelled";
+            }
+            """);
+
+        Assert.Empty(run.Diagnostics);
+        Assert.Empty(run.GeneratedCompileErrors());
+
+        var source = run.GeneratedSource("Shop.InvoiceModel");
+        Assert.DoesNotContain("DeleteAsync", source, StringComparison.Ordinal);
+        Assert.Contains("CreateAsync(global::System.Action<global::Shop.Invoice> apply", source, StringComparison.Ordinal);
+        Assert.Contains("UpdateAsync(global::System.Guid id, global::System.Action<global::Shop.Invoice> apply", source, StringComparison.Ordinal);
+        Assert.Contains("UpdateAsync(global::System.Guid id, global::Shop.InvoiceModel model", source, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("Deletion.Hard")]
+    [InlineData("Deletion.Soft")]
+    public void Deletion_Hard_and_Soft_keep_DeleteAsync(string deletes)
+    {
+        var run = Run($$"""
+            using System;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Invoice : Aggregate<Guid>
+            {
+                public const Deletion Deletes = {{deletes}};
+                public string Status { get; private set; } = "Open";
+            }
+            """);
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("DeleteAsync(global::System.Guid id", run.GeneratedSource("Shop.InvoiceModel"), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("Deletion.None", true)]
+    [InlineData("Deletion.Hard", false)]   // the control: the same call site DOES bind when the delete exists
+    public void Calling_DeleteAsync_on_a_Deletion_None_aggregate_does_not_compile(string deletes, bool refused)
+    {
+        // The point of the const: the mistake is a build error at the call site, not a runtime surprise.
+        var run = Run($$"""
+            using System;
+            using System.Threading.Tasks;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Invoice : Aggregate<Guid>
+            {
+                public const Deletion Deletes = {{deletes}};
+                public string Status { get; private set; } = "Open";
+            }
+            public static class Caller
+            {
+                public static Task Go(Guid id) => Invoice.DeleteAsync(id);
+            }
+            """);
+
+        var generated = run.RunResult.Results
+            .SelectMany(r => r.GeneratedSources)
+            .Select(s => CSharpSyntaxTree.ParseText(
+                s.SourceText, new CSharpParseOptions(LanguageVersion.Latest), path: s.HintName))
+            .ToArray();
+        var errors = run.Compilation.AddSyntaxTrees(generated)
+            .GetDiagnostics()
+            .Where(d => d.Severity == DiagnosticSeverity.Error)
+            .Select(d => d.Id)
+            .ToList();
+
+        if (refused)
+        {
+            Assert.Contains("CS0117", errors);
+        }
+        else
+        {
+            Assert.Empty(errors);
+        }
+    }
+
     [Fact]
     public void ModelWrites_None_keeps_the_read_face()
     {

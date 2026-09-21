@@ -106,6 +106,7 @@ public static class GeneratedModelWrites
     /// <param name="cancellationToken">Cancels the load and the save.</param>
     /// <exception cref="KeyNotFoundException">No row has <paramref name="key" /> (or it is soft-deleted).</exception>
     /// <exception cref="DbUpdateConcurrencyException">The row's version is no longer <paramref name="version" />.</exception>
+    /// <exception cref="InvalidOperationException">The aggregate declares <see cref="Deletion.None" />.</exception>
     public static Task DeleteAsync<TEntity>(
         object key,
         int? version,
@@ -114,6 +115,14 @@ public static class GeneratedModelWrites
         where TEntity : class, IAggregate
     {
         ArgumentNullException.ThrowIfNull(key);
+
+        // The generated Product.DeleteAsync is not emitted for such an aggregate; this closes the direct call.
+        if (ConventionRegistry.DeletesFor(typeof(TEntity)) == Deletion.None)
+        {
+            throw new InvalidOperationException(
+                $"{typeof(TEntity).Name} declares Deletes = Deletion.None and is never deleted; " +
+                "retire it through a method of its own (Cancel, Archive) instead.");
+        }
 
         return InContextAsync(db, async context =>
         {
