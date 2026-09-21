@@ -43,6 +43,23 @@ o.UseRaskPostgres(sp, p =>
 });
 ```
 
+## Full-text search
+
+`HasFullTextSearch`, `Search(text)`, `FullText.Highlight` and `FullText.Snippet` from `Rask.Data` work here as they do
+on SQLite:
+
+```csharp
+builder.HasFullTextSearch(p => new { p.Title, p.Body });                 // in the entity's configuration
+
+var hits = await db.Posts.Search("postgres sqli")                         // every word, the last as a prefix
+    .Select(p => new { p.Id, Title = FullText.Highlight(p.Title) })       // matches marked for UiHighlight
+    .ToListAsync();                                                       // best match first
+```
+
+The index is a stored generated `tsvector` column with a GIN index, created by your migration and kept current by
+PostgreSQL itself. `FullTextTokenizer.Unicode` folds accents (`keres` finds `kérés`) through a `rask_unicode` text
+search configuration built on `unaccent`, which the first migration that needs it creates.
+
 ## What the defaults do
 
 | Setting | Default | Why |

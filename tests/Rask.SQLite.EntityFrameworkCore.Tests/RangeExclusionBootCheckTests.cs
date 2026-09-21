@@ -67,6 +67,8 @@ public sealed class RangeExclusionBootCheckTests
         });
 
         Assert.StartsWith("Article declares HasFullTextSearch, but Microsoft.EntityFrameworkCore.Sqlite does not support it", error.Message);
-        Assert.Contains("Full-text search is SQLite-only for now: configure ArticleContext with UseRaskSqlite(services)", error.Message);
+        Assert.Contains("Full-text search runs on SQLite and PostgreSQL: configure ArticleContext with UseRaskSqlite(services)", error.Message);
+        // The fix for exactly this configuration — a plain UseSqlite — is named in the message.
+        Assert.Contains(".UseRaskFullTextSearch()", error.Message);
     }
 }

@@ -42,4 +42,9 @@
     <InternalsVisibleTo Include="Rask.Postgres.Tests"/>
   </ItemGroup>
 
+  <!-- HasFullTextSearch's declaration and markers live in Rask.Data; this package implements them on PostgreSQL. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Data\Rask.Data.csproj"/>
+  </ItemGroup>
+
 </Project>

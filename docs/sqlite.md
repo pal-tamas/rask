@@ -260,9 +260,52 @@ Four things worth knowing:
 
 Requires `UseRaskSqlite(...)`, which registers the migration SQL, the query translation and the
 `highlight`/`snippet` functions; all of it is inert until an entity declares an index, and it composes
-with `STRICT` tables and non-overlapping ranges. Full-text search is **SQLite-only for now**: on
-PostgreSQL, SQL Server or a plain `UseSqlite`, `AddRaskData<TContext>` **refuses to boot** a context that
-declares an index rather than letting the first search fail.
+with `STRICT` tables and non-overlapping ranges.
+
+**In the browser, or anywhere you configure a plain `UseSqlite`,** add `UseRaskFullTextSearch()` instead. It
+registers only what search needs — none of `UseRaskSqlite`'s connection string, pragmas or retry — so a
+WebAssembly app searches its local database the same way:
+
+```csharp
+builder.Services.AddDbContextFactory<AppDbContext>(o => o
+    .UseSqlite(BrowserSqlite.ConnectionString("app"))
+    .UseRaskFullTextSearch());
+```
+
+Apply migrations (`Database.MigrateAsync()`): the index is built by a migration, and `EnsureCreated` creates
+none. Called after `UseRaskSqlite`, it keeps that call's choices, `STRICT` tables included.
+
+**On PostgreSQL** the same `HasFullTextSearch`, `Search(text)`, `FullText.Highlight` and `Snippet` work through
+`UseRaskPostgres`: the index is a stored generated `tsvector` column with a GIN index — no triggers, the database keeps
+it current — and a search is `@@ to_tsquery(…)` ranked by `ts_rank_cd`, with the highlights from `ts_headline` in the
+same markers `UiHighlight` reads. `English` maps to PostgreSQL's `english` configuration; `Unicode` to `rask_unicode`,
+`simple` with `unaccent` in front of it, which the first migration that needs it creates (it runs
+`CREATE EXTENSION IF NOT EXISTS unaccent`, so the migrating role needs that right once). Two differences worth
+knowing: a snippet on PostgreSQL has no `…` at its cut ends, and its word count must be a constant.
+
+On SQL Server, or a plain `UseSqlite` without `UseRaskFullTextSearch()`, `AddRaskData<TContext>` **refuses to
+boot** a context that declares an index rather than letting the first search fail.
+
+## Indexing a value inside a JSON column
+
+EF Core maps an owned type with `ToJson()` to one JSON column and translates a filter on a value inside it — but
+SQLite answers that filter by reading every row, because nothing indexes the value. `HasJsonIndex` does:
+
+```csharp
+builder.OwnsOne(o => o.Meta, meta => { meta.ToJson(); meta.OwnsOne(m => m.Address); });
+builder.HasJsonIndex(o => o.Meta.Status)            // "Meta" ->> 'Status'
+       .HasJsonIndex(o => o.Meta.Address.City);     // "Meta" ->> '$.Address.City'
+
+var open = await db.Orders.Where(o => o.Meta.Status == "open").ToListAsync();   // SEARCH … USING INDEX
+```
+
+SQLite uses an expression index only for the **same** expression, so the index is written exactly the way EF writes
+the filter — and EF spells a top-level value (`'Status'`) differently from a nested one (`'$.Address.City'`); the
+tests pin the query plan of EF's own SQL, not the DDL. Like the rest of this page, it arrives through a migration:
+adding, changing or removing a declaration is a migration of its own, and a migration that rebuilds the table
+rebuilds the index with it. A path that does not lead through a `ToJson()` navigation to a value is an error when
+the migration is built, naming the path. SQLite only for now — on another provider `AddRaskData` refuses to boot a
+context that declares one, rather than let the filter scan without saying so.
 
 ## Why it hooks connection-open (not startup)
 

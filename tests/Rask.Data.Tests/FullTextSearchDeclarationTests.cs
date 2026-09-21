@@ -25,6 +25,22 @@ public sealed class FullTextSearchDeclarationTests
     [InlineData("-- ** \"\" ()")]
     public void Text_without_a_word_compiles_to_nothing(string? text) => Assert.Null(FullTextQuery.Compile(text));
 
+    // #1109: the same words as a PostgreSQL tsquery. Each is a quoted lexeme, so an operator typed into a search box
+    // (& | ! : ( ) <->) is text, never syntax, and a quote or backslash cannot end the lexeme early.
+    [Theory]
+    [InlineData("sqlite", "'sqlite':*")]
+    [InlineData("postgres sqli", "'postgres' & 'sqli':*")]
+    [InlineData("it's & | ! (fast", "'it''s' & '(fast':*")]
+    [InlineData(@"back\slash", @"'back\\slash':*")]
+    [InlineData("a:b <-> c", "'a:b' & 'c':*")]
+    public void Typed_text_becomes_quoted_lexemes_for_postgres(string text, string expected) =>
+        Assert.Equal(expected, FullTextQuery.CompileTsQuery(text));
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("-- ** \"\" ()")]
+    public void Text_without_a_word_is_no_tsquery_either(string? text) => Assert.Null(FullTextQuery.CompileTsQuery(text));
+
     [Fact]
     public void The_number_of_words_is_bounded()
     {

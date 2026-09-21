@@ -9,6 +9,25 @@ them until tagged releases begin.
 
 ### Added
 
+- **Full-text search on PostgreSQL** (#1109). `HasFullTextSearch`, `Search(text)` and `FullText.Highlight`/`Snippet`
+  now work through `UseRaskPostgres` as they do on SQLite. The index is a stored generated `tsvector` column with a
+  GIN index — no triggers — and a search is `@@ to_tsquery(…)` ranked by `ts_rank_cd`, highlighted by `ts_headline`
+  in the markers `UiHighlight` reads. `English` maps to PostgreSQL's `english` configuration and `Unicode` to a
+  `rask_unicode` configuration over `unaccent`, which the first migration that needs it creates. `AddRaskData` no
+  longer refuses to boot a PostgreSQL context that declares an index.
+- **`HasJsonIndex` indexes a value inside a JSON column** (#1112). `builder.HasJsonIndex(o => o.Meta.Status)` adds an
+  expression index whose expression is exactly the one EF Core writes for that path — `"Meta" ->> 'Status'`, or
+  `"Meta" ->> '$.Address.City'` one level down — so a filter on it is an index search instead of a scan. It
+  arrives, changes and goes through migrations and survives a table rebuild. SQLite only for now; another provider
+  refuses to boot a context that declares one.
+
+- **Full-text search in browser apps: `UseRaskFullTextSearch()`** (#1110). `HasFullTextSearch` and
+  `Search(text)` needed `UseRaskSqlite`, which a WebAssembly app does not use — it opens its local database
+  with `UseSqlite(BrowserSqlite.ConnectionString("app"))`. `.UseRaskFullTextSearch()` on any `UseSqlite`
+  registers only what search needs: the migration SQL that builds the FTS5 index, the annotation that makes
+  adding or removing it a migration, and the query rewrite. Called after `UseRaskSqlite` it keeps that call's
+  choices, `STRICT` tables included.
+
 - **`Rask.Data`: `Deletion.None` — an aggregate that is never deleted.** Every aggregate got a
   `DeleteAsync(id)`, whatever it was: an invoice, a payment or a ledger entry is corrected by a new record
   and an order is cancelled, so a generated delete was a way to lose one by mistake. Declare
@@ -155,6 +174,14 @@ them until tagged releases begin.
   and a collection the entity's own `Configure` already mapped is left exactly as it is.
 
 ### Changed
+
+- **The dashboard's log search is served by an index** (#1111). It was `LIKE '%…%'` over every retained row. The
+  SQLite log store now keeps an FTS5 table with the `trigram` tokenizer beside the log, kept current by triggers, and
+  a search of three or more characters is a case-insensitive substring match looked up in it; a shorter one is the
+  scan it was. A `logs.db` from an earlier version is indexed once, the first time it is opened. Measured
+  (`SqliteLogSearchBenchmarks`, a rare order id): a page of results in 3.3 ms instead of 16.1 ms at 100,000 rows, and
+  12.8 ms instead of 112 ms at 500,000. The price is on the write side, which the batched background writer pays
+  rather than a request: about 30 µs more per entry (100 entries in 2.7–3.6 ms instead of 0.23 ms).
 
 - **`Rask.Query`: an optimistic update is made per send, from the query on screen** (breaking:
   `Command<T>.Optimistic(query, update)` is gone). Registered once when the command was created, the edit

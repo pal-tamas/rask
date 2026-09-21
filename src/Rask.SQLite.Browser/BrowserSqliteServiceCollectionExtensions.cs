@@ -21,7 +21,7 @@ public static class BrowserSqliteServiceCollectionExtensions
     ///     <code>
     ///     builder.Services.AddRaskBrowserSqlite("app");
     ///     builder.Services.AddDbContextFactory&lt;AppDbContext&gt;(o =&gt;
-    ///         o.UseSqlite(BrowserSqlite.ConnectionString("app")));
+    ///         o.UseSqlite(BrowserSqlite.ConnectionString("app")));   // .UseRaskFullTextSearch() for HasFullTextSearch
     ///     builder.Services.AddRaskJobs&lt;AppDbContext&gt;();
     ///     </code>
     ///     <para>

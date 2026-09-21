@@ -342,6 +342,8 @@ internal sealed class SqliteLogStore : ILogs
                 // the schema itself.
                 await AddColumnIfMissingAsync(connection, "Scopes", "TEXT", cancellationToken)
                     .ConfigureAwait(false);
+
+                await EnsureSearchIndexAsync(connection, cancellationToken).ConfigureAwait(false);
             }
 
             _schemaReady = true;
@@ -349,6 +351,83 @@ internal sealed class SqliteLogStore : ILogs
         finally
         {
             _schemaGate.Release();
+        }
+    }
+
+    /// <summary>
+    ///     The substring index behind <see cref="LogQuery.Search" /> (#1111): an FTS5 table with the <c>trigram</c>
+    ///     tokenizer over Message and Exception, kept current by triggers.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     Log search wants SUBSTRINGS — an id, a path, half an exception type — not words, so the tokenizer is
+    ///     <c>trigram</c> rather than FTS5's default: a quoted phrase then matches anywhere inside the text, and the
+    ///     match is served from the index instead of a <c>LIKE '%…%'</c> scan of every row retention keeps.
+    ///     </para>
+    ///     <para>
+    ///     External content (<c>content='RaskLog'</c>), so the text is stored once. The triggers keep the index in
+    ///     step with every insert and with retention's deletes; a store that predates the index is backfilled once
+    ///     with <c>rebuild</c>. Written out here rather than shared with Rask.SQLite.EntityFrameworkCore's
+    ///     full-text DDL, which is built on EF's migration pipeline over an EF model — this store is raw ADO.NET on
+    ///     a framework-owned file, and five statements do not justify pulling that pipeline in.
+    ///     </para>
+    /// </remarks>
+    private static async Task EnsureSearchIndexAsync(SqliteConnection connection, CancellationToken cancellationToken)
+    {
+        // One transaction: whether to backfill is decided by whether the index exists, so an index created and then
+        // interrupted before its rebuild would never be backfilled — every entry older than the upgrade unsearchable
+        // for good. Created and rebuilt together, or neither.
+        var transaction = (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        await using (transaction.ConfigureAwait(false))
+        {
+            await CreateSearchIndexAsync(connection, transaction, cancellationToken).ConfigureAwait(false);
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task CreateSearchIndexAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        CancellationToken cancellationToken)
+    {
+        var probe = connection.CreateCommand();
+        probe.Transaction = transaction;
+        bool existed;
+        await using (probe.ConfigureAwait(false))
+        {
+            probe.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'RaskLogSearch';";
+            existed = Convert.ToInt64(
+                await probe.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false),
+                CultureInfo.InvariantCulture) > 0;
+        }
+
+        var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        await using (command.ConfigureAwait(false))
+        {
+            command.CommandText = """
+                CREATE VIRTUAL TABLE IF NOT EXISTS RaskLogSearch USING fts5(
+                    Message, Exception, content='RaskLog', content_rowid='Id', tokenize='trigram');
+                CREATE TRIGGER IF NOT EXISTS TR_RaskLog_Search_Insert AFTER INSERT ON RaskLog BEGIN
+                    INSERT INTO RaskLogSearch (rowid, Message, Exception) VALUES (new.Id, new.Message, new.Exception);
+                END;
+                CREATE TRIGGER IF NOT EXISTS TR_RaskLog_Search_Delete AFTER DELETE ON RaskLog BEGIN
+                    INSERT INTO RaskLogSearch (RaskLogSearch, rowid, Message, Exception)
+                    VALUES ('delete', old.Id, old.Message, old.Exception);
+                END;
+                CREATE TRIGGER IF NOT EXISTS TR_RaskLog_Search_Update AFTER UPDATE OF Message, Exception ON RaskLog BEGIN
+                    INSERT INTO RaskLogSearch (RaskLogSearch, rowid, Message, Exception)
+                    VALUES ('delete', old.Id, old.Message, old.Exception);
+                    INSERT INTO RaskLogSearch (rowid, Message, Exception) VALUES (new.Id, new.Message, new.Exception);
+                END;
+                """;
+            if (!existed)
+            {
+                // The rows a store written before the index already holds. Once, while the schema gate is held.
+                command.CommandText += "INSERT INTO RaskLogSearch (RaskLogSearch) VALUES ('rebuild');";
+            }
+
+            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -486,11 +565,29 @@ internal sealed class SqliteLogStore : ILogs
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
-            Add(
-                @"(Message LIKE $search ESCAPE '\' OR Exception LIKE $search ESCAPE '\')",
-                "$search",
-                SqliteType.Text,
-                $"%{EscapeLike(query.Search)}%");
+            // Characters, not UTF-16 units: the trigram tokenizer counts code points, so "😀a" is two of them — too
+            // few for a trigram — although its string length is three.
+            if (query.Search.EnumerateRunes().Count() >= 3)
+            {
+                // Served by the trigram index: a quoted phrase is a case-insensitive substring match in either
+                // column. Inside the quotes every character is literal, a doubled quote included — so `%` and `_`
+                // mean themselves, as they did escaped in LIKE.
+                Add(
+                    "Id IN (SELECT rowid FROM RaskLogSearch WHERE RaskLogSearch MATCH $search)",
+                    "$search",
+                    SqliteType.Text,
+                    "\"" + query.Search.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"");
+            }
+            else
+            {
+                // A trigram index has nothing to look up for fewer than three characters, so a one- or two-character
+                // search is the scan it always was.
+                Add(
+                    @"(Message LIKE $search ESCAPE '\' OR Exception LIKE $search ESCAPE '\')",
+                    "$search",
+                    SqliteType.Text,
+                    $"%{EscapeLike(query.Search)}%");
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(query.ScopeKey))

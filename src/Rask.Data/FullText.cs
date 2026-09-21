@@ -99,10 +99,14 @@ public static class FullTextQueryableExtensions
             throw FullTextMarkers.Unsupported<TEntity>();
         }
 
-        // Boxed rather than a constant so EF Core sends it as a parameter and caches one plan for every search.
+        // Boxed rather than constants so EF Core sends them as parameters and caches one plan for every search. Both
+        // syntaxes travel, because the words are compiled here and the provider is only known once the query is:
+        // SQLite's rewrite reads the FTS5 one and PostgreSQL's the tsquery, and EF sends only the one referenced.
         var argument = Expression.Field(Expression.Constant(new StrongBox<string>(match)), BoxedValue);
+        var tsQuery = Expression.Field(
+            Expression.Constant(new StrongBox<string>(FullTextQuery.CompileTsQuery(text)!)), BoxedValue);
         return source.Provider.CreateQuery<TEntity>(
-            Expression.Call(FullTextMarkers.MatchingMethod<TEntity>(), source.Expression, argument));
+            Expression.Call(FullTextMarkers.MatchingMethod<TEntity>(), source.Expression, argument, tsQuery));
     }
 }
 
@@ -117,16 +121,18 @@ internal static class FullTextMarkers
     /// Ordered, because a search IS an ordering — best match first — so <c>ThenBy</c> can follow it, as
     /// <c>ModelQuery.Search</c> promises. The provider folds such a <c>ThenBy</c> into its rank order.
     /// </remarks>
-    public static IOrderedQueryable<TEntity> Matching<TEntity>(IQueryable<TEntity> source, string match) =>
+    // match is FTS5 syntax (SQLite), tsQuery the same words as a tsquery (PostgreSQL).
+    public static IOrderedQueryable<TEntity> Matching<TEntity>(IQueryable<TEntity> source, string match, string tsQuery) =>
         throw Unsupported<TEntity>();
 
     public static InvalidOperationException Unsupported<TEntity>() => new(
         $"Search(text) on {typeof(TEntity).Name} runs in the database, and this query's provider does not " +
         "support full-text search. Configure the context with UseRaskSqlite(services) from " +
-        "Rask.SQLite.EntityFrameworkCore, and declare the index with HasFullTextSearch.");
+        "Rask.SQLite.EntityFrameworkCore (or add .UseRaskFullTextSearch() to a plain UseSqlite) or with " +
+        "UseRaskPostgres(services) from Rask.Postgres, and declare the index with HasFullTextSearch.");
 
     public static System.Reflection.MethodInfo MatchingMethod<TEntity>() =>
-        new Func<IQueryable<TEntity>, string, IOrderedQueryable<TEntity>>(Matching).Method;
+        new Func<IQueryable<TEntity>, string, string, IOrderedQueryable<TEntity>>(Matching).Method;
 
     public static bool IsMatching(System.Reflection.MethodInfo method) =>
         method.IsGenericMethod && method.DeclaringType == typeof(FullTextMarkers) && method.Name == nameof(Matching);

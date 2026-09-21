@@ -194,7 +194,7 @@ internal static class RangeExclusionDdl
     private static string Literal(string value)
         => string.Create(CultureInfo.InvariantCulture, $"'{value.Replace("'", "''", StringComparison.Ordinal)}'");
 
-    private static string? TableOf(MigrationOperation operation) => operation switch
+    internal static string? TableOf(MigrationOperation operation) => operation switch
     {
         CreateTableOperation create => create.Name,
         DropTableOperation drop => drop.Name,

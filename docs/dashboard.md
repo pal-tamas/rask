@@ -181,7 +181,7 @@ Install [`Rask.Logging`](logging.md) and the page grows a second mode:
 | Mode | Reads | Survives a restart | Cost |
 | --- | --- | --- | --- |
 | **Live** (default) | The in-memory buffer above | No | None — no query at all, and it renders on a real log line rather than a timer |
-| **History** | The durable store, paged, with level/category filters and a full-text search | Yes | One query per refresh, against the log store's **own** SQLite file — never the application database |
+| **History** | The durable store, paged, with level/category filters and an indexed substring search | Yes | One query per refresh, against the log store's **own** SQLite file — never the application database |
 
 ```csharp
 builder.Services.AddRaskLogging();   // opens Rask:ConnectionStrings:Logs

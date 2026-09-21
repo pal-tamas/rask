@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Rask.Hosting.Shared;
@@ -63,6 +65,12 @@ public static class RaskPostgresDbContextOptionsExtensions
             throw new OptionsValidationException(
                 Microsoft.Extensions.Options.Options.DefaultName, typeof(PostgresOptions), [$"Rask:Postgres: {ex.Message}"]);
         }
+
+        // Full-text search (#1109), inert until an entity declares HasFullTextSearch: Npgsql's own migrations plus the
+        // text search configuration the Unicode tokenizer needs, and the query rewrite behind Search(text). EF keeps
+        // one generator and one extension of each type, so calling this twice registers nothing twice.
+        optionsBuilder.ReplaceService<IMigrationsSqlGenerator, RaskPostgresMigrationsSqlGenerator>();
+        ((IDbContextOptionsBuilderInfrastructure)optionsBuilder).AddOrUpdateExtension(new PostgresFullTextSearchOptionsExtension());
 
         return optionsBuilder.UseNpgsql(PostgresSessionSettings.Apply(connectionString, options), postgres =>
         {
