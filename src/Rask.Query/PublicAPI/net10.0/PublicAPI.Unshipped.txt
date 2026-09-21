@@ -2,31 +2,38 @@
 Rask.Query.Command
 Rask.Query.Command.Error.get -> System.Exception?
 Rask.Query.Command.IsError.get -> bool
+Rask.Query.Command.IsIdle.get -> bool
 Rask.Query.Command.IsPending.get -> bool
 Rask.Query.Command.IsSuccess.get -> bool
 Rask.Query.Command.Reset() -> void
 Rask.Query.Command.SendAsync(System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task!>! send, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Query.Command.SendAsync(System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task!>! send, params Rask.Query.OptimisticEdit![]! optimistic) -> System.Threading.Tasks.Task!
 Rask.Query.Command.SendAsync<TResult>(System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! send, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult?>!
+Rask.Query.Command.SendAsync<TResult>(System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! send, params Rask.Query.OptimisticEdit![]! optimistic) -> System.Threading.Tasks.Task<TResult?>!
 Rask.Query.Command.Status.get -> Rask.Query.CommandStatus
 Rask.Query.Command<TCommand, TResult>
 Rask.Query.Command<TCommand, TResult>.Data.get -> TResult?
 Rask.Query.Command<TCommand, TResult>.Error.get -> System.Exception?
 Rask.Query.Command<TCommand, TResult>.IsError.get -> bool
+Rask.Query.Command<TCommand, TResult>.IsIdle.get -> bool
 Rask.Query.Command<TCommand, TResult>.IsPending.get -> bool
 Rask.Query.Command<TCommand, TResult>.IsSuccess.get -> bool
-Rask.Query.Command<TCommand, TResult>.Optimistic<TQueryResult>(Rask.Cqrs.IQuery<TQueryResult>! query, System.Func<TQueryResult, TQueryResult>! update) -> Rask.Query.Command<TCommand, TResult>!
 Rask.Query.Command<TCommand, TResult>.Reset() -> void
 Rask.Query.Command<TCommand, TResult>.SendAsync(TCommand command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult?>!
+Rask.Query.Command<TCommand, TResult>.SendAsync(TCommand command, params Rask.Query.OptimisticEdit![]! optimistic) -> System.Threading.Tasks.Task<TResult?>!
 Rask.Query.Command<TCommand, TResult>.Status.get -> Rask.Query.CommandStatus
+Rask.Query.Command<TCommand, TResult>.Variables.get -> TCommand?
 Rask.Query.Command<TCommand>
 Rask.Query.Command<TCommand>.Error.get -> System.Exception?
 Rask.Query.Command<TCommand>.IsError.get -> bool
+Rask.Query.Command<TCommand>.IsIdle.get -> bool
 Rask.Query.Command<TCommand>.IsPending.get -> bool
 Rask.Query.Command<TCommand>.IsSuccess.get -> bool
-Rask.Query.Command<TCommand>.Optimistic<TResult>(Rask.Cqrs.IQuery<TResult>! query, System.Func<TResult, TResult>! update) -> Rask.Query.Command<TCommand>!
 Rask.Query.Command<TCommand>.Reset() -> void
 Rask.Query.Command<TCommand>.SendAsync(TCommand command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Query.Command<TCommand>.SendAsync(TCommand command, params Rask.Query.OptimisticEdit![]! optimistic) -> System.Threading.Tasks.Task!
 Rask.Query.Command<TCommand>.Status.get -> Rask.Query.CommandStatus
+Rask.Query.Command<TCommand>.Variables.get -> TCommand?
 Rask.Query.CommandStatus
 Rask.Query.CommandStatus.Error = 2 -> Rask.Query.CommandStatus
 Rask.Query.CommandStatus.Idle = 0 -> Rask.Query.CommandStatus
@@ -61,6 +68,7 @@ Rask.Query.InvalidatesAttribute.InvalidatesAttribute(params System.Type![]! quer
 Rask.Query.InvalidatesAttribute.InvalidatesAttribute(params string![]! keyPrefix) -> void
 Rask.Query.InvalidatesAttribute.KeyPrefix.get -> System.Collections.Generic.IReadOnlyList<string!>!
 Rask.Query.InvalidatesAttribute.QueryTypes.get -> System.Collections.Generic.IReadOnlyList<System.Type!>!
+Rask.Query.OptimisticEdit
 Rask.Query.Query<TResult>
 Rask.Query.Query<TResult>.Data.get -> TResult?
 Rask.Query.Query<TResult>.Dispose() -> void
@@ -72,6 +80,7 @@ Rask.Query.Query<TResult>.IsLoading.get -> bool
 Rask.Query.Query<TResult>.IsPlaceholderData.get -> bool
 Rask.Query.Query<TResult>.IsSuccess.get -> bool
 Rask.Query.Query<TResult>.Key.get -> Rask.Query.QueryKey
+Rask.Query.Query<TResult>.Optimistic(System.Func<TResult, TResult>! update) -> Rask.Query.OptimisticEdit!
 Rask.Query.Query<TResult>.RefetchAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Query.Query<TResult>.Status.get -> Rask.Query.QueryStatus
 Rask.Query.QueryClient

@@ -5,11 +5,10 @@ namespace Rask.Query;
 
 /// <summary>
 ///     The shared state machine behind every command shape — a record command and a function alike:
-///     pending/error/success, the components watching it, and any optimistic edits to roll back.
+///     pending/error/success, the components watching it, and the optimistic edits of a send to roll back.
 /// </summary>
-internal sealed class CommandCore(SessionQueryClient client)
+internal sealed class CommandCore
 {
-    private readonly List<IOptimisticUpdate> _optimistic = [];
     private readonly ComponentReaders _readers = new();
 
     public CommandStatus Status { get; private set; } = CommandStatus.Idle;
@@ -17,8 +16,6 @@ internal sealed class CommandCore(SessionQueryClient client)
     public Exception? Error { get; private set; }
 
     public void Observe() => _readers.Observe();
-
-    public void AddOptimistic(IOptimisticUpdate update) => _optimistic.Add(update);
 
     public void Reset()
     {
@@ -35,6 +32,7 @@ internal sealed class CommandCore(SessionQueryClient client)
     public async Task<TResult?> RunAsync<TResult>(
         Func<CancellationToken, Task<TResult>> dispatch,
         Action invalidate,
+        OptimisticEdit[] optimistic,
         CancellationToken cancellationToken)
     {
         Status = CommandStatus.Pending;
@@ -43,10 +41,10 @@ internal sealed class CommandCore(SessionQueryClient client)
 
         // Snapshots first, and all of them, before anything is dispatched: a rollback that only
         // covers the edits made before the failure leaves the rest applied.
-        var snapshots = new IOptimisticSnapshot[_optimistic.Count];
-        for (var i = 0; i < _optimistic.Count; i++)
+        var snapshots = optimistic.Length == 0 ? [] : new IOptimisticSnapshot[optimistic.Length];
+        for (var i = 0; i < optimistic.Length; i++)
         {
-            snapshots[i] = _optimistic[i].Apply(client);
+            snapshots[i] = optimistic[i].Apply();
         }
 
         try
@@ -65,7 +63,7 @@ internal sealed class CommandCore(SessionQueryClient client)
             // Undone in reverse, so overlapping edits to one entry unwind in the order they were made.
             for (var i = snapshots.Length - 1; i >= 0; i--)
             {
-                snapshots[i].Restore(client);
+                snapshots[i].Restore();
             }
 
             Error = ex;
@@ -92,7 +90,7 @@ internal sealed class CommandCore(SessionQueryClient client)
 ///           [_ship.IsPending ? "Shipping…" : "Ship"]
 ///     </code>
 ///     <para>
-///         <see cref="SendAsync" /> does <b>not</b> throw. It is called from an event handler, where an
+///         <see cref="SendAsync(TCommand, CancellationToken)" /> does <b>not</b> throw. It is called from an event handler, where an
 ///         exception has nowhere to go and would surface as an unhandled framework error rather than
 ///         as something the screen can show. The failure lands on <see cref="Error" /> and
 ///         <see cref="Status" />, which is where a component can actually render it. Use
@@ -105,11 +103,12 @@ public sealed class Command<TCommand>
 {
     private readonly SessionQueryClient _client;
     private readonly CommandCore _core;
+    private TCommand? _variables;
 
     internal Command(SessionQueryClient client)
     {
         _client = client;
-        _core = new CommandCore(client);
+        _core = new CommandCore();
     }
 
     /// <summary>Where this command is in its lifecycle.</summary>
@@ -119,6 +118,19 @@ public sealed class Command<TCommand>
         {
             _core.Observe();
             return _core.Status;
+        }
+    }
+
+    /// <summary>
+    ///     The command last sent — set as it is sent, so a pending render can say what is in flight
+    ///     ("Shipping #7…"), and kept afterwards; <c>default</c> until the first send and after a reset.
+    /// </summary>
+    public TCommand? Variables
+    {
+        get
+        {
+            _core.Observe();
+            return _variables;
         }
     }
 
@@ -132,6 +144,9 @@ public sealed class Command<TCommand>
         }
     }
 
+    /// <summary>Never sent, or <see cref="CommandStatus.Idle" /> again after a reset.</summary>
+    public bool IsIdle => Status == CommandStatus.Idle;
+
     /// <summary>Running now. This is what disables the button.</summary>
     public bool IsPending => Status == CommandStatus.Pending;
 
@@ -141,34 +156,31 @@ public sealed class Command<TCommand>
     /// <summary>The last run failed; see <see cref="Error" />.</summary>
     public bool IsError => Status == CommandStatus.Error;
 
-    /// <summary>
-    ///     Edits a cached query's result before the server answers, and puts it back if the command
-    ///     fails.
-    /// </summary>
-    /// <remarks>
-    ///     Register these once, when the command is created. On success the command's
-    ///     <see cref="InvalidatesAttribute" /> refetches and replaces the guess with the truth; on
-    ///     failure the previous value is restored, because a screen still showing the optimistic
-    ///     result after a refused save is worse than never having shown it.
-    /// </remarks>
-    /// <typeparam name="TResult">The query's result type.</typeparam>
-    /// <param name="query">The query whose cached result to edit.</param>
-    /// <param name="update">Produces the optimistic result from the current one.</param>
-    /// <returns>This command, for chaining.</returns>
-    public Command<TCommand> Optimistic<TResult>(IQuery<TResult> query, Func<TResult, TResult> update)
-    {
-        ArgumentNullException.ThrowIfNull(query);
-        ArgumentNullException.ThrowIfNull(update);
-        _core.AddOptimistic(new OptimisticUpdate<TResult>(query, update));
-        return this;
-    }
 
     /// <summary>Dispatches the command. Never throws — see the remarks on the type.</summary>
     /// <param name="command">The command to dispatch.</param>
     /// <param name="cancellationToken">Cancels the dispatch.</param>
-    public Task SendAsync(TCommand command, CancellationToken cancellationToken = default)
+    public Task SendAsync(TCommand command, CancellationToken cancellationToken = default) =>
+        Send(command, [], cancellationToken);
+
+    /// <summary>
+    ///     Dispatches the command with optimistic edits: shown at once, replaced by the refetch on success,
+    ///     put back on failure. Never throws.
+    /// </summary>
+    /// <param name="command">The command to dispatch.</param>
+    /// <param name="optimistic">
+    ///     Edits to show before the server answers — <c>orders.Optimistic(list =&gt; …)</c> — undone if it refuses.
+    /// </param>
+    public Task SendAsync(TCommand command, params OptimisticEdit[] optimistic) =>
+        Send(command, optimistic, CancellationToken.None);
+
+    private Task Send(TCommand command, OptimisticEdit[] optimistic, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
+        ArgumentNullException.ThrowIfNull(optimistic);
+
+        // Before the run, whose Pending render is the one that shows it.
+        _variables = command;
         return _core.RunAsync<object?>(
             async ct =>
             {
@@ -176,11 +188,16 @@ public sealed class Command<TCommand>
                 return null;
             },
             () => _client.InvalidateDeclared(command),
+            optimistic,
             cancellationToken);
     }
 
-    /// <summary>Returns to <see cref="CommandStatus.Idle" />, clearing any error.</summary>
-    public void Reset() => _core.Reset();
+    /// <summary>Returns to <see cref="CommandStatus.Idle" />, clearing any error and what was sent.</summary>
+    public void Reset()
+    {
+        _variables = default;
+        _core.Reset();
+    }
 }
 
 /// <summary>
@@ -193,11 +210,13 @@ public sealed class Command<TCommand, TResult>
 {
     private readonly SessionQueryClient _client;
     private readonly CommandCore _core;
+    private TCommand? _variables;
+    private TResult? _data;
 
     internal Command(SessionQueryClient client)
     {
         _client = client;
-        _core = new CommandCore(client);
+        _core = new CommandCore();
     }
 
     /// <summary>Where this command is in its lifecycle.</summary>
@@ -211,7 +230,31 @@ public sealed class Command<TCommand, TResult>
     }
 
     /// <summary>What the last successful run returned, or <c>default</c>.</summary>
-    public TResult? Data { get; private set; }
+    /// <remarks>
+    ///     Reading it registers the component like <see cref="Status" /> does, so a component that shows
+    ///     only the result still re-renders when it lands.
+    /// </remarks>
+    public TResult? Data
+    {
+        get
+        {
+            _core.Observe();
+            return _data;
+        }
+    }
+
+    /// <summary>
+    ///     The command last sent — set as it is sent, so a pending render can say what is in flight
+    ///     ("Shipping #7…"), and kept afterwards; <c>default</c> until the first send and after a reset.
+    /// </summary>
+    public TCommand? Variables
+    {
+        get
+        {
+            _core.Observe();
+            return _variables;
+        }
+    }
 
     /// <summary>Whatever the last run threw, or null.</summary>
     public Exception? Error
@@ -223,6 +266,9 @@ public sealed class Command<TCommand, TResult>
         }
     }
 
+    /// <summary>Never sent, or <see cref="CommandStatus.Idle" /> again after a reset.</summary>
+    public bool IsIdle => Status == CommandStatus.Idle;
+
     /// <summary>Running now. This is what disables the button.</summary>
     public bool IsPending => Status == CommandStatus.Pending;
 
@@ -232,41 +278,47 @@ public sealed class Command<TCommand, TResult>
     /// <summary>The last run failed; see <see cref="Error" />.</summary>
     public bool IsError => Status == CommandStatus.Error;
 
-    /// <inheritdoc cref="Command{TCommand}.Optimistic{TQueryResult}" />
-    /// <typeparam name="TQueryResult">The query's result type.</typeparam>
-    /// <param name="query">The query whose cached result to edit.</param>
-    /// <param name="update">Produces the optimistic result from the current one.</param>
-    /// <returns>This command, for chaining.</returns>
-    public Command<TCommand, TResult> Optimistic<TQueryResult>(
-        IQuery<TQueryResult> query,
-        Func<TQueryResult, TQueryResult> update)
-    {
-        ArgumentNullException.ThrowIfNull(query);
-        ArgumentNullException.ThrowIfNull(update);
-        _core.AddOptimistic(new OptimisticUpdate<TQueryResult>(query, update));
-        return this;
-    }
 
     /// <summary>Dispatches the command. Never throws — the failure lands on <see cref="Error" />.</summary>
     /// <param name="command">The command to dispatch.</param>
     /// <param name="cancellationToken">Cancels the dispatch.</param>
     /// <returns>What the command returned, or <c>default</c> if it failed.</returns>
-    public async Task<TResult?> SendAsync(TCommand command, CancellationToken cancellationToken = default)
+    public Task<TResult?> SendAsync(TCommand command, CancellationToken cancellationToken = default) =>
+        Send(command, [], cancellationToken);
+
+    /// <summary>Dispatches the command with optimistic edits. Never throws.</summary>
+    /// <param name="command">The command to dispatch.</param>
+    /// <param name="optimistic">
+    ///     Edits to show before the server answers — <c>orders.Optimistic(list =&gt; …)</c> — undone if it refuses.
+    /// </param>
+    /// <returns>What the command returned, or <c>default</c> if it failed.</returns>
+    public Task<TResult?> SendAsync(TCommand command, params OptimisticEdit[] optimistic) =>
+        Send(command, optimistic, CancellationToken.None);
+
+    private Task<TResult?> Send(TCommand command, OptimisticEdit[] optimistic, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
-        Data = await _core
-            .RunAsync(
-                ct => _client.DispatchCommandAsync(command, ct),
-                () => _client.InvalidateDeclared(command),
-                cancellationToken)
-            .ConfigureAwait(false);
-        return Data;
+        ArgumentNullException.ThrowIfNull(optimistic);
+        _variables = command;
+        return _core.RunAsync(
+            async ct =>
+            {
+                // Stored inside the run, BEFORE it reports success: the success notification re-renders
+                // whoever is reading, and a render between the two would show Success with the old result.
+                var result = await _client.DispatchCommandAsync(command, ct).ConfigureAwait(false);
+                _data = result;
+                return result;
+            },
+            () => _client.InvalidateDeclared(command),
+            optimistic,
+            cancellationToken);
     }
 
     /// <summary>Returns to <see cref="CommandStatus.Idle" />, clearing any error and result.</summary>
     public void Reset()
     {
-        Data = default;
+        _data = default;
+        _variables = default;
         _core.Reset();
     }
 }
@@ -304,7 +356,7 @@ public sealed class Command
     {
         _client = client;
         _invalidates = invalidates;
-        _core = new CommandCore(client);
+        _core = new CommandCore();
     }
 
     /// <summary>Where this command is in its lifecycle.</summary>
@@ -327,6 +379,9 @@ public sealed class Command
         }
     }
 
+    /// <summary>Never sent, or <see cref="CommandStatus.Idle" /> again after a reset.</summary>
+    public bool IsIdle => Status == CommandStatus.Idle;
+
     /// <summary>Running now. This is what disables the button.</summary>
     public bool IsPending => Status == CommandStatus.Pending;
 
@@ -342,9 +397,21 @@ public sealed class Command
     /// </summary>
     /// <param name="send">The work, given the cancellation token.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
-    public Task SendAsync(Func<CancellationToken, Task> send, CancellationToken cancellationToken = default)
+    public Task SendAsync(Func<CancellationToken, Task> send, CancellationToken cancellationToken = default) =>
+        Send(send, [], cancellationToken);
+
+    /// <summary>Runs <paramref name="send" /> with optimistic edits. Never throws.</summary>
+    /// <param name="send">The work, given the cancellation token.</param>
+    /// <param name="optimistic">
+    ///     Edits to show before the server answers — <c>orders.Optimistic(list =&gt; …)</c> — undone if it refuses.
+    /// </param>
+    public Task SendAsync(Func<CancellationToken, Task> send, params OptimisticEdit[] optimistic) =>
+        Send(send, optimistic, CancellationToken.None);
+
+    private Task Send(Func<CancellationToken, Task> send, OptimisticEdit[] optimistic, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(send);
+        ArgumentNullException.ThrowIfNull(optimistic);
         return _core.RunAsync<object?>(
             async ct =>
             {
@@ -352,6 +419,7 @@ public sealed class Command
                 return null;
             },
             Invalidate,
+            optimistic,
             cancellationToken);
     }
 
@@ -368,7 +436,23 @@ public sealed class Command
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(send);
-        return _core.RunAsync(send, Invalidate, cancellationToken);
+        return _core.RunAsync(send, Invalidate, [], cancellationToken);
+    }
+
+    /// <summary>Runs <paramref name="send" /> with optimistic edits and returns what it produced. Never throws.</summary>
+    /// <typeparam name="TResult">What the work returns, inferred from the lambda.</typeparam>
+    /// <param name="send">The work, given the cancellation token.</param>
+    /// <param name="optimistic">
+    ///     Edits to show before the server answers — <c>orders.Optimistic(list =&gt; …)</c> — undone if it refuses.
+    /// </param>
+    /// <returns>What the work returned, or <c>default</c> if it failed.</returns>
+    public Task<TResult?> SendAsync<TResult>(
+        Func<CancellationToken, Task<TResult>> send,
+        params OptimisticEdit[] optimistic)
+    {
+        ArgumentNullException.ThrowIfNull(send);
+        ArgumentNullException.ThrowIfNull(optimistic);
+        return _core.RunAsync(send, Invalidate, optimistic, CancellationToken.None);
     }
 
     /// <summary>Returns to <see cref="CommandStatus.Idle" />, clearing any error.</summary>

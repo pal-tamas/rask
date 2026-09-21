@@ -45,9 +45,10 @@ configuration class, no registration) and it brings the columns every aggregate 
 - **`CreatedAt` / `UpdatedAt`**, stamped on every save.
 - **`Version`**, a concurrency token bumped on every update. It's what stops two people editing the same
   product from silently overwriting each other, and you'll see it at work in section 4.
-- **`DeletedAt`**, so a delete hides the row instead of destroying it.
 
-They're ordinary read-only properties, so a page can show `product.CreatedAt` or sort by it.
+They're ordinary read-only properties, so a page can show `product.CreatedAt` or sort by it. A delete removes the
+row; an aggregate whose deleted rows must stay recoverable declares `public const Deletion Deletes = Deletion.Soft;`
+and gets a `DeletedAt` column instead (see [choosing what a table carries](../data.md#choosing-what-a-table-carries)).
 
 Two rules shape the class, and the build enforces both:
 
@@ -89,7 +90,7 @@ The writes are on the type, beside the reads, and take the model:
 ```csharp
 var product = await Product.CreateAsync(model);   // a new row with a new Id
 await Product.UpdateAsync(id, model);             // only the changed columns; a stale Version throws
-await Product.DeleteAsync(id, version);           // stamps DeletedAt, and reads stop seeing it
+await Product.DeleteAsync(id, version);           // removes the row; a stale Version throws
 ```
 
 Each one opens a context, saves through the interceptors `rask new` wired (so the timestamps and `Version` are
@@ -304,8 +305,9 @@ public sealed partial class DeleteProduct : Component
 }
 ```
 
-A delete is a **soft delete**: `DeletedAt` is stamped and every read, the list's included, stops seeing the row,
-while the data stays in `app.db`.
+A delete **removes the row** from `app.db`, so every read, the list's included, stops seeing it. `Product`
+declares no `Deletes` const and takes that default; declaring `Deletion.Soft` would keep deleted products in the
+table behind a `DeletedAt` stamp instead.
 
 ## 5. The list page
 
@@ -384,7 +386,7 @@ var app = builder.Build();
 Db.Configure(app.Services);
 ```
 
-- `AddRaskData<AppDbContext>()` registers the interceptors (timestamps, versions, soft delete and events)
+- `AddRaskData<AppDbContext>()` registers the interceptors (timestamps, versions, events, and soft delete for an aggregate that asks for it)
   **and names the context to the model surface**. The type argument is what makes `Product.Read.Where(…)`
   and `Product.CreateAsync(…)` know which database to open.
 - `Db.Configure(app.Services)` points the model surface at it, once, after the container exists. Without

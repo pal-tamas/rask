@@ -281,6 +281,23 @@ public sealed class Query<TResult> : IDisposable, IRenderSlotHandle
         }
     }
 
+    /// <summary>
+    ///     An edit to this query's cached result, for a command's <c>SendAsync</c> to show before the
+    ///     server answers and undo if it refuses.
+    /// </summary>
+    /// <remarks>
+    ///     Aimed at the entry this query shows now. Nothing cached means nothing is edited — a row the
+    ///     server never confirmed is never invented — and a failure then makes the entry fetch.
+    /// </remarks>
+    /// <param name="update">Produces the optimistic result from the current one.</param>
+    /// <returns>The edit, to pass to <c>SendAsync</c>.</returns>
+    public OptimisticEdit Optimistic(Func<TResult, TResult> update)
+    {
+        ArgumentNullException.ThrowIfNull(update);
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        return new OptimisticEdit<TResult>(_client, Key, update);
+    }
+
     /// <summary>Fetches again regardless of freshness, and paints the result.</summary>
     public Task RefetchAsync(CancellationToken cancellationToken = default)
     {

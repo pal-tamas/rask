@@ -87,10 +87,27 @@ internal sealed class CountingDispatcher : IDispatcher
         return (TResult)(object)Result;
     }
 
+    /// <summary>When set, a void command waits for it — so a test can look at a command while it is pending.</summary>
+    public TaskCompletionSource? CommandGate { get; set; }
+
     public Task SendAsync(ICommand command, CancellationToken cancellationToken = default)
     {
         CommandCount++;
+        if (CommandGate is { } gate)
+        {
+            return Gated(gate.Task);
+        }
+
         return ThrowOnCommand is { } error ? Task.FromException(error) : Task.CompletedTask;
+
+        async Task Gated(Task open)
+        {
+            await open.ConfigureAwait(false);
+            if (ThrowOnCommand is { } thrown)
+            {
+                throw thrown;
+            }
+        }
     }
 
     public Task<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)

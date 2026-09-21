@@ -112,10 +112,9 @@ public class CommandTests
         Assert.Equal("first", orders.Data);
 
         dispatcher.Block();
-        var ship = client.Command<ShipOrder>()
-            .Optimistic(new GetOrders(1), current => current + " (shipping)");
+        var ship = client.Command<ShipOrder>();
 
-        var running = ship.SendAsync(new ShipOrder(7));
+        var running = ship.SendAsync(new ShipOrder(7), orders.Optimistic(current => current + " (shipping)"));
 
         Assert.Equal("first (shipping)", orders.Data);
 
@@ -132,10 +131,9 @@ public class CommandTests
         await Settle(orders);
 
         dispatcher.ThrowOnCommand = new InvalidOperationException("refused");
-        var ship = client.Command<ShipOrder>()
-            .Optimistic(new GetOrders(1), current => current + " (shipping)");
+        var ship = client.Command<ShipOrder>();
 
-        await ship.SendAsync(new ShipOrder(7));
+        await ship.SendAsync(new ShipOrder(7), orders.Optimistic(current => current + " (shipping)"));
 
         // The whole point. A screen still showing the optimistic result after a refused save tells
         // the user something happened that did not, which is worse than never having shown it.
@@ -152,10 +150,9 @@ public class CommandTests
         await Settle(orders);
 
         dispatcher.Result = "shipped";
-        var ship = client.Command<ShipOrder>()
-            .Optimistic(new GetOrders(1), current => current + " (shipping)");
+        var ship = client.Command<ShipOrder>();
 
-        await ship.SendAsync(new ShipOrder(7));
+        await ship.SendAsync(new ShipOrder(7), orders.Optimistic(current => current + " (shipping)"));
         await Settle(orders);
 
         // The guess is not kept: the command's [Invalidates] refetches and the truth wins.
@@ -166,20 +163,20 @@ public class CommandTests
     public async Task Rolling_back_an_entry_that_held_nothing_makes_it_fetch()
     {
         var (client, dispatcher, _) = NewClient();
-        dispatcher.ThrowOnCommand = new InvalidOperationException("refused");
-
-        // Nothing is cached for this query, so there is nothing to edit and nothing to put back.
-        var ship = client.Command<ShipOrder>()
-            .Optimistic(new GetOrders(9), current => current + " (shipping)");
-        await ship.SendAsync(new ShipOrder(7));
-
         var keep = new QueryOptions { StaleTime = TimeSpan.FromHours(1) };
+
+        // Nothing cached yet — the first fetch is still on the wire — so there is nothing to edit and
+        // nothing to put back.
+        dispatcher.Block();
         using var orders = client.Query(new GetOrders(9), keep);
+        dispatcher.ThrowOnCommand = new InvalidOperationException("refused");
+        await client.Command<ShipOrder>().SendAsync(new ShipOrder(7), orders.Optimistic(current => current + " (shipping)"));
+
+        dispatcher.Release();
         await Settle(orders);
 
         // It must fetch rather than serve whatever the failed command might have left behind.
         Assert.Equal("first", orders.Data);
-        Assert.Equal(1, dispatcher.QueryCountFor<GetOrders>());
     }
 
     [Fact]
@@ -193,11 +190,9 @@ public class CommandTests
         await Settle(two);
 
         dispatcher.ThrowOnCommand = new InvalidOperationException("refused");
-        var ship = client.Command<ShipOrder>()
-            .Optimistic(new GetOrders(1), c => c + " (a)")
-            .Optimistic(new GetOrders(2), c => c + " (b)");
+        var ship = client.Command<ShipOrder>();
 
-        await ship.SendAsync(new ShipOrder(7));
+        await ship.SendAsync(new ShipOrder(7), one.Optimistic(c => c + " (a)"), two.Optimistic(c => c + " (b)"));
 
         // A rollback covering only the edits made before the failure leaves the rest applied.
         Assert.Equal("first", one.Data);
@@ -310,5 +305,95 @@ public class CommandTests
 
         Assert.Equal(2, a.Data);
         Assert.Equal(2, b.Data);
+    }
+
+    [Fact]
+    public async Task An_optimistic_edit_sees_what_is_being_sent()
+    {
+        var (client, dispatcher, _) = NewClient();
+        var keep = new QueryOptions { StaleTime = TimeSpan.FromHours(1) };
+        using var orders = client.Query(new GetOrders(1), keep);
+        await Settle(orders);
+        dispatcher.Block();
+
+        // Made per send, so it captures THIS click's id — the reason it is not registered up front.
+        var id = 7;
+        var running = client.Command<ShipOrder>().SendAsync(new ShipOrder(id), orders.Optimistic(c => $"{c} without #{id}"));
+
+        Assert.Equal("first without #7", orders.Data);
+        dispatcher.Release();
+        await running;
+    }
+
+    [Fact]
+    public async Task A_function_command_edits_a_function_query_and_undoes_it_on_failure()
+    {
+        var (client, _, _) = NewClient();
+        var keep = new QueryOptions { StaleTime = TimeSpan.FromHours(1) };
+        using var people = client.Query(QueryKey.For<Person>(), () => "ann", (name, _) => Task.FromResult(name), keep);
+        _ = people.Data;
+        await Settle(people);
+        var gate = new TaskCompletionSource();
+
+        var save = client.Command(invalidates: typeof(Person));
+        var running = save.SendAsync(
+            async _ =>
+            {
+                await gate.Task;
+                throw new InvalidOperationException("refused");
+            },
+            people.Optimistic(name => name + ", bob"));
+
+        Assert.Equal("ann, bob", people.Data);
+        gate.SetResult();
+        await running;
+
+        Assert.Equal("ann", people.Data);
+        Assert.True(save.IsError);
+    }
+
+    [Fact]
+    public async Task A_command_starts_idle_and_carries_what_it_last_sent()
+    {
+        var (client, dispatcher, _) = NewClient();
+        var ship = client.Command<ShipOrder>();
+        Assert.True(ship.IsIdle);
+        Assert.Null(ship.Variables);
+
+        var gate = new TaskCompletionSource();
+        dispatcher.CommandGate = gate;
+        var running = ship.SendAsync(new ShipOrder(7));
+
+        // What a pending render reads to say what is in flight.
+        Assert.True(ship.IsPending);
+        Assert.False(ship.IsIdle);
+        Assert.Equal(new ShipOrder(7), ship.Variables);
+
+        gate.SetResult();
+        await running;
+        Assert.Equal(new ShipOrder(7), ship.Variables);
+
+        ship.Reset();
+        Assert.True(ship.IsIdle);
+        Assert.Null(ship.Variables);
+    }
+
+    [Fact]
+    public async Task A_value_returning_commands_result_is_there_when_it_reports_success()
+    {
+        var (client, _, _) = NewClient();
+        var count = client.Command<CountOrders, int>();
+        int? seenAtSuccess = null;
+
+        // Whatever renders on the success notification must already see the result.
+        var running = count.SendAsync(new CountOrders());
+        await running;
+        if (count.IsSuccess)
+        {
+            seenAtSuccess = count.Data;
+        }
+
+        Assert.Equal(42, seenAtSuccess);
+        Assert.Equal(new CountOrders(), count.Variables);
     }
 }

@@ -175,6 +175,27 @@ them until tagged releases begin.
 - **`Rask.Jobs`: the `Job` table has a `UserId` column** — the user a job runs for. Run
   `rask db add AddJobUser && rask db update`; until then the processor logs exactly that, instead of the
   generic "cycle failed", once a pending job is loaded.
+- **`Rask.Query`: an optimistic update is made per send, from the query on screen** (breaking:
+  `Command<T>.Optimistic(query, update)` is gone). Registered once when the command was created, the edit
+  could not see what was being sent — "remove *this* row" had no id to capture — and a command declared in
+  `Render` gained another copy of it every render, so one click applied it once per render so far. It
+  could only aim at a message query, and a function command had none. Now the edit is a value made at send
+  time from the query itself:
+
+  ```csharp
+  ship.SendAsync(new ShipOrder(id), orders.Optimistic(list => [.. list.Where(o => o.Id != id)]));
+  save.SendAsync(ct => Person.CreateAsync(model, cancellationToken: ct), people.Optimistic(l => [.. l, draft]));
+  ```
+
+  Same guarantees as before: every edit is snapshotted before the send, the refetch replaces the guess on
+  success, and a failure restores all of them in reverse.
+
+- **`Rask.Query`: a command says what it is sending, and whether it has run.** `IsIdle` joins
+  `IsPending`/`IsSuccess`/`IsError`; `Variables` is the command last sent, set as it is sent so a pending
+  render can say "Shipping #7…", and cleared by `Reset()`. `Command<TCommand, TResult>.Data` now
+  registers the component that reads it, as `Status` always did — a component showing only the result
+  never re-rendered when it arrived — and is stored before the command reports success, so no render sees
+  `Success` with the previous result.
 
 - **`Rask.Query`: a query follows its inputs, from `Render`, a property or the constructor — and needs
   nothing injected** (breaking: `Query<T>.SetMessage` is gone). A query built once kept showing page one
@@ -283,6 +304,10 @@ them until tagged releases begin.
   filtered by the signed-in user's tenant, but the insert stamp read only an explicit `Tenant.Use` scope, so a
   page could list its tenant's rows and not add one. The stamp now reads the same tenant the filter does.
 
+- **The docs no longer say a delete is a soft delete.** Soft delete became opt-in (under *Changed*), but tutorial
+  chapter 2, `docs/data.md` and the Rask.Data package README still told readers that `Product.DeleteAsync`
+  stamps `DeletedAt` and the data stays in `app.db` — for an aggregate that declares no `Deletes`, the row is
+  removed. They now describe the default hard delete and name `Deletion.Soft` as the opt-in.
 - **Sign-in throttling holds under concurrent guesses** (#1121). The throttle checked the limit and counted a
   failure in two separate steps, so wrong passwords fired together all passed the check before any was
   counted: with `SignInAttemptsPerMinute = 3`, 24 parallel guesses got 12 tries. Password sign-in and password

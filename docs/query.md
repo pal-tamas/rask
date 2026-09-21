@@ -213,9 +213,37 @@ QueryClient.Command<ShipOrder>()` holds one in a property instead.
 
 `Command<T>.SendAsync` does **not** throw: it runs from an event handler, where an exception has
 nowhere to go, so the failure lands on `Error` and `Status` for the component to render. Use
-`QueryClient.SendAsync` when you want the exception. `Command<TCommand, TResult>` adds `Data`, the
-last successful result; `.Optimistic(query, update)` edits a cached result before the server answers
-and restores it if the command fails.
+`QueryClient.SendAsync` when you want the exception.
+
+What a command can tell a render:
+
+| | |
+|---|---|
+| `Status` | `Idle` (never sent, or reset) · `Pending` · `Success` · `Error` — with `IsIdle`, `IsPending`, `IsSuccess`, `IsError` |
+| `Error` | What the last send threw |
+| `Variables` | The command last sent — set as it is sent, so a pending render can say `$"Shipping #{ship.Variables?.Id}…"` |
+| `Data` | `Command<TCommand, TResult>` only: the last successful result, there by the time `Status` says `Success` |
+| `Reset()` | Back to `Idle`, clearing all of the above |
+
+### Optimistic updates
+
+An edit made at send time, from the query already on screen, so it sees what is being sent:
+
+```csharp
+var orders = QueryClient.Query(new GetOrders(Page));
+var ship   = QueryClient.Command<ShipOrder>();
+
+.OnClick(() => ship.SendAsync(new ShipOrder(id),
+    orders.Optimistic(list => [.. list.Where(o => o.Id != id)])))
+```
+
+The row disappears at once. On success the command's invalidation refetches and the server's answer
+replaces the guess; on failure every edit is put back, in reverse, and the error lands on `Error`. Pass
+several — `ship.SendAsync(cmd, list.Optimistic(…), count.Optimistic(n => n - 1))` — and all of them are
+snapshotted before any is sent, so a failure never leaves half of them applied. An edit is aimed at
+whatever its query shows now, so a function query takes one as readily as a message query, and a function
+command sends one the same way: `save.SendAsync(ct => Person.CreateAsync(…), people.Optimistic(…))`.
+Nothing cached means nothing is edited: a row the server never confirmed is never invented.
 
 ### A function
 
