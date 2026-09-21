@@ -2,11 +2,11 @@ namespace Rask.Query.Tests;
 
 public class QueryClientTests
 {
-    private static (QueryClient Client, CountingDispatcher Dispatcher, TestClock Time) NewClient()
+    private static (SessionQueryClient Client, CountingDispatcher Dispatcher, TestClock Time) NewClient()
     {
         var dispatcher = new CountingDispatcher();
         var time = new TestClock(DateTimeOffset.UnixEpoch);
-        return (new QueryClient(dispatcher, time), dispatcher, time);
+        return (new SessionQueryClient(dispatcher, time), dispatcher, time);
     }
 
     private static async Task SettleAsync<T>(Query<T> query)
@@ -222,16 +222,17 @@ public class QueryClientTests
     }
 
     [Fact]
-    public async Task SetMessage_re_points_the_query_at_a_new_page()
+    public async Task A_lambda_query_re_points_itself_when_its_input_changes()
     {
         var (client, dispatcher, _) = NewClient();
-        using var query = client.Query(new GetOrders(1));
+        var page = 1;
+        using var query = client.Query(() => new GetOrders(page));
         await SettleAsync(query);
 
-        // The defect this exists for: a field initializer runs once, so without re-keying the screen
-        // keeps showing page one for ever when the route parameter changes.
+        // The defect this exists for: a query built once keeps showing page one for ever when the route
+        // parameter changes. The lambda runs at every read, so the next read sees page two.
         dispatcher.Result = "page two";
-        query.SetMessage(new GetOrders(2));
+        page = 2;
         await SettleAsync(query);
 
         Assert.Equal("page two", query.Data);
@@ -239,15 +240,17 @@ public class QueryClientTests
     }
 
     [Fact]
-    public async Task SetMessage_with_the_same_message_is_a_no_op()
+    public async Task A_lambda_query_whose_input_did_not_change_does_nothing()
     {
         var (client, dispatcher, _) = NewClient();
         var options = new QueryOptions { StaleTime = TimeSpan.FromHours(1) };
-        using var query = client.Query(new GetOrders(1), options);
+        using var query = client.Query(() => new GetOrders(1), options);
         await SettleAsync(query);
 
-        // Calling it unconditionally from OnPropsChanged is the safer habit, so it must be free.
-        query.SetMessage(new GetOrders(1));
+        // Every read runs the lambda, so an equal message must cost no request — records compare
+        // structurally, and that is the whole test.
+        _ = query.Data;
+        _ = query.IsLoading;
         await SettleAsync(query);
 
         Assert.Equal(1, dispatcher.QueryCount);

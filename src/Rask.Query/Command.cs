@@ -7,7 +7,7 @@ namespace Rask.Query;
 ///     The shared state machine behind every command shape — a record command and a function alike:
 ///     pending/error/success, the components watching it, and any optimistic edits to roll back.
 /// </summary>
-internal sealed class CommandCore(QueryClient client)
+internal sealed class CommandCore(SessionQueryClient client)
 {
     private readonly List<IOptimisticUpdate> _optimistic = [];
     private readonly ComponentReaders _readers = new();
@@ -103,10 +103,10 @@ internal sealed class CommandCore(QueryClient client)
 public sealed class Command<TCommand>
     where TCommand : ICommand
 {
-    private readonly QueryClient _client;
+    private readonly SessionQueryClient _client;
     private readonly CommandCore _core;
 
-    internal Command(QueryClient client)
+    internal Command(SessionQueryClient client)
     {
         _client = client;
         _core = new CommandCore(client);
@@ -191,10 +191,10 @@ public sealed class Command<TCommand>
 public sealed class Command<TCommand, TResult>
     where TCommand : ICommand<TResult>
 {
-    private readonly QueryClient _client;
+    private readonly SessionQueryClient _client;
     private readonly CommandCore _core;
 
-    internal Command(QueryClient client)
+    internal Command(SessionQueryClient client)
     {
         _client = client;
         _core = new CommandCore(client);
@@ -296,11 +296,11 @@ public sealed class Command<TCommand, TResult>
 /// </remarks>
 public sealed class Command
 {
-    private readonly QueryClient _client;
+    private readonly SessionQueryClient _client;
     private readonly QueryKey[] _invalidates;
     private readonly CommandCore _core;
 
-    internal Command(QueryClient client, QueryKey[] invalidates)
+    internal Command(SessionQueryClient client, QueryKey[] invalidates)
     {
         _client = client;
         _invalidates = invalidates;

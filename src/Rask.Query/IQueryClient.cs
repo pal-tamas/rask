@@ -23,8 +23,10 @@ public interface IQueryClient
     ///     components asking for <c>new GetOrders(Page: 1)</c> share one entry and one request.
     /// </summary>
     /// <remarks>
-    ///     Re-point it with <see cref="Rask.Query.Query{TResult}.SetMessage" /> from <c>OnPropsChanged</c> when
-    ///     its inputs change, or it will keep showing the result it was created with.
+    ///     The message is fixed: the query shows that one result for as long as it lives. For one that
+    ///     follows a route parameter or a prop, pass a lambda —
+    ///     <see cref="Query{TResult}(Func{IQuery{TResult}}, QueryOptions?)" /> — or build it inside
+    ///     <c>Render</c> with the static <see cref="QueryClient" />.
     ///     <para>
     ///         Pass <paramref name="key" /> to put the query into a hierarchy that spans message types, so
     ///         one <see cref="Invalidate(QueryKey, bool)" /> reaches all of them:
@@ -65,6 +67,59 @@ public interface IQueryClient
     Query<TResult> Query<TResult>(
         QueryKey key,
         Func<CancellationToken, Task<TResult>> fetch,
+        QueryOptions? options = null);
+
+    /// <summary>
+    ///     A query that follows its inputs: <paramref name="message" /> runs at every read, and a
+    ///     different message re-points the query at that entry.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         For a query held in a field and created before its inputs are bound — in a constructor or a
+    ///         <c>field ??=</c> property. The lambda first runs at the first read, so it never sees an
+    ///         unbound route parameter; nothing needs calling when one changes.
+    ///     </para>
+    ///     <code>
+    ///     _person = client.Query(() =&gt; new GetPerson(Id));
+    ///     _orders = client.Query(() =&gt; Selected is { } id ? new GetOrders(id) : null);   // waits for a pick
+    ///     </code>
+    ///     <para>
+    ///         Returning null means the input is not there yet: the query is paused, fetches nothing and is
+    ///         not loading, until the lambda returns a message.
+    ///     </para>
+    /// </remarks>
+    /// <typeparam name="TResult">What the query returns.</typeparam>
+    /// <param name="message">Builds the message from the component's current state, or null to wait.</param>
+    /// <param name="options">Freshness and retry; TanStack's defaults when omitted.</param>
+    Query<TResult> Query<TResult>(Func<IQuery<TResult>?> message, QueryOptions? options = null);
+
+    /// <summary>
+    ///     A function query that follows its inputs: <paramref name="input" /> runs at every read, and a
+    ///     different input re-points the query at <c>[..prefix, input]</c>.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         <paramref name="fetch" /> is handed the input the key was built from rather than reading the
+    ///         component itself, so a fetch still running when the input changes caches under its own key.
+    ///         An unchanged input is compared before any key is built, so a value-type input — a tuple of
+    ///         them included — costs a read nothing.
+    ///     </para>
+    ///     <code>
+    ///     _person = client.Query(QueryKey.For&lt;Person&gt;(), () =&gt; Id,
+    ///         (id, ct) =&gt; Person.Read.FirstAsync(p =&gt; p.Id == id, ct));
+    ///     </code>
+    ///     <para>A null input pauses the query, as a null message does.</para>
+    /// </remarks>
+    /// <typeparam name="TInput">What the key and the fetch are built from.</typeparam>
+    /// <typeparam name="TResult">What the fetch returns.</typeparam>
+    /// <param name="prefix">What the data is about — <c>QueryKey.For&lt;Person&gt;()</c>, or a name.</param>
+    /// <param name="input">Reads the component's current state.</param>
+    /// <param name="fetch">Loads the data for one input.</param>
+    /// <param name="options">Freshness and retry; TanStack's defaults when omitted.</param>
+    Query<TResult> Query<TInput, TResult>(
+        QueryKey prefix,
+        Func<TInput> input,
+        Func<TInput, CancellationToken, Task<TResult>> fetch,
         QueryOptions? options = null);
 
     /// <summary>

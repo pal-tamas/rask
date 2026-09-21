@@ -5,11 +5,11 @@ namespace Rask.Query.Tests;
 /// </summary>
 public class QueryLifetimeTests
 {
-    private static (QueryClient Client, CountingDispatcher Dispatcher, TestClock Time) NewClient()
+    private static (SessionQueryClient Client, CountingDispatcher Dispatcher, TestClock Time) NewClient()
     {
         var dispatcher = new CountingDispatcher();
         var time = new TestClock(DateTimeOffset.UnixEpoch);
-        return (new QueryClient(dispatcher, time), dispatcher, time);
+        return (new SessionQueryClient(dispatcher, time), dispatcher, time);
     }
 
     [Fact]

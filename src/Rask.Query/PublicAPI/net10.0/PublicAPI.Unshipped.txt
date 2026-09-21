@@ -48,8 +48,10 @@ Rask.Query.IQueryClient.Invalidate(string! key) -> void
 Rask.Query.IQueryClient.Invalidate<TQuery>() -> void
 Rask.Query.IQueryClient.InvalidateAll() -> void
 Rask.Query.IQueryClient.PrefetchAsync<TResult>(Rask.Cqrs.IQuery<TResult>! message, Rask.Query.QueryOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Query.IQueryClient.Query<TInput, TResult>(Rask.Query.QueryKey prefix, System.Func<TInput>! input, System.Func<TInput, System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! fetch, Rask.Query.QueryOptions? options = null) -> Rask.Query.Query<TResult>!
 Rask.Query.IQueryClient.Query<TResult>(Rask.Cqrs.IQuery<TResult>! message, Rask.Query.QueryOptions? options = null, Rask.Query.QueryKey? key = null) -> Rask.Query.Query<TResult>!
 Rask.Query.IQueryClient.Query<TResult>(Rask.Query.QueryKey key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! fetch, Rask.Query.QueryOptions? options = null) -> Rask.Query.Query<TResult>!
+Rask.Query.IQueryClient.Query<TResult>(System.Func<Rask.Cqrs.IQuery<TResult>?>! message, Rask.Query.QueryOptions? options = null) -> Rask.Query.Query<TResult>!
 Rask.Query.IQueryClient.SendAsync(Rask.Cqrs.ICommand! command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Query.IQueryClient.SendAsync<TResult>(Rask.Cqrs.ICommand<TResult>! command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
 Rask.Query.IQueryClient.SetData<TResult>(Rask.Cqrs.IQuery<TResult>! message, TResult data) -> void
@@ -71,8 +73,8 @@ Rask.Query.Query<TResult>.IsPlaceholderData.get -> bool
 Rask.Query.Query<TResult>.IsSuccess.get -> bool
 Rask.Query.Query<TResult>.Key.get -> Rask.Query.QueryKey
 Rask.Query.Query<TResult>.RefetchAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-Rask.Query.Query<TResult>.SetMessage(Rask.Cqrs.IQuery<TResult>! message) -> void
 Rask.Query.Query<TResult>.Status.get -> Rask.Query.QueryStatus
+Rask.Query.QueryClient
 Rask.Query.QueryKey
 Rask.Query.QueryKey.Count.get -> int
 Rask.Query.QueryKey.Equals(Rask.Query.QueryKey other) -> bool
@@ -117,6 +119,25 @@ override Rask.Query.QueryKeyFields.ToString() -> string!
 override Rask.Query.QueryOptions.Equals(object? obj) -> bool
 override Rask.Query.QueryOptions.GetHashCode() -> int
 override Rask.Query.QueryOptions.ToString() -> string!
+static Rask.Query.QueryClient.Command(Rask.Query.QueryKey invalidates, object? key = null, string! callerFile = "", int callerLine = 0) -> Rask.Query.Command!
+static Rask.Query.QueryClient.Command(Rask.Query.QueryKey[]! invalidates, object? key = null, string! callerFile = "", int callerLine = 0) -> Rask.Query.Command!
+static Rask.Query.QueryClient.Command<TCommand, TResult>(object? key = null, string! callerFile = "", int callerLine = 0) -> Rask.Query.Command<TCommand, TResult>!
+static Rask.Query.QueryClient.Command<TCommand>(object? key = null, string! callerFile = "", int callerLine = 0) -> Rask.Query.Command<TCommand>!
+static Rask.Query.QueryClient.FetchAsync<TResult>(Rask.Cqrs.IQuery<TResult>! message, Rask.Query.QueryOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
+static Rask.Query.QueryClient.Invalidate(Rask.Query.QueryKey key, bool exact = false) -> void
+static Rask.Query.QueryClient.Invalidate(System.Func<Rask.Query.QueryKey, bool>! predicate) -> void
+static Rask.Query.QueryClient.Invalidate<T>() -> void
+static Rask.Query.QueryClient.InvalidateAll() -> void
+static Rask.Query.QueryClient.PrefetchAsync<TResult>(Rask.Cqrs.IQuery<TResult>! message, Rask.Query.QueryOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+static Rask.Query.QueryClient.Query<TInput, TResult>(Rask.Query.QueryKey prefix, System.Func<TInput>! input, System.Func<TInput, System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! fetch, Rask.Query.QueryOptions? options = null) -> Rask.Query.Query<TResult>!
+static Rask.Query.QueryClient.Query<TInput, TResult>(Rask.Query.QueryKey prefix, TInput input, System.Func<TInput, System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! fetch, Rask.Query.QueryOptions? options = null, string! callerFile = "", int callerLine = 0) -> Rask.Query.Query<TResult>!
+static Rask.Query.QueryClient.Query<TResult>(Rask.Cqrs.IQuery<TResult>! message, Rask.Query.QueryOptions? options = null, Rask.Query.QueryKey? key = null, string! callerFile = "", int callerLine = 0) -> Rask.Query.Query<TResult>!
+static Rask.Query.QueryClient.Query<TResult>(Rask.Query.QueryKey key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! fetch, Rask.Query.QueryOptions? options = null, string! callerFile = "", int callerLine = 0) -> Rask.Query.Query<TResult>!
+static Rask.Query.QueryClient.Query<TResult>(System.Func<Rask.Cqrs.IQuery<TResult>?>! message, Rask.Query.QueryOptions? options = null) -> Rask.Query.Query<TResult>!
+static Rask.Query.QueryClient.SendAsync(Rask.Cqrs.ICommand! command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+static Rask.Query.QueryClient.SendAsync<TResult>(Rask.Cqrs.ICommand<TResult>! command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
+static Rask.Query.QueryClient.SetData<TResult>(Rask.Cqrs.IQuery<TResult>! message, TResult data) -> void
+static Rask.Query.QueryClient.SetData<TResult>(Rask.Query.QueryKey key, TResult data) -> void
 static Rask.Query.QueryKey.Fields(params (string! Name, object? Value)[]! fields) -> Rask.Query.QueryKeyFields!
 static Rask.Query.QueryKey.For<T>(params object?[]! parts) -> Rask.Query.QueryKey
 static Rask.Query.QueryKey.Of(params object?[]! parts) -> Rask.Query.QueryKey
