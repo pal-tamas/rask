@@ -67,7 +67,7 @@ public sealed partial class UiTree<T, TKey> : Component
     private bool _hovering;
     private TKey? _hovered;
 
-    /// <summary>What identifies a node — never <c>Key</c>, which is the chain's own reconciliation identity (RASK046).</summary>
+    /// <summary>What identifies a node — never <c>Key</c>, which is the chain's own reconciliation identity.</summary>
     public required Func<T, TKey> NodeKey { get; set; }
 
     /// <summary>What a node looks like. The row around it — the twisty, the indent, the selection — is the tree's.</summary>

@@ -29,15 +29,34 @@ internal sealed class CountingDispatcher : IDispatcher
 {
     private TaskCompletionSource? _gate;
 
+    // Polling ticks dispatch from thread-pool threads while the test reads the counts, so they are kept under
+    // a lock: a lost increment in the double would be a flake that says nothing about the code under test.
+    private readonly Lock _counts = new();
     private readonly Dictionary<Type, int> _perType = [];
+    private int _queryCount;
 
-    public int QueryCount { get; private set; }
+    public int QueryCount
+    {
+        get
+        {
+            lock (_counts)
+            {
+                return _queryCount;
+            }
+        }
+    }
 
     /// <summary>How many times one message type was dispatched, so a test that needs an unrelated
     /// query to trigger something is not counting that query too.</summary>
     public int QueryCountFor<TMessage>() => QueryCountFor(typeof(TMessage));
 
-    private int QueryCountFor(Type message) => _perType.TryGetValue(message, out var n) ? n : 0;
+    private int QueryCountFor(Type message)
+    {
+        lock (_counts)
+        {
+            return _perType.TryGetValue(message, out var n) ? n : 0;
+        }
+    }
 
     public int CommandCount { get; private set; }
 
@@ -63,8 +82,11 @@ internal sealed class CountingDispatcher : IDispatcher
         IQuery<TResult> query,
         CancellationToken cancellationToken = default)
     {
-        QueryCount++;
-        _perType[query.GetType()] = QueryCountFor(query.GetType()) + 1;
+        lock (_counts)
+        {
+            _queryCount++;
+            _perType[query.GetType()] = _perType.TryGetValue(query.GetType(), out var n) ? n + 1 : 1;
+        }
         if (_gate is { } gate)
         {
             // Honours the token, so a cancellation test proves something: awaiting the gate without

@@ -37,7 +37,10 @@ public abstract partial class Element
         "scroll",
         // Appended, so no existing attribute's position moves — the serialized order is asserted by
         // tests. Chronological within the pair, as the drag and keyboard groups above are.
-        "beforetoggle", "toggle"
+        "beforetoggle", "toggle",
+        // A <dialog>'s two endings, appended for the same reason. cancel comes first because it fires
+        // first: a dismissal (Escape, a light dismiss) raises cancel and then close.
+        "cancel", "close"
     };
 
     // Unified backing store for the WHOLE event surface — drag, keyboard, click, scroll, mouse, pointer,
@@ -425,6 +428,25 @@ public abstract partial class Element
     ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement/reset_event">MDN</see>
     /// </summary>
     public Callback? OnReset { get => Handler("reset"); set => SetHandler("reset", value?.Handler); }
+
+    /// <summary>
+    ///     A <c>&lt;dialog&gt;</c> is being DISMISSED — Escape, or a light dismiss (<c>closedby="any"</c>) — as opposed
+    ///     to closed on purpose. Fires before <see cref="OnClose" />, which follows it.
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLDialogElement/cancel_event">MDN</see>
+    ///     <para>
+    ///         The event to tell "the user backed out" from "the user finished": a form in a dialog can discard its
+    ///         draft here and keep it when <see cref="OnClose" /> fires on its own. It cannot keep the dialog open:
+    ///         the client never <c>preventDefault</c>s, so this is a notification and not a veto.
+    ///     </para>
+    /// </summary>
+    public Callback? OnCancel { get => Handler("cancel"); set => SetHandler("cancel", value?.Handler); }
+
+    /// <summary>
+    ///     A <c>&lt;dialog&gt;</c> closed, by any path: a <c>method="dialog"</c> form, <c>command="close"</c>, a
+    ///     script's <c>close()</c>, or a dismissal (which raises <see cref="OnCancel" /> first).
+    ///     <see href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLDialogElement/close_event">MDN</see>
+    /// </summary>
+    public Callback? OnClose { get => Handler("close"); set => SetHandler("close", value?.Handler); }
 
     // ---- Scroll (ScrollEvent: scrollTop/clientHeight/scrollHeight; rAF-coalesced client-side) ----
 

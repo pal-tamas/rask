@@ -12,8 +12,7 @@ public sealed partial class RatingStars : Component
 
     protected override Component? Render() =>
         Div.Class("inline-flex gap-1")[
-            // Key FIRST (RASK046): it decides which instance is being built, so anything set before it is
-            // written to an instance the key then discards.
+            // Key first: it says which star this is before anything is said about it.
             //
             // The filled/empty colours are TOKENS now, not #ffc107 and #ced4da. A hardcoded hex ignores the
             // theme, so the filled star stayed amber on a palette with no amber in it and the empty one was

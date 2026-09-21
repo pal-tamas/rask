@@ -1527,6 +1527,10 @@ public abstract partial class Component : RaskMarkup
     // Armed by LiveRenderContext.GetOrCreateEntry on the component whose Render() is building the tree.
     internal void ArmEntryCommitInternal() => Live.HasEntryChildren = true;
 
+    // The positional slot the entry that just ran filed its child under, read by that entry straight away so
+    // its own Key step can re-file exactly that slot later — see ClaimKeyedChild.
+    internal (Type Type, int Ordinal) LastChildSlotInternal => Live.LastChildSlot;
+
     // Claims the LiveState for an entry-built child that has a lifecycle to run, so the commit below can
     // keep using "no LiveState" to mean "not mine to notify". See GetOrCreateEntry for why the two are
     // not the same question and why a handle-less render is where they came apart.
@@ -1780,12 +1784,17 @@ public abstract partial class Component : RaskMarkup
     ///         never reaches this method.
     ///     </para>
     /// </remarks>
-    internal T ClaimKeyedChild<T>(T provisional, object key) where T : Component
+    internal T ClaimKeyedChild<T>(T provisional, object key, (Type Type, int Ordinal) slot) where T : Component
     {
-        // From now on this parent identifies T by key rather than by position — see LiveState.KeyedTypes.
-        (Live.KeyedTypes ??= new HashSet<Type>()).Add(typeof(T));
+        // The instance's OWN type, not T. `Row[body].Key(id)` reaches here through the generic Key over
+        // Component — the indexer hands back Component — and filing that claim under typeof(Component) would
+        // key it apart from every other Row, leave Row recycled by position, and miss the slot below.
+        var type = provisional.GetType();
 
-        var mapKey = (typeof(T), key);
+        // From now on this parent identifies the type by key rather than by position — see LiveState.KeyedTypes.
+        (Live.KeyedTypes ??= new HashSet<Type>()).Add(type);
+
+        var mapKey = (type, key);
         var chosen = provisional;
         if (Live.PreviousKeyedChildren is not null
             && Live.PreviousKeyedChildren.TryGetValue(mapKey, out var prev)
@@ -1793,19 +1802,22 @@ public abstract partial class Component : RaskMarkup
             && !ReferenceEquals(kept, provisional))
         {
             chosen = kept;
-            // Same reason GetOrCreateChild clears on reuse: children arrive via the `[...]` indexer after
-            // the chain, and a childless render must not inherit the last one's subtree.
-            chosen.Children = null;
+            // The provisional instance's children, which is what GetOrCreateChild's "a childless render must not
+            // inherit the last one's subtree" wants: null when the indexer comes after Key, as it usually does,
+            // and the subtree it already wrote when Key comes after the indexer (#1118).
+            chosen.Children = provisional.Children;
             chosen.RenderHandle ??= provisional.RenderHandle;
         }
 
         (Live.KeyedChildren ??= new Dictionary<(Type, object), Component>())[mapKey] = chosen;
 
         // Re-file this frame's positional slot onto whichever instance the key settled on, so the
-        // alive-set walk sees the child that is actually rendered here.
-        if (Live.Children is not null && Live.LastChildSlot.Type == typeof(T))
+        // alive-set walk sees the child that is actually rendered here. The slot the ENTRY filed, not the
+        // parent's last one: with Key free to come last (#1118), a step's argument can build another child
+        // in between — `Row.Badge(Span["b"]).Key(id)` — and the last slot is then the Span's.
+        if (Live.Children is not null && slot.Type == type)
         {
-            Live.Children[Live.LastChildSlot] = chosen;
+            Live.Children[slot] = chosen;
         }
 
         return chosen;
@@ -3111,9 +3123,8 @@ public abstract partial class Component : RaskMarkup
         public Dictionary<(Type, object), Component>? KeyedChildren;
         public Dictionary<(Type, object), Component>? PreviousKeyedChildren;
 
-        // The slot the last entry filed a child under, so the Key step that follows it can re-file onto
-        // whichever instance the key actually claims. Safe to keep as one field because Key is required
-        // to be the FIRST step of its chain (RASK046) — nothing can be built in between.
+        // The slot the last entry filed a child under. Read by that entry immediately (GetOrCreateEntry) and
+        // carried on its EntrySlot, because by the time its Key step runs another entry may have moved it.
         public (Type Type, int Ordinal) LastChildSlot;
 
         // Builder surface. Two more bools rather than a wider record: LiveState is allocated per node

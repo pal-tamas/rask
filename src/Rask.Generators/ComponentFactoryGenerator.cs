@@ -609,6 +609,18 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             sb.AppendLine("    }");
             sb.AppendLine();
 
+            if (!elementOwned)
+            {
+                EmitCopyWritten(
+                    sb,
+                    "    public static void CopyComponentWritten(",
+                    receiver,
+                    baseCall: null,
+                    pending.Select(s => (s.Name, s.TypeFqn, bits[s.Name])).ToList(),
+                    props.Where(s => !bits.ContainsKey(s.Name)).Select(s => s.Name).ToList(),
+                    constraints: string.Empty);
+            }
+
             sb.Append("    /// <summary>Every folding bit <c>").Append(kind).AppendLine("</c> owns.</summary>");
             sb.Append("    public const ulong Shared").Append(kind).Append("Pending = ")
                 .Append(MaskLiteral(pending.Select(s => bits[s.Name]))).AppendLine(";");
@@ -837,7 +849,78 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             }
 
             sb.AppendLine("    }");
+
+            // An element keeps positional identity and is never claimed by a key, so it needs no copy.
+            if (!c.IsElement)
+            {
+                EmitCopyWritten(
+                    sb,
+                    "    " + visibility + " static void " + CopyWrittenName(c) + AnnotateDecl(c, c.TypeParameters) + "(",
+                    c.FullyQualifiedName,
+                    baseCall: "global::Rask.Core.BuilderRuntime.CopyComponentWritten",
+                    pending.Select(p => (p.Name, p.TypeFqn, bits[p.Name])).ToList(),
+                    eager.Select(static p => p.Name).ToList(),
+                    c.TypeParameterConstraints);
+            }
         }
+    }
+
+    // Replays the steps a chain wrote before its Key step onto the instance that key claimed (#1118). The
+    // FOLDING props copy only where their bit says the chain named them, through Track so the fold still
+    // reports the change; the rest copy unconditionally, because the provisional instance holds exactly what
+    // the entry's eager reset left there plus whatever the chain wrote — which is what the kept instance
+    // would hold had the entry built it.
+    private static void EmitCopyWritten(
+        StringBuilder sb,
+        string declaration,
+        string receiver,
+        string? baseCall,
+        IReadOnlyList<(string Name, string TypeFqn, int Bit)> folding,
+        IReadOnlyList<string> others,
+        string constraints)
+    {
+        sb.Append(declaration).Append("global::Rask.Core.Component __f0, global::Rask.Core.Component __t0, ulong __w)")
+            .AppendLine(constraints);
+        sb.AppendLine("    {");
+        if (baseCall is not null)
+        {
+            sb.Append("        ").Append(baseCall).AppendLine("(__f0, __t0, __w);");
+        }
+
+        if (folding.Count != 0 || others.Count != 0)
+        {
+            var cast = string.Equals(receiver, "global::Rask.Core.Component", StringComparison.Ordinal)
+                ? string.Empty
+                : "(" + receiver + ")";
+            sb.Append("        var __f = ").Append(cast).AppendLine("__f0;");
+            sb.Append("        var __t = ").Append(cast).AppendLine("__t0;");
+            foreach (var (name, typeFqn, bit) in folding)
+            {
+                var escaped = EscapeIdentifier(name);
+                sb.Append("        if ((__w & ").Append(MaskLiteral(new[] { bit })).AppendLine(") != 0UL)");
+                sb.AppendLine("        {");
+                sb.Append("            global::Rask.Core.BuilderRuntime.Track<").Append(typeFqn).Append(">(__t, __t.")
+                    .Append(escaped).Append(", __f.").Append(escaped).AppendLine(");");
+                sb.Append("            __t.").Append(escaped).Append(" = __f.").Append(escaped).AppendLine(";");
+                sb.AppendLine("        }");
+            }
+
+            foreach (var name in others)
+            {
+                var escaped = EscapeIdentifier(name);
+                sb.Append("        __t.").Append(escaped).Append(" = __f.").Append(escaped).AppendLine(";");
+            }
+        }
+
+        if (baseCall is null)
+        {
+            sb.AppendLine("        if (global::Rask.Core.BuilderRuntime.HasCallbacks(__f0))");
+            sb.AppendLine("        {");
+            sb.AppendLine("            global::Rask.Core.BuilderRuntime.MarkCallbacks(__t0);");
+            sb.AppendLine("        }");
+        }
+
+        sb.AppendLine("    }");
     }
 
     // The props the entry defaults on the spot: everything a setter can write that does NOT fold, plus
@@ -858,6 +941,8 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     private static string EagerResetName(Candidate c) => "__RaskResetEager_" + ResetSuffix(c);
 
     private static string PendingResetName(Candidate c) => "__RaskResetPending_" + ResetSuffix(c);
+
+    private static string CopyWrittenName(Candidate c) => "__RaskCopyWritten_" + ResetSuffix(c);
 
     // Namespace-qualified, because a component's SIMPLE name is not unique. Factories live in a
     // per-namespace `Generated` class, so `Features.Products.Card` and `Features.Orders.Card` coexist
@@ -1093,8 +1178,8 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         // below where Key was being consulted. ClaimKey hands back the instance this key owns, which is
         // why this step returns a NEW chain rather than the one it was given.
         //
-        // It also makes Key an opening step in practice: any setter written before it would land on the
-        // instance the key is about to discard. RASK046 reports that at the call site.
+        // A setter written before it landed on the provisional instance; ClaimKey replays those onto the
+        // instance the key keeps (#1118), so Key may come anywhere in the chain.
         if (generic && string.Equals(name, "Key", StringComparison.Ordinal))
         {
             // Emitted ONCE, over the component's own type parameter. This used to be emitted per chain
@@ -1895,18 +1980,18 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         sb.Append(pad).Append(visibility).Append(" readonly struct ").Append(SeedName(c)).AppendLine();
         sb.Append(pad).AppendLine("{");
 
-        // Key has to be able to come FIRST — before the required steps, not merely before the optional
-        // ones (#685, RASK046). It decides WHICH instance the chain is building, so a required property
-        // written ahead of it lands on the instance the key then discards: `BsToast.Id(…).Message(…)
-        // .Key(…)` was silently rendering the previous frame's message whenever the list changed shape.
+        // Key can come FIRST — before the required steps, not merely before the optional ones (#685). It
+        // decides WHICH instance the chain is building, and naming that before anything else is what reads
+        // best. (Written later it is also correct since #1118: ClaimKey carries the earlier steps across.)
         //
         // The seed itself holds no component — the first step constructs one — so this step constructs,
         // claims, and hands back the state that still awaits everything. The required steps then assign
         // onto the instance the key settled on, which is the whole point.
         //
-        // Only for a non-generic component: a generic one has type arguments still to be pinned by its
-        // opening, so there is no state type to name here yet. Those keep Key on the finished chain.
-        var seedCarriesKey = required.Count > 0 && c.TypeParameters.Length == 0;
+        // A generic component too (#1118). Its type arguments are still to be pinned by the opening, but the
+        // step hands back the SEED, not a state, so there is nothing to name yet — and without it the only
+        // sound spelling, Key first, did not compile (CS0315) and a generic control could not be keyed at all.
+        var seedCarriesKey = required.Count > 0 || c.TypeParameters.Length > 0;
         if (seedCarriesKey)
         {
             sb.Append(pad).AppendLine("    private readonly object? _key;");
@@ -1914,7 +1999,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             sb.Append(pad).Append("    internal ").Append(SeedName(c)).AppendLine("(object? key) => _key = key;");
             sb.Append(pad).AppendLine();
             sb.Append(pad).AppendLine(
-                "    /// <summary>Sets the reconciliation identity. Name it FIRST — see RASK046.</summary>");
+                "    /// <summary>Sets the reconciliation identity — which item this is.</summary>");
             sb.Append(pad).Append("    public ").Append(SeedName(c)).AppendLine(" Key(object? key) => new(key);");
             sb.Append(pad).AppendLine();
         }
@@ -1943,7 +2028,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         var openings = Openings(c);
         if (primary)
         {
-            EmitExplicitTypeOpening(sb, c, pad, assemblyName, runtimePrefix, required);
+            EmitExplicitTypeOpening(sb, c, pad, assemblyName, runtimePrefix, required, seedCarriesKey);
         }
 
         foreach (var opening in openings)
@@ -1975,7 +2060,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                     .Append(EscapeIdentifier(opening[0].ParamName)).Append(')')
                     .AppendLine(ConstraintsDeclaredBy(c, stageParams));
                 sb.Append(pad).Append("    => new(").Append(EscapeIdentifier(opening[0].ParamName))
-                    .AppendLine(");");
+                    .AppendLine(seedCarriesKey ? ", _key);" : ", null);");
                 continue;
             }
 
@@ -2008,8 +2093,15 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 .AppendLine(ConstraintsDeclaredBy(c, stageParams));
             sb.Append(pad).AppendLine("{");
             sb.Append(pad).Append("    internal ").Append(StageName(c, opening[0])).Append('(')
-                .Append(StepParamType(opening[0])).Append(" value) => ")
-                .Append(opening[0].ParamName).AppendLine(" = value;");
+                .Append(StepParamType(opening[0])).Append(" value, object? key)").AppendLine();
+            sb.Append(pad).AppendLine("    {");
+            sb.Append(pad).Append("        ").Append(opening[0].ParamName).AppendLine(" = value;");
+            sb.Append(pad).AppendLine("        _key = key;");
+            sb.Append(pad).AppendLine("    }");
+            sb.Append(pad).AppendLine();
+            // The key the seed was carrying when the opening step reached this stage, claimed by the step that
+            // builds the component.
+            sb.Append(pad).AppendLine("    private readonly object? _key;");
             sb.Append(pad).AppendLine();
             sb.Append(pad).Append("    private ").Append(StepParamType(opening[0])).Append(' ')
                 .Append(opening[0].ParamName).AppendLine(" { get; }");
@@ -2018,7 +2110,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             EmitBuildingStep(
                 sb, c, pad + "    ", assemblyName, runtimePrefix, opening[1],
                 [(opening[0], "this." + EscapeIdentifier(opening[0].ParamName))],
-                SatisfiedBy(c, opening));
+                SatisfiedBy(c, opening), carriesKey: true);
 
             EmitIdentityStep(sb, c, pad + "    ", assemblyName, runtimePrefix, opening);
 
@@ -2042,15 +2134,13 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             sb.Append(pad).Append("    private ").Append(c.FullyQualifiedName)
                 .AppendLine(" Component { get; }");
 
-            // Key is offered here, not only on the finished chain, because it has to be able to come
-            // FIRST (#685, RASK046): it decides which instance is being built, so anything written before
-            // it lands on the one the key discards. A component with required steps would otherwise have
-            // no way to satisfy both rules — `BsToast.Id(…).Message(…).Key(…)` is precisely the shape that
-            // was silently losing its props. Returns the same state, so it composes anywhere in the
-            // required sequence and changes nothing about what is still outstanding.
+            // Key is offered here, not only on the finished chain, so it can come FIRST (#685): it decides
+            // which instance is being built, and saying which item this is before anything else reads best.
+            // Returns the same state, so it composes anywhere in the required sequence and changes nothing
+            // about what is still outstanding.
             sb.Append(pad).AppendLine();
             sb.Append(pad).AppendLine(
-                "    /// <summary>Sets the reconciliation identity. Name it FIRST — see RASK046.</summary>");
+                "    /// <summary>Sets the reconciliation identity — which item this is.</summary>");
             sb.Append(pad).Append("    public ").Append(StateName(c, state))
                 .Append(c.TypeParameters)
                 .AppendLine(" Key(object? key)");
@@ -2113,7 +2203,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     // at all, and `UiInput.Value("")` is a value invented to satisfy the compiler rather than the field.
     private static void EmitExplicitTypeOpening(
         StringBuilder sb, Candidate c, string pad, string assemblyName, string runtimePrefix,
-        List<EntryInference> required)
+        List<EntryInference> required, bool carriesKey)
     {
         if (c.TypeParameters.Length == 0)
         {
@@ -2152,9 +2242,22 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             .Append(c.FullyQualifiedName).Append(">(");
         EmitResetArguments(sb, c, assemblyName, c.TypeParameters);
         sb.AppendLine(");");
+        if (carriesKey)
+        {
+            EmitCarriedKeyClaim(sb, pad, "_key");
+        }
+
         sb.Append(pad).AppendLine(pending ? "    return new(__c);" : "    return __c;");
         sb.Append(pad).AppendLine("}");
         sb.AppendLine();
+    }
+
+    // Claims the key a seed or a stage carried, onto the component the step just built — BEFORE any pin is
+    // assigned, so every one lands on the instance the key settles on.
+    private static void EmitCarriedKeyClaim(StringBuilder sb, string pad, string key)
+    {
+        sb.Append(pad).Append("    __c = global::Rask.Core.BuilderRuntime.ClaimKey(__c, ").Append(key).AppendLine(");");
+        sb.Append(pad).Append("    if (").Append(key).Append(" is not null) { __c.Key = ").Append(key).AppendLine("; }");
     }
 
     // The shortcut for "the option IS the value".
@@ -2217,6 +2320,8 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         // this method does not declare.
         EmitResetArguments(sb, c, assemblyName, "<" + value + ", " + value + ">");
         sb.AppendLine(");");
+        // The stage carries the seed's key (#1118); claim it before the pins, as every building step does.
+        EmitCarriedKeyClaim(sb, pad, "_key");
         // Through EmitPinAssignment, not raw: a step has to mark its property WRITTEN, or the deferred
         // reset blanks it again at the end of the parent's Render(). Assigning these directly is what
         // made every identity-form select render with a null `Options` — caught by the golden markup,
@@ -2279,13 +2384,12 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         sb.AppendLine(");");
 
         // The key the seed was carrying, applied BEFORE any property is assigned — which is the whole
-        // reason the seed carries it (#685, RASK046). Claiming settles which instance the chain is
+        // reason the seed carries it (#685). Claiming settles which instance the chain is
         // building, so every pin below lands on that one rather than on an instance about to be
         // discarded. A default seed carries null, and a null key claims nothing.
         if (carriesKey)
         {
-            sb.Append(pad).AppendLine("    __c = global::Rask.Core.BuilderRuntime.ClaimKey(__c, _key);");
-            sb.Append(pad).AppendLine("    if (_key is not null) { __c.Key = _key; }");
+            EmitCarriedKeyClaim(sb, pad, "_key");
         }
 
         foreach (var (pin, value) in carried)
@@ -3213,6 +3317,23 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         if (!c.HasLifecycle)
         {
             sb.Append(", false");
+        }
+
+        // What replays the steps written before a Key step onto the instance the key claims (#1118). Named,
+        // so it follows the optional lifecycle flag above whether or not that was written.
+        if (!c.IsElement)
+        {
+            sb.Append(", copy: ");
+            if (NeedsOwnReset(c))
+            {
+                var args = typeArguments.Length != 0 ? typeArguments : c.TypeParameters;
+                sb.Append("global::RaskBuilderSetters").Append(assemblyName).Append('.').Append(CopyWrittenName(c))
+                    .Append(args);
+            }
+            else
+            {
+                sb.Append("global::Rask.Core.BuilderRuntime.CopyComponentWritten");
+            }
         }
     }
 

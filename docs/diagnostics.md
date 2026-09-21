@@ -81,7 +81,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK043](#rask043) | Warning | A component name is used in a type that has no builder entries |
 | [RASK044](#rask044) | Warning | Builder chain sets the same property twice |
 | [RASK045](#rask045) | Warning | Component built by a chain is assigned to afterwards |
-| [RASK046](#rask046) | Warning | Key must open a component's chain |
+| [RASK046](#rask046) | — | *Retired* — Key had to open a component's chain |
 | RASK047 | — | *retired* — routes are `[Route]` attribute arguments, constant by construction |
 | RASK048 | — | *Retired* — HTML cannot sit inside a native screen |
 | RASK049 | — | *Retired* — a `NativeWebView` set a `Url` and took children |
@@ -351,8 +351,7 @@ rendered body as parameters. Do **not** add a runtime `<script>`; it's auto-appe
 A Rask component appears in a sibling-list context (a `.Select`/`.SelectMany` projection, or `.Add`
 in a loop) without a `Key`. Keyless items reconcile **by position**, which loses focus and input state
 and emits untrusted structural diffs on insert/remove/move — and for a component, position also
-decides which instance is reused, so the row's own state follows the slot rather than the item
-(see [RASK046](#rask046)).
+decides which instance is reused, so the row's own state follows the slot rather than the item.
 
 Both chain spellings are recognised — `Li[…]` and `Li.Class("c")[…]`. The chain went unreported until
 #704, when the only surface this checked was a factory call: the check matched a method named after the
@@ -982,33 +981,13 @@ code. A chain that named a step is where the two answers actually disagree.
 ---
 
 ## RASK046
-**Key must open a component's chain** · Warning
-
-A keyed child is identified by its **key** rather than by its position among its siblings, so that the
-state a row holds itself — a private field, an edit buffer, an `OnMount` subscription — moves with the
-item rather than with the slot when the list changes shape. Settling that identity means handing back
-the instance the key owns and discarding the one the entry just built, so any step written **before**
-`Key` is applied to a component that is about to be thrown away:
-
-```csharp
-TodoRow.Item(item).Key(item.Id)   // ✗ RASK046 — Item is written to the instance Key then discards
-TodoRow.Key(item.Id).Item(item)   // ✓ identity first, then everything else
-```
-
-It compiles and it renders. The value goes missing only once the list changes shape — an insert at the
-top, a reorder — which is the worst possible time to discover it.
-
-**Elements are exempt, and that is not a carve-out.** An element is re-specified in full on every
-render: whatever its chain does not name, the deferred reset puts back. Its instance therefore carries
-nothing, it is never claimed, and its DOM identity comes from `data-rask-key` in the diff codec rather
-than from the parent's child map. So the common spelling stays exactly as it reads:
-
-```csharp
-Div.Class("line").Key(index)[cells]   // ✓ an element is never claimed
-```
-
-**Fix:** move `.Key(…)` to the front of the chain. See [composition → keys](composition.md#children--fragments)
-and the reconciliation note in [the live-rendering codec](architecture/live-rendering-codec.md).
+*Retired.* It reported a `Key` written after another step on a component's chain, because a keyed child is
+identified by its key and claiming the instance that key owns used to discard the one the entry had just built —
+taking every step written before `Key` with it. Since #1118 those steps are carried onto the instance the key
+keeps, and a step whose argument builds another child in between no longer confuses which slot is re-filed, so
+`TodoRow.Item(item).Key(item.Id)` and `TodoRow.Key(item.Id).Item(item)` mean the same thing. Key first still
+reads best — it says which item this is before saying anything about it — but it is style now, not correctness.
+The id is retired, not reused.
 
 ---
 

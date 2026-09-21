@@ -51,9 +51,10 @@ public abstract partial class Component
         Action<Component> reset,
         Action<Component, ulong> pendingReset,
         ulong pending,
-        bool hasLifecycle = true)
+        bool hasLifecycle = true,
+        Action<Component, Component, ulong>? copy = null)
         where T : Component, new()
-        => BuilderRuntime.Entry<T>(reset, pendingReset, pending, hasLifecycle);
+        => BuilderRuntime.Entry<T>(reset, pendingReset, pending, hasLifecycle, copy);
 
     /// <summary>
     ///     The entry for a component whose only constructor takes injected services.
@@ -69,9 +70,10 @@ public abstract partial class Component
         Action<Component> reset,
         Action<Component, ulong> pendingReset,
         ulong pending,
-        bool hasLifecycle = true)
+        bool hasLifecycle = true,
+        Action<Component, Component, ulong>? copy = null)
         where T : Component
-        => BuilderRuntime.EntryDi<T>(reset, pendingReset, pending, hasLifecycle);
+        => BuilderRuntime.EntryDi<T>(reset, pendingReset, pending, hasLifecycle, copy);
 
     // A generic component's entry used to have a helper of its own — EntryBound<TControl, TValue>, which
     // took the Bind expression and assigned it. It is gone because the generated entry now assigns its

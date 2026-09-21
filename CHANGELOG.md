@@ -9,6 +9,18 @@ them until tagged releases begin.
 
 ### Added
 
+- **`UiModal.OnCancel`, and a `<dialog>`'s own `cancel`/`close` events** (#1116). `OnClose` runs for every way a
+  modal closes; `OnCancel` runs only for a DISMISSAL — Escape or a click outside — and before `OnClose`, so a
+  dialog holding a draft can discard it when the user backs out and keep it when they press a button that closes
+  it. The header's close button is not a dismissal. Underneath, every element gains `OnCancel` and `OnClose`,
+  the `<dialog>` events (`Dialog.OnCancel(…)`), appended to the event order so no existing attribute moves.
+  Rask.Blazor now reads the parameterless-event list from Rask.Core instead of keeping its own copy, so a hosted
+  Blazor component's `@oncancel`/`@onclose` reach C# too.
+  These two, and `toggle`/`beforetoggle`, are now delivered only to the element they fire on. The runtime
+  delegates events from the document, so an ancestor used to receive a descendant's: a `<details>` toggling
+  inside a popover `UiModal` reached the dialog's toggle handler, which the modal reads as "closed", and a file
+  picker's bubbling `cancel` would have reached an enclosing dialog's `OnCancel`.
+
 - **Multi-tenancy: a fifth const partitions a table by tenant.** Opt-in, so a table that says nothing is
   unchanged:
 
@@ -133,6 +145,31 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A sidebar collapsed to its rail keeps every link's name** (#1119). `UiNavItem`, `UiBrand` and `UiProfile`
+  carry their label as a `title`: the tooltip the icon rail shows, and the accessible name of a link that is only
+  an icon once its words are hidden, which it lacked before. A drawn tooltip would be clipped by the panel. The
+  kit still stores nothing itself; [the UI kit guide](docs/ui-kit.md) shows remembering `Collapsed` with
+  `IBrowserStorage`.
+
+- **`UiOtp`, `UiFileInput` and the multi-value `UiSelect` are fields like every other** (#1117). They now take
+  the shared field shape from `UiFormField<T>`: a visible `Label` with an optional `Badge`, `AccessibleLabel` when
+  there is none, `Hint` and `Error` under the control, an `Id` derived from the bound member or the label, and
+  `aria-describedby`, `aria-invalid` and `aria-required` worked out from those. **Their `Label` changed meaning to
+  match:** it was an invisible `aria-label`, and is now the visible `<label for>` — use `AccessibleLabel` for the
+  old invisible name. `Label` is no longer a required step, so `UiOtp.Value(v).Label(…).Length(6)` becomes
+  `UiOtp.Value(v).Length(6).Label(…)`. `UiOtp` also honours `Disabled` now, and a dropzone's `Text` is always
+  referenced by `aria-describedby` rather than only when you gave the control an `Id`.
+
+- **`Key` can go anywhere in a component's chain, and RASK046 is retired** (#1118). A keyed component is
+  identified by its key, and claiming the instance a key owns used to throw away the one the entry had just
+  built, together with every step written before `Key`: `UiMenuCheckbox.Value(_on).Key("on")` kept the value
+  from the render its key was first claimed on. Those steps are now carried onto the instance the key keeps, so
+  `Row.Item(item).Key(id)` and `Row.Key(id).Item(item)` mean the same thing, and RASK046, which reported the
+  first spelling, is retired (it could not see the chain form anyway). A generic component now takes `Key`
+  first as well: `UiMenuRadioGroup.Key("k").Value(x)` and `UiSelect.Key(id).Value(v)` compile, where they
+  failed with CS0315. Along the way, a step whose argument builds another child before `Key`
+  (`Row.Badge(Span["b"]).Key(id)`) no longer makes the key re-file the wrong slot and unmount the kept row.
+
 - **Soft delete is now OPT-IN, and `DeleteAsync` deletes.** An aggregate keeps its row only if it says so:
 
   ```csharp
@@ -188,6 +225,13 @@ them until tagged releases begin.
   `StoredFile` was heading for, since its `CreatedAt` is both an orphan sweep's cutoff and the `Last-Modified`
   of every file response, and `Rask.Storage` can be pointed at a `DbContext` carrying none of Rask's
   interceptors.
+
+### Fixed
+
+- **A disposed polling query starts no further fetch** (#1126). A poll tick checked whether the query was still
+  wanted and then started its fetch, so a tick that passed the check just before `Dispose()` could send one more
+  request after `Dispose()` had returned. The check and the start now happen under the same gate `Dispose()`
+  takes.
 
 ## [0.23.0] - 2026-09-18
 

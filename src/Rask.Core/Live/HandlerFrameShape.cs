@@ -1,3 +1,5 @@
+using System.Collections.Frozen;
+using System.Text;
 using System.Text.Json;
 using Rask.Core.Forms;
 
@@ -64,7 +66,8 @@ internal static class HandlerFrameShape
             "click"u8.ToArray(), "dragstart"u8.ToArray(), "dragover"u8.ToArray(), "drop"u8.ToArray(),
             "dragend"u8.ToArray(), "drag"u8.ToArray(), "dragenter"u8.ToArray(), "dragleave"u8.ToArray(),
             "focus"u8.ToArray(), "blur"u8.ToArray(), "focusin"u8.ToArray(), "focusout"u8.ToArray(),
-            "select"u8.ToArray(), "invalid"u8.ToArray(), "reset"u8.ToArray()
+            "select"u8.ToArray(), "invalid"u8.ToArray(), "reset"u8.ToArray(), "cancel"u8.ToArray(),
+            "close"u8.ToArray()
         },
         // Modifiers — MouseModifiers (click only).
         new[] { "click"u8.ToArray() },
@@ -150,6 +153,17 @@ internal static class HandlerFrameShape
 
         return true;
     }
+
+    /// <summary>
+    ///     Whether a frame named <paramref name="eventName" /> feeds a parameterless handler. The one list, read by
+    ///     every host that registers such handlers — Rask.Blazor kept a hand copy of it until #1116, and a copy is
+    ///     how a new event ends up wired in one place and silently refused in the other.
+    /// </summary>
+    internal static bool FeedsParameterless(string eventName) => Parameterless.Contains(eventName);
+
+    // Declared after Feeders: static fields initialise in textual order, and this one reads it.
+    private static readonly FrozenSet<string> Parameterless =
+        Feeders[(int)Shape.None].Select(Encoding.UTF8.GetString).ToFrozenSet(StringComparer.Ordinal);
 
     private static bool Contains(byte[][] types, JsonElement type)
     {

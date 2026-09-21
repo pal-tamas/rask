@@ -105,7 +105,7 @@ function raskMedia(e: Event): EventPayload {
 /** The inserted text for beforeinput (surfaced to a Callback<string>). */
 function raskBeforeInput(ev: Event): EventPayload { const e = ev as InputEvent; return { value: e.data == null ? "" : e.data }; }
 
-/** Parameterless events (focus/blur, drag/dragenter/dragleave, select/invalid/reset). */
+/** Parameterless events (focus/blur, drag/dragenter/dragleave, select/invalid/reset, a dialog's cancel/close). */
 function raskNone(): EventPayload { return {}; }
 
 /**
@@ -118,8 +118,13 @@ function raskToggle(ev: Event): EventPayload {
     return { oldState: e.oldState == null ? "" : e.oldState, newState: e.newState == null ? "" : e.newState };
 }
 
-// --- The registration table. Each row is [eventName, payloadBuilder, preventDefault]. ---
-var raskDomEvents: [string, (e: Event) => EventPayload, boolean][] = [
+// --- The registration table. Each row is [eventName, payloadBuilder, preventDefault, selfOnly?]. ---
+//
+// selfOnly: the event describes the element it fired ON, so it is delivered only to that element's own
+// handler and never to an ancestor's. Capture-phase delegation otherwise hands an ancestor every descendant's
+// event: a <details> toggling inside a popover dialog reached the dialog's OnToggle (which UiModal reads as
+// "closed"), and a file input's picker `cancel` — which bubbles — reached an enclosing dialog's OnCancel.
+var raskDomEvents: [string, (e: Event) => EventPayload, boolean, boolean?][] = [
     ["dblclick", raskMouse, false], ["mousedown", raskMouse, false], ["mouseup", raskMouse, false],
     ["mousemove", raskMouse, false], ["mouseover", raskMouse, false], ["mouseout", raskMouse, false],
     ["contextmenu", raskMouse, true],
@@ -138,16 +143,20 @@ var raskDomEvents: [string, (e: Event) => EventPayload, boolean][] = [
     // toggle/beforetoggle do NOT bubble. They are caught anyway because this table registers with
     // { capture: true }, and the capture phase reaches every ancestor on the way DOWN to the target
     // whether or not the event bubbles back up.
-    ["toggle", raskToggle, false], ["beforetoggle", raskToggle, false]
+    ["toggle", raskToggle, false, true], ["beforetoggle", raskToggle, false, true],
+    // A <dialog>'s cancel and close do not bubble either; the capture phase catches them the same way.
+    // cancel is never prevented: C# hears a dismissal, it does not veto one.
+    ["cancel", raskNone, false, true], ["close", raskNone, false, true]
 ];
 
 raskDomEvents.forEach(function (spec) {
-    var name = spec[0], build = spec[1], prevent = spec[2], attr = "data-rask-on-" + name;
+    var name = spec[0], build = spec[1], prevent = spec[2], selfOnly = spec[3] === true, attr = "data-rask-on-" + name;
     // passive when we never preventDefault — lets the browser keep scrolling/painting smoothly even
     // while a high-frequency handler (mousemove/touchmove/wheel) is attached.
     document.addEventListener(name, function (e) {
         var target = closestFrom(e.target, "[" + attr + "]");
         if (!target || !inRoot(target)) { return; }
+        if (selfOnly && target !== e.target) { return; }
         if (prevent) { e.preventDefault(); }
         var msg = build(e);
         msg.id = target.getAttribute(attr);

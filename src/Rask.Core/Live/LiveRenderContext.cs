@@ -340,7 +340,8 @@ public sealed class LiveRenderContext : IDisposable
         Func<IServiceProvider, T> factory,
         Action<Component, ulong> pendingReset,
         ulong pending,
-        bool hasLifecycle)
+        bool hasLifecycle,
+        Action<Component, Component, ulong>? copy = null)
         where T : Component
     {
         var parent = CurrentParent;
@@ -371,7 +372,7 @@ public sealed class LiveRenderContext : IDisposable
         {
             // The folding props this entry may leave behind. Recorded against the PARENT so the drain
             // at the end of its Render() knows which slots are its own — see BuilderRuntime.
-            BuilderRuntime.PushSlot(parent, child, pendingReset, pending);
+            BuilderRuntime.PushSlot(parent, child, pendingReset, pending, copy, parent.LastChildSlotInternal);
         }
 
         return child;
