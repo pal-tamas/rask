@@ -200,6 +200,11 @@ them until tagged releases begin.
 - **`rask new` writes the Web Push key file readable by you alone** (#1124). `appsettings.Development.json`
   holds the private key that signs every push, and was created with the ordinary umask (`0644`,
   world-readable). It is now created `0600` on macOS and Linux; Windows is unchanged.
+- **`HasNonOverlappingRange` on an existing table is a migration** (#1113). The rule was stored where EF
+  Core's migrations differ never looks, so adding it to a table whose columns did not otherwise change made
+  an empty migration and the triggers were never created. Removing the rule now drops its triggers and index,
+  and changing it rebuilds the index over the new columns. Your next migration may re-emit the triggers of a
+  table that already has them, which does no harm.
 - **A client registered concurrently no longer drops a notification** (#1123). `AddRaskCqrsClient` marked
   its invokers installed before installing them, so a second registration racing the first could publish
   while the notification invoker was only half installed, and the message never reached the server.
