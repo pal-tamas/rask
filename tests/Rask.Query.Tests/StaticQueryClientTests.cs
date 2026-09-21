@@ -351,4 +351,41 @@ public class StaticQueryClientTests
 
         Assert.Contains("AddRaskQuery()", error.Message);
     }
+
+    /// <summary>A render-form command sent with an edit every render, the way a real page would.</summary>
+    private sealed class ShipPage : Component
+    {
+        public Query<string>? Orders { get; private set; }
+
+        public Command<ShipOrder>? Ship { get; private set; }
+
+        protected override Component? Render()
+        {
+            Orders = QueryClient.Query(new GetOrders(1), Keep);
+            Ship = QueryClient.Command<ShipOrder>();
+            _ = Orders.Data;
+            return null;
+        }
+    }
+
+    [Fact]
+    public async Task An_edit_made_per_send_does_not_pile_up_across_renders()
+    {
+        var (services, dispatcher) = Session();
+        var page = new ShipPage();
+        var rendered = RaskTest.Render(page, services);
+        await Settle(page.Orders!);
+        for (var i = 0; i < 5; i++)
+        {
+            rendered.Render();
+        }
+
+        // Registered up front, five renders would have queued five copies of this edit.
+        dispatcher.Block();
+        var running = page.Ship!.SendAsync(new ShipOrder(7), page.Orders!.Optimistic(c => c + "+"));
+
+        Assert.Equal("first+", page.Orders.Data);
+        dispatcher.Release();
+        await running;
+    }
 }

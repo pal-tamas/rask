@@ -148,6 +148,28 @@ them until tagged releases begin.
 
 ### Changed
 
+- **`Rask.Query`: an optimistic update is made per send, from the query on screen** (breaking:
+  `Command<T>.Optimistic(query, update)` is gone). Registered once when the command was created, the edit
+  could not see what was being sent — "remove *this* row" had no id to capture — and a command declared in
+  `Render` gained another copy of it every render, so one click applied it once per render so far. It
+  could only aim at a message query, and a function command had none. Now the edit is a value made at send
+  time from the query itself:
+
+  ```csharp
+  ship.SendAsync(new ShipOrder(id), orders.Optimistic(list => [.. list.Where(o => o.Id != id)]));
+  save.SendAsync(ct => Person.CreateAsync(model, cancellationToken: ct), people.Optimistic(l => [.. l, draft]));
+  ```
+
+  Same guarantees as before: every edit is snapshotted before the send, the refetch replaces the guess on
+  success, and a failure restores all of them in reverse.
+
+- **`Rask.Query`: a command says what it is sending, and whether it has run.** `IsIdle` joins
+  `IsPending`/`IsSuccess`/`IsError`; `Variables` is the command last sent, set as it is sent so a pending
+  render can say "Shipping #7…", and cleared by `Reset()`. `Command<TCommand, TResult>.Data` now
+  registers the component that reads it, as `Status` always did — a component showing only the result
+  never re-rendered when it arrived — and is stored before the command reports success, so no render sees
+  `Success` with the previous result.
+
 - **`Rask.Query`: a query follows its inputs, from `Render`, a property or the constructor — and needs
   nothing injected** (breaking: `Query<T>.SetMessage` is gone). A query built once kept showing page one
   for ever unless `OnPropsChanged` re-pointed it by hand, and every component had to take `IQueryClient`

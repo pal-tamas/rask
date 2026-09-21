@@ -193,11 +193,11 @@ internal sealed class SessionQueryClient : IQueryClient
     ///     edit — the only honest undo is the previous value, since a caller's projection cannot be
     ///     inverted.
     /// </summary>
-    internal bool TryGetData<TResult>(IQuery<TResult> message, out TResult? data)
+    internal bool TryGetData<TResult>(QueryKey key, out TResult? data)
     {
         lock (_gate)
         {
-            if (_entries.TryGetValue(MessageKey.For(message), out var entry)
+            if (_entries.TryGetValue(key, out var entry)
                 && entry.HasData)
             {
                 data = (TResult?)entry.Data;
