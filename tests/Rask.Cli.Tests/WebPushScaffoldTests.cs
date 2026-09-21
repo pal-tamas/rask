@@ -67,6 +67,44 @@ public sealed class WebPushScaffoldTests
     }
 
     [Fact]
+    public void Only_the_key_file_is_marked_secret()
+    {
+        var files = ProjectGenerator.GenerateServer(Root, "App", NewCommand.BatteriesOf(["push"]), Version).Files;
+
+        var secret = Assert.Single(files, f => f.Secret);
+        Assert.Equal(WebPushAssembly.DevelopmentSettingsFile, Path.GetFileName(secret.Path));
+    }
+
+    [Fact]
+    public void A_secret_reaches_disk_readable_by_its_owner_alone()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var directory = Directory.CreateTempSubdirectory("rask-secret-");
+        try
+        {
+            var path = Path.Combine(directory.FullName, WebPushAssembly.DevelopmentSettingsFile);
+            var fs = new SystemFileSystem();
+
+            fs.WriteSecretText(path, "{}");
+            Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(path));
+
+            // A file that already existed keeps the mode it was created with unless it is narrowed too.
+            File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead | UnixFileMode.OtherRead);
+            fs.WriteSecretText(path, "{\"a\":1}");
+            Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(path));
+            Assert.Equal("{\"a\":1}", File.ReadAllText(path));
+        }
+        finally
+        {
+            directory.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
     public void The_generated_pair_is_a_real_P256_key_pair()
     {
         (var publicKey, var privateKey) = Pair(Generate("push"));

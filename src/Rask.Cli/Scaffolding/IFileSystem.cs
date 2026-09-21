@@ -21,6 +21,13 @@ internal interface IFileSystem
     void WriteAllText(string path, string content);
 
     /// <summary>
+    /// Write <paramref name="content"/> readable by its owner alone (<c>0600</c> on Unix). For the files a
+    /// scaffold generates that hold a secret — a signing key — which the ordinary umask would leave
+    /// world-readable on a shared machine.
+    /// </summary>
+    void WriteSecretText(string path, string content);
+
+    /// <summary>
     /// Write <paramref name="bytes"/> verbatim. For the template files that are not text — a PNG and two
     /// .ico favicons the front-end creators ship — where <see cref="WriteAllText"/> would re-encode the
     /// content as UTF-8 and corrupt it.
@@ -82,6 +89,25 @@ internal sealed class SystemFileSystem : IFileSystem
     public void CreateDirectory(string path) => Directory.CreateDirectory(path);
 
     public void WriteAllText(string path, string content) => File.WriteAllText(path, content);
+
+    public void WriteSecretText(string path, string content)
+    {
+        // Created 0600 rather than written and then narrowed, so the secret is never readable by anybody
+        // else, not even for the instant in between. An EXISTING file keeps the mode it was created with,
+        // so it is narrowed afterwards as well.
+        var options = new FileStreamOptions { Mode = FileMode.Create, Access = FileAccess.Write };
+        if (!OperatingSystem.IsWindows())
+        {
+            options.UnixCreateMode = OwnerOnly.File;
+        }
+
+        using (var writer = new StreamWriter(path, options))
+        {
+            writer.Write(content);
+        }
+
+        OwnerOnly.Restrict(path, OwnerOnly.File);
+    }
 
     public void WriteAllBytes(string path, byte[] bytes) => File.WriteAllBytes(path, bytes);
 

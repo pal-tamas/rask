@@ -851,6 +851,20 @@ public sealed class NewCommandTests
         }
     }
 
+    [Fact]
+    public async Task The_web_push_key_file_is_written_as_a_secret_and_nothing_else_is()
+    {
+        // #1124: the file holds the private key that signs every push, so it reaches disk owner-only
+        // instead of with the umask every other scaffolded file gets.
+        var (_, fs, _, command) = Build();
+
+        var exit = await command.ExecuteAsync(["MyApp", "--template", "server"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        var secret = Assert.Single(fs.SecretFiles);
+        Assert.EndsWith("/MyApp/" + WebPushAssembly.DevelopmentSettingsFile, secret.Replace('\\', '/'), StringComparison.Ordinal);
+    }
+
     private static (StringConsole Console, FakeFileSystem Fs, FakeProcessRunner Runner, NewCommand Command) Build()
     {
         var console = new StringConsole();

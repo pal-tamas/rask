@@ -67,7 +67,8 @@ internal static class WebPushAssembly
         var directory = Path.GetDirectoryName(settings.Path) ?? targetDirectory;
         var path = Path.Combine(directory, DevelopmentSettingsFile);
 
-        return [.. existing, new ScaffoldFile(path, DevelopmentSettings())];
+        // Secret: PrivateKey signs every push this app sends (#1124).
+        return [.. existing, new ScaffoldFile(path, DevelopmentSettings()) { Secret = true }];
     }
 
     /// <summary>The generated file, pair and all.</summary>
