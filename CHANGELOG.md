@@ -82,8 +82,14 @@ them until tagged releases begin.
   tenant is data on the row, not a partition of the table. A row enqueued by the host itself, or inside
   `Tenant.Across()`, records no tenant, which is an ordinary answer rather than an error.
 
-  **Not wired up yet:** cache and storage do not carry a tenant, and sign-in still looks a user up within the
-  current tenant rather than across all of them.
+  **Signing in with an address two tenants hold is refused, not guessed.** Sign-in has to find a user before
+  it can know which tenant they are in, so it looks across tenants — and with an address held in two, an
+  unordered `FirstOrDefault` would have signed somebody into whichever row the database returned first:
+  non-deterministic, and the wrong tenant half the time. It now refuses, logs the reason for the operator,
+  and answers as ordinary invalid credentials so the response says nothing about which addresses exist.
+
+  **Not wired up yet:** cache and storage do not carry a tenant, and an administrator cannot yet switch into
+  a tenant.
 
 - **A collection of values on an aggregate is mapped, queryable and editable.** `IReadOnlyList<string> Tags`
   becomes a primitive collection and `IReadOnlyList<Stop> Stops` a JSON column, both carried on the form model

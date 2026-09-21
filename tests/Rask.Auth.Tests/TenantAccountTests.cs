@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Rask.Core.Authentication;
 using Rask.Data;
+using Rask.Wire;
 
 namespace Rask.Auth.Tests;
 
@@ -111,9 +114,42 @@ public sealed class TenantAccountTests
         Assert.Null(principal.FindFirst(Tenant.ClaimType));
     }
 
+    [Fact]
+    public async Task Signing_in_with_an_address_two_tenants_hold_is_refused_not_guessed()
+    {
+        await using var harness = new AuthHarness();
+
+        // Sign-in cannot filter by tenant: it has to find the user BEFORE it can know which tenant they are
+        // in. With the same address in two tenants an unordered FirstOrDefault would sign somebody into
+        // whichever row came back first — non-deterministic, and the wrong tenant half the time.
+        await AddAsync(harness, "ada@example.com", _acme, password: Password);
+        await AddAsync(harness, "ada@example.com", _globex, password: Password);
+
+        Assert.NotEqual(AuthResult.Success, await SignInAsync(harness, "ada@example.com"));
+    }
+
+    [Fact]
+    public async Task One_account_with_that_address_still_signs_in()
+    {
+        await using var harness = new AuthHarness();
+        await AddAsync(harness, "ada@example.com", _acme, password: Password);
+
+        // The guard must not break the ordinary case — one match is still one match.
+        Assert.Equal(AuthResult.Success, await SignInAsync(harness, "ada@example.com"));
+    }
+
     // Written through EF rather than a factory: the credentials have private setters and Register is
     // internal to Rask.Auth, which is the point of them — only the auth flows mint an account.
-    private static async Task AddAsync(AuthHarness harness, string email, Guid? tenant)
+    private const string Password = "correct horse battery";
+
+    private static async Task<AuthResult> SignInAsync(AuthHarness harness, string email)
+    {
+        using var scope = harness.NewScope();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
+        return (await accounts.ValidateAsync(email, Password, null)).Result;
+    }
+
+    private static async Task AddAsync(AuthHarness harness, string email, Guid? tenant, string? password = null)
     {
         await using var db = harness.NewContext();
         var user = new TestUser();
@@ -123,7 +159,9 @@ public sealed class TenantAccountTests
         var entry = db.Entry(user);
         entry.Property(nameof(Authenticatable.Id)).CurrentValue = Guid.CreateVersion7();
         entry.Property(nameof(Authenticatable.Email)).CurrentValue = Authenticatable.NormalizeEmail(email);
-        entry.Property("PasswordHash").CurrentValue = "x";
+        entry.Property("PasswordHash").CurrentValue =
+            password is null ? "x" : new PasswordHasher().Hash(password);
+        entry.Property(nameof(Authenticatable.EmailConfirmedAt)).CurrentValue = DateTime.UtcNow;
 
         if (tenant is { } id)
         {

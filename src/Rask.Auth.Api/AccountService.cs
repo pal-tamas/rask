@@ -215,9 +215,34 @@ internal sealed class AccountService<TUser>(
         var normalized = Authenticatable.NormalizeEmail(email);
 
         await using var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
-        var user = await db.Set<TUser>()
-            .FirstOrDefaultAsync(u => u.Email == normalized, cancellationToken)
+
+        // TWO, not one. An address is unique WITHIN a tenant, so with tenants in play the same address can
+        // belong to two accounts — and the accounts table is deliberately not filtered by tenant, because
+        // sign-in has to find a user BEFORE it can know which tenant they are in. FirstOrDefault over an
+        // unordered query would then sign somebody into whichever row the database happened to return first,
+        // which is both non-deterministic and the wrong tenant half the time.
+        var candidates = await db.Set<TUser>()
+            .Where(u => u.Email == normalized)
+            .Take(2)
+            .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
+
+        if (candidates.Count > 1)
+        {
+            // Refused rather than resolved arbitrarily. Reported at Error because it is a configuration
+            // problem the operator has to fix — an app with per-tenant addresses needs to say which tenant a
+            // sign-in is for — and answered as ordinary invalid credentials so the response says nothing
+            // about which addresses exist.
+            logger.LogError(
+                "Sign-in for an address held by more than one tenant was refused. Rask cannot tell which " +
+                "account was meant, so it signs in neither.");
+
+            hasher.VerifyNothing(password);
+            throttle.Hit(throttleKey);
+            return Fail(AuthError.InvalidCredentials);
+        }
+
+        var user = candidates.Count == 1 ? candidates[0] : null;
 
         if (user is null)
         {
