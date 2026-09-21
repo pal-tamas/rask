@@ -16,6 +16,13 @@ them until tagged releases begin.
   WASM bundle (it needs the `wasm-tools` workload), so it proves the FTS5 build and EF's query rewrite a browser app
   actually ships. Listed in `run-all-gates.sh`.
 
+- **Broadcast across servers: `Rask.Redis` (#1115).** `AddRaskRedisBackplane()` carries `IBroadcast` messages
+  between the instances behind a load balancer over Redis pub/sub, so a publish on one instance re-renders the
+  subscribed pages on every instance. Only a topic declared with a source-generated JSON contract crosses —
+  `new Topic<OrderPlaced>("orders", AppJson.Default.OrderPlaced)` — and every other topic stays in its process, as
+  a live object. The connection string is `Rask:ConnectionStrings:Redis` (or the app's own
+  `IConnectionMultiplexer`), each topic is the channel `rask:broadcast:{name}` (`Rask:Redis:ChannelPrefix`), and an
+  instance drops its own message when Redis hands it back, so no page sees one twice.
 - **Full-text search on PostgreSQL** (#1109). `HasFullTextSearch`, `Search(text)` and `FullText.Highlight`/`Snippet`
   now work through `UseRaskPostgres` as they do on SQLite. The index is a stored generated `tsvector` column with a
   GIN index — no triggers — and a search is `@@ to_tsquery(…)` ranked by `ts_rank_cd`, highlighted by `ts_headline`

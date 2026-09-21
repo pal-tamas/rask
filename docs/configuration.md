@@ -140,6 +140,8 @@ A few things to know:
 | `Rask:Litestream` | `LitestreamOptions` | `Rask.SQLite.Litestream` | `ReplicaUrl`, `ConfigPath`, `ExecutablePath`, `Verification`. `DatabasePath` defaults to the file behind `Rask:ConnectionStrings:App`. See [continuous backup](sqlite.md#continuous-backup-with-litestream). |
 | `Rask:Snapshots` | `SqliteSnapshotOptions` | `Rask.SQLite.Snapshots` | `DestinationDirectory`, `Interval`, `Retain`. `DatabasePath` defaults the same way. See [snapshots](sqlite.md#scheduled-snapshots). |
 | `Rask:Cache` | `CacheOptions` | `Rask.Cache` | See [cache](cache.md). |
+| `Rask:ConnectionStrings:Redis` | — | `Rask.Redis` | The Redis server the broadcast backplane publishes through, unless the app registers its own `IConnectionMultiplexer`. |
+| `Rask:Redis` | `RedisOptions` | `Rask.Redis` | `ChannelPrefix`. Read by `AddRaskRedisBackplane()`. See [broadcast across servers](broadcast.md#across-servers). |
 | `Rask:Jobs` | `JobOptions` | `Rask.Jobs` | `AddRecurring` is code-only. See [jobs](jobs.md). |
 | `Rask:ConnectionStrings:Logs` | — | `Rask.Logging` | The log store's own file. |
 | `Rask:Logging` | `RaskLoggingOptions` | `Rask.Logging` | `ExcludedCategories` is appended to. See [logging](logging.md). |

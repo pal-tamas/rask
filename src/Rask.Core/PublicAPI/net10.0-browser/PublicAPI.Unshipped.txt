@@ -3717,6 +3717,7 @@ Rask.Core.Messaging.Toaster.Toaster() -> void
 Rask.Core.Messaging.Topic<T>
 Rask.Core.Messaging.Topic<T>.Name.get -> string!
 Rask.Core.Messaging.Topic<T>.Topic(string! name) -> void
+Rask.Core.Messaging.Topic<T>.Topic(string! name, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! crossHost) -> void
 Rask.Core.MouseModifiers
 Rask.Core.MouseModifiers.Alt.get -> bool
 Rask.Core.MouseModifiers.Alt.init -> void

@@ -7,7 +7,7 @@ namespace Rask.Core.Tests.Messaging;
 
 // #1061: the in-process broadcast hub — who receives a message, when a subscription ends, and that one bad subscriber
 // cannot stop the rest.
-public sealed class BroadcastHubTests
+public sealed partial class BroadcastHubTests
 {
     private static readonly Topic<string> News = new("news");
 

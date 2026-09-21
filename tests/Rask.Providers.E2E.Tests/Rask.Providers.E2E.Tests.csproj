@@ -15,6 +15,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Configuration"/>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
     <PackageReference Include="Microsoft.Extensions.Hosting"/>
     <PackageReference Include="Microsoft.NET.Test.Sdk"/>
@@ -37,6 +38,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Postgres\Rask.Postgres.csproj"/>
     <ProjectReference Include="..\..\src\Rask.SqlServer\Rask.SqlServer.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Redis\Rask.Redis.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Data\Rask.Data.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Jobs\Rask.Jobs.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cache\Rask.Cache.csproj"/>

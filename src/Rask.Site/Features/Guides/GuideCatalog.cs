@@ -302,7 +302,7 @@ public static class GuideCatalog
         new("broadcast", "Broadcast", "Publish on a topic; every subscribed component, in every open page, re-renders.", "Core")
         {
             SearchTitle = "Real-time pub/sub to every open page in C#",
-            Description = "Push a change to every open page with IBroadcast: typed topics, subscriptions that end when the component unmounts, and delivery in order with page events.",
+            Description = "Push a change to every open page with IBroadcast: typed topics, subscriptions that end with the component, and a Redis backplane across servers.",
         },
         new("lifecycle", "Lifecycle", "Mount, props-changed, rendered, unmount, cancellation.", "Core")
         {

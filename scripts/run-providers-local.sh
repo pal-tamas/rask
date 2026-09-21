@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Provider gate — do Rask's batteries hold on a real client-server database?
+# Provider gate — do Rask's batteries hold on a real client-server database, and does the broadcast backplane carry
+# a publish between two hosts over a real Redis?
 #
 # Everything else about the database runs on SQLite. What only a server can prove is the provider half:
 # that the jobs claim's UPDATE re-evaluates its predicate against the row version the winner committed, that
@@ -37,11 +38,13 @@ pg_port="${RASK_PG_PORT:-}"
 pg_password="rask-test"
 
 mssql_container="rask-providers-mssql-$$"
+redis_container="rask-providers-redis-$$"
 mssql_password="Rask-test-1234"
 
 cleanup() {
   docker rm -f "$pg_container" >/dev/null 2>&1 || true
   docker rm -f "$mssql_container" >/dev/null 2>&1 || true
+  docker rm -f "$redis_container" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
@@ -119,6 +122,26 @@ else
   echo "    Its tests report SKIPPED. Run this gate on amd64, or set RASK_MSSQL_TEST_DB, to prove it."
 fi
 
+echo "==> Starting Redis 8 ($redis_container)"
+docker run -d --rm --name "$redis_container" -p "127.0.0.1::6379" redis:8-alpine >/dev/null
+redis_port="$(docker port "$redis_container" 6379/tcp | head -n 1 | sed 's/.*://')"
+redis_ready=0
+for _ in $(seq 1 30); do
+  if [ "$(docker exec "$redis_container" redis-cli ping 2>/dev/null)" = "PONG" ]; then
+    redis_ready=1
+    break
+  fi
+  sleep 1
+done
+
+if [ "$redis_ready" = "1" ]; then
+  echo "    listening on 127.0.0.1:$redis_port"
+  export RASK_REDIS_TEST="127.0.0.1:$redis_port"
+else
+  echo "    WARNING: Redis did not answer PING in 30s — the backplane tests will report SKIPPED, not pass." >&2
+  docker logs "$redis_container" 2>&1 | tail -5 >&2 || true
+fi
+
 echo "==> Provider tests"
 dotnet test tests/Rask.Providers.E2E.Tests/Rask.Providers.E2E.Tests.csproj -c Release \
   --logger "console;verbosity=normal"
@@ -128,13 +151,18 @@ if [ "$pg_ready" != "1" ]; then
   exit 1
 fi
 
+if [ "$redis_ready" != "1" ]; then
+  echo "run-providers-local: FINISHED WITH SKIPS — Redis never became ready, so the backplane was not proven." >&2
+  exit 1
+fi
+
 if [ "$mssql_state" = "failed" ]; then
   echo "run-providers-local: FINISHED WITH SKIPS — SQL Server was started here and never became ready." >&2
   exit 1
 fi
 
 if [ "$mssql_state" = "not-proven" ]; then
-  echo "==> Provider gate passed for PostgreSQL. SQL Server was NOT proven on this host."
+  echo "==> Provider gate passed for PostgreSQL and Redis. SQL Server was NOT proven on this host."
 else
-  echo "==> Provider gate passed (PostgreSQL and SQL Server)."
+  echo "==> Provider gate passed (PostgreSQL, SQL Server and Redis)."
 fi

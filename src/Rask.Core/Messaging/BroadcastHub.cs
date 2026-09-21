@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Text.Json;
 using Rask.Core.Diagnostics;
 using Rask.Core.Live;
 
@@ -22,13 +23,20 @@ namespace Rask.Core.Messaging;
 ///         the host's: a server session queues it behind its WebSocket events, a WebAssembly session behind the browser's.
 ///     </para>
 ///     <para>
-///         The seam a multi-host backplane plugs into is <see cref="Deliver{T}" />: a message that arrived from another
-///         host is delivered to this host's subscribers exactly as a local publish is.
+///         <b>Across hosts (#1115).</b> A topic declared with a <c>JsonTypeInfo</c> is also handed, serialized, to the
+///         <see cref="IBroadcastBackplane" /> when one is registered. This host starts listening for a topic when its
+///         first local subscriber arrives, and a message that comes back from another host goes through
+///         <see cref="Deliver{T}" /> — delivered to this host's subscribers exactly as a local publish is.
 ///     </para>
 /// </remarks>
-internal sealed class BroadcastHub : IBroadcast
+/// <param name="backplane">The transport to the app's other hosts; <see langword="null" /> keeps every topic local.</param>
+internal sealed class BroadcastHub(IBroadcastBackplane? backplane = null) : IBroadcast
 {
     private readonly ConcurrentDictionary<(string Name, Type Type), Subscribers> _topics = new();
+
+    // A cross-host topic is matched on the other side by NAME alone, so one name carries one type across the app.
+    private readonly ConcurrentDictionary<string, Type> _crossHostTypes = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, bool> _listening = new(StringComparer.Ordinal);
 
     public void Subscribe<T>(Component owner, Topic<T> topic, Action<T> handler) => Add(owner, topic, handler);
 
@@ -38,9 +46,21 @@ internal sealed class BroadcastHub : IBroadcast
     {
         ArgumentNullException.ThrowIfNull(topic);
         cancellationToken.ThrowIfCancellationRequested();
+
+        if (backplane is null || topic.CrossHost is not { } contract)
+        {
+            Deliver(topic, message);
+            return default;
+        }
+
+        ClaimCrossHostName(topic);
+        var payload = JsonSerializer.SerializeToUtf8Bytes(message, contract);
         Deliver(topic, message);
-        return default;
+        return new ValueTask(backplane.PublishAsync(topic.Name, payload, cancellationToken));
     }
+
+    /// <summary>The transport to the other hosts, when the app registered one.</summary>
+    internal IBroadcastBackplane? Backplane => backplane;
 
     /// <summary>How many subscriptions <paramref name="topic" /> has right now.</summary>
     internal int SubscriberCount<T>(Topic<T> topic) =>
@@ -86,6 +106,11 @@ internal sealed class BroadcastHub : IBroadcast
             return;
         }
 
+        if (backplane is not null && topic.CrossHost is not null)
+        {
+            Listen(topic);
+        }
+
         var subscribers = _topics.GetOrAdd((topic.Name, typeof(T)), static _ => new Subscribers());
         var subscription = new Subscription(owner, handler);
         subscribers.Add(subscription);
@@ -99,6 +124,50 @@ internal sealed class BroadcastHub : IBroadcast
                 list.Remove(item);
             },
             (subscribers, subscription));
+    }
+
+    // Starts receiving the topic from the other hosts, once per name for the life of the hub. Never undone: a host
+    // with no subscriber left just delivers to nobody, which costs less than re-subscribing on the next mount.
+    private void Listen<T>(Topic<T> topic)
+    {
+        ClaimCrossHostName(topic);
+        if (!_listening.TryAdd(topic.Name, true))
+        {
+            return;
+        }
+
+        var contract = topic.CrossHost!;
+        backplane!.Subscribe(topic.Name, payload =>
+        {
+            T message;
+            try
+            {
+                message = JsonSerializer.Deserialize(payload.Span, contract)!;
+            }
+            catch (JsonException ex)
+            {
+                // Another host running another version of the message type. Dropped rather than delivered half-read.
+                RaskDiagnostics.Report(
+                    RaskLogLevel.Warning,
+                    "Rask.Broadcast",
+                    $"A {typeof(T).Name} message on '{topic.Name}' from another host could not be read, and was dropped",
+                    ex);
+                return;
+            }
+
+            Deliver(topic, message);
+        });
+    }
+
+    private void ClaimCrossHostName<T>(Topic<T> topic)
+    {
+        var claimed = _crossHostTypes.GetOrAdd(topic.Name, typeof(T));
+        if (claimed != typeof(T))
+        {
+            throw new InvalidOperationException(
+                $"The cross-host topic '{topic.Name}' is declared for both {claimed.Name} and {typeof(T).Name}. A topic that "
+                + "crosses hosts is matched by its name alone, so give each message type its own name.");
+        }
     }
 
     private static async Task RunAsync<T>(Subscription[] group, T message)
