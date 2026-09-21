@@ -185,6 +185,15 @@ them until tagged releases begin.
 
 ### Changed
 
+- **The tutorial saves through commands and loads through queries.** Chapter 2's create, edit and delete
+  pages send their Rask.Data writes through `QueryClient.Command()` — `IsPending` disables the button so a
+  double click cannot write twice, and a failure lands on `Error` instead of a `try`/`catch` per page —
+  the edit page loads its row as a query keyed by the route's `Id`, replacing `OnPropsChangedAsync` and its
+  loaded/found flags, and the list page's heading counts products through a query that refreshes itself
+  after any product write. Chapter 3's copies inherit all of it. The grid stays an `IQueryable`, because it
+  pages and sorts in SQL. `QueryClient.Command()` now takes no arguments for work whose invalidation is
+  automatic.
+
 - **A sidebar collapsed to its rail keeps every link's name** (#1119). `UiNavItem`, `UiBrand` and `UiProfile`
   carry their label as a `title`: the tooltip the icon rail shows, and the accessible name of a link that is only
   an icon once its words are hidden, which it lacked before. A drawn tooltip would be clipped by the panel. The

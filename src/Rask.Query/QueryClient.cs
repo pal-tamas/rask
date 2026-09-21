@@ -243,21 +243,22 @@ public static class QueryClient
 
     /// <summary>
     ///     A renderable command that is a function, invalidating every one of <paramref name="invalidates" />
-    ///     after each successful send — none, for work that makes nothing out of date.
+    ///     after each successful send — none when omitted: <c>QueryClient.Command()</c>.
     /// </summary>
+    /// <remarks>
+    ///     None is the usual answer for a Rask.Data write in a Rask app, which refreshes the queries about
+    ///     what it wrote by itself; name keys here for anything else the work makes stale.
+    /// </remarks>
     /// <param name="invalidates">Key prefixes to refetch: <c>[typeof(Person), "dashboard"]</c>.</param>
     /// <param name="key">Identity for a command rendered in a loop; see <see cref="Command{TCommand}(object?, string, int)" />.</param>
     /// <param name="callerFile">Supplied by the compiler; identifies this call inside <c>Render</c>.</param>
     /// <param name="callerLine">Supplied by the compiler; identifies this call inside <c>Render</c>.</param>
     public static Command Command(
-        QueryKey[] invalidates,
+        QueryKey[]? invalidates = null,
         object? key = null,
         [CallerFilePath] string callerFile = "",
-        [CallerLineNumber] int callerLine = 0)
-    {
-        ArgumentNullException.ThrowIfNull(invalidates);
-        return Slotted(callerFile, callerLine, key, client => client.Command(invalidates));
-    }
+        [CallerLineNumber] int callerLine = 0) =>
+        Slotted(callerFile, callerLine, key, client => client.Command(invalidates ?? []));
 
     // ---- one-shot calls, for a handler ---------------------------------------------------------------
 

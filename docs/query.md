@@ -286,6 +286,9 @@ adding an `OrderLine` refreshes `Order` queries. What it cannot reach is a messa
 `GetPeople`: that is keyed by its own type, and the write cannot know which messages read the table, so the
 command still names it with `[Invalidates(typeof(GetPeople))]`.
 
+So a command around such a write names nothing — `QueryClient.Command()` — and is there for what a render
+wants from it: `IsPending` to grey the button, `Error` to say what went wrong.
+
 Three things it deliberately does not do:
 
 - **Refresh another session.** The cache is per session, and another user's screen is not this write's to

@@ -103,6 +103,7 @@ just pages.
 
 ```csharp
 using Rask.Core.Routing;
+using Rask.Query;
 
 namespace Shop.Features.Products;
 
@@ -110,37 +111,33 @@ namespace Shop.Features.Products;
 public sealed partial class CreateProduct(Navigator navigator) : Component
 {
     private readonly ProductModel _model = new();
-    private string? _error;
 
     protected override Component? HeadAssets => Title["New Product"];
 
-    private async Task SaveAsync(ProductModel model)
+    protected override Component? Render()
     {
-        try
-        {
-            await Product.CreateAsync(model, cancellationToken: CancellationToken);
-            navigator.NavigateTo(Routes.ProductsPage());
-        }
-        catch (Exception)
-        {
-            _error = "Something went wrong — please try again.";
-        }
-    }
+        // The same command every render, so "saving" survives the re-render the click causes.
+        var save = QueryClient.Command();
 
-    protected override Component? Render() =>
-    [
-        UiHeader.Heading("New product").Actions(UiButton.Variant(UiVariant.Ghost).Href(Routes.ProductsPage())["Cancel"]),
-        UiCard[
-            _error is null ? null : UiAlert.Tone(UiTone.Error)[_error],
-            Form.Model(_model).OnValidSubmit(SaveAsync)[
-                UiInput.Bind(() => _model.Name).Label("Name"),
-                UiInput.Bind(() => _model.Price).Label("Price").Min("0").Step("0.01")
-                    .Hint("What a customer pays, before tax."),
-                UiCheckbox.Bind(() => _model.InStock).Text("In stock"),
-                UiButton.Type(UiButtonType.Submit).Tone(UiTone.Primary)["Save"]
+        return
+        [
+            UiHeader.Heading("New product").Actions(UiButton.Variant(UiVariant.Ghost).Href(Routes.ProductsPage())["Cancel"]),
+            UiCard[
+                save.IsError ? UiAlert.Tone(UiTone.Error)["Something went wrong — please try again."] : null,
+                Form.Model(_model).OnValidSubmit(model => save.SendAsync(async ct =>
+                {
+                    await Product.CreateAsync(model, cancellationToken: ct);
+                    navigator.NavigateTo(Routes.ProductsPage());
+                }, CancellationToken))[
+                    UiInput.Bind(() => _model.Name).Label("Name"),
+                    UiInput.Bind(() => _model.Price).Label("Price").Min("0").Step("0.01")
+                        .Hint("What a customer pays, before tax."),
+                    UiCheckbox.Bind(() => _model.InStock).Text("In stock"),
+                    UiButton.Type(UiButtonType.Submit).Tone(UiTone.Primary).Disabled(save.IsPending)["Save"]
+                ]
             ]
-        ]
-    ];
+        ];
+    }
 }
 ```
 
@@ -155,88 +152,90 @@ the field, rather than in a placeholder), and the field's own validation message
 the runtime follows it without reloading the page. See [the UI kit](../ui-kit.md#buttons-and-links-that-go-somewhere).
 
 Nothing in that form mentions validation, and the attributes on `Product` are still enforced: `Form<T>`
-validates its model on its own, with no package to add and nothing to declare, and `SaveAsync` only runs for a
+validates its model on its own, with no package to add and nothing to declare, and the save only runs for a
 valid one. See [forms](../forms.md) and [validation](../validation.md).
+
+The save goes through a **command**: `QueryClient.Command()` hands back the same command every render, and
+sending work through it is what the page reads its state from. `IsPending` greys the button while the row is
+written, so a double click can't create two products, and a failure lands on `IsError` instead of escaping the
+click — `SendAsync` never throws, which is why there is no `try` here. A command also refreshes whatever a
+save made stale: the product count you'll put on the list page updates by itself once `CreateAsync` commits.
+See [queries and commands](../query.md).
 
 ## 4. Edit and delete
 
 Same shape, and the list page in the next step links to both — so write them now or it won't compile.
 
-`Features/Products/UpdateProduct.cs` loads the row, turns it into a `ProductModel`, and saves it back:
+`Features/Products/UpdateProduct.cs` loads the row as a `ProductModel` and saves it back:
 
 ```csharp
 using Microsoft.EntityFrameworkCore;
 using Rask.Core.Routing;
+using Rask.Query;
 
 namespace Shop.Features.Products;
 
 [Route("/products/{id:guid}/edit")]
 public sealed partial class UpdateProduct(Navigator navigator) : Component
 {
-    private ProductModel _model = new();
-    private bool _loaded;
-    private bool _found;
-    private string? _error;
+    // Loaded for this page alone: a zero GcTime drops it the moment you leave, so a later visit always
+    // starts from the database, and the form can edit what was loaded in place.
+    private static readonly QueryOptions ThisPageOnly = new() { GcTime = TimeSpan.Zero };
+
+    private ProductModel? _model;
+    private Guid _modelFor;
 
     [RouteParam] public Guid Id { get; set; }
 
     protected override Component? HeadAssets => Title["Edit Product"];
 
-    protected override async Task OnPropsChangedAsync()
-    {
-        _loaded = false;
-        var model = await Product.ModelAsync(Id, cancellationToken: CancellationToken);
-        _found = model is not null;
-        if (model is not null)
-        {
-            _model = model;
-        }
-
-        _loaded = true;
-    }
-
-    private async Task SaveAsync(ProductModel model)
-    {
-        try
-        {
-            await Product.UpdateAsync(Id, model, cancellationToken: CancellationToken);
-            navigator.NavigateTo(Routes.ProductsPage());
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            _error = "Someone else changed this product while you were editing it. Reload to see their changes.";
-        }
-        catch (KeyNotFoundException)
-        {
-            _error = "This product has been deleted.";
-        }
-    }
-
     protected override Component? Render()
     {
-        if (!_loaded)
+        var product = QueryClient.Query(QueryKey.For<Product>("edit"), Id,
+            (id, ct) => Product.ModelAsync(id, cancellationToken: ct), ThisPageOnly);
+        var save = QueryClient.Command();
+
+        if (product.IsLoading)
         {
             return UiLoading.Text("Loading…");
         }
 
-        if (!_found)
+        if (product.Data is not { } loaded)
         {
             return UiAlert.Tone(UiTone.Warning)[
                 "Product not found. ", UiLink.Href(Routes.ProductsPage()).Text("Back to the list"), "."
             ];
         }
 
+        // One copy per product, taken when it arrives: a refetch landing while you type must not reset the form.
+        if (_model is null || _modelFor != Id)
+        {
+            _model = loaded;
+            _modelFor = Id;
+        }
+
         return
         [
             UiHeader.Heading("Edit product").Actions(UiButton.Variant(UiVariant.Ghost).Href(Routes.ProductsPage())["Cancel"]),
             UiCard[
-                _error is null ? null : UiAlert.Tone(UiTone.Error)[_error],
-                Form.Model(_model).OnValidSubmit(SaveAsync)[
+                save.Error switch
+                {
+                    null => null,
+                    DbUpdateConcurrencyException => UiAlert.Tone(UiTone.Error)[
+                        "Someone else changed this product while you were editing it. Reload to see their changes."],
+                    KeyNotFoundException => UiAlert.Tone(UiTone.Error)["This product has been deleted."],
+                    _ => UiAlert.Tone(UiTone.Error)["Something went wrong — please try again."],
+                },
+                Form.Model(_model).OnValidSubmit(model => save.SendAsync(async ct =>
+                {
+                    await Product.UpdateAsync(Id, model, cancellationToken: ct);
+                    navigator.NavigateTo(Routes.ProductsPage());
+                }, CancellationToken))[
                     UiInput.Bind(() => _model.Name).Label("Name"),
                     UiInput.Bind(() => _model.Price).Label("Price").Min("0").Step("0.01")
                         .Hint("What a customer pays, before tax."),
                     UiCheckbox.Bind(() => _model.InStock).Text("In stock"),
-                    UiButton.Type(UiButtonType.Submit).Tone(UiTone.Primary)["Save changes"]
+                    UiButton.Type(UiButtonType.Submit).Tone(UiTone.Primary).Disabled(save.IsPending)["Save changes"]
                 ]
             ]
         ];
@@ -253,16 +252,17 @@ Four things in that page are doing more than they look:
   since, throwing `DbUpdateConcurrencyException` rather than overwriting someone else's edit. A row deleted
   in the meantime is a `KeyNotFoundException`.
 - **The save writes what the form holds.** `UpdateAsync` loads the row, copies the model onto it and saves only
-  the columns that changed. The row `FindAsync` returned is untracked, so changing it directly would save
-  nothing; the model is how a change gets back.
-- **`OnPropsChangedAsync`, not a constructor or `OnInitialized`.** A Rask component loads its data from its
-  lifecycle hooks: `OnMountAsync` once, `OnPropsChangedAsync` whenever its props — here the route's `Id` —
-  change. The [lifecycle](../lifecycle.md) guide has the full order.
+  the columns that changed. The model is how a change gets back: nothing the page holds is tracked by EF.
+- **The load is a query, and it follows the route.** `QueryClient.Query(key, Id, load)` is asked for in
+  `Render`, where the route's `Id` is already bound, and the same call is the same query every render — so
+  going from `/products/1/edit` to `/products/2/edit` re-points it at product 2 with nothing to call.
+  `IsLoading` is the only state that needs a spinner, and the load is handed the `Id` its key was built from,
+  so a slow load for product 1 can never land in product 2's form.
 
 `Features/Products/DeleteProduct.cs` is a small reusable button the list page drops next to each row:
 
 ```csharp
-using Microsoft.EntityFrameworkCore;
+using Rask.Query;
 
 namespace Shop.Features.Products;
 
@@ -281,27 +281,27 @@ public sealed partial class DeleteProduct : Component
     // struct with no invocation, so lookup finds nothing applicable and falls through to the setter.
     public Callback? OnDeleted { get; set; }
 
-    private async Task DeleteAsync()
+    protected override Component? Render()
     {
-        try
-        {
-            await Product.DeleteAsync(Id, Version, cancellationToken: CancellationToken);
-        }
-        catch (Exception ex) when (ex is DbUpdateConcurrencyException or KeyNotFoundException)
-        {
-            // Someone edited or deleted it first. Refreshing the list shows the reader what happened.
-        }
+        // One button per row, and each row is its own DeleteProduct, so each has its own pending state.
+        var delete = QueryClient.Command();
 
-        // Invoke() hands back the Task for an async handler and null for a synchronous one, which is
-        // what keeps a sync handler off the async path.
-        if (OnDeleted?.Invoke() is { } pending)
-        {
-            await pending;
-        }
+        return UiButton.Tone(UiTone.Error).Variant(UiVariant.Ghost).Size(UiSize.Sm)
+            .Disabled(delete.IsPending)
+            .OnClick(async () =>
+            {
+                // A row someone edited or deleted first fails here and lands on delete.Error; refreshing the
+                // list below shows the reader what happened either way.
+                await delete.SendAsync(ct => Product.DeleteAsync(Id, Version, cancellationToken: ct), CancellationToken);
+
+                // Invoke() hands back the Task for an async handler and null for a synchronous one, which is
+                // what keeps a sync handler off the async path.
+                if (OnDeleted?.Invoke() is { } pending)
+                {
+                    await pending;
+                }
+            })[delete.IsPending ? "Deleting…" : "Delete"];
     }
-
-    protected override Component? Render() =>
-        UiButton.Tone(UiTone.Error).Variant(UiVariant.Ghost).Size(UiSize.Sm).OnClick(DeleteAsync)["Delete"];
 }
 ```
 
@@ -314,22 +314,31 @@ table behind a `DeletedAt` stamp instead.
 `Features/Products/ProductsPage.cs` — the routed page, over a data grid:
 
 ```csharp
+using Microsoft.EntityFrameworkCore;
 using Rask.Core.Routing;
+using Rask.Query;
 
 namespace Shop.Features.Products;
 
 [Route("/products")]
 public sealed partial class ProductsPage : Component
 {
-    // A query, not a list. It holds no database connection: the grid runs it — sorted and paged in
+    // An IQueryable, not a list. It holds no database connection: the grid runs it — sorted and paged in
     // SQL — each time it renders, and each run opens and disposes its own context.
     private readonly IQueryable<ProductRead> _products = Product.Read.OrderBy(p => p.Name).AsQueryable();
 
     protected override Component? HeadAssets => Title["Products"];
 
-    protected override Component? Render() =>
-    [
-        UiHeader.Heading("Products").Actions(UiButton.Tone(UiTone.Primary).Href(Routes.CreateProduct())["New product"]),
+    protected override Component? Render()
+    {
+        // Cached for this session, and refetched by itself after any Product write — a create, an edit, a
+        // delete — because its key is about Product.
+        var count = QueryClient.Query(QueryKey.For<Product>("count"), ct => Product.Read.CountAsync(ct));
+
+        return
+        [
+        UiHeader.Heading(count.Data is { } n ? $"Products ({n})" : "Products")
+            .Actions(UiButton.Tone(UiTone.Primary).Href(Routes.CreateProduct())["New product"]),
         UiDataGrid.Data(_products).RowKey(p => p.Id).PageSize(20).Label("Products")[c => [
             c.Field(p => p.Name).Title("Name").Sortable(true),
             c.Field(p => p.Price).Title("Price").Sortable(true),
@@ -341,7 +350,8 @@ public sealed partial class ProductsPage : Component
                 DeleteProduct.Id(p.Id).Version(p.Version).OnDeleted(StateHasChanged)
             ]),
         ]]
-    ];
+        ];
+    }
 }
 ```
 
@@ -351,9 +361,13 @@ becomes `Skip`/`Take`, so the database does the work however large the catalog g
 it is what the grid identifies a row by when it redraws. The grid shows read faces, read-only by
 construction; `UpdatedAt` is one of the columns `Aggregate<Guid>` brought, sortable like any other.
 
-Note what the page doesn't have: an `OnMountAsync`. Nothing needs loading up front, because the grid runs
-the query when it renders. When a page does need data before it draws — a count for a heading, say —
-that's where it goes: `_count = await Product.Read.CountAsync(CancellationToken);`.
+Note what the page doesn't have: an `OnMountAsync`. The grid runs its `IQueryable` when it renders, and the
+count in the heading is a **query** — asked for in `Render`, cached for the session, loading on its own. Its
+key, `QueryKey.For<Product>("count")`, says what it is about, and that is the whole of keeping it right: once
+any `Product` write commits — `CreateAsync`, `UpdateAsync`, `DeleteAsync` — every query about `Product` on this
+session's screen refetches, so creating a product and coming back shows the new count with nothing written to
+make it happen. The grid is left an `IQueryable` on purpose: it pages and sorts in SQL, which a cached list
+could not. See [queries and commands](../query.md).
 
 ## 6. Already registered
 
