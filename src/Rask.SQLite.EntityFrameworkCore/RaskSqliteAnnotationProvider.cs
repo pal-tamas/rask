@@ -12,7 +12,8 @@ using Rask.Data;
 namespace Rask.SQLite;
 
 /// <summary>
-/// SQLite's relational annotations, plus the full-text index an entity declares, reported on its table.
+/// SQLite's relational annotations, plus the full-text index and the non-overlapping range rule an entity declares,
+/// reported on its table.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -21,6 +22,12 @@ namespace Rask.SQLite;
 /// adding search to an existing table would produce an empty migration, and the index would never be created.
 /// Reporting the spec on the <em>table</em> makes adding, changing or removing it an <c>AlterTableOperation</c>
 /// like any other, which <see cref="FullTextSearchDdl"/> then turns into the DDL.
+/// </para>
+/// <para>
+/// <see cref="RangeExclusionBuilderExtensions.HasNonOverlappingRange{TEntity}"/> had the same problem and shipped with it:
+/// the rule added to an existing table whose columns did not otherwise change produced an empty migration, and
+/// the triggers were never created (#1113). It is reported here for the same reason, and
+/// <see cref="RangeExclusionDdl"/> reacts to the <c>AlterTableOperation</c>.
 /// </para>
 /// <para>
 /// Registered once, by <c>UseRaskSqlite</c>: EF Core resolves exactly one <see cref="IRelationalAnnotationProvider"/>,
@@ -38,14 +45,17 @@ internal sealed class RaskSqliteAnnotationProvider(RelationalAnnotationProviderD
             yield return annotation;
         }
 
-        // A table shared by several entity types (table splitting) has one index at most: the first declaration wins,
+        // A table shared by several entity types (table splitting) has one of each at most: the first declaration wins,
         // and the DDL reads the same one back from the model.
-        foreach (var mapping in table.EntityTypeMappings)
+        foreach (var name in (string[])[FullTextSearchSpec.AnnotationName, RangeExclusionSpec.AnnotationName])
         {
-            if (mapping.TypeBase.FindAnnotation(FullTextSearchSpec.AnnotationName) is { Value: string spec })
+            foreach (var mapping in table.EntityTypeMappings)
             {
-                yield return new Annotation(FullTextSearchSpec.AnnotationName, spec);
-                yield break;
+                if (mapping.TypeBase.FindAnnotation(name) is { Value: string spec })
+                {
+                    yield return new Annotation(name, spec);
+                    break;
+                }
             }
         }
     }

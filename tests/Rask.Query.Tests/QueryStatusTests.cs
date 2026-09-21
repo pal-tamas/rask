@@ -6,11 +6,11 @@ namespace Rask.Query.Tests;
 /// </summary>
 public class QueryStatusTests
 {
-    private static (QueryClient Client, CountingDispatcher Dispatcher, TestClock Time) NewClient()
+    private static (SessionQueryClient Client, CountingDispatcher Dispatcher, TestClock Time) NewClient()
     {
         var dispatcher = new CountingDispatcher();
         var time = new TestClock(DateTimeOffset.UnixEpoch);
-        return (new QueryClient(dispatcher, time), dispatcher, time);
+        return (new SessionQueryClient(dispatcher, time), dispatcher, time);
     }
 
     private static async Task Settle<T>(Query<T> query)

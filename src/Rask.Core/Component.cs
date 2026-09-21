@@ -949,6 +949,18 @@ public abstract partial class Component : RaskMarkup
     internal bool IsUnmountedInternal => Live.IsUnmounted;
 
     /// <summary>
+    ///     The render pass this root is in, as stamped by <see cref="BeginHandlerGeneration" />; zero on a
+    ///     component that has never been a render root. Read without allocating the live state.
+    /// </summary>
+    internal long RenderGenerationInternal => _live?.HandlerState?.Generation ?? 0;
+
+    /// <summary>
+    ///     Runs <paramref name="hook" /> each time this component's <c>Render()</c> returns, inside the
+    ///     render context — for state kept per render that must drop what a render stopped asking for.
+    /// </summary>
+    internal void AddAfterRenderInternal(Action hook) => Live.AfterRender += hook;
+
+    /// <summary>
     ///     Whether the last render walk rooted here mounted <paramref name="type" />. The set is
     ///     cleared at the top of every walk and populated as components mount, so this describes
     ///     the render whose HTML is current — not the tree's history.
@@ -1369,6 +1381,10 @@ public abstract partial class Component : RaskMarkup
             }
 
             devTools?.ComponentRendered(this, devToolsStart);
+
+            // Still inside the render context, so whatever keeps per-render state for this component — a
+            // query declared in Render — can drop what this render no longer asked for.
+            _live?.AfterRender?.Invoke();
 
             // The Head override is part of THIS component's render, not of the walk that serializes it.
             // Evaluating it here rather than at the serializer's collection point — which runs in the
@@ -3061,6 +3077,9 @@ public abstract partial class Component : RaskMarkup
         public IRenderHandle? RenderHandle;
         public CancellationTokenSource? LifetimeCts;
         public Component? CachedRenderResult;
+        // Runs once Render() has returned, still inside the render context: per-render state kept
+        // off the component (a query declared in Render) releases what this render no longer asked for.
+        public Action? AfterRender;
 
         // The Head override's output, produced by the same render as CachedRenderResult and re-read
         // (never re-run) by every later collection of it — see Component.CachedHeadInternal. Null on

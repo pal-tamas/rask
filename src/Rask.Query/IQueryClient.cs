@@ -23,8 +23,10 @@ public interface IQueryClient
     ///     components asking for <c>new GetOrders(Page: 1)</c> share one entry and one request.
     /// </summary>
     /// <remarks>
-    ///     Re-point it with <see cref="Rask.Query.Query{TResult}.SetMessage" /> from <c>OnPropsChanged</c> when
-    ///     its inputs change, or it will keep showing the result it was created with.
+    ///     The message is fixed: the query shows that one result for as long as it lives. For one that
+    ///     follows a route parameter or a prop, pass a lambda —
+    ///     <see cref="Query{TResult}(Func{IQuery{TResult}}, QueryOptions?)" /> — or build it inside
+    ///     <c>Render</c> with the static <see cref="QueryClient" />.
     ///     <para>
     ///         Pass <paramref name="key" /> to put the query into a hierarchy that spans message types, so
     ///         one <see cref="Invalidate(QueryKey, bool)" /> reaches all of them:
@@ -68,6 +70,59 @@ public interface IQueryClient
         QueryOptions? options = null);
 
     /// <summary>
+    ///     A query that follows its inputs: <paramref name="message" /> runs at every read, and a
+    ///     different message re-points the query at that entry.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         For a query held in a field and created before its inputs are bound — in a constructor or a
+    ///         <c>field ??=</c> property. The lambda first runs at the first read, so it never sees an
+    ///         unbound route parameter; nothing needs calling when one changes.
+    ///     </para>
+    ///     <code>
+    ///     _person = client.Query(() =&gt; new GetPerson(Id));
+    ///     _orders = client.Query(() =&gt; Selected is { } id ? new GetOrders(id) : null);   // waits for a pick
+    ///     </code>
+    ///     <para>
+    ///         Returning null means the input is not there yet: the query is paused, fetches nothing and is
+    ///         not loading, until the lambda returns a message.
+    ///     </para>
+    /// </remarks>
+    /// <typeparam name="TResult">What the query returns.</typeparam>
+    /// <param name="message">Builds the message from the component's current state, or null to wait.</param>
+    /// <param name="options">Freshness and retry; TanStack's defaults when omitted.</param>
+    Query<TResult> Query<TResult>(Func<IQuery<TResult>?> message, QueryOptions? options = null);
+
+    /// <summary>
+    ///     A function query that follows its inputs: <paramref name="input" /> runs at every read, and a
+    ///     different input re-points the query at <c>[..prefix, input]</c>.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         <paramref name="fetch" /> is handed the input the key was built from rather than reading the
+    ///         component itself, so a fetch still running when the input changes caches under its own key.
+    ///         An unchanged input is compared before any key is built, so a value-type input — a tuple of
+    ///         them included — costs a read nothing.
+    ///     </para>
+    ///     <code>
+    ///     _person = client.Query(QueryKey.For&lt;Person&gt;(), () =&gt; Id,
+    ///         (id, ct) =&gt; Person.Read.FirstAsync(p =&gt; p.Id == id, ct));
+    ///     </code>
+    ///     <para>A null input pauses the query, as a null message does.</para>
+    /// </remarks>
+    /// <typeparam name="TInput">What the key and the fetch are built from.</typeparam>
+    /// <typeparam name="TResult">What the fetch returns.</typeparam>
+    /// <param name="prefix">What the data is about — <c>QueryKey.For&lt;Person&gt;()</c>, or a name.</param>
+    /// <param name="input">Reads the component's current state.</param>
+    /// <param name="fetch">Loads the data for one input.</param>
+    /// <param name="options">Freshness and retry; TanStack's defaults when omitted.</param>
+    Query<TResult> Query<TInput, TResult>(
+        QueryKey prefix,
+        Func<TInput> input,
+        Func<TInput, CancellationToken, Task<TResult>> fetch,
+        QueryOptions? options = null);
+
+    /// <summary>
     ///     Awaits a query's result, using and filling the cache, without creating a live view. For an
     ///     event handler that needs the current value rather than a component that renders it.
     /// </summary>
@@ -103,13 +158,13 @@ public interface IQueryClient
     /// </summary>
     /// <param name="command">The command to dispatch.</param>
     /// <param name="cancellationToken">Cancels the dispatch.</param>
-    Task MutateAsync(ICommand command, CancellationToken cancellationToken = default);
+    Task SendAsync(ICommand command, CancellationToken cancellationToken = default);
 
     /// <summary>Dispatches a command that returns a value, then invalidates what it declares.</summary>
     /// <typeparam name="TResult">What the command returns.</typeparam>
     /// <param name="command">The command to dispatch.</param>
     /// <param name="cancellationToken">Cancels the dispatch.</param>
-    Task<TResult> MutateAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default);
+    Task<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default);
 
     /// <summary>
     ///     A command you can render — whether it is running, whether it failed, and what to disable
@@ -117,18 +172,30 @@ public interface IQueryClient
     /// </summary>
     /// <remarks>
     ///     Hold the result in a field. Unlike
-    ///     <see cref="MutateAsync(ICommand, System.Threading.CancellationToken)" />, which is the
+    ///     <see cref="SendAsync(ICommand, System.Threading.CancellationToken)" />, which is the
     ///     await-and-forget form, this one carries state a component can render.
     /// </remarks>
     /// <typeparam name="TCommand">The command to dispatch.</typeparam>
-    Mutation<TCommand> Mutation<TCommand>()
+    Command<TCommand> Command<TCommand>()
         where TCommand : ICommand;
 
     /// <summary>A renderable command that returns a value.</summary>
     /// <typeparam name="TCommand">The command to dispatch.</typeparam>
     /// <typeparam name="TResult">What the command returns.</typeparam>
-    Mutation<TCommand, TResult> Mutation<TCommand, TResult>()
+    Command<TCommand, TResult> Command<TCommand, TResult>()
         where TCommand : ICommand<TResult>;
+
+    /// <summary>
+    ///     A renderable command that is a function rather than a record — for work that does not go
+    ///     through CQRS. Each send hands it the lambda to run.
+    /// </summary>
+    /// <remarks>
+    ///     A function has nowhere to carry <see cref="InvalidatesAttribute" />, so what it makes out of
+    ///     date is named here. Each key is a prefix, as in <see cref="Invalidate(QueryKey, bool)" />,
+    ///     and a string converts to one: <c>Command(invalidates: "orders")</c>.
+    /// </remarks>
+    /// <param name="invalidates">The key prefixes to refetch after a send succeeds.</param>
+    Command Command(params QueryKey[] invalidates);
 
     /// <summary>
     ///     Marks every entry for a query message type stale. Anything rendering one refetches at once;

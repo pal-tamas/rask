@@ -28,6 +28,7 @@ Rask.Data.ConventionRegistry
 Rask.Data.Db
 Rask.Data.Deletion
 Rask.Data.Deletion.Hard = 0 -> Rask.Data.Deletion
+Rask.Data.Deletion.None = 2 -> Rask.Data.Deletion
 Rask.Data.Deletion.Soft = 1 -> Rask.Data.Deletion
 Rask.Data.DomainEventInterceptor
 Rask.Data.DomainEventInterceptor.DomainEventInterceptor(Microsoft.Extensions.DependencyInjection.IServiceScopeFactory! scopeFactory, Rask.Data.RaskDataOptions! options, System.Collections.Generic.IEnumerable<Rask.Data.IDomainEventDeliveryOwner!>! deliveryOwners) -> void

@@ -11,13 +11,22 @@
 # cannot go stale -- and this checks the result rather than trusting it, because "we pack everything"
 # is exactly the kind of claim that is true until it isn't.
 #
-# Usage: scripts/verify-release-restore.sh <version>
+# Usage: scripts/verify-release-restore.sh <version> [push-log]
+#
+#   push-log  the output of the `dotnet nuget push` that released <version>. With it, a Rask.Cli that
+#             nuget.org ACCEPTED is waited for as long as validation takes (RASK_VERIFY_FLAT_DEADLINE,
+#             three hours by default), and one it never accepted fails at once. Without it the two cannot
+#             be told apart, and the wait is the old fifteen minutes.
 set -euo pipefail
 
 version="${1:?usage: verify-release-restore.sh <version>}"
 version="${version#v}"
 
+push_log="${2:-}"
+
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=lib/push_verdict.sh
+. "$root/scripts/lib/push_verdict.sh"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
@@ -47,15 +56,49 @@ flat_container_has() {
     | grep -q "\"$version\""
 }
 
+# The flat container is NOT "almost immediate" for every package (#1125). A package carrying an
+# executable -- Rask.Cli ships an apphost -- goes through nuget.org's extended validation, and on v0.23.0
+# it reached the flat container 2h17m after a push nuget.org had answered `Created`. A fixed fifteen
+# minutes called that "the push did not include it", reddened a release that was fine, and skipped the
+# unlist step behind it. So the push log decides which failure a missing version is.
+flat_deadline=900
+if [ -n "$push_log" ]; then
+  case "$(push_verdict "$push_log" Rask.Cli "$version")" in
+    accepted)
+      flat_deadline="${RASK_VERIFY_FLAT_DEADLINE:-10800}"
+      echo "    nuget.org accepted Rask.Cli $version; waiting up to $(( flat_deadline / 60 )) minutes for validation."
+      ;;
+    refused)
+      echo "!!  nuget.org did not accept Rask.Cli $version. What the push said:" >&2
+      grep -iA3 "Rask.Cli.$version.nupkg" "$push_log" | sed 's/^/      /' >&2 || true
+      exit 1
+      ;;
+    absent)
+      echo "!!  The push log never mentions Rask.Cli.$version.nupkg: it was not packed, or not pushed." >&2
+      exit 1
+      ;;
+  esac
+fi
+
 echo "==> Waiting for the push to appear on nuget.org"
-deadline=$(( SECONDS + 900 ))
+deadline=$(( SECONDS + flat_deadline ))
+last_report=$SECONDS
 until flat_container_has "Rask.Cli"; do
   if [ "$SECONDS" -ge "$deadline" ]; then
-    echo "!!  Rask.Cli $version never reached nuget.org's flat container within 15 minutes." >&2
-    echo "    That is the failure this gate exists for: the push did not include it." >&2
+    echo "!!  Rask.Cli $version never reached nuget.org's flat container within $(( flat_deadline / 60 )) minutes." >&2
+    if [ -n "$push_log" ]; then
+      echo "    nuget.org accepted it, so it is stuck in validation: check the package's page on nuget.org." >&2
+    else
+      echo "    Without the push log this cannot say whether the push included it or nuget.org is still validating." >&2
+    fi
     exit 1
   fi
-  sleep 20
+  # Said every ten minutes, so a three-hour wait reads as progress rather than a hang.
+  if [ $(( SECONDS - last_report )) -ge 600 ]; then
+    echo "    still validating after $(( SECONDS / 60 )) minutes…"
+    last_report=$SECONDS
+  fi
+  sleep 60
 done
 echo "    Rask.Cli $version is pushed."
 

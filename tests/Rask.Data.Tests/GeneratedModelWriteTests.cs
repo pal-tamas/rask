@@ -161,6 +161,24 @@ public sealed class GeneratedModelWriteTests : IDisposable
         Assert.Equal(1, await Widget.Read.CountAsync());
     }
 
+    [Fact]
+    public async Task Delete_of_a_Deletion_None_aggregate_is_refused_before_anything_is_opened()
+    {
+        // The generated JournalLine.DeleteAsync does not exist; this is the direct call into the write half.
+        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            GeneratedModelWrites.DeleteAsync<JournalLine>(Guid.NewGuid(), version: null));
+
+        Assert.Contains("Deletion.None", refused.Message, StringComparison.Ordinal);
+    }
+
     private Task<TestDatabase> StartDatabaseAsync() =>
         TestDatabase.StartAsync(o => o.UseSqlite($"Data Source={_dbPath}"), _clock);
+}
+
+// An append-only record: corrected by a reversing entry, never removed.
+public sealed class JournalLine : Aggregate<Guid>
+{
+    public const Deletion Deletes = Deletion.None;
+
+    public decimal Amount { get; private set; }
 }

@@ -63,7 +63,9 @@ over — four words for two ideas, so moving between two first-party packages me
 **Different semantics earn a different verb.** `Rask.Query`'s `Query(...)` deliberately does *not*
 share the mediator's `QueryAsync`: it returns an observable `Query<T>` that re-renders its component,
 not a `Task<T>` you await once. Two names because they are two things — which is the rule, not an
-exception to it. The test is whether a caller could swap one for the other and be right.
+exception to it. The test is whether a caller could swap one for the other and be right. Sending is
+the opposite case: `IQueryClient.SendAsync` is the dispatcher's `SendAsync` plus the invalidation the
+command declares, so it keeps the verb — and `Command<T>`, the renderable form, sends with it too.
 
 ### 4. Every awaitable ends in `Async` and takes a cancellation token
 
@@ -153,7 +155,7 @@ What the rules above settled, so a new package has one place to look rather than
 | Background work | `IJobs` | `EnqueueAsync`, `ScheduleAsync` |
 | Cache | `ICache` | `GetAsync`, `SetAsync`, `GetOrAddAsync`, `RemoveAsync` |
 | Mediator | `IDispatcher` | `QueryAsync`, `SendAsync`, `PublishAsync` |
-| Cached reads | `IQueryClient` | `Query`, `MutateAsync`, `Invalidate` |
+| Cached reads | `QueryClient` (static) / `IQueryClient` | `Query`, `SendAsync`, `Command`, `Invalidate` |
 | Durable log | `ILogs` | `SearchAsync` |
 | SQLite connections | `ISqlite` | `InImmediateTransactionAsync` |
 | Web Push | `IWebPush` | `SubscribeAsync` (browser), `SendAsync` (server) |

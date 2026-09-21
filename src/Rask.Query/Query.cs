@@ -11,16 +11,17 @@ namespace Rask.Query;
 ///         missing or stale, and it registers the rendering component so the resolved result paints.
 ///     </para>
 ///     <para>
-///         When the inputs change — a route parameter, a prop — call <see cref="SetMessage" /> from
-///         <c>OnPropsChanged</c>. This is not optional bookkeeping: the message captured at
-///         construction is the cache key, so without it a query built from <c>new GetOrders(Page: 1)</c>
-///         keeps showing page one for ever, silently, however many times the page changes.
+///         A query built from a lambda — <c>SessionQueryClient.Query(() =&gt; new GetOrders(Page))</c> — follows
+///         its inputs by itself: every read runs the lambda, and a different answer re-points the query
+///         at that entry. One built inside <c>Render</c> from the current value is re-pointed by the next
+///         render's call. Either way there is nothing to call when a route parameter or a prop changes.
 ///     </para>
 /// </remarks>
 /// <typeparam name="TResult">What the query returns.</typeparam>
-public sealed class Query<TResult> : IDisposable
+public sealed class Query<TResult> : IDisposable, IRenderSlotHandle
 {
-    private readonly QueryClient _client;
+    private readonly SessionQueryClient _client;
+    private readonly QuerySource<TResult>? _source;
     private readonly Action _onChanged;
     private readonly ComponentReaders _readers = new();
     private readonly CancellationTokenSource? _polling;
@@ -33,21 +34,47 @@ public sealed class Query<TResult> : IDisposable
     private QueryEntry? _placeholder;
     private QueryEntry _entry;
     private QueryKey _key;
+    private bool _paused;
+    private bool _suspended;
     private bool _disposed;
+    private long _lastReadGeneration;
 
-    internal Query(QueryClient client, QueryKey key, QueryOptions options, Func<CancellationToken, Task<object?>> fetch)
+    internal Query(SessionQueryClient client, QueryTarget target, QueryOptions options)
+        : this(client, target, options, source: null)
+    {
+    }
+
+    /// <summary>
+    ///     A query whose target comes from <paramref name="source" /> — a lambda re-run on every read.
+    /// </summary>
+    /// <remarks>
+    ///     Starts paused and runs the lambda at the first read rather than here: a query created in a
+    ///     constructor would otherwise read route parameters and props before anything has bound them.
+    /// </remarks>
+    internal Query(SessionQueryClient client, QuerySource<TResult> source, QueryOptions options)
+        : this(client, QueryTarget.Paused, options, source)
+    {
+    }
+
+    private Query(
+        SessionQueryClient client,
+        QueryTarget target,
+        QueryOptions options,
+        QuerySource<TResult>? source)
     {
         _client = client;
-        _key = key;
+        _source = source;
+        _key = target.Key;
+        _paused = target.IsPaused;
         Options = options;
-        Fetch = fetch;
+        Fetch = target.Fetch;
         _onChanged = OnEntryChanged;
-        _entry = client.Attach(key, _onChanged, options.GcTime);
+        _entry = client.Attach(target.Key, _onChanged, options.GcTime);
 
         // The one trigger TanStack calls "on mount": something has started observing this data, so
         // fetch it. Fire-and-forget because a constructor cannot await; the result arrives through
         // the entry and re-renders whoever read it.
-        _ = client.EnsureFreshAsync(key, this, CancellationToken.None);
+        _ = client.EnsureFreshAsync(target.Key, this, CancellationToken.None);
 
         if (options.RefetchInterval is { } interval && interval > TimeSpan.Zero)
         {
@@ -86,6 +113,13 @@ public sealed class Query<TResult> : IDisposable
                     return;
                 }
 
+                // Set aside by a render that stopped using it: nothing is on screen to keep fresh until the
+                // next read wakes it, and that read fetches if the entry went stale meanwhile.
+                if (_suspended)
+                {
+                    continue;
+                }
+
                 _entry.Invalidate();
                 started = _client.EnsureFreshAsync(_key, this, cancellationToken);
             }
@@ -97,6 +131,9 @@ public sealed class Query<TResult> : IDisposable
     internal QueryOptions Options { get; }
 
     internal Func<CancellationToken, Task<object?>> Fetch { get; private set; }
+
+    /// <summary>Whether a fetch may start: enabled by its options, and not waiting on an input.</summary>
+    internal bool CanFetch => Options.Enabled && !_paused;
 
     /// <summary>
     ///     The result, or <c>default</c> until one has arrived — or the previous page's result while
@@ -217,42 +254,67 @@ public sealed class Query<TResult> : IDisposable
     }
 
     /// <summary>
-    ///     Re-points this query at a different message — a new page, a new filter, a new route
-    ///     parameter — and starts observing that entry instead.
+    ///     Points this query at <paramref name="target" /> — a new page, a new filter, a new route
+    ///     parameter — and starts observing that entry instead. An unchanged target is a no-op.
     /// </summary>
-    /// <remarks>
-    ///     Call it from <c>OnPropsChanged</c>. An unchanged key is a no-op, so calling it
-    ///     unconditionally is fine and is the safer habit.
-    /// </remarks>
-    /// <param name="message">The message whose result this query should now show.</param>
-    public void SetMessage(Rask.Cqrs.IQuery<TResult> message)
+    /// <param name="target">What to show now.</param>
+    /// <param name="renderReaders">
+    ///     False when called from a read: the component reading is rendering already and will show the
+    ///     new entry, so asking it to render again would only buy a second, identical frame.
+    /// </param>
+    internal void Repoint(QueryTarget target, bool renderReaders)
     {
-        ArgumentNullException.ThrowIfNull(message);
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        var key = MessageKey.For(message);
-        if (key == _key)
+        if (target.Key == _key && target.IsPaused == _paused)
         {
             return;
         }
 
         var previous = _entry;
-        _client.Detach(_key, _onChanged);
-        _key = key;
-        Fetch = _client.DispatchFetch(message);
-        _entry = _client.Attach(key, _onChanged, Options.GcTime);
+        if (!_suspended)
+        {
+            _client.Detach(_key, _onChanged);
+        }
+
+        _suspended = false;
+        _key = target.Key;
+        _paused = target.IsPaused;
+        Fetch = target.Fetch;
+        _entry = _client.Attach(target.Key, _onChanged, Options.GcTime);
 
         // Captured only when the new key has nothing yet: navigating to a page already in cache
         // should show that page, not the one before it.
         _placeholder = Options.KeepPreviousData && !_entry.HasData && previous.HasData ? previous : null;
-        _ = _client.EnsureFreshAsync(key, this, CancellationToken.None);
-        _readers.RenderAll();
+        _ = _client.EnsureFreshAsync(target.Key, this, CancellationToken.None);
+        if (renderReaders)
+        {
+            _readers.RenderAll();
+        }
+    }
+
+    /// <summary>
+    ///     An edit to this query's cached result, for a command's <c>SendAsync</c> to show before the
+    ///     server answers and undo if it refuses.
+    /// </summary>
+    /// <remarks>
+    ///     Aimed at the entry this query shows now. Nothing cached means nothing is edited — a row the
+    ///     server never confirmed is never invented — and a failure then makes the entry fetch.
+    /// </remarks>
+    /// <param name="update">Produces the optimistic result from the current one.</param>
+    /// <returns>The edit, to pass to <c>SendAsync</c>.</returns>
+    public OptimisticEdit Optimistic(Func<TResult, TResult> update)
+    {
+        ArgumentNullException.ThrowIfNull(update);
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        return new OptimisticEdit<TResult>(_client, Key, update);
     }
 
     /// <summary>Fetches again regardless of freshness, and paints the result.</summary>
     public Task RefetchAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+        Resume();
         _entry.Invalidate();
         return _client.EnsureFreshAsync(_key, this, cancellationToken);
     }
@@ -272,7 +334,11 @@ public sealed class Query<TResult> : IDisposable
 
         _polling?.Cancel();
         _polling?.Dispose();
-        _client.Detach(_key, _onChanged);
+        if (!_suspended)
+        {
+            _client.Detach(_key, _onChanged);
+        }
+
         _readers.Clear();
     }
 
@@ -289,7 +355,7 @@ public sealed class Query<TResult> : IDisposable
 
     private FetchStatus FetchStatusOf(QueryEntry entry) => entry.InFlight is not null
         ? FetchStatus.Fetching
-        : Options.Enabled ? FetchStatus.Idle : FetchStatus.Paused;
+        : CanFetch ? FetchStatus.Idle : FetchStatus.Paused;
 
     /// <summary>
     ///     Registers the rendering component so a later result reaches it.
@@ -306,6 +372,18 @@ public sealed class Query<TResult> : IDisposable
         if (_disposed)
         {
             return;
+        }
+
+        Resume();
+
+        // A lambda query re-runs its lambda here, at every read: that is what lets it follow a route
+        // parameter, a prop or a field with nothing to call when one changes. The source compares the
+        // new input with the last one before building anything, so an unchanged read allocates nothing.
+        Advance();
+
+        if (LiveRenderContext.RenderOwner(out var generation) is not null)
+        {
+            _lastReadGeneration = generation;
         }
 
         _readers.Observe();
@@ -359,5 +437,57 @@ public sealed class Query<TResult> : IDisposable
     ///     Public so a component can invalidate its own entry without restating how the key is built —
     ///     <c>client.Invalidate(query.Key, exact: true)</c>.
     /// </remarks>
-    public QueryKey Key => _key;
+    public QueryKey Key
+    {
+        get
+        {
+            Advance();
+            return _key;
+        }
+    }
+
+    /// <summary>
+    ///     Stops watching the entry when the render that just returned neither asked for this query nor
+    ///     read it. Reversible: the next read resumes it.
+    /// </summary>
+    /// <remarks>
+    ///     Suspended rather than disposed, because a render slot cannot tell a query a render stopped
+    ///     asking for from one a constructor or a <c>field ??=</c> made once and a component keeps — a
+    ///     child built during its parent's render lands in the parent's slots, and is not rebuilt when the
+    ///     parent renders again. Disposing would kill the child's query under it; suspending costs the
+    ///     entry's observation and nothing else, so its GC clock starts and nothing leaks.
+    /// </remarks>
+    void IRenderSlotHandle.ReleaseUnlessReadIn(long generation)
+    {
+        if (_disposed || _suspended || _lastReadGeneration == generation)
+        {
+            return;
+        }
+
+        _suspended = true;
+        _client.Detach(_key, _onChanged);
+    }
+
+    /// <summary>Whether this query has been set aside by a render that stopped using it.</summary>
+    internal bool IsSuspended => _suspended;
+
+    private void Resume()
+    {
+        if (!_suspended)
+        {
+            return;
+        }
+
+        _suspended = false;
+        _entry = _client.Attach(_key, _onChanged, Options.GcTime);
+        _ = _client.EnsureFreshAsync(_key, this, CancellationToken.None);
+    }
+
+    private void Advance()
+    {
+        if (!_disposed && _source is not null && _source.TryAdvance(_client, out var target))
+        {
+            Repoint(target, renderReaders: false);
+        }
+    }
 }

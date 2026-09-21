@@ -18,7 +18,7 @@ namespace Rask.Data.Generators;
 /// Gives every <c>Rask.Data.Aggregate&lt;TId&gt;</c> a form-shaped companion — <c>ProductModel</c> for <c>Product</c> — and
 /// the writes that take it: <c>Product.CreateAsync(id, model)</c>, <c>Product.CreateAsync(model)</c> where a key
 /// can be produced without the caller, <c>Product.UpdateAsync(id, model)</c>, <c>Product.UpdateAsync(id, apply)</c>
-/// and <c>Product.DeleteAsync(id, version)</c>. Every write takes an optional <c>apply</c> (values that do not come
+/// and <c>Product.DeleteAsync(id, version)</c> — unless the aggregate declares <c>Deletes = Deletion.None</c>. Every write takes an optional <c>apply</c> (values that do not come
 /// from the form) where it builds or edits a row, and an optional <c>db</c> to join a caller's context.
 /// </summary>
 /// <remarks>
@@ -52,6 +52,9 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
     private const int CreateWrite = 1;
     private const int UpdateWrite = 2;
     internal const int AllWrites = CreateWrite | UpdateWrite;
+
+    // Mirrors Rask.Data.Deletion.None, restated and pinned the same way.
+    internal const int NoDeletion = 2;
 
     private const string DataAnnotationsNamespace = "System.ComponentModel.DataAnnotations";
     private const string ValidationAttribute = "System.ComponentModel.DataAnnotations.ValidationAttribute";
@@ -239,7 +242,26 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             new EquatableArray<ValueCollectionShape>(
                 shape.ValueCollections.Select(c => ToValueCollection(c, converted))),
             WritesOf(symbol, out var declaresWrites),
-            declaresWrites);
+            declaresWrites,
+            DeletableOf(symbol));
+    }
+
+    /// <summary>
+    ///     False when the aggregate declares <c>public const Deletion Deletes = Deletion.None</c> — a row that is
+    ///     corrected by a new one or retired by a state change, never removed, and so gets no <c>DeleteAsync</c>.
+    /// </summary>
+    private static bool DeletableOf(INamedTypeSymbol symbol)
+    {
+        foreach (var field in symbol.GetMembers("Deletes").OfType<IFieldSymbol>())
+        {
+            if (field is { IsConst: true, ConstantValue: int value } &&
+                field.Type is { Name: "Deletion", ContainingNamespace: { Name: "Data", ContainingNamespace: { Name: "Rask", ContainingNamespace.IsGlobalNamespace: true } } })
+            {
+                return value != NoDeletion;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -1034,6 +1056,9 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
                 .Append(entity.Versioned ? "version" : "null").AppendLine(", apply, db, cancellationToken);");
             s.AppendLine();
 
+            // `Deletes = Deletion.None`: the aggregate is cancelled or archived through its own methods, so a
+            // delete it cannot be asked for is one nobody can call by mistake.
+            var deleteMark = s.Length;
             s.Append("        /// <summary>Deletes the stored <see cref=\"").Append(entityType)
                 .AppendLine("\" /> with <paramref name=\"id\" />, through the interceptors.</summary>");
             s.AppendLine("        /// <param name=\"id\">The id of the row to delete.</param>");
@@ -1055,6 +1080,7 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
             s.Append("            ").Append(Writes).Append(".DeleteAsync<").Append(entityType).Append(">(id!, ")
                 .Append(entity.Versioned ? "version" : "null").AppendLine(", db, cancellationToken);");
             s.AppendLine();
+            Keep(entity.Deletable, deleteMark);
 
             var modelAsyncMark = s.Length;
 
@@ -1689,13 +1715,14 @@ public sealed class ModelInputGenerator : IIncrementalGenerator
         EquatableArray<string> UnsyncableChildren,
         EquatableArray<ValueCollectionShape> ValueCollections,
         int Writes,
-        bool DeclaresWrites)
+        bool DeclaresWrites,
+        bool Deletable)
     {
         public static Entity Refused(string fullyQualifiedName, string name, SymbolLocation? location, Refusal refusal, string detail) =>
             new(fullyQualifiedName, name, "", "public", null, false, false, null, KeySource.None, null, false, location, refusal, detail,
                 new EquatableArray<Member>([]), new EquatableArray<ValueObjectShape>([]), false,
                 new EquatableArray<ChildShape>([]), new EquatableArray<string>([]), new EquatableArray<string>([]),
-                new EquatableArray<ValueCollectionShape>([]), AllWrites, false);
+                new EquatableArray<ValueCollectionShape>([]), AllWrites, false, true);
     }
 
     // A collection of values on the form model. The element is carried as its nested model when it is a value

@@ -237,7 +237,8 @@ only the first 72 bytes of a password, so with bcrypt on a longer one is refused
 **Guessing is throttled, never locked out.** After `SignInAttemptsPerMinute` (5) failed sign-ins for one address from
 one client, that client is told to wait a minute (`AuthError.TooManyAttempts`, HTTP 429). The account is not locked:
 somebody typing your address five times cannot keep *you* out. Registration and reset requests are throttled the
-same way. Behind a proxy, run `UseForwardedHeaders` so the client address is the visitor's rather than the proxy's.
+same way. Guesses sent in parallel do not get extra tries: a sign-in counts against the limit from the moment it starts,
+so the sixth of six simultaneous wrong passwords is refused like the sixth of six in a row. Behind a proxy, run `UseForwardedHeaders` so the client address is the visitor's rather than the proxy's.
 
 An unknown address costs a password check anyway, a reset request answers the same for every address, and "confirm
 your email" is only said after the right password — so no answer tells anybody which addresses have an account.

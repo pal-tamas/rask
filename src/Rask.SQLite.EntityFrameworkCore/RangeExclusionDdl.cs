@@ -68,6 +68,28 @@ internal static class RangeExclusionDdl
             emitted = true;
         }
 
+        // The declaration changed or went away. Reported on the table (RaskSqliteAnnotationProvider), so either is an
+        // AlterTableOperation. A removed rule takes its triggers and index with it; a changed one drops its index too,
+        // which `CREATE INDEX IF NOT EXISTS` below would otherwise keep over the OLD columns.
+        foreach (var alter in operations.OfType<AlterTableOperation>())
+        {
+            var was = alter.OldTable[RangeExclusionSpec.AnnotationName] as string;
+            var now = alter[RangeExclusionSpec.AnnotationName] as string;
+            if (was is null || string.Equals(was, now, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (now is null)
+            {
+                Append(builder, $"DROP TRIGGER IF EXISTS {Quote($"TR_{alter.Name}_NoOverlap_Insert")};");
+                Append(builder, $"DROP TRIGGER IF EXISTS {Quote($"TR_{alter.Name}_NoOverlap_Update")};");
+            }
+
+            Append(builder, $"DROP INDEX IF EXISTS {Quote($"IX_{alter.Name}_Range")};");
+            emitted = true;
+        }
+
         foreach (var entityType in model.GetEntityTypes())
         {
             if (!RangeExclusionSpec.TryParse(entityType.FindAnnotation(RangeExclusionSpec.AnnotationName)?.Value, out var spec))

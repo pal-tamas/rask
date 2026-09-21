@@ -13,10 +13,10 @@ public class RetryAndPollingTests
         StaleTime = TimeSpan.FromHours(1),
     };
 
-    private static (QueryClient Client, CountingDispatcher Dispatcher) NewClient()
+    private static (SessionQueryClient Client, CountingDispatcher Dispatcher) NewClient()
     {
         var dispatcher = new CountingDispatcher();
-        return (new QueryClient(dispatcher, new TestClock(DateTimeOffset.UnixEpoch)), dispatcher);
+        return (new SessionQueryClient(dispatcher, new TestClock(DateTimeOffset.UnixEpoch)), dispatcher);
     }
 
     private static async Task Settle<T>(Query<T> query)

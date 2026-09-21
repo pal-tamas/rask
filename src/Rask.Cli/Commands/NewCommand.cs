@@ -778,6 +778,10 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             {
                 _fileSystem.WriteAllBytes(file.Path, bytes);
             }
+            else if (file.Secret)
+            {
+                _fileSystem.WriteSecretText(file.Path, file.Content);
+            }
             else
             {
                 _fileSystem.WriteAllText(file.Path, file.Content);

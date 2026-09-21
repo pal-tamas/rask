@@ -20,6 +20,28 @@ them until tagged releases begin.
   delegates events from the document, so an ancestor used to receive a descendant's: a `<details>` toggling
   inside a popover `UiModal` reached the dialog's toggle handler, which the modal reads as "closed", and a file
   picker's bubbling `cancel` would have reached an enclosing dialog's `OnCancel`.
+- **`Rask.Data`: `Deletion.None` — an aggregate that is never deleted.** Every aggregate got a
+  `DeleteAsync(id)`, whatever it was: an invoice, a payment or a ledger entry is corrected by a new record
+  and an order is cancelled, so a generated delete was a way to lose one by mistake. Declare
+  `public const Deletion Deletes = Deletion.None;` and `DeleteAsync` is not generated — calling it is a
+  compile error, and the underlying `GeneratedModelWrites.DeleteAsync<T>` throws. `docs/data.md` gains a
+  *Behaviour-rich aggregates* recipe: a factory to create, `UpdateAsync(id, o => o.Ship(…))` to change state
+  (private setters leave only the methods callable), `Writes = ModelWrites.None` so no form writes past them,
+  and `Deletes = Deletion.None`.
+- **`Rask.Query`: a command can be a function, and a key can be about a type.** Not everything a
+  component changes is a CQRS record — a Rask.Data write, a third-party HTTP call — and until now only a
+  record could be a renderable command. `client.Command(invalidates: …)` creates one that is handed the
+  work on every send, with the same pending/error/success state and the same never-throws `SendAsync`:
+
+  ```csharp
+  _save = client.Command(invalidates: typeof(Person));
+  .OnClick(() => _save.SendAsync(ct => Person.CreateAsync(model, cancellationToken: ct)))
+  ```
+
+  `QueryKey.For<Person>("active")` is `[typeof(Person), "active"]`, and a `Type` converts to a key, so a
+  function query over an aggregate's read face and the command that changes it share the type rather
+  than a string that has to match — `Invalidate<Person>()` and `[Invalidates(typeof(Person))]` reach it
+  too.
 
 - **Multi-tenancy: a fifth const partitions a table by tenant.** Opt-in, so a table that says nothing is
   unchanged:
@@ -169,6 +191,72 @@ them until tagged releases begin.
   first as well: `UiMenuRadioGroup.Key("k").Value(x)` and `UiSelect.Key(id).Value(v)` compile, where they
   failed with CS0315. Along the way, a step whose argument builds another child before `Key`
   (`Row.Badge(Span["b"]).Key(id)`) no longer makes the key re-file the wrong slot and unmount the kept row.
+- **`Rask.Query`: an optimistic update is made per send, from the query on screen** (breaking:
+  `Command<T>.Optimistic(query, update)` is gone). Registered once when the command was created, the edit
+  could not see what was being sent — "remove *this* row" had no id to capture — and a command declared in
+  `Render` gained another copy of it every render, so one click applied it once per render so far. It
+  could only aim at a message query, and a function command had none. Now the edit is a value made at send
+  time from the query itself:
+
+  ```csharp
+  ship.SendAsync(new ShipOrder(id), orders.Optimistic(list => [.. list.Where(o => o.Id != id)]));
+  save.SendAsync(ct => Person.CreateAsync(model, cancellationToken: ct), people.Optimistic(l => [.. l, draft]));
+  ```
+
+  Same guarantees as before: every edit is snapshotted before the send, the refetch replaces the guess on
+  success, and a failure restores all of them in reverse.
+
+- **`Rask.Query`: a command says what it is sending, and whether it has run.** `IsIdle` joins
+  `IsPending`/`IsSuccess`/`IsError`; `Variables` is the command last sent, set as it is sent so a pending
+  render can say "Shipping #7…", and cleared by `Reset()`. `Command<TCommand, TResult>.Data` now
+  registers the component that reads it, as `Status` always did — a component showing only the result
+  never re-rendered when it arrived — and is stored before the command reports success, so no render sees
+  `Success` with the previous result.
+
+- **`Rask.Query`: a query follows its inputs, from `Render`, a property or the constructor — and needs
+  nothing injected** (breaking: `Query<T>.SetMessage` is gone). A query built once kept showing page one
+  for ever unless `OnPropsChanged` re-pointed it by hand, and every component had to take `IQueryClient`
+  through its constructor to get one. The static `QueryClient` reaches the session's cache from wherever a
+  component runs — the handler being dispatched, else the render in progress; never a process-wide cache —
+  and a query can be declared in three places:
+
+  ```csharp
+  // in Render, from the current values: the same call is the same query every render
+  var orders = QueryClient.Query(new GetOrders(Page));
+
+  // in a property or the constructor, from a lambda re-run at every read
+  Query<Customer> Customer => field ??= QueryClient.Query(() => Selected is { } id ? new GetCustomer(id) : null);
+
+  // a function query is handed the input its key was built from
+  var hits = QueryClient.Query(QueryKey.For<Person>(), _search, (s, ct) => Search(s, ct));
+  ```
+
+  A `Render` query is known by its call site and which time it runs there, so loops and `if`s are safe
+  (`Command<T>(key: row.Id)` gives each row its own pending state); one a render stops using is set aside
+  as that render returns — suspended rather than disposed, so a query a constructor made and a component
+  keeps is never found dead. A lambda first runs at the first read, never in the constructor, and
+  returning null pauses the query until its input exists. An unchanged value-type input is compared
+  before any key is built, so a read costs nothing. `IQueryClient` gains the two lambda forms and stays
+  the way in for code with no component. Migrating: delete the `OnPropsChanged` override and pass a
+  lambda — `client.Query(() => new GetOrders(Page))`.
+
+- **`Rask.Query`: a mutation is a `Command<T>`, and it is sent with `SendAsync`** (breaking). Telling
+  the system to do something had three verbs — `IDispatcher.SendAsync`, `IQueryClient.MutateAsync` and
+  `Mutation<T>.RunAsync` — for one idea, which is exactly what `docs/api-style.md` §3 forbids: the query
+  client only adds the declared invalidation on top of the dispatcher's send. Now it is one verb, and the
+  renderable type takes the word Rask already uses for the message it wraps:
+
+  | Before | After |
+  |---|---|
+  | `client.MutateAsync(cmd)` | `client.SendAsync(cmd)` |
+  | `client.Mutation<ShipOrder>()` → `Mutation<ShipOrder>` | `client.Command<ShipOrder>()` → `Command<ShipOrder>` |
+  | `Mutation<TCommand, TResult>` | `Command<TCommand, TResult>` |
+  | `mutation.RunAsync(cmd)` | `command.SendAsync(cmd)` |
+  | `MutationStatus` | `CommandStatus` |
+
+  Behaviour is unchanged: `IQueryClient.SendAsync` still throws, `Command<T>.SendAsync` still records the
+  failure on `Error` instead. The TypeScript `raskMutation` keeps its name — it feeds TanStack's own
+  `useMutation`.
 
 - **Soft delete is now OPT-IN, and `DeleteAsync` deletes.** An aggregate keeps its row only if it says so:
 
@@ -232,6 +320,27 @@ them until tagged releases begin.
   wanted and then started its fetch, so a tick that passed the check just before `Dispose()` could send one more
   request after `Dispose()` had returned. The check and the start now happen under the same gate `Dispose()`
   takes.
+- **Sign-in throttling holds under concurrent guesses** (#1121). The throttle checked the limit and counted a
+  failure in two separate steps, so wrong passwords fired together all passed the check before any was
+  counted: with `SignInAttemptsPerMinute = 3`, 24 parallel guesses got 12 tries. Password sign-in and password
+  reset now check and count in one step, and an attempt that runs counts against the attempts beside it.
+  Registration and passkey sign-in, whose throttle key is the client alone, still count only a failure, so an
+  office behind one address can register together. A success that raced a failure no longer loses that count.
+- **`rask new` writes the Web Push key file readable by you alone** (#1124). `appsettings.Development.json`
+  holds the private key that signs every push, and was created with the ordinary umask (`0644`,
+  world-readable). It is now created `0600` on macOS and Linux; Windows is unchanged.
+- **`HasNonOverlappingRange` on an existing table is a migration** (#1113). The rule was stored where EF
+  Core's migrations differ never looks, so adding it to a table whose columns did not otherwise change made
+  an empty migration and the triggers were never created. Removing the rule now drops its triggers and index,
+  and changing it rebuilds the index over the new columns. Your next migration may re-emit the triggers of a
+  table that already has them, which does no harm.
+- **A client registered concurrently no longer drops a notification** (#1123). `AddRaskCqrsClient` marked
+  its invokers installed before installing them, so a second registration racing the first could publish
+  while the notification invoker was only half installed, and the message never reached the server.
+- **The release gate waits for nuget.org's validation instead of failing on it** (#1125). A package that
+  carries an executable (`Rask.Cli`) can take hours to appear. The gate now reads the push log: a package
+  nuget.org accepted is waited for up to three hours (v0.23.0 needed 2h17m), and one it refused fails at once. Re-running a release
+  also gets past an existing GitHub release instead of failing on it.
 
 ## [0.23.0] - 2026-09-18
 

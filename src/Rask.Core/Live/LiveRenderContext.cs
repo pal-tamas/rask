@@ -426,6 +426,29 @@ public sealed class LiveRenderContext : IDisposable
         }
     }
 
+    /// <summary>
+    ///     The component rendering now and the render pass it is in, for state that belongs to one
+    ///     component's render the way a handler slot does — numbered afresh each pass, kept for its lifetime.
+    /// </summary>
+    /// <remarks>
+    ///     The pass is the root's handler generation, which is drawn from one process-wide sequence, so a
+    ///     component reached from two roots can never mistake one root's pass for the other's.
+    /// </remarks>
+    /// <param name="generation">The render pass, or zero outside a render.</param>
+    /// <returns>The rendering component, or null outside a render.</returns>
+    internal static Component? RenderOwner(out long generation)
+    {
+        var context = CurrentSync;
+        if (context is null)
+        {
+            generation = 0;
+            return null;
+        }
+
+        generation = context._root.RenderGenerationInternal;
+        return context.CurrentParent;
+    }
+
     internal static Component? ObserveAmbientState()
     {
         var context = CurrentSync;
