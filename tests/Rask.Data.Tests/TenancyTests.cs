@@ -182,6 +182,91 @@ public sealed class TenancyTests : IDisposable
         }
     }
 
+    [Fact]
+    public async Task A_read_inside_a_session_scope_sees_that_sessions_tenant()
+    {
+        await using var database = await StartDatabaseAsync();
+
+        await SaveAsync(database, _acme, "ACME-1");
+        await SaveAsync(database, _globex, "GLOBEX-1");
+
+        // What the host does around a live session's work: the session's own services become ambient, and a
+        // read — a static call, outside any DI scope — resolves the tenant of the user that session is for.
+        using (Db.UseScope(ScopeFor(_acme)))
+        {
+            Assert.Equal(["ACME-1"], await Ledger.Read.Select(l => l.Reference).ToListAsync());
+        }
+
+        using (Db.UseScope(ScopeFor(_globex)))
+        {
+            Assert.Equal(["GLOBEX-1"], await Ledger.Read.Select(l => l.Reference).ToListAsync());
+        }
+    }
+
+    [Fact]
+    public async Task A_session_scope_does_not_outlive_itself()
+    {
+        await using var database = await StartDatabaseAsync();
+        await SaveAsync(database, _acme, "ACME-1");
+
+        using (Db.UseScope(ScopeFor(_acme)))
+        {
+            Assert.Single(await Ledger.Read.ToListAsync());
+        }
+
+        // The failure this guards against is the worst one available: a scope that leaked past the work it
+        // bracketed would hand the NEXT session the previous user's tenant.
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Ledger.Read.ToListAsync());
+    }
+
+    [Fact]
+    public async Task A_nested_scope_restores_exactly_what_it_replaced()
+    {
+        await using var database = await StartDatabaseAsync();
+
+        await SaveAsync(database, _acme, "ACME-1");
+        await SaveAsync(database, _globex, "GLOBEX-1");
+
+        // A handler's dispatch renders, so the scope is entered inside itself.
+        using (Db.UseScope(ScopeFor(_acme)))
+        {
+            using (Db.UseScope(ScopeFor(_globex)))
+            {
+                Assert.Equal(["GLOBEX-1"], await Ledger.Read.Select(l => l.Reference).ToListAsync());
+            }
+
+            Assert.Equal(["ACME-1"], await Ledger.Read.Select(l => l.Reference).ToListAsync());
+        }
+    }
+
+    [Fact]
+    public async Task An_explicit_scope_beats_the_signed_in_user()
+    {
+        await using var database = await StartDatabaseAsync();
+
+        await SaveAsync(database, _acme, "ACME-1");
+        await SaveAsync(database, _globex, "GLOBEX-1");
+
+        // A background job runs for the tenant its own row recorded, not for whoever enqueued it.
+        using (Db.UseScope(ScopeFor(_acme)))
+        using (Tenant.Use(_globex))
+        {
+            Assert.Equal(["GLOBEX-1"], await Ledger.Read.Select(l => l.Reference).ToListAsync());
+        }
+    }
+
+    private static IServiceProvider ScopeFor(Guid tenant) => new StubScope(new StubTenantSource(tenant));
+
+    private sealed class StubTenantSource(Guid tenant) : ITenantSource
+    {
+        public Guid? Current { get; } = tenant;
+    }
+
+    private sealed class StubScope(ITenantSource source) : IServiceProvider
+    {
+        public object? GetService(Type serviceType) => serviceType == typeof(ITenantSource) ? source : null;
+    }
+
     private async Task<Guid> SaveAsync(TestDatabase database, Guid tenant, string reference)
     {
         using (Tenant.Use(tenant))

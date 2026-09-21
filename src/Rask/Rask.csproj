@@ -149,6 +149,8 @@
     <Compile Remove="RaskAppDbContext.cs"/>
     <Compile Remove="RaskBatteryWiring.cs"/>
     <Compile Remove="RaskDatabase.cs"/>
+    <!-- Reaches into Rask.Data, which the browser half does not reference. -->
+    <Compile Remove="SessionDataScope.cs"/>
     <!-- Endpoint and MVC filters: ASP.NET hosting types, so the server half only. -->
     <Compile Remove="ApiValidation.cs"/>
   </ItemGroup>

@@ -40,6 +40,15 @@ them until tagged releases begin.
   assumed — the second tenant read the first tenant's rows. Reaching it through the context instance makes EF
   lift it to a real parameter, which is what `ITenantScoped` is for.
 
+  **A live session's reads see the tenant of the user that session belongs to.** A Rask read is a static call
+  that runs outside any DI scope, so the host makes the session's own services ambient for the duration of its
+  work — `Db.UseScope(...)`, bracketed at the two render entry points and the one gate every handler and
+  broadcast delivery passes through. The contract (`ISessionWorkScope`) is in `Rask.Core` and the
+  implementation in the `Rask` meta package, because `Rask.Server` owns the session but deliberately does not
+  reference `Rask.Data`: a web host that drags EF Core in for every app is the coupling the package split
+  exists to prevent. Nothing is registered unless the data battery is on, so a host without it keeps a null
+  check on the render path.
+
   **Not wired up yet:** `Rask.Auth` does not carry a tenant, and the batteries (jobs, outbox, mail, cache,
   storage) do not record one on their rows, so background work has no tenant to re-enter. Declaring `Scope`
   today partitions your own tables and nothing else.

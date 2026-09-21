@@ -31,12 +31,15 @@ Rask.Core.Authentication.AuthSignIn.SignInAsync(System.Security.Claims.ClaimsPri
 Rask.Core.Authentication.AuthSignIn.SignOutAsync(string? returnUrl = null, string? scheme = null) -> System.Threading.Tasks.Task!
 Rask.Core.Authentication.ClaimsPrincipalExtensions
 Rask.Core.Authentication.IAuth
+Rask.Core.Authentication.IAuth.AddPasskeyAsync(string? name = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 Rask.Core.Authentication.IAuth.ConfirmEmailAsync(string! userId, string! token) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 Rask.Core.Authentication.IAuth.RegisterAsync(string! email, string! password, string? returnUrl = null, string? firstRunToken = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 Rask.Core.Authentication.IAuth.RegisterAsync<TUser>(string! email, string! password, System.Action<TUser!>! apply, string? returnUrl = null, string? firstRunToken = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+Rask.Core.Authentication.IAuth.RemovePasskeyAsync(System.Guid id) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 Rask.Core.Authentication.IAuth.ResetPasswordAsync(string! userId, string! token, string! password) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 Rask.Core.Authentication.IAuth.SendPasswordResetAsync(string! email) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 Rask.Core.Authentication.IAuth.SignInAsync(string! email, string! password, bool remember = false, string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+Rask.Core.Authentication.IAuth.SignInWithPasskeyAsync(bool remember = false, string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 Rask.Core.Authentication.IAuth.SignOutAsync(string? returnUrl = null) -> System.Threading.Tasks.Task!
 Rask.Core.Authentication.IAuth.SignOutEverywhereAsync(string? returnUrl = null) -> System.Threading.Tasks.Task!
 Rask.Core.Authentication.IAuth.SignOutOtherDevicesAsync() -> System.Threading.Tasks.Task!
@@ -3395,6 +3398,8 @@ Rask.Core.Live.IPrerenderPaths.Paths() -> System.Collections.Generic.IEnumerable
 Rask.Core.Live.IRenderHandle
 Rask.Core.Live.IRenderHandle.RequestPublishRenderAsync() -> System.Threading.Tasks.Task!
 Rask.Core.Live.IRenderHandle.RequestRenderAsync() -> System.Threading.Tasks.Task!
+Rask.Core.Live.ISessionWorkScope
+Rask.Core.Live.ISessionWorkScope.Enter(System.IServiceProvider! sessionServices) -> System.IDisposable?
 Rask.Core.Live.KeyForwardScope
 Rask.Core.Live.KeyboardEventArgs
 Rask.Core.Live.KeyboardEventArgs.<Clone>$() -> Rask.Core.Live.KeyboardEventArgs!
@@ -6693,6 +6698,3 @@ virtual Rask.Core.Forms.ValidateAsync<T>.Invoke(T value, System.Threading.Cancel
 ~override Rask.Core.ScopedAssets.ScopedAssetRegistry.AssetBytes.ToString() -> string
 ~override Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry.Equals(object obj) -> bool
 ~override Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry.ToString() -> string
-Rask.Core.Authentication.IAuth.AddPasskeyAsync(string? name = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
-Rask.Core.Authentication.IAuth.RemovePasskeyAsync(System.Guid id) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
-Rask.Core.Authentication.IAuth.SignInWithPasskeyAsync(bool remember = false, string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!

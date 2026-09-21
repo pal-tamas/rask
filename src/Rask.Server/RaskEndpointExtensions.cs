@@ -2086,6 +2086,10 @@ public static partial class RaskEndpointExtensions
         }
 
         session.InHandlerScope = true;
+
+        // The one gate every handler and every broadcast delivery passes through, under the session lock —
+        // so the session's services are ambient for exactly the work, and released when it ends.
+        using var work = session.EnterWorkScope();
         using var activity = RaskActivity.Source.StartActivity(activityName);
         if (handlerId is not null)
         {

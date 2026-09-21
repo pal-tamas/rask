@@ -101,6 +101,11 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     // so the render path records without resolving anything.
     private readonly RaskMetrics? _metrics;
 
+    // Entered around this session's work so ambient state follows its flow — the tenant of the signed-in
+    // user, today. Optional and held per session for the same reason as _metrics: the render path resolves
+    // nothing, and a host that registers none pays one null check.
+    private readonly ISessionWorkScope? _workScope;
+
     public LiveSession(
         string id, Component view, IServiceScope scope, LiveDiffMode diffMode, RaskMetrics? metrics = null)
         : base(view, scope.ServiceProvider, diffMode)
@@ -109,7 +114,20 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         Scope = scope;
         _sendTimeout = scope.ServiceProvider.GetService<RaskServerLimits>()?.SendTimeout ?? TimeSpan.Zero;
         _metrics = metrics;
+        _workScope = scope.ServiceProvider.GetService<ISessionWorkScope>();
     }
+
+    /// <summary>
+    ///     Makes this session's services ambient for the duration of the returned scope.
+    /// </summary>
+    /// <remarks>
+    ///     Every path that runs work for this session brackets itself with this: the two render entry points
+    ///     and the handler dispatch queue. Miss one and anything reading ambient session state is wrong on
+    ///     that path alone; wrap something that outlives the work and it bleeds into the next session, which
+    ///     for a tenant filter means reading somebody else's rows. Nesting is fine — a dispatch renders, so
+    ///     this is entered inside itself, and each disposal restores exactly what it replaced.
+    /// </remarks>
+    internal IDisposable? EnterWorkScope() => _workScope?.Enter(Scope.ServiceProvider);
 
     public bool SuppressEventsUntilReconnect { get; set; }
 
@@ -497,6 +515,8 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     /// </remarks>
     internal async Task<string> RenderInitialRootAsync(TimeSpan budget, CancellationToken cancellationToken = default)
     {
+        using var work = EnterWorkScope();
+
         if (budget <= TimeSpan.Zero)
         {
             return RenderInitialRoot();
@@ -818,6 +838,8 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         {
             return;
         }
+
+        using var work = EnterWorkScope();
 
         await _renderLock.WaitAsync(_socketCt).ConfigureAwait(false);
         try
