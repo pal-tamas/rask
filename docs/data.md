@@ -72,7 +72,7 @@ await Product.UpdateAsync(product.Id, edit);                                   /
 var other = await Product.CreateAsync(p => p.Reprice(new(9.90m, "EUR")));      // no form at all …
 await Product.UpdateAsync(other.Id, p => p.Reprice(new(12.50m, "EUR")));       // … and the same shape to change it
 
-await Product.DeleteAsync(product.Id);                                         // a DeletedAt stamp
+await Product.DeleteAsync(product.Id);                                         // removes the row
 ```
 
 A source generator finds every aggregate at build time and hands it to `RaskAppDbContext`; the host points
@@ -213,8 +213,10 @@ line out of the collection deletes the row. Left to EF Core's own convention the
 and severing a child would set that key to `NULL` and leave the row in the table — invisible through the
 navigation, unreachable through the aggregate, and impossible to delete through it either.
 
-Soft-deleting the aggregate is different, and deliberately so: `Order.DeleteAsync(id)` stamps `DeletedAt` rather
-than removing the row, so nothing cascades and the lines are still there if the order comes back.
+Deleting the aggregate follows the same rule: `Order.DeleteAsync(id)` removes the order and its lines with it.
+An order that declares [`Deletes = Deletion.Soft`](#choosing-what-a-table-carries) is different, and deliberately
+so: `DeletedAt` is stamped rather than the row removed, so nothing cascades and the lines are still there if the
+order comes back.
 
 The child gets a table, `CreatedAt` and `UpdatedAt`, a model so its parent's form can carry it, and a read
 face of its own — `OrderLine.Read` — because the read side has no borders. It gets no **writes** of its own:
@@ -650,7 +652,7 @@ It is also read at compile time rather than reflected over at run time, because 
 use site and the field itself is free to be trimmed: a reflected read would find nothing in a trimmed publish
 and silently fall back to the default, giving an app one shape in debug and another in release.
 
-**Four is the whole family.** Anything per-property or expression-shaped — a column name, an index, a value
+**Five is the whole family.** Anything per-property or expression-shaped — a column name, an index, a value
 converter, a length — stays in [`static Configure`](#mapping-rules-the-conventions-dont-cover), which is where
 it can actually be expressed.
 
@@ -963,8 +965,8 @@ provider. Folding the null away makes one ordinary index that behaves identicall
 The writes on the type cover a create, an update and a delete. **Everything past that is ordinary EF Core** — a
 change several entities make together, a query-then-decide, a bulk statement: load the entities into a context,
 call their methods, save — so the entity's own rules run on every write, and so do the interceptors:
-`CreatedAt`/`UpdatedAt` are stamped, `Version` is bumped, a delete of an aggregate becomes a
-`DeletedAt` stamp, and the aggregate's domain events are published after the commit. There is no Rask-owned
+`CreatedAt`/`UpdatedAt` are stamped, `Version` is bumped, a delete of an aggregate that asked for soft
+delete becomes a `DeletedAt` stamp, and the aggregate's domain events are published after the commit. There is no Rask-owned
 unit of work to learn.
 
 `RaskAppDbContext` (namespace `Rask`) is the context the host builds: every entity you declared, plus every
@@ -1127,7 +1129,7 @@ await db.Set<Product>().Where(p => p.Discontinued)
 ```
 
 **A batch soft delete is an update, not `ExecuteDeleteAsync`.** `db.Remove(product)` on an aggregate
-stamps `DeletedAt`, but `ExecuteDeleteAsync` is a `DELETE` the interceptors never see — the rows are gone, not
+that declares `Deletes = Deletion.Soft` stamps `DeletedAt`, but `ExecuteDeleteAsync` is a `DELETE` the interceptors never see — the rows are gone, not
 hidden. Stamp them instead:
 
 ```csharp
