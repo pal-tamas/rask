@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Rask.Data;
 
 namespace Rask.Auth;
 
@@ -51,9 +52,24 @@ public static class AuthModelBuilderExtensions
 
         modelBuilder.Entity<TUser>(b =>
         {
-            // Unique on the normalized address: this is what makes "already registered" a database guarantee rather than a
-            // check-then-insert race between two registrations arriving together.
-            b.HasIndex(u => u.Email).IsUnique();
+            // Unique on the normalized address WITHIN A TENANT: this is what makes "already registered" a
+            // database guarantee rather than a check-then-insert race between two registrations arriving
+            // together. Without tenants nothing sets TenantId, every row's TenantKey is Guid.Empty, and this
+            // means exactly what a unique index on Email alone meant.
+            //
+            // Rask.Auth maps the tenant ITSELF rather than declaring Scope = Tenancy.PerTenant, because this
+            // one table's tenant is optional: an administrator belongs to no tenant, and a tenant-scoped row
+            // is stamped from the ambient tenant and refused without one — so a PerTenant accounts table
+            // could not have an admin inserted into it at all.
+            //
+            // The index is on TenantKey, not TenantId, because NULL in a unique index is not portable: SQLite
+            // and PostgreSQL treat two NULLs as distinct, so any number of admins could share one address,
+            // while SQL Server treats them as equal, so only one could. TenantKey folds the null to
+            // Guid.Empty (kept in step by Rask.Data's auditing interceptor), which is one ordinary index that
+            // behaves the same on all three.
+            b.Property(u => u.TenantId);
+            b.Property<Guid>(Columns.TenantKey);
+            b.HasIndex(Columns.TenantKey, nameof(Authenticatable.Email)).IsUnique();
             b.Property(u => u.Email).HasMaxLength(256).IsRequired();
             b.Property(u => u.PasswordHash).HasMaxLength(256).IsRequired();
             b.PrimitiveCollection(u => u.Roles);

@@ -49,9 +49,23 @@ them until tagged releases begin.
   exists to prevent. Nothing is registered unless the data battery is on, so a host without it keeps a null
   check on the render path.
 
-  **Not wired up yet:** `Rask.Auth` does not carry a tenant, and the batteries (jobs, outbox, mail, cache,
-  storage) do not record one on their rows, so background work has no tenant to re-enter. Declaring `Scope`
-  today partitions your own tables and nothing else.
+  **An address is unique within a tenant.** `Rask.Auth` now maps a tenant on the accounts table, so the same
+  person can hold an account at two companies. With no tenants in play nothing sets it, and the index means
+  exactly what a unique index on `Email` alone meant — existing apps are unaffected.
+
+  The accounts table maps its tenant **itself** rather than declaring `Scope = Tenancy.PerTenant`, and it has
+  to: a tenant-scoped row is stamped from the ambient tenant and refused without one, while an administrator
+  legitimately belongs to no tenant — a `PerTenant` accounts table could not have an admin inserted into it
+  at all.
+
+  The index is on a `TenantKey` column that folds a null tenant to `Guid.Empty`, not on `TenantId` directly,
+  because NULL in a unique index is not portable: SQLite and PostgreSQL treat two NULLs as distinct, so any
+  number of administrators could share one address, while SQL Server treats them as equal, so only one could.
+  Same schema, three behaviours. Folding the null away is one ordinary index that behaves identically on all
+  three, and it replaces the two provider-specific filtered indexes this would otherwise have needed.
+
+  **Not wired up yet:** the batteries (jobs, outbox, mail, cache, storage) do not record a tenant on their
+  rows, so background work has no tenant to re-enter, and sign-in does not yet issue the tenant claim.
 
 - **A collection of values on an aggregate is mapped, queryable and editable.** `IReadOnlyList<string> Tags`
   becomes a primitive collection and `IReadOnlyList<Stop> Stops` a JSON column, both carried on the form model

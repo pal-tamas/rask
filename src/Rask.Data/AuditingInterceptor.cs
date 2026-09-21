@@ -56,11 +56,13 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
                 Stamp(entry, Columns.CreatedAt, now, onlyWhenUnset: true);
                 Stamp(entry, Columns.UpdatedAt, now, onlyWhenUnset: true);
                 StampTenant(entry);
+                SyncTenantKey(entry);
             }
             else if (entry.State == EntityState.Modified)
             {
                 Stamp(entry, Columns.UpdatedAt, now);
                 RefuseTenantChange(entry);
+                SyncTenantKey(entry);
             }
         }
 
@@ -72,6 +74,24 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
                 version.CurrentValue = (int)(version.CurrentValue ?? 0) + 1;
             }
         }
+    }
+
+    // Keeps TenantKey equal to TenantId with its null folded away, for the one table that maps it.
+    //
+    // NOT gated on the tenancy registry, deliberately: the accounts table cannot declare Scope = PerTenant,
+    // because stamping a tenant-scoped row demands an ambient tenant and an ADMINISTRATOR legitimately has
+    // none — a tenant-scoped accounts table could not have an admin inserted into it at all. So Rask.Auth
+    // maps the tenant itself, and this keeps the indexed copy honest wherever it is mapped.
+    private static void SyncTenantKey(EntityEntry entry)
+    {
+        if (entry.Metadata.FindProperty(Columns.TenantKey) is null ||
+            entry.Metadata.FindProperty(Columns.TenantId) is null)
+        {
+            return;
+        }
+
+        entry.Property(Columns.TenantKey).CurrentValue =
+            entry.Property(Columns.TenantId).CurrentValue as Guid? ?? Guid.Empty;
     }
 
     // A tenant-scoped row records its tenant on insert, from the ambient scope. The column is only mapped on

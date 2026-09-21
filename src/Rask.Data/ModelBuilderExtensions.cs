@@ -208,7 +208,16 @@ public static class ModelBuilderExtensions
 
             if (ConventionRegistry.ScopeFor(clrType) != Tenancy.PerTenant)
             {
-                builder.Ignore(Columns.TenantId);
+                // Unless the entity mapped it ITSELF. Rask.Auth does: its accounts table carries an optional
+                // tenant that it manages, because a tenant-scoped row is stamped from the ambient tenant and
+                // refused without one, and an administrator legitimately has none. Ignoring it here would
+                // silently undo that — the same rule as every other convention in this file.
+                if (((IConventionEntityType)builder.Metadata).FindProperty(Columns.TenantId)
+                    ?.GetConfigurationSource() is not (ConfigurationSource.Explicit or ConfigurationSource.DataAnnotation))
+                {
+                    builder.Ignore(Columns.TenantId);
+                }
+
                 continue;
             }
 

@@ -39,4 +39,23 @@ public static class Columns
 
     /// <summary>Which tenant owns the row. Added only to a table whose <c>Scope</c> const says <c>PerTenant</c>.</summary>
     public const string TenantId = "TenantId";
+
+    /// <summary>
+    ///     <see cref="TenantId" /> with its null folded to <see cref="System.Guid.Empty" />, so a unique index
+    ///     can include the tenant without depending on how a provider treats NULL.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Only a table that maps it gets it, and only one does: the accounts table, whose tenant is
+    ///         genuinely optional because an administrator belongs to no tenant. Every other tenant-scoped row
+    ///         is stamped from the ambient tenant and can never be null.
+    ///     </para>
+    ///     <para>
+    ///         It exists because NULL in a unique index is not portable. SQLite and PostgreSQL treat two NULLs
+    ///         as distinct — so any number of administrators could share one address — while SQL Server treats
+    ///         them as equal, so only one could. Same schema, three behaviours. Folding the null away means one
+    ///         ordinary unique index that behaves identically everywhere.
+    ///     </para>
+    /// </remarks>
+    public const string TenantKey = "TenantKey";
 }

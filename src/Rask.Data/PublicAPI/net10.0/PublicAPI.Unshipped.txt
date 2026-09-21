@@ -186,6 +186,7 @@ Rask.Data.Timestamps.Updated = 2 -> Rask.Data.Timestamps
 const Rask.Data.Columns.CreatedAt = "CreatedAt" -> string!
 const Rask.Data.Columns.DeletedAt = "DeletedAt" -> string!
 const Rask.Data.Columns.TenantId = "TenantId" -> string!
+const Rask.Data.Columns.TenantKey = "TenantKey" -> string!
 const Rask.Data.Columns.UpdatedAt = "UpdatedAt" -> string!
 const Rask.Data.Columns.Version = "Version" -> string!
 const Rask.Data.FullText.MatchEnd = '' -> char
