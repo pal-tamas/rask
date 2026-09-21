@@ -105,7 +105,11 @@ them until tagged releases begin.
   Scoped at the query rather than by a filter on the table, because the orphan sweep has to see every file to
   decide what is unreferenced — the same reason the queues carry a tenant without being partitioned by one.
 
-  **Not wired up yet:** an administrator cannot yet switch into a tenant.
+  **An administrator switches into a tenant** — `Tenant.Across()` to see what there is, `Tenant.Use(chosen)`
+  to work inside it — and needs nothing new to do it. What makes that safe is the default being neither: an
+  admin carries no tenant claim, so a tenant-scoped read before they have chosen throws rather than quietly
+  showing one tenant's rows or all of them. Holding the choice across renders is ordinary page state, and
+  forgetting it fails closed.
 
 - **A collection of values on an aggregate is mapped, queryable and editable.** `IReadOnlyList<string> Tags`
   becomes a primitive collection and `IReadOnlyList<Stop> Stops` a JSON column, both carried on the form model
