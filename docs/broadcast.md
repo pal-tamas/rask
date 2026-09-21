@@ -90,12 +90,63 @@ every order.
 - **Not a queue.** Delivery is *at most once*, to the subscribers that exist when the message is published. A
   component that mounts afterwards does not see earlier messages, and nothing is replayed. When a page needs the
   current state rather than the latest change, load it in `OnMountAsync` and subscribe for what happens next.
-- **Not across servers.** A message reaches the sessions this process holds. Behind a load balancer with several
-  instances, a publish on one reaches only that one's visitors; a backplane that carries messages between hosts is
-  planned ([#1115](https://github.com/pal-tamas/rask/issues/1115)). Messages are live objects and are never serialized, so a topic can carry any type, including ones that
-  cannot be.
+- **Not across servers, unless you ask.** A message reaches the sessions this process holds, as a live object that is
+  never serialized, so a topic can carry any type, including ones that cannot be. Behind a load balancer, a topic
+  that should reach every instance's visitors opts in, [below](#across-servers).
 - **One tab in a WebAssembly app.** In a browser-WASM app the whole app is one session, so a broadcast connects the
   components of that tab — as in the demo above — and never leaves the browser.
+
+## Across servers
+
+Behind a load balancer, each instance holds its own visitors' sessions, so a publish on one instance reaches only
+the pages open on that one. `Rask.Redis` carries a topic's messages between instances over Redis pub/sub:
+
+```bash
+dotnet add package Rask.Redis
+```
+
+```csharp
+builder.Services.AddRaskRedisBackplane();
+```
+
+The connection string is `Rask:ConnectionStrings:Redis` — `Rask__ConnectionStrings__Redis=redis:6379` in the
+environment — and a missing one stops the app's start, naming that key. An app that already registers its own
+`IConnectionMultiplexer` shares it instead.
+
+**Only a topic that opts in crosses.** Crossing means serializing, so a cross-host topic names the JSON contract its
+messages are written with — a source-generated one, so nothing is reflected and the app still trims:
+
+```csharp
+public static class Topics
+{
+    // Every instance's subscribers.
+    public static readonly Topic<OrderPlaced> Orders = new("orders", AppJson.Default.OrderPlaced);
+
+    // This instance's subscribers only — the message is never serialized.
+    public static readonly Topic<CartTouched> Carts = new("carts");
+}
+
+[JsonSerializable(typeof(OrderPlaced))]
+public sealed partial class AppJson : JsonSerializerContext;
+```
+
+Publishing and subscribing do not change. What does:
+
+- **This instance first.** A publish is delivered to this instance's subscribers as before, then handed to Redis
+  for the others. Redis hands every message back to the instance that sent it too; each message carries its
+  sender's id, and an instance drops its own, so no page sees a message twice.
+- **Each subscriber on another instance gets its own copy,** read back from JSON, rather than the instance the
+  publisher passed.
+- **Still at most once.** A message Redis could not take is logged and dropped: this instance's pages already have
+  it, and the code that published — usually a request whose work is already saved — is not failed for it. An
+  instance that is disconnected from Redis misses what is published meanwhile, and reconnects by itself.
+- **One name, one type, across the app.** Instances match a cross-host topic by its name, so every instance must
+  declare it with the same message type. Declaring one name for two types on one instance throws, naming both.
+- **Topics are channels.** Each cross-host topic is the Redis channel `rask:broadcast:` + its name. Two apps that
+  share one Redis server each set their own prefix in `Rask:Redis:ChannelPrefix`, or `AddRaskRedisBackplane(o =>
+  o.ChannelPrefix = "shop:")`, so neither receives the other's messages.
+
+A browser-WASM app has nothing to add: the whole app is one tab.
 
 ## Topics
 

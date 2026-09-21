@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>$(RaskNetTargets)</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+
+    <PackageId>Rask.Redis</PackageId>
+    <Title>Rask.Redis — a Redis backplane for broadcast across hosts</Title>
+    <Description>A Redis pub/sub backplane for ASP.NET Core apps built with Rask: `AddRaskRedisBackplane()` carries IBroadcast messages between the instances behind a load balancer, so a publish on one server re-renders the subscribed pages on every server. Only topics declared with a source-generated JsonTypeInfo cross hosts; the rest stay in-process.</Description>
+    <!-- Override the framework default tags (web/component/wasm) — a server-side transport. -->
+    <PackageTags>redis pubsub backplane broadcast scale-out load-balancer stackexchange-redis aspnetcore dotnet net10 net11</PackageTags>
+  </PropertyGroup>
+
+  <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
+       overview that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Remove="NUGET.md" />
+    <None Include="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="StackExchange.Redis"/>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder"/>
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Options"/>
+  </ItemGroup>
+
+  <!-- AddRaskRedisBackplane binds Rask:Redis. The configuration binding source generator writes the bind at compile
+       time, so no reflection binder runs. -->
+  <PropertyGroup>
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- PrivateAssets="all" — Rask.Core is IsPackable=false, so without it the nuspec would list a dependency on a
+         package that exists on no feed. The backplane only means anything on a server host, and Rask.Server carries
+         Core.dll. -->
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Rask.Hosting.Shared\RaskOptionsRegistration.cs" Link="Shared\RaskOptionsRegistration.cs"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Redis.Tests"/>
+  </ItemGroup>
+
+</Project>

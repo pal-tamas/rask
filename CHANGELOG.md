@@ -9,6 +9,14 @@ them until tagged releases begin.
 
 ### Added
 
+- **Broadcast across servers: `Rask.Redis` (#1115).** `AddRaskRedisBackplane()` carries `IBroadcast` messages
+  between the instances behind a load balancer over Redis pub/sub, so a publish on one instance re-renders the
+  subscribed pages on every instance. Only a topic declared with a source-generated JSON contract crosses —
+  `new Topic<OrderPlaced>("orders", AppJson.Default.OrderPlaced)` — and every other topic stays in its process, as
+  a live object. The connection string is `Rask:ConnectionStrings:Redis` (or the app's own
+  `IConnectionMultiplexer`), each topic is the channel `rask:broadcast:{name}` (`Rask:Redis:ChannelPrefix`), and an
+  instance drops its own message when Redis hands it back, so no page sees one twice.
+
 - **`Rask.Data`: `Current` — the signed-in user with nothing injected.** A read or a write on a model is a
   static call, so a `Product.Create(…)` factory had no constructor to inject the user into. `Current.UserId`
   / `Current.RequiredUserId` (the `NameIdentifier` claim, as a `Guid`), `Current.Principal` and
