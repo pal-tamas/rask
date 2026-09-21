@@ -208,6 +208,10 @@ them until tagged releases begin.
 - **A client registered concurrently no longer drops a notification** (#1123). `AddRaskCqrsClient` marked
   its invokers installed before installing them, so a second registration racing the first could publish
   while the notification invoker was only half installed, and the message never reached the server.
+- **The release gate waits for nuget.org's validation instead of failing on it** (#1125). A package that
+  carries an executable (`Rask.Cli`) can take hours to appear. The gate now reads the push log: a package
+  nuget.org accepted is waited for up to three hours (v0.23.0 needed 2h17m), and one it refused fails at once. Re-running a release
+  also gets past an existing GitHub release instead of failing on it.
 
 ## [0.23.0] - 2026-09-18
 
