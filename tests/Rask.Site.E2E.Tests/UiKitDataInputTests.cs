@@ -79,6 +79,10 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
         // dropping the whole string into the first box.
         await Expect(scope.Locator("input")).ToHaveCountAsync(1);
 
+        // Named by its visible label and described by its hint, like every other kit field (#1117).
+        await Expect(scope.GetByLabel("Verification code")).ToHaveCountAsync(1);
+        await Expect(field).ToHaveAccessibleDescriptionAsync("Six digits, sent to your phone.");
+
         await field.FillAsync("123456");
         await field.BlurAsync();
         await Expect(Page.Locator("[data-testid='ui-otp-state']")).ToContainTextAsync("Code complete");

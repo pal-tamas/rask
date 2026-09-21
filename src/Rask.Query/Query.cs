@@ -25,6 +25,12 @@ public sealed class Query<TResult> : IDisposable, IRenderSlotHandle
     private readonly Action _onChanged;
     private readonly ComponentReaders _readers = new();
     private readonly CancellationTokenSource? _polling;
+
+    // Held by a poll tick from its "still wanted?" check until its fetch has STARTED, and by Dispose while it
+    // marks the query gone. Without it a tick could pass the check, lose the CPU, and start a fetch after
+    // Dispose had returned — a polling query outliving its component by one request (#1126). The fetch starts
+    // synchronously (QueryClient.RunAsync), so nothing is awaited while this is held.
+    private readonly Lock _pollGate = new();
     private QueryEntry? _placeholder;
     private QueryEntry _entry;
     private QueryKey _key;
@@ -99,20 +105,26 @@ public sealed class Query<TResult> : IDisposable, IRenderSlotHandle
                 return;
             }
 
-            if (_disposed || (_readers.EverObserved && !_readers.HasLiveReaders))
+            Task started;
+            lock (_pollGate)
             {
-                return;
+                if (_disposed || (_readers.EverObserved && !_readers.HasLiveReaders))
+                {
+                    return;
+                }
+
+                // Set aside by a render that stopped using it: nothing is on screen to keep fresh until the
+                // next read wakes it, and that read fetches if the entry went stale meanwhile.
+                if (_suspended)
+                {
+                    continue;
+                }
+
+                _entry.Invalidate();
+                started = _client.EnsureFreshAsync(_key, this, cancellationToken);
             }
 
-            // Set aside by a render that stopped using it: nothing is on screen to keep fresh until the
-            // next read wakes it, and that read fetches if the entry went stale meanwhile.
-            if (_suspended)
-            {
-                continue;
-            }
-
-            _entry.Invalidate();
-            await _client.EnsureFreshAsync(_key, this, cancellationToken).ConfigureAwait(false);
+            await started.ConfigureAwait(false);
         }
     }
 
@@ -310,12 +322,16 @@ public sealed class Query<TResult> : IDisposable, IRenderSlotHandle
     /// <summary>Stops observing the entry, which starts its GC clock once nothing else is watching.</summary>
     public void Dispose()
     {
-        if (_disposed)
+        lock (_pollGate)
         {
-            return;
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
         }
 
-        _disposed = true;
         _polling?.Cancel();
         _polling?.Dispose();
         if (!_suspended)

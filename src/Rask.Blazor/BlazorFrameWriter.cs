@@ -1,6 +1,7 @@
 using System.Text;
 using Microsoft.AspNetCore.Components.RenderTree;
 using Rask.Core;
+using Rask.Core.Live;
 
 namespace Rask.Blazor;
 
@@ -36,15 +37,6 @@ internal static class BlazorFrameWriter
     {
         "area", "base", "br", "col", "embed", "hr", "img", "input",
         "link", "meta", "param", "source", "track", "wbr",
-    };
-
-    // The events Rask feeds a parameterless handler (HandlerFrameShape's "None" row). A Func<Task>
-    // registered for anything else is refused at dispatch, because the inbound frame's type belongs
-    // to a shape that wants arguments.
-    private static readonly HashSet<string> ParameterlessEvents = new(StringComparer.Ordinal)
-    {
-        "click", "dragstart", "dragover", "drop", "dragend", "drag", "dragenter", "dragleave",
-        "focus", "blur", "focusin", "focusout", "select", "invalid", "reset",
     };
 
     // The events that carry the element's value, fed to an Action<string>/Func<string, Task>.
@@ -216,7 +208,7 @@ internal static class BlazorFrameWriter
             // Rask matches an inbound frame to a handler by the delegate's shape, and refuses a
             // mismatch — so emitting the attribute anyway would render a component that looks wired
             // and does nothing on the first click, which is the failure this package exists to avoid.
-            if (!ValueEvents.Contains(eventName) && !ParameterlessEvents.Contains(eventName))
+            if (!ValueEvents.Contains(eventName) && !HandlerFrameShape.FeedsParameterless(eventName))
             {
                 return;
             }

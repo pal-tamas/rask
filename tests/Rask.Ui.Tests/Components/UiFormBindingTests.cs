@@ -132,7 +132,7 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
         var model = new Profile { Code = "1234" };
 
         Assert.Contains("value=\"1234\"",
-            UiOtp.Bind(() => model.Code).Label("Verification code").Length(6).ToHtml());
+            UiOtp.Bind(() => model.Code).Length(6).Label("Verification code").ToHtml());
     }
 
     [Fact]

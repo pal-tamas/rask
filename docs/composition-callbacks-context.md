@@ -99,6 +99,10 @@ Pass a **bare lambda or method group** — `.OnMouseMove(e => { _x = e.OffsetX; 
   plus `OnDrag`/`OnDragEnter`/`OnDragLeave` (parameterless — the dragged item's identity rides the
   handler's closure).
 - **Forms** — `OnBeforeInput` (`Action<string>`), `OnSelect`, `OnInvalid`, `OnReset`.
+- **Open state** — `OnToggle`/`OnBeforeToggle` (`ToggleEventArgs`: `OldState`/`NewState`/`IsOpen`) for a
+  popover or `<details>`; a `<dialog>`'s `OnCancel` (a dismissal — Escape or a light dismiss) and `OnClose` (any
+  close, after `OnCancel`), both parameterless. None of them can veto the change: the client never
+  `preventDefault`s.
 - **Media** — `Audio`/`Video` add the `HTMLMediaElement` events `OnPlay`/`OnPause`/`OnEnded`/
   `OnTimeUpdate`/`OnVolumeChange`/… (`MediaEventArgs`: current time, duration, paused, volume, …).
 

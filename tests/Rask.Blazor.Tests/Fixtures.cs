@@ -125,6 +125,23 @@ public sealed class Clicker : ComponentBase
     }
 }
 
+/// <summary>A hosted component whose own &lt;dialog&gt; listens for its two endings (#1116).</summary>
+public sealed class Closer : ComponentBase
+{
+    [Parameter] public EventCallback OnDismiss { get; set; }
+
+    protected override void BuildRenderTree(RenderTreeBuilder builder)
+    {
+        builder.OpenElement(0, "dialog");
+        builder.AddAttribute(1, "oncancel", EventCallback.Factory.Create(this, () => OnDismiss.InvokeAsync()));
+        builder.AddAttribute(2, "onclose", EventCallback.Factory.Create(this, () => OnDismiss.InvokeAsync()));
+        builder.CloseElement();
+    }
+}
+
+/// <summary>An island over the dialog component.</summary>
+public sealed partial class CloserIsland : BlazorComponent<Closer>;
+
 /// <summary>An island over the clickable component.</summary>
 public sealed partial class ClickerIsland : BlazorComponent<Clicker>
 {

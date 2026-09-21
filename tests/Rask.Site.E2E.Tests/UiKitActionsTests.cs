@@ -376,11 +376,20 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
             .ClickAsync();
         await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
-        // Nothing in C# ran and no class was written: the button names the dialog with popovertarget
-        // and the browser puts it in the top layer. Escape closing it is the same mechanism — which is
-        // the whole reason this is the default path rather than the state-driven one.
+        // A <details> toggling INSIDE the dialog is not the dialog closing: toggle does not bubble, but the
+        // runtime's capture-phase delegation used to hand it to the nearest element with a toggle handler —
+        // the dialog, whose OnClose reads a closed state from it (#1116 review).
+        var log = Page.Locator("[data-testid='ui-actions-log']");
+        await Page.Locator("[data-testid='ui-modal-popover-more'] summary").ClickAsync();
+        await Expect(Page.Locator("[data-testid='ui-modal-popover-more']")).ToHaveAttributeAsync("open", "");
+        await Expect(dialog).ToBeVisibleAsync();
+        await Expect(log).Not.ToContainTextAsync("closed the shortcuts");
+
+        // No class was written: the button names the dialog with popovertarget and the browser puts it in the
+        // top layer. Escape closing it is the same mechanism, and OnClose only hears about it.
         await Page.Keyboard.PressAsync("Escape");
         await Expect(dialog).ToBeHiddenAsync();
+        await Expect(log).ToContainTextAsync("closed the shortcuts", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     });
 
     [Fact]
@@ -430,10 +439,14 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
                 "Tab escaped the state-driven dialog.");
         }
 
-        // Escape presses the close control, OnClose stops rendering it, and focus goes back to the opener.
+        // Escape presses the dismiss control, OnClose stops rendering it, and focus goes back to the opener.
         await Page.Keyboard.PressAsync("Escape");
         await Expect(scope.Locator(".modal")).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
         await Expect(opener).ToBeFocusedAsync();
+
+        // ...and it was a DISMISSAL, which OnCancel heard before OnClose (#1116).
+        await Expect(Page.Locator("[data-testid='ui-actions-log']"))
+            .ToContainTextAsync("dismissed the dialog", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     });
 
     [Fact]

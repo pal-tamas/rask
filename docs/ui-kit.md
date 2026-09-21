@@ -29,7 +29,7 @@ C# component framework that ships no script of its own:
   rule, a button's spinner is a `[data-loading]` rule. Where something truly needs script — pressing a menu row,
   marking a button that is waiting on its handler — the framework runtime does it, generically, for every
   control, not the kit.
-- **Accessible by default.** Fields describe themselves (`aria-describedby`, `aria-invalid`, `aria-required`),
+- **Accessible by default.** Every field describes itself (`aria-describedby`, `aria-invalid`, `aria-required`),
   menus carry a keyboard cursor, the current navigation item says `aria-current="page"`, a waiting button says
   `aria-busy` — none of it opt-in.
 - **One vocabulary.** `Position` + `Align` place everything that floats, events are `On…`, `Kbd` shows a shortcut
@@ -284,8 +284,9 @@ UiDrawer.Id("nav").Panel(menu).Position(UiPosition.Right)[ … ]
 UiModal.Title("Details").Position(UiModalPosition.End)[ … ]   // placed against the viewport, not a trigger
 ```
 
-Events are always `On…` — `UiModal.OnClose`, `UiToast.OnDismiss` — the same prefix every element event
-carries.
+Events are always `On…` — `UiModal.OnClose`, `UiModal.OnCancel`, `UiToast.OnDismiss` — the same prefix every
+element event carries. A `<dialog>`'s own endings are element events too: `Dialog.OnCancel` for a dismissal and
+`Dialog.OnClose` for any close.
 
 ### We style, you space
 
@@ -402,9 +403,41 @@ UiSidebarToggle.For("app-nav").Collapsible(UiBreakpoint.Lg)
   `Collapsible` says at what width the sidebar stops being beside the page at all, `Collapsable(true)` keeps it
   beside the page and takes the words away. **`UiSidebarCollapse`** is the control, a `<label>` for a second
   checkbox — so it needs no runtime either — and it appears exactly where `UiSidebarToggle` disappears.
-  `Collapsed`/`OnCollapse` hand it to C#, which is what lets a page *remember* the choice across a full page
-  load. The words that go are marked `ui-rail-hide` by the components that own them, so a CSS rule never has to
-  guess which text is a label and which is content.
+  The words that go are marked `ui-rail-hide` by the components that own them, so a CSS rule never has to
+  guess which text is a label and which is content, and each link, the brand and the profile row keep their
+  name as a `title` — the rail's tooltip, and the accessible name of a link that is only an icon now. (A drawn
+  tooltip would be cut off: the panel clips its overflow.)
+
+  `Collapsed`/`OnCollapse` hand the choice to C#, and remembering it is the app's: the kit stores nothing on
+  your behalf. Read it once from `IBrowserStorage` after the first render and write it back as it changes:
+
+  ```csharp
+  public sealed partial class AppShell(IBrowserStorage storage) : Component
+  {
+      private bool _rail;
+
+      // After the first render, because storage lives in the browser. The hook repaints when it completes.
+      protected override async Task OnRenderedAsync(bool first)
+      {
+          if (first && await storage.Local.GetAsync("sidebar-rail") == "1")
+          {
+              _rail = true;
+          }
+      }
+
+      protected override Component? Render() =>
+          UiSidebar.Id("nav").Page(UiMain[Children ?? []]).Collapsible(UiBreakpoint.Lg).Collapsable(true)
+              .Collapsed(_rail)
+              .OnCollapse(async rail =>
+              {
+                  _rail = rail;
+                  await storage.Local.SetAsync("sidebar-rail", rail ? "1" : "0");
+              })[ … ];
+  }
+  ```
+
+  The first paint is the open sidebar and a remembered rail follows a frame later; a page that must not flicker
+  keeps the choice in a cookie instead and reads it on the server.
 - **`UiSpacer`** is `flex: 1`: it pushes what follows it to the far end of a row or a column.
 - **`UiDivider`** is Flux's separator: `Vertical`, `Subtle`, and `Align(UiAlign.Start|End)` for its words, a
   `separator` to assistive tech when it has none, and **no outer margin** — daisyUI's 1rem is zeroed, so the page
@@ -474,10 +507,12 @@ UiModal.Title("Unsaved work").Id("edit").Dismissible(false).Escapable(false)[ �
 
 Flux UI's switches are all here: `Dismissible(false)` ignores a click outside, `Escapable(false)` ignores
 Escape (`closedby="none"`; Safari has not shipped it), `Closable(false)` drops the header's close button, and
-`OnClose` hears every way it closed. `Position(UiModalPosition.Start|End)` makes it a full-height flyout. While
+`OnClose` hears every way it closed. `OnCancel` hears only a DISMISSAL — Escape or a click outside — and runs
+before `OnClose`, so a dialog holding a draft can throw it away when the user backs out and keep it when they
+press a button that closes it; the header's close button is not a dismissal. `Position(UiModalPosition.Start|End)` makes it a full-height flyout. While
 any kit dialog is open the page behind it does not scroll. The state-driven `Open` path below cannot reach the
 top layer, but it is not left without containment: it carries the runtime's `data-rask-focus-trap`, so focus
-moves in, Tab cycles inside, Escape runs `OnClose`, and focus returns when it closes.
+moves in, Tab cycles inside, Escape runs `OnCancel` then `OnClose`, and focus returns when it closes.
 
 `UiTooltip` takes `Kbd("⌘S")` to teach a shortcut where the reader is already looking, and `Toggleable(true)`
 to show on a tap — a touch screen has no hover, so an ordinary tooltip is never seen there.
@@ -797,6 +832,14 @@ of them says anything about `T`. Bound mode drives the surrounding `Form`'s vali
 `Validate`, `AfterBind`, and the `aria-invalid`/`aria-describedby` display — and controlled mode leaves
 the value with the parent. See [building form controls](building-form-controls.md).
 
+**Every value control is a field, and a field has one shape.** `UiInput`, `UiTextarea`, `UiSelect` (single or
+multiple), `UiOtp`, `UiFileInput`, the radio and checkbox groups and the date pickers all take the same members
+from `UiFormField<T>`: a visible `Label` (a `<label for>` over the control, with an optional `Badge` beside it) or,
+without one, an invisible `AccessibleLabel`; a `Hint` and a controlled `Error` under it; an `Id`, derived from the
+bound member or the label when you give none; and `aria-describedby`, `aria-invalid` and `aria-required` worked out
+from those and from the bound member's `[Required]` and messages. `Label` is never a required step, so write it
+anywhere after the opening — `UiOtp.Value(code).Length(6).Label("Verification code").Hint("Sent to your phone")`.
+
 **Generic where the value type varies, concrete where it does not.** `UiInput<T>`, `UiTextarea<T>`,
 `UiSelect<T>` and `UiFilter<T>` are generic — the model decides what they hold, and `UiInput` even
 takes its `type` attribute from `T`, so a bound `int` is a number field with nothing said at the call
@@ -821,7 +864,7 @@ would have exactly one legal argument.
 of the compact box, with `Heading` (the `Label` by default) and `Text` for what is accepted:
 
 ```csharp
-UiFileInput.Value("").Label("Receipts").Id("receipts")
+UiFileInput.Value("").Label("Receipts")
     .Dropzone(true)
     .Heading("Drop receipts here, or click to choose")
     .Text("PDF or JPG, several at once")
@@ -834,8 +877,8 @@ The native input is stretched invisibly over the whole area, so a click anywhere
 dropped anywhere lands in the input — the browser already turns a drop on a file input into a chosen file, so no
 script decides where a drop goes and it works before the runtime boots. The one thing CSS cannot say is "a file is
 being dragged over this", so the runtime sets `data-dragging` on the nearest `[data-rask-dropzone]` while a drag
-carrying files is over it, and the area styles itself from that. Give the control an `Id` and `Text` becomes the
-input's `aria-describedby`; without one there is nothing to point at.
+carrying files is over it, and the area styles itself from that. `Text` is the input's `aria-describedby`, ahead of
+any `Hint` or validation message. The heading is the area's caption, so a dropzone draws no legend over it.
 
 **A field with no value yet opens on its type alone**: `UiInput.Of<string>().Label("Search")`. A form
 control's openings are its mode pins, so a required step like `Label` never gets to pin `T` — without

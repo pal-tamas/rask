@@ -122,7 +122,7 @@ public class DiagnosticDescriptorTests
     ///     descriptors are the source of truth — so nothing fails: the analyzers compile, both fire, and the
     ///     family ships two different meanings under one number, with one help link pointing at whichever
     ///     doc section was written second. RASK044/045 were already taken when a third branch wanted a
-    ///     number, RASK046 had to be surrendered to Key-opens-the-chain, and RASK047 was claimed twice on
+    ///     number, RASK046 had to be surrendered to Key-opens-the-chain (retired since), and RASK047 was claimed twice on
     ///     the same afternoon.
     /// </remarks>
     [Fact]

@@ -50,13 +50,34 @@ public partial class UiFileInputDropzoneTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Without_an_id_the_line_is_drawn_but_not_referenced()
+    public void The_line_is_referenced_by_the_id_the_field_derives()
     {
-        // An aria-describedby naming an id nobody wrote points at nothing, which is worse than no description.
+        // #1117: every field has an id now — its own, or one derived from its label — so the line is always
+        // written with the id the description points at, never a reference to nothing.
         var html = UiFileInput.Value("").Label("Receipts").Dropzone(true).Text("PDF only").ToHtml();
 
-        Assert.Contains(">PDF only</p>", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("aria-describedby", html, StringComparison.Ordinal);
+        Assert.Contains("<p id=\"f-receipts-text\"", html, StringComparison.Ordinal);
+        Assert.Contains("aria-describedby=\"f-receipts-text\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_dropzone_draws_no_legend_over_its_own_heading()
+    {
+        // The heading IS the caption; a legend above it would say "Receipts" twice.
+        var html = UiFileInput.Value("").Label("Receipts").Dropzone(true).Hint("Up to 10 MB").ToHtml();
+
+        Assert.DoesNotContain("fieldset-legend", html, StringComparison.Ordinal);
+        Assert.Contains("aria-label=\"Receipts\"", html, StringComparison.Ordinal);
+        Assert.Contains("aria-describedby=\"f-receipts-hint\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_plain_file_input_is_named_by_its_legend_and_described_by_its_hint()
+    {
+        var html = UiFileInput.Value("").Label("Receipts").Hint("PDF only").ToHtml();
+
+        Assert.Matches("<label [^>]*for=\"f-receipts\"", html);
+        Assert.Contains("aria-describedby=\"f-receipts-hint\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
