@@ -388,6 +388,10 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **Rask.Auth keeps an ended session's row for a day.** The hourly session sweep, which also runs when the host
+  starts, deleted every ended session straight away and gave only expired ones a day's grace, so a "signed out"
+  entry vanished from a device list at the next sweep. Ended sessions now get the same day.
+
 - **`Rask.Data`: inserting a tenant-scoped row from a signed-in page threw "No tenant is set".** Reads
   filtered by the signed-in user's tenant, but the insert stamp read only an explicit `Tenant.Use` scope, so a
   page could list its tenant's rows and not add one. The stamp now reads the same tenant the filter does.
