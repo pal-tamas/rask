@@ -16,10 +16,18 @@
 #   rask-deverror.ts         +3,463
 #
 # Checked while refreshing, so it is not re-derived next time: DevTools is NOT in the production bundle
-# (zero references). The dev error overlay IS — rask.ts imports rask-deverror.js statically, so every
-# production visitor downloads an overlay only Development ever shows. Small, but dev-only code in the
-# runtime everyone downloads, and inconsistent with DevTools, which is excluded. A dynamic import would
-# drop it; that is a separate change, deliberately not folded in here.
+# (zero references). The dev error overlay IS. rask.ts and rask.wasm.ts both import rask-deverror.js
+# statically, so every production visitor downloads an overlay only Development ever shows.
+#
+# MEASURED, by building once with the import stubbed: 5,732 bytes of rask.js, 5.6% of it. Not a rounding
+# error, and it is in the WASM bundle too.
+#
+# A dynamic import does NOT fix it, contrary to what this note first said. The bundle is built
+# `--bundle --format=iife --outfile=...`, and esbuild only splits chunks with --format=esm and --outdir;
+# under iife it inlines the module and resolves the import() against it, saving nothing. Removing it
+# needs a dev-only bundle the host injects in Development, with rask.js calling through a hook instead
+# of importing — build plumbing, a second asset and a script tag, in both the Server and WASM runtimes.
+# A separate change, deliberately not folded in here.
 #
 # Refreshed when the shipped modules were made SELF-CONTAINED — each declaring the vendor shapes it
 # needs instead of leaning on rask-window.d.ts, which never leaves the framework. That is real
