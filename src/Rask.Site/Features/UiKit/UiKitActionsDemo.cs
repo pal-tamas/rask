@@ -173,13 +173,19 @@ public sealed partial class UiKitActionsDemo : Component
             "Modal — the popover path (the default)",
             "A real modal <dialog>, opened by an invoker command. The browser gives it the top layer, an "
             + "inert page behind, Escape and focus back on the trigger when it closes, none of it implemented here and none of it "
-            + "needing a runtime — this one works with scripting off entirely.",
+            + "needing a runtime — this one works with scripting off entirely. OnClose only hears that it closed.",
             Div.Data(Testid("ui-modal-popover"))[
                 UiModal
                     .Title("Keyboard shortcuts")
                     .Id("demo-shortcuts")
-                    .Trigger("Show shortcuts")[
-                    P["Press Escape, or click outside, and the browser closes this. No handler ran."]
+                    .Trigger("Show shortcuts")
+                    .OnClose(() => { _lastAction = "closed the shortcuts"; })[
+                    P["Press Escape, or click outside, and the browser closes this."],
+                    // A toggle INSIDE the dialog is the dialog's descendant's event, not the dialog's own.
+                    Details.Data(Testid("ui-modal-popover-more"))[
+                        Summary["More shortcuts"],
+                        P["⌘K opens the command palette."]
+                    ]
                 ]
             ]),
 
@@ -202,7 +208,8 @@ public sealed partial class UiKitActionsDemo : Component
         Section(
             "Modal — the state-driven path",
             "For when something in C# decides the dialog should appear, which the declarative path "
-            + "cannot express: nothing in C# can press a button.",
+            + "cannot express: nothing in C# can press a button. OnCancel hears a dismissal — Escape or a "
+            + "click outside — apart from a close, so backing out is logged differently from Cancel.",
             Div.Data(Testid("ui-modal"))[
                 UiButton
                     .Tone(UiTone.Error)
@@ -210,6 +217,7 @@ public sealed partial class UiKitActionsDemo : Component
                 _confirming
                     ? UiModal
                         .Title("Delete order")
+                        .OnCancel(() => { _lastAction = "dismissed the dialog"; })
                         .OnClose(() => { _confirming = false; })
                         .Footer(Div.Class("flex flex-wrap gap-2 sm:justify-end")[
                             UiButton.Key("cancel").Variant(UiVariant.Ghost)

@@ -269,6 +269,36 @@ that is the server, so a typed `HttpClient` injected through the constructor kee
 a WASM app it is the browser, where CORS applies and nothing is secret. Calling your *own* backend over
 HTTP from a component is the case to avoid: that is what a CQRS message is for.
 
+### Writes refresh queries by themselves
+
+In a Rask app a Rask.Data write needs no invalidation at all. Once a save commits, every query about the
+types it wrote refetches on the screen of the session that made it:
+
+```csharp
+var people = QueryClient.Query(QueryKey.For<Person>("active"), ct => Person.Read.Where(p => p.Active).ToListAsync(ct));
+
+.OnClick(() => Person.CreateAsync(model))   // the list above refetches — nothing else to write
+```
+
+It reaches exactly what `QueryClient.Invalidate<Person>()` reaches: a key built with `QueryKey.For<Person>`,
+and anything a command names with `[Invalidates(typeof(Person))]`. A child entity counts as its aggregate —
+adding an `OrderLine` refreshes `Order` queries. What it cannot reach is a message query such as
+`GetPeople`: that is keyed by its own type, and the write cannot know which messages read the table, so the
+command still names it with `[Invalidates(typeof(GetPeople))]`.
+
+So a command around such a write names nothing — `QueryClient.Command()` — and is there for what a render
+wants from it: `IsPending` to grey the button, `Error` to say what went wrong.
+
+Three things it deliberately does not do:
+
+- **Refresh another session.** The cache is per session, and another user's screen is not this write's to
+  touch; it catches up on its next fetch.
+- **Run outside a session.** A background job or a hosted service writes with no screen waiting, so nobody is
+  told.
+- **Report a write that might not stand.** Inside an explicit `BeginTransactionAsync` it waits for the
+  commit, and a rollback tells nobody — a refetch before the commit could read the rows as they were and
+  cache that.
+
 ## Defaults
 
 TanStack's, deliberately: `StaleTime` 0 and `GcTime` five minutes. A query is stale the moment it

@@ -41,28 +41,50 @@ public partial class UiOtpTests : global::Rask.Core.RaskMarkup
         Assert.Contains("aria-label=\"Verification code\"", Otp());
 
     [Fact]
+    public void A_visible_label_names_it_and_a_hint_describes_it()
+    {
+        // #1117: the kit's field shape — a <label for> rather than a second, invisible name, and the hint tied
+        // to the input a screen reader lands on.
+        var html = UiOtp.Value("").Length(6).Label("Verification code").Hint("Sent to your phone").ToHtml();
+
+        Assert.Matches("<label [^>]*for=\"f-verification-code\"", html);
+        Assert.Contains("id=\"f-verification-code\"", html);
+        Assert.DoesNotContain("aria-label=", html);
+        Assert.Contains("aria-describedby=\"f-verification-code-hint\"", html);
+    }
+
+    [Fact]
+    public void An_error_tone_marks_it_invalid_and_a_badge_rides_the_label()
+    {
+        var html = UiOtp.Value("").Length(6).Label("Code").Badge("Required").Tone(UiTone.Error).ToHtml();
+
+        Assert.Contains("aria-invalid=\"true\"", html);
+        Assert.Contains("Required", html);
+    }
+
+    [Fact]
     public void Joined_is_opt_in()
     {
         Assert.DoesNotContain("otp-joined", Otp());
         Assert.Contains("otp-joined",
-            UiOtp.Value("").Label("Verification code").Length(6).Joined(true).ToHtml());
+            UiOtp.Value("").Length(6).AccessibleLabel("Verification code").Joined(true).ToHtml());
     }
 
     [Theory]
     [InlineData(UiTone.Primary, "otp-primary")]
     [InlineData(UiTone.Error, "otp-error")]
     public void Every_tone_writes_its_own_class(UiTone tone, string expected) =>
-        Assert.Contains(expected, UiOtp.Value("").Label("Code").Length(6).Tone(tone).ToHtml());
+        Assert.Contains(expected, UiOtp.Value("").Length(6).AccessibleLabel("Code").Tone(tone).ToHtml());
 
     [Theory]
     [InlineData(UiSize.Xs, "otp-xs")]
     [InlineData(UiSize.Xl, "otp-xl")]
     public void Every_size_writes_its_own_class(UiSize size, string expected) =>
-        Assert.Contains(expected, UiOtp.Value("").Label("Code").Length(6).Size(size).ToHtml());
+        Assert.Contains(expected, UiOtp.Value("").Length(6).AccessibleLabel("Code").Size(size).ToHtml());
 
     [Fact]
     public void The_current_value_is_rendered() =>
-        Assert.Contains("1234", UiOtp.Value("1234").Label("Code").Length(6).ToHtml());
+        Assert.Contains("1234", UiOtp.Value("1234").Length(6).AccessibleLabel("Code").ToHtml());
 
     private static int Occurrences(string haystack, string needle)
     {
@@ -77,5 +99,5 @@ public partial class UiOtpTests : global::Rask.Core.RaskMarkup
         return count;
     }
 
-    private static string Otp() => UiOtp.Value("").Label("Verification code").Length(6).ToHtml();
+    private static string Otp() => UiOtp.Value("").Length(6).AccessibleLabel("Verification code").ToHtml();
 }

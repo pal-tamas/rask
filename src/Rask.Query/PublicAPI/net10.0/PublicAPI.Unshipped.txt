@@ -129,7 +129,7 @@ override Rask.Query.QueryOptions.Equals(object? obj) -> bool
 override Rask.Query.QueryOptions.GetHashCode() -> int
 override Rask.Query.QueryOptions.ToString() -> string!
 static Rask.Query.QueryClient.Command(Rask.Query.QueryKey invalidates, object? key = null, string! callerFile = "", int callerLine = 0) -> Rask.Query.Command!
-static Rask.Query.QueryClient.Command(Rask.Query.QueryKey[]! invalidates, object? key = null, string! callerFile = "", int callerLine = 0) -> Rask.Query.Command!
+static Rask.Query.QueryClient.Command(Rask.Query.QueryKey[]? invalidates = null, object? key = null, string! callerFile = "", int callerLine = 0) -> Rask.Query.Command!
 static Rask.Query.QueryClient.Command<TCommand, TResult>(object? key = null, string! callerFile = "", int callerLine = 0) -> Rask.Query.Command<TCommand, TResult>!
 static Rask.Query.QueryClient.Command<TCommand>(object? key = null, string! callerFile = "", int callerLine = 0) -> Rask.Query.Command<TCommand>!
 static Rask.Query.QueryClient.FetchAsync<TResult>(Rask.Cqrs.IQuery<TResult>! message, Rask.Query.QueryOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!

@@ -189,6 +189,12 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
     private protected virtual bool FloatsLabel => false;
 
     /// <summary>
+    ///     The control shows its own caption — a file dropzone's heading — so the field draws no legend above
+    ///     it, which would say the label twice.
+    /// </summary>
+    private protected virtual bool LabelsItself => false;
+
+    /// <summary>
     ///     <c>aria-*</c> for the control, with the accessible name, the required and invalid states, and
     ///     what describes it resolved.
     /// </summary>
@@ -300,7 +306,7 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
         && member.Member.IsDefined(typeof(System.ComponentModel.DataAnnotations.RequiredAttribute), inherit: true);
 
     /// <summary>The <see cref="Badge" />, for the label to carry beside its text.</summary>
-    private Component? BadgeFor() =>
+    private protected Component? BadgeFor() =>
         Badge is null
             ? null
             : Span.Class("badge badge-ghost badge-xs ms-1 align-middle").Aria("hidden", "true")[Badge];
@@ -393,13 +399,14 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
         // in a table cell or a toolbar wants — and means adding this base changed no rendered output for
         // any call site that had no label, no hint and nothing to validate. A floating label is already
         // its own wrapper, so it needs the fieldset only for what goes under it.
-        if (Hint is null && validation is null && validating is null && Error is null && (Label is null || floats))
+        if (Hint is null && validation is null && validating is null && Error is null
+            && (Label is null || floats || LabelsItself))
         {
             return field;
         }
 
         return Div.Class("fieldset")[
-            Label is null || floats
+            Label is null || floats || LabelsItself
                 ? null
                 : RaskMarkup.Label.For(FieldId).Class("fieldset-legend")[Label, BadgeFor()],
             field,

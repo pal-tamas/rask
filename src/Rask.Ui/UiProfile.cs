@@ -57,11 +57,14 @@ public sealed partial class UiProfile : UiMenuButton
     /// <inheritdoc />
     private protected override Component TriggerContent() => Row(button: true);
 
+    // `title` on the row: in the rail only the avatar is left, and the name moves into the tooltip — and, for the
+    // dropdown trigger, into the button's accessible name, which a name computed from content takes from a
+    // descendant's title once its text is hidden. See UiNavItem for why not a CSS tooltip.
     private Component Row(bool button) =>
         Div.Class(UiClass.Compose(
             "flex min-w-0 items-center gap-2",
             button ? "w-full" : "px-2 py-1.5",
-            button ? null : Class))[
+            button ? null : Class)).Title(Name)[
             Face(),
             // ui-rail-hide: in a collapsable sidebar narrowed to its rail, the avatar is the whole row.
             Div.Class("ui-rail-hide flex min-w-0 grow flex-col text-start leading-tight")[

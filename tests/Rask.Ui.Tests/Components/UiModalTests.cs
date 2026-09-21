@@ -212,6 +212,86 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
             global::Rask.Testing.RaskTest.Render(UiModal.Title("Delete order").Id("confirm")).Html);
     }
 
+    [Fact]
+    public async Task A_dismissal_on_the_state_driven_path_raises_OnCancel_then_OnClose()
+    {
+        // #1116: Escape and the backdrop are dismissals, so a caller can tell "backed out" from "finished" —
+        // cancel first, the order the platform uses on the modal path.
+        var heard = new List<string>();
+        var page = global::Rask.Testing.RaskTest.Render(UiModal.Title("Edit")
+            .Open(true)
+            .OnCancel(() => heard.Add("cancel"))
+            .OnClose(() => heard.Add("close")));
+
+        await page.On(".modal-backdrop").ClickAsync();
+        Assert.Equal(["cancel", "close"], heard);
+
+        heard.Clear();
+        await page.On("[data-rask-dismiss]").ClickAsync();
+        Assert.Equal(["cancel", "close"], heard);
+    }
+
+    [Fact]
+    public async Task The_close_button_is_not_a_dismissal()
+    {
+        var heard = new List<string>();
+        var page = global::Rask.Testing.RaskTest.Render(UiModal.Title("Edit")
+            .Open(true)
+            .OnCancel(() => heard.Add("cancel"))
+            .OnClose(() => heard.Add("close")));
+
+        await page.On(".btn-square").ClickAsync();
+
+        Assert.Equal(["close"], heard);
+    }
+
+    [Fact]
+    public void With_OnCancel_Escape_presses_its_own_control_not_the_close_button()
+    {
+        // The close button cannot be what Escape presses once the two mean different things.
+        var html = UiModal.Title("Edit").Open(true).OnCancel(() => { }).OnClose(() => { }).ToHtml();
+
+        Assert.DoesNotContain("data-rask-dismiss", Tag(html, "<button class=\"btn btn-ghost"));
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(html, "data-rask-dismiss"));
+    }
+
+    [Fact]
+    public void OnCancel_alone_still_gives_a_state_driven_dialog_its_ways_out()
+    {
+        // A page may close the dialog from OnCancel and never set OnClose; the backdrop and Escape must not
+        // vanish because only one of the two callbacks is set.
+        var html = UiModal.Title("Edit").Open(true).OnCancel(() => { }).ToHtml();
+
+        Assert.Contains("modal-backdrop", html);
+        Assert.Contains("data-rask-dismiss", html);
+    }
+
+    [Fact]
+    public async Task On_the_modal_path_OnCancel_is_the_dialogs_own_cancel_and_the_backdrops_click()
+    {
+        var cancelled = 0;
+        var page = global::Rask.Testing.RaskTest.Render(UiModal.Title("Edit").Id("edit").OnCancel(() => cancelled++));
+
+        Assert.Contains("data-rask-on-cancel=", Tag(page.Html, "<dialog"));
+
+        // The backdrop still closes it in markup; the handler only reports that it was a dismissal.
+        Assert.Contains("command=\"close\"", Tag(page.Html, "<button class=\"modal-backdrop"));
+        await page.On(".modal-backdrop").ClickAsync();
+        Assert.Equal(1, cancelled);
+
+        await page.On("dialog").RaiseAsync("cancel");
+        Assert.Equal(2, cancelled);
+    }
+
+    [Fact]
+    public void Without_OnCancel_the_modal_path_registers_no_handler_for_it()
+    {
+        var html = global::Rask.Testing.RaskTest.Render(UiModal.Title("Edit").Id("edit")).Html;
+
+        Assert.DoesNotContain("data-rask-on-cancel", html);
+        Assert.DoesNotContain("data-rask-on-click", html);
+    }
+
     // The opening tag that starts with `prefix`, so an assertion about one control cannot pass on another's.
     private static string Tag(string html, string prefix)
     {

@@ -4385,9 +4385,6 @@ static Rask.Core.Browser.WebRtcInterop.State(int id, string! state) -> System.Th
 static Rask.Core.Browser.WebRtcInterop.Track(int id, int streamId) -> System.Threading.Tasks.Task!
 static Rask.Core.BuilderRuntime.ClaimKey<T>(T! target, object? key) -> T!
 static Rask.Core.BuilderRuntime.ClearCallbacks(Rask.Core.Component! target) -> void
-static Rask.Core.BuilderRuntime.Entry<T>(System.Action<Rask.Core.Component!>! reset, System.Action<Rask.Core.Component!, ulong>! pendingReset, ulong pending, bool hasLifecycle = true) -> T!
-static Rask.Core.BuilderRuntime.EntryDi<T>(System.Action<Rask.Core.Component!>! reset, System.Action<Rask.Core.Component!, ulong>! pendingReset, ulong pending, bool hasLifecycle = true) -> T!
-static Rask.Core.BuilderRuntime.EntryRequired<T>(System.Action<Rask.Core.Component!>! reset, System.Action<Rask.Core.Component!, ulong>! pendingReset, ulong pending, bool hasLifecycle = true) -> T!
 static Rask.Core.BuilderRuntime.HasCallbacks(Rask.Core.Component! target) -> bool
 static Rask.Core.BuilderRuntime.MarkCallbacks(Rask.Core.Component! target) -> void
 static Rask.Core.BuilderRuntime.MarkChanged(Rask.Core.Component! target) -> void
@@ -4403,8 +4400,6 @@ static Rask.Core.Component.AppendAttr(System.Text.StringBuilder! sb, string! nam
 static Rask.Core.Component.AppendAttr(System.Text.StringBuilder! sb, string! namePrefix, string! nameSuffix, string? value) -> void
 static Rask.Core.Component.AppendMediaUrlAttr(System.Text.StringBuilder! sb, string! name, string? value) -> void
 static Rask.Core.Component.AppendUrlAttr(System.Text.StringBuilder! sb, string! name, string? value) -> void
-static Rask.Core.Component.Entry<T>(System.Action<Rask.Core.Component!>! reset, System.Action<Rask.Core.Component!, ulong>! pendingReset, ulong pending, bool hasLifecycle = true) -> T!
-static Rask.Core.Component.EntryDi<T>(System.Action<Rask.Core.Component!>! reset, System.Action<Rask.Core.Component!, ulong>! pendingReset, ulong pending, bool hasLifecycle = true) -> T!
 static Rask.Core.Component.EntryRequired<T>(System.Action<Rask.Core.Component!>! reset, System.Action<Rask.Core.Component!, ulong>! pendingReset, ulong pending, bool hasLifecycle = true) -> T!
 static Rask.Core.Component.__Fragment(System.ReadOnlySpan<Rask.Core.Component?> items) -> Rask.Core.Component!
 static Rask.Core.Component.implicit operator Rask.Core.Component!(System.DateOnly value) -> Rask.Core.Component!
@@ -6698,3 +6693,43 @@ virtual Rask.Core.Forms.ValidateAsync<T>.Invoke(T value, System.Threading.Cancel
 ~override Rask.Core.ScopedAssets.ScopedAssetRegistry.AssetBytes.ToString() -> string
 ~override Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry.Equals(object obj) -> bool
 ~override Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry.ToString() -> string
+Rask.Core.Element.OnCancel.get -> Rask.Core.Callback?
+Rask.Core.Element.OnCancel.set -> void
+Rask.Core.Element.OnClose.get -> Rask.Core.Callback?
+Rask.Core.Element.OnClose.set -> void
+static RaskBuilderSettersRask_Core.OnCancel<T>(this T! __b, Rask.Core.Callback? value) -> T!
+static RaskBuilderSettersRask_Core.OnCancel<T>(this T! __b, System.Action? value) -> T!
+static RaskBuilderSettersRask_Core.OnCancel<T>(this T! __b, System.Func<System.Threading.Tasks.Task!>? value) -> T!
+static RaskBuilderSettersRask_Core.OnClose<T>(this T! __b, Rask.Core.Callback? value) -> T!
+static RaskBuilderSettersRask_Core.OnClose<T>(this T! __b, System.Action? value) -> T!
+static RaskBuilderSettersRask_Core.OnClose<T>(this T! __b, System.Func<System.Threading.Tasks.Task!>? value) -> T!
+Rask.Core.Components.RaskSeed_Form.Key(object? key) -> Rask.Core.Components.RaskSeed_Form
+Rask.Core.Components.RaskSeed_Input.Key(object? key) -> Rask.Core.Components.RaskSeed_Input
+Rask.Core.Components.RaskSeed_Select.Key(object? key) -> Rask.Core.Components.RaskSeed_Select
+Rask.Core.Components.RaskSeed_Textarea.Key(object? key) -> Rask.Core.Components.RaskSeed_Textarea
+static Rask.Core.BuilderRuntime.CopyComponentWritten(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static Rask.Core.BuilderRuntime.Entry<T>(System.Action<Rask.Core.Component!>! reset, System.Action<Rask.Core.Component!, ulong>! pendingReset, ulong pending, bool hasLifecycle = true, System.Action<Rask.Core.Component!, Rask.Core.Component!, ulong>? copy = null) -> T!
+static Rask.Core.BuilderRuntime.EntryDi<T>(System.Action<Rask.Core.Component!>! reset, System.Action<Rask.Core.Component!, ulong>! pendingReset, ulong pending, bool hasLifecycle = true, System.Action<Rask.Core.Component!, Rask.Core.Component!, ulong>? copy = null) -> T!
+static Rask.Core.BuilderRuntime.EntryRequired<T>(System.Action<Rask.Core.Component!>! reset, System.Action<Rask.Core.Component!, ulong>! pendingReset, ulong pending, bool hasLifecycle = true, System.Action<Rask.Core.Component!, Rask.Core.Component!, ulong>? copy = null) -> T!
+static Rask.Core.Component.Entry<T>(System.Action<Rask.Core.Component!>! reset, System.Action<Rask.Core.Component!, ulong>! pendingReset, ulong pending, bool hasLifecycle = true, System.Action<Rask.Core.Component!, Rask.Core.Component!, ulong>? copy = null) -> T!
+static Rask.Core.Component.EntryDi<T>(System.Action<Rask.Core.Component!>! reset, System.Action<Rask.Core.Component!, ulong>! pendingReset, ulong pending, bool hasLifecycle = true, System.Action<Rask.Core.Component!, Rask.Core.Component!, ulong>? copy = null) -> T!
+static RaskBuilderSettersRask_Core.__RaskCopyWritten_Rask_Core_Components_Authorize(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Core.__RaskCopyWritten_Rask_Core_Components_DragDrop(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Core.__RaskCopyWritten_Rask_Core_Components_ErrorBoundary(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Core.__RaskCopyWritten_Rask_Core_Components_EyeDropperTrigger(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Core.__RaskCopyWritten_Rask_Core_Components_FullscreenTrigger(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Core.__RaskCopyWritten_Rask_Core_Components_GestureTrigger(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Core.__RaskCopyWritten_Rask_Core_Components_InstallTrigger(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Core.__RaskCopyWritten_Rask_Core_Components_MediaCaptureTrigger(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Core.__RaskCopyWritten_Rask_Core_Components_Mount(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Core.__RaskCopyWritten_Rask_Core_Components_PictureInPictureTrigger(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Core.__RaskCopyWritten_Rask_Core_Components_Raw(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Core.__RaskCopyWritten_Rask_Core_Components_ScreenOrientationTrigger(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Core.__RaskCopyWritten_Rask_Core_Components_Shareable(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Core.__RaskCopyWritten_Rask_Core_Components_Text(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Core.__RaskCopyWritten_Rask_Core_Components_ToastOutlet(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Core.__RaskCopyWritten_Rask_Core_Components_ValidatingIndicator(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Core.__RaskCopyWritten_Rask_Core_Components_ValidationMessage(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Core.__RaskCopyWritten_Rask_Core_Components_ValidationSummary(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Core.__RaskCopyWritten_Rask_Core_Components_VirtualizeModel(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Core.__RaskCopyWritten_Rask_Core_Routing_Router(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void

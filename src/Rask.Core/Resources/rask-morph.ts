@@ -47,6 +47,16 @@ export function reviveScript(node: Node): Node {
 import {ignoresFormattingText, isElement, isFormattingText} from "./rask-dom-path.js";
 import {runtimeOwnsAttr} from "./rask-loading.js";
 
+// An attribute the BROWSER wrote, and a render never will, so a render that does not carry it says nothing
+// about it. `open` on a dialog shown with showModal() — an invoker command, UiModal's popover path — is the
+// platform's: no render writes it, and stripping it closes the dialog from under the reader the first time
+// anything on the page re-renders (a handler the dialog's own toggle ran was enough). A dialog the RENDER
+// opens (Dialog.Open(true), UiModal's state-driven path) is shown non-modally and never matches :modal, so
+// its `open` stays the render's to add and remove.
+function browserOwnsAttr(el: Element, name: string): boolean {
+    return name === "open" && el.tagName === "DIALOG" && el.matches(":modal");
+}
+
 export {ignoresFormattingText, isElement, isFormattingText};
 
 // Wrappers around the underlying DOM mutation primitives. Scoped-JS hooks are
@@ -526,7 +536,9 @@ export function morph(fromNode: Node, toNode: Node): void {
         const name = fa[i].name;
         // A loading mark the runtime stamped while a dispatch is in flight is not in any render, so the
         // render that dispatch itself caused would otherwise strip the spinner mid-wait (rask-loading.ts).
-        if (!to.hasAttribute(name) && !runtimeOwnsAttr(from, name)) from.removeAttribute(name);
+        if (!to.hasAttribute(name) && !runtimeOwnsAttr(from, name) && !browserOwnsAttr(from, name)) {
+            from.removeAttribute(name);
+        }
     }
     for (const a of ta) {
         if (from.getAttribute(a.name) !== a.value) from.setAttribute(a.name, a.value);

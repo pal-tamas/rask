@@ -22,20 +22,17 @@ namespace Rask.Ui;
 /// <para>
 /// A form control over a <c>string</c>, concretely rather than generically — a one-time code is
 /// characters, and parsing one to a number would lose a leading zero.
-/// <c>.Bind(() =&gt; model.Code)</c> two-way binds; <see cref="Value" /> with <see cref="OnChange" />
+/// <c>.Bind(() =&gt; model.Code)</c> two-way binds; <see cref="UiFormField{T}.Value" /> with <see cref="UiFormField{T}.OnChange" />
 /// leaves it with the parent. <see cref="OnComplete" /> runs in both modes.
 /// </para>
 /// </remarks>
-public sealed partial class UiOtp : Component, IFormControl<string>
+public sealed partial class UiOtp : UiFormField<string>
 {
     // The completeness of the code at the LAST commit, so OnComplete can fire on the transition into a
     // full code rather than on every edit made while it is already full. An instance field because it is
     // the one thing neither mode's value tells us: in bound mode the model already holds the new value by
     // the time we are called.
     private bool _complete;
-
-    /// <summary>The accessible name — what the code is for.</summary>
-    public required string Label { get; set; }
 
     /// <summary>How many characters. daisyUI draws the boxes from this.</summary>
     public required int Length { get; set; }
@@ -50,32 +47,12 @@ public sealed partial class UiOtp : Component, IFormControl<string>
     /// <summary>Draws the boxes joined into one block rather than separated.</summary>
     public bool? Joined { get; set; }
 
-    public UiTone? Tone { get; set; }
 
-    public UiSize? Size { get; set; }
-
-    public string? Class { get; set; }
-
-    /// <inheritdoc />
-    public string? Value { get; set; }
-
-    /// <inheritdoc />
-    public Callback<string>? OnChange { get; set; }
 
 
     /// <inheritdoc />
-    public Expression<Func<string>>? Bind { get; set; }
-
     /// <inheritdoc />
-    public Validator<string>? Validate { get; set; }
-
-
-    /// <inheritdoc />
-    public Callback<string>? AfterBind { get; set; }
-
-
-    /// <inheritdoc />
-    protected override Component? Render()
+    protected override Component Control()
     {
         // OnComplete rides the mode's own write-back rather than a second handler: AfterBind in bound
         // mode, OnChange in controlled. Wiring `oninput` as well would fire it mid-paste.
@@ -97,7 +74,9 @@ public sealed partial class UiOtp : Component, IFormControl<string>
                     await CompleteAsync(value).ConfigureAwait(false);
                 })
                 .Type(InputType.Text)
-                .Aria(Aria())
+                .Id(FieldId)
+                .Disabled(Disabled == true)
+                .Aria(ControlAria())
                 .Class(BoxClass())
                 .Attributes(Hints());
         }
@@ -114,7 +93,9 @@ public sealed partial class UiOtp : Component, IFormControl<string>
                 await CompleteAsync(value).ConfigureAwait(false);
             })
             .Type(InputType.Text)
-            .Aria(Aria())
+            .Id(FieldId)
+            .Disabled(Disabled == true)
+            .Aria(ControlAria())
             .Class(BoxClass())
             .Attributes(Hints());
     }
@@ -144,13 +125,6 @@ public sealed partial class UiOtp : Component, IFormControl<string>
         ("inputmode", "numeric"),
         ("pattern", "[0-9]*"),
     ];
-
-    // aria-invalid is OMITTED rather than nulled — a null renders the attribute valueless, and a
-    // valueless aria-invalid reads as "true", which would mark every field in the kit invalid.
-    private Dictionary<string, string?> Aria() =>
-        Tone == UiTone.Error
-            ? new Dictionary<string, string?> { ["label"] = Label, ["invalid"] = "true" }
-            : new Dictionary<string, string?> { ["label"] = Label };
 
     private string BoxClass() =>
         UiClass.Compose(

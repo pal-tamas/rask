@@ -155,7 +155,7 @@ fabricated a strategy with no selector in it. Naming the key is now the only way
 neither can happen.
 
 It is **not** `Key`: that is already the chain's step for reconciliation identity — which instance of
-the *grid* is being built — and has to be able to come first ([RASK046](diagnostics.md#rask046)).
+the *grid* is being built.
 
 Naming a row key alone is an identity, not an invitation to select. The checkboxes appear with the
 selection itself. "Select all" ticks **this page** and says so, because a grid holding one page can only

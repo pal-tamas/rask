@@ -51,7 +51,7 @@ internal sealed class Files<TContext>(IDbContextFactory<TContext> contextFactory
         {
             // Scoped to the tenant in flight, so one tenant cannot reach another's file even holding its
             // id. Null matches the files that belong to nobody, which is what the host's own saves produce.
-            var tenant = Tenant.InFlight;
+            var tenant = Current.Tenant;
 
             return await db.Set<StoredFile>()
                 .AsNoTracking()
@@ -91,7 +91,7 @@ internal sealed class Files<TContext>(IDbContextFactory<TContext> contextFactory
         await using (db.ConfigureAwait(false))
         {
             // Scoped like the read: deleting another tenant's file has to be as impossible as reading it.
-            var tenant = Tenant.InFlight;
+            var tenant = Current.Tenant;
 
             var removed = await db.Set<StoredFile>()
                 .Where(f => f.Id == id && f.TenantId == tenant)

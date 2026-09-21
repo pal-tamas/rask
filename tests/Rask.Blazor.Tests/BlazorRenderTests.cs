@@ -109,6 +109,16 @@ public partial class BlazorRenderTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_hosted_dialogs_cancel_and_close_are_wired_too()
+    {
+        // The parameterless-event list is Rask.Core's own now, not a copy that stopped at "reset" (#1116).
+        var html = RaskTest.Render(CloserIsland, Services()).Html;
+
+        Assert.Contains("data-rask-on-cancel=", html, StringComparison.Ordinal);
+        Assert.Contains("data-rask-on-close=", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void An_onclick_modifier_does_not_leak_its_lowering_marker_into_the_html()
     {
         // @onclick:preventDefault / :stopPropagation are not attributes — the Razor compiler lowers each

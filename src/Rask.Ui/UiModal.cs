@@ -78,6 +78,18 @@ public sealed partial class UiModal : Component
     /// </summary>
     public Callback? OnClose { get; set; }
 
+    /// <summary>
+    ///     Runs when it is DISMISSED — Escape or a click outside — before <see cref="OnClose" />, which still runs.
+    ///     The close button is not a dismissal, so it raises only <see cref="OnClose" />.
+    /// </summary>
+    /// <remarks>
+    ///     Flux UI's <c>cancel</c>: the hook to tell "backed out" from "finished", so a form in the dialog can
+    ///     throw its draft away here and keep it when only <see cref="OnClose" /> runs. It cannot keep the dialog
+    ///     open. On the modal path it is the dialog's own <c>cancel</c> event, which a browser without invoker
+    ///     commands does not raise for a popover it dismisses — there only <see cref="OnClose" /> runs.
+    /// </remarks>
+    public Callback? OnCancel { get; set; }
+
     /// <summary>Whether a click outside closes it. On unless this is <see langword="false" />.</summary>
     /// <remarks>
     ///     Turn it off for a dialog holding work a stray click would lose. A browser without invoker commands
@@ -131,6 +143,14 @@ public sealed partial class UiModal : Component
             dialog = dialog.OnToggle(e => e.IsOpen ? Task.CompletedTask : onClose.Invoke() ?? Task.CompletedTask);
         }
 
+        // Escape, and a light dismiss where the browser does one: the platform raises cancel for those and
+        // for nothing else. The backdrop is a close command, which it reports as a plain close, so the
+        // backdrop says it was a dismissal itself, below.
+        if (OnCancel is { } onCancel)
+        {
+            dialog = dialog.OnCancel(onCancel);
+        }
+
         // Two roots and no wrapper: the opener is a sibling of the dialog it names, so a caller can put
         // the trigger where it belongs in their own layout.
         return
@@ -160,7 +180,10 @@ public sealed partial class UiModal : Component
                         .Class("modal-backdrop")
                         .Aria(new Dictionary<string, string?> { ["hidden"] = "true" })
                         .TabIndex(-1)
-                        .Attributes(Closes())["close"])
+                        .Attributes(Closes())
+                        // The markup still closes it with no runtime; the handler only adds the word
+                        // "dismissed", and only for a caller who asked to hear it.
+                        .OnClick(OnCancel is { } cancel ? cancel : null)["close"])
         ];
     }
 
@@ -186,31 +209,54 @@ public sealed partial class UiModal : Component
             .Square(true)
             .OnClick(() => OnClose?.Invoke() ?? Task.CompletedTask);
 
-        // The trap presses the [data-rask-dismiss] control on Escape.
-        if (Escapable != false && OnClose is not null)
+        // The trap presses the [data-rask-dismiss] control on Escape. The close button IS that control unless
+        // the caller wants a dismissal told apart from a close — then Escape presses a hidden one of its own.
+        if (Escapable != false && OnClose is not null && OnCancel is null)
         {
             close = close.Attributes(("data-rask-dismiss", null));
         }
 
         return Shell(
             dialog,
-            Closable == false ? EscapeTarget() : close[UiIcon.Name(UiIconName.Close)],
+            Closable == false
+                ? EscapeTarget()
+                : OnCancel is null
+                    ? close[UiIcon.Name(UiIconName.Close)]
+                    : [close[UiIcon.Name(UiIconName.Close)], EscapeTarget()],
             // A pointer convenience, not the only way out: the header's close button is the keyboard
             // path, which is why this carries no role and no label of its own.
-            backdrop: OnClose is null || Dismissible == false
+            backdrop: !HearsDismissal || Dismissible == false
                 ? null
                 : Button
                     .Type("button")
                     .Class("modal-backdrop")
                     .Aria(new Dictionary<string, string?> { ["hidden"] = "true" })
                     .TabIndex(-1)
-                    .OnClick(() => OnClose?.Invoke() ?? Task.CompletedTask)["close"]);
+                    .OnClick(DismissAsync)["close"]);
     }
 
-    // With no close button in the header, Escape still needs a control to press: a hidden one, out of the tab
-    // order and the accessibility tree, that runs OnClose the same way the visible button would have.
+    // Someone is listening for the page to stop rendering it open. Without either callback a dismissal would
+    // do nothing, so the backdrop and the Escape control are left out rather than rendered dead.
+    private bool HearsDismissal => OnClose is not null || OnCancel is not null;
+
+    // A dismissal on the state-driven path: cancel first, then close, the order the platform raises them in.
+    private async Task DismissAsync()
+    {
+        if (OnCancel?.Invoke() is { } cancelled)
+        {
+            await cancelled.ConfigureAwait(true);
+        }
+
+        if (OnClose?.Invoke() is { } closed)
+        {
+            await closed.ConfigureAwait(true);
+        }
+    }
+
+    // The control Escape presses when the header's close button cannot be it: there is none, or a dismissal
+    // must be told apart from a close. Hidden, out of the tab order and the accessibility tree.
     private Component? EscapeTarget() =>
-        Escapable == false || OnClose is null
+        Escapable == false || !HearsDismissal
             ? null
             : Button
                 .Type("button")
@@ -218,7 +264,7 @@ public sealed partial class UiModal : Component
                 .Aria(new Dictionary<string, string?> { ["hidden"] = "true" })
                 .TabIndex(-1)
                 .Attributes(("data-rask-dismiss", null))
-                .OnClick(() => OnClose?.Invoke() ?? Task.CompletedTask)["close"];
+                .OnClick(DismissAsync)["close"];
 
     private bool IsFlyout => Position is UiModalPosition.Start or UiModalPosition.End;
 

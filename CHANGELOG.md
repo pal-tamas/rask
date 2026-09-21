@@ -28,6 +28,44 @@ them until tagged releases begin.
   adding or removing it a migration, and the query rewrite. Called after `UseRaskSqlite` it keeps that call's
   choices, `STRICT` tables included.
 
+- **`Rask.Data`: `Current` — the signed-in user with nothing injected.** A read or a write on a model is a
+  static call, so a `Product.Create(…)` factory had no constructor to inject the user into. `Current.UserId`
+  / `Current.RequiredUserId` (the `NameIdentifier` claim, as a `Guid`), `Current.Principal` and
+  `Current.Tenant` / `Current.RequiredTenant` now answer from anywhere, and `Current.UseUser(id)` scopes it by
+  hand. They are set for a live session's work, for **every HTTP request** (a minimal API, a controller, a
+  CQRS endpoint — a Rask app now makes the request's services ambient after authentication, reading
+  `HttpContext.User`), and for a **background job**, which records `UserId` at enqueue and runs its handler as
+  that user. The user is an id, not the `User` row: loading it is a query the caller should see.
+  `docs/data.md` gains *The current user*.
+- **A Rask.Data write refreshes the queries about what it wrote — with nothing to write.** A list beside a
+  create form went stale after a save unless someone remembered the invalidation. Now, once a save commits,
+  every query about the aggregate types it wrote refetches on the screen of the session that made it:
+
+  ```csharp
+  var people = QueryClient.Query(QueryKey.For<Person>("active"), ct => Person.Read.ToListAsync(ct));
+  .OnClick(() => Person.CreateAsync(model))   // the list refetches
+  ```
+
+  It reaches what `QueryClient.Invalidate<Person>()` reaches, and a child entity counts as its aggregate. It
+  waits for an explicit transaction's commit and tells nobody on a rollback, because a refetch before the
+  commit could cache the rows as they were; it never touches another session's cache, and a write with no
+  session (a job, a hosted service) tells nobody. An observer that throws cannot fail a save that already
+  committed. The hook is Rask.Data's new scoped `IDataChanges`, reported by an interceptor every context
+  already receives through `GetServices<ISaveChangesInterceptor>()`; the Rask host implements it with the
+  session's `IQueryClient`. A message query such as `GetPeople` is keyed by its own type, so it still needs
+  `[Invalidates(typeof(GetPeople))]`.
+
+- **`UiModal.OnCancel`, and a `<dialog>`'s own `cancel`/`close` events** (#1116). `OnClose` runs for every way a
+  modal closes; `OnCancel` runs only for a DISMISSAL — Escape or a click outside — and before `OnClose`, so a
+  dialog holding a draft can discard it when the user backs out and keep it when they press a button that closes
+  it. The header's close button is not a dismissal. Underneath, every element gains `OnCancel` and `OnClose`,
+  the `<dialog>` events (`Dialog.OnCancel(…)`), appended to the event order so no existing attribute moves.
+  Rask.Blazor now reads the parameterless-event list from Rask.Core instead of keeping its own copy, so a hosted
+  Blazor component's `@oncancel`/`@onclose` reach C# too.
+  These two, and `toggle`/`beforetoggle`, are now delivered only to the element they fire on. The runtime
+  delegates events from the document, so an ancestor used to receive a descendant's: a `<details>` toggling
+  inside a popover `UiModal` reached the dialog's toggle handler, which the modal reads as "closed", and a file
+  picker's bubbling `cancel` would have reached an enclosing dialog's `OnCancel`.
 - **`Rask.Data`: `Deletion.None` — an aggregate that is never deleted.** Every aggregate got a
   `DeleteAsync(id)`, whatever it was: an invoice, a payment or a ledger entry is corrected by a new record
   and an order is cancelled, so a generated delete was a way to lose one by mistake. Declare
@@ -183,6 +221,48 @@ them until tagged releases begin.
   12.8 ms instead of 112 ms at 500,000. The price is on the write side, which the batched background writer pays
   rather than a request: about 30 µs more per entry (100 entries in 2.7–3.6 ms instead of 0.23 ms).
 
+- **The tutorial saves through commands and loads through queries.** Chapter 2's create, edit and delete
+  pages send their Rask.Data writes through `QueryClient.Command()` — `IsPending` disables the button so a
+  double click cannot write twice, and a failure lands on `Error` instead of a `try`/`catch` per page —
+  the edit page loads its row as a query keyed by the route's `Id`, replacing `OnPropsChangedAsync` and its
+  loaded/found flags, and the list page's heading counts products through a query that refreshes itself
+  after any product write. Chapter 3's copies inherit all of it. The grid stays an `IQueryable`, because it
+  pages and sorts in SQL. `QueryClient.Command()` now takes no arguments for work whose invalidation is
+  automatic.
+
+- **`Rask.Data`: which tenant is in flight is `Current.Tenant`; `Tenant` keeps only the scopes.**
+  `Tenant.Current`, `Tenant.InFlight` and `Tenant.Required` are gone — read `Current.Tenant` /
+  `Current.RequiredTenant` (explicit `Tenant.Use` first, then the signed-in user's claim, `null` inside
+  `Tenant.Across()`). `Tenant.Use` / `Across` / `None` are unchanged. The host seam `ITenantSource` is now
+  `IPrincipalSource`, which hands over the whole `ClaimsPrincipal` so the user and the tenant come from one
+  place.
+- **`Rask.Jobs`: the `Job` table has a `UserId` column** — the user a job runs for. Run
+  `rask db add AddJobUser && rask db update`; until then the processor logs exactly that, instead of the
+  generic "cycle failed", once a pending job is loaded.
+- **A sidebar collapsed to its rail keeps every link's name** (#1119). `UiNavItem`, `UiBrand` and `UiProfile`
+  carry their label as a `title`: the tooltip the icon rail shows, and the accessible name of a link that is only
+  an icon once its words are hidden, which it lacked before. A drawn tooltip would be clipped by the panel. The
+  kit still stores nothing itself; [the UI kit guide](docs/ui-kit.md) shows remembering `Collapsed` with
+  `IBrowserStorage`.
+
+- **`UiOtp`, `UiFileInput` and the multi-value `UiSelect` are fields like every other** (#1117). They now take
+  the shared field shape from `UiFormField<T>`: a visible `Label` with an optional `Badge`, `AccessibleLabel` when
+  there is none, `Hint` and `Error` under the control, an `Id` derived from the bound member or the label, and
+  `aria-describedby`, `aria-invalid` and `aria-required` worked out from those. **Their `Label` changed meaning to
+  match:** it was an invisible `aria-label`, and is now the visible `<label for>` — use `AccessibleLabel` for the
+  old invisible name. `Label` is no longer a required step, so `UiOtp.Value(v).Label(…).Length(6)` becomes
+  `UiOtp.Value(v).Length(6).Label(…)`. `UiOtp` also honours `Disabled` now, and a dropzone's `Text` is always
+  referenced by `aria-describedby` rather than only when you gave the control an `Id`.
+
+- **`Key` can go anywhere in a component's chain, and RASK046 is retired** (#1118). A keyed component is
+  identified by its key, and claiming the instance a key owns used to throw away the one the entry had just
+  built, together with every step written before `Key`: `UiMenuCheckbox.Value(_on).Key("on")` kept the value
+  from the render its key was first claimed on. Those steps are now carried onto the instance the key keeps, so
+  `Row.Item(item).Key(id)` and `Row.Key(id).Item(item)` mean the same thing, and RASK046, which reported the
+  first spelling, is retired (it could not see the chain form anyway). A generic component now takes `Key`
+  first as well: `UiMenuRadioGroup.Key("k").Value(x)` and `UiSelect.Key(id).Value(v)` compile, where they
+  failed with CS0315. Along the way, a step whose argument builds another child before `Key`
+  (`Row.Badge(Span["b"]).Key(id)`) no longer makes the key re-file the wrong slot and unmount the kept row.
 - **`Rask.Query`: an optimistic update is made per send, from the query on screen** (breaking:
   `Command<T>.Optimistic(query, update)` is gone). Registered once when the command was created, the edit
   could not see what was being sent — "remove *this* row" had no id to capture — and a command declared in
@@ -308,6 +388,14 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **`Rask.Data`: inserting a tenant-scoped row from a signed-in page threw "No tenant is set".** Reads
+  filtered by the signed-in user's tenant, but the insert stamp read only an explicit `Tenant.Use` scope, so a
+  page could list its tenant's rows and not add one. The stamp now reads the same tenant the filter does.
+
+- **A disposed polling query starts no further fetch** (#1126). A poll tick checked whether the query was still
+  wanted and then started its fetch, so a tick that passed the check just before `Dispose()` could send one more
+  request after `Dispose()` had returned. The check and the start now happen under the same gate `Dispose()`
+  takes.
 - **The docs no longer say a delete is a soft delete.** Soft delete became opt-in (under *Changed*), but tutorial
   chapter 2, `docs/data.md` and the Rask.Data package README still told readers that `Product.DeleteAsync`
   stamps `DeletedAt` and the data stays in `app.db` — for an aggregate that declares no `Deletes`, the row is

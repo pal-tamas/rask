@@ -97,7 +97,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
     // A tenant-scoped row records its tenant on insert, from the ambient scope. The column is only mapped on
     // a table whose Scope const asked for it, so an unmapped one means the entity is not partitioned.
     //
-    // Tenant.Required throws when nothing is set, which is the whole point: writing a tenant-scoped row with
+    // Current.RequiredTenant throws when nothing is set — no explicit scope and no signed-in tenant, which is the whole point: writing a tenant-scoped row with
     // no tenant would otherwise store a NULL that every tenant's filter then excludes — a row nobody can read.
     private static void StampTenant(EntityEntry entry)
     {
@@ -125,7 +125,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
                 $"'{entry.Metadata.ClrType.Name}' is tenant-scoped and is being inserted inside " +
                 "Tenant.Across(), which says which tenant it belongs to for nobody. Set TenantId on the row, " +
                 "or open Tenant.Use(id) around the insert.")
-            : Tenant.Required;
+            : Current.RequiredTenant;
     }
 
     // A row does not move between tenants. The query filter already stops you LOADING another tenant's row,

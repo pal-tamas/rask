@@ -83,7 +83,7 @@ public sealed class OutboxMessage : Entity<long>
     public static OutboxMessage For(string type, string payload, DateTime occurredAt)
     {
         var message = new OutboxMessage { Type = type, Payload = payload, OccurredAt = occurredAt };
-        message.RecordTenant(Tenant.InFlight);
+        message.RecordTenant(Current.Tenant);
         return message;
     }
 

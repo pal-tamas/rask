@@ -112,11 +112,15 @@ public static partial class BuilderRuntime
     // Non-folding props (delegates, Key) skip all of this: they are reset eagerly by the
     // entry, because they never participate in the fold and so cannot disturb it.
 
+    // Copy: replays the steps already written on Target onto the instance a Key step claims instead of it
+    // (#1118) — see ClaimKey. Null for an element, which keeps positional identity and is never claimed.
     internal readonly record struct EntrySlot(
         Component Parent,
         Component Target,
         Action<Component, ulong> Reset,
-        ulong Pending);
+        ulong Pending,
+        Action<Component, Component, ulong>? Copy,
+        (Type Type, int Ordinal) ChildSlot);
 
     // Thread-static rather than a field on the component or its LiveState: LiveState is allocated per
     // node on a mounted page, where one extra reference costs ~56 KB per 1,000 rows (see the note on
@@ -126,8 +130,14 @@ public static partial class BuilderRuntime
     [ThreadStatic]
     private static List<EntrySlot>? _slots;
 
-    internal static void PushSlot(Component parent, Component target, Action<Component, ulong> reset, ulong pending)
-        => (_slots ??= new List<EntrySlot>()).Add(new EntrySlot(parent, target, reset, pending));
+    internal static void PushSlot(
+        Component parent,
+        Component target,
+        Action<Component, ulong> reset,
+        ulong pending,
+        Action<Component, Component, ulong>? copy,
+        (Type Type, int Ordinal) childSlot)
+        => (_slots ??= new List<EntrySlot>()).Add(new EntrySlot(parent, target, reset, pending, copy, childSlot));
 
     // Scratch for the deferred commit's snapshot of a parent's child map (Component.CommitEach). Same
     // discipline and the same reasons as the slot stack above: per-thread so it costs no field on
@@ -195,10 +205,8 @@ public static partial class BuilderRuntime
         // codec rather than from here. A COMPONENT is the opposite: its private fields, its OnMount
         // subscription and anything else it holds itself are exactly what position was losing (#685).
         //
-        // This is also what keeps the ordering rule off the common call site. Claiming an instance
-        // discards the one the entry built, along with any step written before Key — so Key has to open
-        // the chain for it to be sound. Elements are where `Div.Class(…).Key(i)` is written in their
-        // hundreds, and none of them needs claiming.
+        // Elements are where `Div.Class(…).Key(i)` is written in their hundreds, and none of them needs
+        // claiming.
         if (target is Element)
         {
             return target;
@@ -218,9 +226,14 @@ public static partial class BuilderRuntime
                 continue;
             }
 
-            var chosen = slot.Parent.ClaimKeyedChild(target, key);
+            var chosen = slot.Parent.ClaimKeyedChild(target, key, slot.ChildSlot);
             if (!ReferenceEquals(chosen, target))
             {
+                // The steps written BEFORE Key landed on the instance being discarded (#1118): replay them
+                // onto the one the key kept. The still-pending bits are the props nothing named yet, so their
+                // complement is what was written; the deferred reset then handles the rest on the kept
+                // instance exactly as it would have on the provisional one.
+                slot.Copy?.Invoke(target, chosen, ~slot.Pending);
                 slots[i] = slot with { Target = chosen };
             }
 
@@ -360,7 +373,8 @@ public static partial class BuilderRuntime
         Action<Component> reset,
         Action<Component, ulong> pendingReset,
         ulong pending,
-        bool hasLifecycle = true)
+        bool hasLifecycle = true,
+        Action<Component, Component, ulong>? copy = null)
         where T : Component, new()
     {
         if (Live.LiveRenderContext.Current is not { } ctx)
@@ -368,7 +382,7 @@ public static partial class BuilderRuntime
             return new T();
         }
 
-        var component = ctx.GetOrCreateEntry<T>(static _ => new T(), pendingReset, pending, hasLifecycle);
+        var component = ctx.GetOrCreateEntry<T>(static _ => new T(), pendingReset, pending, hasLifecycle, copy);
         reset(component);
         ClearCallbacks(component);
         return component;
@@ -380,7 +394,8 @@ public static partial class BuilderRuntime
         Action<Component> reset,
         Action<Component, ulong> pendingReset,
         ulong pending,
-        bool hasLifecycle = true)
+        bool hasLifecycle = true,
+        Action<Component, Component, ulong>? copy = null)
         where T : Component
     {
         if (Live.LiveRenderContext.Current is { } ctx)
@@ -389,7 +404,8 @@ public static partial class BuilderRuntime
                 static sp => Microsoft.Extensions.DependencyInjection.ActivatorUtilities.CreateInstance<T>(sp),
                 pendingReset,
                 pending,
-                hasLifecycle);
+                hasLifecycle,
+                copy);
             reset(component);
             ClearCallbacks(component);
             return component;
@@ -406,7 +422,8 @@ public static partial class BuilderRuntime
         Action<Component> reset,
         Action<Component, ulong> pendingReset,
         ulong pending,
-        bool hasLifecycle = true)
+        bool hasLifecycle = true,
+        Action<Component, Component, ulong>? copy = null)
         where T : Component
     {
         if (Live.LiveRenderContext.Current is not { } ctx)
@@ -415,7 +432,7 @@ public static partial class BuilderRuntime
         }
 
         var component = ctx.GetOrCreateEntry<T>(
-            static _ => Activator.CreateInstance<T>(), pendingReset, pending, hasLifecycle);
+            static _ => Activator.CreateInstance<T>(), pendingReset, pending, hasLifecycle, copy);
         reset(component);
         ClearCallbacks(component);
         return component;

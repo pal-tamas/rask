@@ -16,6 +16,7 @@ Rask.Jobs.Job.ProcessedAt.get -> System.DateTime?
 Rask.Jobs.Job.Release() -> void
 Rask.Jobs.Job.RunAt.get -> System.DateTime
 Rask.Jobs.Job.Type.get -> string!
+Rask.Jobs.Job.UserId.get -> System.Guid?
 Rask.Jobs.JobConfiguration
 Rask.Jobs.JobConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Rask.Jobs.Job!>! entity) -> void
 Rask.Jobs.JobConfiguration.JobConfiguration() -> void
@@ -77,6 +78,8 @@ Rask.Jobs.JobRead.RunAt.get -> System.DateTime
 Rask.Jobs.JobRead.RunAt.init -> void
 Rask.Jobs.JobRead.Type.get -> string!
 Rask.Jobs.JobRead.Type.init -> void
+Rask.Jobs.JobRead.UserId.get -> System.Guid?
+Rask.Jobs.JobRead.UserId.init -> void
 Rask.Jobs.JobRead.UpdatedAt.get -> System.DateTime
 Rask.Jobs.JobRead.UpdatedAt.init -> void
 Rask.Jobs.JobReadAccess

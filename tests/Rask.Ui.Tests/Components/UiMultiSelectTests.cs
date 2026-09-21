@@ -265,11 +265,36 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void The_accessible_name_is_given_directly_in_both_modes()
+    public void The_visible_label_names_the_control_in_both_modes()
     {
-        // role="combobox" is not a labelable element, so a <label for> would bind to nothing.
-        Assert.Contains("aria-label=\"Packages\"", Native(["core"]));
-        Assert.Contains("aria-label=\"Packages\"", Custom(["core"]));
+        // #1117: a <label for> over the control that carries the id — the <select multiple>, or the drawn list's
+        // <button role="combobox">, which is a labelable element — rather than a second, invisible aria-label
+        // beside the legend. UiSelect names its drawn list the same way.
+        foreach (var html in new[] { Native(["core"]), Custom(["core"]) })
+        {
+            Assert.Matches("<label [^>]*for=\"f-packages\"", html);
+            Assert.Contains("id=\"f-packages\"", html);
+            Assert.DoesNotContain("aria-label=\"Packages\"", html.Replace("role=\"listbox\" aria-label=\"Packages\"", ""));
+        }
+    }
+
+    [Fact]
+    public void Without_a_visible_label_the_accessible_label_names_it()
+    {
+        var html = UiSelect.Values<string>([]).Options(Packages).AccessibleLabel("Packages").ToHtml();
+
+        Assert.Contains("aria-label=\"Packages\"", html);
+        Assert.DoesNotContain("<label", html);
+    }
+
+    [Fact]
+    public void A_hint_describes_it_and_a_badge_rides_its_label()
+    {
+        var html = UiSelect.Values<string>([]).Options(Packages).Label("Packages").Hint("Pick any").Badge("New").ToHtml();
+
+        Assert.Contains("aria-describedby=\"f-packages-hint\"", html);
+        Assert.Contains(">Pick any</p>", html);
+        Assert.Contains(">New</span>", html);
     }
 
     [Fact]

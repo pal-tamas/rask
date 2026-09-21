@@ -388,4 +388,26 @@ public class StaticQueryClientTests
         dispatcher.Release();
         await running;
     }
+
+    [Fact]
+    public async Task A_function_command_needs_no_arguments_and_a_string_is_still_what_it_invalidates()
+    {
+        var (services, _) = Session();
+        using var scope = DispatchServicesScope.Push(services);
+        var loads = 0;
+        using var orders = QueryClientFor(services).Query("orders", _ => Task.FromResult(++loads), Keep);
+        _ = orders.Data;
+        await Settle(orders);
+
+        // No arguments: a Rask.Data write that refreshes its own queries.
+        var plain = QueryClient.Command();
+        await plain.SendAsync(_ => Task.CompletedTask);
+        Assert.True(plain.IsSuccess);
+        Assert.Equal(1, orders.Data);
+
+        // A positional string must bind to what it invalidates, never to the compiler-filled caller file.
+        await QueryClient.Command("orders").SendAsync(_ => Task.CompletedTask);
+        await Settle(orders);
+        Assert.Equal(2, orders.Data);
+    }
 }
