@@ -133,6 +133,24 @@ them until tagged releases begin.
 
 ### Changed
 
+- **`Rask.Query`: a mutation is a `Command<T>`, and it is sent with `SendAsync`** (breaking). Telling
+  the system to do something had three verbs — `IDispatcher.SendAsync`, `IQueryClient.MutateAsync` and
+  `Mutation<T>.RunAsync` — for one idea, which is exactly what `docs/api-style.md` §3 forbids: the query
+  client only adds the declared invalidation on top of the dispatcher's send. Now it is one verb, and the
+  renderable type takes the word Rask already uses for the message it wraps:
+
+  | Before | After |
+  |---|---|
+  | `client.MutateAsync(cmd)` | `client.SendAsync(cmd)` |
+  | `client.Mutation<ShipOrder>()` → `Mutation<ShipOrder>` | `client.Command<ShipOrder>()` → `Command<ShipOrder>` |
+  | `Mutation<TCommand, TResult>` | `Command<TCommand, TResult>` |
+  | `mutation.RunAsync(cmd)` | `command.SendAsync(cmd)` |
+  | `MutationStatus` | `CommandStatus` |
+
+  Behaviour is unchanged: `IQueryClient.SendAsync` still throws, `Command<T>.SendAsync` still records the
+  failure on `Error` instead. The TypeScript `raskMutation` keeps its name — it feeds TanStack's own
+  `useMutation`.
+
 - **Soft delete is now OPT-IN, and `DeleteAsync` deletes.** An aggregate keeps its row only if it says so:
 
   ```csharp

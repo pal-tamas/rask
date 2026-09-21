@@ -2,14 +2,14 @@ using Rask.Cqrs;
 
 namespace Rask.Query;
 
-/// <summary>A cached entry a mutation edits before the server has agreed.</summary>
+/// <summary>A cached entry a command edits before the server has agreed.</summary>
 internal interface IOptimisticUpdate
 {
     /// <summary>Applies the edit and returns what is needed to undo it.</summary>
     IOptimisticSnapshot Apply(QueryClient client);
 }
 
-/// <summary>What an entry held before a mutation touched it.</summary>
+/// <summary>What an entry held before a command touched it.</summary>
 internal interface IOptimisticSnapshot
 {
     void Restore(QueryClient client);
@@ -52,7 +52,7 @@ internal sealed class OptimisticUpdate<TResult>(IQuery<TResult> message, Func<TR
             }
 
             // There was nothing to put back, so make the entry fetch rather than leaving whatever the
-            // failed mutation wrote sitting there looking authoritative.
+            // failed command wrote sitting there looking authoritative.
             client.Invalidate(Message.GetType());
         }
     }

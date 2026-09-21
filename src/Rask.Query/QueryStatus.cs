@@ -38,8 +38,8 @@ public enum FetchStatus
     Paused,
 }
 
-/// <summary>Where a mutation is in its one-shot lifecycle.</summary>
-public enum MutationStatus
+/// <summary>Where a renderable command is in its one-shot lifecycle.</summary>
+public enum CommandStatus
 {
     /// <summary>Never run, or reset.</summary>
     Idle,

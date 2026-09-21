@@ -103,13 +103,13 @@ public interface IQueryClient
     /// </summary>
     /// <param name="command">The command to dispatch.</param>
     /// <param name="cancellationToken">Cancels the dispatch.</param>
-    Task MutateAsync(ICommand command, CancellationToken cancellationToken = default);
+    Task SendAsync(ICommand command, CancellationToken cancellationToken = default);
 
     /// <summary>Dispatches a command that returns a value, then invalidates what it declares.</summary>
     /// <typeparam name="TResult">What the command returns.</typeparam>
     /// <param name="command">The command to dispatch.</param>
     /// <param name="cancellationToken">Cancels the dispatch.</param>
-    Task<TResult> MutateAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default);
+    Task<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default);
 
     /// <summary>
     ///     A command you can render — whether it is running, whether it failed, and what to disable
@@ -117,17 +117,17 @@ public interface IQueryClient
     /// </summary>
     /// <remarks>
     ///     Hold the result in a field. Unlike
-    ///     <see cref="MutateAsync(ICommand, System.Threading.CancellationToken)" />, which is the
+    ///     <see cref="SendAsync(ICommand, System.Threading.CancellationToken)" />, which is the
     ///     await-and-forget form, this one carries state a component can render.
     /// </remarks>
     /// <typeparam name="TCommand">The command to dispatch.</typeparam>
-    Mutation<TCommand> Mutation<TCommand>()
+    Command<TCommand> Command<TCommand>()
         where TCommand : ICommand;
 
     /// <summary>A renderable command that returns a value.</summary>
     /// <typeparam name="TCommand">The command to dispatch.</typeparam>
     /// <typeparam name="TResult">What the command returns.</typeparam>
-    Mutation<TCommand, TResult> Mutation<TCommand, TResult>()
+    Command<TCommand, TResult> Command<TCommand, TResult>()
         where TCommand : ICommand<TResult>;
 
     /// <summary>
