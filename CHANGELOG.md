@@ -395,6 +395,12 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **WebAssembly apps get the `Rask` package's batteries (#1130).** The browser half of `Rask` wires `AddRaskCqrs`,
+  request validation and `AddRaskQuery` from a `[ModuleInitializer]`, but a module initializer runs when its
+  assembly is loaded, and nothing in an app loaded `Rask.dll` — so in every published WASM app the batteries silently
+  stayed off unless something happened to touch a type in it first. The host now loads the package by name and runs
+  its initializer before applying the wiring; an app on `Rask.Wasm` alone is unaffected.
+
 - **Rask.Auth keeps an ended session's row for a day.** The hourly session sweep, which also runs when the host
   starts, deleted every ended session straight away and gave only expired ones a day's grace, so a "signed out"
   entry vanished from a device list at the next sweep. Ended sessions now get the same day.
