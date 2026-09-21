@@ -152,6 +152,7 @@
     <!-- Reaches into Rask.Data, which the browser half does not reference. -->
     <Compile Remove="SessionDataScope.cs"/>
     <Compile Remove="ClaimsPrincipalSource.cs"/>
+    <Compile Remove="QueryDataChanges.cs"/>
     <!-- Endpoint and MVC filters: ASP.NET hosting types, so the server half only. -->
     <Compile Remove="ApiValidation.cs"/>
   </ItemGroup>

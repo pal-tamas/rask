@@ -18,6 +18,23 @@ them until tagged releases begin.
   `HttpContext.User`), and for a **background job**, which records `UserId` at enqueue and runs its handler as
   that user. The user is an id, not the `User` row: loading it is a query the caller should see.
   `docs/data.md` gains *The current user*.
+- **A Rask.Data write refreshes the queries about what it wrote — with nothing to write.** A list beside a
+  create form went stale after a save unless someone remembered the invalidation. Now, once a save commits,
+  every query about the aggregate types it wrote refetches on the screen of the session that made it:
+
+  ```csharp
+  var people = QueryClient.Query(QueryKey.For<Person>("active"), ct => Person.Read.ToListAsync(ct));
+  .OnClick(() => Person.CreateAsync(model))   // the list refetches
+  ```
+
+  It reaches what `QueryClient.Invalidate<Person>()` reaches, and a child entity counts as its aggregate. It
+  waits for an explicit transaction's commit and tells nobody on a rollback, because a refetch before the
+  commit could cache the rows as they were; it never touches another session's cache, and a write with no
+  session (a job, a hosted service) tells nobody. An observer that throws cannot fail a save that already
+  committed. The hook is Rask.Data's new scoped `IDataChanges`, reported by an interceptor every context
+  already receives through `GetServices<ISaveChangesInterceptor>()`; the Rask host implements it with the
+  session's `IQueryClient`. A message query such as `GetPeople` is keyed by its own type, so it still needs
+  `[Invalidates(typeof(GetPeople))]`.
 
 - **`UiModal.OnCancel`, and a `<dialog>`'s own `cancel`/`close` events** (#1116). `OnClose` runs for every way a
   modal closes; `OnCancel` runs only for a DISMISSAL — Escape or a click outside — and before `OnClose`, so a
