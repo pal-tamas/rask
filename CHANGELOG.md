@@ -281,6 +281,10 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The docs no longer say a delete is a soft delete.** Soft delete became opt-in (under *Changed*), but tutorial
+  chapter 2, `docs/data.md` and the Rask.Data package README still told readers that `Product.DeleteAsync`
+  stamps `DeletedAt` and the data stays in `app.db` — for an aggregate that declares no `Deletes`, the row is
+  removed. They now describe the default hard delete and name `Deletion.Soft` as the opt-in.
 - **Sign-in throttling holds under concurrent guesses** (#1121). The throttle checked the limit and counted a
   failure in two separate steps, so wrong passwords fired together all passed the check before any was
   counted: with `SignInAttemptsPerMinute = 3`, 24 parallel guesses got 12 tries. Password sign-in and password
