@@ -72,9 +72,20 @@ public sealed class OutboxMessage : Entity<long>
     /// <param name="type">The event's registered type name.</param>
     /// <param name="payload">The serialized event.</param>
     /// <param name="occurredAt">When the event was raised (UTC).</param>
-    /// <remarks>The key is the store's, and is also the processing order, so nothing assigns one here.</remarks>
-    public static OutboxMessage For(string type, string payload, DateTime occurredAt) =>
-        new() { Type = type, Payload = payload, OccurredAt = occurredAt };
+    /// <remarks>
+    ///     <para>The key is the store's, and is also the processing order, so nothing assigns one here.</para>
+    ///     <para>
+    ///         The row records the tenant it was enqueued for, so the processor can re-enter it before
+    ///         publishing. Null when there is none — a message raised by the host itself belongs to nobody,
+    ///         and refusing to write it would be wrong.
+    ///     </para>
+    /// </remarks>
+    public static OutboxMessage For(string type, string payload, DateTime occurredAt)
+    {
+        var message = new OutboxMessage { Type = type, Payload = payload, OccurredAt = occurredAt };
+        message.RecordTenant(Tenant.InFlight);
+        return message;
+    }
 
     /// <summary>Records a successful publish, clearing any error from an earlier attempt.</summary>
     /// <param name="at">When it was published (UTC).</param>
@@ -111,6 +122,12 @@ public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outbox
         entity.HasIndex(x => new { x.ProcessedAt, x.Id });
         // Fences the completion write — see Job.ClaimToken for why.
         entity.Property(x => x.ClaimToken).IsConcurrencyToken();
+
+        // Mapped EXPLICITLY, and the table is deliberately not Tenancy.PerTenant. A partitioned table takes a
+        // query filter, and a filter here would hide other tenants' rows from the drain — the processor has
+        // to see everybody's work. So the tenant is data on the row, not a partition of the table, and
+        // ApplyRaskConventions leaves a tenant somebody mapped themselves alone.
+        entity.Property(x => x.TenantId);
     }
 }
 

@@ -36,6 +36,7 @@ Rask.Data.Entity<TId>.CreatedAt.get -> System.DateTime
 Rask.Data.Entity<TId>.Entity() -> void
 Rask.Data.Entity<TId>.Id.get -> TId
 Rask.Data.Entity<TId>.Id.set -> void
+Rask.Data.Entity<TId>.RecordTenant(System.Guid? tenant) -> void
 Rask.Data.Entity<TId>.Stamp(System.DateTime at) -> void
 Rask.Data.Entity<TId>.TenantId.get -> System.Guid?
 Rask.Data.Entity<TId>.UpdatedAt.get -> System.DateTime
@@ -260,6 +261,7 @@ static Rask.Data.ReadModelRegistry.IsEmpty.get -> bool
 static Rask.Data.ReadModelRegistry.Replace(System.Type! group, System.Collections.Generic.IReadOnlyList<Rask.Data.ReadEntityMapping!>! entities) -> void
 static Rask.Data.Tenant.Across() -> System.IDisposable!
 static Rask.Data.Tenant.Current.get -> System.Guid?
+static Rask.Data.Tenant.InFlight.get -> System.Guid?
 static Rask.Data.Tenant.IsAcrossTenants.get -> bool
 static Rask.Data.Tenant.None() -> System.IDisposable!
 static Rask.Data.Tenant.Required.get -> System.Guid

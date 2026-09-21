@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Rask.Cqrs;
+using Rask.Data;
 
 namespace Rask.Jobs;
 
@@ -218,6 +219,12 @@ public sealed class JobProcessor<TContext>(
                     // A fresh scope per job isolates scoped handler dependencies (e.g. a DbContext) between jobs.
                     await using var scope = scopeFactory.CreateAsyncScope();
                     var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
+
+                    // Run AS the tenant the job was enqueued for. Without this a handler that reads a
+                    // tenant-scoped table throws, because background work carries no principal and so has no
+                    // tenant of its own — the drain sees every tenant's rows precisely so it can do this.
+                    using var tenant = job.TenantId is { } owner ? Tenant.Use(owner) : null;
+
                     await dispatcher.SendAsync(command, graceToken).ConfigureAwait(false);
                     job.Completed(timeProvider.GetUtcNow().UtcDateTime);
                     job.Release();

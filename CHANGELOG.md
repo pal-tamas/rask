@@ -72,8 +72,18 @@ them until tagged releases begin.
   belongs to no tenant and carries no claim, and a tenant-scoped read then throws until they choose one —
   intended, so an admin says which tenant they are acting in rather than silently reading across all of them.
 
-  **Not wired up yet:** the batteries (jobs, outbox, mail, cache, storage) do not record a tenant on their
-  rows, so background work has no tenant to re-enter.
+  **Background work runs as the tenant it was queued for.** An outbox message, a job and a queued mail each
+  record the tenant in flight when they are enqueued, and the runner re-enters it before publishing, handling
+  or sending. Without that a handler reading a tenant-scoped table would throw, because background work
+  carries no principal and so has no tenant of its own.
+
+  Those tables are deliberately **not** `Tenancy.PerTenant`. A partitioned table takes a query filter, and a
+  filter there would hide other tenants' rows from the drain — one runner processes everybody's work. The
+  tenant is data on the row, not a partition of the table. A row enqueued by the host itself, or inside
+  `Tenant.Across()`, records no tenant, which is an ordinary answer rather than an error.
+
+  **Not wired up yet:** cache and storage do not carry a tenant, and sign-in still looks a user up within the
+  current tenant rather than across all of them.
 
 - **A collection of values on an aggregate is mapped, queryable and editable.** `IReadOnlyList<string> Tags`
   becomes a primitive collection and `IReadOnlyList<Stop> Stops` a JSON column, both carried on the form model

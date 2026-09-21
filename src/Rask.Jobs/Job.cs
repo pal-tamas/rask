@@ -61,9 +61,19 @@ public sealed class Job : Entity<long>
     /// <param name="type">The job's registered type name.</param>
     /// <param name="payload">The serialized job.</param>
     /// <param name="runAt">The earliest time (UTC) it may run.</param>
-    /// <remarks>The key is the store's, and is the tiebreak for run order, so nothing assigns one here.</remarks>
-    public static Job For(string type, string payload, DateTime runAt) =>
-        new() { Type = type, Payload = payload, RunAt = runAt };
+    /// <remarks>
+    ///     <para>The key is the store's, and is the tiebreak for run order, so nothing assigns one here.</para>
+    ///     <para>
+    ///         The row records the tenant it was enqueued for, so the runner can re-enter it before invoking
+    ///         the handler. Null when there is none — a job scheduled by the host itself belongs to nobody.
+    ///     </para>
+    /// </remarks>
+    public static Job For(string type, string payload, DateTime runAt)
+    {
+        var job = new Job { Type = type, Payload = payload, RunAt = runAt };
+        job.RecordTenant(Tenant.InFlight);
+        return job;
+    }
 
     /// <summary>Records a successful run, clearing any error from an earlier attempt.</summary>
     /// <param name="at">When it completed (UTC).</param>
@@ -109,6 +119,12 @@ public sealed class JobConfiguration : IEntityTypeConfiguration<Job>
         // an instance whose lease expired mid-job gets a concurrency exception instead of overwriting the
         // outcome of whichever instance now owns the row.
         entity.Property(x => x.ClaimToken).IsConcurrencyToken();
+
+        // Mapped EXPLICITLY, and the table is deliberately not Tenancy.PerTenant. A partitioned table takes a
+        // query filter, and a filter here would hide other tenants' rows from the drain — the runner has to
+        // see everybody's work. So the tenant is data on the row, not a partition of the table, and
+        // ApplyRaskConventions leaves a tenant somebody mapped themselves alone.
+        entity.Property(x => x.TenantId);
     }
 }
 

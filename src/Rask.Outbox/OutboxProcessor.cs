@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Rask.Cqrs;
+using Rask.Data;
 
 namespace Rask.Outbox;
 
@@ -240,6 +241,11 @@ public sealed class OutboxProcessor<TContext>(
                 var startedAt = timeProvider.GetTimestamp();
                 try
                 {
+                    // Publish AS the tenant the message was enqueued for. Without this a handler that reads a
+                    // tenant-scoped table throws, because background work carries no principal and so has no
+                    // tenant of its own — the drain sees every tenant's rows precisely so it can do this.
+                    using var tenant = message.TenantId is { } owner ? Tenant.Use(owner) : null;
+
                     await dispatcher.PublishAsync(notification, graceToken).ConfigureAwait(false);
                     message.Published(timeProvider.GetUtcNow().UtcDateTime);
                     message.Release();

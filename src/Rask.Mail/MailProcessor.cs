@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Rask.Data;
 
 namespace Rask.Mail;
 
@@ -222,6 +223,11 @@ public sealed class MailProcessor<TContext>(
                 // IMailSender isn't captured by this singleton processor.
                 await using var scope = scopeFactory.CreateAsyncScope();
                 var sender = scope.ServiceProvider.GetRequiredService<IMailSender>();
+
+                // Send AS the tenant this mail was queued for: a custom IMailSender that reads a
+                // tenant-scoped table would otherwise throw, since background work carries no principal.
+                using var tenant = message.TenantId is { } owner ? Tenant.Use(owner) : null;
+
                 await sender.SendAsync(outgoing, graceToken).ConfigureAwait(false);
                 message.ProcessedAt = timeProvider.GetUtcNow().UtcDateTime;
                 message.Error = null;

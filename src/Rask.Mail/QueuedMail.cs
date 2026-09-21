@@ -78,6 +78,14 @@ public sealed class QueuedMail : Entity<long>
     /// also how a processor that died mid-send releases its work: the lease simply runs out.
     /// </summary>
     public DateTime? ClaimedUntil { get; internal set; }
+
+    /// <summary>Records the tenant this email was queued for, so the sender can re-enter it.</summary>
+    /// <remarks>
+    ///     Here rather than at the construction site because <c>RecordTenant</c> is the entity's own: only
+    ///     the row may say which tenant it belongs to. Null when there is none — mail sent by the host
+    ///     itself belongs to nobody.
+    /// </remarks>
+    internal void RecordQueuedTenant() => RecordTenant(Tenant.InFlight);
 }
 
 /// <summary>The EF Core mapping for <see cref="QueuedMail"/>.</summary>
@@ -97,6 +105,12 @@ public sealed class QueuedMailConfiguration : IEntityTypeConfiguration<QueuedMai
         entity.HasIndex(x => new { x.ProcessedAt, x.RunAt, x.Id });
         // Fences the completion write — see Job.ClaimToken for why.
         entity.Property(x => x.ClaimToken).IsConcurrencyToken();
+
+        // Mapped EXPLICITLY, and the table is deliberately not Tenancy.PerTenant. A partitioned table takes a
+        // query filter, and a filter here would hide other tenants' rows from the drain — the runner has to
+        // see everybody's work. So the tenant is data on the row, not a partition of the table, and
+        // ApplyRaskConventions leaves a tenant somebody mapped themselves alone.
+        entity.Property(x => x.TenantId);
     }
 }
 

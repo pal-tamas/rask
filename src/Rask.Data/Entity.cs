@@ -58,6 +58,24 @@ public abstract class Entity<TId> : IEntity
     internal void AssignTenant(Guid tenant) => TenantId = tenant;
 
     /// <summary>
+    ///     Records which tenant this row belongs to, for an entity whose package writes it.
+    /// </summary>
+    /// <param name="tenant">The owning tenant, or <see langword="null" /> for a row that belongs to nobody.</param>
+    /// <remarks>
+    ///     <para>
+    ///         The sibling of <see cref="Stamp" />, and it exists for the same tables: a queue's rows carry
+    ///         the tenant they were enqueued for, but the queue itself is NOT partitioned — a drain has to see
+    ///         every tenant's work, so these tables must not take the query filter that a
+    ///         <see cref="Tenancy.PerTenant" /> table takes. They record the tenant as data rather than as a
+    ///         partition, and the runner re-enters it before invoking the handler.
+    ///     </para>
+    ///     <para>
+    ///         Null is an ordinary answer here: a job enqueued by the host at startup belongs to no tenant.
+    ///     </para>
+    /// </remarks>
+    protected void RecordTenant(Guid? tenant) => TenantId = tenant;
+
+    /// <summary>
     ///     Stamps this row's own times, for an entity whose package writes it and knows when.
     /// </summary>
     /// <param name="at">The moment to record (UTC).</param>

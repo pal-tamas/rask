@@ -38,6 +38,24 @@ public static class Tenant
     public static bool IsAcrossTenants => Ambient.Value.Across;
 
     /// <summary>
+    ///     The tenant this work belongs to, from whichever source knows, or <see langword="null" />. Never throws.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         <see cref="Resolve" /> is for a query filter and throws when nothing says which tenant, because
+    ///         a tenant-scoped read with no tenant is a bug. This is for RECORDING one — an outbox message, a
+    ///         queued job, a mail — where "no tenant" is an ordinary answer: a system job enqueued at startup
+    ///         belongs to nobody, and refusing to write it would be wrong.
+    ///     </para>
+    ///     <para>
+    ///         Null inside <see cref="Across" /> too: work that deliberately spans tenants is not being done
+    ///         on behalf of any one of them, so a row it enqueues should not claim otherwise.
+    ///     </para>
+    /// </remarks>
+    public static Guid? InFlight =>
+        Ambient.Value.Across ? null : Ambient.Value.Tenant ?? Db.TenantFromScope();
+
+    /// <summary>
     ///     The tenant in flight, or a thrown exception when there is none.
     /// </summary>
     /// <exception cref="InvalidOperationException">No tenant is set and <see cref="Across" /> is not open.</exception>
