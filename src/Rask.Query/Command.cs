@@ -4,8 +4,8 @@ using Rask.Cqrs;
 namespace Rask.Query;
 
 /// <summary>
-///     The shared state machine behind both command shapes: pending/error/success, the components
-///     watching it, and any optimistic edits to roll back.
+///     The shared state machine behind every command shape — a record command and a function alike:
+///     pending/error/success, the components watching it, and any optimistic edits to roll back.
 /// </summary>
 internal sealed class CommandCore(QueryClient client)
 {
@@ -31,10 +31,10 @@ internal sealed class CommandCore(QueryClient client)
         "Design",
         "CA1031:Do not catch general exception types",
         Justification = "Whatever the handler threw belongs on the command as Error, for the component "
-                        + "to render. See the remarks on SendAsync for why it is not rethrown.")]
-    public async Task<TResult?> SendAsync<TResult>(
+                        + "to render. See the remarks on Command<TCommand>.SendAsync for why it is not rethrown.")]
+    public async Task<TResult?> RunAsync<TResult>(
         Func<CancellationToken, Task<TResult>> dispatch,
-        object command,
+        Action invalidate,
         CancellationToken cancellationToken)
     {
         Status = CommandStatus.Pending;
@@ -54,9 +54,9 @@ internal sealed class CommandCore(QueryClient client)
             var result = await dispatch(cancellationToken).ConfigureAwait(false);
             Status = CommandStatus.Success;
 
-            // The declared invalidation replaces the optimistic guess with what the server actually
-            // holds, so there is nothing to undo on success.
-            client.InvalidateDeclared(command);
+            // The invalidation replaces the optimistic guess with what the server actually holds, so
+            // there is nothing to undo on success.
+            invalidate();
             _readers.RenderAll();
             return result;
         }
@@ -169,13 +169,13 @@ public sealed class Command<TCommand>
     public Task SendAsync(TCommand command, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(command);
-        return _core.SendAsync<object?>(
+        return _core.RunAsync<object?>(
             async ct =>
             {
                 await _client.DispatchCommandAsync(command, ct).ConfigureAwait(false);
                 return null;
             },
-            command,
+            () => _client.InvalidateDeclared(command),
             cancellationToken);
     }
 
@@ -255,7 +255,10 @@ public sealed class Command<TCommand, TResult>
     {
         ArgumentNullException.ThrowIfNull(command);
         Data = await _core
-            .SendAsync(ct => _client.DispatchCommandAsync(command, ct), command, cancellationToken)
+            .RunAsync(
+                ct => _client.DispatchCommandAsync(command, ct),
+                () => _client.InvalidateDeclared(command),
+                cancellationToken)
             .ConfigureAwait(false);
         return Data;
     }
@@ -265,5 +268,117 @@ public sealed class Command<TCommand, TResult>
     {
         Data = default;
         _core.Reset();
+    }
+}
+
+/// <summary>
+///     A command that is a function rather than an <see cref="ICommand" /> record — a third-party
+///     HTTP call, a file write — rendered the same way as <see cref="Command{TCommand}" />.
+/// </summary>
+/// <remarks>
+///     <para>
+///         Created once with what it makes out of date, then handed the work on every send, so the
+///         lambda captures what this click is about:
+///     </para>
+///     <code>
+///     private readonly Command _ship = q.Command(invalidates: "orders");
+///
+///     Button.Disabled(_ship.IsPending)
+///           .OnClick(() =&gt; _ship.SendAsync(ct =&gt; api.ShipAsync(id, ct)))
+///           ["Ship"]
+///     </code>
+///     <para>
+///         A record declares its invalidation with <see cref="InvalidatesAttribute" />; a function has
+///         nowhere to put one, so it is named here instead, where the command is created. Prefer a
+///         record wherever there is one: there the invalidation travels with the command to every
+///         screen that sends it.
+///     </para>
+/// </remarks>
+public sealed class Command
+{
+    private readonly QueryClient _client;
+    private readonly QueryKey[] _invalidates;
+    private readonly CommandCore _core;
+
+    internal Command(QueryClient client, QueryKey[] invalidates)
+    {
+        _client = client;
+        _invalidates = invalidates;
+        _core = new CommandCore(client);
+    }
+
+    /// <summary>Where this command is in its lifecycle.</summary>
+    public CommandStatus Status
+    {
+        get
+        {
+            _core.Observe();
+            return _core.Status;
+        }
+    }
+
+    /// <summary>Whatever the last send threw, or null.</summary>
+    public Exception? Error
+    {
+        get
+        {
+            _core.Observe();
+            return _core.Error;
+        }
+    }
+
+    /// <summary>Running now. This is what disables the button.</summary>
+    public bool IsPending => Status == CommandStatus.Pending;
+
+    /// <summary>The last send succeeded.</summary>
+    public bool IsSuccess => Status == CommandStatus.Success;
+
+    /// <summary>The last send failed; see <see cref="Error" />.</summary>
+    public bool IsError => Status == CommandStatus.Error;
+
+    /// <summary>
+    ///     Runs <paramref name="send" />, then invalidates the keys this command was created with.
+    ///     Never throws — the failure lands on <see cref="Error" />.
+    /// </summary>
+    /// <param name="send">The work, given the cancellation token.</param>
+    /// <param name="cancellationToken">Cancels the work.</param>
+    public Task SendAsync(Func<CancellationToken, Task> send, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(send);
+        return _core.RunAsync<object?>(
+            async ct =>
+            {
+                await send(ct).ConfigureAwait(false);
+                return null;
+            },
+            Invalidate,
+            cancellationToken);
+    }
+
+    /// <summary>
+    ///     Runs <paramref name="send" /> and returns what it produced, then invalidates the keys this
+    ///     command was created with. Never throws — the failure lands on <see cref="Error" />.
+    /// </summary>
+    /// <typeparam name="TResult">What the work returns, inferred from the lambda.</typeparam>
+    /// <param name="send">The work, given the cancellation token.</param>
+    /// <param name="cancellationToken">Cancels the work.</param>
+    /// <returns>What the work returned, or <c>default</c> if it failed.</returns>
+    public Task<TResult?> SendAsync<TResult>(
+        Func<CancellationToken, Task<TResult>> send,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(send);
+        return _core.RunAsync(send, Invalidate, cancellationToken);
+    }
+
+    /// <summary>Returns to <see cref="CommandStatus.Idle" />, clearing any error.</summary>
+    public void Reset() => _core.Reset();
+
+    private void Invalidate()
+    {
+        foreach (var key in _invalidates)
+        {
+            _client.Invalidate(key);
+        }
     }
 }

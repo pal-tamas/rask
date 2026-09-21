@@ -9,6 +9,21 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Rask.Query`: a command can be a function, and a key can be about a type.** Not everything a
+  component changes is a CQRS record — a Rask.Data write, a third-party HTTP call — and until now only a
+  record could be a renderable command. `client.Command(invalidates: …)` creates one that is handed the
+  work on every send, with the same pending/error/success state and the same never-throws `SendAsync`:
+
+  ```csharp
+  _save = client.Command(invalidates: typeof(Person));
+  .OnClick(() => _save.SendAsync(ct => Person.CreateAsync(model, cancellationToken: ct)))
+  ```
+
+  `QueryKey.For<Person>("active")` is `[typeof(Person), "active"]`, and a `Type` converts to a key, so a
+  function query over an aggregate's read face and the command that changes it share the type rather
+  than a string that has to match — `Invalidate<Person>()` and `[Invalidates(typeof(Person))]` reach it
+  too.
+
 - **Multi-tenancy: a fifth const partitions a table by tenant.** Opt-in, so a table that says nothing is
   unchanged:
 

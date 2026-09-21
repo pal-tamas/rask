@@ -85,8 +85,22 @@ client.Invalidate(QueryKey.Of("orders", QueryKey.Fields(("status", "done"))));
 `QueryKey.Fields` takes named pairs rather than an anonymous object on purpose: reflecting over one
 would warn under the trimmer on a WASM publish, and this package has to publish clean there.
 
-A hand-written key can never collide with a derived one — the first part of a derived key is a
-`Type`, and of a hand-written one a string — so both live in the same cache safely.
+A string key can never collide with a derived one — the first part of a derived key is a `Type`,
+and of a string key a string — so both live in the same cache safely.
+
+### About a type
+
+Data with a type but no message — a Rask.Data aggregate's read face, say — takes a key that *starts*
+with the type, so no string has to match between the query and whatever makes it stale:
+
+```csharp
+_people = client.Query(QueryKey.For<Person>("active"),
+                       ct => Person.Read.Where(p => p.Active).ToListAsync(ct));
+```
+
+`QueryKey.For<Person>("active")` is `[typeof(Person), "active"]`, so `Invalidate<Person>()`,
+`[Invalidates(typeof(Person))]` and `Command(invalidates: typeof(Person))` all reach it by prefix, and a
+renamed type renames the key with it.
 
 ### Invalidating
 
@@ -149,6 +163,32 @@ nowhere to go, so the failure lands on `Error` and `Status` for the component to
 `IQueryClient.SendAsync` when you want the exception. `Command<TCommand, TResult>` adds `Data`, the
 last successful result; `.Optimistic(query, update)` edits a cached result before the server answers
 and restores it if the command fails.
+
+### A function
+
+Work that is not a CQRS record — a Rask.Data write, a third-party HTTP call — is a function. It has
+nowhere to carry `[Invalidates]`, so the command is created with what it makes out of date, and handed
+the work on every send, so the lambda captures what this click is about:
+
+```csharp
+private readonly Command _save;
+
+public PeoplePage(IQueryClient client) => _save = client.Command(invalidates: typeof(Person));
+
+Button.Disabled(_save.IsPending)
+      .OnClick(() => _save.SendAsync(ct => Person.CreateAsync(model, cancellationToken: ct)))
+      ["Add"]
+```
+
+`SendAsync(ct => …)` never throws either; `SendAsync<T>` infers `T` from the lambda and returns what it
+produced, or `default` on failure. Each key is a prefix, a string or a type converts to one, and several
+are several prefixes: `Command(invalidates: [typeof(Person), "dashboard"])`.
+
+Prefer a record wherever there is one: its invalidation travels with it to every screen that sends it.
+A function's lives where the command is created. It runs where the component runs — on the Server host
+that is the server, so a typed `HttpClient` injected through the constructor keeps its secrets there; in
+a WASM app it is the browser, where CORS applies and nothing is secret. Calling your *own* backend over
+HTTP from a component is the case to avoid: that is what a CQRS message is for.
 
 ## Defaults
 

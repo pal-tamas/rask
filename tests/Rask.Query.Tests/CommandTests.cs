@@ -203,4 +203,112 @@ public class CommandTests
         Assert.Equal("first", one.Data);
         Assert.Equal("first", two.Data);
     }
+
+    /// <summary>A type with data but no message — the shape of a Rask.Data aggregate.</summary>
+    private sealed record Person;
+
+    private static readonly QueryOptions Keep = new() { StaleTime = TimeSpan.FromHours(1) };
+
+    [Fact]
+    public async Task A_function_command_runs_its_lambda_and_invalidates_the_keys_it_was_created_with()
+    {
+        var (client, _, _) = NewClient();
+        var loads = 0;
+        using var people = client.Query("people", _ => Task.FromResult(++loads), Keep);
+        await Settle(people);
+        var save = client.Command(invalidates: "people");
+        var ran = false;
+
+        await save.SendAsync(_ =>
+        {
+            ran = true;
+            return Task.CompletedTask;
+        });
+        await Settle(people);
+
+        Assert.True(ran);
+        Assert.Equal(CommandStatus.Success, save.Status);
+        Assert.Equal(2, people.Data);
+    }
+
+    [Fact]
+    public async Task A_failed_function_command_records_the_error_and_invalidates_nothing()
+    {
+        var (client, _, _) = NewClient();
+        var loads = 0;
+        using var people = client.Query("people", _ => Task.FromResult(++loads), Keep);
+        await Settle(people);
+        var save = client.Command(invalidates: "people");
+
+        await save.SendAsync(_ => Task.FromException(new InvalidOperationException("refused")));
+        await Settle(people);
+
+        Assert.True(save.IsError);
+        Assert.Equal("refused", save.Error?.Message);
+        Assert.Equal(1, people.Data);
+    }
+
+    [Fact]
+    public async Task A_value_returning_function_command_returns_its_result_or_default_on_failure()
+    {
+        var (client, _, _) = NewClient();
+        var save = client.Command();
+
+        var created = await save.SendAsync(_ => Task.FromResult("person 7"));
+        var refused = await save.SendAsync(_ => Task.FromException<string>(new InvalidOperationException()));
+
+        Assert.Equal("person 7", created);
+        Assert.Null(refused);
+        Assert.True(save.IsError);
+    }
+
+    [Fact]
+    public async Task A_type_key_is_reached_by_every_way_of_naming_the_type()
+    {
+        var (client, _, _) = NewClient();
+        var active = 0;
+        var other = 0;
+        using var people = client.Query(QueryKey.For<Person>("active"), _ => Task.FromResult(++active), Keep);
+        using var orders = client.Query("orders", _ => Task.FromResult(++other), Keep);
+        await Settle(people);
+        await Settle(orders);
+
+        // The type is the first part, so a command naming the type reaches every key about it by prefix
+        // — and nothing else.
+        await client.Command(invalidates: typeof(Person)).SendAsync(_ => Task.CompletedTask);
+        await Settle(people);
+        await Settle(orders);
+        client.Invalidate<Person>();
+        await Settle(people);
+
+        Assert.Equal(3, people.Data);
+        Assert.Equal(1, orders.Data);
+    }
+
+    [Fact]
+    public void A_type_key_is_the_type_followed_by_its_parts()
+    {
+        Assert.Equal(QueryKey.Of(typeof(Person), "active", 2), QueryKey.For<Person>("active", 2));
+        Assert.Equal(QueryKey.Of(typeof(Person)), (QueryKey)typeof(Person));
+        Assert.True(QueryKey.For<Person>("active").Matches(typeof(Person)));
+    }
+
+    [Fact]
+    public async Task Several_keys_are_several_prefixes_whether_types_or_strings()
+    {
+        var (client, _, _) = NewClient();
+        var people = 0;
+        var dashboard = 0;
+        using var a = client.Query(QueryKey.For<Person>(), _ => Task.FromResult(++people), Keep);
+        using var b = client.Query("dashboard", _ => Task.FromResult(++dashboard), Keep);
+        await Settle(a);
+        await Settle(b);
+
+        await client.Command(invalidates: [typeof(Person), "dashboard"]).SendAsync(_ => Task.CompletedTask);
+        await Settle(a);
+        await Settle(b);
+
+        Assert.Equal(2, a.Data);
+        Assert.Equal(2, b.Data);
+    }
 }

@@ -49,18 +49,50 @@ public readonly struct QueryKey : IEquatable<QueryKey>
         return new QueryKey((object?[])parts.Clone());
     }
 
-    /// <summary>A named-value part, whose fields are matched as a <em>subset</em>.</summary>
-    /// <remarks>
-    ///     The C# stand-in for TanStack's object part. Sorted on construction, so field order does not
-    ///     affect equality — and built from named pairs rather than reflected off an anonymous type,
-    ///     because reflection here would warn under the trimmer on a WASM publish.
-    /// </remarks>
     /// <summary>
     ///     A single-part key from a plain name, so a caller with one string does not have to reach for
     ///     <see cref="Of" />. Implicit because the two spellings mean exactly the same thing.
     /// </summary>
     public static implicit operator QueryKey(string name) => Of(name);
 
+    /// <summary>
+    ///     A single-part key from a type — the prefix every <see cref="For{T}" /> key and every key derived
+    ///     from a message of that type starts with — so <c>Command(invalidates: typeof(Person))</c>
+    ///     reads the way <see cref="InvalidatesAttribute" /> does.
+    /// </summary>
+    /// <param name="type">The type the key is about.</param>
+    public static implicit operator QueryKey(Type type)
+    {
+        ArgumentNullException.ThrowIfNull(type);
+        return Of(type);
+    }
+
+    /// <summary>
+    ///     A key about <typeparamref name="T" />: <c>[typeof(T), ..parts]</c>.
+    /// </summary>
+    /// <remarks>
+    ///     For a function query over data that has a type but no message — a Rask.Data aggregate's read
+    ///     face, say. The type is the first part, so <c>Invalidate&lt;Person&gt;()</c>,
+    ///     <c>[Invalidates(typeof(Person))]</c> and <c>Command(invalidates: typeof(Person))</c> all reach every
+    ///     <c>For&lt;Person&gt;(…)</c> key by prefix, and a renamed type cannot leave a stale string behind.
+    ///     <code>
+    ///     q.Query(QueryKey.For&lt;Person&gt;("active"), ct =&gt; Person.Read.Where(p =&gt; p.Active).ToListAsync(ct));
+    ///     </code>
+    /// </remarks>
+    /// <typeparam name="T">The type the data is about.</typeparam>
+    /// <param name="parts">What narrows it — a filter, a page, an id — compared as in <see cref="Of" />.</param>
+    public static QueryKey For<T>(params object?[] parts)
+    {
+        ArgumentNullException.ThrowIfNull(parts);
+        return Of([typeof(T), .. parts]);
+    }
+
+    /// <summary>A named-value part, whose fields are matched as a <em>subset</em>.</summary>
+    /// <remarks>
+    ///     The C# stand-in for TanStack's object part. Sorted on construction, so field order does not
+    ///     affect equality — and built from named pairs rather than reflected off an anonymous type,
+    ///     because reflection here would warn under the trimmer on a WASM publish.
+    /// </remarks>
     public static QueryKeyFields Fields(params (string Name, object? Value)[] fields) => new(fields);
 
     /// <summary>The parts, in order.</summary>

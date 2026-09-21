@@ -131,6 +131,18 @@ public interface IQueryClient
         where TCommand : ICommand<TResult>;
 
     /// <summary>
+    ///     A renderable command that is a function rather than a record — for work that does not go
+    ///     through CQRS. Each send hands it the lambda to run.
+    /// </summary>
+    /// <remarks>
+    ///     A function has nowhere to carry <see cref="InvalidatesAttribute" />, so what it makes out of
+    ///     date is named here. Each key is a prefix, as in <see cref="Invalidate(QueryKey, bool)" />,
+    ///     and a string converts to one: <c>Command(invalidates: "orders")</c>.
+    /// </remarks>
+    /// <param name="invalidates">The key prefixes to refetch after a send succeeds.</param>
+    Command Command(params QueryKey[] invalidates);
+
+    /// <summary>
     ///     Marks every entry for a query message type stale. Anything rendering one refetches at once;
     ///     anything not rendered refetches when something next observes it.
     /// </summary>

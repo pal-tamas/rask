@@ -116,6 +116,12 @@ internal sealed class QueryClient : IQueryClient
     public Command<TCommand, TResult> Command<TCommand, TResult>()
         where TCommand : ICommand<TResult> => new(this);
 
+    public Command Command(params QueryKey[] invalidates)
+    {
+        ArgumentNullException.ThrowIfNull(invalidates);
+        return new Command(this, [.. invalidates]);
+    }
+
     public void Invalidate<TQuery>() => Invalidate(typeof(TQuery));
 
     public void Invalidate(Type queryType)

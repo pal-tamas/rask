@@ -1,4 +1,13 @@
 #nullable enable
+Rask.Query.Command
+Rask.Query.Command.Error.get -> System.Exception?
+Rask.Query.Command.IsError.get -> bool
+Rask.Query.Command.IsPending.get -> bool
+Rask.Query.Command.IsSuccess.get -> bool
+Rask.Query.Command.Reset() -> void
+Rask.Query.Command.SendAsync(System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task!>! send, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Query.Command.SendAsync<TResult>(System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! send, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult?>!
+Rask.Query.Command.Status.get -> Rask.Query.CommandStatus
 Rask.Query.Command<TCommand, TResult>
 Rask.Query.Command<TCommand, TResult>.Data.get -> TResult?
 Rask.Query.Command<TCommand, TResult>.Error.get -> System.Exception?
@@ -28,6 +37,7 @@ Rask.Query.FetchStatus.Fetching = 1 -> Rask.Query.FetchStatus
 Rask.Query.FetchStatus.Idle = 0 -> Rask.Query.FetchStatus
 Rask.Query.FetchStatus.Paused = 2 -> Rask.Query.FetchStatus
 Rask.Query.IQueryClient
+Rask.Query.IQueryClient.Command(params Rask.Query.QueryKey[]! invalidates) -> Rask.Query.Command!
 Rask.Query.IQueryClient.Command<TCommand, TResult>() -> Rask.Query.Command<TCommand, TResult>!
 Rask.Query.IQueryClient.Command<TCommand>() -> Rask.Query.Command<TCommand>!
 Rask.Query.IQueryClient.FetchAsync<TResult>(Rask.Cqrs.IQuery<TResult>! message, Rask.Query.QueryOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
@@ -108,7 +118,9 @@ override Rask.Query.QueryOptions.Equals(object? obj) -> bool
 override Rask.Query.QueryOptions.GetHashCode() -> int
 override Rask.Query.QueryOptions.ToString() -> string!
 static Rask.Query.QueryKey.Fields(params (string! Name, object? Value)[]! fields) -> Rask.Query.QueryKeyFields!
+static Rask.Query.QueryKey.For<T>(params object?[]! parts) -> Rask.Query.QueryKey
 static Rask.Query.QueryKey.Of(params object?[]! parts) -> Rask.Query.QueryKey
+static Rask.Query.QueryKey.implicit operator Rask.Query.QueryKey(System.Type! type) -> Rask.Query.QueryKey
 static Rask.Query.QueryKey.implicit operator Rask.Query.QueryKey(string! name) -> Rask.Query.QueryKey
 static Rask.Query.QueryKey.operator !=(Rask.Query.QueryKey left, Rask.Query.QueryKey right) -> bool
 static Rask.Query.QueryKey.operator ==(Rask.Query.QueryKey left, Rask.Query.QueryKey right) -> bool
