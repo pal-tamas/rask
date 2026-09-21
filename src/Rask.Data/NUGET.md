@@ -6,8 +6,8 @@ No `DbContext` class, no `DbSet` property, no `IEntityTypeConfiguration`, no reg
 richer than a create, an update or a delete is EF Core exactly as you know it.
 
 - **`Aggregate<TId>` and `Entity<TId>`**: domain-driven design's building blocks as base classes. An entity carries
-  `Id`, `CreatedAt` and `UpdatedAt`; an aggregate adds a `Version` concurrency token, `DeletedAt` soft delete and
-  domain events. A source generator finds every one and builds the model, so nothing is scanned or reflected and
+  `Id`, `CreatedAt` and `UpdatedAt`; an aggregate adds a `Version` concurrency token and domain events, and
+  `DeletedAt` soft delete when it declares `Deletes = Deletion.Soft`. A source generator finds every one and builds the model, so nothing is scanned or reflected and
   a trimmed publish cannot quietly drop a table.
 - **Value objects with no marker**: any record, struct or class an entity holds that is not an entity maps as an
   EF **complex type**, columns on the owner's row. **Strongly-typed ids** get a generated value converter with
@@ -23,7 +23,8 @@ richer than a create, an update or a delete is EF Core exactly as you know it.
   form.
 - **Writes off the type**: creates read like their updates: `Product.CreateAsync(model)` /
   `Product.UpdateAsync(id, model)`, `Product.CreateAsync(p => …)` / `Product.UpdateAsync(id, p => …)`, plus
-  `Product.CreateAsync(entity)` for one built by a factory and `Product.DeleteAsync(id)`, a soft delete. A save
+  `Product.CreateAsync(entity)` for one built by a factory and `Product.DeleteAsync(id)`, which removes the row (or stamps `DeletedAt` under
+  `Deletion.Soft`; `Deletion.None` generates no delete at all). A save
   writes what the form holds; values that do not come from the form go in an optional `p => …`; the id is always
   the caller's, never the form's; a stale `Version` is refused. Each takes an optional `DbContext` to join a
   caller's transaction.
@@ -32,8 +33,8 @@ richer than a create, an update or a delete is EF Core exactly as you know it.
   (RASK085).
 - **`TestDatabase.StartAsync`**: a real database for a test in one line, so behaviour on an aggregate is
   tested against the database it ships on rather than a mocked `DbContext`.
-- **Three `ISaveChangesInterceptor`s**: auditing timestamps and versions, **transparent soft delete** (a delete
-  becomes a `DeletedAt` stamp behind a global query filter), and **after-commit domain-event publication**
+- **Three `ISaveChangesInterceptor`s**: auditing timestamps and versions, **opt-in soft delete** (for an aggregate
+  that declares it, a delete becomes a `DeletedAt` stamp behind a global query filter), and **after-commit domain-event publication**
   through [Rask.Cqrs](https://www.nuget.org/packages/Rask.Cqrs).
 - **`BulkInsertAsync`**: the bulk insert EF Core leaves out (`ExecuteUpdate`/`ExecuteDelete` exist; inserts
   are out of its scope). Batched, with the change tracker cleared as it goes so memory stays flat.
@@ -59,7 +60,7 @@ var products = await Product.OrderBy(p => p.Name).ToListAsync();
 // write: off the type too; the form model carries the values, the id is yours
 var product = await Product.CreateAsync(model);
 await Product.UpdateAsync(product.Id, edit);   // only changed columns; a stale Version throws
-await Product.DeleteAsync(product.Id);         // soft delete
+await Product.DeleteAsync(product.Id);         // removes the row
 
 // anything richer: plain EF Core, one context, one transaction (the writes above join it with db: db)
 await using var db = await contexts.CreateDbContextAsync(ct);
@@ -86,8 +87,9 @@ A class that does **not** derive from `Entity<TId>` stays an ordinary EF Core en
 and configurations and use them exactly as before. Registering an `IDbContextFactory<YourContext>` is
 the whole of opting out at the app level.
 
-A delete, `db.Remove(product)`, soft-deletes an aggregate; deleted
-rows drop out of queries (use `IgnoreQueryFilters()` to restore); a save against a stale `Version` throws
+A delete, `db.Remove(product)`, removes the row — or, for an aggregate that declares
+`Deletes = Deletion.Soft`, stamps `DeletedAt` so the row drops out of queries (`IgnoreQueryFilters()` brings it
+back); a save against a stale `Version` throws
 `DbUpdateConcurrencyException`; and any `INotification` raised on the aggregate is published after the change
 commits.
 
