@@ -472,6 +472,10 @@ published after the commit.
   `UpdateAsync(id, p => …)` and `DeleteAsync(id)` take an optional `version:` for the same check.
 - **A missing row**, never created or soft-deleted, is `KeyNotFoundException`, naming the aggregate and the key.
 
+A write refreshes what is on screen: once it commits, every `Rask.Query` query about that aggregate —
+`QueryKey.For<Product>(…)` — refetches in the session that made it, so a list beside a create form updates
+with no invalidation to write. See [Writes refresh queries by themselves](query.md#writes-refresh-queries-by-themselves).
+
 A create needs the parameterless constructor an aggregate has when it declares none. One that declares a
 constructor with arguments still gets `UpdateAsync` and `DeleteAsync`, and the build says why it has no
 `CreateAsync` ([RASK086](diagnostics.md#rask086)).

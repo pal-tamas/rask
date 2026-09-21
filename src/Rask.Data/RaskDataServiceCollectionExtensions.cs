@@ -49,6 +49,11 @@ public static class RaskDataServiceCollectionExtensions
             // is readable and before AddRaskOutbox has necessarily run, which is exactly the order-dependent silent
             // failure this replaces.
             services.AddSingleton<ISaveChangesInterceptor, DomainEventInterceptor>();
+
+            // Last, so it sees the save as the others left it. Also a transaction interceptor — EF hands the
+            // same instance both roles — which is how a save inside the caller's transaction waits for its
+            // commit before anyone refetches.
+            services.AddSingleton<ISaveChangesInterceptor, DataChangesInterceptor>();
         }
 
         return services;

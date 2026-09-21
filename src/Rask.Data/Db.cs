@@ -147,6 +147,9 @@ public static class Db
         return new ScopeBinding(scope);
     }
 
+    /// <summary>The scope <see cref="UseScope" /> opened — the live session's — or null outside one.</summary>
+    internal static IServiceProvider? ScopeServices => AmbientScope.Value;
+
     /// <summary>
     ///     The signed-in principal's tenant, read from the scope <see cref="UseScope" /> opened, or null.
     /// </summary>

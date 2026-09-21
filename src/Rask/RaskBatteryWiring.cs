@@ -151,6 +151,12 @@ internal static class RaskBatteryWiring
             // Scoped, because the principal it reads is: this instance belongs to one session, and
             // SessionDataScope above is what makes that session's provider reachable from a read.
             services.AddScoped<ITenantSource, ClaimsTenantSource>();
+
+            // A write refreshes the queries about what it wrote, on the screen of the session that made it:
+            // Person.CreateAsync(model) refetches QueryKey.For<Person> queries with no invalidation to write.
+            // Rask.Query is always here with data — both need the mediator — and the scope is the same one
+            // SessionDataScope makes ambient.
+            services.AddScoped<IDataChanges, QueryDataChanges>();
         }
 
         // On PostgreSQL or SQL Server the log goes into the application database (WireFor), so it is not wired here.

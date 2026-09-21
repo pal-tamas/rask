@@ -50,6 +50,8 @@ Rask.Data.FullTextTokenizer.Unicode = 0 -> Rask.Data.FullTextTokenizer
 Rask.Data.GeneratedModelWrites
 Rask.Data.GeneratedReadQuery
 Rask.Data.IAggregate
+Rask.Data.IDataChanges
+Rask.Data.IDataChanges.Saved(System.Collections.Generic.IReadOnlyCollection<System.Type!>! entityTypes) -> void
 Rask.Data.IDomainEventDeliveryOwner
 Rask.Data.IDomainEventDeliveryOwner.Name.get -> string!
 Rask.Data.IEntity

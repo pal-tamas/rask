@@ -9,6 +9,24 @@ them until tagged releases begin.
 
 ### Added
 
+- **A Rask.Data write refreshes the queries about what it wrote — with nothing to write.** A list beside a
+  create form went stale after a save unless someone remembered the invalidation. Now, once a save commits,
+  every query about the aggregate types it wrote refetches on the screen of the session that made it:
+
+  ```csharp
+  var people = QueryClient.Query(QueryKey.For<Person>("active"), ct => Person.Read.ToListAsync(ct));
+  .OnClick(() => Person.CreateAsync(model))   // the list refetches
+  ```
+
+  It reaches what `QueryClient.Invalidate<Person>()` reaches, and a child entity counts as its aggregate. It
+  waits for an explicit transaction's commit and tells nobody on a rollback, because a refetch before the
+  commit could cache the rows as they were; it never touches another session's cache, and a write with no
+  session (a job, a hosted service) tells nobody. An observer that throws cannot fail a save that already
+  committed. The hook is Rask.Data's new scoped `IDataChanges`, reported by an interceptor every context
+  already receives through `GetServices<ISaveChangesInterceptor>()`; the Rask host implements it with the
+  session's `IQueryClient`. A message query such as `GetPeople` is keyed by its own type, so it still needs
+  `[Invalidates(typeof(GetPeople))]`.
+
 - **`Rask.Data`: `Deletion.None` — an aggregate that is never deleted.** Every aggregate got a
   `DeleteAsync(id)`, whatever it was: an invoice, a payment or a ledger entry is corrected by a new record
   and an order is cancelled, so a generated delete was a way to lose one by mistake. Declare
