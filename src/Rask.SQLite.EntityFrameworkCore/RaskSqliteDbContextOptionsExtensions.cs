@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
+using Rask.Data;
 using Rask.Hosting.Shared;
 
 namespace Rask.SQLite;
@@ -101,12 +102,9 @@ public static class RaskSqliteDbContextOptionsExtensions
             optionsBuilder.ReplaceService<IMigrationsSqlGenerator, RaskSqliteRangeExclusionSqlGenerator>();
         }
 
-        // Full-text search, inert unless an entity declares HasFullTextSearch. The annotation provider reports the
-        // declaration on its table so the migrations differ sees it change; EF resolves exactly one, and nothing else
-        // in Rask replaces it. The extension carries the query side, and EF keeps one per type, so a second
-        // UseRaskSqlite call does not register the rewrite twice.
-        optionsBuilder.ReplaceService<IRelationalAnnotationProvider, RaskSqliteAnnotationProvider>();
-        ((IDbContextOptionsBuilderInfrastructure)optionsBuilder).AddOrUpdateExtension(new FullTextSearchOptionsExtension());
+        // Full-text search, inert unless an entity declares HasFullTextSearch. The generator above already emits its
+        // DDL; this adds the model and query halves.
+        AddFullTextSearchModelAndQuery(optionsBuilder);
 
         return optionsBuilder
             // Inert too: it only reacts to the error the range-exclusion triggers raise.
@@ -140,5 +138,59 @@ public static class RaskSqliteDbContextOptionsExtensions
     {
         UseRaskSqlite((DbContextOptionsBuilder)optionsBuilder, services, configure);
         return optionsBuilder;
+    }
+
+    /// <summary>
+    /// Full-text search on SQLite — <c>HasFullTextSearch</c>, <c>Search(text)</c>, <c>FullText.Highlight</c> and
+    /// <c>Snippet</c> — for a context configured with a plain <c>UseSqlite</c>, as a browser app's is.
+    /// </summary>
+    /// <param name="optionsBuilder">The context's options, already given its SQLite connection.</param>
+    /// <returns>The same builder, to chain.</returns>
+    /// <remarks>
+    /// <para>
+    /// <c>UseRaskSqlite</c> turns this on by itself, together with the connection string, pragmas and retry a
+    /// server wants. A browser app opens its database with <c>UseSqlite(BrowserSqlite.ConnectionString("app"))</c>
+    /// instead and wants none of those, so this registers only what search needs: the annotation that makes adding
+    /// or removing it a migration, the migration SQL that builds the FTS5 index and its triggers, and the query
+    /// rewrite behind <c>Search</c>.
+    /// </para>
+    /// <para>
+    /// The index is built by a MIGRATION. <c>EnsureCreated</c> creates no index, and a query against it then fails —
+    /// apply migrations (<c>Database.MigrateAsync()</c>) instead.
+    /// </para>
+    /// <para>
+    /// EF Core keeps exactly one migrations SQL generator, and the last registration wins. So this installs Rask's
+    /// only when the one already registered cannot build the index: calling it after <c>UseRaskSqlite</c> keeps that
+    /// call's choice, strict tables included, and calling it twice is harmless.
+    /// </para>
+    /// </remarks>
+    public static DbContextOptionsBuilder UseRaskFullTextSearch(this DbContextOptionsBuilder optionsBuilder)
+    {
+        ArgumentNullException.ThrowIfNull(optionsBuilder);
+
+        var replaced = optionsBuilder.Options.FindExtension<CoreOptionsExtension>()?.ReplacedServices;
+        var generator = replaced?.FirstOrDefault(r => r.Key.Item1 == typeof(IMigrationsSqlGenerator)).Value;
+        if (generator is null || !typeof(IFullTextSearchEnforcer).IsAssignableFrom(generator))
+        {
+            optionsBuilder.ReplaceService<IMigrationsSqlGenerator, RaskSqliteRangeExclusionSqlGenerator>();
+        }
+
+        AddFullTextSearchModelAndQuery(optionsBuilder);
+        return optionsBuilder;
+    }
+
+    /// <inheritdoc cref="UseRaskFullTextSearch(DbContextOptionsBuilder)" />
+    public static DbContextOptionsBuilder<TContext> UseRaskFullTextSearch<TContext>(
+        this DbContextOptionsBuilder<TContext> optionsBuilder)
+        where TContext : DbContext
+        => (DbContextOptionsBuilder<TContext>)UseRaskFullTextSearch((DbContextOptionsBuilder)optionsBuilder);
+
+    // The annotation provider reports the declaration on its table so the migrations differ sees it change; EF
+    // resolves exactly one, and nothing else in Rask replaces it. The extension carries the query side, and EF keeps
+    // one per type, so a second call does not register the rewrite twice.
+    private static void AddFullTextSearchModelAndQuery(DbContextOptionsBuilder optionsBuilder)
+    {
+        optionsBuilder.ReplaceService<IRelationalAnnotationProvider, RaskSqliteAnnotationProvider>();
+        ((IDbContextOptionsBuilderInfrastructure)optionsBuilder).AddOrUpdateExtension(new FullTextSearchOptionsExtension());
     }
 }

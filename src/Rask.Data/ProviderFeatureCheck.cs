@@ -27,6 +27,13 @@ internal interface IRangeExclusionEnforcer;
 internal interface IFullTextSearchEnforcer;
 
 /// <summary>
+/// Marks an <see cref="IMigrationsSqlGenerator"/> whose provider creates the expression indexes
+/// <see cref="JsonIndexBuilderExtensions.HasJsonIndex{TEntity}"/> declares.
+/// </summary>
+/// <remarks>Internal for the same reason as <see cref="IRangeExclusionEnforcer"/>.</remarks>
+internal interface IJsonIndexEnforcer;
+
+/// <summary>
 /// Model metadata the context's provider would silently ignore — a
 /// <see cref="RangeExclusionBuilderExtensions.HasNonOverlappingRange{TEntity}"/> rule or a
 /// <see cref="FullTextSearchBuilderExtensions.HasFullTextSearch{TEntity}"/> index — reported at boot.
@@ -79,9 +86,21 @@ internal sealed class ProviderFeatureCheck<TContext>(IServiceProvider services) 
         {
             throw new InvalidOperationException(
                 $"{Subject(searches)} HasFullTextSearch, but {provider} does not support it, so every Search(text) "
-                + "would fail. Full-text search is SQLite-only for now: configure "
-                + $"{typeof(TContext).Name} with UseRaskSqlite(services) from Rask.SQLite.EntityFrameworkCore, "
-                + "or remove the declaration.");
+                + "would fail. Full-text search runs on SQLite and PostgreSQL: configure "
+                + $"{typeof(TContext).Name} with UseRaskSqlite(services) from Rask.SQLite.EntityFrameworkCore (on a plain "
+                + "UseSqlite, such as a browser app's, add .UseRaskFullTextSearch()) or UseRaskPostgres(services) from "
+                + "Rask.Postgres — or remove the declaration.");
+        }
+
+        if (generator is not IJsonIndexEnforcer && Declaring(db.Model, JsonIndexSpec.AnnotationName) is { Count: > 0 } paths)
+        {
+            // Refused rather than ignored: without the index every filter on the path still works, and quietly
+            // reads every row, which is the one outcome the declaration exists to rule out.
+            throw new InvalidOperationException(
+                $"{Subject(paths)} HasJsonIndex, but {provider} does not create it, so every filter on the path would "
+                + "read the whole table. JSON indexes are SQLite-only for now: configure "
+                + $"{typeof(TContext).Name} with UseRaskSqlite(services) from Rask.SQLite.EntityFrameworkCore, or "
+                + "remove the declaration.");
         }
 
         return Task.CompletedTask;

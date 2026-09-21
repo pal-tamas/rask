@@ -240,8 +240,14 @@ replication cheap. If you need the log archived, copy the file like any other ar
 ## In the dashboard
 
 With `Rask.Dashboard` installed, `/_rask/logs` gains a **History** mode beside the existing **Live** tail:
-paged, filterable by level and category, with a full-text search over the message and the exception. Live
+paged, filterable by level and category, with a substring search over the message and the exception. Live
 stays the default and still reads nothing from disk.
+
+The search is served by an index rather than a scan. Logs are searched for fragments — an order id, a path, half an
+exception type — not words, so the store keeps an FTS5 table with the `trigram` tokenizer beside the log, kept
+current by triggers as entries arrive and as retention removes them; a search of three or more characters is a
+case-insensitive substring match looked up in it, and a shorter one falls back to the scan. A `logs.db` written by an
+earlier version is indexed once, the first time it is opened.
 
 Two modes rather than one merged view because the writer flushes on an interval — the newest lines are in the
 buffer but not yet on disk, and a merged view would quietly disagree with itself for a second at a time.

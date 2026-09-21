@@ -58,5 +58,13 @@ internal sealed class RaskSqliteAnnotationProvider(RelationalAnnotationProviderD
                 }
             }
         }
+
+        // JSON indexes travel RESOLVED — name and expression — so a migration that removes one can drop exactly the
+        // index the previous one built, whatever became of the property it pointed at (see JsonIndexDdl).
+        if (JsonIndexDdl.TableAnnotation(table.EntityTypeMappings.Select(m => m.TypeBase).OfType<IEntityType>(), table.Name)
+            is { } indexes)
+        {
+            yield return new Annotation(JsonIndexSpec.AnnotationName, indexes);
+        }
     }
 }

@@ -31,18 +31,7 @@ internal static class FullTextQuery
     /// </summary>
     public static string? Compile(string? text)
     {
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            return null;
-        }
-
-        var terms = text
-            .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
-            .Where(static term => term.Any(char.IsLetterOrDigit))
-            .Take(MaxTerms)
-            .ToList();
-
-        if (terms.Count == 0)
+        if (Terms(text) is not { } terms)
         {
             return null;
         }
@@ -59,5 +48,51 @@ internal static class FullTextQuery
         }
 
         return query.Append(" *").ToString();
+    }
+
+    /// <summary>
+    /// The same search in PostgreSQL's <c>tsquery</c> syntax (#1109): every word required, the last one as a prefix —
+    /// <c>'first' &amp; 'second':*</c>. Each word is a quoted lexeme, so nothing a reader types is read as an operator;
+    /// <c>to_tsquery</c> still normalises it through the text search configuration, as it does the indexed text.
+    /// </summary>
+    public static string? CompileTsQuery(string? text)
+    {
+        if (Terms(text) is not { } terms)
+        {
+            return null;
+        }
+
+        var query = new StringBuilder();
+        for (var i = 0; i < terms.Count; i++)
+        {
+            if (i > 0)
+            {
+                query.Append(" & ");
+            }
+
+            query.Append('\'')
+                .Append(terms[i].Replace("\\", "\\\\", StringComparison.Ordinal).Replace("'", "''", StringComparison.Ordinal))
+                .Append('\'');
+        }
+
+        return query.Append(":*").ToString();
+    }
+
+    // The words a search is made of, shared by every provider's syntax so "what counts as a word" cannot drift
+    // between them: runs of non-whitespace carrying at least one letter or digit, at most MaxTerms of them.
+    private static List<string>? Terms(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return null;
+        }
+
+        var terms = text
+            .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+            .Where(static term => term.Any(char.IsLetterOrDigit))
+            .Take(MaxTerms)
+            .ToList();
+
+        return terms.Count == 0 ? null : terms;
     }
 }

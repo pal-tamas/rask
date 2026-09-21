@@ -53,6 +53,7 @@
          without a public name nobody but a provider would ever type. -->
     <InternalsVisibleTo Include="Rask.SQLite.EntityFrameworkCore"/>
     <InternalsVisibleTo Include="Rask.Data.Tests"/>
+    <InternalsVisibleTo Include="Rask.Postgres"/>
   </ItemGroup>
 
   <!-- Ship the global `using Rask.Data;` to downstream consumers (mirrors Rask.Cqrs). -->

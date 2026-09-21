@@ -16,6 +16,24 @@ them until tagged releases begin.
   a live object. The connection string is `Rask:ConnectionStrings:Redis` (or the app's own
   `IConnectionMultiplexer`), each topic is the channel `rask:broadcast:{name}` (`Rask:Redis:ChannelPrefix`), and an
   instance drops its own message when Redis hands it back, so no page sees one twice.
+- **Full-text search on PostgreSQL** (#1109). `HasFullTextSearch`, `Search(text)` and `FullText.Highlight`/`Snippet`
+  now work through `UseRaskPostgres` as they do on SQLite. The index is a stored generated `tsvector` column with a
+  GIN index — no triggers — and a search is `@@ to_tsquery(…)` ranked by `ts_rank_cd`, highlighted by `ts_headline`
+  in the markers `UiHighlight` reads. `English` maps to PostgreSQL's `english` configuration and `Unicode` to a
+  `rask_unicode` configuration over `unaccent`, which the first migration that needs it creates. `AddRaskData` no
+  longer refuses to boot a PostgreSQL context that declares an index.
+- **`HasJsonIndex` indexes a value inside a JSON column** (#1112). `builder.HasJsonIndex(o => o.Meta.Status)` adds an
+  expression index whose expression is exactly the one EF Core writes for that path — `"Meta" ->> 'Status'`, or
+  `"Meta" ->> '$.Address.City'` one level down — so a filter on it is an index search instead of a scan. It
+  arrives, changes and goes through migrations and survives a table rebuild. SQLite only for now; another provider
+  refuses to boot a context that declares one.
+
+- **Full-text search in browser apps: `UseRaskFullTextSearch()`** (#1110). `HasFullTextSearch` and
+  `Search(text)` needed `UseRaskSqlite`, which a WebAssembly app does not use — it opens its local database
+  with `UseSqlite(BrowserSqlite.ConnectionString("app"))`. `.UseRaskFullTextSearch()` on any `UseSqlite`
+  registers only what search needs: the migration SQL that builds the FTS5 index, the annotation that makes
+  adding or removing it a migration, and the query rewrite. Called after `UseRaskSqlite` it keeps that call's
+  choices, `STRICT` tables included.
 
 - **`Rask.Data`: `Current` — the signed-in user with nothing injected.** A read or a write on a model is a
   static call, so a `Product.Create(…)` factory had no constructor to inject the user into. `Current.UserId`
@@ -202,6 +220,14 @@ them until tagged releases begin.
 
 ### Changed
 
+- **The dashboard's log search is served by an index** (#1111). It was `LIKE '%…%'` over every retained row. The
+  SQLite log store now keeps an FTS5 table with the `trigram` tokenizer beside the log, kept current by triggers, and
+  a search of three or more characters is a case-insensitive substring match looked up in it; a shorter one is the
+  scan it was. A `logs.db` from an earlier version is indexed once, the first time it is opened. Measured
+  (`SqliteLogSearchBenchmarks`, a rare order id): a page of results in 3.3 ms instead of 16.1 ms at 100,000 rows, and
+  12.8 ms instead of 112 ms at 500,000. The price is on the write side, which the batched background writer pays
+  rather than a request: about 30 µs more per entry (100 entries in 2.7–3.6 ms instead of 0.23 ms).
+
 - **The tutorial saves through commands and loads through queries.** Chapter 2's create, edit and delete
   pages send their Rask.Data writes through `QueryClient.Command()` — `IsPending` disables the button so a
   double click cannot write twice, and a failure lands on `Error` instead of a `try`/`catch` per page —
@@ -368,6 +394,10 @@ them until tagged releases begin.
   interceptors.
 
 ### Fixed
+
+- **Rask.Auth keeps an ended session's row for a day.** The hourly session sweep, which also runs when the host
+  starts, deleted every ended session straight away and gave only expired ones a day's grace, so a "signed out"
+  entry vanished from a device list at the next sweep. Ended sessions now get the same day.
 
 - **`Rask.Data`: inserting a tenant-scoped row from a signed-in page threw "No tenant is set".** Reads
   filtered by the signed-in user's tenant, but the insert stamp read only an explicit `Tenant.Use` scope, so a

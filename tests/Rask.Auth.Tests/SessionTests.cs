@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Rask.Wire;
 
 namespace Rask.Auth.Tests;
@@ -111,6 +112,32 @@ public sealed class SessionTests
         }
 
         Assert.Null(await ResumeUncachedAsync(harness, sessionId));
+    }
+
+    [Fact]
+    public async Task The_sweep_keeps_an_ended_session_for_a_day()
+    {
+        // The sweep also runs as the host starts. It used to delete every ended row at once, so one that ran late
+        // removed a session a device list was still meant to show as signed out.
+        var clock = new MutableClock(DateTimeOffset.UtcNow);
+        await using var harness = await ClaimedAsync(clock: clock);
+        var owner = (await harness.UserAsync(Owner))!;
+        var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, persistent: false);
+        await Sessions(harness).EndAsync(sessionId);
+        var sweep = harness.Services.GetServices<IHostedService>().OfType<SessionSweep<AuthDbContext>>().Single();
+
+        await sweep.SweepAsync(CancellationToken.None);
+        Assert.True(await RowExistsAsync(harness, sessionId));
+
+        clock.Advance(TimeSpan.FromDays(1) + TimeSpan.FromMinutes(1));
+        await sweep.SweepAsync(CancellationToken.None);
+        Assert.False(await RowExistsAsync(harness, sessionId));
+    }
+
+    private static async Task<bool> RowExistsAsync(AuthHarness harness, Guid sessionId)
+    {
+        await using var db = harness.NewContext();
+        return await db.Set<Session>().IgnoreQueryFilters().AnyAsync(s => s.Id == sessionId);
     }
 
     // The resume cache would otherwise answer from the first read for 30 seconds of wall-clock time.
