@@ -610,7 +610,7 @@ each links to its edit page.
 
 ### Choosing what a table carries
 
-Four `const`s narrow what Rask generates and maps for one entity. Each is read at compile time, so a wrong
+Five `const`s narrow what Rask generates and maps for one entity. Each is read at compile time, so a wrong
 value is an error at the declaration rather than a surprise at the call site — and leaving one off means the
 default, so an entity that says nothing is unchanged.
 
@@ -620,6 +620,7 @@ default, so an entity that says nothing is unchanged.
 | `Stamps` | `Timestamps` | `All` | `CreatedAt` and `UpdatedAt` |
 | `Deletes` | `Deletion` | `Hard` | whether `DeleteAsync` removes the row or stamps `DeletedAt` |
 | `Checks` | `Concurrency` | `Version` | the optimistic-concurrency token |
+| `Scope` | `Tenancy` | `Shared` | whether the table is partitioned by tenant — see [Multi-tenancy](#multi-tenancy) |
 
 ```csharp
 public sealed class Order : Aggregate<Guid>
@@ -760,6 +761,136 @@ inside another class** is a warning and gets no model ([RASK083](diagnostics.md#
 On the wire a model's properties are **camelCase**. Only validation attributes are copied from the aggregate, so a
 `[JsonPropertyName]` on the aggregate does not rename the model's property; a property you declare yourself on a
 `partial ProductModel` keeps its own pin.
+
+## Multi-tenancy
+
+One `const` partitions a table by tenant. Opt-in, so a table that says nothing is one table for everybody,
+exactly as it is today:
+
+```csharp
+public sealed class Invoice : Aggregate<Guid>
+{
+    public const Tenancy Scope = Tenancy.PerTenant;
+
+    public string Reference { get; private set; } = "";
+}
+```
+
+That gives the table a `TenantId` column, a query filter no read can compose away, and a `TenantId` prefix on
+every index it has. A child entity takes its root's answer and carries the column itself, because a child's
+read face is queryable on its own and would otherwise return every tenant's rows.
+
+### Where the tenant comes from
+
+**The signed-in user's.** The tenant is an outcome of authentication rather than an input to routing: signing
+in finds the user, and the user says which tenant they belong to. It travels on the `ClaimsPrincipal` as the
+`rask:tenant` claim, and the data layer reads it back — which is what lets a page do this with nothing passed
+to it:
+
+```csharp
+var invoices = await Invoice.Read.OrderByDescending(i => i.CreatedAt).Take(20).ToListAsync();
+```
+
+A restored session carries it too, so a reconnect comes back in the same tenant.
+
+### Saying which tenant explicitly
+
+```csharp
+using (Tenant.Use(acmeId))          // work as this tenant
+{
+    await Invoice.CreateAsync(model);
+}
+
+using (Tenant.Across())             // deliberately span tenants — an admin tool, a migration
+{
+    var total = await Invoice.Read.CountAsync();
+}
+```
+
+An explicit scope always beats the principal, which is what a background job relies on.
+
+### A read with no tenant throws
+
+```csharp
+await Invoice.Read.ToListAsync();   // InvalidOperationException, when nothing says which tenant
+```
+
+Deliberately, and it is the decision most worth understanding. Returning *nothing* would be safe against
+leaks and **indistinguishable from an empty database** — the failure that costs the most time to find.
+Returning *everything* would be the leak itself. So it refuses, and says how to say which tenant.
+
+### `IgnoreQueryFilters()` does not cross tenants
+
+```csharp
+await Invoice.Read.IgnoreQueryFilters().ToListAsync();   // includes soft-deleted; SAME tenant
+```
+
+It means "include soft-deleted rows" and leaves the tenant filter exactly where it is, so an existing call
+never quietly becomes a cross-tenant read the day an aggregate declares `Scope`. Crossing tenants is
+`Tenant.Across()` — one thing, greppable, that a reviewer can find.
+
+### Indexes are prefixed for you
+
+`HasIndex(p => p.Sku).IsUnique()` on a partitioned table would otherwise mean "no two tenants may ever use
+the same SKU", and the symptom is one tenant unable to create a row because a different tenant already has
+it, with nothing in the code saying so. Rask puts `TenantId` at the front of every index on a tenant-scoped
+entity, so uniqueness means *within this tenant* and the filtered query can use the index.
+
+### Writes stamp it, and it never moves
+
+A create records the tenant in flight; an update that would move a row to another tenant is refused. The
+column is never on the generated form model, so a post cannot set it.
+
+### Accounts and background work carry a tenant without being partitioned
+
+Two tables carry a tenant as **data** rather than as a partition, and both for a reason:
+
+- **Accounts.** An administrator belongs to no tenant. A partitioned table is stamped from the ambient tenant
+  and refused without one, so a `PerTenant` accounts table could not have an admin inserted into it at all.
+  `Rask.Auth` maps the tenant itself, and an address is unique *within* a tenant — so the same person can
+  hold an account at two companies.
+- **Queues.** An outbox message, a job and a queued mail each record the tenant they were enqueued for, and
+  the runner re-enters it before publishing, handling or sending. They must not be filtered: one runner
+  drains everybody's work, and a filter would hide other tenants' rows from it. A row enqueued by the host
+  itself, or inside `Tenant.Across()`, records no tenant, which is an ordinary answer rather than an error.
+
+### What it needs from the host
+
+The context passes itself to the conventions, and says it can answer which tenant:
+
+```csharp
+public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
+    : RaskDbContext(options)
+{
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.ApplyRaskConventions(this);   // `this`, so the filter can read the tenant
+    }
+}
+```
+
+`rask new` writes that. The argument is not decoration: a query filter is compiled into EF Core's **cached**
+model, so reading the tenant through a `static` is evaluated once and inlined into the SQL as a literal —
+the first tenant to run a query would pin that value for every tenant after it. Reaching it through the
+context makes EF lift it to a real parameter and re-bind it per query.
+
+The auditing interceptors must be registered, as they already must be for `CreatedAt`. Without them nothing
+stamps `TenantId`, every insert stores null, and the rows are invisible to every tenant — an empty result
+rather than an error.
+
+### On each provider
+
+| | SQLite | PostgreSQL | SQL Server |
+|---|---|---|---|
+| tenant filter | ✅ | ✅ | ✅ |
+| account uniqueness per tenant | ✅ | ✅ | ✅ |
+
+The accounts index is over a column that folds a null tenant to `Guid.Empty`, not over the nullable tenant
+itself, because **NULL in a unique index is not portable**: SQLite and PostgreSQL treat two NULLs as
+distinct — so any number of administrators could share one address — while SQL Server treats them as equal,
+so only one could. Same schema, three behaviours, and the kind that passes every test on the default
+provider. Folding the null away makes one ordinary index that behaves identically everywhere.
 
 ## Writing: plain EF Core
 
