@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
+using Rask.Data;
 
 namespace Rask.Cache;
 
@@ -19,11 +20,25 @@ public sealed class RaskDistributedCache<TContext>(
     where TContext : DbContext
 {
     /// <inheritdoc/>
+    // One cache, isolated per tenant by the KEY rather than by a query filter.
+    //
+    // A filter is the wrong tool here twice over. The purger has to sweep every tenant's expired rows, and a
+    // filter would hide them from it. And ASP.NET's own session and output caching write through this
+    // interface on requests that have no signed-in user at all — a partitioned table is stamped from the
+    // ambient tenant and refused without one, so an anonymous page with output caching would throw.
+    //
+    // Scoping the key instead makes the isolation exact rather than enforced: a tenant cannot form another
+    // tenant's key, so there is nothing to get wrong. With no tenant in flight the key is untouched, which is
+    // what keeps anonymous and framework caching working exactly as before.
+    private static string Scoped(string key) =>
+        Tenant.InFlight is { } tenant ? string.Concat(tenant.ToString("N"), ":", key) : key;
+
     public byte[]? Get(string key) => GetAsync(key).GetAwaiter().GetResult();
 
     /// <inheritdoc/>
     public async Task<byte[]?> GetAsync(string key, CancellationToken token = default)
     {
+        key = Scoped(key);
         ArgumentException.ThrowIfNullOrEmpty(key);
 
         await using var db = await contextFactory.CreateDbContextAsync(token).ConfigureAwait(false);
@@ -105,6 +120,7 @@ public sealed class RaskDistributedCache<TContext>(
     /// <inheritdoc/>
     public async Task RemoveAsync(string key, CancellationToken token = default)
     {
+        key = Scoped(key);
         ArgumentException.ThrowIfNullOrEmpty(key);
 
         await using var db = await contextFactory.CreateDbContextAsync(token).ConfigureAwait(false);
@@ -118,6 +134,7 @@ public sealed class RaskDistributedCache<TContext>(
     /// <inheritdoc/>
     public async Task SetAsync(string key, byte[] value, DistributedCacheEntryOptions options, CancellationToken token = default)
     {
+        key = Scoped(key);
         ArgumentException.ThrowIfNullOrEmpty(key);
         ArgumentNullException.ThrowIfNull(value);
         ArgumentNullException.ThrowIfNull(options);

@@ -88,8 +88,16 @@ them until tagged releases begin.
   non-deterministic, and the wrong tenant half the time. It now refuses, logs the reason for the operator,
   and answers as ordinary invalid credentials so the response says nothing about which addresses exist.
 
-  **Not wired up yet:** cache and storage do not carry a tenant, and an administrator cannot yet switch into
-  a tenant.
+  **The cache is isolated per tenant.** One cache, keyed per tenant: with a tenant in flight the key is
+  scoped to it, so `ICache` and `IDistributedCache` give each tenant its own value under the same name and
+  neither can read the other's. With no tenant the key is untouched, which is what keeps anonymous requests
+  working — ASP.NET session and output caching run through `IDistributedCache` with no signed-in user.
+
+  Isolated by the KEY rather than a query filter, deliberately: a filter would hide other tenants' expired
+  rows from the background purger, and would refuse an anonymous write outright. Scoping the key makes the
+  isolation exact rather than enforced — a tenant cannot form another tenant's key.
+
+  **Not wired up yet:** storage does not carry a tenant, and an administrator cannot yet switch into one.
 
 - **A collection of values on an aggregate is mapped, queryable and editable.** `IReadOnlyList<string> Tags`
   becomes a primitive collection and `IReadOnlyList<Stop> Stops` a JSON column, both carried on the form model
