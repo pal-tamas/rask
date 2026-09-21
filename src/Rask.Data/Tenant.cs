@@ -11,6 +11,10 @@ namespace Rask.Data;
 ///         <see cref="AsyncLocal{T}" />, so it follows an await without being handed on.
 ///     </para>
 ///     <para>
+///         This type holds the SCOPES — <see cref="Use" />, <see cref="Across" />, <see cref="None" />. Which
+///         tenant is in flight is read from <see cref="Rask.Data.Current.Tenant" />, beside the current user.
+///     </para>
+///     <para>
 ///         <b>A tenant-scoped read with no tenant set THROWS.</b> Returning nothing would be safe against
 ///         leaks and indistinguishable from an empty database, which is the failure this framework keeps
 ///         getting bitten by; returning everything would be the leak itself. A background job therefore
@@ -31,39 +35,12 @@ public static class Tenant
 
     private static readonly AsyncLocal<State> Ambient = new();
 
-    /// <summary>The tenant in flight, or <see langword="null" /> when none is set.</summary>
-    public static Guid? Current => Ambient.Value.Tenant;
-
     /// <summary>Whether the work in flight deliberately spans tenants — see <see cref="Across" />.</summary>
     public static bool IsAcrossTenants => Ambient.Value.Across;
 
-    /// <summary>
-    ///     The tenant this work belongs to, from whichever source knows, or <see langword="null" />. Never throws.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///         <see cref="Resolve" /> is for a query filter and throws when nothing says which tenant, because
-    ///         a tenant-scoped read with no tenant is a bug. This is for RECORDING one — an outbox message, a
-    ///         queued job, a mail — where "no tenant" is an ordinary answer: a system job enqueued at startup
-    ///         belongs to nobody, and refusing to write it would be wrong.
-    ///     </para>
-    ///     <para>
-    ///         Null inside <see cref="Across" /> too: work that deliberately spans tenants is not being done
-    ///         on behalf of any one of them, so a row it enqueues should not claim otherwise.
-    ///     </para>
-    /// </remarks>
-    public static Guid? InFlight =>
-        Ambient.Value.Across ? null : Ambient.Value.Tenant ?? Db.TenantFromScope();
-
-    /// <summary>
-    ///     The tenant in flight, or a thrown exception when there is none.
-    /// </summary>
-    /// <exception cref="InvalidOperationException">No tenant is set and <see cref="Across" /> is not open.</exception>
-    public static Guid Required =>
-        Current ?? throw new InvalidOperationException(
-            "No tenant is set, so a tenant-scoped table cannot be read or written. Open one with " +
-            "Tenant.Use(id) — a background job uses the tenant recorded on its own row — or say " +
-            "Tenant.Across() when the work deliberately spans tenants.");
+    /// <summary>The tenant an explicit <see cref="Use" /> scope set, ignoring the principal.</summary>
+    /// <remarks>The tenant in flight from every source is <see cref="Rask.Data.Current.Tenant" />.</remarks>
+    internal static Guid? Explicit => Ambient.Value.Tenant;
 
     /// <summary>
     ///     Makes <paramref name="tenant" /> the tenant until the returned scope is disposed.
@@ -107,17 +84,7 @@ public static class Tenant
     /// <exception cref="InvalidOperationException">
     ///     Nothing says which tenant: no scope is open and the principal carries no tenant.
     /// </exception>
-    public static Guid? Resolve()
-    {
-        var ambient = Ambient.Value;
-
-        if (ambient.Across)
-        {
-            return null;
-        }
-
-        return ambient.Tenant ?? Db.TenantFromScope() ?? Required;
-    }
+    public static Guid? Resolve() => Ambient.Value.Across ? null : Rask.Data.Current.RequiredTenant;
 
     private readonly record struct State(Guid? Tenant, bool Across);
 
@@ -150,7 +117,7 @@ public static class Tenant
 ///     <para>
 ///         Implement it on the application's context — <c>: DbContext, ITenantScoped</c> — and pass the
 ///         context to <c>modelBuilder.ApplyRaskConventions(this)</c>. Nothing needs writing: the default
-///         implementation reads <see cref="Tenant.Current" />.
+///         implementation reads <see cref="Current.Tenant" />.
 ///     </para>
 ///     <para>
 ///         <b>Why the filter goes through an instance member rather than reading the ambient directly.</b>

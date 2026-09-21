@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -134,8 +135,9 @@ public static class Db
     ///     <para>
     ///         It is not enough when the context needs something <b>scoped</b> to answer correctly — the
     ///         signed-in principal, and through it the tenant. The host opens this around the work of a live
-    ///         session, whose <c>IServiceScope</c> already holds that session's <c>IUserProvider</c>, and
-    ///         every read inside then builds its context from the same scope the user belongs to.
+    ///         session and around every HTTP request, whose <c>IServiceScope</c> already holds the
+    ///         <see cref="IPrincipalSource" /> for that user, and every read inside then builds its context from
+    ///         the same scope the user belongs to — and <see cref="Current" /> answers from it.
     ///     </para>
     ///     <para>
     ///         Additive on purpose: with no ambient scope open, nothing about how a context is built changes.
@@ -148,14 +150,14 @@ public static class Db
     }
 
     /// <summary>
-    ///     The signed-in principal's tenant, read from the scope <see cref="UseScope" /> opened, or null.
+    ///     The signed-in principal, read from the scope <see cref="UseScope" /> opened, or null.
     /// </summary>
     /// <remarks>
     ///     Resolved per call rather than captured, because the scope is the session's and the principal in it
-    ///     can change — an admin switching tenant is the case that matters.
+    ///     changes — a sign-in, a sign-out, an admin switching tenant.
     /// </remarks>
-    internal static Guid? TenantFromScope() =>
-        AmbientScope.Value?.GetService<ITenantSource>()?.Current;
+    internal static ClaimsPrincipal? PrincipalFromScope() =>
+        AmbientScope.Value?.GetService<IPrincipalSource>()?.Current;
 
     /// <summary>A fresh context the caller owns and disposes.</summary>
     /// <exception cref="InvalidOperationException">The model surface has not been configured.</exception>

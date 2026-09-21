@@ -148,9 +148,11 @@ internal static class RaskBatteryWiring
             // for the duration of its work; Rask.Server brackets with it, Rask.Data reads through it.
             services.AddSingleton<ISessionWorkScope, SessionDataScope>();
 
-            // Scoped, because the principal it reads is: this instance belongs to one session, and
-            // SessionDataScope above is what makes that session's provider reachable from a read.
-            services.AddScoped<ITenantSource, ClaimsTenantSource>();
+            // Scoped, because the principal it reads is: this instance belongs to one session or request, and
+            // SessionDataScope above (and the request middleware in RaskApp) is what makes it reachable from a
+            // read, a write's tenant stamp and Current.UserId.
+            services.AddScoped<ClaimsPrincipalSource>();
+            services.AddScoped<IPrincipalSource>(static sp => sp.GetRequiredService<ClaimsPrincipalSource>());
         }
 
         // On PostgreSQL or SQL Server the log goes into the application database (WireFor), so it is not wired here.

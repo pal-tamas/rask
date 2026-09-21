@@ -41,7 +41,7 @@ public abstract class Entity<TId> : IEntity
     /// </summary>
     /// <remarks>
     ///     <para>
-    ///         Stamped from <see cref="Tenant.Current" /> on insert and refused thereafter: a row does not
+    ///         Stamped from <see cref="Current.Tenant" /> on insert and refused thereafter: a row does not
     ///         move between tenants. It is never on the generated form model, so a post cannot set it.
     ///     </para>
     ///     <para>

@@ -9,6 +9,16 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Rask.Data`: `Current` — the signed-in user with nothing injected.** A read or a write on a model is a
+  static call, so a `Product.Create(…)` factory had no constructor to inject the user into. `Current.UserId`
+  / `Current.RequiredUserId` (the `NameIdentifier` claim, as a `Guid`), `Current.Principal` and
+  `Current.Tenant` / `Current.RequiredTenant` now answer from anywhere, and `Current.UseUser(id)` scopes it by
+  hand. They are set for a live session's work, for **every HTTP request** (a minimal API, a controller, a
+  CQRS endpoint — a Rask app now makes the request's services ambient after authentication, reading
+  `HttpContext.User`), and for a **background job**, which records `UserId` at enqueue and runs its handler as
+  that user. The user is an id, not the `User` row: loading it is a query the caller should see.
+  `docs/data.md` gains *The current user*.
+
 - **`Rask.Data`: `Deletion.None` — an aggregate that is never deleted.** Every aggregate got a
   `DeleteAsync(id)`, whatever it was: an invoice, a payment or a ledger entry is corrected by a new record
   and an order is cancelled, so a generated delete was a way to lose one by mistake. Declare
@@ -156,6 +166,16 @@ them until tagged releases begin.
 
 ### Changed
 
+- **`Rask.Data`: which tenant is in flight is `Current.Tenant`; `Tenant` keeps only the scopes.**
+  `Tenant.Current`, `Tenant.InFlight` and `Tenant.Required` are gone — read `Current.Tenant` /
+  `Current.RequiredTenant` (explicit `Tenant.Use` first, then the signed-in user's claim, `null` inside
+  `Tenant.Across()`). `Tenant.Use` / `Across` / `None` are unchanged. The host seam `ITenantSource` is now
+  `IPrincipalSource`, which hands over the whole `ClaimsPrincipal` so the user and the tenant come from one
+  place.
+- **`Rask.Jobs`: the `Job` table has a `UserId` column** — the user a job runs for. Run
+  `rask db add AddJobUser && rask db update`; until then the processor logs exactly that, instead of the
+  generic "cycle failed", once a pending job is loaded.
+
 - **`Rask.Query`: a query follows its inputs, from `Render`, a property or the constructor — and needs
   nothing injected** (breaking: `Query<T>.SetMessage` is gone). A query built once kept showing page one
   for ever unless `OnPropsChanged` re-pointed it by hand, and every component had to take `IQueryClient`
@@ -258,6 +278,10 @@ them until tagged releases begin.
   interceptors.
 
 ### Fixed
+
+- **`Rask.Data`: inserting a tenant-scoped row from a signed-in page threw "No tenant is set".** Reads
+  filtered by the signed-in user's tenant, but the insert stamp read only an explicit `Tenant.Use` scope, so a
+  page could list its tenant's rows and not add one. The stamp now reads the same tenant the filter does.
 
 - **Sign-in throttling holds under concurrent guesses** (#1121). The throttle checked the limit and counted a
   failure in two separate steps, so wrong passwords fired together all passed the check before any was

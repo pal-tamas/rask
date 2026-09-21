@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Rask.Data;
 
 namespace Rask.Jobs.Tests;
 
@@ -85,6 +86,18 @@ public sealed class RecordJobHandler(Recorder recorder) : ICommandHandler<Record
     public Task HandleAsync(RecordJob command, CancellationToken cancellationToken)
     {
         recorder.Add(command.Value);
+        return Task.CompletedTask;
+    }
+}
+
+/// <summary>Records who the handler ran for, as <c>Current.UserId</c> sees it.</summary>
+public sealed record WhoAmIJob(string Tag) : IBackgroundJob;
+
+public sealed class WhoAmIJobHandler(Recorder recorder) : ICommandHandler<WhoAmIJob>
+{
+    public Task HandleAsync(WhoAmIJob command, CancellationToken cancellationToken)
+    {
+        recorder.Add($"{command.Tag}:{Current.UserId?.ToString() ?? "nobody"}");
         return Task.CompletedTask;
     }
 }

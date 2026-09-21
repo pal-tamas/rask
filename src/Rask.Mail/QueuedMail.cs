@@ -85,7 +85,7 @@ public sealed class QueuedMail : Entity<long>
     ///     the row may say which tenant it belongs to. Null when there is none — mail sent by the host
     ///     itself belongs to nobody.
     /// </remarks>
-    internal void RecordQueuedTenant() => RecordTenant(Tenant.InFlight);
+    internal void RecordQueuedTenant() => RecordTenant(Current.Tenant);
 }
 
 /// <summary>The EF Core mapping for <see cref="QueuedMail"/>.</summary>

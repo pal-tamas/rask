@@ -82,7 +82,7 @@ public sealed class StoredFile : Entity<Guid>
 
         // And which tenant it belongs to, for the same reason: the interceptors may not be there. Null when
         // there is none, which is an ordinary answer — a file saved by the host itself belongs to nobody.
-        file.RecordTenant(Tenant.InFlight);
+        file.RecordTenant(Current.Tenant);
         return file;
     }
 }

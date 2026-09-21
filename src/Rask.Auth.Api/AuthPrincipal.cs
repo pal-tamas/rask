@@ -35,7 +35,7 @@ internal static class AuthPrincipal
         }
 
         // The tenant travels ON THE PRINCIPAL, which is what lets a read filter correctly without anything
-        // being passed to it: the data layer reads this claim through ITenantSource. An administrator has no
+        // being passed to it: the data layer reads this claim through IPrincipalSource. An administrator has no
         // tenant and so carries no claim, and every tenant-scoped read then throws until they choose one.
         if (tenantId is { } tenant)
         {
