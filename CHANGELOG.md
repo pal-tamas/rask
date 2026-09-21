@@ -191,6 +191,12 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **Sign-in throttling holds under concurrent guesses** (#1121). The throttle checked the limit and counted a
+  failure in two separate steps, so wrong passwords fired together all passed the check before any was
+  counted: with `SignInAttemptsPerMinute = 3`, 24 parallel guesses got 12 tries. Password sign-in and password
+  reset now check and count in one step, and an attempt that runs counts against the attempts beside it.
+  Registration and passkey sign-in, whose throttle key is the client alone, still count only a failure, so an
+  office behind one address can register together. A success that raced a failure no longer loses that count.
 - **A client registered concurrently no longer drops a notification** (#1123). `AddRaskCqrsClient` marked
   its invokers installed before installing them, so a second registration racing the first could publish
   while the notification invoker was only half installed, and the message never reached the server.

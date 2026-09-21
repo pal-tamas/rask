@@ -88,6 +88,97 @@ public sealed class AccountServiceTests
     }
 
     [Fact]
+    public async Task Concurrent_wrong_passwords_cannot_outrun_the_throttle()
+    {
+        // #1121: the throttle was checked and counted in two steps, so guesses fired together all passed the
+        // check before any of them was counted — a guesser who parallelised got as many tries as they liked.
+        await using var harness = await ClaimedAsync(o => o.SignInAttemptsPerMinute = 3);
+
+        var results = await Task.WhenAll(Enumerable.Range(0, 24).Select(_ =>
+            Task.Run(() => SignInAsync(harness, "owner@example.com", "WrongPassword1", client: "10.0.0.1"))));
+
+        Assert.Equal(3, results.Count(r => r.Error == AuthError.InvalidCredentials));
+        Assert.Equal(21, results.Count(r => r.Error == AuthError.TooManyAttempts));
+    }
+
+    [Fact]
+    public void An_attempt_that_did_not_fail_is_handed_back()
+    {
+        var throttle = new AuthThrottle(TimeProvider.System) { Limit = 2 };
+
+        for (var i = 0; i < 5; i++)
+        {
+            using var attempt = throttle.Begin("k");
+            Assert.False(attempt.IsThrottled);
+        }
+
+        throttle.Begin("k").Fail();
+        throttle.Begin("k").Fail();
+        Assert.True(throttle.Begin("k").IsThrottled);
+    }
+
+    [Fact]
+    public void An_open_attempt_counts_against_the_attempts_running_beside_it()
+    {
+        var throttle = new AuthThrottle(TimeProvider.System) { Limit = 2 };
+
+        using var first = throttle.Begin("k");
+        using var second = throttle.Begin("k");
+
+        Assert.True(throttle.Begin("k").IsThrottled);
+    }
+
+    [Fact]
+    public void A_checked_attempt_counts_only_when_it_fails()
+    {
+        var throttle = new AuthThrottle(TimeProvider.System) { Limit = 2 };
+
+        using var first = throttle.Check("k");
+        using var second = throttle.Check("k");
+        using var third = throttle.Check("k");
+        Assert.False(third.IsThrottled);
+
+        first.Fail();
+        second.Fail();
+        Assert.True(throttle.Check("k").IsThrottled);
+    }
+
+    [Fact]
+    public void A_success_keeps_the_guesses_still_running_beside_it()
+    {
+        // The owner signs in while a guess from the same client is still being checked. The success forgets
+        // the failures BEFORE it; the guess that fails after it must still count.
+        var throttle = new AuthThrottle(TimeProvider.System) { Limit = 2 };
+
+        var guess = throttle.Begin("k");
+        using (var owner = throttle.Begin("k"))
+        {
+            owner.Succeed();
+        }
+
+        guess.Fail();
+
+        Assert.False(throttle.Begin("k").IsThrottled);
+        Assert.True(throttle.Begin("k").IsThrottled);
+    }
+
+    [Fact]
+    public void A_success_clears_every_failure_and_disposing_it_takes_nothing_else()
+    {
+        var throttle = new AuthThrottle(TimeProvider.System) { Limit = 2 };
+        throttle.Begin("k").Fail();
+
+        using (var winner = throttle.Begin("k"))
+        {
+            winner.Succeed();
+        }
+
+        throttle.Begin("k").Fail();
+        throttle.Begin("k").Fail();
+        Assert.True(throttle.Begin("k").IsThrottled);
+    }
+
+    [Fact]
     public async Task A_successful_sign_in_clears_the_failures_before_it()
     {
         await using var harness = await ClaimedAsync(o => o.SignInAttemptsPerMinute = 3);
