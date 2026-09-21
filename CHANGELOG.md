@@ -189,6 +189,12 @@ them until tagged releases begin.
   of every file response, and `Rask.Storage` can be pointed at a `DbContext` carrying none of Rask's
   interceptors.
 
+### Fixed
+
+- **A client registered concurrently no longer drops a notification** (#1123). `AddRaskCqrsClient` marked
+  its invokers installed before installing them, so a second registration racing the first could publish
+  while the notification invoker was only half installed, and the message never reached the server.
+
 ## [0.23.0] - 2026-09-18
 
 ### Added

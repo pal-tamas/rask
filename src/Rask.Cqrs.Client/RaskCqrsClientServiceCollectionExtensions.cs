@@ -78,6 +78,11 @@ public static class RaskCqrsClientServiceCollectionExtensions
     // Registered through CqrsRegistry's manual path, which the registry applies last when it rebuilds —
     // so a remote invoker deterministically wins over the generated local one rather than depending on
     // module-initializer order.
+    //
+    // The gate is held across the WHOLE install, not just the flag. Flipping the flag first and installing
+    // after let a second caller — a concurrent test, a host building two containers in parallel — see
+    // "installed", return, and publish while the first was still mid-loop: that publish reached only the
+    // generated local invoker and never travelled (#1123).
     private static void InstallRemoteInvokers()
     {
         lock (InstallGate)
@@ -87,21 +92,21 @@ public static class RaskCqrsClientServiceCollectionExtensions
                 return;
             }
 
+            foreach (var contract in RemoteContractRegistry.All)
+            {
+                if (contract.Kind == RemoteMessageKind.Notification)
+                {
+                    InstallNotification(contract);
+                    continue;
+                }
+
+                if (contract.Invoker is { } invoker)
+                {
+                    CqrsRegistry.RegisterRequest(contract.MessageType, invoker);
+                }
+            }
+
             _invokersInstalled = true;
-        }
-
-        foreach (var contract in RemoteContractRegistry.All)
-        {
-            if (contract.Kind == RemoteMessageKind.Notification)
-            {
-                InstallNotification(contract);
-                continue;
-            }
-
-            if (contract.Invoker is { } invoker)
-            {
-                CqrsRegistry.RegisterRequest(contract.MessageType, invoker);
-            }
         }
     }
 
