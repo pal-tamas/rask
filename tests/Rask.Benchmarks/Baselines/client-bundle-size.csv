@@ -1,5 +1,26 @@
 # The client runtimes every visitor downloads, in bytes, RELEASE (esbuild --minify).
 #
+# Refreshed 2026-09-21 after ELEVEN DAYS of client work went unmeasured: rask.js 85,264 -> 102,116 and
+# rask.wasm.js 86,174 -> 99,450, about +20% and +15%. Nothing regressed suddenly — the numbers had not
+# been taken since 2026-09-10, and the only commit to touch this file since was a repo-wide path move, so
+# the figures above it were older than that. This gate runs BY HAND (CLAUDE.md: "in no hook and no CI"),
+# which is exactly how it drifted, and is the same failure this file's own note below describes.
+#
+# Where the bytes came from — +75,381 bytes of TypeScript source, all shipped features:
+#   rask-dom.ts             +26,799   the DOM/morph layer
+#   rask-http-transport.ts  +18,467   the live transport's HTTP fallback
+#   browser/auth.ts          +7,265   sign in with a passkey
+#   rask-loading.ts          +6,419   a button waiting on its handler
+#   rask-dom-path.ts         +5,500
+#   rask-morph.ts            +3,570
+#   rask-deverror.ts         +3,463
+#
+# Checked while refreshing, so it is not re-derived next time: DevTools is NOT in the production bundle
+# (zero references). The dev error overlay IS — rask.ts imports rask-deverror.js statically, so every
+# production visitor downloads an overlay only Development ever shows. Small, but dev-only code in the
+# runtime everyone downloads, and inconsistent with DevTools, which is excluded. A dynamic import would
+# drop it; that is a separate change, deliberately not folded in here.
+#
 # Refreshed when the shipped modules were made SELF-CONTAINED — each declaring the vendor shapes it
 # needs instead of leaning on rask-window.d.ts, which never leaves the framework. That is real
 # runtime code (a helper per module to hold the cast), not erased types: +191 and +132 bytes.
@@ -17,5 +38,5 @@
 # Build RELEASE before measuring. rask.wasm.js is written into a source directory, and a Debug build
 # overwrites it with an unminified file — measuring that reports a regression that is not real.
 bundle,bytes
-rask.js,85264
-rask.wasm.js,86174
+rask.js,102116
+rask.wasm.js,99450
