@@ -1657,6 +1657,8 @@ div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .tex
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 div
+div .fieldset
+label .fieldset-legend
 input .file-input .mb-3 .validator
 div .text-sm .text-ui-muted
 

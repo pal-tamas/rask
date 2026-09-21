@@ -27,6 +27,19 @@ public partial class UiSidebarRailTests : global::Rask.Core.RaskMarkup
         ].ToHtml();
 
     [Fact]
+    public void Everything_the_rail_strips_to_an_icon_keeps_its_name_as_a_title()
+    {
+        // #1119: collapsed to the rail, a nav link is an icon and nothing else. Its title is the tooltip the rail
+        // shows, and the accessible name the link falls back to once its words are display:none — a CSS tooltip
+        // would be clipped by the panel, which hides its overflow.
+        var html = Sidebar(collapsable: true);
+
+        Assert.Matches("<a [^>]*title=\"Overview\"", html);
+        Assert.Matches("<a [^>]*title=\"Rask\"", html);
+        Assert.Contains("title=\"Ada Lovelace\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_sidebar_that_cannot_collapse_carries_no_rail_checkbox()
     {
         // A stray input nobody can reach is a tab stop nobody asked for, and an id another page element could

@@ -50,8 +50,9 @@ public sealed partial class UiBrand : Component
 
         // A generated route navigates inside the app; a string is an ordinary link — the path base is not added to
         // it, so a brand pointing at "#" or at another site stays exactly that (#1070).
+        // `title` for the rail and the phone, where the wordmark is hidden: see UiNavItem for why not a CSS tooltip.
         return Href.PageType is null
-            ? A.Href(Href.ToString()).Class(classes)[content]
-            : NavLink.Href(Href).Class(classes)[content];
+            ? A.Href(Href.ToString()).Class(classes).Title(Label)[content]
+            : NavLink.Href(Href).Class(classes).Title(Label)[content];
     }
 }

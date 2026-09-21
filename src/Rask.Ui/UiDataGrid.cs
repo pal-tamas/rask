@@ -100,7 +100,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     ///     </para>
     ///     <para>
     ///         Not <c>Key</c>: that is already the chain's step for reconciliation identity — which
-    ///         instance of the GRID is being built — and has to be able to come first (RASK046). This one
+    ///         instance of the GRID is being built. This one
     ///         is about the rows inside it.
     ///     </para>
     ///     <para>

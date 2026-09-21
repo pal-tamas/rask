@@ -462,3 +462,7 @@ static RaskEntriesRask_Dashboard.SystemPage.get -> Rask.Dashboard.Pages.SystemPa
 ~override Rask.Dashboard.Panels.CacheStats.ToString() -> string
 ~override Rask.Dashboard.Panels.QueueCounts.Equals(object obj) -> bool
 ~override Rask.Dashboard.Panels.QueueCounts.ToString() -> string
+static RaskBuilderSettersRask_Dashboard.__RaskCopyWritten_Rask_Dashboard_Pages_CachePage(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Dashboard.__RaskCopyWritten_Rask_Dashboard_Pages_LogsPage(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Dashboard.__RaskCopyWritten_Rask_Dashboard_Pages_QueuePage(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Dashboard.__RaskCopyWritten_Rask_Dashboard_Pages_StoragePage(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void

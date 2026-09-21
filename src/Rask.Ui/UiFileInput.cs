@@ -27,13 +27,8 @@ namespace Rask.Ui;
 /// dragged over it, because no CSS state says "something is being dragged here".
 /// </para>
 /// </remarks>
-public sealed partial class UiFileInput : Component, IFormControl<string>
+public sealed partial class UiFileInput : UiFormField<string>
 {
-    /// <summary>
-    ///     daisyUI and MaryUI both call this <c>label</c>. Free to use here because this component renders no
-    ///     &lt;label&gt; element of its own — where one does, the property is AccessibleLabel instead.
-    /// </summary>
-    public required string Label { get; set; }
 
     /// <summary>
     ///     The chosen files themselves, for reading or uploading. Fires in both modes, and with an empty
@@ -55,20 +50,6 @@ public sealed partial class UiFileInput : Component, IFormControl<string>
     /// </summary>
     public string? Accept { get; set; }
 
-    public UiTone? Tone { get; set; }
-
-    /// <summary>
-    ///     daisyUI defines only <see cref="UiVariant.Ghost" /> for a file input. The rest draw the
-    ///     default rather than a class that does nothing.
-    /// </summary>
-    public UiVariant? Variant { get; set; }
-
-    public UiSize? Size { get; set; }
-
-    public bool? Disabled { get; set; }
-
-    public string? Class { get; set; }
-
     /// <summary>
     ///     Draws a large area to drop files on, or click, in place of the compact box. The words in it come
     ///     from <see cref="Heading" /> and <see cref="Text" />.
@@ -83,35 +64,20 @@ public sealed partial class UiFileInput : Component, IFormControl<string>
 
     /// <summary>
     ///     The smaller line under the heading — what is accepted and how much. Linked to the input as its
-    ///     description when the control has an <see cref="Id" />, since the input is what a screen reader
-    ///     lands on and the words are drawn beside it rather than inside it.
+    ///     description, since the input is what a screen reader lands on and the words are drawn beside it
+    ///     rather than inside it.
     /// </summary>
     public string? Text { get; set; }
 
-    /// <inheritdoc cref="Element.Id" />
-    public string? Id { get; set; }
 
-    /// <inheritdoc />
-    /// <remarks>The name of the chosen file. Reported, never drawn — see the type's own remarks.</remarks>
-    public string? Value { get; set; }
-
-    /// <inheritdoc />
-    public Callback<string>? OnChange { get; set; }
 
 
     /// <inheritdoc />
-    public Expression<Func<string>>? Bind { get; set; }
+    // The dropzone's heading IS its caption, so the field draws no legend over it.
+    private protected override bool LabelsItself => Dropzone == true;
 
     /// <inheritdoc />
-    public Validator<string>? Validate { get; set; }
-
-
-    /// <inheritdoc />
-    public Callback<string>? AfterBind { get; set; }
-
-
-    /// <inheritdoc />
-    protected override Component? Render()
+    protected override Component Control()
     {
         var (acc, ctx, _) = UiFormCommit.Resolve<string>(this);
 
@@ -120,7 +86,7 @@ public sealed partial class UiFileInput : Component, IFormControl<string>
         // instead of by Input<T>, and the box is left for the platform to fill.
         var input = Input
             .Of<string>()
-            .Id(Id)
+            .Id(FieldId)
             .OnFiles(async files =>
             {
                 if (OnFiles?.Invoke(files) is { } handler)
@@ -134,7 +100,7 @@ public sealed partial class UiFileInput : Component, IFormControl<string>
             .Type(InputType.File)
             .Multiple(Multiple == true)
             .Accept(Accept ?? string.Empty)
-            .Aria(Aria(Dropzone == true && Text is not null && Id is not null ? Id + "-text" : null))
+            .Aria(Aria())
             .Disabled(Disabled == true);
 
         if (Dropzone != true)
@@ -163,31 +129,40 @@ public sealed partial class UiFileInput : Component, IFormControl<string>
                       + "data-[dragging]:bg-primary/5",
                 Class))[
             UiIcon.Name(UiIconName.Upload).Class("mb-1 size-8 text-ui-muted"),
-            P.Class("text-sm font-medium")[Heading ?? Label],
+            P.Class("text-sm font-medium")[Heading ?? Label ?? AccessibleLabel, BadgeFor()],
             Text is null
                 ? null
-                : P.Id(Id is null ? null : Id + "-text").Class("text-xs text-ui-muted")[Text],
+                : P.Id(TextId).Class("text-xs text-ui-muted")[Text],
             input.Class(Disabled == true
                 ? "validator absolute inset-0 size-full cursor-not-allowed opacity-0"
                 : "validator absolute inset-0 size-full cursor-pointer opacity-0")
         ];
     }
 
-    // aria-invalid is what makes daisyUI reveal a following UiValidator, and what a screen reader needs: a field
-    // that is visibly red and says nothing is half a message. It is OMITTED rather than nulled — a null renders
-    // the attribute valueless, and a valueless aria-invalid reads as "true", which would mark every field in the
-    // kit invalid.
-    private Dictionary<string, string?> Aria(string? describedBy)
+    private string TextId => FieldId + "-text";
+
+    // The field's name, invalid state and description from the base, as every kit field has them. A dropzone
+    // draws no legend (LabelsItself), so its visible heading cannot name the input through a <label>: the Label
+    // becomes its accessible name directly, and the dropzone's own text describes it ahead of the field's
+    // hint and messages.
+    private Dictionary<string, string?> Aria()
     {
-        var aria = new Dictionary<string, string?> { ["label"] = Label };
-        if (Tone == UiTone.Error)
+        var aria = ControlAria();
+        if (Dropzone != true)
         {
-            aria["invalid"] = "true";
+            return aria;
         }
 
-        if (describedBy is not null)
+        if (Label is { } label)
         {
-            aria["describedby"] = describedBy;
+            aria["label"] = label;
+        }
+
+        if (Text is not null)
+        {
+            aria["describedby"] = aria.TryGetValue("describedby", out var more) && more is not null
+                ? TextId + " " + more
+                : TextId;
         }
 
         return aria;

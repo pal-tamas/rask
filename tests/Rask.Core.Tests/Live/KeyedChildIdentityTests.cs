@@ -62,6 +62,66 @@ public class KeyedChildIdentityTests
         Assert.Equal(Rows((3, 3), (2, 2), (1, 1)), list.RenderAsLiveRoot());
     }
 
+    [Fact]
+    public void KeyWrittenLast_StillKeepsTheInstance_AndItsSteps()
+    {
+        // #1118: the steps written before Key land on the provisional instance; when the key claims the one
+        // that mounted before, they are carried across. A reorder therefore keeps both the instance AND
+        // the values this render wrote — before the fix the kept row showed the Id it was first built with.
+        KeyedRow.MountCount = 0;
+        var list = new KeyLastList();
+        list.Ids.AddRange([1, 2, 3]);
+
+        Assert.Equal(Rows((1, 1), (2, 2), (3, 3)), list.RenderAsLiveRoot());
+
+        list.Ids.Reverse();
+        Assert.Equal(Rows((3, 3), (2, 2), (1, 1)), list.RenderAsLiveRoot());
+
+        list.Ids.Insert(0, 9);
+        Assert.Equal(Rows((9, 4), (3, 3), (2, 2), (1, 1)), list.RenderAsLiveRoot());
+    }
+
+    [Fact]
+    public void KeyWrittenLast_AfterAStepThatBuildsAnotherChild_RefilesTheRightSlot()
+    {
+        // A step's ARGUMENT can itself be a chain — here an element built between the row's entry and its
+        // Key. That entry moves the parent's "last child slot" onto itself, so the claim must re-file the
+        // row's OWN slot rather than whichever was filed last, or the kept row is never seen as alive and is
+        // torn down under the item it belongs to.
+        SlottedRow.MountCount = 0;
+        SlottedRow.Unmounts = 0;
+        var list = new SlottedList();
+        list.Ids.AddRange([1, 2]);
+
+        list.RenderAsLiveRoot();
+        list.Ids.Reverse();
+        var html = list.RenderAsLiveRoot();
+
+        Assert.Contains("2:2", html, StringComparison.Ordinal);
+        Assert.Contains("1:1", html, StringComparison.Ordinal);
+        Assert.Equal(0, SlottedRow.Unmounts);
+    }
+
+    [Fact]
+    public void KeyWrittenAfterTheChildren_KeepsTheChildren_AndClaimsUnderTheRowsOwnType()
+    {
+        // `Row.Id(id)[body].Key(id)`: the indexer hands back Component, so this Key is the generic one over
+        // Component. The claim must still file the row under ITS type, and carry the children the indexer
+        // already wrote rather than clearing them on the instance it keeps (#1118 review).
+        SlottedRow.MountCount = 0;
+        SlottedRow.Unmounts = 0;
+        var list = new ChildrenFirstList();
+        list.Ids.AddRange([1, 2]);
+
+        list.RenderAsLiveRoot();
+        list.Ids.Reverse();
+        var html = list.RenderAsLiveRoot();
+
+        Assert.Contains("2:2<b>body 2</b>", html, StringComparison.Ordinal);
+        Assert.Contains("1:1<b>body 1</b>", html, StringComparison.Ordinal);
+        Assert.Equal(0, SlottedRow.Unmounts);
+    }
+
     // The Key step also emits data-rask-key, so spell the expected HTML once here and keep the
     // assertions about which INSTANCE each item is holding.
     private static string Rows(params (int Id, int Instance)[] rows) =>
@@ -76,10 +136,55 @@ public sealed partial class KeyedList : Component
     public List<int> Ids { get; } = [];
 
     protected override Component? Render() =>
-        // Key opens the chain — it decides which instance is being built (RASK046). The pending-required
-        // state carries a Key step of its own for exactly this, so a row with required props can still
-        // settle its identity before anything is written to it.
+        // Key first, the way it reads best: it names which item this is. KeyLastList below writes it last,
+        // which is just as correct since #1118.
         Div[Ids.Select(id => (Component)global::RaskEntriesRask_Core_Tests.KeyedRow.Key(id).Id(id))];
+}
+
+/// <summary>The same rows with Key written LAST (#1118).</summary>
+public sealed partial class KeyLastList : Component
+{
+    public List<int> Ids { get; } = [];
+
+    protected override Component? Render() =>
+        Div[Ids.Select(id => (Component)global::RaskEntriesRask_Core_Tests.KeyedRow.Id(id).Key(id))];
+}
+
+/// <summary>Key written last, after a step whose argument is itself built by an entry.</summary>
+public sealed partial class SlottedList : Component
+{
+    public List<int> Ids { get; } = [];
+
+    protected override Component? Render() =>
+        Div[Ids.Select(id => (Component)global::RaskEntriesRask_Core_Tests.SlottedRow.Id(id).Badge(Span["b"]).Key(id))];
+}
+
+/// <summary>Children through the indexer, THEN Key — the generic Key over Component.</summary>
+public sealed partial class ChildrenFirstList : Component
+{
+    public List<int> Ids { get; } = [];
+
+    protected override Component? Render() =>
+        Div[Ids.Select(id => global::RaskEntriesRask_Core_Tests.SlottedRow.Id(id)[B[$"body {id}"]].Key(id))];
+}
+
+/// <summary>A keyed row with a component-valued prop, counting its mounts and unmounts.</summary>
+public sealed partial class SlottedRow : Component
+{
+    internal static int MountCount;
+    internal static int Unmounts;
+
+    private int _instance;
+
+    public required int Id { get; set; }
+
+    public Component? Badge { get; set; }
+
+    protected override void OnMount() => _instance = ++MountCount;
+
+    protected override void OnUnmount() => Unmounts++;
+
+    protected override Component? Render() => I[$"{Id}:{_instance}", Badge, Children ?? []];
 }
 
 /// <summary>

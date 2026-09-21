@@ -83,7 +83,7 @@ public sealed partial class UiKitDataInputDemo : Component
                     .Resize(UiResize.None)
                     .Hint("Anything else? The box grows as you type.")
                     .OnChange(v => { _notes = v; }),
-                UiSelect.Value(_country).Key("country")
+                UiSelect.Key("country").Value(_country)
                     .Options([("hu", "Hungary"), ("gb", "United Kingdom")])
                     .Label("Country")
                     .Placeholder("Choose…")
@@ -98,7 +98,7 @@ public sealed partial class UiKitDataInputDemo : Component
             + "overflow:hidden ancestor, which the box below is. The drawn list needs the runtime.",
             Div.Data(Testid("ui-select")).Class("grid gap-3 sm:grid-cols-2")[
                 Div.Class("h-24 overflow-hidden rounded-xl border border-base-300 p-3")[
-                    UiSelect.Value(_framework).Key("fw")
+                    UiSelect.Key("fw").Value(_framework)
                         .Options([
                             ("core", "Rask.Core"), ("ui", "Rask.Ui"), ("cli", "Rask.Cli"),
                             ("blazor", "Rask.Blazor"), ("ext", "Rask.External")
@@ -123,7 +123,7 @@ public sealed partial class UiKitDataInputDemo : Component
             + "what a match is when the words shown are not the whole answer; this one searches the "
             + "country CODE as well. Clearable puts the field back to nothing chosen.",
             Div.Data(Testid("ui-select-search")).Class("grid gap-3 sm:grid-cols-2")[
-                UiSelect.Value(_home).Key("home")
+                UiSelect.Key("home").Value(_home)
                     .Options(Countries)
                     .Label("Country")
                     .Placeholder("Search countries")
@@ -147,7 +147,7 @@ public sealed partial class UiKitDataInputDemo : Component
             + "chips you can remove one at a time, keeps the list open while you pick, and adds the "
             + "search box and select-all a long list needs.",
             Div.Data(Testid("ui-multiselect")).Class("grid gap-3 sm:grid-cols-2")[
-                UiSelect.Values(_packages).Key("pkgs")
+                UiSelect.Key("pkgs").Values(_packages)
                     .Options([
                         ("core", "Rask.Core"), ("ui", "Rask.Ui"), ("cli", "Rask.Cli"),
                         ("blazor", "Rask.Blazor"), ("ext", "Rask.External")
@@ -257,7 +257,8 @@ public sealed partial class UiKitDataInputDemo : Component
             "One input drawn as several. Per-digit boxes need script to move focus, defeat the "
             + "browser's SMS autofill, and drop a pasted code entirely into the first box.",
             Div.Data(Testid("ui-otp")).Class("space-y-2")[
-                UiOtp.Value(_code).Key("otp").Label("Verification code").Length(6).Joined(true)
+                UiOtp.Key("otp").Value(_code).Length(6).Label("Verification code").Joined(true)
+                    .Hint("Six digits, sent to your phone.")
                     .Tone(UiTone.Primary).OnChange(v => { _code = v; }),
                 P.Class("text-sm text-ui-muted").Data(Testid("ui-otp-state"))[
                     _code.Length == 6 ? "Code complete." : $"{_code.Length} of 6 entered."

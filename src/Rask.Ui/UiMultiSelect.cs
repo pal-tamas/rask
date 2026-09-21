@@ -34,7 +34,7 @@ namespace Rask.Ui;
 // `UiSelect.Bind(() => model.Tags)` is this one. The model already says which it is — a value or a collection
 // of them — so the page never chooses between two component names, and the openings are told apart by type.
 [RaskChainEntry("UiSelect")]
-public sealed partial class UiMultiSelect<T> : Component, IFormControl<ICollection<T>>
+public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
 {
     // How many chips the box shows before it collapses the rest into "+N more". Chips(0) turns them off
     // entirely and leaves the count on its own.
@@ -49,13 +49,10 @@ public sealed partial class UiMultiSelect<T> : Component, IFormControl<ICollecti
     private int _cursor = -1;
     private string? _filter;
 
-    /// <summary>The accessible name.</summary>
-    public required string Label { get; set; }
-
     /// <summary>The options: the values stored, and the words shown.</summary>
     /// <remarks>
     ///     Not the step that pins <typeparamref name="T" /> — the chain's OPENING does that, and for a
-    ///     form control the opening is <see cref="Value" /> or <see cref="Bind" />, which fix the type
+    ///     form control the opening is <see cref="UiFormField{T}.Value" /> or <see cref="UiFormField{T}.Bind" />, which fix the type
     ///     and the mode together.
     /// </remarks>
     public required IReadOnlyList<(T Value, string Text)> Options { get; set; }
@@ -142,31 +139,6 @@ public sealed partial class UiMultiSelect<T> : Component, IFormControl<ICollecti
     /// </remarks>
     public string? Name { get; set; }
 
-    public UiTone? Tone { get; set; }
-
-    public UiSize? Size { get; set; }
-
-    public UiVariant? Variant { get; set; }
-
-    public bool? Disabled { get; set; }
-
-    public string? Class { get; set; }
-
-    /// <inheritdoc />
-    public ICollection<T>? Value { get; set; }
-
-    /// <inheritdoc />
-    public Callback<ICollection<T>>? OnChange { get; set; }
-
-    /// <inheritdoc />
-    public Expression<Func<ICollection<T>>>? Bind { get; set; }
-
-    /// <inheritdoc />
-    public Validator<ICollection<T>>? Validate { get; set; }
-
-    /// <inheritdoc />
-    public Callback<ICollection<T>>? AfterBind { get; set; }
-
     // The selection, split into the part this control can draw and the part it cannot.
     //
     // A bound field may hold a value that is not in Options — an option list narrowed by permissions, a
@@ -194,7 +166,7 @@ public sealed partial class UiMultiSelect<T> : Component, IFormControl<ICollecti
     private bool DrawsOwnList => Native is { } native ? !native : OptionTemplate is not null;
 
     /// <inheritdoc />
-    protected override Component? Render() => DrawsOwnList ? Custom() : NativeSelect();
+    protected override Component Control() => DrawsOwnList ? Custom() : NativeSelect();
 
     // The platform's control. Unlike UiSelect's native path this does NOT forward Bind to Select<T>:
     // Select's own multi-select binding runs through BindingHelpers.IsBindableSelectionType, whose
@@ -209,6 +181,7 @@ public sealed partial class UiMultiSelect<T> : Component, IFormControl<ICollecti
         return Select
             .Of<string>()
             .Multiple(true)
+            .Id(FieldId)
             .Name(Name)
             .OnSelect(picked => CommitAsync(acc, ctx, chosen, Map(picked)))
             .Aria(Aria(expanded: null))
@@ -255,6 +228,7 @@ public sealed partial class UiMultiSelect<T> : Component, IFormControl<ICollecti
             // daisyUI's `.select` background image, painted on the box rather than on this button, so it
             // is no help: it looks clickable and is not. Only a browser catches this, and one did.
             .Class("flex min-h-6 flex-1 items-center justify-between gap-2 text-left")
+            .Id(FieldId)
             .Role("combobox")
             .Disabled(disabled)
             .Aria(Aria(expanded: _open, activeDescendant: _open && cursor >= 0
@@ -381,7 +355,7 @@ public sealed partial class UiMultiSelect<T> : Component, IFormControl<ICollecti
                 .Class("menu w-full flex-nowrap p-0")
                 .Aria(new Dictionary<string, string?>
                 {
-                    ["label"] = Label,
+                    ["label"] = Label ?? AccessibleLabel,
                     // What actually announces "you may pick several". Without it a reader meets a listbox
                     // whose options each say aria-selected and has no way to know a second one is allowed.
                     ["multiselectable"] = "true"
@@ -414,7 +388,7 @@ public sealed partial class UiMultiSelect<T> : Component, IFormControl<ICollecti
                 .Placeholder("Search…")
                 .Autocomplete("off")
                 .Autofocus(true)
-                .Aria(new Dictionary<string, string?> { ["label"] = "Search " + Label })
+                .Aria(new Dictionary<string, string?> { ["label"] = "Search " + (Label ?? AccessibleLabel ?? "options") })
                 // Back to the top of the narrowed list, which Normalize then snaps onto the first option
                 // a reader can actually land on.
                 .OnInput(raw =>
@@ -696,15 +670,11 @@ public sealed partial class UiMultiSelect<T> : Component, IFormControl<ICollecti
             Variant is { } variant ? UiClassNames.SelectVariant(variant) : "",
             DrawsOwnList ? "" : Class);
 
-    // aria-invalid is what makes daisyUI reveal a following UiValidator, and what a screen reader needs.
-    // OMITTED rather than nulled — a valueless aria-invalid reads as "true".
+    // The field's own name, invalid state and description first, from the base — as UiSelect does. This used
+    // to write aria-label from Label beside the visible legend, and copy the invalid rule.
     private Dictionary<string, string?> Aria(bool? expanded, string? activeDescendant = null)
     {
-        var aria = new Dictionary<string, string?> { ["label"] = Label };
-        if (Tone == UiTone.Error)
-        {
-            aria["invalid"] = "true";
-        }
+        var aria = ControlAria();
 
         if (expanded is { } open)
         {

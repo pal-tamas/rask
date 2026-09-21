@@ -54,7 +54,9 @@ public sealed partial class UiNavItem : Component
         [
             Icon is { } icon ? UiIcon.Name(icon).Class("size-4 shrink-0") : null!,
             // ui-rail-hide: the words go when a collapsable sidebar is narrowed to its rail, and the icon stays.
-            // Marked here rather than guessed by a CSS rule, which could not tell a label from content.
+            // Marked here rather than guessed by a CSS rule, which could not tell a label from content. The
+            // link's `title` (below) is what the rail shows instead, and what names the link once the words are
+            // gone (#1119).
             Span.Class("ui-rail-hide grow")[Label],
             Badge is { } badge
                 ? Span.Class(UiClass.Compose(
@@ -70,7 +72,8 @@ public sealed partial class UiNavItem : Component
             var anchor = NavLink
                 .Href(Href)
                 .ActiveClass("")
-                .Class(current ? UiClass.Compose("menu-active", Class) : Class);
+                .Class(current ? UiClass.Compose("menu-active", Class) : Class)
+                .Title(Label);
             link = (current ? anchor.Aria("current", "page") : anchor)[content];
         }
         else
@@ -78,7 +81,8 @@ public sealed partial class UiNavItem : Component
             var anchor = NavLink
                 .Href(Href)
                 .ActiveClass("menu-active")
-                .Class(Class);
+                .Class(Class)
+                .Title(Label);
             if (Match is { } match)
             {
                 anchor = anchor.Match(match);
@@ -92,6 +96,11 @@ public sealed partial class UiNavItem : Component
             link = anchor[content];
         }
 
+        // `title`, not a CSS tooltip: the sidebar panel clips its overflow and the drawer's `translate` traps even a
+        // fixed-position child, so anything drawn inside the panel is cut off at its edge. The browser draws a title
+        // outside the page, and it is also the accessible name the link falls back to when the rail has hidden its
+        // text — an icon-only link with no name is announced as "link" and nothing else. Beside the visible text it
+        // repeats the name, which assistive tech does not read twice.
         return Li[link];
     }
 }

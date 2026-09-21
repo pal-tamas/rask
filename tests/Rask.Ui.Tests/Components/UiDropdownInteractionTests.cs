@@ -172,6 +172,44 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
             ];
     }
 
+    // The same host with every step written BEFORE Key, and the generic radio group keyed too (#1118). Steps ahead
+    // of Key used to land on the instance the key then discarded, so the checkbox kept the value from the render
+    // its key was first claimed on; and `UiMenuRadioGroup.Key(…)` did not compile (CS0315) at all.
+    private sealed partial class KeyLastHost : global::Rask.Core.Component
+    {
+        private bool _on;
+        private string _sort = "name";
+
+        protected override global::Rask.Core.Component? Render() =>
+            UiDropdown.Trigger("View").Key("dd")[
+                UiMenuCheckbox.Value(_on).Text("Show archived").OnChange(v => { _on = v; }).Key("on"),
+                UiMenuRadioGroup.Key("sort").Value(_sort).Options([("name", "Name"), ("date", "Date")])
+                    .OnChange(v => { _sort = v; })
+            ];
+    }
+
+    [Fact]
+    public async Task Steps_written_before_Key_still_reach_the_item_the_key_keeps()
+    {
+        var page = RaskTest.Render(new KeyLastHost());
+        await OpenAsync(page);
+
+        await page.On("[role=\"menuitemcheckbox\"]").ClickAsync();
+        Assert.Contains("aria-checked=\"true\"", Regex.Match(page.Html, "<button[^>]*role=\"menuitemcheckbox\"[^>]*>").Value, StringComparison.Ordinal);
+
+        // And back: the second redraw is the one a stale instance got wrong, holding the first claim's value.
+        await page.On("[role=\"menuitemcheckbox\"]").ClickAsync();
+        Assert.Contains("aria-checked=\"false\"", Regex.Match(page.Html, "<button[^>]*role=\"menuitemcheckbox\"[^>]*>").Value, StringComparison.Ordinal);
+
+        var date = Regex.Match(page.Html, "<button id=\"([^\"]+)\"[^>]*role=\"menuitemradio\"[^>]*>(?:(?!</button>).)*Date", RegexOptions.Singleline)
+            .Groups[1].Value;
+        await page.On("#" + date).ClickAsync();
+        Assert.Contains(
+            "aria-checked=\"true\"",
+            Regex.Match(page.Html, "<button id=\"" + Regex.Escape(date) + "\"[^>]*>").Value,
+            StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task Controlled_checkable_items_redraw_from_the_parents_state()
     {
