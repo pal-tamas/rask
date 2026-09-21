@@ -76,6 +76,41 @@ public sealed class TenantAccountTests
         Assert.Equal(Guid.Empty, db.Entry(admin).Property<Guid>(Columns.TenantKey).CurrentValue);
     }
 
+    [Fact]
+    public async Task A_signed_in_user_carries_their_tenant_on_the_principal()
+    {
+        await using var harness = new AuthHarness();
+        await AddAsync(harness, "ada@example.com", _acme);
+
+        await using var db = harness.NewContext();
+        var user = await db.Set<TestUser>().SingleAsync();
+
+        // The tenant is an OUTCOME of authentication, not an input to routing: sign-in finds the user, and
+        // the user says which tenant they are in. So it rides on the principal, and the data layer reads it
+        // back off the claim rather than being handed it.
+        var principal = AuthPrincipal.For(user);
+
+        Assert.Equal(_acme, AuthPrincipal.TenantId(principal));
+        Assert.Equal(_acme.ToString(), principal.FindFirst(Tenant.ClaimType)?.Value);
+    }
+
+    [Fact]
+    public async Task An_administrator_carries_no_tenant_claim()
+    {
+        await using var harness = new AuthHarness();
+        await AddAsync(harness, "root@example.com", tenant: null);
+
+        await using var db = harness.NewContext();
+        var admin = await db.Set<TestUser>().SingleAsync();
+
+        // No claim, so a tenant-scoped read throws until they choose a tenant to work in. That is the
+        // intended behaviour: an admin should say which tenant they are acting in, not silently read across.
+        var principal = AuthPrincipal.For(admin);
+
+        Assert.Null(AuthPrincipal.TenantId(principal));
+        Assert.Null(principal.FindFirst(Tenant.ClaimType));
+    }
+
     // Written through EF rather than a factory: the credentials have private setters and Register is
     // internal to Rask.Auth, which is the point of them — only the auth flows mint an account.
     private static async Task AddAsync(AuthHarness harness, string email, Guid? tenant)

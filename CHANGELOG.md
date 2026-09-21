@@ -64,8 +64,16 @@ them until tagged releases begin.
   Same schema, three behaviours. Folding the null away is one ordinary index that behaves identically on all
   three, and it replaces the two provider-specific filtered indexes this would otherwise have needed.
 
+  **Signing in issues the tenant claim, and a read reads it back.** The tenant is an outcome of
+  authentication rather than an input to routing — sign-in finds the user, and the user says which tenant
+  they belong to — so it travels on the `ClaimsPrincipal` as `rask:tenant` and the data layer reads it
+  through `ITenantSource`. That is what lets `Invoice.Read.Where(…)` filter correctly with nothing passed to
+  it. A restored session carries it too, so a reconnect comes back in the same tenant. An administrator
+  belongs to no tenant and carries no claim, and a tenant-scoped read then throws until they choose one —
+  intended, so an admin says which tenant they are acting in rather than silently reading across all of them.
+
   **Not wired up yet:** the batteries (jobs, outbox, mail, cache, storage) do not record a tenant on their
-  rows, so background work has no tenant to re-enter, and sign-in does not yet issue the tenant claim.
+  rows, so background work has no tenant to re-enter.
 
 - **A collection of values on an aggregate is mapped, queryable and editable.** `IReadOnlyList<string> Tags`
   becomes a primitive collection and `IReadOnlyList<Stop> Stops` a JSON column, both carried on the form model

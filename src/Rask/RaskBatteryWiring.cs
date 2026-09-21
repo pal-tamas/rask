@@ -147,6 +147,10 @@ internal static class RaskBatteryWiring
             // is a static call that runs outside any DI scope. This makes the session's own scope ambient
             // for the duration of its work; Rask.Server brackets with it, Rask.Data reads through it.
             services.AddSingleton<ISessionWorkScope, SessionDataScope>();
+
+            // Scoped, because the principal it reads is: this instance belongs to one session, and
+            // SessionDataScope above is what makes that session's provider reachable from a read.
+            services.AddScoped<ITenantSource, ClaimsTenantSource>();
         }
 
         // On PostgreSQL or SQL Server the log goes into the application database (WireFor), so it is not wired here.

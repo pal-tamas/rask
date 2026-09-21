@@ -67,7 +67,7 @@ internal sealed class AuthSessions<TContext, TUser>(
         {
             if (cached.ExpiresAt > now)
             {
-                return AuthPrincipal.For(cached.UserId, cached.Email, cached.Roles, sessionId);
+                return AuthPrincipal.For(cached.UserId, cached.Email, cached.Roles, sessionId, cached.TenantId);
             }
 
             cache.Remove(CacheKey(sessionId));
@@ -80,7 +80,7 @@ internal sealed class AuthSessions<TContext, TUser>(
                 from s in db.Set<Session>().AsNoTracking()
                 join u in db.Set<TUser>().AsNoTracking() on s.UserId equals u.Id
                 where s.Id == sessionId
-                select new { s.UserId, u.Email, u.Roles, s.ExpiresAt, s.LastSeenAt })
+                select new { s.UserId, u.Email, u.Roles, u.TenantId, s.ExpiresAt, s.LastSeenAt })
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
 
@@ -103,10 +103,10 @@ internal sealed class AuthSessions<TContext, TUser>(
                 .ConfigureAwait(false);
         }
 
-        var snapshot = new Snapshot(found.UserId, found.Email, [.. found.Roles], expiresAt);
+        var snapshot = new Snapshot(found.UserId, found.Email, [.. found.Roles], expiresAt, found.TenantId);
         cache.Set(CacheKey(sessionId), snapshot, CacheFor);
 
-        return AuthPrincipal.For(snapshot.UserId, snapshot.Email, snapshot.Roles, sessionId);
+        return AuthPrincipal.For(snapshot.UserId, snapshot.Email, snapshot.Roles, sessionId, snapshot.TenantId);
     }
 
     public async Task EndAsync(Guid sessionId, CancellationToken cancellationToken = default)
@@ -149,7 +149,9 @@ internal sealed class AuthSessions<TContext, TUser>(
 
     private static string CacheKey(Guid sessionId) => "Rask.Auth.Session:" + sessionId.ToString("N");
 
-    private sealed record Snapshot(Guid UserId, string Email, string[] Roles, DateTime ExpiresAt);
+    // TenantId rides along so a restored session filters for the same tenant the sign-in did. Without it a
+    // reconnect would come back with no tenant claim and every tenant-scoped read would throw.
+    private sealed record Snapshot(Guid UserId, string Email, string[] Roles, DateTime ExpiresAt, Guid? TenantId);
 }
 
 /// <summary>
