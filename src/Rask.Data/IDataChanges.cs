@@ -14,9 +14,10 @@ namespace Rask.Data;
 ///     </para>
 ///     <para>
 ///         Resolved from the scope <see cref="Db.UseScope" /> opened — the live session's — and <b>scoped</b>
-///         for the same reason <see cref="ITenantSource" /> is: it belongs to one session. A save with no
+///         for the same reason <see cref="IPrincipalSource" /> is: it belongs to one session. A save with no
 ///         such scope (a background job, a hosted service) tells nobody, which is right: no screen is
-///         waiting on it here, and another session's cache is not this save's to touch.
+///         waiting on it here, and another session's cache is not this save's to touch. A save in a plain HTTP
+///         request reaches that request's own, empty cache — the same nobody.
 ///     </para>
 ///     <para>
 ///         Called after the save commits: straight after <c>SaveChanges</c>, or — inside an explicit

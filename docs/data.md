@@ -830,6 +830,51 @@ On the wire a model's properties are **camelCase**. Only validation attributes a
 `[JsonPropertyName]` on the aggregate does not rename the model's property; a property you declare yourself on a
 `partial ProductModel` keeps its own pin.
 
+## The current user — `Current`
+
+A read or a write on a model is a static call — `Product.Read.Where(…)`, a `Product.Create(…)` factory — so there
+is no constructor to inject the signed-in user into. `Current` answers from anywhere instead, with nothing
+injected:
+
+```csharp
+public sealed class Product : Aggregate<Guid>
+{
+    public string Name { get; private set; } = "";
+
+    public Guid OwnerId { get; private set; }
+
+    public static Product Create(string name) => new()
+    {
+        Id = Guid.NewGuid(),
+        Name = name,
+        OwnerId = Current.RequiredUserId,
+    };
+}
+```
+
+| Member | What it answers |
+|---|---|
+| `Current.UserId` | the signed-in user's id (`Guid?`), or `null` when the work is for nobody |
+| `Current.RequiredUserId` | the same, or an `InvalidOperationException` when there is none |
+| `Current.Principal` | the session's or request's `ClaimsPrincipal` — roles, email, any claim |
+| `Current.Tenant` / `Current.RequiredTenant` | the tenant in flight — see [Multi-tenancy](#multi-tenancy) |
+| `Current.UseUser(id)` | a scope that runs the work for `id` — a test, or a tool acting for a user |
+
+**Where it is set.** For a live session's work (rendering, event handlers), for every HTTP request (a minimal API,
+a controller, a CQRS endpoint), and for a background job — which runs for the user who enqueued it, because the
+job row records `UserId` and the runner re-enters it. Anywhere else (a hosted service's own loop, startup) it is
+`null`, and the `Required…` forms throw rather than let an anonymous write through looking like a signed-in one.
+
+**The user is an id, not your `User` row.** Loading the row is a query, and a property that silently queried the
+database on every read would be the wrong thing to hide. Load it when you need it:
+
+```csharp
+var me = await User.Read.FirstOrDefaultAsync(u => u.Id == Current.UserId);
+```
+
+Inside a component, inject `IUserProvider` as before — it also raises `Changed` so the UI re-renders on sign-in.
+`Current` is for the code that has no constructor to inject into.
+
 ## Multi-tenancy
 
 One `const` partitions a table by tenant. Opt-in, so a table that says nothing is one table for everybody,
@@ -860,6 +905,9 @@ var invoices = await Invoice.Read.OrderByDescending(i => i.CreatedAt).Take(20).T
 ```
 
 A restored session carries it too, so a reconnect comes back in the same tenant.
+
+`Current.Tenant` says which tenant that is, from anywhere: an explicit `Tenant.Use` scope first, then the
+signed-in user's claim, and `null` inside `Tenant.Across()`.
 
 ### Saying which tenant explicitly
 
@@ -906,7 +954,8 @@ entity, so uniqueness means *within this tenant* and the filtered query can use 
 
 ### Writes stamp it, and it never moves
 
-A create records the tenant in flight; an update that would move a row to another tenant is refused. The
+A create records the tenant in flight — the signed-in user's, with no `Tenant.Use` needed; an update that would
+move a row to another tenant is refused. The
 column is never on the generated form model, so a post cannot set it.
 
 ### Accounts and background work carry a tenant without being partitioned
@@ -918,7 +967,8 @@ Two tables carry a tenant as **data** rather than as a partition, and both for a
   `Rask.Auth` maps the tenant itself, and an address is unique *within* a tenant — so the same person can
   hold an account at two companies.
 - **Queues.** An outbox message, a job and a queued mail each record the tenant they were enqueued for, and
-  the runner re-enters it before publishing, handling or sending. They must not be filtered: one runner
+  the runner re-enters it before publishing, handling or sending. A job records the user too, so its handler
+  reads `Current.UserId` exactly as the page that enqueued it would have. They must not be filtered: one runner
   drains everybody's work, and a filter would hide other tenants' rows from it. A row enqueued by the host
   itself, or inside `Tenant.Across()`, records no tenant, which is an ordinary answer rather than an error.
 

@@ -10,5 +10,7 @@ public sealed class DataDbCollectionGuardTests
     public void Every_test_class_is_collected_or_named_as_one_that_never_builds_a_context() =>
         DbCollectionGuard.AssertEveryTestClassIsCollected(
             typeof(DataDbCollectionGuardTests).Assembly,
-            DataDbCollection.Name);
+            DataDbCollection.Name,
+            // Ambient values over a stub scope; it never builds a context.
+            nameof(CurrentTests));
 }

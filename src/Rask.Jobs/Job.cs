@@ -57,6 +57,17 @@ public sealed class Job : Entity<long>
     /// </summary>
     public DateTime? ClaimedUntil { get; private set; }
 
+    /// <summary>
+    /// The user the job was enqueued for — <see cref="Current.UserId"/> at the time — or <c>null</c> when it
+    /// was enqueued for nobody.
+    /// </summary>
+    /// <remarks>
+    /// The runner re-enters it with <see cref="Current.UseUser"/> before invoking the handler, so a handler
+    /// reads <c>Current.UserId</c> exactly as the page that enqueued it would have. Recorded, like the tenant,
+    /// because the work runs later, on another thread, with nobody signed in.
+    /// </remarks>
+    public Guid? UserId { get; private set; }
+
     /// <summary>Enqueues a job.</summary>
     /// <param name="type">The job's registered type name.</param>
     /// <param name="payload">The serialized job.</param>
@@ -64,14 +75,15 @@ public sealed class Job : Entity<long>
     /// <remarks>
     ///     <para>The key is the store's, and is the tiebreak for run order, so nothing assigns one here.</para>
     ///     <para>
-    ///         The row records the tenant it was enqueued for, so the runner can re-enter it before invoking
-    ///         the handler. Null when there is none — a job scheduled by the host itself belongs to nobody.
+    ///         The row records the tenant and the user it was enqueued for, so the runner can re-enter them
+    ///         before invoking the handler. Null when there is none — a job scheduled by the host itself
+    ///         belongs to nobody.
     ///     </para>
     /// </remarks>
     public static Job For(string type, string payload, DateTime runAt)
     {
-        var job = new Job { Type = type, Payload = payload, RunAt = runAt };
-        job.RecordTenant(Tenant.InFlight);
+        var job = new Job { Type = type, Payload = payload, RunAt = runAt, UserId = Current.UserId };
+        job.RecordTenant(Current.Tenant);
         return job;
     }
 

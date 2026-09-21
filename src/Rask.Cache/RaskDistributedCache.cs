@@ -31,7 +31,7 @@ public sealed class RaskDistributedCache<TContext>(
     // tenant's key, so there is nothing to get wrong. With no tenant in flight the key is untouched, which is
     // what keeps anonymous and framework caching working exactly as before.
     private static string Scoped(string key) =>
-        Tenant.InFlight is { } tenant ? string.Concat(tenant.ToString("N"), ":", key) : key;
+        Current.Tenant is { } tenant ? string.Concat(tenant.ToString("N"), ":", key) : key;
 
     public byte[]? Get(string key) => GetAsync(key).GetAwaiter().GetResult();
 

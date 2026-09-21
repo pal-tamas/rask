@@ -9,6 +9,15 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Rask.Data`: `Current` — the signed-in user with nothing injected.** A read or a write on a model is a
+  static call, so a `Product.Create(…)` factory had no constructor to inject the user into. `Current.UserId`
+  / `Current.RequiredUserId` (the `NameIdentifier` claim, as a `Guid`), `Current.Principal` and
+  `Current.Tenant` / `Current.RequiredTenant` now answer from anywhere, and `Current.UseUser(id)` scopes it by
+  hand. They are set for a live session's work, for **every HTTP request** (a minimal API, a controller, a
+  CQRS endpoint — a Rask app now makes the request's services ambient after authentication, reading
+  `HttpContext.User`), and for a **background job**, which records `UserId` at enqueue and runs its handler as
+  that user. The user is an id, not the `User` row: loading it is a query the caller should see.
+  `docs/data.md` gains *The current user*.
 - **A Rask.Data write refreshes the queries about what it wrote — with nothing to write.** A list beside a
   create form went stale after a save unless someone remembered the invalidation. Now, once a save commits,
   every query about the aggregate types it wrote refetches on the screen of the session that made it:
@@ -194,6 +203,15 @@ them until tagged releases begin.
   pages and sorts in SQL. `QueryClient.Command()` now takes no arguments for work whose invalidation is
   automatic.
 
+- **`Rask.Data`: which tenant is in flight is `Current.Tenant`; `Tenant` keeps only the scopes.**
+  `Tenant.Current`, `Tenant.InFlight` and `Tenant.Required` are gone — read `Current.Tenant` /
+  `Current.RequiredTenant` (explicit `Tenant.Use` first, then the signed-in user's claim, `null` inside
+  `Tenant.Across()`). `Tenant.Use` / `Across` / `None` are unchanged. The host seam `ITenantSource` is now
+  `IPrincipalSource`, which hands over the whole `ClaimsPrincipal` so the user and the tenant come from one
+  place.
+- **`Rask.Jobs`: the `Job` table has a `UserId` column** — the user a job runs for. Run
+  `rask db add AddJobUser && rask db update`; until then the processor logs exactly that, instead of the
+  generic "cycle failed", once a pending job is loaded.
 - **A sidebar collapsed to its rail keeps every link's name** (#1119). `UiNavItem`, `UiBrand` and `UiProfile`
   carry their label as a `title`: the tooltip the icon rail shows, and the accessible name of a link that is only
   an icon once its words are hidden, which it lacked before. A drawn tooltip would be clipped by the panel. The
@@ -342,6 +360,10 @@ them until tagged releases begin.
   interceptors.
 
 ### Fixed
+
+- **`Rask.Data`: inserting a tenant-scoped row from a signed-in page threw "No tenant is set".** Reads
+  filtered by the signed-in user's tenant, but the insert stamp read only an explicit `Tenant.Use` scope, so a
+  page could list its tenant's rows and not add one. The stamp now reads the same tenant the filter does.
 
 - **A disposed polling query starts no further fetch** (#1126). A poll tick checked whether the query was still
   wanted and then started its fetch, so a tick that passed the check just before `Dispose()` could send one more

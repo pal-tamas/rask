@@ -61,8 +61,6 @@ Rask.Data.IHasDomainEvents.DomainEvents.get -> System.Collections.Generic.IReadO
 Rask.Data.IReadModel
 Rask.Data.ITenantScoped
 Rask.Data.ITenantScoped.CurrentTenant.get -> System.Guid?
-Rask.Data.ITenantSource
-Rask.Data.ITenantSource.Current.get -> System.Guid?
 Rask.Data.ModelBuilderExtensions
 Rask.Data.ModelQuery<TEntity>
 Rask.Data.ModelQuery<TEntity>.AnyAsync(System.Linq.Expressions.Expression<System.Func<TEntity!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
@@ -263,11 +261,17 @@ static Rask.Data.ReadModelRegistry.Apply(Microsoft.EntityFrameworkCore.ModelBuil
 static Rask.Data.ReadModelRegistry.IsEmpty.get -> bool
 static Rask.Data.ReadModelRegistry.Replace(System.Type! group, System.Collections.Generic.IReadOnlyList<Rask.Data.ReadEntityMapping!>! entities) -> void
 static Rask.Data.Tenant.Across() -> System.IDisposable!
-static Rask.Data.Tenant.Current.get -> System.Guid?
-static Rask.Data.Tenant.InFlight.get -> System.Guid?
 static Rask.Data.Tenant.IsAcrossTenants.get -> bool
 static Rask.Data.Tenant.None() -> System.IDisposable!
-static Rask.Data.Tenant.Required.get -> System.Guid
 static Rask.Data.Tenant.Resolve() -> System.Guid?
 static Rask.Data.Tenant.Use(System.Guid tenant) -> System.IDisposable!
 static Rask.Data.TestDatabase.StartAsync(System.Action<Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!>! configure, System.TimeProvider? timeProvider = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.TestDatabase!>!
+Rask.Data.Current
+Rask.Data.IPrincipalSource
+Rask.Data.IPrincipalSource.Current.get -> System.Security.Claims.ClaimsPrincipal?
+static Rask.Data.Current.Principal.get -> System.Security.Claims.ClaimsPrincipal?
+static Rask.Data.Current.UserId.get -> System.Guid?
+static Rask.Data.Current.RequiredUserId.get -> System.Guid
+static Rask.Data.Current.Tenant.get -> System.Guid?
+static Rask.Data.Current.RequiredTenant.get -> System.Guid
+static Rask.Data.Current.UseUser(System.Guid? userId) -> System.IDisposable!

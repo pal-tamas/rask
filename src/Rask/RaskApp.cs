@@ -242,6 +242,26 @@ public sealed class RaskApp
             app.UseAuthorization();
         }
 
+        // Makes the request's services ambient for the data layer, as SessionDataScope does for a live
+        // session's work: an API endpoint, a CQRS endpoint or a controller then reads Current.UserId, filters by
+        // the signed-in tenant and stamps an insert with it — none of which can take a parameter, because a
+        // read or a factory is a static call. After authentication, so the principal it hands over is real.
+        if (app.Services.GetService<IServiceProviderIsService>()?.IsService(typeof(IPrincipalSource)) == true)
+        {
+            app.Use(static async (context, next) =>
+            {
+                if (context.RequestServices.GetService<ClaimsPrincipalSource>() is { } principal)
+                {
+                    principal.Request = context;
+                }
+
+                using (Db.UseScope(context.RequestServices))
+                {
+                    await next(context).ConfigureAwait(false);
+                }
+            });
+        }
+
         // Controllers, and the 404 that keeps a wrong URL under the API prefix from being answered with
         // the app. Mapped for the same reason every other battery is wired here: an app that writes a
         // controller should not also have to know the line that makes it reachable.

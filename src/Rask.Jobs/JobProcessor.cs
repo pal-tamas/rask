@@ -145,7 +145,7 @@ public sealed class JobProcessor<TContext>(
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            if (IsMissingLeaseColumn(ex))
+            if (IsMissingColumn(ex, nameof(Job.ClaimToken)) || IsMissingColumn(ex, nameof(Job.ClaimedUntil)))
             {
                 // The generic message would send someone reading a stack trace instead of running two
                 // commands. This failure is also invisible without it: the exception is swallowed here,
@@ -155,6 +155,17 @@ public sealed class JobProcessor<TContext>(
                     "Rask.Jobs added lease columns (ClaimToken, ClaimedUntil) that this database does not have. "
                     + "Run: rask db add AddJobLeases && rask db update. See docs/{Doc}.",
                     "scaling.md#running-more-than-one-instance");
+                return;
+            }
+
+            if (IsMissingColumn(ex, nameof(Job.UserId)))
+            {
+                // The same silent failure as the lease columns above, from a later upgrade. Checked second, so
+                // a database missing both is sent to the older migration first.
+                logger.LogError(
+                    ex,
+                    "Rask.Jobs added a UserId column (the user a job runs for) that this database does not have. "
+                    + "Run: rask db add AddJobUser && rask db update.");
                 return;
             }
 
@@ -224,6 +235,10 @@ public sealed class JobProcessor<TContext>(
                     // tenant-scoped table throws, because background work carries no principal and so has no
                     // tenant of its own — the drain sees every tenant's rows precisely so it can do this.
                     using var tenant = job.TenantId is { } owner ? Tenant.Use(owner) : null;
+
+                    // And AS the user, unconditionally: a job enqueued by nobody runs for nobody, rather than
+                    // for whatever user happened to be ambient on the processor's own flow.
+                    using var user = Current.UseUser(job.UserId);
 
                     await dispatcher.SendAsync(command, graceToken).ConfigureAwait(false);
                     job.Completed(timeProvider.GetUtcNow().UtcDateTime);
@@ -431,21 +446,20 @@ public sealed class JobProcessor<TContext>(
     }
 
     /// <summary>
-    /// True when the failure is "the lease columns aren't in the database" — i.e. the package was upgraded
-    /// but the migration was never applied.
+    /// True when the failure is "<paramref name="column"/> isn't in the database" — i.e. the package was
+    /// upgraded but the migration was never applied.
     /// </summary>
     /// <remarks>
     /// Matched on the message because every provider words it differently and none of them has a shared
     /// error code for "no such column". A false positive costs a wrong-but-adjacent log line; a false
     /// negative is just the generic message, so erring toward matching is safe here.
     /// </remarks>
-    private static bool IsMissingLeaseColumn(Exception exception)
+    private static bool IsMissingColumn(Exception exception, string column)
     {
         for (var e = exception; e is not null; e = e.InnerException)
         {
             if (e is System.Data.Common.DbException
-                && (e.Message.Contains(nameof(Job.ClaimToken), StringComparison.OrdinalIgnoreCase)
-                    || e.Message.Contains(nameof(Job.ClaimedUntil), StringComparison.OrdinalIgnoreCase)))
+                && e.Message.Contains(column, StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }

@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 
 namespace Rask.Data.Tests;
@@ -255,16 +256,36 @@ public sealed class TenancyTests : IDisposable
         }
     }
 
-    private static IServiceProvider ScopeFor(Guid tenant) => new StubScope(new StubTenantSource(tenant));
-
-    private sealed class StubTenantSource(Guid tenant) : ITenantSource
+    [Fact]
+    public async Task An_insert_takes_the_signed_in_users_tenant_with_no_scope_opened()
     {
-        public Guid? Current { get; } = tenant;
+        await using var database = await StartDatabaseAsync();
+
+        // The shape of every write a signed-in page makes: the session is ambient, nobody opened Tenant.Use.
+        // Reads already filtered by the principal's tenant; the insert stamp must agree with them, or the
+        // page can list its tenant's rows and cannot add one.
+        using (Db.UseScope(ScopeFor(_acme)))
+        {
+            var ledger = Ledger.For("ACME-1");
+            database.Context.Add(ledger);
+            await database.Context.SaveChangesAsync();
+
+            Assert.Equal(_acme, ledger.TenantId);
+            Assert.Equal(["ACME-1"], await Ledger.Read.Select(l => l.Reference).ToListAsync());
+        }
     }
 
-    private sealed class StubScope(ITenantSource source) : IServiceProvider
+    private static IServiceProvider ScopeFor(Guid tenant) => new StubScope(new StubTenantSource(tenant));
+
+    private sealed class StubTenantSource(Guid tenant) : IPrincipalSource
     {
-        public object? GetService(Type serviceType) => serviceType == typeof(ITenantSource) ? source : null;
+        public ClaimsPrincipal? Current { get; } =
+            new(new ClaimsIdentity([new Claim(Tenant.ClaimType, tenant.ToString())], "Test"));
+    }
+
+    private sealed class StubScope(IPrincipalSource source) : IServiceProvider
+    {
+        public object? GetService(Type serviceType) => serviceType == typeof(IPrincipalSource) ? source : null;
     }
 
     private async Task<Guid> SaveAsync(TestDatabase database, Guid tenant, string reference)
