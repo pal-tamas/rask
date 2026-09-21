@@ -9,6 +9,13 @@ them until tagged releases begin.
 
 ### Added
 
+- **Full-text search is proven inside WebAssembly: `scripts/run-browser-sqlite-e2e-local.sh` (#1129).** A test-only
+  browser app (`tests/Rask.SQLite.Browser.Fixture.Wasm`) opens a plain `UseSqlite(BrowserSqlite.ConnectionString(…))`
+  with `UseRaskFullTextSearch()`, migrates a table declaring `HasFullTextSearch`, and Playwright drives `Search`,
+  `FullText.Highlight` and `FullText.Snippet` in Chromium. It is the only gate that links `e_sqlite3` natively into a
+  WASM bundle (it needs the `wasm-tools` workload), so it proves the FTS5 build and EF's query rewrite a browser app
+  actually ships. Listed in `run-all-gates.sh`.
+
 - **Full-text search on PostgreSQL** (#1109). `HasFullTextSearch`, `Search(text)` and `FullText.Highlight`/`Snippet`
   now work through `UseRaskPostgres` as they do on SQLite. The index is a stored generated `tsvector` column with a
   GIN index — no triggers — and a search is `@@ to_tsquery(…)` ranked by `ts_rank_cd`, highlighted by `ts_headline`

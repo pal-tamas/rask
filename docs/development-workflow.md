@@ -301,6 +301,14 @@ Every change passes this gate before it lands on `main` (the `rask-ship` skill):
   (`scripts/lib/e2e-admission.sh`, printing under its own name), so the same overrides and `RASK_E2E_FILTER` apply,
   and the slot budget counts it as a browser gate.
 
+- **Browser SQLite runs in a real browser by hand.** `scripts/run-browser-sqlite-e2e-local.sh` publishes
+  `tests/Rask.SQLite.Browser.Fixture.Wasm` — a plain `UseSqlite(BrowserSqlite.ConnectionString("app"))` plus
+  `UseRaskFullTextSearch()` over a table declaring `HasFullTextSearch` — and drives it with Playwright
+  (`tests/Rask.SQLite.Browser.E2E.Tests`): a search, its `<mark>`ed highlight and snippet, a prefix match and a miss.
+  It is the only gate that links `e_sqlite3` natively into a WebAssembly bundle, so it needs the `wasm-tools`
+  workload and refuses to start without it; every other browser gate publishes with `WasmBuildNative=false` and so
+  never proves the SQLite a browser app ships. Listed in `run-all-gates.sh`.
+
 - **Every gate says whether it ran.** The path-filtered gates — CLI build, watch hot-reload, deploy,
   install — used to take a silent branch when nothing in the push matched their paths, printing
   nothing at all. A gate that does not run then looks exactly like one that passed, which is this

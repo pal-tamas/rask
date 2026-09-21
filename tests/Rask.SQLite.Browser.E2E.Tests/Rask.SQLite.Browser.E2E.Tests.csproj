@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Full-text search inside WebAssembly (#1129): the fixture app in tests/Rask.SQLite.Browser.Fixture.Wasm, published
+    with native linking and served as a static site, driven by a real Chromium. Its own hand-run gate,
+    scripts/run-browser-sqlite-e2e-local.sh, because it needs the wasm-tools workload that no other gate does.
+  -->
+  <PropertyGroup>
+    <TargetFramework>$(RaskTestTarget)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Rask.SQLite.Browser.E2E.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Playwright"/>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="xunit"/>
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- One browser install and launch story, and one static host for a published WASM bundle, for every browser suite. -->
+    <Compile Include="..\Rask.Site.E2E.Tests\Infrastructure\PlaywrightFixture.cs" Link="Infrastructure\PlaywrightFixture.cs"/>
+    <Compile Include="..\Rask.Site.E2E.Tests\Infrastructure\StaticWwwrootHostFixture.cs" Link="Infrastructure\StaticWwwrootHostFixture.cs"/>
+    <Compile Include="..\Rask.Site.E2E.Tests\Infrastructure\LoopbackPort.cs" Link="Infrastructure\LoopbackPort.cs"/>
+  </ItemGroup>
+
+</Project>
