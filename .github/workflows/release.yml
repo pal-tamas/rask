@@ -11,6 +11,10 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    # GitHub's own maximum, said out loud so nobody lowers it. The verify step alone can take three hours of
+    # validation (RASK_VERIFY_FLAT_DEADLINE) plus two half-hour restore waits, four hours in all, and the
+    # build, pack and push before it take most of an hour -- so a longer validation wait would not fit.
+    timeout-minutes: 360
     permissions:
       contents: write
     steps:
@@ -53,17 +57,28 @@ jobs:
           name: nupkgs
           path: ./artifacts/*.*nupkg
 
+      # Teed to push.log for the verify step: only the push's own answer can tell "never pushed" from
+      # "accepted, still in nuget.org's validation" (#1125). pipefail, or tee's exit status would stand in
+      # for the push's and a failed push would pass.
       - name: Push to nuget.org
-        run: dotnet nuget push "./artifacts/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key "${{ secrets.NUGET_API_KEY }}" --skip-duplicate
+        run: |
+          set -o pipefail
+          dotnet nuget push "./artifacts/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key "${{ secrets.NUGET_API_KEY }}" --skip-duplicate 2>&1 | tee push.log
 
+      # Idempotent, so a re-run of a release that failed further down gets past this step instead of
+      # dying on "release already exists" before it reaches the steps it was re-run for (#1125).
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${GITHUB_REF_NAME}" \
-            ./artifacts/*.nupkg \
-            --title "${GITHUB_REF_NAME}" \
-            --generate-notes
+          if gh release view "${GITHUB_REF_NAME}" > /dev/null 2>&1; then
+            gh release upload "${GITHUB_REF_NAME}" ./artifacts/*.nupkg --clobber
+          else
+            gh release create "${GITHUB_REF_NAME}" \
+              ./artifacts/*.nupkg \
+              --title "${GITHUB_REF_NAME}" \
+              --generate-notes
+          fi
 
       # Does what was just pushed actually WORK? Until #1044 nothing asked.
       #
@@ -75,8 +90,12 @@ jobs:
       # so on the run that produced it is the whole point. The packages are already pushed by then, so
       # this reports rather than prevents -- which is still the difference between finding out here and
       # finding out from a user.
+      #
+      # It can wait hours: a package carrying an executable (Rask.Cli's apphost) goes through nuget.org's
+      # extended validation, 2h17m on v0.23.0. The push log is what lets it wait that long for a package
+      # nuget.org accepted, and fail at once for one it did not.
       - name: Verify a scaffolded project restores from nuget.org
-        run: scripts/verify-release-restore.sh "${GITHUB_REF_NAME}"
+        run: scripts/verify-release-restore.sh "${GITHUB_REF_NAME}" push.log
 
       # The released version is the only one that stays listed: previous stables and every nightly
       # prerelease are unlisted, so the gallery shows what you would actually install. Unlisting is not
@@ -86,6 +105,11 @@ jobs:
       # unlisting to roughly 250 calls before a 403 with a retry-after in tens of minutes. The script
       # spends one budget and stops; whatever is left is picked up by the next release, which supersedes
       # it anyway. NUGET_API_KEY needs the *Unlist* scope -- a push-only key no-ops with a warning.
+      #
+      # After the verify step on purpose, and not `if: always()` (#1125). Run ahead of a new version
+      # nuget.org is still validating -- hours, for Rask.Cli -- it would unlist every previous version
+      # while the new one is not installable yet, leaving `dotnet tool install Rask.Cli` nothing to find.
+      # What skipped it on v0.23.0 was the verify step's wrong verdict, which the push log now corrects.
       - name: Unlist superseded versions
         continue-on-error: true
         env:

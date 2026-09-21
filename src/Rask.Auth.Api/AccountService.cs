@@ -115,7 +115,8 @@ internal sealed class AccountService<TUser>(
         ArgumentNullException.ThrowIfNull(password);
 
         var throttleKey = AuthThrottle.Key(RegisterPurpose, "", client);
-        if (throttle.IsThrottled(throttleKey))
+        using var attempt = throttle.Check(throttleKey);
+        if (attempt.IsThrottled)
         {
             return Fail(AuthError.TooManyAttempts);
         }
@@ -127,7 +128,7 @@ internal sealed class AccountService<TUser>(
             && !await claims.IsClaimedAsync(cancellationToken).ConfigureAwait(false)
             && !firstRun.Matches(firstRunToken))
         {
-            throttle.Hit(throttleKey);
+            attempt.Fail();
             return Fail(AuthError.FirstRunTokenRequired);
         }
 
@@ -156,7 +157,7 @@ internal sealed class AccountService<TUser>(
                     .AnyAsync(u => u.Email == normalized, cancellationToken)
                     .ConfigureAwait(false))
             {
-                throttle.Hit(throttleKey);
+                attempt.Fail();
                 return Fail(AuthError.DuplicateAccount);
             }
 
@@ -207,7 +208,8 @@ internal sealed class AccountService<TUser>(
         ArgumentNullException.ThrowIfNull(password);
 
         var throttleKey = AuthThrottle.Key(SignInPurpose, email, client);
-        if (throttle.IsThrottled(throttleKey))
+        using var attempt = throttle.Begin(throttleKey);
+        if (attempt.IsThrottled)
         {
             return Fail(AuthError.TooManyAttempts);
         }
@@ -238,7 +240,7 @@ internal sealed class AccountService<TUser>(
                 "account was meant, so it signs in neither.");
 
             hasher.VerifyNothing(password);
-            throttle.Hit(throttleKey);
+            attempt.Fail();
             return Fail(AuthError.InvalidCredentials);
         }
 
@@ -249,18 +251,18 @@ internal sealed class AccountService<TUser>(
             // Hash anyway. Returning early on an unknown address makes the response measurably faster than one for a known
             // address, which turns this endpoint into an account-existence oracle.
             hasher.VerifyNothing(password);
-            throttle.Hit(throttleKey);
+            attempt.Fail();
             return Fail(AuthError.InvalidCredentials);
         }
 
         var check = hasher.Verify(user.PasswordHash, password);
         if (check == PasswordCheck.Failed)
         {
-            throttle.Hit(throttleKey);
+            attempt.Fail();
             return Fail(AuthError.InvalidCredentials);
         }
 
-        throttle.Clear(throttleKey);
+        attempt.Succeed();
 
         if (check == PasswordCheck.SuccessRehashNeeded && hasher.Refuse(password) is null)
         {
@@ -296,12 +298,13 @@ internal sealed class AccountService<TUser>(
         }
 
         var throttleKey = AuthThrottle.Key(ResetPurpose, email, client);
-        if (throttle.IsThrottled(throttleKey))
+        using var attempt = throttle.Begin(throttleKey);
+        if (attempt.IsThrottled)
         {
             return AuthResult.Fail(AuthError.TooManyAttempts);
         }
 
-        throttle.Hit(throttleKey);
+        attempt.Fail();
 
         var normalized = Authenticatable.NormalizeEmail(email);
 
@@ -564,14 +567,15 @@ internal sealed class AccountService<TUser>(
         }
 
         var throttleKey = AuthThrottle.Key(PasskeyThrottlePurpose, "", client);
-        if (throttle.IsThrottled(throttleKey))
+        using var attempt = throttle.Check(throttleKey);
+        if (attempt.IsThrottled)
         {
             return Fail(AuthError.TooManyAttempts);
         }
 
         if (challenges.Redeem(request.State, PasskeyPurpose.Get, out _) is not { } challenge)
         {
-            throttle.Hit(throttleKey);
+            attempt.Fail();
             return Fail(AuthError.InvalidCredentials);
         }
 
@@ -582,7 +586,7 @@ internal sealed class AccountService<TUser>(
         }
         catch (FormatException)
         {
-            throttle.Hit(throttleKey);
+            attempt.Fail();
             return Fail(AuthError.InvalidCredentials);
         }
 
@@ -595,7 +599,7 @@ internal sealed class AccountService<TUser>(
         if (passkey is null)
         {
             logger.LogDebug("A passkey sign-in was refused: {Failure}.", "no such credential");
-            throttle.Hit(throttleKey);
+            attempt.Fail();
             return Fail(AuthError.InvalidCredentials);
         }
 
@@ -603,18 +607,18 @@ internal sealed class AccountService<TUser>(
             is not { } verified)
         {
             logger.LogDebug("A passkey sign-in was refused: {Failure}.", failure);
-            throttle.Hit(throttleKey);
+            attempt.Fail();
             return Fail(AuthError.InvalidCredentials);
         }
 
         if (await db.Set<TUser>().FirstOrDefaultAsync(u => u.Id == passkey.UserId, cancellationToken)
                 .ConfigureAwait(false) is not { } user)
         {
-            throttle.Hit(throttleKey);
+            attempt.Fail();
             return Fail(AuthError.InvalidCredentials);
         }
 
-        throttle.Clear(throttleKey);
+        attempt.Succeed();
 
         if (options.RequireConfirmedEmail && !user.IsEmailConfirmed)
         {

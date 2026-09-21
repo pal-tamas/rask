@@ -222,6 +222,30 @@ them until tagged releases begin.
   of every file response, and `Rask.Storage` can be pointed at a `DbContext` carrying none of Rask's
   interceptors.
 
+### Fixed
+
+- **Sign-in throttling holds under concurrent guesses** (#1121). The throttle checked the limit and counted a
+  failure in two separate steps, so wrong passwords fired together all passed the check before any was
+  counted: with `SignInAttemptsPerMinute = 3`, 24 parallel guesses got 12 tries. Password sign-in and password
+  reset now check and count in one step, and an attempt that runs counts against the attempts beside it.
+  Registration and passkey sign-in, whose throttle key is the client alone, still count only a failure, so an
+  office behind one address can register together. A success that raced a failure no longer loses that count.
+- **`rask new` writes the Web Push key file readable by you alone** (#1124). `appsettings.Development.json`
+  holds the private key that signs every push, and was created with the ordinary umask (`0644`,
+  world-readable). It is now created `0600` on macOS and Linux; Windows is unchanged.
+- **`HasNonOverlappingRange` on an existing table is a migration** (#1113). The rule was stored where EF
+  Core's migrations differ never looks, so adding it to a table whose columns did not otherwise change made
+  an empty migration and the triggers were never created. Removing the rule now drops its triggers and index,
+  and changing it rebuilds the index over the new columns. Your next migration may re-emit the triggers of a
+  table that already has them, which does no harm.
+- **A client registered concurrently no longer drops a notification** (#1123). `AddRaskCqrsClient` marked
+  its invokers installed before installing them, so a second registration racing the first could publish
+  while the notification invoker was only half installed, and the message never reached the server.
+- **The release gate waits for nuget.org's validation instead of failing on it** (#1125). A package that
+  carries an executable (`Rask.Cli`) can take hours to appear. The gate now reads the push log: a package
+  nuget.org accepted is waited for up to three hours (v0.23.0 needed 2h17m), and one it refused fails at once. Re-running a release
+  also gets past an existing GitHub release instead of failing on it.
+
 ## [0.23.0] - 2026-09-18
 
 ### Added

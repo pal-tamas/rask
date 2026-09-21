@@ -174,6 +174,69 @@ public sealed class RaskSqliteRangeExclusionTests : IDisposable
     }
 
     [Fact]
+    public async Task Adding_the_rule_to_an_existing_table_is_a_migration_of_its_own()
+    {
+        // #1113: the rule lived only on the entity type, which the differ never compares, so adding it to a
+        // table whose columns did not otherwise change was an EMPTY migration and the triggers never existed.
+        await using (var before = Create<UnruledBookingContext>())
+        {
+            CreateSchema(before);
+            before.Bookings.Add(new Booking { Id = 1, RoomId = 1, StartsAt = 100, EndsAt = 200 });
+            await before.SaveChangesAsync();
+        }
+
+        await using var after = Create<BookingContext>();
+        Migrate<UnruledBookingContext>(after);
+
+        Assert.Equal(2, TriggerCount(after));
+        Assert.Contains("IX_Bookings_Range", Ddl(after), StringComparison.Ordinal);
+
+        after.Bookings.Add(new Booking { Id = 2, RoomId = 1, StartsAt = 150, EndsAt = 250 });
+        await Assert.ThrowsAsync<RangeOverlapException>(() => after.SaveChangesAsync());
+    }
+
+    [Fact]
+    public async Task Removing_the_rule_drops_its_triggers_and_index()
+    {
+        await using (var before = Create<BookingContext>())
+        {
+            CreateSchema(before);
+        }
+
+        await using var after = Create<UnruledBookingContext>();
+        Migrate<BookingContext>(after);
+
+        Assert.Equal(0, TriggerCount(after));
+        Assert.DoesNotContain("IX_Bookings_Range", Ddl(after), StringComparison.Ordinal);
+
+        after.Bookings.Add(new Booking { Id = 1, RoomId = 1, StartsAt = 100, EndsAt = 200 });
+        after.Bookings.Add(new Booking { Id = 2, RoomId = 1, StartsAt = 150, EndsAt = 250 });
+        await after.SaveChangesAsync();
+    }
+
+    [Fact]
+    public async Task Changing_the_rule_rebuilds_its_index_over_the_new_columns()
+    {
+        // `CREATE INDEX IF NOT EXISTS` alone would keep the old index, still keyed by RoomId first.
+        await using (var before = Create<BookingContext>())
+        {
+            CreateSchema(before);
+            before.Bookings.Add(new Booking { Id = 1, RoomId = 1, StartsAt = 100, EndsAt = 200 });
+            await before.SaveChangesAsync();
+        }
+
+        await using var after = Create<UnpartitionedBookingContext>();
+        Migrate<BookingContext>(after);
+
+        Assert.DoesNotContain("\"RoomId\", \"StartsAt\"", Ddl(after), StringComparison.Ordinal);
+        Assert.Contains("ON \"Bookings\" (\"StartsAt\", \"EndsAt\")", Ddl(after), StringComparison.Ordinal);
+
+        // Another room, the same hours: now an overlap, because the rule no longer partitions by room.
+        after.Bookings.Add(new Booking { Id = 2, RoomId = 2, StartsAt = 150, EndsAt = 250 });
+        await Assert.ThrowsAsync<RangeOverlapException>(() => after.SaveChangesAsync());
+    }
+
+    [Fact]
     public async Task The_constraint_survives_a_migration_that_rebuilds_the_table()
     {
         // SQLite cannot ALTER most things in place: EF rebuilds the table and DROPs the original, taking its

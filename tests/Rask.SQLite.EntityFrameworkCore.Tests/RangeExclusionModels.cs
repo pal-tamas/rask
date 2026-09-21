@@ -29,6 +29,23 @@ internal class BookingContext(DbContextOptions options) : DbContext(options)
     }
 }
 
+// The Bookings table with no rule at all — the "before" of adding one, and the "after" of removing it (#1113).
+internal sealed class UnruledBookingContext(DbContextOptions options) : DbContext(options)
+{
+    public DbSet<Booking> Bookings => Set<Booking>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder) => modelBuilder.Entity<Booking>();
+}
+
+// The same rule without the partition: every room shares one calendar, so the index's columns change.
+internal sealed class UnpartitionedBookingContext(DbContextOptions options) : DbContext(options)
+{
+    public DbSet<Booking> Bookings => Set<Booking>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder) =>
+        modelBuilder.Entity<Booking>().HasNonOverlappingRange(x => x.StartsAt, x => x.EndsAt);
+}
+
 // Same table, but Note becomes required — a change SQLite cannot apply in place, so EF rebuilds the table.
 internal sealed class RebuiltBookingContext(DbContextOptions options) : BookingContext(options)
 {

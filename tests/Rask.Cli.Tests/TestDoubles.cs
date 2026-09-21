@@ -312,6 +312,17 @@ internal sealed class FakeFileSystem : IFileSystem
         _directories.Add(Normalize(Path.GetDirectoryName(path)!));
     }
 
+    /// <summary>Paths written through <see cref="WriteSecretText"/> — the ones that must reach disk owner-only.</summary>
+    public IReadOnlySet<string> SecretFiles => _secret;
+
+    private readonly HashSet<string> _secret = new(StringComparer.Ordinal);
+
+    public void WriteSecretText(string path, string content)
+    {
+        WriteAllText(path, content);
+        _secret.Add(Normalize(path));
+    }
+
     /// <summary>
     /// Binary writes are recorded separately and kept out of <see cref="Files"/>' text view, so a test
     /// that compares scaffolded text never has to decode a PNG to find that out.

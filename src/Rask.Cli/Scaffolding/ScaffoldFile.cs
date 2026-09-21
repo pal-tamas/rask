@@ -11,4 +11,10 @@ internal sealed record ScaffoldFile(string Path, string Content)
 {
     /// <summary>The file verbatim, for a non-text file. Null means <see cref="Content"/> is the file.</summary>
     public byte[]? Bytes { get; init; }
+
+    /// <summary>
+    ///     The file holds a secret — a signing key — so it is written readable by its owner alone rather
+    ///     than with the umask every other scaffolded file gets.
+    /// </summary>
+    public bool Secret { get; init; }
 }

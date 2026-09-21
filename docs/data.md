@@ -1452,8 +1452,11 @@ Three things worth knowing:
 - **Enforcement is in the database, not the `DbContext`.** Raw SQL, a second process and a background job
   are all bound by it. That is the point — an application-level check is bypassable, and a check-then-insert
   in your own code has a race between the check and the insert.
-- **It arrives via migrations.** An existing table gains the rule from the next migration; a database
-  created with `EnsureCreated` does not get it at all.
+- **It arrives via migrations.** Adding the rule to an existing table is a migration of its own —
+  `dotnet ef migrations add` sees it even when no column changes — and applying it checks every later
+  write. Removing the rule is a migration too, and drops the triggers and index; changing it rebuilds them.
+  A database created with `EnsureCreated` does not get it at all. Rows already in the table are not
+  re-checked: find existing overlaps with a query before you add the rule.
 - **It survives table rebuilds.** SQLite cannot `ALTER` most things in place, so EF rebuilds the table and
   drops the original — taking its triggers with it. Rask re-emits them at the end of every migration that
   touches the table, so the constraint cannot silently disappear.

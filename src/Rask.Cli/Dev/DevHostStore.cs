@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Rask.Cli.Scaffolding;
 using Rask.Hosting.Shared;
 
 namespace Rask.Cli.Dev;
@@ -69,7 +70,7 @@ internal sealed partial class DevHostStore(string root)
     private void Write(string certificatePath, string keyPath, DevCertificate certificate)
     {
         Directory.CreateDirectory(CertificateDirectory);
-        RestrictToOwner(CertificateDirectory, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        OwnerOnly.Restrict(CertificateDirectory, OwnerOnly.Directory);
 
         File.WriteAllText(certificatePath, certificate.CertificatePem);
         File.WriteAllText(keyPath, certificate.PrivateKeyPem);
@@ -77,28 +78,7 @@ internal sealed partial class DevHostStore(string root)
         // The private key is the whole security boundary of this feature: anyone who can read it can
         // mint a certificate the developer's browser trusts. Written first, then narrowed, because
         // File.WriteAllText creates with the process umask.
-        RestrictToOwner(keyPath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
-    }
-
-    private static void RestrictToOwner(string path, UnixFileMode mode)
-    {
-        if (OperatingSystem.IsWindows())
-        {
-            return;
-        }
-
-        try
-        {
-            File.SetUnixFileMode(path, mode);
-        }
-        catch (IOException)
-        {
-            // A filesystem that does not carry permissions (a mounted share, a container overlay).
-            // Nothing better to do, and failing here would take down a dev loop over file metadata.
-        }
-        catch (UnauthorizedAccessException)
-        {
-        }
+        OwnerOnly.Restrict(keyPath, OwnerOnly.File);
     }
 
     /// <summary>
