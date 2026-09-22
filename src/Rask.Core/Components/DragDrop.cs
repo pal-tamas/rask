@@ -110,7 +110,7 @@ public sealed class DragDrop : Component
         {
             throw new InvalidOperationException(
                 "DragDrop has no Body, so there is nothing for it to render. Body is a delegate "
-                + "receiving the drag context: DragDrop(Body: ctx => Div()[ … ]).");
+                + "receiving the drag context: DragDrop.Body(ctx => Div[ … ]).");
         }
 
         return body.Invoke(new DragDropContext(this))!;

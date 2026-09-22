@@ -171,11 +171,9 @@ public sealed class VirtualizeModel : Component
         if (Body is not { } body)
         {
             throw new InvalidOperationException(
-                "VirtualizeModel has no Body, so there is nothing for it to render. Body is the first "
-                + "argument and receives the virtualization state — wire its OnScroll to your scroll "
+                "VirtualizeModel has no Body, so there is nothing for it to render. Body receives the virtualization state — wire its OnScroll to your scroll "
                 + "container and render state.Items inside it: "
-                + "VirtualizeModel(state => Div(OnScroll: state.OnScroll)[ … ], Items: rows, "
-                + "ItemSize: 32).");
+                + "VirtualizeModel.Body(state => Div.OnScroll(state.OnScroll)[ … ]).Items(rows).ItemSize(32).");
         }
 
         if (Items is null == ItemsProvider is null)

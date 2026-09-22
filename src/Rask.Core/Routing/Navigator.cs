@@ -51,7 +51,7 @@ public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink
     /// <exception cref="InvalidOperationException">Called outside an event handler.</exception>
     public static Navigator RequireCurrent() =>
         _current.Value ?? throw new InvalidOperationException(
-            "Navigation can only run from event handlers (e.g. Button(OnClick: ...)). " +
+            "Navigation can only run from event handlers (e.g. Button.OnClick(…)). " +
             "It cannot run during component Render() or the initial GET. To navigate on load, " +
             "express it as a route/redirect or drive it from a lifecycle hook; to redirect an " +
             "unauthenticated user, use [Authorize]. See docs/routing.md.");
@@ -290,7 +290,7 @@ public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink
         if (!_inHandler && !_inInitialRender)
         {
             throw new InvalidOperationException(
-                "Navigator can only be used from event handlers (e.g. Button(OnClick: ...)) or " +
+                "Navigator can only be used from event handlers (e.g. Button.OnClick(…)) or " +
                 "during a page's initial render (Render, OnMount, OnMountAsync), where it becomes " +
                 "a real HTTP redirect. It cannot run from a background render. To redirect an " +
                 "unauthenticated user, use [Authorize]. See docs/routing.md.");

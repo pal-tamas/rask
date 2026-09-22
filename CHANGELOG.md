@@ -407,6 +407,7 @@ them until tagged releases begin.
 
 ### Fixed
 
+- Error messages and diagnostics no longer name code that does not exist: RASK009/010 and `Route.To<T>()` say "add `[Route("/…")]`" instead of "derive from Page", RASK019/021 name the real `HeadAssets` override, a missing context value points at `Context.Provide<T>(value)[ … ]`, and the `DragDrop`, `VirtualizeModel`, `Navigator` and `Outlet` messages show the chain (`DragDrop.Body(ctx => Div[ … ])`) instead of the retired factory calls.
 - **WebAssembly apps get the `Rask` package's batteries (#1130).** The browser half of `Rask` wires `AddRaskCqrs`,
   request validation and `AddRaskQuery` from a `[ModuleInitializer]`, but a module initializer runs when its
   assembly is loaded, and nothing in an app loaded `Rask.dll` — so in every published WASM app the batteries silently

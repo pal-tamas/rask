@@ -19,7 +19,7 @@ public class RouteTemplateResolverTests
             RouteTemplateResolver.GetLocalTemplate(typeof(RouteTemplateResolverUnannotatedPage)));
 
         Assert.Contains(typeof(RouteTemplateResolverUnannotatedPage).FullName!, ex.Message);
-        Assert.Contains("derive it from", ex.Message);
+        Assert.Contains("give it [Route(\"/…\")]", ex.Message);
     }
 
     [Fact]

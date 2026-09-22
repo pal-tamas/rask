@@ -84,7 +84,7 @@ public sealed class Context : Component
         var named = name is null ? "" : $" named '{name}'";
         throw new InvalidOperationException(
             $"No context value of type '{typeof(T)}'{named} is available. " +
-            $"Wrap an ancestor in Context<{typeof(T).Name}>(value)[ … ] to provide one.");
+            $"Provide one with Context.Provide<{typeof(T).Name}>(value)[ … ] on an ancestor.");
     }
 
     /// <summary>

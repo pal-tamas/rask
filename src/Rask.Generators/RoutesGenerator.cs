@@ -109,21 +109,21 @@ public sealed class RoutesGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor Rask009 = new(
         "RASK009",
         "[RouteParam] on a non-routed class",
-        "Property '{0}.{1}' has [RouteParam] but '{0}' is not a valid route target ({2}) — derive '{0}' from "
-        + "Page (a concrete subclass), or remove [RouteParam]",
+        "Property '{0}.{1}' has [RouteParam] but '{0}' is not a valid route target ({2}) — add [Route(\"/…\")] to "
+        + "'{0}', or remove [RouteParam]",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
-        description: "Route binding only runs for pages the router can reach. On a class that is not a Page and has "
-                     + "no Parent chain to one, the attribute describes binding that never happens, so the property "
+        description: "Route binding only runs for pages the router can reach. On a class with no [Route] and "
+                     + "no parent chain to one, the attribute describes binding that never happens, so the property "
                      + "silently keeps its default.",
         helpLinkUri: DiagnosticHelp.Link("RASK009"));
 
     private static readonly DiagnosticDescriptor Rask010 = new(
         "RASK010",
         "[QueryParam] on a non-routed class",
-        "Property '{0}.{1}' has [QueryParam] but '{0}' is not a valid route target ({2}) — derive '{0}' from "
-        + "Page (a concrete subclass), or remove [QueryParam]",
+        "Property '{0}.{1}' has [QueryParam] but '{0}' is not a valid route target ({2}) — add [Route(\"/…\")] to "
+        + "'{0}', or remove [QueryParam]",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
@@ -516,9 +516,7 @@ public sealed class RoutesGenerator : IIncrementalGenerator
 
         var inheritsComponent = InheritsFromComponent(symbol);
 
-        // A class is a route target if it derives from Page (the current spelling) or carries [Route]
-        // (the legacy one). Deriving is enough on its own — the Route override is what supplies the
-        // template, and a missing/non-constant one is RASK047's business, not this analyzer's.
+        // A class is a route target if it carries [Route].
         var isRouteTarget = classAttrs.Any(a => a.AttributeClass?.ToDisplayString() == RouteAttrFullName);
 
         string? reason = null;
@@ -532,7 +530,7 @@ public sealed class RoutesGenerator : IIncrementalGenerator
         }
         else if (!isRouteTarget)
         {
-            reason = "class does not derive from Page";
+            reason = "class has no [Route]";
         }
 
         if (reason is null)

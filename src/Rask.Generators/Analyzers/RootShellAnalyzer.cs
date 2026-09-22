@@ -45,14 +45,14 @@ public sealed class RootShellAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor Rask021 = new(
         "RASK021",
         "Root component must not render the page shell",
-        "The Rask root component '{0}' renders the page shell itself ({1}). Rask builds the document around the root — return the body's content and move <head> contributions to the Head override, <html lang> to HtmlLang, <html dir> to HtmlDir, <body class> to BodyClass, or the whole document to a Shell override.",
+        "The Rask root component '{0}' renders the page shell itself ({1}). Rask builds the document around the root — return the body's content and move <head> contributions to a HeadAssets override, <html lang> to HtmlLang, <html dir> to HtmlDir, <body class> to BodyClass, or the whole document to a Shell override.",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
         description: "The root component renders into <body>: Rask emits the doctype, <html>, <head> and <body> around "
                      + "whatever it returns. Building them again nests a second document inside the body, which the "
                      + "parser unwraps — the page keeps rendering and quietly loses the nested tags' attributes. Return "
-                     + "the body content (typically Router()); put head contributions in the Head override, the "
+                     + "the body content (typically Router()); put head contributions in a HeadAssets override, the "
                      + "document language in HtmlLang, its writing direction in HtmlDir, the body class in "
                      + "BodyClass, and anything else in a "
                      + "Shell(head, body) override. Do not add the runtime <script> — it is appended to <body> "

@@ -71,7 +71,7 @@ public partial class ActionableExceptionMessageTests : global::Rask.Core.RaskMar
         var outlet = ReadSource("src", "Rask.Core", "Routing", "Outlet.cs");
         var renderer = ReadSource("src", "Rask.Core", "Routing", "RouteChainRenderer.cs");
 
-        const string Shared = "Place Outlet() inside a Router(...) render tree.";
+        const string Shared = "Place Outlet inside a Router render tree.";
         Assert.Contains(Shared, outlet, StringComparison.Ordinal);
         Assert.Contains(Shared, renderer, StringComparison.Ordinal);
         Assert.DoesNotContain(
@@ -85,7 +85,7 @@ public partial class ActionableExceptionMessageTests : global::Rask.Core.RaskMar
 
         var ex = Assert.Throws<InvalidOperationException>(() => view.RenderAsLiveRoot());
 
-        Assert.Contains("DragDrop(Body:", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("DragDrop.Body(", ex.Message, StringComparison.Ordinal);
     }
 
     private static string ReadSource(params string[] parts) =>

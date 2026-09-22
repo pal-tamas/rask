@@ -53,7 +53,7 @@ public sealed class Outlet : Component
         var ctx = LiveRenderContext.Current
                   ?? throw new InvalidOperationException(
                       "Outlet() and Router rendering require an active route context. " +
-                      "Place Outlet() inside a Router(...) render tree.");
+                      "Place Outlet inside a Router render tree.");
         return RouteChainRenderer.RenderChainEntry(ctx);
     }
 }

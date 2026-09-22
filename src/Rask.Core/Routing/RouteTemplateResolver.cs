@@ -26,8 +26,8 @@ internal static class RouteTemplateResolver
             // generator-emitted `Routes.{Type}()` URL formatter, which also picks the first.
             var local = t.GetCustomAttributes<RouteAttribute>(false).FirstOrDefault()
                         ?? throw new InvalidOperationException(
-                            $"Route.To<{t.Name}>() requires '{t.FullName}' to be a routed page — derive it from "
-                            + "Page and override Route, and make sure its assembly's generated route registry "
+                            $"Route.To<{t.Name}>() requires '{t.FullName}' to be a routed page — give it "
+                            + "[Route(\"/…\")], and make sure its assembly's generated route registry "
                             + "has run (it registers via a module initializer).");
             return local.Template;
         });
