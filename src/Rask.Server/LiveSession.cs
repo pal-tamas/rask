@@ -54,7 +54,7 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     private bool _hasAttachedBefore;
 
     // Set true whenever a render request lands with no live socket — async lifecycle
-    // continuations from Mount / OnRenderedAsync that resolve during the HTTP-GET-
+    // continuations from Mount / OnRendered that resolve during the HTTP-GET-
     // to-WS-hello handoff window, or while a session is between sockets across a
     // reconnect. AttachSocket reads it from the hello handler to decide whether a
     // catch-up render is actually needed: when nothing was dropped, the HTML the browser
@@ -657,10 +657,10 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         }
 
         // When the catch-up is only there to ship a queued js.InvokeVoidAsync (e.g. the
-        // sibling-of-CodeSample case: CodeSample.OnRenderedAsync awaits IJSRuntime during
+        // sibling-of-CodeSample case: CodeSample.OnRendered awaits IJSRuntime during
         // the GET render walk, queuing the invoke), use a publish-only render so already-
         // rendered components don't re-fire OnRendered. On WASM the same scenario routes
-        // through OnRenderedAsync's RequestPublishRenderAsync after the JS call completes
+        // through OnRendered's RequestPublishRenderAsync after the JS call completes
         // — no extra OnRendered on siblings — so this keeps the initial-mount hook
         // sequence aligned across hosts. A genuine dropped StateHasChanged still triggers
         // a normal render (fires OnRendered) since that's the contract for state mutations.
@@ -967,7 +967,7 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
                 RaskLogLevel.Warning, "Rask.Live",
                 $"[Rask.LiveSession] Coalesce-loop budget exhausted for session {Id}; " +
                 "a third in-dispatch render was queued and dropped. Inspect any handlers " +
-                "that re-trigger StateHasChanged in OnRenderedAsync / dispose callbacks " +
+                "that re-trigger StateHasChanged in OnRendered / dispose callbacks " +
                 "during this dispatch.");
         }
     }

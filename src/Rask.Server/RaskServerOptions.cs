@@ -70,7 +70,7 @@ public sealed class RaskServerOptions
     ///     serving its HTML. <see cref="TimeSpan.Zero" /> disables the wait. Default 5&#160;seconds.
     /// </summary>
     /// <remarks>
-    ///     Without the wait, a page that loads its data in <c>Mount</c> serves its
+    ///     Without the wait, a page that loads its data in <c>OnMount</c> serves its
     ///     placeholder as the first paint and as the whole document a crawler sees. Blowing the
     ///     budget is not an error: the page is served as it stands and finishes loading over its live
     ///     connection. A slow page does hold a request open for up to this long, so size it together

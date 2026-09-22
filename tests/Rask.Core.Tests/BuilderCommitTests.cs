@@ -28,13 +28,13 @@ internal sealed partial class CommitProbe : Component
 
     public Callback? OnPing { get; set; }
 
-    protected override Task Mount()
+    protected override Task OnMount()
     {
         Mounts++;
         return Task.CompletedTask;
     }
 
-    protected override Task Updated()
+    protected override Task OnUpdated()
     {
         PropsChanges++;
         return Task.CompletedTask;

@@ -32,7 +32,7 @@ public sealed partial class ProductsPage : Component
 {
     private IReadOnlyList<ProductListItem> _items = [];
 
-    protected override async Task Mount() => await Load();
+    protected override async Task OnMount() => await Load();
 
     private async Task Load() => _items = await Cache.Remember("catalog", LoadProducts).For(5.Minutes);
 

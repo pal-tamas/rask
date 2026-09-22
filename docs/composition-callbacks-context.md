@@ -47,7 +47,7 @@ the component so it captures `this`. A lambda over a plain local, or a static me
 returns unchanged and does **not** trigger a re-render.
 
 Auto-wrapped delegates are excluded from the `propsChanged` diff — changing only the
-lambda identity between renders does not refire `Updated`.
+lambda identity between renders does not refire `OnUpdated`.
 
 **Callbacks on framework components are plain delegates.** `BsButton.OnClick` is an `Action?`,
 `Input.OnInputAsync` a `Func<string, Task>?`, `BsDataGrid.RowClass` a `Func<T, string?>?` — declared as

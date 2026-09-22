@@ -79,13 +79,13 @@ public sealed class Router : Component
 
     // Subscribe to RouteState.Changed so Render() re-executes on every nav and the
     // route chain reflects the new path/query. Unsubscribe in Unmount.
-    protected override Task Mount()
+    protected override Task OnMount()
     {
         _state.Changed += StateHasChanged;
         return Task.CompletedTask;
     }
 
-    protected override Task Unmount()
+    protected override Task OnUnmount()
     {
         _state.Changed -= StateHasChanged;
         return Task.CompletedTask;

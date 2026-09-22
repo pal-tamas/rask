@@ -17,13 +17,13 @@ public sealed partial class RouteTitleNavApp : Component
 
     public RouteTitleNavApp(RouteState routeState) => _routeState = routeState;
 
-    protected override Task Mount()
+    protected override Task OnMount()
     {
         _routeState.Changed += StateHasChanged;
         return Task.CompletedTask;
     }
 
-    protected override Task Unmount()
+    protected override Task OnUnmount()
     {
         _routeState.Changed -= StateHasChanged;
         return Task.CompletedTask;

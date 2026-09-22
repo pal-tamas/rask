@@ -124,7 +124,7 @@ public partial class AsyncLifecycleErrorBoundaryTests : global::Rask.Core.RaskMa
         public FaultingComponent(FaultPoint faultOn) => _faultPoint = faultOn;
         public TaskCompletionSource Fault { get; } = new();
 
-        protected override async Task Mount()
+        protected override async Task OnMount()
         {
             if (_faultPoint != FaultPoint.MountAsync)
             {
@@ -136,7 +136,7 @@ public partial class AsyncLifecycleErrorBoundaryTests : global::Rask.Core.RaskMa
             throw new InvalidOperationException("mount-async");
         }
 
-        protected override async Task Updated()
+        protected override async Task OnUpdated()
         {
             if (_faultPoint != FaultPoint.PropsAsync)
             {

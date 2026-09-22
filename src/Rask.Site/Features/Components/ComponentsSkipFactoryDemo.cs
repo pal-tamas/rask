@@ -9,7 +9,7 @@ public sealed partial class SkipFactoryCounter : Component
     // doesn't have to (and can't) pass Initial through.
     [SkipFactory] public int Initial { get; set; } = 7;
 
-    protected override async Task Mount() => _count = Initial;
+    protected override async Task OnMount() => _count = Initial;
 
     protected override Component? Render() =>
         UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("skipfactory-counter").OnClick(() => _count++)[UiIcon.Name(UiIconName.Cursor), $"Clicks: {_count}"];

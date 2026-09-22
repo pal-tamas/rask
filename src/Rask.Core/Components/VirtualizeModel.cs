@@ -120,7 +120,7 @@ public sealed class VirtualizeModel : Component
     // Router/Outlet — see Component.BypassRenderCache.
     protected override bool BypassRenderCache => true;
 
-    protected override Task Updated()
+    protected override Task OnUpdated()
     {
         // Treat an Items or ItemsProvider reference swap as a full reset: the prior cache,
         // scroll position, and active fetch all belong to the old data source.
@@ -140,7 +140,7 @@ public sealed class VirtualizeModel : Component
         return Task.CompletedTask;
     }
 
-    protected override Task Unmount()
+    protected override Task OnUnmount()
     {
         // Cancel any in-flight fetch when the component leaves the tree so the
         // provider's await unwinds promptly and the CTS doesn't leak through GC.

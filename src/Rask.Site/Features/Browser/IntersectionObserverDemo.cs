@@ -15,7 +15,7 @@ public sealed partial class IntersectionObserverDemo(IIntersectionObserver obser
     private bool _visible;
     private int _changes;
 
-    protected override async Task FirstRender()
+    protected override async Task OnFirstRender()
     {
         if (_observation is not null)
 

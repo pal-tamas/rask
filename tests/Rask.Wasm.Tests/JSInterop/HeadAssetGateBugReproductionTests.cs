@@ -8,7 +8,7 @@ namespace Rask.Wasm.Tests.JsInteropRuntime;
 // User symptom (pre-fix): "Microsoft.JSInterop.JSException — undefined is
 // not an object (evaluating 'window.hljs.highlightElement')" after
 // Page.ReloadAsync() on any /validation-style CodeSample-bearing page.
-// RootErrorBoundary caught the faulted OnRenderedAsync task and rendered
+// RootErrorBoundary caught the faulted OnRendered task and rendered
 // DefaultErrorPage ("Something went wrong") in place of the route.
 //
 // Mechanism: rask.wasm.js's head-asset gate calls a shared `finish()`

@@ -304,7 +304,7 @@ public partial class UnmountTests : global::Rask.Core.RaskMarkup
         public int UnmountCount;
         public CountingDisposable(Action onDispose) => _onDispose = onDispose;
         public void Dispose() => _onDispose();
-        protected override Task Unmount()
+        protected override Task OnUnmount()
         {
             UnmountCount++;
             return Task.CompletedTask;
@@ -320,7 +320,7 @@ public partial class UnmountTests : global::Rask.Core.RaskMarkup
         public bool IncludeChild;
         public ClearChildrenOnUnmountHost(Component child) => _child = child;
 
-        protected override Task Unmount()
+        protected override Task OnUnmount()
         {
             ComponentLifecycle.DisposeComponentTree(_child);
             return Task.CompletedTask;
@@ -347,7 +347,7 @@ public partial class UnmountTests : global::Rask.Core.RaskMarkup
 
         public CancellationToken GrabToken() => CancellationToken;
 
-        protected override Task Unmount()
+        protected override Task OnUnmount()
         {
             UnmountFired = true;
             WasCancelledAtUnmount = CancellationToken.IsCancellationRequested;
@@ -362,7 +362,7 @@ public partial class UnmountTests : global::Rask.Core.RaskMarkup
         private readonly List<string> _order;
         public UnmountThenDisposable(List<string> order) => _order = order;
         public void Dispose() => _order.Add("dispose");
-        protected override Task Unmount()
+        protected override Task OnUnmount()
         {
             _order.Add("unmount");
             return Task.CompletedTask;
@@ -381,7 +381,7 @@ public partial class UnmountTests : global::Rask.Core.RaskMarkup
             _name = name;
         }
 
-        protected override Task Unmount()
+        protected override Task OnUnmount()
         {
             _order.Add(_name);
             return Task.CompletedTask;
@@ -402,7 +402,7 @@ public partial class UnmountTests : global::Rask.Core.RaskMarkup
             _child = child;
         }
 
-        protected override Task Unmount()
+        protected override Task OnUnmount()
         {
             _order.Add(_name);
             return Task.CompletedTask;
@@ -470,13 +470,13 @@ public partial class UnmountTests : global::Rask.Core.RaskMarkup
         private readonly List<string> _order;
         public HybridCleanup(List<string> order) => _order = order;
 
-        protected override Task Mount()
+        protected override Task OnMount()
         {
             CancellationToken.Register(() => _order.Add("cancel-callback"));
             return Task.CompletedTask;
         }
 
-        protected override Task Unmount()
+        protected override Task OnUnmount()
         {
             _order.Add("unmount");
             return Task.CompletedTask;

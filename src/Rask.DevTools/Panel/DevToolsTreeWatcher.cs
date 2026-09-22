@@ -19,14 +19,14 @@ internal sealed partial class DevToolsTreeWatcher : Component
     public required DevToolsFeed Feed { get; set; }
 
     /// <inheritdoc />
-    protected override Task Mount()
+    protected override Task OnMount()
     {
         _watch = Feed.WatchTree();
         return Task.CompletedTask;
     }
 
     /// <inheritdoc />
-    protected override Task Unmount()
+    protected override Task OnUnmount()
     {
         _watch?.Dispose();
         _watch = null;

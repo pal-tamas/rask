@@ -163,7 +163,7 @@ public partial class ComponentCancellationTests : global::Rask.Core.RaskMarkup
 
         public CancellationToken Token => CancellationToken;
 
-        protected override Task Mount() =>
+        protected override Task OnMount() =>
             OnMountAsyncImpl?.Invoke(CancellationToken) ?? Task.CompletedTask;
 
         protected override Component? Render() => Span;

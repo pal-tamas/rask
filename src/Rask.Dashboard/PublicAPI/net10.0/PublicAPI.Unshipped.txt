@@ -465,4 +465,4 @@ static RaskBuilderSettersRask_Dashboard.__RaskCopyWritten_Rask_Dashboard_Pages_C
 static RaskBuilderSettersRask_Dashboard.__RaskCopyWritten_Rask_Dashboard_Pages_LogsPage(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Dashboard.__RaskCopyWritten_Rask_Dashboard_Pages_QueuePage(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Dashboard.__RaskCopyWritten_Rask_Dashboard_Pages_StoragePage(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
-override Rask.Dashboard.Pages.PollingPanel.Mount() -> System.Threading.Tasks.Task!
+override Rask.Dashboard.Pages.PollingPanel.OnMount() -> System.Threading.Tasks.Task!

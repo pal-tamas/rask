@@ -9,7 +9,7 @@ namespace Rask.Core.Diagnostics.DevTools;
 ///     order; the first that applies is the cause.
 /// </summary>
 /// <remarks>
-///     There is deliberately no <c>Mount</c>. "Nothing cached" is not the same as "first render": a live session captures a
+///     There is deliberately no <c>OnMount</c>. "Nothing cached" is not the same as "first render": a live session captures a
 ///     clean pure-element subtree as frames and drops the component's cached result, and a component that renders null
 ///     never has one. Reporting those as mounts would call every such re-render a mount. The devtools recognise a mount as
 ///     the first time they see a component render.

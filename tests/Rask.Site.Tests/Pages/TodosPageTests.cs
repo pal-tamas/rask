@@ -149,7 +149,7 @@ public sealed class TodosPageTests
         // Put page in edit mode for the second todo.
         typeof(TodosPage).GetProperty("Id")!.SetValue(page, target.Id);
 
-        var onPropsChanged = typeof(TodosPage).GetMethod("Updated",
+        var onPropsChanged = typeof(TodosPage).GetMethod("OnUpdated",
             BindingFlags.Instance | BindingFlags.NonPublic)!;
         onPropsChanged.Invoke(page, null);
 

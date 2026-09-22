@@ -56,7 +56,7 @@ public sealed partial class ToastOutlet : Component
     // the render cache must not pin an earlier snapshot. Same rationale as ValidationMessage.
     protected override bool BypassRenderCache => true;
 
-    protected override Task Mount()
+    protected override Task OnMount()
     {
         _toaster = LiveRenderContext.Current?.Services?.GetService<IToaster>();
         if (_toaster is not null)
@@ -70,7 +70,7 @@ public sealed partial class ToastOutlet : Component
         return Task.CompletedTask;
     }
 
-    protected override Task Unmount()
+    protected override Task OnUnmount()
     {
         if (_toaster is not null)
         {

@@ -48,7 +48,7 @@ to the async EF calls so navigating away mid-query cancels cleanly.
 
 Read data in an async lifecycle hook and store it in a field. The async-hook continuation
 re-renders automatically when the `await` completes — no explicit `StateHasChanged()` needed (see
-[lifecycle.md](lifecycle.md)). Use `Mount` for a one-time load, `Updated` to
+[lifecycle.md](lifecycle.md)). Use `OnMount` for a one-time load, `OnUpdated` to
 reload when a route/query param changes.
 
 ```csharp
@@ -57,7 +57,7 @@ public sealed partial class ListProductsPage(IDbContextFactory<CatalogDbContext>
     private IReadOnlyList<Product> _products = [];
     private bool _loaded;
 
-    protected override async Task Mount()
+    protected override async Task OnMount()
     {
         await using var db = await dbContextFactory.CreateDbContextAsync(CancellationToken);
         _products = await db.Products.AsNoTracking().OrderBy(p => p.Id).ToListAsync(CancellationToken);
@@ -83,7 +83,7 @@ private async Task DeleteAsync(int id)
 
 You only call `StateHasChanged()` by hand for state that changes **outside** the handler-dispatch
 window — a timer tick, a fire-and-forget continuation, or an external event/observable
-subscription (e.g. `Mount() => store.Changed += StateHasChanged`). See
+subscription (e.g. `OnMount() => store.Changed += StateHasChanged`). See
 [lifecycle.md](lifecycle.md) for the auto-re-render rule.
 
 ## How the sample is organised

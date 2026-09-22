@@ -90,7 +90,7 @@ public class RedundantStateHasChangedAnalyzerTests
     public async Task StateHasChangedInLifecycleMethod_NoDiagnostic() =>
         // Not inside a callback lambda — a background/lifecycle StateHasChanged is legitimate.
         Assert.Empty(await Diagnostics(App(
-            "protected override async Task Mount() => StateHasChanged();"
+            "protected override async Task OnMount() => StateHasChanged();"
             + "protected override Component? Render() => Div()[\"x\"];")));
 
     [Fact]

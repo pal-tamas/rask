@@ -10,7 +10,7 @@ namespace Rask.Core.Live;
 // here via RaskJSRuntimeBase.BeginInvokeJS during a render (or an event handler); the session's
 // payload builder drains it into the outbound frame's `jsInvokes`, and the client dispatches each
 // AFTER it applies the render's DOM patch. That post-commit ordering is the whole point: interop
-// issued from a lifecycle hook (e.g. OnRenderedAsync focusing a dialog as it opens) must run against
+// issued from a lifecycle hook (e.g. OnRendered focusing a dialog as it opens) must run against
 // the committed DOM, not the pre-patch one. Server always worked this way; routing WASM through the
 // same queue gives it the same ordering instead of dispatching immediately (pre-patch).
 internal sealed class LiveJsInvokeQueue

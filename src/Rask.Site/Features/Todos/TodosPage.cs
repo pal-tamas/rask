@@ -51,7 +51,7 @@ public sealed partial class TodosPage : Component
     // same cached page instance (the framework OR's path change into propsChanged inside
     // RouteChainRenderer). Bare re-renders triggered by event handlers don't refire it,
     // so typing in the dialog input won't clobber what the user just typed.
-    protected override async Task Updated() => _form.Title = EditingItem?.Title ?? "";
+    protected override async Task OnUpdated() => _form.Title = EditingItem?.Title ?? "";
 
     // The list route has a generated type-safe URL; the /new and /{id}/edit dialog routes are secondary
     // [Route] templates on this same page, and the generator emits no formatter for those — so they are

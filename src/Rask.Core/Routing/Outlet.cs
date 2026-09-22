@@ -20,7 +20,7 @@ public sealed class Outlet : Component
     // itself. Router carries the matching note and the rest of the reasoning.
     protected override bool BypassRenderCache => true;
 
-    protected override Task Mount()
+    protected override Task OnMount()
     {
         // Subscribe to RouteState.Changed so the cached subtree is invalidated when the
         // route chain changes. Without this, Router's re-render would walk past a cached
@@ -35,7 +35,7 @@ public sealed class Outlet : Component
         return Task.CompletedTask;
     }
 
-    protected override Task Unmount()
+    protected override Task OnUnmount()
     {
         if (_route is null)
         {

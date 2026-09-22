@@ -4,7 +4,7 @@ Every `Component` can override five lifecycle hooks. Each is one `Task`-returnin
 well-defined point around a render, and behaves identically on the Server and WASM hosts (only the transport
 differs). This page documents the hooks, their order, the async rules, and the gotchas.
 
-See also: [routing.md](routing.md) for how route/query params drive `Updated`, and the README *Lifecycle
+See also: [routing.md](routing.md) for how route/query params drive `OnUpdated`, and the README *Lifecycle
 reference* table for a one-glance summary.
 
 ## The hooks
@@ -12,19 +12,19 @@ reference* table for a one-glance summary.
 All five are `protected virtual` on `Component`:
 
 ```csharp
-protected override async Task Mount()       => _items = await LoadItems();          // once, before the first render
-protected override async Task Updated()     => _product = await Product.Find(Id);   // new props arrived (and on mount)
-protected override async Task FirstRender() => await _map.Init(_center);            // once, after the first render
-protected override async Task Rendered()    => await _map.Refresh(_markers);        // after every render
-protected override async Task Unmount()     => await _socket.Close();               // once, on the way out
+protected override async Task OnMount()       => _items = await LoadItems();          // once, before the first render
+protected override async Task OnUpdated()     => _product = await Product.Find(Id);   // new props arrived (and on mount)
+protected override async Task OnFirstRender() => await _map.Init(_center);            // once, after the first render
+protected override async Task OnRendered()    => await _map.Refresh(_markers);        // after every render
+protected override async Task OnUnmount()     => await _socket.Close();               // once, on the way out
 ```
 
 There is one hook per moment, not a synchronous and an asynchronous twin. The part of a hook before its first
-`await` runs synchronously — before the first render, for `Mount` — so work that used to go in a separate
+`await` runs synchronously — before the first render, for `OnMount` — so work that used to go in a separate
 synchronous hook simply goes above the `await`:
 
 ```csharp
-protected override async Task Mount()
+protected override async Task OnMount()
 {
     feed.Updated += StateHasChanged;                        // now, before the first render
     _items = await Cache.Remember("catalog", LoadItems);    // later — the component re-renders when it lands
@@ -37,11 +37,11 @@ A hook with nothing to await is still written `async`; the compiler does not war
 
 | Hook          | When                                                                                               |
 |---------------|----------------------------------------------------------------------------------------------------|
-| `Mount`       | **Once**, before the instance's first render.                                                      |
-| `Updated`     | On the **first render**, and on any later render where a bound prop / route or query param **actually changed**. |
-| `FirstRender` | **Once**, after the first render is in the page — where browser work that needs the elements starts. |
-| `Rendered`    | After **every** render, the first included (after `FirstRender`).                                  |
-| `Unmount`     | **Once**, on disposal (navigation away, parent subtree torn down, session teardown). Children unmount before parents (depth-first). |
+| `OnMount`       | **Once**, before the instance's first render.                                                      |
+| `OnUpdated`     | On the **first render**, and on any later render where a bound prop / route or query param **actually changed**. |
+| `OnFirstRender` | **Once**, after the first render is in the page — where browser work that needs the elements starts. |
+| `OnRendered`    | After **every** render, the first included (after `OnFirstRender`).                                  |
+| `OnUnmount`     | **Once**, on disposal (navigation away, parent subtree torn down, session teardown). Children unmount before parents (depth-first). |
 
 So a component's life reads:
 
@@ -55,19 +55,19 @@ leaving:     Unmount   (its CancellationToken is cancelled right after)
 ### Live probe
 
 The component below counts every hook and re-renders so you can watch the order. **Trigger re-render** fires a
-bare event-handler render — note it re-runs `Rendered` but does **not** re-fire `Mount` / `Updated` (nothing the
-component is bound to changed), and `FirstRender` stays at one:
+bare event-handler render — note it re-runs `OnRendered` but does **not** re-fire `OnMount` / `OnUpdated` (nothing the
+component is bound to changed), and `OnFirstRender` stays at one:
 
 <!-- demo:lifecycle-hooks -->
 
 ### Mount / unmount cycle
 
-Toggle the probe in and out of the tree to watch `Unmount` fire (children before parents). The log is held by the
+Toggle the probe in and out of the tree to watch `OnUnmount` fire (children before parents). The log is held by the
 parent, so it survives the probe's unmount:
 
 <!-- demo:lifecycle-cycle -->
 
-A typical async-data page uses `Mount` to fetch once and renders a placeholder until it lands:
+A typical async-data page uses `OnMount` to fetch once and renders a placeholder until it lands:
 
 ```csharp
 [Route("/weather")]
@@ -75,7 +75,7 @@ public sealed partial class Weather(IWeatherForecastService service) : Component
 {
     private WeatherForecast[]? _forecasts;
 
-    protected override async Task Mount() =>
+    protected override async Task OnMount() =>
         _forecasts = await service.GetForecasts();
 
     protected override Component? Render() =>
@@ -92,11 +92,11 @@ still shows if the fetch outlives the budget, in which case the page keeps its l
 finishes loading over the socket. See [Live pages](render-modes.md#the-initial-get-waits-for-your-data).
 
 Work you deliberately detach from the hook is **not** waited on. A poll loop started with
-`_ = Poll()` returns from `Mount` immediately, so the response goes out and the loop
+`_ = Poll()` returns from `OnMount` immediately, so the response goes out and the loop
 keeps pushing over the live connection:
 
 ```csharp
-protected override async Task Mount()
+protected override async Task OnMount()
 {
     await Read();    // awaited: the GET waits for this
     _ = Poll();      // detached: it must not hold the response open
@@ -106,9 +106,9 @@ protected override async Task Mount()
 Neither call passes a cancellation token: both run inside the component's own work and are cancelled when it
 unmounts.
 
-### When `Updated` refires
+### When `OnUpdated` refires
 
-`Updated` fires on the first render and whenever a value the component is bound to **actually changes** —
+`OnUpdated` fires on the first render and whenever a value the component is bound to **actually changes** —
 including:
 
 - A parent passing a different value for a chain step (a prop).
@@ -117,15 +117,15 @@ including:
   remounting).
 
 What does **not** refire it: a bare event-handler re-render. Clicking a button that mutates a local field re-renders
-the component but does **not** re-fire `Updated` — nothing the component is bound to changed. (`Key` is a
-reconciliation identity, not a reactive prop, so a key change doesn't fire `Updated` either; it mounts a fresh
+the component but does **not** re-fire `OnUpdated` — nothing the component is bound to changed. (`Key` is a
+reconciliation identity, not a reactive prop, so a key change doesn't fire `OnUpdated` either; it mounts a fresh
 instance.)
 
-### Do not run an unbounded loop in `Mount`
+### Do not run an unbounded loop in `OnMount`
 
 The first render waits on the task a lifecycle hook hands back. That is right for *load the data this page
 shows* and wrong for *run until this component goes away* — a `while (!ct.IsCancellationRequested)` loop
-awaited inside `Mount` never returns, so the render never settles. It waits out its whole budget and
+awaited inside `OnMount` never returns, so the render never settles. It waits out its whole budget and
 is then reported as timed out; under [prerendering](prerendering.md) the page is skipped entirely and ships
 to a crawler as a boot shell.
 
@@ -144,7 +144,7 @@ the continuation, plus one terminal re-render on completion — you get "mutate 
 without calling `StateHasChanged()` by hand. The runtime coalesces these into one payload per handler dispatch.
 
 ```csharp
-protected override async Task Mount()
+protected override async Task OnMount()
 {
     // placeholder shows here
     _data = await Load();
@@ -152,13 +152,13 @@ protected override async Task Mount()
 }
 ```
 
-**`Rendered` is loop-safe.** The terminal auto re-render is a *publish-only* walk: it does **not** re-fire
-`Rendered` on components that have already rendered at least once. That's what keeps a `Rendered` hook which awaits a
+**`OnRendered` is loop-safe.** The terminal auto re-render is a *publish-only* walk: it does **not** re-fire
+`OnRendered` on components that have already rendered at least once. That's what keeps a `OnRendered` hook which awaits a
 next-frame side effect (e.g. drawing a chart, or a scoped-JS call) from looping on itself. Newly-mounted children on
-the same walk still get their `FirstRender` and `Rendered`.
+the same walk still get their `OnFirstRender` and `OnRendered`.
 
 ```csharp
-protected override async Task Rendered() =>
+protected override async Task OnRendered() =>
     await js.InvokeVoidAsync("Rask.CodeSample.rendered");
     // re-render from another component won't re-fire this — no loop
 ```
@@ -167,7 +167,7 @@ protected override async Task Rendered() =>
 
 **If an async hook faults, it trips the nearest `ErrorBoundary` — and in a live app there is always one.** The host
 wraps your `App` in an implicit root boundary, and every component is stamped with the boundary above it during the
-render walk, so a faulting `Mount` / `Updated` / `Rendered` renders that boundary's fallback
+render walk, so a faulting `OnMount` / `OnUpdated` / `OnRendered` renders that boundary's fallback
 rather than logging quietly.
 
 The practical symptom is therefore the opposite of what you might expect: not a component stuck forever on a loading
@@ -176,7 +176,7 @@ unless you put a closer boundary in the way.
 
 ```csharp
 // Without a boundary of your own, a throw here replaces the entire document.
-protected override async Task Mount() => _rows = await api.LoadAsync();
+protected override async Task OnMount() => _rows = await api.LoadAsync();
 
 // With one, the blast radius is the subtree you chose.
 ErrorBoundary.Fallback((ex, retry) => Div[
@@ -205,13 +205,13 @@ context. In a live app that path is unreachable, so do not go looking there for 
 
 ## Gotcha: don't `StateHasChanged()` in unmount
 
-When `Unmount` runs, the component's lifetime `CancellationToken` is still **live** — it's
+When `OnUnmount` runs, the component's lifetime `CancellationToken` is still **live** — it's
 cancelled immediately *after* the hook returns. But the component is already leaving the tree, so calling
 `StateHasChanged()` from inside an unmount hook is a **no-op** by design (it's been flagged unmounted before the hook
 fires). Don't request a render from unmount.
 
 ```csharp
-protected override async Task Unmount()
+protected override async Task OnUnmount()
 {
     route.Changed -= StateHasChanged;   // typical: tear down subscriptions
     // do NOT call StateHasChanged() here — the component is leaving the tree
@@ -222,7 +222,7 @@ protected override async Task Unmount()
 
 Components that implement `IDisposable` or `IAsyncDisposable` get their `Dispose` / `DisposeAsync` called by the
 framework when they leave the render tree. Use it to release timers, subscriptions, or any handle you took out in
-`Mount`. Disposal walks children depth-first, so nested disposables tear down bottom-up.
+`OnMount`. Disposal walks children depth-first, so nested disposables tear down bottom-up.
 
 Mount, then unmount — the sync probe's `Dispose()` runs as the parent's diff removes it from the tree:
 
@@ -233,11 +233,11 @@ continuation:
 
 <!-- demo:disposal-async -->
 
-## `Unmount` vs `IDisposable`
+## `OnUnmount` vs `IDisposable`
 
-`Unmount` is the framework-side cleanup signal. It fires **before** the lifetime
+`OnUnmount` is the framework-side cleanup signal. It fires **before** the lifetime
 `CancellationToken` is cancelled, so cleanup code can still observe the token. Reach for it when the resource is
-conceptually a *lifecycle hook* (unsubscribe from an event, stop a timer you started in `Mount`) and reserve
+conceptually a *lifecycle hook* (unsubscribe from an event, stop a timer you started in `OnMount`) and reserve
 `IDisposable` for things you would dispose anyway in non-Rask code (file handles, HTTP responses, DB connections):
 
 <!-- demo:disposal-unmount -->
@@ -255,7 +255,7 @@ public sealed partial class CancellationProbe : Component
     public required Action<string> Log { get; set; }
     public required int InstanceId { get; set; }
 
-    protected override async Task Mount()
+    protected override async Task OnMount()
     {
         try
         {
@@ -274,7 +274,7 @@ The framework cancels the token **before** disposing the subtree, so awaits unwi
 before `Dispose` runs and the unmount hooks fire. Cooperation is required: the framework only *signals* the token — it
 doesn't abort blocking calls. Thread the token through anything you want cancelled.
 
-Mount the probe to start a 2.5-second `Task.Delay` inside `Mount`; click **Unmount** before it settles to
+Mount the probe to start a 2.5-second `Task.Delay` inside `OnMount`; click **Unmount** before it settles to
 cancel — the probe records what happened into the log:
 
 <!-- demo:cancellation -->
@@ -286,8 +286,8 @@ lifecycle hook. Register the producer as a singleton with a lifetime of its own,
 and let components subscribe:
 
 ```csharp
-protected override async Task Mount()   => feed.Updated += StateHasChanged;
-protected override async Task Unmount() => feed.Updated -= StateHasChanged;
+protected override async Task OnMount()   => feed.Updated += StateHasChanged;
+protected override async Task OnUnmount() => feed.Updated -= StateHasChanged;
 ```
 
 Unlike a poll loop inside one component, this producer is **decoupled from the component tree** — it keeps ticking

@@ -80,7 +80,7 @@ public sealed partial class LogsPage(
     }
 
     /// <inheritdoc />
-    protected override Task Unmount()
+    protected override Task OnUnmount()
     {
         Unsubscribe();
         return Task.CompletedTask;

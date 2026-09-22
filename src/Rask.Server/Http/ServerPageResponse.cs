@@ -56,7 +56,7 @@ internal sealed class ServerPageResponse : IPageResponse
 
         throw new InvalidOperationException(
             $"IPageResponse.{member} can only run during the initial server render of a page " +
-            "(Render, Mount or Mount). By the time an event handler runs, the response " +
+            "(Render or OnMount). By the time an event handler runs, the response " +
             "has already been sent, so there is no status left to set — the call would be silently " +
             "dropped. To change the page from a handler, use Navigator; to gate a page on load, " +
             "use [Authorize] or a route. See docs/routing.md.");

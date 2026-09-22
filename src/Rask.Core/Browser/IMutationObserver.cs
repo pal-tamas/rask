@@ -51,7 +51,7 @@ public sealed record MutationOptions
 ///     <code>
 ///     private readonly ElementRef _target = ElementRef.New();
 ///     protected override Component? Render() => Div(Ref: _target)[ ... ];
-///     protected override async Task FirstRender()
+///     protected override async Task OnFirstRender()
 ///     {
 ///         _obs = await observer.ObserveAsync(_target, m => { _count++; StateHasChanged(); return Task.CompletedTask; },
 ///             new MutationOptions { ChildList = true, Attributes = true, Subtree = true });

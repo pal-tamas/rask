@@ -67,7 +67,7 @@ response compression yourself, exclude that type too.
 
 ## The initial GET waits for your data
 
-`Mount` is fire-and-forget by design: the render walk starts it, keeps walking, and the continuation
+`OnMount` is fire-and-forget by design: the render walk starts it, keeps walking, and the continuation
 paints later over the live connection. That is right once a connection exists, and wrong for the first
 response — where "later" is after the bytes have already gone.
 
@@ -79,7 +79,7 @@ public sealed partial class Weather(IForecastService service) : Component
 {
     private Forecast[]? _forecasts;
 
-    protected override async Task Mount() =>
+    protected override async Task OnMount() =>
         _forecasts = await service.GetForecastsAsync();
 
     protected override Component? Render() =>
@@ -113,7 +113,7 @@ onto a frame, and during the `GET` there is no client to send that frame to — 
 once the browser has connected and never before. A hook that reads browser storage is exactly this shape:
 
 ```csharp
-protected override async Task Mount()
+protected override async Task OnMount()
 {
     var stored = await _protectedStorage.GetAsync<string>("token");   // needs the browser
     // …
@@ -174,7 +174,7 @@ public sealed partial class ProductPage(IPageResponse response, IProducts produc
 
     private Product? _product;
 
-    protected override async Task Mount()
+    protected override async Task OnMount()
     {
         _product = await products.FindAsync(Id);
         if (_product is null)
@@ -191,7 +191,7 @@ public sealed partial class ProductPage(IPageResponse response, IProducts produc
 A faulted render still wins with `500` — a page that threw does not get to claim it succeeded. Setting `200` on
 the not-found page is the supported way to express a deliberate soft-404.
 
-`IPageResponse` is legal only during the initial server render (`Render`, `Mount`, `Mount`). From an
+`IPageResponse` is legal only during the initial server render (`Render`, `OnMount`, `OnMount`). From an
 event handler it **throws**: by then the response is long gone, and a silently dropped status is worse than a
 crash you can see. On WASM it is a no-op — there is no response to shape — so a component calling it runs
 unchanged on both hosts.
@@ -201,7 +201,7 @@ unchanged on both hosts.
 Use `Navigator`, the same API you would call from a handler:
 
 ```csharp
-protected override async Task Mount()
+protected override async Task OnMount()
 {
     if (!_tenant.IsProvisioned)
     {
@@ -219,7 +219,7 @@ Only same-site paths are accepted; anything else throws.
 
 ## See also
 
-- [Lifecycle](lifecycle.md) — when `Mount` runs and what the initial render waits for.
+- [Lifecycle](lifecycle.md) — when `OnMount` runs and what the initial render waits for.
 - [Routing](routing.md) — `[NotFound]`, `Navigator`, and route-driven redirects.
 - [Scaling](scaling.md) and [Deployment](deployment.md) — session accounting and sticky routing in production.
 - [Single-page apps](spa.md) — a WebAssembly app, served by a server that renders none of its pages.

@@ -64,14 +64,14 @@ internal sealed class WasmJSRuntime : RaskJSRuntimeBase
     /// <summary>Bind the session this runtime queues calls onto (called from the session ctor).</summary>
     public void AttachHost(ILiveJsHost host) => _host = host;
 
-    // The shared base queues calls made DURING a render (e.g. an OnRenderedAsync focus) onto this
+    // The shared base queues calls made DURING a render (e.g. an OnRendered focus) onto this
     // host so they ship in the frame and run after applyDiff — the post-commit ordering that makes
     // WASM focus land like Server. Calls OUTSIDE a render go through DispatchOutsideRender below.
     protected override ILiveJsHost CurrentHost =>
         _host ?? throw new InvalidOperationException(
             "IJSRuntime can only be used within a Rask session scope. " +
             "Inject it through a Component ctor (DI) and call it from a lifecycle hook " +
-            "(Mount, OnRenderedAsync) or event handler.");
+            "(OnMount, OnRendered) or event handler.");
 
     // Outside a render (a handler awaiting js.InvokeAsync), dispatch immediately through the JSImport
     // bridge — WASM's long-standing handler-interop path. The result returns via the EndInvokeJSResult

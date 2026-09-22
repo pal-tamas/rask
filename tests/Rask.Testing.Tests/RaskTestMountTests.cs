@@ -13,15 +13,15 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
     {
         public List<string> Calls { get; } = [];
 
-        protected override async Task Mount() => Calls.Add(nameof(Mount));
+        protected override async Task OnMount() => Calls.Add(nameof(OnMount));
 
-        protected override async Task FirstRender() => Calls.Add(nameof(FirstRender));
+        protected override async Task OnFirstRender() => Calls.Add(nameof(OnFirstRender));
 
-        protected override async Task Rendered() => Calls.Add(nameof(Rendered));
+        protected override async Task OnRendered() => Calls.Add(nameof(OnRendered));
 
-        protected override Task Unmount()
+        protected override Task OnUnmount()
         {
-            Calls.Add(nameof(Unmount));
+            Calls.Add(nameof(OnUnmount));
             return Task.CompletedTask;
         }
 
@@ -34,7 +34,7 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
         var probe = new Probe();
         RaskTest.Render(probe);
 
-        Assert.Contains("Mount", probe.Calls);
+        Assert.Contains("OnMount", probe.Calls);
     }
 
     [Fact]
@@ -45,8 +45,8 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
         page.Render();
         page.Render();
 
-        Assert.Single(probe.Calls, c => c == "Mount");
-        Assert.Single(probe.Calls, c => c == "FirstRender");
+        Assert.Single(probe.Calls, c => c == "OnMount");
+        Assert.Single(probe.Calls, c => c == "OnFirstRender");
     }
 
     [Fact]
@@ -57,7 +57,7 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
         var probe = new Probe();
         RaskTest.Render(probe);
 
-        Assert.Equal(["Mount", "FirstRender", "Rendered"], probe.Calls);
+        Assert.Equal(["OnMount", "OnFirstRender", "OnRendered"], probe.Calls);
     }
 
     [Fact]
@@ -71,14 +71,14 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
         show = false;
         page.Render();
 
-        Assert.Contains("Unmount", probe.Calls);
+        Assert.Contains("OnUnmount", probe.Calls);
     }
 
     private sealed class SlowLoader : Component
     {
         private string? _loaded;
 
-        protected override async Task Mount()
+        protected override async Task OnMount()
         {
             // ConfigureAwait(false) throughout, like the dashboard's PollingPanel: LifecycleSyncContext's
             // Post never fires, so the repaint can only come from the terminal StateHasChanged — which
@@ -126,7 +126,7 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
     {
         private string _label = "before";
 
-        protected override Task FirstRender()
+        protected override Task OnFirstRender()
         {
             // Note this is NOT Mount: state set there needs no signal at all, because Mount runs
             // before this component's own Render() in the same walk and is therefore already in the first
@@ -160,7 +160,7 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
     {
         public int Mounts { get; private set; }
 
-        protected override Task Mount()
+        protected override Task OnMount()
         {
             Mounts++;
             return Task.CompletedTask;

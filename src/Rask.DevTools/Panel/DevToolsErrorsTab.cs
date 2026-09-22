@@ -48,7 +48,7 @@ internal sealed partial class DevToolsErrorsTab : Component
     protected override bool BypassRenderCache => true;
 
     /// <inheritdoc />
-    protected override Task Mount()
+    protected override Task OnMount()
     {
         _gate = new DevToolsRefreshGate(StateHasChanged, CancellationToken);
         _page = PageErrors;
@@ -59,7 +59,7 @@ internal sealed partial class DevToolsErrorsTab : Component
     }
 
     /// <inheritdoc />
-    protected override Task Unmount()
+    protected override Task OnUnmount()
     {
         // Both logs outlive the panel; a handler left on either would keep this tab and its session alive.
         if (_page is { } page)

@@ -35,7 +35,7 @@ Div.Class("panel")[
 > **For a component, `Key` also decides which instance is reused.**
 > A keyed component is identified by its key rather than by its position among its siblings, which
 > is what keeps the state it holds *itself* — a private field, an edit buffer, an open/closed
-> toggle, a subscription taken in `Mount` — with the item rather than with the slot when the list
+> toggle, a subscription taken in `OnMount` — with the item rather than with the slot when the list
 > changes shape. Where on the chain you write it does not matter: steps written before `Key` are
 > carried onto the instance the key keeps.
 >
@@ -87,7 +87,7 @@ Put it in the tree like any other child:
 Div.Class("host")[page]
 ```
 
-It gets the whole lifecycle — `Mount`, `Updated`, `FirstRender`, `Rendered`, `Unmount` — and a handle to re-render
+It gets the whole lifecycle — `OnMount`, `OnUpdated`, `OnFirstRender`, `OnRendered`, `OnUnmount` — and a handle to re-render
 through, exactly as a component a chain built does: the render walk notices an instance nothing registered and
 registers it under the component whose subtree it sits in. Several instances of one type under one parent each
 keep their own lifecycle.
@@ -170,5 +170,5 @@ a stateful component when you need mutable local state.
 
 ---
 
-See also: [Lifecycle](lifecycle.md) for when `Updated` refires, and
+See also: [Lifecycle](lifecycle.md) for when `OnUpdated` refires, and
 [JS interop](js-interop.md) for element refs and scoped JS.

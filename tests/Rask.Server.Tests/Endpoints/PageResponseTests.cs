@@ -104,7 +104,7 @@ public sealed partial class StatusApp(IPageResponse response) : Component
 {
     protected override Component? HeadAssets => Title["status"];
 
-    protected override Task Mount()
+    protected override Task OnMount()
     {
         response.SetStatus(404);
         return Task.CompletedTask;
@@ -117,7 +117,7 @@ public sealed partial class StatusThenThrowApp(IPageResponse response) : Compone
 {
     protected override Component? HeadAssets => Title["status-throw"];
 
-    protected override Task Mount()
+    protected override Task OnMount()
     {
         response.SetStatus(200);
         return Task.CompletedTask;
@@ -130,7 +130,7 @@ public sealed partial class RedirectApp(Navigator navigator) : Component
 {
     protected override Component? HeadAssets => Title["redirect"];
 
-    protected override Task Mount()
+    protected override Task OnMount()
     {
         navigator.NavigateTo("/somewhere-else");
         return Task.CompletedTask;

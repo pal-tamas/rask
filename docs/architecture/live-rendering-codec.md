@@ -129,7 +129,7 @@ than the body and takes the diff path regardless of page size.
 The diff path is **skipped entirely** when there's an out-of-band side effect —
 `auth` or `download` instructions (both transports gate on
 `auth is null && download is null`). Fire-and-forget `IJSRuntime` invokes (e.g. a
-scoped-JS `Rendered` hook) and navigation *do* ride the diff — they don't force
+scoped-JS `OnRendered` hook) and navigation *do* ride the diff — they don't force
 full HTML.
 
 ### Wire format

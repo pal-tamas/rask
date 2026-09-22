@@ -24,7 +24,7 @@ public sealed partial class LifecycleProbe : Component
 
     // One hook, two moments: the line above the await runs before the first paint, the line below it
     // 450ms later — and the component paints again on its own when it does.
-    protected override async Task Mount()
+    protected override async Task OnMount()
     {
         _mountStarted++;
         await Task.Delay(450);
@@ -34,11 +34,11 @@ public sealed partial class LifecycleProbe : Component
         _mountSettled = true;
     }
 
-    protected override async Task Updated() => _updated++;
+    protected override async Task OnUpdated() => _updated++;
 
-    protected override async Task FirstRender() => _firstRender++;
+    protected override async Task OnFirstRender() => _firstRender++;
 
-    protected override async Task Rendered() => _rendered++;
+    protected override async Task OnRendered() => _rendered++;
 
     protected override Component? Render() =>
         [
@@ -53,11 +53,11 @@ public sealed partial class LifecycleProbe : Component
             ],
             H3.Class("text-base font-semibold text-ui-muted uppercase text-sm")["Hook log"],
             UiList.Ordered(true)[
-                Row("Mount (before its await)", Ran(_mountStarted)),
-                Row("Mount (after a 450ms await)", _mountSettled ? "resolved" : "awaiting…"),
-                Row("Updated", Ran(_updated)),
-                Row("FirstRender", Ran(_firstRender)),
-                Row("Rendered", Ran(_rendered)),
+                Row("OnMount (before its await)", Ran(_mountStarted)),
+                Row("OnMount (after a 450ms await)", _mountSettled ? "resolved" : "awaiting…"),
+                Row("OnUpdated", Ran(_updated)),
+                Row("OnFirstRender", Ran(_firstRender)),
+                Row("OnRendered", Ran(_rendered)),
                 Row("Button clicks", Ran(_clicks))
             ]
         ];

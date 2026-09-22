@@ -35,7 +35,7 @@ public sealed partial class WebRtcDemo(IWebRtc rtc) : Component, IAsyncDisposabl
     private string _state = "not connected";
     private bool _supported = true;
 
-    protected override async Task FirstRender()
+    protected override async Task OnFirstRender()
     {
         _supported = await rtc.IsSupportedAsync();
         if (!_supported)

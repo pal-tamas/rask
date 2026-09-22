@@ -24,7 +24,7 @@ public sealed partial class BatteryDemo(IBattery battery) : Component, IAsyncDis
     private IAsyncDisposable? _watch;
     private bool _started;
 
-    protected override async Task FirstRender()
+    protected override async Task OnFirstRender()
     {
         if (_started)
 

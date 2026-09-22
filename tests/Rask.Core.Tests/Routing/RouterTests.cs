@@ -244,7 +244,7 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
     public sealed class SyncInitPage : Component
     {
         public int InitCount;
-        protected override Task Mount()
+        protected override Task OnMount()
         {
             InitCount++;
             return Task.CompletedTask;
@@ -259,7 +259,7 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
         public bool Loaded;
         public AsyncInitPage(AsyncInitGate gate) => _gate = gate;
 
-        protected override async Task Mount()
+        protected override async Task OnMount()
         {
             _gate.Started.TrySetResult();
             await _gate.Complete.Task;
@@ -312,7 +312,7 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
         public int PropsChanges { get; private set; }
         public int Renders { get; private set; }
 
-        protected override Task Updated()
+        protected override Task OnUpdated()
         {
             PropsChanges++;
             return Task.CompletedTask;

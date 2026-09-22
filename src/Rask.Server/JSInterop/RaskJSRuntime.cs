@@ -46,7 +46,7 @@ internal sealed class RaskJSRuntime : RaskJSRuntimeBase
         _accessor.Session ?? throw new InvalidOperationException(
             "IJSRuntime can only be used within a Rask session scope. " +
             "Inject it through a Component ctor (DI) and call it from a lifecycle hook " +
-            "(Mount, OnRenderedAsync) or event handler — not from a unit test or " +
+            "(OnMount, OnRendered) or event handler — not from a unit test or " +
             "app-level singleton.");
 
     // Server is frame-based even outside a render: queue the call and request a render so the next

@@ -47,7 +47,7 @@ public sealed partial class DeferredNavDashboardPage(IUserProvider userProvider)
     // it reads "alice".
     private string _mountUser = "unset";
 
-    protected override Task Mount()
+    protected override Task OnMount()
     {
         _mountUser = userProvider.Current.Identity?.IsAuthenticated == true
             ? userProvider.Current.Identity.Name ?? "?"

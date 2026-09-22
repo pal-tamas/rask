@@ -14,14 +14,14 @@ public sealed partial class RuntimeBuiltComponentTests : global::Rask.Core.RaskM
         public int Unmounts { get; private set; }
         public string State { get; private set; } = "loading…";
 
-        protected override async Task Mount()
+        protected override async Task OnMount()
         {
             Mounts++;
             await Task.Yield();
             State = "loaded";
         }
 
-        protected override async Task Unmount() => Unmounts++;
+        protected override async Task OnUnmount() => Unmounts++;
 
         protected override Component? Render() => Div.Class("loader")[State];
     }
@@ -65,13 +65,13 @@ public sealed partial class RuntimeBuiltComponentTests : global::Rask.Core.RaskM
 
         public void Release() => _gate.TrySetResult();
 
-        protected override async Task Mount()
+        protected override async Task OnMount()
         {
             await _gate.Task;
             State = "loaded";
         }
 
-        protected override async Task Unmount() => Unmounts++;
+        protected override async Task OnUnmount() => Unmounts++;
 
         protected override Component? Render() => Div.Class("gated")[State];
     }

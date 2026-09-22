@@ -920,7 +920,7 @@ public abstract partial class Component : RaskMarkup
 
     /// <summary>
     ///     Runs once, before this component first renders — load what it shows:
-    ///     <c>protected override async Task Mount() =&gt; _items = await Cache.Remember("catalog", Load).For(5.Minutes);</c>
+    ///     <c>protected override async Task OnMount() =&gt; _items = await Cache.Remember("catalog", Load).For(5.Minutes);</c>
     /// </summary>
     /// <remarks>
     ///     Everything before the first <c>await</c> runs before the first render; the component renders again
@@ -928,37 +928,37 @@ public abstract partial class Component : RaskMarkup
     ///     first HTML already carries the data. Static calls inside it are cancelled with this component.
     ///     A body with no <c>await</c> is written <c>async</c> all the same; the compiler no longer warns about it.
     /// </remarks>
-    protected virtual Task Mount() => Task.CompletedTask;
+    protected virtual Task OnMount() => Task.CompletedTask;
 
     /// <summary>
     ///     Runs when a parent passes this component new values — and once on mount, so a component whose data
-    ///     depends on a prop needs only this: <c>protected override async Task Updated() =&gt; _product = await Product.Find(Id);</c>
+    ///     depends on a prop needs only this: <c>protected override async Task OnUpdated() =&gt; _product = await Product.Find(Id);</c>
     /// </summary>
     /// <remarks>Not for this component's own state changes, which simply render again.</remarks>
-    protected virtual Task Updated() => Task.CompletedTask;
+    protected virtual Task OnUpdated() => Task.CompletedTask;
 
     /// <summary>
     ///     Runs once, after this component is first in the page — where browser work that needs its elements
-    ///     starts: <c>protected override async Task FirstRender() =&gt; _watch = await resize.Observe(_box, OnResize);</c>
+    ///     starts: <c>protected override async Task OnFirstRender() =&gt; _watch = await resize.Observe(_box, OnResize);</c>
     /// </summary>
-    protected virtual Task FirstRender() => Task.CompletedTask;
+    protected virtual Task OnFirstRender() => Task.CompletedTask;
 
     /// <summary>
-    ///     Runs after every render, the first included (after <see cref="FirstRender" />) — to keep something
+    ///     Runs after every render, the first included (after <see cref="OnFirstRender" />) — to keep something
     ///     outside Rask in step with what was just rendered.
     /// </summary>
-    protected virtual Task Rendered() => Task.CompletedTask;
+    protected virtual Task OnRendered() => Task.CompletedTask;
 
     /// <summary>
     ///     Runs once when this component leaves the tree — navigation away, its parent's subtree torn down, or
-    ///     the session ending. Symmetric with <see cref="Mount" />.
+    ///     the session ending. Symmetric with <see cref="OnMount" />.
     /// </summary>
     /// <remarks>
     ///     The component's <see cref="CancellationToken" /> is still live here and cancelled right after. Awaited
     ///     on asynchronous teardown (a session disposing); on a synchronous one it runs on, and a fault is logged.
     ///     <see cref="StateHasChanged" /> inside it does nothing — the component is leaving.
     /// </remarks>
-    protected virtual Task Unmount() => Task.CompletedTask;
+    protected virtual Task OnUnmount() => Task.CompletedTask;
 
     /// <summary>
     ///     Whether this component has left the tree. Read by <c>QuiescenceScope</c> so a server
@@ -992,20 +992,20 @@ public abstract partial class Component : RaskMarkup
         if (firstRender)
         {
             Live.HasInitialized = true;
-            InvokeAsyncLifecycleWithRendering(Mount);
+            InvokeAsyncLifecycleWithRendering(OnMount);
         }
 
         if (firstRender || propsChanged)
         {
             Live.PropsDirty = true;
-            InvokeAsyncLifecycleWithRendering(Updated);
+            InvokeAsyncLifecycleWithRendering(OnUpdated);
         }
     }
 
     internal void RaiseOnRendered(bool publishOnly = false)
     {
-        // publishOnly: this is the render walk triggered by a previous OnRenderedAsync
-        // continuation's auto-rerender. Skip OnRendered / OnRenderedAsync on components
+        // publishOnly: this is the render walk triggered by a previous OnRendered
+        // continuation's auto-rerender. Skip OnRendered on components
         // that already rendered at least once — re-entering the hook would re-await
         // whatever it awaits (e.g. js.InvokeVoidAsync), enqueue another pending task,
         // schedule another publish render, complete → loop. First-time renders still
@@ -1023,10 +1023,10 @@ public abstract partial class Component : RaskMarkup
         // method-group delegate would allocate each time.
         if (firstRender)
         {
-            AfterRendered(FirstRender());
+            AfterRendered(OnFirstRender());
         }
 
-        AfterRendered(Rendered());
+        AfterRendered(OnRendered());
     }
 
     private void AfterRendered(Task task)
@@ -1137,7 +1137,7 @@ public abstract partial class Component : RaskMarkup
         Live.IsUnmounted = true;
 
         Task task;
-        try { task = Unmount(); }
+        try { task = OnUnmount(); }
         catch (Exception ex)
         {
             LogUnmountError(this, ex);
@@ -1778,7 +1778,7 @@ public abstract partial class Component : RaskMarkup
     ///     For a render root that forwards to a component it did not build through a generated factory —
     ///     which is every component handed to <c>RaskTest.Render</c> as an object rather than produced by
     ///     the factory during the render. Those never reach <c>GetOrCreate</c>, so without adoption they
-    ///     serialize but are invisible to the alive-set walk (no <c>OnRendered</c>, no <c>Unmount</c>)
+    ///     serialize but are invisible to the alive-set walk (no <c>OnRendered</c>, no <c>OnUnmount</c>)
     ///     and have no handle to re-render through when an asynchronous lifecycle hook completes.
     ///     <para>
     ///     Deliberately not <see cref="GetOrCreateChild{T}" />: that path's reuse branch clears the
@@ -1834,7 +1834,7 @@ public abstract partial class Component : RaskMarkup
     ///     Called by the <c>Key</c> chain step, on the PARENT, immediately after the entry that built
     ///     <paramref name="provisional" />. `Key` has always been the diff codec's reconciliation identity
     ///     (<c>data-rask-key</c>); until #685 it was not the parent's, so a keyed row's own state — private
-    ///     fields, a <c>Mount</c> subscription — followed its POSITION instead of its item.
+    ///     fields, a <c>OnMount</c> subscription — followed its POSITION instead of its item.
     ///     <para>
     ///         The instance the entry handed over is a fresh one (<see cref="GetOrCreateChild{T}" /> stops
     ///         recycling by ordinal once a type is keyed), so claiming an earlier instance discards it.

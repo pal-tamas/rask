@@ -39,7 +39,7 @@ public sealed class DraftQueue(IBackgroundSync sync) : Component, IAsyncDisposab
 {
     private IAsyncDisposable? _subscription;
 
-    public override async Task FirstRender()
+    public override async Task OnFirstRender()
     {
         // Subscribe BEFORE requesting: a sync that landed while the page was still booting is held for
         // the first subscriber, so an event that beat your startup code still reaches it.

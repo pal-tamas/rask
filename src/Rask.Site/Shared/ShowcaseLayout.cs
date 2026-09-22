@@ -48,14 +48,14 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     // nav (including browser back/forward), the mobile drawer closes after navigating, and the group
     // holding the active route auto-expands. NavLink does its own active styling; this only drives the
     // drawer/expand side effects and the layout re-render.
-    protected override async Task Mount()
+    protected override async Task OnMount()
     {
         route.Changed += OnRouteChanged;
         OpenGuideGroups();
         OpenActiveGroup();
     }
 
-    protected override async Task Unmount() => route.Changed -= OnRouteChanged;
+    protected override async Task OnUnmount() => route.Changed -= OnRouteChanged;
 
     private void OnRouteChanged()
     {

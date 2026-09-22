@@ -366,10 +366,10 @@ spelling that is always right beats two that are usually the same.
 
 **Every read is untracked, and every read opens and disposes its own context.** Composing holds nothing
 open: the terminal call opens a context, runs, and disposes it before it returns — so this is a complete
-statement anywhere, including a component's `Mount`:
+statement anywhere, including a component's `OnMount`:
 
 ```csharp
-protected override async Task Mount() =>
+protected override async Task OnMount() =>
     _products = await Product.Read.Where(p => p.Active).OrderBy(p => p.Name).ToListAsync(CancellationToken);
 ```
 
@@ -582,7 +582,7 @@ public sealed partial class EditProductPage(Navigator nav) : Component
     private ProductModel? _product;
     private string? _conflict;
 
-    protected override async Task Mount() =>
+    protected override async Task OnMount() =>
         _product = await Product.ModelAsync(Id, cancellationToken: CancellationToken);
 
     protected override Component? Render() =>

@@ -26,7 +26,7 @@ internal sealed partial class ResetLeaf : Component
 
     internal int PropsChanges;
 
-    protected override Task Updated()
+    protected override Task OnUpdated()
     {
         PropsChanges++;
         return Task.CompletedTask;

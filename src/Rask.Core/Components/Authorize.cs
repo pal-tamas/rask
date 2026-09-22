@@ -29,7 +29,7 @@ namespace Rask.Core.Components;
 ///     <para>
 ///         <see cref="Roles" /> and the authenticated check are evaluated synchronously in
 ///         <see cref="Render" /> (no flicker). <see cref="Policy" /> is the only asynchronous vector:
-///         it is evaluated via <see cref="IAuthorizationService" /> in <see cref="Updated" />
+///         it is evaluated via <see cref="IAuthorizationService" /> in <see cref="OnUpdated" />
 ///         (and re-evaluated when the user changes), cached, and surfaced through the
 ///         <see cref="Authorizing" /> slot until it resolves. The component subscribes to
 ///         <see cref="IUserProvider.Changed" /> so a sign-in/out anywhere re-renders it.
@@ -86,7 +86,7 @@ public sealed class Authorize : Component
     /// <summary>Rendered while the provider is loading or a <see cref="Policy" /> is resolving. Defaults to nothing.</summary>
     public Component? Authorizing { get; set; }
 
-    protected override Task Mount()
+    protected override Task OnMount()
     {
         _services = LiveRenderContext.Current?.Services;
         _provider = _services?.GetService<IUserProvider>();
@@ -97,7 +97,7 @@ public sealed class Authorize : Component
         return Task.CompletedTask;
     }
 
-    protected override Task Unmount()
+    protected override Task OnUnmount()
     {
         if (_provider is not null)
         {
@@ -106,7 +106,7 @@ public sealed class Authorize : Component
         return Task.CompletedTask;
     }
 
-    protected override async Task Updated()
+    protected override async Task OnUpdated()
     {
         if (string.IsNullOrEmpty(Policy))
         {

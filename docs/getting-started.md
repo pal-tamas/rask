@@ -303,7 +303,7 @@ public sealed partial class Weather(IWeatherForecastService service) : Component
 
 `[SkipFactory]` keeps a property settable in code but off the chain — useful for seeding
 cached internal state the caller shouldn't pass. The counter below starts at 7 (its `Initial` is
-`[SkipFactory]`, seeded in `Mount`) and keeps its state across re-renders like any private field:
+`[SkipFactory]`, seeded in `OnMount`) and keeps its state across re-renders like any private field:
 
 <!-- demo:components-skipfactory -->
 
@@ -443,7 +443,7 @@ Read **[the doctrine](one-person-framework.md)** for the why. Reference guides f
 - **Add more routes / layouts** → [routing](routing.md) — nested layouts, route/query params, `Navigator`.
 - **Load or save data** → [Rask.Data](data.md) — declare a model, read and write it off the type; or
   [plain EF Core](data-access.md) with a `DbContext` of your own.
-- **Run code on mount / after render** → [lifecycle](lifecycle.md) — `Mount`, `Updated`, `FirstRender`, `Rendered`, `Unmount`.
+- **Run code on mount / after render** → [lifecycle](lifecycle.md) — `OnMount`, `OnUpdated`, `OnFirstRender`, `OnRendered`, `OnUnmount`.
 - **Share state without prop-drilling** → [composition](composition.md) — context, callbacks, `VirtualizeModel`.
 - **Add a login** → [authentication](authentication.md) — cookie sessions and OIDC on Server and WASM.
 - **Test your components** → [testing](testing.md) — unit-testing components and rendered HTML.

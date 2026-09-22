@@ -456,7 +456,7 @@ public sealed partial class OrdersPage(IPersistentState state) : Component
 {
     private string _filter = "";
 
-    protected override async Task Mount() => state.TryGet<string>("filter", out _filter!);
+    protected override async Task OnMount() => state.TryGet<string>("filter", out _filter!);
 
     private void Search(string term)
     {

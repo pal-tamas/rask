@@ -48,7 +48,7 @@ internal sealed partial class DevToolsFlashEmitter : Component
     public Callback<bool>? OnChange { get; set; }
 
     /// <inheritdoc />
-    protected override Task Mount()
+    protected override Task OnMount()
     {
         _gate = new DevToolsRefreshGate(StateHasChanged, CancellationToken);
         _following = Feed;
@@ -58,14 +58,14 @@ internal sealed partial class DevToolsFlashEmitter : Component
     }
 
     /// <inheritdoc />
-    protected override Task Updated()
+    protected override Task OnUpdated()
     {
         SyncPlaces();
         return Task.CompletedTask;
     }
 
     /// <inheritdoc />
-    protected override Task Unmount()
+    protected override Task OnUnmount()
     {
         if (_following is { } feed)
         {

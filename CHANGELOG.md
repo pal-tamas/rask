@@ -233,8 +233,8 @@ them until tagged releases begin.
 
 ### Changed
 
-- **BREAKING — five lifecycle hooks, one per moment.** `Mount()`, `Updated()`, `FirstRender()`, `Rendered()`, `Unmount()`, each `protected virtual Task`, replace the eight synchronous/asynchronous twins: `OnMount`+`OnMountAsync` → `Mount`, `OnPropsChanged`+`OnPropsChangedAsync` → `Updated`, `OnUnmount`+`OnUnmountAsync` → `Unmount`, and `OnRendered(bool)`/`OnRenderedAsync(bool)` → `FirstRender()` for the first-render branch plus `Rendered()` for every render (the first included, after `FirstRender`). What used to go in the synchronous twin goes above the first `await`, which still runs before the first render; a body with nothing to await is written `async` all the same. Code that ran inside a lifecycle hook and passed no token is now cancelled with its component, as a handler already was.
-- **A component the app built itself joins the lifecycle on its own.** An instance built at runtime — a plugin, a type chosen by name — placed straight in the tree (`Div[page]`) is adopted by the render walk and gets `Mount`/`Unmount` and a handle to re-render through; several instances of one type under one parent each keep theirs. The `Mount` wrapper component that did this by hand is removed (its name now belongs to the hook).
+- **BREAKING — five lifecycle hooks, one per moment.** `OnMount()`, `OnUpdated()`, `OnFirstRender()`, `OnRendered()`, `OnUnmount()`, each `protected virtual Task`, replace the eight synchronous/asynchronous twins: `OnMount`+`OnMountAsync` → `OnMount`, `OnPropsChanged`+`OnPropsChangedAsync` → `OnUpdated`, `OnUnmount`+`OnUnmountAsync` → `OnUnmount`, and `OnRendered(bool)`/`OnRenderedAsync(bool)` → `OnFirstRender()` for the first-render branch plus `OnRendered()` for every render (the first included, after `OnFirstRender`). What used to go in the synchronous twin goes above the first `await`, which still runs before the first render; a body with nothing to await is written `async` all the same. Code that runs inside a lifecycle hook and passes no token is now cancelled with its component, as a handler already was.
+- **A component the app built itself joins the lifecycle on its own.** An instance built at runtime — a plugin, a type chosen by name — placed straight in the tree (`Div[page]`) is adopted by the render walk and gets `OnMount`/`OnUnmount` and a handle to re-render through; several instances of one type under one parent each keep theirs. The `Mount` wrapper component that did this by hand is removed.
 - **BREAKING — the cache reads the way you say it, with nothing injected.** `await Cache.Remember("products", LoadProducts).For(10.Minutes)`, `await Cache.Set("banner", text).Until(midnight)`, `await Cache.Get<string>("banner")`, `await Cache.Forget("products")` — from a handler, a render, a request or a job; each call is cancelled with the work it runs in. Lifetimes are steps: `.For(…)`, `.Sliding(…)`, `.Until(…)`. An injected `ICache` reads the same (`cache.Remember(…).For(…)`) for a hosted service or a timer. A trimmed or AOT app registers its `JsonSerializerContext` once — `AddRaskCache<AppDbContext>(o => o.Json = AppJson.Default)` — instead of passing a `JsonTypeInfo<T>` at every call; the external-store `AddRaskCache()` takes the same `configure`. Renamed: `GetOrAddAsync` → `Remember`, `SetAsync` → `Set`, `GetAsync` → `Get`, `RemoveAsync` → `Forget`; `DistributedCacheEntryOptions` → the lifetime steps; the `JsonTypeInfo<T>` overloads → `CacheOptions.Json`; the public `Cache` implementation class is now the static entry point.
 - **The dashboard's log search is served by an index** (#1111). It was `LIKE '%…%'` over every retained row. The
   SQLite log store now keeps an FTS5 table with the `trigram` tokenizer beside the log, kept current by triggers, and
@@ -12485,7 +12485,7 @@ them until tagged releases begin.
 - **The HTML/SVG element family moved out of `Rask.Core` into a new `Rask.Html` assembly.** ~155 tag
   components (`Div`, `Span`, `Table`, `Input`, the 41 `<svg>` elements, `Doctype`) now live in
   `Rask.Html.Components`; `Rask.Core` keeps only what its own engine constructs — `Text`, `Raw`,
-  `Fragment`, `ErrorBoundary`, `Context`, `Mount`, the default error/not-found pages, and the shell tags
+  `Fragment`, `ErrorBoundary`, `Context`, `OnMount`, the default error/not-found pages, and the shell tags
   those build from (`Html`, `Body`, `Head`, `A`, `Div`, `H1`, `P`, `Pre`, `Code`, `Details`, `Summary`,
   `Meta`, `Title`, `Button`). The dependency is one-way and now checkable: Core can no longer reach for a
   tag component by accident.
@@ -14441,7 +14441,7 @@ them until tagged releases begin.
   returned and quietly showed nothing.
 
 ### Added
-- **`Mount` — give a component you built yourself the lifecycle it was missing.** A component normally
+- **`OnMount` — give a component you built yourself the lifecycle it was missing.** A component normally
   enters the tree through its generated factory, and that factory is what registers the instance with its
   parent. One built another way — because its type isn't known until runtime: a plugin, a component chosen
   by name, one compiled in the browser — arrives as a plain object. It rendered correctly but was invisible
@@ -17385,7 +17385,7 @@ them until tagged releases begin.
   wires `AddRaskOutbox<Ctx>()` (disabling the in-process publisher so events aren't delivered twice). See
   `docs/outbox.md`.
 - **`rask generate feature --events` emits typed domain events.** The slice gains `<Entity>Created`/
-  `Updated`/`Deleted` records (`INotification`) that the aggregate raises on create/update/delete, plus a
+  `OnUpdated`/`Deleted` records (`INotification`) that the aggregate raises on create/update/delete, plus a
   sample `INotificationHandler` stub — published in-process after the change commits by `Rask.Data`'s
   `DomainEventInterceptor` (auto-registered by `AddRaskCqrs()`). Composes with the other flags.
 - **`Rask.Data`'s `DomainEventInterceptor` now collects events in `SavingChanges` and publishes in

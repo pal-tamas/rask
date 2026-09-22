@@ -67,7 +67,7 @@ internal sealed partial class MountBuildsLeaf : Component
 
     internal Component? Built;
 
-    protected override Task Mount()
+    protected override Task OnMount()
     {
         Built = Span.Id("from-mount");
         return Task.CompletedTask;

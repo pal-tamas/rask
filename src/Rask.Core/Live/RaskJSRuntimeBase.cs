@@ -26,7 +26,7 @@ internal abstract class RaskJSRuntimeBase : JSRuntime
     {
         var invoke = new PendingJsInvoke(taskId, identifier, argsJson, (int)resultType, targetInstanceId);
 
-        // Mid-render (e.g. an OnRenderedAsync hook focusing a dialog as it opens): queue onto the
+        // Mid-render (e.g. an OnRendered hook focusing a dialog as it opens): queue onto the
         // current frame so the client runs it AFTER applyDiff — i.e. against the committed DOM. This
         // is the shared, transport-independent half, and the reason WASM focus now lands like Server.
         // Don't request another render: the in-flight frame's builder drains the queue after the

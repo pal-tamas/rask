@@ -159,7 +159,7 @@ public class RaskPrerenderTests
     {
         private string? _value;
 
-        protected override async Task Mount()
+        protected override async Task OnMount()
         {
             await Task.Delay(20);
             _value = "loaded";
@@ -175,7 +175,7 @@ public class RaskPrerenderTests
 
     private sealed class NeverSettlesPage : Component
     {
-        protected override Task Mount() => new TaskCompletionSource().Task;
+        protected override Task OnMount() => new TaskCompletionSource().Task;
 
         protected override Component? Render() => Div["still-loading"];
     }

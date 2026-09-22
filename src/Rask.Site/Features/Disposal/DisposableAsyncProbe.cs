@@ -13,7 +13,7 @@ public sealed partial class DisposableAsyncProbe : Component, IAsyncDisposable
         return ValueTask.CompletedTask;
     }
 
-    protected override async Task Mount()
+    protected override async Task OnMount()
     {
         _mountedAt = DateTimeOffset.Now;
         Log.Invoke($"#{InstanceId} async-mounted");

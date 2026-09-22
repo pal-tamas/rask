@@ -22,13 +22,13 @@ public sealed partial class NavigateInHandlerStateHasChangedApp : Component
 
     public NavigateInHandlerStateHasChangedApp(RouteState routeState) => _routeState = routeState;
 
-    protected override Task Mount()
+    protected override Task OnMount()
     {
         _routeState.Changed += StateHasChanged;
         return Task.CompletedTask;
     }
 
-    protected override Task Unmount()
+    protected override Task OnUnmount()
     {
         _routeState.Changed -= StateHasChanged;
         return Task.CompletedTask;

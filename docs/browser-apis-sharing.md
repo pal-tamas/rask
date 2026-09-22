@@ -158,7 +158,7 @@ handler by an id — so there's a single implementation, no `DotNetObjectReferen
 rooted for the WASM trimmer. The observers additionally hand the observed element across as an
 [`ElementRef`](js-interop-runtime.md#element-refs).
 
-**Lifecycle.** Open from a lifecycle hook (e.g. `FirstRender()`) and **dispose** the
+**Lifecycle.** Open from a lifecycle hook (e.g. `OnFirstRender()`) and **dispose** the
 returned handle on unmount (implement `IAsyncDisposable` on the component). A handler that updates state
 calls `StateHasChanged()` — the same pattern as subscribing to a background feed. That's a subscription
 handler, **not** a chain-set callback, so [RASK026](diagnostics.md) (which forbids
@@ -172,7 +172,7 @@ public sealed partial class LazyImages(IIntersectionObserver io) : Component, IA
 
     protected override Component? Render() => Div.Ref(_sentinel)[ /* … */ ];
 
-    protected override async Task FirstRender()
+    protected override async Task OnFirstRender()
     {
         _obs = await io.ObserveAsync(_sentinel, e =>
         {

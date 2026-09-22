@@ -23,13 +23,13 @@ internal sealed partial class LifecycleLeaf : Component
     internal int PropsChanges;
     internal int Renders;
 
-    protected override Task Mount()
+    protected override Task OnMount()
     {
         Mounts++;
         return Task.CompletedTask;
     }
 
-    protected override Task Updated()
+    protected override Task OnUpdated()
     {
         PropsChanges++;
         return Task.CompletedTask;

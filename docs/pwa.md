@@ -114,7 +114,7 @@ public sealed partial class InstallButton(IInstallPrompt install) : Component
 {
     private bool _canInstall;
 
-    protected override async Task FirstRender()
+    protected override async Task OnFirstRender()
     {
         _canInstall = !await install.IsInstalledAsync() && await install.CanInstallAsync();
         StateHasChanged();
@@ -203,7 +203,7 @@ public sealed class DraftQueue(IBackgroundSync sync) : Component, IAsyncDisposab
 {
     private IAsyncDisposable? _subscription;
 
-    public override async Task FirstRender()
+    public override async Task OnFirstRender()
     {
         // Subscribe BEFORE requesting. A sync that landed while the page was still booting is held for
         // the first subscriber, so an event that beat your startup code still reaches it.

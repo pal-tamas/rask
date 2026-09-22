@@ -15,7 +15,7 @@ public sealed partial class PictureInPictureDemo(IPictureInPicture pip, IJSRunti
     private readonly ElementRef _video = ElementRef.New();
     private string _status = "(idle)";
 
-    protected override async Task FirstRender()
+    protected override async Task OnFirstRender()
     {
         try
         {

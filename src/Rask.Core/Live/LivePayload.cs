@@ -575,7 +575,7 @@ public static class LivePayload
 
         writer.WriteEndArray();
 
-        // Fire-and-forget IJSRuntime invokes (e.g. a scoped-JS OnRenderedAsync hook)
+        // Fire-and-forget IJSRuntime invokes (e.g. a scoped-JS OnRendered hook)
         // ride the diff payload the same way they ride the full-HTML payload, so a
         // component that calls js.InvokeVoidAsync on every render no longer forces the
         // whole page onto the full-HTML path. The client's diff branch drains these via

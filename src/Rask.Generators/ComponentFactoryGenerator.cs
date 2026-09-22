@@ -5060,7 +5060,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     ///         The hook set is read off the <c>Component</c> symbol rather than hard-coded — every virtual
     ///         <c>Task</c>-returning method it declares — so adding a hook to the framework cannot silently leave a component
     ///         uncommitted. <c>Element</c>-derived types are NOT exempt: <c>NavLink</c> is an Element and
-    ///         overrides <c>Mount</c>.
+    ///         overrides <c>OnMount</c>.
     ///     </para>
     /// </remarks>
     private static bool OverridesLifecycleHook(INamedTypeSymbol symbol)

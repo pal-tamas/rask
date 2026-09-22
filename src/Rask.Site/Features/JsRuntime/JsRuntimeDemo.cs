@@ -14,7 +14,7 @@ public sealed partial class JsRuntimeDemo(IJSRuntime js) : Component
     private string? _lastRead;
     private string? _status;
 
-    protected override async Task FirstRender()
+    protected override async Task OnFirstRender()
     {
         try
         {

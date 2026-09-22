@@ -18,7 +18,7 @@ namespace Rask.Site.Tests.Pages;
 /// parses (a truncated paste, an unbalanced brace) fails the first. A snippet that calls a framework
 /// member which does not exist fails the second — the case that prompted this: an early draft of chapter
 /// 2 wrote <c>OnInitializedAsync</c>, a name from a different framework, where Rask's lifecycle hook is
-/// <c>Mount</c>. It parsed perfectly and would never have compiled.
+/// <c>OnMount</c>. It parsed perfectly and would never have compiled.
 /// </para>
 /// <para>
 /// Deliberately not a full compile. That needs the source generator's global usings, the whole reference
@@ -156,7 +156,7 @@ public sealed partial class TutorialSnippetTests
     /// Written to skip everything between <c>override</c> and that name rather than to match a return
     /// type, because modifiers live in there: an earlier version expected
     /// <c>override &lt;type&gt; &lt;name&gt;(</c> and so matched nothing at all on
-    /// <c>override async Task Mount()</c> — quietly checking none of the async overrides, which is
+    /// <c>override async Task OnMount()</c> — quietly checking none of the async overrides, which is
     /// most of them. A guard that silently matches nothing is worse than no guard.
     /// </para>
     /// </summary>

@@ -110,7 +110,7 @@ public sealed partial class AsyncDataApp : Component
 
     protected override Component? HeadAssets => Title["async-data"];
 
-    protected override async Task Mount()
+    protected override async Task OnMount()
     {
         await Task.Delay(20);
         _forecast = "forecast-loaded";
@@ -125,7 +125,7 @@ public sealed partial class NestedAsyncDataApp : Component
 
     protected override Component? HeadAssets => Title["nested-async-data"];
 
-    protected override async Task Mount()
+    protected override async Task OnMount()
     {
         await Task.Delay(20);
         _ready = true;
@@ -141,7 +141,7 @@ public sealed partial class AsyncChild : Component
 {
     private string? _value;
 
-    protected override async Task Mount()
+    protected override async Task OnMount()
     {
         await Task.Delay(20);
         _value = "child-loaded";
@@ -158,7 +158,7 @@ public sealed partial class NestedConfigureAwaitApp : Component
 
     // Every await here is ConfigureAwait(false), so nothing is ever posted back to the lifecycle sync
     // context and the terminal continuation is the only thing that can request the repaint.
-    protected override async Task Mount()
+    protected override async Task OnMount()
     {
         await Task.Delay(20).ConfigureAwait(false);
         _ready = true;
@@ -174,7 +174,7 @@ public sealed partial class ConfigureAwaitChild : Component
 
     // The NESTED hook is what pins the fix: the root is force-dirtied every wave, so only a child
     // depends on its own StateHasChanged having run before the loop looks again.
-    protected override async Task Mount()
+    protected override async Task OnMount()
     {
         await Task.Delay(20).ConfigureAwait(false);
         _value = "ca-child-loaded";
@@ -189,7 +189,7 @@ public sealed partial class NeverSettlesApp : Component
 
     protected override Component? HeadAssets => Title["never-settles"];
 
-    protected override async Task Mount()
+    protected override async Task OnMount()
     {
         await new TaskCompletionSource().Task;
         _value = "never";
@@ -203,7 +203,7 @@ public sealed partial class JsInteropOnMountApp(IJSRuntime js) : Component
     protected override Component? HeadAssets => Title["js-on-mount"];
 
     // Never completes during the GET: the call is queued for a frame that has no client yet.
-    protected override async Task Mount() =>
+    protected override async Task OnMount() =>
         await js.InvokeAsync<string>("sessionStorage.getItem", "token");
 
     protected override Component? Render() => Div["content"];

@@ -8,7 +8,7 @@ namespace Rask.Core.Tests.Resources;
 ///         A <c>Rask.*</c> invoke must not dispatch until the assets a component declared in
 ///         <c>Head</c> have loaded. Without the gate, a <c>CodeSample</c>-shaped component whose
 ///         <c>Head</c> pulls in a CDN script would have to hand-roll a load listener of its own, and
-///         a first-render <c>OnRenderedAsync</c> would fail with "Could not find … on target".
+///         a first-render <c>OnRendered</c> would fail with "Could not find … on target".
 ///     </para>
 ///     <para>
 ///         <b>Why here and not against the served script.</b> Every name below is a local binding,

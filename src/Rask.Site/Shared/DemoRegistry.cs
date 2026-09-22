@@ -291,7 +291,7 @@ public static partial class DemoRegistry
                 .Result(HttpRegisterDemo),
             ["data-http-fetch"] = () => CodeSample
                 .Files(["HttpFetchDemo.cs"])
-                .Notes("Mount runs once on first render. The framework's async lifecycle handler triggers a "
+                .Notes("OnMount runs once on first render. The framework's async lifecycle handler triggers a "
                 + "re-render when the awaited task completes. Component.CancellationToken cancels on unmount — "
                 + "navigate away mid-fetch and the in-flight request aborts.")
                 .Result(HttpFetchDemo),

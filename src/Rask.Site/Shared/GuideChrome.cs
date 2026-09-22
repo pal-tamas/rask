@@ -30,7 +30,7 @@ public sealed partial class GuideChrome : Component
     public string Slug { get; set; }
 #pragma warning restore CS8618
 
-    protected override async Task FirstRender()
+    protected override async Task OnFirstRender()
     {
         // Wire the scroll-spy once the guide body is in the DOM. Guarded because the guide can render a
         // not-found state (no headings) and because JS may be unavailable on a torn-down transport.
@@ -60,7 +60,7 @@ public sealed partial class GuideChrome : Component
         }
     }
 
-    protected override async Task Unmount()
+    protected override async Task OnUnmount()
     {
         try
         {

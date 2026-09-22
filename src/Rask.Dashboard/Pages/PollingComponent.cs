@@ -8,7 +8,7 @@ namespace Rask.Dashboard.Pages;
 /// </para>
 /// <list type="number">
 ///   <item>
-///     <b>The loop is fire-and-forget.</b> <see cref="Mount" /> awaits only the first read; awaiting
+///     <b>The loop is fire-and-forget.</b> <see cref="OnMount" /> awaits only the first read; awaiting
 ///     the loop itself would never return and the page would never mount.
 ///   </item>
 ///   <item>
@@ -51,7 +51,7 @@ public abstract partial class PollingPanel : Component
     protected string? LoadError { get; private set; }
 
     /// <inheritdoc />
-    protected override async Task Mount()
+    protected override async Task OnMount()
     {
         // Captured here, in a lifecycle hook, where CancellationToken is the component's LIFETIME token —
         // read inside a handler dispatch it would also carry that dispatch's timeout, which would kill the

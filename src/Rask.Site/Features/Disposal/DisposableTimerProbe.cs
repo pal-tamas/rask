@@ -10,7 +10,7 @@ public sealed partial class DisposableTimerProbe : Component, IDisposable
     public void Dispose() =>
         Log.Invoke($"#{InstanceId} disposed (lived {(DateTimeOffset.Now - _mountedAt).TotalMilliseconds:F0} ms)");
 
-    protected override async Task Mount()
+    protected override async Task OnMount()
     {
         _mountedAt = DateTimeOffset.Now;
         Log.Invoke($"#{InstanceId} mounted");

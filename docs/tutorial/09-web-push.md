@@ -99,7 +99,7 @@ public sealed partial class EnablePushButton(IWebPush push, HttpClient http) : C
 ```
 
 Browsers only show the permission prompt in response to a real user gesture, so this belongs on a button —
-not in `Mount`. Asking on page load is also how you get permanently denied.
+not in `OnMount`. Asking on page load is also how you get permanently denied.
 
 ## 4. Send from the outbox handler
 

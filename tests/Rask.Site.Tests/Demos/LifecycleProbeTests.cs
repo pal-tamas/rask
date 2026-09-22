@@ -42,19 +42,19 @@ public sealed partial class LifecycleProbeTests : global::Rask.Core.RaskMarkup
         // pass before a single hook had run. The claim worth making is about each row's STATUS: the
         // awaited row starts pending and becomes resolved, which is the sequence this test is named for.
         var first = page.Render();
-        Assert.Matches(@"Mount \(after a 450ms await\)</code>\s*<span[^>]*>awaiting", first);
+        Assert.Matches(@"OnMount \(after a 450ms await\)</code>\s*<span[^>]*>awaiting", first);
 
         // Mount awaits 450ms; allow time for the full sequence.
         await WaitFor.True(() => page.Render().Contains("resolved"), TimeSpan.FromSeconds(2));
 
         var html = page.Render();
-        Assert.Matches(@"Mount \(before its await\)</code>\s*<span[^>]*>ran 1x", html);
-        Assert.Matches(@"Mount \(after a 450ms await\)</code>\s*<span[^>]*>resolved", html);
-        Assert.Matches(@"Updated</code>\s*<span[^>]*>ran 1x", html);
+        Assert.Matches(@"OnMount \(before its await\)</code>\s*<span[^>]*>ran 1x", html);
+        Assert.Matches(@"OnMount \(after a 450ms await\)</code>\s*<span[^>]*>resolved", html);
+        Assert.Matches(@"OnUpdated</code>\s*<span[^>]*>ran 1x", html);
 
         // FirstRender runs once however many renders follow; Rendered runs after every one of them.
-        Assert.Matches(@"FirstRender</code>\s*<span[^>]*>ran 1x", html);
-        Assert.Matches(@"Rendered</code>\s*<span[^>]*>ran \d+x", html);
+        Assert.Matches(@"OnFirstRender</code>\s*<span[^>]*>ran 1x", html);
+        Assert.Matches(@"OnRendered</code>\s*<span[^>]*>ran \d+x", html);
     }
 
     [Fact]
@@ -66,7 +66,7 @@ public sealed partial class LifecycleProbeTests : global::Rask.Core.RaskMarkup
             () => LifecycleCycleProbe.Log(log.Add).InstanceId(instanceId),
             TestServices.Default());
 
-        Assert.Contains(log.Snapshot(), e => e == "#7 Mount (before its await)");
+        Assert.Contains(log.Snapshot(), e => e == "#7 OnMount (before its await)");
     }
 
     [Fact]
@@ -77,12 +77,12 @@ public sealed partial class LifecycleProbeTests : global::Rask.Core.RaskMarkup
         var page = RaskTest.Render(
             () => mounted ? LifecycleCycleProbe.Log(log.Add).InstanceId(1) : null,
             TestServices.Default());
-        await WaitFor.True(() => log.Contains("#1 Mount (after a 150ms await)"), TimeSpan.FromSeconds(2));
+        await WaitFor.True(() => log.Contains("#1 OnMount (after a 150ms await)"), TimeSpan.FromSeconds(2));
 
         mounted = false;
         page.Render();
-        await WaitFor.True(() => log.Contains("#1 Unmount"), TimeSpan.FromSeconds(2));
+        await WaitFor.True(() => log.Contains("#1 OnUnmount"), TimeSpan.FromSeconds(2));
 
-        Assert.Single(log.Snapshot(), e => e == "#1 Unmount");
+        Assert.Single(log.Snapshot(), e => e == "#1 OnUnmount");
     }
 }

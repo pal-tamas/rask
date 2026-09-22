@@ -16,7 +16,7 @@ public sealed partial class MediaSessionDemo(IMediaSession media) : Component, I
     private string _status = "(idle)";
     private string _last = "(none yet)";
 
-    protected override async Task FirstRender()
+    protected override async Task OnFirstRender()
     {
         if (_handlers.Count > 0)
 

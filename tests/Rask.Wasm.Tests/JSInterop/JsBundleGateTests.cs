@@ -3,7 +3,7 @@ namespace Rask.Wasm.Tests.JsInteropRuntime;
 // Guards the runtime-script-side half of the scoped-JS race fix. WasmJSRuntime
 // sends "Rask.{TypeName}.{method}" identifiers, but the browser-side bundle
 // that defines window.Rask.{TypeName} is only injected after the first
-// applyRender. Without a gate in rask.wasm.ts, a first-render OnRenderedAsync
+// applyRender. Without a gate in rask.wasm.ts, a first-render OnRendered
 // invoking Rask.* fails with "Could not find ... on target" before the bundle
 // is in the DOM. This test asserts the gate primitives are still present —
 // silent deletion (e.g. during a mechanical rewrite) would re-open the race.

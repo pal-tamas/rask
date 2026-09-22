@@ -9,9 +9,9 @@ public sealed partial class UserGateDemo : Component
 
     public UserGateDemo(DemoUserProvider auth) => _auth = auth;
 
-    protected override async Task Mount() => _auth.Changed += StateHasChanged;
+    protected override async Task OnMount() => _auth.Changed += StateHasChanged;
 
-    protected override async Task Unmount() => _auth.Changed -= StateHasChanged;
+    protected override async Task OnUnmount() => _auth.Changed -= StateHasChanged;
 
     protected override Component? Render() =>
         Div.Id("user-gate")[

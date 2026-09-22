@@ -60,7 +60,7 @@ internal sealed partial class DevToolsTabs : Component
     protected override bool BypassRenderCache => true;
 
     /// <inheritdoc />
-    protected override Task Mount()
+    protected override Task OnMount()
     {
         _gate = new DevToolsRefreshGate(StateHasChanged, CancellationToken);
         _page = PageErrors;
@@ -71,7 +71,7 @@ internal sealed partial class DevToolsTabs : Component
     }
 
     /// <inheritdoc />
-    protected override Task Unmount()
+    protected override Task OnUnmount()
     {
         if (_page is { } page)
         {

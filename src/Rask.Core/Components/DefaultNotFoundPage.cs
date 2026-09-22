@@ -15,7 +15,7 @@ public sealed class DefaultNotFoundPage : Component
     // Unmount can't re-resolve RouteState from the render scope.
     private RouteState? _route;
 
-    protected override Task Mount()
+    protected override Task OnMount()
     {
         // Re-render when the route changes so the displayed missing-path stays accurate
         // for in-session navigations into other unknown routes.
@@ -29,7 +29,7 @@ public sealed class DefaultNotFoundPage : Component
         return Task.CompletedTask;
     }
 
-    protected override Task Unmount()
+    protected override Task OnUnmount()
     {
         if (_route is null)
         {

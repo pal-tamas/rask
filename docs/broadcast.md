@@ -41,14 +41,14 @@ public sealed class PlaceOrderHandler(IBroadcast broadcast, IDbContextFactory<Ap
 }
 ```
 
-Subscribe in `Mount`:
+Subscribe in `OnMount`:
 
 ```csharp
 public sealed partial class OrderList(IBroadcast broadcast) : Component
 {
     private readonly List<OrderPlaced> _orders = [];
 
-    protected override async Task Mount() =>
+    protected override async Task OnMount() =>
         broadcast.Subscribe(this, Topics.Orders, order => _orders.Insert(0, order));
 
     protected override Component? Render() =>
@@ -89,7 +89,7 @@ every order.
 
 - **Not a queue.** Delivery is *at most once*, to the subscribers that exist when the message is published. A
   component that mounts afterwards does not see earlier messages, and nothing is replayed. When a page needs the
-  current state rather than the latest change, load it in `Mount` and subscribe for what happens next.
+  current state rather than the latest change, load it in `OnMount` and subscribe for what happens next.
 - **Not across servers, unless you ask.** A message reaches the sessions this process holds, as a live object that is
   never serialized, so a topic can carry any type, including ones that cannot be. Behind a load balancer, a topic
   that should reach every instance's visitors opts in, [below](#across-servers).

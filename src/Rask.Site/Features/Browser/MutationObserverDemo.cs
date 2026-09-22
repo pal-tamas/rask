@@ -19,7 +19,7 @@ public sealed partial class MutationObserverDemo(IMutationObserver observer) : C
     private int _attrChanges;
     private string _last = "(none yet)";
 
-    protected override async Task FirstRender()
+    protected override async Task OnFirstRender()
     {
         if (_observation is not null)
 

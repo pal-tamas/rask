@@ -18,7 +18,7 @@ public sealed partial class App(IDbContextFactory<ArticleContext> contexts, Sche
         Meta.Charset("utf-8"),
     ];
 
-    protected override async Task Mount()
+    protected override async Task OnMount()
     {
         try
         {

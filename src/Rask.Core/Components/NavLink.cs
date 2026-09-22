@@ -48,7 +48,7 @@ public sealed partial class NavLink : Element
     /// </summary>
     public NavLinkMatch? ActiveMatch { get; set; }
 
-    protected override Task Mount()
+    protected override Task OnMount()
     {
         // Subscribe to RouteState.Changed so a NavLink rendered outside the Router
         // subtree (e.g. a top-level sidebar in App.cs) still re-evaluates its active
@@ -63,7 +63,7 @@ public sealed partial class NavLink : Element
         return Task.CompletedTask;
     }
 
-    protected override Task Unmount()
+    protected override Task OnUnmount()
     {
         if (_route is null)
         {

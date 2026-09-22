@@ -18,7 +18,7 @@ public sealed partial class JsInvokeBindingApp(IJSRuntime js) : Component
 
     // Fire on every render (NOT gated on firstRender) to exercise the relaxed gate:
     // the queued invoke must ride the diff payload instead of forcing full HTML.
-    protected override async Task Rendered() =>
+    protected override async Task OnRendered() =>
         await js.InvokeVoidAsync("test.noop");
 
     protected override Component? HeadAssets => new Title()["js-invoke-binding"];

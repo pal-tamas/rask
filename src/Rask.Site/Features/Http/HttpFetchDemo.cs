@@ -20,7 +20,7 @@ public sealed partial class HttpFetchDemo(HttpClient http, TimeProvider time) : 
     private string? _error;
     private Post? _post;
 
-    protected override async Task Mount()
+    protected override async Task OnMount()
     {
         for (var attempt = 0; ; attempt++)
         {

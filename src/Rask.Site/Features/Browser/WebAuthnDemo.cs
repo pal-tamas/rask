@@ -17,7 +17,7 @@ public sealed partial class WebAuthnDemo(IWebAuthn webAuthn) : Component
     private string _status = "(idle)";
     private string _support = "(unchecked)";
 
-    protected override async Task FirstRender()
+    protected override async Task OnFirstRender()
     {
         try
         {

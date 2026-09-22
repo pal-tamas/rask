@@ -40,7 +40,7 @@ public async Task Clicking_increments()
 - **`RenderedComponent.Html`** — the current markup, reflecting the latest state.
 - **`.WaitForAsync(text | predicate, timeout?)`** — re-renders until the markup contains the text (or the
   predicate accepts it), then returns it; throws with the last markup after 5 seconds by default. Use it
-  for a component that loads in `Mount`: `Render` mounts it, but the load completes on a
+  for a component that loads in `OnMount`: `Render` mounts it, but the load completes on a
   continuation, so the result is not in the markup yet when `Render` returns.
 - **`.ClickAsync(json?)` / `.InvokeAsync(handlerId, json?)`** — dispatch a handler (optionally with a JSON
   event payload like `"{\"value\":\"hi\"}"` for an input) and re-render; returns the new `Html`.

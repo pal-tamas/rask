@@ -83,12 +83,12 @@ public class MountTests
     {
         private readonly List<string> _order;
         public OrderRecorder(List<string> order) => _order = order;
-        protected override Task Mount()
+        protected override Task OnMount()
         {
             _order.Add("mount");
             return Task.CompletedTask;
         }
-        protected override Task Updated()
+        protected override Task OnUpdated()
         {
             _order.Add("props");
             return Task.CompletedTask;

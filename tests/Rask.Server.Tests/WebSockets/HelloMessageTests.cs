@@ -156,7 +156,7 @@ public class HelloMessageTests
 
         private bool _loaded;
 
-        protected override Task Mount()
+        protected override Task OnMount()
         {
             _ = Task.Run(async () =>
             {

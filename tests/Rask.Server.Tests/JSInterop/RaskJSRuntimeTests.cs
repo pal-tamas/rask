@@ -121,7 +121,7 @@ public class RaskJSRuntimeTests
     public async Task InvokeVoidAsync_FromRendered_DoesNotRenderStorm()
     {
         // Regression for the memory leak: a component that does
-        //     protected override async Task Rendered() =>
+        //     protected override async Task OnRendered() =>
         //         await js.InvokeVoidAsync("foo");
         // (a hook that runs after EVERY render) used to drive an infinite render
         // loop. Two paths fed it: (1) the Rendered continuation auto-rerendered
@@ -223,7 +223,7 @@ internal sealed partial class JsRoundTripApp : Component
 
     protected override Component? Render() => Text.Value("ready");
 
-    protected override async Task FirstRender()
+    protected override async Task OnFirstRender()
     {
         try
         {
@@ -273,7 +273,7 @@ internal sealed partial class JsRenderStormApp : Component
     // Runs after EVERY render, deliberately — the whole point is to assert the framework
     // doesn't loop even with this anti-pattern. Mirrors the original CodeSample shape
     // that triggered the leak.
-    protected override async Task Rendered() =>
+    protected override async Task OnRendered() =>
         await _js.InvokeVoidAsync("noop");
 }
 
@@ -291,7 +291,7 @@ internal sealed partial class JsErrorApp : Component
 
     protected override Component? Render() => Text.Value("ready");
 
-    protected override async Task FirstRender()
+    protected override async Task OnFirstRender()
     {
         try
         {

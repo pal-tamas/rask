@@ -91,7 +91,7 @@ public partial class StateHasChangedAfterUnmountTests : global::Rask.Core.RaskMa
         public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource Gate { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        protected override async Task Mount()
+        protected override async Task OnMount()
         {
             Started.SetResult();
             await Gate.Task;

@@ -180,13 +180,13 @@ public sealed partial class SlottedRow : Component
 
     public Component? Badge { get; set; }
 
-    protected override Task Mount()
+    protected override Task OnMount()
     {
         _instance = ++MountCount;
         return Task.CompletedTask;
     }
 
-    protected override Task Unmount()
+    protected override Task OnUnmount()
     {
         Unmounts++;
         return Task.CompletedTask;
@@ -207,7 +207,7 @@ public sealed partial class KeyedRow : Component
 
     public required int Id { get; set; }
 
-    protected override Task Mount()
+    protected override Task OnMount()
     {
         _instance = ++MountCount;
         return Task.CompletedTask;

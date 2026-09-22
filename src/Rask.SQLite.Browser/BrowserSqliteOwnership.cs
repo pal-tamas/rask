@@ -18,7 +18,7 @@ namespace Rask.SQLite.Browser;
 ///         during a normal boot. Await <see cref="Resolved" /> to render only once it is settled.
 ///     </para>
 ///     <code>
-///     protected override async Task Mount() =&gt; _isOwner = await ownership.Resolved;
+///     protected override async Task OnMount() =&gt; _isOwner = await ownership.Resolved;
 ///     </code>
 /// </remarks>
 public sealed class BrowserSqliteOwnership

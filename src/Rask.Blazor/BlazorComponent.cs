@@ -83,12 +83,12 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
     private int _componentId = -1;
 
     /// <summary>
-    ///     1 once the hosted component's after-render hook has been claimed. See <see cref="Rendered" />.
+    ///     1 once the hosted component's after-render hook has been claimed. See <see cref="OnRendered" />.
     /// </summary>
     /// <remarks>
     ///     An <c>int</c> through <c>Interlocked</c> rather than a <c>bool</c>, because the claim is not
     ///     made on one thread. The hook awaits a hop to the renderer's dispatcher, so a second
-    ///     <c>OnRenderedAsync</c> can arrive on a different thread and read a plain field that has not
+    ///     <c>OnRendered</c> can arrive on a different thread and read a plain field that has not
     ///     been published yet — which is exactly what happened: one hosted component, two calls.
     /// </remarks>
     private int _afterRendered;
@@ -176,7 +176,7 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
     /// </summary>
     /// <remarks>
     ///     <para>
-    ///         Everything lives here rather than being split with <c>Mount</c>, because Rask
+    ///         Everything lives here rather than being split with <c>OnMount</c>, because Rask
     ///         fires this hook when <c>firstRender || propsChanged</c> — mount and update are already
     ///         one code path, so splitting them would only add a first-render special case to get
     ///         wrong.
@@ -189,7 +189,7 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
     ///         than appearing a frame later.
     ///     </para>
     /// </remarks>
-    protected override async Task Updated()
+    protected override async Task OnUpdated()
     {
         var renderer = _renderer ??= CreateRenderer();
 
@@ -255,7 +255,7 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
     ///         on every prop change and is the hook that actually corresponds to one.
     ///     </para>
     /// </remarks>
-    protected override async Task Rendered()
+    protected override async Task OnRendered()
     {
         if (_instance is not IHandleAfterRender handler || _renderer is not { } renderer)
         {
@@ -486,7 +486,7 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
     ///     Asynchronous on purpose: a <see cref="IDisposable.Dispose" /> while a render is in flight
     ///     on the renderer's dispatcher is a hang, not a leak.
     /// </remarks>
-    protected override async Task Unmount()
+    protected override async Task OnUnmount()
     {
         if (_renderer is null)
         {
@@ -564,14 +564,14 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
             // inside the hook drives the island's own render again, which lands here again: the cycle
             // that took ProcessRenderQueue into unbounded recursion.
             //
-            // Rask already solved this for its own components. OnRenderedAsync returning an incomplete
+            // Rask already solved this for its own components. OnRendered returning an incomplete
             // task gets a continuation that requests a publishOnly render, and publishOnly deliberately
             // skips OnRendered on anything that has already rendered (Component.RaiseOnRendered) — so
             // the markup written just above still reaches the page, once, without re-entering anything.
             if (_inAfterRender)
             {
                 // Remembered, not dropped. The hook itself publishes this once it returns — relying on
-                // Rask's post-hook auto-rerender would lose it whenever OnRenderedAsync completes
+                // Rask's post-hook auto-rerender would lose it whenever OnRendered completes
                 // SYNCHRONOUSLY, which it does when the walk was entered from this very callback:
                 // Component.RaiseOnRendered returns without requesting anything when the task is
                 // already complete, so the markup written above would never reach the page.

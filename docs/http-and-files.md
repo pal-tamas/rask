@@ -5,7 +5,7 @@ dependency-injected `HttpClient`, the typed file-picker input, and the `Navigato
 *same* component code runs server-rendered over a WebSocket or client-side on WebAssembly — only the host
 wiring differs. This guide walks the three, each with a live demo.
 
-- [Fetching data with `HttpClient`](#fetching-data-with-httpclient) — register a DI'd client, fetch in `Mount`
+- [Fetching data with `HttpClient`](#fetching-data-with-httpclient) — register a DI'd client, fetch in `OnMount`
 - [Uploading files](#uploading-files) — a typed file picker and `RaskFile` metadata
 - [Keeping an upload](#keeping-an-upload) — where the bytes go once the handler returns
 - [Downloading files](#downloading-files) — stage bytes with `Navigator.Download`
@@ -28,7 +28,7 @@ The base address differs per host: on the Server it's the server's own origin; o
 
 <!-- demo:data-http-register -->
 
-Inject the configured client and load in `Mount` — it runs once on first render, and the framework's
+Inject the configured client and load in `OnMount` — it runs once on first render, and the framework's
 async lifecycle handler re-renders when the awaited task completes. `Component.CancellationToken` cancels on
 unmount, so navigating away mid-fetch aborts the in-flight request instead of writing to a dead component:
 
@@ -88,4 +88,4 @@ counter); both ship in the same render:
 ---
 
 See also: [Data access](data-access.md) for EF Core persistence, [Forms & validation](forms.md) for the
-`Form<T>` pipeline and typed inputs, and [Lifecycle](lifecycle.md) for `Mount` and cancellation.
+`Form<T>` pipeline and typed inputs, and [Lifecycle](lifecycle.md) for `OnMount` and cancellation.

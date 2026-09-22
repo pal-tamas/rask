@@ -18,7 +18,7 @@ public sealed partial class BroadcastChannelDemo(IBroadcastChannel bus) : Compon
     private int _counter;
     private bool _opened;
 
-    protected override async Task FirstRender()
+    protected override async Task OnFirstRender()
     {
         if (_opened)
 

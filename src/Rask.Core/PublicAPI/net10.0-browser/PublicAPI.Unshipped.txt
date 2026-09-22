@@ -6716,8 +6716,8 @@ static RaskBuilderSettersRask_Core.__RaskCopyWritten_Rask_Core_Components_Valida
 static RaskBuilderSettersRask_Core.__RaskCopyWritten_Rask_Core_Components_ValidationSummary(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Core.__RaskCopyWritten_Rask_Core_Components_VirtualizeModel(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Core.__RaskCopyWritten_Rask_Core_Routing_Router(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
-virtual Rask.Core.Component.FirstRender() -> System.Threading.Tasks.Task!
-virtual Rask.Core.Component.Mount() -> System.Threading.Tasks.Task!
-virtual Rask.Core.Component.Rendered() -> System.Threading.Tasks.Task!
-virtual Rask.Core.Component.Unmount() -> System.Threading.Tasks.Task!
-virtual Rask.Core.Component.Updated() -> System.Threading.Tasks.Task!
+virtual Rask.Core.Component.OnFirstRender() -> System.Threading.Tasks.Task!
+virtual Rask.Core.Component.OnMount() -> System.Threading.Tasks.Task!
+virtual Rask.Core.Component.OnRendered() -> System.Threading.Tasks.Task!
+virtual Rask.Core.Component.OnUnmount() -> System.Threading.Tasks.Task!
+virtual Rask.Core.Component.OnUpdated() -> System.Threading.Tasks.Task!

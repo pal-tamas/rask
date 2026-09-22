@@ -17,8 +17,8 @@ namespace Rask.Core.Http;
 ///         arrangement <c>RouteState</c> and <c>Navigator</c> use.
 ///     </para>
 ///     <para>
-///         Legal only while the initial server render is running: <c>Render()</c>, <c>Mount</c>,
-///         <c>Mount</c>. Calling it from an event handler throws, because by then the
+///         Legal only while the initial server render is running: <c>Render()</c>, <c>OnMount</c>,
+///         <c>OnMount</c>. Calling it from an event handler throws, because by then the
 ///         response is long gone and a silently dropped status is worse than a crash the developer
 ///         sees immediately.
 ///     </para>

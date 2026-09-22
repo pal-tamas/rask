@@ -304,7 +304,7 @@ public static class GuideCatalog
             SearchTitle = "Real-time pub/sub to every open page in C#",
             Description = "Push a change to every open page with IBroadcast: typed topics, subscriptions that end with the component, and a Redis backplane across servers.",
         },
-        new("lifecycle", "Lifecycle", "Mount, props-changed, rendered, unmount, cancellation.", "Core")
+        new("lifecycle", "Lifecycle", "OnMount, OnUpdated, OnFirstRender, OnRendered, OnUnmount, cancellation.", "Core")
         {
             SearchTitle = "Component lifecycle hooks in C#",
             Description = "The lifecycle hooks a component can override, their order and sync vs async rules, plus disposal, cancellation tied to component lifetime and hosted services.",

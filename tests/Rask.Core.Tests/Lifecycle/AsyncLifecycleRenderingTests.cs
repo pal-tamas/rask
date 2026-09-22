@@ -104,7 +104,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task OnRenderedAsync_AwaitCompletes_TriggersRerender()
     {
-        // OnRenderedAsync auto-rerenders on continuation completion — same ergonomics
+        // OnRendered auto-rerenders on continuation completion — same ergonomics
         // as Mount, so users can `_x = await ...;` without calling
         // StateHasChanged. The continuation routes through RequestPublishRenderAsync
         // so the resulting walk is loop-safe (already-rendered components skip the
@@ -122,7 +122,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
         await WaitUntilAsync(() => handle.RequestPublishRenderCount > beforeGate);
 
         Assert.True(handle.RequestPublishRenderCount > beforeGate,
-            $"expected auto-rerender after OnRenderedAsync continuation; " +
+            $"expected auto-rerender after OnRendered continuation; " +
             $"publish-before={beforeGate} publish-after={handle.RequestPublishRenderCount}");
     }
 
@@ -130,10 +130,10 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
     public async Task OnRenderedAsync_AwaitsEveryRender_DoesNotLoop()
     {
         // Regression for the render-storm leak: a component that unconditionally awaits
-        // something in OnRenderedAsync (without an `if (!firstRender) return;` guard)
+        // something in OnRendered (without an `if (!firstRender) return;` guard)
         // used to drive an infinite render loop. The continuation's auto-rerender goes
         // through RequestPublishRenderAsync which flags the resulting walk as publishOnly,
-        // so already-rendered components don't re-enter their OnRenderedAsync hook on
+        // so already-rendered components don't re-enter their OnRendered hook on
         // the publish frame — no fresh continuation, no fresh request → loop broken.
         var sp = RenderHarness.EmptyServices();
         var handle = new RecordingHandle();
@@ -155,11 +155,11 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
     public async Task OnRenderedAsync_MultipleComponents_DoNotCascade()
     {
         // The structurally interesting regression: A and B both have unguarded
-        // OnRenderedAsync awaits. Per-component suppression isn't enough — A's
-        // continuation triggers a render walk, which re-fires B's OnRenderedAsync,
+        // OnRendered awaits. Per-component suppression isn't enough — A's
+        // continuation triggers a render walk, which re-fires B's OnRendered,
         // which on completion triggers ANOTHER walk that re-fires A's, ad infinitum.
         // The fix is the publishOnly walk mode: the continuation's render walks but
-        // skips OnRenderedAsync on every already-rendered component (not just the
+        // skips OnRendered on every already-rendered component (not just the
         // originating one), so the cascade can't kindle.
         var sp = RenderHarness.EmptyServices();
         var handle = new RecordingHandle();
@@ -172,16 +172,16 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
         Assert.True(handle.RequestPublishRenderCount < 8,
             $"cascade detected: {handle.RequestPublishRenderCount} publish renders");
         Assert.True(root.AOnRenderedCount < 5,
-            $"A's OnRenderedAsync re-fired {root.AOnRenderedCount} times");
+            $"A's OnRendered re-fired {root.AOnRenderedCount} times");
         Assert.True(root.BOnRenderedCount < 5,
-            $"B's OnRenderedAsync re-fired {root.BOnRenderedCount} times");
+            $"B's OnRendered re-fired {root.BOnRenderedCount} times");
     }
 
     private sealed class RenderedAsyncProbe : Component
     {
         public TaskCompletionSource Gate { get; } = new();
 
-        protected override async Task FirstRender()
+        protected override async Task OnFirstRender()
         {
             await Gate.Task;
         }
@@ -199,7 +199,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
             prev.TrySetResult();
         }
 
-        protected override Task Rendered() => _gate.Task;
+        protected override Task OnRendered() => _gate.Task;
 
         protected override Component? Render() => Span[Text.Value("probe")];
     }
@@ -226,14 +226,14 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
 
         // Tally hook re-entries on the root too — if the publishOnly walk is broken, these counters peg at
         // hundreds. A counts the first render, B every render after it.
-        protected override Task FirstRender()
+        protected override Task OnFirstRender()
         {
             AOnRenderedCount++;
             _firstPending = true;
             return Task.CompletedTask;
         }
 
-        protected override Task Rendered()
+        protected override Task OnRendered()
         {
             if (_firstPending)
             {
@@ -255,7 +255,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
         public TaskCompletionSource Step2 { get; } = new();
         public TaskCompletionSource Done { get; } = new();
 
-        protected override async Task Mount()
+        protected override async Task OnMount()
         {
             Started.TrySetResult();
             await Task.Yield();
@@ -270,7 +270,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
 
     private sealed class SyncCompletingComponent : Component
     {
-        protected override Task Mount() => Task.CompletedTask;
+        protected override Task OnMount() => Task.CompletedTask;
         protected override Component? Render() => this;
     }
 
@@ -278,7 +278,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
     {
         public TaskCompletionSource Done { get; } = new();
 
-        protected override async Task Mount()
+        protected override async Task OnMount()
         {
             await Task.Yield();
             Done.TrySetResult();
@@ -291,7 +291,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
     {
         public TaskCompletionSource Done { get; } = new();
 
-        protected override async Task Mount()
+        protected override async Task OnMount()
         {
             await Task.Delay(1).ConfigureAwait(false);
             Done.TrySetResult();

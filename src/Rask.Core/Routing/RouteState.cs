@@ -10,7 +10,7 @@ namespace Rask.Core.Routing;
 ///         Setting <see cref="Path" /> or <see cref="Query" /> raises <see cref="Changed" /> only
 ///         when the value actually differs, which is what drives the router to re-match. Components
 ///         that render off the URL outside the routed page subtree should subscribe to
-///         <see cref="Changed" /> in <c>Mount</c> and unsubscribe in <c>Unmount</c>.
+///         <see cref="Changed" /> in <c>OnMount</c> and unsubscribe in <c>OnUnmount</c>.
 ///     </para>
 /// </summary>
 public sealed class RouteState
@@ -59,7 +59,7 @@ public sealed class RouteState
 
     /// <summary>
     ///     Raised whenever <see cref="Path" /> or <see cref="Query" /> changes. Subscribe in
-    ///     <c>Mount</c> and unsubscribe in <c>Unmount</c>. Components inside the routed page
+    ///     <c>OnMount</c> and unsubscribe in <c>OnUnmount</c>. Components inside the routed page
     ///     subtree usually don't need this — the router re-renders them on navigation.
     /// </summary>
     public event Action? Changed;

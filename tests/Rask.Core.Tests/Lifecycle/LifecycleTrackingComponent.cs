@@ -22,28 +22,28 @@ internal sealed partial class LifecycleTrackingComponent : Component
     // One entry per Rendered call: true for the render FirstRender ran on.
     public List<bool> RenderedFlags { get; } = new();
 
-    protected override Task Mount()
+    protected override Task OnMount()
     {
         MountCount++;
         MountAsyncCount++;
         return OnMountAsyncImpl?.Invoke() ?? Task.CompletedTask;
     }
 
-    protected override Task Updated()
+    protected override Task OnUpdated()
     {
         PropsChangedCount++;
         PropsChangedAsyncCount++;
         return Task.CompletedTask;
     }
 
-    protected override Task FirstRender()
+    protected override Task OnFirstRender()
     {
         FirstRenderCount++;
         _firstRenderPending = true;
         return Task.CompletedTask;
     }
 
-    protected override Task Rendered()
+    protected override Task OnRendered()
     {
         RenderedCount++;
         RenderedFlags.Add(_firstRenderPending);
@@ -51,7 +51,7 @@ internal sealed partial class LifecycleTrackingComponent : Component
         return Task.CompletedTask;
     }
 
-    protected override Task Unmount()
+    protected override Task OnUnmount()
     {
         UnmountCount++;
         OnUnmountImpl?.Invoke();

@@ -291,7 +291,7 @@ public sealed class Navigator(RouteState routeState, IDownloadSink? downloadSink
         {
             throw new InvalidOperationException(
                 "Navigator can only be used from event handlers (e.g. Button.OnClick(…)) or " +
-                "during a page's initial render (Render, Mount), where it becomes " +
+                "during a page's initial render (Render, OnMount), where it becomes " +
                 "a real HTTP redirect. It cannot run from a background render. To redirect an " +
                 "unauthenticated user, use [Authorize]. See docs/routing.md.");
         }

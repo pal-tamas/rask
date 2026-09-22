@@ -14,7 +14,7 @@ public sealed class PostsController(AppDb db) : ControllerBase
 // Any component. PostsClient is generated from the declaration above.
 public sealed class PostDetail(PostsClient posts) : Component
 {
-    protected override async Task Mount() => _post = await posts.Get(Id);
+    protected override async Task OnMount() => _post = await posts.Get(Id);
 }
 ```
 

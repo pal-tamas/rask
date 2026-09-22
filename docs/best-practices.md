@@ -83,15 +83,15 @@ mistake, the rule notes the ID.
   ```
   A lambda over a plain local or a static method isn't wrapped and won't trigger a re-render. See
   [composition → callbacks](composition-callbacks-context.md#callbacks-child--parent).
-- **Don't expect a handler-only re-render to refire `Updated`.** Auto-wrapped delegates are
+- **Don't expect a handler-only re-render to refire `OnUpdated`.** Auto-wrapped delegates are
   excluded from the `propsChanged` diff — changing only the lambda's identity doesn't refire it.
   `Updated*` fires when a *bound* value (a prop, a route/query param) actually changes. See
-  [lifecycle → when Updated refires](lifecycle.md#when-updated-refires).
+  [lifecycle → when Updated refires](lifecycle.md#when-onupdated-refires).
 - **Let the runtime re-render for you; call `StateHasChanged()` only for out-of-band state.** An
   awaited event handler and each `await` in an async lifecycle hook auto-re-render. You only call
   `StateHasChanged()` by hand for state that changes *outside* the handler-dispatch window — a timer
   tick, a fire-and-forget continuation, or an external event/observable you subscribed to in
-  `Mount`.
+  `OnMount`.
 - **Thread `CancellationToken` into the async work a handler or hook starts.** The token cancels on
   unmount and — while a handler runs — when the host cancels that dispatch (the server's
   `HandlerTimeout` or a closed socket). Without it, slow work pins the session's render pipeline:
@@ -109,12 +109,12 @@ mistake, the rule notes the ID.
   through a render-cached intermediate — that's the point. Provide a concrete type and consume by an
   interface if you like. See [composition → context](composition-callbacks-context.md#context-provide--consume).
 - **Always pair a manual subscription with its teardown.** If a component *above* the `Router()` (a
-  sidebar, breadcrumb) needs to react to navigation or a store, subscribe in `Mount` and
-  unsubscribe in `Unmount` — otherwise the publisher keeps a strong reference to the unmounted
+  sidebar, breadcrumb) needs to react to navigation or a store, subscribe in `OnMount` and
+  unsubscribe in `OnUnmount` — otherwise the publisher keeps a strong reference to the unmounted
   component:
   ```csharp
-  protected override async Task Mount()   => route.Changed += StateHasChanged;
-  protected override async Task Unmount() => route.Changed -= StateHasChanged;
+  protected override async Task OnMount()   => route.Changed += StateHasChanged;
+  protected override async Task OnUnmount() => route.Changed -= StateHasChanged;
   ```
 - **A prop that is a mutable collection does not re-render the child when you append to it.** Props
   are compared with `EqualityComparer<T>.Default`, which for a `List<T>` is reference equality — so a
@@ -169,8 +169,8 @@ mistake, the rule notes the ID.
 - **Navigate from event handlers only.** Every `Navigator` method throws if called during `Render()`
   or the initial GET — it would mid-render the page out from under itself. Load-time redirects belong
   in a route guard, not `Render()`. See [routing → Navigator](routing.md#programmatic-navigation--navigator).
-- **Put the right work in the right hook.** `Mount` for a one-time load; `Updated`
-  to reload when a route/query param changes; `FirstRender` / `Rendered` for post-paint side effects (it's
+- **Put the right work in the right hook.** `OnMount` for a one-time load; `OnUpdated`
+  to reload when a route/query param changes; `OnFirstRender` / `OnRendered` for post-paint side effects (it's
   loop-safe — a re-render elsewhere won't refire it). Each `await` auto-re-renders, so mutate state
   after the await and it paints. See [lifecycle](lifecycle.md).
 - **A faulted async hook is silent** — the framework logs to `Console.Error` and does *not* re-render
@@ -178,7 +178,7 @@ mistake, the rule notes the ID.
   risky hook work in `try/catch` to render your own error state, or use an `ErrorBoundary`. See
   [lifecycle → gotchas](lifecycle.md#gotcha-a-faulted-async-hook-takes-the-page-not-the-component).
 - **Never `StateHasChanged()` in unmount** — the component is already leaving the tree, so it's a
-  no-op by design. Use `Unmount` to tear down subscriptions, nothing more. Compose nested layouts
+  no-op by design. Use `OnUnmount` to tear down subscriptions, nothing more. Compose nested layouts
   with `[ParentRoute]` + `Outlet()`.
 
 ## Data access & side effects
@@ -206,7 +206,7 @@ mistake, the rule notes the ID.
   across renders (a local resets each render). Pass it via `Ref:`, then hand it to JS or a built-in
   helper (`_input.FocusAsync(_js)`). See [JS interop → element refs](js-interop-runtime.md#element-refs).
 - **Inject `IJSRuntime` through the constructor and call from a hook or handler** — interop is only
-  live once the session is up (after `Mount`, or inside handlers). One scoped `{Component}.css` /
+  live once the session is up (after `OnMount`, or inside handlers). One scoped `{Component}.css` /
   `{Component}.ts` sits next to `{Component}.cs` and is auto-included and isolated; orphan or
   ambiguous assets are **RASK015–018**, a `.js` sibling is **RASK055**, and two scoped components sharing a simple type name
   collide at `window.Rask[Name]` (**RASK020**).
@@ -254,7 +254,7 @@ mistake, the rule notes the ID.
   diff ops that preserve DOM identity; keyless structural changes fall back to a full-HTML morph. See
   [architecture → keyed reconciliation](architecture/live-rendering-codec.md#keyed-reconciliation-trusted-structural-ops).
 - **Treat `Key` as identity, not a reactive signal.** Changing a key mounts a fresh instance; it
-  doesn't refire `Updated`.
+  doesn't refire `OnUpdated`.
 - **Use a `[...]` collection expression to avoid a wrapper node** for sibling lists, and `null` for a
   "render nothing" branch (`show ? Panel() : null`).
 - **Benchmark every render-hotpath or live-runtime change.** Diff codec, frame writer, serializer,
@@ -283,8 +283,8 @@ mistake, the rule notes the ID.
 | Root renders `Doctype`/`Html`/`Head`/`Body` (**RASK021**) | Return the body's content; `Head`/`HtmlLang`/`BodyClass`/`Shell` |
 | User input through `Raw(...)` (XSS) | Use a plain string / `Text` (encodes by default) |
 | `StateHasChanged()` inside an awaited handler/hook | Redundant — the `await` re-renders for you |
-| `StateHasChanged()` in `Unmount` | No-op by design — only tear down subscriptions |
-| Subscribing to an event without unsubscribing | Pair `+=` in `Mount` with `-=` in `Unmount` |
+| `StateHasChanged()` in `OnUnmount` | No-op by design — only tear down subscriptions |
+| Subscribing to an event without unsubscribing | Pair `+=` in `OnMount` with `-=` in `OnUnmount` |
 | Scoped `DbContext` in a Server app | `IDbContextFactory<T>` + a fresh context per op |
 | Async EF/HTTP calls without the token | Thread `Component.CancellationToken` through |
 | Any auth token in `localStorage` | The `HttpOnly` session cookie the battery already sets |

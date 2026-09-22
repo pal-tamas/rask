@@ -332,13 +332,13 @@ Mutate `RouteState` through `Navigator`, not by setting `Path`/`Query` directly,
 value, `Query` by reference, so a no-op set doesn't fire). Components **inside** the routed page subtree usually don't
 need it — the router re-renders them on navigation. But a component rendered **above** the `Router()` (a sidebar,
 breadcrumb, header path display) won't be re-rendered by the router, so it must subscribe explicitly. Subscribe in
-`Mount`, unsubscribe in `Unmount`:
+`OnMount`, unsubscribe in `OnUnmount`:
 
 ```csharp
 public sealed partial class PathDisplay(RouteState route) : Component
 {
-    protected override async Task Mount() => route.Changed += StateHasChanged;
-    protected override async Task Unmount() => route.Changed -= StateHasChanged;
+    protected override async Task OnMount() => route.Changed += StateHasChanged;
+    protected override async Task OnUnmount() => route.Changed -= StateHasChanged;
 
     protected override Component? Render() =>
         Span["path: ", Code[route.Path]];
@@ -381,7 +381,7 @@ is not a routing fact at all: say so with `IPageResponse.SetStatus(404)`, descri
 host turns it into a real `302` before rendering a body:
 
 ```csharp
-protected override async Task Mount()
+protected override async Task OnMount()
 {
     if (!_tenant.IsProvisioned)
     {

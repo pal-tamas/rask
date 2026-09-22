@@ -29,9 +29,9 @@ internal sealed partial class NavigateWithPublishRenderApp : Component
     {
         // Always request a render — RequestRenderInternalAsync short-circuits
         // via InHandlerScope by setting _pendingRenderInScope=true, exactly
-        // the shape a ticker's OnRenderedAsync auto-rerender continuation
+        // the shape a ticker's OnRendered auto-rerender continuation
         // produces under the framework's "publish render after every awaited
-        // OnRenderedAsync" mechanism. The rebuild loop in
+        // OnRendered" mechanism. The rebuild loop in
         // BuildPayloadCoalescingRerendersAsync is budgeted at 2 retries, so
         // unconditional StateHasChanged here doesn't spin — it just guarantees
         // the rebuild path runs and observes whether the rebuild preserves

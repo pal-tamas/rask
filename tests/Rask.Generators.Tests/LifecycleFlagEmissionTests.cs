@@ -9,11 +9,11 @@ public class LifecycleFlagEmissionTests
     private const string Entries = "RaskBuilderEntryHost.g.cs";
 
     [Theory]
-    [InlineData("Mount")]
-    [InlineData("Updated")]
-    [InlineData("FirstRender")]
-    [InlineData("Rendered")]
-    [InlineData("Unmount")]
+    [InlineData("OnMount")]
+    [InlineData("OnUpdated")]
+    [InlineData("OnFirstRender")]
+    [InlineData("OnRendered")]
+    [InlineData("OnUnmount")]
     public void A_component_that_overrides_a_lifecycle_hook_is_entered_as_having_a_lifecycle(string hook)
     {
         var entries = EntriesFor($$"""

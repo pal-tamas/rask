@@ -119,7 +119,7 @@ public sealed partial class AmbientProbe : Component
 
     internal static int PropsChangedCount { get; private set; }
 
-    protected override Task Updated()
+    protected override Task OnUpdated()
     {
         PropsChangedCount++;
         return Task.CompletedTask;

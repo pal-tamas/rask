@@ -62,7 +62,7 @@ public partial class QuiescentRenderMidRenderPaintTests : global::Rask.Core.Rask
         private volatile string? _value;
         private volatile bool _paused;
 
-        protected override async Task Mount()
+        protected override async Task OnMount()
         {
             await Gate.Task.ConfigureAwait(false);
             _value = "child-loaded";

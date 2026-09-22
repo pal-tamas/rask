@@ -92,7 +92,7 @@ public sealed partial class RedirectsOnMountApp(Navigator navigator) : Component
 {
     protected override Component? HeadAssets => Title["redirects-on-mount"];
 
-    protected override Task Mount()
+    protected override Task OnMount()
     {
         navigator.NavigateTo("/elsewhere");
         return Task.CompletedTask;

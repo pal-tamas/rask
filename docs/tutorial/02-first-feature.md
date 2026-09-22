@@ -361,7 +361,7 @@ becomes `Skip`/`Take`, so the database does the work however large the catalog g
 it is what the grid identifies a row by when it redraws. The grid shows read faces, read-only by
 construction; `UpdatedAt` is one of the columns `Aggregate<Guid>` brought, sortable like any other.
 
-Note what the page doesn't have: an `Mount`. The grid runs its `IQueryable` when it renders, and the
+Note what the page doesn't have: an `OnMount`. The grid runs its `IQueryable` when it renders, and the
 count in the heading is a **query** — asked for in `Render`, cached for the session, loading on its own. Its
 key, `QueryKey.For<Product>("count")`, says what it is about, and that is the whole of keeping it right: once
 any `Product` write commits — `CreateAsync`, `UpdateAsync`, `DeleteAsync` — every query about `Product` on this

@@ -126,7 +126,7 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
                 .ConfigureAwait(false);
 
             // Noop publish-render guard: an auto-publish triggered by a completed
-            // OnRenderedAsync that didn't mutate any tracked state produces the
+            // OnRendered that didn't mutate any tracked state produces the
             // same HTML. Sending it forces the JS side to morph identical HTML,
             // which strips any DOM state JS applied between the previous frame
             // and now — most visibly the `.hljs` class hljs added during the
@@ -427,7 +427,7 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
         // in the actually-emitted frame. Dropping them on the rebuild (as the previous
         // implementation did) silently swallowed handler-initiated navigation whenever a
         // publish-render rebuild fired — e.g. clicking the "Live ticker" sidebar entry
-        // triggered LiveTicker.OnRenderedAsync, whose Chart.js-draw continuation requested
+        // triggered LiveTicker.OnRendered, whose Chart.js-draw continuation requested
         // a publish render via `_pendingRenderInScope`; the rebuild then produced a
         // history-less payload and the URL stayed pinned to /index.html even though the
         // page itself routed correctly. There's no "duplicate pushState" risk because the
@@ -461,7 +461,7 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
                 "Rask.Wasm",
                 "[Rask.WasmLiveSession] Coalesce-loop budget exhausted; a third " +
                 "in-dispatch render was queued and dropped. Inspect any handlers " +
-                "that re-trigger StateHasChanged in OnRenderedAsync / dispose " +
+                "that re-trigger StateHasChanged in OnRendered / dispose " +
                 "callbacks during this dispatch.");
 
             // Consume it: reported and dropped ON PURPOSE. Leaving it set would hand it to
@@ -517,7 +517,7 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
         var html = RenderTreeToHtml(publishOnly, out var frameWriter);
         var download = ConsumeDownload();
 
-        // Drain IJSRuntime calls queued during the render walk (e.g. an OnRenderedAsync focus). They
+        // Drain IJSRuntime calls queued during the render walk (e.g. an OnRendered focus). They
         // ride this frame's jsInvokes and the client runs them AFTER applyDiff, so they act on the
         // committed DOM. _lastBuildHadJsInvokes lets the caller's noop guard ship this frame even
         // when the HTML is unchanged.

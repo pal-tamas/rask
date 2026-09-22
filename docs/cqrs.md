@@ -58,7 +58,7 @@ public sealed partial class CounterView(IDispatcher dispatcher) : Component
 {
     private CounterState _view = new(0, []);
 
-    protected override async Task Mount() =>
+    protected override async Task OnMount() =>
         _view = await dispatcher.QueryAsync(new GetCounterState(), CancellationToken);
 
     private async Task IncrementAsync()

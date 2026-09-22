@@ -24,12 +24,12 @@ public sealed partial class KeyedNavApp : Component
 
     public KeyedNavApp(RouteState route) => _route = route;
 
-    protected override Task Mount()
+    protected override Task OnMount()
     {
         _route.Changed += OnRouteChanged;
         return Task.CompletedTask;
     }
-    protected override Task Unmount()
+    protected override Task OnUnmount()
     {
         _route.Changed -= OnRouteChanged;
         return Task.CompletedTask;

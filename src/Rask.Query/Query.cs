@@ -90,7 +90,7 @@ public sealed class Query<TResult> : IDisposable, IRenderSlotHandle
     ///     A <c>Task.Delay</c> loop rather than a timer, which is what the rest of the repo does.
     ///     It stops on dispose, and also once every component that ever read this has been collected
     ///     — a query left undisposed must not keep a session fetching for ever. Disposing from
-    ///     <c>Unmount</c> is still the mechanism; that second check is a safety net.
+    ///     <c>OnUnmount</c> is still the mechanism; that second check is a safety net.
     /// </remarks>
     private async Task PollAsync(TimeSpan interval, CancellationToken cancellationToken)
     {
