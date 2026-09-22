@@ -90,7 +90,7 @@ public partial class UiSelectEntryTests : global::Rask.Core.RaskMarkup
         // The opening rebuilds the expression around a Convert so it fits ICollection<T>; the accessor strips it,
         // so the property it reads and writes is still the model's List<string>.
         var model = new Model();
-        var page = global::Rask.Testing.RaskTest.Render(
+        var page = global::Rask.Testing.Test.Render(
             UiSelect.Bind(() => model.Tags).Options(Options).Label("Tags").Native(false));
 
         var option = System.Text.RegularExpressions.Regex.Match(

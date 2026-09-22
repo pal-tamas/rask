@@ -13,11 +13,11 @@ public partial class InputDelegateValidateTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "" };
         EditContext? captured = null;
 
-        var page = RaskTest.Render(() => Form.Model(p)[
+        var page = Test.Render(() => Form.Model(p)[
             Input.Bind(() => p.Name)
                 .Validate(v =>
                     v.Length < 3 ? new[] { "too short" } : Array.Empty<string>()),
-            RaskTest.EditContextProbe(ctx => captured = ctx)
+            Test.EditContextProbe(ctx => captured = ctx)
         ]);
 
         var changeId = page.HandlerId("change");
@@ -40,10 +40,10 @@ public partial class InputDelegateValidateTests : global::Rask.Core.RaskMarkup
         var invalidCalled = 0;
         EditContext? captured = null;
 
-        var page = RaskTest.Render(() => Form.Model(p).OnValidSubmit(_ => validCalled++).OnInvalidSubmit(_ => invalidCalled++)[
+        var page = Test.Render(() => Form.Model(p).OnValidSubmit(_ => validCalled++).OnInvalidSubmit(_ => invalidCalled++)[
             Input.Bind(() => p.Name)
                 .Validate(_ => new[] { "always-fail" }),
-            RaskTest.EditContextProbe(ctx => captured = ctx)
+            Test.EditContextProbe(ctx => captured = ctx)
         ]);
 
         await page.SubmitAsync("{\"form\":{\"Name\":\"\"}}");
@@ -62,13 +62,13 @@ public partial class InputDelegateValidateTests : global::Rask.Core.RaskMarkup
         var includeValidator = true;
         EditContext? captured = null;
 
-        var page = RaskTest.Render(() => Form.Model(p)[
+        var page = Test.Render(() => Form.Model(p)[
             includeValidator
                 ? Input.Bind(() => p.Name)
                     .Validate(v =>
                         v.Length < 3 ? new[] { "too short" } : Array.Empty<string>())
                 : Input.Bind(() => p.Name),
-            RaskTest.EditContextProbe(ctx => captured = ctx)
+            Test.EditContextProbe(ctx => captured = ctx)
         ]);
 
         await page.ChangeAsync("{\"value\":\"ab\"}");
@@ -95,7 +95,7 @@ public partial class InputDelegateValidateTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "" };
         EditContext? captured = null;
 
-        var page = RaskTest.Render(() => Form.Model(p)[
+        var page = Test.Render(() => Form.Model(p)[
             Input.Bind(() => p.Name)
                 .Validate(async (v, ct) =>
                 {
@@ -103,7 +103,7 @@ public partial class InputDelegateValidateTests : global::Rask.Core.RaskMarkup
                     ct.ThrowIfCancellationRequested();
                     return v.Length < 3 ? new[] { "async-too-short" } : Array.Empty<string>();
                 }),
-            RaskTest.EditContextProbe(ctx => captured = ctx)
+            Test.EditContextProbe(ctx => captured = ctx)
         ]);
 
         Assert.NotNull(captured);
@@ -123,7 +123,7 @@ public partial class InputDelegateValidateTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "abc" };
         EditContext? captured = null;
 
-        var page = RaskTest.Render(() => Form.Model(p)[
+        var page = Test.Render(() => Form.Model(p)[
             Input.Bind(() => p.Name)
                 .Validate(async (v, ct) =>
                 {
@@ -131,7 +131,7 @@ public partial class InputDelegateValidateTests : global::Rask.Core.RaskMarkup
                     ct.ThrowIfCancellationRequested();
                     return Array.Empty<string>();
                 }),
-            RaskTest.EditContextProbe(ctx => captured = ctx)
+            Test.EditContextProbe(ctx => captured = ctx)
         ]);
 
         Assert.NotNull(captured);

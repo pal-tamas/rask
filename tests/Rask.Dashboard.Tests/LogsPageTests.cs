@@ -72,7 +72,7 @@ public sealed class LogsPageTests
     }
 
     // ── History mode, rendered ──────────────────────────────────────────────────────────────────────
-    // PollingPanel loads on an asynchronous mount, which RaskTest did not drive (#555) — so until now no
+    // PollingPanel loads on an asynchronous mount, which Test did not drive (#555) — so until now no
     // dashboard page had ever been render-tested past its placeholder, and History's markup was reachable
     // only through E2E.
 
@@ -206,7 +206,7 @@ public sealed class LogsPageTests
         // this resolves them exactly as the router would.
         var page = ActivatorUtilities.CreateInstance<LogsPage>(harness.Services);
         configure?.Invoke(page);
-        return RaskTest.Render(page, harness.Services).Html;
+        return Test.Render(page, harness.Services).Html;
     }
 
     // History reads the store on PollingPanel's asynchronous mount, so the first render is the placeholder
@@ -216,7 +216,7 @@ public sealed class LogsPageTests
         var page = ActivatorUtilities.CreateInstance<LogsPage>(harness.Services);
         page.View = "history";
         configure?.Invoke(page);
-        return RaskTest.Render(page, harness.Services).WaitForAsync("stored entries");
+        return Test.Render(page, harness.Services).WaitForAsync("stored entries");
     }
 
     /// <summary>A real log store on a temp file, plus a dashboard harness wired to it.</summary>

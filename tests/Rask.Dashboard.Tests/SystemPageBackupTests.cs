@@ -80,7 +80,7 @@ public sealed class SystemPageBackupTests
     // The page reads its backup state on PollingPanel's asynchronous mount, so the first render is the
     // placeholder — wait for the card rather than assert on markup that has not loaded yet.
     private static Task<string> RenderAsync(DashboardHarness harness) =>
-        RaskTest.Render(ActivatorUtilities.CreateInstance<SystemPage>(harness.Services), harness.Services)
+        Test.Render(ActivatorUtilities.CreateInstance<SystemPage>(harness.Services), harness.Services)
             .WaitForAsync("Backup");
 
     private sealed class FakeBackupProbe(BackupVerificationInfo? verification, bool replicating = true)

@@ -176,7 +176,7 @@ public partial class HandlerFrameTypeTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_frame_with_no_type_is_still_dispatched()
     {
-        // RaskTest dispatches a bare payload, and so do plenty of unit tests. No claim, nothing to check.
+        // Test dispatches a bare payload, and so do plenty of unit tests. No claim, nothing to check.
         var fired = 0;
         var view = new StubComponent(() => Button.OnClick(() => fired++)["x"]);
         view.RenderAsLiveRoot();

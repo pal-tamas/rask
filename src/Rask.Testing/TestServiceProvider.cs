@@ -7,7 +7,7 @@ namespace Rask.Testing;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         <c>RaskTest.Render</c> takes an <see cref="IServiceProvider" />, and <c>Rask.Testing</c>
+///         <c>Test.Render</c> takes an <see cref="IServiceProvider" />, and <c>Rask.Testing</c>
 ///         deliberately depends on no DI container — so without this, every test that needs one service had
 ///         to either pull in <c>Microsoft.Extensions.DependencyInjection</c> or hand-roll a provider. This is
 ///         that provider, once.
@@ -16,11 +16,11 @@ namespace Rask.Testing;
 ///         Registrations are by exact type, with no lifetime, scope or resolution rules: whatever you put in
 ///         is what comes out, and an unregistered type comes back <c>null</c> the way
 ///         <c>IServiceProvider</c> requires. If a test needs more than that, register a real container's
-///         provider instead — <c>RaskTest.Render</c> accepts any <see cref="IServiceProvider" />.
+///         provider instead — <c>Test.Render</c> accepts any <see cref="IServiceProvider" />.
 ///     </para>
 ///     <code>
 ///     var files = new TestFileBackend();
-///     var page = RaskTest.Render(new UploadPage(), TestServiceProvider.With&lt;IBrowserFileBackend&gt;(files));
+///     var page = Test.Render(new UploadPage(), TestServiceProvider.With&lt;IBrowserFileBackend&gt;(files));
 ///
 ///     // several services:
 ///     var services = new TestServiceProvider()

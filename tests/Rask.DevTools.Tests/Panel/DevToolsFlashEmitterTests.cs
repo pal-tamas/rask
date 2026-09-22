@@ -42,7 +42,7 @@ public sealed class DevToolsFlashEmitterTests
     {
         var feed = new DevToolsFeed();
 #pragma warning disable RASK014 // rendered alone, the way the panel page would chain it
-        var page = RaskTest.Render(new DevToolsFlashEmitter { Feed = feed, On = false });
+        var page = Test.Render(new DevToolsFlashEmitter { Feed = feed, On = false });
 #pragma warning restore RASK014
 
         Assert.Equal("off", page.Find("[data-rask-devtools-flash]").Attributes["data-rask-devtools-flash"]);
@@ -57,7 +57,7 @@ public sealed class DevToolsFlashEmitterTests
         var ids = new DevToolsTreeSnapshotter();
 #pragma warning disable RASK014 // a component made by hand, standing in for one a walk would report
         feed.RecordCommit([new DevToolsRenderItem(new DevToolsTestChild(), RenderCause.Props, 1)], 1, ids, 1);
-        var page = RaskTest.Render(new DevToolsFlashEmitter { Feed = feed, On = true });
+        var page = Test.Render(new DevToolsFlashEmitter { Feed = feed, On = true });
 #pragma warning restore RASK014
 
         Assert.Equal("on", page.Find("[data-rask-devtools-flash]").Attributes["data-rask-devtools-flash"]);
@@ -74,7 +74,7 @@ public sealed class DevToolsFlashEmitterTests
     {
         bool? reported = null;
 #pragma warning disable RASK014 // rendered alone, the way the panel page would chain it
-        var page = RaskTest.Render(new DevToolsFlashEmitter
+        var page = Test.Render(new DevToolsFlashEmitter
         {
             Feed = new DevToolsFeed(),
             On = !expected,
@@ -92,7 +92,7 @@ public sealed class DevToolsFlashEmitterTests
     {
         bool? reported = null;
 #pragma warning disable RASK014 // rendered alone, the way the panel page would chain it
-        var page = RaskTest.Render(new DevToolsFlashEmitter
+        var page = Test.Render(new DevToolsFlashEmitter
         {
             Feed = new DevToolsFeed(),
             On = false,

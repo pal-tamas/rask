@@ -27,7 +27,7 @@ public sealed class DevToolsErrorsTabTests
 
 #pragma warning disable RASK014 // the tab and the strip rendered alone, the way the panel page would chain them
     private static RenderedComponent Tab(DevToolsErrorLog page, DevToolsErrorLog app, Action<long>? show = null) =>
-        RaskTest.Render(new DevToolsErrorsTab
+        Test.Render(new DevToolsErrorsTab
         {
             PageErrors = page,
             AppErrors = app,
@@ -36,7 +36,7 @@ public sealed class DevToolsErrorsTabTests
         });
 
     private static RenderedComponent Tabs(string current, DevToolsErrorLog page, DevToolsErrorLog app, Action<string>? select = null) =>
-        RaskTest.Render(new DevToolsTabs
+        Test.Render(new DevToolsTabs
         {
             Current = current,
             PageErrors = page,

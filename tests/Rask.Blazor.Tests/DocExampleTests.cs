@@ -45,7 +45,7 @@ public partial class DocExampleTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_documented_example_renders_what_the_document_says_it_renders()
     {
-        var page = RaskTest.Render(
+        var page = Test.Render(
             Quote.Symbol("RASK").Price(12.5m).Tone("up"),
             Services());
 
@@ -59,7 +59,7 @@ public partial class DocExampleTests : global::Rask.Core.RaskMarkup
     public void Symbol_is_required_and_Tone_is_not()
     {
         // The doc says [EditorRequired] becomes a required step and everything else stays optional.
-        var page = RaskTest.Render(Quote.Symbol("RASK"), Services());
+        var page = Test.Render(Quote.Symbol("RASK"), Services());
 
         Assert.Contains("<div class=\"price-tag \">", page.Html, StringComparison.Ordinal);
     }

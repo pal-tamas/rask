@@ -128,7 +128,7 @@ public sealed class DemoMarkupGoldenTests
         // pretends to have fixed it.
         var offences = await Task.WhenAll(DemoRegistry.Keys.Select(async key =>
         {
-            var page = RaskTest.Render(() => DemoRegistry.Build(key), TestServices.Default());
+            var page = Test.Render(() => DemoRegistry.Build(key), TestServices.Default());
             var before = SkeletonOf(page.Html);
 
             // Comfortably past a mount-time timer of the scale demos have used (~50 ms) without waiting on
@@ -168,7 +168,7 @@ public sealed class DemoMarkupGoldenTests
         string[] keys = ["lifecycle-hooks", "virtualize-provider"];
 
         var pages = keys
-            .Select(key => (key, page: RaskTest.Render(() => DemoRegistry.Build(key), TestServices.Default())))
+            .Select(key => (key, page: Test.Render(() => DemoRegistry.Build(key), TestServices.Default())))
             .ToList();
 
         var before = pages.ToDictionary(p => p.key, p => SkeletonOf(p.page.Html), StringComparer.Ordinal);
@@ -228,7 +228,7 @@ public sealed class DemoMarkupGoldenTests
     }
 
     private static string Skeleton(string key) =>
-        SkeletonOf(RaskTest.Render(() => DemoRegistry.Build(key), TestServices.Default()).Html);
+        SkeletonOf(Test.Render(() => DemoRegistry.Build(key), TestServices.Default()).Html);
 
     private static string SkeletonOf(string rendered)
     {

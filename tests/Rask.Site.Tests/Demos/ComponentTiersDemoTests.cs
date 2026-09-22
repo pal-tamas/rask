@@ -13,7 +13,7 @@ public sealed partial class ComponentTiersDemoTests : global::Rask.Core.RaskMark
     [Fact]
     public void Render_ShowsAllThreeTiers()
     {
-        var page = RaskTest.Render(() => ComponentTiersDemo, TestServices.Default());
+        var page = Test.Render(() => ComponentTiersDemo, TestServices.Default());
         var html = page.Render();
 
         // Tier 0 — the static helper's inlined badges.
@@ -29,7 +29,7 @@ public sealed partial class ComponentTiersDemoTests : global::Rask.Core.RaskMark
     [Fact]
     public async Task StatefulCounter_Click_Increments_WithoutStateHasChanged()
     {
-        var page = RaskTest.Render(() => ComponentTiersDemo, TestServices.Default());
+        var page = Test.Render(() => ComponentTiersDemo, TestServices.Default());
         var clickId = ClickHandler(page.Render());
 
         await page.InvokeAsync(clickId);

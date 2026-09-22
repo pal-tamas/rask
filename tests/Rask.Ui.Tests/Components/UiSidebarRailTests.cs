@@ -108,7 +108,7 @@ public partial class UiSidebarRailTests : global::Rask.Core.RaskMarkup
         // ownership, and this is how it hears the reader change it — driven through the real event rather than
         // asserted on an attribute, because a static render carries no handler attributes at all.
         bool? heard = null;
-        var page = global::Rask.Testing.RaskTest.Render(
+        var page = global::Rask.Testing.Test.Render(
             UiSidebar.Id("nav").Page(Div["page"]).Collapsable(true).OnCollapse(v => heard = v)[Div]);
 
         await page.On("#nav-rail").ChangeAsync("true");

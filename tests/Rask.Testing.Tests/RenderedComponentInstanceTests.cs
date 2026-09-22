@@ -18,7 +18,7 @@ public partial class RenderedComponentInstanceTests : global::Rask.Core.RaskMark
     public void Instance_IsTheObjectPassedIn()
     {
         var counter = new Counter();
-        var page = RaskTest.Render(counter);
+        var page = Test.Render(counter);
 
         Assert.Same(counter, page.Instance);
     }
@@ -27,7 +27,7 @@ public partial class RenderedComponentInstanceTests : global::Rask.Core.RaskMark
     public async Task Instance_StaysTheSameObjectAcrossRenders_AndExposesState()
     {
         var counter = new Counter();
-        var page = RaskTest.Render(counter);
+        var page = Test.Render(counter);
 
         await page.ClickAsync();
         await page.ClickAsync();
@@ -51,7 +51,7 @@ public partial class RenderedComponentInstanceTests : global::Rask.Core.RaskMark
     [Fact]
     public async Task TryInvokeAsync_LiveHandler_DispatchesAndReports()
     {
-        var page = RaskTest.Render(new OneShot());
+        var page = Test.Render(new OneShot());
         var id = page.HandlerId("click")!;
 
         Assert.True(await page.TryInvokeAsync(id));
@@ -61,7 +61,7 @@ public partial class RenderedComponentInstanceTests : global::Rask.Core.RaskMark
     [Fact]
     public async Task TryInvokeAsync_HandlerThatIsGone_ReturnsFalseInsteadOfThrowing()
     {
-        var page = RaskTest.Render(new OneShot());
+        var page = Test.Render(new OneShot());
         var id = page.HandlerId("click")!;
         await page.InvokeAsync(id);
 
@@ -85,7 +85,7 @@ public partial class RenderedComponentInstanceTests : global::Rask.Core.RaskMark
     [Fact]
     public async Task TryInvokeAsync_DeadHandler_DoesNotReRender()
     {
-        var page = RaskTest.Render(new RenderCount());
+        var page = Test.Render(new RenderCount());
         Assert.Equal(1, page.Instance.Renders);
 
         Assert.False(await page.TryInvokeAsync("not-a-real-id"));
@@ -97,7 +97,7 @@ public partial class RenderedComponentInstanceTests : global::Rask.Core.RaskMark
     [Fact]
     public async Task TryInvokeAsync_InvalidJson_StillThrows()
     {
-        var page = RaskTest.Render(new Counter());
+        var page = Test.Render(new Counter());
         var id = page.HandlerId("click")!;
 
         // A malformed payload is a bug in the test, not a "handler missing" condition, so it throws either way.

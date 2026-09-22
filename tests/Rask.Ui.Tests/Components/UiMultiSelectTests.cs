@@ -341,7 +341,7 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
     {
         // Not the DOM's single `value`, which for a multi-select is only the FIRST picked option — the
         // reason this control takes the raw values rather than forwarding Bind to Select.
-        var html = global::Rask.Testing.RaskTest.Render(
+        var html = global::Rask.Testing.Test.Render(
             UiSelect.Values<string>(["core"]).Options(Packages).Label("Packages")).Html;
 
         Assert.Contains("data-rask-on-change", html);
@@ -367,7 +367,7 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
 
     // Handlers only exist inside a live render, so the attribute assertions above need one.
     private static string Live() =>
-        global::Rask.Testing.RaskTest.Render(
+        global::Rask.Testing.Test.Render(
             UiSelect.Values<string>(["core"]).Options(Packages).Label("Packages")
                 .Native(false)).Html;
 }

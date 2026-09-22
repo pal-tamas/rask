@@ -122,7 +122,7 @@ internal static class HandlerFrameShape
 
     /// <summary>
     ///     Whether <paramref name="handler" /> may be invoked for this frame. True when the frame declares
-    ///     no type (a host that doesn't tag frames, or a direct <c>RaskTest</c> dispatch), when the type
+    ///     no type (a host that doesn't tag frames, or a direct <c>Test</c> dispatch), when the type
     ///     feeds the handler's shape, or when no shape claims the type at all.
     /// </summary>
     public static bool Accepts(JsonElement payload, Delegate handler)

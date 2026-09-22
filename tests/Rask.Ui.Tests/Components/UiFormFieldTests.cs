@@ -296,7 +296,7 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
         var ctx = new global::Rask.Core.Forms.EditContext(model);
         var field = new global::Rask.Core.Forms.FieldIdentifier(model, nameof(SignUp.Nickname));
 
-        var page = global::Rask.Testing.RaskTest.Render(() => Form.Model(model).Context(ctx)[
+        var page = global::Rask.Testing.Test.Render(() => Form.Model(model).Context(ctx)[
             UiInput.Bind(() => model.Nickname).Label("Nickname").Hint("Shown to others")
         ]);
 
@@ -326,7 +326,7 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
         var ctx = new global::Rask.Core.Forms.EditContext(model);
         ctx.AddValidationMessage(new global::Rask.Core.Forms.FieldIdentifier(model, nameof(SignUp.Nickname)), "Taken");
 
-        var html = global::Rask.Testing.RaskTest.Render(() => Form.Model(model).Context(ctx)[
+        var html = global::Rask.Testing.Test.Render(() => Form.Model(model).Context(ctx)[
             UiInput.Bind(() => model.Nickname).Label("Nickname").ShowValidation(false)
         ]).Html;
 

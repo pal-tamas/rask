@@ -19,7 +19,7 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
         //   4. Submit a valid payload via the new handler — must reach OnValidSubmit.
         var p = new Person { Name = "", Age = 0 };
         Person? captured = null;
-        var page = RaskTest.Render(() => Form.Model(p).OnValidSubmit((Action<Person>)(m => captured = m))[
+        var page = Test.Render(() => Form.Model(p).OnValidSubmit((Action<Person>)(m => captured = m))[
             Input.Bind(() => p.Name),
             Input.Bind(() => p.Age)
         ]);
@@ -191,11 +191,11 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
         // AddValidator dedups by runtime type. Two renders sharing one context is the cheapest way to
         // hold that: if the dedup ever stops working, "Name is required" appears twice rather than once
         // — and it would appear once per re-render in a real app, which is every keystroke.
-        RaskTest.Render(() => Form.Model(p).Context(ctx)[
-            RaskTest.EditContextProbe(_ => { })
+        Test.Render(() => Form.Model(p).Context(ctx)[
+            Test.EditContextProbe(_ => { })
         ]);
-        RaskTest.Render(() => Form.Model(p).Context(ctx)[
-            RaskTest.EditContextProbe(_ => { })
+        Test.Render(() => Form.Model(p).Context(ctx)[
+            Test.EditContextProbe(_ => { })
         ]);
 
         ctx.Validate();

@@ -27,7 +27,7 @@ public class TestJSRuntimeTests
     {
         var js = new TestJSRuntime();
         var services = new ServiceCollection().AddSingleton<IJSRuntime>(js).BuildServiceProvider();
-        return (RaskTest.Render(new Copier(js), services), js);
+        return (Test.Render(new Copier(js), services), js);
     }
 
     [Fact]

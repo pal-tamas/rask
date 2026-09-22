@@ -44,7 +44,7 @@ public partial class UiFieldValidatingTests : global::Rask.Core.RaskMarkup
         var ctx = new EditContext(model);
         ctx.AddValidator(new NeverCompletingAsyncValidator());
 
-        var page = global::Rask.Testing.RaskTest.Render(() => Form.Model(model).Context(ctx)[
+        var page = global::Rask.Testing.Test.Render(() => Form.Model(model).Context(ctx)[
             showValidating
                 ? UiInput.Bind(() => model.Name).Label("Name")
                 : UiInput.Bind(() => model.Name).Label("Name").ShowValidating(false)
@@ -75,7 +75,7 @@ public partial class UiFieldValidatingTests : global::Rask.Core.RaskMarkup
         var model = new Model();
         var ctx = new EditContext(model);
 
-        var html = global::Rask.Testing.RaskTest.Render(() => Form.Model(model).Context(ctx)[
+        var html = global::Rask.Testing.Test.Render(() => Form.Model(model).Context(ctx)[
             UiInput.Bind(() => model.Name).Label("Name")
         ]).Html;
 
@@ -103,7 +103,7 @@ public partial class UiFieldValidatingTests : global::Rask.Core.RaskMarkup
     public void A_controlled_field_has_no_checking_state_to_show()
     {
         // Validation state belongs to a bound field's EditContext entry; a controlled field has none.
-        var html = global::Rask.Testing.RaskTest.Render(() => UiInput.Value("x").Label("Name")).Html;
+        var html = global::Rask.Testing.Test.Render(() => UiInput.Value("x").Label("Name")).Html;
 
         Assert.DoesNotContain("Checking", html, StringComparison.Ordinal);
     }

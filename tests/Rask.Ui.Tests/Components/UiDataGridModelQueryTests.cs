@@ -75,7 +75,7 @@ public sealed partial class UiDataGridModelQueryTests : global::Rask.Core.RaskMa
     [Fact]
     public async Task Sorting_and_paging_by_click_query_the_database_again()
     {
-        var page = RaskTest.Render(UiDataGrid.Data(Gizmo.Read.AsQueryable()).RowKey(g => g.Id).PageSize(2)[c => [
+        var page = Test.Render(UiDataGrid.Data(Gizmo.Read.AsQueryable()).RowKey(g => g.Id).PageSize(2)[c => [
             c.Field(g => g.Name).Title("Gizmo").Sortable(true),
             c.Field(g => g.Stock).Title("Stock"),
         ]]);

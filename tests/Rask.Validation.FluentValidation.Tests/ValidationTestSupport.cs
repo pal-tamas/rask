@@ -34,8 +34,8 @@ internal static partial class ValidationTestSupport
         RaskValidators.Register(typeof(T), _ => validator);
 
         EditContext? ctx = null;
-        RaskTest.Render(() => Form.Model(model)[
-            RaskTest.EditContextProbe(c => ctx = c)
+        Test.Render(() => Form.Model(model)[
+            Test.EditContextProbe(c => ctx = c)
         ]);
 
         return ctx!;

@@ -12,7 +12,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     public void BoundInput_RendersValueFromGetter_AndAutoNamesField()
     {
         var p = new Person { Name = "Ada", Age = 30 };
-        var page = RaskTest.Render(() => Form.Model(p)[
+        var page = Test.Render(() => Form.Model(p)[
             Input.Bind(() => p.Name),
             Input.Bind(() => p.Age),
             Input.Bind(() => p.Subscribed)
@@ -32,7 +32,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     public async Task OnInput_UpdatesBoundStringField_DuringInputEvent()
     {
         var p = new Person { Name = "Ada", Age = 30 };
-        var page = RaskTest.Render(() => Form.Model(p)[
+        var page = Test.Render(() => Form.Model(p)[
             Input.Bind(() => p.Name)
         ]);
 
@@ -49,7 +49,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     public async Task OnChange_UpdatesNumericBoundField_AndMarksTouched()
     {
         var p = new Person { Name = "Ada", Age = 30 };
-        var page = RaskTest.Render(() => Form.Model(p)[
+        var page = Test.Render(() => Form.Model(p)[
             Input.Bind(() => p.Age)
         ]);
 
@@ -69,7 +69,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         var validCalled = 0;
         var invalidCalled = 0;
 
-        var page = RaskTest.Render(() => Form.Model(p)
+        var page = Test.Render(() => Form.Model(p)
             .OnValidSubmit(_ => validCalled++)
             .OnInvalidSubmit(_ => invalidCalled++)
             .Validate(m =>
@@ -93,7 +93,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "Ada", Age = 30 };
         EditContext? captured = null;
 
-        var page = RaskTest.Render(() => Form.Model(p).Validate(async (m, ct) =>
+        var page = Test.Render(() => Form.Model(p).Validate(async (m, ct) =>
             {
                 await Task.Yield();
                 ct.ThrowIfCancellationRequested();
@@ -102,7 +102,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
                     : Array.Empty<string>();
             })[
             Input.Bind(() => p.Name),
-            RaskTest.EditContextProbe(c => captured = c)
+            Test.EditContextProbe(c => captured = c)
         ]);
         Assert.NotNull(captured);
 
@@ -120,7 +120,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "Ada", Age = 30 };
         Person? captured = null;
 
-        var page = RaskTest.Render(() => Form.Model(p).OnValidSubmit(m => captured = m)[Input.Bind(() => p.Name), Input.Bind(() => p.Age)]);
+        var page = Test.Render(() => Form.Model(p).OnValidSubmit(m => captured = m)[Input.Bind(() => p.Name), Input.Bind(() => p.Age)]);
 
         await page.SubmitAsync("{\"form\":{\"Name\":\"Ada\",\"Age\":\"30\"}}");
 
@@ -135,8 +135,8 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         var captures = new List<EditContext>();
 
         // Render() renders once itself, so one more call is the second frame.
-        var page = RaskTest.Render(() => Form.Model(p)[
-            RaskTest.EditContextProbe(captures.Add)
+        var page = Test.Render(() => Form.Model(p)[
+            Test.EditContextProbe(captures.Add)
         ]);
         page.Render();
 
@@ -148,7 +148,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     public void BoundInput_NullableInt_RendersEmptyValue_WhenNull()
     {
         var p = new Person { Name = "Ada", Age = 30, OptionalAge = null };
-        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.OptionalAge)]);
+        var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.OptionalAge)]);
 
         var html = page.Html;
 
@@ -161,7 +161,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     public void BoundInput_NullableInt_RendersFormattedValue_WhenSet()
     {
         var p = new Person { Name = "Ada", Age = 30, OptionalAge = 7 };
-        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.OptionalAge)]);
+        var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.OptionalAge)]);
 
         var html = page.Html;
 
@@ -172,7 +172,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     public void BoundInput_NullableDecimal_FormatsInvariantCulture()
     {
         var p = new Person { Name = "Ada", Age = 30, Price = 19.95m };
-        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.Price)]);
+        var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.Price)]);
 
         var html = page.Html;
 
@@ -184,7 +184,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     public void BoundInput_NullableDateTime_RendersIsoFormat_WhenSet()
     {
         var p = new Person { Name = "Ada", Age = 30, StartedAt = new DateTime(2025, 5, 14, 9, 30, 0) };
-        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.StartedAt)]);
+        var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.StartedAt)]);
 
         var html = page.Html;
 
@@ -196,7 +196,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     public void BoundInput_NullableDateOnly_RendersIsoDate_WhenSet()
     {
         var p = new Person { Name = "Ada", Age = 30, Birthday = new DateOnly(1990, 1, 2) };
-        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.Birthday)]);
+        var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.Birthday)]);
 
         var html = page.Html;
 
@@ -208,7 +208,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     public async Task OnChange_NullableInt_EmptyString_SetsPropertyToNull()
     {
         var p = new Person { Name = "Ada", Age = 30, OptionalAge = 7 };
-        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.OptionalAge)]);
+        var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.OptionalAge)]);
 
         var changeId = page.HandlerId("change");
         Assert.NotNull(changeId);
@@ -223,7 +223,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     public async Task OnChange_NullableInt_ValidValue_SetsTypedValue()
     {
         var p = new Person { Name = "Ada", Age = 30, OptionalAge = null };
-        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.OptionalAge)]);
+        var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.OptionalAge)]);
 
         var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"42\"}");
 
@@ -235,7 +235,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     public async Task OnChange_NullableInt_InvalidValue_LeavesPropertyUnchanged()
     {
         var p = new Person { Name = "Ada", Age = 30, OptionalAge = 7 };
-        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.OptionalAge)]);
+        var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.OptionalAge)]);
 
         var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"not-a-number\"}");
 
@@ -249,7 +249,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     public async Task OnChange_NullableDecimal_EmptyString_SetsPropertyToNull()
     {
         var p = new Person { Name = "Ada", Age = 30, Price = 19.95m };
-        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.Price)]);
+        var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.Price)]);
 
         var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"\"}");
 
@@ -261,7 +261,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     public async Task OnChange_NullableDateTime_EmptyString_SetsPropertyToNull()
     {
         var p = new Person { Name = "Ada", Age = 30, StartedAt = new DateTime(2025, 5, 14, 9, 30, 0) };
-        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.StartedAt)]);
+        var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.StartedAt)]);
 
         var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"\"}");
 
@@ -273,7 +273,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     public async Task OnChange_NullableDateOnly_EmptyString_SetsPropertyToNull()
     {
         var p = new Person { Name = "Ada", Age = 30, Birthday = new DateOnly(1990, 1, 2) };
-        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.Birthday)]);
+        var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.Birthday)]);
 
         var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"\"}");
 
@@ -285,7 +285,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     public async Task OnChange_NullableDecimal_ValidValue_SetsTypedValue()
     {
         var p = new Person { Name = "Ada", Age = 30, Price = null };
-        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.Price)]);
+        var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.Price)]);
 
         var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"12.5\"}");
 
@@ -297,7 +297,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     public async Task OnChange_NullableDateTime_ValidIso_SetsTypedValue()
     {
         var p = new Person { Name = "Ada", Age = 30, StartedAt = null };
-        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.StartedAt)]);
+        var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.StartedAt)]);
 
         var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"2025-05-14T09:30\"}");
 
@@ -309,7 +309,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     public async Task OnChange_NullableDateOnly_ValidIso_SetsTypedValue()
     {
         var p = new Person { Name = "Ada", Age = 30, Birthday = null };
-        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.Birthday)]);
+        var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.Birthday)]);
 
         var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"1990-01-02\"}");
 
@@ -321,7 +321,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     public async Task OnChange_NullableEnum_ValidValue_ParsesEnum()
     {
         var p = new Person { Name = "Ada", Age = 30, Status = null };
-        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.Status)]);
+        var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.Status)]);
 
         var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"Active\"}");
 
@@ -333,7 +333,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     public async Task OnChange_NullableEnum_EmptyString_SetsPropertyToNull()
     {
         var p = new Person { Name = "Ada", Age = 30, Status = PersonStatus.Active };
-        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.Status)]);
+        var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.Status)]);
 
         var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"\"}");
 
@@ -348,7 +348,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         // so the user can clear a number/date/enum input. The sibling nullable test above
         // (OnChange_NullableInt_EmptyString_SetsPropertyToNull) pins the null path for `int?`.
         var p = new Person { Name = "Ada", Age = 30 };
-        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.Age)]);
+        var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.Age)]);
 
         var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"\"}");
 
@@ -360,7 +360,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     public async Task OnChange_NonNullableDecimal_EmptyString_SetsDefault()
     {
         var p = new Person { Name = "Ada", Age = 30, Salary = 5000m };
-        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.Salary)]);
+        var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.Salary)]);
 
         var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"\"}");
 
@@ -372,7 +372,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     public async Task OnChange_NonNullableDateOnly_EmptyString_SetsDefault()
     {
         var p = new Person { Name = "Ada", Age = 30, HireDate = new DateOnly(2020, 6, 1) };
-        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.HireDate)]);
+        var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.HireDate)]);
 
         var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"\"}");
 
@@ -384,7 +384,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     public async Task OnChange_NonNullableEnum_EmptyString_SetsDefault()
     {
         var p = new Person { Name = "Ada", Age = 30, CurrentStatus = PersonStatus.Inactive };
-        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.CurrentStatus)]);
+        var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.CurrentStatus)]);
 
         var ok = await page.TryInvokeAsync(page.HandlerId("change")!, "{\"value\":\"\"}");
 
@@ -399,7 +399,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         // PropertyInfo via NullabilityInfoContext and treats empty input as null. The
         // sibling test below pins the inverse for non-nullable `string`.
         var p = new Person { Name = "Ada", Age = 30, Nickname = "Bea" };
-        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.Nickname)]);
+        var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.Nickname)]);
 
         var inputId = page.HandlerId("input");
         Assert.NotNull(inputId);
@@ -418,7 +418,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         // for the annotation, so the empty→null shortcut is skipped and the value flows
         // through RouteValueParser, which returns "" verbatim.
         var p = new Person { Name = "Ada", Age = 30 };
-        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.Name)]);
+        var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.Name)]);
 
         var inputId = page.HandlerId("input");
         Assert.NotNull(inputId);
@@ -440,7 +440,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         // recover — once drifted it kept inverting, which is the "checkbox sticks after a
         // few clicks" bug once clicks ship diffs (no checked re-base) instead of full HTML.
         var p = new Person { Name = "Ada", Age = 30, AcceptedTerms = null };
-        var page = RaskTest.Render(() => Form.Model(p)[Input.Bind(() => p.AcceptedTerms)]);
+        var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.AcceptedTerms)]);
 
         var html = page.Html;
         var changeId = page.HandlerId("change");

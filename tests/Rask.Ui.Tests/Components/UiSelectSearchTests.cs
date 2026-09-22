@@ -30,7 +30,7 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
     private static async Task<global::Rask.Testing.RenderedComponent> OpenedAsync(
         global::Rask.Core.Component select)
     {
-        var page = global::Rask.Testing.RaskTest.Render(select);
+        var page = global::Rask.Testing.Test.Render(select);
         await page.On("[popover]").RaiseAsync("toggle", "{\"oldState\":\"closed\",\"newState\":\"open\"}");
         return page;
     }
@@ -205,7 +205,7 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
         // commit, and "nothing chosen" is that value.
         (string? Value, string Text)[] countries = [("hu", "Hungary"), ("gb", "United Kingdom")];
         var model = new Trip();
-        var page = global::Rask.Testing.RaskTest.Render(
+        var page = global::Rask.Testing.Test.Render(
             UiSelect.Bind(() => model.Country).Options(countries).Label("Country").Clearable(true));
 
         await page.On("button[aria-label=\"Clear Country\"]").ClickAsync();

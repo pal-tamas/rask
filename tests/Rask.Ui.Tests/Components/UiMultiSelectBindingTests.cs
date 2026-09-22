@@ -151,7 +151,7 @@ public partial class UiMultiSelectBindingTests : global::Rask.Core.RaskMarkup
         // rebuilding the commit from only the visible answers would delete it as a side effect of
         // touching a different one.
         var model = new Bag { Tags = ["core", "legacy"] };
-        var page = global::Rask.Testing.RaskTest.Render(
+        var page = global::Rask.Testing.Test.Render(
             UiSelect.Bind(() => model.Tags).Options(Packages).Label("Packages").Native(false));
 
         await page.On("[role=\"option\"]:has-text(\"Rask.Ui\")").ClickAsync();
@@ -165,7 +165,7 @@ public partial class UiMultiSelectBindingTests : global::Rask.Core.RaskMarkup
         // The same rule from the other end: emptying what the box shows is not a licence to empty what
         // it does not. The control never adds or removes a value it cannot draw.
         var model = new Bag { Tags = ["core", "legacy"] };
-        var page = global::Rask.Testing.RaskTest.Render(
+        var page = global::Rask.Testing.Test.Render(
             UiSelect.Bind(() => model.Tags).Options(Packages).Label("Packages").Native(false));
 
         await page.On("[aria-label=\"Remove Rask.Core\"]").ClickAsync();

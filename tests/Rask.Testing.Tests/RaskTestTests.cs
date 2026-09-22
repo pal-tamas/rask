@@ -16,7 +16,7 @@ public partial class RaskTestTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Render_ShowsInitialMarkupAndWiresHandler()
     {
-        var page = RaskTest.Render(new Counter());
+        var page = Test.Render(new Counter());
 
         Assert.Contains("Count: 0", page.Html);
         Assert.Contains("data-rask-on-click", page.Html);
@@ -26,7 +26,7 @@ public partial class RaskTestTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task ClickAsync_DispatchesHandlerAndReRendersWithNewState()
     {
-        var page = RaskTest.Render(new Counter());
+        var page = Test.Render(new Counter());
         Assert.Contains("Count: 0", page.Html);
 
         var afterOne = await page.ClickAsync();
@@ -40,7 +40,7 @@ public partial class RaskTestTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task InvokeAsync_ByHandlerId_Works()
     {
-        var page = RaskTest.Render(new Counter());
+        var page = Test.Render(new Counter());
         var clickId = page.HandlerId("click")!;
 
         await page.InvokeAsync(clickId);
@@ -51,7 +51,7 @@ public partial class RaskTestTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task InvokeAsync_UnknownId_Throws()
     {
-        var page = RaskTest.Render(new Counter());
+        var page = Test.Render(new Counter());
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => page.InvokeAsync("not-a-real-id"));
     }
@@ -71,7 +71,7 @@ public partial class RaskTestTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task InvokeAsync_WithPayload_PassesEventArgsToHandler()
     {
-        var page = RaskTest.Render(new NameEcho());
+        var page = Test.Render(new NameEcho());
         var inputId = page.HandlerId("input")!;
 
         await page.InvokeAsync(inputId, "{\"value\":\"Ada\"}");
@@ -82,7 +82,7 @@ public partial class RaskTestTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task InputAsync_ResolvesTheInputHandlerAndPassesTheValue()
     {
-        var page = RaskTest.Render(new NameEcho());
+        var page = Test.Render(new NameEcho());
 
         await page.InputAsync("{\"value\":\"Grace\"}");
 
@@ -92,7 +92,7 @@ public partial class RaskTestTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task InvokeAsync_InvalidJson_ThrowsArgumentException()
     {
-        var page = RaskTest.Render(new Counter());
+        var page = Test.Render(new Counter());
         var id = page.HandlerId("click")!;
 
         await Assert.ThrowsAsync<ArgumentException>(() => page.InvokeAsync(id, "value=hi"));
@@ -107,7 +107,7 @@ public partial class RaskTestTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Attr_ShortName_DoesNotMatchInsideLongerAttribute()
     {
-        var page = RaskTest.Render(new Labelled());
+        var page = Test.Render(new Labelled());
 
         // "aria-label" resolves; the bare "label" must not match inside "aria-label".
         Assert.Equal("Close", page.Attr("aria-label"));

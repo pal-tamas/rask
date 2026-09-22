@@ -206,10 +206,10 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
         // Handler ids are only written by a live render.
         Assert.Contains(
             "data-rask-on-toggle=",
-            global::Rask.Testing.RaskTest.Render(UiModal.Title("Delete order").Id("confirm").OnClose(() => { })).Html);
+            global::Rask.Testing.Test.Render(UiModal.Title("Delete order").Id("confirm").OnClose(() => { })).Html);
         Assert.DoesNotContain(
             "data-rask-on-toggle=",
-            global::Rask.Testing.RaskTest.Render(UiModal.Title("Delete order").Id("confirm")).Html);
+            global::Rask.Testing.Test.Render(UiModal.Title("Delete order").Id("confirm")).Html);
     }
 
     [Fact]
@@ -218,7 +218,7 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
         // #1116: Escape and the backdrop are dismissals, so a caller can tell "backed out" from "finished" —
         // cancel first, the order the platform uses on the modal path.
         var heard = new List<string>();
-        var page = global::Rask.Testing.RaskTest.Render(UiModal.Title("Edit")
+        var page = global::Rask.Testing.Test.Render(UiModal.Title("Edit")
             .Open(true)
             .OnCancel(() => heard.Add("cancel"))
             .OnClose(() => heard.Add("close")));
@@ -235,7 +235,7 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
     public async Task The_close_button_is_not_a_dismissal()
     {
         var heard = new List<string>();
-        var page = global::Rask.Testing.RaskTest.Render(UiModal.Title("Edit")
+        var page = global::Rask.Testing.Test.Render(UiModal.Title("Edit")
             .Open(true)
             .OnCancel(() => heard.Add("cancel"))
             .OnClose(() => heard.Add("close")));
@@ -270,7 +270,7 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
     public async Task On_the_modal_path_OnCancel_is_the_dialogs_own_cancel_and_the_backdrops_click()
     {
         var cancelled = 0;
-        var page = global::Rask.Testing.RaskTest.Render(UiModal.Title("Edit").Id("edit").OnCancel(() => cancelled++));
+        var page = global::Rask.Testing.Test.Render(UiModal.Title("Edit").Id("edit").OnCancel(() => cancelled++));
 
         Assert.Contains("data-rask-on-cancel=", Tag(page.Html, "<dialog"));
 
@@ -286,7 +286,7 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Without_OnCancel_the_modal_path_registers_no_handler_for_it()
     {
-        var html = global::Rask.Testing.RaskTest.Render(UiModal.Title("Edit").Id("edit")).Html;
+        var html = global::Rask.Testing.Test.Render(UiModal.Title("Edit").Id("edit")).Html;
 
         Assert.DoesNotContain("data-rask-on-cancel", html);
         Assert.DoesNotContain("data-rask-on-click", html);

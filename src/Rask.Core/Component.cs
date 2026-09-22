@@ -894,7 +894,7 @@ public abstract partial class Component : RaskMarkup
         // into THIS buffer, and RenderAsLiveRoot then splices the head-asset block there — into the middle
         // of whatever the real page had at that position. A page with its own <head> is safe by accident,
         // since recording is first-wins and the shell's head goes first; a render without one — every
-        // RaskTest.Render, so every unit test — is not. See #627.
+        // Test.Render, so every unit test — is not. See #627.
         // CurrentSync, not Current: it is the accessor HtmlSerializer writes HeadSentinelIndex through
         // (HtmlSerializer.cs, the <head> branch), so it names exactly the context at risk — and it is the
         // cheap ThreadStatic rather than an AsyncLocal read, which matters because HeadAssetRegistry.Add
@@ -1776,7 +1776,7 @@ public abstract partial class Component : RaskMarkup
     /// </summary>
     /// <remarks>
     ///     For a render root that forwards to a component it did not build through a generated factory —
-    ///     which is every component handed to <c>RaskTest.Render</c> as an object rather than produced by
+    ///     which is every component handed to <c>Test.Render</c> as an object rather than produced by
     ///     the factory during the render. Those never reach <c>GetOrCreate</c>, so without adoption they
     ///     serialize but are invisible to the alive-set walk (no <c>OnRendered</c>, no <c>OnUnmount</c>)
     ///     and have no handle to re-render through when an asynchronous lifecycle hook completes.

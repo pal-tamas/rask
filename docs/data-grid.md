@@ -255,4 +255,4 @@ takes the one it does.
 
 - [The UI kit](ui-kit.md) — everything else in the package, and the rules it holds itself to
 - [Building components](building-components.md) — the chain, and the shapes it comes in
-- [Testing](testing.md) — `RaskTest` drives the grid's handlers in-process, with no browser
+- [Testing](testing.md) — `Test` drives the grid's handlers in-process, with no browser

@@ -148,7 +148,7 @@ public sealed partial class GuidesTests : global::Rask.Core.RaskMarkup
     public void GuidePage_KnownSlug_RendersGuideChromeWithMarkdownBody()
     {
         // GuidePage delegates to GuideChrome (a DI-ctor component), so it renders through a live context.
-        var html = RaskTest.Render(new GuidePage { Slug = "routing" }, TestServices.Default()).Html;
+        var html = Test.Render(new GuidePage { Slug = "routing" }, TestServices.Default()).Html;
         Assert.Contains("markdown-body", html);
         Assert.Contains("All guides", html); // the back link
         Assert.Contains("guide-chapters", html); // the Chapters TOC
@@ -157,7 +157,7 @@ public sealed partial class GuidesTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void GuidePage_UnknownSlug_RendersNotFound()
     {
-        var html = RaskTest.Render(new GuidePage { Slug = "nope" }, TestServices.Default()).Html;
+        var html = Test.Render(new GuidePage { Slug = "nope" }, TestServices.Default()).Html;
         Assert.Contains("No guide found", html);
         Assert.DoesNotContain("markdown-body", html);
     }

@@ -7,7 +7,7 @@ namespace Rask.Ui.Tests.Components;
 ///     The dropdown's keyboard cursor, its submenus and its checkable items, driven through the real handlers.
 /// </summary>
 /// <remarks>
-///     <c>RaskTest</c> dispatches in-process and re-renders, so none of this needs a browser. What does — the popover
+///     <c>Test</c> dispatches in-process and re-renders, so none of this needs a browser. What does — the popover
 ///     actually opening, Enter pressing the row, the safe triangle — is <c>UiKitActionsTests</c>'.
 /// </remarks>
 public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
@@ -58,7 +58,7 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Opening_puts_the_cursor_on_the_first_item_and_the_trigger_says_it_is_open()
     {
-        var page = RaskTest.Render(Menu());
+        var page = Test.Render(Menu());
         Assert.Equal("", Cursor(page.Html));
 
         await OpenAsync(page);
@@ -70,7 +70,7 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task The_arrows_skip_what_is_disabled_and_wrap_at_the_ends()
     {
-        var page = RaskTest.Render(Menu());
+        var page = Test.Render(Menu());
         await OpenAsync(page);
 
         await KeyAsync(page, "ArrowDown");
@@ -94,7 +94,7 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Right_opens_a_submenu_and_walks_into_it_and_left_comes_back()
     {
-        var page = RaskTest.Render(Menu());
+        var page = Test.Render(Menu());
         await OpenAsync(page);
         await KeyAsync(page, "ArrowDown");
         Assert.Equal("Sort by", Cursor(page.Html));
@@ -117,7 +117,7 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Typing_a_letter_jumps_to_the_next_item_starting_with_it()
     {
-        var page = RaskTest.Render(Menu());
+        var page = Test.Render(Menu());
         await OpenAsync(page);
 
         await KeyAsync(page, "d");
@@ -125,7 +125,7 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
         Assert.Equal("Delete", Cursor(page.Html));
 
         // A fresh press on another menu: letters typed together build a prefix, so this is its own open.
-        var other = RaskTest.Render(Menu());
+        var other = Test.Render(Menu());
         await OpenAsync(other);
         await KeyAsync(other, "s");
         Assert.Equal("Sort by", Cursor(other.Html));
@@ -134,7 +134,7 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_modified_key_is_left_to_the_browser()
     {
-        var page = RaskTest.Render(Menu());
+        var page = Test.Render(Menu());
         await OpenAsync(page);
 
         await page.On("[role=\"menu\"][autofocus]").RaiseAsync("keydown", "{\"key\":\"ArrowDown\",\"ctrlKey\":true}");
@@ -146,7 +146,7 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
     public async Task Checkable_items_write_back_to_the_model()
     {
         var view = new View();
-        var page = RaskTest.Render(Menu(view));
+        var page = Test.Render(Menu(view));
         await OpenAsync(page);
 
         await page.On("[role=\"menuitemcheckbox\"]").ClickAsync();
@@ -191,7 +191,7 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Steps_written_before_Key_still_reach_the_item_the_key_keeps()
     {
-        var page = RaskTest.Render(new KeyLastHost());
+        var page = Test.Render(new KeyLastHost());
         await OpenAsync(page);
 
         await page.On("[role=\"menuitemcheckbox\"]").ClickAsync();
@@ -215,7 +215,7 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
     {
         // Value + OnChange: the PARENT owns the state, re-renders, and hands the dropdown new items. The redraw is
         // the proof the new value reached the rows inside the popover.
-        var page = RaskTest.Render(new ControlledHost());
+        var page = Test.Render(new ControlledHost());
         await OpenAsync(page);
 
         await page.On("[role=\"menuitemcheckbox\"]").ClickAsync();
@@ -233,7 +233,7 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Closing_resets_the_cursor_and_the_open_submenus()
     {
-        var page = RaskTest.Render(Menu());
+        var page = Test.Render(Menu());
         await OpenAsync(page);
         await KeyAsync(page, "ArrowDown");
         await KeyAsync(page, "ArrowRight");
@@ -249,7 +249,7 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
     public async Task A_tap_on_a_submenu_row_opens_it()
     {
         // No hover on a touch screen: the row's own click is the way in.
-        var page = RaskTest.Render(Menu());
+        var page = Test.Render(Menu());
         await OpenAsync(page);
 
         await page.On("[aria-haspopup=\"menu\"][role=\"menuitem\"]").ClickAsync();
@@ -262,7 +262,7 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
     public async Task A_controlled_dropdown_hears_only_the_changes_it_did_not_make()
     {
         var heard = new List<bool>();
-        var page = RaskTest.Render(UiDropdown.Trigger("Actions").Open(false).OnToggle(open => heard.Add(open))[
+        var page = Test.Render(UiDropdown.Trigger("Actions").Open(false).OnToggle(open => heard.Add(open))[
             UiMenuItem.Key("a").Text("A")
         ]);
 
@@ -276,7 +276,7 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
     {
         // Items register as they render; a cached item would drop out of the cursor's list.
         var log = new List<string>();
-        var page = RaskTest.Render(Menu(log: log));
+        var page = Test.Render(Menu(log: log));
         await OpenAsync(page);
         page.Render();
         page.Render();

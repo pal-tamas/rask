@@ -152,9 +152,9 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
         // rules, depending on the order they run in.
         RaskValidators.Register(typeof(Person), _ => new PersonValidator());
 
-        var page = RaskTest.Render(() => Form.Model(p)[
+        var page = Test.Render(() => Form.Model(p)[
             Input.Bind(() => p.Address!.Street),
-            RaskTest.EditContextProbe(ctx => captured = ctx)
+            Test.EditContextProbe(ctx => captured = ctx)
         ]);
 
         var changeId = page.HandlerId("change");

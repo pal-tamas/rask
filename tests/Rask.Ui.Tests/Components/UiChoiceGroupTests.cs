@@ -95,7 +95,7 @@ public partial class UiChoiceGroupTests : global::Rask.Core.RaskMarkup
     public async Task Picking_a_radio_writes_the_groups_value()
     {
         var model = new Account();
-        var page = global::Rask.Testing.RaskTest.Render(
+        var page = global::Rask.Testing.Test.Render(
             UiRadioGroup.Bind(() => model.Plan).Options(Plans).Label("Plan"));
 
         await page.On("#f-plan-0").ChangeAsync("true");
@@ -155,7 +155,7 @@ public partial class UiChoiceGroupTests : global::Rask.Core.RaskMarkup
     public async Task Picking_a_checkbox_adds_to_the_models_own_collection()
     {
         var model = new Account { Topics = [] };
-        var page = global::Rask.Testing.RaskTest.Render(
+        var page = global::Rask.Testing.Test.Render(
             UiCheckboxGroup.Bind(() => model.Topics)
                 .Options([("news", "News"), ("releases", "Releases")])
                 .Label("Topics"));

@@ -77,7 +77,7 @@ public class RenderedComponent : IRenderHandle
     ///     continuation, so the markup it produces is not there when <see cref="Render" /> returns; this
     ///     waits for it instead of guessing with a fixed delay.
     ///     <code>
-    ///     var page = RaskTest.Render(new OrdersPage(store), services);
+    ///     var page = Test.Render(new OrdersPage(store), services);
     ///     await page.WaitForAsync(html => !html.Contains("Reading…"));
     ///     </code>
     /// </summary>
@@ -500,7 +500,7 @@ public sealed class RenderedComponent<T> : RenderedComponent
 
     /// <summary>
     ///     The component under test — the very object passed to
-    ///     <see cref="RaskTest.Render{T}(T, IServiceProvider)" />, for the lifetime of this handle. The
+    ///     <see cref="Test.Render{T}(T, IServiceProvider)" />, for the lifetime of this handle. The
     ///     forwarding test root renders it directly rather than reconciling it, so this never becomes a
     ///     different instance behind your back.
     /// </summary>

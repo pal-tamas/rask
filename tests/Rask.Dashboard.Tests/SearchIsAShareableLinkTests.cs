@@ -56,7 +56,7 @@ public sealed class SearchIsAShareableLinkTests
         await using var harness = new DashboardHarness(Batteries.Cache);
         var route = harness.Services.GetRequiredService<RouteState>();
 
-        var page = RaskTest.Render(
+        var page = Test.Render(
             ActivatorUtilities.CreateInstance<CachePage>(harness.Services), harness.Services);
 
         await SearchAsync(page, "session:");
@@ -70,7 +70,7 @@ public sealed class SearchIsAShareableLinkTests
         await using var harness = new DashboardHarness(Batteries.Storage);
         var route = harness.Services.GetRequiredService<RouteState>();
 
-        var page = RaskTest.Render(
+        var page = Test.Render(
             ActivatorUtilities.CreateInstance<StoragePage>(harness.Services), harness.Services);
 
         await SearchAsync(page, "invoice");
@@ -84,7 +84,7 @@ public sealed class SearchIsAShareableLinkTests
     {
         var logs = ActivatorUtilities.CreateInstance<LogsPage>(harness.Services);
         logs.View = "history";
-        var page = RaskTest.Render(logs, harness.Services);
+        var page = Test.Render(logs, harness.Services);
 
         await page.WaitForAsync("stored entries");
         return page;

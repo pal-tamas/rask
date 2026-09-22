@@ -19,7 +19,7 @@ namespace Rask.Testing;
 ///     server, or WebSocket involved. Pass a factory (<see cref="Render(Func{Component}, IServiceProvider)" />)
 ///     instead when a re-render should rebuild the tree from your current state.
 /// </summary>
-public static class RaskTest
+public static class Test
 {
     /// <summary>
     ///     Renders <paramref name="component" /> as a live root and returns a handle to the result. The
@@ -46,7 +46,7 @@ public static class RaskTest
     ///     to the result. The factory runs on <b>every</b> render, so the tree is rebuilt from your current
     ///     state each time — use this (rather than the <see cref="Render{T}(T, IServiceProvider)" />
     ///     overload, which renders one fixed instance) whenever a re-render should see changed props:
-    ///     <c>RaskTest.Render(() => Form(model)[Input.Bind(() => model.Name)])</c>. Returning <c>null</c> renders
+    ///     <c>Test.Render(() => Form(model)[Input.Bind(() => model.Name)])</c>. Returning <c>null</c> renders
     ///     nothing — for a child built by its generated factory, that also drives it through its unmount path.
     /// </summary>
     /// <param name="factory">Builds the component under test; invoked once per render.</param>
@@ -66,7 +66,7 @@ public static class RaskTest
     ///     doctype, <c>&lt;html lang&gt;</c>, the <c>&lt;head&gt;</c> every mounted component contributed
     ///     to, and the <c>&lt;body&gt;</c> the app rendered into.
     ///     <code>
-    ///     var page = RaskTest.RenderDocument(App, services);
+    ///     var page = Test.RenderDocument(App, services);
     ///     Assert.Contains("&gt;My app&lt;/title&gt;", page.Html);   // the head block keys its tags, so match the body
     ///     </code>
     ///     <see cref="Render{T}(T, IServiceProvider)" /> is the one to use for everything else — it adds no
@@ -95,9 +95,9 @@ public static class RaskTest
     ///     form's children — the context is ambient only within that subtree:
     ///     <code>
     ///     EditContext? ctx = null;
-    ///     var page = RaskTest.Render(() => Form(model)[
+    ///     var page = Test.Render(() => Form(model)[
     ///         Input.Bind(() => model.Name),
-    ///         RaskTest.EditContextProbe(c => ctx = c)
+    ///         Test.EditContextProbe(c => ctx = c)
     ///     ]);
     ///     </code>
     ///     The callback runs on every render, so <paramref name="capture" /> sees the current context.

@@ -13,7 +13,7 @@ public sealed partial class FloatingLabelsDemoTests : global::Rask.Core.RaskMark
     [Fact]
     public async Task ValidSubmit_ShowsSuccessAlert()
     {
-        var page = RaskTest.Render(() => FloatingLabelsDemo, TestServices.Default());
+        var page = Test.Render(() => FloatingLabelsDemo, TestServices.Default());
         var html = page.Render();
 
         // Populate the model through the live field handlers (the submit bridge validates/invokes
@@ -71,7 +71,7 @@ public sealed partial class FloatingLabelsDemoTests : global::Rask.Core.RaskMark
     [Fact]
     public void FloatingLabelsDemo_Render_FloatsEveryLabelOverItsLinkedControl()
     {
-        var html = RaskTest.Render(() => FloatingLabelsDemo, TestServices.Default()).Html;
+        var html = Test.Render(() => FloatingLabelsDemo, TestServices.Default()).Html;
 
         // All three controls render. The assertion is on the TAGS, which a restyle is not entitled to change.
         Assert.Contains("<input ", html);

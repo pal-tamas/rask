@@ -33,8 +33,8 @@ internal static partial class ValidationTestSupport
         where T : class
     {
         EditContext? ctx = null;
-        RaskTest.Render(() => Form.Model(model)[
-            RaskTest.EditContextProbe(c => ctx = c)
+        Test.Render(() => Form.Model(model)[
+            Test.EditContextProbe(c => ctx = c)
         ], services);
 
         return ctx!;
@@ -50,8 +50,8 @@ internal static partial class ValidationTestSupport
         where T : class
     {
         EditContext? ctx = null;
-        RaskTest.Render(() => Form.Model(model).AutoValidate(false)[
-            RaskTest.EditContextProbe(c => ctx = c)
+        Test.Render(() => Form.Model(model).AutoValidate(false)[
+            Test.EditContextProbe(c => ctx = c)
         ], services);
 
         return ctx!;

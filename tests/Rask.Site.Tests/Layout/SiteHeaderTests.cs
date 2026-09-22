@@ -25,7 +25,7 @@ namespace Rask.Site.Tests.Layout;
 public sealed class SiteHeaderTests
 {
     private static string Render(string path) =>
-        RaskTest.Render(
+        Test.Render(
                 new global::Rask.Site.App(),
                 TestServices.Default(routeState: new RouteState { Path = path }))
             .Html;

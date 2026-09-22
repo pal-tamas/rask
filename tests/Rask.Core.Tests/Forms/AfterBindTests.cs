@@ -19,7 +19,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         var m = new TextModel { Name = "" };
         var observed = new List<string>();
 
-        var page = RaskTest.Render(() => Form.Model(m)[
+        var page = Test.Render(() => Form.Model(m)[
             Input.Bind(() => m.Name).AfterBind(v => observed.Add(v))
         ]);
         await page.InputAsync("{\"value\":\"A\"}");
@@ -35,7 +35,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         var m = new NumberModel();
         int? captured = null;
 
-        var page = RaskTest.Render(() => Form.Model(m)[
+        var page = Test.Render(() => Form.Model(m)[
             Input.Bind(() => m.Age).AfterBind(v => captured = v)
         ]);
         await page.ChangeAsync("{\"value\":\"42\"}");
@@ -50,7 +50,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         var m = new NumberModel { Age = 7 };
         var fired = false;
 
-        var page = RaskTest.Render(() => Form.Model(m)[
+        var page = Test.Render(() => Form.Model(m)[
             Input.Bind(() => m.Age).AfterBind(_ => fired = true)
         ]);
         await page.ChangeAsync("{\"value\":\"not-a-number\"}");
@@ -68,7 +68,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         var gate = new TaskCompletionSource();
         var order = new List<string>();
 
-        var page = RaskTest.Render(() => Form.Model(m)[
+        var page = Test.Render(() => Form.Model(m)[
             Input.Bind(() => m.Age)
                 .Validate(_ =>
                 {
@@ -110,7 +110,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         var order = new List<string>();
         EditContext? captured = null;
 
-        var page = RaskTest.Render(() => Form.Model(m)[
+        var page = Test.Render(() => Form.Model(m)[
             Input.Bind(() => m.Age)
                 .Validate(_ =>
                 {
@@ -123,7 +123,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
                     // The field must already be marked modified at this point.
                     Assert.True(captured!.IsModified(new FieldIdentifier(m, nameof(NumberModel.Age))));
                 }),
-            RaskTest.EditContextProbe(c => captured = c)
+            Test.EditContextProbe(c => captured = c)
         ]);
         await page.ChangeAsync("{\"value\":\"9\"}");
 
@@ -140,7 +140,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         var m = new TextModel { Name = "" };
         var order = new List<string>();
 
-        var page = RaskTest.Render(() => Form.Model(m)[
+        var page = Test.Render(() => Form.Model(m)[
             Input.Bind(() => m.Name)
                 .AfterBind(async _ =>
                 {
@@ -159,7 +159,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         var m = new ColorModel { Favorite = Color.Red };
         Color? captured = null;
 
-        var page = RaskTest.Render(() => Form.Model(m)[
+        var page = Test.Render(() => Form.Model(m)[
             Select.Bind(() => m.Favorite).AfterBind(v => captured = v)[
                 Option.Value(nameof(Color.Red))["Red"],
                 Option.Value(nameof(Color.Blue))["Blue"]
@@ -178,7 +178,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         var m = new RegionModel();
         List<string>? cities = null;
 
-        var page = RaskTest.Render(() => Form.Model(m)[
+        var page = Test.Render(() => Form.Model(m)[
             Select.Bind(() => m.Country).AfterBind(async c =>
             {
                 await Task.Yield();
@@ -201,7 +201,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         var m = new TextModel { Name = "" };
         string? captured = null;
 
-        var page = RaskTest.Render(() => Form.Model(m)[
+        var page = Test.Render(() => Form.Model(m)[
             Textarea.Bind(() => m.Name).AfterBind(v => captured = v)
         ]);
         await page.InputAsync("{\"value\":\"hello\"}");
@@ -216,7 +216,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         var m = new FlagModel { Enabled = false };
         bool? captured = null;
 
-        var page = RaskTest.Render(() => Form.Model(m)[
+        var page = Test.Render(() => Form.Model(m)[
             Input.Bind(() => m.Enabled).AfterBind(v => captured = v)
         ]);
         var changeId = page.HandlerId("change");
@@ -239,7 +239,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         var m = new TextModel { Name = "x" };
         var fires = 0;
 
-        var page = RaskTest.Render(() => Form.Model(m)[
+        var page = Test.Render(() => Form.Model(m)[
             Input.Bind(() => m.Name).AfterBind(_ => fires++)
         ]);
         await page.InputAsync("{\"value\":\"x\"}");

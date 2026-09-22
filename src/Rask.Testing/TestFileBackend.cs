@@ -23,7 +23,7 @@ namespace Rask.Testing;
 ///     var files = new TestFileBackend();
 ///     files.Add("notes.txt", "hello", "text/plain");
 ///
-///     var page = RaskTest.Render(new UploadPage(), TestServiceProvider.With&lt;IBrowserFileBackend&gt;(files));
+///     var page = Test.Render(new UploadPage(), TestServiceProvider.With&lt;IBrowserFileBackend&gt;(files));
 ///     await page.On("#picker").FilesAsync(files);
 ///
 ///     Assert.Equal("notes.txt", page.TextOf("[data-testid=name]"));

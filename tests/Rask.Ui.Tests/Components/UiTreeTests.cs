@@ -131,11 +131,11 @@ public partial class UiTreeTests : global::Rask.Core.RaskMarkup
         // A live render, like the kit's other handler tests: static HTML carries no handler ids to name.
         Assert.DoesNotContain(
             "data-rask-on-pointerenter",
-            global::Rask.Testing.RaskTest.Render(Tree()).Html,
+            global::Rask.Testing.Test.Render(Tree()).Html,
             StringComparison.Ordinal);
         Assert.Contains(
             "data-rask-on-pointerenter",
-            global::Rask.Testing.RaskTest.Render(Tree().OnHover(_ => { })).Html,
+            global::Rask.Testing.Test.Render(Tree().OnHover(_ => { })).Html,
             StringComparison.Ordinal);
     }
 

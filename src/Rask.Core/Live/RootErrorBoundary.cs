@@ -64,7 +64,7 @@ internal sealed class RootErrorBoundary : Component
                       "A Rask app was rendered outside a live render context, so the framework's root "
                       + "error boundary has nothing to wrap. Render through the host — UseRask<TApp>() "
                       + "on the server, the WASM host builder in the browser — or, in a test, through "
-                      + "RaskTest.Render, which sets one up for you.");
+                      + "Test.Render, which sets one up for you.");
         var inner = ctx.GetOrCreate(Inner.GetType(), _ => Inner);
 
         // Propagate the "force the root to re-execute this frame" contract that

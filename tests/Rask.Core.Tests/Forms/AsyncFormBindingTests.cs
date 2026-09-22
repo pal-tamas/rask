@@ -22,7 +22,7 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
         var ctx = new EditContext(model);
         ctx.AddValidator(new TaggingAsyncValidator("Username", "no good"));
 
-        var page = RaskTest.Render(() => Form.Model(model).Context(ctx)[
+        var page = Test.Render(() => Form.Model(model).Context(ctx)[
             Input.Bind(() => model.Username)
         ]);
 
@@ -43,7 +43,7 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
         var validator = new GatedAsyncValidator();
         ctx.AddValidator(validator);
 
-        var page = RaskTest.Render(() => Form.Model(model).Context(ctx)[
+        var page = Test.Render(() => Form.Model(model).Context(ctx)[
             Input.Bind(() => model.Username)
         ]);
         var changeId = page.HandlerId("change");
@@ -70,7 +70,7 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
         var ctx = new EditContext(model);
         ctx.AddValidator(new RejectIfEqualsValidator("admin", "Already taken."));
 
-        var page = RaskTest.Render(() => Form.Model(model).Context(ctx)[
+        var page = Test.Render(() => Form.Model(model).Context(ctx)[
             Input.Bind(() => model.Username)
         ]);
 
@@ -86,7 +86,7 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
 
     // The two PostHandlerRender tests below stay on the internal render entry points, deliberately.
     // They install a RenderingHandle so the dispatcher's mid-await render produces a real cached
-    // subtree — that cache is the thing under test, and RaskTest has no RenderHandle to install
+    // subtree — that cache is the thing under test, and Test has no RenderHandle to install
     // (nor should it: a render handle is a live-session mechanism, below the HTML + dispatch seam
     // the package covers). They pass without the handle too, which is exactly the trap: the
     // assertions survive while the cached-subtree path they exist to cover quietly stops running.
@@ -181,7 +181,7 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
         _ = ctx.ValidateFieldAsync(fid);
         Assert.True(ctx.IsValidating(fid));
 
-        var html = RaskTest.Render(() => Form.Model(model).Context(ctx)[
+        var html = Test.Render(() => Form.Model(model).Context(ctx)[
             ValidatingIndicator.Template(() => Span.Class("spinner")["Checking..."]).For(() => model.Username)
         ]).Html;
 
@@ -195,7 +195,7 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
         var model = new SignupModel { Username = "ada" };
         var ctx = new EditContext(model);
 
-        var html = RaskTest.Render(() => Form.Model(model).Context(ctx)[
+        var html = Test.Render(() => Form.Model(model).Context(ctx)[
             ValidatingIndicator.Template(() => Span.Class("spinner")["Checking..."]).For(() => model.Username)
         ]).Html;
 

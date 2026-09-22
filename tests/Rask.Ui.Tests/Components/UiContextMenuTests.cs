@@ -64,7 +64,7 @@ public partial class UiContextMenuTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Opening_puts_the_cursor_on_the_first_item_and_the_arrows_skip_what_is_disabled()
     {
-        var page = RaskTest.Render(Menu());
+        var page = Test.Render(Menu());
 
         await page.On("[popover]").RaiseAsync("toggle", "{\"oldState\":\"closed\",\"newState\":\"open\"}");
         var first = Regex.Match(page.Html, "aria-activedescendant=\"([^\"]+)\"").Groups[1].Value;

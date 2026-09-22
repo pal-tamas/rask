@@ -77,7 +77,7 @@ public partial class UiInputAffordanceTests : global::Rask.Core.RaskMarkup
     public async Task Clearing_empties_the_bound_member()
     {
         var model = new Query { Text = "rask" };
-        var page = global::Rask.Testing.RaskTest.Render(
+        var page = global::Rask.Testing.Test.Render(
             UiInput.Bind(() => model.Text).Label("Search").Clearable(true));
 
         await page.On("button[aria-label=\"Clear Search\"]").ClickAsync();

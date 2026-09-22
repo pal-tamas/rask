@@ -24,7 +24,7 @@ public partial class StructuralQueryTests : global::Rask.Core.RaskMarkup
             ];
     }
 
-    private static RenderedComponent<Card> Page() => RaskTest.Render(new Card());
+    private static RenderedComponent<Card> Page() => Test.Render(new Card());
 
     [Fact]
     public void Find_ReturnsTheElement_NotJustAnAttribute()
@@ -77,7 +77,7 @@ public partial class StructuralQueryTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void TextOf_CollapsesWhitespace_ToWhatAReaderSees()
     {
-        var page = RaskTest.Render(new Spaced());
+        var page = Test.Render(new Spaced());
 
         Assert.Equal("Total 42 items", page.TextOf("#t"));
     }
@@ -117,7 +117,7 @@ public partial class StructuralQueryTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Attributes_AreDecoded_NotAsTheSerializerWroteThem()
     {
-        var page = RaskTest.Render(new Quoted());
+        var page = Test.Render(new Quoted());
 
         Assert.Equal("a \"quoted\" & <angled> title", page.Find("#t").Attribute("title"));
         Assert.Equal("3 < 5 & 5 > 3", page.TextOf("#t"));

@@ -14,7 +14,7 @@ public sealed partial class LifecycleProbeTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task TriggerReRender_ThroughBsButton_RunsHandlerAndRepaintsProbe()
     {
-        var page = RaskTest.Render(() => LifecycleProbe, TestServices.Default());
+        var page = Test.Render(() => LifecycleProbe, TestServices.Default());
 
         // The probe's only click handler is the trigger button; that an id exists proves BsButton forwarded
         // the OnClick to the native button.
@@ -36,7 +36,7 @@ public sealed partial class LifecycleProbeTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task LifecycleProbe_FiresMountThroughRenderedHooks_InOrder()
     {
-        var page = RaskTest.Render(() => LifecycleProbe, TestServices.Default());
+        var page = Test.Render(() => LifecycleProbe, TestServices.Default());
 
         // Every hook NAME is on screen from the first paint now, so asserting the names alone would
         // pass before a single hook had run. The claim worth making is about each row's STATUS: the
@@ -62,7 +62,7 @@ public sealed partial class LifecycleProbeTests : global::Rask.Core.RaskMarkup
     {
         var log = new LifecycleLog();
         var instanceId = 7;
-        var page = RaskTest.Render(
+        var page = Test.Render(
             () => LifecycleCycleProbe.Log(log.Add).InstanceId(instanceId),
             TestServices.Default());
 
@@ -74,7 +74,7 @@ public sealed partial class LifecycleProbeTests : global::Rask.Core.RaskMarkup
     {
         var log = new LifecycleLog();
         var mounted = true;
-        var page = RaskTest.Render(
+        var page = Test.Render(
             () => mounted ? LifecycleCycleProbe.Log(log.Add).InstanceId(1) : null,
             TestServices.Default());
         await WaitFor.True(() => log.Contains("#1 OnMount (after a 150ms await)"), TimeSpan.FromSeconds(2));

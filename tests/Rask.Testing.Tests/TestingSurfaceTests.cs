@@ -45,7 +45,7 @@ public class TestingSurfaceTests
     [Fact]
     public async Task ClickAsync_TargetsTheNamedElement_NotTheFirstHandlerInTheDocument()
     {
-        var page = RaskTest.Render(new Toolbar());
+        var page = Test.Render(new Toolbar());
 
         await page.On("#save").ClickAsync();
 
@@ -58,7 +58,7 @@ public class TestingSurfaceTests
     [Fact]
     public void HandlerIdFor_SaysWhatTheElementIsActuallyWiredTo()
     {
-        var page = RaskTest.Render(new Toolbar());
+        var page = Test.Render(new Toolbar());
 
         var error = Assert.Throws<InvalidOperationException>(() => page.HandlerIdFor("#save", "input"));
 
@@ -84,7 +84,7 @@ public class TestingSurfaceTests
         var navigator = TestRoute.NavigatorFor(TestRoute.At("/orders"), downloads);
         var services = new ServiceCollection().AddSingleton(navigator).BuildServiceProvider();
 
-        var page = RaskTest.Render(new ExportPage(navigator), services);
+        var page = Test.Render(new ExportPage(navigator), services);
         await page.On("#export").ClickAsync();
 
         var file = Assert.Single(downloads.Staged);
@@ -187,7 +187,7 @@ public class TestingSurfaceTests
     {
         using var diagnostics = CapturingDiagnostics.Install();
 
-        _ = RaskTest.Render(new FaultsInMountAsync(), new ServiceCollection().BuildServiceProvider());
+        _ = Test.Render(new FaultsInMountAsync(), new ServiceCollection().BuildServiceProvider());
 
         // Swallow-and-log is the framework's designed behaviour here; without a capture there is no
         // supported way for an app author to assert that it happened, or that it didn't.
@@ -210,7 +210,7 @@ public class TestingSurfaceTests
 
         first.Dispose();
 
-        _ = RaskTest.Render(new FaultsInMountAsync(), new ServiceCollection().BuildServiceProvider());
+        _ = Test.Render(new FaultsInMountAsync(), new ServiceCollection().BuildServiceProvider());
         await WaitForCaptureAsync(second, IsTheSwallowedFault);
 
         Assert.Contains(second.Captured, IsTheSwallowedFault);
@@ -226,7 +226,7 @@ public class TestingSurfaceTests
         // matters: a second install/dispose cycle still captures, which it wouldn't if the first had left
         // the global pointing at its own dead list.
         using var after = CapturingDiagnostics.Install();
-        _ = RaskTest.Render(new FaultsInMountAsync(), new ServiceCollection().BuildServiceProvider());
+        _ = Test.Render(new FaultsInMountAsync(), new ServiceCollection().BuildServiceProvider());
         await WaitForCaptureAsync(after);
 
         Assert.NotEmpty(after.Captured);

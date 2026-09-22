@@ -16,7 +16,7 @@ public sealed class Counter : Component
 [Fact]
 public async Task Clicking_increments()
 {
-    var page = RaskTest.Render(new Counter());
+    var page = Test.Render(new Counter());
     Assert.Contains("Count: 0", page.Html);
 
     await page.ClickAsync();               // dispatch the click handler + re-render
@@ -26,13 +26,13 @@ public async Task Clicking_increments()
 
 ## API
 
-- **`RaskTest.Render(component, services?)`** → a `RenderedComponent`. Renders the component with its
+- **`Test.Render(component, services?)`** → a `RenderedComponent`. Renders the component with its
   event handlers wired; pass an `IServiceProvider` when the component constructor-injects services.
-- **`RaskTest.Render(factory, services?)`** — same, but the factory runs on **every** render, so the tree is
+- **`Test.Render(factory, services?)`** — same, but the factory runs on **every** render, so the tree is
   rebuilt from your current state each time. Use it whenever a re-render should see changed props:
-  `RaskTest.Render(() => Form(model)[Input(() => model.Name)])`. The `component` overload renders one fixed
+  `Test.Render(() => Form(model)[Input(() => model.Name)])`. The `component` overload renders one fixed
   instance, so a tree you build at the call site keeps the values it was built with.
-- **`RaskTest.RenderDocument(app, services?)`** — renders the component the way a host does, with the whole
+- **`Test.RenderDocument(app, services?)`** — renders the component the way a host does, with the whole
   document composed around it, so you can assert on the **page**: the doctype, `<html lang>`, the `<head>`
   every mounted component contributed to, `<body class>`. `Render` adds no markup of its own, which is what
   keeps an assertion about a component from quietly becoming one about a page — reach for this only when
@@ -100,7 +100,7 @@ test keeps passing. `.On(selector)` names the element instead. (It's a handle ra
   release call.
 - **`TestServiceProvider`** — a minimal `IServiceProvider` for handing a component the one or two services it
   resolves: `TestServiceProvider.With<IBrowserFileBackend>(files)`, or `.Add(...).Add(...)` for several. Exists
-  because `RaskTest.Render` takes an `IServiceProvider` and this package depends on no DI container.
+  because `Test.Render` takes an `IServiceProvider` and this package depends on no DI container.
 - **`TestRoute.At("/search?q=hello%20world")`** — a `RouteState` at a URL, query string parsed and
   decoded, repeated keys kept. `TestRoute.NavigatorFor(state, downloads)` wires the `Navigator`.
   Register the `Navigator` in the provider and event dispatch enters its handler scope, so a component
@@ -123,7 +123,7 @@ test keeps passing. `.On(selector)` names the element instead. (It's a handle ra
   call returns `default`; a call configured with the **wrong type** now throws and names both types,
   rather than also returning `default` — `SetResponse("getCount", 1)` against `InvokeAsync<long>` used to
   hand back `0`, indistinguishable from "not configured".
-- **`RaskTest.EditContextProbe(capture)`** — placed inside a `Form`'s children, hands you the form's
+- **`Test.EditContextProbe(capture)`** — placed inside a `Form`'s children, hands you the form's
   `EditContext` so you can assert validation state (`GetValidationMessages`, `IsModified`, `IsValidating`)
   that never appears in the markup.
 

@@ -87,7 +87,7 @@ public sealed class QueueDetailSheetTests
         component.Queue = "jobs";
         component.Show = "failed";
 
-        var page = RaskTest.Render(component, harness.Services);
+        var page = Test.Render(component, harness.Services);
 
         // PollingPanel loads on an asynchronous mount, so the first render is the placeholder.
         await page.WaitForAsync("Details");

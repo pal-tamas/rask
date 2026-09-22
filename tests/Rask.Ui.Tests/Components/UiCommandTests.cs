@@ -79,7 +79,7 @@ public partial class UiCommandTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Typing_narrows_the_list_accent_insensitively_and_drops_the_separators()
     {
-        var page = RaskTest.Render(Palette());
+        var page = Test.Render(Palette());
         Assert.Contains("ui-menu-separator", page.Html, StringComparison.Ordinal);
 
         await TypeAsync(page, "reglages");
@@ -92,7 +92,7 @@ public partial class UiCommandTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Nothing_matching_leaves_no_option_for_the_empty_message_to_follow()
     {
-        var page = RaskTest.Render(Palette());
+        var page = Test.Render(Palette());
 
         await TypeAsync(page, "zzz");
 
@@ -103,7 +103,7 @@ public partial class UiCommandTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task The_arrows_move_the_highlight_skip_what_is_disabled_and_wrap()
     {
-        var page = RaskTest.Render(Palette());
+        var page = Test.Render(Palette());
         // A second render, so the cursor is worked out against a list that has registered.
         await TypeAsync(page, "");
         Assert.Equal("New invoice", Highlighted(page.Html));
@@ -125,7 +125,7 @@ public partial class UiCommandTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task The_highlighted_option_says_so_to_a_screen_reader()
     {
-        var page = RaskTest.Render(Palette());
+        var page = Test.Render(Palette());
         await TypeAsync(page, "");
 
         Assert.Single(Regex.Matches(page.Html, "aria-selected=\"true\""));

@@ -94,7 +94,7 @@ public sealed class UiPaletteTests
         // referencing the package cannot repaint an application that only wanted a button — which means
         // every token above resolves to nothing until something in the ancestry carries it. Structure and
         // layout survive without it, colour does not, and nothing that reads class names can tell.
-        var html = RaskTest.RenderDocument(new global::Rask.Site.App(), TestServices.Default()).Html;
+        var html = Test.RenderDocument(new global::Rask.Site.App(), TestServices.Default()).Html;
 
         Assert.Matches(new Regex(@"<html[^>]*\sdata-rask-ui\b"), html);
     }
@@ -112,7 +112,7 @@ public sealed class UiPaletteTests
         // The sheet used to be inlined and this asserted on its bytes. It is served as a cached file
         // now (#1018), so what has to be true is that the document REACHES it — a page that links
         // nothing fails exactly as the unstyled one did.
-        var html = RaskTest.RenderDocument(new global::Rask.Site.App(), TestServices.Default()).Html;
+        var html = Test.RenderDocument(new global::Rask.Site.App(), TestServices.Default()).Html;
 
         // Under _content/, not the app root: this project ships its wwwroot as static web assets, so
         // /css/rask-ui.css would 404 here — and a 404 stylesheet is invisible, exactly as the app.css

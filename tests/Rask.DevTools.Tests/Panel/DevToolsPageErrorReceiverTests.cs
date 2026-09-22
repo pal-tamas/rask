@@ -22,7 +22,7 @@ public sealed class DevToolsPageErrorReceiverTests
     }
 
 #pragma warning disable RASK014 // the receiver rendered alone, the way the panel page would chain it
-    private static RenderedComponent Receiver(DevToolsFeed feed) => RaskTest.Render(new DevToolsPageErrorReceiver { Feed = feed });
+    private static RenderedComponent Receiver(DevToolsFeed feed) => Test.Render(new DevToolsPageErrorReceiver { Feed = feed });
 #pragma warning restore RASK014
 
     private static Task Report(RenderedComponent page, string json) =>

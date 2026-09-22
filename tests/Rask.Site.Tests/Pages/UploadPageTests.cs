@@ -12,7 +12,7 @@ public sealed class UploadPageTests
     {
         // Render UploadDemo directly — its standalone /upload page was folded into
         // docs/http-and-files.md, where the demo is embedded as a live sample.
-        var html = RaskTest.Render(new UploadDemo(), TestServices.Default()).Html;
+        var html = Test.Render(new UploadDemo(), TestServices.Default()).Html;
 
         Assert.Contains("upload-input", html);
         Assert.Contains("No file selected yet.", html);

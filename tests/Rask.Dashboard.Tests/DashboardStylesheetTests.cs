@@ -47,7 +47,7 @@ public sealed partial class DashboardStylesheetTests : global::Rask.Core.RaskMar
         await using var h = new DashboardHarness(environment: Environments.Development);
         h.Get<RouteState>().Path = "/_rask";
 
-        var html = RaskTest.RenderDocument(RaskDashboardShell, h.Services).Html;
+        var html = Test.RenderDocument(RaskDashboardShell, h.Services).Html;
 
         Assert.Single(Regex.Matches(html, "<style[\\s>]"));
         Assert.Contains(UiStylesheet.Css, html, StringComparison.Ordinal);

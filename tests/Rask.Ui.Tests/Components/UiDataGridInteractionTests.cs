@@ -8,7 +8,7 @@ namespace Rask.Ui.Tests.Components;
 /// </summary>
 /// <remarks>
 ///     The rendering tests next door see only the first frame, and every one of these paths is reachable
-///     solely by clicking. <c>RaskTest</c> dispatches the handlers in-process and re-renders, so none of
+///     solely by clicking. <c>Test</c> dispatches the handlers in-process and re-renders, so none of
 ///     it needs a browser.
 /// </remarks>
 public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
@@ -43,7 +43,7 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Clicking_a_sortable_header_cycles_ascending_descending_then_off()
     {
-        var page = RaskTest.Render(Grid());
+        var page = Test.Render(Grid());
         Assert.Equal(["Banana", "Apple", "Carrot"], Names(page.Html));
 
         await page.On("thead button:has-text(\"Name\")").ClickAsync();
@@ -65,7 +65,7 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Sorting_by_a_second_column_starts_that_column_ascending()
     {
-        var page = RaskTest.Render(Grid());
+        var page = Test.Render(Grid());
 
         await page.On("thead button:has-text(\"Name\")").ClickAsync();
         await page.On("thead button:has-text(\"Points\")").ClickAsync();
@@ -78,7 +78,7 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
     {
         // Page four of one order names different rows in another, so a new sort that kept the page would
         // land the reader somewhere they never asked to be.
-        var page = RaskTest.Render(UiDataGrid.Data(Squad).RowKey(r => r.Id).PageSize(2)[c => [
+        var page = Test.Render(UiDataGrid.Data(Squad).RowKey(r => r.Id).PageSize(2)[c => [
             c.Field(r => r.Name).Title("Name").Sortable(true),
         ]]);
 
@@ -92,7 +92,7 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Clicking_a_page_shows_it()
     {
-        var page = RaskTest.Render(UiDataGrid.Data(Squad).RowKey(r => r.Id).PageSize(2)[c => [
+        var page = Test.Render(UiDataGrid.Data(Squad).RowKey(r => r.Id).PageSize(2)[c => [
             c.Field(r => r.Name).Title("Name"),
         ]]);
 
@@ -107,7 +107,7 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
     {
         IReadOnlyList<int>? reported = null;
 
-        var page = RaskTest.Render(UiDataGrid.Data(Squad).RowKey(r => r.Id)
+        var page = Test.Render(UiDataGrid.Data(Squad).RowKey(r => r.Id)
             .OnSelectionChange(keys => reported = keys)[c => [
                 c.Field(r => r.Name).Title("Name"),
             ]]);
@@ -124,7 +124,7 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
     {
         IReadOnlyList<int>? reported = null;
 
-        var page = RaskTest.Render(UiDataGrid.Data(Squad).RowKey(r => r.Id)
+        var page = Test.Render(UiDataGrid.Data(Squad).RowKey(r => r.Id)
             .PageSize(2)
             .OnSelectionChange(keys => reported = keys)[c => [
                 c.Field(r => r.Name).Title("Name"),
@@ -141,7 +141,7 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
     {
         // The strategy that owns the ticked set is rebuilt by the RowKey step on every render. Reusing it
         // rather than replacing it is the whole reason an uncontrolled selection is remembered at all.
-        var page = RaskTest.Render(UiDataGrid.Data(Squad).RowKey(r => r.Id)
+        var page = Test.Render(UiDataGrid.Data(Squad).RowKey(r => r.Id)
             .OnSelectionChange(_ => { })[c => [
                 c.Field(r => r.Name).Title("Name"),
             ]]);
@@ -154,7 +154,7 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Expanding_a_row_reveals_its_detail_and_collapsing_hides_it_again()
     {
-        var page = RaskTest.Render(UiDataGrid.Data(Squad).RowKey(r => r.Id).Detail(r => P[r.Team])[c => [
+        var page = Test.Render(UiDataGrid.Data(Squad).RowKey(r => r.Id).Detail(r => P[r.Team])[c => [
             c.Field(r => r.Name).Title("Name"),
         ]]);
 
@@ -170,7 +170,7 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Grouping_from_a_header_button_bands_the_rows()
     {
-        var page = RaskTest.Render(UiDataGrid.Data(Squad).RowKey(r => r.Id)[c => [
+        var page = Test.Render(UiDataGrid.Data(Squad).RowKey(r => r.Id)[c => [
             c.Field(r => r.Team).Title("Team").Groupable(true),
             c.Field(r => r.Name).Title("Name"),
         ]]);
@@ -184,7 +184,7 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Collapsing_a_band_hides_only_its_own_rows()
     {
-        var page = RaskTest.Render(UiDataGrid.Data(Squad).RowKey(r => r.Id).GroupPanel(true)[c => [
+        var page = Test.Render(UiDataGrid.Data(Squad).RowKey(r => r.Id).GroupPanel(true)[c => [
             c.Field(r => r.Team).Title("Team").Groupable(true),
             c.Field(r => r.Name).Title("Name"),
         ]]);
@@ -202,7 +202,7 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_group_chip_ungroups_when_its_close_button_is_pressed()
     {
-        var page = RaskTest.Render(UiDataGrid.Data(Squad).RowKey(r => r.Id).GroupPanel(true)[c => [
+        var page = Test.Render(UiDataGrid.Data(Squad).RowKey(r => r.Id).GroupPanel(true)[c => [
             c.Field(r => r.Team).Title("Team").Groupable(true),
             c.Field(r => r.Name).Title("Name"),
         ]]);
@@ -218,7 +218,7 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task The_column_chooser_opens_and_hides_a_column()
     {
-        var page = RaskTest.Render(UiDataGrid.Data(Squad).RowKey(r => r.Id).ColumnChooser(true)[c => [
+        var page = Test.Render(UiDataGrid.Data(Squad).RowKey(r => r.Id).ColumnChooser(true)[c => [
             c.Field(r => r.Name).Title("Name"),
             c.Field(r => r.Points).Title("Points"),
         ]]);
@@ -235,7 +235,7 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Moving_a_column_down_reorders_the_table()
     {
-        var page = RaskTest.Render(UiDataGrid.Data(Squad).RowKey(r => r.Id).ColumnChooser(true)[c => [
+        var page = Test.Render(UiDataGrid.Data(Squad).RowKey(r => r.Id).ColumnChooser(true)[c => [
             c.Field(r => r.Name).Title("Name"),
             c.Field(r => r.Points).Title("Points"),
         ]]);
@@ -257,7 +257,7 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
 
         // Stated rather than inferred: the rows arrive through Source, whose carrier is a struct a
         // lambda reaches by conversion, so nothing about it can pin the grid's type.
-        var page = RaskTest.Render(UiDataGrid.Of<Row, int>()
+        var page = Test.Render(UiDataGrid.Of<Row, int>()
             .RowKey(r => r.Id)
             .PageSize(2)
             .Source(request =>
@@ -286,7 +286,7 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
     {
         var calls = 0;
 
-        var page = RaskTest.Render(UiDataGrid.Of<Row, int>()
+        var page = Test.Render(UiDataGrid.Of<Row, int>()
             .RowKey(r => r.Id)
             .Source(_ =>
             {

@@ -46,5 +46,5 @@ public sealed partial class HomePageTests : global::Rask.Core.RaskMarkup
         Assert.Contains("superset", html[start..end], StringComparison.Ordinal);
     }
 
-    private static string Render() => RaskTest.Render(() => HomePage).Html;
+    private static string Render() => Test.Render(() => HomePage).Html;
 }

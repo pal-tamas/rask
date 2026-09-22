@@ -71,7 +71,7 @@ public partial class GeneratedRegistrationTests : global::Rask.Core.RaskMarkup
         // The validator is only BUILT when validation runs, not when the form registers it. Building at
         // registration meant this render threw InvalidOperationException out of Render() — from generated
         // code the author never wrote — purely because a DI-constructed validator for this model exists
-        // somewhere in the assembly. RaskTest.Render with no provider is a supported shape.
+        // somewhere in the assembly. Test.Render with no provider is a supported shape.
         var m = new NeedsServiceModel { Name = "" };
 
         var ctx = Render(m);
@@ -107,8 +107,8 @@ public partial class GeneratedRegistrationTests : global::Rask.Core.RaskMarkup
     private EditContext Render<T>(T model) where T : class
     {
         EditContext? ctx = null;
-        RaskTest.Render(() => Form.Model(model)[
-            RaskTest.EditContextProbe(c => ctx = c)
+        Test.Render(() => Form.Model(model)[
+            Test.EditContextProbe(c => ctx = c)
         ]);
 
         return ctx!;

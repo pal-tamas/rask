@@ -5,7 +5,7 @@ namespace Rask.Testing;
 
 // Renders nothing and hands the test the EditContext a surrounding form pushed onto EditContextScope.
 //
-// Deliberately internal, reached through RaskTest.EditContextProbe: a public component type would force
+// Deliberately internal, reached through Test.EditContextProbe: a public component type would force
 // consumers to write `new EditContextProbe(...)`, and RASK014 ("components must be created via factory
 // methods") is an *error* that fires on any `new` of a Component outside Rask.Core — including on types we
 // ship. A factory method is what that rule asks for, so this is the shape that composes with our own

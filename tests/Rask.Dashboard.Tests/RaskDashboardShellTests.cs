@@ -18,7 +18,7 @@ public partial class RaskDashboardShellTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Shell_EmitsADocument_WithTheDocumentLevelHeadTags()
     {
-        var page = RaskTest.RenderDocument(RaskDashboardShell).Html;
+        var page = Test.RenderDocument(RaskDashboardShell).Html;
 
         // Matched on the rendered tag rather than the source text: the head block keys its tags, so the
         // attribute is what survives into the document a browser receives.
@@ -34,7 +34,7 @@ public partial class RaskDashboardShellTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Shell_DoesNotDuplicate_WhatTheLayoutOwns()
     {
-        var page = RaskTest.RenderDocument(RaskDashboardShell).Html;
+        var page = Test.RenderDocument(RaskDashboardShell).Html;
 
         Assert.DoesNotContain("noindex", page, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("stylesheet", page, StringComparison.OrdinalIgnoreCase);

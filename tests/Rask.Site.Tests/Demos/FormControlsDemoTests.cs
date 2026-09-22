@@ -15,7 +15,7 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Select_Controlled_OnChange_UpdatesReadout()
     {
-        var page = RaskTest.Render(() => FormControlsSelectDemo, TestServices.Default());
+        var page = Test.Render(() => FormControlsSelectDemo, TestServices.Default());
         var html = page.Render();
         Assert.Contains("Picked: <strong>Rask</strong>", html);
 
@@ -28,7 +28,7 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Select_Bound_OnChange_UpdatesReadout()
     {
-        var page = RaskTest.Render(() => FormControlsSelectDemo, TestServices.Default());
+        var page = Test.Render(() => FormControlsSelectDemo, TestServices.Default());
         var html = page.Render();
 
         var id = HandlerIn(html, "id=\"fc-select-bound\"", "data-rask-on-change");
@@ -44,7 +44,7 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Input_Controlled_OnChange_UpdatesReadout()
     {
-        var page = RaskTest.Render(() => FormControlsInputDemo, TestServices.Default());
+        var page = Test.Render(() => FormControlsInputDemo, TestServices.Default());
         var html = page.Render();
         Assert.Contains("Echo: <strong>(empty)</strong>", html);
 
@@ -57,7 +57,7 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Input_Bound_OnInput_UpdatesReadout()
     {
-        var page = RaskTest.Render(() => FormControlsInputDemo, TestServices.Default());
+        var page = Test.Render(() => FormControlsInputDemo, TestServices.Default());
         var html = page.Render();
 
         // A bound text Input streams via data-rask-on-input (per keystroke); the change handler only touches.
@@ -72,7 +72,7 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Textarea_Controlled_OnChange_UpdatesReadout()
     {
-        var page = RaskTest.Render(() => FormControlsTextareaDemo, TestServices.Default());
+        var page = Test.Render(() => FormControlsTextareaDemo, TestServices.Default());
         var html = page.Render();
         Assert.Contains("Length: <strong>0</strong>", html);
 
@@ -85,7 +85,7 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Textarea_Bound_OnInput_UpdatesReadout()
     {
-        var page = RaskTest.Render(() => FormControlsTextareaDemo, TestServices.Default());
+        var page = Test.Render(() => FormControlsTextareaDemo, TestServices.Default());
         var html = page.Render();
 
         var id = HandlerIn(html, "id=\"fc-textarea-bound\"", "data-rask-on-input");
@@ -118,7 +118,7 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void SubmitStateChildren_RenderTheIdleShape_WhenNoSubmitIsRunning()
     {
-        var page = RaskTest.Render(() => FormSubmitStateDemo, TestServices.Default());
+        var page = Test.Render(() => FormSubmitStateDemo, TestServices.Default());
         var html = page.Render();
 
         // The label is the button's own child text — UiButton shows its children, and an icon would be a

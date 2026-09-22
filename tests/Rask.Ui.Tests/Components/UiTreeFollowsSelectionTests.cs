@@ -13,7 +13,7 @@ public sealed class UiTreeFollowsSelectionTests
     [Fact]
     public async Task A_node_the_page_selects_takes_the_cursor()
     {
-        var page = RaskTest.Render(new TreeSelectionHost());
+        var page = Test.Render(new TreeSelectionHost());
 
         // The reader has been somewhere else first, so the cursor is theirs rather than the selection's default.
         await page.On("[role=\"tree\"]").RaiseAsync("keydown", "{\"key\":\"ArrowDown\"}");
@@ -27,7 +27,7 @@ public sealed class UiTreeFollowsSelectionTests
     [Fact]
     public async Task A_node_inside_a_branch_the_page_opens_in_the_same_render_takes_the_cursor()
     {
-        var page = RaskTest.Render(new TreeSelectionHost());
+        var page = Test.Render(new TreeSelectionHost());
         // Without a cursor of the reader's, the tree would start on the selection anyway and prove nothing.
         await page.On("[role=\"tree\"]").RaiseAsync("keydown", "{\"key\":\"End\"}");
 
@@ -39,7 +39,7 @@ public sealed class UiTreeFollowsSelectionTests
     [Fact]
     public async Task A_selection_the_reader_made_leaves_the_cursor_on_the_readers_row()
     {
-        var page = RaskTest.Render(new TreeSelectionHost());
+        var page = Test.Render(new TreeSelectionHost());
 
         await page.On(".ui-tree-row:has-text(\"README.md\")").ClickAsync();
         await page.On("[role=\"tree\"]").RaiseAsync("keydown", "{\"key\":\"Home\"}");

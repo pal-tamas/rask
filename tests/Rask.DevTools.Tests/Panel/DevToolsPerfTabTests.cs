@@ -15,9 +15,9 @@ public sealed class DevToolsPerfTabTests
     private static readonly long Ms = Stopwatch.Frequency / 1000;
 
 #pragma warning disable RASK014 // the tab, its receiver and components made by hand, the way the panel page and a walk would
-    private static RenderedComponent Render(DevToolsFeed feed) => RaskTest.Render(new DevToolsPerfTab { Feed = feed });
+    private static RenderedComponent Render(DevToolsFeed feed) => Test.Render(new DevToolsPerfTab { Feed = feed });
 
-    private static RenderedComponent Receiver(DevToolsFeed feed) => RaskTest.Render(new DevToolsPatchReceiver { Feed = feed });
+    private static RenderedComponent Receiver(DevToolsFeed feed) => Test.Render(new DevToolsPatchReceiver { Feed = feed });
 
     private static Component Child() => new DevToolsTestChild();
 #pragma warning restore RASK014

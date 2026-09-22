@@ -16,7 +16,7 @@ public sealed class ShowcaseLayoutTests
     public void RenderThroughApp_EmitsNavbarSidebarAndBrand()
     {
         var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.GuidesIndexPage() };
-        var html = RaskTest.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
+        var html = Test.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
         // app-navbar and app-brand are hooks the E2E selects on; neither styles anything any more.
         //
@@ -51,7 +51,7 @@ public sealed class ShowcaseLayoutTests
     public void RenderThroughApp_GroupsLinks_UnderGroupToggles()
     {
         var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.GuidesIndexPage() };
-        var html = RaskTest.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
+        var html = Test.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
         // Each group renders a collapsible toggle whose label is the group name. Guides-first, so the
         // guide category groups lead (Overview + Core + Bootstrap + …); the surviving Examples group is Apps.
@@ -75,7 +75,7 @@ public sealed class ShowcaseLayoutTests
         // visible on landing, while the demoted Examples groups stay collapsed so the ~90-item list isn't
         // dumped at once. The five guide groups (Overview + the four categories) are open.
         var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.GuidesIndexPage() };
-        var html = RaskTest.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
+        var html = Test.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
         // A closed group renders NO items element now, where BsCollapse rendered one with .collapse and
         // hid it — so "expanded" is the presence of the container and "collapsed" is its absence. The
@@ -92,7 +92,7 @@ public sealed class ShowcaseLayoutTests
     public void RenderThroughApp_RootPath_MarksAtLeastOneNavLinkActive()
     {
         var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.GuidesIndexPage() };
-        var html = RaskTest.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
+        var html = Test.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
         // The kit's nav item says it is the current page to assistive tech, not only with a class.
         Assert.Matches("class=\"side-nav-link menu-active\"[^>]*aria-current=\"page\"", html);
@@ -174,7 +174,7 @@ public sealed class ShowcaseLayoutTests
         var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.GuidesIndexPage() };
         var services = TestServices.Default(routeState: routeState);
         // One handle across frames: the same App/layout instance re-renders after the path change.
-        var page = RaskTest.Render(new global::Rask.Site.App(), services);
+        var page = Test.Render(new global::Rask.Site.App(), services);
 
         // The "Apps" accordion (Examples section, holding Todos) is collapsed at "/" — only the guide
         // groups auto-open (OpenGuideGroups). Its toggle carries the "open" class only when expanded.

@@ -230,6 +230,6 @@ public partial class UiSelectTests : global::Rask.Core.RaskMarkup
 
     // Handlers only exist inside a live render, so the attribute assertions above need one.
     private static string Live(string _) =>
-        global::Rask.Testing.RaskTest.Render(
+        global::Rask.Testing.Test.Render(
             UiSelect.Value("gb").Options(Countries).Label("Country").Native(false)).Html;
 }

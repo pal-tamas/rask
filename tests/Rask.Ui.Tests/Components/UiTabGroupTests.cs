@@ -141,7 +141,7 @@ public partial class UiTabGroupTests : global::Rask.Core.RaskMarkup
     public async Task Clicking_a_tab_reports_the_name_it_showed()
     {
         string? heard = null;
-        var page = global::Rask.Testing.RaskTest.Render(Group(onSelect: new Callback<string>(n => heard = n)));
+        var page = global::Rask.Testing.Test.Render(Group(onSelect: new Callback<string>(n => heard = n)));
 
         await page.On("[role=\"tab\"][aria-selected=\"false\"]").ClickAsync();
 
@@ -152,7 +152,7 @@ public partial class UiTabGroupTests : global::Rask.Core.RaskMarkup
     public async Task An_uncontrolled_group_keeps_track_itself()
     {
         // A page that does not care which tab is up should not have to hold a field for it.
-        var page = global::Rask.Testing.RaskTest.Render(Group());
+        var page = global::Rask.Testing.Test.Render(Group());
 
         await page.On("[role=\"tab\"][aria-selected=\"false\"]").ClickAsync();
 
@@ -166,7 +166,7 @@ public partial class UiTabGroupTests : global::Rask.Core.RaskMarkup
     {
         // Automatic activation, which is the common tabs pattern and what Flux does. Home and End jump.
         string? heard = null;
-        var page = global::Rask.Testing.RaskTest.Render(Group(onSelect: new Callback<string>(n => heard = n)));
+        var page = global::Rask.Testing.Test.Render(Group(onSelect: new Callback<string>(n => heard = n)));
 
         await page.On("[role=\"tablist\"]").RaiseAsync("keydown", "{\"key\":\"ArrowRight\"}");
         Assert.Equal("history", heard);
@@ -179,7 +179,7 @@ public partial class UiTabGroupTests : global::Rask.Core.RaskMarkup
     public async Task The_arrows_wrap_because_a_tab_row_is_a_ring()
     {
         string? heard = null;
-        var page = global::Rask.Testing.RaskTest.Render(Group(onSelect: new Callback<string>(n => heard = n)));
+        var page = global::Rask.Testing.Test.Render(Group(onSelect: new Callback<string>(n => heard = n)));
 
         // Left from the first tab lands on the last, rather than stopping dead.
         await page.On("[role=\"tablist\"]").RaiseAsync("keydown", "{\"key\":\"ArrowLeft\"}");

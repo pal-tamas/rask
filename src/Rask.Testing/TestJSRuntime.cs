@@ -10,7 +10,7 @@ public readonly record struct JSCall(string Identifier, object?[]? Args);
 /// <summary>
 ///     An <see cref="IJSRuntime" /> for tests: it records every call and returns whatever you configure,
 ///     so a component that injects <c>IJSRuntime</c> can be unit-tested without a browser. Register it in
-///     the provider you pass to <see cref="RaskTest.Render{T}(T, IServiceProvider)" />, drive the component,
+///     the provider you pass to <see cref="Test.Render{T}(T, IServiceProvider)" />, drive the component,
 ///     then assert on the calls it made.
 /// </summary>
 /// <remarks>

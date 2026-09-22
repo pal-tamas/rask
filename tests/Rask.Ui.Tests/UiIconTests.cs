@@ -61,7 +61,7 @@ public sealed class UiIconTests
     }
 
     private static string Html(UiIconName name, string? cls) =>
-        RaskTest.Render(new Host { IconName = name, IconClass = cls }).Html;
+        Test.Render(new Host { IconName = name, IconClass = cls }).Html;
 
     private static string ClassOf(UiIconName name, string? cls) =>
         Regex.Match(Html(name, cls), "class=\"([^\"]*)\"").Groups[1].Value;

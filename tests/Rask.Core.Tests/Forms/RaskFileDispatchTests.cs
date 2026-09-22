@@ -19,7 +19,7 @@ public partial class RaskFileDispatchTests : global::Rask.Core.RaskMarkup
         IReadOnlyList<RaskFile>? received = null;
         Action<IReadOnlyList<RaskFile>> handler = files => received = files;
 
-        var page = RaskTest.Render(() => Input.Value<string>(null).OnFiles(handler), services);
+        var page = Test.Render(() => Input.Value<string>(null).OnFiles(handler), services);
 
         var ok = await page.TryInvokeAsync("h0", """
                                                  { "id": "h0", "type": "files", "files": [
@@ -51,7 +51,7 @@ public partial class RaskFileDispatchTests : global::Rask.Core.RaskMarkup
             return Task.CompletedTask;
         };
 
-        var page = RaskTest.Render(() => Input.Value<string>(null).OnFiles(handler), services);
+        var page = Test.Render(() => Input.Value<string>(null).OnFiles(handler), services);
 
         await page.InvokeAsync("h0", """
                                      { "id": "h0", "type": "files", "files": [
@@ -67,7 +67,7 @@ public partial class RaskFileDispatchTests : global::Rask.Core.RaskMarkup
     public void Input_Emits_DataRaskOnFiles_Attribute_When_OnFiles_Set()
     {
         Action<IReadOnlyList<RaskFile>> handler = _ => { };
-        var html = RaskTest.Render(() => Input.Value<string>(null).Type(InputType.File).OnFiles(handler)).Html;
+        var html = Test.Render(() => Input.Value<string>(null).Type(InputType.File).OnFiles(handler)).Html;
         Assert.Contains("data-rask-on-files=", html);
         Assert.Contains("type=\"file\"", html);
     }

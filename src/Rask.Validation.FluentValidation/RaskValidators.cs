@@ -112,7 +112,7 @@ public static class RaskValidators
             throw new InvalidOperationException(
                 $"A validator needs '{typeof(T)}' from dependency injection, but this form was rendered "
                 + "with no service provider. Render it through a host that has one, or pass a provider "
-                + "to RaskTest.Render(...) in a unit test.");
+                + "to Test.Render(...) in a unit test.");
         }
 
         if (services.GetService(typeof(T)) is not T service)

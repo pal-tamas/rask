@@ -2,7 +2,7 @@
 
 namespace Rask.Testing.Tests;
 
-// #555: RaskTest.Render wraps the component under test in a forwarding root, and RenderAsLiveRootCore
+// #555: Test.Render wraps the component under test in a forwarding root, and RenderAsLiveRootCore
 // fires the lifecycle on the ROOT only — so the component itself was rendered but never mounted. Mount
 // and Mount never ran, which left anything that loads asynchronously stuck on its placeholder
 // forever and pushed coverage that belongs in a unit test out to E2E. These pin the mount, the repaint
@@ -32,7 +32,7 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
     public void RenderComponent_MountsIt()
     {
         var probe = new Probe();
-        RaskTest.Render(probe);
+        Test.Render(probe);
 
         Assert.Contains("OnMount", probe.Calls);
     }
@@ -41,7 +41,7 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
     public void RenderComponent_MountsItExactlyOnce_AcrossReRenders()
     {
         var probe = new Probe();
-        var page = RaskTest.Render(probe);
+        var page = Test.Render(probe);
         page.Render();
         page.Render();
 
@@ -55,7 +55,7 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
         // Mounting is only half of it: adoption is what puts the component in the root's child map, which
         // is what CollectAlive walks. Without it the component is invisible to OnFirstRendered, OnRendered and OnUnmount.
         var probe = new Probe();
-        RaskTest.Render(probe);
+        Test.Render(probe);
 
         Assert.Equal(["OnMount", "OnFirstRendered", "OnRendered"], probe.Calls);
     }
@@ -65,7 +65,7 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
     {
         var probe = new Probe();
         var show = true;
-        var page = RaskTest.Render(() => show ? probe : null);
+        var page = Test.Render(() => show ? probe : null);
         Assert.Contains("probe", page.Html);
 
         show = false;
@@ -93,7 +93,7 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task WaitForAsync_SeesTheResultOfAnAsynchronousMount()
     {
-        var page = RaskTest.Render(new SlowLoader());
+        var page = Test.Render(new SlowLoader());
 
         // The placeholder is what the old harness returned forever.
         Assert.Contains("placeholder", page.Html);
@@ -114,7 +114,7 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
     {
         // A wait that fails should show what the component actually rendered — "it timed out" alone sends
         // you back to add the print statement the failure could have carried.
-        var page = RaskTest.Render(new Stuck());
+        var page = Test.Render(new Stuck());
 
         var timeout = await Assert.ThrowsAsync<TimeoutException>(() =>
             page.WaitForAsync("never appears", TimeSpan.FromMilliseconds(50)));
@@ -148,7 +148,7 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void AStateChangeRaisedDuringTheWalk_IsQueuedAndDrainedRatherThanReentered()
     {
-        var page = RaskTest.Render(new SignalsAfterItsFirstRender());
+        var page = Test.Render(new SignalsAfterItsFirstRender());
 
         // "after" is only in the markup if the queued render actually ran; reaching the assertion at all
         // is the other half — the inline answer threw out of the walk.
@@ -175,7 +175,7 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
         // The guarantee RenderedComponent<T>.Instance documents. Adoption deliberately bypasses
         // GetOrCreateChild, whose reuse branch would make the instance subject to the positional cache.
         var counter = new Counter();
-        var page = RaskTest.Render(counter);
+        var page = Test.Render(counter);
         page.Render();
         page.Render();
 
@@ -188,7 +188,7 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
     {
         // The other half of that choice: GetOrCreateChild's reuse branch nulls Children, which would
         // delete a caller-built subtree on the second render.
-        var page = RaskTest.Render(Div[Span["kept"]]);
+        var page = Test.Render(Div[Span["kept"]]);
         page.Render();
         page.Render();
 

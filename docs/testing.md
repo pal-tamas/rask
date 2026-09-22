@@ -28,7 +28,7 @@ public sealed partial class Counter : Component
 [Fact]
 public async Task Clicking_increments()
 {
-    var page = RaskTest.Render(new Counter());     // renders + wires event handlers
+    var page = Test.Render(new Counter());     // renders + wires event handlers
     Assert.Contains("Count: 0", page.Html);
 
     await page.ClickAsync();                        // dispatch the click handler, then re-render
@@ -36,29 +36,29 @@ public async Task Clicking_increments()
 }
 ```
 
-- **`RaskTest.Render(component, services?)`** → a `RenderedComponent`. Pass an `IServiceProvider` when the
+- **`Test.Render(component, services?)`** → a `RenderedComponent`. Pass an `IServiceProvider` when the
   component constructor-injects framework services or your own registrations.
-- **`RaskTest.Render(factory, services?)`** — renders the component the factory returns, re-running the
+- **`Test.Render(factory, services?)`** — renders the component the factory returns, re-running the
   factory on **every** render so the tree is rebuilt from your current state. Reach for this whenever a
   re-render should see changed props; the `component` overload renders one fixed instance, so a tree you
   build at the call site keeps the values it was built with:
 
   ```csharp
   var model = new OrderModel();
-  var page = RaskTest.Render(() => Form.Model(model)[Input.Bind(() => model.Name)]);
+  var page = Test.Render(() => Form.Model(model)[Input.Bind(() => model.Name)]);
 
   await page.InputAsync("{\"value\":\"Ada\"}");   // the next render rebuilds the form from `model`
   ```
 
   Returning `null` renders nothing, and drives the component it stops returning through its unmount path.
-- **`RaskTest.RenderDocument(app, services?)`** — renders the component the way a host does, with the
+- **`Test.RenderDocument(app, services?)`** — renders the component the way a host does, with the
   whole document composed around it, so you can assert on the **page**: the doctype, `<html lang>`, the
   `<head>` every mounted component contributed to, `<body class>`. Reach for it only when the page is
   what you're asserting about — `Render` adds no markup of its own, which is what keeps an assertion
   about a component from quietly becoming an assertion about a page.
 
   ```csharp
-  var page = RaskTest.RenderDocument(new App, services);
+  var page = Test.RenderDocument(new App, services);
   Assert.StartsWith("<!DOCTYPE html>", page.Html);
   Assert.Contains("<html lang=\"en\">", page.Html);
   Assert.Contains(">My app</title>", page.Html);   // head tags carry a dedupe key attribute
@@ -71,7 +71,7 @@ public async Task Clicking_increments()
   markup yet when `Render` returns.
 
   ```csharp
-  var page = RaskTest.Render(new OrdersPage(store), services);
+  var page = Test.Render(new OrdersPage(store), services);
   await page.WaitForAsync("2 orders");        // rather than a fixed delay
   ```
 
@@ -93,7 +93,7 @@ public async Task Clicking_increments()
   one of several same-event elements — a grid's sort headers, a list's row buttons:
 
   ```csharp
-  var grid = RaskTest.Render(() => BsDataGrid<Row>(Data: rows, Columns: columns));
+  var grid = Test.Render(() => BsDataGrid<Row>(Data: rows, Columns: columns));
 
   await grid.InvokeAsync(grid.HandlerIds("click")[1]);   // click the second sortable header
   ```
@@ -112,7 +112,7 @@ var js = new TestJSRuntime();
 js.SetResponse("raskApi.clipboard.read", "hello");
 var services = new ServiceCollection().AddSingleton<IJSRuntime>(js).BuildServiceProvider();
 
-var page = RaskTest.Render(new Copier(), services);
+var page = Test.Render(new Copier(), services);
 await page.ClickAsync();
 
 Assert.Equal(["hello"], js.ArgsFor("raskApi.clipboard.write"));
@@ -130,7 +130,7 @@ that host half. `TestFileBackend` is it — stage the bytes, register it, pick t
 var files = new TestFileBackend();
 var picked = files.Add("notes.txt", "hello world", "text/plain");
 
-var page = RaskTest.Render(new UploadPage(), TestServiceProvider.With<IBrowserFileBackend>(files));
+var page = Test.Render(new UploadPage(), TestServiceProvider.With<IBrowserFileBackend>(files));
 await page.On("#picker").FilesAsync(picked);
 
 Assert.Equal("notes.txt", page.TextOf("[data-testid=name]"));
@@ -158,7 +158,7 @@ slot, so a component holding a `RaskFile` past the handler is holding something 
 
 ### Handing a component its services
 
-`RaskTest.Render` takes any `IServiceProvider`, and `Rask.Testing` depends on no DI container. `TestServiceProvider`
+`Test.Render` takes any `IServiceProvider`, and `Rask.Testing` depends on no DI container. `TestServiceProvider`
 is the one-liner for the common case of one or two services:
 
 ```csharp
@@ -177,9 +177,9 @@ Validation state (messages, `IsModified`, `IsValidating`) never reaches the mark
 
 ```csharp
 EditContext? ctx = null;
-var page = RaskTest.Render(() => Form.Model(model)[
+var page = Test.Render(() => Form.Model(model)[
     Input.Bind(() => model.Name),
-    RaskTest.EditContextProbe(c => ctx = c)
+    Test.EditContextProbe(c => ctx = c)
 ]);
 
 await page.InputAsync("{\"value\":\"Ada\"}");
@@ -207,7 +207,7 @@ handler-dispatch seam it covers. Plain attribute lookups are `Markup.Attr(html, 
 
 - **`RenderHarness`** — `Render<T>(component, services)` begins a `LiveRenderContext`, resolves the
   component, and fires `NotifyParameters`; `EmptyServices()` builds an empty `IServiceProvider` for
-  components that need no registrations. (`RaskTest`'s default provider resolves *nothing*, by design,
+  components that need no registrations. (`Test`'s default provider resolves *nothing*, by design,
   so the package takes no DI dependency — these are different tools, not duplicates.)
 - **`MarkupAssert`** — the asserting/live-payload lookups: `RequireAttr`, `SessionId`,
   `FirstHandlerId(html)` and `FirstHandlerId(byte[] jsonPayload)`.
@@ -393,10 +393,10 @@ Assert.Contains("Hello, world!", html);
 
 That renders the root exactly as written — its body content, with no document around it. When the
 assertion is about the *page* (the doctype, `<html lang>`, what landed in `<head>`), render the root
-through `RaskTest.RenderDocument` instead, which composes the document the way a host does:
+through `Test.RenderDocument` instead, which composes the document the way a host does:
 
 ```csharp
-var html = RaskTest.RenderDocument(new App, TestServiceProvider.Default(routeState: routeState)).Html;
+var html = Test.RenderDocument(new App, TestServiceProvider.Default(routeState: routeState)).Html;
 Assert.StartsWith("<!DOCTYPE html>", html);
 ```
 

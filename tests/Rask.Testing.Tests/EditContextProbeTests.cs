@@ -17,9 +17,9 @@ public partial class EditContextProbeTests : global::Rask.Core.RaskMarkup
         EditContext? captured = null;
         var model = new Model();
 
-        RaskTest.Render(() => Form.Model(model)[
+        Test.Render(() => Form.Model(model)[
             Input.Bind(() => model.Name),
-            RaskTest.EditContextProbe(c => captured = c)
+            Test.EditContextProbe(c => captured = c)
         ]);
 
         Assert.NotNull(captured);
@@ -30,8 +30,8 @@ public partial class EditContextProbeTests : global::Rask.Core.RaskMarkup
     {
         var model = new Model();
 
-        var page = RaskTest.Render(() => Form.Model(model)[RaskTest.EditContextProbe(_ => { })]);
-        var withoutProbe = RaskTest.Render(() => Form.Model(model));
+        var page = Test.Render(() => Form.Model(model)[Test.EditContextProbe(_ => { })]);
+        var withoutProbe = Test.Render(() => Form.Model(model));
 
         Assert.Equal(withoutProbe.Html, page.Html);
     }
@@ -42,9 +42,9 @@ public partial class EditContextProbeTests : global::Rask.Core.RaskMarkup
         EditContext? captured = null;
         var model = new Model();
 
-        var page = RaskTest.Render(() => Form.Model(model)[
+        var page = Test.Render(() => Form.Model(model)[
             Input.Bind(() => model.Name),
-            RaskTest.EditContextProbe(c => captured = c)
+            Test.EditContextProbe(c => captured = c)
         ]);
 
         var name = new FieldIdentifier(model, nameof(Model.Name));
@@ -61,7 +61,7 @@ public partial class EditContextProbeTests : global::Rask.Core.RaskMarkup
     {
         var captured = false;
 
-        RaskTest.Render(() => Div[RaskTest.EditContextProbe(_ => captured = true)]);
+        Test.Render(() => Div[Test.EditContextProbe(_ => captured = true)]);
 
         // There is no ambient context to hand over — placing the probe outside the form is a test bug, and
         // it stays silent rather than inventing a context.
@@ -70,5 +70,5 @@ public partial class EditContextProbeTests : global::Rask.Core.RaskMarkup
 
     [Fact]
     public void Probe_NullCapture_Throws() =>
-        Assert.Throws<ArgumentNullException>(() => RaskTest.EditContextProbe(null!));
+        Assert.Throws<ArgumentNullException>(() => Test.EditContextProbe(null!));
 }
