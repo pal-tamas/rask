@@ -1,0 +1,9 @@
+<Project>
+  <!-- Reaches every app that has Rask.Wire anywhere in its graph — which is every Rask app, since the hosts
+       and the batteries all sit on it — so `3.Seconds` and `50.Megabytes` need nothing imported.
+       NuGet prefers this folder over build/ when a package ships both, so it repeats build/'s own using. -->
+  <ItemGroup>
+    <Using Include="Rask"/>
+    <Using Include="Rask.Wire"/>
+  </ItemGroup>
+</Project>

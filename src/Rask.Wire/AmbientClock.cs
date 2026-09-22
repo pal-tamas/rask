@@ -1,4 +1,4 @@
-namespace Rask.Core;
+namespace Rask;
 
 /// <summary>
 ///     The clock <c>3.Days.Ago</c> and <c>2.Hours.FromNow</c> read: a test's frozen clock when one is in

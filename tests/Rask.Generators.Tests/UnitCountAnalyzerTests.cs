@@ -11,7 +11,7 @@ public class UnitCountAnalyzerTests
 {
     private static string Code(string expression) => $$"""
                                                        using System;
-                                                       using Rask.Core;
+                                                       using Rask;
                                                        namespace Demo;
                                                        public static class Timing
                                                        {

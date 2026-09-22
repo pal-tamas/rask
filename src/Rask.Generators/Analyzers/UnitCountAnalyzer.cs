@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Rask.Generators.Analyzers;
 
-// RASK092 — a unit literal that reads wrong for its count: `2.Hour`, `1.Hours`. Rask.Core.Units gives
+// RASK092 — a unit literal that reads wrong for its count: `2.Hour`, `1.Hours`. Rask.Units gives
 // every whole-number unit a singular and a plural with the same value, so both compile and both are
 // right; only one of them is English. The check looks at a LITERAL count only — `count.Hours` has no
 // count to read — and only at the int units, the ones that have a singular to swap to.
@@ -16,7 +16,7 @@ public sealed class UnitCountAnalyzer : DiagnosticAnalyzer
 {
     public const string ReplacementKey = "Replacement";
 
-    private const string UnitsFullName = "Rask.Core.Units";
+    private const string UnitsFullName = "Rask.Units";
 
     private static readonly DiagnosticDescriptor Rask092 = new(
         "RASK092",
@@ -29,7 +29,7 @@ public sealed class UnitCountAnalyzer : DiagnosticAnalyzer
         + "spellings are the same value; the one that matches its count is the one that reads.",
         DiagnosticHelp.Link("RASK092"));
 
-    // Plural → singular for every unit that has both. Kept in step with Rask.Core.Units.
+    // Plural → singular for every unit that has both. Kept in step with Rask.Units.
     private static readonly ImmutableDictionary<string, string> Singulars =
         ImmutableDictionary.CreateRange(StringComparer.Ordinal, new[]
         {

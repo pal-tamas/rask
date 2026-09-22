@@ -1,4 +1,4 @@
-namespace Rask.Core;
+namespace Rask;
 
 /// <summary>
 ///     Durations and sizes written the way they are said: <c>3.Seconds</c>, <c>1.5.Hours</c>,
