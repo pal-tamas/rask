@@ -183,12 +183,16 @@ public static class Db
     private sealed class ScopeBinding : IDisposable
     {
         private readonly IServiceProvider? _previous;
+        private readonly Ambient.ServicesScope _ambient;
         private bool _disposed;
 
         internal ScopeBinding(IServiceProvider scope)
         {
             _previous = AmbientScope.Value;
             AmbientScope.Value = scope;
+
+            // The same scope, for the batteries' static calls (`Cache.Remember`, `Jobs.Enqueue`).
+            _ambient = Ambient.Enter(scope);
         }
 
         public void Dispose()
@@ -196,6 +200,7 @@ public static class Db
             if (!_disposed)
             {
                 _disposed = true;
+                _ambient.Dispose();
                 AmbientScope.Value = _previous;
             }
         }

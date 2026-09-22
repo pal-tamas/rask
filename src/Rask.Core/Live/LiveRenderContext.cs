@@ -20,6 +20,8 @@ public sealed class LiveRenderContext : IDisposable
     // different thread and must still observe Current / IsActive) — those keep reading _current.
     [ThreadStatic] private static LiveRenderContext? _syncCurrent;
 
+    private static readonly Func<IServiceProvider?> RenderServices = static () => _current.Value?.Services;
+
     private readonly LiveRenderContext? _previousSync;
     private readonly System.Globalization.CultureInfo? _pinnedCulture;
     private readonly System.Globalization.CultureInfo? _pinnedUICulture;
@@ -49,6 +51,11 @@ public sealed class LiveRenderContext : IDisposable
         HeadAssetRegistry headAssets,
         HashSet<Type> mountedTypes)
     {
+        // A static call made while a component renders or mounts — `Cache.Remember(…)` — reaches this
+        // session's services, as one made from a handler does. Set here rather than in a static constructor,
+        // which would cost every hot-path read of this type's statics an initialization check.
+        Ambient.FallbackServices ??= RenderServices;
+
         _root = root;
         _previousEditContexts = previousEditContexts;
         _currentEditContexts = currentEditContexts;

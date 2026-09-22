@@ -256,6 +256,7 @@ public sealed class RaskApp
                 }
 
                 using (Db.UseScope(context.RequestServices))
+                using (Ambient.Enter(context.RequestAborted))
                 {
                     await next(context).ConfigureAwait(false);
                 }

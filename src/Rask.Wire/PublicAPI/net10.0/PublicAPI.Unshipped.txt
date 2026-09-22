@@ -396,3 +396,17 @@ static Rask.Units.get_Seconds(int value) -> System.TimeSpan
 static Rask.Units.get_Week(int value) -> System.TimeSpan
 static Rask.Units.get_Weeks(double value) -> System.TimeSpan
 static Rask.Units.get_Weeks(int value) -> System.TimeSpan
+Rask.Ambient
+Rask.Ambient.ServicesScope
+Rask.Ambient.ServicesScope.Dispose() -> void
+Rask.Ambient.ServicesScope.ServicesScope() -> void
+Rask.Ambient.TokenScope
+Rask.Ambient.TokenScope.Dispose() -> void
+Rask.Ambient.TokenScope.TokenScope() -> void
+static Rask.Ambient.CancellationToken.get -> System.Threading.CancellationToken
+static Rask.Ambient.Enter(System.IServiceProvider? services) -> Rask.Ambient.ServicesScope
+static Rask.Ambient.Enter(System.Threading.CancellationToken token) -> Rask.Ambient.TokenScope
+static Rask.Ambient.FallbackServices.get -> System.Func<System.IServiceProvider?>?
+static Rask.Ambient.FallbackServices.set -> void
+static Rask.Ambient.Or(System.Threading.CancellationToken token) -> System.Threading.CancellationToken
+static Rask.Ambient.Services.get -> System.IServiceProvider?

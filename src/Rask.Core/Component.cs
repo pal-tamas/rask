@@ -2338,6 +2338,11 @@ public abstract partial class Component : RaskMarkup
         using var __linked = linkedCts;
         using var __eventTokenScope = eventTokenScope;
 
+        // The same services and cancellation, for the calls that take neither — `Cache.Remember(…)`,
+        // `await Product.Create(model)`: they are cancelled when this component is, or the handler times out.
+        using var __ambientServices = Ambient.Enter(services);
+        using var __ambientToken = Ambient.Enter(linkedCts?.Token ?? owner.LifetimeToken);
+
         // Match Blazor: every event handler implicitly marks the registering component
         // dirty. Set BEFORE running so intermediate renders inside an async handler
         // (via InvokeWithRenderingAsync) already see the owner as dirty.
