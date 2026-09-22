@@ -16,7 +16,7 @@ public partial class UrlSanitizerTests : global::Rask.Core.RaskMarkup
     [InlineData("java\0script:alert(1)")] // embedded NUL removed before scheme
     [InlineData("vbscript:msgbox(1)")]
     [InlineData("data:text/html,<script>alert(1)</script>")]
-    public void Href_DangerousScheme_NeutralizedToAboutBlank(string url)
+    public void An_href_with_a_dangerous_scheme_is_neutralized_to_about_blank(string url)
     {
         Assert.Equal("<a href=\"about:blank\"></a>", A.Href(url).ToHtml());
     }
@@ -30,51 +30,51 @@ public partial class UrlSanitizerTests : global::Rask.Core.RaskMarkup
     [InlineData("#frag", "#frag")]
     [InlineData("?q=1", "?q=1")]
     [InlineData("relative/path:withcolon", "relative/path:withcolon")] // not a scheme
-    public void Href_SafeUrl_PassesThrough(string url, string expected)
+    public void An_href_with_a_safe_url_passes_through(string url, string expected)
     {
         Assert.Equal($"<a href=\"{expected}\"></a>", A.Href(url).ToHtml());
     }
 
     [Fact]
-    public void IframeSrc_JavascriptScheme_Neutralized() =>
+    public void A_javascript_scheme_iframe_src_is_neutralized() =>
         Assert.Equal("<iframe src=\"about:blank\"></iframe>", Iframe.Src("javascript:alert(1)").ToHtml());
 
     [Fact]
-    public void IframeSrc_DataHtml_Neutralized() =>
+    public void A_data_html_iframe_src_is_neutralized() =>
         Assert.Equal("<iframe src=\"about:blank\"></iframe>", Iframe.Src("data:text/html,<x>").ToHtml());
 
     // --- media attributes allow inline data: for image/video/audio only ---
 
     [Fact]
-    public void ImgSrc_DataImage_PassesThrough() =>
+    public void A_data_image_img_src_passes_through() =>
         Assert.Equal(
             "<img src=\"data:image/png;base64,iVBOR\" />",
             Img.Src("data:image/png;base64,iVBOR").ToHtml());
 
     [Fact]
-    public void ImgSrc_DataSvg_PassesThrough() =>
+    public void A_data_svg_img_src_passes_through() =>
         Assert.Equal(
             "<img src=\"data:image/svg&#x2B;xml,abc\" />", // '+' HTML-encoded
             Img.Src("data:image/svg+xml,abc").ToHtml());
 
     [Fact]
-    public void ImgSrc_DataHtml_Neutralized() =>
+    public void A_data_html_img_src_is_neutralized() =>
         Assert.Equal("<img src=\"about:blank\" />", Img.Src("data:text/html,<x>").ToHtml());
 
     [Fact]
-    public void ImgSrc_Javascript_Neutralized() =>
+    public void A_javascript_img_src_is_neutralized() =>
         Assert.Equal("<img src=\"about:blank\" />", Img.Src("javascript:alert(1)").ToHtml());
 
     // --- RaskUrl.Trusted opt-out round-trips verbatim (still HTML-encoded) ---
 
     [Fact]
-    public void Href_Trusted_BypassesSanitization() =>
+    public void A_trusted_href_bypasses_sanitization() =>
         Assert.Equal(
             "<a href=\"javascript:void(0)\"></a>",
             A.Href(RaskUrl.Trusted("javascript:void(0)")).ToHtml());
 
     [Fact]
-    public void Href_Trusted_StillHtmlEncoded() =>
+    public void A_trusted_href_is_still_html_encoded() =>
         Assert.Equal(
             "<a href=\"/x?a=1&amp;b=2\"></a>",
             A.Href(RaskUrl.Trusted("/x?a=1&b=2")).ToHtml());
@@ -82,11 +82,11 @@ public partial class UrlSanitizerTests : global::Rask.Core.RaskMarkup
     // --- value still HTML-encoded after sanitization (no attribute breakout) ---
 
     [Fact]
-    public void Href_QuoteInSafeUrl_Encoded() =>
+    public void A_quote_in_a_safe_url_href_is_encoded() =>
         Assert.Equal(
             "<a href=\"/a&quot;b\"></a>",
             A.Href("/a\"b").ToHtml());
 
     [Fact]
-    public void NullHref_OmitsAttribute() => Assert.Equal("<a></a>", A.ToHtml());
+    public void A_null_href_omits_the_attribute() => Assert.Equal("<a></a>", A.ToHtml());
 }

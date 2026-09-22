@@ -115,10 +115,12 @@ public class CultureNegotiationEndpointTests
 
         host.Http.DefaultRequestHeaders.AcceptLanguage.Add(new StringWithQualityHeaderValue("ar"));
         var arabic = await host.Http.GetStringAsync("/");
+
         Assert.Contains("dir=\"rtl\"", arabic, StringComparison.Ordinal);
 
         using var latin = Host();
         latin.Http.DefaultRequestHeaders.AcceptLanguage.Add(new StringWithQualityHeaderValue("hu"));
+
         Assert.DoesNotContain("dir=", await latin.Http.GetStringAsync("/"), StringComparison.Ordinal);
     }
 
@@ -126,6 +128,7 @@ public class CultureNegotiationEndpointTests
     public async Task The_response_declares_what_it_varied_on()
     {
         using var host = Host();
+
         var response = await host.Http.GetAsync("/");
 
         var vary = string.Join(",", response.Headers.Vary);

@@ -953,7 +953,7 @@ public class ModelInputGeneratorTests
     [Theory]
     [InlineData("Deletion.Hard")]
     [InlineData("Deletion.Soft")]
-    public void Deletion_Hard_and_Soft_keep_DeleteAsync(string deletes)
+    public void Hard_and_soft_deletion_both_keep_the_generated_DeleteAsync(string deletes)
     {
         var run = Run($$"""
             using System;

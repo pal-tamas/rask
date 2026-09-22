@@ -6,7 +6,7 @@ namespace Rask.Wasm.Tests.Browser;
 public class MediaDevicesTests
 {
     [Fact]
-    public async Task IsSupported_CallsHelper()
+    public async Task Support_is_asked_of_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskMedia.isSupported", true);
@@ -15,7 +15,7 @@ public class MediaDevicesTests
     }
 
     [Fact]
-    public async Task Enumerate_ReturnsDevices()
+    public async Task Enumerating_returns_the_devices()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskMedia.enumerate", new[]
@@ -30,7 +30,7 @@ public class MediaDevicesTests
     }
 
     [Fact]
-    public async Task GetUserMedia_PassesConstraints_AndReturnsHandle()
+    public async Task Getting_user_media_passes_the_constraints_and_returns_a_handle()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskMedia.getUserMedia", 5);
@@ -43,7 +43,7 @@ public class MediaDevicesTests
     }
 
     [Fact]
-    public async Task GetDisplayMedia_ReturnsHandle()
+    public async Task Getting_display_media_returns_a_handle()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskMedia.getDisplayMedia", 7);
@@ -54,7 +54,7 @@ public class MediaDevicesTests
     }
 
     [Fact]
-    public async Task Attach_PassesIdAndElementRef()
+    public async Task Attaching_passes_the_id_and_the_element_ref()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskMedia.getUserMedia", 9);
@@ -67,7 +67,7 @@ public class MediaDevicesTests
     }
 
     [Fact]
-    public async Task Stop_PassesId_AndIsIdempotent()
+    public async Task Stopping_passes_the_id_and_happens_only_once()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskMedia.getUserMedia", 3);
@@ -81,7 +81,7 @@ public class MediaDevicesTests
     }
 
     [Fact]
-    public async Task Dispose_StopsTracks_Once()
+    public async Task Disposing_stops_the_tracks_once()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskMedia.getUserMedia", 4);
@@ -94,14 +94,15 @@ public class MediaDevicesTests
     }
 
     [Fact]
-    public async Task GetUserMedia_NullConstraints_Throws()
+    public async Task Getting_user_media_with_null_constraints_throws()
     {
         var svc = new MediaDevices(new FakeJsRuntime());
+
         await Assert.ThrowsAsync<ArgumentNullException>(async () => await svc.GetUserMediaAsync(null!));
     }
 
     [Fact]
-    public async Task Attach_NullVideo_Throws()
+    public async Task Attaching_to_a_null_video_throws()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskMedia.getUserMedia", 1);

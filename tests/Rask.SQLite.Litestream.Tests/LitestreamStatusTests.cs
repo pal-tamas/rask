@@ -70,7 +70,6 @@ public sealed class LitestreamStatusTests
         Assert.Equal(7, current.LastExitCode);
         Assert.Null(current.LastError);          // it exited, it did not fail to launch
         Assert.NotNull(current.LastExitedAt);
-
         // Each crash-and-restart is counted, so a flapping backup is visible as a climbing number.
         Assert.True(current.RestartCount >= 2, $"expected restarts to be counted, got {current.RestartCount}.");
     }

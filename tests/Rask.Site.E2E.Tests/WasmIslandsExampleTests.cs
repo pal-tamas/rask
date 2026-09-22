@@ -24,7 +24,7 @@ public sealed class WasmIslandsExampleTests(WasmExampleAppFixture app, Playwrigh
     protected override string ServerLog => app.ServerLog;
 
     [Fact]
-    public Task EveryRuntimeMountsAndTakesItsCSharpProps() => RunAsync(async () =>
+    public Task Every_runtime_mounts_and_takes_its_CSharp_props() => RunAsync(async () =>
     {
         await Page.GotoAsync(Docs + "/islands");
         // Prerendered: the islands are on screen before the runtime exists, so a callback fired
@@ -83,7 +83,7 @@ public sealed class WasmIslandsExampleTests(WasmExampleAppFixture app, Playwrigh
     });
 
     [Fact]
-    public Task AVueCallbackReEntersCSharpThroughThisTabsRuntime() => RunAsync(async () =>
+    public Task A_Vue_callback_re_enters_CSharp_through_this_tabs_runtime() => RunAsync(async () =>
     {
         // The assertion this suite exists for. On the Server host the same click travels over the live
         // WebSocket; here there is no socket at all, and the handler id has to come back through
@@ -104,7 +104,7 @@ public sealed class WasmIslandsExampleTests(WasmExampleAppFixture app, Playwrigh
     });
 
     [Fact]
-    public Task APropChangeReconcilesRatherThanRemounting() => RunAsync(async () =>
+    public Task A_prop_change_reconciles_rather_than_remounting() => RunAsync(async () =>
     {
         await Page.GotoAsync(Docs + "/islands");
         // Prerendered: the islands are on screen before the runtime exists, so a callback fired
@@ -136,7 +136,7 @@ public sealed class WasmIslandsExampleTests(WasmExampleAppFixture app, Playwrigh
     ///     the live node — so "did not remount" is a claim about the adapter, not about a framework.
     /// </remarks>
     [Fact]
-    public Task ALitCallbackReEntersCSharpAndTheElementKeepsItsOwnState() => RunAsync(async () =>
+    public Task A_Lit_callback_re_enters_CSharp_and_the_element_keeps_its_own_state() => RunAsync(async () =>
     {
         await Page.GotoAsync(Docs + "/islands");
         await WaitForInteractiveAsync();
@@ -165,7 +165,7 @@ public sealed class WasmIslandsExampleTests(WasmExampleAppFixture app, Playwrigh
     ///     same position, so the DOM node C# re-rendered around is the one that was there before.
     /// </remarks>
     [Fact]
-    public Task APackageIslandNestedInAReactIslandCallsBackIntoCSharp() => RunAsync(async () =>
+    public Task A_package_island_nested_in_a_React_island_calls_back_into_CSharp() => RunAsync(async () =>
     {
         await Page.GotoAsync(Docs + "/islands");
         await WaitForInteractiveAsync();

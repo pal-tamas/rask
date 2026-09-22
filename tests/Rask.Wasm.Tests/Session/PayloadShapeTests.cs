@@ -10,7 +10,7 @@ namespace Rask.Wasm.Tests.Session;
 public class PayloadShapeTests() : ResettingTestBase(LiveDiffMode.DisabledFull)
 {
     [Fact]
-    public async Task InitialRender_AlwaysIncludesDataRaskRootEqualsWasm()
+    public async Task The_initial_render_always_includes_data_rask_root_equal_to_wasm()
     {
         var (session, _) = NewSession(diffMode: DiffMode);
 
@@ -22,7 +22,7 @@ public class PayloadShapeTests() : ResettingTestBase(LiveDiffMode.DisabledFull)
     }
 
     [Fact]
-    public async Task InitialRender_NoCssRegistered_DoesNotIncludeCssText()
+    public async Task With_no_CSS_registered_the_initial_render_carries_no_cssText()
     {
         var (session, _) = NewSession(diffMode: DiffMode);
 
@@ -33,7 +33,7 @@ public class PayloadShapeTests() : ResettingTestBase(LiveDiffMode.DisabledFull)
     }
 
     [Fact]
-    public async Task InitialRender_FollowedByHandlerDispatch_DoesNotResendCssText_WhenHashUnchanged()
+    public async Task A_dispatch_after_the_initial_render_does_not_resend_cssText_when_the_hash_is_unchanged()
     {
         var (session, _) = NewSession(diffMode: DiffMode);
         var initial = await session.InitialRenderAsync();

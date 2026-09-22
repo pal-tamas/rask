@@ -69,7 +69,6 @@ public sealed class PostgresCacheTests : IAsyncLifetime
 
         var cache = _provider!.GetRequiredService<IDistributedCache>();
         const int writers = 50;
-
         // An awaited gate, not a Barrier: a Barrier parks one thread-pool thread per writer, and the pool injects
         // threads past its minimum at about one a second — fifty writers spent twenty seconds waiting for threads
         // rather than for the database, and arrived staggered rather than together.

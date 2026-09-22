@@ -5,15 +5,15 @@ namespace Rask.Core.Tests.Forms;
 public class FieldIdentifierTests
 {
     [Fact]
-    public void Constructor_NullModel_Throws() =>
+    public void A_null_model_throws() =>
         Assert.Throws<ArgumentNullException>(() => new FieldIdentifier(null!, "X"));
 
     [Fact]
-    public void Constructor_NullFieldName_Throws() =>
+    public void A_null_field_name_throws() =>
         Assert.Throws<ArgumentNullException>(() => new FieldIdentifier(new object(), null!));
 
     [Fact]
-    public void Equals_SameModelReferenceAndFieldName_ReturnsTrue()
+    public void The_same_model_reference_and_field_name_are_equal()
     {
         var m = new Model();
         var a = new FieldIdentifier(m, "Name");
@@ -25,7 +25,7 @@ public class FieldIdentifierTests
     }
 
     [Fact]
-    public void Equals_DifferentInstanceSameValues_ReturnsFalse()
+    public void Different_model_instances_with_the_same_values_are_not_equal()
     {
         var a = new FieldIdentifier(new Model { Name = "x" }, "Name");
         var b = new FieldIdentifier(new Model { Name = "x" }, "Name");
@@ -34,7 +34,7 @@ public class FieldIdentifierTests
     }
 
     [Fact]
-    public void Equals_DifferentFieldName_ReturnsFalse()
+    public void Different_field_names_are_not_equal()
     {
         var m = new Model();
         var a = new FieldIdentifier(m, "Name");
@@ -44,7 +44,7 @@ public class FieldIdentifierTests
     }
 
     [Fact]
-    public void Equals_NonFieldIdentifier_ReturnsFalse()
+    public void A_field_identifier_never_equals_another_kind_of_object()
     {
         var a = new FieldIdentifier(new Model(), "Name");
 
@@ -52,7 +52,7 @@ public class FieldIdentifierTests
     }
 
     [Fact]
-    public void ToString_FormatIs_TypeNameDotFieldName()
+    public void It_prints_as_the_type_name_dot_the_field_name()
     {
         var fid = new FieldIdentifier(new Model(), "Name");
 

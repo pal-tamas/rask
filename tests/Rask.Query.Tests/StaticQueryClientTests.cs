@@ -292,7 +292,12 @@ public class StaticQueryClientTests
 
         Assert.Equal("order 2", query.Data);
         Assert.Equal(QueryKey.For<GetOrders>(2), query.Key);
+
+        // Settle(query) awaited page two's fetch only; page one's is its own task and can still be finishing
+        // here, so wait for it before reading what it cached.
         using var back = client.Query<string>(firstKey, _ => Task.FromResult("refetched"), Keep);
+        await Settle(back);
+
         Assert.Equal("order 1", back.Data);
     }
 

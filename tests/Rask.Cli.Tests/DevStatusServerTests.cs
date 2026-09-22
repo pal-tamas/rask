@@ -83,6 +83,7 @@ public sealed class DevStatusServerTests
         var server = DevStatusServer.TryStart(new DevBuildWatcher());
         Assert.NotNull(server);
         var url = server.Url;
+
         server.Dispose();
 
         using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };

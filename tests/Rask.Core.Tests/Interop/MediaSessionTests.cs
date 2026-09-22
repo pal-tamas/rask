@@ -5,7 +5,7 @@ namespace Rask.Core.Tests.Interop;
 public class MediaSessionTests
 {
     [Fact]
-    public async Task IsSupported_CallsHelper()
+    public async Task Asking_whether_the_media_session_is_supported_calls_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskMediaSession.isSupported", true);
@@ -14,7 +14,7 @@ public class MediaSessionTests
     }
 
     [Fact]
-    public async Task SetMetadata_PassesRecord()
+    public async Task Setting_the_metadata_passes_the_record()
     {
         var js = new FakeJsRuntime();
         var meta = new MediaMetadata
@@ -34,7 +34,7 @@ public class MediaSessionTests
     [InlineData(PlaybackState.Playing, "playing")]
     [InlineData(PlaybackState.Paused, "paused")]
     [InlineData(PlaybackState.None, "none")]
-    public async Task SetPlaybackState_MapsToken(PlaybackState state, string token)
+    public async Task Setting_the_playback_state_maps_the_token(PlaybackState state, string token)
     {
         var js = new FakeJsRuntime();
 
@@ -47,7 +47,7 @@ public class MediaSessionTests
     [InlineData(MediaSessionAction.Play, "play")]
     [InlineData(MediaSessionAction.PreviousTrack, "previoustrack")]
     [InlineData(MediaSessionAction.SeekForward, "seekforward")]
-    public async Task SetActionHandler_RegistersTokenAndRoutes(MediaSessionAction action, string token)
+    public async Task Setting_an_action_handler_registers_the_token_and_routes_to_it(MediaSessionAction action, string token)
     {
         var js = new FakeJsRuntime();
         var fired = 0;
@@ -68,7 +68,7 @@ public class MediaSessionTests
     }
 
     [Fact]
-    public async Task Dispose_RemovesHandler_AndStopsRouting()
+    public async Task Disposing_removes_the_handler_and_stops_routing()
     {
         var js = new FakeJsRuntime();
         var fired = 0;
@@ -87,9 +87,10 @@ public class MediaSessionTests
     }
 
     [Fact]
-    public async Task NullArgs_Throw()
+    public async Task Null_args_throw()
     {
         var svc = new MediaSession(new FakeJsRuntime());
+
         await Assert.ThrowsAsync<ArgumentNullException>(async () => await svc.SetMetadataAsync(null!));
         await Assert.ThrowsAsync<ArgumentNullException>(
             async () => await svc.SetActionHandlerAsync(MediaSessionAction.Play, null!));

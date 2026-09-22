@@ -41,6 +41,7 @@ public partial class BuilderChildrenShapesTests : RaskMarkup
     public void A_concatenated_string_stays_one_text_node()
     {
         var name = "world";
+
         Assert.Equal("<div>hello world</div>", Div["hello " + name].ToHtml());
     }
 
@@ -48,6 +49,7 @@ public partial class BuilderChildrenShapesTests : RaskMarkup
     public void An_interpolated_string_stays_one_text_node()
     {
         var (key, value) = ("k", 1);
+
         Assert.Equal("<div>k=1</div>", Div[$"{key}={value}"].ToHtml());
     }
 
@@ -56,18 +58,19 @@ public partial class BuilderChildrenShapesTests : RaskMarkup
         Assert.Equal("<div>a, b</div>", Div[string.Join(", ", ["a", "b"])].ToHtml());
 
     [Fact]
-    public void Heterogeneous_literals() =>
+    public void Heterogeneous_literals_are_accepted_as_children() =>
         Assert.Equal("<div>Score: 42</div>", Div["Score: ", 42].ToHtml());
 
     [Fact]
     public void A_prebuilt_sequence_of_components()
     {
         IEnumerable<Component?> kids = [Span["a"], Span["b"]];
+
         Assert.Equal("<div><span>a</span><span>b</span></div>", Div[kids].ToHtml());
     }
 
     [Fact]
-    public void A_projection_that_ENDS_AT_AN_INDEXER_was_always_fine() =>
+    public void A_projection_that_ends_at_an_INDEXER_was_always_fine() =>
         Assert.Equal(
             "<div><span data-rask-key=\"a\">a</span><span data-rask-key=\"b\">b</span></div>",
             Div[new[] { "a", "b" }.Select(s => Span.Key(s)[s])].ToHtml());
@@ -76,13 +79,14 @@ public partial class BuilderChildrenShapesTests : RaskMarkup
     public void A_null_child_renders_nothing_so_a_conditional_needs_no_placeholder()
     {
         Component? absent = null;
+
         Assert.Equal("<div><span>a</span></div>", Div[Span["a"], absent].ToHtml());
     }
 
     // ---- Group 2: what the loose overload adds ----------------------------------------------
 
     [Fact]
-    public void A_projection_of_chains_ENDING_AT_A_STEP() =>
+    public void A_projection_of_chains_ending_at_a_STEP_is_accepted() =>
         Assert.Equal(
             "<div><em data-rask-key=\"a\">a</em><em data-rask-key=\"b\">b</em></div>",
             Div[new[] { "a", "b" }.Select(s => CatalogBadge.Key(s).Label(s))].ToHtml());
@@ -98,6 +102,7 @@ public partial class BuilderChildrenShapesTests : RaskMarkup
     {
         IEnumerable<Component?> head = [Span["h"]];
         IEnumerable<Component?> tail = [Span["t"]];
+
         Assert.Equal("<div><span>h</span><em data-rask-key=\"x\">x</em><span>t</span></div>",
             Div[head, new[] { "x" }.Select(s => CatalogBadge.Key(s).Label(s)), tail].ToHtml());
     }
@@ -106,6 +111,7 @@ public partial class BuilderChildrenShapesTests : RaskMarkup
     public void A_nested_projection_flattens_so_SelectMany_is_optional()
     {
         string[][] groups = [["a", "b"], ["c"]];
+
         Assert.Equal(
             "<div><em data-rask-key=\"a\">a</em><em data-rask-key=\"b\">b</em><em data-rask-key=\"c\">c</em></div>",
             Div[groups.Select(g => g.Select(s => CatalogBadge.Key(s).Label(s)))].ToHtml());
@@ -125,6 +131,7 @@ public partial class BuilderChildrenShapesTests : RaskMarkup
     public void A_null_alongside_a_projection_still_renders_nothing()
     {
         Component? absent = null;
+
         Assert.Equal(
             "<div><em data-rask-key=\"a\">a</em></div>",
             Div[absent, new[] { "a" }.Select(s => CatalogBadge.Key(s).Label(s))].ToHtml());

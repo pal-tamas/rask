@@ -13,7 +13,7 @@ namespace Rask.Testing.Tests;
 /// <remarks>
 ///     xUnit parallelises across CLASSES, and <c>CapturingDiagnostics.Install()</c> swaps a global. Two
 ///     classes overlapping means one test's captures land in the other's list and the first sees an empty
-///     collection — which is what <c>CapturingDiagnostics_SeesAFaultTheFrameworkSwallowed</c> did under a
+///     collection — which is what <c>CapturingDiagnostics_sees_a_fault_the_framework_swallowed</c> did under a
 ///     loaded full-suite run while passing every time on its own. Waiting longer cannot fix it: the
 ///     diagnostic was never going to arrive in that list.
 /// </remarks>
@@ -43,7 +43,7 @@ public class TestingSurfaceTests
     }
 
     [Fact]
-    public async Task ClickAsync_TargetsTheNamedElement_NotTheFirstHandlerInTheDocument()
+    public async Task A_targeted_click_hits_the_named_element_not_the_first_handler_in_the_document()
     {
         var page = Test.Render(new Toolbar());
 
@@ -56,7 +56,7 @@ public class TestingSurfaceTests
     }
 
     [Fact]
-    public void HandlerIdFor_SaysWhatTheElementIsActuallyWiredTo()
+    public void HandlerIdFor_says_what_the_element_is_actually_wired_to()
     {
         var page = Test.Render(new Toolbar());
 
@@ -78,13 +78,13 @@ public class TestingSurfaceTests
     }
 
     [Fact]
-    public async Task TestDownloadSink_RecordsWhatTheComponentStaged()
+    public async Task TestDownloadSink_records_what_the_component_staged()
     {
         var downloads = new TestDownloadSink();
         var navigator = TestRoute.NavigatorFor(TestRoute.At("/orders"), downloads);
         var services = new ServiceCollection().AddSingleton(navigator).BuildServiceProvider();
-
         var page = Test.Render(new ExportPage(navigator), services);
+
         await page.On("#export").ClickAsync();
 
         var file = Assert.Single(downloads.Staged);
@@ -94,7 +94,7 @@ public class TestingSurfaceTests
     }
 
     [Fact]
-    public void TestDownloadSink_HandsThemBackTheWayARealSinkDoes()
+    public void TestDownloadSink_hands_them_back_the_way_a_real_sink_does()
     {
         var sink = new TestDownloadSink();
         sink.Stage("a.txt", "one"u8.ToArray(), "text/plain");
@@ -112,7 +112,7 @@ public class TestingSurfaceTests
     // ---- route + query seeding ----
 
     [Fact]
-    public void TestRoute_ParsesAndDecodesTheQueryString()
+    public void TestRoute_parses_and_decodes_the_query_string()
     {
         var state = TestRoute.At("/search?q=hello%20world&page=2");
 
@@ -122,7 +122,7 @@ public class TestingSurfaceTests
     }
 
     [Fact]
-    public void TestRoute_KeepsEveryValueOfARepeatedKey()
+    public void TestRoute_keeps_every_value_of_a_repeated_key()
     {
         // What a multi-select or a checkbox group produces. Overwriting would make a page that reads all
         // of them look broken in a test and fine in a browser.
@@ -132,7 +132,7 @@ public class TestingSurfaceTests
     }
 
     [Fact]
-    public void TestRoute_AddsTheLeadingSlash_SoBothSpellingsWork()
+    public void TestRoute_adds_the_leading_slash_so_both_spellings_work()
     {
         Assert.Equal("/orders", TestRoute.At("orders").Path);
     }
@@ -140,7 +140,7 @@ public class TestingSurfaceTests
     // ---- a JS runtime that says when it dropped your value ----
 
     [Fact]
-    public async Task TestJSRuntime_StillReturnsDefault_WhenNothingIsConfigured()
+    public async Task TestJSRuntime_still_returns_default_when_nothing_is_configured()
     {
         var js = new TestJSRuntime();
 
@@ -148,7 +148,7 @@ public class TestingSurfaceTests
     }
 
     [Fact]
-    public async Task TestJSRuntime_ThrowsWhenTheCannedValueIsTheWrongType()
+    public async Task TestJSRuntime_throws_when_the_canned_value_is_the_wrong_type()
     {
         // The trap #610 named: SetResponse stores the value boxed, and a boxed int is not a long — so this
         // used to return 0, indistinguishable from "not configured", and the test read as though the
@@ -183,7 +183,7 @@ public class TestingSurfaceTests
         e.Level == DiagnosticLevel.Error && e.Exception?.Message == "boom";
 
     [Fact]
-    public async Task CapturingDiagnostics_SeesAFaultTheFrameworkSwallowed()
+    public async Task CapturingDiagnostics_sees_a_fault_the_framework_swallowed()
     {
         using var diagnostics = CapturingDiagnostics.Install();
 
@@ -197,7 +197,7 @@ public class TestingSurfaceTests
     }
 
     [Fact]
-    public async Task CapturingDiagnostics_DisposedOutOfOrder_DoesNotUnhookOneStillInUse()
+    public async Task A_CapturingDiagnostics_disposed_out_of_order_does_not_unhook_one_still_in_use()
     {
         // xUnit runs test classes in parallel, so two of these are routinely installed at once and are
         // disposed in whatever order their tests finish. While the sink was a single slot saved and
@@ -217,9 +217,10 @@ public class TestingSurfaceTests
     }
 
     [Fact]
-    public async Task CapturingDiagnostics_RestoresThePreviousSinkOnDispose()
+    public async Task CapturingDiagnostics_restores_the_previous_sink_on_dispose()
     {
         var before = CapturingDiagnostics.Install();
+
         before.Dispose();
 
         // Nothing observable to assert on directly — the sink is internal — so assert the property that

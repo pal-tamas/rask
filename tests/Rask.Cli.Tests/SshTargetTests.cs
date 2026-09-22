@@ -87,7 +87,7 @@ public class SshTargetTests
     [InlineData("user@box")]
     [InlineData("user@box:2222")]
     [InlineData("user@[::1]:2222")]
-    public void ToString_round_trips_the_stored_form(string value) =>
+    public void A_target_prints_back_the_stored_form_it_was_parsed_from(string value) =>
         Assert.Equal(value, SshTarget.Parse(value).ToString());
 
     [Fact]

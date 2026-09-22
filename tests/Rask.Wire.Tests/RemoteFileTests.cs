@@ -5,7 +5,7 @@ namespace Rask.Wire.Tests;
 public sealed class RemoteFileTests
 {
     [Fact]
-    public void FromStream_opens_the_source_lazily_and_only_when_read()
+    public void A_file_from_a_stream_opens_the_source_lazily_and_only_when_read()
     {
         var opened = 0;
         var file = RemoteFile.FromStream("a.txt", "text/plain", 3, _ =>
@@ -23,7 +23,7 @@ public sealed class RemoteFileTests
     }
 
     [Fact]
-    public void FromStream_defaults_a_missing_content_type_rather_than_sending_an_empty_one()
+    public void A_file_from_a_stream_defaults_a_missing_content_type_rather_than_sending_an_empty_one()
     {
         Assert.Equal("application/octet-stream", RemoteFile.FromStream("a", null, 0, _ => Stream.Null).ContentType);
         Assert.Equal("application/octet-stream", RemoteFile.FromStream("a", "", 0, _ => Stream.Null).ContentType);
@@ -39,7 +39,7 @@ public sealed class RemoteFileTests
     }
 
     [Fact]
-    public void FromBytes_reports_the_length_it_actually_carries()
+    public void A_file_from_bytes_reports_the_length_it_actually_carries()
     {
         var bytes = Encoding.UTF8.GetBytes("hello");
         var file = RemoteFile.FromBytes("greeting.txt", "text/plain", bytes);
@@ -48,6 +48,7 @@ public sealed class RemoteFileTests
         Assert.Equal("greeting.txt", file.Name);
 
         using var stream = file.OpenReadStream();
+
         Assert.Equal("hello", new StreamReader(stream).ReadToEnd());
     }
 
@@ -69,7 +70,7 @@ public sealed class RemoteFileTests
     }
 
     [Fact]
-    public void LastModified_is_null_unless_supplied()
+    public void The_last_modified_time_is_null_unless_supplied()
     {
         var when = new DateTimeOffset(2026, 8, 18, 9, 0, 0, TimeSpan.Zero);
 

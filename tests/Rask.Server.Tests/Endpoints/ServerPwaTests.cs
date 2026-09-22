@@ -28,24 +28,27 @@ public sealed class ServerPwaTests
     };
 
     [Fact]
-    public async Task Default_NoPwa_NoManifestLinkAndNoPwaEndpoints()
+    public async Task By_default_there_is_no_manifest_link_and_no_PWA_endpoint()
     {
         using var host = RaskTestHost.Create<ShellApp>();
 
         var body = await (await host.Http.GetAsync("/")).Content.ReadAsStringAsync();
+
         Assert.DoesNotContain("rel=\"manifest\"", body);
 
         // The PWA endpoints are not mapped, so these paths fall through to the SPA catch-all and render
         // the app shell (text/html) rather than serving manifest JSON / the service-worker script.
         var manifest = await host.Http.GetAsync("/rask/manifest.webmanifest");
+
         Assert.NotEqual("application/manifest+json", manifest.Content.Headers.ContentType?.MediaType);
 
         var sw = await host.Http.GetAsync("/rask-sw.js");
+
         Assert.NotEqual("text/javascript", sw.Content.Headers.ContentType?.MediaType);
     }
 
     [Fact]
-    public async Task AddRaskPwa_EmitsManifestLinkAndThemeColorInHead()
+    public async Task AddRaskPwa_puts_the_manifest_link_and_theme_color_in_the_head()
     {
         using var host = RaskTestHost.Create<ShellApp>(s => s.AddRaskPwa(SampleManifest()));
 
@@ -66,7 +69,7 @@ public sealed class ServerPwaTests
     }
 
     [Fact]
-    public async Task AddRaskPwa_WithoutThemeColor_OmitsMetaButKeepsLink()
+    public async Task Without_a_theme_color_AddRaskPwa_omits_the_meta_but_keeps_the_link()
     {
         using var host = RaskTestHost.Create<ShellApp>(s => s.AddRaskPwa(new WebAppManifest { Name = "Bare" }));
 
@@ -77,7 +80,7 @@ public sealed class ServerPwaTests
     }
 
     [Fact]
-    public async Task ManifestEndpoint_ServesManifestJsonWithRootedUrls()
+    public async Task The_manifest_endpoint_serves_manifest_json_with_rooted_urls()
     {
         using var host = RaskTestHost.Create<ShellApp>(s => s.AddRaskPwa(SampleManifest()));
 
@@ -95,7 +98,7 @@ public sealed class ServerPwaTests
     }
 
     [Fact]
-    public async Task ServiceWorkerEndpoint_ServesOfflineFallbackSwNotAppShell()
+    public async Task The_service_worker_endpoint_serves_the_offline_fallback_worker_not_the_app_shell()
     {
         using var host = RaskTestHost.Create<ShellApp>(s => s.AddRaskPwa(SampleManifest()));
 
@@ -114,15 +117,17 @@ public sealed class ServerPwaTests
     }
 
     [Fact]
-    public async Task PathBase_RootsManifestLinkEndpointAndStartUrl()
+    public async Task A_path_base_roots_the_manifest_link_endpoint_and_start_url()
     {
         using var host = RaskTestHost.Create<ShellApp>(s => s.AddRaskPwa(SampleManifest()), pathBase: "/appA");
 
         var body = await (await host.Http.GetAsync("/appA/")).Content.ReadAsStringAsync();
+
         Assert.Contains("href=\"/appA/rask/manifest.webmanifest\"", body);
 
         var json = await (await host.Http.GetAsync("/appA/rask/manifest.webmanifest")).Content.ReadAsStringAsync();
         using var doc = System.Text.Json.JsonDocument.Parse(json);
+
         Assert.Equal("/appA/", doc.RootElement.GetProperty("start_url").GetString());
         Assert.Equal("/appA/icon.svg", doc.RootElement.GetProperty("icons")[0].GetProperty("src").GetString());
 

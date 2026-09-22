@@ -54,6 +54,7 @@ public sealed class DevToolsErrorLogTests
     public void A_full_log_drops_its_oldest_and_a_long_stack_is_cut()
     {
         var log = new DevToolsErrorLog();
+
         for (var i = 0; i < DevToolsErrorLog.Capacity + 2; i++)
         {
             log.Record(DevToolsErrorKind.Diagnostic, true, "Rask.Test", "warning " + i, new string('x', DevToolsErrorLog.DetailLimit * 2),
@@ -66,6 +67,7 @@ public sealed class DevToolsErrorLogTests
         Assert.True(errors[0].Detail!.Length < DevToolsErrorLog.DetailLimit + 10);
 
         log.Clear();
+
         Assert.Empty(log.Snapshot());
     }
 
@@ -92,6 +94,7 @@ public sealed class DevToolsErrorLogTests
 
         // The framework's own report of the same exception is not a second entry.
         probe.DiagnosticReported(new RaskDiagnosticEvent(RaskLogLevel.Error, "Rask.Live", "a render threw", exception));
+
         Assert.Single(feeds.AppWide.Snapshot());
     }
 
@@ -112,7 +115,7 @@ public sealed class DevToolsErrorLogTests
     }
 
     [Fact]
-    public void A_fault_from_the_apps_own_code_is_not_a_framework_bug_and_one_from_raskS_is()
+    public void A_fault_from_the_apps_own_code_is_not_a_framework_bug_and_one_from_Rasks_is()
     {
         var feeds = new DevToolsFeeds();
         var probe = new DevToolsProbe(feeds);

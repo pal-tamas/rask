@@ -68,13 +68,14 @@ public class HotReloadMessageTests
     }
 
     [Fact]
-    public void InjectRootAttr_EmitsTheDevFlagOnlyWhenAsked()
+    public void The_root_attribute_carries_the_dev_flag_only_when_asked()
     {
         const string html = "<html><body><p>hi</p></body></html>";
 
         Assert.DoesNotContain("data-rask-dev", LivePayload.InjectRootAttr(html, "s1"), StringComparison.Ordinal);
 
         var dev = LivePayload.InjectRootAttr(html, "s1", dev: true);
+
         Assert.Contains("data-rask-root=\"s1\"", dev, StringComparison.Ordinal);
         Assert.Contains("data-rask-dev", dev, StringComparison.Ordinal);
     }

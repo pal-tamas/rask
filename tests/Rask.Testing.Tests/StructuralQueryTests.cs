@@ -27,7 +27,7 @@ public partial class StructuralQueryTests : global::Rask.Core.RaskMarkup
     private static RenderedComponent<Card> Page() => Test.Render(new Card());
 
     [Fact]
-    public void Find_ReturnsTheElement_NotJustAnAttribute()
+    public void Find_hands_back_the_element_not_just_an_attribute()
     {
         var badge = Page().Find("#items li.selected .pill");
 
@@ -37,7 +37,7 @@ public partial class StructuralQueryTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void FindAll_IsInDocumentOrder()
+    public void FindAll_is_in_document_order()
     {
         var badges = Page().FindAll(".pill");
 
@@ -47,7 +47,7 @@ public partial class StructuralQueryTests : global::Rask.Core.RaskMarkup
     // Both halves of Find's contract, and the reason it isn't "first match wins": a test that silently
     // took the first of several keeps passing after somebody adds a second.
     [Fact]
-    public void Find_RefusesToPickBetweenSeveralMatches()
+    public void Find_refuses_to_pick_between_several_matches()
     {
         var error = Assert.Throws<InvalidOperationException>(() => Page().Find("li"));
 
@@ -56,7 +56,7 @@ public partial class StructuralQueryTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Find_SaysWhichPartOfTheSelectorFailed()
+    public void Find_says_which_part_of_the_selector_failed()
     {
         var error = Assert.Throws<InvalidOperationException>(() => Page().Find("#items .missing"));
 
@@ -67,7 +67,7 @@ public partial class StructuralQueryTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void TextOf_JoinsTheChildrenAsAReaderSeesThem()
+    public void TextOf_joins_the_children_as_a_reader_sees_them()
     {
         // The <li> is a <span> plus a text node; TextOf reads the whole subtree, which is what an
         // assertion about "the row says 7 shipped" actually means.
@@ -75,7 +75,7 @@ public partial class StructuralQueryTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void TextOf_CollapsesWhitespace_ToWhatAReaderSees()
+    public void TextOf_collapses_whitespace_to_what_a_reader_sees()
     {
         var page = Test.Render(new Spaced());
 
@@ -89,13 +89,13 @@ public partial class StructuralQueryTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void TestId_FindsTheStableHook()
+    public void TestId_finds_the_stable_hook()
     {
         Assert.Equal("Refresh", Page().TestId("refresh").TextContent);
     }
 
     [Fact]
-    public void Path_NamesTheElement_SoAFailureIsFindable()
+    public void Path_names_the_element_so_a_failure_is_findable()
     {
         Assert.Equal("div.panel.shadow-sm > ul#items > li.item.selected", Page().Find("li.selected").Path());
     }
@@ -104,7 +104,7 @@ public partial class StructuralQueryTests : global::Rask.Core.RaskMarkup
     [InlineData("li:nth-child(2)", "the pseudo-class ':nth-child(2)'")]
     [InlineData("li + li", "the character '+'")]
     [InlineData("[data-testid=refresh]", "an unquoted value")]
-    public void AnUnsupportedSelector_Throws_RatherThanQuietlyMatchingNothing(string selector, string expected)
+    public void An_unsupported_selector_throws_rather_than_quietly_matching_nothing(string selector, string expected)
     {
         // The whole justification for a subset instead of a partial implementation: a selector that
         // silently matched nothing because ':nth-child' was ignored would turn a green test into a lie.
@@ -115,7 +115,7 @@ public partial class StructuralQueryTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Attributes_AreDecoded_NotAsTheSerializerWroteThem()
+    public void Attributes_are_decoded_not_as_the_serializer_wrote_them()
     {
         var page = Test.Render(new Quoted());
 

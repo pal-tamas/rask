@@ -16,7 +16,7 @@ namespace Rask.Server.Tests.Authentication;
 public class AuthDeferredNavDispatchTests
 {
     [Fact]
-    public async Task SignInReturnUrl_MountsDestinationUnderRedeemedIdentity()
+    public async Task A_sign_in_return_url_mounts_the_destination_under_the_redeemed_identity()
     {
         using var host = CreateHost();
         var initial = await host.Http.GetAsync("/start");
@@ -34,6 +34,7 @@ public class AuthDeferredNavDispatchTests
 
             await ws.SendJsonAsync(new { id = signInHandlerId });
             var text = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+
             Assert.NotNull(text);
 
             using var doc = JsonDocument.Parse(text!);
@@ -49,6 +50,7 @@ public class AuthDeferredNavDispatchTests
             var redeem = await host.Http.PostAsJsonAsync(
                 "/_rask/auth/redeem",
                 new { ticket, session = sessionId });
+
             Assert.Equal(HttpStatusCode.OK, redeem.StatusCode);
 
             await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "auth-refresh", CancellationToken.None);
@@ -68,6 +70,7 @@ public class AuthDeferredNavDispatchTests
         using var ws2 = await wsClient.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws2.SendJsonAsync(new { type = "hello", session = sessionId });
         var afterReconnect = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+
         Assert.NotNull(afterReconnect);
 
         // The deferred navigation is applied AFTER Set(wsUser), so the destination page mounts fresh

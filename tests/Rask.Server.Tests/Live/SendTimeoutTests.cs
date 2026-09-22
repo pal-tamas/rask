@@ -66,6 +66,7 @@ public sealed class SendTimeoutTests
 
         // Dispose takes the same lock the wedged send was holding. If it returns, the lock was released.
         var disposed = Task.Run(() => session.Dispose());
+
         Assert.True(await Task.WhenAny(disposed, Task.Delay(TimeSpan.FromSeconds(5))) == disposed,
             "Dispose must not block on a lock the timed-out send still holds");
         await disposed;

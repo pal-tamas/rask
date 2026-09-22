@@ -13,7 +13,7 @@ namespace Rask.Wasm.Tests.Session;
 public class DownloadTokenPullTests : ResettingTestBase
 {
     [Fact]
-    public async Task DownloadTriggeredFromHandler_PayloadCarriesTokenNotBase64Bytes()
+    public async Task A_download_triggered_from_a_handler_carries_a_token_not_base64_bytes()
     {
         var bytes = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 };
         var (session, _) = NewSessionWithDownloadOnClick("manifest.bin", bytes, "application/octet-stream");
@@ -34,7 +34,7 @@ public class DownloadTokenPullTests : ResettingTestBase
     }
 
     [Fact]
-    public async Task PullDownload_AfterDispatch_ReturnsBytesAndDrainsToken()
+    public async Task Pulling_a_download_after_dispatch_returns_the_bytes_and_drains_the_token()
     {
         var bytes = new byte[] { 9, 8, 7, 6, 5, 4 };
         var (session, _) = NewSessionWithDownloadOnClick("a.bin", bytes, null);
@@ -46,17 +46,20 @@ public class DownloadTokenPullTests : ResettingTestBase
         var token = ExtractToken(payload);
 
         var pulled = JSInterop.PullDownload(token);
+
         Assert.Equal(bytes, pulled);
 
         // Second pull drains: returns empty, idempotent under double-click.
         var second = JSInterop.PullDownload(token);
+
         Assert.Empty(second);
     }
 
     [Fact]
-    public void PullDownload_UnknownToken_ReturnsEmpty()
+    public void Pulling_an_unknown_download_token_returns_empty()
     {
         var (_, _) = NewSessionWithDownloadOnClick("noop.bin", new byte[] { 1 }, null);
+
         Assert.Empty(JSInterop.PullDownload("no-such-token"));
         Assert.Empty(JSInterop.PullDownload(""));
     }

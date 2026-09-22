@@ -8,7 +8,7 @@ public class HidTests
     private static HidDeviceInfo SampleInfo => new(0x046d, 0xc52b, "Acme Controller");
 
     [Fact]
-    public async Task IsSupported_CallsHelper()
+    public async Task Support_is_asked_of_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskHid.isSupported", true);
@@ -17,12 +17,12 @@ public class HidTests
     }
 
     [Fact]
-    public async Task RequestDevices_PassesFiltersAsOneArg_AndWrapsDevices()
+    public async Task Requesting_devices_passes_the_filters_as_one_argument_and_wraps_the_devices()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskHid.requestDevices", new[] { new HidDeviceHandshake(1, SampleInfo) });
-
         var filters = new[] { new HidDeviceFilter(VendorId: 0x046d) };
+
         var devices = await new Hid(js).RequestDevicesAsync(filters);
 
         Assert.Single(devices);
@@ -33,7 +33,7 @@ public class HidTests
     }
 
     [Fact]
-    public async Task RequestDevices_Cancelled_ReturnsEmpty()
+    public async Task A_cancelled_devices_request_returns_empty()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskHid.requestDevices", Array.Empty<HidDeviceHandshake>());
@@ -44,13 +44,13 @@ public class HidTests
     }
 
     [Fact]
-    public async Task SendReport_And_SendFeatureReport_EncodeBase64()
+    public async Task Sending_a_report_and_a_feature_report_encodes_base64()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskHid.requestDevices", new[] { new HidDeviceHandshake(4, SampleInfo) });
         var device = (await new Hid(js).RequestDevicesAsync())[0];
-
         var data = new byte[] { 1, 2, 3 };
+
         await device.SendReportAsync(reportId: 2, data);
         await device.SendFeatureReportAsync(reportId: 5, data);
 
@@ -59,7 +59,7 @@ public class HidTests
     }
 
     [Fact]
-    public async Task ReceiveFeatureReport_DecodesBase64()
+    public async Task Receiving_a_feature_report_decodes_base64()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskHid.requestDevices", new[] { new HidDeviceHandshake(1, SampleInfo) });
@@ -74,7 +74,7 @@ public class HidTests
     }
 
     [Fact]
-    public async Task Watch_RoutesInputReports_DecodingBase64()
+    public async Task A_watch_routes_input_reports_decoding_base64()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskHid.requestDevices", new[] { new HidDeviceHandshake(6, SampleInfo) });
@@ -85,8 +85,8 @@ public class HidTests
             got = r;
             return Task.CompletedTask;
         });
-
         var payload = new byte[] { 10, 20 };
+
         await HidInterop.Input(6, reportId: 1, Convert.ToBase64String(payload));
 
         Assert.NotNull(got);
@@ -96,7 +96,7 @@ public class HidTests
     }
 
     [Fact]
-    public async Task MultipleWatches_BothReceiveReports_AndDisposingOneKeepsTheOther()
+    public async Task Several_watches_all_receive_reports_and_disposing_one_keeps_the_others()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskHid.requestDevices", new[] { new HidDeviceHandshake(6, SampleInfo) });
@@ -107,17 +107,20 @@ public class HidTests
         await device.WatchInputReportsAsync(_ => { b++; return Task.CompletedTask; });
 
         await HidInterop.Input(6, 1, Convert.ToBase64String([1])); // both fire
+
         Assert.Equal(1, a);
         Assert.Equal(1, b);
 
         await watchA.DisposeAsync();
+
         await HidInterop.Input(6, 1, Convert.ToBase64String([2])); // only B survives
+
         Assert.Equal(1, a);
         Assert.Equal(2, b);
     }
 
     [Fact]
-    public async Task WatchDispose_Unwatches_AndStopsRouting()
+    public async Task Disposing_a_watch_unwatches_and_stops_routing()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskHid.requestDevices", new[] { new HidDeviceHandshake(6, SampleInfo) });
@@ -130,6 +133,7 @@ public class HidTests
         });
 
         await watch.DisposeAsync();
+
         Assert.Equal([6], js.ArgsFor("__raskHid.unwatch"));
 
         await HidInterop.Input(6, 1, Convert.ToBase64String([0]));
@@ -137,7 +141,7 @@ public class HidTests
     }
 
     [Fact]
-    public async Task Disconnect_FiresOnDisconnect_WhenWatching()
+    public async Task A_disconnect_fires_the_callback_while_watching()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskHid.requestDevices", new[] { new HidDeviceHandshake(8, SampleInfo) });
@@ -153,7 +157,7 @@ public class HidTests
     }
 
     [Fact]
-    public async Task Close_StopsRouting()
+    public async Task Closing_stops_routing()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskHid.requestDevices", new[] { new HidDeviceHandshake(2, SampleInfo) });
@@ -166,6 +170,7 @@ public class HidTests
         });
 
         await device.DisposeAsync();
+
         Assert.Equal([2], js.ArgsFor("__raskHid.close"));
 
         await HidInterop.Input(2, 1, Convert.ToBase64String([0]));
@@ -173,7 +178,7 @@ public class HidTests
     }
 
     [Fact]
-    public async Task Operations_AfterDispose_ThrowObjectDisposed()
+    public async Task Operations_after_dispose_throw_ObjectDisposedException()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskHid.requestDevices", new[] { new HidDeviceHandshake(1, SampleInfo) });
@@ -186,7 +191,7 @@ public class HidTests
     }
 
     [Fact]
-    public async Task InputFanout_GivesEachWatcherOwnCopy_AndIsolatesExceptions()
+    public async Task The_input_fan_out_gives_each_watcher_its_own_copy_and_isolates_exceptions()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskHid.requestDevices", new[] { new HidDeviceHandshake(6, SampleInfo) });
@@ -210,7 +215,7 @@ public class HidTests
     }
 
     [Fact]
-    public async Task NullArgs_Throw()
+    public async Task Null_arguments_throw()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskHid.requestDevices", new[] { new HidDeviceHandshake(1, SampleInfo) });
@@ -222,7 +227,7 @@ public class HidTests
     }
 
     [Fact]
-    public void VendorOnlyFilter_OmitsNullFields()
+    public void A_vendor_only_filter_omits_null_fields()
     {
         var json = JsonSerializer.Serialize(
             new HidDeviceFilter(VendorId: 0x046d), new JsonSerializerOptions(JsonSerializerDefaults.Web));

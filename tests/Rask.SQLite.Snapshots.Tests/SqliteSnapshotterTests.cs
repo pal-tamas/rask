@@ -47,7 +47,6 @@ public sealed class SqliteSnapshotterTests : IDisposable
 
         var snapshotPath = Path.Combine(_dir, name);
         Assert.True(File.Exists(snapshotPath));
-
         using var connection = new SqliteConnection($"Data Source={snapshotPath};Mode=ReadOnly");
         connection.Open();
         using var command = connection.CreateCommand();

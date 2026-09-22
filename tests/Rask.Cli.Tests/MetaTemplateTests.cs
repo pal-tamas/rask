@@ -189,6 +189,7 @@ public sealed class MetaTemplateTests
     public void The_container_carries_node_because_this_lane_needs_it_at_runtime()
     {
         Assert.True(MetaTemplate.TryGet("nuxt", out var framework));
+
         var result = ProjectGenerator.GenerateMeta(
             "/out", "Shop", framework, new ServerBatteries { Docker = true }, "1.0.0");
 

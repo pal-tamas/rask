@@ -5,18 +5,20 @@ namespace Rask.Core.Tests.Routing;
 public class NavigatorDownloadTests
 {
     [Fact]
-    public void Download_OutsideHandlerScope_Throws()
+    public void A_download_outside_a_handler_scope_throws()
     {
         var nav = new Navigator(new RouteState(), new RecordingSink());
+
         Assert.Throws<InvalidOperationException>(() =>
             nav.Download("report.csv", new byte[] { 1, 2, 3 }, "text/csv"));
     }
 
     [Fact]
-    public void Download_InsideHandlerScope_QueuesOnSink_AsBytes()
+    public void A_download_inside_a_handler_scope_queues_bytes_on_the_sink()
     {
         var sink = new RecordingSink();
         var nav = new Navigator(new RouteState(), sink);
+
         using (nav.EnterHandler())
         {
             nav.Download("a.bin", new byte[] { 9, 8, 7 }, "application/octet-stream");
@@ -30,10 +32,11 @@ public class NavigatorDownloadTests
     }
 
     [Fact]
-    public void Download_InsideHandlerScope_QueuesOnSink_AsStream()
+    public void A_download_inside_a_handler_scope_queues_a_stream_on_the_sink()
     {
         var sink = new RecordingSink();
         var nav = new Navigator(new RouteState(), sink);
+
         using (nav.EnterHandler())
         {
             nav.Download("b.txt", new MemoryStream(new byte[] { 1, 2 }), "text/plain");
@@ -47,9 +50,10 @@ public class NavigatorDownloadTests
     }
 
     [Fact]
-    public void Download_WithoutSink_Throws()
+    public void A_download_without_a_sink_throws()
     {
         var nav = new Navigator(new RouteState());
+
         using (nav.EnterHandler())
         {
             Assert.Throws<InvalidOperationException>(() => nav.Download("x", new byte[1], "text/plain"));

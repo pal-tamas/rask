@@ -17,7 +17,7 @@ public class WebAuthnTests
     };
 
     [Fact]
-    public async Task IsSupported_CallsHelper()
+    public async Task Asking_whether_WebAuthn_is_supported_calls_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskWebAuthn.isSupported", true);
@@ -26,7 +26,7 @@ public class WebAuthnTests
     }
 
     [Fact]
-    public async Task IsPlatformAuthenticatorAvailable_CallsHelper()
+    public async Task Asking_whether_a_platform_authenticator_is_available_calls_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskWebAuthn.platformAuthenticatorAvailable", true);
@@ -35,7 +35,7 @@ public class WebAuthnTests
     }
 
     [Fact]
-    public async Task Create_PassesOptions_AndReturnsAttestation()
+    public async Task Creating_passes_the_options_and_gives_the_attestation()
     {
         var js = new FakeJsRuntime();
         var attestation = new AttestationResult("id1", "raw1", "cdj", "att", ["internal"]);
@@ -49,7 +49,7 @@ public class WebAuthnTests
     }
 
     [Fact]
-    public async Task Create_ReturnsNull_WhenCancelled()
+    public async Task Creating_gives_null_when_cancelled()
     {
         var js = new FakeJsRuntime();
 
@@ -57,7 +57,7 @@ public class WebAuthnTests
     }
 
     [Fact]
-    public async Task Get_PassesOptions_AndReturnsAssertion()
+    public async Task Getting_passes_the_options_and_gives_the_assertion()
     {
         var js = new FakeJsRuntime();
         var assertion = new AssertionResult("id1", "raw1", "cdj", "authData", "sig", null);
@@ -71,7 +71,7 @@ public class WebAuthnTests
     }
 
     [Fact]
-    public async Task Get_ReturnsNull_WhenCancelled()
+    public async Task Getting_gives_null_when_cancelled()
     {
         var js = new FakeJsRuntime();
 
@@ -79,16 +79,18 @@ public class WebAuthnTests
     }
 
     [Fact]
-    public async Task Create_NullOptions_Throws()
+    public async Task Creating_with_null_options_throws()
     {
         var svc = new WebAuthn(new FakeJsRuntime());
+
         await Assert.ThrowsAsync<ArgumentNullException>(async () => await svc.CreateAsync(null!));
     }
 
     [Fact]
-    public async Task Get_NullOptions_Throws()
+    public async Task Getting_with_null_options_throws()
     {
         var svc = new WebAuthn(new FakeJsRuntime());
+
         await Assert.ThrowsAsync<ArgumentNullException>(async () => await svc.GetAsync(null!));
     }
 }

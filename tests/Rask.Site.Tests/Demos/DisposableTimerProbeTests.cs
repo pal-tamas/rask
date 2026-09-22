@@ -5,7 +5,7 @@ namespace Rask.Site.Tests.Demos;
 public sealed partial class DisposableTimerProbeTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public async Task DisposableTimerProbe_DisposeFires_OnUnmount()
+    public async Task DisposableTimerProbe_fires_dispose_on_unmount()
     {
         var log = new LifecycleLog();
         var mounted = true;
@@ -22,7 +22,7 @@ public sealed partial class DisposableTimerProbeTests : global::Rask.Core.RaskMa
     }
 
     [Fact]
-    public async Task UnmountTimerProbe_TimerStoppedOnUnmount_NoFurtherTicks()
+    public async Task UnmountTimerProbe_stops_its_timer_on_unmount_with_no_further_ticks()
     {
         var log = new LifecycleLog();
         var mounted = true;
@@ -39,7 +39,7 @@ public sealed partial class DisposableTimerProbeTests : global::Rask.Core.RaskMa
     }
 
     [Fact]
-    public async Task DisposableAsyncProbe_DisposeAsyncFires_OnUnmount()
+    public async Task DisposableAsyncProbe_fires_DisposeAsync_on_unmount()
     {
         var log = new LifecycleLog();
         var mounted = true;

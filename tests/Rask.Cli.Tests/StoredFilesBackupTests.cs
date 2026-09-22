@@ -207,22 +207,23 @@ public sealed class StoredFilesBackupTests : IDisposable
         Write(root, "private/ab/avatar", "original bytes");
         CreateDatabase("StoredFile", Path.Combine(project, "app.db"), ("private/ab/avatar", "Disk"));
         var backup = Path.Combine(_directory, "backups", "app.db");
-
         var console = new StringConsole();
         var command = new DbCommand(console, new SystemFileSystem(), new FakeProcessRunner(), project);
+
         var backedUp = await command.ExecuteAsync(["backup", "--output", backup], CancellationToken.None);
+
         Assert.True(backedUp == 0, console.OutText + console.ErrorText);
         Assert.True(File.Exists(StoredFilesArchive.PathFor(backup)), console.OutText);
 
         // Lose the file and gain a stray one, as a box rebuilt from the database alone would.
         Directory.Delete(root, recursive: true);
         Write(root, "private/zz/stray", "not in the backup");
-
         console = new StringConsole();
         command = new DbCommand(console, new SystemFileSystem(), new FakeProcessRunner(), project);
-        var restored = await command.ExecuteAsync(["restore", backup, "--yes"], CancellationToken.None);
-        Assert.True(restored == 0, console.OutText + console.ErrorText);
 
+        var restored = await command.ExecuteAsync(["restore", backup, "--yes"], CancellationToken.None);
+
+        Assert.True(restored == 0, console.OutText + console.ErrorText);
         Assert.Equal("original bytes", File.ReadAllText(Path.Combine(root, "private/ab/avatar")));
         Assert.False(File.Exists(Path.Combine(root, "private/zz/stray")));
         Assert.DoesNotContain("no bytes", console.ErrorText, StringComparison.Ordinal);
@@ -234,12 +235,12 @@ public sealed class StoredFilesBackupTests : IDisposable
         var project = CreateProject();
         var backup = CreateDatabase("StoredFile", Path.Combine(_directory, "old.db"), ("private/ab/avatar", "Disk"));
         CreateDatabase("StoredFile", Path.Combine(project, "app.db"));
-
         var console = new StringConsole();
         var command = new DbCommand(console, new SystemFileSystem(), new FakeProcessRunner(), project);
-        var restored = await command.ExecuteAsync(["restore", backup, "--yes"], CancellationToken.None);
-        Assert.True(restored == 0, console.OutText + console.ErrorText);
 
+        var restored = await command.ExecuteAsync(["restore", backup, "--yes"], CancellationToken.None);
+
+        Assert.True(restored == 0, console.OutText + console.ErrorText);
         Assert.Contains("1 of 1 stored file(s)", console.ErrorText, StringComparison.Ordinal);
         Assert.Contains("private/ab/avatar", console.ErrorText, StringComparison.Ordinal);
     }

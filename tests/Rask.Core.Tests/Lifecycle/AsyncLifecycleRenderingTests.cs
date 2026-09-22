@@ -7,7 +7,7 @@ namespace Rask.Core.Tests.Lifecycle;
 public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public async Task OnMountAsync_TriggersStateHasChanged_AfterEachAwait()
+    public async Task OnMountAsync_triggers_StateHasChanged_after_each_await()
     {
         var sp = RenderHarness.EmptyServices();
         var handle = new RecordingHandle();
@@ -31,7 +31,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnMountAsync_TrailingAwait_FiresExactlyOneRender()
+    public async Task A_trailing_await_in_OnMountAsync_fires_exactly_one_render()
     {
         // Regression: when the last statement of an async lifecycle hook is an await,
         // the LifecycleSyncContext.Post path AND the terminal ContinueWith both used
@@ -60,7 +60,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnMountAsync_ConfigureAwaitFalse_StillFiresTerminalRender()
+    public async Task OnMountAsync_with_ConfigureAwait_false_still_fires_the_terminal_render()
     {
         // When the user uses ConfigureAwait(false) the continuation does NOT route
         // through LifecycleSyncContext.Post, so PostFired stays false and the terminal
@@ -85,7 +85,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnMountAsync_NoAwaits_DoesNotTriggerExtraRender()
+    public async Task OnMountAsync_with_no_awaits_does_not_trigger_an_extra_render()
     {
         var sp = RenderHarness.EmptyServices();
         var handle = new RecordingHandle();
@@ -102,7 +102,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnRenderedAsync_AwaitCompletes_TriggersRerender()
+    public async Task A_completed_await_in_OnRenderedAsync_triggers_a_rerender()
     {
         // OnRendered auto-rerenders on continuation completion — same ergonomics
         // as Mount, so users can `_x = await ...;` without calling
@@ -127,7 +127,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnRenderedAsync_AwaitsEveryRender_DoesNotLoop()
+    public async Task OnRenderedAsync_awaiting_on_every_render_does_not_loop()
     {
         // Regression for the render-storm leak: a component that unconditionally awaits
         // something in OnRendered (without an `if (!firstRender) return;` guard)
@@ -152,7 +152,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnRenderedAsync_MultipleComponents_DoNotCascade()
+    public async Task OnRenderedAsync_on_multiple_components_does_not_cascade()
     {
         // The structurally interesting regression: A and B both have unguarded
         // OnRendered awaits. Per-component suppression isn't enough — A's
@@ -303,7 +303,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
     // Waits for a fire-and-forget continuation to land instead of guessing how long it takes. Fast on an
     // idle machine and correct on a loaded one, which is where a fixed delay loses: the gate runs many
     // test projects at once, and 50 ms of thread-pool latency is entirely ordinary. That is what made
-    // OnMountAsync_ConfigureAwaitFalse_StillFiresTerminalRender fail in a full gate run and pass in
+    // OnMountAsync_with_ConfigureAwait_false_still_fires_the_terminal_render fail in a full gate run and pass in
     // isolation (#691).
     //
     // Only ever for the POSITIVE half of an assertion. Where a test also claims "and no more than this",

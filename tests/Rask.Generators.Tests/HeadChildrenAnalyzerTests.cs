@@ -25,11 +25,11 @@ public class HeadChildrenAnalyzerTests
 
     // The chain receiver is Build<Head>, not Head, so the type test walked straight past it (#704).
     [Fact]
-    public async Task ChainHeadWithChildren_ReportsRask019() =>
+    public async Task A_chain_Head_with_children_reports_RASK019() =>
         Assert.Equal("RASK019", Assert.Single(await Diagnostics(App("return Head[Title[\"x\"]];"))).Id);
 
     [Fact]
-    public async Task HeadWithNoChildren_NoDiagnostic() =>
+    public async Task A_Head_with_no_children_reports_nothing() =>
         Assert.Empty(await Diagnostics(App("return Div[Head];")));
 
     private static async Task<ImmutableArray<Diagnostic>> Diagnostics(string source)

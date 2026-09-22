@@ -27,6 +27,7 @@ public sealed class RaskDistributedCacheTests
     public async Task Get_returns_null_for_a_missing_key()
     {
         await using var harness = new CacheHarness();
+
         Assert.Null(await harness.Distributed.GetAsync("absent"));
     }
 
@@ -34,6 +35,7 @@ public sealed class RaskDistributedCacheTests
     public async Task Set_overwrites_an_existing_key()
     {
         await using var harness = new CacheHarness();
+
         await harness.Distributed.SetAsync("k", Bytes("one"), new DistributedCacheEntryOptions());
         await harness.Distributed.SetAsync("k", Bytes("two"), new DistributedCacheEntryOptions());
 
@@ -84,6 +86,7 @@ public sealed class RaskDistributedCacheTests
         // Keep reading within the sliding window; the absolute cap must still expire the entry.
         harness.Clock.Advance(TimeSpan.FromMinutes(8));
         Assert.NotNull(await harness.Distributed.GetAsync("k"));
+
         harness.Clock.Advance(TimeSpan.FromMinutes(8)); // t16 > absolute t15
         Assert.Null(await harness.Distributed.GetAsync("k"));
     }

@@ -18,7 +18,7 @@ public partial class OutletTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Outlet_EndOfChain_RendersEmptyFragment()
+    public void An_outlet_past_the_end_of_the_chain_renders_an_empty_fragment()
     {
         // Leaf page itself calls Outlet(); cursor is past end of chain → empty Fragment.
         var (view, state, sp) = BuildView(new[] { Route.To<LeafWithOutlet>("/leaf") });
@@ -30,7 +30,7 @@ public partial class OutletTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Outlet_ThreeLevelChain_RendersNested()
+    public void A_three_level_chain_renders_nested_through_its_outlets()
     {
         var routes = new[]
         {
@@ -50,7 +50,7 @@ public partial class OutletTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Outlet_TwoOutletsInSameRender_SecondAdvancesCursor()
+    public void A_second_outlet_in_the_same_render_advances_the_cursor()
     {
         // Layout renders two consecutive Outlet() calls. First pulls Leaf, second
         // finds cursor past end → empty Fragment. Proves Cursor++ semantics.
@@ -68,7 +68,7 @@ public partial class OutletTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Outlet_ParentRerendersWhileRouterIsClean_StillHasRouteContext()
+    public void An_outlet_whose_parent_rerenders_while_the_router_is_clean_still_has_route_context()
     {
         // #682. Router publishes ctx.Route, and that is per-FRAME state: it lives only for the walk
         // that assigned it. So a frame in which Router does NOT execute has no route context at all,
@@ -91,6 +91,7 @@ public partial class OutletTests : global::Rask.Core.RaskMarkup
         ShiftingLayout.Captured = null;
         ShiftingLayout.Extra = 0;
         var first = view.RenderAsLiveRoot(sp);
+
         Assert.Equal("<div><span>leaf</span></div>", first);
 
         // Only the layout is dirty. Router's props and state are both clean, so the render cache

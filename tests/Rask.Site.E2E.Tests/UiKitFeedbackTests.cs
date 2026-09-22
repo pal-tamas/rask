@@ -16,7 +16,7 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
     protected override string ServerLog => app.ServerLog;
 
     [Fact]
-    public Task EveryFeedbackComponentRendersWithARealSize() => RunAsync(async () =>
+    public Task Every_feedback_component_renders_with_a_real_size() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -36,7 +36,7 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
     });
 
     [Fact]
-    public Task EveryLoadingShapeIsDrawnRatherThanBeingAnEmptySpan() => RunAsync(async () =>
+    public Task Every_loading_shape_is_drawn_rather_than_being_an_empty_span() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -54,7 +54,7 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
     });
 
     [Fact]
-    public Task TheProgressElementReportsItsOwnValue() => RunAsync(async () =>
+    public Task The_progress_element_reports_its_own_value() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -70,7 +70,7 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
     });
 
     [Fact]
-    public Task AToastAppearsOnDemandAndCanBeDismissed() => RunAsync(async () =>
+    public Task A_toast_appears_on_demand_and_can_be_dismissed() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -95,7 +95,7 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
     });
 
     [Fact]
-    public Task AnOpenTooltipIsVisibleWithoutAHover() => RunAsync(async () =>
+    public Task An_open_tooltip_is_visible_without_a_hover() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -108,9 +108,10 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
     });
 
     [Fact]
-    public Task ATooltipShowsOnATapOnADisabledButtonAndCarriesItsShortcut() => RunAsync(async () =>
+    public Task A_tooltip_shows_on_a_tap_on_a_disabled_button_and_carries_its_shortcut() => RunAsync(async () =>
     {
         await OpenAsync();
+
         var scope = Page.Locator("[data-testid='ui-tooltip']");
 
         // Toggleable: focus — which a tap gives the wrapper — is what shows it, measured on the pseudo-element

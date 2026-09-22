@@ -21,6 +21,7 @@ public sealed class SqliteServiceCollectionExtensionsTests
     public void AddRaskSqlite_is_idempotent()
     {
         var services = new ServiceCollection();
+
         services.AddRaskSqlite(o => o.CacheSize = 1);
         services.AddRaskSqlite(o => o.CacheSize = 2);
 
@@ -31,6 +32,7 @@ public sealed class SqliteServiceCollectionExtensionsTests
     public void AddRaskSqlite_rejects_null_services()
     {
         IServiceCollection services = null!;
+
         Assert.Throws<ArgumentNullException>(() => services.AddRaskSqlite());
     }
 
@@ -40,6 +42,7 @@ public sealed class SqliteServiceCollectionExtensionsTests
         using var provider = Build([]);
 
         var error = Assert.Throws<InvalidOperationException>(() => provider.GetRequiredService<ISqlite>());
+
         Assert.Contains("Rask:ConnectionStrings:App", error.Message, StringComparison.Ordinal);
         Assert.Contains("Rask__ConnectionStrings__App", error.Message, StringComparison.Ordinal);
     }
@@ -58,6 +61,7 @@ public sealed class SqliteServiceCollectionExtensionsTests
         using var provider = Build(App("Data Source=test.db"), p => p.BusyTimeout = TimeSpan.FromSeconds(-1));
 
         var error = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<SqliteOptions>());
+
         Assert.Contains("Rask:Sqlite", error.Message, StringComparison.Ordinal);
     }
 
@@ -70,7 +74,7 @@ public sealed class SqliteServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddRaskSqlite_runs_configureRetry()
+    public void AddRaskSqlite_runs_the_callback_that_configures_the_retry()
     {
         using var provider = Build(
             App("Data Source=test.db"),
@@ -80,7 +84,7 @@ public sealed class SqliteServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddRaskSqlite_validates_configureRetry()
+    public void AddRaskSqlite_validates_the_retry_the_callback_configures()
     {
         using var provider = Build(
             App("Data Source=test.db"),

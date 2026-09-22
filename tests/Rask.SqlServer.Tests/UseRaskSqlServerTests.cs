@@ -21,7 +21,7 @@ public sealed class UseRaskSqlServerTests
     private static readonly IServiceProvider Services = ServicesWith(new() { ["Rask:ConnectionStrings:App"] = ConnectionString });
 
     [Fact]
-    public void It_selects_the_SQL_Server_provider()
+    public void The_context_runs_on_the_SQL_Server_provider()
     {
         using var db = new PlainContext(Options<PlainContext>());
 
@@ -194,6 +194,7 @@ public sealed class UseRaskSqlServerTests
         // must win — not stack a second interceptor that keeps sending the first call's SET on every open.
         var builder = new DbContextOptionsBuilder<PlainContext>();
         builder.UseRaskSqlServer(Services);
+
         builder.UseRaskSqlServer(Services, s =>
         {
             s.AbortOnError = false;

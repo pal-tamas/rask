@@ -5,12 +5,11 @@ namespace Rask.Core.Tests.Forms;
 public class EditContextTests
 {
     [Fact]
-    public void NotifyFieldChanged_MarksDirty_AndFiresEvent()
+    public void Notifying_a_field_change_marks_it_modified_and_fires_FieldChanged()
     {
         var m = new Model();
         var ctx = new EditContext(m);
         var fid = new FieldIdentifier(m, "Name");
-
         var fired = 0;
         ctx.FieldChanged += _ => fired++;
         Assert.False(ctx.IsModified(fid));
@@ -22,29 +21,33 @@ public class EditContextTests
     }
 
     [Fact]
-    public void NotifyFieldTouched_MarksTouched()
+    public void Notifying_a_field_touch_marks_it_touched()
     {
         var m = new Model();
         var ctx = new EditContext(m);
         var fid = new FieldIdentifier(m, "Name");
+
         ctx.NotifyFieldTouched(fid);
+
         Assert.True(ctx.IsTouched(fid));
     }
 
     [Fact]
-    public void AddValidator_DedupesByType()
+    public void Adding_a_validator_dedupes_by_type()
     {
         var ctx = new EditContext(new Model());
         var fid = new FieldIdentifier(ctx.Model, "Name");
         ctx.AddValidator(new MessageStampingValidator());
         ctx.AddValidator(new MessageStampingValidator()); // distinct instance, same type
+
         ctx.Validate();
+
         // If the validator was added twice, we'd see two copies of "stamp" — dedup means one.
         Assert.Single(ctx.GetValidationMessages(fid));
     }
 
     [Fact]
-    public void AddValidationMessage_FiresValidationStateChanged()
+    public void Adding_a_validation_message_fires_ValidationStateChanged()
     {
         var ctx = new EditContext(new Model());
         var fid = new FieldIdentifier(ctx.Model, "Name");
@@ -59,12 +62,14 @@ public class EditContextTests
     }
 
     [Fact]
-    public void Validate_ClearsMessagesFirst()
+    public void Validating_clears_the_old_messages_first()
     {
         var ctx = new EditContext(new Model());
         var fid = new FieldIdentifier(ctx.Model, "Name");
         ctx.AddValidationMessage(fid, "stale");
+
         ctx.Validate(); // no validators registered → no messages
+
         Assert.Empty(ctx.GetValidationMessages(fid));
     }
 

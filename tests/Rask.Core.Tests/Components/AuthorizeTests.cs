@@ -15,7 +15,7 @@ namespace Rask.Core.Tests.Components;
 public partial class AuthorizeTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Anonymous_WithoutNotAuthorized_RendersNothing()
+    public void An_anonymous_user_sees_nothing_without_a_NotAuthorized_slot()
     {
         var html = Render(Anonymous(), () => Authorize.Authorized(_ => Span["AUTHED"]));
 
@@ -24,7 +24,7 @@ public partial class AuthorizeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Anonymous_RendersNotAuthorizedSlot()
+    public void An_anonymous_user_sees_the_NotAuthorized_slot()
     {
         var html = Render(Anonymous(),
             () => Authorize.Authorized(_ => Span["AUTHED"]).NotAuthorized(Span["DENIED"]));
@@ -34,7 +34,7 @@ public partial class AuthorizeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Authenticated_RendersAuthorizedSlot()
+    public void An_authenticated_user_sees_the_Authorized_slot()
     {
         var html = Render(User("alice"),
             () => Authorize.Authorized(_ => Span["AUTHED"]).NotAuthorized(Span["DENIED"]));
@@ -44,7 +44,7 @@ public partial class AuthorizeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Authenticated_NoAuthorizedSlot_RendersChildrenShorthand()
+    public void Without_an_Authorized_slot_an_authenticated_user_sees_the_children()
     {
         // Authorize(Roles: "...")[ content ] — the children indexer is the authorized branch.
         var html = Render(User("alice"), () => Authorize[Span["CHILD"]]);
@@ -53,7 +53,7 @@ public partial class AuthorizeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void AuthorizedDelegate_ReceivesCurrentPrincipal()
+    public void The_authorized_delegate_receives_the_current_principal()
     {
         // The delegate form is handed the signed-in principal, so authorized markup can read the user
         // (e.g. a greeting) without injecting IUserProvider or subscribing to Changed.
@@ -64,7 +64,7 @@ public partial class AuthorizeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Anonymous_DoesNotInvokeAuthorizedDelegate()
+    public void An_anonymous_user_does_not_invoke_the_authorized_delegate()
     {
         // Denied gate must not run the authorized delegate (it would NRE on the anonymous identity).
         var html = Render(Anonymous(),
@@ -76,7 +76,7 @@ public partial class AuthorizeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void RoleMatch_RendersAuthorized()
+    public void A_matching_role_renders_the_authorized_slot()
     {
         var html = Render(User("root", "admin"),
             () => Authorize.Roles(["admin"]).Authorized(_ => Span["AUTHED"]).NotAuthorized(Span["DENIED"]));
@@ -85,7 +85,7 @@ public partial class AuthorizeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void RoleMiss_RendersNotAuthorized()
+    public void A_missing_role_renders_the_not_authorized_slot()
     {
         var html = Render(User("alice", "user"),
             () => Authorize.Roles(["admin"]).Authorized(_ => Span["AUTHED"]).NotAuthorized(Span["DENIED"]));
@@ -95,7 +95,7 @@ public partial class AuthorizeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void AnyOfRoles_MatchesOnEither()
+    public void Any_of_several_roles_matches_on_either()
     {
         var html = Render(User("alice", "editor"),
             () => Authorize.Roles(["admin", "editor"]).Authorized(_ => Span["AUTHED"]).NotAuthorized(Span["DENIED"]));
@@ -104,7 +104,7 @@ public partial class AuthorizeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void ProviderLoading_RendersAuthorizingSlot()
+    public void A_loading_provider_renders_the_Authorizing_slot()
     {
         var html = Render(new LoadingUser(),
             () => Authorize
@@ -118,7 +118,7 @@ public partial class AuthorizeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void PolicyAllow_RendersAuthorized()
+    public void A_policy_that_allows_renders_the_authorized_slot()
     {
         var html = Render(User("root", "admin"),
             () => Authorize.Policy("admins-only").Authorized(_ => Span["AUTHED"]).NotAuthorized(Span["DENIED"]),
@@ -128,7 +128,7 @@ public partial class AuthorizeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void PolicyDeny_RendersNotAuthorized()
+    public void A_policy_that_denies_renders_the_not_authorized_slot()
     {
         var html = Render(User("alice", "user"),
             () => Authorize.Policy("admins-only").Authorized(_ => Span["AUTHED"]).NotAuthorized(Span["DENIED"]),

@@ -118,6 +118,7 @@ public sealed class QueueActionTests
         Assert.Equal(0, await h.Queue("jobs").DeleteAsync(done, CancellationToken.None));
 
         await using var db = h.NewContext();
+
         Assert.Equal(done, (await db.Set<Job>().SingleAsync()).Id);
     }
 

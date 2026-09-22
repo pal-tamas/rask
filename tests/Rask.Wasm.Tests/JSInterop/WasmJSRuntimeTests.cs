@@ -18,7 +18,7 @@ namespace Rask.Wasm.Tests.JsInteropRuntime;
 public sealed class WasmJSRuntimeTests
 {
     [Fact]
-    public async Task InvokeAsync_RoundTrip_CompletesWithJsResult()
+    public async Task An_invoke_round_trip_completes_with_the_JS_result()
     {
         var runtime = new WasmJSRuntime();
         JSInterop.Init(runtime);
@@ -38,7 +38,7 @@ public sealed class WasmJSRuntimeTests
     }
 
     [Fact]
-    public async Task InvokeAsync_ErrorReply_PropagatesAsJSException()
+    public async Task An_error_reply_surfaces_as_a_JSException()
     {
         var runtime = new WasmJSRuntime();
         JSInterop.Init(runtime);
@@ -53,7 +53,7 @@ public sealed class WasmJSRuntimeTests
     }
 
     [Fact]
-    public async Task InvokeVoidAsync_VoidResult_Completes()
+    public async Task A_void_invoke_completes_on_a_void_result()
     {
         var runtime = new WasmJSRuntime();
         JSInterop.Init(runtime);

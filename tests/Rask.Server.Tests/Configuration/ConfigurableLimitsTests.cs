@@ -12,7 +12,7 @@ namespace Rask.Server.Tests.Configuration;
 public class ConfigurableLimitsTests
 {
     [Fact]
-    public void RaskServerOptions_Defaults_MatchTheShippedDefaults()
+    public void A_new_RaskServerOptions_carries_the_shipped_defaults()
     {
         var o = new RaskServerOptions();
 
@@ -24,7 +24,7 @@ public class ConfigurableLimitsTests
     }
 
     [Fact]
-    public void AddRask_ConfigureServer_SeedsThePerHostLimits()
+    public void The_configureServer_callback_seeds_the_per_host_limits()
     {
         // configureServer projects RaskServerOptions into the per-host RaskServerLimits singleton —
         // no process-global statics, so this is fully isolated from every other test.
@@ -55,32 +55,32 @@ public class ConfigurableLimitsTests
     // An out-of-range limit is refused when the options are built — at host start through ValidateOnStart, or
     // on the first resolve in a bare container like this one — and the failure names the Rask:Server section.
     [Fact]
-    public void AddRask_NegativeHandlerTimeout_IsRejected() =>
+    public void A_negative_HandlerTimeout_is_rejected() =>
         AssertRejected(o => o.HandlerTimeout = TimeSpan.FromSeconds(-1));
 
     [Fact]
-    public void AddRask_NegativeIdleSocketTimeout_IsRejected() =>
+    public void A_negative_IdleSocketTimeout_is_rejected() =>
         AssertRejected(o => o.IdleSocketTimeout = TimeSpan.FromSeconds(-1));
 
     [Fact]
-    public void AddRask_NegativePendingHandlerBytes_IsRejected() =>
+    public void A_negative_pending_handler_byte_cap_is_rejected() =>
         AssertRejected(o => o.MaxPendingHandlerBytes = -1);
 
     [Fact]
-    public void AddRask_NegativeGracePeriod_IsRejected() =>
+    public void A_negative_grace_period_is_rejected() =>
         AssertRejected(o => o.SessionGracePeriod = TimeSpan.FromSeconds(-1));
 
     // 0 would abort every non-empty frame; a frame-size cap is mandatory, so it must be rejected.
     [Fact]
-    public void AddRask_ZeroFrameByteCap_IsRejected() =>
+    public void A_zero_frame_byte_cap_is_rejected() =>
         AssertRejected(o => o.MaxInboundFrameBytes = 0);
 
     [Fact]
-    public void AddRask_NegativeFrameRateCap_IsRejected() =>
+    public void A_negative_frame_rate_cap_is_rejected() =>
         AssertRejected(o => o.MaxInboundFramesPerSecond = -1);
 
     [Fact]
-    public void AddRask_NoConfigureServer_RegistersDefaultLimits()
+    public void AddRask_without_configureServer_registers_the_default_limits()
     {
         // A bare AddRask() registers a RaskServerLimits carrying the framework defaults.
         using var provider = new ServiceCollection().AddRask().BuildServiceProvider();
@@ -97,15 +97,16 @@ public class ConfigurableLimitsTests
     }
 
     [Fact]
-    public void Validate_AllowsZeroForTheCountBasedCaps()
+    public void Validation_allows_zero_for_the_count_based_caps()
     {
         // 0 is the documented "disable this cap" value for the two count caps — Validate must accept it.
         var o = new RaskServerOptions { MaxPendingHandlers = 0, MaxInboundFramesPerSecond = 0 };
+
         Assert.Null(Record.Exception(o.Validate));
     }
 
     [Fact]
-    public void Validate_RejectsANegativeShutdownDrainTimeout()
+    public void Validation_rejects_a_negative_ShutdownDrainTimeout()
     {
         var o = new RaskServerOptions { ShutdownDrainTimeout = TimeSpan.FromSeconds(-1) };
 
@@ -113,7 +114,7 @@ public class ConfigurableLimitsTests
     }
 
     [Fact]
-    public void Validate_RejectsAShutdownDrainTimeoutCancelAfterCannotTake()
+    public void Validation_rejects_a_ShutdownDrainTimeout_that_CancelAfter_cannot_take()
     {
         // CancellationTokenSource.CancelAfter throws above int.MaxValue milliseconds — and it would
         // throw from the shutdown path, the worst possible place to find out.
@@ -123,7 +124,7 @@ public class ConfigurableLimitsTests
     }
 
     [Fact]
-    public void Validate_AllowsZeroToDisableTheDrain()
+    public void Validation_allows_zero_to_disable_the_drain()
     {
         // The documented opt-out: Zero restores the pre-drain behaviour of aborting immediately.
         var o = new RaskServerOptions { ShutdownDrainTimeout = TimeSpan.Zero };
@@ -132,7 +133,7 @@ public class ConfigurableLimitsTests
     }
 
     [Fact]
-    public void ShutdownDrainTimeout_FlowsIntoThePerHostLimits()
+    public void ShutdownDrainTimeout_flows_into_the_per_host_limits()
     {
         var services = new ServiceCollection()
             .AddRask(configureServer: o => o.ShutdownDrainTimeout = TimeSpan.FromSeconds(3));
@@ -144,7 +145,7 @@ public class ConfigurableLimitsTests
     }
 
     [Fact]
-    public void TheRaskServerSection_SeedsThePerHostLimits()
+    public void The_Rask_Server_section_seeds_the_per_host_limits()
     {
         using var provider = Provider(new()
         {
@@ -163,7 +164,7 @@ public class ConfigurableLimitsTests
     }
 
     [Fact]
-    public void ConfigureServer_WinsOverTheRaskServerSection()
+    public void The_configureServer_callback_wins_over_the_Rask_Server_section()
     {
         using var provider = Provider(
             new() { ["Rask:Server:MaxPendingHandlers"] = "64", ["Rask:Server:MaxInboundFramesPerSecond"] = "250" },
@@ -176,7 +177,7 @@ public class ConfigurableLimitsTests
     }
 
     [Fact]
-    public void AnOutOfRangeConfiguredLimit_IsRejectedNamingTheSection()
+    public void An_out_of_range_configured_limit_is_rejected_naming_the_section()
     {
         using var provider = Provider(new() { ["Rask:Server:SessionGracePeriod"] = "-00:00:01" });
 
@@ -185,7 +186,7 @@ public class ConfigurableLimitsTests
     }
 
     [Fact]
-    public void TheFlatRaskSection_IsNotRead()
+    public void The_flat_Rask_section_is_not_read()
     {
         // The shape docs/configuration.md used to teach, before every host had its own Rask:<Area> section.
         using var provider = Provider(new() { ["Rask:MaxPendingHandlers"] = "64" });
@@ -195,7 +196,7 @@ public class ConfigurableLimitsTests
 
     // The session store is IAsyncDisposable only, so the containers that resolve it are disposed asynchronously.
     [Fact]
-    public async Task TheRaskLiveSection_ReachesTheSessionStore()
+    public async Task The_Rask_Live_section_reaches_the_session_store()
     {
         await using var provider = Provider(new()
         {
@@ -210,7 +211,7 @@ public class ConfigurableLimitsTests
     }
 
     [Fact]
-    public async Task Configure_WinsOverTheRaskLiveSection()
+    public async Task The_configure_callback_wins_over_the_Rask_Live_section()
     {
         var services = new ServiceCollection();
         services.AddSingleton<IConfiguration>(Configuration(new() { ["Rask:Live:MaxSessions"] = "5" }));
@@ -221,7 +222,7 @@ public class ConfigurableLimitsTests
     }
 
     [Fact]
-    public void TheRaskUploadsSection_SetsTheUploadLimits()
+    public void The_Rask_Uploads_section_sets_the_upload_limits()
     {
         using var provider = Provider(new() { ["Rask:Uploads:MaxFileSize"] = "1024" });
 
@@ -229,7 +230,7 @@ public class ConfigurableLimitsTests
     }
 
     [Fact]
-    public void TheRaskCultureSection_SetsTheCultures()
+    public void The_Rask_Culture_section_sets_the_cultures()
     {
         using var provider = Provider(new()
         {
@@ -245,7 +246,7 @@ public class ConfigurableLimitsTests
     }
 
     [Fact]
-    public async Task WithoutConfiguration_AddRaskStillBuilds()
+    public async Task AddRask_still_builds_without_any_configuration()
     {
         // A bare container — a test fixture, a benchmark harness — has no IConfiguration at all.
         await using var provider = new ServiceCollection().AddRask().BuildServiceProvider();

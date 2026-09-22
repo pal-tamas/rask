@@ -5,7 +5,7 @@ namespace Rask.Core.Tests.Interop;
 public class ViewTransitionsTests
 {
     [Fact]
-    public async Task IsSupported_CallsHelper()
+    public async Task Asking_whether_view_transitions_are_supported_calls_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskVt.supported", true);
@@ -14,7 +14,7 @@ public class ViewTransitionsTests
     }
 
     [Fact]
-    public async Task IsSupported_IsFalse_OnABrowserWithoutTheApi()
+    public async Task Support_is_false_on_a_browser_without_the_api()
     {
         // No response registered: the helper reports false rather than throwing, so enabling on Firefox
         // or an older Safari is inert instead of an error.
@@ -26,7 +26,7 @@ public class ViewTransitionsTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task SetEnabled_PassesTheFlagAndReturnsWhatTookEffect(bool enabled)
+    public async Task Enabling_passes_the_flag_and_gives_back_what_took_effect(bool enabled)
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskVt.set", enabled);
@@ -38,7 +38,7 @@ public class ViewTransitionsTests
     }
 
     [Fact]
-    public async Task IsActive_IsSeparateFromIsEnabled()
+    public async Task IsActive_is_separate_from_IsEnabled()
     {
         // The distinction the API exists to expose: a settings toggle can be ON while nothing animates,
         // because the browser lacks the API or the reader asked for reduced motion. A UI that conflates

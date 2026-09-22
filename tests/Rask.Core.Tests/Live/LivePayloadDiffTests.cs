@@ -12,7 +12,7 @@ namespace Rask.Core.Tests.Live;
 public class LivePayloadDiffTests
 {
     [Fact]
-    public void BuildPayloadUtf8Diff_SerializesKindAndOps()
+    public void A_diff_payload_serializes_the_kind_and_the_ops()
     {
         var ops = new List<EditOp>
         {
@@ -55,7 +55,7 @@ public class LivePayloadDiffTests
     }
 
     [Fact]
-    public void BuildPayloadUtf8Diff_MorphSubtree_SerializesInnerHtmlFromRange()
+    public void A_diff_payload_serializes_a_MorphSubtree_inner_html_from_its_range()
     {
         // MorphSubtree: [8, path, innerHtml]. The fragment is sliced from the render HTML by the op's
         // deferred char range (like InsertSubtree, minus the trailing domCount).
@@ -79,7 +79,7 @@ public class LivePayloadDiffTests
     }
 
     [Fact]
-    public void BuildPayloadUtf8Diff_MorphSubtree_VerbatimEmptyValue_ClearsChildren()
+    public void A_diff_payload_MorphSubtree_with_a_verbatim_empty_value_clears_the_children()
     {
         // An emptied Raw-tainted parent ships a verbatim "" fragment (Value set, no char range) so the
         // client morphs its children to nothing.
@@ -95,7 +95,7 @@ public class LivePayloadDiffTests
     }
 
     [Fact]
-    public void BuildPayloadUtf8Diff_WithJsInvokes_EmitsJsInvokesArray()
+    public void A_diff_payload_with_js_invokes_emits_the_js_invokes_array()
     {
         // Fire-and-forget IJSRuntime invokes ride the diff payload the same way they
         // ride the full-HTML payload, so a per-render js.InvokeVoidAsync no longer
@@ -130,7 +130,7 @@ public class LivePayloadDiffTests
     }
 
     [Fact]
-    public void BuildPayloadUtf8Diff_WithoutJsInvokes_OmitsJsInvokesKey()
+    public void A_diff_payload_without_js_invokes_omits_the_js_invokes_key()
     {
         var ops = new List<EditOp> { new(EditOpKind.UpdateText, new[] { 0 }, null, "x") };
 
@@ -143,7 +143,7 @@ public class LivePayloadDiffTests
     }
 
     [Fact]
-    public void BuildPayloadUtf8Diff_WithHeadHtml_EmitsHeadFieldRoundTrips()
+    public void A_diff_payload_with_head_html_emits_a_head_field_that_round_trips()
     {
         // The head fragment carries raw markup with '<', '>', and quotes — it must round-trip
         // exactly through the relaxed-escaping writer so the client can DOMParser it.
@@ -159,7 +159,7 @@ public class LivePayloadDiffTests
     }
 
     [Fact]
-    public void BuildPayloadUtf8Diff_WithoutHeadHtml_OmitsHeadKey()
+    public void A_diff_payload_without_head_html_omits_the_head_key()
     {
         var ops = new List<EditOp> { new(EditOpKind.UpdateText, new[] { 0 }, null, "x") };
 
@@ -172,7 +172,7 @@ public class LivePayloadDiffTests
     }
 
     [Fact]
-    public void BuildPayloadUtf8Diff_MoveSubtree_EncodesSourceSlot()
+    public void A_diff_payload_encodes_the_source_slot_of_a_MoveSubtree()
     {
         // MoveSubtree's source slot lives at op[2]. Source slot 0 is a legitimate
         // value (the moved node was at the first position), so the encoder must
@@ -199,7 +199,7 @@ public class LivePayloadDiffTests
     }
 
     [Fact]
-    public void BuildPayloadUtf8Diff_PermutationBatch_EncodesMovesArray()
+    public void A_diff_payload_encodes_a_permutation_batch_as_a_moves_array()
     {
         // PermutationBatch is [k, parentPath, moves] where moves is a flat
         // [dst0,src0,dst1,src1,…] array. op[1] is the PARENT path (no trailing slot);
@@ -225,7 +225,7 @@ public class LivePayloadDiffTests
     }
 
     [Fact]
-    public void BuildPayloadUtf8Diff_InsertSubtree_EncodesHtmlAndDomCount()
+    public void A_diff_payload_encodes_the_html_and_dom_count_of_an_InsertSubtree()
     {
         var ops = new List<EditOp> { new(EditOpKind.InsertSubtree, new[] { 0, 2 }, null, "<li>new</li>", 1, true) };
 
@@ -243,7 +243,7 @@ public class LivePayloadDiffTests
     }
 
     [Fact]
-    public void BuildPayloadUtf8Diff_SetAttribute_NullValueEncodesAsNull()
+    public void A_diff_payload_encodes_a_SetAttribute_null_value_as_null()
     {
         // Bare HTML attributes (`disabled`, `required`) carry no value. The positional
         // format must still emit a slot so the client reads name and value from the
@@ -263,7 +263,7 @@ public class LivePayloadDiffTests
     }
 
     [Fact]
-    public void BuildPayloadUtf8Diff_InternsAttributeNamesAppearingThreeOrMoreTimes()
+    public void A_diff_payload_interns_attribute_names_appearing_three_or_more_times()
     {
         // Three SetAttribute ops sharing "data-loaded" → emit one "names" entry, ops
         // reference it by integer index. Saves the duplicate name bytes on the wire.
@@ -294,7 +294,7 @@ public class LivePayloadDiffTests
     }
 
     [Fact]
-    public void BuildPayloadUtf8Diff_NamesAppearingOnceOrTwice_StayInline()
+    public void In_a_diff_payload_names_appearing_once_or_twice_stay_inline()
     {
         // Below the 3-occurrence interning threshold: each name stays inline as a
         // string, no "names" envelope is emitted. Keeps small diffs from paying the
@@ -321,7 +321,7 @@ public class LivePayloadDiffTests
     }
 
     [Fact]
-    public void BuildPayloadUtf8Diff_EmptyOps_ProducesEmptyOpsArray()
+    public void A_diff_payload_with_no_ops_produces_an_empty_ops_array()
     {
         var output = new ArrayBufferWriter<byte>(64);
         LivePayload.BuildPayloadUtf8Diff(output, new List<EditOp>());
@@ -333,7 +333,7 @@ public class LivePayloadDiffTests
     }
 
     [Fact]
-    public void BuildPayloadUtf8Diff_IncludesHistory_WhenProvided()
+    public void A_diff_payload_includes_the_history_when_provided()
     {
         var output = new ArrayBufferWriter<byte>(128);
         LivePayload.BuildPayloadUtf8Diff(output, new List<EditOp>(), "/page/2", true);

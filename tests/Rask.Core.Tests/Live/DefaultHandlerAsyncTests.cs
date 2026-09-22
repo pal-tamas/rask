@@ -12,7 +12,7 @@ namespace Rask.Core.Tests.Live;
 public partial class DefaultHandlerAsyncTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public async Task UnmatchedAsyncSignature_IsAwaited_BeforeDispatchReturns()
+    public async Task An_unmatched_async_signature_is_awaited_before_the_dispatch_returns()
     {
         var sp = RenderHarness.EmptyServices();
         var owner = new UnmatchedAsyncOwner(false);
@@ -32,7 +32,7 @@ public partial class DefaultHandlerAsyncTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task UnmatchedAsyncSignature_Throw_TripsAncestorBoundary()
+    public async Task A_throw_from_an_unmatched_async_signature_trips_the_ancestor_boundary()
     {
         var sp = RenderHarness.EmptyServices();
         var owner = new UnmatchedAsyncOwner(true);

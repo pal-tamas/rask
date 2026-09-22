@@ -19,6 +19,7 @@ public class MetaDrainTests
     public async Task An_idle_drain_completes_at_once()
     {
         var drain = new MetaDrain();
+
         drain.BeginDrain();
 
         Assert.True(drain.IsDraining);
@@ -37,6 +38,7 @@ public class MetaDrainTests
         var waiting = drain.WaitForIdleAsync(TimeSpan.FromSeconds(10), CancellationToken.None);
 
         drain.Exit();
+
         Assert.False(waiting.IsCompleted, "one request is still in flight");
 
         drain.Exit();
@@ -80,15 +82,18 @@ public class MetaDrainTests
         var context = new HealthCheckContext();
 
         var starting = await check.CheckHealthAsync(context);
+
         Assert.Equal(HealthStatus.Unhealthy, starting.Status);
         Assert.Contains("not listening", starting.Description, StringComparison.Ordinal);
 
         readiness.MarkReady();
         var ready = await check.CheckHealthAsync(context);
+
         Assert.Equal(HealthStatus.Healthy, ready.Status);
 
         drain.BeginDrain();
         var draining = await check.CheckHealthAsync(context);
+
         Assert.Equal(HealthStatus.Unhealthy, draining.Status);
         Assert.Contains("draining", draining.Description, StringComparison.Ordinal);
     }

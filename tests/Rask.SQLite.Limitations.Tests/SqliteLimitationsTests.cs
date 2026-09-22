@@ -50,6 +50,7 @@ public sealed class SqliteLimitationsTests : IDisposable
     {
         using var db = Open();
         Exec(db, "CREATE TABLE n (x INTEGER);");
+
         Exec(db, "INSERT INTO n (x) VALUES ('lots');"); // not enforced — affinity can't coerce it
 
         Assert.Equal("lots", Scalar(db, "SELECT x FROM n"));
@@ -60,6 +61,7 @@ public sealed class SqliteLimitationsTests : IDisposable
     public void No_native_decimal_real_arithmetic_is_inexact()
     {
         using var db = Open();
+
         // REAL money loses precision — the classic 0.1 + 0.2 != 0.3. (This is why EF Core avoids REAL.)
         Assert.Equal(0L, Scalar(db, "SELECT (0.1 + 0.2 = 0.3)")); // false
         Assert.NotEqual(0.3, Convert.ToDouble(Scalar(db, "SELECT 0.1 + 0.2")));
@@ -94,6 +96,7 @@ public sealed class SqliteLimitationsTests : IDisposable
 
         // Sorting TEXT numerically needs a collation, so EF Core emits one rather than a bare ORDER BY.
         var sql = ctx.Prices.OrderBy(p => p.Amount).ToQueryString();
+
         Assert.Contains("COLLATE EF_DECIMAL", sql, StringComparison.Ordinal);
 
         // EF registers EF_DECIMAL as decimal.Compare(decimal.Parse(x), decimal.Parse(y)) — with no
@@ -111,6 +114,7 @@ public sealed class SqliteLimitationsTests : IDisposable
     {
         using var db = Open();
         Exec(db, "CREATE TABLE e (d, g);");
+
         using (var insert = db.CreateCommand())
         {
             insert.CommandText = "INSERT INTO e (d, g) VALUES ($d, $g)";
@@ -130,15 +134,14 @@ public sealed class SqliteLimitationsTests : IDisposable
         Exec(writer, "PRAGMA busy_timeout = 0;");
         Exec(writer, "CREATE TABLE t (x);");
         Exec(writer, "BEGIN IMMEDIATE;"); // takes the write lock and holds it (no commit)
-
         using var second = Open();
         Exec(second, "PRAGMA busy_timeout = 0;");
-
         using var begin = second.CreateCommand();
         begin.CommandText = "BEGIN IMMEDIATE;";
         begin.CommandTimeout = 1; // cap the driver's SQLITE_BUSY retry (0 would mean retry forever)
 
         var ex = Assert.Throws<SqliteException>(() => begin.ExecuteNonQuery());
+
         Assert.Equal(5, ex.SqliteErrorCode); // SQLITE_BUSY — writes serialize to one writer
 
         Exec(writer, "ROLLBACK;");

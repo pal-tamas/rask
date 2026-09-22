@@ -67,13 +67,11 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
         await holder.OpenAsync();
         var holderTx = holder.BeginImmediate();
         Insert(holder, holderTx, "holder");
-
         var release = Task.Run(async () =>
         {
             await Task.Delay(50);
             holderTx.Commit();
         });
-
         await using var waiter = new SqliteConnection(_connectionString);
         await waiter.OpenAsync();
 
@@ -87,6 +85,7 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
             });
 
         await release;
+
         Assert.Equal(2, Count());
     }
 
@@ -97,7 +96,6 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
         await using var holder = new SqliteConnection(_connectionString);
         await holder.OpenAsync();
         using var holderTx = holder.BeginImmediate();
-
         await using var waiter = new SqliteConnection(_connectionString);
         await waiter.OpenAsync();
 
@@ -151,7 +149,6 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
         await connection.OpenAsync();
         Exec(connection, "INSERT INTO t(v) VALUES('seed');");
         Exec(connection, "BEGIN IMMEDIATE;");
-
         var command = connection.CreateCommand();
         command.CommandText = "SELECT v FROM t;";
         var reader = await command.ExecuteReaderAsync();
@@ -190,11 +187,9 @@ public sealed class SqliteImmediateTransactionTests : IDisposable
         await using var holder = new SqliteConnection(_connectionString);
         await holder.OpenAsync();
         using var holderTx = holder.BeginImmediate();
-
         await using var waiter = new SqliteConnection(_connectionString);
         await waiter.OpenAsync();
         var waiterHandle = waiter.Handle!;
-
         var injected = Task.Run(async () =>
         {
             await Task.Delay(150); // the retry loop is polling by now

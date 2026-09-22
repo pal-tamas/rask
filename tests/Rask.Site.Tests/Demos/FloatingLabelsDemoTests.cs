@@ -11,11 +11,10 @@ public sealed partial class FloatingLabelsDemoTests : global::Rask.Core.RaskMark
     // lives OUTSIDE the Form — appears. OnValidSubmit sets the demo's _submission; the Form must
     // re-render the callback's owner. Regression guard for the submit-success-not-shown bug.
     [Fact]
-    public async Task ValidSubmit_ShowsSuccessAlert()
+    public async Task A_valid_submit_shows_the_success_alert()
     {
         var page = Test.Render(() => FloatingLabelsDemo, TestServices.Default());
         var html = page.Render();
-
         // Populate the model through the live field handlers (the submit bridge validates/invokes
         // against the live-bound model, not the event payload).
         await Fill(page, html, "ff-FullName", "Ada Lovelace");
@@ -69,7 +68,7 @@ public sealed partial class FloatingLabelsDemoTests : global::Rask.Core.RaskMark
     }
 
     [Fact]
-    public void FloatingLabelsDemo_Render_FloatsEveryLabelOverItsLinkedControl()
+    public void The_FloatingLabelsDemo_floats_every_label_over_its_linked_control()
     {
         var html = Test.Render(() => FloatingLabelsDemo, TestServices.Default()).Html;
 
@@ -100,16 +99,17 @@ public sealed partial class FloatingLabelsDemoTests : global::Rask.Core.RaskMark
     }
 
     [Fact]
-    public void AccountModel_Empty_FailsRequiredFields()
+    public void An_empty_AccountModel_fails_its_required_fields()
     {
         var errors = Validate(new AccountModel());
+
         Assert.Contains(errors, e => e.MemberNames.Contains("FullName"));
         Assert.Contains(errors, e => e.MemberNames.Contains("Email"));
         Assert.Contains(errors, e => e.MemberNames.Contains("Plan"));
     }
 
     [Fact]
-    public void AccountModel_ValidValues_HasNoErrors()
+    public void An_AccountModel_with_valid_values_has_no_errors()
     {
         var model = new AccountModel
         {
@@ -119,6 +119,7 @@ public sealed partial class FloatingLabelsDemoTests : global::Rask.Core.RaskMark
             Plan = "pro",
             Bio = "Hello"
         };
+
         Assert.Empty(Validate(model));
     }
 

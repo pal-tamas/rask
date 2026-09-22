@@ -5,7 +5,7 @@ namespace Rask.Core.Tests.Interop;
 public class BroadcastChannelTests
 {
     [Fact]
-    public async Task Open_RegistersHandler_AndOpensNamedChannel()
+    public async Task Opening_registers_the_handler_and_opens_the_named_channel()
     {
         var js = new FakeJsRuntime();
 
@@ -19,7 +19,7 @@ public class BroadcastChannelTests
     }
 
     [Fact]
-    public async Task Receive_RoutesMessage_ToTheRegisteredHandler()
+    public async Task A_received_message_is_routed_to_the_registered_handler()
     {
         var js = new FakeJsRuntime();
         string? got = null;
@@ -36,7 +36,7 @@ public class BroadcastChannelTests
     }
 
     [Fact]
-    public async Task Post_SendsMessage_OnTheConnectionId()
+    public async Task A_post_sends_the_message_on_the_connection_id()
     {
         var js = new FakeJsRuntime();
         var conn = await new BroadcastChannelService(js).OpenAsync("room", _ => Task.CompletedTask);
@@ -48,7 +48,7 @@ public class BroadcastChannelTests
     }
 
     [Fact]
-    public async Task Dispose_ClosesChannel_AndStopsRouting()
+    public async Task Disposing_closes_the_channel_and_stops_routing()
     {
         var js = new FakeJsRuntime();
         var received = 0;
@@ -67,15 +67,16 @@ public class BroadcastChannelTests
     }
 
     [Fact]
-    public async Task Receive_UnknownId_IsNoOp()
+    public async Task A_message_for_an_unknown_id_does_nothing()
     {
         await BroadcastInterop.Receive(-12345, "nobody-listening");
     }
 
     [Fact]
-    public async Task Open_NullArgs_Throw()
+    public async Task Opening_with_null_args_throws()
     {
         var svc = new BroadcastChannelService(new FakeJsRuntime());
+
         await Assert.ThrowsAsync<ArgumentNullException>(async () => await svc.OpenAsync(null!, _ => Task.CompletedTask));
         await Assert.ThrowsAsync<ArgumentNullException>(async () => await svc.OpenAsync("room", null!));
     }

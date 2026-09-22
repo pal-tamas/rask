@@ -14,17 +14,18 @@ public partial class LiveSessionStoreTests : global::Rask.Core.RaskMarkup
             lifetime);
 
     [Fact]
-    public void Create_AssignsUniqueIds()
+    public void Creating_sessions_assigns_unique_ids()
     {
         var store = NewStore();
         var s1 = store.Create(_ => new StubComponent(Span));
         var s2 = store.Create(_ => new StubComponent(Span));
+
         Assert.NotEqual(s1.Id, s2.Id);
         Assert.Equal(2, store.Count);
     }
 
     [Fact]
-    public void Get_ReturnsRegisteredSession()
+    public void Getting_a_registered_session_finds_it()
     {
         var store = NewStore();
         var view = new StubComponent(Span);
@@ -37,14 +38,15 @@ public partial class LiveSessionStoreTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Get_UnknownId_ReturnsNull()
+    public void Getting_an_unknown_id_gives_null()
     {
         var store = NewStore();
+
         Assert.Null(store.Get("nope"));
     }
 
     [Fact]
-    public void Remove_DropsSession()
+    public void Removing_a_session_drops_it()
     {
         var store = NewStore();
         var session = store.Create(_ => new StubComponent(Span));
@@ -56,7 +58,7 @@ public partial class LiveSessionStoreTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task ScheduleRemoval_AfterDelay_RemovesSession()
+    public async Task A_scheduled_removal_removes_the_session_after_the_delay()
     {
         var store = NewStore();
         var session = store.Create(_ => new StubComponent(Span));
@@ -69,7 +71,7 @@ public partial class LiveSessionStoreTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task ScheduleRemoval_ThenGet_CancelsRemoval_SessionStaysRegistered()
+    public async Task A_get_after_a_scheduled_removal_cancels_it_and_the_session_stays_registered()
     {
         var store = NewStore();
         var session = store.Create(_ => new StubComponent(Span));
@@ -83,7 +85,7 @@ public partial class LiveSessionStoreTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task ScheduleRemoval_TwiceForSameId_ReplacesEarlierSchedule()
+    public async Task Scheduling_removal_twice_for_the_same_id_replaces_the_earlier_schedule()
     {
         var store = NewStore();
         var session = store.Create(_ => new StubComponent(Span));
@@ -96,7 +98,7 @@ public partial class LiveSessionStoreTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void ScheduleRemoval_UnknownId_NoOp()
+    public void Scheduling_removal_of_an_unknown_id_does_nothing()
     {
         var store = NewStore();
 
@@ -106,7 +108,7 @@ public partial class LiveSessionStoreTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task ScheduleRemoval_StoppingTokenAlreadyCancelled_RemovesImmediately()
+    public async Task Scheduling_removal_with_an_already_cancelled_stopping_token_removes_immediately()
     {
         var lifetime = new FakeLifetime();
         var store = NewStore(lifetime);
@@ -120,7 +122,7 @@ public partial class LiveSessionStoreTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task RemoveAsync_DisposesSession()
+    public async Task Removing_a_session_asynchronously_disposes_it()
     {
         var store = NewStore();
         var disposed = new TaskCompletionSource();
@@ -133,7 +135,7 @@ public partial class LiveSessionStoreTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task RerenderAllAsync_NoSessions_ReturnsCompletedTask()
+    public async Task Rerendering_all_with_no_sessions_gives_a_completed_task()
     {
         var store = NewStore();
 
@@ -141,7 +143,7 @@ public partial class LiveSessionStoreTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task RerenderAllAsync_WithSessions_CompletesWithoutThrowing()
+    public async Task Rerendering_all_with_sessions_completes_without_throwing()
     {
         var store = NewStore();
         store.Create(_ => new StubComponent(Span));
@@ -155,7 +157,7 @@ public partial class LiveSessionStoreTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task DisposeAsync_DisposesEachSessionAndCancelsPending()
+    public async Task Disposing_the_store_disposes_each_session_and_cancels_pending_removals()
     {
         var store = NewStore();
         var disposed = new TaskCompletionSource();
@@ -169,7 +171,7 @@ public partial class LiveSessionStoreTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void TryCreate_Uncapped_AlwaysSucceeds()
+    public void An_uncapped_store_always_creates_a_session()
     {
         var store = NewStore(); // MaxSessions defaults to 0 (unlimited)
 
@@ -182,7 +184,7 @@ public partial class LiveSessionStoreTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void TryCreate_OverCap_ReturnsNullAndMintsNoSession()
+    public void Over_the_cap_creation_gives_null_and_mints_no_session()
     {
         var store = NewStore();
         store.MaxSessions = 2;
@@ -196,7 +198,7 @@ public partial class LiveSessionStoreTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void TryCreate_AfterRemoval_FreesACapSlot()
+    public void A_removal_frees_a_cap_slot_for_creation()
     {
         var store = NewStore();
         store.MaxSessions = 1;
@@ -212,7 +214,7 @@ public partial class LiveSessionStoreTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task TryCreate_ConcurrentBurst_NeverExceedsCap()
+    public async Task A_concurrent_burst_of_creations_never_exceeds_the_cap()
     {
         var store = NewStore();
         store.MaxSessions = 10;

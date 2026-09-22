@@ -58,6 +58,7 @@ public sealed class UiLayerOrderTests
         // Vacuous-pass guard: if the regex ever stops matching, every ordering assertion below would
         // silently hold over an empty list.
         var order = DeclaredOrder();
+
         Assert.Contains("utilities", order);
         Assert.Contains("base", order);
     }

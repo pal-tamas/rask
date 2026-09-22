@@ -44,7 +44,7 @@ public class MalformedMessageTests
 
     [Theory]
     [MemberData(nameof(BadFrames))]
-    public async Task BadFrame_IsDropped_SessionSurvivesAndKeepsDispatching(
+    public async Task A_bad_frame_is_dropped_and_the_session_survives_and_keeps_dispatching(
         string badFrame, LiveTransportKind transport)
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
@@ -74,7 +74,7 @@ public class MalformedMessageTests
     [InlineData("id", LiveTransportKind.WebSocket)]   // handler id as a non-string is treated as absent
     [InlineData("type", LiveTransportKind.Http)]
     [InlineData("id", LiveTransportKind.Http)]
-    public async Task WrongFieldType_IsIgnored_NoTeardown(string field, LiveTransportKind transport)
+    public async Task A_field_of_the_wrong_type_is_ignored_without_a_teardown(string field, LiveTransportKind transport)
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
         var sessionId = MarkupAssert.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
@@ -85,6 +85,7 @@ public class MalformedMessageTests
         await ws.SendRawAsync($"{{\"{field}\":123}}");
 
         var text = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
+
         Assert.Null(text);
         Assert.True(ws.IsOpen);
         Assert.Equal(1, host.Store.Count);
@@ -92,7 +93,7 @@ public class MalformedMessageTests
 
     [Theory]
     [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
-    public async Task ManyBadFramesInARow_DoNotDropTheSession(LiveTransportKind transport)
+    public async Task Many_bad_frames_in_a_row_do_not_drop_the_session(LiveTransportKind transport)
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
         var initial = await host.Http.GetAsync("/start");

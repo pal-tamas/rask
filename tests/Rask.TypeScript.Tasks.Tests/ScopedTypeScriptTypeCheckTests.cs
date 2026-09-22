@@ -28,7 +28,7 @@ public class ScopedTypeScriptTypeCheckTests
         ["bin", "obj", "node_modules", "wwwroot", "Resources", "Browser"];
 
     [Fact]
-    public void EveryScopedTypeScriptFile_TypeChecks()
+    public void Every_scoped_TypeScript_file_type_checks()
     {
         var root = PinnedTools.RepositoryRoot();
         var tsgo = PinnedTools.Resolve("tsgo");
@@ -78,7 +78,7 @@ public class ScopedTypeScriptTypeCheckTests
     ///     </para>
     /// </remarks>
     [Fact]
-    public void TheFrameworksServiceWorkers_TypeCheck()
+    public void The_framework_service_workers_type_check()
     {
         var root = PinnedTools.RepositoryRoot();
         var tsgo = PinnedTools.Resolve("tsgo");
@@ -130,7 +130,7 @@ public class ScopedTypeScriptTypeCheckTests
     ///     </para>
     /// </remarks>
     [Fact]
-    public void TheShippedBrowserModules_TypeCheckWithNothingButLibDom()
+    public void The_shipped_browser_modules_type_check_with_nothing_but_lib_dom()
     {
         var root = PinnedTools.RepositoryRoot();
         var tsgo = PinnedTools.Resolve("tsgo");
@@ -192,7 +192,7 @@ public class ScopedTypeScriptTypeCheckTests
     ///     </para>
     /// </remarks>
     [Fact]
-    public void TheFrameworksClientRuntimes_TypeCheck()
+    public void The_framework_client_runtimes_type_check()
     {
         var root = PinnedTools.RepositoryRoot();
         var tsgo = PinnedTools.Resolve("tsgo");
@@ -227,7 +227,7 @@ public class ScopedTypeScriptTypeCheckTests
             }
             .SelectMany(d => Directory.EnumerateFiles(d, "*.ts", SearchOption.AllDirectories))
             .Where(f => !f.EndsWith(".d.ts", StringComparison.Ordinal))
-            // The service workers are checked by TheFrameworksServiceWorkers_TypeCheck, against the
+            // The service workers are checked by The_framework_service_workers_type_check, against the
             // webworker lib rather than dom.
             .Where(f => !Path.GetFileName(f).StartsWith("rask-sw", StringComparison.Ordinal))
             .Select(Path.GetFullPath)
@@ -267,7 +267,7 @@ public class ScopedTypeScriptTypeCheckTests
     ///     </para>
     /// </remarks>
     [Fact]
-    public void NoCompiledJavaScriptSitsBesideTheFrameworkTypeScript()
+    public void No_compiled_JavaScript_sits_beside_the_framework_TypeScript()
     {
         var root = PinnedTools.RepositoryRoot();
 

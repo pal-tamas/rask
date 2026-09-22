@@ -32,7 +32,6 @@ public sealed class RaskSqlitePersistenceTests : IDisposable
         using var command = read.CreateCommand();
         command.CommandText = "SELECT COUNT(*) FROM todos;";
         Assert.Equal(2L, (long)command.ExecuteScalar()!);
-
         Assert.Equal("wal", ReadScalar(read, "PRAGMA journal_mode;"));
     }
 

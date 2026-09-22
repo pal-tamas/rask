@@ -19,7 +19,7 @@ public sealed class DevToolsGuideTests(WasmExampleAppFixture app, PlaywrightFixt
     protected override string ServerLog => app.ServerLog;
 
     [Fact]
-    public Task EveryScreenshotInTheGuideLoads() => RunAsync(async () =>
+    public Task Every_screenshot_in_the_guide_loads() => RunAsync(async () =>
     {
         await Page.GotoAsync(Docs + "/guides/devtools");
         await Expect(Page.Locator("main .markdown-body h1").First).ToContainTextAsync("DevTools",

@@ -71,8 +71,8 @@ public class NodeForwarderTests
         await using var _ = node;
         var (rask, raskPort) = await StartRaskAsync(nodePort);
         await using var __ = rask;
-
         using var client = ClientFor(raskPort);
+
         Assert.Equal("from node", await client.GetStringAsync("/page", Timeout()));
     }
 
@@ -101,8 +101,8 @@ public class NodeForwarderTests
         await using var _ = node;
         var (rask, raskPort) = await StartRaskAsync(nodePort);
         await using var __ = rask;
-
         using var client = ClientFor(raskPort);
+
         Assert.Equal("asset", await client.GetStringAsync(path, Timeout()));
     }
 
@@ -122,8 +122,8 @@ public class NodeForwarderTests
         var (rask, raskPort) = await StartRaskAsync(
             nodePort, app => app.MapGet("/_rask/ping", () => "from rask"));
         await using var __ = rask;
-
         using var client = ClientFor(raskPort);
+
         Assert.Equal("from rask", await client.GetStringAsync("/_rask/ping", Timeout()));
         Assert.Equal("from node", await client.GetStringAsync("/anything-else", Timeout()));
     }
@@ -168,6 +168,7 @@ public class NodeForwarderTests
 
         var head = new byte[5];
         await stream.ReadExactlyAsync(head, Timeout());
+
         Assert.Equal("first", Encoding.UTF8.GetString(head));
 
         // Only now does the backend get to finish, so reaching this line at all proves the first
@@ -175,6 +176,7 @@ public class NodeForwarderTests
         released.SetResult();
 
         using var reader = new StreamReader(stream);
+
         Assert.Equal("second", await reader.ReadToEndAsync(Timeout()));
     }
 
@@ -199,6 +201,7 @@ public class NodeForwarderTests
         // which the host starts after StartAsync returns, and this test raced the flag it was about to clear.
         var readiness = rask.Services.GetRequiredService<NodeReadiness>();
         Assert.True(readiness.IsReady, "a started host with no Node process to supervise is not marked ready");
+
         readiness.MarkNotReady();
 
         using var client = ClientFor(raskPort);
@@ -285,13 +288,14 @@ public class NodeForwarderTests
 
     /// <summary>Forwarding without the services that start the process is a startup error.</summary>
     [Fact]
-    public async Task UseRaskMeta_without_AddRaskMeta_throws()
+    public async Task UseRaskMeta_throws_when_AddRaskMeta_was_never_called()
     {
         var builder = WebApplication.CreateSlimBuilder();
         builder.Logging.ClearProviders();
         await using var app = builder.Build();
 
         var error = Assert.Throws<InvalidOperationException>(() => app.UseRaskMeta());
+
         Assert.Contains("AddRaskMeta", error.Message, StringComparison.Ordinal);
     }
 }

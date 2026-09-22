@@ -19,7 +19,7 @@ public sealed class UiKitDataGridTests(WasmExampleAppFixture app, PlaywrightFixt
     protected override string ServerLog => app.ServerLog;
 
     [Fact]
-    public Task EveryGridRendersWithARealSize() => RunAsync(async () =>
+    public Task Every_grid_renders_with_a_real_size() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -42,7 +42,7 @@ public sealed class UiKitDataGridTests(WasmExampleAppFixture app, PlaywrightFixt
     });
 
     [Fact]
-    public Task ClickingAHeaderReordersTheRows() => RunAsync(async () =>
+    public Task Clicking_a_header_reorders_the_rows() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -59,7 +59,7 @@ public sealed class UiKitDataGridTests(WasmExampleAppFixture app, PlaywrightFixt
     });
 
     [Fact]
-    public Task TickingARowReportsItsKeyToThePage() => RunAsync(async () =>
+    public Task Ticking_a_row_reports_its_key_to_the_page() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -74,7 +74,7 @@ public sealed class UiKitDataGridTests(WasmExampleAppFixture app, PlaywrightFixt
     });
 
     [Fact]
-    public Task SelectAllTicksEveryRowItCanName() => RunAsync(async () =>
+    public Task Select_all_ticks_every_row_it_can_name() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -88,7 +88,7 @@ public sealed class UiKitDataGridTests(WasmExampleAppFixture app, PlaywrightFixt
     });
 
     [Fact]
-    public Task GroupingFromAHeaderBandsTheRows() => RunAsync(async () =>
+    public Task Grouping_from_a_header_bands_the_rows() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -101,7 +101,7 @@ public sealed class UiKitDataGridTests(WasmExampleAppFixture app, PlaywrightFixt
     });
 
     [Fact]
-    public Task TheControlledGridReportsItsOwnSortAndPage() => RunAsync(async () =>
+    public Task The_controlled_grid_reports_its_own_sort_and_page() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -118,7 +118,7 @@ public sealed class UiKitDataGridTests(WasmExampleAppFixture app, PlaywrightFixt
     });
 
     [Fact]
-    public Task OnAPhoneTheTableStacksIntoLabelledLines() => RunAsync(async () =>
+    public Task On_a_phone_the_table_stacks_into_labelled_lines() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -157,7 +157,7 @@ public sealed class UiKitDataGridTests(WasmExampleAppFixture app, PlaywrightFixt
     });
 
     [Fact]
-    public Task PageLinksMoveTheUrlAndTheBackButtonWalksBack() => RunAsync(async () =>
+    public Task Page_links_move_the_URL_and_the_back_button_walks_back() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -179,7 +179,7 @@ public sealed class UiKitDataGridTests(WasmExampleAppFixture app, PlaywrightFixt
     });
 
     [Fact]
-    public Task ASecondaryColumnWaitsForRoomAndAToneTintsItsRow() => RunAsync(async () =>
+    public Task A_secondary_column_waits_for_room_and_a_tone_tints_its_row() => RunAsync(async () =>
     {
         await OpenAsync();
 

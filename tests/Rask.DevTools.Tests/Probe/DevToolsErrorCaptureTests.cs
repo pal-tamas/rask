@@ -22,6 +22,7 @@ public sealed class DevToolsErrorCaptureTests
         Assert.True(await DevToolsLivePage.WaitFor(
             () => feed.Errors.Snapshot().Any(e => e.Kind == DevToolsErrorKind.Handler), TimeSpan.FromSeconds(5)),
             "the handler's fault was never listed for its page");
+
         var error = feed.Errors.Snapshot().Single(e => e.Kind == DevToolsErrorKind.Handler);
         Assert.Equal("InvalidOperationException", error.Title);
         Assert.Equal("the handler failed on purpose", error.Message);
@@ -44,6 +45,7 @@ public sealed class DevToolsErrorCaptureTests
         Assert.True(await DevToolsLivePage.WaitFor(
             () => feed.Errors.Snapshot().Any(e => e.Kind == DevToolsErrorKind.Render), TimeSpan.FromSeconds(5)),
             "the render fault was never listed for its page");
+
         var error = feed.Errors.Snapshot().Single(e => e.Kind == DevToolsErrorKind.Render);
         Assert.Equal("the render failed on purpose", error.Message);
         Assert.Equal(nameof(DevToolsThrowingChild), error.Path[^1]);

@@ -10,7 +10,7 @@ public partial class AsyncHandlerRenderingTests : global::Rask.Core.RaskMarkup
     private static JsonElement EmptyPayload => JsonDocument.Parse("{}").RootElement;
 
     [Fact]
-    public async Task AsyncHandler_RendersBeforeAndAfterEachAwait()
+    public async Task An_async_handler_renders_before_and_after_each_await()
     {
         var state = "init";
         var handle = new RecordingRenderHandle(() => state);
@@ -39,7 +39,7 @@ public partial class AsyncHandlerRenderingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task AsyncHandler_StringPayload_AlsoRendersProgressively()
+    public async Task An_async_handler_with_a_string_payload_also_renders_progressively()
     {
         var state = "init";
         var handle = new RecordingRenderHandle(() => state);
@@ -60,7 +60,7 @@ public partial class AsyncHandlerRenderingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task SyncActionHandler_DoesNotInvokeRenderInScope()
+    public async Task A_sync_action_handler_does_not_invoke_render_in_scope()
     {
         var handle = new RecordingRenderHandle(() => "");
         var component = new StubComponent(Span) { RenderHandle = handle };
@@ -75,7 +75,7 @@ public partial class AsyncHandlerRenderingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task AsyncHandler_NoAwaits_DoesNotInvokeRenderInScope()
+    public async Task An_async_handler_with_no_awaits_does_not_invoke_render_in_scope()
     {
         var handle = new RecordingRenderHandle(() => "");
         var component = new StubComponent(Span) { RenderHandle = handle };
@@ -88,7 +88,7 @@ public partial class AsyncHandlerRenderingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task AsyncHandler_StateMutatedAfterAwait_RepaintsWithoutStateHasChanged()
+    public async Task State_an_async_handler_mutates_after_an_await_repaints_without_StateHasChanged()
     {
         // The contract behind docs/data-access.md: an awaited DOM event handler needs no explicit
         // StateHasChanged() — after the handler returns the framework re-marks the owner dirty, so the
@@ -122,7 +122,7 @@ public partial class AsyncHandlerRenderingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task AsyncHandler_NoRenderHandle_DoesNotThrow()
+    public async Task An_async_handler_without_a_render_handle_does_not_throw()
     {
         var component = new StubComponent(Span);
         Assert.Null(component.RenderHandle);
@@ -133,7 +133,7 @@ public partial class AsyncHandlerRenderingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task AsyncHandler_DoesNotLeaveHandlerSyncContextInstalled()
+    public async Task An_async_handler_does_not_leave_the_handler_sync_context_installed()
     {
         var handle = new RecordingRenderHandle(() => "");
         var component = new StubComponent(Span) { RenderHandle = handle };

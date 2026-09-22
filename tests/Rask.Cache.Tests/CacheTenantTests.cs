@@ -104,7 +104,6 @@ public sealed class CacheTenantTests
         await harness.Distributed.SetAsync("anonymous", Bytes("v"), new DistributedCacheEntryOptions());
 
         Assert.Equal("v", Str((await harness.Distributed.GetAsync("anonymous"))!));
-
         await using var db = harness.NewContext();
         Assert.True(await db.Set<CacheEntry>().AnyAsync(e => e.Key == "anonymous"));
     }

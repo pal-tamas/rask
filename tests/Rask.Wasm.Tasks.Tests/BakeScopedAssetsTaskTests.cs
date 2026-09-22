@@ -37,7 +37,7 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
         => new() { BundleDir = bundleDir, Assemblies = assemblies, BuildEngine = new StubBuildEngine() };
 
     [Fact]
-    public void EmptyBundleDir_ReturnsTrue_NoOutput()
+    public void An_empty_bundle_dir_succeeds_with_no_output()
     {
         var task = NewTask("", Array.Empty<ITaskItem>());
 
@@ -45,7 +45,7 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
     }
 
     [Fact]
-    public void MissingBundleDir_ReturnsTrue_NoOutput()
+    public void A_missing_bundle_dir_succeeds_with_no_output()
     {
         var task = NewTask(Path.Combine(_bundleDir, "definitely-not-here"),
             Array.Empty<ITaskItem>());
@@ -55,7 +55,7 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
     }
 
     [Fact]
-    public void NoAssemblies_ReturnsTrue_DoesNotCreateRaskFolder()
+    public void No_assemblies_succeeds_without_creating_the_rask_folder()
     {
         var task = NewTask(_bundleDir, Array.Empty<ITaskItem>());
 
@@ -64,12 +64,13 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
     }
 
     [Fact]
-    public void AssembliesPointToNothing_ReturnsTrue_NoFilesWritten()
+    public void Assemblies_that_point_to_nothing_succeed_with_no_files_written()
     {
         var task = NewTask(_bundleDir,
             new ITaskItem[] { new TaskItem(Path.Combine(_bundleDir, "does-not-exist.dll")) });
 
         Assert.True(task.Execute());
+
         // _rask/a/ may or may not get created (registry still scanned); critical is no .css/.js files.
         var outDir = Path.Combine(_bundleDir, "_rask", "a");
         if (Directory.Exists(outDir))
@@ -79,7 +80,7 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
     }
 
     [Fact]
-    public void RealAssemblies_BakeWritesOneFilePerRegisteredAsset()
+    public void Baking_real_assemblies_writes_one_file_per_registered_asset()
     {
         // Rask.ScopedAssets.Fixture's source-generator-emitted __RaskScopedCssRegistration and
         // __RaskScopedJsRegistration run at assembly load; this test's project references
@@ -88,6 +89,7 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
         // classes, then writes one file per (hash, kind) entry.
         var raskCoreDll = typeof(ScopedAssetRegistry).Assembly.Location;
         var fixtureDll = typeof(ScopedWidget).Assembly.Location;
+
         Assert.True(File.Exists(raskCoreDll), $"Rask.Core.dll not at {raskCoreDll}");
         Assert.True(File.Exists(fixtureDll), $"Rask.ScopedAssets.Fixture.dll not at {fixtureDll}");
 
@@ -116,7 +118,7 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
     }
 
     [Fact]
-    public void RealAssemblies_ADebugBuild_BakesTheScriptsSourceMap()
+    public void A_debug_build_of_real_assemblies_bakes_the_scripts_source_map()
     {
 #if DEBUG
         var task = NewTask(_bundleDir, new ITaskItem[]
@@ -124,6 +126,7 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
             new TaskItem(typeof(ScopedAssetRegistry).Assembly.Location),
             new TaskItem(typeof(ScopedWidget).Assembly.Location),
         });
+
         Assert.True(task.Execute());
 
         var hash = ScopedAssetRegistry.GetBundleHash(AssetKind.Js);
@@ -133,12 +136,12 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
     }
 
     [Fact]
-    public void RealAssemblies_BakedFilenamesMatchHashAndExtension()
+    public void The_baked_filenames_of_real_assemblies_match_hash_and_extension()
     {
         var raskCoreDll = typeof(ScopedAssetRegistry).Assembly.Location;
         var fixtureDll = typeof(ScopedWidget).Assembly.Location;
-
         var task = NewTask(_bundleDir, new ITaskItem[] { new TaskItem(raskCoreDll), new TaskItem(fixtureDll) });
+
         task.Execute();
 
         var outDir = Path.Combine(_bundleDir, "_rask", "a");
@@ -159,7 +162,7 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
     }
 
     [Fact]
-    public void FailOnEmpty_WhenAssetsBaked_ReturnsTrue()
+    public void FailOnEmpty_succeeds_when_assets_were_baked()
     {
         // The real assemblies register a non-empty scoped-asset set, so even with the
         // fail-fast guard armed the bake succeeds.
@@ -177,7 +180,7 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
     }
 
     [Fact]
-    public void FailOnEmpty_WhenRegistryResolvedButZeroBaked_ReturnsFalseAndLogsError()
+    public void FailOnEmpty_fails_and_logs_an_error_when_the_registry_resolved_but_nothing_was_baked()
     {
         // Rask.Core is present so the registry resolves, but we feed NO registration-
         // bearing assembly (no Rask.ScopedAssets.Fixture), and clear the registry first so the
@@ -185,7 +188,6 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
         // Result: registry resolved, zero entries → the guard fails the build.
         ScopedAssetRegistry.InvalidateAllCss();
         ScopedAssetRegistry.InvalidateAllJs();
-
         var task = NewTask(_bundleDir, new ITaskItem[] { new TaskItem(typeof(ScopedAssetRegistry).Assembly.Location) });
         task.FailOnEmpty = true;
 
@@ -194,7 +196,7 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
     }
 
     [Fact]
-    public void FailOnEmpty_WhenNotARaskProject_ReturnsTrue()
+    public void FailOnEmpty_succeeds_when_it_is_not_a_rask_project()
     {
         // No Rask.Core in the assembly set → registry never resolves → silent no-op even
         // with the guard armed (a non-Rask WASM project must not be failed by the bake).
@@ -207,7 +209,7 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
     }
 
     [Fact]
-    public void Rerun_OverwritesSameFiles_Idempotent()
+    public void A_rerun_overwrites_the_same_files_idempotently()
     {
         var raskCoreDll = typeof(ScopedAssetRegistry).Assembly.Location;
         var fixtureDll = typeof(ScopedWidget).Assembly.Location;
@@ -234,7 +236,7 @@ public sealed class BakeScopedAssetsTaskTests : IDisposable
     [InlineData(0, 0, false, false)]  // nothing skipped: not this failure mode
     [InlineData(3, 1, false, false)]  // files were written despite a skip: not known to be wrong
     [InlineData(3, 0, true, false)]   // the ordinary happy path
-    public void IsNodeReuseBakeFailure_OnlyWhenTheRegistryWasNeverRead(
+    public void A_node_reuse_bake_failure_is_only_when_the_registry_was_never_read(
         int written, int skipped, bool registryResolved, bool expected) =>
         Assert.Equal(expected,
             BakeScopedAssetsTask.IsNodeReuseBakeFailure(written, skipped, registryResolved));

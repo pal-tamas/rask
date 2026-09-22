@@ -9,7 +9,7 @@ namespace Rask.Wasm.Tests;
 public sealed class HostContractParityTests
 {
     [Fact]
-    public void WasmHostBuilder_ResolvesEveryCoreHostContract()
+    public void The_WASM_host_builder_resolves_every_core_host_contract()
     {
         var builder = WasmHostBuilder.CreateDefault();
         using var provider = builder.Services.BuildServiceProvider();
@@ -27,7 +27,7 @@ public sealed class HostContractParityTests
     // contract must be able to win by registering first. Guarding one representative keeps the parity test
     // above from being "satisfied" by a future host that hard-registers and locks apps out.
     [Fact]
-    public void AppRegistration_BeforeTheFrameworkDefaults_Wins()
+    public void An_app_registration_made_before_the_framework_defaults_wins()
     {
         var builder = WasmHostBuilder.CreateDefault();
         var http = new HttpClient { BaseAddress = new Uri("https://example.test/") };

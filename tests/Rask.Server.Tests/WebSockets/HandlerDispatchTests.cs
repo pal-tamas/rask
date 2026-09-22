@@ -13,7 +13,7 @@ public class HandlerDispatchTests
     // shape (framework default is now LiveDiffMode.Auto).
 
     [Fact]
-    public async Task HandlerId_KnownHandler_InvokesAndSendsRender()
+    public async Task A_known_handler_id_invokes_the_handler_and_sends_a_render()
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
         var initial = await host.Http.GetAsync("/start");
@@ -35,7 +35,7 @@ public class HandlerDispatchTests
     }
 
     [Fact]
-    public async Task HandlerId_UnknownHandler_NoPayload()
+    public async Task An_unknown_handler_id_sends_no_payload()
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
         var initial = await host.Http.GetAsync("/start");
@@ -53,7 +53,7 @@ public class HandlerDispatchTests
     }
 
     [Fact]
-    public async Task HandlerId_FrameTypeThatCannotFeedTheHandler_IsIgnored()
+    public async Task A_frame_type_that_cannot_feed_the_handler_is_ignored()
     {
         // Action ids are positional per render, so a frame the client sent against an earlier tree
         // resolves to whatever now occupies that slot. h0 here is the parameterless "bump" click; an
@@ -77,13 +77,14 @@ public class HandlerDispatchTests
         // ...and the socket still dispatches the frame that DOES fit.
         await ws.SendJsonAsync(new { id = handlerId, type = "click" });
         var text = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+
         Assert.NotNull(text);
         using var doc = JsonDocument.Parse(text!);
         Assert.Contains("count=1", doc.RootElement.GetProperty("html").GetString()!);
     }
 
     [Fact]
-    public async Task Message_NoIdAndNoType_Ignored()
+    public async Task A_message_with_no_id_and_no_type_is_ignored()
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
         var initial = await host.Http.GetAsync("/start");
@@ -100,7 +101,7 @@ public class HandlerDispatchTests
     }
 
     [Fact]
-    public async Task MalformedJson_IsDropped_SessionSurvivesAndKeepsDispatching()
+    public async Task Malformed_json_is_dropped_and_the_session_survives_and_keeps_dispatching()
     {
         // A single malformed frame must NOT tear down the live session. Previously the
         // unguarded JsonDocument.Parse threw JsonException out of the receive loop, detaching
@@ -133,7 +134,7 @@ public class HandlerDispatchTests
     }
 
     [Fact]
-    public async Task Message_MissingType_ButHasOtherFields_Ignored()
+    public async Task A_message_missing_its_type_but_carrying_other_fields_is_ignored()
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
         var sessionId = MarkupAssert.SessionId(await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync());
@@ -150,7 +151,7 @@ public class HandlerDispatchTests
     }
 
     [Fact]
-    public async Task ConcurrentHandlerInvocations_SerialisedByPerSessionLock()
+    public async Task Concurrent_handler_invocations_are_serialised_by_the_per_session_lock()
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
         var initial = await host.Http.GetAsync("/start");
@@ -182,7 +183,7 @@ public class HandlerDispatchTests
     }
 
     [Fact]
-    public async Task HandlerThatThrows_TripsImplicitRootBoundary_AndDispatcherKeepsRunning()
+    public async Task A_handler_that_throws_trips_the_implicit_root_boundary_and_the_dispatcher_keeps_running()
     {
         using var host = RaskTestHost.Create<ThrowingApp>(diffMode: LiveDiffMode.DisabledFull);
         var initial = await host.Http.GetAsync("/start");
@@ -211,6 +212,7 @@ public class HandlerDispatchTests
         await ws.SendJsonAsync(new { id = throwingId });
         var afterThrow = await ws.ReceiveUntilAsync(
             f => f.Contains("rask-error-boundary", StringComparison.Ordinal), TimeSpan.FromSeconds(5));
+
         Assert.NotNull(afterThrow);
         Assert.Contains("Something went wrong", afterThrow);
         Assert.DoesNotContain("count=", afterThrow);
@@ -218,6 +220,7 @@ public class HandlerDispatchTests
         // Unknown id post-trip still gets handled gracefully (no payload, socket alive).
         await ws.SendJsonAsync(new { id = "h999" });
         var unknown = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
+
         Assert.Null(unknown);
         Assert.Equal(WebSocketState.Open, ws.State);
     }

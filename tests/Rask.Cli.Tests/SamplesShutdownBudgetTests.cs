@@ -34,7 +34,7 @@ public class SamplesShutdownBudgetTests
     }
 
     [Fact]
-    public void AddRask_budgets_the_shutdown_inside_the_deploy_window()
+    public void The_host_budgets_the_shutdown_inside_the_deploy_window()
     {
         // The two numbers are owned by different assemblies on purpose — Rask.Cli passes `docker stop -t`
         // and must not reference the framework — so this is what holds them together. Asserted as a
@@ -48,7 +48,7 @@ public class SamplesShutdownBudgetTests
     }
 
     [Fact]
-    public void AddRask_stops_the_hosted_services_concurrently()
+    public void The_host_stops_the_hosted_services_concurrently()
     {
         // The half that makes the arithmetic work. Sequentially the pillars' graces SUM — Litestream's WAL
         // flush 10s + an in-flight email 10s + a job 5s + an outbox item 5s = 30s against a 15s budget — so

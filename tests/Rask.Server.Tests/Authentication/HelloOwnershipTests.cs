@@ -20,7 +20,7 @@ namespace Rask.Server.Tests.Authentication;
 public class HelloOwnershipTests
 {
     [Fact]
-    public async Task Hello_FromAnotherSignedInUser_IsAnsweredAsUnknown_AndLeavesTheSessionAlone()
+    public async Task A_hello_from_another_signed_in_user_is_answered_as_unknown_and_leaves_the_session_alone()
     {
         using var host = CreateHost();
         var sessionId = await OpenSessionAsAsync(host, await SignInCookieAsync(host, "alice"));
@@ -32,7 +32,7 @@ public class HelloOwnershipTests
     }
 
     [Fact]
-    public async Task Hello_Anonymous_OnASignedInSession_IsAnsweredAsUnknown()
+    public async Task An_anonymous_hello_on_a_signed_in_session_is_answered_as_unknown()
     {
         using var host = CreateHost();
         var sessionId = await OpenSessionAsAsync(host, await SignInCookieAsync(host, "alice"));
@@ -44,7 +44,7 @@ public class HelloOwnershipTests
     }
 
     [Fact]
-    public async Task Hello_FromTheOwner_Attaches()
+    public async Task A_hello_from_the_owner_attaches()
     {
         using var host = CreateHost();
         var alice = await SignInCookieAsync(host, "alice");
@@ -61,7 +61,7 @@ public class HelloOwnershipTests
     // The sharp case the gate must not break: the owner is authenticated, and the handoff's reconnect
     // arrives as nobody.
     [Fact]
-    public async Task SignOut_TheAnonymousReconnect_IsAdmitted()
+    public async Task After_a_sign_out_the_anonymous_reconnect_is_admitted()
     {
         using var host = CreateHost();
         var alice = await SignInCookieAsync(host, "alice");
@@ -77,7 +77,7 @@ public class HelloOwnershipTests
     }
 
     [Fact]
-    public async Task SignOut_WhileTheHandoffIsInFlight_AnotherUserIsStillRefused()
+    public async Task While_a_sign_out_handoff_is_in_flight_another_user_is_still_refused()
     {
         using var host = CreateHost();
         var alice = await SignInCookieAsync(host, "alice");
@@ -93,7 +93,7 @@ public class HelloOwnershipTests
     // The handoff window opens at the redeem, which only the ticket's holder can perform — not when the
     // handler issues the ticket, which would let any anonymous holder of the id in first.
     [Fact]
-    public async Task SignOut_BeforeTheTicketIsRedeemed_AnAnonymousHelloIsRefused()
+    public async Task Before_a_sign_out_ticket_is_redeemed_an_anonymous_hello_is_refused()
     {
         using var host = CreateHost();
         var alice = await SignInCookieAsync(host, "alice");
@@ -108,7 +108,7 @@ public class HelloOwnershipTests
     // names a live session alongside their OWN valid record gets their own page rebuilt, as they would
     // for a dead id — not a refusal that reveals the id is live.
     [Fact]
-    public async Task Hello_Refused_WithTheCallersOwnResumeRecord_RebuildsTheirPage_AsForAnUnknownId()
+    public async Task A_refused_hello_with_the_callers_own_resume_record_rebuilds_their_page_as_for_an_unknown_id()
     {
         using var host = CreateHost();
         var aliceSession = await OpenSessionAsAsync(host, await SignInCookieAsync(host, "alice"));
@@ -121,6 +121,7 @@ public class HelloOwnershipTests
         await ws.SendJsonAsync(new { type = "hello", session = aliceSession, resume = malloryToken });
 
         var frame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
+
         Assert.NotNull(frame);
         using var doc = JsonDocument.Parse(frame);
         Assert.True(doc.RootElement.TryGetProperty("html", out var html), frame);
@@ -131,7 +132,7 @@ public class HelloOwnershipTests
 
     // Switching user: the owner is authenticated as one identity, and the handoff's reconnect carries another.
     [Fact]
-    public async Task SignIn_AsSomeoneElse_TheRedeemedIdentitysReconnect_IsAdmitted()
+    public async Task After_signing_in_as_someone_else_the_redeemed_identitys_reconnect_is_admitted()
     {
         using var host = CreateHost();
         var bob = await SignInCookieAsync(host, "bob");

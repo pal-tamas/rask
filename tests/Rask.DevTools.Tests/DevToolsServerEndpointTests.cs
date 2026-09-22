@@ -121,6 +121,7 @@ public sealed class DevToolsServerEndpointTests
         var devTools = host.Services.GetRequiredService<IRaskServerDevTools>();
 
         var tag = devTools.PageTag(Request("/sub/"), "s1");
+
         Assert.NotNull(tag);
         Assert.Equal("/sub" + DevToolsServerEndpoints.HostScriptPath, tag.ScriptUrl);
         Assert.StartsWith("/sub" + DevToolsServerEndpoints.Prefix + "/?inspect=s1&t=", tag.PanelUrl, StringComparison.Ordinal);

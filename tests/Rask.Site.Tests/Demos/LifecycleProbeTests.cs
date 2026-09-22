@@ -12,7 +12,7 @@ public sealed partial class LifecycleProbeTests : global::Rask.Core.RaskMarkup
     // the element's render-owner — BsButton, not the probe — so the probe never repainted and the
     // WalksEveryPage E2E journey failed on the render-counter assertion.
     [Fact]
-    public async Task TriggerReRender_ThroughBsButton_RunsHandlerAndRepaintsProbe()
+    public async Task The_trigger_re_render_button_through_BsButton_runs_the_handler_and_repaints_the_probe()
     {
         var page = Test.Render(() => LifecycleProbe, TestServices.Default());
 
@@ -32,9 +32,8 @@ public sealed partial class LifecycleProbeTests : global::Rask.Core.RaskMarkup
         Assert.Matches(@"Button clicks</code>\s*<span[^>]*>ran 1x", page.Render());
     }
 
-
     [Fact]
-    public async Task LifecycleProbe_FiresMountThroughRenderedHooks_InOrder()
+    public async Task The_LifecycleProbe_fires_its_hooks_from_mount_through_rendered_in_order()
     {
         var page = Test.Render(() => LifecycleProbe, TestServices.Default());
 
@@ -58,7 +57,7 @@ public sealed partial class LifecycleProbeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void LifecycleCycleProbe_ReportsHooksToParentOwnedLog()
+    public void The_LifecycleCycleProbe_reports_its_hooks_to_the_parent_owned_log()
     {
         var log = new LifecycleLog();
         var instanceId = 7;
@@ -70,7 +69,7 @@ public sealed partial class LifecycleProbeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task LifecycleCycleProbe_Unmount_FiresWhenRemovedFromTree()
+    public async Task The_LifecycleCycleProbe_unmount_fires_when_removed_from_the_tree()
     {
         var log = new LifecycleLog();
         var mounted = true;

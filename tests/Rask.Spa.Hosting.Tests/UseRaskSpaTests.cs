@@ -189,17 +189,20 @@ public class UseRaskSpaTests
         await using var host = await SpaTestServer.CreateAsync(dist.Path, pathBase: "/app");
 
         var asset = await host.Http.GetAsync("/app/assets/index-DkK9xYz1.js");
+
         Assert.Equal(HttpStatusCode.OK, asset.StatusCode);
         Assert.Contains("immutable", asset.Headers.CacheControl?.ToString(), StringComparison.Ordinal);
 
         using var deepLink = new HttpRequestMessage(HttpMethod.Get, "/app/orders/42");
         deepLink.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/html"));
+
         Assert.Equal(HttpStatusCode.OK, (await host.Http.SendAsync(deepLink)).StatusCode);
 
         // Outside the prefix the host answers nothing — which is what lets a second app, or an
         // unrelated set of endpoints, live beside this one.
         using var outside = new HttpRequestMessage(HttpMethod.Get, "/somewhere-else");
         outside.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/html"));
+
         Assert.Equal(HttpStatusCode.NotFound, (await host.Http.SendAsync(outside)).StatusCode);
     }
 

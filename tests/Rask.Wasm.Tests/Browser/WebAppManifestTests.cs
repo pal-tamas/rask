@@ -6,7 +6,7 @@ namespace Rask.Wasm.Tests.Browser;
 public class WebAppManifestTests
 {
     [Fact]
-    public void ToJson_UsesManifestSnakeCaseKeys()
+    public void The_manifest_json_uses_snake_case_keys()
     {
         var json = new WebAppManifest
         {
@@ -28,7 +28,7 @@ public class WebAppManifestTests
     }
 
     [Fact]
-    public void ToJson_OmitsUnsetOptionalMembers()
+    public void The_manifest_json_omits_unset_optional_members()
     {
         var json = new WebAppManifest { Name = "Bare" }.ToJson();
 
@@ -45,7 +45,7 @@ public class WebAppManifestTests
     [InlineData(DisplayMode.Fullscreen, "fullscreen")]
     [InlineData(DisplayMode.MinimalUi, "minimal-ui")]
     [InlineData(DisplayMode.Browser, "browser")]
-    public void ToJson_SerializesDisplayAsSpecString(DisplayMode mode, string expected)
+    public void The_manifest_json_writes_display_as_the_spec_string(DisplayMode mode, string expected)
     {
         var json = new WebAppManifest { Name = "X", Display = mode }.ToJson();
 
@@ -54,7 +54,7 @@ public class WebAppManifestTests
     }
 
     [Fact]
-    public void ToJson_SerializesIcons_WithPurposeOmittedWhenNull()
+    public void The_manifest_json_writes_icons_with_purpose_omitted_when_null()
     {
         var json = new WebAppManifest
         {
@@ -75,7 +75,7 @@ public class WebAppManifestTests
     }
 
     [Fact]
-    public void ToJson_OmitsNewOptionalMembers_WhenUnset()
+    public void The_manifest_json_omits_the_newer_optional_members_when_unset()
     {
         var json = new WebAppManifest { Name = "Bare" }.ToJson();
 
@@ -91,7 +91,7 @@ public class WebAppManifestTests
     }
 
     [Fact]
-    public void ToJson_SerializesCategoriesOrientationAndDisplayOverride()
+    public void The_manifest_json_writes_categories_orientation_and_display_override()
     {
         var json = new WebAppManifest
         {
@@ -109,7 +109,7 @@ public class WebAppManifestTests
     }
 
     [Fact]
-    public void ToJson_SerializesShortcutsScreenshotsShareTargetAndFileHandlers()
+    public void The_manifest_json_writes_shortcuts_screenshots_share_target_and_file_handlers()
     {
         var json = new WebAppManifest
         {

@@ -12,7 +12,7 @@ public partial class EditContextProbeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Probe_InsideAForm_CapturesTheAmbientContext()
+    public void A_probe_inside_a_form_captures_the_ambient_context()
     {
         EditContext? captured = null;
         var model = new Model();
@@ -26,7 +26,7 @@ public partial class EditContextProbeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Probe_RendersNoMarkupOfItsOwn()
+    public void The_probe_renders_no_markup_of_its_own()
     {
         var model = new Model();
 
@@ -37,7 +37,7 @@ public partial class EditContextProbeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Probe_SeesStateTheMarkupNeverShows()
+    public async Task The_probe_sees_state_the_markup_never_shows()
     {
         EditContext? captured = null;
         var model = new Model();
@@ -46,8 +46,8 @@ public partial class EditContextProbeTests : global::Rask.Core.RaskMarkup
             Input.Bind(() => model.Name),
             Test.EditContextProbe(c => captured = c)
         ]);
-
         var name = new FieldIdentifier(model, nameof(Model.Name));
+
         Assert.False(captured!.IsModified(name));
 
         await page.InputAsync("{\"value\":\"Ada\"}");
@@ -57,7 +57,7 @@ public partial class EditContextProbeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Probe_OutsideAForm_CapturesNothing()
+    public void A_probe_outside_a_form_captures_nothing()
     {
         var captured = false;
 
@@ -69,6 +69,6 @@ public partial class EditContextProbeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Probe_NullCapture_Throws() =>
+    public void A_probe_with_a_null_capture_throws() =>
         Assert.Throws<ArgumentNullException>(() => Test.EditContextProbe(null!));
 }

@@ -11,6 +11,7 @@ public sealed class TypedCacheTests
     public async Task Set_then_Get_round_trips_a_typed_value()
     {
         await using var harness = new CacheHarness();
+
         await harness.Cache.Set("w", new Widget(7, "cog"));
 
         Assert.Equal(new Widget(7, "cog"), await harness.Cache.Get<Widget>("w"));
@@ -47,6 +48,7 @@ public sealed class TypedCacheTests
         Widget Load() => new(Interlocked.Increment(ref loads), "v");
 
         var first = await harness.Cache.Remember("w", Load).For(5.Minutes);
+
         harness.Clock.Advance(6.Minutes);
         var second = await harness.Cache.Remember("w", Load).For(5.Minutes);
 
@@ -62,8 +64,10 @@ public sealed class TypedCacheTests
 
         harness.Clock.Advance(8.Minutes);
         Assert.NotNull(await harness.Cache.Get<Widget>("w"));   // the read renews it
+
         harness.Clock.Advance(8.Minutes);
         Assert.NotNull(await harness.Cache.Get<Widget>("w"));
+
         harness.Clock.Advance(11.Minutes);
 
         Assert.Null(await harness.Cache.Get<Widget>("w"));
@@ -77,6 +81,7 @@ public sealed class TypedCacheTests
 
         harness.Clock.Advance(59.Minutes);
         Assert.NotNull(await harness.Cache.Get<Widget>("w"));
+
         harness.Clock.Advance(2.Minutes);
 
         Assert.Null(await harness.Cache.Get<Widget>("w"));
@@ -99,6 +104,7 @@ public sealed class TypedCacheTests
         await using var harness = new CacheHarness();
 
         var e = Assert.Throws<ArgumentOutOfRangeException>(() => harness.Cache.Remember("w", () => 1).For(TimeSpan.Zero));
+
         Assert.Contains("10.Minutes", e.Message);
     }
 
@@ -113,7 +119,9 @@ public sealed class TypedCacheTests
 
         Assert.Equal(remembered, await harness.Cache.Get<Widget>("w"));
         Assert.Equal(new Widget(4, "set"), await Cache.Get<Widget>("x"));
+
         await Cache.Forget("x");
+
         Assert.Null(await Cache.Get<Widget>("x"));
     }
 

@@ -15,13 +15,13 @@ namespace Rask.TypeScript.Tasks.Tests;
 public class TarGzTests
 {
     [Fact]
-    public void ExtractTo_WritesFilesAndDropsTheLeadingPackageDirectory()
+    public void Extracting_writes_files_and_drops_the_leading_package_directory()
     {
         var archive = TarBuilder.Create(
             ("package/bin/esbuild", "#!binary"),
             ("package/package.json", "{}"));
-
         using var temp = new TempDirectory();
+
         var written = TarGz.ExtractTo(archive, temp.Path);
 
         Assert.Equal(new[] { "bin/esbuild", "package.json" }, written);
@@ -39,11 +39,11 @@ public class TarGzTests
     ///     that do not.
     /// </remarks>
     [Fact]
-    public void ExtractTo_CreatesParentDirectoriesWithNoDirectoryEntries()
+    public void Extracting_creates_parent_directories_with_no_directory_entries()
     {
         var archive = TarBuilder.Create(("package/lib/deep/nested/lib.dom.d.ts", "declare var x: number;"));
-
         using var temp = new TempDirectory();
+
         TarGz.ExtractTo(archive, temp.Path);
 
         Assert.True(File.Exists(Path.Combine(temp.Path, "lib", "deep", "nested", "lib.dom.d.ts")));
@@ -53,15 +53,15 @@ public class TarGzTests
     ///     tsgo's shape: one binary beside a hundred-odd type-definition files, all of which matter.
     /// </summary>
     [Fact]
-    public void ExtractTo_KeepsTheWholeTreeNotJustTheBinary()
+    public void Extracting_keeps_the_whole_tree_not_just_the_binary()
     {
         var archive = TarBuilder.Create(
             ("package/lib/tsgo", "#!binary"),
             ("package/lib/lib.dom.d.ts", "interface Window {}"),
             ("package/lib/lib.es5.d.ts", "interface Array<T> {}"),
             ("package/LICENSE", "Apache"));
-
         using var temp = new TempDirectory();
+
         var written = TarGz.ExtractTo(archive, temp.Path);
 
         Assert.Equal(4, written.Count);
@@ -77,11 +77,11 @@ public class TarGzTests
     ///     unlikely, and unlikely is not a reason to skip a cheap check.
     /// </remarks>
     [Fact]
-    public void ExtractTo_RefusesAnEntryThatEscapesTheDestination()
+    public void Extracting_refuses_an_entry_that_escapes_the_destination()
     {
         var archive = TarBuilder.Create(("package/../../escaped.sh", "rm -rf /"));
-
         using var temp = new TempDirectory();
+
         var ex = Assert.Throws<IOException>(() => TarGz.ExtractTo(archive, temp.Path));
 
         Assert.Contains("escapes the extraction directory", ex.Message, StringComparison.Ordinal);
@@ -90,13 +90,13 @@ public class TarGzTests
 
     /// <summary>Directory entries contribute no files of their own.</summary>
     [Fact]
-    public void ExtractTo_SkipsDirectoryEntries()
+    public void Extracting_skips_directory_entries()
     {
         var archive = TarBuilder.Create(
             ("package/lib/", null),
             ("package/lib/tsgo", "#!binary"));
-
         using var temp = new TempDirectory();
+
         var written = TarGz.ExtractTo(archive, temp.Path);
 
         Assert.Equal(new[] { "lib/tsgo" }, written);
@@ -116,12 +116,12 @@ public class TarGzTests
     [InlineData(512)]
     [InlineData(513)]
     [InlineData(2048)]
-    public void ExtractTo_HandlesPaddingForAnySize(int size)
+    public void Extracting_handles_padding_for_any_size(int size)
     {
         var body = new string('x', size);
         var archive = TarBuilder.Create(("package/first.bin", body), ("package/second.txt", "second"));
-
         using var temp = new TempDirectory();
+
         TarGz.ExtractTo(archive, temp.Path);
 
         Assert.Equal(body, File.ReadAllText(Path.Combine(temp.Path, "first.bin")));
@@ -130,11 +130,11 @@ public class TarGzTests
 
     /// <summary>An empty file is a real entry, not the end-of-archive marker.</summary>
     [Fact]
-    public void ExtractTo_WritesZeroLengthFiles()
+    public void Extracting_writes_zero_length_files()
     {
         var archive = TarBuilder.Create(("package/empty", string.Empty), ("package/after", "after"));
-
         using var temp = new TempDirectory();
+
         TarGz.ExtractTo(archive, temp.Path);
 
         Assert.Equal(string.Empty, File.ReadAllText(Path.Combine(temp.Path, "empty")));
@@ -143,12 +143,12 @@ public class TarGzTests
 
     /// <summary>The ustar prefix field joins with the name field, for paths over 100 bytes.</summary>
     [Fact]
-    public void ExtractTo_JoinsTheUstarPrefixWithTheName()
+    public void Extracting_joins_the_ustar_prefix_with_the_name()
     {
         var longDirectory = "package/" + string.Join("/", Enumerable.Repeat("directory", 12));
         var archive = TarBuilder.Create((longDirectory + "/lib.d.ts", "declare var y: string;"));
-
         using var temp = new TempDirectory();
+
         var written = TarGz.ExtractTo(archive, temp.Path);
 
         Assert.Single(written);
@@ -158,11 +158,11 @@ public class TarGzTests
 
     /// <summary>Content after the two-zero-block terminator is not part of the archive.</summary>
     [Fact]
-    public void ExtractTo_StopsAtTheEndOfArchiveMarker()
+    public void Extracting_stops_at_the_end_of_archive_marker()
     {
         var archive = TarBuilder.Create(("package/only.txt", "only"));
-
         using var temp = new TempDirectory();
+
         var written = TarGz.ExtractTo(archive, temp.Path);
 
         Assert.Equal(new[] { "only.txt" }, written);

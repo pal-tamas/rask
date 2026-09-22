@@ -5,7 +5,7 @@ namespace Rask.Wasm.Tests.Hosting;
 public class RouteSeederTests
 {
     [Fact]
-    public void Seed_RootSlash_StaysSlash()
+    public void Seeding_the_root_slash_keeps_the_slash()
     {
         var state = new RouteState();
 
@@ -16,7 +16,7 @@ public class RouteSeederTests
     }
 
     [Fact]
-    public void Seed_PathOnly_NoQuery_PreservesPath()
+    public void Seeding_a_path_with_no_query_preserves_the_path()
     {
         var state = new RouteState();
 
@@ -27,7 +27,7 @@ public class RouteSeederTests
     }
 
     [Fact]
-    public void Seed_PathWithIndexHtml_StripsSuffix()
+    public void Seeding_a_path_ending_in_index_html_strips_the_suffix()
     {
         var state = new RouteState();
 
@@ -37,7 +37,7 @@ public class RouteSeederTests
     }
 
     [Fact]
-    public void Seed_NestedPathWithIndexHtml_StripsSuffix()
+    public void Seeding_a_nested_path_ending_in_index_html_strips_the_suffix()
     {
         var state = new RouteState();
 
@@ -47,7 +47,7 @@ public class RouteSeederTests
     }
 
     [Fact]
-    public void Seed_QueryWithLeadingQuestion_ParsedIntoQueryCollection()
+    public void A_query_with_a_leading_question_mark_is_parsed_into_the_query_collection()
     {
         var state = new RouteState();
 
@@ -59,7 +59,7 @@ public class RouteSeederTests
     }
 
     [Fact]
-    public void Seed_OnlyQuestionMark_QueryRemainsEmpty()
+    public void A_lone_question_mark_leaves_the_query_empty()
     {
         var state = new RouteState();
 
@@ -70,7 +70,7 @@ public class RouteSeederTests
     }
 
     [Fact]
-    public void Seed_EmptyLocation_FallsBackToSlash()
+    public void An_empty_location_falls_back_to_the_slash()
     {
         var state = new RouteState();
 
@@ -80,7 +80,7 @@ public class RouteSeederTests
     }
 
     [Fact]
-    public void Seed_NullLocation_FallsBackToSlash()
+    public void A_null_location_falls_back_to_the_slash()
     {
         var state = new RouteState();
 

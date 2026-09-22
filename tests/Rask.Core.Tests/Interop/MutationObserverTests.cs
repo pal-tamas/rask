@@ -6,7 +6,7 @@ namespace Rask.Core.Tests.Interop;
 public class MutationObserverTests
 {
     [Fact]
-    public async Task Observe_PassesElementAndOptions()
+    public async Task Observing_passes_the_element_and_options()
     {
         var js = new FakeJsRuntime();
         var el = ElementRef.New();
@@ -32,7 +32,7 @@ public class MutationObserverTests
     }
 
     [Fact]
-    public async Task Observe_DefaultOptions_WatchChildList()
+    public async Task Observing_with_default_options_watches_the_child_list()
     {
         var js = new FakeJsRuntime();
 
@@ -44,7 +44,7 @@ public class MutationObserverTests
     }
 
     [Fact]
-    public async Task Changed_RoutesEntry_ToTheRegisteredHandler()
+    public async Task A_changed_entry_is_routed_to_the_registered_handler()
     {
         var js = new FakeJsRuntime();
         MutationEntry? got = null;
@@ -63,7 +63,7 @@ public class MutationObserverTests
     }
 
     [Fact]
-    public async Task Dispose_StopsObserving_AndRouting()
+    public async Task Disposing_stops_observing_and_routing()
     {
         var js = new FakeJsRuntime();
         var hits = 0;
@@ -82,9 +82,10 @@ public class MutationObserverTests
     }
 
     [Fact]
-    public async Task Observe_NullArgs_Throw()
+    public async Task Observing_with_null_args_throws()
     {
         var svc = new MutationObserverService(new FakeJsRuntime());
+
         await Assert.ThrowsAsync<ArgumentNullException>(
             async () => await svc.ObserveAsync(null!, _ => Task.CompletedTask));
         await Assert.ThrowsAsync<ArgumentNullException>(

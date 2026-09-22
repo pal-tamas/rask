@@ -24,7 +24,6 @@ public sealed partial class MailProcessorTests : global::Rask.Core.RaskMarkup
             var sent = Assert.Single(harness.Sender.Sent);
             Assert.Equal("Welcome", sent.Subject);
             Assert.Equal("ada@example.com", Assert.Single(sent.To).Address);
-
             var row = await harness.SingleMailAsync();
             Assert.NotNull(row.ProcessedAt);
             Assert.Null(row.Error);
@@ -125,7 +124,6 @@ public sealed partial class MailProcessorTests : global::Rask.Core.RaskMarkup
                 advanceClock: true);
 
             Assert.Equal(3, sender.Attempts); // two failures then success
-
             var row = await harness.SingleMailAsync();
             Assert.NotNull(row.ProcessedAt);
             Assert.Equal(3, row.Attempts); // three attempts started: two failed, the third delivered

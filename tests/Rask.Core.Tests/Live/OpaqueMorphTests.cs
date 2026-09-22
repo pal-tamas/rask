@@ -15,7 +15,7 @@ namespace Rask.Core.Tests.Live;
 public sealed class OpaqueMorphTests
 {
     [Fact]
-    public void Morph_OpaqueHost_KeepsForeignChildrenAndStillUpdatesProps()
+    public void Morphing_an_opaque_host_keeps_foreign_children_and_still_updates_props()
     {
         var doc = NodeFixture.Run("OpaqueMorphFixture");
         if (doc is null)
@@ -39,7 +39,7 @@ public sealed class OpaqueMorphTests
     }
 
     [Fact]
-    public void Morph_WithoutTheMarker_RemovesTheChildren()
+    public void Morphing_without_the_marker_removes_the_children()
     {
         // The negative control, and the reason the test above is worth having. Identical shapes with
         // the marker off: the morph really does trim the whole subtree. Without this, a boundary that

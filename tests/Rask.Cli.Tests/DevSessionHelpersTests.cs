@@ -72,12 +72,13 @@ public sealed class DevSessionHelpersTests
 
         using var project = new TempProject();
         var pidFile = Path.Combine(project.Path, "obj", "rask", "spa-dev.pid");
-
         using var orphan = Process.Start(new ProcessStartInfo("sleep", "60") { UseShellExecute = false })!;
         DevServerProcess.WritePidFile(pidFile, orphan);
 
         Assert.True(DevServerProcess.ReclaimOrphan(pidFile));
+
         await orphan.WaitForExitAsync(new CancellationTokenSource(TimeSpan.FromSeconds(10)).Token);
+
         Assert.True(orphan.HasExited);
         Assert.False(File.Exists(pidFile));
     }

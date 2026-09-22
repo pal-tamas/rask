@@ -16,7 +16,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     protected override string ServerLog => app.ServerLog;
 
     [Fact]
-    public Task EveryDataInputComponentRendersWithARealSize() => RunAsync(async () =>
+    public Task Every_data_input_component_renders_with_a_real_size() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -37,7 +37,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
-    public Task TypingIntoAFieldReachesCSharpAndComesBack() => RunAsync(async () =>
+    public Task Typing_into_a_field_reaches_CSharp_and_comes_back() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -68,7 +68,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
-    public Task TheOneTimeCodeIsASingleFieldThatTakesAPastedCode() => RunAsync(async () =>
+    public Task The_one_time_code_is_a_single_field_that_takes_a_pasted_code() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -89,7 +89,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
-    public Task TheFilterNarrowsAndResets() => RunAsync(async () =>
+    public Task The_filter_narrows_and_resets() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -106,7 +106,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
-    public Task TheCalendarChangesMonthAndPicksADay() => RunAsync(async () =>
+    public Task The_calendar_changes_month_and_picks_a_day() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -127,7 +127,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
-    public Task ABoundControlWritesStraightToTheModel() => RunAsync(async () =>
+    public Task A_bound_control_writes_straight_to_the_model() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -158,7 +158,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
-    public Task TheRangeReportsItsValue() => RunAsync(async () =>
+    public Task The_range_reports_its_value() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -173,7 +173,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
-    public Task TheDrawnSelectIsAFullKeyboardCombobox() => RunAsync(async () =>
+    public Task The_drawn_select_is_a_full_keyboard_combobox() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -202,7 +202,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
-    public Task TheDrawnMultiSelectKeepsItsListOpenAcrossSeveralPicks() => RunAsync(async () =>
+    public Task The_drawn_multi_select_keeps_its_list_open_across_several_picks() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -234,7 +234,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
-    public Task AMultiSelectChipRemovesItsOwnAnswer() => RunAsync(async () =>
+    public Task A_multi_select_chip_removes_its_own_answer() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -254,7 +254,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
-    public Task TheMultiSelectListSaysItTakesMoreThanOneAnswer() => RunAsync(async () =>
+    public Task The_multi_select_list_says_it_takes_more_than_one_answer() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -265,7 +265,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
-    public Task EscapeClosesTheDrawnSelectAndCSharpHearsIt() => RunAsync(async () =>
+    public Task Escape_closes_the_drawn_select_and_CSharp_hears_it() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -283,7 +283,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
-    public Task ArrowKeysInTheDrawnSelectDoNotScrollThePage() => RunAsync(async () =>
+    public Task Arrow_keys_in_the_drawn_select_do_not_scroll_the_page() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -304,7 +304,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
-    public Task TheDrawnListEscapesAnOverflowHiddenAncestor() => RunAsync(async () =>
+    public Task The_drawn_list_escapes_an_overflow_hidden_ancestor() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -322,7 +322,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
-    public Task ARangeIsWrittenOnlyOnceItHasBothEnds() => RunAsync(async () =>
+    public Task A_range_is_written_only_once_it_has_both_ends() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -344,7 +344,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
-    public Task APickerOpensTheGridAndClosesOnThePick() => RunAsync(async () =>
+    public Task A_picker_opens_the_grid_and_closes_on_the_pick() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -367,7 +367,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
-    public Task SeveralDaysKeepThePickerOpen() => RunAsync(async () =>
+    public Task Several_days_keep_the_picker_open() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -394,7 +394,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
-    public Task TheDropAreaIsTheNativeInputAndLightsUpUnderADraggedFile() => RunAsync(async () =>
+    public Task The_drop_area_is_the_native_input_and_lights_up_under_a_dragged_file() => RunAsync(async () =>
     {
         await OpenAsync();
 

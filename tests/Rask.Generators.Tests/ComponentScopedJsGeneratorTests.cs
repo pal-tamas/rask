@@ -5,7 +5,7 @@ namespace Rask.Generators.Tests;
 public class ComponentScopedJsGeneratorTests
 {
     [Fact]
-    public void Generator_EmitsRegistrationForMatchingComponentAndTsSibling()
+    public void A_component_and_its_TypeScript_sibling_get_a_registration()
     {
         const string source = """
                               namespace Foo;
@@ -18,8 +18,8 @@ public class ComponentScopedJsGeneratorTests
         var run = Run(
             new[] { ("/proj/Counter.cs", source) },
             new[] { ("/proj/Counter.ts", "export function rendered(el) { el.dataset.rendered = '1'; }") });
-
         var generated = run.GeneratedSource("__RaskScopedJsRegistration");
+
         Assert.Contains("typeof(global::Foo.Counter)", generated);
         Assert.Contains("el.dataset.rendered", generated);
         Assert.Contains("RegisterJs", generated);
@@ -29,7 +29,7 @@ public class ComponentScopedJsGeneratorTests
     }
 
     [Fact]
-    public void Generator_DoesNotPairTsWithComponentInDifferentDirectory()
+    public void TypeScript_is_not_paired_with_a_component_in_a_different_directory()
     {
         const string source = """
                               namespace Foo;
@@ -47,7 +47,7 @@ public class ComponentScopedJsGeneratorTests
     }
 
     [Fact]
-    public void Generator_RaisesRASK017_ForOrphanTsFile()
+    public void An_orphan_TypeScript_file_is_reported_as_RASK017()
     {
         const string source = """
                               namespace Foo;
@@ -65,7 +65,7 @@ public class ComponentScopedJsGeneratorTests
     }
 
     [Fact]
-    public void Generator_EscapesQuotesInTsContent()
+    public void Quotes_in_the_TypeScript_content_are_escaped()
     {
         const string source = """
                               namespace Foo;
@@ -78,15 +78,15 @@ public class ComponentScopedJsGeneratorTests
         var run = Run(
             new[] { ("/proj/Counter.cs", source) },
             new[] { ("/proj/Counter.ts", "export function rendered(el) { el.textContent = \"hi\"; }") });
-
         var generated = run.GeneratedSource("__RaskScopedJsRegistration");
+
         // verbatim string literal escapes " as ""
         Assert.Contains("\"\"hi\"\"", generated);
         Assert.DoesNotContain(run.Diagnostics, d => d.Severity == DiagnosticSeverity.Error);
     }
 
     [Fact]
-    public void Generator_IgnoresWhitespaceOnlyTsFile()
+    public void A_whitespace_only_TypeScript_file_is_ignored()
     {
         const string source = """
                               namespace Foo;
@@ -108,7 +108,7 @@ public class ComponentScopedJsGeneratorTests
     }
 
     [Fact]
-    public void Generator_SkipsAbstractComponents()
+    public void Abstract_components_are_skipped_as_TypeScript_hosts()
     {
         const string source = """
                               namespace Foo;
@@ -129,7 +129,7 @@ public class ComponentScopedJsGeneratorTests
     ///     RASK055 fires for a `.js` sitting where a scoped asset would go.
     /// </summary>
     [Fact]
-    public void Rask054_FiresForAJsSiblingOfAComponent()
+    public void RASK055_fires_for_a_js_sibling_of_a_component()
     {
         const string source = """
                               namespace Foo;
@@ -159,7 +159,7 @@ public class ComponentScopedJsGeneratorTests
     ///     before this change.
     /// </remarks>
     [Fact]
-    public void Rask054_DoesNotFireForAJsWithNoComponentOfThatName()
+    public void RASK055_does_not_fire_for_a_js_with_no_component_of_that_name()
     {
         const string source = """
                               namespace Foo;
@@ -187,7 +187,7 @@ public class ComponentScopedJsGeneratorTests
     ///     generated output, the location has to be stated explicitly.
     /// </remarks>
     [Fact]
-    public void Rask017_ReportsAtTheTsPath_NotTheCompiledOutput()
+    public void RASK017_is_reported_at_the_ts_path_not_the_compiled_output()
     {
         var run = GeneratorDriverFixture.RunScoped(
             new[] { ("/proj/Unrelated.cs", "namespace Foo; public sealed class Unrelated { }") },
@@ -208,7 +208,7 @@ public class ComponentScopedJsGeneratorTests
     ///     the page and fail at parse time there — far from anything that names the cause.
     /// </remarks>
     [Fact]
-    public void Generator_EmbedsTheCompiledText_NotTheSource()
+    public void The_registration_embeds_the_compiled_text_not_the_source()
     {
         const string source = """
                               namespace Foo;
@@ -221,8 +221,8 @@ public class ComponentScopedJsGeneratorTests
         var run = GeneratorDriverFixture.RunScoped(
             new[] { ("/proj/Counter.cs", source) },
             new[] { ("/proj/Counter.ts", "export function rendered(el) { /* COMPILED-MARKER */ }") });
-
         var generated = run.GeneratedSource("__RaskScopedJsRegistration");
+
         Assert.Contains("COMPILED-MARKER", generated);
     }
 

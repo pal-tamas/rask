@@ -357,6 +357,7 @@ public partial class ExternalRenderTests : global::Rask.Core.RaskMarkup
     public void A_null_child_renders_nothing()
     {
         var hidden = false;
+
         var html = Render(Chart.Series([])[hidden ? Chart.Series([]) : null, "shown"]);
 
         using var props = JsonDocument.Parse(ReadProps(html));
@@ -371,6 +372,7 @@ public partial class ExternalRenderTests : global::Rask.Core.RaskMarkup
         chart = chart[chart];
 
         var error = Assert.Throws<InvalidOperationException>(() => Render(chart));
+
         Assert.Contains("'Chart'", error.Message, StringComparison.Ordinal);
     }
 

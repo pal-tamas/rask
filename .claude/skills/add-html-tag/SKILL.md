@@ -33,8 +33,8 @@ See `templates/Component.cs`. References: `src/Rask.Core/Components/Span.cs` (si
 
 ## 2. Test — `tests/Rask.Core.Tests/Components/{Tag}Tests.cs`
 Two methods, xUnit:
-- `Render_NullProps_…` — only `TagName` (and self-close shape) renders.
-- `Render_AllPropsSet_…` — **asserts exact attribute order**: id, class, style, data-*, **then**
+- `Unset_props_render_only_the_open_and_close_tags` — only `TagName` (and self-close shape) renders.
+- `Setting_every_prop_emits_the_expected_attributes` — **asserts exact attribute order**: id, class, style, data-*, **then**
   tag-specific attrs. Tests assert this ordering — preserve it.
 
 See `templates/ComponentTests.cs`. Reference: `tests/Rask.Core.Tests/Components/ImgTests.cs`.

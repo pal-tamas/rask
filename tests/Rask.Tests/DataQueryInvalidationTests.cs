@@ -46,7 +46,6 @@ public sealed class DataQueryInvalidationTests
         using var theirs = services.CreateScope();
         var loads = 0;
         var theirLoads = 0;
-
         using var people = mine.ServiceProvider.GetRequiredService<IQueryClient>()
             .Query(QueryKey.For<Person>("active"), _ => Task.FromResult(++loads), Keep);
         using var otherPeople = theirs.ServiceProvider.GetRequiredService<IQueryClient>()
@@ -85,7 +84,6 @@ public sealed class DataQueryInvalidationTests
     {
         var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
         app.Services.AddDbContextFactory<TestDbContext>(o => o.UseSqlite("Data Source=:memory:"));
-
         // Wired the way every scaffolded Program.cs wires the app's context. A file, not :memory:, because
         // an in-memory database is gone when EnsureCreated closes its connection.
         var file = Path.Combine(Path.GetTempPath(), $"rask-notes-{Guid.NewGuid():N}.db");
@@ -93,7 +91,6 @@ public sealed class DataQueryInvalidationTests
             .UseSqlite($"Data Source={file};Pooling=False")
             .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
         var services = app.Build<TestApp>().Services;
-
         using var session = services.CreateScope();
         var loads = 0;
         using var notes = session.ServiceProvider.GetRequiredService<IQueryClient>()
@@ -111,6 +108,7 @@ public sealed class DataQueryInvalidationTests
 
         await Settled(notes);
         File.Delete(file);
+
         Assert.Equal(2, notes.Data);
     }
 

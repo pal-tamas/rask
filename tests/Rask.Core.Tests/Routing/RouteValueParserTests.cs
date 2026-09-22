@@ -6,21 +6,21 @@ namespace Rask.Core.Tests.Routing;
 public class RouteValueParserTests
 {
     [Fact]
-    public void TryParse_String_RoundTrips()
+    public void A_string_parses_to_itself()
     {
         Assert.True(RouteValueParser.TryParse(typeof(string), "hello", out var v));
         Assert.Equal("hello", v);
     }
 
     [Fact]
-    public void TryParse_Int_ParsesInvariant()
+    public void An_int_parses_with_the_invariant_culture()
     {
         Assert.True(RouteValueParser.TryParse(typeof(int), "42", out var v));
         Assert.Equal(42, v);
     }
 
     [Fact]
-    public void TryParse_Int_RejectsCommaUnderGermanCulture()
+    public void A_double_parses_with_the_invariant_culture_under_the_German_culture()
     {
         var prev = CultureInfo.CurrentCulture;
         CultureInfo.CurrentCulture = new CultureInfo("de-DE");
@@ -36,14 +36,14 @@ public class RouteValueParserTests
     }
 
     [Fact]
-    public void TryParse_NullableDouble_HandlesUnwrap()
+    public void A_nullable_double_is_unwrapped_and_parsed()
     {
         Assert.True(RouteValueParser.TryParse(typeof(double?), "2.5", out var v));
         Assert.Equal(2.5, (double)v!);
     }
 
     [Fact]
-    public void TryParse_Guid_ParsesViaIParsable()
+    public void A_Guid_value_is_parsed_via_IParsable()
     {
         var raw = "11112222-3333-4444-5555-666677778888";
 
@@ -52,21 +52,21 @@ public class RouteValueParserTests
     }
 
     [Fact]
-    public void TryParse_NonIParsableType_ReturnsFalse()
+    public void A_type_that_is_not_IParsable_does_not_parse()
     {
         Assert.False(RouteValueParser.TryParse(typeof(NotParsable), "anything", out var v));
         Assert.Null(v);
     }
 
     [Fact]
-    public void TryParse_Int_BadInput_ReturnsFalse()
+    public void Bad_input_for_an_int_does_not_parse()
     {
         Assert.False(RouteValueParser.TryParse(typeof(int), "not-a-number", out var v));
         Assert.Null(v);
     }
 
     [Fact]
-    public void TryParse_RepeatedCalls_ReuseCachedParser()
+    public void Repeated_parses_reuse_the_cached_parser()
     {
         Assert.True(RouteValueParser.TryParse(typeof(int), "1", out _));
         Assert.True(RouteValueParser.TryParse(typeof(int), "2", out var second));

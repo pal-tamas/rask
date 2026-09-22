@@ -23,7 +23,7 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
     private static string Render(StubComponent view, IServiceProvider sp) => view.RenderAsLiveRoot(sp);
 
     [Fact]
-    public void Router_MatchedTopLevel_RendersPage()
+    public void A_matched_top_level_route_renders_its_page()
     {
         var (view, state, sp) = BuildView(new[] { Route.To<HomePage>("/") });
         state.Path = "/";
@@ -34,7 +34,7 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Router_NoMatch_RendersEmptyFragment()
+    public void An_unmatched_path_renders_an_empty_fragment()
     {
         var (view, state, sp) = BuildView(new[] { Route.To<HomePage>("/") });
         state.Path = "/missing";
@@ -45,7 +45,7 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Router_BindsRouteValueOntoPageProperty()
+    public void A_route_value_binds_onto_the_page_property()
     {
         var (view, state, sp) = BuildView(new[] { Route.To<UserPage>("/users/{id}") });
         state.Path = "/users/42";
@@ -56,7 +56,7 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Router_BindsQueryString_OntoPageProperty()
+    public void The_query_string_binds_onto_the_page_property()
     {
         var (view, state, sp) = BuildView(new[] { Route.To<CounterPage>("/c") });
         state.Path = "/c";
@@ -68,9 +68,10 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Router_SameType_DifferentParams_PreservesInstanceState()
+    public void The_same_page_type_with_different_params_keeps_its_instance_state()
     {
         var (view, state, sp) = BuildView(new[] { Route.To<CounterPage>("/c/{label}") });
+
         state.Path = "/c/one";
         var first = Render(view, sp);
 
@@ -82,7 +83,7 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Router_PathChangeWithoutParamChange_RefiresOnPropsChanged()
+    public void A_path_change_without_a_param_change_refires_OnUpdated()
     {
         // Two routes pointing at the same page type with no [RouteParam] differences
         // (e.g., `/todos` ↔ `/todos/new`). PageBinder.Bind alone would report propsChanged
@@ -94,10 +95,12 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
 
         state.Path = "/m/a";
         var first = Render(view, sp);
+
         Assert.Equal("<span>props:1 renders:1 path:/m/a</span>", first);
 
         state.Path = "/m/b";
         var second = Render(view, sp);
+
         Assert.Equal("<span>props:2 renders:2 path:/m/b</span>", second);
 
         // Re-rendering at the same URL (no path change, no prop change) must NOT refire
@@ -105,34 +108,38 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
         // stays at 2. The render here is "different" only because we're invoking it from
         // the harness; the dispatcher hasn't marked the page dirty.
         var third = Render(view, sp);
+
         Assert.Equal("<span>props:2 renders:2 path:/m/b</span>", third);
     }
 
     [Fact]
-    public void Router_TypeSwap_DiscardsPreviousInstance()
+    public void Swapping_the_page_type_discards_the_previous_instance()
     {
         var routes = new[] { Route.To<CounterPage>("/c/{label}"), Route.To<HomePage>("/h") };
         var (view, state, sp) = BuildView(routes);
 
         state.Path = "/c/x";
         var first = Render(view, sp);
+
         Assert.Equal("<span>x:1</span>", first);
 
         // Swap to a different page type — the previous CounterPage instance is no longer
         // referenced anywhere and is disposed at end of render.
         state.Path = "/h";
         var swapped = Render(view, sp);
+
         Assert.Equal("<span>home</span>", swapped);
 
         // Revisit /c/x — a fresh CounterPage is created (old one was disposed). Bumps starts
         // at 0 again and the render bumps it to 1.
         state.Path = "/c/x";
         var revisited = Render(view, sp);
+
         Assert.Equal("<span>x:1</span>", revisited);
     }
 
     [Fact]
-    public void Router_Subroute_RendersIntoOutlet()
+    public void A_subroute_renders_into_the_outlet()
     {
         var routes = new[]
         {
@@ -143,15 +150,17 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
 
         state.Path = "/dashboard/overview";
         var overview = Render(view, sp);
+
         Assert.Equal("<div><span>dash:</span><span>overview</span></div>", overview);
 
         state.Path = "/dashboard/settings/billing";
         var settings = Render(view, sp);
+
         Assert.Equal("<div><span>dash:</span><span>settings:billing</span></div>", settings);
     }
 
     [Fact]
-    public void Outlet_OutsideRouter_Throws()
+    public void An_outlet_outside_a_router_throws()
     {
         var sp = RenderHarness.EmptyServices();
         var view = new StubComponent(() => Outlet);
@@ -160,7 +169,7 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Router_NoArgs_ResolvesFromRegistry()
+    public void A_router_without_routes_resolves_them_from_the_registry()
     {
         RouteRegistry.Reset();
         try
@@ -178,9 +187,11 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
             var view = new StubComponent(() => Router);
 
             state.Path = "/";
+
             Assert.Equal("<span>home</span>", view.RenderAsLiveRoot(sp));
 
             state.Path = "/users/7";
+
             Assert.Equal("<span>user:7</span>", view.RenderAsLiveRoot(sp));
         }
         finally
@@ -190,7 +201,7 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Router_FiresOnMount_OnRoutedPage()
+    public void The_router_fires_OnMount_on_the_routed_page()
     {
         var gate = new AsyncInitGate();
         var state = new RouteState();
@@ -207,7 +218,7 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Router_AsyncOnMount_RequestsRerenderAfterCompletion()
+    public async Task An_async_OnMount_on_a_routed_page_requests_a_rerender_after_it_completes()
     {
         var gate = new AsyncInitGate();
         var state = new RouteState();

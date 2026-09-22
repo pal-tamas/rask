@@ -5,7 +5,7 @@ namespace Rask.Wasm.Tests.Browser;
 public class InstallPromptTests
 {
     [Fact]
-    public async Task CanInstall_CallsHelper()
+    public async Task Whether_it_can_install_is_asked_of_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskInstall.canInstall", true);
@@ -14,7 +14,7 @@ public class InstallPromptTests
     }
 
     [Fact]
-    public async Task IsInstalled_CallsHelper()
+    public async Task Whether_it_is_installed_is_asked_of_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskInstall.isInstalled", true);
@@ -27,7 +27,7 @@ public class InstallPromptTests
     [InlineData("dismissed", InstallOutcome.Dismissed)]
     [InlineData("unavailable", InstallOutcome.Unavailable)]
     [InlineData("anything-else", InstallOutcome.Unavailable)]
-    public async Task Prompt_MapsOutcome(string raw, InstallOutcome expected)
+    public async Task Prompting_maps_the_outcome(string raw, InstallOutcome expected)
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskInstall.prompt", raw);

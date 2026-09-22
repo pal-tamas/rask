@@ -15,7 +15,7 @@ namespace Rask.Core.Tests.Live;
 public class KeyedChildIdentityTests
 {
     [Fact]
-    public void InsertingAtTheTop_KeepsEachKeyedRowsOwnInstance()
+    public void Inserting_at_the_top_keeps_each_keyed_rows_own_instance()
     {
         KeyedRow.MountCount = 0;
         var list = new KeyedList();
@@ -33,7 +33,7 @@ public class KeyedChildIdentityTests
     }
 
     [Fact]
-    public void RemovingFromTheTop_KeepsEachKeyedRowsOwnInstance()
+    public void Removing_from_the_top_keeps_each_keyed_rows_own_instance()
     {
         KeyedRow.MountCount = 0;
         var list = new KeyedList();
@@ -48,7 +48,7 @@ public class KeyedChildIdentityTests
     }
 
     [Fact]
-    public void ReorderingKeyedRows_MovesTheInstanceWithTheItem()
+    public void Reordering_keyed_rows_moves_the_instance_with_the_item()
     {
         KeyedRow.MountCount = 0;
         var list = new KeyedList();
@@ -63,7 +63,7 @@ public class KeyedChildIdentityTests
     }
 
     [Fact]
-    public void KeyWrittenLast_StillKeepsTheInstance_AndItsSteps()
+    public void A_key_written_last_still_keeps_the_instance_and_its_steps()
     {
         // #1118: the steps written before Key land on the provisional instance; when the key claims the one
         // that mounted before, they are carried across. A reorder therefore keeps both the instance AND
@@ -82,7 +82,7 @@ public class KeyedChildIdentityTests
     }
 
     [Fact]
-    public void KeyWrittenLast_AfterAStepThatBuildsAnotherChild_RefilesTheRightSlot()
+    public void A_key_written_last_after_a_step_that_builds_another_child_refiles_the_right_slot()
     {
         // A step's ARGUMENT can itself be a chain — here an element built between the row's entry and its
         // Key. That entry moves the parent's "last child slot" onto itself, so the claim must re-file the
@@ -103,7 +103,7 @@ public class KeyedChildIdentityTests
     }
 
     [Fact]
-    public void KeyWrittenAfterTheChildren_KeepsTheChildren_AndClaimsUnderTheRowsOwnType()
+    public void A_key_written_after_the_children_keeps_the_children_and_claims_under_the_rows_own_type()
     {
         // `Row.Id(id)[body].Key(id)`: the indexer hands back Component, so this Key is the generic one over
         // Component. The claim must still file the row under ITS type, and carry the children the indexer

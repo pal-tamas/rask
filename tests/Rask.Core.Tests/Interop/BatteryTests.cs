@@ -5,15 +5,16 @@ namespace Rask.Core.Tests.Interop;
 public class BatteryTests
 {
     [Fact]
-    public async Task IsSupported_CallsHelper()
+    public async Task Asking_whether_the_battery_is_supported_calls_the_helper()
     {
         var js = new FakeJsRuntime();
         await new Battery(js).IsSupportedAsync();
+
         Assert.Equal("__raskBattery.isSupported", js.Calls.Single().Identifier);
     }
 
     [Fact]
-    public async Task GetStatus_ReturnsTheReading()
+    public async Task Getting_the_status_gives_the_reading()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskBattery.getStatus", new BatteryStatus(0.42, true, 1800, null));
@@ -24,11 +25,11 @@ public class BatteryTests
     }
 
     [Fact]
-    public async Task GetStatus_Unsupported_IsNull() =>
+    public async Task Getting_the_status_when_unsupported_gives_null() =>
         Assert.Null(await new Battery(new FakeJsRuntime()).GetStatusAsync());
 
     [Fact]
-    public async Task Watch_RegistersHandler_AndStartsWatchingUnderAnId()
+    public async Task Watching_registers_the_handler_and_starts_watching_under_an_id()
     {
         var js = new FakeJsRuntime();
 
@@ -39,7 +40,7 @@ public class BatteryTests
     }
 
     [Fact]
-    public async Task Changed_RoutesReading_ToTheRegisteredHandler()
+    public async Task A_changed_reading_is_routed_to_the_registered_handler()
     {
         var js = new FakeJsRuntime();
         BatteryStatus? got = null;
@@ -56,7 +57,7 @@ public class BatteryTests
     }
 
     [Fact]
-    public async Task Dispose_ClearsWatch_AndStopsRouting()
+    public async Task Disposing_clears_the_watch_and_stops_routing()
     {
         var js = new FakeJsRuntime();
         var received = 0;
@@ -75,11 +76,11 @@ public class BatteryTests
     }
 
     [Fact]
-    public async Task Changed_UnknownId_IsNoOp() =>
+    public async Task A_change_for_an_unknown_id_does_nothing() =>
         await BatteryInterop.Changed(-999, new BatteryStatus(0.1, false, null, null));
 
     [Fact]
-    public async Task Watch_NullArg_Throws() =>
+    public async Task Watching_with_a_null_arg_throws() =>
         await Assert.ThrowsAsync<ArgumentNullException>(
             async () => await new Battery(new FakeJsRuntime()).WatchAsync(null!));
 }

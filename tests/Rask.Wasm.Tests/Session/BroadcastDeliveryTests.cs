@@ -42,6 +42,7 @@ public sealed class BroadcastDeliveryTests
         });
 
         await delivery.WaitAsync(TimeSpan.FromSeconds(5));
+
         Assert.True(ran);
         Assert.False(session.InHandlerScope);
     }

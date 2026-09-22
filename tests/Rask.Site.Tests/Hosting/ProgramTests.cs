@@ -11,7 +11,7 @@ namespace Rask.Site.Tests.Hosting;
 public sealed class ProgramTests
 {
     [Fact]
-    public void AddExampleServices_RegistersHttpClient_WithSuppliedBaseAddress()
+    public void AddExampleServices_registers_an_HttpClient_with_the_supplied_base_address()
     {
         // The base address is now host-specific: Program.cs passes the page origin
         // (WasmHostBuilder.BaseAddress) so the HTTP demo fetches a local static file.
@@ -22,12 +22,13 @@ public sealed class ProgramTests
             .BuildServiceProvider();
 
         var http = sp.GetService<HttpClient>();
+
         Assert.NotNull(http);
         Assert.Equal(origin, http!.BaseAddress);
     }
 
     [Fact]
-    public void AddExampleServices_RegistersBannedWordService_AsSingleton()
+    public void AddExampleServices_registers_the_BannedWordService_as_a_singleton()
     {
         var sp = new ServiceCollection()
             .AddExampleServices(_ => new Uri("http://localhost/"))
@@ -35,13 +36,14 @@ public sealed class ProgramTests
 
         var a = sp.GetService<IBannedWordService>();
         var b = sp.GetService<IBannedWordService>();
+
         Assert.NotNull(a);
         Assert.Same(a, b);
         Assert.IsType<BannedWordService>(a);
     }
 
     [Fact]
-    public void AddExampleServices_RegistersTheSystemClock_KeepingOneAlreadyRegistered()
+    public void AddExampleServices_registers_the_system_clock_but_keeps_one_already_registered()
     {
         // HttpFetchDemo injects the TimeProvider its retry delays and attempt deadline run on (#1067), so
         // the site must register one — and must not replace a clock registered before it, which is how a
@@ -62,10 +64,12 @@ public sealed class ProgramTests
     private sealed class OwnClock : TimeProvider;
 
     [Fact]
-    public void AddExampleServices_ReturnsSameServiceCollection_ForChaining()
+    public void AddExampleServices_returns_the_same_service_collection_for_chaining()
     {
         var sc = new ServiceCollection();
+
         var returned = sc.AddExampleServices(_ => new Uri("http://localhost/"));
+
         Assert.Same(sc, returned);
     }
 }

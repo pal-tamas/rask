@@ -52,7 +52,7 @@ public sealed class DemoMarkupGoldenTests
         RegexOptions.Compiled | RegexOptions.Singleline);
 
     [Fact]
-    public void EveryDemo_RendersToItsGoldenMarkupSkeleton()
+    public void Every_demo_renders_to_its_golden_markup_skeleton()
     {
         var actual = RenderAll();
         var path = GoldenPath();
@@ -73,7 +73,7 @@ public sealed class DemoMarkupGoldenTests
     // someone else's unrelated PR and train everyone to regenerate without reading the diff. Catch that
     // here, where the cause is still obvious.
     [Fact]
-    public void EveryDemoSkeleton_IsReproducible()
+    public void Every_demo_skeleton_is_reproducible()
     {
         var offenders = DemoRegistry.Keys
             .Where(k => !string.Equals(Skeleton(k), Skeleton(k), StringComparison.Ordinal))
@@ -96,7 +96,7 @@ public sealed class DemoMarkupGoldenTests
     // or a data-* attribute, which is the contract this file has always stated. A tag name or a class that
     // moves on a timer cannot be snapshotted by anyone.
     [Fact]
-    public async Task NoDemoSkeleton_ChangesOnATimer()
+    public async Task No_demo_skeleton_changes_on_a_timer()
     {
         var offenders = new List<string>();
 
@@ -163,7 +163,7 @@ public sealed class DemoMarkupGoldenTests
     // Named individually rather than swept, because the point is precisely that these two are held to a
     // stricter contract than the set as a whole. A demo that joins them belongs on this list.
     [Fact]
-    public async Task TheDemosThatSettleLate_KeepTheirSkeletonAcrossTheSettle()
+    public async Task The_demos_that_settle_late_keep_their_skeleton_across_the_settle()
     {
         string[] keys = ["lifecycle-hooks", "virtualize-provider"];
 

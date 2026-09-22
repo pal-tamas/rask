@@ -28,7 +28,7 @@ public sealed class DeferredBootContractTests
     private static readonly string _source = ReadBootScript();
 
     [Fact]
-    public void TheBootScriptLooksForTheATTRIBUTETheSpliceWrites()
+    public void The_boot_script_looks_for_the_ATTRIBUTE_the_splice_writes()
     {
         // The two halves are in different languages and different projects: C# stamps the marker during
         // the publish, TypeScript reads it in the browser. Nothing but this connects them, and a rename
@@ -38,7 +38,7 @@ public sealed class DeferredBootContractTests
     }
 
     [Fact]
-    public void AShellStillBootsImmediately()
+    public void A_shell_still_boots_immediately()
     {
         // The deferral is conditional, and must stay conditional. On a page that is NOT prerendered the
         // runtime is the only thing between the visitor and any content at all, so every millisecond of
@@ -47,7 +47,7 @@ public sealed class DeferredBootContractTests
     }
 
     [Fact]
-    public void AnyUserInputBootsAtOnce()
+    public void Any_user_input_boots_at_once()
     {
         // The window between "the page looks finished" and "the page answers" is the cost of this
         // feature, and this is what bounds it. Without these listeners a visitor who clicks during the
@@ -61,7 +61,7 @@ public sealed class DeferredBootContractTests
     }
 
     [Fact]
-    public void TheWaitHasACeiling()
+    public void The_wait_has_a_ceiling()
     {
         // requestAnimationFrame does not fire in a backgrounded tab, and `load` never arrives on a page
         // with a request that hangs. Either would leave the app permanently un-booted, which is the one
@@ -71,7 +71,7 @@ public sealed class DeferredBootContractTests
     }
 
     [Fact]
-    public void TheRuntimeClearsTheMarkerWhenItTakesThePageOver()
+    public void The_runtime_clears_the_marker_when_it_takes_the_page_over()
     {
         // The third half of the same contract, and the one #973 was about. The attribute says two things
         // at once: "defer the boot" (read by main.ts) and "these controls are not live yet" — a

@@ -9,7 +9,7 @@ namespace Rask.Core.Tests.Interop;
 public class OriginPrivateFileSystemTests
 {
     [Fact]
-    public async Task IsSupported_CallsHelper()
+    public async Task Asking_whether_the_origin_private_file_system_is_supported_calls_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskOpfs.isSupported", true);
@@ -18,7 +18,7 @@ public class OriginPrivateFileSystemTests
     }
 
     [Fact]
-    public async Task Exists_PassesPath()
+    public async Task Checking_existence_passes_the_path()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskOpfs.exists", true);
@@ -28,7 +28,7 @@ public class OriginPrivateFileSystemTests
     }
 
     [Fact]
-    public async Task GetSize_ReturnsNull_WhenFileMissing()
+    public async Task Getting_the_size_gives_null_when_the_file_is_missing()
     {
         var js = new FakeJsRuntime();
 
@@ -36,7 +36,7 @@ public class OriginPrivateFileSystemTests
     }
 
     [Fact]
-    public async Task GetSize_ReturnsSize()
+    public async Task Getting_the_size_gives_the_size()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskOpfs.size", (long?)4096);
@@ -45,7 +45,7 @@ public class OriginPrivateFileSystemTests
     }
 
     [Fact]
-    public async Task Read_PassesRange_AndDecodesBase64()
+    public async Task Reading_passes_the_range_and_decodes_base64()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskOpfs.read", Convert.ToBase64String("page"u8.ToArray()));
@@ -57,7 +57,7 @@ public class OriginPrivateFileSystemTests
     }
 
     [Fact]
-    public async Task Read_ReturnsNull_WhenFileMissing()
+    public async Task Reading_gives_null_when_the_file_is_missing()
     {
         var js = new FakeJsRuntime();
 
@@ -65,7 +65,7 @@ public class OriginPrivateFileSystemTests
     }
 
     [Fact]
-    public async Task Write_EncodesBytes_AtOffset()
+    public async Task Writing_encodes_the_bytes_at_the_offset()
     {
         var js = new FakeJsRuntime();
 
@@ -77,7 +77,7 @@ public class OriginPrivateFileSystemTests
     }
 
     [Fact]
-    public async Task ReadAllBytes_DecodesBase64()
+    public async Task Reading_all_bytes_decodes_base64()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskOpfs.readAll", Convert.ToBase64String("whole"u8.ToArray()));
@@ -88,7 +88,7 @@ public class OriginPrivateFileSystemTests
     }
 
     [Fact]
-    public async Task ReadAllBytes_ReturnsNull_WhenFileMissing()
+    public async Task Reading_all_bytes_gives_null_when_the_file_is_missing()
     {
         var js = new FakeJsRuntime();
 
@@ -96,7 +96,7 @@ public class OriginPrivateFileSystemTests
     }
 
     [Fact]
-    public async Task WriteAllBytes_EncodesBytes()
+    public async Task Writing_all_bytes_encodes_the_bytes()
     {
         var js = new FakeJsRuntime();
 
@@ -108,7 +108,7 @@ public class OriginPrivateFileSystemTests
     }
 
     [Fact]
-    public async Task Truncate_PassesSize()
+    public async Task Truncating_passes_the_size()
     {
         var js = new FakeJsRuntime();
 
@@ -118,7 +118,7 @@ public class OriginPrivateFileSystemTests
     }
 
     [Fact]
-    public async Task Delete_DefaultsToNonRecursive()
+    public async Task Deleting_defaults_to_non_recursive()
     {
         var js = new FakeJsRuntime();
 
@@ -128,7 +128,7 @@ public class OriginPrivateFileSystemTests
     }
 
     [Fact]
-    public async Task Delete_PassesRecursive()
+    public async Task Deleting_passes_the_recursive_flag()
     {
         var js = new FakeJsRuntime();
 
@@ -138,7 +138,7 @@ public class OriginPrivateFileSystemTests
     }
 
     [Fact]
-    public async Task List_DefaultsToRoot()
+    public async Task Listing_defaults_to_the_root()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskOpfs.list", new[] { "db", "notes.txt" });
@@ -151,7 +151,7 @@ public class OriginPrivateFileSystemTests
     [InlineData("")]
     [InlineData("  ")]
     [InlineData(null)]
-    public async Task Read_Rejects_EmptyPath(string? path)
+    public async Task Reading_rejects_an_empty_path(string? path)
     {
         var js = new FakeJsRuntime();
 
@@ -160,7 +160,7 @@ public class OriginPrivateFileSystemTests
     }
 
     [Fact]
-    public async Task Read_Rejects_NegativeOffset()
+    public async Task Reading_rejects_a_negative_offset()
     {
         var js = new FakeJsRuntime();
 
@@ -169,7 +169,7 @@ public class OriginPrivateFileSystemTests
     }
 
     [Fact]
-    public async Task Write_Rejects_NullBytes()
+    public async Task Writing_rejects_null_bytes()
     {
         var js = new FakeJsRuntime();
 

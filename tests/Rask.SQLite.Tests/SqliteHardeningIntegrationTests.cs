@@ -27,14 +27,12 @@ public sealed class SqliteHardeningIntegrationTests : IDisposable
     public async Task Optimize_refreshes_the_query_planner_statistics()
     {
         await using var connection = await OpenThroughFactoryAsync();
-
         await ExecuteAsync(connection, "CREATE TABLE t (id INTEGER PRIMARY KEY, name TEXT)");
         await ExecuteAsync(connection, "CREATE INDEX ix_t_name ON t(name)");
         for (var i = 0; i < 200; i++)
         {
             await ExecuteAsync(connection, $"INSERT INTO t (name) VALUES ('n{i.ToString(CultureInfo.InvariantCulture)}')");
         }
-
         // Reading the index is what marks it as worth analysing.
         await ExecuteAsync(connection, "SELECT COUNT(*) FROM t WHERE name = 'n1'");
 
@@ -50,6 +48,7 @@ public sealed class SqliteHardeningIntegrationTests : IDisposable
     public void Optimize_on_a_closed_connection_is_a_no_op()
     {
         using var connection = new SqliteConnection($"Data Source={_dbPath}");
+
         SqlitePragmas.Optimize(connection);
     }
 

@@ -10,7 +10,7 @@ namespace Rask.Site.Tests.Guides;
 public sealed partial class LlmsTextTests
 {
     [Fact]
-    public void TheIndexNamesEveryGuideByItsTwinAndItsDescription()
+    public void The_index_names_every_guide_by_its_twin_and_its_description()
     {
         var index = LlmsText.Index();
 
@@ -27,7 +27,7 @@ public sealed partial class LlmsTextTests
     }
 
     [Fact]
-    public void TheContributorNotesAreTheOptionalSectionAndComeLast()
+    public void The_contributor_notes_are_the_Optional_section_and_come_last()
     {
         // "Optional" is the name the convention gives the section a tool short on context may drop, and it
         // only works as that if nothing required comes after it.
@@ -40,7 +40,7 @@ public sealed partial class LlmsTextTests
     }
 
     [Fact]
-    public void ATopLevelDocsLinksLeaveTheRepositoryForThePlacesTheyPointAt()
+    public void Links_in_a_top_level_doc_leave_the_repository_for_the_places_they_point_at()
     {
         var twin = LlmsText.Twin(
             "See [routing](routing.md#route-parameters), [the readme](../README.md), [the index](README.md), "
@@ -70,7 +70,7 @@ public sealed partial class LlmsTextTests
     }
 
     [Fact]
-    public void ANestedDocsLinksResolveAgainstItsOwnFolder()
+    public void Links_in_a_nested_doc_resolve_against_its_own_folder()
     {
         var twin = LlmsText.Twin(
             "[the matrix](../browser-capabilities.md), [a sibling](notes.md) and [a benchmark](../../tests/Bench/sqlite.md)\n",
@@ -87,20 +87,22 @@ public sealed partial class LlmsTextTests
     }
 
     [Fact]
-    public void CodeIsLeftExactlyAsWritten()
+    public void Code_is_left_exactly_as_written()
     {
         // A fence or a code span showing Markdown or C# is showing TEXT. Rewriting a link inside it — or
         // mistaking `handlers[0](context)` for one — changes the example.
         const string Fenced = "```md\n[routing](routing.md)\n<!-- demo:counter -->\n```\n";
+
         Assert.Equal(Fenced, LlmsText.Twin(Fenced, "cqrs.md"));
 
         var inline = LlmsText.Twin("Call `handlers[0](context)`, then read [the CLI](cli.md).\n", "cqrs.md");
+
         Assert.Contains("`handlers[0](context)`", inline, StringComparison.Ordinal);
         Assert.Contains("[the CLI](https://rask.sh/docs/guides/cli/)", inline, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void ADemoMarkerLineIsDropped()
+    public void A_demo_marker_line_is_dropped()
     {
         var twin = LlmsText.Twin("Before.\n\n<!-- demo:binding-typed -->\n\nAfter.\n", "forms.md");
 
@@ -110,7 +112,7 @@ public sealed partial class LlmsTextTests
     }
 
     [Fact]
-    public void NoPublishedTwinKeepsALinkThatOnlyResolvesInTheRepository()
+    public void No_published_twin_keeps_a_link_that_only_resolves_in_the_repository()
     {
         // Over the real docs rather than a sample, because the docs are where the link shapes nobody thought
         // of live. It checked ".md" targets only, and so could not see ../tests/Rask.Cqrs.Tests and a dozen
@@ -133,7 +135,7 @@ public sealed partial class LlmsTextTests
     }
 
     [Fact]
-    public void TheFullFileCarriesEveryGuideButTheOptionalOnesWithTheirSource()
+    public void The_full_file_carries_every_guide_but_the_optional_ones_with_their_source()
     {
         var full = LlmsText.Full();
 
@@ -152,7 +154,7 @@ public sealed partial class LlmsTextTests
     }
 
     [Fact]
-    public void WriteAllPutsEachTwinAtItsPagesAddressPlusMd()
+    public void WriteAll_puts_each_twin_at_its_page_address_plus_md()
     {
         var root = Path.Combine(Path.GetTempPath(), "rask-llms-" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(root);

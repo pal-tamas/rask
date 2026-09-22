@@ -3,11 +3,11 @@ namespace Rask.Core.Tests.Components;
 public partial class HtmlObjectTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Render_NullProps_ReturnsOpenAndCloseTags() =>
+    public void Unset_props_render_only_the_open_and_close_tags() =>
         Assert.Equal("<object></object>", HtmlObject.ToHtml());
 
     [Fact]
-    public void Render_AllPropsSet_EmitsExpectedAttributes()
+    public void Setting_every_prop_emits_the_expected_attributes()
     {
         Assert.Equal(
             "<object id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" data=\"/file.pdf\" type=\"application/pdf\" name=\"n\" width=\"800\" height=\"600\" form=\"f\" usemap=\"#m\"></object>",
@@ -26,6 +26,6 @@ public partial class HtmlObjectTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_StringChild_EncodesText() =>
+    public void A_string_child_is_encoded_as_text() =>
         Assert.Equal("<object>&lt;x&gt;</object>", HtmlObject["<x>"].ToHtml());
 }

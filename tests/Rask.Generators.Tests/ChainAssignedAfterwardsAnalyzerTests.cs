@@ -48,7 +48,7 @@ public class ChainAssignedAfterwardsAnalyzerTests
     // ---------- it fires ----------
 
     [Fact]
-    public async Task AWriteAfterAChainIsReported()
+    public async Task A_write_after_a_chain_is_reported()
     {
         var d = Assert.Single(await AnalyzeAsync("""
             var c = Card.Note("a");
@@ -60,7 +60,7 @@ public class ChainAssignedAfterwardsAnalyzerTests
     }
 
     [Fact]
-    public async Task AWriteToADifferentPropertyIsReportedToo() =>
+    public async Task A_write_to_a_different_property_is_reported_too() =>
         // The disagreement is the point, but so is the invisibility: a property the chain never named
         // is still one the reader of the call site cannot see being set.
         Assert.Single(await AnalyzeAsync("""
@@ -69,7 +69,7 @@ public class ChainAssignedAfterwardsAnalyzerTests
             """));
 
     [Fact]
-    public async Task AnUnqualifiedEntryWithNoStepsIsNotReported() =>
+    public async Task An_unqualified_entry_with_no_steps_is_not_reported() =>
         // A deliberate miss, recorded so it is not mistaken for an oversight. `Card` unqualified binds
         // to a per-host forwarder, which carries nothing at the symbol level to tell it from a
         // hand-written property returning a component. Guessing would put a warning on correct code,
@@ -81,7 +81,7 @@ public class ChainAssignedAfterwardsAnalyzerTests
             """));
 
     [Fact]
-    public async Task AChainClosedByTheChildrenIndexerCounts() =>
+    public async Task A_chain_closed_by_the_children_indexer_counts() =>
         Assert.Single(await AnalyzeAsync("""
             var c = Card.Note("a")["x"];
             ((Card)c).Note = "b";
@@ -90,7 +90,7 @@ public class ChainAssignedAfterwardsAnalyzerTests
     // ---------- it stays silent ----------
 
     [Fact]
-    public async Task AComponentFromAnOrdinaryMethodIsNotReported() =>
+    public async Task A_component_from_an_ordinary_method_is_not_reported() =>
         // The surface it came through is what decides. A helper returning a component promises nothing
         // about being the whole story, so completing it afterwards is ordinary code.
         Assert.Empty(await AnalyzeAsync("""
@@ -99,12 +99,12 @@ public class ChainAssignedAfterwardsAnalyzerTests
             """));
 
     [Fact]
-    public async Task WritingToThisOwnPropertyIsNotReported() =>
+    public async Task Writing_to_this_own_property_is_not_reported() =>
         // A component managing its own state is not this rule's business.
         Assert.Empty(await AnalyzeAsync("Note = \"b\";"));
 
     [Fact]
-    public async Task ReadingAPropertyOffAChainIsNotAWrite() =>
+    public async Task Reading_a_property_off_a_chain_is_not_a_write() =>
         Assert.Empty(await AnalyzeAsync("""
             var c = Card.Note("a");
             var read = c.Note;

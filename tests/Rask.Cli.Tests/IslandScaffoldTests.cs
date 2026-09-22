@@ -138,6 +138,7 @@ public sealed class IslandScaffoldTests
         Assert.True(tsconfig.GetProperty("compilerOptions").GetProperty("experimentalDecorators").GetBoolean());
 
         var lit = Scaffold("lit").Single(f => f.Path.EndsWith("LitBadge.ts", StringComparison.Ordinal));
+
         Assert.DoesNotContain("accessor ", lit.Content, StringComparison.Ordinal);
     }
 

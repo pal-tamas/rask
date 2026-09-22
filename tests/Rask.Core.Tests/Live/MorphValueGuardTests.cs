@@ -20,7 +20,7 @@ namespace Rask.Core.Tests.Live;
 public sealed class MorphValueGuardTests
 {
     [Fact]
-    public void Morph_StaleRender_DoesNotClobberCommittedValue_ThenReleasesOnEcho()
+    public void A_stale_render_does_not_clobber_the_committed_value_then_releases_on_echo()
     {
         // No node on PATH — the JS-driven reproduction cannot run. Deliberately not a
         // failure: node is not required to build or test Rask, and the browser-observable

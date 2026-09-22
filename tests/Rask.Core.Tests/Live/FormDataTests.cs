@@ -6,7 +6,7 @@ namespace Rask.Core.Tests.Live;
 public class FormDataTests
 {
     [Fact]
-    public void Get_MissingKey_ReturnsEmptyString()
+    public void Getting_a_missing_key_gives_an_empty_string()
     {
         var data = new FormData(new Dictionary<string, string>());
 
@@ -14,7 +14,7 @@ public class FormDataTests
     }
 
     [Fact]
-    public void Get_PresentKey_ReturnsValue()
+    public void Getting_a_present_key_gives_its_value()
     {
         var data = new FormData(new Dictionary<string, string> { ["a"] = "1" });
 
@@ -22,7 +22,7 @@ public class FormDataTests
     }
 
     [Fact]
-    public void Indexer_PresentKey_ReturnsValue_MissingKey_Throws()
+    public void The_indexer_gives_a_present_keys_value_and_throws_for_a_missing_key()
     {
         var data = new FormData(new Dictionary<string, string> { ["a"] = "1" });
 
@@ -31,7 +31,7 @@ public class FormDataTests
     }
 
     [Fact]
-    public void Surface_ExposesReadOnlyDictionarySemantics()
+    public void The_surface_exposes_read_only_dictionary_semantics()
     {
         var data = new FormData(new Dictionary<string, string> { ["a"] = "1", ["b"] = "2" });
 
@@ -45,7 +45,7 @@ public class FormDataTests
     }
 
     [Fact]
-    public void FromJson_ReadsStringNumberBoolNullArray()
+    public void FromJson_reads_string_number_bool_null_and_array_values()
     {
         const string json = """
                             {
@@ -73,7 +73,7 @@ public class FormDataTests
     }
 
     [Fact]
-    public void FromJson_NoFormProperty_ReturnsEmpty()
+    public void FromJson_without_a_form_property_gives_an_empty_form()
     {
         using var doc = JsonDocument.Parse("""{"id":"h0"}""");
 
@@ -83,7 +83,7 @@ public class FormDataTests
     }
 
     [Fact]
-    public void FromJson_FormNotObject_ReturnsEmpty()
+    public void FromJson_with_a_form_that_is_not_an_object_gives_an_empty_form()
     {
         using var doc = JsonDocument.Parse("""{"form": "not-an-object"}""");
 
@@ -93,7 +93,7 @@ public class FormDataTests
     }
 
     [Fact]
-    public void FromJson_RootNotObject_ReturnsEmpty()
+    public void FromJson_with_a_root_that_is_not_an_object_gives_an_empty_form()
     {
         using var doc = JsonDocument.Parse("[]");
 

@@ -19,7 +19,7 @@ public class RouteRegistryHotReloadTests : IDisposable
     public void Dispose() => RouteRegistry.Reset();
 
     [Fact]
-    public void Replace_SameKeyTwice_ReplacesRatherThanAppends()
+    public void Replacing_the_same_key_twice_replaces_rather_than_appends()
     {
         RouteRegistry.Replace(_asmOne, new[] { new RouteRegistration(typeof(A), "/a", null) });
         RouteRegistry.Replace(_asmOne, new[] { new RouteRegistration(typeof(A), "/a2", null) });
@@ -31,7 +31,7 @@ public class RouteRegistryHotReloadTests : IDisposable
     }
 
     [Fact]
-    public void Replace_DropsARouteDeletedFromTheGroup()
+    public void Replacing_drops_a_route_deleted_from_the_group()
     {
         RouteRegistry.Replace(_asmOne, new[]
         {
@@ -45,7 +45,7 @@ public class RouteRegistryHotReloadTests : IDisposable
     }
 
     [Fact]
-    public void Replace_PreservesOtherContributingAssembliesGroups()
+    public void Replacing_preserves_the_groups_of_other_contributing_assemblies()
     {
         // Two assemblies each contribute routes; refreshing one must not disturb the other. A
         // clear-then-reinvoke-everything design would drop whichever assembly refreshed first.
@@ -61,7 +61,7 @@ public class RouteRegistryHotReloadTests : IDisposable
     }
 
     [Fact]
-    public void Replace_PreservesManualAddRegistrations()
+    public void Replacing_preserves_manually_added_registrations()
     {
         RouteRegistry.Add(new[] { new RouteRegistration(typeof(C), "/c", null) });
         RouteRegistry.Replace(_asmOne, new[] { new RouteRegistration(typeof(A), "/a", null) });
@@ -74,7 +74,7 @@ public class RouteRegistryHotReloadTests : IDisposable
     }
 
     [Fact]
-    public void Replace_DoesNotClearTheDefaultFallback()
+    public void Replacing_does_not_clear_the_default_fallback()
     {
         // The sharp edge. _defaultFallback is seeded once by __RaskDefaultFallback's
         // [ModuleInitializer], which never re-runs — so a refresh implemented via Reset() would
@@ -90,7 +90,7 @@ public class RouteRegistryHotReloadTests : IDisposable
     }
 
     [Fact]
-    public void Replace_InvalidatesTheTreeCache()
+    public void Replacing_invalidates_the_tree_cache()
     {
         RouteRegistry.Replace(_asmOne, new[] { new RouteRegistration(typeof(A), "/a", null) });
         var before = RouteRegistry.BuildTree();
@@ -103,7 +103,7 @@ public class RouteRegistryHotReloadTests : IDisposable
     }
 
     [Fact]
-    public void Replace_WithIdenticalRegistrations_KeepsTheCachedTree()
+    public void Replacing_with_identical_registrations_keeps_the_cached_tree()
     {
         // Every RefreshAll() re-runs on every apply, including reloads that touched no route at
         // all. Re-registering identical content must not churn the tree.
@@ -117,7 +117,7 @@ public class RouteRegistryHotReloadTests : IDisposable
     }
 
     [Fact]
-    public void Replace_PreservesParentChildNesting()
+    public void Replacing_preserves_parent_child_nesting()
     {
         RouteRegistry.Replace(_asmOne, new[]
         {
@@ -137,7 +137,7 @@ public class RouteRegistryHotReloadTests : IDisposable
     }
 
     [Fact]
-    public void Add_StillAppends()
+    public void Add_still_appends_its_routes()
     {
         // Regression guard: Replace must not have changed Add's public contract.
         RouteRegistry.Add(new[] { new RouteRegistration(typeof(A), "/a", null) });
@@ -147,7 +147,7 @@ public class RouteRegistryHotReloadTests : IDisposable
     }
 
     [Fact]
-    public void Replace_NullArguments_Throw()
+    public void Replacing_with_null_arguments_throws()
     {
         Assert.Throws<ArgumentNullException>(() =>
             RouteRegistry.Replace(null!, Array.Empty<RouteRegistration>()));

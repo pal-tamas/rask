@@ -41,7 +41,7 @@ public sealed class TemplateTreeContractTests
 
     [Theory]
     [MemberData(nameof(FrontEndTemplates))]
-    public void The_client_is_TypeScript(string key)
+    public void Every_front_end_client_is_written_in_TypeScript(string key)
     {
         // Rask.Spa.Hosting refuses a client with no tsconfig.json (RASKSPA004): the generated contracts
         // are .ts, and a client that cannot type-check them gets none of what the template exists for.

@@ -44,14 +44,15 @@ public class ModelStateCodeFixTests
     // ---- RASK084 ----
 
     [Fact]
-    public async Task Rask084_MakesASetterPrivate()
+    public async Task The_RASK084_fix_makes_a_setter_private()
     {
         var fixed_ = await Fix080(Entity("public string Name { get; set; } = \"\";"));
+
         Assert.Contains("public string Name { get; private set; } = \"\";", fixed_, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task Rask084_MakesAnInitPrivate()
+    public async Task The_RASK084_fix_makes_an_init_private()
     {
         var fixed_ = await Fix080("""
             using Rask.Data;
@@ -62,11 +63,12 @@ public class ModelStateCodeFixTests
             }
             public sealed class Customer : Aggregate<System.Guid> { public Address Home { get; private set; } = new(); }
             """);
+
         Assert.Contains("public string City { get; private init; } = \"\";", fixed_, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task Rask084_KeepsAMultiLineAccessorListInShape()
+    public async Task The_RASK084_fix_keeps_a_multi_line_accessor_list_in_shape()
     {
         var fixed_ = await Fix080(Entity("""
             public string Name
@@ -75,20 +77,22 @@ public class ModelStateCodeFixTests
                     set;
                 }
             """));
+
         Assert.Contains("        private set;", fixed_, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task Rask084_MakesAPublicFieldPrivate()
+    public async Task The_RASK084_fix_makes_a_public_field_private()
     {
         var fixed_ = await Fix080(Entity("public int Stock;"));
+
         Assert.Contains("private int Stock;", fixed_, StringComparison.Ordinal);
         Assert.DoesNotContain("public int Stock", fixed_, StringComparison.Ordinal);
     }
 
     // `{ private set => … }` is CS0276: an accessor modifier needs a second accessor to differ from.
     [Fact]
-    public async Task Rask084_IsWithheldForASetOnlyProperty() =>
+    public async Task The_RASK084_fix_is_withheld_for_a_set_only_property() =>
         Assert.False(await Offered080(Entity("""
             private string _hash = "";
                 public string Hash => _hash;
@@ -96,15 +100,15 @@ public class ModelStateCodeFixTests
             """)));
 
     [Fact]
-    public async Task Rask084_IsOfferedForAGetSetProperty() =>
+    public async Task The_RASK084_fix_is_offered_for_a_get_set_property() =>
         Assert.True(await Offered080(Entity("public string Name { get; set; } = \"\";")));
 
     [Fact]
-    public async Task Rask084_IsWithheldForARequiredProperty() =>
+    public async Task The_RASK084_fix_is_withheld_for_a_required_property() =>
         Assert.False(await Offered080(Entity("public required string Name { get; set; }")));
 
     [Fact]
-    public async Task Rask084_IsWithheldForAPositionalRecordStructParameter() =>
+    public async Task The_RASK084_fix_is_withheld_for_a_positional_record_struct_parameter() =>
         Assert.False(await Offered080("""
             using Rask.Data;
             namespace Shop;
@@ -120,7 +124,7 @@ public class ModelStateCodeFixTests
     [InlineData("public List<OrderLine> Lines { get; private set; } = new List<OrderLine>();")]
     [InlineData("public List<OrderLine> Lines { get; private set; }")]
     [InlineData("public ICollection<OrderLine> Lines { get; } = [];")]
-    public async Task Rask085_RewritesTheAutoPropertyToAReadOnlyViewOverAField(string member)
+    public async Task The_RASK085_fix_rewrites_the_auto_property_to_a_read_only_view_over_a_field(string member)
     {
         var fixed_ = await Fix081(Entity(member + "\n    public void Add(OrderLine line) => Lines.Add(line);"));
 
@@ -131,7 +135,7 @@ public class ModelStateCodeFixTests
     }
 
     [Fact]
-    public async Task Rask085_KeepsAHashSet()
+    public async Task The_RASK085_fix_keeps_a_HashSet_as_it_is()
     {
         var fixed_ = await Fix081(Entity("public HashSet<OrderLine> Lines { get; } = [];"));
 
@@ -140,7 +144,7 @@ public class ModelStateCodeFixTests
     }
 
     [Fact]
-    public async Task Rask085_PutsTheFieldBeforeTheDocCommentAndLeavesTheCommentOnTheProperty()
+    public async Task The_RASK085_fix_puts_the_field_before_the_doc_comment_and_leaves_the_comment_on_the_property()
     {
         var fixed_ = await Fix081(Entity("""
             public string Code { get; private set; } = "";
@@ -160,7 +164,7 @@ public class ModelStateCodeFixTests
     // would silently become "_lines". The source is compiled before AND after, so every reference left alone
     // demonstrably bound to the property — a miss cannot pass as a decision.
     [Fact]
-    public async Task Rask085_RewritesOnlyReferencesThroughThisInstance()
+    public async Task The_RASK085_fix_rewrites_only_references_through_this_instance()
     {
         const string source = """
             using System;
@@ -189,6 +193,7 @@ public class ModelStateCodeFixTests
         AssertCompiles(source);
 
         var fixed_ = await Fix081(source);
+
         AssertCompiles(fixed_);
 
         Assert.Contains("public void Add(OrderLine line) => _lines.Add(line);", fixed_, StringComparison.Ordinal);
@@ -222,7 +227,7 @@ public class ModelStateCodeFixTests
     }
 
     [Fact]
-    public async Task Rask085_QualifiesTheCollectionTypesWhenTheirNamespaceIsNotImported()
+    public async Task The_RASK085_fix_qualifies_the_collection_types_when_their_namespace_is_not_imported()
     {
         var fixed_ = await Fix081("""
             using System;
@@ -246,6 +251,6 @@ public class ModelStateCodeFixTests
     [InlineData("public required List<OrderLine> Lines { get; set; }")]
     [InlineData("public List<OrderLine> Lines { get; private set; } = [];\n    public void Reset() => Lines = [];")]
     [InlineData("public List<OrderLine> Lines { get; private set; } = [];\n    private int _lines;")]
-    public async Task Rask085_IsWithheldWhereTheRewriteCouldNotKeepTheMeaning(string members) =>
+    public async Task The_RASK085_fix_is_withheld_where_the_rewrite_could_not_keep_the_meaning(string members) =>
         Assert.False(await Offered081(Entity(members)));
 }

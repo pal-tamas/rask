@@ -8,7 +8,7 @@ namespace Rask.Core.Tests.Live;
 public partial class LiveRenderContextEditContextTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void GetOrCreateEditContext_SameModel_ReturnsCachedInstance()
+    public void The_same_model_gets_the_cached_edit_context()
     {
         var view = new StubComponent(Span);
         var model = new Model();
@@ -22,7 +22,7 @@ public partial class LiveRenderContextEditContextTests : global::Rask.Core.RaskM
     }
 
     [Fact]
-    public void GetOrCreateEditContext_DifferentModels_ReturnsDifferentInstances()
+    public void Different_models_get_different_edit_contexts()
     {
         var view = new StubComponent(Span);
         using var ctx = LiveRenderContext.Begin(view);
@@ -34,7 +34,7 @@ public partial class LiveRenderContextEditContextTests : global::Rask.Core.RaskM
     }
 
     [Fact]
-    public void GetOrCreateEditContext_FactoryUsed_OnFirstCallOnly()
+    public void The_edit_context_factory_is_used_on_the_first_call_only()
     {
         var view = new StubComponent(Span);
         var model = new Model();
@@ -55,7 +55,7 @@ public partial class LiveRenderContextEditContextTests : global::Rask.Core.RaskM
     }
 
     [Fact]
-    public void GetOrCreate_WithoutServices_InvokesFactoryWithNullProvider()
+    public void Without_services_the_factory_is_invoked_with_a_null_provider()
     {
         // HTML tag wrappers don't need DI — their generated factories use the closure
         // form `__sp => new T() { ... }` which ignores the services parameter. The context

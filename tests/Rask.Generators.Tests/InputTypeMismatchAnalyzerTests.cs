@@ -36,12 +36,12 @@ public class InputTypeMismatchAnalyzerTests
     private const string Entry = "Input";
 
     [Fact]
-    public async Task StringFamilyType_OnBoolInput_ReportsRask025() =>
+    public async Task A_string_family_type_on_a_bool_input_reports_RASK025() =>
         Assert.Equal("RASK025",
             Assert.Single(await Diagnostics(App($"return {Entry}.Bind(() => _m.Flag).Type(InputType.Text);"))).Id);
 
     [Fact]
-    public async Task StringFamilyType_OnIntInput_ReportsRask025()
+    public async Task A_string_family_type_on_an_int_input_reports_RASK025()
     {
         var d = Assert.Single(await Diagnostics(App("return Input.Bind(() => _m.Age).Type(InputType.Email);")));
         Assert.Equal("RASK025", d.Id);
@@ -49,15 +49,15 @@ public class InputTypeMismatchAnalyzerTests
     }
 
     [Fact]
-    public async Task StringFamilyType_OnStringInput_NoDiagnostic() =>
+    public async Task A_string_family_type_on_a_string_input_reports_nothing() =>
         Assert.Empty(await Diagnostics(App("return Input.Bind(() => _m.Name).Type(InputType.Email);")));
 
     [Fact]
-    public async Task NumberType_OnIntInput_NoDiagnostic() =>
+    public async Task A_number_type_on_an_int_input_reports_nothing() =>
         Assert.Empty(await Diagnostics(App("return Input.Bind(() => _m.Age).Type(InputType.Number);")));
 
     [Fact]
-    public async Task NoExplicitType_OnIntInput_NoDiagnostic() =>
+    public async Task An_int_input_with_no_explicit_type_reports_nothing() =>
         Assert.Empty(await Diagnostics(App("return Input.Bind(() => _m.Age);")));
 
     private static async Task<ImmutableArray<Diagnostic>> Diagnostics(string source)

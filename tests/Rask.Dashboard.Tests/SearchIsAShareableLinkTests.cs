@@ -55,7 +55,6 @@ public sealed class SearchIsAShareableLinkTests
     {
         await using var harness = new DashboardHarness(Batteries.Cache);
         var route = harness.Services.GetRequiredService<RouteState>();
-
         var page = Test.Render(
             ActivatorUtilities.CreateInstance<CachePage>(harness.Services), harness.Services);
 
@@ -69,7 +68,6 @@ public sealed class SearchIsAShareableLinkTests
     {
         await using var harness = new DashboardHarness(Batteries.Storage);
         var route = harness.Services.GetRequiredService<RouteState>();
-
         var page = Test.Render(
             ActivatorUtilities.CreateInstance<StoragePage>(harness.Services), harness.Services);
 

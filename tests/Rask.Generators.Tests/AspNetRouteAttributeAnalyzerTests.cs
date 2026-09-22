@@ -18,7 +18,7 @@ namespace Rask.Generators.Tests;
 public class AspNetRouteAttributeAnalyzerTests
 {
     [Fact]
-    public async Task AnMvcRouteOnAComponent_ReportsRask071()
+    public async Task An_MVC_Route_on_a_component_is_reported_as_RASK071()
     {
         var diagnostics = await GetDiagnosticsAsync("""
                                                     using Rask.Core;
@@ -43,7 +43,7 @@ public class AspNetRouteAttributeAnalyzerTests
     // The same trap from the other direction, and the likelier one: someone arriving from Blazor types
     // the attribute they have always typed.
     [Fact]
-    public async Task ABlazorRouteOnAComponent_ReportsRask071()
+    public async Task A_Blazor_Route_on_a_component_is_reported_as_RASK071()
     {
         var diagnostics = await GetDiagnosticsAsync("""
                                                     using Rask.Core;
@@ -62,7 +62,7 @@ public class AspNetRouteAttributeAnalyzerTests
     // MVC's attribute is not sealed, so a project-local alias deriving from it is a real shape — and it
     // is exactly as invisible to Rask's router as the original. Matching on the name alone would miss it.
     [Fact]
-    public async Task AnAliasDerivedFromMvcsRoute_ReportsRask071()
+    public async Task An_alias_derived_from_MVCs_Route_is_reported_as_RASK071()
     {
         var diagnostics = await GetDiagnosticsAsync("""
                                                     using Rask.Core;
@@ -82,7 +82,7 @@ public class AspNetRouteAttributeAnalyzerTests
     }
 
     [Fact]
-    public async Task RasksOwnRoute_ReportsNothing()
+    public async Task Rasks_own_Route_reports_nothing()
     {
         var diagnostics = await GetDiagnosticsAsync("""
                                                     using Rask.Core;
@@ -101,7 +101,7 @@ public class AspNetRouteAttributeAnalyzerTests
     // Both attributes: the page DOES register, through Rask's. The ASP.NET one is inert, and failing a
     // build that is producing the correct route table would be a worse outcome than the stray attribute.
     [Fact]
-    public async Task BothAttributesTogether_ReportsNothing()
+    public async Task Both_Route_attributes_together_report_nothing()
     {
         var diagnostics = await GetDiagnosticsAsync("""
                                                     using Rask.Core;
@@ -122,7 +122,7 @@ public class AspNetRouteAttributeAnalyzerTests
     // an ASP.NET project: it may hold genuine controllers, and firing on those would make the rule
     // something people switch off rather than something they act on.
     [Fact]
-    public async Task AnMvcRouteOnAnOrdinaryClass_ReportsNothing()
+    public async Task An_MVC_Route_on_an_ordinary_class_reports_nothing()
     {
         var diagnostics = await GetDiagnosticsAsync("""
                                                     [Microsoft.AspNetCore.Mvc.Route("/api/orders")]
@@ -141,7 +141,7 @@ public class AspNetRouteAttributeAnalyzerTests
     // error: the obvious fix puts a [Route] beside the [NotFound], which is RASK013 and drops the
     // catch-all from the registry entirely.
     [Fact]
-    public async Task ANotFoundPageWithAStrayMvcRoute_ReportsNothing()
+    public async Task A_NotFound_page_with_a_stray_MVC_Route_reports_nothing()
     {
         var diagnostics = await GetDiagnosticsAsync("""
                                                     using Rask.Core;
@@ -161,7 +161,7 @@ public class AspNetRouteAttributeAnalyzerTests
     // The message has to name the attribute that is actually WRITTEN in the file being squiggled.
     // Naming only the base put a symbol in the message that appears nowhere in the developer's source.
     [Fact]
-    public async Task AnAliasIsNamedInTheMessage_AlongsideWhatItDerivesFrom()
+    public async Task An_alias_is_named_in_the_message_alongside_what_it_derives_from()
     {
         var diagnostics = await GetDiagnosticsAsync("""
                                                     using Rask.Core;

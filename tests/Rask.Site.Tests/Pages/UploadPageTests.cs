@@ -8,7 +8,7 @@ namespace Rask.Site.Tests.Pages;
 public sealed class UploadPageTests
 {
     [Fact]
-    public void Render_BeforeFileChosen_ShowsNoFileSelected()
+    public void Before_a_file_is_chosen_the_demo_shows_no_file_selected()
     {
         // Render UploadDemo directly — its standalone /upload page was folded into
         // docs/http-and-files.md, where the demo is embedded as a live sample.
@@ -19,14 +19,14 @@ public sealed class UploadPageTests
     }
 
     [Fact]
-    public void OnFiles_HydratesMetadataFromFirstFile()
+    public void Choosing_files_hydrates_the_metadata_from_the_first_file()
     {
         var page = new UploadDemo();
         var onFiles = typeof(UploadDemo).GetMethod("OnFiles",
             BindingFlags.Instance | BindingFlags.NonPublic)!;
-
         var file = new FakeFile("doc.txt", 12345, "text/plain",
             DateTimeOffset.FromUnixTimeSeconds(1_700_000_000));
+
         onFiles.Invoke(page, [new[] { (RaskFile)file }]);
 
         Assert.Equal("doc.txt", GetField<string?>(page, "_name"));
@@ -36,7 +36,7 @@ public sealed class UploadPageTests
     }
 
     [Fact]
-    public void OnFiles_EmptyList_ClearsName()
+    public void An_empty_file_list_clears_the_name()
     {
         var page = new UploadDemo();
         var onFiles = typeof(UploadDemo).GetMethod("OnFiles",
@@ -46,6 +46,7 @@ public sealed class UploadPageTests
         SetField(page, "_name", "leftover.txt");
 
         onFiles.Invoke(page, [Array.Empty<RaskFile>()]);
+
         Assert.Null(GetField<string?>(page, "_name"));
     }
 

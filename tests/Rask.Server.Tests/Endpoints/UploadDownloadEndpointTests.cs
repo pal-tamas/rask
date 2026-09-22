@@ -11,7 +11,7 @@ namespace Rask.Server.Tests.Endpoints;
 public class UploadDownloadEndpointTests
 {
     [Fact]
-    public async Task Upload_UnknownSession_Returns404()
+    public async Task An_upload_to_an_unknown_session_answers_404()
     {
         using var host = RaskTestHost.Create<TestApp>();
         var form = BuildSingleFileForm("hi.txt", new byte[] { 1, 2, 3 });
@@ -22,12 +22,12 @@ public class UploadDownloadEndpointTests
     }
 
     [Fact]
-    public async Task Upload_ValidMultipart_StagesFile_AndReturnsTokens()
+    public async Task A_valid_multipart_upload_stages_the_file_and_returns_its_token()
     {
         using var host = RaskTestHost.Create<TestApp>();
         var sessionId = await CreateSessionAsync(host);
-
         var form = BuildSingleFileForm("data.bin", new byte[] { 9, 8, 7, 6, 5 });
+
         var response = await host.Http.PostAsync("/_rask/upload/" + sessionId, form);
 
         response.EnsureSuccessStatusCode();
@@ -47,7 +47,7 @@ public class UploadDownloadEndpointTests
     }
 
     [Fact]
-    public async Task Download_KnownToken_ReturnsBytesWithDisposition_OneShot()
+    public async Task A_known_download_token_returns_the_bytes_as_an_attachment_exactly_once()
     {
         using var host = RaskTestHost.Create<TestApp>();
         var sessionId = await CreateSessionAsync(host);
@@ -58,6 +58,7 @@ public class UploadDownloadEndpointTests
 
         var url = $"/_rask/download/{sessionId}/{entry.Token}";
         var first = await host.Http.GetAsync(url);
+
         Assert.Equal(HttpStatusCode.OK, first.StatusCode);
         var content = await first.Content.ReadAsByteArrayAsync();
         Assert.Equal(bytes, content);
@@ -70,24 +71,27 @@ public class UploadDownloadEndpointTests
 
         // One-shot: a second fetch returns 404.
         var second = await host.Http.GetAsync(url);
+
         Assert.Equal(HttpStatusCode.NotFound, second.StatusCode);
     }
 
     [Fact]
-    public async Task Download_UnknownToken_Returns404()
+    public async Task An_unknown_download_token_answers_404()
     {
         using var host = RaskTestHost.Create<TestApp>();
+
         var response = await host.Http.GetAsync("/_rask/download/missing-session/nope");
+
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
-    public async Task Upload_FilenameWithPath_ReturnsSanitizedLeafName()
+    public async Task An_upload_filename_with_a_path_comes_back_as_the_sanitized_leaf_name()
     {
         using var host = RaskTestHost.Create<TestApp>();
         var sessionId = await CreateSessionAsync(host);
-
         var form = BuildSingleFileForm("../../etc/passwd", new byte[] { 1, 2, 3 });
+
         var response = await host.Http.PostAsync("/_rask/upload/" + sessionId, form);
 
         response.EnsureSuccessStatusCode();
@@ -99,7 +103,7 @@ public class UploadDownloadEndpointTests
     }
 
     [Fact]
-    public async Task Upload_CrossOrigin_IsRejected()
+    public async Task A_cross_origin_upload_is_rejected()
     {
         using var host = RaskTestHost.Create<TestApp>();
         var sessionId = await CreateSessionAsync(host);
@@ -116,7 +120,7 @@ public class UploadDownloadEndpointTests
     }
 
     [Fact]
-    public async Task Download_CrossOrigin_IsRejected()
+    public async Task A_cross_origin_download_is_rejected()
     {
         using var host = RaskTestHost.Create<TestApp>();
         var sessionId = await CreateSessionAsync(host);
@@ -133,6 +137,7 @@ public class UploadDownloadEndpointTests
         // The cross-origin attempt must not consume the one-shot entry — a legitimate same-origin
         // fetch still succeeds afterward.
         var legit = await host.Http.GetAsync($"/_rask/download/{sessionId}/{entry.Token}");
+
         Assert.Equal(HttpStatusCode.OK, legit.StatusCode);
     }
 

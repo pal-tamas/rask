@@ -30,7 +30,7 @@ public sealed class TypedParserRegistryTests
 
     [Theory]
     [MemberData(nameof(SeededPrimitives))]
-    public void TryGet_SeededPrimitive_ParsesInvariant(Type type, string raw, object expected)
+    public void A_seeded_primitive_parses_with_the_invariant_culture(Type type, string raw, object expected)
     {
         Assert.True(TypedParserRegistry.TryGet(type, out var parser));
         var (ok, value) = parser!(raw);
@@ -39,7 +39,7 @@ public sealed class TypedParserRegistryTests
     }
 
     [Fact]
-    public void TryGet_SeededParser_ReturnsFalse_OnBadInput()
+    public void A_seeded_parser_fails_on_bad_input()
     {
         Assert.True(TypedParserRegistry.TryGet(typeof(int), out var parser));
         var (ok, value) = parser!("not-a-number");
@@ -48,7 +48,7 @@ public sealed class TypedParserRegistryTests
     }
 
     [Fact]
-    public void TryGet_UnregisteredCustomType_ReturnsFalse_UntilRegistered()
+    public void An_unregistered_custom_type_has_no_parser_until_it_is_registered()
     {
         Assert.False(TypedParserRegistry.TryGet(typeof(Sku), out _));
 
@@ -61,7 +61,7 @@ public sealed class TypedParserRegistryTests
     }
 
     [Fact]
-    public void RouteValueParser_UsesRegistry_ForRegisteredCustomType()
+    public void RouteValueParser_uses_the_registry_for_a_registered_custom_type()
     {
         RaskBinding.RegisterParsable<Sku>();
 

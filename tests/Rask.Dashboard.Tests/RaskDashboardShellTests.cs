@@ -16,7 +16,7 @@ namespace Rask.Dashboard.Tests;
 public partial class RaskDashboardShellTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Shell_EmitsADocument_WithTheDocumentLevelHeadTags()
+    public void The_shell_emits_a_document_with_the_document_level_head_tags()
     {
         var page = Test.RenderDocument(RaskDashboardShell).Html;
 
@@ -32,7 +32,7 @@ public partial class RaskDashboardShellTests : global::Rask.Core.RaskMarkup
     ///     up as a subtly wrong <c>&lt;head&gt;</c> in one of the two templates.
     /// </summary>
     [Fact]
-    public void Shell_DoesNotDuplicate_WhatTheLayoutOwns()
+    public void The_shell_does_not_duplicate_what_the_layout_owns()
     {
         var page = Test.RenderDocument(RaskDashboardShell).Html;
 

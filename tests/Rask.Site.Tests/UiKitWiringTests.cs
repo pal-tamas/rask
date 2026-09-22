@@ -56,7 +56,7 @@ public sealed class UiKitWiringTests
 
     [Theory]
     [MemberData(nameof(KitApps))]
-    public void EveryKitApp_CopiesEveryPaletteToken(string appDir)
+    public void Every_kit_app_copies_every_palette_token(string appDir)
     {
         var kit = Tokens(Path.Combine(RepoRoot(), "src", "Rask.Ui", "Styles", "ui.css"));
         var app = Tokens(Path.Combine(RepoRoot(), appDir, "Styles", "app.css"));
@@ -76,9 +76,10 @@ public sealed class UiKitWiringTests
 
     [Theory]
     [MemberData(nameof(KitApps))]
-    public void EveryKitApp_TurnsTheThemeScopeOn(string appDir)
+    public void Every_kit_app_turns_the_theme_scope_on(string appDir)
     {
         var root = Path.Combine(RepoRoot(), appDir, "App.cs");
+
         Assert.True(File.Exists(root), $"{appDir} has no App.cs to carry the theme scope.");
 
         var source = File.ReadAllText(root);

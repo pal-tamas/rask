@@ -6,7 +6,7 @@ namespace Rask.Wasm.Tests.Browser;
 public class SerialTests
 {
     [Fact]
-    public async Task IsSupported_CallsHelper()
+    public async Task Support_is_asked_of_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskSerial.isSupported", true);
@@ -15,12 +15,12 @@ public class SerialTests
     }
 
     [Fact]
-    public async Task RequestPort_RegistersBeforeOpening_AndPassesOptions()
+    public async Task Requesting_a_port_registers_before_opening_and_passes_the_options()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskSerial.requestPort", true);
-
         var options = new SerialOptions(BaudRate: 115200);
+
         var port = await new Serial(js).RequestPortAsync(options, _ => Task.CompletedTask);
 
         Assert.NotNull(port);
@@ -30,7 +30,7 @@ public class SerialTests
     }
 
     [Fact]
-    public async Task RequestPort_Cancelled_ReturnsNull_AndStopsRouting()
+    public async Task A_cancelled_port_request_returns_null_and_stops_routing()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskSerial.requestPort", false);
@@ -44,12 +44,13 @@ public class SerialTests
         var id = (int)js.ArgsFor("__raskSerial.requestPort")![0]!;
 
         Assert.Null(port);
+
         await SerialInterop.Data(id, Convert.ToBase64String([1])); // handler was unregistered on cancel
         Assert.Equal(0, fired);
     }
 
     [Fact]
-    public async Task Data_RoutesToRegisteredHandler()
+    public async Task Data_is_routed_to_the_registered_handler()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskSerial.requestPort", true);
@@ -60,15 +61,15 @@ public class SerialTests
             return Task.CompletedTask;
         });
         var id = (int)js.ArgsFor("__raskSerial.requestPort")![0]!;
-
         var payload = new byte[] { 1, 2, 3 };
+
         await SerialInterop.Data(id, Convert.ToBase64String(payload)); // bytes ride the boundary base64-encoded
 
         Assert.Equal(payload, got);
     }
 
     [Fact]
-    public async Task Closed_FiresOnClosedCallback_AndStopsRouting()
+    public async Task Closing_fires_the_closed_callback_and_stops_routing()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskSerial.requestPort", true);
@@ -81,6 +82,7 @@ public class SerialTests
         var id = (int)js.ArgsFor("__raskSerial.requestPort")![0]!;
 
         await SerialInterop.Closed(id);
+
         Assert.Equal(1, closed);
 
         await SerialInterop.Data(id, Convert.ToBase64String([0])); // routing stopped after close
@@ -88,14 +90,14 @@ public class SerialTests
     }
 
     [Fact]
-    public async Task Write_ForwardsBytes()
+    public async Task Writing_forwards_the_bytes()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskSerial.requestPort", true);
         var port = await new Serial(js).RequestPortAsync(new SerialOptions(), _ => Task.CompletedTask);
         var id = (int)js.ArgsFor("__raskSerial.requestPort")![0]!;
-
         var data = new byte[] { 9, 8, 7 };
+
         await port!.WriteAsync(data);
 
         var args = js.ArgsFor("__raskSerial.write");
@@ -104,7 +106,7 @@ public class SerialTests
     }
 
     [Fact]
-    public async Task Dispose_Closes_AndStopsRouting()
+    public async Task Disposing_the_port_closes_it_and_stops_routing()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskSerial.requestPort", true);
@@ -117,6 +119,7 @@ public class SerialTests
         var id = (int)js.ArgsFor("__raskSerial.requestPort")![0]!;
 
         await port!.DisposeAsync();
+
         Assert.Equal([id], js.ArgsFor("__raskSerial.close"));
 
         await SerialInterop.Data(id, Convert.ToBase64String([0]));
@@ -124,7 +127,7 @@ public class SerialTests
     }
 
     [Fact]
-    public async Task RequestPort_NullArgs_Throw()
+    public async Task Requesting_a_port_with_null_arguments_throws()
     {
         var svc = new Serial(new FakeJsRuntime());
 
@@ -135,7 +138,7 @@ public class SerialTests
     }
 
     [Fact]
-    public void VendorOnlyFilter_OmitsNullProductId()
+    public void A_vendor_only_filter_omits_the_null_product_id()
     {
         // A vendor-only filter must not serialize usbProductId as null — the browser coerces null to 0 and
         // shows an empty chooser. JsonIgnore(WhenWritingNull) drops the absent field. Use Web defaults to

@@ -89,6 +89,7 @@ public sealed class DevErrorOverlayTests
 
         await ws.SendJsonAsync(new { id = handlers[0] });   // throw
         var faulted = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+
         Assert.Contains("\"devError\"", faulted!, StringComparison.Ordinal);
 
         await ws.SendJsonAsync(new { id = handlers[1] });   // bump — an ordinary click

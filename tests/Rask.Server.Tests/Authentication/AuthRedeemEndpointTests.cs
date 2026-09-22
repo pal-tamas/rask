@@ -12,7 +12,7 @@ namespace Rask.Server.Tests.Authentication;
 public class AuthRedeemEndpointTests
 {
     [Fact]
-    public async Task Redeem_ValidTicket_Returns200_AndSetsCookie()
+    public async Task Redeeming_a_valid_ticket_answers_200_and_sets_the_cookie()
     {
         using var host = CreateHost();
         var store = host.Server.Services.GetRequiredService<IAuthTicketStore>();
@@ -31,9 +31,10 @@ public class AuthRedeemEndpointTests
     }
 
     [Fact]
-    public async Task Redeem_UnknownTicket_Returns410()
+    public async Task Redeeming_an_unknown_ticket_answers_410()
     {
         using var host = CreateHost();
+
         var resp = await host.Http.PostAsJsonAsync(
             "/_rask/auth/redeem",
             new { ticket = "no-such-id", session = "session-1" });
@@ -42,7 +43,7 @@ public class AuthRedeemEndpointTests
     }
 
     [Fact]
-    public async Task Redeem_SessionMismatch_Returns410()
+    public async Task Redeeming_for_a_mismatched_session_answers_410()
     {
         using var host = CreateHost();
         var store = host.Server.Services.GetRequiredService<IAuthTicketStore>();
@@ -60,7 +61,7 @@ public class AuthRedeemEndpointTests
     }
 
     [Fact]
-    public async Task Redeem_AlreadyRedeemed_Returns410()
+    public async Task Redeeming_an_already_redeemed_ticket_answers_410()
     {
         using var host = CreateHost();
         var store = host.Server.Services.GetRequiredService<IAuthTicketStore>();
@@ -73,16 +74,18 @@ public class AuthRedeemEndpointTests
         var first = await host.Http.PostAsJsonAsync(
             "/_rask/auth/redeem",
             new { ticket = ticketId, session = "session-1" });
+
         Assert.Equal(HttpStatusCode.OK, first.StatusCode);
 
         var replay = await host.Http.PostAsJsonAsync(
             "/_rask/auth/redeem",
             new { ticket = ticketId, session = "session-1" });
+
         Assert.Equal(HttpStatusCode.Gone, replay.StatusCode);
     }
 
     [Fact]
-    public async Task Redeem_SignOut_Returns200()
+    public async Task Redeeming_a_sign_out_ticket_answers_200()
     {
         using var host = CreateHost();
         var store = host.Server.Services.GetRequiredService<IAuthTicketStore>();
@@ -96,15 +99,17 @@ public class AuthRedeemEndpointTests
     }
 
     [Fact]
-    public async Task Redeem_MissingFields_Returns400()
+    public async Task A_redeem_with_missing_fields_answers_400()
     {
         using var host = CreateHost();
+
         var resp = await host.Http.PostAsJsonAsync("/_rask/auth/redeem", new { foo = "bar" });
+
         Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
     }
 
     [Fact]
-    public async Task Redeem_ForeignOrigin_Returns403()
+    public async Task A_redeem_from_a_foreign_origin_answers_403()
     {
         using var host = CreateHost();
         var store = host.Server.Services.GetRequiredService<IAuthTicketStore>();
@@ -128,7 +133,7 @@ public class AuthRedeemEndpointTests
     }
 
     [Fact]
-    public async Task Redeem_SameOrigin_Succeeds()
+    public async Task A_redeem_from_the_same_origin_succeeds()
     {
         using var host = CreateHost();
         var store = host.Server.Services.GetRequiredService<IAuthTicketStore>();
@@ -150,7 +155,7 @@ public class AuthRedeemEndpointTests
     }
 
     [Fact]
-    public async Task Redeem_NoOriginNoReferer_Succeeds()
+    public async Task A_redeem_with_no_origin_and_no_referer_succeeds()
     {
         // Same-origin fetch() may omit Origin entirely; with no Referer either, the ticket secrecy is
         // the authority and the request is allowed.
@@ -168,7 +173,7 @@ public class AuthRedeemEndpointTests
     }
 
     [Fact]
-    public async Task Redeem_SameHostRefererFallback_Succeeds()
+    public async Task A_redeem_falls_back_to_a_same_host_referer_and_succeeds()
     {
         // No Origin header → fall back to Referer; same host passes.
         using var host = CreateHost();
@@ -186,7 +191,7 @@ public class AuthRedeemEndpointTests
     }
 
     [Fact]
-    public async Task Redeem_ForeignReferer_Returns403()
+    public async Task A_redeem_with_a_foreign_referer_answers_403()
     {
         using var host = CreateHost();
         var ticketId = IssueTicket(host);
@@ -203,7 +208,7 @@ public class AuthRedeemEndpointTests
     }
 
     [Fact]
-    public async Task Redeem_MalformedOrigin_Returns403()
+    public async Task A_redeem_with_a_malformed_origin_answers_403()
     {
         // An Origin that isn't an absolute URI can't be proven same-origin → reject.
         using var host = CreateHost();
@@ -221,7 +226,7 @@ public class AuthRedeemEndpointTests
     }
 
     [Fact]
-    public async Task Redeem_CrossSchemeSameHost_Succeeds()
+    public async Task A_redeem_across_schemes_on_the_same_host_succeeds()
     {
         // TLS-terminating proxy: browser Origin is https (:443) while the request reaches the app as
         // http (:80). Host matches, so redeem must still succeed (host-only comparison).

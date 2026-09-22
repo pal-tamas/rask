@@ -7,7 +7,7 @@ namespace Rask.Core.Tests.Browser;
 public class MediaStreamsTests
 {
     [Fact]
-    public async Task AttachAsync_PassesTheRawIdAndTheElementRef()
+    public async Task Attaching_passes_the_raw_id_and_the_element_ref()
     {
         var js = new FakeJsRuntime();
         var video = ElementRef.New();
@@ -20,7 +20,7 @@ public class MediaStreamsTests
     }
 
     [Fact]
-    public async Task StopAsync_PassesTheRawId()
+    public async Task Stopping_passes_the_raw_id()
     {
         var js = new FakeJsRuntime();
 
@@ -30,7 +30,7 @@ public class MediaStreamsTests
     }
 
     [Fact]
-    public async Task AttachAsync_RejectsANullElement()
+    public async Task Attaching_rejects_a_null_element()
     {
         var js = new FakeJsRuntime();
 
@@ -39,7 +39,7 @@ public class MediaStreamsTests
     }
 
     [Fact]
-    public void MediaStreamId_IsValueEqual()
+    public void A_MediaStreamId_is_value_equal()
     {
         // It travels through callbacks and dictionary keys; reference semantics would break both.
         Assert.Equal(new MediaStreamId(3), new MediaStreamId(3));

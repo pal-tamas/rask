@@ -54,9 +54,9 @@ public sealed class Rfc8291RoundTripTests
     {
         using var client = TestCrypto.GenerateClient();
         var sub = new PushSubscription(TestSender.Endpoint, client.P256dhB64, client.AuthB64);
-
         var h1 = new RecordingHandler();
         var h2 = new RecordingHandler();
+
         await TestSender.Create(h1).SendAsync(sub, WebPushMessage.Text("A"));
         await TestSender.Create(h2).SendAsync(sub, WebPushMessage.Text("A"));
 

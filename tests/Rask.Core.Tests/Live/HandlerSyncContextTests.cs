@@ -5,7 +5,7 @@ namespace Rask.Core.Tests.Live;
 public class HandlerSyncContextTests
 {
     [Fact]
-    public async Task DrainAsync_NoPendingPosts_CompletesImmediately()
+    public async Task Draining_with_no_pending_posts_completes_immediately()
     {
         var ctx = new HandlerSyncContext(() => Task.CompletedTask);
 
@@ -13,7 +13,7 @@ public class HandlerSyncContextTests
     }
 
     [Fact]
-    public async Task Post_RendersBeforeAndAfter_EachContinuation()
+    public async Task A_post_renders_before_and_after_each_continuation()
     {
         var renderCount = 0;
         var ctx = new HandlerSyncContext(() =>
@@ -33,7 +33,7 @@ public class HandlerSyncContextTests
     }
 
     [Fact]
-    public void Send_BlocksUntilCallbackCompletes()
+    public void A_send_blocks_until_the_callback_completes()
     {
         var ctx = new HandlerSyncContext(() => Task.CompletedTask);
         var ran = false;
@@ -44,7 +44,7 @@ public class HandlerSyncContextTests
     }
 
     [Fact]
-    public async Task Post_InstallsContextOnContinuationThread()
+    public async Task A_post_installs_the_context_on_the_continuation_thread()
     {
         var ctx = new HandlerSyncContext(() => Task.CompletedTask);
         SynchronizationContext? observed = null;
@@ -63,7 +63,7 @@ public class HandlerSyncContextTests
     }
 
     [Fact]
-    public void CreateCopy_ReturnsIndependentInstance_SameRender()
+    public void CreateCopy_gives_an_independent_instance_with_the_same_render()
     {
         var renderCount = 0;
         var ctx = new HandlerSyncContext(() =>
@@ -81,7 +81,7 @@ public class HandlerSyncContextTests
     }
 
     [Fact]
-    public async Task DrainAsync_DrainsTasksPostedDuringDrain()
+    public async Task Draining_also_drains_tasks_posted_during_the_drain()
     {
         // Re-entrancy invariant: a callback runs with this context installed, so any Post it makes
         // (directly, or via an awaited continuation) enqueues a NEW task while DrainAsync is mid-

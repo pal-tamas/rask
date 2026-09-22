@@ -81,6 +81,9 @@ no `AGENTS.md`; `ProjectGeneratorTests` keeps it that way). Full detail: `docs/d
 `benchmarks/` any more. Adding a third root means teaching `.githooks/pre-commit`'s path filter and
 `scripts/lib/affected_projects.py`'s `PROJECT_ROOTS` about it, or the one commit that touches only it
 is the one commit that skips the gate.
+- **Every test is named as a sentence and shaped in three blocks** (setup · action · checks, blank-line separated):
+  `Remember_loads_once_then_serves_from_the_cache`. `tests/Shared/TestNamesReadAsSentences.cs`, linked into every
+  `*.Tests` project, fails the build's tests on a name that isn't one.
 - `tests/Rask.*.Tests` — unit/integration, one per `src/` project. `tests/Rask.*.E2E.Tests` — the
   end-to-end suites. `tests/Rask.Benchmarks*` — BenchmarkDotNet; not test projects, so `dotnet test`
   skips them and the scoped runner filters them out by the `.Tests` suffix.

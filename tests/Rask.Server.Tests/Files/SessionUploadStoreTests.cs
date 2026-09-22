@@ -5,7 +5,7 @@ namespace Rask.Server.Tests.Files;
 public class SessionUploadStoreTests
 {
     [Fact]
-    public async Task StageAsync_AwaitsWriteCallback_BeforeRecordingEntry()
+    public async Task Staging_awaits_the_write_callback_before_recording_the_entry()
     {
         using var store = new SessionUploadStore();
         var gate = new TaskCompletionSource();
@@ -25,11 +25,13 @@ public class SessionUploadStoreTests
         // StageAsync is genuinely async: it has not completed while the write is gated.
         observedDuringWrite.Completed = stageTask.IsCompleted;
         observedDuringWrite.Entry = store.Get("session-1", "ignored");
+
         Assert.False(observedDuringWrite.Completed);
         Assert.Null(observedDuringWrite.Entry);
 
         gate.SetResult();
         var entry = await stageTask;
+
         Assert.NotNull(entry);
 
         Assert.Equal("data.bin", entry!.Name);
@@ -38,11 +40,12 @@ public class SessionUploadStoreTests
         Assert.Equal(writeBytes, staged);
 
         store.Release("session-1", entry.Token);
+
         Assert.False(File.Exists(entry.Path));
     }
 
     [Fact]
-    public async Task StageAsync_FallsBackToProvidedSize_WhenFileMissing()
+    public async Task Staging_falls_back_to_the_declared_size_when_the_file_is_missing()
     {
         using var store = new SessionUploadStore();
 
@@ -57,13 +60,14 @@ public class SessionUploadStoreTests
     }
 
     [Fact]
-    public async Task Quota_RejectsTheFileThatWouldExceedTheCumulativeCap()
+    public async Task The_quota_rejects_the_file_that_would_exceed_the_cumulative_cap()
     {
         using var store = new SessionUploadStore();
         const long quota = 100;
 
         // 60 staged (under quota → non-null).
         var a = await Stage(store, "s1", 60, quota);
+
         Assert.NotNull(a);
 
         // Another 60 would total 120 > 100 → rejected (null), nothing recorded.
@@ -71,6 +75,7 @@ public class SessionUploadStoreTests
 
         // A 40-byte one (→ exactly 100) still fits.
         var b = await Stage(store, "s1", 40, quota);
+
         Assert.NotNull(b);
 
         // Per-session budget: a different session has its own.
@@ -79,25 +84,29 @@ public class SessionUploadStoreTests
         // Releasing frees bytes back: s1 is full (100 = 60 + 40); release the 60, leaving 40, so a
         // 60-byte file now fits again (40 + 60 = 100) — but a 70 would not.
         store.Release("s1", a!.Token);
+
         Assert.Null(await Stage(store, "s1", 70, quota));
         Assert.NotNull(await Stage(store, "s1", 60, quota));
     }
 
     [Fact]
-    public async Task ReleaseSession_ResetsTheQuotaTotal()
+    public async Task Releasing_the_session_resets_the_quota_total()
     {
         using var store = new SessionUploadStore();
+
         Assert.NotNull(await Stage(store, "s1", 80, 100));
         Assert.Null(await Stage(store, "s1", 80, 100)); // 160 > 100
 
         store.ReleaseSession("s1");
+
         Assert.NotNull(await Stage(store, "s1", 80, 100)); // budget reset
     }
 
     [Fact]
-    public async Task Quota_NonPositive_NeverRejects()
+    public async Task A_non_positive_quota_never_rejects()
     {
         using var store = new SessionUploadStore();
+
         Assert.NotNull(await Stage(store, "s1", 10 * 1024 * 1024, 0));
         Assert.NotNull(await Stage(store, "s1", 10 * 1024 * 1024, 0));
     }

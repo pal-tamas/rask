@@ -20,6 +20,7 @@ public sealed class SqliteSnapshotOptionsTests
     {
         var options = new SqliteSnapshotOptions { DatabasePath = "/data/app.db", DestinationDirectory = "/backups" };
         Validate(options, requireDestinationDirectory: true); // does not throw
+
     }
 
     [Fact]
@@ -27,6 +28,7 @@ public sealed class SqliteSnapshotOptionsTests
     {
         var options = new SqliteSnapshotOptions { DestinationDirectory = "/backups" };
         Assert.Throws<InvalidOperationException>(() => Validate(options, requireDestinationDirectory: true));
+
     }
 
     [Fact]
@@ -34,6 +36,7 @@ public sealed class SqliteSnapshotOptionsTests
     {
         var options = new SqliteSnapshotOptions { DatabasePath = "/data/app.db" };
         Assert.Throws<InvalidOperationException>(() => Validate(options, requireDestinationDirectory: true));
+
     }
 
     [Fact]
@@ -41,6 +44,7 @@ public sealed class SqliteSnapshotOptionsTests
     {
         var options = new SqliteSnapshotOptions { DatabasePath = "/data/app.db" };
         Validate(options, requireDestinationDirectory: false); // does not throw
+
     }
 
     [Fact]
@@ -53,6 +57,7 @@ public sealed class SqliteSnapshotOptionsTests
             Interval = TimeSpan.Zero,
         };
         Assert.Throws<InvalidOperationException>(() => Validate(options, requireDestinationDirectory: true));
+
     }
 
     [Fact]
@@ -65,6 +70,7 @@ public sealed class SqliteSnapshotOptionsTests
             Retain = 0,
         };
         Assert.Throws<InvalidOperationException>(() => Validate(options, requireDestinationDirectory: true));
+
     }
 
     private static void Validate(SqliteSnapshotOptions options, bool requireDestinationDirectory)

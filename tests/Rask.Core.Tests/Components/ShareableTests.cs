@@ -9,7 +9,7 @@ namespace Rask.Core.Tests.Components;
 public partial class ShareableTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Render_AppliesDataRaskShareToTemplateElement_SerializingOnlySetFields()
+    public void The_share_bundle_lands_on_the_template_element_with_only_the_set_fields()
     {
         Assert.Equal(
             "<button data-rask-share=\"{&quot;title&quot;:&quot;Rask&quot;,&quot;url&quot;:&quot;https://x&quot;}\" type=\"button\">Share</button>",
@@ -19,7 +19,7 @@ public partial class ShareableTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_WorksWithAnyElement_NotJustAButton()
+    public void Any_element_can_carry_the_share_bundle_not_just_a_button()
     {
         // Headless: attach the share behaviour to a link (or any element with a Data prop).
         Assert.Equal(
@@ -30,7 +30,7 @@ public partial class ShareableTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_TemplateControlsAllMarkupAndEncodesChildText()
+    public void The_template_controls_all_markup_and_child_text_is_encoded()
     {
         Assert.Equal(
             "<button data-rask-share=\"{&quot;title&quot;:&quot;t&quot;}\" type=\"button\">&lt;go&gt;</button>",

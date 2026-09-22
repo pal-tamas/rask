@@ -15,7 +15,7 @@ namespace Rask.Wasm.Tests.Session;
 public class DispatchAsyncRoutingTests() : ResettingTestBase(LiveDiffMode.DisabledFull)
 {
     [Fact]
-    public async Task Dispatch_EmptyJson_ReturnsEmptyBytes()
+    public async Task Dispatching_empty_json_returns_empty_bytes()
     {
         var (session, _) = NewSession(diffMode: DiffMode);
 
@@ -25,7 +25,7 @@ public class DispatchAsyncRoutingTests() : ResettingTestBase(LiveDiffMode.Disabl
     }
 
     [Fact]
-    public async Task Dispatch_TypeNavigate_RoutesToNavigateBranch_AndUpdatesRouteState()
+    public async Task Dispatching_a_navigate_routes_to_the_navigate_branch_and_updates_the_route_state()
     {
         var (session, services) = NewSession(diffMode: DiffMode);
         var routeState = services.GetRequiredService<RouteState>();
@@ -42,7 +42,7 @@ public class DispatchAsyncRoutingTests() : ResettingTestBase(LiveDiffMode.Disabl
     }
 
     [Fact]
-    public async Task Dispatch_NavigateEmptyPath_ReturnsEmpty()
+    public async Task Dispatching_a_navigate_to_an_empty_path_returns_empty()
     {
         var (session, _) = NewSession(diffMode: DiffMode);
 
@@ -52,7 +52,7 @@ public class DispatchAsyncRoutingTests() : ResettingTestBase(LiveDiffMode.Disabl
     }
 
     [Fact]
-    public async Task Dispatch_NavigateReplaceTrue_EmitsHistoryReplace()
+    public async Task Dispatching_a_navigate_with_replace_emits_a_history_replace()
     {
         var (session, _) = NewSession(diffMode: DiffMode);
         await session.InitialRenderAsync();
@@ -64,7 +64,7 @@ public class DispatchAsyncRoutingTests() : ResettingTestBase(LiveDiffMode.Disabl
     }
 
     [Fact]
-    public async Task Dispatch_NoHandlerIdAndNoType_ReturnsEmpty()
+    public async Task Dispatching_with_no_handler_id_and_no_type_returns_empty()
     {
         var (session, _) = NewSession(diffMode: DiffMode);
 
@@ -74,7 +74,7 @@ public class DispatchAsyncRoutingTests() : ResettingTestBase(LiveDiffMode.Disabl
     }
 
     [Fact]
-    public async Task Dispatch_UnknownHandlerId_ReturnsEmpty()
+    public async Task Dispatching_an_unknown_handler_id_returns_empty()
     {
         var (session, _) = NewSession(diffMode: DiffMode);
         await session.InitialRenderAsync();
@@ -85,12 +85,12 @@ public class DispatchAsyncRoutingTests() : ResettingTestBase(LiveDiffMode.Disabl
     }
 
     [Fact]
-    public async Task Dispatch_KnownHandler_ReturnsPayloadWithUpdatedHtml()
+    public async Task Dispatching_a_known_handler_returns_a_payload_with_the_updated_html()
     {
         var (session, _) = NewSession(diffMode: DiffMode);
         var initial = await session.InitialRenderAsync();
-
         var handlerId = MarkupAssert.FirstHandlerId(initial);
+
         var result = await session.DispatchAsync(Utf8($$"""{"id":"{{handlerId}}","type":"click"}"""));
 
         Assert.NotEmpty(result);
@@ -100,7 +100,7 @@ public class DispatchAsyncRoutingTests() : ResettingTestBase(LiveDiffMode.Disabl
     }
 
     [Fact]
-    public async Task Dispatch_NavigateWithEmptyQuery_NoQuestionMarkInHistoryUrl()
+    public async Task Dispatching_a_navigate_with_an_empty_query_puts_no_question_mark_in_the_history_url()
     {
         var (session, _) = NewSession(diffMode: DiffMode);
         await session.InitialRenderAsync();
@@ -112,7 +112,7 @@ public class DispatchAsyncRoutingTests() : ResettingTestBase(LiveDiffMode.Disabl
     }
 
     [Fact]
-    public async Task Dispatch_ConcurrentCalls_SerialisedByLock()
+    public async Task Concurrent_dispatches_are_serialised_by_the_lock()
     {
         var (session, _) = NewSession(diffMode: DiffMode);
         var initial = await session.InitialRenderAsync();
@@ -135,10 +135,9 @@ public class DispatchAsyncRoutingTests() : ResettingTestBase(LiveDiffMode.Disabl
     }
 
     [Fact]
-    public async Task Dispatch_HandlerThatThrows_ShowsTheErrorPage_AndSessionStaysUsable()
+    public async Task A_dispatched_handler_that_throws_shows_the_error_page_and_the_session_stays_usable()
     {
         var (session, _) = NewSession<ThrowingStubApp>(diffMode: DiffMode);
-
         var initial = await session.InitialRenderAsync();
         var handlerId = MarkupAssert.FirstHandlerId(initial);
 
@@ -151,6 +150,7 @@ public class DispatchAsyncRoutingTests() : ResettingTestBase(LiveDiffMode.Disabl
         // Session is still usable: a subsequent dispatch for an unknown handler id returns empty,
         // proving the lock was released and the session didn't crash.
         var follow = await session.DispatchAsync(Utf8("""{"id":"h999"}"""));
+
         Assert.Empty(follow);
     }
 }

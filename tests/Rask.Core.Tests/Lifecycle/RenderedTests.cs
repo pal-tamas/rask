@@ -9,7 +9,7 @@ namespace Rask.Core.Tests.Lifecycle;
 public class RenderedTests
 {
     [Fact]
-    public void OnRendered_FiresFirstTrue_ThenFalse()
+    public void OnRendered_fires_first_with_true_then_with_false()
     {
         var sp = RenderHarness.EmptyServices();
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
@@ -25,7 +25,7 @@ public class RenderedTests
     }
 
     [Fact]
-    public void OnRendered_FiresOnRoot()
+    public void OnRendered_fires_on_the_root()
     {
         var sp = RenderHarness.EmptyServices();
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();

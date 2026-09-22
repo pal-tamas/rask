@@ -15,7 +15,7 @@ public class AsyncValidationDispatchTests
     // "Already taken.". The post-handler render emitted after the OnChange must contain
     // that message and must not still contain the in-flight "Checking..." indicator.
     [Fact]
-    public async Task AsyncValidator_PostHandlerFrame_ShowsMessage_AndNoIndicator()
+    public async Task An_async_validators_post_handler_frame_shows_the_message_and_no_indicator()
     {
         using var host = RaskTestHost.Create<AsyncValidationApp>(diffMode: LiveDiffMode.DisabledFull);
         var initial = await host.Http.GetAsync("/");

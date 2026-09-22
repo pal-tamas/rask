@@ -18,7 +18,7 @@ namespace Rask.Core.Tests.Live;
 public class ComponentHotReloadTests
 {
     [Fact]
-    public void MarkSubtreeDirtyInternal_ForcesCachedChildToReExecute()
+    public void Marking_the_subtree_dirty_forces_a_cached_child_to_execute_again()
     {
         var sp = RenderHarness.EmptyServices();
         var child = new Counter();
@@ -35,7 +35,7 @@ public class ComponentHotReloadTests
     }
 
     [Fact]
-    public async Task RerenderAllForHotReload_RequestsRenderOnRegisteredSessions()
+    public async Task A_hot_reload_rerender_requests_a_render_on_registered_sessions()
     {
         var session = new TestLiveSession(new Counter(), RenderHarness.EmptyServices());
         session.RegisterForHotReload();
@@ -47,7 +47,7 @@ public class ComponentHotReloadTests
     }
 
     [Fact]
-    public async Task RerenderAllForHotReload_DoesNotTouchUnregisteredSessions()
+    public async Task A_hot_reload_rerender_does_not_touch_unregistered_sessions()
     {
         var session = new TestLiveSession(new Counter(), RenderHarness.EmptyServices());
         // deliberately not registered
@@ -59,7 +59,7 @@ public class ComponentHotReloadTests
     }
 
     [Fact]
-    public async Task RerenderAllForHotReload_SwallowsAFaultingSession_AndStillRendersTheRest()
+    public async Task A_hot_reload_rerender_swallows_a_faulting_session_and_still_renders_the_rest()
     {
         var faulting = new TestLiveSession(new Counter(), RenderHarness.EmptyServices()) { Throw = true };
         var healthy = new TestLiveSession(new Counter(), RenderHarness.EmptyServices());
@@ -74,7 +74,7 @@ public class ComponentHotReloadTests
     }
 
     [Fact]
-    public async Task UpdateApplication_ReRendersRegisteredSessions()
+    public async Task UpdateApplication_renders_the_registered_sessions_again()
     {
         var session = new TestLiveSession(new Counter(), RenderHarness.EmptyServices());
         session.RegisterForHotReload();

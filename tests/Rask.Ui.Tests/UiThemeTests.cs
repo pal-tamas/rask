@@ -19,7 +19,7 @@ namespace Rask.Ui.Tests;
 public sealed class UiThemeTests
 {
     [Fact]
-    public void EveryTypedTheme_IsDefinedByTheStylesheet()
+    public void Every_typed_theme_is_defined_by_the_stylesheet()
     {
         var css = UiStylesheet.Css;
         Assert.False(string.IsNullOrEmpty(css), "the kit shipped no stylesheet to check against.");
@@ -37,7 +37,7 @@ public sealed class UiThemeTests
     }
 
     [Fact]
-    public void EveryThemeTheStylesheetDefines_HasATypedName()
+    public void Every_theme_the_stylesheet_defines_has_a_typed_name()
     {
         // The other direction, so a theme daisyUI adds is not left unreachable from C#.
         var css = UiStylesheet.Css;
@@ -56,7 +56,7 @@ public sealed class UiThemeTests
     }
 
     [Fact]
-    public void TheValueIsWhatDaisyUiMatchesOn()
+    public void The_value_is_what_daisyUI_matches_on()
     {
         // Lowercased member name, mechanically — the mapping is not a table that can drift.
         Assert.Equal("light", UiTheme.Value(UiThemeName.Light));
@@ -79,7 +79,7 @@ public sealed class UiThemeTests
     ///     not offer it as one.
     /// </remarks>
     [Fact]
-    public void System_IsTheAbsenceOfAChoiceRatherThanAPalette()
+    public void System_is_the_absence_of_a_choice_rather_than_a_palette()
     {
         Assert.DoesNotContain(UiThemeName.System, UiTheme.All);
 

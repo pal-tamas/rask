@@ -20,7 +20,7 @@ namespace Rask.Wasm.Tests.Session;
 public class DisposalTests
 {
     [Fact]
-    public void Dispose_UnsubscribesFromUserProviderChanged()
+    public void Disposing_the_session_unsubscribes_from_the_user_providers_Changed()
     {
         var provider = new CountingUserProvider();
         var services = new ServiceCollection();
@@ -40,7 +40,7 @@ public class DisposalTests
     // #1093: IRaskCulture is a root singleton on WASM, so it outlives every session. A handler left attached keeps
     // the disposed tree reachable and re-renders it on the next language switch.
     [Fact]
-    public void Dispose_UnsubscribesFromCultureChanged()
+    public void Disposing_the_session_unsubscribes_from_CultureChanged()
     {
         // Process-wide, and deliberately not reset: it only decides whether a session LOOKS for a culture
         // service (see RaskCulture.IsEnabled), so leaving it on cannot change what a parallel test renders.
@@ -61,7 +61,7 @@ public class DisposalTests
     }
 
     [Fact]
-    public void DownloadSink_OrphanedStagings_AreBounded()
+    public void The_download_sinks_orphaned_stagings_are_bounded()
     {
         var sink = new WasmDownloadSink();
 
@@ -76,11 +76,12 @@ public class DisposalTests
     }
 
     [Fact]
-    public void DownloadSink_StageThenPull_RoundTrips()
+    public void A_download_staged_then_pulled_round_trips()
     {
         // The eviction bound must not disturb the normal one-stage-one-pull flow.
         var sink = new WasmDownloadSink();
         var bytes = new byte[] { 1, 2, 3 };
+
         sink.Stage("a.bin", bytes, null);
         Assert.True(sink.TryConsume(out var pending));
         var token = pending!.Token!;

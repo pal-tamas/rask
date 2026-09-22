@@ -20,7 +20,7 @@ public class RegistrationTests
     }
 
     [Fact]
-    public void AddRaskBrowserSqlite_RegistersTheSnapshotterOverIndexedDb()
+    public void AddRaskBrowserSqlite_registers_the_snapshotter_over_IndexedDB()
     {
         var provider = Collection().AddRaskBrowserSqlite("app").BuildServiceProvider();
 
@@ -35,7 +35,7 @@ public class RegistrationTests
     // it — a DbContext consumer, a job processor — opens a database that is already populated, and the
     // snapshot loop cannot tick before the restore finished.
     [Fact]
-    public void AddRaskBrowserSqlite_RegistersTheHostBeforeTheSnapshotLoop()
+    public void AddRaskBrowserSqlite_registers_the_host_before_the_snapshot_loop()
     {
         var provider = Collection().AddRaskBrowserSqlite("app").BuildServiceProvider();
 
@@ -50,7 +50,7 @@ public class RegistrationTests
     // The host is resolvable on its own AND as a hosted service, and must be the same instance —
     // the snapshot loop reads IsOwner off it.
     [Fact]
-    public void AddRaskBrowserSqlite_SharesOneHostInstance()
+    public void AddRaskBrowserSqlite_shares_one_host_instance()
     {
         var provider = Collection().AddRaskBrowserSqlite("app").BuildServiceProvider();
 
@@ -62,7 +62,7 @@ public class RegistrationTests
     // A second registration of the same database would elect two owners in one tab and snapshot twice
     // per tick.
     [Fact]
-    public void AddRaskBrowserSqlite_IsIdempotentPerDatabase()
+    public void AddRaskBrowserSqlite_is_idempotent_per_database()
     {
         var provider = Collection()
             .AddRaskBrowserSqlite("app")
@@ -73,7 +73,7 @@ public class RegistrationTests
     }
 
     [Fact]
-    public void AddRaskBrowserSqlite_AppliesTheConfiguredOptions()
+    public void AddRaskBrowserSqlite_applies_the_configured_options()
     {
         var provider = Collection()
             .AddRaskBrowserSqlite("jobs", o => { o.SnapshotInterval = TimeSpan.FromSeconds(5); o.Retain = 3; })
@@ -92,7 +92,7 @@ public class RegistrationTests
     }
 
     [Fact]
-    public void AddRaskBrowserSqlite_RejectsInvalidOptionsAtRegistration()
+    public void AddRaskBrowserSqlite_rejects_invalid_options_at_registration()
     {
         // At registration, not at first snapshot — a bad interval should fail where it was written.
         Assert.Throws<InvalidOperationException>(
@@ -105,7 +105,7 @@ public class BrowserSqliteSnapshotServiceTests
     // A tab that does not own the database has nothing to persist, and snapshotting from it would be
     // exactly the overwrite the ownership lock exists to prevent.
     [Fact]
-    public async Task NonOwner_NeverSnapshots()
+    public async Task A_non_owner_tab_never_snapshots()
     {
         // A real temp path: /rask exists in the WASM runtime's in-memory filesystem, not on a test machine.
         var temp = Directory.CreateTempSubdirectory("rask-snapshot-service");
@@ -116,16 +116,13 @@ public class BrowserSqliteSnapshotServiceTests
             DatabasePath = Path.Combine(temp.FullName, "app.db"),
         };
         options.Validate();
-
         var locks = new FakeWebLocks();
         locks.HoldElsewhere(BrowserSqlite.OwnerLockName(options.Name));
-
         var snapshotter = new RecordingSnapshotter();
         var host = new BrowserSqliteHost(
             options, locks, new FakeIndexedDb(), new FakeStorageEstimator(), snapshotter,
             new BrowserSqliteOwnership(), NullLogger<BrowserSqliteHost>.Instance);
         await host.StartAsync(CancellationToken.None);
-
         var service = new BrowserSqliteSnapshotService(
             options, host, snapshotter, NullLogger<BrowserSqliteSnapshotService>.Instance);
 

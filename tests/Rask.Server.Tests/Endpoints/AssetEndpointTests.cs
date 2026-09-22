@@ -23,7 +23,7 @@ public class AssetEndpointTests
     // ─── Happy path ───────────────────────────────────────────────────────
 
     [Fact]
-    public async Task GetCss_KnownHash_Returns200_WithImmutableCacheAndEtag()
+    public async Task A_known_CSS_hash_answers_200_with_an_immutable_cache_and_an_etag()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
         ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var hash);
@@ -46,7 +46,7 @@ public class AssetEndpointTests
     }
 
     [Fact]
-    public async Task GetJs_KnownHash_Returns200_WithJavaScriptContentType()
+    public async Task A_known_JS_hash_answers_200_with_a_javascript_content_type()
     {
         ScopedAssetRegistry.RegisterJs(typeof(WidgetA), "export function f(){}");
         ScopedAssetRegistry.TryGetJs(typeof(WidgetA), out var hash);
@@ -59,7 +59,7 @@ public class AssetEndpointTests
     }
 
     [Fact]
-    public async Task GetSourceMap_ForTheBundleOfADebugEmit_IsTheIndexMapTheBundleNames()
+    public async Task The_source_map_for_a_debug_bundle_is_the_index_map_the_bundle_names()
     {
         // #1073: the bundle's last line names {hash}.js.map, resolved against the script's own URL.
         const string map = """{"version":3,"sources":["Features/A.ts"],"names":[],"mappings":"AAAA"}""";
@@ -79,7 +79,7 @@ public class AssetEndpointTests
     }
 
     [Fact]
-    public async Task GetSourceMap_ForAReleaseEmitOrAnUnknownHash_Is404()
+    public async Task The_source_map_for_a_release_bundle_or_an_unknown_hash_is_404()
     {
         ScopedAssetRegistry.RegisterJs(typeof(WidgetA), "export function f(){}");
         var hash = ScopedAssetRegistry.GetBundleHash(AssetKind.Js);
@@ -91,7 +91,7 @@ public class AssetEndpointTests
     }
 
     [Fact]
-    public async Task GetCss_BodyBytes_AreByteEqualToRegistryStorage()
+    public async Task The_CSS_body_is_byte_equal_to_what_the_registry_stores()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
         ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var hash);
@@ -99,13 +99,14 @@ public class AssetEndpointTests
         using var host = RaskTestHost.Create<TestApp>();
 
         var bodyBytes = await host.Http.GetByteArrayAsync($"/_rask/a/{hash}.css");
+
         Assert.Equal(registryBytes, bodyBytes);
     }
 
     // ─── HTTP method semantics ────────────────────────────────────────────
 
     [Fact]
-    public async Task Head_KnownHash_Returns200_NoBody_SameHeaders()
+    public async Task A_HEAD_for_a_known_hash_answers_200_with_the_same_headers_and_no_body()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
         ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var hash);
@@ -121,7 +122,7 @@ public class AssetEndpointTests
     }
 
     [Fact]
-    public async Task Post_AssetEndpoint_Returns405()
+    public async Task A_POST_to_the_asset_endpoint_answers_405()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
         ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var hash);
@@ -132,11 +133,12 @@ public class AssetEndpointTests
             Content = new StringContent("")
         };
         var response = await host.Http.SendAsync(req);
+
         Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
     }
 
     [Fact]
-    public async Task Put_AssetEndpoint_Returns405()
+    public async Task A_PUT_to_the_asset_endpoint_answers_405()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
         ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var hash);
@@ -147,11 +149,12 @@ public class AssetEndpointTests
             Content = new StringContent("")
         };
         var response = await host.Http.SendAsync(req);
+
         Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
     }
 
     [Fact]
-    public async Task Delete_AssetEndpoint_Returns405()
+    public async Task A_DELETE_to_the_asset_endpoint_answers_405()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
         ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var hash);
@@ -159,13 +162,14 @@ public class AssetEndpointTests
 
         using var req = new HttpRequestMessage(HttpMethod.Delete, $"/_rask/a/{hash}.css");
         var response = await host.Http.SendAsync(req);
+
         Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
     }
 
     // ─── ETag / cache ─────────────────────────────────────────────────────
 
     [Fact]
-    public async Task IfNoneMatchExact_Returns304_NoBody()
+    public async Task An_exact_If_None_Match_answers_304_with_no_body()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
         ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var hash);
@@ -180,7 +184,7 @@ public class AssetEndpointTests
     }
 
     [Fact]
-    public async Task IfNoneMatchStale_Returns200WithBody()
+    public async Task A_stale_If_None_Match_answers_200_with_the_body()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
         ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var hash);
@@ -197,7 +201,7 @@ public class AssetEndpointTests
     // ─── Range requests ──────────────────────────────────────────────────
 
     [Fact]
-    public async Task RangeFirstHundredBytes_Returns206PartialContent()
+    public async Task A_range_of_the_first_hundred_bytes_answers_206_partial_content()
     {
         // Pad source to ensure rewritten bytes exceed 100 bytes.
         var bigCss = string.Concat(Enumerable.Repeat(".x { color: red; }\n", 20));
@@ -215,7 +219,7 @@ public class AssetEndpointTests
     }
 
     [Fact]
-    public async Task RangeBeyondLength_Returns416()
+    public async Task A_range_beyond_the_length_answers_416()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
         ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var hash);
@@ -232,15 +236,17 @@ public class AssetEndpointTests
     // ─── Negative paths ──────────────────────────────────────────────────
 
     [Fact]
-    public async Task UnknownHash_Returns404()
+    public async Task An_unknown_hash_answers_404()
     {
         using var host = RaskTestHost.Create<TestApp>();
+
         var response = await host.Http.GetAsync("/_rask/a/abcdef012345.css");
+
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
-    public async Task CrossKindMismatch_CssHashRequestedAsJs_Returns404()
+    public async Task A_CSS_hash_requested_as_JS_answers_404()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
         ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var cssHash);
@@ -248,11 +254,12 @@ public class AssetEndpointTests
 
         // The hash is real for CSS but unknown to JS bucket.
         var response = await host.Http.GetAsync($"/_rask/a/{cssHash}.js");
+
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
-    public async Task UpperCaseHash_Returns404()
+    public async Task An_upper_case_hash_answers_404()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
         ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var hash);
@@ -260,50 +267,59 @@ public class AssetEndpointTests
 
         // Same hash but uppercase — rejected by IsLowercaseHex check.
         var response = await host.Http.GetAsync($"/_rask/a/{hash.ToUpperInvariant()}.css");
+
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
-    public async Task NonHexCharacters_Returns404()
+    public async Task A_hash_with_non_hex_characters_answers_404()
     {
         using var host = RaskTestHost.Create<TestApp>();
+
         var response = await host.Http.GetAsync("/_rask/a/notthexnoth.css");
+
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
-    public async Task HashTooShort_Returns404()
+    public async Task A_hash_too_short_answers_404()
     {
         using var host = RaskTestHost.Create<TestApp>();
+
         var response = await host.Http.GetAsync("/_rask/a/abc.css");
+
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
-    public async Task HashTooLong_Returns404()
+    public async Task A_hash_too_long_answers_404()
     {
         using var host = RaskTestHost.Create<TestApp>();
+
         var response = await host.Http.GetAsync("/_rask/a/abcdef0123456789.css");
+
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
-    public async Task UnknownExtension_DoesNotServeAssetContent()
+    public async Task An_unknown_extension_does_not_serve_asset_content()
     {
         // /_rask/a/{hash}.gif doesn't match either route — falls through to the framework's
         // App fallback (which renders the home page with text/html). The asset endpoint
         // itself does NOT serve the .gif request; what matters is that no CSS/JS body
         // leaks. Asserting Content-Type is the cleanest signal.
         using var host = RaskTestHost.Create<TestApp>();
+
         var response = await host.Http.GetAsync("/_rask/a/abcdef012345.gif");
         var ct = response.Content.Headers.ContentType?.MediaType;
+
         Assert.NotEqual("text/css", ct);
         Assert.NotEqual("text/javascript", ct);
         Assert.NotEqual("application/javascript", ct);
     }
 
     [Fact]
-    public async Task PathTraversalAttempt_DoesNotServeRegisteredAsset()
+    public async Task A_path_traversal_attempt_does_not_serve_a_registered_asset()
     {
         // After URL normalization the request hits a different path; the framework's App
         // fallback may return 200 with the home page. Critical: no asset bytes leaked.
@@ -314,6 +330,7 @@ public class AssetEndpointTests
 
         var response = await host.Http.GetAsync($"/_rask/a/../../etc/{hash}.css");
         var body = await response.Content.ReadAsByteArrayAsync();
+
         // The exact body depends on the framework's fallback, but it must NOT be the
         // asset bytes (path traversal must not bypass the route constraint).
         Assert.NotEqual(assetBytes, body);
@@ -322,7 +339,7 @@ public class AssetEndpointTests
     // ─── Concurrency ──────────────────────────────────────────────────────
 
     [Fact]
-    public async Task Concurrent100Gets_AllReturnIdenticalBytes()
+    public async Task A_hundred_concurrent_gets_all_receive_identical_bytes()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
         ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var hash);
@@ -340,7 +357,7 @@ public class AssetEndpointTests
     // ─── Hash content edge cases ─────────────────────────────────────────
 
     [Fact]
-    public async Task LargeAsset_AboveOneMb_ServesSuccessfully()
+    public async Task An_asset_above_one_megabyte_is_served()
     {
         var bigSource = new StringBuilder();
         for (var i = 0; i < 20_000; i++)
@@ -354,11 +371,12 @@ public class AssetEndpointTests
         using var host = RaskTestHost.Create<TestApp>();
 
         var body = await host.Http.GetByteArrayAsync($"/_rask/a/{hash}.css");
+
         Assert.True(body.Length > 1_000_000, $"expected >1MB body, got {body.Length}");
     }
 
     [Fact]
-    public async Task NonAsciiContent_ServesByteIdentically()
+    public async Task Non_ASCII_content_is_served_byte_for_byte()
     {
         // UTF-8 content with multi-byte chars (emoji, RTL marks). Round-trip must preserve.
         const string css = ".x::before { content: '🎨'; } /* مرحبا */";
@@ -368,11 +386,12 @@ public class AssetEndpointTests
         using var host = RaskTestHost.Create<TestApp>();
 
         var body = await host.Http.GetByteArrayAsync($"/_rask/a/{hash}.css");
+
         Assert.Equal(expected, body);
     }
 
     [Fact]
-    public async Task AcceptBrotli_ServesValidBrotli_ThatDecodesToTheAsset()
+    public async Task A_client_accepting_brotli_gets_valid_brotli_that_decodes_to_the_asset()
     {
         // A payload big enough that brotli measurably shrinks it.
         var css = string.Concat(Enumerable.Range(0, 200)

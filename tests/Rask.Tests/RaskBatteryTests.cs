@@ -174,8 +174,8 @@ public sealed class RaskBatteryTests
                 b.WebHost.UseSetting("urls", "http://127.0.0.1:0");
                 b.Logging.Services.AddSingleton<Microsoft.Extensions.Logging.ILoggerProvider>(logs);
             });
-
             app.Services.AddDbContextFactory<TestDbContext>(o => o.UseSqlite("Data Source=:memory:"));
+
             app.Build<TestApp>();
 
             Assert.Contains(logs.Messages, m => m.Contains("declares no user type", StringComparison.Ordinal));
@@ -368,7 +368,6 @@ public sealed class RaskBatteryTests
         app.Services.AddDbContextFactory<TestDbContext>(o => o.UseSqlite("Data Source=:memory:"));
 
         var built = app.Build<TestApp>();
-
         var checks = ModelChecks(built.Services);
 
         // One per enabled DB-backed battery: Outbox, Jobs, Auth, Mail, Cache, Storage. Asserted as a count rather
@@ -412,8 +411,8 @@ public sealed class RaskBatteryTests
             o => o.UseSqlite($"Data Source={Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"))}.db"));
 
         var built = app.Build<TestApp>();
-
         var checks = ModelChecks(built.Services);
+
         Assert.Equal(6, checks.Count);
 
         foreach (var check in checks)

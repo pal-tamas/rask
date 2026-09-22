@@ -25,7 +25,7 @@ public sealed class SiteExampleTests
     }
 
     [Fact]
-    public async Task Journey_RendersInRaskWithLiveCounterAndTabs()
+    public async Task Journey_renders_in_Rask_with_live_counter_and_tabs()
     {
         var context = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions { BaseURL = _app.BaseUrl });
         var page = await context.NewPageAsync();
@@ -221,9 +221,9 @@ public sealed class SiteExampleTests
     // two pages above do not use. The prerender companion did not carry an app's scoped stylesheets, so
     // every published page shipped with no data-r-* attributes and no bundle <link>: the rail sat under the
     // article, each paragraph was a line shorter, and the page grew 4423px to 4711px at takeover — reported
-    // as a flicker on refresh. See PublishedPages_CarryTheirScopedStylesBeforeTheRuntimeBoots.
+    // as a flicker on refresh. See Published_pages_carry_their_scoped_styles_before_the_runtime_boots.
     [InlineData("/docs/guides/one-person-framework/index.html", "The .NET One Person Framework")]
-    public async Task Hydration_DoesNotReflowThePage(string path, string headline)
+    public async Task Hydration_does_not_reflow_the_page(string path, string headline)
     {
         var context = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions { BaseURL = _app.BaseUrl });
         var page = await context.NewPageAsync();
@@ -278,7 +278,7 @@ public sealed class SiteExampleTests
     // whose only scoped stylesheet was CodeSample's own — gone since CodeSample became daisyUI's mockup-code (#1101),
     // which left that page with nothing to scope and this assertion with nothing to find.
     [InlineData("/docs/guides/js-interop/index.html")]
-    public async Task PublishedPages_CarryTheirScopedStylesBeforeTheRuntimeBoots(string path)
+    public async Task Published_pages_carry_their_scoped_styles_before_the_runtime_boots(string path)
     {
         using var http = new HttpClient { BaseAddress = new Uri(_app.BaseUrl) };
 
@@ -295,7 +295,7 @@ public sealed class SiteExampleTests
     /// <remarks>
     ///     <para>
     ///         Reported as "the counter example still flickers and shows the scrollbar later in Safari",
-    ///         after <see cref="Hydration_DoesNotReflowThePage" /> was already green. It was never the morph:
+    ///         after <see cref="Hydration_does_not_reflow_the_page" /> was already green. It was never the morph:
     ///         the <c>&lt;pre&gt;</c> is untouched by hydration. At an even column split the window was 496px
     ///         and its longest line 510px (525px in the fallback), so the <c>&lt;pre&gt;</c> was a horizontal
     ///         scroller at every desktop width, and Safari reveals an overlay scrollbar when a scroller's
@@ -314,7 +314,7 @@ public sealed class SiteExampleTests
     [InlineData(1920, false)]
     [InlineData(1024, true)]
     [InlineData(1280, true)]
-    public async Task CounterSample_FitsItsWindowWithoutScrolling(int width, bool fallbackFont)
+    public async Task Counter_sample_fits_its_window_without_scrolling(int width, bool fallbackFont)
     {
         var context = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions
         {
@@ -361,12 +361,12 @@ public sealed class SiteExampleTests
     ///     The faces are served from this origin, and nothing defers a stylesheet to get them.
     /// </summary>
     /// <remarks>
-    ///     The companion to <see cref="Hydration_DoesNotReflowThePage" />: that one measures the symptom,
+    ///     The companion to <see cref="Hydration_does_not_reflow_the_page" />: that one measures the symptom,
     ///     this one pins the cause out of existence. A reintroduced CDN <c>&lt;link&gt;</c> — or any
     ///     <c>media="print"</c> stylesheet flipped by an onload — brings the reflow back with it.
     /// </remarks>
     [Fact]
-    public async Task Fonts_AreSelfHostedAndPreloaded()
+    public async Task Fonts_are_self_hosted_and_preloaded()
     {
         var context = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions { BaseURL = _app.BaseUrl });
         var page = await context.NewPageAsync();
@@ -414,7 +414,7 @@ public sealed class SiteExampleTests
     ///     </para>
     /// </remarks>
     [Fact]
-    public async Task Theme_FollowsTheOperatingSystemAndIsRemembered()
+    public async Task Theme_follows_the_operating_system_and_is_remembered()
     {
         var context = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions { BaseURL = _app.BaseUrl });
         var page = await context.NewPageAsync();
@@ -472,7 +472,7 @@ public sealed class SiteExampleTests
     ///     it: a document navigation of any kind takes that with it. (#1058)
     /// </remarks>
     [Fact]
-    public async Task DocsLink_NavigatesInPlaceWithoutReloadingTheApp()
+    public async Task Docs_link_navigates_in_place_without_reloading_the_app()
     {
         var context = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions { BaseURL = _app.BaseUrl });
         var page = await context.NewPageAsync();
@@ -502,7 +502,7 @@ public sealed class SiteExampleTests
     }
 
     [Fact]
-    public async Task Hydration_MorphsTheBodyRatherThanReplacingIt()
+    public async Task Hydration_morphs_the_body_rather_than_replacing_it()
     {
         // The published site painted one COMPLETELY UNSTYLED frame as the prerendered document handed
         // over to the runtime -- UA serif on a transparent ground, at 13x the document height. Sampled
@@ -560,7 +560,7 @@ public sealed class SiteExampleTests
     }
 
     [Fact]
-    public async Task Hydration_ChangesNeitherTheToolbarTintThePrintedPathNorTheBodyClass()
+    public async Task Hydration_changes_neither_the_toolbar_tint_the_printed_path_nor_the_body_class()
     {
         // Three one-frame changes survived #1049 and read to a visitor as "a little flickering":
         //   * <meta name="theme-color"> went #7c3aed -> #512BD4 -> #7c3aed in ~25ms: the manifest injector
@@ -638,7 +638,7 @@ public sealed class SiteExampleTests
     }
 
     [Fact]
-    public async Task ThePublishHandsCrawlersAndAssistantsTheFilesTheWebIsToldAbout()
+    public async Task The_publish_hands_crawlers_and_assistants_the_files_the_web_is_told_about()
     {
         // All of this is written by the PUBLISH, which is the one thing no unit test runs: llms.txt and the
         // Markdown twins by Program.cs during the prerender run, the head and sitemap.xml by the prerender
@@ -681,7 +681,7 @@ public sealed class SiteExampleTests
     [Theory]
     [InlineData("/index.html")]
     [InlineData("/docs/guides/elements/index.html")]
-    public async Task APublishedPage_CarriesNoComment(string path)
+    public async Task A_published_page_carries_no_comment(string path)
     {
         // Two sources of comments nobody reads, both paid for in every visit's bytes: the boot shell's <head>
         // notes (dropped when a page is spliced into it) and a doc's editor note (elements.md explains its MDN

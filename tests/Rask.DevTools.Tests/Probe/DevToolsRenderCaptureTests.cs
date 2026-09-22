@@ -40,6 +40,7 @@ public sealed class DevToolsRenderCaptureTests
             () => feed.CommitsSnapshot().Skip(before).SelectMany(c => c.Renders)
                 .Any(r => r.Type == nameof(DevToolsTestApp)),
             TimeSpan.FromSeconds(5));
+
         Assert.True(rendered, "no commit after the click rendered the app");
 
         var app = feed.CommitsSnapshot().Skip(before).SelectMany(c => c.Renders).First(r => r.Type == nameof(DevToolsTestApp));
@@ -72,12 +73,14 @@ public sealed class DevToolsRenderCaptureTests
         using var places = feed.WatchPlaces();
         using var tree = feed.WatchTree();
         var before = feed.CommitsSnapshot().Length;
+
         // The shape the client really sends for a click, so this drives the page's own dispatch path.
         await socket.SendJsonAsync(new { id = handlerId, type = "click" });
 
         Assert.True(await DevToolsLivePage.WaitFor(
             () => feed.CommitsSnapshot().Skip(before).SelectMany(c => c.Renders).Any(r => r.Type == nameof(DevToolsTestApp)),
             TimeSpan.FromSeconds(5)));
+
         var app = feed.CommitsSnapshot().Skip(before).SelectMany(c => c.Renders).First(r => r.Type == nameof(DevToolsTestApp));
 
         // The same place the Tree tab boxes on hover, so the flash and the highlight agree.
@@ -101,6 +104,7 @@ public sealed class DevToolsRenderCaptureTests
         Assert.True(await DevToolsLivePage.WaitFor(
             () => feed.InteractionsSnapshot().Skip(before).Any(i => i is { Trigger: "click", Frames: > 0 }),
             TimeSpan.FromSeconds(5)), "no click interaction that sent a frame");
+
         var click = feed.InteractionsSnapshot().Skip(before).First(i => i.Trigger == "click");
 
         // The handler belongs to the app, found through the frame that reached it; the render it caused and its frame

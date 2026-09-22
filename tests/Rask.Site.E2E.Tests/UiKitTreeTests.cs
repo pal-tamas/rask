@@ -19,7 +19,7 @@ public sealed class UiKitTreeTests(WasmExampleAppFixture app, PlaywrightFixture 
     protected override string ServerLog => app.ServerLog;
 
     [Fact]
-    public Task EveryTreeRendersWithARealSize() => RunAsync(async () =>
+    public Task Every_tree_renders_with_a_real_size() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -35,7 +35,7 @@ public sealed class UiKitTreeTests(WasmExampleAppFixture app, PlaywrightFixture 
     });
 
     [Fact]
-    public Task TheArrowKeysMoveTheCursorAndDoNotScrollThePage() => RunAsync(async () =>
+    public Task The_arrow_keys_move_the_cursor_and_do_not_scroll_the_page() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -51,7 +51,7 @@ public sealed class UiKitTreeTests(WasmExampleAppFixture app, PlaywrightFixture 
     });
 
     [Fact]
-    public Task RightOpensANodeAndLeftClosesIt() => RunAsync(async () =>
+    public Task Right_opens_a_node_and_left_closes_it() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -67,11 +67,12 @@ public sealed class UiKitTreeTests(WasmExampleAppFixture app, PlaywrightFixture 
     });
 
     [Fact]
-    public Task SelectingANodeReportsItsKeyToThePage() => RunAsync(async () =>
+    public Task Selecting_a_node_reports_its_key_to_the_page() => RunAsync(async () =>
     {
         await OpenAsync();
 
         var tree = Page.Locator("[data-testid='ui-tree-controlled'] [role='tree']");
+
         await tree.Locator(".ui-tree-row").First.ClickAsync();
 
         await Expect(Page.Locator("[data-testid='ui-tree-controlled-state']"))
@@ -79,7 +80,7 @@ public sealed class UiKitTreeTests(WasmExampleAppFixture app, PlaywrightFixture 
     });
 
     [Fact]
-    public Task AChildRowIsIndentedUnderItsParent() => RunAsync(async () =>
+    public Task A_child_row_is_indented_under_its_parent() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -95,7 +96,7 @@ public sealed class UiKitTreeTests(WasmExampleAppFixture app, PlaywrightFixture 
     // The flat list's rows are all the same box, so the indent is padding, and it is the label that has to move. Its
     // rule once lost the cascade to daisyUI's menu padding: every row computed 12px whatever its depth.
     [Fact]
-    public Task AVirtualizedChildRowIsIndentedUnderItsParent() => RunAsync(async () =>
+    public Task A_virtualized_child_row_is_indented_under_its_parent() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -113,7 +114,7 @@ public sealed class UiKitTreeTests(WasmExampleAppFixture app, PlaywrightFixture 
     });
 
     [Fact]
-    public Task VirtualizedRowsAreExactlyOneItemSizeTall() => RunAsync(async () =>
+    public Task Virtualized_rows_are_exactly_one_item_size_tall() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -127,7 +128,7 @@ public sealed class UiKitTreeTests(WasmExampleAppFixture app, PlaywrightFixture 
     });
 
     [Fact]
-    public Task OnlyTheVisibleWindowOfALargeTreeIsRendered() => RunAsync(async () =>
+    public Task Only_the_visible_window_of_a_large_tree_is_rendered() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -139,7 +140,7 @@ public sealed class UiKitTreeTests(WasmExampleAppFixture app, PlaywrightFixture 
     });
 
     [Fact]
-    public Task EndScrollsTheLastNodeIntoView() => RunAsync(async () =>
+    public Task End_scrolls_the_last_node_into_view() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -159,7 +160,7 @@ public sealed class UiKitTreeTests(WasmExampleAppFixture app, PlaywrightFixture 
     });
 
     [Fact]
-    public Task TypingALetterJumpsToTheMatchingNode() => RunAsync(async () =>
+    public Task Typing_a_letter_jumps_to_the_matching_node() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -173,7 +174,7 @@ public sealed class UiKitTreeTests(WasmExampleAppFixture app, PlaywrightFixture 
     });
 
     [Fact]
-    public Task HoveringARowReportsItToThePage() => RunAsync(async () =>
+    public Task Hovering_a_row_reports_it_to_the_page() => RunAsync(async () =>
     {
         await OpenAsync();
 

@@ -15,7 +15,7 @@ namespace Rask.Core.Tests.Live;
 public class QuiescenceScopeStaleThreadTests
 {
     [Fact]
-    public void ALiveScopeBegunByAnotherPassOnThisThreadIsNotCurrentOnceItsFlowHasGone()
+    public void A_live_scope_begun_by_another_pass_on_this_thread_is_not_current_once_its_flow_has_gone()
     {
         // #1108. QuiescentRender.RunAsync calls Begin on a pool thread and then awaits: the runtime
         // restores the thread's ExecutionContext when the async method yields, so the AsyncLocal is
@@ -39,7 +39,7 @@ public class QuiescenceScopeStaleThreadTests
     }
 
     [Fact]
-    public async Task EnterRestoresAScopeForCodeThatCrossedSuppressFlow()
+    public async Task Enter_restores_a_scope_for_code_that_crossed_SuppressFlow()
     {
         // The one path that loses the AsyncLocal: LifecycleSyncContext's suppressed Task.Run. It is
         // handed the scope captured on the walk and must still find it, and leave nothing behind.
@@ -72,7 +72,7 @@ public class QuiescenceScopeStaleThreadTests
     }
 
     [Fact]
-    public void ADisposedScopeIsNotCurrent()
+    public void A_disposed_scope_is_not_current()
     {
         QuiescenceScope.ResetSyncForTests();
 
@@ -85,7 +85,7 @@ public class QuiescenceScopeStaleThreadTests
     }
 
     [Fact]
-    public void AScopeDisposedOnAnotherThreadIsNotCurrent()
+    public void A_scope_disposed_on_another_thread_is_not_current()
     {
         // The real shape: the pass ends somewhere else, which is exactly what an await continuation
         // does. The flow here still carries it, and must not hand it back.

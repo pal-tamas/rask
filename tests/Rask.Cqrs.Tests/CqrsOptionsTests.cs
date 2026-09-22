@@ -9,30 +9,30 @@ namespace Rask.Cqrs.Tests;
 public class CqrsOptionsTests
 {
     [Fact]
-    public void AddOpenBehavior_rejects_null() =>
+    public void A_null_open_behavior_is_rejected() =>
         Assert.Throws<ArgumentNullException>(() => new CqrsOptions().AddOpenBehavior(null!));
 
     [Fact]
-    public void AddOpenBehavior_rejects_a_non_generic_type() =>
+    public void A_non_generic_type_is_rejected_as_an_open_behavior() =>
         Assert.Throws<ArgumentException>(() => new CqrsOptions().AddOpenBehavior(typeof(string)));
 
     [Fact]
-    public void AddOpenBehavior_rejects_a_generic_with_wrong_arity() =>
+    public void A_generic_with_the_wrong_arity_is_rejected_as_an_open_behavior() =>
         // List<> is an open generic but has ONE type parameter, so it fails the two-parameter check.
         Assert.Throws<ArgumentException>(() => new CqrsOptions().AddOpenBehavior(typeof(List<>)));
 
     [Fact]
-    public void AddOpenBehavior_rejects_a_two_param_generic_that_is_not_a_behavior() =>
+    public void A_two_parameter_generic_that_is_not_a_behavior_is_rejected_as_an_open_behavior() =>
         // Correct arity (two type params) but does not implement IPipelineBehavior<,> — the second guard.
         Assert.Throws<ArgumentException>(() => new CqrsOptions().AddOpenBehavior(typeof(Dictionary<,>)));
 
     [Fact]
-    public void AddRaskCqrs_rejects_an_invalid_handler_lifetime() =>
+    public void An_invalid_handler_lifetime_is_rejected() =>
         Assert.Throws<InvalidOperationException>(() =>
             new ServiceCollection().AddRaskCqrs(o => o.HandlerLifetime = (ServiceLifetime)99));
 
     [Fact]
-    public void AddRaskCqrs_rejects_an_invalid_publish_strategy() =>
+    public void An_invalid_publish_strategy_is_rejected() =>
         Assert.Throws<InvalidOperationException>(() =>
             new ServiceCollection().AddRaskCqrs(o => o.NotificationPublishStrategy = (NotificationPublishStrategy)99));
 
@@ -60,7 +60,7 @@ public class CqrsOptionsTests
     }
 
     [Fact]
-    public void The_callback_wins_over_Rask_Cqrs()
+    public void The_callback_wins_over_the_Rask_Cqrs_section()
     {
         var services = Host(new() { ["Rask:Cqrs:HandlerLifetime"] = "Scoped" });
 

@@ -23,7 +23,6 @@ public sealed class SqliteCollationsTests : IDisposable
     public async Task The_factory_registers_a_decimal_collation_that_sorts_numerically_on_every_locale(string culture)
     {
         await SeedAsync("2.00", "19.95", "9.50", "100.50", "10.00");
-
         var previous = CultureInfo.CurrentCulture;
         CultureInfo.CurrentCulture = culture.Length == 0 ? CultureInfo.InvariantCulture : new CultureInfo(culture);
         try
@@ -51,7 +50,6 @@ public sealed class SqliteCollationsTests : IDisposable
     public async Task Without_the_collation_the_same_column_sorts_lexicographically()
     {
         await SeedAsync("2.00", "19.95", "9.50", "100.50", "10.00");
-
         await using var connection = await OpenPlainAsync();
 
         Assert.Equal(
@@ -66,7 +64,6 @@ public sealed class SqliteCollationsTests : IDisposable
     public async Task Unparseable_text_is_ordered_after_every_number_instead_of_throwing()
     {
         await SeedAsync("9.50", "lots", "2.00", "", "1e40", "99999999999999999999999999999999999999999999");
-
         await using var connection = await OpenPlainAsync();
         SqliteCollations.Apply(connection);
 
@@ -84,7 +81,6 @@ public sealed class SqliteCollationsTests : IDisposable
     public async Task Trailing_zeros_compare_equal()
     {
         await SeedAsync("19.95", "19.950", "19.9500");
-
         await using var connection = await OpenPlainAsync();
         SqliteCollations.Apply(connection);
 
@@ -99,8 +95,8 @@ public sealed class SqliteCollationsTests : IDisposable
     public async Task Applying_the_collation_twice_is_idempotent()
     {
         await SeedAsync("2.00", "10.00", "9.50");
-
         await using var connection = await OpenPlainAsync();
+
         SqliteCollations.Apply(connection);
         SqliteCollations.Apply(connection);
 

@@ -5,7 +5,7 @@ namespace Rask.Core.Tests.Interop;
 public class MediaQueryTests
 {
     [Fact]
-    public async Task Matches_PassesQuery_AndReturnsResult()
+    public async Task Matching_passes_the_query_and_gives_the_result()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskApi.matchMedia", true);
@@ -15,7 +15,7 @@ public class MediaQueryTests
     }
 
     [Fact]
-    public async Task PrefersDark_UsesColorSchemeQuery()
+    public async Task PrefersDark_uses_the_color_scheme_query()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskApi.matchMedia", true);
@@ -25,7 +25,7 @@ public class MediaQueryTests
     }
 
     [Fact]
-    public async Task PrefersReducedMotion_UsesReduceQuery()
+    public async Task PrefersReducedMotion_uses_the_reduce_query()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskApi.matchMedia", true);
@@ -35,7 +35,7 @@ public class MediaQueryTests
     }
 
     [Fact]
-    public async Task Matches_NullQuery_Throws()
+    public async Task Matching_a_null_query_throws()
     {
         await Assert.ThrowsAsync<ArgumentNullException>(
             async () => await new MediaQuery(new FakeJsRuntime()).MatchesAsync(null!));

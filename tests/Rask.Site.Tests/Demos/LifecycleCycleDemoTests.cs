@@ -10,7 +10,7 @@ namespace Rask.Site.Tests.Demos;
 public sealed partial class LifecycleCycleDemoTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Render_AtRest_ShowsProbeNotMounted_AndEmptyLog()
+    public void At_rest_the_demo_shows_the_probe_not_mounted_and_an_empty_log()
     {
         var host = new LiveHost(() => LifecycleCycleDemo, TestServices.Default());
 
@@ -23,39 +23,47 @@ public sealed partial class LifecycleCycleDemoTests : global::Rask.Core.RaskMark
     }
 
     [Fact]
-    public void MountCycle_AddsProbe_BumpsId_FlipsMountedFlag()
+    public void Mounting_a_cycle_adds_the_probe_bumps_the_id_and_flips_the_mounted_flag()
     {
         var demo = new LifecycleCycleDemo();
+
         Invoke(demo, "MountCycle");
+
         Assert.Equal(1, GetField<int>(demo, "_nextCycleId"));
         Assert.True(GetField<bool>(demo, "_cycleMounted"));
     }
 
     [Fact]
-    public void UnmountCycle_FromMounted_FlipsFlagBack()
+    public void Unmounting_a_mounted_cycle_flips_the_flag_back()
     {
         var demo = new LifecycleCycleDemo();
         Invoke(demo, "MountCycle");
+
         Invoke(demo, "UnmountCycle");
+
         Assert.False(GetField<bool>(demo, "_cycleMounted"));
     }
 
     [Fact]
-    public void MountCycle_WhenAlreadyMounted_DoesNotIncrementId()
+    public void Mounting_a_cycle_that_is_already_mounted_does_not_increment_the_id()
     {
         var demo = new LifecycleCycleDemo();
         Invoke(demo, "MountCycle");
+
         Invoke(demo, "MountCycle");
+
         Assert.Equal(1, GetField<int>(demo, "_nextCycleId"));
     }
 
     [Fact]
-    public void AppendCycleLog_AppendsLineToCycleLog()
+    public void AppendCycleLog_appends_a_line_to_the_cycle_log()
     {
         var demo = new LifecycleCycleDemo();
         var mi = typeof(LifecycleCycleDemo).GetMethod("AppendCycleLog",
             BindingFlags.Instance | BindingFlags.NonPublic)!;
+
         mi.Invoke(demo, ["hello"]);
+
         var log = GetField<List<string>>(demo, "_cycleLog");
         Assert.Contains("hello", log);
     }

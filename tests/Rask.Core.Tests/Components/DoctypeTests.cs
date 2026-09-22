@@ -3,5 +3,5 @@ namespace Rask.Core.Tests.Components;
 public partial class DoctypeTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Render_Default_ReturnsDoctypeDeclaration() => Assert.Equal("<!DOCTYPE html>", Doctype.ToHtml());
+    public void The_doctype_renders_the_html_declaration() => Assert.Equal("<!DOCTYPE html>", Doctype.ToHtml());
 }

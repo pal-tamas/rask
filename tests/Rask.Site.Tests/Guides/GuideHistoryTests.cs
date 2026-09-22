@@ -8,7 +8,7 @@ namespace Rask.Site.Tests.Guides;
 public sealed class GuideHistoryTests
 {
     [Fact]
-    public void TheNewestDateWinsWhateverOrderTheLogListsItIn()
+    public void The_newest_date_wins_whatever_order_the_log_lists_it_in()
     {
         // A branch merged late lists commits dated BEFORE ones already printed. "First seen" would date cqrs
         // to September 1st; its newest change was the 10th.
@@ -34,7 +34,7 @@ public sealed class GuideHistoryTests
     }
 
     [Fact]
-    public void WhatIsNotADatedDocIsIgnored()
+    public void What_is_not_a_dated_doc_is_ignored()
     {
         // A path before any date line, a date git did not print, a file outside docs/, a file that is not
         // Markdown, and the error text of a build with no repository — which the target captures too.
@@ -52,12 +52,12 @@ public sealed class GuideHistoryTests
     }
 
     [Fact]
-    public void AnEmptyHistoryDatesNothing() =>
+    public void An_empty_history_dates_nothing() =>
         // What a shallow clone, or a build with no git, embeds.
         Assert.Empty(GuideHistory.Parse(string.Empty));
 
     [Fact]
-    public void TheBuildEmbeddedAHistoryThatDatesTheGuides()
+    public void The_build_embedded_a_history_that_dates_the_guides()
     {
         // The seam, not the parser: the target ran, found the repository, and embedded what git said. Every
         // part of this can fail silently — a wrong -C path, a shallow clone, a resource name that does not

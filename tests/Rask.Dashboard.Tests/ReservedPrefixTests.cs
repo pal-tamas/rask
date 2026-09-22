@@ -35,6 +35,7 @@ public class ReservedPrefixTests
         Assert.NotNull(typeof(DashboardLayout).FullName);
 
         var layout = RouteRegistry.BuildTree().FirstOrDefault(r => r.PageType == typeof(DashboardLayout));
+
         Assert.NotNull(layout);
         Assert.Equal("_rask", layout!.Template);
 

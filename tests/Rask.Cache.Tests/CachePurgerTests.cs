@@ -16,7 +16,6 @@ public sealed class CachePurgerTests
         await harness.Distributed.SetAsync("keep", Bytes("v"), new DistributedCacheEntryOptions());
         await harness.Distributed.SetAsync("drop", Bytes("v"),
             new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) });
-
         harness.Clock.Advance(TimeSpan.FromMinutes(6));
 
         await harness.Purger.StartAsync(CancellationToken.None);

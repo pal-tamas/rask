@@ -29,7 +29,7 @@ public class MissingKeyAnalyzerTests
     // are extension methods on Build<T>, not a static Generated.Li(...), so the factory branch matched
     // none of these and the warning was silently absent from every chain ever written.
     [Fact]
-    public async Task ChainSelectProjection_NoKey_ReportsRask022()
+    public async Task A_chain_in_a_Select_projection_with_no_key_reports_RASK022()
     {
         var d = Assert.Single(await Diagnostics(App(
             "return Ul[ _items.Select(i => Li[i.ToString()]) ];")));
@@ -37,7 +37,7 @@ public class MissingKeyAnalyzerTests
     }
 
     [Fact]
-    public async Task ChainSelectProjection_WithKey_NoDiagnostic() =>
+    public async Task A_chain_in_a_Select_projection_with_a_key_reports_nothing() =>
         Assert.Empty(await Diagnostics(App(
             "return Ul[ _items.Select(i => Li.Key(i)[i.ToString()]) ];")));
 
@@ -47,7 +47,7 @@ public class MissingKeyAnalyzerTests
     // overload; now that a projection of chains can BE children, the blindness is a live false
     // negative and this is the case that pins it.
     [Fact]
-    public async Task ChainEndingAtAStep_NoKey_ReportsRask022()
+    public async Task A_chain_ending_at_a_step_with_no_key_reports_RASK022()
     {
         var d = Assert.Single(await Diagnostics(App(
             "return Ul[ _items.Select(i => Li.Class(\"row\")) ];")));
@@ -56,12 +56,12 @@ public class MissingKeyAnalyzerTests
     }
 
     [Fact]
-    public async Task ChainEndingAtAStep_WithKey_NoDiagnostic() =>
+    public async Task A_chain_ending_at_a_step_with_a_key_reports_nothing() =>
         Assert.Empty(await Diagnostics(App(
             "return Ul[ _items.Select(i => Li.Key(i).Class(\"row\")) ];")));
 
     [Fact]
-    public async Task SelectProjection_NoKey_ReportsRask022()
+    public async Task A_Select_projection_with_no_key_reports_RASK022()
     {
         var d = Assert.Single(await Diagnostics(App(
             "return Ul[ _items.Select(i => Li[i.ToString()]) ];")));
@@ -70,7 +70,7 @@ public class MissingKeyAnalyzerTests
     }
 
     [Fact]
-    public async Task ForeachAddToChildList_NoKey_ReportsRask022()
+    public async Task A_foreach_adding_to_a_child_list_with_no_key_reports_RASK022()
     {
         var d = Assert.Single(await Diagnostics(App("""
                                                     var rows = new List<Component>();
@@ -82,14 +82,14 @@ public class MissingKeyAnalyzerTests
     }
 
     [Fact]
-    public async Task SelectProjection_WithKey_NoDiagnostic()
+    public async Task A_Select_projection_with_a_key_reports_nothing()
     {
         Assert.Empty(await Diagnostics(App(
             "return Ul[ _items.Select(i => Li.Key(i)[i.ToString()]) ];")));
     }
 
     [Fact]
-    public async Task SelectProjection_WithDataRaskKey_NoDiagnostic()
+    public async Task A_Select_projection_with_a_data_rask_key_reports_nothing()
     {
         Assert.Empty(await Diagnostics(App("""
                                            return Ul[ _items.Select(i => Li(
@@ -98,7 +98,7 @@ public class MissingKeyAnalyzerTests
     }
 
     [Fact]
-    public async Task ForeachAddToChildList_WithKey_NoDiagnostic()
+    public async Task A_foreach_adding_to_a_child_list_with_a_key_reports_nothing()
     {
         Assert.Empty(await Diagnostics(App("""
                                            var rows = new List<Component>();
@@ -108,7 +108,7 @@ public class MissingKeyAnalyzerTests
     }
 
     [Fact]
-    public async Task NestedChildOfProjectedItem_OnlyOuterItemFlagged()
+    public async Task Only_the_outer_projected_item_is_flagged_not_its_nested_child()
     {
         // Li is the projected list item (flagged once); the nested Code is Li's child, not a
         // sibling in the reconciled list, so it must NOT be flagged.
@@ -118,11 +118,11 @@ public class MissingKeyAnalyzerTests
     }
 
     [Fact]
-    public async Task SingleStaticChild_NotAList_NoDiagnostic() =>
+    public async Task A_single_static_child_is_not_a_list_and_reports_nothing() =>
         Assert.Empty(await Diagnostics(App("return Div()[ Span()[\"hi\"] ];")));
 
     [Fact]
-    public async Task AddOutsideLoop_NoDiagnostic()
+    public async Task An_Add_outside_a_loop_reports_nothing()
     {
         // A one-off Add (not in a loop) isn't a reconciled list — don't warn.
         Assert.Empty(await Diagnostics(App("""
@@ -137,7 +137,7 @@ public class MissingKeyAnalyzerTests
     // the chain. Matching only `Build<T>` therefore stood this check down on every generic component and
     // every form control, silently: the analyzer did not report anything wrong, it simply never ran.
     [Fact]
-    public async Task SeedOpenedChainInAProjection_NoKey_ReportsRask022()
+    public async Task A_seed_opened_chain_in_a_projection_with_no_key_reports_RASK022()
     {
         var d = Assert.Single(await Diagnostics(Seeded(
             "return Ul[ _items.Select(i => Row.Item(i)) ];")));
@@ -146,7 +146,7 @@ public class MissingKeyAnalyzerTests
     }
 
     [Fact]
-    public async Task SeedOpenedChainInAProjection_WithKey_NoDiagnostic() =>
+    public async Task A_seed_opened_chain_in_a_projection_with_a_key_reports_nothing() =>
         Assert.Empty(await Diagnostics(Seeded(
             "return Ul[ _items.Select(i => Row.Item(i).Key(i.ToString())) ];")));
 

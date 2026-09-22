@@ -23,6 +23,7 @@ public sealed class SqlitePragmaOptionsTests
     public void Validate_rejects_negative_busy_timeout()
     {
         var options = new SqliteOptions { BusyTimeout = TimeSpan.FromSeconds(-1) };
+
         Assert.Throws<InvalidOperationException>(() => Validate(options));
     }
 
@@ -30,6 +31,7 @@ public sealed class SqlitePragmaOptionsTests
     public void Validate_rejects_busy_timeout_over_int_max_milliseconds()
     {
         var options = new SqliteOptions { BusyTimeout = TimeSpan.FromDays(30) };
+
         Assert.Throws<InvalidOperationException>(() => Validate(options));
     }
 
@@ -37,6 +39,7 @@ public sealed class SqlitePragmaOptionsTests
     public void Validate_rejects_negative_mmap_size()
     {
         var options = new SqliteOptions { MmapSize = -1 };
+
         Assert.Throws<InvalidOperationException>(() => Validate(options));
     }
 
@@ -44,6 +47,7 @@ public sealed class SqlitePragmaOptionsTests
     public void Validate_rejects_negative_journal_size_limit()
     {
         var options = new SqliteOptions { JournalSizeLimit = -1 };
+
         Assert.Throws<InvalidOperationException>(() => Validate(options));
     }
 

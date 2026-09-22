@@ -18,6 +18,7 @@ public sealed class CacheActionTests
         Assert.Equal(1, await h.Get<ICachePanelReader>().EvictAsync("b", CancellationToken.None));
 
         await using var db = h.NewContext();
+
         Assert.Equal(["a", "c"], await db.Set<CacheEntry>().Select(e => e.Key).OrderBy(k => k).ToListAsync());
     }
 
@@ -25,6 +26,7 @@ public sealed class CacheActionTests
     public async Task Evicting_a_missing_key_reports_zero_rather_than_throwing()
     {
         await using var h = new DashboardHarness(Batteries.Cache);
+
         Assert.Equal(0, await h.Get<ICachePanelReader>().EvictAsync("nope", CancellationToken.None));
     }
 
@@ -66,6 +68,7 @@ public sealed class CacheActionTests
     {
         // SUM over no rows is NULL in SQL; a plain Sum() would throw on the nullable-to-long conversion.
         await using var h = new DashboardHarness(Batteries.Cache);
+
         Assert.Equal(0, (await h.Get<ICachePanelReader>().StatsAsync(CancellationToken.None)).Bytes);
     }
 

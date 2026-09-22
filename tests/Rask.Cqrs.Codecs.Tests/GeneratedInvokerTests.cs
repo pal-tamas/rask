@@ -10,6 +10,7 @@ public sealed class GeneratedInvokerTests
     public void A_query_invoker_returns_a_task_of_the_declared_result_type()
     {
         var provider = new StubProvider(new RecordingDispatch());
+
         var task = Contract<ListTodos>().Invoker!(provider, Minimal(), CancellationToken.None);
 
         // The exact assertion that matters: Dispatcher casts this to Task<TResult>, so a Task<object>
@@ -21,6 +22,7 @@ public sealed class GeneratedInvokerTests
     public void A_result_command_invoker_carries_its_own_result_type()
     {
         var provider = new StubProvider(new RecordingDispatch());
+
         var task = Contract<AddTodo>().Invoker!(provider, new AddTodo("x", Priority.Low), CancellationToken.None);
 
         Assert.IsType<Task<int>>(task, exactMatch: false);
@@ -43,6 +45,7 @@ public sealed class GeneratedInvokerTests
     public void A_void_command_goes_through_the_untyped_send()
     {
         var dispatch = new RecordingDispatch();
+
         Contract<ArchiveTodo>().Invoker!(new StubProvider(dispatch), new ArchiveTodo(1), CancellationToken.None);
 
         Assert.True(dispatch.SentVoid);

@@ -6,7 +6,7 @@ namespace Rask.Core.Tests.Browser;
 public class SignalingTests
 {
     [Fact]
-    public async Task JoinAsync_OpensTheSocketThenSendsAJoinFrame()
+    public async Task Joining_opens_the_socket_then_sends_a_join_frame()
     {
         var js = new FakeJsRuntime();
 
@@ -23,7 +23,7 @@ public class SignalingTests
     }
 
     [Fact]
-    public async Task JoinAsync_HonoursACustomPath()
+    public async Task Joining_honours_a_custom_path()
     {
         var js = new FakeJsRuntime();
 
@@ -33,7 +33,7 @@ public class SignalingTests
     }
 
     [Fact]
-    public async Task JoinAsync_UnregistersWhenTheSocketFailsToOpen()
+    public async Task Joining_unregisters_when_the_socket_fails_to_open()
     {
         var js = new FakeJsRuntime();
         js.SetException("__raskSignal.open", new InvalidOperationException("refused"));
@@ -59,7 +59,7 @@ public class SignalingTests
     }
 
     [Fact]
-    public async Task SendAsync_AddressesOnePeer()
+    public async Task Sending_addresses_one_peer()
     {
         var js = new FakeJsRuntime();
         var connection = await new Signaling(js).JoinAsync("room", new SignalingHandlers());
@@ -71,7 +71,7 @@ public class SignalingTests
     }
 
     [Fact]
-    public async Task OnJoined_CarriesOurIdAndThePeersAlreadyThere()
+    public async Task OnJoined_carries_our_id_and_the_peers_already_there()
     {
         var js = new FakeJsRuntime();
         string? self = null;
@@ -95,7 +95,7 @@ public class SignalingTests
     }
 
     [Fact]
-    public async Task OnJoined_SurvivesAMalformedPeerList()
+    public async Task OnJoined_survives_a_malformed_peer_list()
     {
         // The list is parsed, so a relay that ever sent something else must not take the app down.
         var js = new FakeJsRuntime();
@@ -117,7 +117,7 @@ public class SignalingTests
     }
 
     [Fact]
-    public async Task EveryRelayMessage_ReachesItsOwnCallback()
+    public async Task Every_relay_message_reaches_its_own_callback()
     {
         var js = new FakeJsRuntime();
         string? joined = null, left = null, error = null;
@@ -144,7 +144,7 @@ public class SignalingTests
     }
 
     [Fact]
-    public async Task AnUnknownMessageType_IsIgnored()
+    public async Task An_unknown_message_type_is_ignored()
     {
         // The relay may grow a message this client doesn't know; that must not throw across interop.
         var js = new FakeJsRuntime();
@@ -155,7 +155,7 @@ public class SignalingTests
     }
 
     [Fact]
-    public async Task Closed_FiresOnceAndStopsDelivery()
+    public async Task Closing_fires_once_and_stops_delivery()
     {
         var js = new FakeJsRuntime();
         var closed = 0;
@@ -177,7 +177,7 @@ public class SignalingTests
     }
 
     [Fact]
-    public async Task DisposeAsync_ClosesOnceAndStopsDelivery()
+    public async Task Disposing_closes_once_and_stops_delivery()
     {
         var js = new FakeJsRuntime();
         var fired = false;
@@ -193,18 +193,19 @@ public class SignalingTests
         Assert.Equal(1, js.CallCount("__raskSignal.close"));
 
         await SignalingInterop.Message(id, "peer-joined", "p", "");
+
         Assert.False(fired);
     }
 
     [Fact]
-    public async Task MessagesForAnUnknownConnectionAreIgnored()
+    public async Task Messages_for_an_unknown_connection_are_ignored()
     {
         await SignalingInterop.Message(int.MaxValue, "signal", "p", "x");
         await SignalingInterop.Closed(int.MaxValue);
     }
 
     [Fact]
-    public async Task NullAndEmptyArgumentsAreRejected()
+    public async Task Null_and_empty_arguments_are_rejected()
     {
         var js = new FakeJsRuntime();
         var signaling = new Signaling(js);

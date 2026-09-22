@@ -7,7 +7,7 @@ namespace Rask.Core.Tests.Live;
 public class LivePayloadTests
 {
     [Fact]
-    public void InjectRootAttr_AddsDataRaskRoot_OnlyOnFirstBodyTag()
+    public void The_root_attribute_is_added_only_on_the_first_body_tag()
     {
         const string html = "<html><body><body class=\"x\"></body></body></html>";
 
@@ -18,7 +18,7 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void InjectRootAttr_HtmlEncodesSessionId()
+    public void The_root_attribute_html_encodes_the_session_id()
     {
         const string html = "<html><body></body></html>";
 
@@ -29,7 +29,7 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void InjectRootAttr_StampsTheDevStatusUrl_SoTheClientKeepsItAfterTheServerIsGone()
+    public void The_root_attribute_stamps_the_dev_status_url_so_the_client_keeps_it_after_the_server_is_gone()
     {
         const string html = "<html><body></body></html>";
 
@@ -41,7 +41,7 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void InjectRootAttr_NeverStampsTheDevStatusUrlOutsideDevelopment()
+    public void The_root_attribute_never_stamps_the_dev_status_url_outside_development()
     {
         // A production page carrying a localhost URL is a page that polls localhost in every visitor's
         // browser. Two gates, because this one is not recoverable once it has shipped.
@@ -58,7 +58,7 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void InjectRootAttr_HtmlEncodesTheDevStatusUrl()
+    public void The_root_attribute_html_encodes_the_dev_status_url()
     {
         var injected = LivePayload.InjectRootAttr(
             "<html><body></body></html>", "abc", dev: true, "http://x/\"><script>alert(1)</script>");
@@ -67,7 +67,7 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void InjectRootAttr_WithoutADevStatusUrl_MatchesTheThreeArgumentOverload()
+    public void The_root_attribute_without_a_dev_status_url_matches_the_three_argument_overload()
     {
         const string html = "<html><body class=\"a\"></body></html>";
 
@@ -77,7 +77,7 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void ExtractBody_ReturnsBodyElement_WhenPresent()
+    public void Extracting_the_body_gives_the_body_element_when_present()
     {
         const string html = "<html><head></head><body class=\"a\"><p>hi</p></body></html>";
 
@@ -85,7 +85,7 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void ExtractBody_ReturnsInputUnchanged_WhenNoBody()
+    public void Extracting_the_body_gives_the_input_unchanged_when_there_is_no_body()
     {
         const string html = "<div>just a fragment</div>";
 
@@ -93,7 +93,7 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void BuildPayload_NoHistoryNoCss_EmitsHtmlOnly_NoCssHashOrCssText()
+    public void A_payload_with_no_history_and_no_css_emits_html_only_with_no_css_hash_or_css_text()
     {
         // After the move to per-component content-addressed assets, the payload no
         // longer carries a global cssHash or an inline cssText — scoped CSS reaches
@@ -110,7 +110,7 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void BuildPayload_NoOptionalArgs_OmitsCssTextAndHistory()
+    public void A_payload_with_no_optional_args_omits_the_css_text_and_history()
     {
         // The cssText and jsText parameters that used to occupy positional slots are gone
         // from the public surface; the wire format has no place for them either.
@@ -123,7 +123,7 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void BuildPayload_HistoryPush_EmitsActionPush()
+    public void A_payload_with_a_history_push_emits_action_push()
     {
         var payload = LivePayload.BuildPayload("<body></body>", "/foo", false);
 
@@ -135,7 +135,7 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void BuildPayload_HistoryReplace_EmitsActionReplace()
+    public void A_payload_with_a_history_replace_emits_action_replace()
     {
         var payload = LivePayload.BuildPayload("<body></body>", "/foo", true);
 
@@ -144,7 +144,7 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void BuildPayload_HistoryPresent_NoCssTextField()
+    public void A_payload_with_history_has_no_css_text_field()
     {
         var payload = LivePayload.BuildPayload("<body></body>", "/foo", false);
 
@@ -156,7 +156,7 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void ExtractBodyUtf8_ReturnsBodySlice_WhenPresent()
+    public void Extracting_the_utf8_body_gives_the_body_slice_when_present()
     {
         const string html = "<html><head></head><body class=\"a\"><p>hi</p></body></html>";
         var bytes = Encoding.UTF8.GetBytes(html);
@@ -167,7 +167,7 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void ExtractBodyUtf8_CaseInsensitive_AndMixedCase()
+    public void Extracting_the_utf8_body_is_case_insensitive_and_handles_mixed_case()
     {
         const string html = "<HTML><BODY class=\"a\"><p>hi</p></Body></HTML>";
         var bytes = Encoding.UTF8.GetBytes(html);
@@ -178,7 +178,7 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void ExtractBodyUtf8_ReturnsInputUnchanged_WhenNoBody()
+    public void Extracting_the_utf8_body_gives_the_input_unchanged_when_there_is_no_body()
     {
         const string html = "<div>just a fragment</div>";
         var bytes = Encoding.UTF8.GetBytes(html);
@@ -189,7 +189,7 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void BuildPayloadUtf8WithBody_MatchesChainedStringPath()
+    public void The_utf8_payload_with_body_matches_the_chained_string_path()
     {
         const string html = "<html><head></head><body class=\"a\"><p>hi</p></body></html>";
 
@@ -208,7 +208,7 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void BuildPayloadUtf8WithBody_HtmlEncodesSessionId()
+    public void The_utf8_payload_with_body_html_encodes_the_session_id()
     {
         const string html = "<html><body></body></html>";
 
@@ -220,7 +220,7 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void BuildPayloadUtf8WithBody_NoBody_FallsBackToFullHtml()
+    public void The_utf8_payload_with_body_falls_back_to_full_html_when_there_is_no_body()
     {
         const string html = "<div>fragment only</div>";
 
@@ -231,7 +231,7 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void BuildPayloadUtf8WithBody_PreservesUnicodeContent()
+    public void The_utf8_payload_with_body_preserves_unicode_content()
     {
         // The single-pass refactor scans UTF-16 directly for <body bounds, then
         // encodes head/tail slices into one rented UTF-8 buffer. Verify multi-byte
@@ -250,7 +250,7 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void BuildPayloadUtf8WithBody_PreservesHistory_NoCssTextEmitted()
+    public void The_utf8_payload_with_body_preserves_history_and_emits_no_css_text()
     {
         const string html = "<html><body></body></html>";
 
@@ -265,7 +265,7 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void InjectDevToolsScript_LoadsTheHostScriptAtTheEndOfTheHead()
+    public void The_devtools_script_loads_the_host_script_at_the_end_of_the_head()
     {
         var injected = LivePayload.InjectDevToolsScript(
             "<html><head><title>t</title></head><body class=\"x\"></body></html>", "/_rask-devtools/host.js");
@@ -279,7 +279,7 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void InjectDevToolsScript_NamesThePanelTheScriptFrames()
+    public void The_devtools_script_names_the_panel_the_script_frames()
     {
         const string panel = "/_rask-devtools/?inspect=s1&t=a\"b<c";
 
@@ -295,7 +295,7 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void InjectDevToolsScript_LeavesThePageAloneWithoutAHostScript()
+    public void The_devtools_script_leaves_the_page_alone_without_a_host_script()
     {
         const string page = "<html><head></head><body></body></html>";
 
@@ -304,7 +304,7 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void InjectDevToolsScript_HtmlEncodesTheUrl()
+    public void The_devtools_script_html_encodes_the_url()
     {
         var injected = LivePayload.InjectDevToolsScript("<html><head></head><body></body></html>", "/a\"b&c");
 
@@ -312,7 +312,7 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void InjectDevToolsScript_LeavesAPageWithNoHeadAlone()
+    public void The_devtools_script_leaves_a_page_with_no_head_alone()
     {
         const string fragment = "<div>no head here</div>";
 
@@ -320,7 +320,7 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void InjectIslandsDevAttr_StampsWhereTheIslandDevServerIs()
+    public void The_islands_dev_attribute_stamps_where_the_island_dev_server_is()
     {
         var injected = LivePayload.InjectIslandsDevAttr(
             "<html><body class=\"x\"></body></html>", dev: true, "http://localhost:5174");
@@ -334,7 +334,7 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void InjectIslandsDevAttr_NeverStampsOutsideDevelopment()
+    public void The_islands_dev_attribute_is_never_stamped_outside_development()
     {
         // A production page carrying a localhost URL would have every visitor's browser open a
         // websocket to their own machine.
@@ -350,7 +350,7 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void InjectIslandsDevAttr_HtmlEncodesTheUrl()
+    public void The_islands_dev_attribute_html_encodes_the_url()
     {
         var injected = LivePayload.InjectIslandsDevAttr(
             "<html><body></body></html>", dev: true, "http://localhost:5174/?a=1&b=2");
@@ -359,7 +359,7 @@ public class LivePayloadTests
     }
 
     [Fact]
-    public void InjectIslandsDevAttr_LeavesAPageWithNoBodyAlone()
+    public void The_islands_dev_attribute_leaves_a_page_with_no_body_alone()
     {
         const string fragment = "<div>no body here</div>";
 

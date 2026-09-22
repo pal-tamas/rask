@@ -35,6 +35,7 @@ public sealed class QueueDetailSheetTests
         // <dialog>, which carries that role implicitly, and stating it again in the markup would be the
         // redundant ARIA that guidance warns against.
         await ClickAsync(page, "Details");
+
         Assert.True(page.Exists("dialog"), "the detail sheet did not open");
 
         // Ask to delete. This raises a confirmation rather than acting.

@@ -3,11 +3,11 @@ namespace Rask.Core.Tests.Components;
 public partial class MeterTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Render_NullProps_ReturnsOpenAndCloseTags() =>
+    public void Unset_props_render_only_the_open_and_close_tags() =>
         Assert.Equal("<meter></meter>", Meter.ToHtml());
 
     [Fact]
-    public void Render_AllPropsSet_EmitsExpectedAttributes()
+    public void Setting_every_prop_emits_the_expected_attributes()
     {
         Assert.Equal(
             "<meter id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" value=\"7\" min=\"0\" max=\"10\" low=\"2\" high=\"8\" optimum=\"5\" form=\"f\"></meter>",
@@ -26,6 +26,6 @@ public partial class MeterTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_StringChild_EncodesText() =>
+    public void A_string_child_is_encoded_as_text() =>
         Assert.Equal("<meter>&lt;x&gt;</meter>", Meter["<x>"].ToHtml());
 }

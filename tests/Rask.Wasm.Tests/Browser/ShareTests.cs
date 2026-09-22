@@ -7,7 +7,7 @@ namespace Rask.Wasm.Tests.Browser;
 public class ShareTests
 {
     [Fact]
-    public async Task Share_SendsNavigatorShare_WithData()
+    public async Task Sharing_calls_navigator_share_with_the_data()
     {
         var js = new FakeJsRuntime();
         var share = new Share(js);
@@ -19,7 +19,7 @@ public class ShareTests
     }
 
     [Fact]
-    public async Task Share_NullData_Throws()
+    public async Task Sharing_null_data_throws()
     {
         var share = new Share(new FakeJsRuntime());
 
@@ -27,7 +27,7 @@ public class ShareTests
     }
 
     [Fact]
-    public async Task CanShare_ReturnsRuntimeResult()
+    public async Task Whether_it_can_share_comes_from_the_runtime()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("navigator.canShare", true);
@@ -38,7 +38,7 @@ public class ShareTests
     }
 
     [Fact]
-    public async Task CanShare_ReturnsFalse_WhenUnsupported()
+    public async Task It_cannot_share_when_unsupported()
     {
         var js = new FakeJsRuntime();
         js.SetException("navigator.canShare", new JSException("navigator.canShare is not a function"));

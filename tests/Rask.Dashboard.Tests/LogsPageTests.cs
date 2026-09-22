@@ -13,7 +13,7 @@ namespace Rask.Dashboard.Tests;
 public sealed class LogsPageTests
 {
     [Fact]
-    public async Task OffersNoHistoryWhenNoStoreIsRegistered()
+    public async Task The_logs_page_offers_no_history_when_no_store_is_registered()
     {
         await using var harness = new DashboardHarness(Batteries.None);
         Log(harness, "something happened");
@@ -26,7 +26,7 @@ public sealed class LogsPageTests
     }
 
     [Fact]
-    public async Task OffersHistoryWhenAStoreIsRegistered()
+    public async Task The_logs_page_offers_history_when_a_store_is_registered()
     {
         await using var store = new LogStoreFixture();
         await using var harness = store.Dashboard();
@@ -46,9 +46,10 @@ public sealed class LogsPageTests
     /// must not claim logging is off — History still works.
     /// </summary>
     [Fact]
-    public async Task ReportsCaptureOffOnlyWhenThereIsAlsoNoStore()
+    public async Task The_logs_page_reports_capture_off_only_when_there_is_also_no_store()
     {
         await using var bare = new DashboardHarness(Batteries.None, configure: o => o.CaptureLogs = false);
+
         Assert.Contains("Log capture is off", Render(bare), StringComparison.Ordinal);
 
         await using var store = new LogStoreFixture();
@@ -59,7 +60,7 @@ public sealed class LogsPageTests
 
     /// <summary>The live tail is unaffected by the History-only facets, which belong to the other mode.</summary>
     [Fact]
-    public async Task LiveTailStillFiltersByLevelAndCategory()
+    public async Task The_live_tail_still_filters_by_level_and_category()
     {
         await using var harness = new DashboardHarness(Batteries.None);
         harness.Get<ILoggerFactory>().CreateLogger("Shop").LogInformation("routine");
@@ -77,7 +78,7 @@ public sealed class LogsPageTests
     // only through E2E.
 
     [Fact]
-    public async Task HistoryRendersTheStoredEntries()
+    public async Task History_renders_the_stored_entries()
     {
         await using var store = new LogStoreFixture();
         await using var harness = store.Dashboard();
@@ -90,7 +91,7 @@ public sealed class LogsPageTests
     }
 
     [Fact]
-    public async Task HistoryAppliesTheLevelFilterItWasGiven()
+    public async Task History_applies_the_level_filter_it_was_given()
     {
         // The mapping is unit-tested through BuildQuery; this is the other half — that the query the page
         // builds is the one it actually reads with, end to end through the store.
@@ -106,7 +107,7 @@ public sealed class LogsPageTests
     }
 
     [Fact]
-    public async Task HistorySaysSoWhenTheStoreIsEmpty()
+    public async Task History_says_so_when_the_store_is_empty()
     {
         await using var store = new LogStoreFixture();
         await using var harness = store.Dashboard();
@@ -117,7 +118,7 @@ public sealed class LogsPageTests
     }
 
     [Fact]
-    public async Task HistoryPagesAreLinksThatCarryThePage()
+    public async Task History_pages_are_links_that_carry_the_page()
     {
         // Paging is navigation: each page is the address it lives at, so a page can be shared and the back
         // button walks back through them — and the page you are on is not a link, it says aria-current.
@@ -136,7 +137,7 @@ public sealed class LogsPageTests
     }
 
     [Fact]
-    public async Task AHistoryPagePastTheEndShowsTheLastPageThereIs()
+    public async Task A_history_page_past_the_end_shows_the_last_page_there_is()
     {
         // A bookmarked ?page= that retention has since trimmed must not show an empty table beside the stored
         // count: the page steps back to the last one there is.
@@ -158,7 +159,7 @@ public sealed class LogsPageTests
     // Where a filter would actually go missing. The store's own filtering is covered in Rask.Logging.Tests.
 
     [Fact]
-    public void BuildsAQueryFromTheQueryString()
+    public void The_store_query_is_built_from_the_query_string()
     {
         var query = LogsPage.BuildQuery("Warning", "Shop.Checkout", "declined", 3, 25);
 
@@ -170,7 +171,7 @@ public sealed class LogsPageTests
     }
 
     [Fact]
-    public void TreatsBlankFacetsAsNoFilter()
+    public void Blank_facets_are_treated_as_no_filter()
     {
         // An empty ?q= in a shared link means "no text filter", not "match the empty string".
         var query = LogsPage.BuildQuery(null, "  ", "", null, 25);
@@ -186,7 +187,7 @@ public sealed class LogsPageTests
     [InlineData("ERROR", LogLevel.Error)]
     [InlineData("Information", LogLevel.Information)]
     [InlineData("nonsense", null)]
-    public void ParsesTheLevelLeniently(string level, LogLevel? expected) =>
+    public void The_level_is_parsed_leniently(string level, LogLevel? expected) =>
         Assert.Equal(expected, LogsPage.BuildQuery(level, null, null, null, 25).MinimumLevel);
 
     [Theory]
@@ -194,7 +195,7 @@ public sealed class LogsPageTests
     [InlineData(0, 1)]
     [InlineData(-4, 1)]
     [InlineData(7, 7)]
-    public void ClampsThePageToTheFirstOne(int? page, int expected) =>
+    public void The_page_is_clamped_to_the_first_one(int? page, int expected) =>
         Assert.Equal(expected, LogsPage.BuildQuery(null, null, null, page, 25).Page);
 
     private static void Log(DashboardHarness harness, string message) =>

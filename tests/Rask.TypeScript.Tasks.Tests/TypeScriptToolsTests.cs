@@ -29,7 +29,7 @@ public class TypeScriptToolsTests
         ToolOs.Windows,
         Architecture.X64,
         "@typescript/native-preview-win32-x64")]
-    public void PackageName_NamesThePublishedPackage(
+    public void The_package_name_names_the_published_package(
         TypeScriptTool tool,
         ToolOs os,
         Architecture architecture,
@@ -45,7 +45,7 @@ public class TypeScriptToolsTests
     ///     emulate. Copying that reasoning here would leave a native build unused.
     /// </remarks>
     [Fact]
-    public void PackageName_WindowsOnArm_GetsANativeBuild()
+    public void Windows_on_ARM_gets_a_native_build()
     {
         Assert.Equal(
             "@esbuild/win32-arm64",
@@ -66,7 +66,7 @@ public class TypeScriptToolsTests
     [Theory]
     [InlineData(Architecture.X86, "@esbuild/linux-ia32")]
     [InlineData(Architecture.Arm, "@esbuild/linux-arm")]
-    public void PackageName_Esbuild_CoversThirtyTwoBit(Architecture architecture, string expected)
+    public void The_esbuild_package_name_covers_thirty_two_bit(Architecture architecture, string expected)
     {
         Assert.Equal(expected, TypeScriptTools.PackageName(TypeScriptTool.Esbuild, ToolOs.Linux, architecture));
         Assert.Null(TypeScriptTools.PackageName(TypeScriptTool.Tsgo, ToolOs.Linux, architecture));
@@ -82,9 +82,10 @@ public class TypeScriptToolsTests
     ///     that has never been published.
     /// </remarks>
     [Fact]
-    public void PackageName_Linux_HasNoMuslVariant()
+    public void The_Linux_package_name_has_no_musl_variant()
     {
         var name = TypeScriptTools.PackageName(TypeScriptTool.Esbuild, ToolOs.Linux, Architecture.X64);
+
         Assert.Equal("@esbuild/linux-x64", name);
         Assert.DoesNotContain("musl", name, StringComparison.Ordinal);
     }
@@ -105,7 +106,7 @@ public class TypeScriptToolsTests
     [InlineData(TypeScriptTool.Tsgo, ToolOs.Windows, "lib/tsgo.exe")]
     [InlineData(TypeScriptTool.TypeScript, ToolOs.MacOs, "lib/typescript.js")]
     [InlineData(TypeScriptTool.TypeScript, ToolOs.Windows, "lib/typescript.js")]
-    public void ExecutablePath_MatchesThePublishedLayout(TypeScriptTool tool, ToolOs os, string expected) =>
+    public void The_executable_path_matches_the_published_layout(TypeScriptTool tool, ToolOs os, string expected) =>
         Assert.Equal(
             expected.Replace('/', Path.DirectorySeparatorChar),
             TypeScriptTools.ExecutablePath(tool, os));
@@ -119,7 +120,7 @@ public class TypeScriptToolsTests
     ///     thousands of errors that look like the project is wrong rather than the install.
     /// </remarks>
     [Fact]
-    public void NeedsWholePackage_IsTrueForTheCompilerOnly()
+    public void Only_the_compiler_needs_the_whole_package()
     {
         Assert.True(TypeScriptTools.NeedsWholePackage(TypeScriptTool.Tsgo));
         Assert.True(TypeScriptTools.NeedsWholePackage(TypeScriptTool.TypeScript));
@@ -138,7 +139,7 @@ public class TypeScriptToolsTests
     [InlineData(ToolOs.MacOs, Architecture.Arm64)]
     [InlineData(ToolOs.Linux, Architecture.X86)]
     [InlineData(ToolOs.Windows, Architecture.Arm)]
-    public void PackageName_TheCompilerLibraryIsTheSameEverywhere(ToolOs os, Architecture architecture)
+    public void The_compiler_library_package_name_is_the_same_everywhere(ToolOs os, Architecture architecture)
     {
         Assert.Equal("typescript", TypeScriptTools.PackageName(TypeScriptTool.TypeScript, os, architecture));
         Assert.False(TypeScriptTools.IsNative(TypeScriptTool.TypeScript));
@@ -161,25 +162,25 @@ public class TypeScriptToolsTests
         "@typescript/native-preview-win32-x64",
         "7.0.0-dev.20260707.2",
         "https://registry.npmjs.org/@typescript/native-preview-win32-x64/-/native-preview-win32-x64-7.0.0-dev.20260707.2.tgz")]
-    public void TarballUrl_DropsTheScopeFromTheFilenameOnly(string package, string version, string expected) =>
+    public void The_tarball_URL_drops_the_scope_from_the_filename_only(string package, string version, string expected) =>
         Assert.Equal(expected, TypeScriptTools.TarballUrl(TypeScriptTools.DefaultRegistry, package, version));
 
     /// <summary>The metadata document percent-encodes the scope separator; the tarball path does not.</summary>
     [Fact]
-    public void VersionDocumentUrl_EncodesTheScopeSeparator() =>
+    public void The_version_document_URL_encodes_the_scope_separator() =>
         Assert.Equal(
             "https://registry.npmjs.org/@esbuild%2fdarwin-arm64/0.28.2",
             TypeScriptTools.VersionDocumentUrl(TypeScriptTools.DefaultRegistry, "@esbuild/darwin-arm64", "0.28.2"));
 
     /// <summary>A trailing slash on a mirror URL must not produce a double slash.</summary>
     [Fact]
-    public void TarballUrl_ToleratesATrailingSlashOnTheRegistry() =>
+    public void The_tarball_URL_tolerates_a_trailing_slash_on_the_registry() =>
         Assert.Equal(
             "https://mirror.example/@esbuild/linux-x64/-/linux-x64-0.28.2.tgz",
             TypeScriptTools.TarballUrl("https://mirror.example/", "@esbuild/linux-x64", "0.28.2"));
 
     [Fact]
-    public void ExpectedIntegrity_ReadsTheSha512()
+    public void The_expected_integrity_reads_the_SHA512()
     {
         const string Document =
             """{"dist":{"shasum":"f83afeeac1d7dac01c7a2fd012b3e451a0591fcc","integrity":"sha512-n4KqkOQ==","fileCount":3}}""";
@@ -196,7 +197,7 @@ public class TypeScriptToolsTests
     ///     while checking something that can be forged — the worst of both.
     /// </remarks>
     [Fact]
-    public void ExpectedIntegrity_RefusesASha1OnlyDocument()
+    public void The_expected_integrity_refuses_a_SHA1_only_document()
     {
         const string Document = """{"dist":{"shasum":"f83afeeac1d7dac01c7a2fd012b3e451a0591fcc"}}""";
 
@@ -205,7 +206,7 @@ public class TypeScriptToolsTests
 
     /// <summary>An integrity that is present but not SHA-512 is refused too.</summary>
     [Fact]
-    public void ExpectedIntegrity_RefusesANonSha512Algorithm() =>
+    public void The_expected_integrity_refuses_a_non_SHA512_algorithm() =>
         Assert.Null(TypeScriptTools.ExpectedIntegrity("""{"dist":{"integrity":"sha1-abcdef"}}"""));
 
     [Theory]
@@ -213,7 +214,7 @@ public class TypeScriptToolsTests
     [InlineData("")]
     [InlineData("not json at all")]
     [InlineData("""{"dist":{}}""")]
-    public void ExpectedIntegrity_IsNullWhenThereIsNothingToRead(string? document) =>
+    public void The_expected_integrity_is_null_when_there_is_nothing_to_read(string? document) =>
         Assert.Null(TypeScriptTools.ExpectedIntegrity(document));
 
     /// <summary>
@@ -224,7 +225,7 @@ public class TypeScriptToolsTests
     ///     deleting a file another concurrent build may be executing at that moment.
     /// </remarks>
     [Fact]
-    public void CacheDirectory_KeysByToolVersionAndPlatform()
+    public void The_cache_directory_is_keyed_by_tool_version_and_platform()
     {
         var directory = TypeScriptTools.CacheDirectory(
             Path.Combine("root"),
@@ -237,7 +238,7 @@ public class TypeScriptToolsTests
 
     /// <summary>The cache lives beside the user's other Rask tooling, not inside a project.</summary>
     [Fact]
-    public void DefaultCacheRoot_SitsBesideTheOtherRaskTooling() =>
+    public void The_default_cache_root_sits_beside_the_other_Rask_tooling() =>
         Assert.Equal(
             Path.Combine("home", ".rask", "typescript"),
             TypeScriptTools.DefaultCacheRoot("home"));

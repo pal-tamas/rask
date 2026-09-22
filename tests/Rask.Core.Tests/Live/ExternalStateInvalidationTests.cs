@@ -37,7 +37,7 @@ public partial class ExternalStateInvalidationTests : global::Rask.Core.RaskMark
     }
 
     [Fact]
-    public void UntrackedStateChange_WithoutInvalidation_ReplaysStale_WithInvalidation_ReWalks()
+    public void An_untracked_state_change_replays_stale_without_invalidation_and_walks_again_with_it()
     {
         var source = new ExternalSource();
         var built = 0;

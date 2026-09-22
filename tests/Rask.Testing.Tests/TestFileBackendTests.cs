@@ -12,12 +12,12 @@ namespace Rask.Testing.Tests;
 public partial class TestFileBackendTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public async Task AFilesEvent_ReachesTheHandler_WithRealBytes()
+    public async Task A_files_event_reaches_the_handler_with_real_bytes()
     {
         var files = new TestFileBackend();
         var picked = files.Add("notes.txt", "hello world", "text/plain");
-
         var page = Test.Render(UploadProbe, TestServiceProvider.With<IBrowserFileBackend>(files));
+
         await page.On("#picker").FilesAsync(picked);
 
         var received = Assert.Single(page.Instance.Received);
@@ -30,18 +30,17 @@ public partial class TestFileBackendTests : global::Rask.Core.RaskMarkup
     // The failure this whole type exists to end: without a backend the handler still fires, with nothing in
     // it. Pinning it means a future refactor that quietly re-breaks the resolution shows up here.
     [Fact]
-    public async Task WithNoBackendRegistered_TheHandlerGetsAnEmptyList()
+    public async Task With_no_backend_registered_the_handler_gets_an_empty_list()
     {
         var files = new TestFileBackend();
         var picked = files.Add("notes.txt", "hello world", "text/plain");
-
         // Capture the report and assert it: the framework tells you about this case (RaskDiagnostics, added
         // with the host-parity fix) and nothing else pins that the warning fires at all. Capturing also keeps
         // this process-global diagnostic out of a parallel test's window — belt to #750's braces, which fixed
         // the real bug by making the wait there look for its own diagnostic rather than the first to arrive.
         using var diagnostics = CapturingDiagnostics.Install();
-
         var page = Test.Render(UploadProbe);
+
         await page.On("#picker").FilesAsync(picked);
 
         Assert.True(page.Instance.Fired, "the handler still runs");
@@ -52,20 +51,20 @@ public partial class TestFileBackendTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task EveryStagedFile_IsPickedWhenThePickerIsGivenTheBackend()
+    public async Task Every_staged_file_is_picked_when_the_picker_is_given_the_backend()
     {
         var files = new TestFileBackend();
         files.Add("a.txt", "one");
         files.Add("b.txt", "two");
-
         var page = Test.Render(UploadProbe, TestServiceProvider.With<IBrowserFileBackend>(files));
+
         await page.On("#picker").FilesAsync(files);
 
         Assert.Equal(["a.txt", "b.txt"], page.Instance.Received.Select(f => f.Name));
     }
 
     [Fact]
-    public async Task TheFrameworkReleasesTheFiles_AfterTheHandlerReturns()
+    public async Task The_framework_releases_the_files_after_the_handler_returns()
     {
         // The browser hosts drop their client-side references here and the server frees its upload slot, so a
         // component that holds a RaskFile past the handler is holding something already gone.
@@ -78,7 +77,7 @@ public partial class TestFileBackendTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Add_DefaultsAreDeterministic_SoATestIsNotTimeDependent()
+    public void Added_file_defaults_are_deterministic_so_a_test_is_not_time_dependent()
     {
         var file = new TestFileBackend().Add("blob.bin", new byte[] { 1, 2, 3 });
 
@@ -88,7 +87,7 @@ public partial class TestFileBackendTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Add_TextOverload_EncodesUtf8_AndDefaultsToTextPlain()
+    public void Adding_text_encodes_utf8_and_defaults_to_text_plain()
     {
         var file = new TestFileBackend().Add("notes.txt", "héllo");
 
@@ -97,7 +96,7 @@ public partial class TestFileBackendTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void OpenReadStream_EnforcesMaxAllowedSize_LikeTheRealBackends()
+    public void OpenReadStream_enforces_the_max_allowed_size_like_the_real_backends()
     {
         // So a component that forgot to raise the limit for a large upload fails in a unit test rather than
         // on a real file.
@@ -107,7 +106,7 @@ public partial class TestFileBackendTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Create_WithAnUnstagedRef_SaysSo()
+    public void Creating_a_file_from_an_unstaged_ref_says_so()
     {
         var backend = new TestFileBackend();
         var meta = System.Text.Json.JsonDocument.Parse("""{"ref":"nope","name":"x.txt","size":1}""").RootElement;
@@ -118,7 +117,7 @@ public partial class TestFileBackendTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task FormPayload_DeliversFilesUnderTheirFieldName()
+    public async Task A_form_payload_delivers_files_under_their_field_name()
     {
         var files = new TestFileBackend();
         var page = Test.Render(UploadFormProbe, TestServiceProvider.With<IBrowserFileBackend>(files));

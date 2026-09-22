@@ -10,7 +10,7 @@ namespace Rask.Logging.Tests;
 public sealed class LogCaptureTests
 {
     [Fact]
-    public async Task CapturesAnEntryLoggedThroughThePipeline()
+    public async Task An_entry_logged_through_the_pipeline_is_captured()
     {
         await using var harness = new LoggingHarness();
 
@@ -28,7 +28,7 @@ public sealed class LogCaptureTests
     }
 
     [Fact]
-    public async Task StoresTheExceptionAlongsideTheMessage()
+    public async Task The_exception_is_stored_alongside_the_message()
     {
         await using var harness = new LoggingHarness();
 
@@ -42,16 +42,15 @@ public sealed class LogCaptureTests
     }
 
     [Fact]
-    public async Task SkipsEntriesBelowTheMinimumLevel()
+    public async Task Entries_below_the_minimum_level_are_skipped()
     {
         await using var harness = new LoggingHarness(o => o.MinimumLevel = LogLevel.Warning);
-
         var logger = harness.Logger();
+
         logger.LogDebug("debug");
         logger.LogInformation("information");
         logger.LogWarning("warning");
         logger.LogError("error");
-
         await harness.RunUntilStoredAsync(2);
 
         var messages = (await harness.Store.SearchAsync(new LogQuery())).Entries.Select(e => e.Message);
@@ -59,13 +58,12 @@ public sealed class LogCaptureTests
     }
 
     [Fact]
-    public async Task SkipsConfiguredCategories()
+    public async Task Configured_categories_are_skipped()
     {
         await using var harness = new LoggingHarness(o => o.ExcludedCategories.Add("Noisy."));
 
         harness.Logger("Noisy.Poller").LogInformation("tick");
         harness.Logger("Quiet.Thing").LogInformation("kept");
-
         await harness.RunUntilStoredAsync(1);
 
         var entry = Assert.Single((await harness.Store.SearchAsync(new LogQuery())).Entries);
@@ -78,14 +76,13 @@ public sealed class LogCaptureTests
     /// default, so this test clears the configurable list to prove it can't be switched off.
     /// </summary>
     [Fact]
-    public async Task NeverCapturesItsOwnCategoriesEvenWhenNothingIsExcluded()
+    public async Task Its_own_categories_are_never_captured_even_when_nothing_is_excluded()
     {
         await using var harness = new LoggingHarness(o => o.ExcludedCategories.Clear());
 
         harness.Logger("Rask.Logging.LogWriter").LogError("the store itself failed");
         harness.Logger("Microsoft.Data.Sqlite.Command").LogError("a command failed");
         harness.Logger("App").LogError("kept");
-
         await harness.RunUntilStoredAsync(1);
 
         var entry = Assert.Single((await harness.Store.SearchAsync(new LogQuery())).Entries);
@@ -98,12 +95,12 @@ public sealed class LogCaptureTests
     /// the call site is unharmed and the loss is countable.
     /// </summary>
     [Fact]
-    public async Task DropsEntriesWhenTheBufferIsFullWithoutThrowingOrBlocking()
+    public async Task A_full_buffer_drops_entries_without_throwing_or_blocking()
     {
         await using var harness = new LoggingHarness(o => o.QueueCapacity = 2);
+        var logger = harness.Logger();
 
         // Nothing is draining yet, so everything past the second entry has nowhere to go.
-        var logger = harness.Logger();
         var exception = Record.Exception(() =>
         {
             for (var i = 0; i < 50; i++)
@@ -115,6 +112,7 @@ public sealed class LogCaptureTests
         Assert.Null(exception);
 
         await harness.RunUntilStoredAsync(2);
+
         Assert.Equal(2, await harness.Store.CountAsync());
     }
 
@@ -138,7 +136,7 @@ public sealed class LogCaptureTests
     /// </para>
     /// </remarks>
     [Fact]
-    public async Task FlushesBufferedEntriesOnShutdown()
+    public async Task Buffered_entries_are_flushed_on_shutdown()
     {
         await using var harness = new LoggingHarness(o => o.FlushInterval = TimeSpan.FromMinutes(5));
 
@@ -155,7 +153,7 @@ public sealed class LogCaptureTests
     /// error.
     /// </summary>
     [Fact]
-    public async Task StoredEntriesOutliveTheStoreThatWroteThem()
+    public async Task Stored_entries_outlive_the_store_that_wrote_them()
     {
         await using var harness = new LoggingHarness();
 
@@ -172,21 +170,21 @@ public sealed class LogCaptureTests
     }
 
     [Fact]
-    public async Task BatchesLargerThanTheBatchSizeAcrossSeveralTransactions()
+    public async Task More_entries_than_the_batch_size_are_written_across_several_transactions()
     {
         await using var harness = new LoggingHarness(o =>
         {
             o.BatchSize = 3;
             o.QueueCapacity = 100;
         });
-
         var logger = harness.Logger();
+
         for (var i = 0; i < 10; i++)
         {
             logger.LogInformation("entry {Index}", i);
         }
-
         await harness.RunUntilStoredAsync(10);
+
         Assert.Equal(10, await harness.Store.CountAsync());
     }
 
@@ -195,15 +193,14 @@ public sealed class LogCaptureTests
     /// entry shares a timestamp — the case that would make a timestamp-ordered page non-deterministic.
     /// </summary>
     [Fact]
-    public async Task OrdersEntriesLoggedWithinTheSameTickNewestFirst()
+    public async Task Entries_logged_within_the_same_tick_are_ordered_newest_first()
     {
         await using var harness = new LoggingHarness();
-
         var logger = harness.Logger();
+
         logger.LogInformation("first");
         logger.LogInformation("second");
         logger.LogInformation("third");
-
         await harness.RunUntilStoredAsync(3);
 
         var page = await harness.Store.SearchAsync(new LogQuery());

@@ -96,6 +96,7 @@ public sealed class SqliteConcurrencyStressTests : IDisposable
 
             // With only 8 worker threads, this completes only because the wait yields the thread.
             await Task.WhenAll(tasks).WaitAsync(TimeSpan.FromSeconds(60));
+
             Assert.Equal(writers, CountRows());
         }
         finally

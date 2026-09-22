@@ -18,6 +18,7 @@ public sealed class UnitsTests
     {
         // Writing the plural with a count of one is exactly what RASK092 flags; here it is the point.
 #pragma warning disable RASK092
+
         Assert.Equal(1.Milliseconds, 1.Millisecond);
         Assert.Equal(1.Seconds, 1.Second);
         Assert.Equal(1.Minutes, 1.Minute);

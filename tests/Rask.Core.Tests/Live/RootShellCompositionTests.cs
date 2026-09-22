@@ -17,7 +17,7 @@ public partial class RootShellCompositionTests : global::Rask.Core.RaskMarkup
         new RootErrorBoundary(app).RenderAsLiveRoot(Services());
 
     [Fact]
-    public void AnAppThatRendersOnlyItsBody_StillGetsAWholeDocument()
+    public void An_app_that_renders_only_its_body_still_gets_a_whole_document()
     {
         var html = RenderApp(new StubComponent(() => Div["hi"]));
 
@@ -25,7 +25,7 @@ public partial class RootShellCompositionTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void AnAppThatRendersNothing_StillGetsAWholeDocument()
+    public void An_app_that_renders_nothing_still_gets_a_whole_document()
     {
         var html = RenderApp(new StubComponent(() => null!));
 
@@ -33,7 +33,7 @@ public partial class RootShellCompositionTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void TheAppsHeadOverride_LandsInTheFrameworksHead()
+    public void The_apps_head_override_lands_in_the_frameworks_head()
     {
         var html = RenderApp(new HeadApp());
 
@@ -42,7 +42,7 @@ public partial class RootShellCompositionTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void HtmlLangAndBodyClass_StampTheirElements()
+    public void HtmlLang_and_BodyClass_stamp_their_elements()
     {
         var html = RenderApp(new AttributedApp());
 
@@ -51,7 +51,7 @@ public partial class RootShellCompositionTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void HtmlLangNull_OmitsTheAttributeEntirely()
+    public void A_null_HtmlLang_omits_the_attribute_entirely()
     {
         var html = RenderApp(new NoLangApp());
 
@@ -63,7 +63,7 @@ public partial class RootShellCompositionTests : global::Rask.Core.RaskMarkup
     ///     <c>Head()</c> tag — which is what keeps it clear of the <see cref="Component.HeadAssets" /> virtual.
     /// </summary>
     [Fact]
-    public void AShellOverride_ComposesTheDocumentItself()
+    public void A_shell_override_composes_the_document_itself()
     {
         var html = RenderApp(new CustomShellApp());
 
@@ -79,7 +79,7 @@ public partial class RootShellCompositionTests : global::Rask.Core.RaskMarkup
     ///     shell takes over for that render — the error page still needs a document to live in.
     /// </summary>
     [Fact]
-    public void AShellThatThrows_ShowsTheErrorPageInsideTheDefaultShell()
+    public void A_shell_that_throws_shows_the_error_page_inside_the_default_shell()
     {
         var root = new RootErrorBoundary(new ThrowingShellApp());
 
@@ -97,7 +97,7 @@ public partial class RootShellCompositionTests : global::Rask.Core.RaskMarkup
     ///     contributed none.
     /// </summary>
     [Fact]
-    public void AnAppThatThrows_KeepsTheDocumentAndGetsTheErrorPagesHead()
+    public void An_app_that_throws_keeps_the_document_and_gets_the_error_pages_head()
     {
         var html = RenderApp(new ThrowingApp());
 
@@ -113,7 +113,7 @@ public partial class RootShellCompositionTests : global::Rask.Core.RaskMarkup
     ///     failed would be a worse lie than the missing title the root fallback's head exists to fix.
     /// </summary>
     [Fact]
-    public void ANestedFallback_ReplacesItsWidgetWithoutRetitlingThePage()
+    public void A_nested_fallback_replaces_its_widget_without_retitling_the_page()
     {
         var html = RenderApp(new NestedFailureApp());
 
@@ -127,7 +127,7 @@ public partial class RootShellCompositionTests : global::Rask.Core.RaskMarkup
     ///     is the host's, and a partial tree renders as exactly itself.
     /// </summary>
     [Fact]
-    public void DirectRenderAsLiveRoot_ComposesNoShell()
+    public void Rendering_directly_as_the_live_root_composes_no_shell()
     {
         var html = new StubComponent(() => Div["hi"]).RenderAsLiveRoot(Services());
 

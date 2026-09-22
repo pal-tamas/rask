@@ -7,7 +7,7 @@ namespace Rask.Core.Tests.Callbacks;
 public partial class AutoCallbackTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public async Task Wrap_SyncCallback_RerendersReceiverThroughCachedIntermediate()
+    public async Task A_wrapped_sync_callback_rerenders_its_receiver_through_a_cached_intermediate()
     {
         // The core promise: a child invoking a parent-supplied (auto-wrapped) delegate re-renders
         // the *receiver* — the component that owns the delegate — even when that receiver is a
@@ -17,18 +17,20 @@ public partial class AutoCallbackTests : global::Rask.Core.RaskMarkup
 
         host.RenderAsLiveRoot(sp);
         host.RenderAsLiveRoot(sp);
+
         Assert.Equal(1, host.Receiver.RenderCount); // cached after first paint — stable props
         Assert.Contains("count=0", host.ToHtml());
 
         await host.Receiver.Component.Fire(5);
 
         host.RenderAsLiveRoot(sp);
+
         Assert.Equal(2, host.Receiver.RenderCount); // the wrapper re-rendered the receiver
         Assert.Contains("count=5", host.ToHtml());
     }
 
     [Fact]
-    public async Task Wrap_ChildWrapsInOwnLambda_StillRerendersParent()
+    public async Task A_child_wrapping_the_callback_in_its_own_lambda_still_rerenders_the_parent()
     {
         // The case plain handler-owner resolution misses: the child invokes the parent delegate
         // from inside *its own* lambda (Target == child), off the direct DOM path. The wrapper
@@ -38,30 +40,34 @@ public partial class AutoCallbackTests : global::Rask.Core.RaskMarkup
 
         host.RenderAsLiveRoot(sp);
         host.RenderAsLiveRoot(sp);
+
         Assert.Equal(1, host.Receiver.RenderCount);
 
         await host.Receiver.Component.FireWrappedInOwnLambda(8);
 
         host.RenderAsLiveRoot(sp);
+
         Assert.Equal(2, host.Receiver.RenderCount);
         Assert.Contains("count=8", host.ToHtml());
     }
 
     [Fact]
-    public async Task Wrap_AsyncCallback_AwaitsThenRerenders()
+    public async Task A_wrapped_async_callback_is_awaited_then_rerenders()
     {
         var sp = RenderHarness.EmptyServices();
         var host = new Host(Receiver.Mode.Async);
 
         host.RenderAsLiveRoot(sp);
+
         await host.Receiver.Component.FireAsync(3); // mutation happens only after an awaited Task.Yield
 
         host.RenderAsLiveRoot(sp);
+
         Assert.Contains("count=3", host.ToHtml());
     }
 
     [Fact]
-    public void Wrap_NullDelegate_ReturnsNull()
+    public void Wrapping_a_null_delegate_returns_null()
     {
         Assert.Null(AutoCallback.Wrap((Action?)null));
         Assert.Null(AutoCallback.Wrap((Func<Task>?)null));
@@ -76,7 +82,7 @@ public partial class AutoCallbackTests : global::Rask.Core.RaskMarkup
     // never recognised at dispatch, and silently never fire. Asserting the RETURN TYPE is what pins that
     // the typed overload was chosen; a call that merely compiles would bind the fallback just as happily.
     [Fact]
-    public void Wrap_TwoArgs_ResolvesToTheTypedOverload()
+    public void A_two_argument_handler_wraps_through_the_typed_overload()
     {
         var seen = 0;
         Action<int, int> sync = (a, b) => seen = a + b;
@@ -95,11 +101,12 @@ public partial class AutoCallbackTests : global::Rask.Core.RaskMarkup
         Assert.Same(async, wrappedAsync);
 
         wrappedSync!(3, 4);
+
         Assert.Equal(7, seen);
     }
 
     [Fact]
-    public void Wrap_NonComponentTarget_ReturnsOriginalUnchanged()
+    public void A_delegate_without_a_component_target_comes_back_unchanged()
     {
         // A static method (Target == null) and a lambda closing over a local (Target == a compiler
         // closure, not a Component) have no component to re-render — Wrap returns them unchanged,
@@ -115,15 +122,17 @@ public partial class AutoCallbackTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Wrap_PassesArgThrough()
+    public async Task The_wrapper_passes_its_argument_through()
     {
         var holder = new ArgHolder();
+
         await holder.Fire(42);
+
         Assert.Equal(42, holder.Seen);
     }
 
     [Fact]
-    public async Task Wrap_GenericReferenceArg_PassesThroughAndRerenders()
+    public async Task A_reference_type_argument_passes_through_and_rerenders()
     {
         // Exercises a non-int T (the same generic Wrap<T> overload covers DOM-handler shapes like
         // Action<string>).
@@ -131,9 +140,11 @@ public partial class AutoCallbackTests : global::Rask.Core.RaskMarkup
         var host = new Host(Receiver.Mode.StringArg);
 
         host.RenderAsLiveRoot(sp);
+
         await host.Receiver.Component.FireString("hello");
 
         host.RenderAsLiveRoot(sp);
+
         Assert.Contains("text=hello", host.ToHtml());
     }
 

@@ -99,9 +99,11 @@ public sealed class DevToolsCommitLogTests
 
         feed.RecordCommit(Renders((child, RenderCause.Uncached)), walked: 1, ids, timestamp: 1);
         feed.ClearCommits();
+
         Assert.Empty(feed.CommitsSnapshot());
 
         feed.RecordCommit(Renders((child, RenderCause.Uncached)), walked: 1, ids, timestamp: 2);
+
         Assert.Equal(DevToolsRenderReason.Uncached, Assert.Single(Assert.Single(feed.CommitsSnapshot()).Renders).Reason);
         Assert.Equal(3, notified);
     }

@@ -5,7 +5,7 @@ namespace Rask.Wasm.Tests.Browser;
 public class BadgeTests
 {
     [Fact]
-    public async Task IsSupported_CallsHelper()
+    public async Task Support_is_asked_of_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskBadge.isSupported", true);
@@ -14,7 +14,7 @@ public class BadgeTests
     }
 
     [Fact]
-    public async Task Set_WithCount_PassesNumber()
+    public async Task Setting_a_count_passes_the_number()
     {
         var js = new FakeJsRuntime();
 
@@ -24,7 +24,7 @@ public class BadgeTests
     }
 
     [Fact]
-    public async Task Set_WithoutCount_PassesNull()
+    public async Task Setting_without_a_count_passes_null()
     {
         var js = new FakeJsRuntime();
 
@@ -34,7 +34,7 @@ public class BadgeTests
     }
 
     [Fact]
-    public async Task Clear_CallsHelper()
+    public async Task Clearing_calls_the_helper()
     {
         var js = new FakeJsRuntime();
 

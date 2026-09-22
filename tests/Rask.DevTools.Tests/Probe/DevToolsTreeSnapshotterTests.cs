@@ -141,6 +141,7 @@ public sealed class DevToolsTreeSnapshotterTests
         frames.CloseElement(div, 25);
 
         var tree = Snapshot(root, frames, (child, root, childStart, childEnd));
+
         var components = DevToolsTreeTab.WithoutTags(tree.Children);
 
         var only = Assert.Single(components);

@@ -50,7 +50,6 @@ public sealed class JobProcessorTests
         }
 
         var job = await h.SingleJobAsync();
-
         // Delivered — and, the load-bearing half, delivered without a failed attempt. A key miss doesn't
         // throw: it records "No registered job type '...'" and retries until MaxAttempts, so asserting
         // only on ProcessedAt would miss the bug entirely.

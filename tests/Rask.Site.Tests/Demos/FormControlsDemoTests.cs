@@ -13,7 +13,7 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
     // ---- Select ----
 
     [Fact]
-    public async Task Select_Controlled_OnChange_UpdatesReadout()
+    public async Task A_controlled_Select_updates_the_readout_on_change()
     {
         var page = Test.Render(() => FormControlsSelectDemo, TestServices.Default());
         var html = page.Render();
@@ -26,7 +26,7 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Select_Bound_OnChange_UpdatesReadout()
+    public async Task A_bound_Select_updates_the_readout_on_change()
     {
         var page = Test.Render(() => FormControlsSelectDemo, TestServices.Default());
         var html = page.Render();
@@ -42,7 +42,7 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
     // ---- Input (text) ----
 
     [Fact]
-    public async Task Input_Controlled_OnChange_UpdatesReadout()
+    public async Task A_controlled_Input_updates_the_readout_on_change()
     {
         var page = Test.Render(() => FormControlsInputDemo, TestServices.Default());
         var html = page.Render();
@@ -55,7 +55,7 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Input_Bound_OnInput_UpdatesReadout()
+    public async Task A_bound_Input_updates_the_readout_on_input()
     {
         var page = Test.Render(() => FormControlsInputDemo, TestServices.Default());
         var html = page.Render();
@@ -70,7 +70,7 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
     // ---- Textarea ----
 
     [Fact]
-    public async Task Textarea_Controlled_OnChange_UpdatesReadout()
+    public async Task A_controlled_Textarea_updates_the_readout_on_change()
     {
         var page = Test.Render(() => FormControlsTextareaDemo, TestServices.Default());
         var html = page.Render();
@@ -83,7 +83,7 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Textarea_Bound_OnInput_UpdatesReadout()
+    public async Task A_bound_Textarea_updates_the_readout_on_input()
     {
         var page = Test.Render(() => FormControlsTextareaDemo, TestServices.Default());
         var html = page.Render();
@@ -116,9 +116,10 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
     // harness cannot drive a form's async submit bridge (the stock fixed-children form does not route
     // through it here either), so the round trip is covered by the browser journey instead.
     [Fact]
-    public void SubmitStateChildren_RenderTheIdleShape_WhenNoSubmitIsRunning()
+    public void The_submit_state_children_render_the_idle_shape_while_no_submit_is_running()
     {
         var page = Test.Render(() => FormSubmitStateDemo, TestServices.Default());
+
         var html = page.Render();
 
         // The label is the button's own child text — UiButton shows its children, and an icon would be a

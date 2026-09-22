@@ -22,6 +22,7 @@ public sealed class AddRaskRedisBackplaneTests
     public void Registering_twice_registers_once()
     {
         var collection = Services();
+
         collection.AddRaskRedisBackplane();
         collection.AddRaskRedisBackplane(o => o.ChannelPrefix = "ignored:");
         using var services = collection.BuildServiceProvider();

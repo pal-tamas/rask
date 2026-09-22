@@ -30,8 +30,8 @@ public sealed class ExternalStoreCacheTests
             services.AddDistributedMemoryCache(); // stands in for AddStackExchangeRedisCache
             services.AddRaskCache();
         });
-
         var cache = provider.GetRequiredService<ICache>();
+
         await cache.Set("k", new Sample("hello", 42));
 
         Assert.Equal(new Sample("hello", 42), await cache.Get<Sample>("k"));
@@ -81,6 +81,7 @@ public sealed class ExternalStoreCacheTests
         // Registering one would override — or be overridden by — the store the app actually chose, and
         // which of those happened would depend on call order.
         var services = new ServiceCollection();
+
         services.AddRaskCache();
 
         Assert.DoesNotContain(services, d => d.ServiceType == typeof(IDistributedCache));
@@ -96,8 +97,8 @@ public sealed class ExternalStoreCacheTests
             services.AddRaskCache();
             services.AddDistributedMemoryCache();
         });
-
         var cache = provider.GetRequiredService<ICache>();
+
         await cache.Set("k", new Sample("late", 7));
 
         Assert.Equal(new Sample("late", 7), await cache.Get<Sample>("k"));
@@ -107,6 +108,7 @@ public sealed class ExternalStoreCacheTests
     public void Registering_twice_is_idempotent()
     {
         var services = new ServiceCollection();
+
         services.AddRaskCache();
         services.AddRaskCache();
 

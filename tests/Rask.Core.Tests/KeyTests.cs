@@ -9,7 +9,7 @@ namespace Rask.Core.Tests;
 public partial class KeyTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Key_OnElement_EmitsDataRaskKeyInDataGroup()
+    public void A_key_on_an_element_emits_data_rask_key_in_the_data_group()
     {
         // Order is id, class, style, data-*, then data-rask-key (still inside the data-* run).
         Assert.Equal(
@@ -18,14 +18,14 @@ public partial class KeyTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Key_NonStringValue_StringifiedOnEmit() =>
+    public void A_non_string_key_is_stringified_on_emit() =>
         Assert.Equal("<li data-rask-key=\"42\"></li>", Li.Key(42).ToHtml());
 
     [Fact]
-    public void Key_Null_EmitsNothing() => Assert.Equal("<div></div>", Div.ToHtml());
+    public void A_null_key_emits_nothing() => Assert.Equal("<div></div>", Div.ToHtml());
 
     [Fact]
-    public void Key_ValueKey_ReEmitsStablyAcrossRenders()
+    public void A_value_key_emits_stably_across_renders()
     {
         // KeyString dropped its value→string cache (a footprint win); a boxed value key must still
         // stringify correctly on every render, not just the first.
@@ -38,7 +38,7 @@ public partial class KeyTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Key_AfterUserData_NoDuplicate()
+    public void A_key_after_user_data_is_not_duplicated()
     {
         // data-rask-key follows other data-* entries; a literal Data["rask-key"] is dropped
         // in favour of the canonical Key so there's exactly one data-rask-key.
@@ -49,7 +49,7 @@ public partial class KeyTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void DataRaskKey_WithoutKeyProp_StillEmits_BackCompat()
+    public void A_data_rask_key_without_the_Key_prop_still_emits_for_back_compat()
     {
         // VirtualizePage-style keying via Data continues to work when Key isn't set.
         Assert.Equal(
@@ -58,37 +58,41 @@ public partial class KeyTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Key_OnFragment_ForwardsToFirstElementOnly()
+    public void A_key_on_a_fragment_forwards_to_the_first_element_only()
     {
         var sb = new StringBuilder();
         HtmlSerializer.Serialize(Fragment.Key("k1")[Div.Class("line")[Text.Value("x")], Div[Text.Value("y")]], sb);
+
         Assert.Equal("<div class=\"line\" data-rask-key=\"k1\">x</div><div>y</div>", sb.ToString());
     }
 
     [Fact]
-    public void Key_OnTransparentComponent_ForwardsToRootElement()
+    public void A_key_on_a_transparent_component_forwards_to_its_root_element()
     {
         var sb = new StringBuilder();
         HtmlSerializer.Serialize(new KeyWrapper(Tr[Td["cell"]]) { Key = "row-7" }, sb);
+
         Assert.Equal("<tr data-rask-key=\"row-7\"><td>cell</td></tr>", sb.ToString());
     }
 
     [Fact]
-    public void Key_ElementOwnKey_WinsOverForwarded()
+    public void An_elements_own_key_wins_over_a_forwarded_one()
     {
         var sb = new StringBuilder();
         HtmlSerializer.Serialize(new KeyWrapper(Div.Key("inner")[Text.Value("x")]) { Key = "outer" }, sb);
+
         Assert.Equal("<div data-rask-key=\"inner\">x</div>", sb.ToString());
     }
 
     [Fact]
-    public void Key_OnComponentRenderingNoElement_DoesNotLeakToSibling()
+    public void A_key_on_a_component_rendering_no_element_does_not_leak_to_a_sibling()
     {
         // The inner keyed Fragment renders only text — its key must NOT spill onto the
         // following sibling Div (the slot is cleared after the keyed body serializes).
         var sb = new StringBuilder();
         HtmlSerializer.Serialize(
             [Fragment.Key("k")[Text.Value("t")], Div[Text.Value("x")]], sb);
+
         Assert.Equal("t<div>x</div>", sb.ToString());
     }
 

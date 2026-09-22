@@ -19,7 +19,7 @@ public sealed class PathBaseEndpointTests
     public PathBaseEndpointTests() => ScopedAssetRegistry.InvalidateAll();
 
     [Fact]
-    public async Task PrefixedRoot_RendersAppHtml()
+    public async Task The_prefixed_root_renders_the_app()
     {
         using var host = RaskTestHost.Create<TestApp>(pathBase: "/appA");
 
@@ -31,7 +31,7 @@ public sealed class PathBaseEndpointTests
     }
 
     [Fact]
-    public async Task UnprefixedRoot_Returns404WhenPathBaseConfigured()
+    public async Task The_unprefixed_root_answers_404_when_a_path_base_is_configured()
     {
         using var host = RaskTestHost.Create<TestApp>(pathBase: "/appA");
 
@@ -41,7 +41,7 @@ public sealed class PathBaseEndpointTests
     }
 
     [Fact]
-    public async Task PrefixedRuntimeScript_ServesRaskJs()
+    public async Task The_prefixed_runtime_script_serves_rask_js()
     {
         using var host = RaskTestHost.Create<TestApp>(pathBase: "/appA");
 
@@ -54,7 +54,7 @@ public sealed class PathBaseEndpointTests
     }
 
     [Fact]
-    public async Task UnprefixedRuntimeScript_Returns404WhenPathBaseConfigured()
+    public async Task The_unprefixed_runtime_script_answers_404_when_a_path_base_is_configured()
     {
         using var host = RaskTestHost.Create<TestApp>(pathBase: "/appA");
 
@@ -64,7 +64,7 @@ public sealed class PathBaseEndpointTests
     }
 
     [Fact]
-    public async Task PrefixedAssetEndpoint_ServesScopedCss()
+    public async Task The_prefixed_asset_endpoint_serves_scoped_CSS()
     {
         ScopedAssetRegistry.RegisterCss(typeof(Widget), ".x { color: red; }");
         ScopedAssetRegistry.TryGetCss(typeof(Widget), out var hash);
@@ -77,7 +77,7 @@ public sealed class PathBaseEndpointTests
     }
 
     [Fact]
-    public async Task UnprefixedAssetEndpoint_Returns404WhenPathBaseConfigured()
+    public async Task The_unprefixed_asset_endpoint_answers_404_when_a_path_base_is_configured()
     {
         ScopedAssetRegistry.RegisterCss(typeof(Widget), ".x { color: red; }");
         ScopedAssetRegistry.TryGetCss(typeof(Widget), out var hash);
@@ -89,7 +89,7 @@ public sealed class PathBaseEndpointTests
     }
 
     [Fact]
-    public async Task PrefixedHtml_LinksToPrefixedScopedAssets()
+    public async Task The_prefixed_page_links_to_prefixed_scoped_assets()
     {
         // A component with scoped CSS is rendered; the head must emit <link href="/appA/_rask/a/...">
         // not the legacy "/_rask/a/..." path. End-to-end check that LiveOptions.PathBase
@@ -106,7 +106,7 @@ public sealed class PathBaseEndpointTests
     }
 
     [Fact]
-    public async Task EmptyPathBase_KeepsLegacyRootRelativePaths()
+    public async Task An_empty_path_base_keeps_the_legacy_root_relative_paths()
     {
         // Regression guard for the pre-PathBase behavior — empty pathBase must not alter
         // the existing endpoint surface.
@@ -120,7 +120,7 @@ public sealed class PathBaseEndpointTests
     }
 
     [Fact]
-    public async Task PathBase_NormalizesTrailingSlash()
+    public async Task A_path_base_with_a_trailing_slash_is_normalized()
     {
         // "/appA/" must resolve to the same endpoints as "/appA".
         using var host = RaskTestHost.Create<TestApp>(pathBase: "/appA/");
@@ -131,7 +131,7 @@ public sealed class PathBaseEndpointTests
     }
 
     [Fact]
-    public async Task PathBase_StripsPrefixFromRequestPathBeforeRouteResolution()
+    public async Task The_path_base_is_stripped_from_the_request_path_before_route_resolution()
     {
         // The TestApp renders "path=" + RouteState.Path. A request to /appA/foo should
         // hit RouteState.Path="/foo", not "/appA/foo", so user-space routes are unaware

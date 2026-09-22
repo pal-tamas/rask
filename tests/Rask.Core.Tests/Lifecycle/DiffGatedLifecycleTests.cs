@@ -7,7 +7,7 @@ namespace Rask.Core.Tests.Lifecycle;
 public class DiffGatedLifecycleTests
 {
     [Fact]
-    public void CachedChild_UnchangedProps_FiresOnPropsChangedOnceOnFirstRenderOnly()
+    public void A_cached_child_with_unchanged_props_fires_OnPropsChanged_once_on_the_first_render_only()
     {
         var sp = RenderHarness.EmptyServices();
         var c = new LifecycleTrackingComponent();
@@ -24,7 +24,7 @@ public class DiffGatedLifecycleTests
     }
 
     [Fact]
-    public void CachedChild_ChangedProps_FiresOnPropsChangedEachTime()
+    public void A_cached_child_with_changed_props_fires_OnPropsChanged_each_time()
     {
         var sp = RenderHarness.EmptyServices();
         var c = new LifecycleTrackingComponent();
@@ -41,7 +41,7 @@ public class DiffGatedLifecycleTests
     }
 
     [Fact]
-    public void FirstRender_FiresOnPropsChanged_EvenWhenPropsChangedFlagIsFalse()
+    public void The_first_render_fires_OnPropsChanged_even_when_the_props_changed_flag_is_false()
     {
         // A first-time render is always lifecycle-driven: Mount + Updated must
         // fire regardless of the diff flag, because the component has never seen its initial values.
@@ -57,7 +57,7 @@ public class DiffGatedLifecycleTests
     }
 
     [Fact]
-    public void MixedRenders_OnPropsChangedFiresOnlyOnChangeOrFirst()
+    public void Across_mixed_renders_OnPropsChanged_fires_only_on_a_change_or_the_first()
     {
         var sp = RenderHarness.EmptyServices();
         var c = new LifecycleTrackingComponent();

@@ -30,7 +30,6 @@ public sealed class BrowserAuthRecoveryTests
         Assert.True(result.Succeeded);
         Assert.Equal("/api/auth/forgot-password", handler.LastPath);
         Assert.Contains("owner@example.com", handler.LastBody, StringComparison.Ordinal);
-
         // Nowhere to go: the visitor stays on the page to read "check your email". A navigation here
         // would also THROW — Navigator refuses to run outside an event handler — so this pins that the
         // recovery calls really do stop at the response.
@@ -49,7 +48,6 @@ public sealed class BrowserAuthRecoveryTests
         Assert.Equal("/api/auth/reset-password", handler.LastPath);
         Assert.Contains("\"userId\":\"u1\"", handler.LastBody, StringComparison.Ordinal);
         Assert.Contains("\"token\":\"tok\"", handler.LastBody, StringComparison.Ordinal);
-
         // A successful reset does not sign anybody in, so there is nothing to refresh.
         Assert.Equal(0, users.Refreshes);
     }
@@ -84,7 +82,6 @@ public sealed class BrowserAuthRecoveryTests
     {
         var handler = new StubHandler(
             HttpStatusCode.BadRequest, """{"error":"InvalidToken","message":null}""");
-
         var auth = Auth(handler, out _, out _);
 
         var result = await auth.ResetPasswordAsync("u1", "stale", "Password2longer");
@@ -100,7 +97,6 @@ public sealed class BrowserAuthRecoveryTests
     {
         var handler = new StubHandler(
             HttpStatusCode.ServiceUnavailable, """{"error":"MailNotConfigured","message":"no smtp"}""");
-
         var auth = Auth(handler, out _, out _);
 
         var result = await auth.SendPasswordResetAsync("owner@example.com");
@@ -130,14 +126,12 @@ public sealed class BrowserAuthRecoveryTests
             {"state":"s","challenge":"AAAA","relyingPartyId":"localhost","relyingPartyName":"Test",
              "userId":"AAAA","userName":"a@b.c","userDisplayName":"A","excludeCredentials":[],"timeoutMs":1000}
             """);
-
         var auth = Auth(handler, out var users, out var route);
 
         var result = await auth.AddPasskeyAsync("Laptop");
 
         Assert.False(result.Succeeded);
         Assert.Equal(AuthError.PasskeyRejected, result.Error);
-
         // It asked for options and stopped there: nothing was registered, nobody was re-rendered, and the
         // visitor stayed where they were.
         Assert.Equal("/api/auth/passkeys/register-options", handler.LastPath);

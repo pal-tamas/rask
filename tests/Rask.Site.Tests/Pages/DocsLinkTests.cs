@@ -66,8 +66,8 @@ public sealed partial class DocsLinkTests
     {
         var docs = DocsDirectory();
         var anchors = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
-
         var dangling = new List<string>();
+
         foreach (var link in AllLinks().Where(l => l.Fragment.Length > 0))
         {
             // A link whose file is missing is already reported by the test above; don't report it twice.

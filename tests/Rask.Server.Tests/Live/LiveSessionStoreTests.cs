@@ -11,12 +11,13 @@ namespace Rask.Server.Tests.Live;
 public class LiveSessionStoreTests
 {
     [Fact]
-    public async Task ScheduleRemoval_ThenGet_CancelsRemoval_SessionSurvives()
+    public async Task A_get_after_a_scheduled_removal_cancels_it_and_the_session_survives()
     {
         var store = NewStore();
         var session = store.Create(_ => new BasicComponent());
 
         store.ScheduleRemoval(session.Id, TimeSpan.FromMilliseconds(100));
+
         // Reconnect within the grace window: Get must cancel the pending removal.
         Assert.NotNull(store.Get(session.Id));
 
@@ -27,7 +28,7 @@ public class LiveSessionStoreTests
     }
 
     [Fact]
-    public async Task ScheduleRemoval_NoReconnect_RemovesAfterDelay()
+    public async Task A_scheduled_removal_with_no_reconnect_removes_the_session_after_the_delay()
     {
         var store = NewStore();
         var session = store.Create(_ => new BasicComponent());
@@ -44,7 +45,7 @@ public class LiveSessionStoreTests
     }
 
     [Fact]
-    public async Task ScheduleRemoval_RescheduledRepeatedly_DoesNotThrowOrOrphan()
+    public async Task A_removal_rescheduled_repeatedly_neither_throws_nor_orphans_the_session()
     {
         // Each reschedule retires the prior CTS (cancel + dispose). Hammering it must not raise
         // an ObjectDisposedException out of the delayed task nor leave the session orphaned.
@@ -66,7 +67,7 @@ public class LiveSessionStoreTests
     }
 
     [Fact]
-    public async Task ConcurrentScheduleAndGet_StaysConsistent_NoCrash()
+    public async Task Concurrent_schedules_and_gets_stay_consistent_without_a_crash()
     {
         // Race a tight schedule/cancel loop against concurrent reconnects on many sessions. The
         // store must never throw and _liveCount must stay in lockstep with the dictionary.
@@ -93,7 +94,9 @@ public class LiveSessionStoreTests
         // Every session that was reconnected last should still be present; the count must match
         // the number actually retained (no negative/leaked _liveCount, no orphan).
         Assert.True(store.Count <= ids.Length);
+
         await store.DisposeAsync();
+
         Assert.Equal(0, store.Count);
     }
 
@@ -101,7 +104,7 @@ public class LiveSessionStoreTests
     // as well used to reach Cancel() on an already-disposed token source. A second dispose must be inert,
     // including with a pending removal outstanding, which is what owns that token source.
     [Fact]
-    public async Task DisposeAsync_IsIdempotent()
+    public async Task Disposing_the_store_twice_is_harmless()
     {
         var store = NewStore();
         var session = store.Create(_ => new BasicComponent());
@@ -114,7 +117,7 @@ public class LiveSessionStoreTests
     }
 
     [Fact]
-    public void TryCreate_AtCapacity_RefusesBeforeBuildingTheTree()
+    public void A_create_at_capacity_is_refused_before_the_tree_is_built()
     {
         var store = NewStore();
         store.MaxSessions = 1;

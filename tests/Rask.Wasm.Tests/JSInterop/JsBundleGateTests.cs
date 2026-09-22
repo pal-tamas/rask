@@ -15,21 +15,23 @@ namespace Rask.Wasm.Tests.JsInteropRuntime;
 // configuration happened to be built last, which is worse than not running at all.
 //
 // What the shipped bundle can still be held to — that the module reached it at all — is
-// TheBundleShipsTheGate below, which asserts only on evidence minification preserves.
+// The_bundle_ships_the_gate below, which asserts only on evidence minification preserves.
 public sealed class JsBundleGateTests
 {
     [Fact]
-    public void RaskWasmJs_Has_ScopedJsReady_Gate()
+    public void The_runtime_has_the_scopedJsReady_gate()
     {
         var js = ReadSource();
+
         Assert.Contains("scopedJsReady", js);
         Assert.Contains("pendingScopedInvokes", js);
     }
 
     [Fact]
-    public void RaskWasmJs_BeginInvokeJS_Defers_RaskPrefixed_Identifiers()
+    public void The_runtimes_beginInvokeJS_defers_Rask_prefixed_identifiers()
     {
         var js = ReadSource();
+
         var beginIdx = js.IndexOf("function beginInvokeJS", StringComparison.Ordinal);
         Assert.True(beginIdx >= 0, "beginInvokeJS function not found in rask.wasm.ts");
         var bodyEnd = js.IndexOf("Promise.resolve()", beginIdx, StringComparison.Ordinal);
@@ -41,7 +43,7 @@ public sealed class JsBundleGateTests
     }
 
     [Fact]
-    public void RaskWasmJs_MaybeDrainPendingInvokes_ReentersBeginInvokeJs()
+    public void The_runtimes_pending_invoke_drain_re_enters_beginInvokeJS()
     {
         // The legacy applyScopedJs that inlined a bundle <script> and flipped
         // scopedJsReady is gone — per-component scripts load via standard
@@ -52,6 +54,7 @@ public sealed class JsBundleGateTests
         // must re-enter beginInvokeJS so queued Rask.* invokes resolve through
         // the original code path.
         var js = ReadSource();
+
         var drainIdx = js.IndexOf("function maybeDrainPendingInvokes", StringComparison.Ordinal);
         Assert.True(drainIdx >= 0, "maybeDrainPendingInvokes function not found in rask.wasm.ts");
         var drainEnd = js.IndexOf("\n}\n", drainIdx, StringComparison.Ordinal);
@@ -62,13 +65,14 @@ public sealed class JsBundleGateTests
     }
 
     [Fact]
-    public void RaskWasmJs_GatesRaskInvokes_OnHeadAssetLoad()
+    public void The_runtime_gates_Rask_invokes_on_head_asset_load()
     {
         // Regression: Rask.* invokes must also wait for Head-declared external
         // <script src>/<link rel=stylesheet> to load. Without this, a
         // CodeSample-like component would have to hand-roll its own load-event
         // workaround (e.g. attaching a load listener to the hljs script).
         var js = ReadSource();
+
         Assert.Contains("pendingHeadAssets", js);
         Assert.Contains("trackHeadAsset", js);
         Assert.Contains("scanHeadAssets", js);
@@ -85,7 +89,7 @@ public sealed class JsBundleGateTests
     }
 
     [Fact]
-    public void TheBundleDoesNotTraceToTheConsole()
+    public void The_bundle_does_not_trace_to_the_console()
     {
         // The copy the browser actually downloads. `console.log` in a shipped runtime writes to every
         // visitor's console, and the payloads here carry whatever the user typed — so a trace left in
@@ -110,7 +114,7 @@ public sealed class JsBundleGateTests
     }
 
     [Fact]
-    public void TheBundleShipsTheGate()
+    public void The_bundle_ships_the_gate()
     {
         // The one thing worth asking of the built artifact, and the only kind of thing that can be
         // asked of it: minification erases every local name above, but leaves string literals and

@@ -49,7 +49,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
     [InlineData(typeof(string), "text")]
     [InlineData(typeof(char), "text")]
     [InlineData(typeof(Guid), "text")]
-    public void DefaultInputType_MapsEveryPrimitive(Type clrType, string expected) =>
+    public void Every_primitive_maps_to_its_default_input_type(Type clrType, string expected) =>
         Assert.Equal(expected, BindingHelpers.DefaultInputType(clrType));
 
     [Theory]
@@ -60,11 +60,11 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
     [InlineData(typeof(Half?), "number")]
     [InlineData(typeof(bool?), "checkbox")]
     [InlineData(typeof(DateOnly?), "date")]
-    public void DefaultInputType_UnwrapsNullable(Type clrType, string expected) =>
+    public void A_nullable_is_unwrapped_to_its_default_input_type(Type clrType, string expected) =>
         Assert.Equal(expected, BindingHelpers.DefaultInputType(clrType));
 
     [Fact]
-    public async Task FloatProperty_OnChange_RoundTripsThroughInvariantCulture()
+    public async Task A_float_property_round_trips_through_the_invariant_culture_on_change()
     {
         // Floating-point parsing is the headline case where culture matters — under a
         // comma-decimal locale ("3,14") and a period-decimal raw value ("3.14"), only the
@@ -83,7 +83,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task DoubleProperty_OnChange_ParsesScientificNotation()
+    public async Task A_double_property_parses_scientific_notation_on_change()
     {
         var p = new NumericHolder { D = 0d };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.D)]);
@@ -94,7 +94,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task DecimalProperty_OnChange_PreservesPrecision()
+    public async Task A_decimal_property_keeps_its_precision_on_change()
     {
         var p = new NumericHolder { M = 0m };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.M)]);
@@ -108,7 +108,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
     [InlineData("0", 0)]
     [InlineData("127", 127)]
     [InlineData("255", 255)]
-    public async Task ByteProperty_OnChange_RoundTrips(string raw, byte expected)
+    public async Task A_byte_property_round_trips_on_change(string raw, byte expected)
     {
         var p = new NumericHolder { B = 1 };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.B)]);
@@ -121,29 +121,31 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task ULongProperty_OnChange_HandlesValuesAboveLongMaxValue()
+    public async Task A_ulong_property_takes_values_above_long_MaxValue_on_change()
     {
         // Specific to ulong: long.MaxValue + 1 must round-trip. If we accidentally routed
         // through long.TryParse this would fail.
         var p = new NumericHolder { Ul = 0ul };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.Ul)]);
+
         await page.ChangeAsync("{\"value\":\"9223372036854775808\"}");
 
         Assert.Equal(9223372036854775808ul, p.Ul);
     }
 
     [Fact]
-    public async Task HalfProperty_OnChange_RoundTrips()
+    public async Task A_Half_property_round_trips_on_change()
     {
         var p = new NumericHolder { H = (Half)0 };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.H)]);
+
         await page.ChangeAsync("{\"value\":\"2.5\"}");
 
         Assert.Equal((Half)2.5, p.H);
     }
 
     [Fact]
-    public async Task GuidProperty_OnChange_RoundTrips()
+    public async Task A_Guid_property_round_trips_on_change()
     {
         var p = new IdentityHolder { Token = Guid.Empty };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.Token)]);
@@ -157,17 +159,18 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task CharProperty_OnChange_AcceptsSingleCharacter()
+    public async Task A_char_property_accepts_a_single_character_on_change()
     {
         var p = new IdentityHolder { Letter = 'a' };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.Letter)]);
+
         await page.ChangeAsync("{\"value\":\"Z\"}");
 
         Assert.Equal('Z', p.Letter);
     }
 
     [Fact]
-    public async Task GuidProperty_InvalidInput_LeavesPriorValue()
+    public async Task Invalid_input_leaves_a_Guid_propertys_prior_value()
     {
         var known = Guid.NewGuid();
         var p = new IdentityHolder { Token = known };
@@ -180,7 +183,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task CharProperty_MultiCharInput_LeavesPriorValue()
+    public async Task Multi_character_input_leaves_a_char_propertys_prior_value()
     {
         var p = new IdentityHolder { Letter = 'a' };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.Letter)]);
@@ -193,7 +196,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task EnumProperty_OnChange_RoundTripsCaseInsensitively()
+    public async Task An_enum_property_round_trips_case_insensitively_on_change()
     {
         var p = new IdentityHolder { Level = Priority.Low };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.Level)]);
@@ -206,7 +209,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task EnumProperty_InvalidInput_LeavesPriorValue()
+    public async Task Invalid_input_leaves_an_enum_propertys_prior_value()
     {
         var p = new IdentityHolder { Level = Priority.High };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.Level)]);
@@ -219,20 +222,22 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task NullableNumericProperty_EmptyInput_SetsNull()
+    public async Task Empty_input_sets_a_nullable_numeric_property_to_null()
     {
         var p = new NumericHolder { OptionalDouble = 9.9 };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.OptionalDouble)]);
+
         await page.ChangeAsync("{\"value\":\"\"}");
 
         Assert.Null(p.OptionalDouble);
     }
 
     [Fact]
-    public async Task NumericProperty_InvalidInput_LeavesPriorValue()
+    public async Task Invalid_input_leaves_a_numeric_propertys_prior_value()
     {
         var p = new NumericHolder { D = 1.5 };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.D)]);
+
         await page.ChangeAsync("{\"value\":\"not-a-number\"}");
 
         // Invalid input (non-empty, unparseable) must NOT silently zero the field — TrySetTyped
@@ -242,10 +247,11 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task NumericProperty_EmptyInput_SetsDefault()
+    public async Task Empty_input_sets_a_numeric_property_to_its_default()
     {
         var p = new NumericHolder { D = 1.5 };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.D)]);
+
         await page.ChangeAsync("{\"value\":\"\"}");
 
         // Empty input on a non-nullable value type clears to default(T) so the user can
@@ -276,18 +282,19 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
     [InlineData(typeof(DateOnly))]
     [InlineData(typeof(TimeOnly))]
     [InlineData(typeof(TimeSpan))]
-    public void EveryPrimitive_ImplementsIParsable(Type t)
+    public void Every_bound_primitive_implements_IParsable(Type t)
     {
         // Pins the precondition the RouteValueParser depends on: every primitive type we
         // claim to bind to must implement IParsable<T>. If a future .NET version drops
         // that interface from one of these, this test catches it immediately.
         var iface = typeof(IParsable<>).MakeGenericType(t);
+
         Assert.True(iface.IsAssignableFrom(t),
             $"{t.Name} no longer implements IParsable<{t.Name}> — RouteValueParser would fall back to null parser.");
     }
 
     [Fact]
-    public void FormatValue_FloatUsesInvariantCulture()
+    public void Floating_values_format_with_the_invariant_culture()
     {
         // Reproduce the comma-decimal locale problem deterministically with a culture switch.
         var saved = CultureInfo.CurrentCulture;

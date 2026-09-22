@@ -5,7 +5,7 @@ namespace Rask.Core.Tests.Live;
 public partial class CrossParentKeyedMoveTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void CrossParentKeyedMove_DoesNotCycle()
+    public void A_keyed_move_across_parents_does_not_cycle()
     {
         var board = new Board();
         var html1 = board.RenderAsLiveRoot();

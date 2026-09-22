@@ -9,7 +9,7 @@ namespace Rask.Server.Tests.WebSockets;
 public class HandlerTimeoutTests
 {
     [Fact]
-    public async Task CooperativeHandler_PastTimeout_IsCancelled_AndMetered_SessionSurvives()
+    public async Task A_cooperative_handler_past_its_timeout_is_cancelled_and_metered_and_the_session_survives()
     {
         CooperativeTimeoutApp.Cancelled = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         try
@@ -33,12 +33,14 @@ public class HandlerTimeoutTests
             // The handler observed cancellation well before its 30 s delay would elapse.
             var observed = await Task.WhenAny(
                 CooperativeTimeoutApp.Cancelled.Task, Task.Delay(TimeSpan.FromSeconds(5)));
+
             Assert.Same(CooperativeTimeoutApp.Cancelled.Task, observed);
             Assert.True(await CooperativeTimeoutApp.Cancelled.Task);
 
             // The timeout was metered, and the session/socket survived.
             var metered = await WaitUntil(
                 () => capture.Counter("rask.handlers.timedout") >= 1, TimeSpan.FromSeconds(2));
+
             Assert.True(metered, "expected rask.handlers.timedout to increment");
             Assert.Equal(WebSocketState.Open, ws.State);
         }

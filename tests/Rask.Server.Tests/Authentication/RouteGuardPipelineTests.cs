@@ -15,9 +15,10 @@ namespace Rask.Server.Tests.Authentication;
 public class RouteGuardPipelineTests
 {
     [Fact]
-    public async Task PublicPage_Anonymous_Returns200()
+    public async Task An_anonymous_visitor_gets_a_public_page_with_200()
     {
         using var host = CreateHost();
+
         var resp = await host.Http.GetAsync("/e2e/public");
 
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
@@ -25,9 +26,10 @@ public class RouteGuardPipelineTests
     }
 
     [Fact]
-    public async Task ProtectedPage_Anonymous_ChallengesToLogin()
+    public async Task An_anonymous_visitor_to_a_protected_page_is_challenged_to_login()
     {
         using var host = CreateHost();
+
         var resp = await host.Http.GetAsync("/e2e/members");
 
         Assert.Equal(HttpStatusCode.Found, resp.StatusCode);
@@ -36,9 +38,10 @@ public class RouteGuardPipelineTests
     }
 
     [Fact]
-    public async Task AdminPage_Anonymous_ChallengesToLogin()
+    public async Task An_anonymous_visitor_to_an_admin_page_is_challenged_to_login()
     {
         using var host = CreateHost();
+
         var resp = await host.Http.GetAsync("/e2e/admin");
 
         Assert.Equal(HttpStatusCode.Found, resp.StatusCode);
@@ -46,7 +49,7 @@ public class RouteGuardPipelineTests
     }
 
     [Fact]
-    public async Task ProtectedPage_Authenticated_Returns200_WithUserName()
+    public async Task A_signed_in_user_gets_a_protected_page_with_200_and_their_name()
     {
         using var host = CreateHost();
         var cookie = await SignInAsync(host, "alice");
@@ -60,7 +63,7 @@ public class RouteGuardPipelineTests
     }
 
     [Fact]
-    public async Task AdminPage_AuthenticatedNonAdmin_IsForbidden()
+    public async Task A_signed_in_non_admin_is_forbidden_from_an_admin_page()
     {
         using var host = CreateHost();
         var cookie = await SignInAsync(host, "alice", "user");
@@ -72,7 +75,7 @@ public class RouteGuardPipelineTests
     }
 
     [Fact]
-    public async Task AdminPage_Admin_Returns200()
+    public async Task An_admin_gets_an_admin_page_with_200()
     {
         using var host = CreateHost();
         var cookie = await SignInAsync(host, "root", "admin");
@@ -84,10 +87,11 @@ public class RouteGuardPipelineTests
     }
 
     [Fact]
-    public async Task SignOut_ClearedCookie_LosesAccess()
+    public async Task Signing_out_clears_the_cookie_and_loses_access()
     {
         using var host = CreateHost();
         var cookie = await SignInAsync(host, "alice");
+
         Assert.Equal(HttpStatusCode.OK, (await GetWithCookieAsync(host, "/e2e/members", cookie)).StatusCode);
 
         var cleared = await SignOutAsync(host); // ctx.SignOutAsync emits an emptied cookie

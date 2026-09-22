@@ -12,7 +12,7 @@ public class SanitizeReturnUrlTests
     [InlineData("/dashboard", "/dashboard")]
     [InlineData("/", "/")]
     [InlineData("/a/b?x=1#frag", "/a/b?x=1#frag")]
-    public void Local_AbsolutePath_PassesThrough(string input, string expected)
+    public void A_local_absolute_path_passes_through(string input, string expected)
         => Assert.Equal(expected, RaskEndpointExtensions.SanitizeReturnUrl(input));
 
     [Theory]
@@ -28,6 +28,6 @@ public class SanitizeReturnUrlTests
     [InlineData("evil.com")] // relative, not rooted
     [InlineData("/foo\r\nSet-Cookie: x")] // control chars
     [InlineData("/foo\tbar")]
-    public void NonLocal_OrMalformed_CollapsesToRoot(string? input)
+    public void A_non_local_or_malformed_url_collapses_to_the_root(string? input)
         => Assert.Equal("/", RaskEndpointExtensions.SanitizeReturnUrl(input));
 }

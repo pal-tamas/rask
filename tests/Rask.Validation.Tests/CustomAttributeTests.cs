@@ -14,7 +14,7 @@ namespace Rask.Validation.Tests;
 public class CustomAttributeTests
 {
     [Fact]
-    public void IsValid_CustomAttribute_AddsMessage_WhenInvalid()
+    public void A_custom_attribute_adds_its_message_when_the_value_is_invalid()
     {
         var m = new Account { Password = "weak" };
         var ctx = RegisterValidator(m);
@@ -27,7 +27,7 @@ public class CustomAttributeTests
     }
 
     [Fact]
-    public void IsValid_CustomAttribute_DoesNotAddMessage_WhenValid()
+    public void A_custom_attribute_adds_no_message_when_the_value_is_valid()
     {
         var m = new Account { Username = "alice", Password = "Strong1Pass", ConfirmPassword = "Strong1Pass" };
         var ctx = RegisterValidator(m);
@@ -37,7 +37,7 @@ public class CustomAttributeTests
     }
 
     [Fact]
-    public void GetValidationResult_CustomAttribute_UsesObjectInstance()
+    public void A_custom_attribute_reads_the_sibling_value_off_the_object_instance()
     {
         // MatchesProperty reads ValidationContext.ObjectInstance to fetch the sibling Password
         // value and compare. With mismatched values the rule must fire on ConfirmPassword.
@@ -53,11 +53,12 @@ public class CustomAttributeTests
         // When they match the rule must NOT fire.
         m.ConfirmPassword = m.Password;
         var ctx2 = RegisterValidator(m);
+
         Assert.True(ctx2.Validate());
     }
 
     [Fact]
-    public void GetValidationResult_CustomAttribute_UsesMemberName_OnFieldPath()
+    public void A_custom_attribute_lands_its_result_on_the_member_name_when_one_field_is_validated()
     {
         // ValidateField sets ValidationContext.MemberName so the attribute can decide which
         // field its result lands on. Assert the message lands on ConfirmPassword only.
@@ -72,7 +73,7 @@ public class CustomAttributeTests
     }
 
     [Fact]
-    public void GetValidationResult_CustomAttribute_CanResolveServices_ViaValidationContext()
+    public void A_custom_attribute_can_resolve_services_through_the_validation_context()
     {
         // [Banned] resolves IBannedWords from ValidationContext.GetService — proves the
         // render-scoped IServiceProvider flows through ValidationContext construction. The
@@ -81,7 +82,6 @@ public class CustomAttributeTests
         // re-enter a render context, just like the production path.
         var sp = new StubServices(new BannedWords("admin", "root"));
         var m = new Account { Username = "admin", Password = "Strong1Pass", ConfirmPassword = "Strong1Pass" };
-
         var ctx = RegisterValidator(m, sp);
 
         ctx.Validate();
@@ -92,7 +92,7 @@ public class CustomAttributeTests
     }
 
     [Fact]
-    public void Validate_NoServiceProvider_StillRuns_AttributeSeesNullGetService()
+    public void With_no_service_provider_validation_still_runs_and_the_attribute_gets_null_services()
     {
         // Outside a live context, GetService returns null. The Banned attribute is defensive
         // (returns Success when the service is missing) so the form must validate as if the

@@ -5,7 +5,7 @@ namespace Rask.Server.Tests.Endpoints;
 public class RuntimeScriptEndpointTests
 {
     [Fact]
-    public async Task Get_RaskJs_ReturnsEmbeddedScriptWithJavaScriptContentType()
+    public async Task The_runtime_script_is_the_embedded_script_with_a_javascript_content_type()
     {
         using var host = RaskTestHost.Create<TestApp>();
 
@@ -18,7 +18,7 @@ public class RuntimeScriptEndpointTests
     }
 
     [Fact]
-    public async Task Get_RaskJs_GatesRaskInvokes_OnHeadAssetLoad()
+    public async Task The_runtime_script_gates_Rask_invokes_on_head_asset_load()
     {
         // Regression: Rask.* invokes must wait for Head-declared external
         // <script src>/<link rel=stylesheet> to load. Without this, a
@@ -38,7 +38,7 @@ public class RuntimeScriptEndpointTests
     }
 
     [Fact]
-    public async Task Get_RaskJs_IncludesTransportAgnosticPwaHelpers()
+    public async Task The_runtime_script_includes_the_transport_agnostic_PWA_helpers()
     {
         // The PWA helpers imported from Rask.Core/Resources/rask-pwa.ts must reach the Server client
         // so IWebPush/INotifications/IBadge/IWakeLock can find them.
@@ -56,7 +56,7 @@ public class RuntimeScriptEndpointTests
     }
 
     [Fact]
-    public async Task Get_RaskJs_ExcludesWasmOnlyHelpers()
+    public async Task The_runtime_script_excludes_the_WASM_only_helpers()
     {
         // Genuinely WASM-only helpers (manifest injection, the low-level device APIs) must NOT ship in the
         // Server client — they need boot behaviour / a hardware channel the WebSocket transport can't give.
@@ -71,7 +71,7 @@ public class RuntimeScriptEndpointTests
     }
 
     [Fact]
-    public async Task Get_RaskJs_IncludesGestureBridgeHelpers()
+    public async Task The_runtime_script_includes_the_gesture_bridge_helpers()
     {
         // The six gesture-bridge helpers moved into the shared rask-api.js so the declarative triggers
         // (FullscreenTrigger / ScreenOrientationTrigger / EyeDropperTrigger / InstallTrigger /

@@ -9,7 +9,7 @@ namespace Rask.Core.Tests.Forms;
 public partial class FormBindingTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void BoundInput_RendersValueFromGetter_AndAutoNamesField()
+    public void A_bound_input_renders_its_value_from_the_getter_and_names_its_field()
     {
         var p = new Person { Name = "Ada", Age = 30 };
         var page = Test.Render(() => Form.Model(p)[
@@ -29,7 +29,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnInput_UpdatesBoundStringField_DuringInputEvent()
+    public async Task An_input_event_updates_a_bound_string_field()
     {
         var p = new Person { Name = "Ada", Age = 30 };
         var page = Test.Render(() => Form.Model(p)[
@@ -46,7 +46,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnChange_UpdatesNumericBoundField_AndMarksTouched()
+    public async Task A_change_event_updates_a_bound_numeric_field_and_marks_it_touched()
     {
         var p = new Person { Name = "Ada", Age = 30 };
         var page = Test.Render(() => Form.Model(p)[
@@ -63,7 +63,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Submit_InvalidModel_CallsOnInvalidSubmit_NotOnValidSubmit()
+    public async Task Submitting_an_invalid_model_calls_OnInvalidSubmit_not_OnValidSubmit()
     {
         var p = new Person { Name = "", Age = 0 };
         var validCalled = 0;
@@ -84,7 +84,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task FormValidate_AsyncOverload_AddsFormLevelMessage_AtSubmit()
+    public async Task The_async_form_Validate_overload_adds_a_form_level_message()
     {
         // Drives Form<TModel>'s async Validate overload: the lambda binds to
         // Func<TModel, CancellationToken, ValueTask<IEnumerable<string>>> with no cast,
@@ -104,6 +104,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
             Input.Bind(() => p.Name),
             Test.EditContextProbe(c => captured = c)
         ]);
+
         Assert.NotNull(captured);
 
         // Force the name to be blank so the async rule produces a message.
@@ -115,7 +116,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Submit_ValidModel_CallsOnValidSubmitWithPopulatedModel()
+    public async Task Submitting_a_valid_model_calls_OnValidSubmit_with_the_populated_model()
     {
         var p = new Person { Name = "Ada", Age = 30 };
         Person? captured = null;
@@ -129,7 +130,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void EditContext_PersistsAcrossRenders_ForSameModel()
+    public void The_EditContext_persists_across_renders_for_the_same_model()
     {
         var p = new Person { Name = "", Age = 30 };
         var captures = new List<EditContext>();
@@ -138,6 +139,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         var page = Test.Render(() => Form.Model(p)[
             Test.EditContextProbe(captures.Add)
         ]);
+
         page.Render();
 
         Assert.Equal(2, captures.Count);
@@ -145,7 +147,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void BoundInput_NullableInt_RendersEmptyValue_WhenNull()
+    public void A_null_nullable_int_renders_an_empty_value()
     {
         var p = new Person { Name = "Ada", Age = 30, OptionalAge = null };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.OptionalAge)]);
@@ -158,7 +160,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void BoundInput_NullableInt_RendersFormattedValue_WhenSet()
+    public void A_set_nullable_int_renders_its_formatted_value()
     {
         var p = new Person { Name = "Ada", Age = 30, OptionalAge = 7 };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.OptionalAge)]);
@@ -169,7 +171,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void BoundInput_NullableDecimal_FormatsInvariantCulture()
+    public void A_nullable_decimal_formats_with_the_invariant_culture()
     {
         var p = new Person { Name = "Ada", Age = 30, Price = 19.95m };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.Price)]);
@@ -181,7 +183,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void BoundInput_NullableDateTime_RendersIsoFormat_WhenSet()
+    public void A_set_nullable_DateTime_renders_in_ISO_format()
     {
         var p = new Person { Name = "Ada", Age = 30, StartedAt = new DateTime(2025, 5, 14, 9, 30, 0) };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.StartedAt)]);
@@ -193,7 +195,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void BoundInput_NullableDateOnly_RendersIsoDate_WhenSet()
+    public void A_set_nullable_DateOnly_renders_an_ISO_date()
     {
         var p = new Person { Name = "Ada", Age = 30, Birthday = new DateOnly(1990, 1, 2) };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.Birthday)]);
@@ -205,7 +207,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnChange_NullableInt_EmptyString_SetsPropertyToNull()
+    public async Task An_empty_change_sets_a_nullable_int_to_null()
     {
         var p = new Person { Name = "Ada", Age = 30, OptionalAge = 7 };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.OptionalAge)]);
@@ -220,7 +222,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnChange_NullableInt_ValidValue_SetsTypedValue()
+    public async Task A_valid_change_sets_a_nullable_int_to_the_typed_value()
     {
         var p = new Person { Name = "Ada", Age = 30, OptionalAge = null };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.OptionalAge)]);
@@ -232,7 +234,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnChange_NullableInt_InvalidValue_LeavesPropertyUnchanged()
+    public async Task An_invalid_change_leaves_a_nullable_int_unchanged()
     {
         var p = new Person { Name = "Ada", Age = 30, OptionalAge = 7 };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.OptionalAge)]);
@@ -246,7 +248,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnChange_NullableDecimal_EmptyString_SetsPropertyToNull()
+    public async Task An_empty_change_sets_a_nullable_decimal_to_null()
     {
         var p = new Person { Name = "Ada", Age = 30, Price = 19.95m };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.Price)]);
@@ -258,7 +260,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnChange_NullableDateTime_EmptyString_SetsPropertyToNull()
+    public async Task An_empty_change_sets_a_nullable_DateTime_to_null()
     {
         var p = new Person { Name = "Ada", Age = 30, StartedAt = new DateTime(2025, 5, 14, 9, 30, 0) };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.StartedAt)]);
@@ -270,7 +272,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnChange_NullableDateOnly_EmptyString_SetsPropertyToNull()
+    public async Task An_empty_change_sets_a_nullable_DateOnly_to_null()
     {
         var p = new Person { Name = "Ada", Age = 30, Birthday = new DateOnly(1990, 1, 2) };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.Birthday)]);
@@ -282,7 +284,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnChange_NullableDecimal_ValidValue_SetsTypedValue()
+    public async Task A_valid_change_sets_a_nullable_decimal_to_the_typed_value()
     {
         var p = new Person { Name = "Ada", Age = 30, Price = null };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.Price)]);
@@ -294,7 +296,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnChange_NullableDateTime_ValidIso_SetsTypedValue()
+    public async Task A_valid_ISO_change_sets_a_nullable_DateTime_to_the_typed_value()
     {
         var p = new Person { Name = "Ada", Age = 30, StartedAt = null };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.StartedAt)]);
@@ -306,7 +308,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnChange_NullableDateOnly_ValidIso_SetsTypedValue()
+    public async Task A_valid_ISO_change_sets_a_nullable_DateOnly_to_the_typed_value()
     {
         var p = new Person { Name = "Ada", Age = 30, Birthday = null };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.Birthday)]);
@@ -318,7 +320,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnChange_NullableEnum_ValidValue_ParsesEnum()
+    public async Task A_valid_change_parses_a_nullable_enum()
     {
         var p = new Person { Name = "Ada", Age = 30, Status = null };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.Status)]);
@@ -330,7 +332,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnChange_NullableEnum_EmptyString_SetsPropertyToNull()
+    public async Task An_empty_change_sets_a_nullable_enum_to_null()
     {
         var p = new Person { Name = "Ada", Age = 30, Status = PersonStatus.Active };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.Status)]);
@@ -342,11 +344,11 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnChange_NonNullableInt_EmptyString_SetsDefault()
+    public async Task An_empty_change_sets_a_non_nullable_int_to_default()
     {
         // Non-nullable value-type bindings (here `int Age`) treat empty input as `default(T)`
         // so the user can clear a number/date/enum input. The sibling nullable test above
-        // (OnChange_NullableInt_EmptyString_SetsPropertyToNull) pins the null path for `int?`.
+        // (An_empty_change_sets_a_nullable_int_to_null) pins the null path for `int?`.
         var p = new Person { Name = "Ada", Age = 30 };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.Age)]);
 
@@ -357,7 +359,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnChange_NonNullableDecimal_EmptyString_SetsDefault()
+    public async Task An_empty_change_sets_a_non_nullable_decimal_to_default()
     {
         var p = new Person { Name = "Ada", Age = 30, Salary = 5000m };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.Salary)]);
@@ -369,7 +371,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnChange_NonNullableDateOnly_EmptyString_SetsDefault()
+    public async Task An_empty_change_sets_a_non_nullable_DateOnly_to_default()
     {
         var p = new Person { Name = "Ada", Age = 30, HireDate = new DateOnly(2020, 6, 1) };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.HireDate)]);
@@ -381,7 +383,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnChange_NonNullableEnum_EmptyString_SetsDefault()
+    public async Task An_empty_change_sets_a_non_nullable_enum_to_default()
     {
         var p = new Person { Name = "Ada", Age = 30, CurrentStatus = PersonStatus.Inactive };
         var page = Test.Render(() => Form.Model(p)[Input.Bind(() => p.CurrentStatus)]);
@@ -393,7 +395,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnInput_NullableString_EmptyInput_SetsPropertyToNull()
+    public async Task Empty_input_sets_a_nullable_string_to_null()
     {
         // For `string?`, BindingHelpers.TrySetTyped reads the NRT annotation off the
         // PropertyInfo via NullabilityInfoContext and treats empty input as null. The
@@ -411,7 +413,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnInput_NonNullableString_EmptyInput_SetsEmptyString()
+    public async Task Empty_input_sets_a_non_nullable_string_to_an_empty_string()
     {
         // Non-nullable `string` keeps the pre-existing semantics — empty input becomes
         // empty string, not null. NullabilityInfoContext reports WriteState == NotNull
@@ -430,7 +432,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Bool_Checkbox_SetsToReportedCheckedState_AndIsSelfCorrecting()
+    public async Task A_bool_checkbox_takes_the_reported_checked_state_and_is_self_correcting()
     {
         // BoolSetHandler (BindingHelpers.cs) sets the model to the checkbox's actual
         // reported state ("true"/"false" from rask.js) rather than flipping a captured
@@ -454,17 +456,21 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         }
 
         await SendAsync("true");
+
         Assert.Equal(true, p.AcceptedTerms);
 
         // Idempotent: re-reporting "true" keeps it true (a blind toggle would flip to false).
         await SendAsync("true");
+
         Assert.Equal(true, p.AcceptedTerms);
 
         await SendAsync("false");
+
         Assert.Equal(false, p.AcceptedTerms);
 
         // Never resurrects null from the UI (HTML checkboxes have no indeterminate state).
         await SendAsync("false");
+
         Assert.Equal(false, p.AcceptedTerms);
         Assert.NotNull(p.AcceptedTerms);
     }

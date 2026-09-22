@@ -35,7 +35,6 @@ public sealed class SqliteRolledBackCommitTests : IDisposable
         // takes in production.
         await using var blocker = await OpenAsync();
         Exec(blocker, "BEGIN EXCLUSIVE;");
-
         await using var contended = await OpenAsync();
         var handle = contended.Handle!;
         raw.sqlite3_busy_timeout(handle, 0);
@@ -62,11 +61,9 @@ public sealed class SqliteRolledBackCommitTests : IDisposable
         // the timeout and surfaces SQLITE_BUSY exactly as before.
         await using var blocker = await OpenAsync();
         Exec(blocker, "BEGIN EXCLUSIVE;");
-
         await using var contended = await OpenAsync();
         var handle = contended.Handle!;
         raw.sqlite3_busy_timeout(handle, 0);
-
         // A deferred BEGIN takes no lock, so the transaction is open while the write below is refused.
         Exec(contended, "BEGIN;");
         Assert.Equal(0, raw.sqlite3_get_autocommit(handle));
@@ -92,7 +89,6 @@ public sealed class SqliteRolledBackCommitTests : IDisposable
         // same report. Both facts are now in the message.
         await using var blocker = await OpenAsync();
         Exec(blocker, "BEGIN EXCLUSIVE;");
-
         await using var contended = await OpenAsync();
         var handle = contended.Handle!;
         raw.sqlite3_busy_timeout(handle, 0);
@@ -117,8 +113,8 @@ public sealed class SqliteRolledBackCommitTests : IDisposable
         // rollback signal on its first pass — the same signal a contended COMMIT raises, injected at the
         // one boundary a test can reach it from, since no SQLite build rolls a commit back on request.
         await using var connection = await OpenAsync();
-
         var invocations = 0;
+
         await connection.InImmediateTransactionAsync(
             new SqliteBusyRetryOptions { Timeout = TimeSpan.FromSeconds(5) },
             async (c, ct) =>
@@ -148,8 +144,8 @@ public sealed class SqliteRolledBackCommitTests : IDisposable
         // The budget is the caller's Timeout measured from entry, not per attempt — otherwise a write
         // path configured for 5 seconds could stall for as long as SQLite kept rolling it back.
         await using var connection = await OpenAsync();
-
         var invocations = 0;
+
         var exception = await Assert.ThrowsAsync<SqliteException>(() =>
             connection.InImmediateTransactionAsync(
                 new SqliteBusyRetryOptions { Timeout = TimeSpan.FromMilliseconds(50) },
@@ -181,8 +177,8 @@ public sealed class SqliteRolledBackCommitTests : IDisposable
         // Microsoft.Data.Sqlite's own retry then re-runs it in autocommit. Re-running the delegate could
         // duplicate durable rows, so this case is surfaced instead.
         await using var connection = await OpenAsync();
-
         var invocations = 0;
+
         var exception = await Assert.ThrowsAsync<SqliteException>(() =>
             connection.InImmediateTransactionAsync(
                 new SqliteBusyRetryOptions { Timeout = TimeSpan.FromSeconds(5) },

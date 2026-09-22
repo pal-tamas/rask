@@ -224,7 +224,7 @@ public sealed class RoundTripTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task AddRaskApiClient_registers_every_generated_client()
+    public async Task Every_generated_client_is_registered_by_AddRaskApiClient()
     {
         var services = new ServiceCollection();
         services.AddSingleton(_host.GetTestClient());

@@ -25,7 +25,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void PureElementComponent_IsCachedAndReleasesElementGraph()
+    public void A_pure_element_component_is_cached_and_releases_its_element_graph()
     {
         var page = new StubComponent(() => Div.Class("page")[Span.Class("v")["static"], Div["x"]]);
         var cache = new SessionRenderCache();
@@ -38,7 +38,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void CleanReRender_ReplaysIdenticalHtmlWithZeroDiff()
+    public void A_clean_rerender_replays_identical_html_with_a_zero_diff()
     {
         var built = 0;
         var page = new StubComponent(() =>
@@ -58,7 +58,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void DirtyReRender_ReWalksAndUpdates()
+    public void A_dirty_rerender_walks_again_and_updates()
     {
         var value = 1;
         var page = new StubComponent(() => Div.Class("page")[Span.Class("v")[value.ToString()]]);
@@ -83,7 +83,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void NestedUserComponent_IsNotCached_SoDescendantsCanUpdate()
+    public void A_nested_user_component_is_not_cached_so_descendants_can_update()
     {
         var inner = new StubComponent(() => Span.Class("inner")["a"]);
         var outer = new StubComponent(() => Div.Class("outer")[inner]);
@@ -101,7 +101,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void CacheableThenNonCacheable_InvalidatesStaleSnapshot()
+    public void Going_from_cacheable_to_non_cacheable_invalidates_the_stale_snapshot()
     {
         // Regression: an async page renders a pure-element "loading" state first (cacheable, element
         // graph released), then re-renders into a component-bearing "loaded" state (not cacheable). The
@@ -171,7 +171,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void HandlerBearingComponent_IsCachedAndReleasesElementGraph()
+    public void A_handler_bearing_component_is_cached_and_releases_its_element_graph()
     {
         // A button per row is what a real data grid looks like, so this shape has to cache like any
         // other pure-element subtree — the handler wiring is reproduced on replay rather than banned.
@@ -187,7 +187,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task ReplayedHandler_StillFires()
+    public async Task A_replayed_handler_still_fires()
     {
         // The failure this guards is a silently dead button: a replay skips the walk, so unless it
         // re-registers the run, the id the browser sends back is absent from the freshly-cleared map.
@@ -210,7 +210,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task ReplayedHandlerOwnedByItsComponent_DirtyMarksThatComponent()
+    public async Task A_replayed_handler_owned_by_its_component_marks_that_component_dirty()
     {
         // The map stores (owner, delegate); the owner is what gets dirty-marked after a dispatch. A
         // replay must carry the resolved owner through, not just the delegate — otherwise the click
@@ -233,7 +233,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task ReplayedSiblings_KeepDistinctHandlerRegistrations()
+    public async Task Replayed_siblings_keep_distinct_handler_registrations()
     {
         // Two replayed siblings must each re-register under their OWN slot ids. A replay that wrote
         // both runs into the same ids would leave the second row's button wired to the first's.
@@ -254,7 +254,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task HandlerInsideAnErrorBoundary_SurvivesTheEnclosingComponentsReplay()
+    public async Task A_handler_inside_an_error_boundary_survives_the_enclosing_components_replay()
     {
         // An ErrorBoundary becomes CurrentParent while its children serialize, so handlers written by
         // the ENCLOSING component but passed through the boundary as children land on the boundary's
@@ -284,7 +284,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task HandlerAppearingUpstream_LeavesACachedSiblingReplayable()
+    public async Task A_handler_appearing_upstream_leaves_a_cached_sibling_replayable()
     {
         // A handler appearing BEFORE a cached sibling used to shift every later id by one, so the
         // sibling's baked ids were no longer what a walk would issue and it had to be re-walked under
@@ -338,7 +338,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
     // key-only change would replay a stale data-rask-key and the diff would match the wrong sibling.
 
     [Fact]
-    public void KeyedPureElementComponent_IsCachedAndReleasesElementGraph()
+    public void A_keyed_pure_element_component_is_cached_and_releases_its_element_graph()
     {
         // A keyed list row is the shape where retained memory matters most (RASK022 wants a Key on
         // every list item), so it has to be cacheable like any other pure-element subtree.
@@ -353,7 +353,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void KeyedComponent_CleanReRender_ReplaysTheKeyIntoTheHtml()
+    public void A_clean_rerender_of_a_keyed_component_replays_the_key_into_the_html()
     {
         var built = 0;
         var page = new StubComponent(() =>
@@ -375,7 +375,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void KeyedComponent_KeyChangedWhileClean_DoesNotStaleReplay()
+    public void A_keyed_component_whose_key_changed_while_clean_does_not_replay_stale()
     {
         // The hazard the snapshot's key check exists for: reassigning Key does not dirty the component
         // (Key is excluded from the propsChanged fold), so a replay here would emit the OLD key and the
@@ -399,7 +399,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void KeyedComponent_KeyRemoved_DoesNotStaleReplay()
+    public void A_keyed_component_whose_key_was_removed_does_not_replay_stale()
     {
         // Same hazard in the null direction: dropping the Key must drop the attribute, not replay it.
         var page = new StubComponent(() => Div.Class("line")[Span["r1"]]) { Key = "k1" };
@@ -414,7 +414,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void ForwardedKeyChangedWhileChildClean_DoesNotStaleReplay()
+    public void A_forwarded_key_changed_while_the_child_is_clean_does_not_replay_stale()
     {
         // Regression: a keyed OUTER whose body is a keyless nested component. Outer arms its key and
         // inner's first element consumes it, so OUTER's key is baked into INNER's cached frames — and
@@ -436,7 +436,7 @@ public partial class CleanSubtreeReplayTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void NestedDescendantStaysLiveAcrossReRenders()
+    public void A_nested_descendant_stays_live_across_rerenders()
     {
         var innerValue = 1;
         var inner = new StubComponent(() => Span.Class("v")[innerValue.ToString()]);

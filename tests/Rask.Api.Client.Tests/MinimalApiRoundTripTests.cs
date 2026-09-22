@@ -87,7 +87,7 @@ public sealed class MinimalApiRoundTripTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task WithName_decides_the_client_method_name()
+    public async Task The_name_set_with_WithName_decides_the_client_method_name()
     {
         // The method is called Untag, not DeleteByIdTag. If the derived name had won this would not
         // compile, which is the assertion.

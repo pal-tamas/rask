@@ -21,7 +21,7 @@ namespace Rask.Server.Tests.Authentication;
 public class RevokedAuthDispatchTests
 {
     [Fact]
-    public async Task Handler_AfterAuthRevoked_IsNotInvoked_AndRedirectsToLogin()
+    public async Task A_handler_is_not_invoked_after_auth_is_revoked_and_the_page_redirects_to_login()
     {
         using var host = CreateHost();
         var counter = host.Server.Services.GetRequiredService<M2Counter>();
@@ -32,7 +32,9 @@ public class RevokedAuthDispatchTests
         var getReq = new HttpRequestMessage(HttpMethod.Get, "/m2/protected");
         getReq.Headers.Add("Cookie", cookie);
         var getResp = await host.Http.SendAsync(getReq);
+
         Assert.Equal(HttpStatusCode.OK, getResp.StatusCode);
+
         var html = await getResp.Content.ReadAsStringAsync();
         var sessionId = MarkupAssert.SessionId(html);
         var handlerId = ExtractHandlerId(html, "bump");
@@ -46,6 +48,7 @@ public class RevokedAuthDispatchTests
         // Sanity: while authorized, the handler runs.
         await ws.SendJsonAsync(new { id = handlerId });
         _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+
         Assert.Equal(1, counter.Count);
 
         // Revoke authorization on the live session (e.g. signed out in another tab / cookie expired

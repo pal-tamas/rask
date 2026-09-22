@@ -22,7 +22,7 @@ public class StagedRefreshTests
     public StagedRefreshTests() => ScopedAssetRegistry.InvalidateAll();
 
     [Fact]
-    public void OpenRefresh_LeavesTheLiveScopeIdsFullyIntact()
+    public void An_open_refresh_leaves_the_live_scope_ids_fully_intact()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".a { color: red; }");
         ScopedAssetRegistry.RegisterCss(typeof(WidgetB), ".b { color: blue; }");
@@ -47,7 +47,7 @@ public class StagedRefreshTests
     }
 
     [Fact]
-    public void OpenRefresh_KeepsServingThePreviousBundle()
+    public void An_open_refresh_keeps_serving_the_previous_bundle()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".a { color: red; }");
         var before = ScopedAssetRegistry.GetBundleHash(AssetKind.Css);
@@ -73,7 +73,7 @@ public class StagedRefreshTests
     }
 
     [Fact]
-    public void OpenRefresh_DoesNotMoveVersion_AndTheSwapMovesItOnce()
+    public void An_open_refresh_does_not_move_the_version_and_the_swap_moves_it_once()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".a { color: red; }");
         var version = ScopedAssetRegistry.Version;
@@ -88,7 +88,7 @@ public class StagedRefreshTests
     }
 
     [Fact]
-    public void EndRefresh_AppliesTheStagedSet()
+    public void Ending_the_refresh_applies_the_staged_set()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".a { color: red; }");
         Assert.True(ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var original));
@@ -102,7 +102,7 @@ public class StagedRefreshTests
     }
 
     [Fact]
-    public void EndRefresh_ReportsChangeForANetDeletion()
+    public void Ending_the_refresh_reports_a_change_for_a_net_deletion()
     {
         // The delete-only edit: a component's .css file is removed, every surviving sibling
         // re-registers byte-identical content. The old path raised no AssetChanged at all here
@@ -121,7 +121,7 @@ public class StagedRefreshTests
     }
 
     [Fact]
-    public void EndRefresh_ReportsNoChangeWhenTheSetIsIdentical()
+    public void Ending_the_refresh_reports_no_change_when_the_set_is_identical()
     {
         // Most hot-reload applies touch no CSS at all. Those must not churn the bundle hash, which
         // is an immutable URL the browser has already cached.
@@ -136,7 +136,7 @@ public class StagedRefreshTests
     }
 
     [Fact]
-    public void EndRefresh_WithoutABegin_IsANoOp()
+    public void Ending_a_refresh_without_a_begin_does_nothing()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".a { color: red; }");
 
@@ -145,7 +145,7 @@ public class StagedRefreshTests
     }
 
     [Fact]
-    public void AfterEndRefresh_RegistrationsResumeLandingLive()
+    public void After_the_refresh_ends_registrations_resume_landing_live()
     {
         // The staging-leak guard. While a refresh is open every registration is diverted, so a
         // coordinator that skipped End (an exception escaping the RefreshAll loop) would silently
@@ -160,7 +160,7 @@ public class StagedRefreshTests
     }
 
     [Fact]
-    public void CssRefresh_LeavesJsUntouched()
+    public void A_css_refresh_leaves_js_untouched()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".a { color: red; }");
         ScopedAssetRegistry.RegisterJs(typeof(WidgetA), "export function f(){}");
@@ -173,7 +173,7 @@ public class StagedRefreshTests
     }
 
     [Fact]
-    public void JsRefresh_LeavesCssUntouched()
+    public void A_js_refresh_leaves_css_untouched()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".a { color: red; }");
         ScopedAssetRegistry.RegisterJs(typeof(WidgetA), "export function f(){}");
@@ -186,7 +186,7 @@ public class StagedRefreshTests
     }
 
     [Fact]
-    public void UnregisterDuringRefresh_DropsFromTheStagedSetOnly()
+    public void Unregistering_during_a_refresh_drops_from_the_staged_set_only()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".a { color: red; }");
 
@@ -202,7 +202,7 @@ public class StagedRefreshTests
     }
 
     [Fact]
-    public void EndRefresh_LeavesNoStaleRefcountsBehind()
+    public void Ending_the_refresh_leaves_no_stale_refcounts_behind()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".a { color: red; }");
         ScopedAssetRegistry.RegisterCss(typeof(WidgetB), ".b { color: blue; }");

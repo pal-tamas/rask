@@ -63,7 +63,7 @@ public sealed class DeployOpsTests
     }
 
     [Fact]
-    public void ParseStatusRows_reads_the_listing_and_skips_malformed_lines()
+    public void The_status_listing_is_read_and_malformed_lines_are_skipped()
     {
         var rows = DeployCommand.ParseStatusRows(
             "shop-blue\tshop\tshop.example.com\tblue\tUp 2 hours\t\n"

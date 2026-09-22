@@ -9,13 +9,29 @@ using Rask.Wasm;
 namespace Rask.Wasm.Tests.Hosting;
 
 // Where a prerendered page lands, and why prerendering has to be asked for rather than inferred.
-// Serialised because PrerenderingIsOffUnlessItIsAskedFor asserts a process-wide environment variable
+// Serialised because Prerendering_is_off_unless_it_is_asked_for asserts a process-wide environment variable
 // is unset, and PrerenderBatteryWiringTests sets it.
 [Collection("RaskPrerenderEnvironment")]
-public class WasmPrerenderTests
+public class WasmPrerenderTests : IDisposable
 {
+    // Each test files its routes in the process-wide RouteRegistry under its own name, and several of them
+    // register the same "/about". Left behind, those routes reach whichever test runs next — and xUnit orders
+    // tests by a hash of the name, so a rename was enough to make one of them see "/about" seven times. Every
+    // test's group is emptied after it, so none sees another's. Interned, because a group is matched by
+    // REFERENCE and each test keyed its group with a nameof literal.
+    public void Dispose()
+    {
+        foreach (var test in typeof(WasmPrerenderTests).GetMethods())
+        {
+            if (test.IsDefined(typeof(FactAttribute), inherit: true))
+            {
+                RouteRegistry.Replace(string.Intern(test.Name), []);
+            }
+        }
+    }
+
     [Fact]
-    public void TheRootGoesToTheDirectorysOwnIndex()
+    public void The_root_goes_to_the_directorys_own_index()
     {
         Assert.Equal(
             Path.Combine("out", "index.html"),
@@ -25,7 +41,7 @@ public class WasmPrerenderTests
     [Theory]
     [InlineData("/about", "about")]
     [InlineData("/guides/intro", "guides/intro")]
-    public void EveryOtherRouteGetsADirectoryOfItsOwn(string route, string expectedDirectory)
+    public void Every_other_route_gets_a_directory_of_its_own(string route, string expectedDirectory)
     {
         // Directory-per-route rather than about.html, so a static host serves the page at the URL the
         // app routes to — no extension in it, and no per-host rewrite rule to configure. Getting this
@@ -36,7 +52,7 @@ public class WasmPrerenderTests
     }
 
     [Fact]
-    public void ARouteWithATrailingSlashLandsInTheSamePlaceAsOneWithout()
+    public void A_route_with_a_trailing_slash_lands_in_the_same_place_as_one_without()
     {
         Assert.Equal(
             WasmPrerender.OutputPathFor("out", "/about"),
@@ -44,14 +60,14 @@ public class WasmPrerenderTests
     }
 
     [Fact]
-    public async Task ItWritesAPageForEveryPrerenderableRouteAndSkipsTheRest()
+    public async Task It_writes_a_page_for_every_prerenderable_route_and_skips_the_rest()
     {
         // The end-to-end shape: routes in, files on disk. Called directly rather than through the
         // environment variable, because that variable is process-global and this assembly runs its
         // classes in parallel — the same race that made the diagnostics-sink tests flaky.
         var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
 
-        RouteRegistry.Replace(nameof(ItWritesAPageForEveryPrerenderableRouteAndSkipsTheRest), [
+        RouteRegistry.Replace(nameof(It_writes_a_page_for_every_prerenderable_route_and_skips_the_rest), [
             new RouteRegistration(typeof(Home), "/", null),
             new RouteRegistration(typeof(Home), "/about", null),
             new RouteRegistration(typeof(Home), "/products/{id}", null),
@@ -88,14 +104,14 @@ public class WasmPrerenderTests
     }
 
     [Fact]
-    public async Task APageThatThrowsIsNotWritten()
+    public async Task A_page_that_throws_is_not_written()
     {
         // A root boundary renders an error document, which is perfectly ordinary HTML — writing it
         // would publish an error page under the route's own name and nothing would say so. The bundle
         // still serves the route at runtime, so skipping loses nothing.
         var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
 
-        RouteRegistry.Replace(nameof(APageThatThrowsIsNotWritten), [
+        RouteRegistry.Replace(nameof(A_page_that_throws_is_not_written), [
             new RouteRegistration(typeof(Broken), "/broken", null),
         ]);
 
@@ -116,7 +132,7 @@ public class WasmPrerenderTests
     }
 
     [Fact]
-    public async Task AnAppCanSupplyThePathsAParameterisedRouteExpandsTo()
+    public async Task An_app_can_supply_the_paths_a_parameterised_route_expands_to()
     {
         // The gap this closes: a docs site's /guides/{slug} is ONE route and eighty pages, and the pass
         // cannot know the slugs. Without a way to say, the whole of a site's content ships to a crawler
@@ -124,7 +140,7 @@ public class WasmPrerenderTests
         // whose only symptom is a small sitemap.
         var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
 
-        RouteRegistry.Replace(nameof(AnAppCanSupplyThePathsAParameterisedRouteExpandsTo), [
+        RouteRegistry.Replace(nameof(An_app_can_supply_the_paths_a_parameterised_route_expands_to), [
             new RouteRegistration(typeof(Home), "/", null),
             new RouteRegistration(typeof(Home), "/guides/{slug}", null),
         ]);
@@ -148,14 +164,14 @@ public class WasmPrerenderTests
     }
 
     [Fact]
-    public async Task ASuppliedPathThatIsAlreadyALiteralRouteIsNotRenderedTwice()
+    public async Task A_supplied_path_that_is_already_a_literal_route_is_not_rendered_twice()
     {
         // Two registrations naming the same page is a mistake with no error attached: the second render
         // simply overwrites the first, and the only trace is a URL listed twice in the sitemap — which a
         // crawler reads as a malformed file rather than as a duplicate.
         var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
 
-        RouteRegistry.Replace(nameof(ASuppliedPathThatIsAlreadyALiteralRouteIsNotRenderedTwice), [
+        RouteRegistry.Replace(nameof(A_supplied_path_that_is_already_a_literal_route_is_not_rendered_twice), [
             new RouteRegistration(typeof(Home), "/about", null),
         ]);
 
@@ -189,13 +205,13 @@ public class WasmPrerenderTests
     }
 
     [Fact]
-    public async Task ASitemapListsEveryPageThatWasWritten()
+    public async Task A_sitemap_lists_every_page_that_was_written()
     {
         // Absolute URLs, because that is what the sitemap protocol says and a crawler discards a
         // sitemap of relative paths. Nothing in a static publish knows the origin, so the app names it.
         var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
 
-        RouteRegistry.Replace(nameof(ASitemapListsEveryPageThatWasWritten), [
+        RouteRegistry.Replace(nameof(A_sitemap_lists_every_page_that_was_written), [
             new RouteRegistration(typeof(Home), "/", null),
             new RouteRegistration(typeof(Home), "/about", null),
         ]);
@@ -238,18 +254,18 @@ public class WasmPrerenderTests
     // Idempotent, so a supplied path that already carries one does not gain a second.
     [InlineData("/about/", true, "/about/")]
     [InlineData("/about/", false, "/about")]
-    public void ASitemapUrlTakesTheShapeTheHostServes(string path, bool trailingSlash, string expected) =>
+    public void A_sitemap_url_takes_the_shape_the_host_serves(string path, bool trailingSlash, string expected) =>
         Assert.Equal(expected, WasmPrerender.SiteUrlPath(path, trailingSlash));
 
     [Fact]
-    public async Task AHostThatStripsTheSlashGetsUrlsWithoutOne()
+    public async Task A_host_that_strips_the_slash_gets_urls_without_one()
     {
         // Netlify and Cloudflare Pages normalise the other way. Whichever way a host goes, naming the
         // other form points every URL in the sitemap at a redirect — so this is a stated choice rather
         // than a convention the build guesses at.
         var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
 
-        RouteRegistry.Replace(nameof(AHostThatStripsTheSlashGetsUrlsWithoutOne), [
+        RouteRegistry.Replace(nameof(A_host_that_strips_the_slash_gets_urls_without_one), [
             new RouteRegistration(typeof(Home), "/about", null),
         ]);
 
@@ -279,7 +295,7 @@ public class WasmPrerenderTests
     [Theory]
     [InlineData(null, "/where/")]
     [InlineData("false", "/where")]
-    public async Task APageRendersThePathTheBrowserWillReport(string? trailingSlash, string expected)
+    public async Task A_page_renders_the_path_the_browser_will_report(string? trailingSlash, string expected)
     {
         // The page is written to where/index.html, which GitHub Pages serves at /where/ — so once the bundle
         // boots, RouteState.Path is "/where/". A prerender that rendered the bare "/where" disagreed with its
@@ -288,7 +304,7 @@ public class WasmPrerenderTests
         // one of their routes puts that path in their plan twice.
         var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
 
-        RouteRegistry.Replace(nameof(APageRendersThePathTheBrowserWillReport), [
+        RouteRegistry.Replace(nameof(A_page_renders_the_path_the_browser_will_report), [
             new RouteRegistration(typeof(PathPrinter), "/where", null),
         ]);
 
@@ -313,14 +329,14 @@ public class WasmPrerenderTests
     }
 
     [Fact]
-    public async Task ARouteThatWasNotWrittenStaysOutOfTheSitemap()
+    public async Task A_route_that_was_not_written_stays_out_of_the_sitemap()
     {
         // The claim that makes the sitemap worth having: it is built from what reached disk, not from
         // the route table. A skipped route still ANSWERS — with the boot shell — so listing it points a
         // crawler at exactly the blank page prerendering exists to stop it seeing.
         var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
 
-        RouteRegistry.Replace(nameof(ARouteThatWasNotWrittenStaysOutOfTheSitemap), [
+        RouteRegistry.Replace(nameof(A_route_that_was_not_written_stays_out_of_the_sitemap), [
             new RouteRegistration(typeof(BrokenOnOneRoute), "/fine", null),
             new RouteRegistration(typeof(BrokenOnOneRoute), "/broken", null),
         ]);
@@ -363,11 +379,11 @@ public class WasmPrerenderTests
     [InlineData("<head><link href=\"https://x.test/list\" rel=\"canonical\"></head>", "/list", true)]
     // A trailing slash is not a different page: a static host serves both from the same file.
     [InlineData("<head><link href=\"https://x.test/list/\" rel=\"canonical\"></head>", "/list", true)]
-    public void ASitemapListsOnlyTheUrlsThatClaimToBeAPage(string html, string path, bool listed) =>
+    public void A_sitemap_lists_only_the_urls_that_claim_to_be_a_page(string html, string path, bool listed) =>
         Assert.Equal(listed, WasmPrerender.ListedInSitemap(html, path));
 
     [Fact]
-    public void ACanonicalIsReadFromItsOwnTagAndNotANeighbours()
+    public void A_canonical_is_read_from_its_own_tag_and_not_a_neighbours()
     {
         // The bug a looser reader has: scanning for rel="canonical" and then for the next href="…"
         // picks up the FOLLOWING link, so a page whose canonical is written rel-first silently
@@ -401,11 +417,11 @@ public class WasmPrerenderTests
     // A different property, and no date at all: nothing to say, so nothing said.
     [InlineData("<head><meta property=\"og:updated_time\" content=\"2026-09-10\"></head>", null)]
     [InlineData("<head><title>x</title></head>", null)]
-    public void ALastmodIsReadOffThePagesOwnModifiedTime(string html, string? expected) =>
+    public void A_lastmod_is_read_off_the_pages_own_modified_time(string html, string? expected) =>
         Assert.Equal(expected, WasmPrerender.LastModified(html));
 
     [Fact]
-    public void AModifiedTimeIsReadFromItsOwnTagAndNotANeighbours()
+    public void A_modified_time_is_read_from_its_own_tag_and_not_a_neighbours()
     {
         // The same trap as the canonical reader: a tag with no content followed by one with a date must not
         // lend the first one the second one's date.
@@ -416,13 +432,13 @@ public class WasmPrerenderTests
     }
 
     [Fact]
-    public async Task ASitemapCarriesTheDateAPageStatesAndNoneForAPageThatStatesNone()
+    public async Task A_sitemap_carries_the_date_a_page_states_and_none_for_a_page_that_states_none()
     {
         // The page is the one place its date is stated. A page with none gets a <url> with no <lastmod> —
         // never the time of the publish, which would mark every URL changed on every deploy.
         var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
 
-        RouteRegistry.Replace(nameof(ASitemapCarriesTheDateAPageStatesAndNoneForAPageThatStatesNone), [
+        RouteRegistry.Replace(nameof(A_sitemap_carries_the_date_a_page_states_and_none_for_a_page_that_states_none), [
             new RouteRegistration(typeof(DatedOnOneRoute), "/dated", null),
             new RouteRegistration(typeof(DatedOnOneRoute), "/plain", null),
         ]);
@@ -453,7 +469,7 @@ public class WasmPrerenderTests
     }
 
     [Fact]
-    public void APageWithNoRobotsMetaIsIndexable()
+    public void A_page_with_no_robots_meta_is_indexable()
     {
         // The negative control for IsNoIndex. A reader that matched too loosely — on the word "noindex"
         // anywhere in the document, say — would drop every page that DOCUMENTS the tag, which on this
@@ -464,13 +480,13 @@ public class WasmPrerenderTests
     }
 
     [Fact]
-    public async Task NoOriginMeansNoSitemapRatherThanAGuessedOne()
+    public async Task No_origin_means_no_sitemap_rather_than_a_guessed_one()
     {
         // A domain guessed into a published file is worse than no sitemap: it is wrong on every host
         // but one, and nothing about the output says it was invented.
         var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
 
-        RouteRegistry.Replace(nameof(NoOriginMeansNoSitemapRatherThanAGuessedOne), [
+        RouteRegistry.Replace(nameof(No_origin_means_no_sitemap_rather_than_a_guessed_one), [
             new RouteRegistration(typeof(Home), "/", null),
         ]);
 
@@ -493,13 +509,13 @@ public class WasmPrerenderTests
     }
 
     [Fact]
-    public async Task RobotsPointsAtTheSitemap_ButNeverOverwritesTheAppsOwn()
+    public async Task Robots_points_at_the_sitemap_but_never_overwrites_the_apps_own()
     {
         // robots.txt has real consequences — a wrong one delists a site — so an author who shipped one
         // has said something this pass has no business editing.
         var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
 
-        RouteRegistry.Replace(nameof(RobotsPointsAtTheSitemap_ButNeverOverwritesTheAppsOwn), [
+        RouteRegistry.Replace(nameof(Robots_points_at_the_sitemap_but_never_overwrites_the_apps_own), [
             new RouteRegistration(typeof(Home), "/", null),
         ]);
 
@@ -513,6 +529,7 @@ public class WasmPrerenderTests
                 services.BuildServiceProvider(), dir, TimeSpan.FromSeconds(5));
 
             var written = await File.ReadAllTextAsync(Path.Combine(dir, "robots.txt"));
+
             Assert.Contains("Sitemap: https://example.com/sitemap.xml", written, StringComparison.Ordinal);
 
             // Now the app's own, on a second pass over the same directory.
@@ -532,7 +549,7 @@ public class WasmPrerenderTests
     }
 
     [Fact]
-    public void APathBaseFromTheBuildReachesTheRenderedUrls()
+    public void A_path_base_from_the_build_reaches_the_rendered_urls()
     {
         // A browser boot reads the prefix off the document's <base href>. A prerender pass has no
         // document, so without the build saying, every PathBase-prefixed URL is baked against an empty
@@ -558,7 +575,7 @@ public class WasmPrerenderTests
     }
 
     [Fact]
-    public void AnExplicitPathBaseIsNotOverruledByTheBuild()
+    public void An_explicit_path_base_is_not_overruled_by_the_build()
     {
         // A host configured with an explicit PathBase in Program.cs has said something more specific
         // than a publish flag. This matches the browser boot, where an explicit value also wins over
@@ -581,7 +598,7 @@ public class WasmPrerenderTests
     }
 
     [Fact]
-    public void PrerenderingIsOffUnlessItIsAskedFor()
+    public void Prerendering_is_off_unless_it_is_asked_for()
     {
         // It cannot be inferred from a non-browser target framework: this assembly builds for net10.0
         // for its own tests, and those call RunAsync expecting a boot. Inferring it would turn every
@@ -591,7 +608,7 @@ public class WasmPrerenderTests
     }
 
     [Fact]
-    public async Task APageWrittenBesideABootShellIsSplicedIntoItRatherThanOverIt()
+    public async Task A_page_written_beside_a_boot_shell_is_spliced_into_it_rather_than_over_it()
     {
         // The gap every other test in this file walked past. They render into an EMPTY temp directory,
         // which is the one arrangement where there is no shell to destroy — so a pass that overwrote
@@ -600,7 +617,7 @@ public class WasmPrerenderTests
         var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(dir);
 
-        RouteRegistry.Replace(nameof(APageWrittenBesideABootShellIsSplicedIntoItRatherThanOverIt), [
+        RouteRegistry.Replace(nameof(A_page_written_beside_a_boot_shell_is_spliced_into_it_rather_than_over_it), [
             new RouteRegistration(typeof(Home), "/", null),
             new RouteRegistration(typeof(Home), "/about", null),
         ]);
@@ -642,7 +659,7 @@ public class WasmPrerenderTests
     }
 
     [Fact]
-    public async Task TheShellIsReadOnceSoTheRootPageIsNotUsedAsTheNextPagesShell()
+    public async Task The_shell_is_read_once_so_the_root_page_is_not_used_as_the_next_pages_shell()
     {
         // The root route's output IS index.html — the same file the shell is read from. Reading it per
         // page would hand page two a shell that already contains page one's markup, and every page
@@ -650,7 +667,7 @@ public class WasmPrerenderTests
         var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(dir);
 
-        RouteRegistry.Replace(nameof(TheShellIsReadOnceSoTheRootPageIsNotUsedAsTheNextPagesShell), [
+        RouteRegistry.Replace(nameof(The_shell_is_read_once_so_the_root_page_is_not_used_as_the_next_pages_shell), [
             new RouteRegistration(typeof(Home), "/", null),
             new RouteRegistration(typeof(Home), "/about", null),
         ]);
@@ -682,7 +699,7 @@ public class WasmPrerenderTests
     }
 
     [Fact]
-    public async Task TheUntouchedShellIsKeptAsANeutralFallbackForRoutesThatWereNotPrerendered()
+    public async Task The_untouched_shell_is_kept_as_a_neutral_fallback_for_routes_that_were_not_prerendered()
     {
         // #974. Prerendering breaks deep links to un-prerenderable routes by building the very thing
         // meant to help: the root route's output IS index.html, so after this pass the file a static
@@ -692,7 +709,7 @@ public class WasmPrerenderTests
         var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(dir);
 
-        RouteRegistry.Replace(nameof(TheUntouchedShellIsKeptAsANeutralFallbackForRoutesThatWereNotPrerendered), [
+        RouteRegistry.Replace(nameof(The_untouched_shell_is_kept_as_a_neutral_fallback_for_routes_that_were_not_prerendered), [
             new RouteRegistration(typeof(Home), "/", null),
         ]);
 
@@ -735,7 +752,7 @@ public class WasmPrerenderTests
     }
 
     [Fact]
-    public async Task NoBootShellMeansNoFallbackIsInvented()
+    public async Task No_boot_shell_means_no_fallback_is_invented()
     {
         // With no shell to copy there is nothing neutral to write, and writing a whole prerendered
         // document as 404.html would be worse than writing none: a static host would serve the home
@@ -744,7 +761,7 @@ public class WasmPrerenderTests
         var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(dir);
 
-        RouteRegistry.Replace(nameof(NoBootShellMeansNoFallbackIsInvented), [
+        RouteRegistry.Replace(nameof(No_boot_shell_means_no_fallback_is_invented), [
             new RouteRegistration(typeof(Home), "/", null),
         ]);
 
@@ -765,7 +782,7 @@ public class WasmPrerenderTests
     }
 
     [Fact]
-    public async Task ItsOwnRobotsIsRewrittenRatherThanMistakenForTheApps()
+    public async Task Its_own_robots_is_rewritten_rather_than_mistaken_for_the_apps()
     {
         // The same family as #1036, quieter: the second publish into a directory finds the FIRST
         // publish's robots.txt, and "a robots.txt exists" was read as "the author shipped one". So an
@@ -773,7 +790,7 @@ public class WasmPrerenderTests
         // sitemap — with the log saying the author had asked for it.
         var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
 
-        RouteRegistry.Replace(nameof(ItsOwnRobotsIsRewrittenRatherThanMistakenForTheApps), [
+        RouteRegistry.Replace(nameof(Its_own_robots_is_rewritten_rather_than_mistaken_for_the_apps), [
             new RouteRegistration(typeof(Home), "/", null),
         ]);
 
@@ -802,7 +819,7 @@ public class WasmPrerenderTests
     }
 
     [Fact]
-    public async Task PublishingTwiceIntoTheSameDirectoryWritesTheSameBytes()
+    public async Task Publishing_twice_into_the_same_directory_writes_the_same_bytes()
     {
         // #1036. The pass runs AfterTargets="Publish" and writes into the published wwwroot, where the
         // root route's own output IS index.html — the file the shell is read from. Publish twice into
@@ -819,7 +836,7 @@ public class WasmPrerenderTests
         var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(dir);
 
-        RouteRegistry.Replace(nameof(PublishingTwiceIntoTheSameDirectoryWritesTheSameBytes), [
+        RouteRegistry.Replace(nameof(Publishing_twice_into_the_same_directory_writes_the_same_bytes), [
             new RouteRegistration(typeof(HeadContributor), "/", null),
             new RouteRegistration(typeof(HeadContributor), "/about", null),
         ]);
@@ -866,7 +883,7 @@ public class WasmPrerenderTests
     }
 
     [Fact]
-    public async Task ARenderedPageWithNoPristineShellBesideItIsRefusedRatherThanMergedInto()
+    public async Task A_rendered_page_with_no_pristine_shell_beside_it_is_refused_rather_than_merged_into()
     {
         // The other half of #1036: the recovery reads the untouched shell the pass keeps at 404.html,
         // and a directory that has the rendered index.html but not that copy has nothing to recover
@@ -876,7 +893,7 @@ public class WasmPrerenderTests
         var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(dir);
 
-        RouteRegistry.Replace(nameof(ARenderedPageWithNoPristineShellBesideItIsRefusedRatherThanMergedInto), [
+        RouteRegistry.Replace(nameof(A_rendered_page_with_no_pristine_shell_beside_it_is_refused_rather_than_merged_into), [
             new RouteRegistration(typeof(Home), "/", null),
         ]);
 

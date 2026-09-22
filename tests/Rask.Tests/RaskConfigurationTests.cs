@@ -141,6 +141,7 @@ public sealed class RaskConfigurationTests
         });
 
         var error = Assert.Throws<OptionsValidationException>(() => built.Services.GetRequiredService<WebPushOptions>());
+
         Assert.Contains("Subject", error.Message, StringComparison.Ordinal);
     }
 

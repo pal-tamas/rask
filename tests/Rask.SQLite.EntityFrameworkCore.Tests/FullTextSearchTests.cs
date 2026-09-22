@@ -99,7 +99,7 @@ public sealed class FullTextSearchTests : IDisposable
     }
 
     [Fact]
-    public async Task Search_composes_with_Where_Skip_Take_and_Count()
+    public async Task A_search_still_composes_with_Where_and_Skip_and_Take_and_Count()
     {
         await using var db = await SeededAsync();
 
@@ -461,7 +461,7 @@ public sealed class FullTextSearchTests : IDisposable
     }
 
     [Fact]
-    public async Task The_index_survives_VACUUM()
+    public async Task The_full_text_index_survives_a_VACUUM()
     {
         await using var db = await SeededAsync();
 

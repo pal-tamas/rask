@@ -30,6 +30,7 @@ public sealed class DbContextLogStoreTests
 
             // Fifteen flush intervals of nothing to write but whatever the store logged about itself.
             await Task.Delay(TimeSpan.FromMilliseconds(300));
+
             Assert.Equal(1, await harness.Store.CountAsync());
             Assert.Equal(["App.Checkout"], await harness.Store.CategoriesAsync());
 
@@ -83,8 +84,8 @@ public sealed class DbContextLogStoreTests
         services.AddDbContextFactory<UnmappedDbContext>(o => o.UseSqlite("Data Source=:memory:"));
         services.AddRaskLogging<UnmappedDbContext>();
         await using var provider = services.BuildServiceProvider();
-
         var check = provider.GetServices<IHostedService>().OfType<LogsModelCheck<UnmappedDbContext>>().Single();
+
         var error = await Assert.ThrowsAsync<InvalidOperationException>(() => check.StartAsync(CancellationToken.None));
 
         Assert.Contains("modelBuilder.AddRaskLogging();", error.Message, StringComparison.Ordinal);
@@ -133,6 +134,7 @@ public sealed class DbContextLogStoreTests
     public void Registering_twice_captures_each_entry_once_and_checks_the_model_once()
     {
         var services = new ServiceCollection();
+
         services.AddRaskLogging<LogTestDbContext>();
         services.AddRaskLogging<LogTestDbContext>();
 

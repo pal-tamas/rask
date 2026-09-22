@@ -5,7 +5,7 @@ namespace Rask.Cli.Tests;
 public sealed class InfoCommandTests
 {
     [Fact]
-    public void FormatReport_lists_each_field()
+    public void The_info_report_lists_each_field()
     {
         var report = InfoCommand.FormatReport("1.2.3", "10.0.201", "macOS 26.5");
 
@@ -17,7 +17,7 @@ public sealed class InfoCommandTests
     }
 
     [Fact]
-    public void FormatReport_reports_missing_sdk()
+    public void The_info_report_says_when_the_sdk_is_missing()
     {
         var report = InfoCommand.FormatReport("1.0.0", sdkVersion: null, "Linux");
 

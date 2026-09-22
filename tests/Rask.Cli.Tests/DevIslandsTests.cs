@@ -76,6 +76,7 @@ public class DevIslandsTests
         Assert.False(DevTarget.Detect(fs, "/app", null)!.HasIslands);
 
         fs.Seed("/app/Features/Home/Home.cs", "");
+
         Assert.True(DevTarget.Detect(fs, "/app", null)!.HasIslands);
     }
 

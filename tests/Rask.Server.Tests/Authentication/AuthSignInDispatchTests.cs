@@ -13,7 +13,7 @@ namespace Rask.Server.Tests.Authentication;
 public class AuthSignInDispatchTests
 {
     [Fact]
-    public async Task SignInHandler_EmitsAuthBlockAndHistoryReplace()
+    public async Task A_sign_in_handler_emits_an_auth_block_and_a_history_replace()
     {
         using var host = CreateHost();
         var initial = await host.Http.GetAsync("/start");
@@ -40,7 +40,7 @@ public class AuthSignInDispatchTests
     }
 
     [Fact]
-    public async Task RedeemThenReconnect_AppliesNewIdentity()
+    public async Task Redeeming_then_reconnecting_applies_the_new_identity()
     {
         using var host = CreateHost();
         var initial = await host.Http.GetAsync("/start");
@@ -58,6 +58,7 @@ public class AuthSignInDispatchTests
 
             await ws.SendJsonAsync(new { id = signInHandlerId });
             var text = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+
             Assert.NotNull(text);
 
             using var doc = JsonDocument.Parse(text!);
@@ -69,6 +70,7 @@ public class AuthSignInDispatchTests
             var redeem = await host.Http.PostAsJsonAsync(
                 "/_rask/auth/redeem",
                 new { ticket, session = sessionId });
+
             Assert.Equal(HttpStatusCode.OK, redeem.StatusCode);
 
             // Drop the WS — leaves the session in the grace window.
@@ -90,6 +92,7 @@ public class AuthSignInDispatchTests
         using var ws2 = await wsClient.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws2.SendJsonAsync(new { type = "hello", session = sessionId });
         var afterReconnect = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+
         Assert.NotNull(afterReconnect);
 
         // The reconnect render reflects the redeemed identity. Payload may be either a
@@ -103,7 +106,7 @@ public class AuthSignInDispatchTests
     }
 
     [Fact]
-    public async Task SuppressEvents_DropsClicksAfterAuthEmit()
+    public async Task Clicks_after_the_auth_emit_are_suppressed()
     {
         using var host = CreateHost();
         var initial = await host.Http.GetAsync("/start");
@@ -121,6 +124,7 @@ public class AuthSignInDispatchTests
         // Now the session is in suppressed mode. A second click should produce no payload.
         await ws.SendJsonAsync(new { id = signInHandlerId });
         var second = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
+
         Assert.Null(second);
     }
 

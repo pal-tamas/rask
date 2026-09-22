@@ -14,7 +14,7 @@ public partial class RaskTestTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_ShowsInitialMarkupAndWiresHandler()
+    public void Rendering_shows_the_initial_markup_and_wires_the_handler()
     {
         var page = Test.Render(new Counter());
 
@@ -24,21 +24,24 @@ public partial class RaskTestTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task ClickAsync_DispatchesHandlerAndReRendersWithNewState()
+    public async Task A_click_dispatches_the_handler_and_rerenders_with_the_new_state()
     {
         var page = Test.Render(new Counter());
+
         Assert.Contains("Count: 0", page.Html);
 
         var afterOne = await page.ClickAsync();
+
         Assert.Contains("Count: 1", afterOne);
 
         // State persists across invocations on the same rendered component.
         await page.ClickAsync();
+
         Assert.Contains("Count: 2", page.Html);
     }
 
     [Fact]
-    public async Task InvokeAsync_ByHandlerId_Works()
+    public async Task InvokeAsync_by_handler_id_runs_the_handler()
     {
         var page = Test.Render(new Counter());
         var clickId = page.HandlerId("click")!;
@@ -49,7 +52,7 @@ public partial class RaskTestTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task InvokeAsync_UnknownId_Throws()
+    public async Task InvokeAsync_throws_on_an_unknown_id()
     {
         var page = Test.Render(new Counter());
 
@@ -69,7 +72,7 @@ public partial class RaskTestTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task InvokeAsync_WithPayload_PassesEventArgsToHandler()
+    public async Task InvokeAsync_with_a_payload_passes_the_event_args_to_the_handler()
     {
         var page = Test.Render(new NameEcho());
         var inputId = page.HandlerId("input")!;
@@ -80,7 +83,7 @@ public partial class RaskTestTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task InputAsync_ResolvesTheInputHandlerAndPassesTheValue()
+    public async Task InputAsync_resolves_the_input_handler_and_passes_the_value()
     {
         var page = Test.Render(new NameEcho());
 
@@ -90,7 +93,7 @@ public partial class RaskTestTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task InvokeAsync_InvalidJson_ThrowsArgumentException()
+    public async Task InvokeAsync_with_invalid_json_throws_an_ArgumentException()
     {
         var page = Test.Render(new Counter());
         var id = page.HandlerId("click")!;
@@ -105,7 +108,7 @@ public partial class RaskTestTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Attr_ShortName_DoesNotMatchInsideLongerAttribute()
+    public void A_short_attribute_name_does_not_match_inside_a_longer_attribute()
     {
         var page = Test.Render(new Labelled());
 

@@ -64,6 +64,7 @@ public partial class HandlerIdentityTests : global::Rask.Core.RaskMarkup
 
         Assert.Equal(first, second);
         Assert.False(page.IsCleanSubtreeCachedForTest, "a page holding an island must stay on the walk path");
+
         var id = CallbackIdIn(second);
         Assert.True(
             await root.TryInvokeHandlerAsync(id, ExternalPayload),

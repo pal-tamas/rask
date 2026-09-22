@@ -14,7 +14,7 @@ namespace Rask.Server.Tests.Security;
 public class WebSocketOriginTests
 {
     [Fact]
-    public async Task CrossOriginHandshake_IsRejected()
+    public async Task A_cross_origin_handshake_is_rejected()
     {
         using var host = RaskTestHost.Create<TestApp>();
         host.WebSockets.ConfigureRequest = req => req.Headers["Origin"] = "http://evil.example";
@@ -26,13 +26,14 @@ public class WebSocketOriginTests
     }
 
     [Fact]
-    public async Task SameOriginHandshake_Succeeds()
+    public async Task A_same_origin_handshake_succeeds()
     {
         using var host = RaskTestHost.Create<TestApp>();
         var origin = new Uri(host.Server.BaseAddress, "/").GetLeftPart(UriPartial.Authority);
         host.WebSockets.ConfigureRequest = req => req.Headers["Origin"] = origin;
 
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
+
         Assert.Equal(WebSocketState.Open, ws.State);
     }
 }

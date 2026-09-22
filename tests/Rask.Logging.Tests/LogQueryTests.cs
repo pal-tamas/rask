@@ -13,7 +13,7 @@ public sealed class DbContextStoreLogQueryTests() : LogQueryContract(LogStoreKin
 public abstract class LogQueryContract(LogStoreKind kind)
 {
     [Fact]
-    public async Task FiltersByMinimumLevel()
+    public async Task Search_filters_by_minimum_level()
     {
         await using var harness = await SeededAsync();
 
@@ -24,7 +24,7 @@ public abstract class LogQueryContract(LogStoreKind kind)
     }
 
     [Fact]
-    public async Task FiltersByCategorySubstring()
+    public async Task Search_filters_by_a_category_substring()
     {
         await using var harness = await SeededAsync();
 
@@ -35,7 +35,7 @@ public abstract class LogQueryContract(LogStoreKind kind)
     }
 
     [Fact]
-    public async Task FiltersBySearchAcrossMessageAndException()
+    public async Task Search_text_matches_across_message_and_exception()
     {
         await using var harness = Harness();
         harness.Logger().LogInformation("nothing to see");
@@ -53,7 +53,7 @@ public abstract class LogQueryContract(LogStoreKind kind)
     /// does — PostgreSQL's does not.
     /// </summary>
     [Fact]
-    public async Task SearchIgnoresCase()
+    public async Task Search_text_ignores_case()
     {
         await using var harness = Harness();
         harness.Logger().LogInformation("Disk Nearly FULL");
@@ -67,7 +67,7 @@ public abstract class LogQueryContract(LogStoreKind kind)
     /// filter would quietly match everything — the kind of bug that looks like the filter simply not working.
     /// </summary>
     [Fact]
-    public async Task TreatsLikeWildcardsInTheSearchAsLiteralText()
+    public async Task LIKE_wildcards_in_the_search_are_literal_text()
     {
         await using var harness = Harness();
         harness.Logger().LogInformation("disk at 100% capacity");
@@ -80,7 +80,7 @@ public abstract class LogQueryContract(LogStoreKind kind)
     }
 
     [Fact]
-    public async Task FiltersByTimeRange()
+    public async Task Search_filters_by_a_time_range()
     {
         await using var harness = Harness();
         var start = harness.Clock.GetUtcNow();
@@ -98,7 +98,7 @@ public abstract class LogQueryContract(LogStoreKind kind)
     }
 
     [Fact]
-    public async Task PagesNewestFirstAndReportsTheTotal()
+    public async Task Pages_come_newest_first_and_report_the_total()
     {
         await using var harness = Harness(o => o.QueueCapacity = 100);
         var logger = harness.Logger();
@@ -106,7 +106,6 @@ public abstract class LogQueryContract(LogStoreKind kind)
         {
             logger.LogInformation("entry {Index}", i);
         }
-
         await harness.RunUntilStoredAsync(10);
 
         var first = await harness.Store.SearchAsync(new LogQuery { PageSize = 4 });
@@ -119,7 +118,7 @@ public abstract class LogQueryContract(LogStoreKind kind)
     }
 
     [Fact]
-    public async Task APagePastTheEndIsEmptyButKeepsTheTotal()
+    public async Task A_page_past_the_end_is_empty_but_keeps_the_total()
     {
         await using var harness = await SeededAsync();
 
@@ -130,7 +129,7 @@ public abstract class LogQueryContract(LogStoreKind kind)
     }
 
     [Fact]
-    public async Task ReturnsAnEmptyPageWhenNothingMatches()
+    public async Task An_empty_page_comes_back_when_nothing_matches()
     {
         await using var harness = await SeededAsync();
 
@@ -142,7 +141,7 @@ public abstract class LogQueryContract(LogStoreKind kind)
     }
 
     [Fact]
-    public async Task ReturnsDistinctSortedCategories()
+    public async Task Categories_come_back_distinct_and_sorted()
     {
         await using var harness = await SeededAsync();
 
@@ -152,7 +151,7 @@ public abstract class LogQueryContract(LogStoreKind kind)
     }
 
     [Fact]
-    public async Task ClearRemovesEverything()
+    public async Task Clear_removes_everything()
     {
         await using var harness = await SeededAsync();
 
@@ -164,7 +163,7 @@ public abstract class LogQueryContract(LogStoreKind kind)
 
     /// <summary>Querying a store nothing has written to yet returns empty rather than failing.</summary>
     [Fact]
-    public async Task QueryingAnUntouchedStoreReturnsEmpty()
+    public async Task Querying_an_untouched_store_returns_empty()
     {
         await using var harness = Harness();
 
@@ -176,7 +175,7 @@ public abstract class LogQueryContract(LogStoreKind kind)
 
     /// <summary>Every entry field survives the store, the timestamp as the same UTC instant.</summary>
     [Fact]
-    public async Task AnEntryRoundTripsEveryField()
+    public async Task An_entry_round_trips_every_field()
     {
         await using var harness = Harness();
         var at = new DateTimeOffset(2026, 3, 4, 5, 6, 7, TimeSpan.FromHours(2)).AddTicks(1_234_560);
@@ -201,7 +200,7 @@ public abstract class LogQueryContract(LogStoreKind kind)
     /// PostgreSQL refuses NUL in text, and the refusal fails the whole batch, not just the one line.
     /// </summary>
     [Fact]
-    public async Task ANulCharacterIsStoredAsTheReplacementCharacterAndCostsNothingElse()
+    public async Task A_NUL_character_is_stored_as_the_replacement_character_and_costs_nothing_else()
     {
         await using var harness = Harness();
         var now = harness.Clock.GetUtcNow();

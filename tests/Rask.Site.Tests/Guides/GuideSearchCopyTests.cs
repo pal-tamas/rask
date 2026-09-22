@@ -32,7 +32,7 @@ public sealed class GuideSearchCopyTests
 
     [Theory]
     [MemberData(nameof(Slugs))]
-    public void TheSearchTitleFitsInAResultWithTheSiteName(string slug)
+    public void The_search_title_fits_in_a_result_with_the_site_name(string slug)
     {
         var guide = GuideCatalog.Find(slug)!;
         var title = guide.SearchTitle + PageMeta.TitleSuffix;
@@ -47,7 +47,7 @@ public sealed class GuideSearchCopyTests
 
     [Theory]
     [MemberData(nameof(Slugs))]
-    public void TheDescriptionFillsAResultWithoutBeingCut(string slug)
+    public void The_description_fills_a_result_without_being_cut(string slug)
     {
         var description = GuideCatalog.Find(slug)!.Description;
 
@@ -58,7 +58,7 @@ public sealed class GuideSearchCopyTests
     }
 
     [Fact]
-    public void NoTwoGuidesShareATitleOrADescription()
+    public void No_two_guides_share_a_title_or_a_description()
     {
         // Two guides answering to the same words compete with each other for the one result a search engine
         // is willing to show from a site — and a copy-pasted entry is exactly how that happens.

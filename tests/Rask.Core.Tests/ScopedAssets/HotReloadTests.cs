@@ -20,7 +20,7 @@ public class HotReloadTests
     public HotReloadTests() => ScopedAssetRegistry.InvalidateAll();
 
     [Fact]
-    public void InvalidateAllCss_DropsOnlyCssEntries_FromAssetRegistry()
+    public void Invalidating_all_css_drops_only_the_css_entries_from_the_registry()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
         ScopedAssetRegistry.RegisterCss(typeof(WidgetB), ".y { color: blue; }");
@@ -38,7 +38,7 @@ public class HotReloadTests
     }
 
     [Fact]
-    public void InvalidateAllJs_DropsOnlyJsEntries_FromAssetRegistry()
+    public void Invalidating_all_js_drops_only_the_js_entries_from_the_registry()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
         ScopedAssetRegistry.RegisterJs(typeof(WidgetA), "export function f(){}");
@@ -50,7 +50,7 @@ public class HotReloadTests
     }
 
     [Fact]
-    public void PerComponentEdit_OnlyAffectedComponentHashChanges()
+    public void A_per_component_edit_changes_only_the_affected_components_hash()
     {
         // Two components registered; "edit" one's CSS — the other's hash must not change.
         // This is the per-component-invalidation win over the legacy bundle model: hot
@@ -71,7 +71,7 @@ public class HotReloadTests
     }
 
     [Fact]
-    public void MultiFileEdit_FiresAssetChangedPerEntry()
+    public void A_multi_file_edit_fires_AssetChanged_per_entry()
     {
         // No debounce at the registry level — each register fires its own AssetChanged.
         // The debounce lives on the subscriber side (Rask.Server's

@@ -22,7 +22,7 @@ public class ActionableDiagnosticMessageTests
     [InlineData("/files/{**rest}", "catch-all", "/files/{folder}/{name}")]
     [InlineData("/users/{}", "no name", "/users/{id}")]
     [InlineData("/order-{id}", "mixed literal/param", "its own segment")]
-    public void Rask003_ShowsACorrectTemplate(string template, string problem, string remedy)
+    public void RASK003_shows_a_correct_template(string template, string problem, string remedy)
     {
         var message = MessageFor("RASK003", $$"""
                                               using Rask.Core;
@@ -42,7 +42,7 @@ public class ActionableDiagnosticMessageTests
     }
 
     [Fact]
-    public void Rask011_NamesTheWayOut_NotJustTheConstraint()
+    public void RASK011_names_the_way_out_not_just_the_constraint()
     {
         var message = MessageFor("RASK011", """
                                             using Rask.Core;
@@ -66,27 +66,27 @@ public class ActionableDiagnosticMessageTests
     // The opt-out is the point: an orphan stylesheet is very often a deliberate global one, and until now
     // the only way to learn that the escape hatch existed was to read docs/diagnostics.md.
     [Fact]
-    public void Rask015_MentionsTheAutoIncludeOptOut()
+    public void RASK015_mentions_the_auto_include_opt_out()
     {
         var run = GeneratorDriverFixture.Run(
             [("/proj/Widgets/Unrelated.cs", "namespace Demo; public sealed class Unrelated { }")],
             new ComponentScopedCssGenerator(),
             [("/proj/Widgets/Orphan.css", ".a{color:red}")]);
-
         var message = run.Diagnostics.First(d => d.Id == "RASK015").GetMessage();
+
         Assert.Contains(" — ", message, StringComparison.Ordinal);
         Assert.Contains("RaskScopedCssAutoInclude", message, StringComparison.Ordinal);
     }
 
-    /// <inheritdoc cref="Rask015_MentionsTheAutoIncludeOptOut" />
+    /// <inheritdoc cref="RASK015_mentions_the_auto_include_opt_out" />
     [Fact]
-    public void Rask017_MentionsTheAutoIncludeOptOut()
+    public void RASK017_mentions_the_auto_include_opt_out()
     {
         var run = GeneratorDriverFixture.RunScoped(
             [("/proj/Widgets/Unrelated.cs", "namespace Demo; public sealed class Unrelated { }")],
             [("/proj/Widgets/Orphan.ts", "export function go() {}")]);
-
         var message = run.Diagnostics.First(d => d.Id == "RASK017").GetMessage();
+
         Assert.Contains(" — ", message, StringComparison.Ordinal);
         Assert.Contains("RaskScopedTsAutoInclude", message, StringComparison.Ordinal);
     }
@@ -101,7 +101,7 @@ public class ActionableDiagnosticMessageTests
     ///     that did not say so would send people looking for a conversion tool.
     /// </remarks>
     [Fact]
-    public void Rask054_NamesTheRenameThatFixesIt()
+    public void RASK055_names_the_rename_that_fixes_it()
     {
         var run = GeneratorDriverFixture.RunScoped(
             [("/proj/Widgets/Counter.cs",
@@ -114,8 +114,8 @@ public class ActionableDiagnosticMessageTests
                 """)],
             [],
             strayJs: ["/proj/Widgets/Counter.js"]);
-
         var message = run.Diagnostics.First(d => d.Id == "RASK055").GetMessage();
+
         Assert.Contains(" — ", message, StringComparison.Ordinal);
         Assert.Contains("Counter.js", message, StringComparison.Ordinal);
         Assert.Contains("'Counter.ts'", message, StringComparison.Ordinal);

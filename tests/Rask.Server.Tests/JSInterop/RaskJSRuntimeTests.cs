@@ -13,7 +13,7 @@ namespace Rask.Server.Tests.JSInterop;
 public class RaskJSRuntimeTests
 {
     [Fact]
-    public async Task InvokeAsync_RoundTrip_QueuesInvokeAndCompletesTcs()
+    public async Task An_invoke_is_queued_onto_the_next_frame_and_its_result_completes_the_call()
     {
         // Component calls IJSRuntime.InvokeAsync<string> in OnFirstRendered. Server queues
         // the invoke onto the next outbound frame. Test acts as the JS client: receives
@@ -29,6 +29,7 @@ public class RaskJSRuntimeTests
 
         // First frame after hello: server re-renders and ships the pending jsInvoke.
         var first = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+
         Assert.NotNull(first);
         using (var doc = JsonDocument.Parse(first!))
         {
@@ -53,7 +54,7 @@ public class RaskJSRuntimeTests
     }
 
     [Fact]
-    public async Task InvokeAsync_ErrorPath_PropagatesAsJSException()
+    public async Task A_failed_invoke_surfaces_as_a_JSException()
     {
         using var host = RaskTestHost.Create<JsErrorApp>();
         var initialHtml = await host.Http.GetStringAsync("/");
@@ -63,9 +64,11 @@ public class RaskJSRuntimeTests
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
         var first = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
         Assert.NotNull(first);
+
         using var doc = JsonDocument.Parse(first!);
         var invoke = doc.RootElement.GetProperty("jsInvokes")[0];
         var taskId = invoke.GetProperty("id").GetInt64();
+
         await ws.SendJsonAsync(new { type = "jsResult", id = taskId, success = false, error = "TypeError: nope" });
 
         var ex = await JsErrorApp.Caught.Task.WaitAsync(TimeSpan.FromSeconds(2));
@@ -74,7 +77,7 @@ public class RaskJSRuntimeTests
     }
 
     [Fact]
-    public async Task InvokeAsync_FromOnClickAsync_DoesNotDeadlockReceiveLoop()
+    public async Task An_invoke_from_a_click_handler_does_not_deadlock_the_receive_loop()
     {
         // Regression: if the WS receive loop blocks on handler completion AND the handler
         // awaits IJSRuntime.InvokeVoidAsync, the handler can't complete (waiting for
@@ -101,10 +104,12 @@ public class RaskJSRuntimeTests
 
         // We expect the next frame to carry a jsInvokes entry for sessionStorage.setItem.
         var clickFrame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+
         Assert.NotNull(clickFrame);
         using var doc = JsonDocument.Parse(clickFrame!);
         Assert.True(doc.RootElement.TryGetProperty("jsInvokes", out var jsInvokes),
             "expected jsInvokes on click frame, got: " + clickFrame);
+
         var taskId = jsInvokes[0].GetProperty("id").GetInt64();
 
         // Send jsResult — receive loop must process this concurrently with the still-running
@@ -118,7 +123,7 @@ public class RaskJSRuntimeTests
     }
 
     [Fact]
-    public async Task InvokeVoidAsync_FromRendered_DoesNotRenderStorm()
+    public async Task An_invoke_from_OnRendered_does_not_start_a_render_storm()
     {
         // Regression for the memory leak: a component that does
         //     protected override async Task OnRendered() =>
@@ -138,6 +143,7 @@ public class RaskJSRuntimeTests
 
         // First post-hello frame: server renders, Rendered fires, queues one jsInvoke.
         var first = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+
         Assert.NotNull(first);
         // First frame typically carries 2 jsInvokes — one from the HTTP GET render
         // (firstRender=true) and one from the post-hello re-render (firstRender=false),
@@ -190,7 +196,7 @@ public class RaskJSRuntimeTests
     }
 
     [Fact]
-    public async Task InvokeAsync_OutsideSessionScope_Throws()
+    public async Task An_invoke_outside_a_session_scope_throws()
     {
         // Resolve RaskJSRuntime from a DI scope that doesn't go through LiveSessionStore.Create —
         // the LiveSessionAccessor.Session stays null, and any interop call must throw with a
@@ -202,6 +208,7 @@ public class RaskJSRuntimeTests
         using var scope = sp.CreateScope();
 
         var js = scope.ServiceProvider.GetRequiredService<IJSRuntime>();
+
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await js.InvokeAsync<string>("anything", "arg").AsTask());
         Assert.Contains("Rask session", ex.Message);

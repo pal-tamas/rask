@@ -29,7 +29,7 @@ namespace Rask.Wasm.Tests.Hosting;
 public class PrerenderBatteryWiringTests
 {
     [Fact]
-    public async Task ThePrerenderPassSeesTheBatteriesTheBootPathWouldHaveApplied()
+    public async Task The_prerender_pass_sees_the_batteries_the_boot_path_would_have_applied()
     {
         var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
 

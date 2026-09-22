@@ -7,7 +7,7 @@ namespace Rask.Core.Tests.Contexts;
 public partial class ContextTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Provide_ThenConsume_DescendantSeesValue()
+    public void A_descendant_sees_the_provided_value()
     {
         var sp = RenderHarness.EmptyServices();
         var consumer = new ThemeConsumer();
@@ -21,7 +21,7 @@ public partial class ContextTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void NestedProviders_NearestWins()
+    public void The_nearest_of_nested_providers_wins()
     {
         var sp = RenderHarness.EmptyServices();
         var outer = new ThemeConsumer();
@@ -39,7 +39,7 @@ public partial class ContextTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void NoProvider_RequiredThrows_GetReturnsDefault_HasFalse()
+    public void With_no_provider_Required_throws_Get_returns_default_and_Has_is_false()
     {
         var sp = RenderHarness.EmptyServices();
         var probe = new ContextProbe();
@@ -53,7 +53,7 @@ public partial class ContextTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void NullValue_ResolvesAsNull_DistinctFromMissing()
+    public void A_provided_null_resolves_as_null_distinct_from_a_missing_provider()
     {
         var sp = RenderHarness.EmptyServices();
         var probe = new ContextProbe();
@@ -70,7 +70,7 @@ public partial class ContextTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void ValueType_Propagates()
+    public void A_value_type_propagates_to_its_consumer()
     {
         var sp = RenderHarness.EmptyServices();
         var probe = new IntProbe();
@@ -82,7 +82,7 @@ public partial class ContextTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void ProvidedAsConcrete_ConsumedByInterface()
+    public void A_value_provided_as_a_concrete_type_is_consumed_by_its_interface()
     {
         var sp = RenderHarness.EmptyServices();
         var probe = new GreeterProbe();
@@ -96,7 +96,7 @@ public partial class ContextTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void NamedProviders_ResolveIndependentlyBySameType()
+    public void Named_providers_of_the_same_type_resolve_independently()
     {
         var sp = RenderHarness.EmptyServices();
         var probe = new NamedProbe();
@@ -113,7 +113,7 @@ public partial class ContextTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Provider_DoesNotLeakToSibling_OutsideItsSubtree()
+    public void A_provider_does_not_leak_to_a_sibling_outside_its_subtree()
     {
         var sp = RenderHarness.EmptyServices();
         var inner = new ContextProbe();
@@ -131,7 +131,7 @@ public partial class ContextTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void KeyedProvider_ForwardsKeyToFirstChildElement()
+    public void A_keyed_provider_forwards_its_key_to_the_first_child_element()
     {
         var sp = RenderHarness.EmptyServices();
         var root = new StubComponent(() =>
@@ -143,7 +143,7 @@ public partial class ContextTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void ChangedValue_RerendersConsumer_ButCachesNonConsumerSibling()
+    public void A_changed_value_rerenders_the_consumer_but_keeps_a_non_consumer_sibling_cached()
     {
         var sp = RenderHarness.EmptyServices();
         var consumer = new ThemeConsumer();
@@ -151,6 +151,7 @@ public partial class ContextTests : global::Rask.Core.RaskMarkup
         var host = new MutableThemeHost(new Theme("light"), consumer, plain);
 
         var html1 = host.RenderAsLiveRoot(sp);
+
         Assert.Contains("light", html1);
         Assert.Equal(1, consumer.RenderCount);
         Assert.Equal(1, plain.RenderCount);
@@ -168,7 +169,7 @@ public partial class ContextTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void HasGate_MarksConsumer_RerendersWhenProviderRerenders()
+    public void Gating_on_Has_marks_a_consumer_that_rerenders_with_its_provider()
     {
         // Context.Has<T>() must mark the caller a consumer just like Get<T>(), so a component that
         // gates purely on Has bypasses the render cache and re-runs when the provider re-renders —
@@ -179,6 +180,7 @@ public partial class ContextTests : global::Rask.Core.RaskMarkup
         var host = new MutableThemeHost(new Theme("light"), consumer, plain);
 
         host.RenderAsLiveRoot(sp);
+
         Assert.Equal(1, consumer.RenderCount);
         Assert.Equal(1, plain.RenderCount);
 
@@ -190,7 +192,7 @@ public partial class ContextTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Get_OutsideRender_ReturnsDefault_RequiredThrows()
+    public void Outside_a_render_Get_returns_default_and_Required_throws()
     {
         // No LiveRenderContext is active: the consumer-mark must no-op rather than NRE.
         Assert.Null(Context.Get<Theme>());

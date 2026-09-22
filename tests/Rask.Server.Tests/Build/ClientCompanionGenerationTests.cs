@@ -164,6 +164,7 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
         Assert.Equal("true", Evaluate("-getProperty:RaskClient").Trim());
 
         WriteProject(clientSwitch: false);
+
         Assert.Equal("false", Evaluate("-getProperty:RaskClient").Trim());
         Assert.Contains("Client/App.cs", Slashes(Evaluate("-getItem:Compile")), StringComparison.Ordinal);
     }

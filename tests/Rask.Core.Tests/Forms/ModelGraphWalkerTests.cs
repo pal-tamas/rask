@@ -5,37 +5,43 @@ namespace Rask.Core.Tests.Forms;
 public class ModelGraphWalkerTests
 {
     [Fact]
-    public void Walk_NullRoot_YieldsNothing() => Assert.Empty(ModelGraphWalker.Walk(null!));
+    public void A_null_root_yields_nothing() => Assert.Empty(ModelGraphWalker.Walk(null!));
 
     [Fact]
-    public void Walk_LeafOnlyRoot_YieldsRootOnly()
+    public void A_root_of_only_leaves_yields_just_the_root()
     {
         var p = new Person { Name = "Ada", Age = 30 };
+
         var nodes = ModelGraphWalker.Walk(p).ToList();
+
         Assert.Single(nodes);
         Assert.Same(p, nodes[0]);
     }
 
     [Fact]
-    public void Walk_NestedSubObject_YieldsRootAndSub()
+    public void A_nested_sub_object_yields_the_root_and_the_sub_object()
     {
         var p = new Person { Address = new Address { Street = "Elm" } };
+
         var nodes = ModelGraphWalker.Walk(p).ToList();
+
         Assert.Contains(p, nodes);
         Assert.Contains(p.Address!, nodes);
     }
 
     [Fact]
-    public void Walk_NullSubProperty_SkipsCleanly()
+    public void A_null_sub_property_is_skipped_cleanly()
     {
         var p = new Person { Address = null };
+
         var nodes = ModelGraphWalker.Walk(p).ToList();
+
         Assert.Single(nodes);
         Assert.Same(p, nodes[0]);
     }
 
     [Fact]
-    public void Walk_DeepChain_YieldsEveryLevel()
+    public void A_deep_chain_yields_every_level()
     {
         var p = new Person
         {
@@ -47,6 +53,7 @@ public class ModelGraphWalkerTests
         };
 
         var nodes = ModelGraphWalker.Walk(p).ToList();
+
         Assert.Contains(p, nodes);
         Assert.Contains(p.Address!, nodes);
         Assert.Contains(p.Address!.Postal!, nodes);
@@ -54,28 +61,30 @@ public class ModelGraphWalkerTests
     }
 
     [Fact]
-    public void Walk_ListItems_AreEnumerated()
+    public void List_items_are_enumerated()
     {
         var p = new Person { Items = new List<LineItem> { new() { Name = "alpha" }, new() { Name = "beta" } } };
 
         var nodes = ModelGraphWalker.Walk(p).ToList();
+
         Assert.Contains(p.Items![0], nodes);
         Assert.Contains(p.Items![1], nodes);
     }
 
     [Fact]
-    public void Walk_ListContainingNulls_SkipsNullsButContinues()
+    public void A_list_containing_nulls_skips_them_but_continues()
     {
         var p = new Person { Items = new List<LineItem> { new() { Name = "alpha" }, null!, new() { Name = "gamma" } } };
 
         var nodes = ModelGraphWalker.Walk(p).ToList();
+
         Assert.Contains(p.Items![0]!, nodes);
         Assert.Contains(p.Items![2]!, nodes);
         Assert.DoesNotContain(null!, nodes);
     }
 
     [Fact]
-    public void Walk_DictionaryValues_AreWalked_KeysIgnored()
+    public void Dictionary_values_are_walked_and_keys_ignored()
     {
         var p = new Person
         {
@@ -87,6 +96,7 @@ public class ModelGraphWalkerTests
         };
 
         var nodes = ModelGraphWalker.Walk(p).ToList();
+
         Assert.Contains(p.Settings!["smtp"], nodes);
         Assert.Contains(p.Settings!["http"], nodes);
         // Keys are strings (leaves) and would be skipped anyway, but assert we didn't
@@ -95,7 +105,7 @@ public class ModelGraphWalkerTests
     }
 
     [Fact]
-    public void Walk_Cycle_DoesNotLoop()
+    public void A_cycle_does_not_loop()
     {
         var a = new Cyclic { Name = "a" };
         var b = new Cyclic { Name = "b" };
@@ -103,27 +113,31 @@ public class ModelGraphWalkerTests
         b.Next = a;
 
         var nodes = ModelGraphWalker.Walk(a).Take(10).ToList();
+
         Assert.Equal(2, nodes.Count);
         Assert.Contains(a, nodes);
         Assert.Contains(b, nodes);
     }
 
     [Fact]
-    public void Walk_SelfReference_YieldsOnce()
+    public void A_self_reference_yields_once()
     {
         var a = new Cyclic { Name = "a" };
         a.Next = a;
 
         var nodes = ModelGraphWalker.Walk(a).Take(10).ToList();
+
         Assert.Single(nodes);
         Assert.Same(a, nodes[0]);
     }
 
     [Fact]
-    public void Walk_StringsAndPrimitives_AreLeaves()
+    public void Strings_and_primitives_are_leaves()
     {
         var p = new Person { Name = "Ada", Age = 30 };
+
         var nodes = ModelGraphWalker.Walk(p).ToList();
+
         Assert.DoesNotContain("Ada", nodes);
         // Boxed ints aren't yielded — they're leaf primitives. (And they wouldn't survive
         // GetProperty boxing anyway, but the leaf filter is the relevant invariant.)
@@ -131,67 +145,75 @@ public class ModelGraphWalkerTests
     }
 
     [Fact]
-    public void Walk_PropertyGetterThatThrows_IsSwallowed()
+    public void A_property_getter_that_throws_is_swallowed()
     {
         var p = new ThrowyHolder();
+
         // Should not propagate the property getter's exception.
         var nodes = ModelGraphWalker.Walk(p).ToList();
+
         Assert.Single(nodes);
         Assert.Same(p, nodes[0]);
     }
 
     [Fact]
-    public void Resolve_NullRoot_ReturnsNull() =>
+    public void Resolving_against_a_null_root_returns_null() =>
         Assert.Null(ModelGraphWalker.Resolve(null!, "Anything"));
 
     [Fact]
-    public void Resolve_EmptyPath_ReturnsNull() =>
+    public void Resolving_an_empty_path_returns_null() =>
         Assert.Null(ModelGraphWalker.Resolve(new Person(), ""));
 
     [Fact]
-    public void Resolve_SimpleProperty_ReturnsRootAndName()
+    public void A_simple_property_resolves_to_the_root_and_its_name()
     {
         var p = new Person { Name = "Ada" };
+
         var r = ModelGraphWalker.Resolve(p, "Name");
+
         Assert.NotNull(r);
         Assert.Same(p, r!.Value.Owner);
         Assert.Equal("Name", r.Value.Property);
     }
 
     [Fact]
-    public void Resolve_NestedPath_TargetsSubInstance()
+    public void A_nested_path_resolves_to_the_sub_instance()
     {
         var p = new Person { Address = new Address { Street = "Elm" } };
+
         var r = ModelGraphWalker.Resolve(p, "Address.Street");
+
         Assert.NotNull(r);
         Assert.Same(p.Address, r!.Value.Owner);
         Assert.Equal("Street", r.Value.Property);
     }
 
     [Fact]
-    public void Resolve_IndexerPath_TargetsListItemProperty()
+    public void An_indexer_path_resolves_to_the_list_items_property()
     {
         var p = new Person { Items = new List<LineItem> { new() { Name = "alpha" }, new() { Name = "beta" } } };
 
         var r = ModelGraphWalker.Resolve(p, "Items[1].Name");
+
         Assert.NotNull(r);
         Assert.Same(p.Items![1], r!.Value.Owner);
         Assert.Equal("Name", r.Value.Property);
     }
 
     [Fact]
-    public void Resolve_ArrayIndexerPath_TargetsArrayItemProperty()
+    public void An_array_indexer_path_resolves_to_the_array_items_property()
     {
         var p = new Person { ItemsArray = new[] { new LineItem { Name = "alpha" }, new LineItem { Name = "beta" } } };
 
         var r = ModelGraphWalker.Resolve(p, "ItemsArray[0].Name");
+
         Assert.NotNull(r);
         Assert.Same(p.ItemsArray![0], r!.Value.Owner);
         Assert.Equal("Name", r.Value.Property);
     }
 
     [Fact]
-    public void Resolve_DictionaryIndexerPath_TargetsValueProperty()
+    public void A_dictionary_indexer_path_resolves_to_the_values_property()
     {
         var p = new Person
         {
@@ -201,55 +223,62 @@ public class ModelGraphWalkerTests
         // FluentValidation's standard format for collection-indexed paths uses [N];
         // dictionaries we expose accept either "key" (with quotes) or the bare key.
         var r = ModelGraphWalker.Resolve(p, "Settings[\"smtp\"].Host");
+
         Assert.NotNull(r);
         Assert.Same(p.Settings!["smtp"], r!.Value.Owner);
         Assert.Equal("Host", r.Value.Property);
     }
 
     [Fact]
-    public void Resolve_DeepIndexerChain_TargetsTerminal()
+    public void A_deep_indexer_chain_resolves_to_the_terminal()
     {
         var p = new Person { Items = new List<LineItem> { new() { Vendor = new Vendor { Name = "Acme" } } } };
 
         var r = ModelGraphWalker.Resolve(p, "Items[0].Vendor.Name");
+
         Assert.NotNull(r);
         Assert.Same(p.Items![0].Vendor, r!.Value.Owner);
         Assert.Equal("Name", r.Value.Property);
     }
 
     [Fact]
-    public void Resolve_OutOfRangeIndex_ReturnsNull()
+    public void An_out_of_range_index_resolves_to_null()
     {
         var p = new Person { Items = new List<LineItem> { new() { Name = "alpha" } } };
+
         Assert.Null(ModelGraphWalker.Resolve(p, "Items[7].Name"));
     }
 
     [Fact]
-    public void Resolve_MissingProperty_ReturnsNull()
+    public void A_missing_property_resolves_to_null()
     {
         var p = new Person { Address = new Address { Street = "Elm" } };
+
         Assert.Null(ModelGraphWalker.Resolve(p, "Address.Nope"));
     }
 
     [Fact]
-    public void Resolve_NullIntermediate_ReturnsNull()
+    public void A_null_intermediate_resolves_to_null()
     {
         var p = new Person { Address = null };
+
         Assert.Null(ModelGraphWalker.Resolve(p, "Address.Street"));
     }
 
     [Fact]
-    public void Resolve_BareCollectionItem_ReturnsNull()
+    public void A_bare_collection_item_resolves_to_null()
     {
         // No terminal property — Items[0] alone has nothing to register against.
         var p = new Person { Items = new List<LineItem> { new() { Name = "alpha" } } };
+
         Assert.Null(ModelGraphWalker.Resolve(p, "Items[0]"));
     }
 
     [Fact]
-    public void Resolve_UnterminatedBracket_ReturnsNull()
+    public void An_unterminated_bracket_resolves_to_null()
     {
         var p = new Person { Items = new List<LineItem> { new() { Name = "alpha" } } };
+
         Assert.Null(ModelGraphWalker.Resolve(p, "Items[0.Name"));
     }
 

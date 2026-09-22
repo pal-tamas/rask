@@ -9,7 +9,7 @@ namespace Rask.Site.Tests.Guides;
 public sealed class MarkdownCommentTests
 {
     [Fact]
-    public void ACommentBlock_IsNotRendered()
+    public void A_comment_block_is_not_rendered()
     {
         var html = Render("Before.\n\n<!-- a note for the editor,\n     over two lines -->\n\nAfter.");
 
@@ -20,7 +20,7 @@ public sealed class MarkdownCommentTests
     }
 
     [Fact]
-    public void ACommentInAFencedSample_IsShownAsCode()
+    public void A_comment_in_a_fenced_sample_is_shown_as_code()
     {
         var html = Render("```xml\n<!-- Don't. -->\n<Flag>false</Flag>\n```");
 
@@ -29,7 +29,7 @@ public sealed class MarkdownCommentTests
     }
 
     [Fact]
-    public void ACommentInInlineCode_IsShownAsCode()
+    public void A_comment_in_inline_code_is_shown_as_code()
     {
         var html = Render("A conditional comment (`<!--[if IE]>`) is kept.");
 
@@ -37,7 +37,7 @@ public sealed class MarkdownCommentTests
     }
 
     [Fact]
-    public void MarkupAfterACommentOnTheSameLine_IsKept()
+    public void Markup_after_a_comment_on_the_same_line_is_kept()
     {
         var html = Render("<!-- label --><div class=\"kept\">x</div>");
 
@@ -45,9 +45,10 @@ public sealed class MarkdownCommentTests
     }
 
     [Fact]
-    public void NoGuideShipsARawComment()
+    public void No_guide_ships_a_raw_comment()
     {
         var offenders = new List<string>();
+
         foreach (var guide in GuideCatalog.All)
         {
             foreach (var segment in Markdown.Split(GuideCatalog.ReadMarkdown(guide.Slug)!))

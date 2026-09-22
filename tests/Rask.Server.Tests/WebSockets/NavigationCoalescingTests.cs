@@ -22,7 +22,7 @@ namespace Rask.Server.Tests.WebSockets;
 public class NavigationCoalescingTests
 {
     [Fact]
-    public async Task Navigate_WithRouteChangedStateHasChanged_EmitsOnlyOnePayload()
+    public async Task A_navigation_whose_route_change_calls_StateHasChanged_emits_only_one_payload()
     {
         await using var fixture = await ConnectedSession.Connect<NavigateInHandlerStateHasChangedApp>();
 
@@ -32,6 +32,7 @@ public class NavigationCoalescingTests
         // an earlier history-less frame would arrive first because the eager
         // in-scope render emitted it before EnforceAuthAndRenderAsync ran.
         var first = await fixture.Ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+
         Assert.NotNull(first);
         using (var doc = JsonDocument.Parse(first!))
         {
@@ -48,6 +49,7 @@ public class NavigationCoalescingTests
         // run sees a second frame here (the EnforceAuthAndRenderAsync emission
         // that follows the eager in-scope render).
         var second = await fixture.Ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(500));
+
         Assert.Null(second);
 
         // Sanity: route state actually advanced — the RouteState.Changed
@@ -57,7 +59,7 @@ public class NavigationCoalescingTests
     }
 
     [Fact]
-    public async Task Navigate_CoalescedPayload_StillCarriesFinalHistoryUrl()
+    public async Task A_coalesced_navigation_payload_still_carries_the_final_history_url()
     {
         // Companion to NavigationPublishRerenderTests on the WASM side
         // (Rask.Wasm.Tests/Session/NavigationPublishRerenderTests.cs): even when

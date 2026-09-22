@@ -78,10 +78,12 @@ public sealed class DevToolsErrorsTabTests
         var tab = Tab(page, app);
 
         await Click(tab, "This page");
+
         Assert.Contains("the save failed", tab.Html);
         Assert.DoesNotContain("two siblings", tab.Html);
 
         await Click(tab, "App-wide");
+
         Assert.DoesNotContain("the save failed", tab.Html);
         Assert.Contains("two siblings", tab.Html);
     }

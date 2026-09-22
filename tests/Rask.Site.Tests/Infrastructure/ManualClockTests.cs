@@ -5,7 +5,7 @@ namespace Rask.Site.Tests.Infrastructure;
 public sealed class ManualClockTests
 {
     [Fact]
-    public void ATimerFiresOnlyOnceTheClockReachesIt()
+    public void A_timer_fires_only_once_the_clock_reaches_it()
     {
         var clock = new ManualClock();
         var fired = 0;
@@ -22,7 +22,7 @@ public sealed class ManualClockTests
     }
 
     [Fact]
-    public void ATimerACallbackCreatesIsTimedFromThenAndFiresInTheSameAdvance()
+    public void A_timer_a_callback_creates_is_timed_from_then_and_fires_in_the_same_advance()
     {
         var clock = new ManualClock();
         var start = clock.GetUtcNow();
@@ -46,7 +46,7 @@ public sealed class ManualClockTests
     }
 
     [Fact]
-    public void ADisposedTimerNeverFires()
+    public void A_disposed_timer_never_fires()
     {
         var clock = new ManualClock();
         var fired = false;
@@ -60,7 +60,7 @@ public sealed class ManualClockTests
     }
 
     [Fact]
-    public void TaskDelayAndACancellationDeadlineCompleteInsideAdvance()
+    public void Task_Delay_and_a_cancellation_deadline_complete_inside_Advance()
     {
         // The two BCL waits HttpFetchDemo builds on the injected clock.
         var clock = new ManualClock();

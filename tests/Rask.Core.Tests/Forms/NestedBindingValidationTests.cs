@@ -20,7 +20,7 @@ namespace Rask.Core.Tests.Forms;
 public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public async Task InlineValidate_NestedField_FiresOnChange()
+    public async Task An_inline_Validate_on_a_nested_field_fires_on_change()
     {
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
         EditContext? captured = null;
@@ -34,6 +34,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
 
         var changeId = page.HandlerId("change");
         Assert.NotNull(changeId);
+
         await page.InvokeAsync(changeId!, "{\"value\":\"\"}");
 
         Assert.NotNull(captured);
@@ -42,7 +43,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task InlineValidate_NestedField_ReValidatesOnKeystroke_AfterTouch()
+    public async Task An_inline_Validate_on_a_nested_field_re_validates_on_each_keystroke_after_a_touch()
     {
         // Mirrors the "fire on every keystroke once touched" contract for root-model strings:
         // after the first OnChange (blur) touches the field and runs validation, subsequent
@@ -60,16 +61,18 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
 
         // Blur with empty — touches and produces the message.
         await page.ChangeAsync("{\"value\":\"\"}");
+
         Assert.Contains("too short", captured!.GetValidationMessages(fid));
 
         // Keystroke with a longer value — re-validates because the field is touched.
         await page.InputAsync("{\"value\":\"Oak\"}");
+
         Assert.Empty(captured.GetValidationMessages(fid));
         Assert.Equal("Oak", p.Address.Street);
     }
 
     [Fact]
-    public async Task InlineValidate_NestedField_LandsInFormsEditContext_NotASeparateOne()
+    public async Task A_nested_fields_inline_Validate_lands_in_the_forms_EditContext_not_a_separate_one()
     {
         // The regression this fix targets: without the model-graph pre-walk, the Input handler
         // wrote to a separate EditContext keyed by p.Address. ContextCapture (rendered inside
@@ -94,7 +97,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task ModelAndExplicitContext_NestedField_HandlerLandsOnSuppliedContext()
+    public async Task With_both_a_model_and_an_explicit_context_a_nested_handler_lands_on_the_supplied_context()
     {
         // Pins the order-sensitive interaction between Form.Model and Form.Context setters when
         // a caller passes BOTH: the generated factory assigns Model first (auto-creating an
@@ -115,16 +118,18 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
 
         var initial = page.Render();
         var changeId = page.HandlerId("change");
+
         await page.InvokeAsync(changeId!, "{\"value\":\"x\"}");
 
         var afterBlur = page.Render();
+
         Assert.Contains("model-plus-context", afterBlur);
         Assert.Contains("model-plus-context",
             ctx.GetValidationMessages(new FieldIdentifier(p.Address, nameof(Address.Street))));
     }
 
     [Fact]
-    public async Task ExplicitContextForm_NestedField_FiresOnChange()
+    public async Task A_nested_field_in_an_explicit_context_form_validates_on_change()
     {
         // Mirrors the test above but uses the `Context:` overload — the Context setter must
         // also walk the graph so descendant nested inputs resolve to the supplied context.
@@ -146,7 +151,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task NestedField_SubObjectReplacedBetweenRenders_NewInstanceValidates()
+    public async Task A_sub_object_replaced_between_renders_validates_as_the_new_instance()
     {
         // If model.Address is reassigned between renders, the new sub-object must be
         // registered under the form's EditContext on the next render so its bindings still
@@ -173,7 +178,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task AsyncValidate_NestedField_TypingThenBlurSurfacesMessageInRenderedHtml()
+    public async Task An_async_Validate_on_a_nested_field_surfaces_its_message_after_typing_then_blur()
     {
         // Mirrors the live showcase NestedAsyncWithLiveTotalsDemo exactly: an async Validate:
         // delegate on a nested string field that delays past a regex pre-check. The browser-side
@@ -222,11 +227,12 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
         await page.InvokeAsync(changeId!, "{\"value\":\"99999\"}");
 
         var afterBlur = page.Render();
+
         Assert.Contains("ship to this area", afterBlur);
     }
 
     [Fact]
-    public async Task AsyncValidate_NestedField_TouchedKeystrokeAfterDeliveryError_ClearsMessage()
+    public async Task A_keystroke_on_a_touched_nested_field_clears_the_async_error_message()
     {
         // Establishes the post-touch keystroke flow that the showcase relies on: after the async
         // validator's first message lands, typing a corrected value must clear the message via
@@ -274,7 +280,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task AsyncValidate_NestedField_SubmitAfterValidFill_RoutesToValidPath()
+    public async Task Submitting_after_a_valid_fill_of_async_nested_fields_takes_the_valid_path()
     {
         // Mirrors the showcase submit path: fill nested+root fields with valid values, then
         // simulate submit. The submit bridge calls ctx.TouchAllRegisteredFields() and
@@ -316,7 +322,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task InlineValidate_NestedField_BlurSurfacesMessageInRenderedHtml()
+    public async Task A_blur_on_a_nested_field_surfaces_the_inline_message_in_the_html()
     {
         // End-to-end coverage: after blur, the post-handler re-render must include the
         // validation message in the produced HTML. ContextCapture-style tests only prove the
@@ -334,17 +340,20 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
         ]);
 
         var initial = page.Render();
+
         Assert.DoesNotContain("street required", initial);
 
         var changeId = page.HandlerId("change");
+
         await page.InvokeAsync(changeId!, "{\"value\":\"\"}");
 
         var afterBlur = page.Render();
+
         Assert.Contains("street required", afterBlur);
     }
 
     [Fact]
-    public async Task InlineValidate_NestedField_KeystrokeAfterBlurClearsMessageInRenderedHtml()
+    public async Task A_keystroke_after_blur_on_a_nested_field_clears_the_message_in_the_html()
     {
         // After the first blur touches the field and produces a message, a keystroke that
         // makes the value valid must clear the message in the next render's HTML.
@@ -360,18 +369,22 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
 
         var initial = page.Render();
         var changeId = page.HandlerId("change");
+
         await page.InvokeAsync(changeId!, "{\"value\":\"\"}");
+
         Assert.Contains("too short", page.Render());
 
         var inputId = page.HandlerId("input");
+
         await page.InvokeAsync(inputId!, "{\"value\":\"Oak\"}");
 
         var afterKeystroke = page.Render();
+
         Assert.DoesNotContain("too short", afterKeystroke);
     }
 
     [Fact]
-    public async Task DeepChainBinding_TerminalOwner_ValidatesOnChange()
+    public async Task A_deep_chain_bindings_terminal_owner_validates_on_change()
     {
         // The walker is BFS over public properties — confirm a two-hop chain still resolves.
         var p = new Person

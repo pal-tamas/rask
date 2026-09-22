@@ -62,7 +62,7 @@ public sealed class PageMetaTests
 
     [Theory]
     [MemberData(nameof(PrerenderableRoutes))]
-    public async Task EveryRoutedPageNamesItselfAndSaysWhatItIs(string path)
+    public async Task Every_routed_page_names_itself_and_says_what_it_is(string path)
     {
         var head = await HeadAt(path);
 
@@ -89,12 +89,13 @@ public sealed class PageMetaTests
 
     [Theory]
     [MemberData(nameof(PrerenderableRoutes))]
-    public async Task EveryIndexablePageFitsItsTitleAndDescriptionInASearchResult(string path)
+    public async Task Every_indexable_page_fits_its_title_and_description_in_a_search_result(string path)
     {
         // A result shows about 60 characters of title and 160 of description, and cuts the rest with an
         // ellipsis. The front door's description was 250 — every result for it ended at "the same
         // components run on…". Under 110 wastes the two lines a result has to say what the page is.
         var head = await HeadAt(path);
+
         if (!ClaimsToBeThePage(head, path))
         {
             return;
@@ -111,9 +112,10 @@ public sealed class PageMetaTests
 
     [Theory]
     [MemberData(nameof(PrerenderableRoutes))]
-    public async Task EveryIndexablePageSaysWhatItIsInOneStructuredDataGraph(string path)
+    public async Task Every_indexable_page_says_what_it_is_in_one_structured_data_graph(string path)
     {
         var head = await HeadAt(path);
+
         if (IsNoIndex(head))
         {
             return;
@@ -159,11 +161,12 @@ public sealed class PageMetaTests
 
     [Theory]
     [MemberData(nameof(PrerenderableRoutes))]
-    public async Task EveryIndexablePageUnfurlsWithTheSocialCard(string path)
+    public async Task Every_indexable_page_unfurls_with_the_social_card(string path)
     {
         // Without an image a shared link unfurls as a line of text, and summary_large_image renders as an
         // empty panel. The declared size is what lets an unfurler lay the card out before it has fetched it.
         var head = await HeadAt(path);
+
         if (!ClaimsToBeThePage(head, path))
         {
             return;
@@ -177,7 +180,7 @@ public sealed class PageMetaTests
     }
 
     [Fact]
-    public void TheSocialCardIsTheImageItClaimsToBe()
+    public void The_social_card_is_the_image_it_claims_to_be()
     {
         // Read off the committed file rather than trusted from the constants: a card re-rendered at the wrong
         // size is cropped by every unfurler, while the head still declares 1200×630 and every other test passes.
@@ -200,12 +203,13 @@ public sealed class PageMetaTests
     [InlineData("/")]
     [InlineData("/docs")]
     [InlineData("/docs/guides/cqrs")]
-    public async Task EveryInternalLinkPointsAtTheUrlTheHostServes(string path)
+    public async Task Every_internal_link_points_at_the_URL_the_host_serves(string path)
     {
         // GitHub Pages 301s /docs/x to /docs/x/. A link to the bare form costs a crawler a redirect on every
         // internal link it follows, and votes for the non-canonical URL (#1057). The front door, the docs
         // index with its sidebar, and a guide with its cross-links and prev/next cover every link builder.
         var html = await DocumentAt(path);
+
         var internalLinks = Regex.Matches(html, "<a [^>]*href=\"(?<path>/[^\"#?]*)[^\"]*\"")
             .Select(match => match.Groups["path"].Value)
             .Where(href => !System.IO.Path.HasExtension(href))
@@ -219,7 +223,7 @@ public sealed class PageMetaTests
     }
 
     [Fact]
-    public void ALinkKeepsItsQueryAndFragmentBehindTheSlash()
+    public void A_link_keeps_its_query_and_fragment_behind_the_slash()
     {
         Assert.Equal("/docs/guides/forms/", (string)PageMeta.LinkTo("/docs/guides/forms"));
         Assert.Equal("/docs/guides/forms/#binding", (string)PageMeta.LinkTo("/docs/guides/forms#binding"));
@@ -230,7 +234,7 @@ public sealed class PageMetaTests
     }
 
     [Fact]
-    public void ALinkKeepsTheRoutesPageType()
+    public void A_link_keeps_the_route_page_type()
     {
         // A kit button or link navigates in place only for a URL that still knows its page. Losing the type
         // to the slash turned it back into a string, which the browser follows with a full reload.
@@ -241,7 +245,7 @@ public sealed class PageMetaTests
     }
 
     [Fact]
-    public async Task AHostileGuideSlugCannotCloseTheStructuredDataScript()
+    public async Task A_hostile_guide_slug_cannot_close_the_structured_data_script()
     {
         // The one visitor-controlled value that reaches the JSON-LD: an unknown slug in /docs/guides/{slug},
         // which the router URL-decodes and the page uses as its name, breadcrumb and canonical. The graph is
@@ -268,7 +272,7 @@ public sealed class PageMetaTests
     }
 
     [Fact]
-    public async Task AGuideIsAnArticleWithItsSectionItsDateAndItsMarkdownTwin()
+    public async Task A_guide_is_an_article_with_its_section_its_date_and_its_Markdown_twin()
     {
         var head = await HeadAt((string)Rask.Site.Features.Routes.GuidePage("cqrs"));
         var guide = GuideCatalog.Find("cqrs")!;
@@ -291,7 +295,7 @@ public sealed class PageMetaTests
 
     [Theory]
     [MemberData(nameof(PrerenderableRoutes))]
-    public async Task EveryRoutedPageDeclaresOneCanonicalOnTheRealOrigin(string path)
+    public async Task Every_routed_page_declares_one_canonical_on_the_real_origin(string path)
     {
         var head = await HeadAt(path);
         var canonicals = Regex.Matches(head, "rel=\"canonical\"").Count;
@@ -325,7 +329,7 @@ public sealed class PageMetaTests
     }
 
     [Fact]
-    public async Task TheNotFoundPageIsNoindexAndHasNoCanonical()
+    public async Task The_not_found_page_is_noindex_and_has_no_canonical()
     {
         // The one page that must NOT have one: it answers every unknown URL on the site, so a canonical
         // would point thousands of addresses at a single page, and an indexed 404 competes in search
@@ -339,7 +343,7 @@ public sealed class PageMetaTests
     }
 
     [Fact]
-    public async Task NoTwoPagesShareATitleOrADescription()
+    public async Task No_two_pages_share_a_title_or_a_description()
     {
         // Duplicate titles and descriptions across a site are the two things a search console reports
         // by name. They are also exactly what a copy-pasted PageMeta.For call produces, which is how
@@ -378,7 +382,7 @@ public sealed class PageMetaTests
     }
 
     [Fact]
-    public void EveryGuideIsHandedToThePrerenderPass()
+    public void Every_guide_is_handed_to_the_prerender_pass()
     {
         // The guides are the site, and /docs/guides/{slug} is one route with no path of its own — so
         // without GuidePrerenderPaths the pass writes the twenty pages AROUND the content and skips the
@@ -393,7 +397,7 @@ public sealed class PageMetaTests
     }
 
     [Fact]
-    public void TheCanonicalOriginMatchesTheOneTheSitemapIsBuiltFrom()
+    public void The_canonical_origin_matches_the_one_the_sitemap_is_built_from()
     {
         // PageMeta.Origin writes the canonicals; <RaskSiteUrl> in the csproj writes sitemap.xml. Two
         // constants naming the same thing drift, and a site whose sitemap and canonicals disagree about
@@ -421,7 +425,7 @@ public sealed class PageMetaTests
     [InlineData("/docs", "/docs/")]
     [InlineData("/docs/", "/docs/")]
     [InlineData("/docs/pwa", "/docs/pwa/")]
-    public void ACanonicalPathNamesWhatTheHostServes(string route, string expected)
+    public void A_canonical_path_names_what_the_host_serves(string route, string expected)
     {
         // The root stays a single slash: it is already a directory URL, and doubling it names something
         // else. Everything below it gains one, because that is the URL GitHub Pages answers with 200 —

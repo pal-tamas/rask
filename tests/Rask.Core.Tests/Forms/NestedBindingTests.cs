@@ -10,7 +10,7 @@ namespace Rask.Core.Tests.Forms;
 public class NestedBindingTests
 {
     [Fact]
-    public void Parse_NestedMemberChain_TargetsSubObjectInstance()
+    public void A_nested_member_chain_targets_the_sub_object_instance()
     {
         var p = new Person { Address = new Address { Street = "Elm" } };
 
@@ -23,7 +23,7 @@ public class NestedBindingTests
     }
 
     [Fact]
-    public void Parse_NestedMemberChain_SetterMutatesSubObject()
+    public void The_setter_of_a_nested_member_chain_mutates_the_sub_object()
     {
         var p = new Person { Address = new Address { Street = "Elm" } };
         var acc = ExpressionAccessor.Parse((Expression<Func<string>>)(() => p.Address.Street));
@@ -34,7 +34,7 @@ public class NestedBindingTests
     }
 
     [Fact]
-    public void Parse_DeepChain_ResolvesTerminalOwner()
+    public void A_deep_chain_resolves_the_terminal_owner()
     {
         var p = new Person
         {
@@ -50,7 +50,7 @@ public class NestedBindingTests
     }
 
     [Fact]
-    public void Parse_ForeachCapturedLocal_TargetsCurrentItem()
+    public void A_foreach_captured_local_targets_the_current_item()
     {
         var items = new List<LineItem> { new() { Name = "alpha" }, new() { Name = "beta" }, new() { Name = "gamma" } };
 
@@ -71,7 +71,7 @@ public class NestedBindingTests
     }
 
     [Fact]
-    public void Parse_ListIndexer_TargetsItemAtIndex()
+    public void A_list_indexer_targets_the_item_at_its_index()
     {
         var items = new List<LineItem> { new() { Name = "alpha" }, new() { Name = "beta" } };
         var i = 1;
@@ -84,7 +84,7 @@ public class NestedBindingTests
     }
 
     [Fact]
-    public void Parse_ArrayIndexer_TargetsItemAtIndex()
+    public void An_array_indexer_targets_the_item_at_its_index()
     {
         var items = new[] { new LineItem { Name = "alpha" }, new LineItem { Name = "beta" } };
         var i = 0;
@@ -96,7 +96,7 @@ public class NestedBindingTests
     }
 
     [Fact]
-    public void Parse_DictionaryIndexer_TargetsValueAtKey()
+    public void A_dictionary_indexer_targets_the_value_at_its_key()
     {
         var settings = new Dictionary<string, ServerConfig>
         {
@@ -112,7 +112,7 @@ public class NestedBindingTests
     }
 
     [Fact]
-    public void Parse_RecordIndexer_ReResolvesAfterReplacement()
+    public void A_record_indexer_re_resolves_after_the_record_is_replaced()
     {
         // Record items are immutable — the user replaces a slot rather than mutating it.
         // Calling Parse again after replacement must return an accessor whose Target is the
@@ -121,18 +121,20 @@ public class NestedBindingTests
         var i = 0;
 
         var first = ExpressionAccessor.Parse((Expression<Func<string>>)(() => items[i].Name));
+
         Assert.Same(items[0], first.Target);
 
         items[0] = items[0] with { Name = "alphaPrime" };
 
         var second = ExpressionAccessor.Parse((Expression<Func<string>>)(() => items[i].Name));
+
         Assert.Same(items[0], second.Target);
         Assert.NotSame(first.Target, second.Target);
         Assert.Equal("alphaPrime", second.Getter());
     }
 
     [Fact]
-    public void Parse_FieldIdentifier_KeysOnSubInstance()
+    public void The_field_identifier_keys_on_the_sub_object_instance()
     {
         // Two persons share the same Address property name but each owns a distinct instance.
         // Field identity must distinguish them so error state on one doesn't bleed into the other.
@@ -147,7 +149,7 @@ public class NestedBindingTests
     }
 
     [Fact]
-    public void Parse_SubObjectReassignedBetweenParses_NewAccessorTargetsNewInstance()
+    public void A_sub_object_reassigned_between_parses_is_the_new_accessors_target()
     {
         var p = new Person { Address = new Address { Street = "Elm" } };
 
@@ -165,17 +167,18 @@ public class NestedBindingTests
     }
 
     [Fact]
-    public void Parse_NullSubObject_ThrowsInvalidOperation()
+    public void A_null_sub_object_throws_InvalidOperationException()
     {
         var p = new Person { Address = null };
 
         var ex = Assert.Throws<InvalidOperationException>(() =>
             ExpressionAccessor.Parse((Expression<Func<string>>)(() => p.Address!.Street)));
+
         Assert.Contains("evaluated to null", ex.Message);
     }
 
     [Fact]
-    public void Parse_WholeItemBind_ThrowsWithGuidanceMessage()
+    public void Binding_a_whole_item_throws_with_a_guidance_message()
     {
         // The body is the IndexExpression itself, not a member access — bind a property of
         // the indexed item instead. The error message must point at the workaround.
@@ -184,21 +187,23 @@ public class NestedBindingTests
 
         var ex = Assert.Throws<ArgumentException>(() =>
             ExpressionAccessor.Parse((Expression<Func<LineItem>>)(() => items[i])));
+
         Assert.Contains("Items[i].SomeProperty", ex.Message);
     }
 
     [Fact]
-    public void Parse_MethodCallBody_ThrowsWithMethodGuidance()
+    public void A_method_call_body_throws_with_method_guidance()
     {
         var p = new Person { Address = new Address { Street = "Elm" } };
 
         var ex = Assert.Throws<ArgumentException>(() =>
             ExpressionAccessor.Parse((Expression<Func<string>>)(() => p.GetDisplayName())));
+
         Assert.Contains("method", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
-    public void Parse_FieldOnObject_Throws()
+    public void A_field_on_an_object_throws()
     {
         // The terminal must be a property, not a field — fields can't be observed for
         // change events the way properties can.

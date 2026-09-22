@@ -116,6 +116,7 @@ public class NodeSupervisorTests
 
         var stopping = supervisor.StopAsync(CancellationToken.None);
         await Task.Delay(200);
+
         Assert.False(stopping.IsCompleted, "stopping did not wait for the in-flight forward");
 
         drain.Exit();
@@ -163,8 +164,8 @@ public class NodeSupervisorTests
         {
             AppDirectory = Path.Combine(AppContext.BaseDirectory, "no-such-frontend"),
         };
-
         using var supervisor = Build(options, lifetime);
+
         await supervisor.RunAsync(CancellationToken.None);
 
         Assert.True(lifetime.Stopped);
@@ -205,10 +206,10 @@ public class NodeSupervisorTests
             SuperviseNode = false,
             AppDirectory = Path.Combine(AppContext.BaseDirectory, "no-such-frontend"),
         };
-
         using var supervisor = new NodeSupervisor(
             options, new MetaPaths(options, new TestEnvironment()), readiness, new MetaDrain(), lifetime,
             NullLogger<NodeSupervisor>.Instance);
+
         await supervisor.RunAsync(CancellationToken.None);
 
         Assert.False(lifetime.Stopped);

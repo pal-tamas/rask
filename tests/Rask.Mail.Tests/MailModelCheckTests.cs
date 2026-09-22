@@ -56,9 +56,7 @@ public sealed class MailModelCheckTests
         var services = Services();
         services.AddRaskMail<UnmappedDbContext>(o => o.From = "noreply@example.com");
         services.AddDbContextFactory<UnmappedDbContext>(o => o.UseSqlite(MissingDbPath()));
-
         using var provider = services.BuildServiceProvider();
-
         var check = Assert.Single(ModelChecks(provider));
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(
@@ -67,7 +65,6 @@ public sealed class MailModelCheckTests
         // The line to type, not merely that something is wrong.
         Assert.Contains("modelBuilder.AddRaskMail();", error.Message, StringComparison.Ordinal);
         Assert.Contains("OnModelCreating", error.Message, StringComparison.Ordinal);
-
         // And the symptom it replaces, so a reader who searched for the old runtime error lands here.
         Assert.Contains("Cannot create a DbSet for 'QueuedMail'", error.Message, StringComparison.Ordinal);
     }
@@ -83,10 +80,9 @@ public sealed class MailModelCheckTests
         var services = Services();
         services.AddRaskMail<MappedDbContext>(o => o.From = "noreply@example.com");
         services.AddDbContextFactory<MappedDbContext>(o => o.UseSqlite(MissingDbPath()));
-
         using var provider = services.BuildServiceProvider();
-
         var check = Assert.Single(ModelChecks(provider));
+
         await check.StartAsync(CancellationToken.None);
     }
 

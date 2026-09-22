@@ -20,7 +20,7 @@ public class AssetEndpointSecurityTests
     public AssetEndpointSecurityTests() => ScopedAssetRegistry.InvalidateAll();
 
     [Fact]
-    public async Task NosniffHeader_PreventsBrowserMimeSniffing()
+    public async Task The_nosniff_header_stops_the_browser_sniffing_the_mime_type()
     {
         // Without X-Content-Type-Options: nosniff, a browser may sniff a misdeclared
         // Content-Type and execute CSS as JS (or vice versa). The header is the standard
@@ -30,12 +30,13 @@ public class AssetEndpointSecurityTests
         using var host = RaskTestHost.Create<TestApp>();
 
         var response = await host.Http.GetAsync($"/_rask/a/{hash}.css");
+
         Assert.True(response.Headers.TryGetValues("X-Content-Type-Options", out var v));
         Assert.Equal("nosniff", v.Single());
     }
 
     [Fact]
-    public async Task DefaultCors_NoWildcardAllowOrigin_OnAssetResponse()
+    public async Task An_asset_response_carries_no_wildcard_allow_origin_by_default()
     {
         // Asset URLs are intentionally cross-origin-fetchable when the host opts in via
         // app.UseCors(...). The default Server endpoint must NOT preemptively set
@@ -45,12 +46,13 @@ public class AssetEndpointSecurityTests
         using var host = RaskTestHost.Create<TestApp>();
 
         var response = await host.Http.GetAsync($"/_rask/a/{hash}.css");
+
         Assert.False(response.Headers.Contains("Access-Control-Allow-Origin"),
             "Default endpoint must not set Access-Control-Allow-Origin; let the host opt in via UseCors().");
     }
 
     [Fact]
-    public async Task UrlEncodedPathTraversal_DoesNotEscapeAssetNamespace()
+    public async Task A_url_encoded_path_traversal_does_not_escape_the_asset_namespace()
     {
         // Mock a malicious request: %2e%2e%2f is URL-encoded "../". The route constraint
         // rejects non-hex hash segments, so the request can't resolve to a registry entry —
@@ -62,11 +64,12 @@ public class AssetEndpointSecurityTests
 
         var response = await host.Http.GetAsync($"/_rask/a/%2e%2e%2f%2e%2e%2f{hash}.css");
         var body = await response.Content.ReadAsByteArrayAsync();
+
         Assert.NotEqual(assetBytes, body);
     }
 
     [Fact]
-    public async Task NullByteInHash_DoesNotResolveToAsset()
+    public async Task A_null_byte_in_the_hash_does_not_resolve_to_an_asset()
     {
         // Null byte injection — historically used to truncate paths in C-based filesystems.
         // Either the host rejects the URL before routing (throwing on the HttpClient side)
@@ -90,7 +93,7 @@ public class AssetEndpointSecurityTests
     }
 
     [Fact]
-    public async Task ExtremelyLongHash_Returns404_NotProcessing()
+    public async Task An_extremely_long_hash_answers_404_without_processing()
     {
         // 10KB of hex in the URL — length-bounded route constraint must reject before any
         // dictionary lookup is attempted (no DoS via huge hash strings).
@@ -98,11 +101,12 @@ public class AssetEndpointSecurityTests
         using var host = RaskTestHost.Create<TestApp>();
 
         var response = await host.Http.GetAsync($"/_rask/a/{longHash}.css");
+
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
-    public async Task CssContentContainingFakeScriptTag_ServedVerbatim_AsTextCss()
+    public async Task CSS_containing_a_fake_script_tag_is_served_verbatim_as_text_css()
     {
         // A user could register CSS containing a string that LOOKS like an HTML
         // </style><script> sequence. The endpoint serves it as text/css — the browser
@@ -115,6 +119,7 @@ public class AssetEndpointSecurityTests
         using var host = RaskTestHost.Create<TestApp>();
 
         var response = await host.Http.GetAsync($"/_rask/a/{hash}.css");
+
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("text/css", response.Content.Headers.ContentType?.MediaType);
         var body = await response.Content.ReadAsStringAsync();
@@ -124,7 +129,7 @@ public class AssetEndpointSecurityTests
     }
 
     [Fact]
-    public async Task JsContentAttemptingIifeEscape_ContainedByWrapper()
+    public async Task JS_attempting_an_IIFE_escape_is_contained_by_the_wrapper()
     {
         // The JS wrapper template is `(function(){window.Rask[name]=(function(){<USER>})();})();`
         // A malicious user-JS might try to close the inner function prematurely:
@@ -141,6 +146,7 @@ public class AssetEndpointSecurityTests
 
         var response = await host.Http.GetAsync($"/_rask/a/{hash}.js");
         var body = await response.Content.ReadAsStringAsync();
+
         // The user text appears inside the IIFE; the structural wrapper still surrounds it
         // (i.e. the file still ends with the closing `})();})();\n` from WrapModule).
         var trimmed = body.TrimEnd();
@@ -151,7 +157,7 @@ public class AssetEndpointSecurityTests
     }
 
     [Fact]
-    public async Task CrossKindMismatch_DoesNotLeakOtherKindBytes()
+    public async Task A_hash_asked_for_as_the_other_kind_does_not_leak_its_bytes()
     {
         // A known CSS hash queried with .js extension must 404, not return CSS bytes with
         // a JS content-type (which would be a XSS vector if the CSS contained executable
@@ -161,11 +167,12 @@ public class AssetEndpointSecurityTests
         using var host = RaskTestHost.Create<TestApp>();
 
         var response = await host.Http.GetAsync($"/_rask/a/{cssHash}.js");
+
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
-    public async Task EndpointAllowsAnonymous_EvenUnderGlobalAuthFallback()
+    public async Task The_endpoint_allows_anonymous_access_even_under_a_global_auth_fallback()
     {
         // If a host configures a global authorization fallback policy (which is common
         // for "secure by default" apps), the asset endpoint must remain anonymous-
@@ -179,6 +186,7 @@ public class AssetEndpointSecurityTests
         using var host = RaskTestHost.Create<TestApp>();
 
         var response = await host.Http.GetAsync($"/_rask/a/{hash}.css");
+
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.NotEqual(HttpStatusCode.Unauthorized, response.StatusCode);
         Assert.NotEqual(HttpStatusCode.Found, response.StatusCode); // not redirected to login

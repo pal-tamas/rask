@@ -16,7 +16,7 @@ public class InitialRenderDiffTests
     // choose-smaller heuristic.
 
     [Fact]
-    public async Task FirstInteraction_TextOnlyChange_ShipsDiffNotFullHtml()
+    public async Task A_text_only_change_on_the_first_interaction_ships_a_diff_not_full_html()
     {
         using var host = RaskTestHost.Create<TestApp>();
         var initialHtml = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();

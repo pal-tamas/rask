@@ -10,7 +10,7 @@ public partial class ReconciliationTests : global::Rask.Core.RaskMarkup
         RenderHarness.EmptyServices();
 
     [Fact]
-    public void GetOrCreate_FreshContext_AllocatesAndStores()
+    public void A_fresh_context_allocates_and_stores_the_component()
     {
         var root = new StubComponent(Span);
         var factoryCalls = 0;
@@ -27,7 +27,7 @@ public partial class ReconciliationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void GetOrCreate_ReusesPreviousInstance_AtSamePosition()
+    public void The_previous_instance_at_the_same_position_is_reused()
     {
         var root = new StubComponent(Span);
         var prev = new CounterStub { Value = 7 };
@@ -48,7 +48,7 @@ public partial class ReconciliationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void GetOrCreate_TypeMismatch_AllocatesFresh()
+    public void A_type_mismatch_allocates_a_fresh_instance()
     {
         var root = new StubComponent(Span);
         var prev = new OtherStub();
@@ -62,7 +62,7 @@ public partial class ReconciliationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void GetOrCreate_SequentialPositions_GetDistinctKeys()
+    public void Sequential_positions_get_distinct_keys()
     {
         var root = new StubComponent(Span);
         var p0 = new CounterStub { Value = 1 };
@@ -83,7 +83,7 @@ public partial class ReconciliationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void RenderAsLiveRoot_DropsUnreferencedChildren()
+    public void Rendering_as_the_live_root_drops_unreferenced_children()
     {
         // First render produces two Counter children; second produces one.
         // The dropped one must not appear in PersistedChildren after the second render.
@@ -121,7 +121,7 @@ public partial class ReconciliationTests : global::Rask.Core.RaskMarkup
     // Deferring evaluation to serialization would recreate embedded components every render and drop
     // their state (the bug that broke inline live demos co-mounted in a guide via a yield-built list).
     [Fact]
-    public void ChildrenIndexer_LazyEnumerable_IsEvaluatedImmediately()
+    public void A_lazy_enumerable_in_the_children_indexer_is_evaluated_immediately()
     {
         var evaluated = 0;
 
@@ -141,7 +141,7 @@ public partial class ReconciliationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void ChildrenIndexer_AlreadyMaterialisedCollection_PassesThroughWithoutCopy()
+    public void An_already_materialised_collection_in_the_children_indexer_passes_through_without_a_copy()
     {
         var list = new List<Component> { Span, Div };
 

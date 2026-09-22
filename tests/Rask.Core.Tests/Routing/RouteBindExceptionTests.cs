@@ -5,7 +5,7 @@ namespace Rask.Core.Tests.Routing;
 public class RouteBindExceptionTests
 {
     [Fact]
-    public void Constructor_PreservesMessage()
+    public void The_exception_preserves_its_message()
     {
         var ex = new RouteBindException("boom");
 
@@ -14,7 +14,7 @@ public class RouteBindExceptionTests
     }
 
     [Fact]
-    public void Constructor_PreservesMessageAndInnerException()
+    public void The_exception_preserves_its_message_and_inner_exception()
     {
         var inner = new InvalidOperationException("inner");
 

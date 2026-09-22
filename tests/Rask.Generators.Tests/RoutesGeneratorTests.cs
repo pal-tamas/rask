@@ -6,7 +6,7 @@ namespace Rask.Generators.Tests;
 public class RoutesGeneratorTests
 {
     [Fact]
-    public void RootTemplate_NoParams_EmitsZeroArgFactory()
+    public void A_root_template_with_no_params_emits_a_zero_arg_factory()
     {
         var src = """
                   using Rask.Core;
@@ -29,7 +29,7 @@ public class RoutesGeneratorTests
     }
 
     [Fact]
-    public void TypedIntPathParam_EmitsTypedParameter()
+    public void A_typed_int_path_param_emits_a_typed_parameter()
     {
         var src = """
                   using Rask.Core;
@@ -52,7 +52,7 @@ public class RoutesGeneratorTests
     }
 
     [Fact]
-    public void OptionalStringPathParam_EmitsNullableWithGuard()
+    public void An_optional_string_path_param_emits_a_nullable_with_a_guard()
     {
         var src = """
                   using Rask.Core;
@@ -75,7 +75,7 @@ public class RoutesGeneratorTests
     }
 
     [Fact]
-    public void TypeMismatch_RaisesRask005()
+    public void A_type_mismatch_raises_RASK005()
     {
         var src = """
                   using Rask.Core;
@@ -90,11 +90,12 @@ public class RoutesGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
+
         Assert.Contains(run.Diagnostics, d => d.Id == "RASK005");
     }
 
     [Fact]
-    public void MissingProperty_RaisesRask004()
+    public void A_missing_property_raises_RASK004()
     {
         var src = """
                   using Rask.Core;
@@ -108,11 +109,12 @@ public class RoutesGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
+
         Assert.Contains(run.Diagnostics, d => d.Id == "RASK004");
     }
 
     [Fact]
-    public void Rask004_Message_StatesHowToFix()
+    public void The_RASK004_message_states_how_to_fix_it()
     {
         var src = """
                   using Rask.Core;
@@ -134,7 +136,7 @@ public class RoutesGeneratorTests
     }
 
     [Fact]
-    public void QueryParam_EmitsOptionalParameter()
+    public void A_QueryParam_emits_an_optional_parameter()
     {
         var src = """
                   using Rask.Core;
@@ -158,7 +160,7 @@ public class RoutesGeneratorTests
     }
 
     [Fact]
-    public void QueryParam_ExplicitName_OverridesPropertyName()
+    public void An_explicit_QueryParam_name_overrides_the_property_name()
     {
         var src = """
                   using Rask.Core;
@@ -180,7 +182,7 @@ public class RoutesGeneratorTests
     }
 
     [Fact]
-    public void QueryParam_NameWithSpecialChars_IsUrlEncodedInGeneratedKey()
+    public void A_QueryParam_name_with_special_chars_is_url_encoded_in_the_generated_key()
     {
         // An explicit query-param name with characters that are special in a query string must be
         // URL-encoded in the emitted key, else the generated URL is malformed.
@@ -204,7 +206,7 @@ public class RoutesGeneratorTests
     }
 
     [Fact]
-    public void ParentRoute_PrefixesTemplateWithParentTemplate()
+    public void A_ParentRoute_prefixes_the_template_with_the_parent_template()
     {
         var src = """
                   using Rask.Core;
@@ -231,7 +233,7 @@ public class RoutesGeneratorTests
     }
 
     [Fact]
-    public void ParentRouteCycle_RaisesRask007()
+    public void A_cycle_of_parent_routes_raises_RASK007()
     {
         var src = """
                   using Rask.Core;
@@ -247,11 +249,12 @@ public class RoutesGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
+
         Assert.Contains(run.Diagnostics, d => d.Id == "RASK007");
     }
 
     [Fact]
-    public void GuidConstraint_EmitsGuidParameterType()
+    public void A_guid_constraint_emits_a_Guid_parameter_type()
     {
         var src = """
                   using Rask.Core;
@@ -272,7 +275,7 @@ public class RoutesGeneratorTests
     }
 
     [Fact]
-    public void UnconstrainedSegment_TreatedAsString()
+    public void An_unconstrained_segment_is_treated_as_a_string()
     {
         var src = """
                   using Rask.Core;
@@ -294,7 +297,7 @@ public class RoutesGeneratorTests
     }
 
     [Fact]
-    public void NoRouteAttribute_EmitsNothing()
+    public void A_class_with_no_Route_attribute_emits_nothing()
     {
         var src = """
                   using Rask.Core;
@@ -306,6 +309,7 @@ public class RoutesGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
+
         var hasRoutesFile = run.RunResult.Results
             .SelectMany(r => r.GeneratedSources)
             .Any(s => s.HintName.Contains("Routes.g.cs"));
@@ -313,7 +317,7 @@ public class RoutesGeneratorTests
     }
 
     [Fact]
-    public void RegistryInitializer_EmitsModuleInitializerAndRegistrations()
+    public void The_registry_initializer_emits_a_module_initializer_and_the_registrations()
     {
         var src = """
                   using Rask.Core;
@@ -340,7 +344,7 @@ public class RoutesGeneratorTests
     }
 
     [Fact]
-    public void RegistryInitializer_RegistersCustomParsableParamType_ForAot()
+    public void The_registry_initializer_registers_a_custom_parsable_param_type_for_AOT()
     {
         var src = """
                   using Rask.Core;
@@ -372,7 +376,7 @@ public class RoutesGeneratorTests
     }
 
     [Fact]
-    public void RegistryInitializer_RegistersNonPrimitiveBclParsableParamType()
+    public void The_registry_initializer_registers_a_non_primitive_BCL_parsable_param_type()
     {
         // Registration keys off SpecialType (not the namespace), so any non-primitive IParsable type
         // is registered even when it lives under System.* — e.g. System.Net.IPAddress, which the
@@ -398,7 +402,7 @@ public class RoutesGeneratorTests
     }
 
     [Fact]
-    public void RegistryInitializer_NoCustomParsableParams_EmitsNoRegistrations()
+    public void The_registry_initializer_emits_no_registrations_without_custom_parsable_params()
     {
         var src = """
                   using Rask.Core;
@@ -419,7 +423,7 @@ public class RoutesGeneratorTests
     }
 
     [Fact]
-    public void OrphanRouteParam_RaisesRask008()
+    public void A_RouteParam_with_no_segment_to_fill_raises_RASK008()
     {
         var src = """
                   using Rask.Core;
@@ -434,11 +438,12 @@ public class RoutesGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
+
         Assert.Contains(run.Diagnostics, d => d.Id == "RASK008");
     }
 
     [Fact]
-    public void RouteParamWithExplicitName_MatchesSegmentByOverride()
+    public void A_RouteParam_with_an_explicit_name_matches_the_segment_by_that_override()
     {
         var src = """
                   using Rask.Core;
@@ -460,7 +465,7 @@ public class RoutesGeneratorTests
     }
 
     [Fact]
-    public void PathSegmentWithoutRouteParamProperty_RaisesRask004()
+    public void A_path_segment_without_a_RouteParam_property_raises_RASK004()
     {
         var src = """
                   using Rask.Core;
@@ -475,11 +480,12 @@ public class RoutesGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
+
         Assert.Contains(run.Diagnostics, d => d.Id == "RASK004");
     }
 
     [Fact]
-    public void RouteParamOnNonRouteClass_RaisesRask009()
+    public void A_RouteParam_on_a_class_without_a_route_raises_RASK009()
     {
         var src = """
                   using Rask.Core;
@@ -493,13 +499,14 @@ public class RoutesGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
+
         var diag = run.Diagnostics.FirstOrDefault(d => d.Id == "RASK009");
         Assert.NotNull(diag);
         Assert.Contains("has no [Route]", diag!.GetMessage());
     }
 
     [Fact]
-    public void QueryParamOnNonRouteClass_RaisesRask010()
+    public void A_QueryParam_on_a_class_without_a_route_raises_RASK010()
     {
         var src = """
                   using Rask.Core;
@@ -513,13 +520,14 @@ public class RoutesGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
+
         var diag = run.Diagnostics.FirstOrDefault(d => d.Id == "RASK010");
         Assert.NotNull(diag);
         Assert.Contains("has no [Route]", diag!.GetMessage());
     }
 
     [Fact]
-    public void RouteParamOnNonComponentClass_RaisesRask009()
+    public void A_RouteParam_on_a_class_that_is_not_a_component_raises_RASK009()
     {
         var src = """
                   using Rask.Core.Routing;
@@ -531,13 +539,14 @@ public class RoutesGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
+
         var diag = run.Diagnostics.FirstOrDefault(d => d.Id == "RASK009");
         Assert.NotNull(diag);
         Assert.Contains("does not inherit from Component", diag!.GetMessage());
     }
 
     [Fact]
-    public void QueryParamOnAbstractComponent_RaisesRask010()
+    public void A_QueryParam_on_an_abstract_component_raises_RASK010()
     {
         var src = """
                   using Rask.Core;
@@ -551,13 +560,14 @@ public class RoutesGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
+
         var diag = run.Diagnostics.FirstOrDefault(d => d.Id == "RASK010");
         Assert.NotNull(diag);
         Assert.Contains("class is abstract", diag!.GetMessage());
     }
 
     [Fact]
-    public void ValidRouteClass_NoOrphanDiagnostic()
+    public void A_valid_route_class_raises_no_orphan_diagnostic()
     {
         var src = """
                   using Rask.Core;
@@ -573,11 +583,12 @@ public class RoutesGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
+
         Assert.DoesNotContain(run.Diagnostics, d => d.Id == "RASK009" || d.Id == "RASK010");
     }
 
     [Fact]
-    public void NonParsableType_RaisesRask011()
+    public void A_non_parsable_type_raises_RASK011()
     {
         var src = """
                   using System.Collections.Generic;
@@ -593,11 +604,12 @@ public class RoutesGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
+
         Assert.Contains(run.Diagnostics, d => d.Id == "RASK011");
     }
 
     [Fact]
-    public void CustomIParsable_PathParam_EmitsPropertyType()
+    public void A_custom_IParsable_path_param_emits_its_property_type()
     {
         var src = """
                   using System;
@@ -623,6 +635,7 @@ public class RoutesGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
+
         Assert.DoesNotContain(run.Diagnostics, d => d.Severity == DiagnosticSeverity.Error);
         var output = run.GeneratedSource("Demo.Routes.g.cs");
 
@@ -631,7 +644,7 @@ public class RoutesGeneratorTests
     }
 
     [Fact]
-    public void CustomIParsable_QueryParam_EmitsPropertyType()
+    public void A_custom_IParsable_query_param_emits_its_property_type()
     {
         var src = """
                   using System;
@@ -657,6 +670,7 @@ public class RoutesGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
+
         Assert.DoesNotContain(run.Diagnostics, d => d.Severity == DiagnosticSeverity.Error);
         var output = run.GeneratedSource("Demo.Routes.g.cs");
 
@@ -665,7 +679,7 @@ public class RoutesGeneratorTests
     }
 
     [Fact]
-    public void MultipleRouteAttributes_RegisterEveryTemplateUnderSameType()
+    public void Several_Route_attributes_register_every_template_under_the_same_type()
     {
         var src = """
                   using Rask.Core;
@@ -682,6 +696,7 @@ public class RoutesGeneratorTests
                   """;
 
         var run = GeneratorDriverFixture.RunRoutes(src);
+
         Assert.DoesNotContain(run.Diagnostics, d => d.Severity == DiagnosticSeverity.Error);
 
         var registry = run.GeneratedSource("__RaskRoutesRegistry.g.cs");
@@ -696,7 +711,7 @@ public class RoutesGeneratorTests
     }
 
     [Fact]
-    public void MultipleRouteAttributes_UrlFormatterUsesFirstTemplateOnly()
+    public void With_several_Route_attributes_the_url_formatter_uses_only_the_first_template()
     {
         var src = """
                   using Rask.Core;
@@ -723,7 +738,7 @@ public class RoutesGeneratorTests
     }
 
     [Fact]
-    public void IdenticalSource_ProducesByteIdenticalOutput()
+    public void Identical_source_produces_byte_identical_output()
     {
         var src = """
                   using Rask.Core;
@@ -739,6 +754,7 @@ public class RoutesGeneratorTests
 
         var a = GeneratorDriverFixture.RunRoutes(src).GeneratedSource("Demo.Routes.g.cs");
         var b = GeneratorDriverFixture.RunRoutes(src).GeneratedSource("Demo.Routes.g.cs");
+
         Assert.Equal(a, b);
     }
 }

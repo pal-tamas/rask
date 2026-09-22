@@ -6,7 +6,7 @@ namespace Rask.Core.Tests.Interop;
 public class GeolocationTests
 {
     [Fact]
-    public async Task GetCurrentPosition_Default_SendsHelper_WithDefaultOptions()
+    public async Task Getting_the_current_position_by_default_sends_the_helper_the_default_options()
     {
         var js = new FakeJsRuntime();
         var geo = new Geolocation(js);
@@ -18,7 +18,7 @@ public class GeolocationTests
     }
 
     [Fact]
-    public async Task GetCurrentPosition_PassesOptionsThrough()
+    public async Task Getting_the_current_position_passes_the_options_through()
     {
         var js = new FakeJsRuntime();
         var geo = new Geolocation(js);
@@ -34,7 +34,7 @@ public class GeolocationTests
     }
 
     [Fact]
-    public async Task GetCurrentPosition_ReturnsCannedPosition()
+    public async Task Getting_the_current_position_gives_the_canned_position()
     {
         var js = new FakeJsRuntime();
         var expected = new GeolocationPosition(51.5, -0.12, 12.0, null, null, null, null, 1_700_000_000_000);
@@ -47,7 +47,7 @@ public class GeolocationTests
     }
 
     [Fact]
-    public void Position_DeserializesFrom_HelperCamelCaseJson()
+    public void A_position_deserializes_from_the_helpers_camel_case_json()
     {
         // The contract between __raskApi.geolocation (rask-api.js) and the C# record: the helper
         // emits camelCase coords; GeolocationPosition must map them under JSInterop's Web defaults.
@@ -79,7 +79,7 @@ public class GeolocationTests
     }
 
     [Fact]
-    public void Position_NullableFields_DeserializeToNull_WhenAbsent()
+    public void Absent_nullable_position_fields_deserialize_to_null()
     {
         const string json = """
             {"latitude":1.0,"longitude":2.0,"accuracy":3.0,"altitude":null,"altitudeAccuracy":null,"heading":null,"speed":null,"timestampMs":0}

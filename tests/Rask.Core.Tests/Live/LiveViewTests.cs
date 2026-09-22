@@ -8,7 +8,7 @@ namespace Rask.Core.Tests.Live;
 public partial class LiveViewTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void RenderAsLiveRoot_RegistersHandlersAndEmitsIds()
+    public void Rendering_as_the_live_root_registers_handlers_and_emits_ids()
     {
         var counter = 0;
         var view = new StubComponent(() => Div[
@@ -24,7 +24,7 @@ public partial class LiveViewTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void RenderAsLiveRoot_ResetsHandlerIdsBetweenRenders()
+    public void Rendering_as_the_live_root_resets_handler_ids_between_renders()
     {
         var view = new StubComponent(() => Button.OnClick(() => { })["x"]);
 
@@ -36,7 +36,7 @@ public partial class LiveViewTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task TryInvokeHandlerAsync_RunsParameterlessAction_AndIgnoresPayload()
+    public async Task Invoking_a_parameterless_action_handler_runs_it_and_ignores_the_payload()
     {
         var fired = 0;
         var view = new StubComponent(() => Button.OnClick(() => fired++)["x"]);
@@ -49,7 +49,7 @@ public partial class LiveViewTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task TryInvokeHandlerAsync_StringActionHandler_ReceivesValueProperty()
+    public async Task A_string_action_handler_receives_the_value_property()
     {
         var captured = string.Empty;
         var view = new StubComponent(() => Input.Value<string>(null).OnInput(v => captured = v));
@@ -63,7 +63,7 @@ public partial class LiveViewTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task TryInvokeHandlerAsync_FormDataActionHandler_ReceivesFormFields()
+    public async Task A_FormData_action_handler_receives_the_form_fields()
     {
         FormData? captured = null;
         var view = new StubComponent(() => Form.Model(new object()).OnSubmit(f => captured = f));
@@ -80,7 +80,7 @@ public partial class LiveViewTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task TryInvokeHandlerAsync_FuncTaskHandler_IsAwaited()
+    public async Task A_task_returning_handler_is_awaited()
     {
         var fired = false;
         var view = new StubComponent(() => Button
@@ -98,7 +98,7 @@ public partial class LiveViewTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task TryInvokeHandlerAsync_FuncStringTaskHandler_ReceivesValue()
+    public async Task A_task_returning_string_handler_receives_the_value()
     {
         var captured = string.Empty;
         var view = new StubComponent(() => Input.Value<string>(null)
@@ -117,7 +117,7 @@ public partial class LiveViewTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task TryInvokeHandlerAsync_FuncFormDataTaskHandler_ReceivesForm()
+    public async Task A_task_returning_FormData_handler_receives_the_form()
     {
         FormData? captured = null;
         var view = new StubComponent(() => Form.Model(new object()).OnSubmit(async f =>
@@ -135,7 +135,7 @@ public partial class LiveViewTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task TryInvokeHandlerAsync_LastWriteWinsTheSlot()
+    public async Task The_last_write_wins_the_handler_slot()
     {
         var syncFired = 0;
         var asyncFired = 0;
@@ -164,7 +164,7 @@ public partial class LiveViewTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task TryInvokeHandlerAsync_UnknownId_ReturnsFalse()
+    public async Task Invoking_an_unknown_handler_id_reports_false()
     {
         var view = new StubComponent(() => Button.OnClick(() => { })["x"]);
         view.RenderAsLiveRoot();
@@ -175,7 +175,7 @@ public partial class LiveViewTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task TryInvokeHandlerAsync_StaleIdAfterRerender_ReturnsFalse()
+    public async Task Invoking_a_stale_handler_id_after_a_rerender_reports_false()
     {
         var view = new StubComponent(() => Button.OnClick(() => { })["x"]);
         view.RenderAsLiveRoot();

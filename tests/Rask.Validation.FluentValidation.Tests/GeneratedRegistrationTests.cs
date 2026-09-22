@@ -14,7 +14,7 @@ namespace Rask.Validation.FluentValidation.Tests;
 public partial class GeneratedRegistrationTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public async Task DeclaringAValidator_IsTheWholeRegistration()
+    public async Task Declaring_a_validator_is_the_whole_registration()
     {
         var m = new DiscoveredModel { Title = "" };
         var ctx = Render(m);
@@ -26,7 +26,7 @@ public partial class GeneratedRegistrationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Attributes_RunAlongsideTheDiscoveredValidator_AttributesFirst()
+    public async Task Attributes_run_alongside_the_discovered_validator_and_come_first()
     {
         // Both passes apply to this model. DataAnnotations is the sync stage and the discovered
         // validator is the async one, so EditContext's existing per-field first-error-wins gating means
@@ -41,7 +41,7 @@ public partial class GeneratedRegistrationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Attributes_AndValidator_BothSurface_OnDifferentFields()
+    public async Task Attributes_and_the_validator_both_surface_on_different_fields()
     {
         var m = new BothModel { Code = "abc", Quantity = 0 };
         var ctx = Render(m);
@@ -54,7 +54,7 @@ public partial class GeneratedRegistrationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task MustAsync_RidesTheSameDiscovery()
+    public async Task A_MustAsync_rule_rides_the_same_discovery()
     {
         var m = new AsyncModel { Name = "taken" };
         var ctx = Render(m);
@@ -66,7 +66,7 @@ public partial class GeneratedRegistrationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void AValidatorNeedingServices_DoesNotBreakARenderWithNoScope()
+    public void A_validator_needing_services_does_not_break_a_render_with_no_scope()
     {
         // The validator is only BUILT when validation runs, not when the form registers it. Building at
         // registration meant this render threw InvalidOperationException out of Render() — from generated
@@ -81,7 +81,7 @@ public partial class GeneratedRegistrationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task AModelWithNoValidator_LeavesValidateSynchronous()
+    public async Task A_model_with_no_validator_leaves_Validate_synchronous()
     {
         // A DiscoveredFieldValidator is an IAsyncFieldValidator, and one of those on the context makes
         // the synchronous EditContext.Validate() throw. Registering it unconditionally would have made
@@ -94,7 +94,7 @@ public partial class GeneratedRegistrationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task AModelWithNoValidator_IsLeftAlone()
+    public async Task A_model_with_no_validator_is_left_alone()
     {
         var m = new UnvalidatedModel { Anything = "" };
         var ctx = Render(m);

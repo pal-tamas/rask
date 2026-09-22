@@ -12,7 +12,7 @@ public partial class RaskRuntimeScriptTests : global::Rask.Core.RaskMarkup
     // legacy tree that still contains it does not double-emit the script.
 
     [Fact]
-    public void Render_NoProviderRegistered_EmitsEmpty()
+    public void With_no_provider_registered_it_emits_nothing()
     {
         var sp = RenderHarness.EmptyServices();
         var view = new StubComponent(() => RaskRuntimeScript);
@@ -23,7 +23,7 @@ public partial class RaskRuntimeScriptTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_EvenWithProviderRegistered_EmitsEmpty()
+    public void Even_with_a_provider_registered_it_emits_nothing()
     {
         // Proves the component no longer delegates to IRaskRuntimeScript — emission moved
         // to the body-close hook in HtmlSerializer.
@@ -39,7 +39,7 @@ public partial class RaskRuntimeScriptTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_NoLiveContext_EmitsEmpty()
+    public void Outside_a_live_context_it_emits_nothing()
     {
         var html = RaskRuntimeScript.ToHtml();
 

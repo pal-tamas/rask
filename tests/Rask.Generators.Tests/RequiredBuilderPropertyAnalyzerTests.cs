@@ -57,15 +57,15 @@ public class RequiredBuilderPropertyAnalyzerTests
         """;
 
     [Fact]
-    public async Task Chain_ThatSetsTheRequiredProperty_NoDiagnostic() =>
+    public async Task A_chain_that_sets_the_required_property_raises_no_diagnostic() =>
         Assert.Empty(await Diagnostics(Source("""return Card.Title("Hi");""")));
 
     [Fact]
-    public async Task Chain_CountsTheSetterInAnyPosition() =>
+    public async Task The_chain_counts_the_required_setter_in_any_position() =>
         Assert.Empty(await Diagnostics(Source("""return Card.Note("n").Title("Hi").Kind("wide");""")));
 
     [Fact]
-    public async Task BareEntry_WithARequiredProperty_ReportsRask038()
+    public async Task A_bare_entry_with_a_required_property_reports_RASK038()
     {
         var d = Assert.Single(await Diagnostics(Source("return Card;")));
         Assert.Equal("RASK038", d.Id);
@@ -74,17 +74,17 @@ public class RequiredBuilderPropertyAnalyzerTests
     }
 
     [Fact]
-    public async Task Chain_ThatSetsOnlyOptionalProperties_ReportsRask038() =>
+    public async Task A_chain_that_sets_only_optional_properties_reports_RASK038() =>
         Assert.Equal("RASK038",
             Assert.Single(await Diagnostics(Source("""return Card.Note("n").Kind("wide");"""))).Id);
 
     [Fact]
-    public async Task Chain_UsedAsAnArgument_IsStillOneExpression() =>
+    public async Task A_chain_used_as_an_argument_is_still_one_expression() =>
         Assert.Equal("RASK038",
             Assert.Single(await Diagnostics(Source("""return Wrap(Card.Note("n"));"""))).Id);
 
     [Fact]
-    public async Task Chain_StoredInALocal_ReportsRask039_NotAWrongAnswer()
+    public async Task A_chain_stored_in_a_local_reports_RASK039_rather_than_a_wrong_answer()
     {
         var d = Assert.Single(await Diagnostics(Source("""
             var card = Card.Note("n");
@@ -95,26 +95,26 @@ public class RequiredBuilderPropertyAnalyzerTests
     }
 
     [Fact]
-    public async Task Chain_StoredButAlreadyComplete_NoDiagnostic() =>
+    public async Task A_chain_stored_in_a_local_but_already_complete_raises_no_diagnostic() =>
         Assert.Empty(await Diagnostics(Source("""
             var card = Card.Title("Hi");
             return card;
             """)));
 
     [Fact]
-    public async Task Property_WhoseNameIsNotItsType_IsNotAnEntry() =>
+    public async Task A_property_whose_name_is_not_its_type_is_not_an_entry() =>
         // `Panel` is a Card-typed property, but an entry is the member whose name IS its component type.
         Assert.Empty(await Diagnostics(Source("""return Panel.Note("n");""")));
 
     [Fact]
-    public async Task NameOf_AnEntry_IsNotAChain() =>
+    public async Task The_nameof_of_an_entry_is_not_a_chain() =>
         Assert.Empty(await Diagnostics(Source("""
             _ = nameof(Card);
             return null;
             """)));
 
     [Fact]
-    public async Task Component_WithNoRequiredProperty_IsNeverReported() =>
+    public async Task A_component_with_no_required_property_is_never_reported() =>
         Assert.Empty(await Diagnostics("""
             using Rask.Core;
 

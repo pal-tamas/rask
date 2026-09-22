@@ -31,7 +31,7 @@ public class TestJSRuntimeTests
     }
 
     [Fact]
-    public async Task RecordsTheIdentifierAndArgumentsAComponentInvoked()
+    public async Task It_records_the_identifier_and_arguments_a_component_invoked()
     {
         var (page, js) = RenderCopier();
 
@@ -42,7 +42,7 @@ public class TestJSRuntimeTests
     }
 
     [Fact]
-    public async Task SetResponse_IsHandedBackToTheComponent()
+    public async Task A_SetResponse_value_is_handed_back_to_the_component()
     {
         var (page, js) = RenderCopier();
         js.SetResponse("raskApi.clipboard.read", "from-the-clipboard");
@@ -53,7 +53,7 @@ public class TestJSRuntimeTests
     }
 
     [Fact]
-    public async Task UnconfiguredCall_ReturnsDefault_RatherThanThrowing()
+    public async Task An_unconfigured_call_returns_default_rather_than_throwing()
     {
         var (page, js) = RenderCopier();
 
@@ -65,7 +65,7 @@ public class TestJSRuntimeTests
     }
 
     [Fact]
-    public async Task SetException_FaultsTheCall()
+    public async Task SetException_faults_the_call()
     {
         var js = new TestJSRuntime();
         js.SetException("boom", new InvalidOperationException("no"));
@@ -75,7 +75,7 @@ public class TestJSRuntimeTests
     }
 
     [Fact]
-    public async Task Calls_AreRecordedInInvocationOrder()
+    public async Task Calls_are_recorded_in_invocation_order()
     {
         var (page, js) = RenderCopier();
 
@@ -88,19 +88,20 @@ public class TestJSRuntimeTests
     }
 
     [Fact]
-    public async Task ArgsFor_WhenCalledMoreThanOnce_SaysSoInsteadOfThrowingAnOpaqueSequenceError()
+    public async Task ArgsFor_on_a_call_made_more_than_once_says_so_instead_of_throwing_an_opaque_sequence_error()
     {
         var (page, js) = RenderCopier();
         await page.ClickAsync();
         await page.ClickAsync();
 
         var ex = Assert.Throws<InvalidOperationException>(() => js.ArgsFor("raskApi.clipboard.write"));
+
         Assert.Contains("exactly one call", ex.Message);
         Assert.Contains("there were 2", ex.Message);
     }
 
     [Fact]
-    public void NullArguments_Throw()
+    public void Null_arguments_throw()
     {
         var js = new TestJSRuntime();
 

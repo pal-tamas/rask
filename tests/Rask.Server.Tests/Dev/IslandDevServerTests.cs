@@ -57,6 +57,7 @@ public sealed class IslandDevServerTests
         }
 
         server.ServingFrom(null);
+
         if (Environment.GetEnvironmentVariable("RASK_ISLANDS_DEV") is null)
         {
             Assert.Null(PageDocument.IslandsDevUrl(services));

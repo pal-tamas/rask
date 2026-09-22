@@ -84,6 +84,7 @@ public class BuilderAttributeHostTests
     public void A_subclass_of_an_attributed_host_is_not_one()
     {
         const BindingFlags own = BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.DeclaredOnly;
+
         Assert.NotNull(typeof(ChipCases).GetProperty("Div", own));
         Assert.Null(typeof(NotAHost).GetProperty("Div", own));
     }

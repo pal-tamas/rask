@@ -76,7 +76,6 @@ public sealed class StoragePageTests
     public async Task An_unmapped_store_is_not_available()
     {
         await using var h = new DashboardHarness(registered: Batteries.All, mapped: Batteries.Jobs);
-
         var storage = h.Get<IStoragePanelReader>();
 
         Assert.False(storage.IsAvailable);

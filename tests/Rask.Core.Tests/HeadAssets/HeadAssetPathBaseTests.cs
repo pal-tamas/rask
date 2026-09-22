@@ -32,7 +32,7 @@ public sealed class HeadAssetPathBaseTests : IDisposable
     }
 
     [Fact]
-    public void EmptyPathBase_EmitsRootRelativeBundleUrls()
+    public void An_empty_path_base_emits_root_relative_bundle_urls()
     {
         ScopedAssetRegistry.RegisterCss(typeof(Widget), ".x { color: red; }");
         ScopedAssetRegistry.RegisterJs(typeof(Widget), "export function f(){}");
@@ -49,7 +49,7 @@ public sealed class HeadAssetPathBaseTests : IDisposable
     }
 
     [Fact]
-    public void NonEmptyPathBase_PrependsPrefixToBundleUrls()
+    public void A_non_empty_path_base_prepends_its_prefix_to_the_bundle_urls()
     {
         ScopedAssetRegistry.RegisterCss(typeof(Widget), ".x { color: red; }");
         ScopedAssetRegistry.RegisterJs(typeof(Widget), "export function f(){}");
@@ -70,7 +70,7 @@ public sealed class HeadAssetPathBaseTests : IDisposable
     }
 
     [Fact]
-    public void PathBase_NormalizesTrailingSlashOnAssignment()
+    public void The_path_base_normalizes_a_trailing_slash_on_assignment()
     {
         ScopedAssetRegistry.RegisterCss(typeof(Widget), ".x { color: red; }");
 
@@ -86,7 +86,7 @@ public sealed class HeadAssetPathBaseTests : IDisposable
     }
 
     [Fact]
-    public void PathBase_MultiSegment_Preserved()
+    public void A_multi_segment_path_base_is_preserved()
     {
         ScopedAssetRegistry.RegisterCss(typeof(Widget), ".x { color: red; }");
 

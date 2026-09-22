@@ -70,6 +70,7 @@ public sealed class ErrorPageResponseTests
 
         await ws.SendJsonAsync(new { id = throwingId });
         var faulted = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+
         Assert.NotNull(faulted);
         Assert.Contains("Try again", faulted, StringComparison.Ordinal);
 

@@ -76,7 +76,6 @@ public sealed class PostgresClaimTests : IAsyncLifetime
         var claimed = await ClaimTogetherAsync(instances, batchSize: 25, now);
 
         var ids = claimed.SelectMany(batch => batch.Select(j => j.Id)).ToList();
-
         // The invariant the design rests on: no id appears twice across every instance's batch.
         Assert.Equal(ids.Count, ids.Distinct().Count());
         Assert.NotEmpty(ids);
@@ -93,7 +92,6 @@ public sealed class PostgresClaimTests : IAsyncLifetime
         Skip.IfNot(Postgres.Available, Postgres.SkipReason);
 
         await SeedAsync(1);
-
         var now = DateTime.UtcNow;
         var (first, firstDb) = NewInstance(batchSize: 10);
         await using (firstDb)

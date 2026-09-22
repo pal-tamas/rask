@@ -136,7 +136,7 @@ public partial class UiDropdownTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Hover_keeps_daisyUIs_CSS_dropdown()
+    public void Opening_on_hover_keeps_the_daisyUI_css_dropdown()
     {
         // CSS cannot open a popover, so hovering to open is the one shape that stays daisyUI's.
         var html = UiDropdown.Trigger("Actions").OpenOn(UiOpenOn.Hover).Align(UiAlign.End).ToHtml();

@@ -8,26 +8,30 @@ namespace Rask.Core.Tests.Components;
 public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void OutsideEditContext_RendersNothing()
+    public void Outside_an_EditContext_a_validation_message_renders_nothing()
     {
         var p = new Person();
+
         var html = ValidationMessage.Template(msgs => Div.Class("validation-message")[msgs[0]]).For(() => p.Name).ToHtml();
+
         Assert.Equal("", html);
     }
 
     [Fact]
-    public void InsideEditContext_NoMessages_RendersNothing()
+    public void Inside_an_EditContext_with_no_messages_it_renders_nothing()
     {
         var p = new Person { Name = "Ada" };
         var view = new StubComponent(() => Form.Model(p)[
             ValidationMessage.Template(msgs => Div.Class("validation-message")[msgs[0]]).For(() => p.Name)
         ]);
+
         var html = view.RenderAsLiveRoot();
+
         Assert.DoesNotContain("validation-message", html);
     }
 
     [Fact]
-    public void InsideEditContext_WithMessage_RendersTemplate()
+    public void Inside_an_EditContext_with_a_message_it_renders_the_template()
     {
         var p = new Person { Name = "" };
         var ctx = new EditContext(p);
@@ -36,6 +40,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         var view = new StubComponent(() => Form.Model(p).Context(ctx)[
             ValidationMessage.Template(msgs => Div.Class("validation-message")[msgs[0]]).For(() => p.Name)
         ]);
+
         var html = view.RenderAsLiveRoot();
 
         Assert.Contains("class=\"validation-message\"", html);
@@ -43,7 +48,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void ValidationMessage_MessageAddedAfterFirstRender_RepaintsOnReRender_ViaAutoLatch()
+    public void A_message_added_after_the_first_render_repaints_the_ValidationMessage_via_the_auto_latch()
     {
         // ValidationMessage carries no manual BypassRenderCache override anymore. Its first render
         // reads EditContext.GetValidationMessages (no messages yet) and populates the render cache with
@@ -60,17 +65,19 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         ]);
 
         var first = view.RenderAsLiveRoot();
+
         Assert.DoesNotContain("validation-message", first);
 
         ctx.AddValidationMessage(field, "Name is required");
 
         var second = view.RenderAsLiveRoot();
+
         Assert.Contains("class=\"validation-message\"", second);
         Assert.Contains("Name is required", second);
     }
 
     [Fact]
-    public void ValidationSummary_MessageAddedAfterFirstRender_RepaintsOnReRender_ViaAutoLatch()
+    public void A_message_added_after_the_first_render_repaints_the_ValidationSummary_via_the_auto_latch()
     {
         // Same auto-latch guarantee for the GetValidationEntries read path (ValidationSummary). It
         // must start non-empty so the first render caches a non-null <ul> (a null/empty render is never
@@ -91,18 +98,20 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         ]);
 
         var first = view.RenderAsLiveRoot();
+
         Assert.Contains("Name is required", first);
         Assert.DoesNotContain("Email is required", first);
 
         ctx.AddValidationMessage(email, "Email is required");
 
         var second = view.RenderAsLiveRoot();
+
         Assert.Contains("Name is required", second);
         Assert.Contains("Email is required", second);
     }
 
     [Fact]
-    public void ValidationSummary_WithMessages_RendersTemplate()
+    public void A_ValidationSummary_with_messages_renders_its_template()
     {
         var p = new Person { Name = "" };
         var ctx = new EditContext(p);
@@ -115,6 +124,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
                     entries.Select((e, i) => Li.Key(i)[e.Message])
                 ])
         ]);
+
         var html = view.RenderAsLiveRoot();
 
         Assert.Contains("<ul class=\"validation-summary\">", html);
@@ -122,7 +132,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task ValidatingIndicator_PendingCountTrue_RendersTemplate()
+    public async Task The_validating_indicator_renders_its_template_while_validation_is_pending()
     {
         var p = new Person();
         var fid = new FieldIdentifier(p, nameof(Person.Name));
@@ -148,7 +158,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task ValidatingIndicator_AfterPendingDropsToZero_StaysRenderedForStickyWindow()
+    public async Task The_validating_indicator_stays_for_the_sticky_window_after_pending_drops_to_zero()
     {
         // The sticky window keeps the indicator in the DOM after the validator
         // completes so a sub-second visible window (one of FluentValidation's
@@ -172,6 +182,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
 
         var task = ctx.ValidateFieldAsync(fid);
         var validatingHtml = view.RenderAsLiveRoot();
+
         Assert.Contains("validating-indicator", validatingHtml);
 
         // Complete the validator so PendingCount drops to 0. The indicator
@@ -180,16 +191,18 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         // false right away.
         gate.SetResult();
         await task;
+
         Assert.False(ctx.IsValidating(fid));
         Assert.True(ctx.ShouldShowValidatingIndicator(fid),
             "Sticky window should keep ShouldShowValidatingIndicator true.");
 
         var stickyHtml = view.RenderAsLiveRoot();
+
         Assert.Contains("validating-indicator", stickyHtml);
     }
 
     [Fact]
-    public async Task ValidatingIndicator_AfterStickyWindowExpires_NoLongerRenders()
+    public async Task The_validating_indicator_no_longer_renders_after_the_sticky_window_expires()
     {
         var p = new Person();
         var fid = new FieldIdentifier(p, nameof(Person.Name));
@@ -210,11 +223,12 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         view.RenderAsLiveRoot(); // sticky window starts
         await Task.Delay(80); // > 30ms sticky window
         var finalHtml = view.RenderAsLiveRoot();
+
         Assert.DoesNotContain("validating-indicator", finalHtml);
     }
 
     [Fact]
-    public async Task ValidatingIndicator_StickyMsZero_RemovesImmediately_AfterPendingDropsToZero()
+    public async Task A_zero_sticky_window_removes_the_indicator_as_soon_as_pending_drops_to_zero()
     {
         // Legacy callers that want the prior "render only while PendingCount > 0"
         // behaviour set ValidatingStickyMs=0 — proves the opt-out works.
@@ -235,6 +249,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         await task;
 
         var html = view.RenderAsLiveRoot();
+
         Assert.DoesNotContain("validating-indicator", html);
     }
 

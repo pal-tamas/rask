@@ -19,35 +19,39 @@ public class NavigatorTests
     }
 
     [Fact]
-    public void NavigateTo_OutsideHandler_Throws()
+    public void Navigating_outside_a_handler_throws()
     {
         var (nav, _) = Build();
+
         Assert.Throws<InvalidOperationException>(() => nav.NavigateTo("/x"));
     }
 
     [Fact]
-    public void SetQuery_OutsideHandler_Throws()
+    public void Setting_the_query_outside_a_handler_throws()
     {
         var (nav, _) = Build();
+
         Assert.Throws<InvalidOperationException>(() => nav.SetQuery("k", "v"));
     }
 
     [Fact]
-    public void RemoveQuery_OutsideHandler_Throws()
+    public void Removing_a_query_key_outside_a_handler_throws()
     {
         var (nav, _) = Build();
+
         Assert.Throws<InvalidOperationException>(() => nav.RemoveQuery("k"));
     }
 
     [Fact]
-    public void ClearQuery_OutsideHandler_Throws()
+    public void Clearing_the_query_outside_a_handler_throws()
     {
         var (nav, _) = Build();
+
         Assert.Throws<InvalidOperationException>(() => nav.ClearQuery());
     }
 
     [Fact]
-    public void UnconsumedNavigation_DoesNotLeakIntoNextHandler()
+    public void An_unconsumed_navigation_does_not_leak_into_the_next_handler()
     {
         // A handler that queues a navigation but never consumes it (e.g. it threw before
         // TryConsumeHistory ran) must not leak that pending nav — including the replace flag —
@@ -66,9 +70,10 @@ public class NavigatorTests
     }
 
     [Fact]
-    public void NavigateTo_PathOnly_ClearsExistingQuery()
+    public void Navigating_to_a_bare_path_clears_the_existing_query()
     {
         var (nav, state) = Build("/old", new Dictionary<string, StringValues> { ["b"] = "2" });
+
         using (nav.EnterHandler())
         {
             nav.NavigateTo("/x");
@@ -79,9 +84,10 @@ public class NavigatorTests
     }
 
     [Fact]
-    public void NavigateTo_PathOnly_DrainsAsPushWithBareUrl()
+    public void Navigating_to_a_bare_path_drains_as_a_push_with_the_bare_url()
     {
         var (nav, _) = Build("/old", new Dictionary<string, StringValues> { ["b"] = "2" });
+
         using (nav.EnterHandler())
         {
             nav.NavigateTo("/x");
@@ -93,9 +99,10 @@ public class NavigatorTests
     }
 
     [Fact]
-    public void NavigateTo_WithQuery_BuildsUrlAndQueryCollection()
+    public void Navigating_with_a_query_builds_the_url_and_the_query_collection()
     {
         var (nav, state) = Build();
+
         using (nav.EnterHandler())
         {
             nav.NavigateTo("/x",
@@ -113,9 +120,10 @@ public class NavigatorTests
     }
 
     [Fact]
-    public void SetQuery_NullValue_RemovesKey()
+    public void Setting_a_query_key_to_null_removes_it()
     {
         var (nav, state) = Build("/p");
+
         using (nav.EnterHandler())
         {
             nav.SetQuery("a", "1");
@@ -128,9 +136,10 @@ public class NavigatorTests
     }
 
     [Fact]
-    public void SetQuery_Multiple_AddsAndUpdates()
+    public void Setting_several_query_keys_adds_and_updates_them()
     {
         var (nav, state) = Build("/p", new Dictionary<string, StringValues> { ["a"] = "1" });
+
         using (nav.EnterHandler())
         {
             nav.SetQuery(
@@ -143,9 +152,10 @@ public class NavigatorTests
     }
 
     [Fact]
-    public void RemoveQuery_DropsKeyAndDirties()
+    public void Removing_a_query_key_drops_it_and_dirties_the_history()
     {
         var (nav, state) = Build("/p", new Dictionary<string, StringValues> { ["a"] = "1", ["b"] = "2" });
+
         using (nav.EnterHandler())
         {
             nav.RemoveQuery("a");
@@ -158,9 +168,10 @@ public class NavigatorTests
     }
 
     [Fact]
-    public void ClearQuery_EmptiesQuery()
+    public void Clearing_the_query_empties_it()
     {
         var (nav, state) = Build("/p", new Dictionary<string, StringValues> { ["a"] = "1", ["b"] = "2" });
+
         using (nav.EnterHandler())
         {
             nav.ClearQuery();
@@ -172,9 +183,10 @@ public class NavigatorTests
     }
 
     [Fact]
-    public void Replace_StickyAcrossLaterQueryMutations()
+    public void Replace_stays_sticky_across_later_query_mutations()
     {
         var (nav, _) = Build();
+
         using (nav.EnterHandler())
         {
             nav.NavigateTo("/x", true);
@@ -187,9 +199,10 @@ public class NavigatorTests
     }
 
     [Fact]
-    public void NavigateTo_DefaultPushOverridesPriorReplace()
+    public void A_default_push_overrides_a_prior_replace()
     {
         var (nav, _) = Build();
+
         using (nav.EnterHandler())
         {
             nav.NavigateTo("/x", true);
@@ -201,18 +214,20 @@ public class NavigatorTests
     }
 
     [Fact]
-    public void TryConsumeHistory_WhenNotDirty_ReturnsFalse()
+    public void Consuming_history_when_nothing_changed_returns_false()
     {
         var (nav, _) = Build();
+
         Assert.False(nav.TryConsumeHistory(out var url, out var replace));
         Assert.Equal(string.Empty, url);
         Assert.False(replace);
     }
 
     [Fact]
-    public void TryConsumeHistory_AfterDrain_ReturnsFalseUntilNextChange()
+    public void Consuming_history_after_a_drain_returns_false_until_the_next_change()
     {
         var (nav, _) = Build();
+
         using (nav.EnterHandler())
         {
             nav.NavigateTo("/x");
@@ -223,9 +238,10 @@ public class NavigatorTests
     }
 
     [Fact]
-    public void EnterHandler_DisposeRestoresGuard()
+    public void Disposing_the_handler_scope_restores_the_guard()
     {
         var (nav, _) = Build();
+
         using (nav.EnterHandler())
         {
             nav.NavigateTo("/x");
@@ -235,9 +251,10 @@ public class NavigatorTests
     }
 
     [Fact]
-    public void BuildUrl_EncodesValues()
+    public void The_built_url_encodes_its_values()
     {
         var (nav, _) = Build();
+
         using (nav.EnterHandler())
         {
             nav.NavigateTo("/p", new[] { KeyValuePair.Create<string, string?>("q", "a b&c") });
@@ -248,9 +265,10 @@ public class NavigatorTests
     }
 
     [Fact]
-    public void NavigateTo_RouteUrlPathOnly_ClearsQueryAndSetsPath()
+    public void Navigating_to_a_bare_RouteUrl_clears_the_query_and_sets_the_path()
     {
         var (nav, state) = Build("/old", new Dictionary<string, StringValues> { ["b"] = "2" });
+
         using (nav.EnterHandler())
         {
             nav.NavigateTo(new RouteUrl("/x"));
@@ -261,9 +279,10 @@ public class NavigatorTests
     }
 
     [Fact]
-    public void NavigateTo_RouteUrlWithQueryString_ParsesIntoQueryCollection()
+    public void Navigating_to_a_RouteUrl_with_a_query_string_parses_it_into_the_query_collection()
     {
         var (nav, state) = Build();
+
         using (nav.EnterHandler())
         {
             nav.NavigateTo(new RouteUrl("/x", "?a=1&b=2"));
@@ -277,9 +296,10 @@ public class NavigatorTests
     }
 
     [Fact]
-    public void NavigateTo_RouteUrl_ReplaceFlagPropagates()
+    public void The_replace_flag_propagates_when_navigating_to_a_RouteUrl()
     {
         var (nav, _) = Build();
+
         using (nav.EnterHandler())
         {
             nav.NavigateTo(new RouteUrl("/x"), true);
@@ -290,9 +310,10 @@ public class NavigatorTests
     }
 
     [Fact]
-    public void NavigateTo_StringOverload_StillWorks()
+    public void Navigating_through_the_string_overload_still_works()
     {
         var (nav, state) = Build();
+
         using (nav.EnterHandler())
         {
             nav.NavigateTo("/x");

@@ -43,7 +43,7 @@ public sealed class DomainNameTests
     [InlineData("$(id).example.com", "command substitution, if the value is ever pasted into a shell")]
     [InlineData("`id`.example.com", "backtick command substitution")]
     [InlineData("app.example.com;rm -rf /", "shell metacharacters")]
-    public void Rejects_injection(string value, string why)
+    public void A_domain_name_that_would_inject_is_rejected(string value, string why)
     {
         Assert.False(DomainName.TryParse(value, out _, out var error), why);
         Assert.NotNull(error);
@@ -65,6 +65,7 @@ public sealed class DomainNameTests
     public void Rejects_an_over_long_name()
     {
         var tooLong = string.Join('.', Enumerable.Repeat("abcdefghij", 26)); // 26 * 11 - 1 = 285 chars
+
         Assert.False(DomainName.TryParse(tooLong, out _, out var error));
         Assert.Contains("253", error, StringComparison.Ordinal);
     }

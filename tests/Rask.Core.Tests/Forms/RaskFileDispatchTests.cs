@@ -9,16 +9,14 @@ namespace Rask.Core.Tests.Forms;
 public partial class RaskFileDispatchTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public async Task ActionWithRaskFileList_Receives_Decoded_Files_And_Releases()
+    public async Task A_sync_files_handler_receives_the_decoded_files_and_releases_them()
     {
         var backend = new TestBackend();
         var services = new ServiceCollection()
             .AddSingleton<IBrowserFileBackend>(backend)
             .BuildServiceProvider();
-
         IReadOnlyList<RaskFile>? received = null;
         Action<IReadOnlyList<RaskFile>> handler = files => received = files;
-
         var page = Test.Render(() => Input.Value<string>(null).OnFiles(handler), services);
 
         var ok = await page.TryInvokeAsync("h0", """
@@ -37,20 +35,18 @@ public partial class RaskFileDispatchTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task FuncWithRaskFileList_Async_Receives_Decoded_Files()
+    public async Task An_async_files_handler_receives_the_decoded_files()
     {
         var backend = new TestBackend();
         var services = new ServiceCollection()
             .AddSingleton<IBrowserFileBackend>(backend)
             .BuildServiceProvider();
-
         var seen = 0;
         Func<IReadOnlyList<RaskFile>, Task> handler = files =>
         {
             seen = files.Count;
             return Task.CompletedTask;
         };
-
         var page = Test.Render(() => Input.Value<string>(null).OnFiles(handler), services);
 
         await page.InvokeAsync("h0", """
@@ -64,10 +60,11 @@ public partial class RaskFileDispatchTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Input_Emits_DataRaskOnFiles_Attribute_When_OnFiles_Set()
+    public void An_input_with_OnFiles_set_emits_the_files_handler_attribute()
     {
         Action<IReadOnlyList<RaskFile>> handler = _ => { };
         var html = Test.Render(() => Input.Value<string>(null).Type(InputType.File).OnFiles(handler)).Html;
+
         Assert.Contains("data-rask-on-files=", html);
         Assert.Contains("type=\"file\"", html);
     }

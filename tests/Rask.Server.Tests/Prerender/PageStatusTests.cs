@@ -12,7 +12,7 @@ public class PageStatusTests
     [InlineData(false, 200, true, 200)] // a deliberate soft 404
     [InlineData(false, 410, false, 410)] // a page's own status
     [InlineData(true, 200, true, 500)] // a page that threw does not get to claim it succeeded
-    public void OrdersFaultOverThePageOverTheRouter(
+    public void A_fault_wins_over_the_page_and_the_page_over_the_router(
         bool faulted, int? declaredStatus, bool notFoundMounted, int expected)
     {
         Assert.Equal(expected, PageStatus.Of(faulted, declaredStatus, notFoundMounted));

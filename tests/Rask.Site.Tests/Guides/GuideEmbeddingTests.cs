@@ -9,7 +9,7 @@ namespace Rask.Site.Tests.Guides;
 public sealed class GuideEmbeddingTests
 {
     [Fact]
-    public void EveryDemoMarkerInEveryGuide_ResolvesToARegisteredDemo()
+    public void Every_demo_marker_in_every_guide_resolves_to_a_registered_demo()
     {
         var offenders = new List<string>();
 
@@ -33,7 +33,7 @@ public sealed class GuideEmbeddingTests
     }
 
     [Fact]
-    public void PilotGuides_ActuallyEmbedDemos()
+    public void The_pilot_guides_actually_embed_demos()
     {
         // Phase 1 wires two pilot guides; if a refactor drops their markers the whole feature silently
         // reverts to plain prose, so assert the pilots still carry embeds.
@@ -42,7 +42,7 @@ public sealed class GuideEmbeddingTests
     }
 
     [Fact]
-    public void Split_InterleavesProseAndDemos_InDocumentOrder()
+    public void Splitting_interleaves_prose_and_demos_in_document_order()
     {
         const string md = "intro prose\n\n<!-- demo:binding-typed -->\n\nmiddle prose\n\n<!-- demo:binding-multi -->\n";
 
@@ -64,7 +64,7 @@ public sealed class GuideEmbeddingTests
     }
 
     [Fact]
-    public void Split_DropsBlankProseBetweenAdjacentMarkers()
+    public void Splitting_drops_blank_prose_between_adjacent_markers()
     {
         const string md = "<!-- demo:binding-typed -->\n\n<!-- demo:binding-multi -->";
 
@@ -75,7 +75,7 @@ public sealed class GuideEmbeddingTests
     }
 
     [Fact]
-    public void Split_NoMarkers_IsASingleProseSegment()
+    public void A_document_with_no_markers_splits_into_a_single_prose_segment()
     {
         var segments = Markdown.Split("# Title\n\nJust prose, no demos.");
 
@@ -84,13 +84,13 @@ public sealed class GuideEmbeddingTests
     }
 
     [Fact]
-    public void MarkerIsWhitespaceTolerant()
+    public void A_demo_marker_is_whitespace_tolerant()
     {
         Assert.Equal(["binding-typed"], Markdown.DemoKeys("<!--   demo:  binding-typed   -->"));
     }
 
     [Fact]
-    public void HighlightCodeBlocks_TokenizesAKnownLanguageFence()
+    public void Highlighting_tokenizes_a_known_language_fence()
     {
         // Markdig renders a fenced ```csharp block as this (body HTML-encoded, no highlighting).
         const string markdig = "<pre><code class=\"language-csharp\">var x = 1;</code></pre>";
@@ -103,7 +103,7 @@ public sealed class GuideEmbeddingTests
     }
 
     [Fact]
-    public void HighlightCodeBlocks_TokenizesABashFence()
+    public void Highlighting_tokenizes_a_bash_fence()
     {
         // The getting-started guide's `rask new …` blocks are ```bash; ColorCode has no shell lexer,
         // so BashLanguage supplies comment/string/keyword rules.
@@ -116,7 +116,7 @@ public sealed class GuideEmbeddingTests
     }
 
     [Fact]
-    public void HighlightCodeBlocks_LeavesAnUnknownLanguageFenceUntouched()
+    public void Highlighting_leaves_an_unknown_language_fence_untouched()
     {
         const string plain = "<pre><code class=\"language-text\">just text</code></pre>";
 
@@ -124,7 +124,7 @@ public sealed class GuideEmbeddingTests
     }
 
     [Fact]
-    public void HighlightCodeBlocks_DecodesEntitiesBeforeTokenizing()
+    public void Highlighting_decodes_entities_before_tokenizing()
     {
         // Markdig HTML-encodes the source; the highlighter must decode before tokenizing so the rendered
         // token text is the real code (a single re-encoded '<', not the literal "&lt;").

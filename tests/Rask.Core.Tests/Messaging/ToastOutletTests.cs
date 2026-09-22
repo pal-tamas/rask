@@ -32,7 +32,7 @@ public partial class ToastOutletTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void MessageQueuedBeforeMount_ShowsOnFirstRender()
+    public void A_message_queued_before_mount_shows_on_the_first_render()
     {
         IToaster toast = new Toaster();
         toast.Success("Saved"); // queued before the outlet exists — the redirect-then-show case
@@ -44,13 +44,14 @@ public partial class ToastOutletTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void MessageAddedAfterMount_ShowsOnReRender()
+    public void A_message_added_after_mount_shows_on_the_rerender()
     {
         IToaster toast = new Toaster();
         var host = new StubComponent(Outlet(out _));
         var sp = new ServiceCollection().AddSingleton<IToaster>(toast).BuildServiceProvider();
 
         var first = host.RenderAsLiveRoot(sp); // mounts + subscribes; nothing queued yet
+
         Assert.DoesNotContain("Later", first);
 
         toast.Info("Later");                   // fires Changed → outlet drains
@@ -60,7 +61,7 @@ public partial class ToastOutletTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Outlet_ConsumesOnce_ServiceEmptyAfterDrain()
+    public void The_outlet_consumes_once_leaving_the_service_empty()
     {
         IToaster toast = new Toaster();
         toast.Info("once");
@@ -73,7 +74,7 @@ public partial class ToastOutletTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void NoMessages_RendersNothing()
+    public void With_no_messages_the_outlet_renders_nothing()
     {
         IToaster toast = new Toaster();
         var (host, sp) = Build(toast);
@@ -84,7 +85,7 @@ public partial class ToastOutletTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Dismiss_RemovesTheMessage()
+    public void Dismissing_a_message_removes_it()
     {
         IToaster toast = new Toaster();
         toast.Warning("bye");
@@ -100,7 +101,7 @@ public partial class ToastOutletTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task AutoDismissAfter_RemovesTheMessageOnceTheDelayElapses()
+    public async Task AutoDismissAfter_removes_the_message_once_the_delay_elapses()
     {
         IToaster toast = new Toaster();
         toast.Info("gone soon");

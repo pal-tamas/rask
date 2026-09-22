@@ -212,7 +212,9 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
         var control = UiInput.Of<string>().Label("Search").OnChange(v => seen = v);
 
         Assert.Null(control.Bind);
+
         control.OnChange?.Invoke("typed");
+
         Assert.Equal("typed", seen);
     }
 

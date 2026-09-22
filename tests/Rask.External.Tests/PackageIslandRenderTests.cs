@@ -104,6 +104,7 @@ public partial class PackageIslandRenderTests : global::Rask.Core.RaskMarkup
         var root = new StubComponent(() => Div[MuiButton.OnChange(_ => { calls++; })]);
 
         var id = HandlerId(IslandHtml.RenderLive(root), "onChange");
+
         await root.TryInvokeHandlerAsync(id, Frame("[\"not a number\"]"));
 
         Assert.Equal(0, calls);

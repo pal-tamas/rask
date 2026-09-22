@@ -23,7 +23,7 @@ public class ScopedStylesAbsenceTests : ResettingTestBase
         ScopedAssetRegistry.RegisterCss(typeof(ScopedCssStubApp), ".tag { color: red; }");
 
     [Fact]
-    public async Task InitialRender_AppWithScopedCss_EmitsContentAddressedLink_NoInlineCssText()
+    public async Task An_app_with_scoped_CSS_renders_a_content_addressed_link_and_no_inline_cssText()
     {
         var (session, _) = NewSession<ScopedCssStubApp>();
 

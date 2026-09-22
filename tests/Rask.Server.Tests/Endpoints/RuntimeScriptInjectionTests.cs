@@ -12,7 +12,7 @@ namespace Rask.Server.Tests.Endpoints;
 ///     End-to-end: the server host auto-injects the runtime <c>&lt;script&gt;</c> at the end of
 ///     <c>&lt;body&gt;</c> on first paint, without the app declaring <c>RaskRuntimeScript()</c>.
 /// </summary>
-// Runs in the non-parallel "ScopedAssets" collection: PathBase_PrefixesInjectedRuntimeScriptSrc
+// Runs in the non-parallel "ScopedAssets" collection: A_path_base_prefixes_the_injected_runtime_script_src
 // asserts on the host's pathBase, which the runtime script reads from the process-wide
 // LiveOptions.PathBase static at render time. Another host configured concurrently (e.g.
 // PathBaseEndpointTests, also in this collection) would clobber that static mid-render and
@@ -21,7 +21,7 @@ namespace Rask.Server.Tests.Endpoints;
 public sealed class RuntimeScriptInjectionTests
 {
     [Fact]
-    public async Task FirstPaint_InjectsRuntimeScriptBeforeBodyClose()
+    public async Task The_first_paint_injects_the_runtime_script_before_the_body_closes()
     {
         using var host = RaskTestHost.Create<ShellApp>();
 
@@ -31,7 +31,7 @@ public sealed class RuntimeScriptInjectionTests
     }
 
     [Fact]
-    public async Task PathBase_PrefixesInjectedRuntimeScriptSrc()
+    public async Task A_path_base_prefixes_the_injected_runtime_script_src()
     {
         using var host = RaskTestHost.Create<ShellApp>(pathBase: "/appA");
 
@@ -41,7 +41,7 @@ public sealed class RuntimeScriptInjectionTests
     }
 
     [Fact]
-    public async Task LegacyRaskRuntimeScriptInTree_StillEmitsExactlyOne()
+    public async Task A_legacy_runtime_script_in_the_tree_still_emits_exactly_one()
     {
         using var host = RaskTestHost.Create<LegacyShellApp>();
 

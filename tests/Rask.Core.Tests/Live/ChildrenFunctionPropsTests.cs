@@ -21,7 +21,7 @@ namespace Rask.Core.Tests.Live;
 public partial class ChildrenFunctionPropsTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void AComponentBuiltInAChildrenFunction_SeesTheNewArgument()
+    public void A_component_built_in_a_children_function_sees_the_new_argument()
     {
         var flag = false;
         var view = new StubComponent(() => AmbientHost.Flag(flag)[
@@ -39,7 +39,7 @@ public partial class ChildrenFunctionPropsTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void ItRunsTheLifecycleHookRatherThanOnlyRepainting()
+    public void It_runs_the_lifecycle_hook_rather_than_only_repainting()
     {
         // The prop change has to arrive as a prop change, not merely as different markup: a component
         // that acts on Updated (resetting a scroll position, restarting a timer) is as much a
@@ -59,7 +59,7 @@ public partial class ChildrenFunctionPropsTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void AChildrenFunctionThatYields_IsMaterialisedBeforeItsChildrenAreWalked()
+    public void A_children_function_that_yields_is_materialised_before_its_children_are_walked()
     {
         // A `yield` body builds each entry as the walk reaches it. Committing before the walk is only
         // meaningful if the sequence has been materialised first — otherwise every child is committed

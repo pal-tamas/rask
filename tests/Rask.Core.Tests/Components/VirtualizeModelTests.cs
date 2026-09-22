@@ -8,7 +8,7 @@ namespace Rask.Core.Tests.Components;
 public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Render_HeadlessNoOwnDom_OnlyEmitsUserMarkup()
+    public void The_headless_component_adds_no_DOM_of_its_own_and_emits_only_the_user_markup()
     {
         var view = new StubComponent(() => Virtualize.Items(
             ctx => Div["x"],
@@ -20,7 +20,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_SyncItems_VisibleWindowReflectsInitialScroll()
+    public void With_sync_items_the_visible_window_reflects_the_initial_scroll()
     {
         VirtualizationContext<int>? captured = null;
         var items = Enumerable.Range(0, 100).ToList();
@@ -36,6 +36,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
             InitialClientHeight: 100));
 
         view.RenderAsLiveRoot();
+
         Assert.NotNull(captured);
 
         // At scrollTop=0 with clientHeight=100, ItemSize=20 => 5 items visible.
@@ -51,7 +52,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnScroll_UpdatesVisibleWindow_AndOffsets()
+    public async Task A_scroll_updates_the_visible_window_and_the_offsets()
     {
         VirtualizationContext<int>? captured = null;
         var items = Enumerable.Range(0, 100).ToList();
@@ -78,6 +79,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
         await view.TryInvokeHandlerAsync(scrollHandlerId!, doc.RootElement);
 
         view.RenderAsLiveRoot();
+
         Assert.NotNull(captured);
         Assert.Equal(8, captured!.StartIndex);
         Assert.Equal(160, captured.OffsetBefore); // 8 * 20
@@ -88,7 +90,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void ItemsProvider_InitialTotalCount_DrawsAFullPlaceholderWindowOnTheFirstRender()
+    public void An_initial_total_count_draws_a_full_placeholder_window_on_the_first_render()
     {
         // Without an estimate the first render has no total, so there is no window and the caller draws
         // NOTHING -- an empty box that pops into a full list when the fetch resolves. That is a layout
@@ -127,7 +129,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void ItemsProvider_InitialTotalCount_IsReplacedByTheRealTotalOnceTheProviderAnswers()
+    public void The_initial_total_count_is_replaced_by_the_real_total_once_the_provider_answers()
     {
         // The estimate is only ever a stand-in for the first paint. A provider that reports a different
         // total wins immediately -- otherwise a wrong guess would be a permanent lie about the scrollbar.
@@ -147,14 +149,16 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
             InitialTotalCount: 500));
 
         view.RenderAsLiveRoot();
+
         Assert.Equal(500, captured!.TotalCount);   // the estimate, on the first paint
 
         view.RenderAsLiveRoot();
+
         Assert.Equal(12, captured.TotalCount);     // the truth, as soon as it exists
     }
 
     [Fact]
-    public void InitialTotalCount_IsIgnoredWhenItemsAreSuppliedDirectly()
+    public void The_initial_total_count_is_ignored_when_items_are_supplied_directly()
     {
         // Items are counted, never estimated. An estimate that could override them would be a way to
         // render a window over rows that do not exist.
@@ -177,7 +181,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void ItemsProvider_FirstRender_NoItems_SecondRender_LoadedFromCache()
+    public void A_provider_shows_no_items_on_the_first_render_and_cached_items_on_the_second()
     {
         // Synchronously-completing provider so cache fills inside the first Render(); the
         // second Render() then sees the populated cache + known total. Mirrors the runtime
@@ -205,6 +209,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
 
         // First render: total unknown -> empty visible window, but kicks the probe fetch.
         view.RenderAsLiveRoot();
+
         Assert.NotNull(captured);
         Assert.Equal(0, captured!.TotalCount);
         Assert.Empty(captured.VisibleItems);
@@ -214,6 +219,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
         // visible items resolve to real values (or placeholders for indices not in the
         // probe window, which will be filled by a follow-up fetch on next paint).
         view.RenderAsLiveRoot();
+
         Assert.Equal(50, captured.TotalCount);
         var loaded = captured.VisibleItems.Where(v => !v.IsPlaceholder).ToList();
         Assert.NotEmpty(loaded);
@@ -221,7 +227,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_NoItemsAndNoProvider_Throws()
+    public void Neither_items_nor_a_provider_throws()
     {
         var view = new StubComponent(() => Virtualize.Items<int>(
             ctx => Div,
@@ -231,7 +237,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_BothItemsAndProvider_Throws()
+    public void Both_items_and_a_provider_throws()
     {
         var view = new StubComponent(() => Virtualize.Items(
             ctx => Div,
@@ -243,7 +249,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_ItemSizeZero_Throws()
+    public void A_zero_item_size_throws()
     {
         var view = new StubComponent(() => Virtualize.Items(
             ctx => Div,
@@ -260,7 +266,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_OffsetAfter_ClampsAtZeroWhenAllVisible()
+    public void The_offset_after_clamps_at_zero_when_everything_is_visible()
     {
         VirtualizationContext<int>? captured = null;
         var items = new List<int> { 1, 2, 3 };
@@ -276,13 +282,14 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
             InitialClientHeight: 500));
 
         view.RenderAsLiveRoot();
+
         Assert.NotNull(captured);
         Assert.Equal(0, captured!.OffsetAfter);
         Assert.Equal(3, captured.VisibleItems.Count);
     }
 
     [Fact]
-    public void Render_UserSetsRaskKeyOnRow_AttributeFlowsToHtml()
+    public void A_rask_key_the_user_sets_on_a_row_flows_to_the_html()
     {
         // Documents the recommended keying pattern for VirtualizeModel rows: setting
         // Data["rask-key"] makes the client-side morph engage its keyed reconciliation
@@ -306,7 +313,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task ItemsProvider_Unmount_CancelsInFlightFetch()
+    public async Task Unmounting_cancels_an_in_flight_provider_fetch()
     {
         // Regression: VirtualizeModel's in-flight ItemsProvider fetch must be
         // cancelled when the component leaves the parent's tree. Pre-fix the
@@ -337,6 +344,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
 
         view.RenderAsLiveRoot();
         await providerStarted.Task;
+
         Assert.False(fetchObservedCt.IsCancellationRequested);
 
         // Stop rendering VirtualizeModel — the framework's diff fires Unmount on
@@ -354,7 +362,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task ItemsProvider_IgnoresCancellation_CompletesAfterUnmount_DroppedSafely()
+    public async Task A_provider_that_ignores_cancellation_and_completes_after_unmount_is_dropped_safely()
     {
         // The harsher race: a provider that ignores its CancellationToken and resolves AFTER the
         // component unmounted. CancelAndDisposeActiveFetch nulls _activeFetch, so the post-await
@@ -401,11 +409,12 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
         // The continuation ran to the guard and returned; re-rendering the host stays clean
         // (no stale data leaked back through a disposed VirtualizeModel).
         var html = view.RenderAsLiveRoot();
+
         Assert.DoesNotContain("loaded", html);
     }
 
     [Fact]
-    public void ItemsProvider_ProviderThrows_IsSwallowed_RenderSucceeds()
+    public void A_throwing_provider_is_swallowed_and_the_render_succeeds()
     {
         // FetchAsync wraps the provider call in try/catch(Exception): a throwing provider must be
         // logged and dropped, never surfaced out of render. The window stays empty (count unknown).
@@ -428,7 +437,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Items_NonIListEnumerable_WindowsViaStreamingPath()
+    public void A_non_list_enumerable_is_windowed_through_the_streaming_path()
     {
         // A lazy iterator is neither IList nor ICollection, so CountItems and FillFromItems both
         // take their streaming foreach branches rather than the indexed fast paths.

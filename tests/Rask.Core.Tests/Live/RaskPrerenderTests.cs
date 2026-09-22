@@ -13,7 +13,7 @@ namespace Rask.Core.Tests.Live;
 public class RaskPrerenderTests
 {
     [Fact]
-    public async Task ItRendersAWholeDocument()
+    public async Task It_renders_a_whole_document()
     {
         var result = await RaskPrerender.RenderDocumentAsync(
             new PlainPage(), Services(), TimeSpan.FromSeconds(5));
@@ -27,7 +27,7 @@ public class RaskPrerenderTests
     }
 
     [Fact]
-    public async Task ItWaitsForDataThePageLoadsOnMount()
+    public async Task It_waits_for_data_the_page_loads_on_mount()
     {
         // The entire reason this goes through the wave loop. Rendering once would write the placeholder
         // — which is exactly the "Loading…" a crawler sees today, in a different costume.
@@ -40,7 +40,7 @@ public class RaskPrerenderTests
     }
 
     [Fact]
-    public async Task APageThatThrows_IsReportedRatherThanReturnedAsIfItWereThePage()
+    public async Task A_page_that_throws_is_reported_rather_than_returned_as_if_it_were_the_page()
     {
         // The root boundary catches it and renders a perfectly ordinary error document, so a caller
         // that writes the HTML blindly publishes an error page under the route's own name — and nothing
@@ -53,7 +53,7 @@ public class RaskPrerenderTests
     }
 
     [Fact]
-    public async Task AFaultedPageSaysWhatThrew()
+    public async Task A_faulted_page_says_what_threw()
     {
         // Faulted alone is enough to REFUSE the render and not enough to fix it. A build-time pass has
         // no browser console and no request log, so without the exception a page the pass declined to
@@ -69,7 +69,7 @@ public class RaskPrerenderTests
     }
 
     [Fact]
-    public async Task APageThatRendersCarriesNoError()
+    public async Task A_page_that_renders_carries_no_error()
     {
         // The other half, so Error cannot become "always populated" and quietly stop meaning anything.
         var result = await RaskPrerender.RenderDocumentAsync(
@@ -80,7 +80,7 @@ public class RaskPrerenderTests
     }
 
     [Fact]
-    public async Task WorkThatNeverSettles_IsReportedRatherThanWaitedForForever()
+    public async Task Work_that_never_settles_is_reported_rather_than_waited_for_forever()
     {
         // Same trap: the markup that comes back is the placeholder. Baking that is worse than not
         // prerendering the route at all, because it looks prerendered.
@@ -92,7 +92,7 @@ public class RaskPrerenderTests
     }
 
     [Fact]
-    public async Task TheRouteComesFromTheProvider()
+    public async Task The_route_comes_from_the_provider()
     {
         // Which page this renders is the caller's decision: it holds the route table, so it seeds the
         // route. The prerenderer does not guess how routes are enumerated.
@@ -106,9 +106,9 @@ public class RaskPrerenderTests
     }
 
     [Fact]
-    public void ThePlanKeepsRoutesWhoseEverySegmentIsALiteral()
+    public void The_plan_keeps_routes_whose_every_segment_is_a_literal()
     {
-        RouteRegistry.Replace(nameof(ThePlanKeepsRoutesWhoseEverySegmentIsALiteral), [
+        RouteRegistry.Replace(nameof(The_plan_keeps_routes_whose_every_segment_is_a_literal), [
             new RouteRegistration(typeof(PlainPage), "/", null),
             new RouteRegistration(typeof(PlainPage), "/about", null),
             new RouteRegistration(typeof(PlainPage), "/guides/intro", null),
@@ -122,12 +122,12 @@ public class RaskPrerenderTests
     }
 
     [Fact]
-    public void ThePlanREPORTSWhatItCannotPrerenderRatherThanDroppingIt()
+    public void The_plan_REPORTS_what_it_cannot_prerender_rather_than_dropping_it()
     {
         // The point of Skipped being a field rather than a log line. A parameterised route cannot be
         // enumerated without knowing the values, and a catch-all is a 404 page at best — but a pass
         // that quietly covered only the static half would read as though it had covered everything.
-        RouteRegistry.Replace(nameof(ThePlanREPORTSWhatItCannotPrerenderRatherThanDroppingIt), [
+        RouteRegistry.Replace(nameof(The_plan_REPORTS_what_it_cannot_prerender_rather_than_dropping_it), [
             new RouteRegistration(typeof(PlainPage), "/products/{id}", null),
             new RouteRegistration(typeof(PlainPage), "/docs/{**rest}", null),
             new RouteRegistration(typeof(PlainPage), "/plain", null),

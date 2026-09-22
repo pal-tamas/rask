@@ -10,7 +10,7 @@ namespace Rask.Core.Tests.Browser;
 public class RaskBrowserApisTests
 {
     // The 38 transport-agnostic wrappers AddCoreBrowserApis must register — service type → default impl.
-    // Keep in sync with the registrar; AddCoreBrowserApis_RegistersNothingBeyondThePinnedSet enforces it.
+    // Keep in sync with the registrar; AddCoreBrowserApis_registers_nothing_beyond_the_pinned_set enforces it.
     private static readonly (Type Service, Type Impl)[] CoreApis =
     [
         (typeof(IBrowserStorage), typeof(BrowserStorage)),
@@ -56,7 +56,7 @@ public class RaskBrowserApisTests
     ];
 
     [Fact]
-    public void AddCoreBrowserApis_RegistersEveryWrapper_WithDefaultImpl()
+    public void AddCoreBrowserApis_registers_every_wrapper_with_its_default_impl()
     {
         var services = new ServiceCollection();
 
@@ -74,7 +74,7 @@ public class RaskBrowserApisTests
     // IBattery shipped unverified). Compare against what AddCoreBrowserApis actually registered, so
     // adding a wrapper without pinning it fails here instead of going unnoticed.
     [Fact]
-    public void AddCoreBrowserApis_RegistersNothingBeyondThePinnedSet()
+    public void AddCoreBrowserApis_registers_nothing_beyond_the_pinned_set()
     {
         var services = new ServiceCollection();
 
@@ -90,7 +90,7 @@ public class RaskBrowserApisTests
     [Theory]
     [InlineData(ServiceLifetime.Scoped)]
     [InlineData(ServiceLifetime.Singleton)]
-    public void AddCoreBrowserApis_UsesTheRequestedLifetime(ServiceLifetime lifetime)
+    public void AddCoreBrowserApis_uses_the_requested_lifetime(ServiceLifetime lifetime)
     {
         var services = new ServiceCollection();
 
@@ -104,7 +104,7 @@ public class RaskBrowserApisTests
     }
 
     [Fact]
-    public void AddCoreBrowserApis_DoesNotRegisterInProcessOrWasmOnlyApis()
+    public void AddCoreBrowserApis_does_not_register_in_process_or_WASM_only_APIs()
     {
         var services = new ServiceCollection();
 
@@ -115,7 +115,7 @@ public class RaskBrowserApisTests
     }
 
     [Fact]
-    public void AddBrowserApi_IsFallbackOnly_AnAppSuppliedBackendRegisteredFirstWins()
+    public void A_browser_API_is_only_a_fallback_so_an_app_backend_registered_first_wins()
     {
         var services = new ServiceCollection();
 
@@ -130,7 +130,7 @@ public class RaskBrowserApisTests
     }
 
     [Fact]
-    public void AddBrowserApi_WhenUnclaimed_RegistersTheJsWrapper()
+    public void An_unclaimed_browser_API_registers_the_JS_wrapper()
     {
         var services = new ServiceCollection();
 

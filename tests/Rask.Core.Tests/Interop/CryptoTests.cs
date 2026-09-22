@@ -5,7 +5,7 @@ namespace Rask.Core.Tests.Interop;
 public class CryptoTests
 {
     [Fact]
-    public async Task RandomUuid_CallsHelper()
+    public async Task A_random_uuid_calls_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskCrypto.randomUuid", "0c4f8b1e-1111-4222-8333-444455556666");
@@ -14,7 +14,7 @@ public class CryptoTests
     }
 
     [Fact]
-    public async Task RandomBytes_PassesLength_AndReturnsBytes()
+    public async Task Random_bytes_pass_the_length_and_give_the_bytes()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskCrypto.randomBytes", new byte[] { 1, 2, 3, 4 });
@@ -26,7 +26,7 @@ public class CryptoTests
     }
 
     [Fact]
-    public async Task RandomBytes_NegativeLength_Throws()
+    public async Task Random_bytes_with_a_negative_length_throw()
     {
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
             async () => await new Crypto(new FakeJsRuntime()).RandomBytesAsync(-1));
@@ -37,7 +37,7 @@ public class CryptoTests
     [InlineData(HashAlgorithm.Sha256, "SHA-256")]
     [InlineData(HashAlgorithm.Sha384, "SHA-384")]
     [InlineData(HashAlgorithm.Sha512, "SHA-512")]
-    public async Task DigestHex_PassesSpecNameAndText(HashAlgorithm algorithm, string spec)
+    public async Task A_hex_digest_passes_the_spec_name_and_the_text(HashAlgorithm algorithm, string spec)
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskCrypto.digestHex", "deadbeef");
@@ -49,7 +49,7 @@ public class CryptoTests
     }
 
     [Fact]
-    public async Task DigestHex_NullText_Throws()
+    public async Task A_hex_digest_of_null_text_throws()
     {
         await Assert.ThrowsAsync<ArgumentNullException>(
             async () => await new Crypto(new FakeJsRuntime()).DigestHexAsync(HashAlgorithm.Sha256, null!));

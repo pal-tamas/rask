@@ -16,12 +16,12 @@ public class RaskServerDiagnosticsBridgeTests
     [InlineData((int)RaskLogLevel.Error, LogLevel.Error)]
     [InlineData((int)RaskLogLevel.Warning, LogLevel.Warning)]
     [InlineData((int)RaskLogLevel.Information, LogLevel.Information)]
-    public void Emit_RoutesToILogger_WithMappedLevelCategoryAndException(int raskLevel, LogLevel expected)
+    public void An_emitted_diagnostic_reaches_ILogger_with_its_mapped_level_category_and_exception(int raskLevel, LogLevel expected)
     {
         var provider = new CapturingLoggerProvider();
         using var factory = LoggerFactory.Create(b => b.AddProvider(provider));
-
         var boom = new InvalidOperationException("boom");
+
         RaskServerDiagnostics.Emit(
             factory, new RaskDiagnosticEvent((RaskLogLevel)raskLevel, "Rask.Test.Bridge", "bridged fault", boom));
 
@@ -32,7 +32,7 @@ public class RaskServerDiagnosticsBridgeTests
     }
 
     [Fact]
-    public void Emit_WhenLoggingThrows_Swallows_SoADiagnosticNeverBecomesAFault()
+    public void A_logger_that_throws_is_swallowed_so_a_diagnostic_never_becomes_a_fault()
     {
         // A disposed factory / misbehaving provider must not escape into the framework's catch blocks.
         var ex = Record.Exception(() =>

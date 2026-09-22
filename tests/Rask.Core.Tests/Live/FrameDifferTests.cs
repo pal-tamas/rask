@@ -11,7 +11,7 @@ namespace Rask.Core.Tests.Live;
 public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Diff_IdenticalTrees_ProducesZeroOps()
+    public void Identical_trees_diff_to_zero_ops()
     {
         var before = Frames(Div.Class("line")[Span["Item 5"]]);
         var after = Frames(Div.Class("line")[Span["Item 5"]]);
@@ -24,7 +24,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_TextNodeChanged_ProducesSingleUpdateTextOp()
+    public void A_changed_text_node_diffs_to_a_single_UpdateText_op()
     {
         // The CounterOnLargePage / TextNodeUpdate headline scenario in miniature: one
         // text node changes deep in an otherwise-identical tree. The diff should be
@@ -42,7 +42,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Frames_AdjacentTextChildren_CoalesceIntoOneFrame()
+    public void Adjacent_text_children_coalesce_into_one_frame()
     {
         // The browser merges adjacent text into ONE DOM node; the frame model must match or
         // the diff's per-frame domSlot walk drifts past the real childNodes. Two string children
@@ -54,7 +54,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_AdjacentTextChanged_ProducesSingleUpdateTextWithMergedValue()
+    public void Changed_adjacent_text_diffs_to_a_single_UpdateText_with_the_merged_value()
     {
         // Regression (the "Switch user" toggle button): a label literal sits directly next to a
         // dynamic value — `[<icon/>, "Toggle ?tab=", value]`. The browser coalesces the two texts
@@ -72,7 +72,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Frames_AdjacentTextAcrossFragmentBoundary_Coalesces()
+    public void Adjacent_text_across_a_fragment_boundary_coalesces()
     {
         // A Fragment is transparent — it emits no HTML of its own — so text on either side of it
         // is DOM-adjacent and coalesces. The contiguity (HtmlEnd == htmlStart) check catches this
@@ -84,7 +84,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Frames_TextSeparatedByElement_StaysDistinct()
+    public void Text_separated_by_an_element_stays_distinct()
     {
         // An element between two texts breaks DOM adjacency (`<span></span>` advances the HTML), so
         // the frames must stay separate — merging them would mis-map the diff onto the real DOM.
@@ -96,7 +96,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Frames_TextAfterChildElement_NotMergedWithInnerText()
+    public void Text_after_a_child_element_is_not_merged_with_its_inner_text()
     {
         // The inner text "a" closes with `</span>` before the sibling text "b" starts, so they are
         // not contiguous and must not merge — even though "a" is the most recently emitted frame.
@@ -108,7 +108,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Frames_EmptyTextBetweenElements_EmitsNoFrame()
+    public void Empty_text_between_elements_emits_no_frame()
     {
         // An empty string child produces no HTML and so no DOM node. If it emitted a Text frame,
         // the diff would count a node the browser never created and every following sibling's
@@ -120,7 +120,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Frames_EmptyTextBetweenTexts_StillCoalescesNeighbours()
+    public void Empty_text_between_texts_still_coalesces_the_neighbours()
     {
         // An empty text in the middle of two real texts must drop out without breaking the
         // coalescing of the survivors — the DOM has the single node "ab".
@@ -131,7 +131,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_RawValueUnchanged_ProducesZeroOps()
+    public void An_unchanged_raw_value_diffs_to_zero_ops()
     {
         // An identical Raw value must produce no ops — the verbatim markup is the same
         // string, so there is nothing to patch (and certainly no spurious UpdateText).
@@ -145,7 +145,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_RawValueChanged_ProducesRemoveAndInsert_NotUpdateText()
+    public void A_changed_raw_value_diffs_to_remove_and_insert_not_UpdateText()
     {
         // Regression: switching a syntax-highlight code tab swaps one Raw value
         // (highlighted C#) for another (highlighted CSS). A Raw's markup parses into a
@@ -170,7 +170,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_RawWithChangingSibling_EmitsScopedMorphSubtree_NotFullHtml()
+    public void Raw_with_a_changing_sibling_emits_a_scoped_MorphSubtree_not_full_html()
     {
         // A Raw's markup parses into an unknown number of DOM nodes, so a sibling after it can't be
         // patched positionally (the domSlot index assumes Raw == 1 node). Instead of bailing the whole
@@ -200,7 +200,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_RawWithChangingSibling_WithoutNewHtml_ForcesFullHtml()
+    public void Raw_with_a_changing_sibling_and_no_new_html_forces_full_html()
     {
         // The scoped morph needs the render HTML to slice the fragment. One-shot / test callers that
         // inspect ops without a wire build pass no newHtml — the differ then keeps the full-HTML
@@ -217,7 +217,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_RawTaintedLevel_NestedUnderElement_MorphsAtInnerParent()
+    public void A_raw_tainted_level_nested_under_an_element_morphs_at_the_inner_parent()
     {
         // The taint is one level deep: the inner div mixes a Raw with a <span>. The morph must target
         // the INNER div (the Raw-owning parent), not the outer div — the outer level is untainted, so
@@ -239,7 +239,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_RawTaintedParent_Emptied_EmitsMorphSubtreeWithEmptyFragment()
+    public void An_emptied_raw_tainted_parent_emits_a_MorphSubtree_with_an_empty_fragment()
     {
         // The Raw-tainted parent lost all its children (Raw + span removed). A verbatim empty-string
         // fragment morphs its children to nothing — still a scoped diff op, no full-document fallback.
@@ -260,7 +260,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_RawWithSiblingsUnchanged_DoesNotForceFullHtml()
+    public void Raw_with_unchanged_siblings_does_not_force_full_html()
     {
         // The morph fallback only fires when something actually changed at the Raw-tainted level —
         // an idle re-render of a page that happens to contain a Raw-with-siblings still ships nothing.
@@ -276,7 +276,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_RawAsSoleChild_StaysOnDiffPath()
+    public void Raw_as_the_sole_child_stays_on_the_diff_path()
     {
         // A solitary Raw spans the whole parent — no sibling index follows it — so a sole-child Raw
         // is safe and must not trip the morph fallback. (A CHANGED sole Raw still ships Remove+Insert
@@ -295,7 +295,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_AttributeValueChanged_ProducesSingleSetAttributeOp()
+    public void A_changed_attribute_value_diffs_to_a_single_SetAttribute_op()
     {
         var before = Frames(Input.Value("old").Type(InputType.Text).Name("f").Placeholder("edit"));
         var after = Frames(Input.Value("new").Type(InputType.Text).Name("f").Placeholder("edit"));
@@ -310,7 +310,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_MidListAttributeToggled_PreservesTrailingAttributes()
+    public void Toggling_a_mid_list_attribute_preserves_the_trailing_attributes()
     {
         // Regression: a conditionally-present attribute emitted mid-list (like `checked`
         // on a checkbox, which precedes the trailing attributes — and in the live runtime,
@@ -337,7 +337,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_ChildAdded_ProducesInsertSubtreeOp()
+    public void An_added_child_diffs_to_an_InsertSubtree_op()
     {
         var before = Frames(Ul[Li["a"], Li["b"]]);
         var after = Frames(Ul[Li["a"], Li["b"], Li["c"]]);
@@ -350,7 +350,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_ChildRemoved_ProducesRemoveSubtreeOp()
+    public void A_removed_child_diffs_to_a_RemoveSubtree_op()
     {
         var before = Frames(Ul[Li["a"], Li["b"], Li["c"]]);
         var after = Frames(Ul[Li["a"], Li["b"]]);
@@ -368,7 +368,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     // forcing the whole page. These pin the exact boundary of that carve-out.
 
     [Fact]
-    public void Diff_NestedTailInsert_IsTrustedAndClientSupported()
+    public void A_nested_tail_insert_is_trusted_and_client_supported()
     {
         var before = Frames(Ul[Li["a"], Li["b"]]);
         var after = Frames(Ul[Li["a"], Li["b"], Li["c"]]);
@@ -383,7 +383,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_NestedTailRemove_IsTrusted()
+    public void A_nested_tail_remove_is_trusted()
     {
         var before = Frames(Ul[Li["a"], Li["b"], Li["c"]]);
         var after = Frames(Ul[Li["a"], Li["b"]]);
@@ -397,7 +397,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_InsertIntoEmptyNestedParent_IsTrusted()
+    public void An_insert_into_an_empty_nested_parent_is_trusted()
     {
         // The form-validation pattern: a message container gains its first (text) child. Pure tail
         // insert into an empty nested parent — production should ship the diff, not the whole form.
@@ -414,7 +414,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_TopLevelTailInsert_IsNotTrusted()
+    public void A_top_level_tail_insert_is_not_trusted()
     {
         // Top-level siblings (path empty) are where the WASM shell's comment nodes live, so the
         // raw-childNodes slot the client uses can diverge from the server's relevant-node index —
@@ -432,7 +432,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_MidListReplaceThenTail_KeepsTailUntrusted()
+    public void A_mid_list_replace_then_tail_keeps_the_tail_untrusted()
     {
         // A tag mismatch mid-level (span -> div) is a replace — the divergence-prone case — so even a
         // trailing insert at that same level stays untrusted.
@@ -448,7 +448,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_TextNodeChanged_PathLocatesTheTextNode()
+    public void The_path_of_a_changed_text_node_locates_the_text_node()
     {
         // Verifies the DOM-path computation: changing the inner text of a deeply nested
         // span produces an UpdateText op whose Path walks: root-fragment-omitted →
@@ -469,7 +469,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_AttributeOnLaterChild_PathPointsToCorrectElement()
+    public void The_path_of_an_attribute_on_a_later_child_points_to_the_correct_element()
     {
         // The element being changed is the SECOND div of the parent. Verifies the
         // sibling slot counter advances correctly past the first sibling.
@@ -488,7 +488,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_LargePageWithCounterUpdate_ProducesO1Ops_NotProportionalToPageSize()
+    public void A_counter_update_on_a_large_page_diffs_to_constant_ops_not_proportional_to_page_size()
     {
         // The headline metric: bytes-per-update should be O(1) in changed nodes, not
         // O(page size). A 200-row "static body" with one counter cell that bumps from
@@ -506,7 +506,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_ChildAdded_WithNewHtml_InsertSubtreeCarriesFragmentRange()
+    public void With_new_html_an_added_child_InsertSubtree_carries_the_fragment_range()
     {
         // When the caller passes newHtml, FrameDiffer records the inserted subtree's char range
         // (HtmlStart/HtmlEnd) instead of allocating a Value string. The wire codec slices the
@@ -527,7 +527,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_WithoutNewHtml_InsertSubtreeOmitsFragment()
+    public void Without_new_html_an_InsertSubtree_omits_the_fragment()
     {
         var before = Frames(Ul[Li["a"]]);
         var afterFrames = Frames(Ul[Li["a"], Li["b"]]);
@@ -588,7 +588,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     // into full-HTML fallback).
 
     [Fact]
-    public void Diff_KeyedList_RowsSwapped_EmitsSinglePermutationBatchWithTrustedFlag()
+    public void Swapped_keyed_rows_emit_a_single_permutation_batch_with_the_trusted_flag()
     {
         var before = Frames(BuildKeyedRows(0, 1, 2, 3));
         var (afterFrames, afterHtml) = FramesAndHtml(BuildKeyedRows(0, 3, 2, 1));
@@ -610,7 +610,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_MixedKeyedAndUnkeyedSiblings_FallsBackToPositional_NoTrustedOps()
+    public void Mixed_keyed_and_unkeyed_siblings_fall_back_to_positional_with_no_trusted_ops()
     {
         // The keyed reconciliation path requires EVERY direct child to carry data-rask-key. A
         // mix of keyed and unkeyed siblings must fall back to the positional sibling walk
@@ -627,7 +627,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_KeyedList_ViaKeyProperty_UsesKeyedPathWithTrustedRemove()
+    public void A_list_keyed_via_the_Key_property_uses_the_keyed_path_with_a_trusted_remove()
     {
         // The first-class Key property emits the same data-rask-key the differ keys on, so a
         // middle-row delete takes the trusted keyed path exactly like the Data["rask-key"] form.
@@ -644,7 +644,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_KeyedList_MiddleRowDeleted_EmitsSingleTrustedRemove()
+    public void Deleting_a_middle_keyed_row_emits_a_single_trusted_remove()
     {
         var before = Frames(BuildKeyedRows(0, 1, 2, 3, 4));
         var afterFrames = Frames(BuildKeyedRows(0, 1, 3, 4));
@@ -662,7 +662,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_KeyedList_RowAppended_EmitsSingleTrustedInsertWithHtml()
+    public void Appending_a_keyed_row_emits_a_single_trusted_insert_with_html()
     {
         var before = Frames(BuildKeyedRows(0, 1, 2));
         var (afterFrames, afterHtml) = FramesAndHtml(BuildKeyedRows(0, 1, 2, 3));
@@ -681,7 +681,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_KeyedList_RowPrepended_EmitsSingleTrustedInsertAtSlotZero()
+    public void Prepending_a_keyed_row_emits_a_single_trusted_insert_at_slot_zero()
     {
         var before = Frames(BuildKeyedRows(1, 2, 3));
         var (afterFrames, afterHtml) = FramesAndHtml(BuildKeyedRows(0, 1, 2, 3));
@@ -698,7 +698,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_KeyedList_IdenticalRows_ProducesZeroOps()
+    public void Identical_keyed_rows_diff_to_zero_ops()
     {
         var before = Frames(BuildKeyedRows(0, 1, 2, 3));
         var afterFrames = Frames(BuildKeyedRows(0, 1, 2, 3));
@@ -713,7 +713,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_KeyedList_SameRowInnerTextChanged_RecursesAtNewSlotPath()
+    public void A_keyed_row_whose_inner_text_changed_recurses_at_its_new_slot_path()
     {
         // k1's inner text changes from "Item 1" → "Item 1!". The keyed match recognises
         // k1 stays at slot 1 and recurses for the inner UpdateText. Path coords reference
@@ -733,7 +733,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_KeyedList_PartialKeys_FallsBackToPositional()
+    public void A_partially_keyed_list_falls_back_to_positional()
     {
         // One child without data-rask-key drops the whole parent back to the positional
         // walk. Mirrors the morph engine's all-or-nothing keyed detection so the diff
@@ -758,7 +758,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_KeyedList_DuplicateKeys_FallsBackToPositional()
+    public void A_list_with_duplicate_keys_falls_back_to_positional()
     {
         var before = Frames(Ul[
             Li.Data(new Dictionary<string, string?> { ["rask-key"] = "dup" })["a"],
@@ -778,7 +778,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_KeyedList_DuplicateKeys_ReportsTheOffendingKey()
+    public void A_list_with_duplicate_keys_reports_the_offending_key()
     {
         var before = Frames(Ul[
             Li.Data(new Dictionary<string, string?> { ["rask-key"] = "row-7" })["a"],
@@ -805,7 +805,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_KeyedList_UniqueKeys_DoesNotReport()
+    public void A_list_with_unique_keys_does_not_report()
     {
         var before = Frames(Ul[
             Li.Data(new Dictionary<string, string?> { ["rask-key"] = "a" })["1"],
@@ -832,7 +832,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_KeyedList_SameKeyDifferentTag_EmitsTrustedRemoveAndInsert()
+    public void The_same_key_on_a_different_tag_emits_a_trusted_remove_and_insert()
     {
         // Same data-rask-key but the element kind changed (Li → Span). The keyed branch
         // treats this as a fresh node: remove the old, insert the new at the same slot.
@@ -855,7 +855,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_KeyedList_HundredRowSwap_EmitsSingleBatchOfTwoMoves_NotNinetyRewrites()
+    public void A_hundred_row_keyed_swap_emits_a_single_batch_of_two_moves_not_ninety_rewrites()
     {
         // The headline scenario — KeyedList100Reorder: swap rows 5 and 95 in a 100-row
         // list. Positional diff emits 2 SetAttribute + 2 UpdateText (205 bytes vs
@@ -890,7 +890,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     [InlineData(100, 7)]
     [InlineData(100, 13)]
     [InlineData(250, 99)]
-    public void Diff_KeyedList_RandomPermutation_MoveOpsReproduceTargetOrder(int n, int seed)
+    public void Move_ops_for_a_random_keyed_permutation_reproduce_the_target_order(int n, int seed)
     {
         // Strong correctness gate for the keyed move loop: for a random permutation (same key
         // set, no inserts/removes) the diff emits a single PermutationBatch op. Replaying its
@@ -948,7 +948,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     [InlineData(50)]
     [InlineData(500)]
     [InlineData(1000)]
-    public void Diff_KeyedList_FullReverse_MoveOpsReproduceTargetOrder(int n)
+    public void Move_ops_for_a_full_keyed_reverse_reproduce_the_target_order(int n)
     {
         // The worst case for the keyed move loop: a fully reversed list has an LIS of length 1, so
         // n-1 rows are off-LIS and each emits a move. The RandomPermutation gate above (n ≤ 250)
@@ -991,7 +991,7 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_NestedKeyedList_OuterReorderAndInnerReorder_EmitsTrustedBatchesAtBothDepths()
+    public void Reordering_nested_keyed_lists_outer_and_inner_emits_trusted_batches_at_both_depths()
     {
         // Recursion-safety guard for the scratch-pooling optimisation. The outer keyed list's
         // DiffKeyedSiblings call is still LIVE — its key map and child lists are read in the

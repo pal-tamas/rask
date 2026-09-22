@@ -25,7 +25,7 @@ public sealed class NewCommandTests
     [InlineData("", "")]
     [InlineData("0.20.0-alpha.0.1", "0.19.0")]       // a minor bump: .0 of the previous minor was published
     [InlineData("1.0.0-alpha.1", "1.0.0-alpha.1")]   // nothing published under this major to walk back to
-    public void ResolvePackageVersion_walks_a_prerelease_back_to_its_release(string cliVersion, string expected) =>
+    public void The_package_version_walks_a_prerelease_back_to_its_release(string cliVersion, string expected) =>
         Assert.Equal(expected, NewCommand.ResolvePackageVersion(cliVersion));
 
     [Fact]
@@ -247,6 +247,7 @@ public sealed class NewCommandTests
 
         // The same name twice is agreement, not a conflict.
         var (_, fs, _, ok) = Build();
+
         Assert.Equal(0, await ok.ExecuteAsync(["Shop", "--name", "Shop", "--no-restore", "--no-git"], CancellationToken.None));
         Assert.True(fs.FileExists("/proj/Shop/Shop.csproj"));
     }
@@ -504,6 +505,7 @@ public sealed class NewCommandTests
     public async Task No_name_without_a_terminal_still_hard_errors()
     {
         var (console, _, runner, command) = Build();
+
         // StringConsole defaults to redirected stdin (non-interactive) — the wizard must not run.
         var exit = await command.ExecuteAsync([], CancellationToken.None);
 
@@ -738,8 +740,8 @@ public sealed class NewCommandTests
     public async Task The_language_flags_are_refused_and_say_where_languages_live(string flag, string? value)
     {
         var (console, _, runner, command) = Build();
-
         string[] args = value is null ? ["MyApp", flag] : ["MyApp", flag, value];
+
         var exit = await command.ExecuteAsync(args, CancellationToken.None);
 
         Assert.Equal(CliCommand.UsageExitCode, exit);

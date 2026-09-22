@@ -3,11 +3,11 @@ namespace Rask.Core.Tests.Components;
 public partial class ThTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Render_NullProps_ReturnsOpenAndCloseTags() =>
+    public void Unset_props_render_only_the_open_and_close_tags() =>
         Assert.Equal("<th></th>", Th.ToHtml());
 
     [Fact]
-    public void Render_AllPropsSet_EmitsExpectedAttributes()
+    public void Setting_every_prop_emits_the_expected_attributes()
     {
         // colspan/rowspan/headers now come from the HtmlTableCellElement base; scope/abbr stay on Th.
         // Emit order is unchanged (base attrs first); named arguments keep the call independent of the
@@ -27,6 +27,6 @@ public partial class ThTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_StringChild_EncodesText() =>
+    public void A_string_child_is_encoded_as_text() =>
         Assert.Equal("<th>&lt;x&gt;</th>", Th["<x>"].ToHtml());
 }

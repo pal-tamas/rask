@@ -3,7 +3,7 @@ namespace Rask.Wire.Tests;
 public sealed class FileDownloadTests
 {
     [Fact]
-    public void FromBytes_carries_its_length_so_the_response_can_report_progress()
+    public void A_download_from_bytes_carries_its_length_so_the_response_can_report_progress()
     {
         var download = FileDownload.FromBytes("report.csv", "text/csv", "a,b\n1,2"u8.ToArray());
 
@@ -43,7 +43,7 @@ public sealed class FileDownloadTests
     }
 
     [Fact]
-    public async Task WriteToAsync_copies_the_content_and_disposes_the_source()
+    public async Task Writing_a_download_copies_the_content_and_disposes_the_source()
     {
         var source = new NonSeekableStream("payload"u8.ToArray());
         var download = FileDownload.FromStream("a", null, source);
@@ -56,7 +56,7 @@ public sealed class FileDownloadTests
     }
 
     [Fact]
-    public async Task WriteToAsync_does_not_dispose_the_destination_so_the_response_stays_writable()
+    public async Task Writing_a_download_does_not_dispose_the_destination_so_the_response_stays_writable()
     {
         var destination = new NonSeekableStream([]);
 
@@ -77,12 +77,12 @@ public sealed class FileDownloadTests
     }
 
     [Fact]
-    public async Task WriteToAsync_after_a_read_throws_for_the_same_reason()
+    public async Task Writing_a_download_after_a_read_throws_for_the_same_reason()
     {
         var download = FileDownload.FromBytes("a", null, "x"u8.ToArray());
         download.OpenReadStream().Dispose();
-
         using var destination = new MemoryStream();
+
         await Assert.ThrowsAsync<InvalidOperationException>(() => download.WriteToAsync(destination));
     }
 

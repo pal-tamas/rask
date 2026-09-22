@@ -166,7 +166,6 @@ public sealed class SqlServerTenancyTests
     {
         using var db = new TenancyDbContext(
             new DbContextOptionsBuilder<TenancyDbContext>().UseRaskSqlServerAt(Offline).Options);
-
         var ledger = db.Model.FindEntityType(typeof(Ledger))!;
 
         Assert.NotNull(ledger.FindProperty(Columns.TenantId));

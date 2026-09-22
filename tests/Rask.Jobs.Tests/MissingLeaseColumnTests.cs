@@ -15,7 +15,6 @@ public sealed class MissingLeaseColumnTests
     {
         var path = Path.Combine(Path.GetTempPath(), $"rask-nolease-{Guid.NewGuid():N}.db");
         await using var h = new JobsHarness(dbPath: path);
-
         // Recreate the Jobs table as it looked before this change — no ClaimToken, no ClaimedUntil.
         await using (var db = h.NewContext())
         {
@@ -49,7 +48,6 @@ public sealed class MissingLeaseColumnTests
         var message = h.Logs.First(l => l.Contains("rask db add AddJobLeases", StringComparison.Ordinal));
         Assert.Contains("lease columns", message, StringComparison.Ordinal);
         Assert.Contains("rask db update", message, StringComparison.Ordinal);
-
         // The generic "cycle failed" text would send someone reading a stack trace instead.
         Assert.DoesNotContain(
             h.Logs,

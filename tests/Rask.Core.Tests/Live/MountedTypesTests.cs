@@ -18,7 +18,7 @@ public partial class MountedTypesTests : global::Rask.Core.RaskMarkup
     public MountedTypesTests() => ScopedAssetRegistry.InvalidateAll();
 
     [Fact]
-    public void EmptyTree_NoUserComponents_MountedTypesIsEmpty()
+    public void An_empty_tree_with_no_user_components_has_no_mounted_types()
     {
         // Only the root StubComponent itself is a user component — its render returns a
         // bare Span. Asserting that the set contains StubComponent but nothing else.
@@ -36,7 +36,7 @@ public partial class MountedTypesTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void CssOnlyComponent_IsInMountedTypes()
+    public void A_css_only_component_is_in_the_mounted_types()
     {
         ScopedAssetRegistry.RegisterCss(typeof(CssOnly), ".x { color: red; }");
         var view = new StubComponent(new CssOnly());
@@ -48,7 +48,7 @@ public partial class MountedTypesTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void JsOnlyComponent_IsInMountedTypes_RegressionTestForCssBiasBug()
+    public void A_js_only_component_is_in_the_mounted_types_guarding_the_css_bias_bug()
     {
         // The historical bug: PushScope returned `default` (no-op) when TryRegister
         // returned false (no CSS registered for the type). MountedTypes never received
@@ -64,7 +64,7 @@ public partial class MountedTypesTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void ComponentWithBothCssAndJs_AppearsOnce_HashSetSemantics()
+    public void A_component_with_both_css_and_js_appears_once_with_set_semantics()
     {
         ScopedAssetRegistry.RegisterCss(typeof(BothAssets), ".x { color: red; }");
         var view = new StubComponent(new BothAssets());
@@ -77,7 +77,7 @@ public partial class MountedTypesTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void ComponentWithNeitherAsset_StillInMountedTypes_UniformContract()
+    public void A_component_with_neither_asset_is_still_in_the_mounted_types_as_a_uniform_contract()
     {
         // Uniform contract: every user component entered during the walk is in the set,
         // even those with no scoped assets at all. Head emission filters per-type via
@@ -93,7 +93,7 @@ public partial class MountedTypesTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void NInstancesOfSameComponentType_AppearOnce()
+    public void Many_instances_of_the_same_component_type_appear_once()
     {
         var view = new StubComponent(() => Div[
             new CssOnly(), new CssOnly(), new CssOnly(), new CssOnly(), new CssOnly()
@@ -107,7 +107,7 @@ public partial class MountedTypesTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void NestedComponents_ParentAndChildAndGrandchild_AllPresent()
+    public void A_nested_parent_child_and_grandchild_are_all_present()
     {
         var view = new StubComponent(new Outer());
         using var ctx = LiveRenderContext.Begin(view);
@@ -120,7 +120,7 @@ public partial class MountedTypesTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void DifferentRoots_ProduceDifferentMountedSets()
+    public void Different_roots_produce_different_mounted_sets()
     {
         // Two independent trees: one renders CssOnly, the other JsOnly. Each context's
         // MountedTypes reflects only the components mounted in *that* walk.
@@ -145,7 +145,7 @@ public partial class MountedTypesTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void MountedTypesIsClearedBetweenRenders_NewContextPerRender_StartsEmpty()
+    public void The_mounted_types_start_empty_in_each_render_with_a_new_context()
     {
         var view = new StubComponent(new CssOnly());
 
@@ -162,7 +162,7 @@ public partial class MountedTypesTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void MountedTypes_ReadableAfterDispose_LastWalkSnapshotPreserved()
+    public void The_mounted_types_stay_readable_after_dispose_preserving_the_last_walk()
     {
         // Dispose only restores _current and flips _active=false — it does not clear the
         // MountedTypes collection. Useful for post-render diagnostics and the head-emit

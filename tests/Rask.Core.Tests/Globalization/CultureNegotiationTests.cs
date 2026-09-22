@@ -47,6 +47,7 @@ public class CultureNegotiationTests
     {
         // hu-HU is not configured, hu is: the visitor gets Hungarian rather than the default.
         var options = Options("en", "hu");
+
         Assert.Equal("hu", RaskCultureNegotiator.Negotiate("hu-HU", null, null, options).Culture.Name);
     }
 
@@ -56,6 +57,7 @@ public class CultureNegotiationTests
         // The mirror case: the visitor asks for "hu", the app only lists "hu-HU". Serving it beats
         // falling through to English — they asked for a language the app has.
         var options = Options("en-US", "hu-HU");
+
         Assert.Equal("hu-HU", RaskCultureNegotiator.Negotiate("hu", null, null, options).Culture.Name);
     }
 
@@ -73,6 +75,7 @@ public class CultureNegotiationTests
     public void The_client_list_is_honoured_in_order_of_preference()
     {
         var options = Options("en", "hu", "de");
+
         Assert.Equal("de", RaskCultureNegotiator.Negotiate(null, null, ["ja", "de", "hu"], options).Culture.Name);
     }
 
@@ -157,7 +160,7 @@ public class CultureNegotiationTests
         Assert.False(RaskCultureCookie.TryParse(value, out _, out _));
 
     [Fact]
-    public void Format_writes_what_ASP_NET_reads()
+    public void The_cookie_format_writes_what_ASP_NET_reads()
     {
         Assert.Equal("c=hu-HU|uic=hu-HU", RaskCultureCookie.Format("hu-HU"));
         Assert.Equal("c=hu-HU|uic=en-US", RaskCultureCookie.Format("hu-HU", "en-US"));

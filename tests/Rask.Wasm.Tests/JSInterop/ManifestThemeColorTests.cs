@@ -12,7 +12,7 @@ namespace Rask.Wasm.Tests.JsInteropRuntime;
 public sealed class ManifestThemeColorTests
 {
     [Fact]
-    public void TheManifestThemeColorIsAFallback_NeverAnOverrideOfThePagesOwn()
+    public void The_manifest_theme_color_is_a_fallback_never_an_override_of_the_pages_own()
     {
         var bundle = Path.Combine(RepoRoot(), "src", "Rask.Wasm", "Browser", "rask.wasm.js");
         Assert.True(File.Exists(bundle), $"Bundle missing: {bundle} — build src/Rask.Wasm first.");

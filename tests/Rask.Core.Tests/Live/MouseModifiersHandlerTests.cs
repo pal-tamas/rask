@@ -7,7 +7,7 @@ namespace Rask.Core.Tests.Live;
 public partial class MouseModifiersHandlerTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public async Task ActionMouseModifiers_ReceivesShiftFlag()
+    public async Task A_MouseModifiers_action_receives_the_shift_flag()
     {
         MouseModifiers? captured = null;
         var component = new StubComponent(Span);
@@ -22,7 +22,7 @@ public partial class MouseModifiersHandlerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task ActionMouseModifiers_AllFlagsSet()
+    public async Task A_MouseModifiers_action_receives_all_flags_set()
     {
         MouseModifiers? captured = null;
         var component = new StubComponent(Span);
@@ -36,7 +36,7 @@ public partial class MouseModifiersHandlerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task ActionMouseModifiers_MissingFields_DefaultToFalse()
+    public async Task Missing_MouseModifiers_fields_default_to_false()
     {
         MouseModifiers? captured = null;
         var component = new StubComponent(Span);
@@ -49,7 +49,7 @@ public partial class MouseModifiersHandlerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task FuncMouseModifiersTask_IsAwaited_AndReceivesFlags()
+    public async Task A_task_returning_MouseModifiers_handler_is_awaited_and_receives_the_flags()
     {
         MouseModifiers? captured = null;
         var component = new StubComponent(Span);

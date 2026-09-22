@@ -14,11 +14,11 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
     private static readonly Person Empty = new();
 
     [Fact]
-    public void Render_NullProps_ReturnsOpenAndCloseTags() =>
+    public void Unset_props_render_only_the_open_and_close_tags() =>
         Assert.Equal("<form></form>", Form.Model(Empty).ToHtml());
 
     [Fact]
-    public void Render_AllPropsSet_EmitsExpectedAttributes()
+    public void Setting_every_prop_emits_the_expected_attributes()
     {
         Assert.Equal(
             "<form id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" enctype=\"multipart/form-data\" target=\"_blank\" accept-charset=\"utf-8\" autocomplete=\"off\" novalidate name=\"n\"></form>",
@@ -30,40 +30,41 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_StringChild_EncodesText() =>
+    public void A_string_child_is_encoded_as_text() =>
         Assert.Equal("<form>&lt;x&gt;</form>", Form.Model(Empty)["<x>"].ToHtml());
 
     [Fact]
-    public void Render_OnSubmitOutsideLiveContext_OmitsHandlerAttribute() =>
+    public void OnSubmit_outside_a_live_context_emits_no_handler_attribute() =>
         Assert.Equal(
             "<form></form>",
             Form.Model(Empty).OnSubmit(_ => { }).ToHtml());
 
     [Fact]
-    public void Render_OnSubmitInsideLiveContext_EmitsDataRaskOnSubmit()
+    public void OnSubmit_inside_a_live_context_emits_the_submit_handler_id()
     {
         var view = new StubComponent(() => Form.Model(Empty).OnSubmit(_ => { }));
+
         Assert.Equal(
             "<form data-rask-on-submit=\"h0\"></form>",
             view.RenderAsLiveRoot());
     }
 
     [Fact]
-    public void Render_OnSubmitAsyncInsideLiveContext_EmitsDataRaskOnSubmit()
+    public void An_async_OnSubmit_inside_a_live_context_emits_the_submit_handler_id()
     {
         var view = new StubComponent(() => Form.Model(Empty).OnSubmit(async _ => { await Task.Yield(); }));
+
         Assert.Equal(
             "<form data-rask-on-submit=\"h0\"></form>",
             view.RenderAsLiveRoot());
     }
 
     [Fact]
-    public async Task SubmitBridge_AwaitsAsyncValidation_BeforeRouting()
+    public async Task The_submit_bridge_awaits_async_validation_before_routing()
     {
         var p = new Person { Name = "Ada", Age = 30 };
         var validCalled = 0;
         var invalidCalled = 0;
-
         var ctx = new EditContext(p);
         ctx.AddValidator(new RejectingAsyncValidator());
 
@@ -82,7 +83,7 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_SubmitStateChildren_BuildsThemNotSubmitting() =>
+    public void Submit_state_children_are_built_as_not_submitting() =>
         Assert.Equal(
             "<form>idle</form>",
             Form.Model(Empty)[submitting => [submitting ? "busy" : "idle"]].ToHtml());
@@ -92,7 +93,7 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
     // child per character. A lambda whose parameter is untyped and whose body is a collection expression
     // has no natural type, which is what keeps it out of the `params object?[]` overload's way.
     [Fact]
-    public void Render_FixedChildren_StillBindToTheListIndexers()
+    public void Fixed_children_still_bind_to_the_list_indexers()
     {
         Assert.Equal("<form><span></span></form>", Form.Model(Empty)[Span].ToHtml());
         Assert.Equal("<form>&lt;x&gt;</form>", Form.Model(Empty)["<x>"].ToHtml());
@@ -105,7 +106,7 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
     // to an empty auto-created EditContext and its validators never fire — the exact failure the
     // IEnumerable indexer materialises eagerly to avoid.
     [Fact]
-    public void SubmitStateChildren_ResolveTheFormsEditContext()
+    public void Submit_state_children_resolve_the_forms_EditContext()
     {
         var p = new Person { Name = "Ada", Age = 30 };
         EditContext? seen = null;
@@ -118,7 +119,7 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task SubmitStateChildren_SeeSubmitting_WhileAnAsyncHandlerIsInFlight()
+    public async Task Submit_state_children_see_submitting_while_an_async_handler_is_in_flight()
     {
         var p = new Person { Name = "Ada", Age = 30 };
         var release = new TaskCompletionSource();
@@ -149,7 +150,7 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
 
     // A handler that throws must not strand the form showing a submit that is no longer running.
     [Fact]
-    public async Task SubmitStateChildren_StopSubmitting_WhenTheHandlerThrows()
+    public async Task Submit_state_children_stop_submitting_when_the_handler_throws()
     {
         var p = new Person { Name = "Ada", Age = 30 };
         var seen = new List<bool>();
@@ -170,6 +171,7 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
             () => view.TryInvokeHandlerAsync(submitId!, doc.RootElement).AsTask());
 
         view.RenderAsLiveRoot();
+
         Assert.False(seen[^1]);
     }
 
@@ -191,8 +193,9 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
             CancellationToken cancellationToken) =>
             ValueTask.CompletedTask;
     }
+
     [Fact]
-    public void Render_Rel_EmitsAfterName() =>
+    public void Rel_emits_after_the_name() =>
         Assert.Contains(
             "name=\"f\" rel=\"noopener\"",
             Form.Model(Empty).Name("f").Target("_blank").Rel("noopener").ToHtml());

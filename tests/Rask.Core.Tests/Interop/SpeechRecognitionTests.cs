@@ -5,15 +5,16 @@ namespace Rask.Core.Tests.Interop;
 public class SpeechRecognitionTests
 {
     [Fact]
-    public async Task IsSupported_CallsHelper()
+    public async Task Asking_whether_speech_recognition_is_supported_calls_the_helper()
     {
         var js = new FakeJsRuntime();
         await new SpeechRecognition(js).IsSupportedAsync();
+
         Assert.Equal("__raskSpeechRecognition.isSupported", js.Calls.Single().Identifier);
     }
 
     [Fact]
-    public async Task Start_RegistersHandler_AndStartsUnderAnId_WithOptions()
+    public async Task Starting_registers_the_handler_and_starts_under_an_id_with_the_options()
     {
         var js = new FakeJsRuntime();
 
@@ -31,15 +32,16 @@ public class SpeechRecognitionTests
     }
 
     [Fact]
-    public async Task Start_DefaultsOptions_WhenNull()
+    public async Task Starting_defaults_the_options_when_null()
     {
         var js = new FakeJsRuntime();
         await new SpeechRecognition(js).StartAsync(_ => Task.CompletedTask);
+
         Assert.IsType<SpeechRecognitionOptions>(js.ArgsFor("__raskSpeechRecognition.start")![1]);
     }
 
     [Fact]
-    public async Task Result_RoutesToHandler()
+    public async Task A_result_is_routed_to_the_handler()
     {
         var js = new FakeJsRuntime();
         RecognitionResult? got = null;
@@ -56,7 +58,7 @@ public class SpeechRecognitionTests
     }
 
     [Fact]
-    public async Task Dispose_StopsSession_AndStopsRouting()
+    public async Task Disposing_stops_the_session_and_stops_routing()
     {
         var js = new FakeJsRuntime();
         var count = 0;
@@ -75,11 +77,11 @@ public class SpeechRecognitionTests
     }
 
     [Fact]
-    public async Task Result_UnknownId_IsNoOp() =>
+    public async Task A_result_for_an_unknown_id_does_nothing() =>
         await SpeechRecognitionInterop.Result(-42, new RecognitionResult("x", false, 0));
 
     [Fact]
-    public async Task Start_NullArg_Throws() =>
+    public async Task Starting_with_a_null_arg_throws() =>
         await Assert.ThrowsAsync<ArgumentNullException>(
             async () => await new SpeechRecognition(new FakeJsRuntime()).StartAsync(null!));
 }

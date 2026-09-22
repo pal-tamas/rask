@@ -11,7 +11,7 @@ namespace Rask.Server.Tests.WebSockets;
 public class PendingAckTests
 {
     [Fact]
-    public async Task DedupedHandler_WithSeq_EmitsAckWithoutRenderFrame()
+    public async Task A_deduped_handler_with_a_seq_emits_an_ack_without_a_render_frame()
     {
         using var host = RaskTestHost.Create<NoOpApp>();
         var (ws, handlerId) = await ConnectAsync(host);
@@ -26,7 +26,7 @@ public class PendingAckTests
     }
 
     [Fact]
-    public async Task StateChangingHandler_WithSeq_EmitsRenderThenAck()
+    public async Task A_state_changing_handler_with_a_seq_emits_a_render_then_an_ack()
     {
         using var host = RaskTestHost.Create<TestApp>();
         var (ws, handlerId) = await ConnectAsync(host);
@@ -42,7 +42,7 @@ public class PendingAckTests
     }
 
     [Fact]
-    public async Task Handler_WithoutSeq_EmitsNoAck()
+    public async Task A_handler_without_a_seq_emits_no_ack()
     {
         using var host = RaskTestHost.Create<TestApp>();
         var (ws, handlerId) = await ConnectAsync(host);
@@ -51,6 +51,7 @@ public class PendingAckTests
         // pre-feature contract, so existing dedup/ordering behaviour is untouched.
         await ws.SendJsonAsync(new { id = handlerId });
         var render = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+
         Assert.NotNull(render);
         Assert.Contains("count=1", render!);
         Assert.False(IsAck(render!));
@@ -60,7 +61,7 @@ public class PendingAckTests
     }
 
     [Fact]
-    public async Task StaleHandlerId_WithSeq_StillAcks()
+    public async Task A_stale_handler_id_with_a_seq_still_acks()
     {
         using var host = RaskTestHost.Create<TestApp>();
         var (ws, _) = await ConnectAsync(host);
@@ -75,7 +76,7 @@ public class PendingAckTests
     }
 
     [Fact]
-    public async Task BurstOfHandlers_AcksInArrivalOrder()
+    public async Task A_burst_of_handlers_acks_in_arrival_order()
     {
         using var host = RaskTestHost.Create<NoOpApp>();
         var (ws, handlerId) = await ConnectAsync(host);
@@ -97,7 +98,7 @@ public class PendingAckTests
     }
 
     [Fact]
-    public async Task Navigate_WithSeq_DoesNotAck()
+    public async Task A_navigate_with_a_seq_does_not_ack()
     {
         using var host = RaskTestHost.Create<TestApp>();
         var (ws, _) = await ConnectAsync(host);

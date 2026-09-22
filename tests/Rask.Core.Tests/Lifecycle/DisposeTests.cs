@@ -9,7 +9,7 @@ namespace Rask.Core.Tests.Lifecycle;
 public partial class DisposeTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void RemovedFromTree_TriggersDispose()
+    public void Removal_from_the_tree_triggers_dispose()
     {
         var sp = RenderHarness.EmptyServices();
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
@@ -27,7 +27,7 @@ public partial class DisposeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void SessionDispose_DisposesAllComponents()
+    public void Disposing_the_session_disposes_all_components()
     {
         var sp = RenderHarness.EmptyServices();
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
@@ -44,7 +44,7 @@ public partial class DisposeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task SessionDisposeAsync_AwaitsAsyncDisposable()
+    public async Task Disposing_the_session_asynchronously_awaits_an_async_disposable()
     {
         var sp = RenderHarness.EmptyServices();
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
@@ -61,7 +61,7 @@ public partial class DisposeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void RemovedFromTree_DisposesGrandchildrenRecursively()
+    public void Removal_from_the_tree_disposes_grandchildren_recursively()
     {
         var sp = RenderHarness.EmptyServices();
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();

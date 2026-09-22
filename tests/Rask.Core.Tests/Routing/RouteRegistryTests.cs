@@ -9,10 +9,10 @@ public class RouteRegistryTests : IDisposable
     public void Dispose() => RouteRegistry.Reset();
 
     [Fact]
-    public void BuildTree_NoRegistrations_ReturnsEmpty() => Assert.Empty(RouteRegistry.BuildTree());
+    public void With_no_registrations_the_tree_is_empty() => Assert.Empty(RouteRegistry.BuildTree());
 
     [Fact]
-    public void BuildTree_FlatRegistrations_AllRoots()
+    public void Flat_registrations_are_all_roots()
     {
         RouteRegistry.Add(new[]
         {
@@ -28,7 +28,7 @@ public class RouteRegistryTests : IDisposable
     }
 
     [Fact]
-    public void BuildTree_NestedRegistrations_BuildsChildrenUnderParent()
+    public void Nested_registrations_build_children_under_their_parent()
     {
         RouteRegistry.Add(new[]
         {
@@ -47,7 +47,7 @@ public class RouteRegistryTests : IDisposable
     }
 
     [Fact]
-    public void BuildTree_OrphanChild_DroppedFromTree()
+    public void An_orphan_child_is_dropped_from_the_tree()
     {
         RouteRegistry.Add(new[]
         {
@@ -63,7 +63,7 @@ public class RouteRegistryTests : IDisposable
     }
 
     [Fact]
-    public void BuildTree_IsCached_AcrossCalls()
+    public void The_tree_is_cached_across_calls()
     {
         RouteRegistry.Add(new[] { new RouteRegistration(typeof(A), "/a", null) });
 
@@ -74,7 +74,7 @@ public class RouteRegistryTests : IDisposable
     }
 
     [Fact]
-    public void Add_AfterBuildTree_InvalidatesCache()
+    public void Adding_after_building_the_tree_invalidates_the_cache()
     {
         RouteRegistry.Add(new[] { new RouteRegistration(typeof(A), "/a", null) });
         var first = RouteRegistry.BuildTree();

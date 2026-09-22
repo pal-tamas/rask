@@ -11,7 +11,7 @@ namespace Rask.Core.Tests.Forms;
 public partial class EditContextDisposalTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void FormUnmount_DisposesEditContext()
+    public void Unmounting_the_form_disposes_its_EditContext()
     {
         var model = new Model { Name = "ada" };
         var ctx = new EditContext(model);
@@ -25,11 +25,12 @@ public partial class EditContextDisposalTests : global::Rask.Core.RaskMarkup
 
         show = false;
         page.Render(); // form unmounted → ctx not re-resolved this frame
+
         Assert.True(ctx.IsDisposed);
     }
 
     [Fact]
-    public void SurvivingForm_AcrossReRender_IsNotDisposed()
+    public void A_form_that_survives_a_rerender_is_not_disposed()
     {
         var model = new Model { Name = "ada" };
         var ctx = new EditContext(model);
@@ -41,7 +42,7 @@ public partial class EditContextDisposalTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Dispose_CancelsPendingStickyTimer()
+    public async Task Disposing_cancels_a_pending_sticky_timer()
     {
         var model = new Model { Name = "ada" };
         var ctx = new EditContext(model) { ValidatingStickyMs = 100 };
@@ -61,21 +62,23 @@ public partial class EditContextDisposalTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Dispose_IsIdempotent_AndClearsRequestRender()
+    public void Disposing_is_idempotent_and_clears_RequestRender()
     {
         var ctx = new EditContext(new Model());
         ctx.RequestRender = () => { };
 
         ctx.Dispose();
+
         Assert.True(ctx.IsDisposed);
         Assert.Null(ctx.RequestRender);
 
         ctx.Dispose(); // second dispose must not throw
+
         Assert.True(ctx.IsDisposed);
     }
 
     [Fact]
-    public async Task Dispose_WhileAsyncValidationInFlight_CompletesCleanly()
+    public async Task Disposing_while_async_validation_is_in_flight_completes_cleanly()
     {
         // Worst case: a form unmounts (Dispose) while an async field validator is still awaiting,
         // then the validator resumes. The end-to-end handler serialization in the live transports

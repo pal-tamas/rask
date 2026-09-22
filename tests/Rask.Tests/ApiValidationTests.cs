@@ -246,6 +246,7 @@ public sealed class ApiValidationTests
         {
             using var scope = app.Services.CreateScope();
             var validator = RaskValidation.Resolve(typeof(Order), scope.ServiceProvider);
+
             Assert.NotNull(validator);
 
             var context = new EditContext(new Order
@@ -286,9 +287,11 @@ public sealed class ApiValidationTests
         try
         {
             var controller = await PostAsync(app, "/api/orders", """{"reference":"ok","quantity":2}""");
+
             Assert.Equal(HttpStatusCode.OK, controller.StatusCode);
 
             var minimal = await PostAsync(app, "/api/minimal-orders", """{"reference":"ok","quantity":2}""");
+
             Assert.Equal(HttpStatusCode.OK, minimal.StatusCode);
             Assert.Equal("\"ok\"", await minimal.Content.ReadAsStringAsync());
         }
@@ -331,11 +334,12 @@ public sealed class ApiValidationTests
             var body = $$"""{"reference":"{{OrderRules.TakenReference}}","quantity":1}""";
 
             var controller = await PostAsync(app, "/api/orders", body);
+
             Assert.Equal(HttpStatusCode.OK, controller.StatusCode);
 
             var minimal = await PostAsync(app, "/api/minimal-orders", body);
-            Assert.Equal(HttpStatusCode.OK, minimal.StatusCode);
 
+            Assert.Equal(HttpStatusCode.OK, minimal.StatusCode);
             Assert.Equal(before, OrderRules.Runs);
         }
         finally

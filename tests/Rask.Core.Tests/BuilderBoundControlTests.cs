@@ -41,6 +41,7 @@ public partial class BuilderBoundControlTests : global::Rask.Core.RaskMarkup
     public void The_entry_infers_the_value_type_from_the_bind_expression()
     {
         var html = BoundBuilderProbe.ToHtml();
+
         Assert.Contains("<input id=\"age\" type=\"number\" name=\"Age\" value=\"36\"", html, StringComparison.Ordinal);
         Assert.Contains("<input id=\"name\" class=\"field\" type=\"text\" name=\"Name\" value=\"Ada\"", html,
             StringComparison.Ordinal);

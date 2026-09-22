@@ -25,28 +25,30 @@ public class CodeFixProviderTests
 
     // A chain takes a `.Alt("")` STEP, not a named argument.
     [Fact]
-    public async Task Rask023_AppendsAltStep_ToAChain()
+    public async Task The_RASK023_fix_appends_an_Alt_step_to_a_chain()
     {
         var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
             new ImgMissingAltAnalyzer(), new ImgMissingAltCodeFixProvider(), "RASK023",
             App("return Img.Src(\"/a.png\");"));
+
         Assert.Contains("Img.Src(\"/a.png\").Alt(\"\")", fixhed);
     }
 
     [Fact]
-    public async Task Rask023_AppendsAltStep_ToABareEntry()
+    public async Task The_RASK023_fix_appends_an_Alt_step_to_a_bare_entry()
     {
         // A bare entry has no argument list at all, so only a step can be added.
         var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
             new ImgMissingAltAnalyzer(), new ImgMissingAltCodeFixProvider(), "RASK023",
             App("return Img;"));
+
         Assert.Contains("Img.Alt(\"\")", fixhed);
     }
 
     // The fix must act on the Img, never on whatever encloses it. Walking up to the nearest ancestor
     // invocation produced `Wrap(Img).Alt("")` — uncompilable, and the image still had no alt.
     [Fact]
-    public async Task Rask023_AltLandsOnTheImg_NotOnAnEnclosingCall()
+    public async Task The_RASK023_fix_puts_Alt_on_the_Img_not_on_an_enclosing_call()
     {
         var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
             new ImgMissingAltAnalyzer(), new ImgMissingAltCodeFixProvider(), "RASK023",
@@ -59,7 +61,7 @@ public class CodeFixProviderTests
     // ---- RASK001: property becomes a required factory param -> add `required` ----
 
     [Fact]
-    public async Task Rask001_AddsRequiredModifier_AfterAccessibility()
+    public async Task The_RASK001_fix_adds_the_required_modifier_after_the_accessibility()
     {
         var source = """
             using Rask.Core;
@@ -69,13 +71,15 @@ public class CodeFixProviderTests
                 public string Title { get; set; }
             }
             """;
+
         var fixhed = await CodeFixHarness.ApplyGeneratorFixAsync(
             new ComponentFactoryGenerator(), new RequiredFactoryParamCodeFixProvider(), "RASK001", source);
+
         Assert.Contains("public required string Title { get; set; }", fixhed);
     }
 
     [Fact]
-    public async Task Rask001_Offered_WithDIConstructorAndNoParameterless()
+    public async Task The_RASK001_fix_is_offered_with_a_DI_constructor_and_no_parameterless_one()
     {
         // A DI ctor with no parameterless ctor builds via ActivatorUtilities and post-assigns the prop,
         // so a required no-initializer prop is honored and RASK002 does not fire. The fix stays available.
@@ -89,13 +93,15 @@ public class CodeFixProviderTests
                 public string Title { get; set; }
             }
             """;
+
         var offered = await CodeFixHarness.IsGeneratorFixOfferedAsync(
             new ComponentFactoryGenerator(), new RequiredFactoryParamCodeFixProvider(), "RASK001", source);
+
         Assert.True(offered);
     }
 
     [Fact]
-    public async Task Rask001_Offered_WhenDIConstructorHasParameterlessSibling()
+    public async Task The_RASK001_fix_is_offered_when_the_DI_constructor_has_a_parameterless_sibling()
     {
         // A parameterless ctor exists alongside the DI ctor, so the factory can `new Card()` + set the
         // property — RASK002 does not fire, so the fix stays available.
@@ -109,8 +115,10 @@ public class CodeFixProviderTests
                 public string Title { get; set; }
             }
             """;
+
         var offered = await CodeFixHarness.IsGeneratorFixOfferedAsync(
             new ComponentFactoryGenerator(), new RequiredFactoryParamCodeFixProvider(), "RASK001", source);
+
         Assert.True(offered);
     }
 
@@ -148,18 +156,19 @@ public class CodeFixProviderTests
         """;
 
     [Fact]
-    public async Task Rask014_RewritesArgumentlessNew_ToTheBareEntry()
+    public async Task The_RASK014_fix_rewrites_an_argumentless_new_to_the_bare_entry()
     {
         var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
             new ComponentConstructionAnalyzer(), new ComponentConstructionCodeFixProvider(), "RASK014",
             Caller("var x = new Widget();"));
+
         // The bare entry — which is what RASK014's own message tells the reader to write.
         Assert.Contains("var x = Widget;", fixhed);
         Assert.DoesNotContain("new Widget()", fixhed);
     }
 
     [Fact]
-    public async Task Rask014_Withheld_OutsideAMarkupHost()
+    public async Task The_RASK014_fix_is_withheld_outside_a_markup_host()
     {
         // Entries are protected static members on RaskMarkup, so `Widget` in a plain class names the TYPE
         // and the rewrite would be CS0119 — worse than the error it replaces. RASK014 still fires; only
@@ -172,18 +181,19 @@ public class CodeFixProviderTests
     }
 
     [Fact]
-    public async Task Rask014_DropsTheQualifier_BecauseTheEntryIsNotAType()
+    public async Task The_RASK014_fix_drops_the_qualifier_because_the_entry_is_not_a_type()
     {
         // `new Demo.Widget()` must become `Widget`, not `Demo.Widget` — the latter names a type where
         // a method has to go, and would not compile.
         var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
             new ComponentConstructionAnalyzer(), new ComponentConstructionCodeFixProvider(), "RASK014",
             Caller("var x = new Demo.Widget();"));
+
         Assert.Contains("var x = Widget;", fixhed);
     }
 
     [Fact]
-    public async Task Rask014_Withheld_WhenTheConstructionHasArguments()
+    public async Task The_RASK014_fix_is_withheld_when_the_construction_has_arguments()
     {
         // The factory's parameters are generated from the component's public properties, in an order that
         // is not the constructor's. Carrying positional arguments across would compile and mean something
@@ -191,23 +201,25 @@ public class CodeFixProviderTests
         var offered = await CodeFixHarness.IsAnalyzerFixOfferedAsync(
             new ComponentConstructionAnalyzer(), new ComponentConstructionCodeFixProvider(), "RASK014",
             Caller("var x = new Widget(\"hi\");"));
+
         Assert.False(offered);
     }
 
     [Fact]
-    public async Task Rask014_Withheld_WhenAnObjectInitializerIsPresent()
+    public async Task The_RASK014_fix_is_withheld_when_an_object_initializer_is_present()
     {
         // An object initializer is only legal after `new`, so it cannot ride along onto a factory call.
         var offered = await CodeFixHarness.IsAnalyzerFixOfferedAsync(
             new ComponentConstructionAnalyzer(), new ComponentConstructionCodeFixProvider(), "RASK014",
             Caller("var x = new Widget { Id = \"a\" };"));
+
         Assert.False(offered);
     }
 
     // ---- RASK026: a StateHasChanged() the framework already does -> delete the statement ----
 
     [Fact]
-    public async Task Rask026_DeletesTheRedundantCall()
+    public async Task The_RASK026_fix_deletes_the_redundant_call()
     {
         var source = """
             using Rask.Core;
@@ -238,7 +250,7 @@ public class CodeFixProviderTests
     // import Rask.Core.Routing. A bare Route here would bind straight back to MVC's attribute, so the
     // fix has to leave the name qualified.
     [Fact]
-    public async Task Rask071_WithMvcImported_WritesTheQualifiedName()
+    public async Task The_RASK071_fix_writes_the_qualified_name_with_MVC_imported()
     {
         var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
             new AspNetRouteAttributeAnalyzer(), new AspNetRouteCodeFixProvider(), "RASK071",
@@ -252,7 +264,7 @@ public class CodeFixProviderTests
     // With Rask's namespace already imported and nothing to collide with, the simplifier reduces the
     // qualified name to the spelling a person would have written.
     [Fact]
-    public async Task Rask071_WithRaskRoutingImported_ReducesToTheShortName()
+    public async Task The_RASK071_fix_reduces_to_the_short_name_with_Rask_routing_imported()
     {
         var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
             new AspNetRouteAttributeAnalyzer(), new AspNetRouteCodeFixProvider(), "RASK071",
@@ -265,7 +277,7 @@ public class CodeFixProviderTests
     // Both namespaces in scope is the case that punishes a naive fix: a bare Route is ambiguous
     // (CS0104), so the qualified form has to survive rather than be reduced away.
     [Fact]
-    public async Task Rask071_WithBothImported_StaysQualified()
+    public async Task The_RASK071_fix_stays_qualified_with_both_namespaces_imported()
     {
         var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
             new AspNetRouteAttributeAnalyzer(), new AspNetRouteCodeFixProvider(), "RASK071",
@@ -276,7 +288,7 @@ public class CodeFixProviderTests
     }
 
     [Fact]
-    public async Task Rask071_BlazorsAttribute_IsFixedToo()
+    public async Task The_RASK071_fix_fixes_Blazors_attribute_too()
     {
         var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
             new AspNetRouteAttributeAnalyzer(), new AspNetRouteCodeFixProvider(), "RASK071",
@@ -289,7 +301,7 @@ public class CodeFixProviderTests
     // Rewriting only the NAME rather than rebuilding the attribute is what keeps the template intact,
     // constraint and all — a rebuilt attribute is where a route template quietly loses its ":int".
     [Fact]
-    public async Task Rask071_KeepsTheTemplateExactly()
+    public async Task The_RASK071_fix_keeps_the_template_exactly()
     {
         var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
             new AspNetRouteAttributeAnalyzer(), new AspNetRouteCodeFixProvider(), "RASK071",
@@ -304,7 +316,7 @@ public class CodeFixProviderTests
     // over verbatim, so offering the fix here would answer RASK071 with CS0117 on a property that does
     // not exist — a worse diagnostic than the one being fixed, and on a line the developer did not touch.
     [Fact]
-    public async Task Rask071_WithMvcOnlyProperties_FixIsWithheld() =>
+    public async Task The_RASK071_fix_is_withheld_with_MVC_only_properties() =>
         Assert.False(await CodeFixHarness.IsAnalyzerFixOfferedAsync(
             new AspNetRouteAttributeAnalyzer(), new AspNetRouteCodeFixProvider(), "RASK071",
             Page("using Rask.Core.Routing;",
@@ -313,7 +325,7 @@ public class CodeFixProviderTests
     // An alias that bakes its own template in takes no arguments at all, so the rewritten attribute
     // would be missing the template Rask's constructor requires — CS7036.
     [Fact]
-    public async Task Rask071_AliasWithNoArguments_FixIsWithheld() =>
+    public async Task The_RASK071_fix_is_withheld_for_an_alias_with_no_arguments() =>
         Assert.False(await CodeFixHarness.IsAnalyzerFixOfferedAsync(
             new AspNetRouteAttributeAnalyzer(), new AspNetRouteCodeFixProvider(), "RASK071", """
                 using Rask.Core;
@@ -331,7 +343,7 @@ public class CodeFixProviderTests
     // The parameter-naming form is not the property form: Rask's constructor parameter is also called
     // `template`, so this one carries over intact and the fix stays on offer.
     [Fact]
-    public async Task Rask071_WithTheTemplateNamedAsAParameter_IsStillFixed()
+    public async Task The_RASK071_fix_still_applies_with_the_template_named_as_a_parameter()
     {
         var fixhed = await CodeFixHarness.ApplyAnalyzerFixAsync(
             new AspNetRouteAttributeAnalyzer(), new AspNetRouteCodeFixProvider(), "RASK071",
@@ -358,7 +370,7 @@ public class CodeFixProviderTests
     // and trade RASK071 for CS0104 somewhere the developer never looked. Asserting "no using was added"
     // would pin today's mechanism; compiling the result pins the property that actually matters.
     [Fact]
-    public async Task Rask071_DoesNotBreakAnMvcControllerSharingTheFile()
+    public async Task The_RASK071_fix_does_not_break_an_MVC_controller_sharing_the_file()
     {
         var source = """
                      using Rask.Core;

@@ -9,7 +9,7 @@ namespace Rask.Server.Tests.Diagnostics;
 public class RaskLiveHealthCheckTests
 {
     [Fact]
-    public async Task Uncapped_IsAlwaysHealthy()
+    public async Task An_uncapped_store_is_always_healthy()
     {
         var store = NewStore();
         store.MaxSessions = 0;
@@ -19,7 +19,7 @@ public class RaskLiveHealthCheckTests
     }
 
     [Fact]
-    public async Task BelowEightyPercent_IsHealthy()
+    public async Task A_store_below_eighty_percent_is_healthy()
     {
         var store = NewStore();
         store.MaxSessions = 5;
@@ -33,7 +33,7 @@ public class RaskLiveHealthCheckTests
     }
 
     [Fact]
-    public async Task AtOrAboveEightyPercent_IsDegraded()
+    public async Task A_store_at_or_above_eighty_percent_is_degraded()
     {
         var store = NewStore();
         store.MaxSessions = 5;
@@ -47,7 +47,7 @@ public class RaskLiveHealthCheckTests
     }
 
     [Fact]
-    public async Task AtCapacity_IsUnhealthy()
+    public async Task A_store_at_capacity_is_unhealthy()
     {
         var store = NewStore();
         store.MaxSessions = 5;
@@ -66,7 +66,7 @@ public class RaskLiveHealthCheckTests
     // coverage at all.
 
     [Fact]
-    public async Task AtTheMemoryCeiling_IsUnhealthy_EvenWithAnEmptyStore()
+    public async Task At_the_memory_ceiling_the_host_is_unhealthy_even_with_an_empty_store()
     {
         var store = NewStore();
         store.MaxSessions = 100;
@@ -75,7 +75,7 @@ public class RaskLiveHealthCheckTests
     }
 
     [Fact]
-    public async Task NearTheMemoryCeiling_IsDegraded_EvenWithAnEmptyStore()
+    public async Task Near_the_memory_ceiling_the_host_is_degraded_even_with_an_empty_store()
     {
         // The point of watching memory at all: a session's cost is a property of the PAGE, so a host
         // well under its session cap can still be in trouble.
@@ -86,7 +86,7 @@ public class RaskLiveHealthCheckTests
     }
 
     [Fact]
-    public async Task AnUncappedHostStillDegradesUnderMemoryPressure()
+    public async Task An_uncapped_host_still_degrades_under_memory_pressure()
     {
         // Uncapped means "no session limit", not "never unhealthy".
         var store = NewStore();
@@ -97,7 +97,7 @@ public class RaskLiveHealthCheckTests
     }
 
     [Fact]
-    public async Task AnUnreadableMemoryPositionIsNotAnUnhealthyOne()
+    public async Task An_unreadable_memory_position_is_not_an_unhealthy_one()
     {
         // MemoryLoad() returns 0 when the runtime won't say, deliberately: a host must not shed load
         // because it could not measure itself.

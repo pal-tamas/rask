@@ -100,6 +100,7 @@ public sealed class BroadcastDeliveryTests
         app.StateHasChanged(); // parks: the scope is held
         client.Session.InHandlerScope = false;
         client.Session.Lock.Release();
+
         Assert.Equal(before, app.RenderCount);
 
         await client.Session.DrainRenderRequestedAfterScope();

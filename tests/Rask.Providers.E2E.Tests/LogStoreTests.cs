@@ -214,6 +214,7 @@ public sealed class PostgresLogStoreTests : IAsyncLifetime
     public async Task Filters_ignore_case_and_pages_come_newest_first()
     {
         Skip.IfNot(Postgres.Available, Postgres.SkipReason);
+
         await LogStoreScenarios.FiltersAndPagesAsync(Store(NewHost()));
     }
 
@@ -221,6 +222,7 @@ public sealed class PostgresLogStoreTests : IAsyncLifetime
     public async Task Retention_and_the_row_cap_sweep_in_pages()
     {
         Skip.IfNot(Postgres.Available, Postgres.SkipReason);
+
         await LogStoreScenarios.RetentionAndRowCapAsync(Store(NewHost()));
     }
 
@@ -228,6 +230,7 @@ public sealed class PostgresLogStoreTests : IAsyncLifetime
     public async Task Two_hosts_purging_at_once_remove_each_row_once()
     {
         Skip.IfNot(Postgres.Available, Postgres.SkipReason);
+
         await LogStoreScenarios.TwoHostsPurgingAtOnceAsync(Store(NewHost()), Store(NewHost()));
     }
 
@@ -235,6 +238,7 @@ public sealed class PostgresLogStoreTests : IAsyncLifetime
     public async Task A_nul_character_costs_nothing_but_itself()
     {
         Skip.IfNot(Postgres.Available, Postgres.SkipReason);
+
         await LogStoreScenarios.ANulCharacterCostsNothingButItselfAsync(Store(NewHost()));
     }
 
@@ -243,6 +247,7 @@ public sealed class PostgresLogStoreTests : IAsyncLifetime
     {
         Skip.IfNot(Postgres.Available, Postgres.SkipReason);
         var host = NewHost();
+
         await LogStoreScenarios.ALineSurvivesTheApplicationsRollbackAsync(
             host.GetRequiredService<IDbContextFactory<PgLogDbContext>>(), Store(host));
     }
@@ -296,6 +301,7 @@ public sealed class SqlServerLogStoreTests : IAsyncLifetime
     public async Task Filters_ignore_case_and_pages_come_newest_first()
     {
         Skip.IfNot(SqlServer.Available, SqlServer.SkipReason);
+
         await LogStoreScenarios.FiltersAndPagesAsync(Store(NewHost()));
     }
 
@@ -303,6 +309,7 @@ public sealed class SqlServerLogStoreTests : IAsyncLifetime
     public async Task Retention_and_the_row_cap_sweep_in_pages()
     {
         Skip.IfNot(SqlServer.Available, SqlServer.SkipReason);
+
         await LogStoreScenarios.RetentionAndRowCapAsync(Store(NewHost()));
     }
 
@@ -310,6 +317,7 @@ public sealed class SqlServerLogStoreTests : IAsyncLifetime
     public async Task Two_hosts_purging_at_once_remove_each_row_once()
     {
         Skip.IfNot(SqlServer.Available, SqlServer.SkipReason);
+
         await LogStoreScenarios.TwoHostsPurgingAtOnceAsync(Store(NewHost()), Store(NewHost()));
     }
 
@@ -317,6 +325,7 @@ public sealed class SqlServerLogStoreTests : IAsyncLifetime
     public async Task A_nul_character_costs_nothing_but_itself()
     {
         Skip.IfNot(SqlServer.Available, SqlServer.SkipReason);
+
         await LogStoreScenarios.ANulCharacterCostsNothingButItselfAsync(Store(NewHost()));
     }
 
@@ -325,6 +334,7 @@ public sealed class SqlServerLogStoreTests : IAsyncLifetime
     {
         Skip.IfNot(SqlServer.Available, SqlServer.SkipReason);
         var host = NewHost();
+
         await LogStoreScenarios.ALineSurvivesTheApplicationsRollbackAsync(
             host.GetRequiredService<IDbContextFactory<MsLogDbContext>>(), Store(host));
     }

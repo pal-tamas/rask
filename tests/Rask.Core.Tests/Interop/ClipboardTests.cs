@@ -5,7 +5,7 @@ namespace Rask.Core.Tests.Interop;
 public class ClipboardTests
 {
     [Fact]
-    public async Task WriteText_SendsClipboardWriteText_WithText()
+    public async Task Writing_text_sends_the_clipboard_write_with_the_text()
     {
         var js = new FakeJsRuntime();
         var clipboard = new Clipboard(js);
@@ -16,7 +16,7 @@ public class ClipboardTests
     }
 
     [Fact]
-    public async Task ReadText_SendsClipboardReadText_AndReturnsValue()
+    public async Task Reading_text_sends_the_clipboard_read_and_gives_the_value()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("navigator.clipboard.readText", "pasted");
@@ -29,7 +29,7 @@ public class ClipboardTests
     }
 
     [Fact]
-    public async Task WriteText_Null_Throws()
+    public async Task Writing_null_text_throws()
     {
         var clipboard = new Clipboard(new FakeJsRuntime());
 

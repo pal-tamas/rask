@@ -7,7 +7,7 @@ namespace Rask.Server.Tests.Security;
 public class SecureTokenTests
 {
     [Fact]
-    public void Create_Is32LowercaseHexChars()
+    public void A_token_is_32_lowercase_hex_characters()
     {
         var token = SecureToken.Create();
 
@@ -16,7 +16,7 @@ public class SecureTokenTests
     }
 
     [Fact]
-    public void Create_IsUniquePerCall()
+    public void Every_token_created_is_unique()
     {
         var tokens = new HashSet<string>(StringComparer.Ordinal);
         for (var i = 0; i < 1000; i++)

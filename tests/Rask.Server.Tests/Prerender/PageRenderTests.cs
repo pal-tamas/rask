@@ -20,7 +20,7 @@ public class PageRenderTests
     private static readonly ClaimsPrincipal Anonymous = new(new ClaimsIdentity());
 
     [Fact]
-    public async Task APage_RendersItsMarkup_WithTheRoutersStatus()
+    public async Task A_page_renders_its_markup_with_the_routers_status()
     {
         using var host = RaskTestHost.Create<PageRenderContentApp>();
 
@@ -33,7 +33,7 @@ public class PageRenderTests
     }
 
     [Fact]
-    public async Task APageThatNavigatesOnLoad_IsARedirect()
+    public async Task A_page_that_navigates_on_load_is_a_redirect()
     {
         using var host = RaskTestHost.Create<RedirectsOnMountApp>();
 
@@ -45,7 +45,7 @@ public class PageRenderTests
     }
 
     [Fact]
-    public async Task Cancelling_AbandonsTheRender()
+    public async Task Cancelling_abandons_the_render()
     {
         using var host = RaskTestHost.Create<NeverSettlesApp>(
             configureServer: o => o.QuiescenceTimeout = TimeSpan.FromSeconds(30));

@@ -12,7 +12,7 @@ namespace Rask.Dashboard.Tests;
 public class DashboardRouteCompositionTests
 {
     [Fact]
-    public void EveryPage_HangsOffTheLayout()
+    public void Every_page_hangs_off_the_layout()
     {
         // Touch a dashboard type first so its assembly (and therefore its generated route-registry module
         // initializer) is definitely loaded before the tree is built.

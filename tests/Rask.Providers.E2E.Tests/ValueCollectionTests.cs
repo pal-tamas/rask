@@ -125,7 +125,6 @@ public sealed class SqlServerValueCollectionTests
     {
         using var db = new TripDbContext(
             new DbContextOptionsBuilder<TripDbContext>().UseRaskSqlServerAt(Offline).Options);
-
         var trip = db.Model.FindEntityType(typeof(Trip))!;
 
         // A primitive collection is a column; a collection of value objects is a navigation held as JSON.

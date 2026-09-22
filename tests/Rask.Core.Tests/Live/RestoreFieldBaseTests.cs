@@ -23,7 +23,7 @@ namespace Rask.Core.Tests.Live;
 public sealed class RestoreFieldBaseTests
 {
     [Fact]
-    public void DirtyFieldBase_IsCapturedBeforeTheEcho_AndDescribesTheControlNotTheElement()
+    public void A_dirty_field_base_is_captured_before_the_echo_and_describes_the_control_not_the_element()
     {
         // No node on PATH — the JS-driven reproduction cannot run. Deliberately not a
         // failure: node is not required to build or test Rask, and the browser-observable

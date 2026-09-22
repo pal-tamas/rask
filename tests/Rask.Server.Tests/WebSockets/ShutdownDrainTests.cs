@@ -236,6 +236,7 @@ public class ShutdownDrainTests
         // already past DegradedMemoryLoad an empty store reports Degraded and this assertion failed on
         // load rather than on anything it meant to test (#732).
         var capacity = new RaskLiveHealthCheck(host.Store) { MemoryLoadReader = () => 0.0 };
+
         Assert.Equal(HealthStatus.Healthy, (await capacity.CheckHealthAsync(context)).Status);
     }
 
@@ -250,12 +251,14 @@ public class ShutdownDrainTests
             configureMiddleware: app => app.UseHealthChecks("/health"));
 
         var before = await host.Http.GetAsync("/health");
+
         Assert.Equal(HttpStatusCode.OK, before.StatusCode);
         Assert.Equal("Healthy", await before.Content.ReadAsStringAsync());
 
         await host.StopAsync();
 
         var during = await host.Http.GetAsync("/health");
+
         Assert.Equal(HttpStatusCode.ServiceUnavailable, during.StatusCode);
     }
 
@@ -274,6 +277,7 @@ public class ShutdownDrainTests
         await host.StopAsync();
 
         Assert.Equal(LivePayload.ServerShutdownJson, await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2)));
+
         var close = await ws.TryReceiveCloseAsync(TimeSpan.FromSeconds(2));
         Assert.NotNull(close);
         Assert.Equal(WebSocketCloseStatus.EndpointUnavailable, close.Value.Status);

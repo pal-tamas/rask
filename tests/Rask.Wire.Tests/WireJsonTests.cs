@@ -47,6 +47,7 @@ public sealed class WireJsonTests
     public void A_TimeSpan_survives_the_round_trip_it_is_written_for()
     {
         var original = new TimeSpan(5, 4, 3, 2, 1);
+
         var json = Write(w => WireJson.WriteTimeSpanValue(w, original));
 
         Assert.Equal(original, ReadProperty(json, static (ref Utf8JsonReader r) => WireJson.ReadTimeSpan(ref r, "p")));
@@ -107,7 +108,7 @@ public sealed class WireJsonTests
     }
 
     [Fact]
-    public void ResolveFile_maps_an_index_to_its_part_and_reports_a_truncated_body()
+    public void A_file_index_resolves_to_its_part_and_a_truncated_body_is_reported()
     {
         var file = RemoteFile.FromBytes("a.txt", null, [1]);
 
@@ -120,7 +121,7 @@ public sealed class WireJsonTests
     }
 
     [Fact]
-    public void SkipValue_steps_over_a_property_the_receiver_does_not_know()
+    public void A_property_the_receiver_does_not_know_is_skipped()
     {
         // The compatibility rule in one test: a sender that adds a property must not break a receiver
         // compiled before it existed.

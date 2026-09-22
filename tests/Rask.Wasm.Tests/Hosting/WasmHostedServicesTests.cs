@@ -6,7 +6,7 @@ namespace Rask.Wasm.Tests.Hosting;
 public class WasmHostedServicesTests
 {
     [Fact]
-    public async Task StartAsync_StartsEveryRegisteredHostedService()
+    public async Task Starting_starts_every_registered_hosted_service()
     {
         var first = new RecordingHostedService("first");
         var second = new RecordingHostedService("second");
@@ -19,7 +19,7 @@ public class WasmHostedServicesTests
     }
 
     [Fact]
-    public async Task StartAsync_NoHostedServices_DoesNothing()
+    public async Task Starting_with_no_hosted_services_does_nothing()
     {
         var host = new WasmHostedServices(new ServiceCollection().BuildServiceProvider());
 
@@ -29,7 +29,7 @@ public class WasmHostedServicesTests
     }
 
     [Fact]
-    public async Task StartAsync_StartsInRegistrationOrder()
+    public async Task Starting_goes_in_registration_order()
     {
         var log = new List<string>();
         var host = Build(
@@ -45,7 +45,7 @@ public class WasmHostedServicesTests
     // The reason this host swallows instead of propagating: in a browser tab there is no orchestrator to
     // restart the process, so a failed background worker must degrade the app, not blank it.
     [Fact]
-    public async Task StartAsync_ServiceThrows_StillStartsTheRest()
+    public async Task A_service_that_throws_on_start_still_lets_the_rest_start()
     {
         var throwing = new ThrowingHostedService(onStart: true);
         var after = new RecordingHostedService("after");
@@ -57,7 +57,7 @@ public class WasmHostedServicesTests
     }
 
     [Fact]
-    public async Task StartAsync_ServiceThrows_IsNotRecordedAsStarted()
+    public async Task A_service_that_throws_on_start_is_not_recorded_as_started()
     {
         var throwing = new ThrowingHostedService(onStart: true);
         var after = new RecordingHostedService("after");
@@ -75,7 +75,7 @@ public class WasmHostedServicesTests
     // at the resolve, not at StartAsync. Left unguarded it escapes RunAsync and blanks the app — the exact
     // outcome the per-service catch exists to prevent.
     [Fact]
-    public async Task StartAsync_ConstructorThrows_DoesNotPropagate()
+    public async Task A_constructor_that_throws_on_start_does_not_propagate()
     {
         var collection = new ServiceCollection();
         collection.AddSingleton<IHostedService, ThrowingConstructorService>();
@@ -87,7 +87,7 @@ public class WasmHostedServicesTests
     }
 
     [Fact]
-    public async Task StartAsync_UnregisteredDependency_DoesNotPropagate()
+    public async Task An_unregistered_dependency_on_start_does_not_propagate()
     {
         var collection = new ServiceCollection();
         collection.AddSingleton<IHostedService, NeedsMissingDependencyService>();
@@ -101,7 +101,7 @@ public class WasmHostedServicesTests
     // A faulting ExecuteAsync must not go unobserved — otherwise a crashed loop is indistinguishable from
     // one that never started, which is the failure this whole class exists to remove.
     [Fact]
-    public async Task StartAsync_BackgroundServiceLoopFaults_IsObserved()
+    public async Task A_background_service_loop_that_faults_after_start_is_observed()
     {
         var service = new FaultingBackgroundService();
         var host = Build(service);
@@ -114,7 +114,7 @@ public class WasmHostedServicesTests
     }
 
     [Fact]
-    public async Task StopAsync_StopsInReverseStartOrder()
+    public async Task Stopping_goes_in_reverse_start_order()
     {
         var log = new List<string>();
         var host = Build(
@@ -131,7 +131,7 @@ public class WasmHostedServicesTests
     }
 
     [Fact]
-    public async Task StopAsync_DoesNotStopAServiceThatFailedToStart()
+    public async Task Stopping_skips_a_service_that_failed_to_start()
     {
         var throwing = new ThrowingHostedService(onStart: true);
         var host = Build(throwing);
@@ -144,7 +144,7 @@ public class WasmHostedServicesTests
 
     // pagehide can fire twice in a tab's life — a bfcache suspend, then the real teardown.
     [Fact]
-    public async Task StopAsync_CalledTwice_StopsOnlyOnce()
+    public async Task Stopping_twice_stops_only_once()
     {
         var service = new RecordingHostedService("only");
         var host = Build(service);
@@ -157,7 +157,7 @@ public class WasmHostedServicesTests
     }
 
     [Fact]
-    public async Task StopAsync_ServiceThrows_StillStopsTheRest()
+    public async Task A_service_that_throws_on_stop_still_lets_the_rest_stop()
     {
         var throwing = new ThrowingHostedService(onStart: false);
         var earlier = new RecordingHostedService("earlier");
@@ -170,7 +170,7 @@ public class WasmHostedServicesTests
     }
 
     [Fact]
-    public async Task StopAsync_WithoutStart_DoesNothing()
+    public async Task Stopping_without_a_start_does_nothing()
     {
         var service = new RecordingHostedService("never-started");
         var host = Build(service);
@@ -183,7 +183,7 @@ public class WasmHostedServicesTests
     // The grace is a deadline handed to the service, not a wall this host enforces — a service that
     // ignores its token still runs to completion, exactly as on the server.
     [Fact]
-    public async Task StopAsync_PassesACancellableDeadlineToTheService()
+    public async Task Stopping_passes_a_cancellable_deadline_to_the_service()
     {
         var service = new TokenCapturingHostedService();
         var host = Build(service);

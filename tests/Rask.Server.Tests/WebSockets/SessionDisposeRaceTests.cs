@@ -11,7 +11,7 @@ namespace Rask.Server.Tests.WebSockets;
 // child dictionaries under _renderLock (the swap+Clear in Component.BuildRenderTree). Disposal
 // did not take _renderLock, so a render still draining on a thread-pool thread at shutdown raced
 // the walk and intermittently threw "Collection was modified; enumeration operation may not
-// execute" (observed flaking HandlerOrderingTests.TwoHandlers_AcrossMultipleRounds_NeverReorder).
+// execute" (observed flaking HandlerOrderingTests.Two_handlers_across_multiple_rounds_never_reorder).
 //
 // The fix makes Dispose/DisposeAsync acquire _renderLock around the walk, so disposal and render
 // are mutually exclusive. This test gates a render in flight and asserts disposal blocks until the
@@ -19,7 +19,7 @@ namespace Rask.Server.Tests.WebSockets;
 public class SessionDisposeRaceTests
 {
     [Fact]
-    public async Task DisposeAsync_WhileRenderInFlight_WaitsForRenderLock_AndDoesNotThrow()
+    public async Task Disposing_while_a_render_is_in_flight_waits_for_the_render_lock_and_does_not_throw()
     {
         GatedRenderApp.Reset();
 
@@ -47,6 +47,7 @@ public class SessionDisposeRaceTests
             // is gated. Pre-fix it ran straight into the racing tree walk.
             var completedEarly = await Task.WhenAny(disposeTask, Task.Delay(TimeSpan.FromMilliseconds(500)))
                                  == disposeTask;
+
             Assert.False(completedEarly, "DisposeAsync must wait for the in-flight render to release the render lock");
 
             // Release the render; disposal now completes cleanly with no collection-modified throw.

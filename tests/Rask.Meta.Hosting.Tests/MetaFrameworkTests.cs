@@ -62,7 +62,7 @@ public class MetaFrameworkTests
     ///     everything still appears to work.
     /// </remarks>
     [Fact]
-    public void Next_reads_HOSTNAME_rather_than_HOST()
+    public void Next_reads_the_HOSTNAME_variable_rather_than_HOST()
     {
         Assert.Equal("HOSTNAME", MetaFramework.Next.HostVariable);
         Assert.Equal(".next/standalone/server.js", MetaFramework.Next.ServerEntry);

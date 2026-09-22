@@ -3,10 +3,10 @@ namespace Rask.Core.Tests.Components;
 public partial class SpanTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Render_NullProps_ReturnsOpenAndCloseTags() => Assert.Equal("<span></span>", Span.ToHtml());
+    public void Unset_props_render_only_the_open_and_close_tags() => Assert.Equal("<span></span>", Span.ToHtml());
 
     [Fact]
-    public void Render_AllPropsSet_EmitsExpectedAttributes()
+    public void Setting_every_prop_emits_the_expected_attributes()
     {
         Assert.Equal(
             "<span id=\"i\" class=\"c\" style=\"s\" data-k=\"v\"></span>",
@@ -14,6 +14,6 @@ public partial class SpanTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_StringChild_EncodesText() =>
+    public void A_string_child_is_encoded_as_text() =>
         Assert.Equal("<span>&lt;x&gt;</span>", Span["<x>"].ToHtml());
 }

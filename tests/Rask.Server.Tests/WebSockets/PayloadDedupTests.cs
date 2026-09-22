@@ -5,7 +5,7 @@ namespace Rask.Server.Tests.WebSockets;
 public class PayloadDedupTests
 {
     [Fact]
-    public async Task HandlerThatDoesNotChangeVisibleState_SuppressesWsFrame()
+    public async Task A_handler_that_does_not_change_visible_state_sends_no_frame()
     {
         using var host = RaskTestHost.Create<NoOpApp>();
         var initial = await host.Http.GetAsync("/start");
@@ -22,11 +22,13 @@ public class PayloadDedupTests
         // server must suppress the frame.
         await ws.SendJsonAsync(new { id = handlerId });
         var afterFirstClick = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
+
         Assert.Null(afterFirstClick);
 
         // Second click — also a no-op, also suppressed.
         await ws.SendJsonAsync(new { id = handlerId });
         var afterSecondClick = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
+
         Assert.Null(afterSecondClick);
     }
 }

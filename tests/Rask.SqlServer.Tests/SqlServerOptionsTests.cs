@@ -18,7 +18,7 @@ public sealed class SqlServerOptionsTests
     }
 
     [Fact]
-    public void Defaults_validate()
+    public void The_default_options_validate()
     {
         Assert.Null(Record.Exception(new SqlServerOptions().Validate));
     }
@@ -31,6 +31,7 @@ public sealed class SqlServerOptionsTests
         var options = new SqlServerOptions { CommandTimeout = TimeSpan.Zero };
 
         var exception = Assert.Throws<InvalidOperationException>(options.Validate);
+
         Assert.StartsWith("SqlServerOptions.CommandTimeout must be positive", exception.Message);
     }
 
@@ -40,6 +41,7 @@ public sealed class SqlServerOptionsTests
         var options = new SqlServerOptions { LockTimeout = TimeSpan.FromSeconds(-1) };
 
         var exception = Assert.Throws<InvalidOperationException>(options.Validate);
+
         Assert.StartsWith("SqlServerOptions.LockTimeout must not be negative", exception.Message);
     }
 
@@ -53,6 +55,7 @@ public sealed class SqlServerOptionsTests
         };
 
         var exception = Assert.Throws<InvalidOperationException>(options.Validate);
+
         Assert.StartsWith("SqlServerOptions.LockTimeout must be at most 24.20:31:23.6470000", exception.Message);
     }
 
@@ -68,6 +71,7 @@ public sealed class SqlServerOptionsTests
         };
 
         var exception = Assert.Throws<InvalidOperationException>(options.Validate);
+
         Assert.StartsWith("SqlServerOptions.LockTimeout (00:00:10) must be below CommandTimeout", exception.Message);
     }
 
@@ -87,6 +91,7 @@ public sealed class SqlServerOptionsTests
         options.Retry.MaxCount = 0;
 
         var exception = Assert.Throws<InvalidOperationException>(options.Validate);
+
         Assert.Contains("Turn retrying off with o.Retry.Enabled = false", exception.Message, StringComparison.Ordinal);
     }
 

@@ -212,9 +212,11 @@ public sealed class ProjectGeneratorTests
     public void The_image_carries_the_replicator_binary_only_when_there_is_a_database()
     {
         var (withData, _) = Generate(data: true, docker: true);
+
         Assert.Contains("COPY --from=litestream/litestream:", withData["Dockerfile"], StringComparison.Ordinal);
 
         var (without, _) = Generate(docker: true);
+
         Assert.DoesNotContain("litestream", without["Dockerfile"], StringComparison.OrdinalIgnoreCase);
     }
 
@@ -354,11 +356,13 @@ public sealed class ProjectGeneratorTests
     public void Pwa_flag_toggles_the_manifest_assets_and_wiring()
     {
         var (on, _) = Generate(pwa: true);
+
         Assert.True(on.ContainsKey("wwwroot/icon.svg"));
         Assert.True(on.ContainsKey("wwwroot/offline.html"));
         Assert.Contains("AddRaskPwa", on["Program.cs"], StringComparison.Ordinal);
 
         var (off, _) = Generate(pwa: false);
+
         Assert.DoesNotContain("wwwroot/icon.svg", off.Keys);
         Assert.DoesNotContain("AddRaskPwa", off["Program.cs"], StringComparison.Ordinal);
     }
@@ -384,12 +388,14 @@ public sealed class ProjectGeneratorTests
     public void Cqrs_flag_toggles_the_wiring_and_package_but_scaffolds_no_sample()
     {
         var (on, onResult) = Generate(cqrs: true);
+
         Assert.Contains("AddRaskCqrs", on["Program.cs"], StringComparison.Ordinal);
         Assert.Contains("Rask.Cqrs", onResult.Packages);
         Assert.DoesNotContain("Cqrs/GreetingQuery.cs", on.Keys);
         Assert.DoesNotContain("Cqrs/GreetingPage.cs", on.Keys);
 
         var (off, offResult) = Generate(cqrs: false);
+
         Assert.DoesNotContain("AddRaskCqrs", off["Program.cs"], StringComparison.Ordinal);
         Assert.DoesNotContain("Rask.Cqrs", offResult.Packages);
     }
@@ -398,6 +404,7 @@ public sealed class ProjectGeneratorTests
     public void Docker_flag_toggles_only_the_container_files()
     {
         var (on, _) = Generate(docker: true);
+
         Assert.True(on.ContainsKey("Dockerfile"));
         Assert.True(on.ContainsKey(".dockerignore"));
         Assert.Contains("App.dll", on["Dockerfile"], StringComparison.Ordinal); // name substituted
@@ -406,6 +413,7 @@ public sealed class ProjectGeneratorTests
         Assert.Contains("mkdir -p /data && chown $APP_UID:$APP_UID /data", on["Dockerfile"], StringComparison.Ordinal);
 
         var (off, _) = Generate(docker: false);
+
         Assert.DoesNotContain("Dockerfile", off.Keys);
         Assert.DoesNotContain(".dockerignore", off.Keys);
     }
@@ -582,13 +590,16 @@ public sealed class ProjectGeneratorTests
     public void Wasm_pwa_and_docker_toggle_their_files()
     {
         var pwa = Index(ProjectGenerator.GenerateWasm(Root, "App", pwa: true, docker: false, Version));
+
         Assert.True(pwa.ContainsKey("wwwroot/icon.svg"));
         Assert.Contains("serviceWorker", pwa["wwwroot/index.html"], StringComparison.Ordinal);
 
         var noPwa = Index(ProjectGenerator.GenerateWasm(Root, "App", pwa: false, docker: false, Version));
+
         Assert.DoesNotContain("serviceWorker", noPwa["wwwroot/index.html"], StringComparison.Ordinal);
 
         var docker = Index(ProjectGenerator.GenerateWasm(Root, "App", pwa: false, docker: true, Version));
+
         Assert.True(docker.ContainsKey("Dockerfile"));
         Assert.True(docker.ContainsKey("nginx.conf"));
         Assert.True(docker.ContainsKey(".dockerignore"));

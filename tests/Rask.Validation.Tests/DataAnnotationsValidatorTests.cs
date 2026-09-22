@@ -7,7 +7,7 @@ namespace Rask.Validation.Tests;
 public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public async Task SubmitFlow_FirstInvalid_ThenFilled_RoutesToOnValidSubmit()
+    public async Task A_form_submitted_invalid_then_filled_in_reaches_OnValidSubmit()
     {
         // Reproduces the showcase ValidationSummary demo flow as a unit test:
         //   1. Render Form — the validator is registered by the form itself, nothing declared.
@@ -23,8 +23,8 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
             Input.Bind(() => p.Name),
             Input.Bind(() => p.Age)
         ]);
-
         var submit1 = page.HandlerId("submit");
+
         Assert.NotNull(submit1);
 
         await page.InvokeAsync(submit1!, "{\"form\":{\"Name\":\"\",\"Age\":\"0\"}}");
@@ -39,6 +39,7 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
 
         page.Render();
         var submit2 = page.HandlerId("submit");
+
         Assert.NotNull(submit2);
 
         await page.InvokeAsync(submit2!, "{\"form\":{\"Name\":\"Ada\",\"Age\":\"30\"}}");
@@ -47,7 +48,7 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
     }
 
     [Fact]
-    public void Validate_PopulatesMessages_PerOffendingMember()
+    public void Validating_adds_a_message_for_each_offending_member()
     {
         var p = new Person { Name = "", Age = 0, Code = "" };
         var ctx = RegisterValidator(p);
@@ -60,16 +61,17 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
     }
 
     [Fact]
-    public void Validate_AllValid_ReturnsTrue()
+    public void Validating_an_all_valid_model_returns_true()
     {
         var p = new Person { Name = "Ada", Age = 30, Code = "ABC" };
         var ctx = RegisterValidator(p);
+
         Assert.True(ctx.Validate());
         Assert.False(ctx.HasValidationMessages());
     }
 
     [Fact]
-    public void ValidateField_OnlyValidatesThatField()
+    public void Validating_one_field_validates_only_that_field()
     {
         var p = new Person { Name = "", Age = 999, Code = "" };
         var ctx = RegisterValidator(p);
@@ -81,7 +83,7 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
     }
 
     [Fact]
-    public void Validate_IValidatableObject_FormLevelError_AttachesToEmptyField()
+    public void A_form_level_IValidatableObject_error_attaches_to_the_empty_field()
     {
         // Model.Validate returns a ValidationResult with empty MemberNames — should land on
         // FieldIdentifier(model, "") so ValidationSummary picks it up as a form-level error.
@@ -100,7 +102,7 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
     }
 
     [Fact]
-    public void Validate_IValidatableObject_PerFieldError_AttachesToNamedField()
+    public void A_per_field_IValidatableObject_error_attaches_to_the_named_field()
     {
         // Model.Validate returns a ValidationResult with MemberNames = ["Departure"] — should
         // land on that field's messages.
@@ -119,7 +121,7 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
     }
 
     [Fact]
-    public void Validate_IValidatableObject_RunsEvenWhenAttributeValidationFails()
+    public void IValidatableObject_runs_even_when_attribute_validation_fails()
     {
         // ASP.NET Core parity: BCL's TryValidateObject silences IValidatableObject as soon as
         // any attribute fails. Here Name is empty (Required fails) AND the model raises a
@@ -142,7 +144,7 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
     }
 
     [Fact]
-    public void ValidateField_IValidatableObject_SurfacesCrossFieldErrorOnNamedField()
+    public void Validating_one_field_surfaces_the_IValidatableObject_cross_field_error_on_it()
     {
         // Re-validating Departure on its own should surface the IValidatableObject result
         // whose MemberNames include Departure.
@@ -161,7 +163,7 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
     }
 
     [Fact]
-    public void ValidateField_IValidatableObject_IgnoresErrorsForOtherFields()
+    public void Validating_one_field_ignores_IValidatableObject_errors_for_other_fields()
     {
         // Re-validating Name must NOT pull in Departure's IValidatableObject error, and a
         // form-level (empty MemberNames) error must not attach to Name either.
@@ -182,7 +184,7 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
     }
 
     [Fact]
-    public void Registration_IsIdempotent_AcrossMultipleRenders()
+    public void Registering_the_validator_is_idempotent_across_multiple_renders()
     {
         var p = new Person { Name = "" };
         var ctx = new EditContext(p);
@@ -199,24 +201,25 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
         ]);
 
         ctx.Validate();
+
         Assert.Single(ctx.GetValidationMessages(new FieldIdentifier(p, "Name")));
     }
 
     [Fact]
-    public void AutoValidate_False_TakesTheFormOutOfIt()
+    public void AutoValidate_false_takes_the_form_out_of_validation()
     {
-        var p = new Person { Name = "" };
-
         // Nothing declared means nothing to delete when you want out, so the opt-out is the only thing
         // an author writes — and it has to actually stop the pass, not just stop reporting it.
+        var p = new Person { Name = "" };
         var ctx = WithoutAutoValidation(p);
 
         ctx.Validate();
+
         Assert.Empty(ctx.GetValidationMessages(new FieldIdentifier(p, "Name")));
     }
 
     [Fact]
-    public void RaskValidation_AutoValidate_False_TakesEveryFormOutOfIt()
+    public void The_global_RaskValidation_AutoValidate_false_takes_every_form_out_of_validation()
     {
         var p = new Person { Name = "" };
 
@@ -224,7 +227,9 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
         try
         {
             var ctx = RegisterValidator(p);
+
             ctx.Validate();
+
             Assert.Empty(ctx.GetValidationMessages(new FieldIdentifier(p, "Name")));
         }
         finally

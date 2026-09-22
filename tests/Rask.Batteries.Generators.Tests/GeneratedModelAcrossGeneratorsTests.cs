@@ -218,11 +218,11 @@ public class GeneratedModelAcrossGeneratorsTests
 
         var message = run.Compilation.GetTypeByMetadataName("Shop.Contracts.SaveProduct")
                       ?? throw new InvalidOperationException("SaveProduct did not compile.");
-
         var emitter = new TypeScriptEmitter();
-        emitter.Ensure(WireShape.Classify(message, allowFile: false, compilation: run.Compilation));
-        var ts = emitter.Declarations;
 
+        emitter.Ensure(WireShape.Classify(message, allowFile: false, compilation: run.Compilation));
+
+        var ts = emitter.Declarations;
         Assert.Contains("product: ProductModel;", ts, StringComparison.Ordinal);
         Assert.Contains("export interface ProductModel {", ts, StringComparison.Ordinal);
         Assert.Contains("price: MoneyModel | null;", ts, StringComparison.Ordinal);
@@ -245,6 +245,7 @@ public class GeneratedModelAcrossGeneratorsTests
 
         var message = run.Compilation.GetTypeByMetadataName("Shop.Contracts.SaveDraft")!;
         var emitter = new TypeScriptEmitter();
+
         emitter.Ensure(WireShape.Classify(message, allowFile: false, compilation: run.Compilation));
 
         Assert.Contains("draft: ProductModel | null;", emitter.Declarations, StringComparison.Ordinal);

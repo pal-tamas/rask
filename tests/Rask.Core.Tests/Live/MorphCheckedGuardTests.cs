@@ -4,7 +4,7 @@ namespace Rask.Core.Tests.Live;
 // Regression guard for the radio/checkbox `.checked` desync, first caught by the Forms guide's
 // radio-group step in the WASM journey. (That step ran in StandaloneWasmExampleTests too until the
 // samples consolidation removed that class; the surviving journey is
-// WasmExampleTests.Journey_WalksEveryPageAndUnusualActivity.)
+// WasmExampleTests.Journey_walks_every_page_and_unusual_activity.)
 //
 // Symptom: after the user clicked a radio, a re-render the server computed BEFORE
 // the change reached it landed afterwards; both client apply paths (the full morph
@@ -24,7 +24,7 @@ namespace Rask.Core.Tests.Live;
 public sealed class MorphCheckedGuardTests
 {
     [Fact]
-    public void Checked_StaleRender_DoesNotClobberJustClickedRadioOrCheckbox_ThenReleases()
+    public void A_stale_render_does_not_clobber_a_just_clicked_radio_or_checkbox_then_releases()
     {
         // No node on PATH — the JS-driven reproduction cannot run. Deliberately not a
         // failure: node is not required to build or test Rask, and the browser-observable

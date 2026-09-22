@@ -44,7 +44,7 @@ namespace Rask.Wasm.Tests.JsInteropRuntime;
 public sealed class HeadAssetGateBugReproductionTests
 {
     [Fact]
-    public void HeadAsset_ErrorEvent_DrainsGate_WithDiagnosticWarning_AndDefensiveUserCodeDoesNotThrow()
+    public void A_head_asset_error_drains_the_gate_with_a_diagnostic_warning_and_defensive_user_code_does_not_throw()
     {
         var node = ResolveNode();
         if (node is null)

@@ -11,7 +11,7 @@ namespace Rask.Core.Tests.Components;
 public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void FullscreenTrigger_StampsCapWithNullRid_DataAttrBeforeTagSpecific()
+    public void The_fullscreen_trigger_stamps_its_cap_with_a_null_rid_ahead_of_the_tag_attributes()
     {
         // Fire-and-forget (no result) → rid is null. Attribute order: data-* before tag-specific (type).
         Assert.Equal(
@@ -20,7 +20,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void GestureTrigger_GenericCapability_StampsTheGivenCap()
+    public void A_generic_gesture_trigger_stamps_the_given_capability()
     {
         Assert.Equal(
             "<a data-rask-gesture=\"{&quot;cap&quot;:&quot;pip.request&quot;,&quot;rid&quot;:null}\" href=\"#\">PiP</a>",
@@ -28,7 +28,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void EyeDropperTrigger_WithCallback_StampsCapAndANumericResultId()
+    public void An_eye_dropper_trigger_with_a_callback_stamps_its_cap_and_a_numeric_result_id()
     {
         var html = EyeDropperTrigger
             .Template(g => Button.Type("button").Data(g)["Pick"])
@@ -38,7 +38,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task GestureResultInterop_RoutesTheResultToTheTriggersCallback_ThenIsOneShot()
+    public async Task A_gesture_result_reaches_the_triggers_callback_only_once()
     {
         string? received = null;
         var html = EyeDropperTrigger
@@ -47,6 +47,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
         var rid = int.Parse(Regex.Match(html, @"rid&quot;:(\d+)").Groups[1].Value);
 
         await GestureResultInterop.Result(rid, "#ff8800");
+
         Assert.Equal("#ff8800", received);
 
         // One-shot: the handler is removed after the first result, so a second post is a no-op.
@@ -56,7 +57,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void ScreenOrientationTrigger_StampsLockCapWithTheOrientationArg()
+    public void The_orientation_trigger_stamps_the_lock_cap_with_the_orientation_argument()
     {
         // Fire-and-forget (rid null) plus the optional `arg` (the orientation type) after cap/rid.
         Assert.Equal(
@@ -68,9 +69,10 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void PictureInPictureTrigger_StampsPipCapWithTheTargetVideoRefId()
+    public void The_picture_in_picture_trigger_stamps_its_cap_with_the_target_video_ref_id()
     {
         var video = ElementRef.New();
+
         Assert.Equal(
             "<button data-rask-gesture=\"{&quot;cap&quot;:&quot;pip.request&quot;,&quot;rid&quot;:null,"
             + $"&quot;el&quot;:&quot;{video.Id}&quot;}}\" type=\"button\">Pop out</button>",
@@ -80,9 +82,10 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void FullscreenTrigger_WithFor_StampsTheTargetElementRefId()
+    public void A_fullscreen_trigger_with_For_stamps_the_target_element_ref_id()
     {
         var box = ElementRef.New();
+
         Assert.Equal(
             "<button data-rask-gesture=\"{&quot;cap&quot;:&quot;fullscreen.request&quot;,&quot;rid&quot;:null,"
             + $"&quot;el&quot;:&quot;{box.Id}&quot;}}\" type=\"button\">Full screen</button>",
@@ -90,7 +93,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void MediaCaptureTrigger_StampsMediaStartCapWithTargetRefAndConstraintsArg()
+    public void The_media_capture_trigger_stamps_its_cap_with_the_target_ref_and_constraints()
     {
         var preview = ElementRef.New();
         var html = MediaCaptureTrigger
@@ -108,7 +111,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task InstallTrigger_StampsInstallPromptCap_AndRoutesTheOutcomeToOnOutcome()
+    public async Task The_install_trigger_stamps_its_cap_and_routes_the_outcome_to_OnOutcome()
     {
         string? outcome = null;
         var html = InstallTrigger
@@ -119,11 +122,12 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
 
         var rid = int.Parse(Regex.Match(html, @"rid&quot;:(\d+)").Groups[1].Value);
         await GestureResultInterop.Result(rid, "accepted");
+
         Assert.Equal("accepted", outcome);
     }
 
     [Fact]
-    public async Task MediaCaptureTrigger_HandsTheStreamIdToOnStream_AndStillSaysGrantedToOnResult()
+    public async Task The_media_capture_trigger_hands_the_stream_id_to_OnStream_and_still_says_granted_to_OnResult()
     {
         // The capability now resolves the stream's id instead of the literal "granted". OnResult must keep
         // its original vocabulary — the id is an addition, not a replacement.
@@ -143,7 +147,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task MediaCaptureTrigger_ARefusalReachesOnResultOnly()
+    public async Task A_media_capture_refusal_reaches_only_OnResult()
     {
         var streamed = false;
         string? result = null;
@@ -161,7 +165,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void MediaCaptureTrigger_WithNoCallbacks_StaysFireAndForget()
+    public void A_media_capture_trigger_with_no_callbacks_stays_fire_and_forget()
     {
         // No callback means no result to route, so no id should be registered — otherwise every render
         // leaks an entry into the process-wide gesture registry for nobody to consume.

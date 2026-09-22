@@ -16,7 +16,6 @@ public sealed class JobProcessorConcurrencyTests
     public async Task A_row_deleted_mid_batch_does_not_strip_processed_state_from_the_rest()
     {
         await using var h = new JobsHarness();
-
         // Ordered by (RunAt, Id), so the saboteur is drained first and deletes the last row while the batch that
         // contains it is still in flight.
         await h.Queue.EnqueueAsync(new SaboteurJob());
@@ -50,7 +49,6 @@ public sealed class JobProcessorConcurrencyTests
         Assert.All(jobs, j => Assert.NotNull(j.ProcessedAt));
         // One attempt started each, none of them a retry — Attempts counts claims, not failures.
         Assert.All(jobs, j => Assert.Equal(1, j.Attempts));
-
         // The real payoff: each handler ran exactly once. A rolled-back batch re-runs everything it had already
         // executed, so duplicates here are the user-visible symptom of the bug.
         Assert.Equal(1, h.Recorder.Values.Count(v => v == "b"));
@@ -61,7 +59,6 @@ public sealed class JobProcessorConcurrencyTests
     public async Task A_faulting_cycle_does_not_stop_the_processor()
     {
         await using var h = new JobsHarness();
-
         await h.Queue.EnqueueAsync(new SaboteurJob());
         await h.Queue.EnqueueAsync(new RecordJob("first"));
 

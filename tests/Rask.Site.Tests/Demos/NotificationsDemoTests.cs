@@ -12,7 +12,7 @@ namespace Rask.Site.Tests.Demos;
 public sealed class NotificationsDemoTests
 {
     [Fact]
-    public void Render_MountsPermissionNotifyAndBadgeButtons_Idle()
+    public void Rendering_mounts_the_permission_notify_and_badge_buttons_idle()
     {
         var html = Render();
 

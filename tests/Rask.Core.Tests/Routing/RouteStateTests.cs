@@ -6,7 +6,7 @@ namespace Rask.Core.Tests.Routing;
 public class RouteStateTests
 {
     [Fact]
-    public void Defaults_PathSlash_QueryEmpty()
+    public void The_defaults_are_a_slash_path_and_an_empty_query()
     {
         var state = new RouteState();
 
@@ -15,7 +15,7 @@ public class RouteStateTests
     }
 
     [Fact]
-    public void Mutate_PathAndQuery_RoundTrips()
+    public void A_set_path_and_query_round_trip()
     {
         var state = new RouteState();
         var q = new QueryCollection(new Dictionary<string, StringValues> { ["x"] = "1" });
@@ -28,7 +28,7 @@ public class RouteStateTests
     }
 
     [Fact]
-    public void SetPath_DifferentValue_RaisesChanged()
+    public void Setting_a_different_path_raises_Changed()
     {
         var state = new RouteState();
         var fires = 0;
@@ -40,7 +40,7 @@ public class RouteStateTests
     }
 
     [Fact]
-    public void SetPath_SameValue_DoesNotRaise()
+    public void Setting_the_same_path_does_not_raise_Changed()
     {
         var state = new RouteState { Path = "/foo" };
         var fires = 0;
@@ -52,7 +52,7 @@ public class RouteStateTests
     }
 
     [Fact]
-    public void SetQuery_DifferentInstance_RaisesChanged()
+    public void Setting_a_different_query_instance_raises_Changed()
     {
         var state = new RouteState();
         var fires = 0;
@@ -64,7 +64,7 @@ public class RouteStateTests
     }
 
     [Fact]
-    public void SetQuery_SameInstance_DoesNotRaise()
+    public void Setting_the_same_query_instance_does_not_raise_Changed()
     {
         var q = new QueryCollection(new Dictionary<string, StringValues> { ["x"] = "1" });
         var state = new RouteState { Query = q };

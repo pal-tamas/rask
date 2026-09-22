@@ -11,7 +11,6 @@ public sealed class LitestreamReplicationServiceTests
         // The executor "crashes" (returns non-zero) each run; the service must restart it rather than
         // giving up after the first exit. Once enough restarts have happened it blocks until shutdown.
         var executor = new CrashingExecutor(blockAfter: 3);
-
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton<ILitestreamExecutor>(executor);   // wins over the default (TryAddSingleton)
@@ -21,7 +20,6 @@ public sealed class LitestreamReplicationServiceTests
             o.ReplicaUrl = "file:///tmp/rask-litestream-restart";
             o.RestartDelay = TimeSpan.Zero;   // spin fast for the test
         });
-
         await using var provider = services.BuildServiceProvider();
         var service = provider.GetServices<IHostedService>().OfType<LitestreamReplicationService>().Single();
 

@@ -12,7 +12,7 @@ namespace Rask.Site.Tests.Pages;
 public sealed class KeyedListsPageTests
 {
     [Fact]
-    public void Demo_RendersSeededRows_KeyedByDefault()
+    public void The_demo_renders_seeded_rows_keyed_by_default()
     {
         var html = Test.Render(new KeyedListsReorderDemo(), TestServices.Default()).Html;
 
@@ -24,7 +24,7 @@ public sealed class KeyedListsPageTests
     }
 
     [Fact]
-    public void KeysOn_ByDefault_EmitsDataRaskKeyPerRow()
+    public void With_keys_on_by_default_each_row_emits_a_data_rask_key()
     {
         var html = RenderRows(true);
 
@@ -34,7 +34,7 @@ public sealed class KeyedListsPageTests
     }
 
     [Fact]
-    public void KeysOff_OmitsDataRaskKey_ButStillRendersRows()
+    public void With_keys_off_rows_omit_data_rask_key_but_still_render()
     {
         var html = RenderRows(false);
 

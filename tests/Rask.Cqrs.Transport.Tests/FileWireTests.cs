@@ -45,8 +45,8 @@ public sealed class FileWireTests
         // took — same name, same type, same bytes. The name and content type reach it through headers on
         // the chunks rather than through the multipart part, which is a second encoding to agree on.
         await using var wire = Wire.Connect(configureClient: Chunked);
-
         var payload = new string('a', 40);
+
         var answer = await wire.SendAsync<string>(
             new Attach("bulk", new PickedFile("big.txt", "text/plain", Encoding.UTF8.GetBytes(payload))));
 
@@ -69,8 +69,8 @@ public sealed class FileWireTests
         // header on it, and the server's suite has to invent the recovery.
         await using var wire = Wire.Connect(configureClient: Chunked);
         wire.Recorder.DropChunk = 2;
-
         var payload = new string('b', 40);
+
         var answer = await wire.SendAsync<string>(
             new Attach("resumed", new PickedFile("big.txt", "text/plain", Encoding.UTF8.GetBytes(payload))));
 

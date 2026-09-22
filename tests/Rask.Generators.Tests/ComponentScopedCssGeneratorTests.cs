@@ -5,7 +5,7 @@ namespace Rask.Generators.Tests;
 public class ComponentScopedCssGeneratorTests
 {
     [Fact]
-    public void Generator_EmitsRegistrationForMatchingComponentAndCssSibling()
+    public void A_component_and_its_CSS_sibling_get_a_registration()
     {
         const string source = """
                               namespace Foo;
@@ -18,8 +18,8 @@ public class ComponentScopedCssGeneratorTests
         var run = Run(
             new[] { ("/proj/Counter.cs", source) },
             new[] { ("/proj/Counter.css", ".counter { color: red; }") });
-
         var generated = run.GeneratedSource("__RaskScopedCssRegistration");
+
         Assert.Contains("typeof(global::Foo.Counter)", generated);
         Assert.Contains(".counter { color: red; }", generated);
         Assert.Contains("RegisterCss", generated);
@@ -28,7 +28,7 @@ public class ComponentScopedCssGeneratorTests
     }
 
     [Fact]
-    public void Generator_DoesNotPairCssWithComponentInDifferentDirectory()
+    public void CSS_is_not_paired_with_a_component_in_a_different_directory()
     {
         // Counter.css under /proj/Pages/ should not bind to /proj/Other/Counter (same simple
         // name, different directory) — they're orphan from each other's perspective.
@@ -48,7 +48,7 @@ public class ComponentScopedCssGeneratorTests
     }
 
     [Fact]
-    public void Generator_RaisesRASK015_ForOrphanCssFile()
+    public void An_orphan_CSS_file_is_reported_as_RASK015()
     {
         const string source = """
                               namespace Foo;
@@ -66,7 +66,7 @@ public class ComponentScopedCssGeneratorTests
     }
 
     [Fact]
-    public void Generator_EscapesQuotesInCssContent()
+    public void Quotes_in_the_CSS_content_are_escaped()
     {
         const string source = """
                               namespace Foo;
@@ -79,15 +79,15 @@ public class ComponentScopedCssGeneratorTests
         var run = Run(
             new[] { ("/proj/Counter.cs", source) },
             new[] { ("/proj/Counter.css", ".x::before { content: \"a\"; }") });
-
         var generated = run.GeneratedSource("__RaskScopedCssRegistration");
+
         // verbatim string literal escapes " as ""
         Assert.Contains("\"\"a\"\"", generated);
         Assert.DoesNotContain(run.Diagnostics, d => d.Severity == DiagnosticSeverity.Error);
     }
 
     [Fact]
-    public void Generator_IgnoresWhitespaceOnlyCssFile()
+    public void A_whitespace_only_CSS_file_is_ignored()
     {
         const string source = """
                               namespace Foo;
@@ -111,7 +111,7 @@ public class ComponentScopedCssGeneratorTests
     }
 
     [Fact]
-    public void Generator_SkipsAbstractComponents()
+    public void Abstract_components_are_skipped_as_CSS_hosts()
     {
         // An abstract Component in the same directory as a .css file shouldn't match —
         // abstract classes can't be instantiated and shouldn't host scoped styles. The

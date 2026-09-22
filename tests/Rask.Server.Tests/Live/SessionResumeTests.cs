@@ -193,6 +193,7 @@ public sealed class SessionResumeTests
         await using var second = await LiveTestConnection.OpenAsync(host, transport, rebuiltId, secondToken);
 
         var frame = await ReadFrameWithHtmlAsync(second);
+
         Assert.Contains(">5<", frame, StringComparison.Ordinal);
     }
 
@@ -299,6 +300,7 @@ public sealed class SessionResumeTests
         Assert.Equal(1, host.Store.ConnectedCount);
 
         await ws.CloseAndAwaitServerCleanupAsync();
+
         Assert.Equal(0, host.Store.ConnectedCount);
     }
 
@@ -316,11 +318,13 @@ public sealed class SessionResumeTests
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId, resume = token });
         await ReadFrameWithHtmlAsync(ws);
+
         Assert.Equal(1, host.Store.Count);
 
         await ws.SendJsonAsync(new { type = "hello", session = "another-unknown-id", resume = token });
 
         var close = await ws.TryReceiveCloseAsync(TimeSpan.FromSeconds(5));
+
         Assert.NotNull(close);
         Assert.Equal(WebSocketCloseStatus.PolicyViolation, close.Value.Status);
         Assert.Equal(1, host.Store.Count);
@@ -407,6 +411,7 @@ public sealed class SessionResumeTests
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
 
         var reply = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+
         Assert.NotNull(reply);
         Assert.Contains("\"status\":\"unknown\"", reply, StringComparison.Ordinal);
     }

@@ -5,7 +5,7 @@ namespace Rask.Core.Tests.Forms;
 public class EditContextEdgeTests
 {
     [Fact]
-    public void NotifyFieldChanged_DoesNotFireValidationStateChanged()
+    public void A_field_change_does_not_fire_ValidationStateChanged()
     {
         var ctx = new EditContext(new Model());
         var fid = new FieldIdentifier(ctx.Model, "Name");
@@ -18,7 +18,7 @@ public class EditContextEdgeTests
     }
 
     [Fact]
-    public void ValidateField_UnregisteredField_DoesNotThrow_AndAddsNoMessages()
+    public void Validating_an_unregistered_field_does_not_throw_and_adds_no_messages()
     {
         var ctx = new EditContext(new Model());
         var fid = new FieldIdentifier(ctx.Model, "Missing");
@@ -30,7 +30,7 @@ public class EditContextEdgeTests
     }
 
     [Fact]
-    public void ClearMessages_OnlyRemovesTargetFieldMessages()
+    public void Clearing_messages_removes_only_the_target_fields_messages()
     {
         var ctx = new EditContext(new Model());
         var a = new FieldIdentifier(ctx.Model, "A");
@@ -45,7 +45,7 @@ public class EditContextEdgeTests
     }
 
     [Fact]
-    public void ClearMessages_NoExistingMessages_DoesNotFireValidationEvent()
+    public void Clearing_a_field_with_no_messages_does_not_fire_the_validation_event()
     {
         var ctx = new EditContext(new Model());
         var fid = new FieldIdentifier(ctx.Model, "A");
@@ -58,7 +58,7 @@ public class EditContextEdgeTests
     }
 
     [Fact]
-    public void ClearAllMessages_EmptiesAllFields_AndFiresOnce()
+    public void Clearing_all_messages_empties_every_field_and_fires_once()
     {
         var ctx = new EditContext(new Model());
         var a = new FieldIdentifier(ctx.Model, "A");
@@ -77,7 +77,7 @@ public class EditContextEdgeTests
     }
 
     [Fact]
-    public void ClearAllMessages_NothingToClear_DoesNotFire()
+    public void Clearing_all_messages_with_nothing_to_clear_does_not_fire()
     {
         var ctx = new EditContext(new Model());
         var fired = 0;
@@ -89,7 +89,7 @@ public class EditContextEdgeTests
     }
 
     [Fact]
-    public void TouchAllRegisteredFields_MarksAllRegisteredAsTouched()
+    public void Touching_all_registered_fields_marks_each_one_touched()
     {
         var ctx = new EditContext(new Model());
         var a = new FieldIdentifier(ctx.Model, "A");
@@ -104,7 +104,7 @@ public class EditContextEdgeTests
     }
 
     [Fact]
-    public void GetValidationMessages_GlobalEnumerator_FlattensFields()
+    public void The_global_message_list_flattens_every_field()
     {
         var ctx = new EditContext(new Model());
         var a = new FieldIdentifier(ctx.Model, "A");
@@ -118,7 +118,7 @@ public class EditContextEdgeTests
     }
 
     [Fact]
-    public void AddValidationMessage_DuplicateMessageOnSameField_KeptOnce()
+    public void A_duplicate_message_on_the_same_field_is_kept_once()
     {
         var ctx = new EditContext(new Model());
         var fid = new FieldIdentifier(ctx.Model, "A");
@@ -130,7 +130,7 @@ public class EditContextEdgeTests
     }
 
     [Fact]
-    public void AddValidationMessage_DuplicateMessage_SecondAddDoesNotFireEvent()
+    public void A_second_add_of_a_duplicate_message_does_not_fire_the_event()
     {
         var ctx = new EditContext(new Model());
         var fid = new FieldIdentifier(ctx.Model, "A");
@@ -144,7 +144,7 @@ public class EditContextEdgeTests
     }
 
     [Fact]
-    public void AddValidationMessage_DistinctMessagesOnSameField_BothKept()
+    public void Distinct_messages_on_the_same_field_are_both_kept()
     {
         var ctx = new EditContext(new Model());
         var fid = new FieldIdentifier(ctx.Model, "A");
@@ -156,7 +156,7 @@ public class EditContextEdgeTests
     }
 
     [Fact]
-    public void AddValidationMessage_SameMessageOnDifferentFields_BothKept()
+    public void The_same_message_on_different_fields_is_kept_on_both()
     {
         var ctx = new EditContext(new Model());
         var a = new FieldIdentifier(ctx.Model, "A");
@@ -170,13 +170,14 @@ public class EditContextEdgeTests
     }
 
     [Fact]
-    public void Constructor_NullModel_Throws() =>
+    public void A_null_model_throws() =>
         Assert.Throws<ArgumentNullException>(() => new EditContext(null!));
 
     [Fact]
-    public void AddValidator_Null_Throws()
+    public void Adding_a_null_validator_throws()
     {
         var ctx = new EditContext(new Model());
+
         Assert.Throws<ArgumentNullException>(() => ctx.AddValidator((IFieldValidator)null!));
         Assert.Throws<ArgumentNullException>(() => ctx.AddValidator((IAsyncFieldValidator)null!));
     }

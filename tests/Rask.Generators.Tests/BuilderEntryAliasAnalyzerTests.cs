@@ -40,9 +40,10 @@ public class BuilderEntryAliasAnalyzerTests
         """;
 
     [Fact]
-    public async Task Alias_ShadowedByAnEntry_ReportsRask037()
+    public async Task An_alias_shadowed_by_an_entry_reports_RASK037()
     {
         var d = Assert.Single(await Diagnostics(Source("using Card = Demo.Tools;")));
+
         Assert.Equal("RASK037", d.Id);
         Assert.Contains("'Card'", d.GetMessage(), StringComparison.Ordinal);
         Assert.Contains("Demo.Page", d.GetMessage(), StringComparison.Ordinal);
@@ -50,29 +51,30 @@ public class BuilderEntryAliasAnalyzerTests
     }
 
     [Fact]
-    public async Task Alias_PointsAtTheAliasName_NotTheWholeDirective()
+    public async Task The_diagnostic_points_at_the_alias_name_not_the_whole_directive()
     {
         var d = Assert.Single(await Diagnostics(Source("using Card = Demo.Tools;")));
         var text = d.Location.SourceTree!.GetText().ToString(d.Location.SourceSpan);
+
         Assert.Equal("Card", text);
     }
 
     [Fact]
-    public async Task Alias_NamedAfterANonEntryMember_NoDiagnostic() =>
+    public async Task An_alias_named_after_a_non_entry_member_reports_nothing() =>
         // `Bench` is a property of a component type, but its name is not its type's, so nothing hides it.
         Assert.Empty(await Diagnostics(Source("using Bench = Demo.Tools;")));
 
     [Fact]
-    public async Task Alias_ThatNoEntryClaims_NoDiagnostic() =>
+    public async Task An_alias_that_no_entry_claims_reports_nothing() =>
         Assert.Empty(await Diagnostics(Source("using Toolbox = Demo.Tools;")));
 
     [Fact]
-    public async Task GlobalAlias_ShadowedByAnEntry_ReportsRask037() =>
+    public async Task A_global_alias_shadowed_by_an_entry_reports_RASK037() =>
         Assert.Equal("RASK037",
             Assert.Single(await Diagnostics(Source("global using Card = Demo.Tools;"))).Id);
 
     [Fact]
-    public async Task Alias_InAFileWithNoComponent_NoDiagnostic() =>
+    public async Task An_alias_in_a_file_with_no_component_reports_nothing() =>
         Assert.Empty(await Diagnostics("""
             using Card = Demo.Tools;
 
@@ -84,7 +86,7 @@ public class BuilderEntryAliasAnalyzerTests
             """));
 
     [Fact]
-    public async Task PlainUsing_IsNotAnAlias_NoDiagnostic() =>
+    public async Task A_plain_using_is_not_an_alias_and_reports_nothing() =>
         Assert.Empty(await Diagnostics(Source("using System.Text;")));
 
     private static async Task<ImmutableArray<Diagnostic>> Diagnostics(string source)

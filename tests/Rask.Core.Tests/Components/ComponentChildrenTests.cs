@@ -10,27 +10,27 @@ namespace Rask.Core.Tests.Components;
 public partial class ComponentChildrenTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void NestedComponentChild_IsWrappedNotFlattened()
+    public void A_nested_component_child_is_wrapped_not_flattened()
     {
         // If `this[IEnumerable<Component?>]` won the overload, this would collapse to "<div>hi</div>".
         Assert.Equal("<div><span>hi</span></div>", Div[Span["hi"]].ToHtml());
     }
 
     [Fact]
-    public void HeterogeneousLiterals_ConvertToTextViaComponentOperators()
+    public void Mixed_literals_convert_to_text_through_the_component_operators()
     {
         // string / int / bool literals flow in through the implicit converters now on Component.
         Assert.Equal("<div>a42True<span>x</span></div>", Div["a", 42, true, Span["x"]].ToHtml());
     }
 
     [Fact]
-    public void NullChild_RendersNothing()
+    public void A_null_child_renders_nothing()
     {
         Assert.Equal("<div>ab</div>", Div["a", null, "b"].ToHtml());
     }
 
     [Fact]
-    public void CollectionExpressionChild_GroupsWithoutWrappingTag()
+    public void A_collection_expression_child_groups_without_a_wrapping_tag()
     {
         // A nested `[...]` in the indexer builds a tagless container (Fragment) via Component.Create.
         Assert.Equal("<div><span>a</span><span>b</span></div>",
@@ -38,13 +38,13 @@ public partial class ComponentChildrenTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void RenderReturningCollectionExpression_EmitsAllRoots()
+    public void A_Render_returning_a_collection_expression_emits_all_its_roots()
     {
         Assert.Equal("<!DOCTYPE html><html></html>", new MultiRoot().ToHtml());
     }
 
     [Fact]
-    public void RenderReturningNull_EmitsNothing()
+    public void A_Render_returning_null_emits_nothing()
     {
         Assert.Equal("", new RendersNothing().ToHtml());
     }

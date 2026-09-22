@@ -161,6 +161,7 @@ public sealed class HttpTransportSecurityTests
             request.Headers.Add("Rask-Stream", generation);
 
             using var refused = await host.Http.SendAsync(request);
+
             Assert.Equal(HttpStatusCode.TooManyRequests, refused.StatusCode);
 
             var lines = await ReadUntilAsync(reader, "frame rate");
@@ -182,6 +183,7 @@ public sealed class HttpTransportSecurityTests
             request.Headers.Add("Rask-Stream", generation);
 
             using var left = await host.Http.SendAsync(request);
+
             Assert.Equal(HttpStatusCode.NoContent, left.StatusCode);
 
             var lines = await ReadUntilAsync(reader, "leave");

@@ -13,7 +13,7 @@ public sealed class AppTests
     private static RouteState ShowcaseRoot => new() { Path = global::Rask.Site.Features.Routes.GuidesIndexPage() };
 
     [Fact]
-    public void LiveRender_StartsWithDoctype_AndHtmlEnLang()
+    public void A_live_render_starts_with_the_doctype_and_an_en_html_lang()
     {
         var html = Test.RenderDocument(new global::Rask.Site.App(), TestServices.Default()).Html;
 
@@ -25,7 +25,7 @@ public sealed class AppTests
     }
 
     [Fact]
-    public void LiveRender_EmitsStylesheetAndMeta_InHead()
+    public void A_live_render_emits_the_stylesheet_and_meta_in_the_head()
     {
         var html = Test.RenderDocument(
             new global::Rask.Site.App(), TestServices.Default(routeState: ShowcaseRoot)).Html;
@@ -43,7 +43,7 @@ public sealed class AppTests
     }
 
     [Fact]
-    public void LiveRender_EmitsRouterAndRuntimeScriptSlot_InBody()
+    public void A_live_render_emits_the_router_and_runtime_script_slot_in_the_body()
     {
         var html = Test.RenderDocument(
             new global::Rask.Site.App(), TestServices.Default(routeState: ShowcaseRoot)).Html;
@@ -55,9 +55,10 @@ public sealed class AppTests
     }
 
     [Fact]
-    public void LiveRender_UnmatchedRoute_StillProducesHtml()
+    public void A_live_render_of_an_unmatched_route_still_produces_HTML()
     {
         var routeState = new RouteState { Path = "/__no_such_path" };
+
         var html = Test.RenderDocument(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
         Assert.StartsWith("<!DOCTYPE html>", html);

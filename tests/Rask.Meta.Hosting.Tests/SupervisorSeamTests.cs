@@ -101,6 +101,7 @@ public class SupervisorSeamTests
         }
 
         Assert.False(readiness.IsReady);
+
         await app.StopAsync();
     }
 

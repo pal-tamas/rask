@@ -25,7 +25,6 @@ public sealed class RedisBackplaneTests
         var prefix = $"rask-test-{Guid.NewGuid():N}:";
         await using var publisher = await HostAsync(prefix);
         await using var other = await HostAsync(prefix);
-
         var onPublisher = 0;
         var onOther = new TaskCompletionSource<Order>(TaskCreationOptions.RunContinuationsAsynchronously);
         publisher.Hub.Subscribe(new Probe(), Orders, _ => Interlocked.Increment(ref onPublisher));
@@ -49,7 +48,6 @@ public sealed class RedisBackplaneTests
         var prefix = $"rask-test-{Guid.NewGuid():N}:";
         await using var publisher = await HostAsync(prefix);
         await using var other = await HostAsync(prefix);
-
         var onOther = 0;
         other.Hub.Subscribe(new Probe(), LocalOrders, _ => Interlocked.Increment(ref onOther));
 

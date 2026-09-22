@@ -5,7 +5,7 @@ namespace Rask.Core.Tests.Interop;
 public partial class ElementRefTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void New_GeneratesUnique_SelectorSafeIds()
+    public void A_new_ref_generates_unique_selector_safe_ids()
     {
         var a = ElementRef.New();
         var b = ElementRef.New();
@@ -17,7 +17,7 @@ public partial class ElementRefTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Serialize_EmitsRaskRefMarker()
+    public void Serializing_a_ref_emits_the_rask_ref_marker()
     {
         var r = ElementRef.New();
 
@@ -27,7 +27,7 @@ public partial class ElementRefTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Element_WithRef_EmitsDataRaskRef()
+    public void An_element_with_a_ref_emits_data_rask_ref()
     {
         var r = ElementRef.New();
 
@@ -37,7 +37,7 @@ public partial class ElementRefTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Element_WithoutRef_EmitsNoDataRaskRef()
+    public void An_element_without_a_ref_emits_no_data_rask_ref()
     {
         var html = Div["body"].ToHtml();
 
@@ -45,7 +45,7 @@ public partial class ElementRefTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Ref_SitsInDataGroup_AfterStyle_BeforeTagSpecifics()
+    public void The_ref_sits_in_the_data_group_after_style_and_before_the_tag_specifics()
     {
         var r = ElementRef.New();
         // Anchor (A) has a tag-specific href; assert id/class/style/data-* (incl. rask-ref) all

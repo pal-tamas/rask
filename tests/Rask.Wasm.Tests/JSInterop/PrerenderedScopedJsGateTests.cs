@@ -12,7 +12,7 @@ namespace Rask.Wasm.Tests.JsInteropRuntime;
 public sealed class PrerenderedScopedJsGateTests
 {
     [Fact]
-    public void AScopedScriptTheParserAlreadyRan_DoesNotHoldRaskInvokes()
+    public void A_scoped_script_the_parser_already_ran_does_not_hold_Rask_invokes()
     {
         var bundle = Path.Combine(RepoRoot(), "src", "Rask.Wasm", "Browser", "rask.wasm.js");
         Assert.True(File.Exists(bundle), $"Bundle missing: {bundle} — build src/Rask.Wasm first.");

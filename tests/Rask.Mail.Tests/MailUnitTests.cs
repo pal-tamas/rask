@@ -31,6 +31,7 @@ public sealed class MailUnitTests
 
         var ex = Assert.Throws<Microsoft.Extensions.Options.OptionsValidationException>(
             () => provider.GetRequiredService<MailOptions>());
+
         Assert.Contains("Rask:Mail", ex.Message, StringComparison.Ordinal);
     }
 
@@ -45,6 +46,7 @@ public sealed class MailUnitTests
     public void ToQueuedMail_requires_a_body()
     {
         var email = Email.To("ada@example.com").Subject("No body");
+
         Assert.Throws<ArgumentException>(() =>
             MailSerializer.ToQueuedMail(email, new EmailAddress("from@example.com"), DateTime.UtcNow, DateTime.UtcNow));
     }
@@ -87,6 +89,7 @@ public sealed class MailUnitTests
         try
         {
             var sender = new PickupDirectoryMailSender(new MailOptions { From = "x@example.com", PickupDirectory = dir });
+
             await sender.SendAsync(new OutgoingMail
             {
                 From = new EmailAddress("noreply@example.com"),

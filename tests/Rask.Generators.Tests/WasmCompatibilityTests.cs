@@ -12,7 +12,7 @@ namespace Rask.Generators.Tests;
 public class WasmCompatibilityTests
 {
     [Fact]
-    public void EmittedChain_ContainsNoAspNetCoreTypes()
+    public void The_emitted_chain_contains_no_AspNetCore_types()
     {
         var src = """
                   using Rask.Core;
@@ -34,7 +34,7 @@ public class WasmCompatibilityTests
     }
 
     [Fact]
-    public void EmittedChain_CompilesAgainstWasmReferenceSet()
+    public void The_emitted_chain_compiles_against_the_WASM_reference_set()
     {
         var src = """
                   using Rask.Core;

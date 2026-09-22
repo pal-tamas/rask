@@ -17,7 +17,7 @@ public class ChaosTests
     public ChaosTests() => ScopedAssetRegistry.InvalidateAll();
 
     [Fact]
-    public void MalformedCss_DoesNotThrow_BytesPreserved()
+    public void Malformed_css_does_not_throw_and_its_bytes_are_preserved()
     {
         // Syntax-broken CSS (unbalanced braces, missing semicolons) should not crash
         // CssScoper.Rewrite. The browser parses what it can; the framework's job is to
@@ -31,7 +31,7 @@ public class ChaosTests
     }
 
     [Fact]
-    public void MalformedJs_WrapsAndStores_BrowserSurfacesSyntaxErrorAtRuntime()
+    public void Malformed_js_is_wrapped_and_stored_so_the_browser_surfaces_the_syntax_error_at_runtime()
     {
         // Syntax-broken JS — the wrapper IIFE is still emitted; the browser console will
         // log the SyntaxError when it executes, but the framework returns valid bytes.
@@ -47,7 +47,7 @@ public class ChaosTests
     }
 
     [Fact]
-    public async Task RegisterMidLookup_RaceDoesNotThrow_FinalStateConsistent()
+    public async Task Registering_mid_lookup_races_without_throwing_and_the_final_state_is_consistent()
     {
         // Concurrent burst: 200 register calls interleaved with 200 lookups. The lookup
         // half may legitimately see null mid-replacement (the by-hash entry is dropped
@@ -78,7 +78,7 @@ public class ChaosTests
     }
 
     [Fact]
-    public void NonAsciiCss_BomAndEmoji_RoundTripsByteForByte()
+    public void Non_ascii_css_with_a_bom_and_emoji_round_trips_byte_for_byte()
     {
         // UTF-8 with multi-byte chars: emoji in content, RTL text in comments. The
         // registry encodes once via Encoding.UTF8.GetBytes; the endpoint must serve
@@ -97,7 +97,7 @@ public class ChaosTests
     }
 
     [Fact]
-    public void ContentLengthMatchesByteLength_NotCharLength_ForMultiByteContent()
+    public void For_multi_byte_content_the_content_length_matches_the_byte_length_not_the_char_length()
     {
         // Sanity for the endpoint's Content-Length math: char length ≠ byte length for
         // non-ASCII. The endpoint serves byte-length bodies.
@@ -107,11 +107,12 @@ public class ChaosTests
         var bytes = ScopedAssetRegistry.GetByHash(hash, AssetKind.Css)!.Value.Utf8.ToArray();
         // Each 😀 is 4 UTF-8 bytes but 2 UTF-16 chars — assert at least 12 emoji-bytes.
         var asString = Encoding.UTF8.GetString(bytes);
+
         Assert.True(bytes.Length > asString.Length, "byte length should exceed char length for multi-byte content");
     }
 
     [Fact]
-    public void RapidRegisterUnregisterCycle_LeavesNoLeakedEntries()
+    public void A_rapid_register_unregister_cycle_leaves_no_leaked_entries()
     {
         // 100 register-then-unregister cycles for the same type. By-hash bucket should
         // end empty (refcounts hit zero, entries dropped).
@@ -126,11 +127,12 @@ public class ChaosTests
     }
 
     [Fact]
-    public void EmptyAfterRewriteSource_ActsAsUnregister()
+    public void A_source_empty_after_rewrite_acts_as_unregister()
     {
         // CSS that StripComments + Rewrite reduces to empty (e.g., only a comment).
         // Registry should treat it as unregister, not store a zero-byte entry.
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), "/* nothing but a comment */");
+
         Assert.False(ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out _));
     }
 

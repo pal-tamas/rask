@@ -14,13 +14,14 @@ public sealed class RaskLoggingOptionsTests
 {
     [Theory]
     [MemberData(nameof(InvalidOptions))]
-    public void RejectsInvalidOptionsWhenTheyAreBuilt(Action<RaskLoggingOptions> configure)
+    public void Invalid_options_are_rejected_when_they_are_built(Action<RaskLoggingOptions> configure)
     {
         var services = new ServiceCollection();
         services.AddRaskLogging(configure);
         using var provider = services.BuildServiceProvider();
 
         var error = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<RaskLoggingOptions>());
+
         Assert.Contains("Rask:Logging", error.Message, StringComparison.Ordinal);
     }
 
@@ -37,18 +38,19 @@ public sealed class RaskLoggingOptionsTests
     };
 
     [Fact]
-    public void NamesTheConnectionStringItCouldNotFind()
+    public void The_error_names_the_connection_string_it_could_not_find()
     {
         var services = new ServiceCollection();
         services.AddRaskLogging();
         using var provider = services.BuildServiceProvider();
 
         var error = Assert.Throws<InvalidOperationException>(() => provider.GetRequiredService<ILogs>());
+
         Assert.Contains("Rask:ConnectionStrings:Logs", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void TheRaskLoggingSectionSetsTheOptions()
+    public void The_Rask_Logging_section_sets_the_options()
     {
         var services = new ServiceCollection();
         services.AddSingleton<IConfiguration>(new ConfigurationBuilder()
@@ -72,7 +74,7 @@ public sealed class RaskLoggingOptionsTests
     }
 
     [Fact]
-    public void DefaultsBoundTheStoreByBothAgeAndRowCount()
+    public void The_defaults_bound_the_store_by_both_age_and_row_count()
     {
         var options = new RaskLoggingOptions();
 
@@ -87,9 +89,10 @@ public sealed class RaskLoggingOptionsTests
     /// implementation type, which is what makes a library and its host both calling this safe.
     /// </summary>
     [Fact]
-    public void RegisteringTwiceCapturesEachEntryOnce()
+    public void Registering_twice_captures_each_entry_once()
     {
         var services = new ServiceCollection();
+
         services.AddRaskLogging();
         services.AddRaskLogging();
 
@@ -98,7 +101,7 @@ public sealed class RaskLoggingOptionsTests
     }
 
     [Fact]
-    public void ExcludesTheStoresOwnCategoriesByPrefix()
+    public void The_stores_own_categories_are_excluded_by_prefix()
     {
         var options = new RaskLoggingOptions();
 
@@ -110,7 +113,7 @@ public sealed class RaskLoggingOptionsTests
     }
 
     [Fact]
-    public void ExcludesConfiguredPrefixes()
+    public void Configured_prefixes_are_excluded()
     {
         var options = new RaskLoggingOptions();
         options.ExcludedCategories.Add("Microsoft.AspNetCore.");

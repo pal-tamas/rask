@@ -106,6 +106,7 @@ public sealed class GeneratedCodecTests
         // wire's RemoteFile never appears in it; the conversion both ways is generated.
         var file = new FakeRaskFile("a.png", "image/png", [1, 2]);
         var files = new List<RemoteFile>();
+
         var json = Write(new UploadAttachment(7, file, null), files);
 
         Assert.Contains("\"file\":0", json, StringComparison.Ordinal);
@@ -116,6 +117,7 @@ public sealed class GeneratedCodecTests
         Assert.Equal(2, files[0].Size);
 
         var round = (UploadAttachment)Read(Contract<UploadAttachment>(), json, files);
+
         Assert.Null(round.Extra);
         Assert.Equal(7, round.TodoId);
 
@@ -195,6 +197,7 @@ public sealed class GeneratedCodecTests
     {
         // The compatibility promise: a newer sender adding a field must not break an older receiver.
         var json = """{"id":7,"at":"1970-01-01T00:00:00+00:00","addedLater":{"nested":[1,2]}}""";
+
         var round = (TodoArchived)Read(Contract<TodoArchived>(), json, []);
 
         Assert.Equal(7, round.Id);

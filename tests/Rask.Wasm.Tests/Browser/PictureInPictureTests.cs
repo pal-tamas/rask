@@ -6,7 +6,7 @@ namespace Rask.Wasm.Tests.Browser;
 public class PictureInPictureTests
 {
     [Fact]
-    public async Task IsSupported_CallsHelper()
+    public async Task Support_is_asked_of_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskPip.isSupported", true);
@@ -15,7 +15,7 @@ public class PictureInPictureTests
     }
 
     [Fact]
-    public async Task IsActive_CallsHelper()
+    public async Task Whether_it_is_active_is_asked_of_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskPip.isActive", true);
@@ -24,7 +24,7 @@ public class PictureInPictureTests
     }
 
     [Fact]
-    public async Task Request_PassesElementRef()
+    public async Task A_request_passes_the_element_ref()
     {
         var js = new FakeJsRuntime();
         var el = ElementRef.New();
@@ -35,14 +35,15 @@ public class PictureInPictureTests
     }
 
     [Fact]
-    public async Task Request_NullElement_Throws()
+    public async Task A_request_for_a_null_element_throws()
     {
         var pip = new PictureInPicture(new FakeJsRuntime());
+
         await Assert.ThrowsAsync<ArgumentNullException>(async () => await pip.RequestAsync(null!));
     }
 
     [Fact]
-    public async Task Exit_CallsHelper()
+    public async Task Exiting_calls_the_helper()
     {
         var js = new FakeJsRuntime();
 

@@ -42,7 +42,7 @@ public class PrerenderShellTests
         """;
 
     [Fact]
-    public void AShellThatEXPLAINSItselfIsStillSplicedCorrectly()
+    public void A_shell_that_EXPLAINS_itself_is_still_spliced_correctly()
     {
         // The shape that broke it: a comment at the top of the shell — the natural thing to write in a
         // file the build rewrites — mentioning <head> and <html> in prose. The tag search had no notion
@@ -90,7 +90,7 @@ public class PrerenderShellTests
     }
 
     [Fact]
-    public void ASplicedPageIsMarkedAsPrerendered()
+    public void A_spliced_page_is_marked_as_prerendered()
     {
         // The boot script needs to tell a page that already has its content from a shell that has none,
         // because it changes what booting is FOR: on a shell the runtime is all there is, and on a
@@ -110,7 +110,7 @@ public class PrerenderShellTests
     }
 
     [Fact]
-    public void TheMarkerIsNotAddedTwiceWhenTheShellAlreadyCarriesIt()
+    public void The_marker_is_not_added_twice_when_the_shell_already_carries_it()
     {
         // A republish over an already-prerendered wwwroot reads its own previous output as the shell.
         // Two copies of an attribute is not fatal, but it is the kind of thing that grows one per
@@ -144,7 +144,7 @@ public class PrerenderShellTests
     // structurally perfect, entirely grey — because the merge kept the SDK's opening tag and dropped
     // the render's attributes. Layout survives that, which is what made it so quiet.
     [Fact]
-    public void TheDocumentsHtmlAttributesSurviveTheMerge()
+    public void The_documents_html_attributes_survive_the_merge()
     {
         const string themed =
             """
@@ -164,7 +164,7 @@ public class PrerenderShellTests
     }
 
     [Fact]
-    public void TheShellWinsWhereBothNameTheSameHtmlAttribute()
+    public void The_shell_wins_where_both_name_the_same_html_attribute()
     {
         // The shell's lang is the one computed for THIS publish; a render that disagrees did not know
         // about it. Only attributes the shell lacks are added.
@@ -189,7 +189,7 @@ public class PrerenderShellTests
     // colour — was missing until the runtime's first frame morphed it on, and the page restyled at hydration.
     // rask.sh's `bg-ui-well` hid it only because that class happens to match the page ground.
     [Fact]
-    public void TheDocumentsBodyAttributesSurviveTheMerge_AndTheShellStillWinsAConflict()
+    public void The_documents_body_attributes_survive_the_merge_and_the_shell_still_wins_a_conflict()
     {
         const string styled =
             """
@@ -214,7 +214,7 @@ public class PrerenderShellTests
     }
 
     [Fact]
-    public void TheBundleCanStillBoot()
+    public void The_bundle_can_still_boot()
     {
         var merged = PrerenderShell.Merge(Shell, Document);
 
@@ -229,7 +229,7 @@ public class PrerenderShellTests
     }
 
     [Fact]
-    public void NoWhitespaceSurvivesBetweenHeadCloseAndBodyOpen()
+    public void No_whitespace_survives_between_head_close_and_body_open()
     {
         // The SDK pretty-prints index.html, so the shell reads `</head>\n<body …>` -- and that newline
         // is not inert. Per the HTML parser's "after head" insertion mode it is inserted into the
@@ -255,7 +255,7 @@ public class PrerenderShellTests
     }
 
     [Fact]
-    public void ContentBetweenHeadAndBodyIsNotSwallowedWithTheWhitespace()
+    public void Content_between_head_and_body_is_not_swallowed_with_the_whitespace()
     {
         // Only whitespace wedged BETWEEN TWO TAGS goes. A comment in that region is still part of the
         // document the author wrote, and dropping it would be a second, unasked-for change -- the kind
@@ -279,7 +279,7 @@ public class PrerenderShellTests
     }
 
     [Fact]
-    public void TheRenderedMarkupReplacesTheBootPlaceholder()
+    public void The_rendered_markup_replaces_the_boot_placeholder()
     {
         var merged = PrerenderShell.Merge(Shell, Document);
 
@@ -293,7 +293,7 @@ public class PrerenderShellTests
     }
 
     [Fact]
-    public void ThePagesOwnTitleWins()
+    public void The_pages_own_title_wins()
     {
         var merged = PrerenderShell.Merge(Shell, Document);
 
@@ -306,7 +306,7 @@ public class PrerenderShellTests
     }
 
     [Fact]
-    public void TheHeadKeepsExactlyOneOfEachSingletonTag()
+    public void The_head_keeps_exactly_one_of_each_singleton_tag()
     {
         var merged = PrerenderShell.Merge(Shell, Document);
 
@@ -317,7 +317,7 @@ public class PrerenderShellTests
     }
 
     [Fact]
-    public void ThePagesOwnHeadAssetsSurvive()
+    public void The_pages_own_head_assets_survive()
     {
         var merged = PrerenderShell.Merge(Shell, Document);
 
@@ -327,7 +327,7 @@ public class PrerenderShellTests
     }
 
     [Fact]
-    public void EveryScriptInTheShellBodyIsCarriedOverInOrder()
+    public void Every_script_in_the_shell_body_is_carried_over_in_order()
     {
         const string twoScripts =
             """
@@ -347,7 +347,7 @@ public class PrerenderShellTests
     }
 
     [Fact]
-    public void ADocumentWithNoShellToSpliceIntoIsReturnedWhole()
+    public void A_document_with_no_shell_to_splice_into_is_returned_whole()
     {
         // A caller driving its own pass may have no shell at all. Returning the document is worth more
         // than failing the publish; the callers that DO have a shell are the ones that would notice.
@@ -355,7 +355,7 @@ public class PrerenderShellTests
     }
 
     [Fact]
-    public void ABodyEndTagInsideAScriptDoesNotTruncateTheShell()
+    public void A_body_end_tag_inside_a_script_does_not_truncate_the_shell()
     {
         // The end tag is found from the END of the document for this reason. Scanning forward would
         // close the body on the string below and drop the boot script that follows it.
@@ -373,7 +373,7 @@ public class PrerenderShellTests
     }
 
     [Fact]
-    public void ABootShellIsNotMistakenForARenderedPage()
+    public void A_boot_shell_is_not_mistaken_for_a_rendered_page()
     {
         // The guard has to be quiet on the ordinary input, or every first publish fails. This is the
         // real shell from the top of this file, placeholders and pre-paint script and all.
@@ -381,7 +381,7 @@ public class PrerenderShellTests
     }
 
     [Fact]
-    public void AMergedPageIsRecognisedAsOutputRatherThanInput()
+    public void A_merged_page_is_recognised_as_output_rather_than_input()
     {
         // #1036. Publishing twice into the same directory hands the second pass this — its own output
         // from the first — under the name it reads the shell from. Merging into it appends a second
@@ -390,7 +390,7 @@ public class PrerenderShellTests
     }
 
     [Fact]
-    public void AKeyedHeadAssetIsEnoughOnItsOwn()
+    public void A_keyed_head_asset_is_enough_on_its_own()
     {
         // The second, independent tell. data-rask-prerendered is stamped onto <html>, so a shell with
         // no <html> tag to stamp gets none — but a rendered page's head is full of the framework's own
@@ -400,7 +400,7 @@ public class PrerenderShellTests
     }
 
     [Fact]
-    public void AKeyOutSIDETheHeadIsNotATell()
+    public void A_key_OUTSIDE_the_head_is_not_a_tell()
     {
         // Keys are the framework's ordinary identity attribute, so a document that carries one in its
         // BODY says nothing about whether its head has already been merged into.
@@ -409,7 +409,7 @@ public class PrerenderShellTests
     }
 
     [Fact]
-    public void TheShellsHeadCommentsAreNotServed()
+    public void The_shells_head_comments_are_not_served()
     {
         // The shell is hand-written, so its head explains itself — and every one of those explanations
         // used to reach every visitor. rask.sh's own paid 1,697 bytes raw / 769 gzipped for it.
@@ -443,7 +443,7 @@ public class PrerenderShellTests
     }
 
     [Fact]
-    public void ACommentSharingALineWithMarkup_TakesOnlyItself() =>
+    public void A_comment_sharing_a_line_with_markup_takes_only_itself() =>
         Assert.Equal(
             "<meta charset=\"utf-8\"/> <base href=\"/\"/>\n",
             PrerenderShell.StripComments("<meta charset=\"utf-8\"/><!-- why --> <base href=\"/\"/>\n"));
@@ -460,11 +460,11 @@ public class PrerenderShellTests
     [InlineData("<!-- @preserve -->")]
     // Unterminated: the parser swallows the rest either way; removing half would change what it is.
     [InlineData("<meta charset=\"utf-8\"/><!-- never closed <title>x</title>")]
-    public void WhatIsNotProseIsKept(string headInner) =>
+    public void What_is_not_prose_is_kept(string headInner) =>
         Assert.Equal(headInner, PrerenderShell.StripComments(headInner));
 
     [Fact]
-    public void ACommentAfterARawTextElementIsStillStripped() =>
+    public void A_comment_after_a_raw_text_element_is_still_stripped() =>
         // Stepping over a script must resume AFTER it, not stop looking.
         Assert.Equal(
             "<script>a()</script>\n<title>x</title>",
@@ -475,20 +475,20 @@ public class PrerenderShellTests
     // to the next real "-->", deleting the charset and the stylesheet in between from the served page.
     [InlineData("<!-->")]
     [InlineData("<!--->")]
-    public void AnAbruptlyClosedEmptyComment_EndsWhereTheParserEndsIt(string empty) =>
+    public void An_abruptly_closed_empty_comment_ends_where_the_parser_ends_it(string empty) =>
         Assert.Equal(
             "<meta charset=\"utf-8\"/><link rel=\"stylesheet\" href=\"app.css\"/>",
             PrerenderShell.StripComments(
                 empty + "<meta charset=\"utf-8\"/><link rel=\"stylesheet\" href=\"app.css\"/><!-- note -->"));
 
     [Fact]
-    public void CrlfLinesAreRemovedWhole() =>
+    public void CRLF_lines_are_removed_whole() =>
         Assert.Equal(
             "<meta charset=\"utf-8\"/>\r\n<title>x</title>",
             PrerenderShell.StripComments("<meta charset=\"utf-8\"/>\r\n  <!-- gone -->\r\n<title>x</title>"));
 
     [Fact]
-    public void TheSitesRealShell_ServesNoComment_AndKeepsItsCharsetFirst()
+    public void The_sites_real_shell_serves_no_comment_and_keeps_its_charset_first()
     {
         // The shell this was measured on. Its comments are the reason the change exists, and they must
         // stay in the SOURCE — this proves the publish drops them without the file having to.
@@ -498,6 +498,7 @@ public class PrerenderShellTests
         var merged = PrerenderShell.Merge(shell, Document);
 
         var head = merged[..merged.IndexOf("</head>", StringComparison.OrdinalIgnoreCase)];
+
         Assert.DoesNotContain("<!--", head, StringComparison.Ordinal);
         // The charset must land inside the first 1024 bytes to count at all — the trap the shell's own
         // first comment warns about. Stripping may only ever move it earlier.

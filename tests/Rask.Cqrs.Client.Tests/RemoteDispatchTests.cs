@@ -14,6 +14,7 @@ public sealed class RemoteDispatchTests
     public async Task A_query_travels_as_a_GET_with_the_message_in_the_url()
     {
         var handler = Handler(Json("""{"id":1,"name":"kettle"}"""));
+
         var result = await Dispatcher(handler).QueryAsync(new GetThing(1));
 
         Assert.Equal(HttpMethod.Get, handler.Request!.Method);
@@ -27,6 +28,7 @@ public sealed class RemoteDispatchTests
     public async Task A_command_travels_as_a_POST_with_a_json_body()
     {
         var handler = Handler(new HttpResponseMessage(HttpStatusCode.NoContent));
+
         await Dispatcher(handler).SendAsync(new RenameThing(1, "pan"));
 
         Assert.Equal(HttpMethod.Post, handler.Request!.Method);
@@ -40,6 +42,7 @@ public sealed class RemoteDispatchTests
         // The fallback exists because a url ceiling differs per proxy: a query that only 414s in
         // production is the worst way to discover it. The result must be identical either way.
         var handler = Handler(Json("41"));
+
         var result = await Dispatcher(handler).QueryAsync(new CountThings(new string('x', 4000)));
 
         Assert.Equal(HttpMethod.Post, handler.Request!.Method);
@@ -50,11 +53,15 @@ public sealed class RemoteDispatchTests
     public async Task Both_verbs_carry_the_header_that_makes_cross_site_markup_unable_to_trigger_them()
     {
         var get = Handler(Json("""{"id":1,"name":"a"}"""));
+
         await Dispatcher(get).QueryAsync(new GetThing(1));
+
         Assert.True(get.Request!.Headers.Contains(RemoteEndpointDefaults.RequestHeader));
 
         var post = Handler(new HttpResponseMessage(HttpStatusCode.NoContent));
+
         await Dispatcher(post).SendAsync(new RenameThing(1, "b"));
+
         Assert.True(post.Request!.Headers.Contains(RemoteEndpointDefaults.RequestHeader));
     }
 
@@ -211,6 +218,7 @@ public sealed class RemoteDispatchTests
     public async Task Publishing_a_notification_reaches_the_server()
     {
         var handler = Handler(new HttpResponseMessage(HttpStatusCode.Accepted));
+
         await Dispatcher(handler).PublishAsync(new ThingRenamed(3));
 
         Assert.Equal(HttpMethod.Post, handler.Request!.Method);

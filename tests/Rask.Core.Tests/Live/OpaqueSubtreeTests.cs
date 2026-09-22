@@ -15,7 +15,7 @@ namespace Rask.Core.Tests.Live;
 public partial class OpaqueSubtreeTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Serialize_OpaqueComponent_WritesTheMarkerAttribute()
+    public void Serializing_an_opaque_component_writes_the_marker_attribute()
     {
         // The client morph reads the attribute; the diff reads the frame flag. Both are needed, so
         // both are pinned — this is the attribute half.
@@ -25,7 +25,7 @@ public partial class OpaqueSubtreeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Serialize_OrdinaryComponent_DoesNotWriteTheMarker()
+    public void Serializing_an_ordinary_component_does_not_write_the_marker()
     {
         // Negative control for the assertion above: `Contains` on a marker that is always present
         // would pass whatever the flag did.
@@ -35,7 +35,7 @@ public partial class OpaqueSubtreeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Serialize_OpaqueComponent_SetsTheFrameFlag()
+    public void Serializing_an_opaque_component_sets_the_frame_flag()
     {
         var frames = Frames(new Host(opaque: true));
 
@@ -44,7 +44,7 @@ public partial class OpaqueSubtreeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_OpaqueSubtree_ChildrenAreNeverPatched()
+    public void The_children_of_an_opaque_subtree_are_never_patched()
     {
         // The children differ completely. Rask must still emit nothing: those nodes are React's, and
         // it is mid-reconcile on its own schedule.
@@ -59,7 +59,7 @@ public partial class OpaqueSubtreeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_SameChildrenWithoutTheFlag_DoesProduceOps()
+    public void The_same_children_without_the_flag_do_produce_ops()
     {
         // The negative control that keeps the test above honest. Identical trees, flag off: if the
         // differ produced nothing here either, the zero-ops assertion would be proving nothing.
@@ -73,7 +73,7 @@ public partial class OpaqueSubtreeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Diff_OpaqueElement_PropsAttributeStillShips()
+    public void The_props_attribute_of_an_opaque_element_still_ships()
     {
         // Props are the ONE thing that crosses the boundary — a changed prop must reach the adapter,
         // and it travels the ordinary attribute-diff path so nothing new is needed on the wire.
@@ -89,7 +89,7 @@ public partial class OpaqueSubtreeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void ReplayLeanFrames_PreservesOpacity()
+    public void Replaying_lean_frames_preserves_opacity()
     {
         // The retained clean-subtree cache round-trips through LeanFrame, which drops every field it
         // can. Dropping this one would silently un-protect a cached island: the replay writes frames

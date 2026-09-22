@@ -76,30 +76,34 @@ public class DelegateOwnerTests
     }
 
     [Fact]
-    public void Resolve_GenericComponentLoopClosure_ReturnsDefiningComponent()
+    public void A_loop_closure_in_a_generic_component_resolves_to_the_defining_component()
     {
         var component = new GenericChipShape<string>();
+
         Assert.Same(component, DelegateOwner.Resolve(component.ChipRemoveHandler(["a", "b"])));
     }
 
     [Fact]
-    public void Resolve_MethodGroup_ReturnsComponent()
+    public void A_method_group_resolves_to_its_component()
     {
         var component = new OwnerComponent();
+
         Assert.Same(component, DelegateOwner.Resolve(component.MethodGroupHandler()));
     }
 
     [Fact]
-    public void Resolve_ThisOnlyClosure_ReturnsComponent()
+    public void A_closure_capturing_only_this_resolves_to_its_component()
     {
         var component = new OwnerComponent();
+
         Assert.Same(component, DelegateOwner.Resolve(component.ThisOnlyHandler()));
     }
 
     [Fact]
-    public void Resolve_LoopCapturedNestedClosure_ReturnsDefiningComponent()
+    public void A_nested_loop_captured_closure_resolves_to_the_defining_component()
     {
         var component = new OwnerComponent();
+
         Assert.Same(component, DelegateOwner.Resolve(component.NestedHandler()));
     }
 }

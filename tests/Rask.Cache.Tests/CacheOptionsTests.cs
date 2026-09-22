@@ -34,7 +34,9 @@ public sealed class CacheOptionsTests
     public void AddRaskCache_accepts_the_defaults()
     {
         var services = new ServiceCollection();
+
         var ex = Record.Exception(() => services.AddRaskCache<CacheDbContext>());
+
         Assert.Null(ex);
     }
 }

@@ -20,7 +20,7 @@ namespace Rask.Server.Tests.Live;
 public class RerenderAllAsyncTests
 {
     [Fact]
-    public async Task ReExecutesACachedChildsRender()
+    public async Task Rerendering_all_re_executes_a_cached_childs_render()
     {
         var store = NewStore();
         var child = new Counter();
@@ -28,6 +28,7 @@ public class RerenderAllAsyncTests
 
         session.RenderInitialRoot();
         session.RenderInitialRoot();
+
         Assert.Equal(1, child.RenderCount); // cached: the child's Render didn't re-run
 
         await store.RerenderAllAsync();
@@ -42,7 +43,7 @@ public class RerenderAllAsyncTests
     }
 
     [Fact]
-    public async Task IsANoOpWithNoSessions()
+    public async Task Rerendering_all_does_nothing_with_no_sessions()
     {
         var store = NewStore();
 
@@ -52,7 +53,7 @@ public class RerenderAllAsyncTests
     }
 
     [Fact]
-    public async Task SwallowsAFaultingSession_AndStillRendersTheRest()
+    public async Task Rerendering_all_swallows_a_faulting_session_and_still_renders_the_rest()
     {
         // Task.WhenAll over every session would surface the first fault to the subscriber's catch
         // and abandon the remaining sessions — one broken tree would freeze every other browser tab.
@@ -69,12 +70,13 @@ public class RerenderAllAsyncTests
         await store.RerenderAllAsync(); // must not throw
 
         healthySession.RenderInitialRoot();
+
         Assert.True(healthy.RenderCount > before,
             "A faulting session must not stop the rest from being marked for repaint.");
     }
 
     [Fact]
-    public async Task BroadcastAsync_WithNoConnectedSockets_IsANoOp()
+    public async Task A_broadcast_with_no_connected_sockets_does_nothing()
     {
         // Sessions created directly have no socket attached; SendOutOfBandAsync short-circuits.
         var store = NewStore();

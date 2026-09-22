@@ -12,9 +12,10 @@ namespace Rask.Server.Tests.Endpoints;
 public class SessionCapTests
 {
     [Fact]
-    public async Task Default_Unlimited_AdmitsManySessions()
+    public async Task By_default_the_store_is_unlimited_and_admits_many_sessions()
     {
         using var host = RaskTestHost.Create<TestApp>();
+
         Assert.Equal(0, host.Store.MaxSessions);
 
         for (var i = 0; i < 5; i++)
@@ -26,7 +27,7 @@ public class SessionCapTests
     }
 
     [Fact]
-    public async Task OverCap_NewSession_Returns503WithRetryAfter()
+    public async Task A_new_session_over_the_cap_answers_503_with_Retry_After()
     {
         using var host = RaskTestHost.Create<TestApp>();
         host.Store.MaxSessions = 1;

@@ -25,7 +25,7 @@ namespace Rask.Core.Tests.Live;
 public sealed class MorphSelectedGuardTests
 {
     [Fact]
-    public void Selected_StaleRender_DoesNotClobberTheJustPickedOption_ThenReleases()
+    public void A_stale_render_does_not_clobber_the_just_picked_option_then_releases()
     {
         // No node on PATH — the JS-driven reproduction cannot run. Deliberately not a
         // failure: node is not required to build or test Rask, and the browser-observable

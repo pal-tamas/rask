@@ -13,9 +13,10 @@ namespace Rask.Site.Tests.Layout;
 public sealed class ShowcaseLayoutTests
 {
     [Fact]
-    public void RenderThroughApp_EmitsNavbarSidebarAndBrand()
+    public void Rendering_through_the_app_emits_the_navbar_sidebar_and_brand()
     {
         var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.GuidesIndexPage() };
+
         var html = Test.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
         // app-navbar and app-brand are hooks the E2E selects on; neither styles anything any more.
@@ -48,9 +49,10 @@ public sealed class ShowcaseLayoutTests
     }
 
     [Fact]
-    public void RenderThroughApp_GroupsLinks_UnderGroupToggles()
+    public void Rendering_through_the_app_groups_links_under_group_toggles()
     {
         var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.GuidesIndexPage() };
+
         var html = Test.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
         // Each group renders a collapsible toggle whose label is the group name. Guides-first, so the
@@ -69,12 +71,13 @@ public sealed class ShowcaseLayoutTests
     }
 
     [Fact]
-    public void RenderThroughApp_GuidesExpanded_ExampleGroupsCollapsed()
+    public void Rendering_through_the_app_expands_the_guide_groups_and_collapses_the_example_groups()
     {
         // Guides-first: the guide category groups are expanded by default so the narrative spine is
         // visible on landing, while the demoted Examples groups stay collapsed so the ~90-item list isn't
         // dumped at once. The five guide groups (Overview + the four categories) are open.
         var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.GuidesIndexPage() };
+
         var html = Test.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
         // A closed group renders NO items element now, where BsCollapse rendered one with .collapse and
@@ -82,6 +85,7 @@ public sealed class ShowcaseLayoutTests
         // toggle button is what is always there, one per group.
         var toggles = Regex.Matches(html, "nav-group-toggle").Count;
         var expanded = Regex.Matches(html, "nav-group-items").Count;
+
         Assert.True(expanded >= 5, $"expected the guide groups expanded by default, only {expanded} open");
         // Most example pages are folded into guides now; the surviving Examples group(s) (e.g. Apps/Todos)
         // stay collapsed. The guides-expanded assertion above is the primary contract.
@@ -89,9 +93,10 @@ public sealed class ShowcaseLayoutTests
     }
 
     [Fact]
-    public void RenderThroughApp_RootPath_MarksAtLeastOneNavLinkActive()
+    public void Rendering_through_the_app_at_the_root_path_marks_at_least_one_nav_link_active()
     {
         var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.GuidesIndexPage() };
+
         var html = Test.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
         // The kit's nav item says it is the current page to assistive tech, not only with a class.
@@ -102,10 +107,11 @@ public sealed class ShowcaseLayoutTests
     [InlineData("/", true)]
     [InlineData("", true)]
     [InlineData("/tags", false)]
-    public void IsActive_RootHref_TrueOnlyForRootPaths(string path, bool expected)
+    public void The_root_href_is_active_only_for_root_paths(string path, bool expected)
     {
         var routeState = new RouteState { Path = path };
         var layout = new ShowcaseLayout(routeState, []);
+
         Assert.Equal(expected, InvokePrivateIsActive(layout, "/"));
     }
 
@@ -114,10 +120,11 @@ public sealed class ShowcaseLayoutTests
     [InlineData("/tags/", "/tags", true)] // trailing slash trimmed
     [InlineData("/TAGS", "/tags", true)] // case-insensitive
     [InlineData("/binding", "/tags", false)]
-    public void IsActive_NonRootHref_MatchesPathIgnoringCaseAndTrailingSlash(string path, string href, bool expected)
+    public void A_non_root_href_matches_the_path_ignoring_case_and_trailing_slash(string path, string href, bool expected)
     {
         var routeState = new RouteState { Path = path };
         var layout = new ShowcaseLayout(routeState, []);
+
         Assert.Equal(expected, InvokePrivateIsActive(layout, href));
     }
 
@@ -136,34 +143,37 @@ public sealed class ShowcaseLayoutTests
     [InlineData("/users/99", "/users/42", "/users", true)]
     [InlineData("/realtimes/BTC", "/realtime/BTC", "/realtime", false)] // prefix must be a full segment
     [InlineData("/toast", "/realtime/BTC", "/realtime", false)]
-    public void IsActive_HrefWithMatchPrefix_TrueForAnyPathUnderPrefix(
+    public void An_href_with_a_match_prefix_is_active_for_any_path_under_the_prefix(
         string path, string href, string? matchPrefix, bool expected)
     {
         var routeState = new RouteState { Path = path };
         var layout = new ShowcaseLayout(routeState, []);
+
         Assert.Equal(expected, InvokePrivateIsActive(layout, href, matchPrefix));
     }
 
     // (The former render-through-App "Live ticker stays active on /realtime/ETH" test is gone with the
     // Live ticker sidebar entry — its /realtime page folded into the Lifecycle guide. The MatchPrefix
-    // active-link logic it exercised stays covered by IsActive_HrefWithMatchPrefix_TrueForAnyPathUnderPrefix.)
+    // active-link logic it exercised stays covered by An_href_with_a_match_prefix_is_active_for_any_path_under_the_prefix.)
 
     [Fact]
-    public void BypassRenderCache_Default_NotBypassed()
+    public void The_layout_does_not_bypass_the_render_cache_by_default()
     {
         // The layout no longer bypasses the render cache — it subscribes to
         // RouteState.Changed instead, so it only re-renders when the route changes
         // (not on every keystroke in a child form).
         var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.GuidesIndexPage() };
         var layout = new ShowcaseLayout(routeState, []);
+
         var prop = typeof(Component).GetProperty("BypassRenderCache",
             BindingFlags.Instance | BindingFlags.NonPublic);
+
         Assert.NotNull(prop);
         Assert.False((bool)prop!.GetValue(layout)!);
     }
 
     [Fact]
-    public async Task OnRouteChanged_ExpandsActiveGroupAndClosesDrawer()
+    public async Task A_route_change_expands_the_active_group_and_closes_the_drawer()
     {
         // ShowcaseLayout subscribes to RouteState.Changed in Mount so that on every nav it closes the
         // mobile drawer and expands the accordion group holding the newly-active route (OnRouteChanged →
@@ -179,17 +189,20 @@ public sealed class ShowcaseLayoutTests
         // The "Apps" accordion (Examples section, holding Todos) is collapsed at "/" — only the guide
         // groups auto-open (OpenGuideGroups). Its toggle carries the "open" class only when expanded.
         var appsExpanded = GroupExpanded("Apps");
+
         Assert.DoesNotMatch(appsExpanded, CollapseWhitespace(page.Html));
 
         // Open the mobile drawer the way a tap on the hamburger does: the hamburger is a label for the sidebar's
         // checkbox, whose change handler mirrors the state into _drawerOpen — and the checkbox renders checked.
         var opened = await page.On("#docs-sidebar").ChangeAsync("true");
+
         Assert.Matches("<input[^>]*id=\"docs-sidebar\"[^>]*checked|<input[^>]*checked[^>]*id=\"docs-sidebar\"", opened);
 
         // Navigate to /todos → RouteState.Changed fires → OnRouteChanged closes the drawer and expands the
         // group holding /todos. Without the subscription neither happens (the drawer stays open, Apps stays
         // collapsed) even though the layout still re-renders.
         routeState.Path = Rask.Site.Features.Routes.TodosPage();
+
         var atTodos = CollapseWhitespace(page.Render());
         Assert.Matches(appsExpanded, atTodos);                 // active group auto-expanded
         Assert.DoesNotMatch("<input[^>]*id=\"docs-sidebar\"[^>]*checked|<input[^>]*checked[^>]*id=\"docs-sidebar\"", atTodos); // drawer closed

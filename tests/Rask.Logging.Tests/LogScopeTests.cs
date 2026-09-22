@@ -79,7 +79,6 @@ public abstract class LogScopeContract(LogStoreKind kind)
         {
             logger.LogInformation("inside");
         }
-
         logger.LogInformation("outside");
         await harness.RunUntilStoredAsync(2);
 
@@ -105,7 +104,6 @@ public abstract class LogScopeContract(LogStoreKind kind)
         {
             logger.LogWarning("nested");
         }
-
         await harness.RunUntilStoredAsync(1);
 
         var entry = Assert.Single((await harness.Store.SearchAsync(new LogQuery())).Entries);
@@ -124,7 +122,6 @@ public abstract class LogScopeContract(LogStoreKind kind)
         {
             logger.LogError("boom");
         }
-
         await harness.RunUntilStoredAsync(1);
 
         var entry = Assert.Single((await harness.Store.SearchAsync(new LogQuery())).Entries);
@@ -149,7 +146,6 @@ public abstract class LogScopeContract(LogStoreKind kind)
                 logger.LogInformation("work for {Id}", id);
             }
         }
-
         await harness.RunUntilStoredAsync(3);
 
         var mine = await harness.Store.SearchAsync(new LogQuery { ScopeKey = "RequestId", ScopeValue = "r2" });
@@ -181,7 +177,6 @@ public abstract class LogScopeContract(LogStoreKind kind)
         {
             logger.LogInformation("a value that spells a scope");
         }
-
         await harness.RunUntilStoredAsync(2);
 
         Assert.Empty((await harness.Store.SearchAsync(new LogQuery { ScopeKey = "RequestId" })).Entries);
@@ -201,7 +196,6 @@ public abstract class LogScopeContract(LogStoreKind kind)
                 logger.LogInformation("work for {Id}", id);
             }
         }
-
         await harness.RunUntilStoredAsync(2);
 
         var entry = Assert.Single(
@@ -225,7 +219,6 @@ public abstract class LogScopeContract(LogStoreKind kind)
         {
             logger.LogInformation("unusual scope");
         }
-
         await harness.RunUntilStoredAsync(1);
 
         var entry = Assert.Single(
@@ -251,7 +244,6 @@ public abstract class LogScopeContract(LogStoreKind kind)
         {
             logger.LogInformation("keyed");
         }
-
         logger.LogInformation("unscoped");
         await harness.RunUntilStoredAsync(2);
 
@@ -273,7 +265,6 @@ public abstract class LogScopeContract(LogStoreKind kind)
         {
             logger.LogInformation("quiet");
         }
-
         await harness.RunUntilStoredAsync(1);
 
         var entry = Assert.Single((await harness.Store.SearchAsync(new LogQuery())).Entries);
@@ -296,7 +287,6 @@ public abstract class LogScopeContract(LogStoreKind kind)
         {
             logger.LogInformation("bounded");
         }
-
         await harness.RunUntilStoredAsync(1);
 
         var entry = Assert.Single((await harness.Store.SearchAsync(new LogQuery())).Entries);

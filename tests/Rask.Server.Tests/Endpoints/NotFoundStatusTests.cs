@@ -13,7 +13,7 @@ namespace Rask.Server.Tests.Endpoints;
 public class NotFoundStatusTests
 {
     [Fact]
-    public async Task Get_PathThatFallsThrough_Answers404()
+    public async Task A_path_that_falls_through_answers_404()
     {
         using var host = RaskTestHost.Create<RoutedTestApp>();
 
@@ -23,7 +23,7 @@ public class NotFoundStatusTests
     }
 
     [Fact]
-    public async Task Get_PathThatFallsThrough_StillRendersTheNotFoundPage()
+    public async Task A_path_that_falls_through_still_renders_the_not_found_page()
     {
         using var host = RaskTestHost.Create<RoutedTestApp>();
 
@@ -37,7 +37,7 @@ public class NotFoundStatusTests
     }
 
     [Fact]
-    public async Task Get_MatchedRoute_StaysOk()
+    public async Task A_matched_route_stays_200()
     {
         using var host = RaskTestHost.Create<RoutedTestApp>();
 
@@ -47,7 +47,7 @@ public class NotFoundStatusTests
     }
 
     [Fact]
-    public async Task Get_AppThatDoesNotRoute_StaysOk()
+    public async Task An_app_that_does_not_route_stays_200()
     {
         // The route table resolves the fallback for EVERY app, because BuildTree always registers
         // it. An app whose root renders directly mounts no Router, so it never shows that page —

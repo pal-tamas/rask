@@ -11,7 +11,7 @@ namespace Rask.Site.Tests.Pages;
 public sealed class BoomPageTests
 {
     [Fact]
-    public void Demos_AtRest_EmitTheirHostDivs()
+    public void The_demos_at_rest_emit_their_host_divs()
     {
         var sp = TestServices.Default();
 
@@ -21,33 +21,38 @@ public sealed class BoomPageTests
     }
 
     [Fact]
-    public void ThrowFromHandler_ThrowsInvalidOperation_WithBoundaryDemoMessage()
+    public void The_handler_throws_an_InvalidOperationException_with_the_boundary_demo_message()
     {
         var mi = typeof(BoomHandlerDemo).GetMethod("ThrowFromHandler",
             BindingFlags.Static | BindingFlags.NonPublic)!;
+
         var ex = Assert.Throws<TargetInvocationException>(() => mi.Invoke(null, null));
+
         Assert.IsType<InvalidOperationException>(ex.InnerException);
         Assert.Contains("kaboom", ex.InnerException!.Message);
     }
 
     [Fact]
-    public void ThrowFromInnerHandler_ThrowsInvalidOperation_WithInnerBoundaryDemoMessage()
+    public void The_inner_handler_throws_an_InvalidOperationException_with_the_inner_boundary_demo_message()
     {
         var mi = typeof(BoomNestedDemo).GetMethod("ThrowFromInnerHandler",
             BindingFlags.Static | BindingFlags.NonPublic)!;
+
         var ex = Assert.Throws<TargetInvocationException>(() => mi.Invoke(null, null));
+
         Assert.IsType<InvalidOperationException>(ex.InnerException);
         Assert.Contains("inner boundary demo", ex.InnerException!.Message);
     }
 
     [Fact]
-    public void RenderThrower_NestedType_RendersByThrowing()
+    public void The_nested_RenderThrower_type_renders_by_throwing()
     {
         // BoomRenderDemo's private RenderThrower deliberately throws from Render(); ensure
         // the type still exists with that contract so the ErrorBoundary demo keeps
         // demonstrating the render-throw path.
         var nested = typeof(BoomRenderDemo).GetNestedType("RenderThrower",
             BindingFlags.NonPublic);
+
         Assert.NotNull(nested);
         Assert.True(typeof(Component).IsAssignableFrom(nested!));
         Assert.True(nested.GetCustomAttribute<SkipFactoryAttribute>() is not null);

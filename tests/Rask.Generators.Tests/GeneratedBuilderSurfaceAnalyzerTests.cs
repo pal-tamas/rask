@@ -105,6 +105,7 @@ public class GeneratedBuilderSurfaceAnalyzerTests
             StringComparison.Ordinal);
 
         var chain = Chain.Replace("Card.Note(\"n\")", "Card.Note(\"n\").Title(\"t\")", StringComparison.Ordinal);
+
         Assert.Empty((await AnalyzeGeneratedAsync(chain, chain + RequiredTitle))
             .Where(x => x.Id.StartsWith("RASK", StringComparison.Ordinal)));
     }

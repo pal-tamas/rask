@@ -32,6 +32,7 @@ public class WasmCultureSeederTests
     public void The_browsers_list_is_honoured_in_order()
     {
         var options = Options("en", "hu", "de");
+
         Assert.Equal("de", Negotiate("""{"languages":["ja","de","hu"]}""", options));
     }
 
@@ -39,6 +40,7 @@ public class WasmCultureSeederTests
     public void An_unsupported_language_falls_back_to_the_apps_default()
     {
         var options = Options("en", "hu");
+
         Assert.Equal("en", Negotiate("""{"query":"ja-JP","languages":["ja-JP"]}""", options));
     }
 
@@ -46,6 +48,7 @@ public class WasmCultureSeederTests
     public void A_region_is_served_by_the_language_the_app_ships()
     {
         var options = Options("en", "hu");
+
         Assert.Equal("hu", Negotiate("""{"languages":["hu-HU"]}""", options));
     }
 
@@ -62,6 +65,7 @@ public class WasmCultureSeederTests
         // navigator.languages, an old bundle answering a shape this build does not expect. None of them
         // may take the boot down over a language preference.
         var options = Options("en", "hu");
+
         Assert.Equal("en", Negotiate(signals, options));
     }
 
@@ -72,6 +76,7 @@ public class WasmCultureSeederTests
         // before handing it over — so what arrives here is the decoded pair. A visitor who picked a
         // language on the server half must keep it when the same app runs in the browser.
         var options = Options("en", "hu");
+
         Assert.Equal("hu", Negotiate("""{"cookie":"c=hu|uic=hu"}""", options));
         Assert.Equal("hu", Negotiate("""{"cookie":"hu"}""", options));
     }

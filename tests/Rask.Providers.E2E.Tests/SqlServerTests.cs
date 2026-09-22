@@ -86,7 +86,6 @@ public sealed class SqlServerClaimTests : IAsyncLifetime
         Skip.IfNot(SqlServer.Available, SqlServer.SkipReason);
 
         await SeedAsync(1);
-
         var now = DateTime.UtcNow;
         var (first, firstDb) = NewInstance(batchSize: 10);
         await using (firstDb)
@@ -314,7 +313,6 @@ public sealed class SqlServerCacheTests : IAsyncLifetime
         var cache = _provider!.GetRequiredService<IDistributedCache>();
         var start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var values = Enumerable.Range(0, 50).Select(i => $"value-{i}").ToArray();
-
         var sets = values.Select(async value =>
         {
             await start.Task;

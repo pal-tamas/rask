@@ -9,7 +9,7 @@ namespace Rask.Validation.Tests;
 public class RequestValidationPassTests
 {
     [Fact]
-    public void AnObjectLevelRule_IsReportedOnce_NotTwice()
+    public void An_object_level_rule_is_reported_once_not_twice()
     {
         // Validator.TryValidateObject ALREADY runs IValidatableObject when no attribute failed, so
         // calling it again for MVC parity duplicated every object-level failure. The form never showed
@@ -20,7 +20,7 @@ public class RequestValidationPassTests
     }
 
     [Fact]
-    public void AnObjectLevelRule_StillRuns_WhenAnAttributeAlsoFailed()
+    public void An_object_level_rule_still_runs_when_an_attribute_also_failed()
     {
         // The MVC parity the double call was there for: the BCL stops after the attribute failure, so
         // the object-level rule has to be invoked by hand in THIS case — and only this case.
@@ -31,7 +31,7 @@ public class RequestValidationPassTests
     }
 
     [Fact]
-    public void AValidatableObject_YieldingSuccess_DoesNotThrow()
+    public void A_validatable_object_yielding_success_does_not_throw()
     {
         // ValidationResult.Success IS null. Yielding it is legal and the BCL filters it; this pass used
         // to add it to the list and then dereference it — a 400 turning into a 500 on the request path.
@@ -41,7 +41,7 @@ public class RequestValidationPassTests
     }
 
     [Fact]
-    public void AFormLevelRule_LandsOnTheEmptyFieldKey()
+    public void A_form_level_rule_lands_on_the_empty_field_key()
     {
         var entries = DataAnnotationsFieldValidator.Validate(new Booking { Name = "Ada", Blackout = true });
 

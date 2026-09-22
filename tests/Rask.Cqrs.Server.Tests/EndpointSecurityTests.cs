@@ -25,6 +25,7 @@ public sealed class EndpointSecurityTests
         // The CSRF control. Cross-site markup cannot set a custom header, so this is what makes adding a
         // GET surface safe.
         using var client = Host().CreateClient();
+
         var response = await client.GetAsync(Url("Rask.Cqrs.Server.Tests.GetPublicStats", "{}"));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -99,10 +100,12 @@ public sealed class EndpointSecurityTests
         // The failure mode worth guarding: an author writes [Authorize(Roles = "admin")] and believes it
         // is enforced. If the manifest ever stops carrying Roles, this returns 204 instead of 403.
         var forbidden = await Send(HttpMethod.Post, "Rask.Cqrs.Server.Tests.AdminPurge", "{}", authenticated: true);
+
         Assert.Equal(HttpStatusCode.Forbidden, forbidden.StatusCode);
 
         var allowed = await Send(
             HttpMethod.Post, "Rask.Cqrs.Server.Tests.AdminPurge", "{}", authenticated: true, role: "admin");
+
         Assert.Equal(HttpStatusCode.NoContent, allowed.StatusCode);
     }
 
@@ -110,10 +113,12 @@ public sealed class EndpointSecurityTests
     public async Task A_policy_on_the_handler_is_enforced()
     {
         var forbidden = await Send(HttpMethod.Post, "Rask.Cqrs.Server.Tests.MembersOnly", "{}", authenticated: true);
+
         Assert.Equal(HttpStatusCode.Forbidden, forbidden.StatusCode);
 
         var allowed = await Send(
             HttpMethod.Post, "Rask.Cqrs.Server.Tests.MembersOnly", "{}", authenticated: true, claim: "member");
+
         Assert.Equal(HttpStatusCode.NoContent, allowed.StatusCode);
     }
 

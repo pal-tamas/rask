@@ -8,7 +8,7 @@ namespace Rask.Core.Tests.Live;
 public class FormDataFilesTests
 {
     [Fact]
-    public void FromJson_ParsesScalars_AndFilesViaBackend()
+    public void FromJson_parses_the_scalars_and_the_files_via_the_backend()
     {
         var backend = new TestBackend();
         var services = new ServiceCollection()
@@ -36,10 +36,11 @@ public class FormDataFilesTests
     }
 
     [Fact]
-    public void FromJson_NoFilesBlock_ReturnsEmpty()
+    public void FromJson_without_a_files_block_gives_no_files()
     {
         var payload = JsonDocument.Parse("""{ "form": { "x": "y" } }""").RootElement;
         var fd = FormData.FromJson(payload);
+
         Assert.False(fd.HasFiles("anything"));
     }
 

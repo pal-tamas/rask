@@ -11,7 +11,7 @@ public class HandlerBackpressureTests
 {
     [Theory]
     [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
-    public async Task QueueExceedsBound_WhileHandlerHung_ClosesSocket(LiveTransportKind transport)
+    public async Task A_queue_past_its_bound_while_a_handler_hangs_closes_the_socket(LiveTransportKind transport)
     {
         HangingApp.Gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         try
@@ -59,7 +59,7 @@ public class HandlerBackpressureTests
 
     [Theory]
     [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
-    public async Task UnderBound_NormalTraffic_StaysOpen(LiveTransportKind transport)
+    public async Task Normal_traffic_under_the_bound_stays_open(LiveTransportKind transport)
     {
         using var host = RaskTestHost.Create<TestApp>(
             configureServer: o => o.MaxPendingHandlers = 512);

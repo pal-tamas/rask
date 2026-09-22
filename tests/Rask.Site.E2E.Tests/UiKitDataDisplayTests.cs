@@ -17,7 +17,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     protected override string ServerLog => app.ServerLog;
 
     [Fact]
-    public Task EveryDataDisplayComponentRendersWithARealSize() => RunAsync(async () =>
+    public Task Every_data_display_component_renders_with_a_real_size() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -38,7 +38,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     });
 
     [Fact]
-    public Task TheAccordionOpensOneSectionAtATime() => RunAsync(async () =>
+    public Task The_accordion_opens_one_section_at_a_time() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -58,18 +58,19 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     });
 
     [Fact]
-    public Task PressingTheOpenSectionClosesEverything() => RunAsync(async () =>
+    public Task Pressing_the_open_section_closes_everything() => RunAsync(async () =>
     {
         await OpenAsync();
 
         var scope = Page.Locator("[data-testid='ui-accordion']");
+
         await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Shipping" }).ClickAsync();
 
         await Expect(Page.Locator("[data-testid='ui-accordion-state']")).ToContainTextAsync("All sections closed");
     });
 
     [Fact]
-    public Task TheCollapseOpensAndClosesFromCSharpState() => RunAsync(async () =>
+    public Task The_collapse_opens_and_closes_from_CSharp_state() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -77,8 +78,10 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
         var body = scope.GetByText("Nothing in here is required.");
 
         await Expect(body).ToBeHiddenAsync();
+
         await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Advanced settings" })
             .ClickAsync();
+
         await Expect(body).ToBeVisibleAsync();
     });
 
@@ -92,7 +95,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     // visibility, layout geometry, real input, keyboard and focus, none of which survive that trip.
 
     [Fact]
-    public Task TheDecorativeComponentsAnnounceNothing() => RunAsync(async () =>
+    public Task The_decorative_components_announce_nothing() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -106,7 +109,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     });
 
     [Fact]
-    public Task ALinkedCardIsOneLinkHoldingItsFigures() => RunAsync(async () =>
+    public Task A_linked_card_is_one_link_holding_its_figures() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -120,7 +123,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     });
 
     [Fact]
-    public Task OnAPhoneAMonoBadgeWrapsInsideItsCardInsteadOfWideningIt() => RunAsync(async () =>
+    public Task On_a_phone_a_mono_badge_wraps_inside_its_card_instead_of_widening_it() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -144,7 +147,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     });
 
     [Fact]
-    public Task AHighlightMarksEachMatchAndShowsNoMarkerCharacters() => RunAsync(async () =>
+    public Task A_highlight_marks_each_match_and_shows_no_marker_characters() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -160,7 +163,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     });
 
     [Fact]
-    public Task AChartDrawsItsSeriesAndShowsAMonthsValuesOnHover() => RunAsync(async () =>
+    public Task A_chart_draws_its_series_and_shows_a_months_values_on_hover() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -185,7 +188,9 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
         var columns = chart.Locator(".group");
         await Expect(columns).ToHaveCountAsync(6);
         var april = columns.Nth(3);
+
         await april.HoverAsync();
+
         await Expect(april.Locator("div.group-hover\\:block").Last).ToBeVisibleAsync();
         await Expect(april).ToContainTextAsync("Apr");
 

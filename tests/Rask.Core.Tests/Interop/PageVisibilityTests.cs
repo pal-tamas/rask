@@ -9,7 +9,7 @@ public class PageVisibilityTests
     [InlineData("hidden", PageVisibility.Hidden)]
     [InlineData("prerender", PageVisibility.Prerender)]
     [InlineData(null, PageVisibility.Visible)]
-    public async Task GetState_ReadsVisibilityState_AndMapsEnum(string? raw, PageVisibility expected)
+    public async Task Getting_the_state_reads_the_visibility_state_and_maps_the_enum(string? raw, PageVisibility expected)
     {
         var js = new FakeJsRuntime();
         if (raw is not null)
@@ -24,7 +24,7 @@ public class PageVisibilityTests
     }
 
     [Fact]
-    public async Task IsHidden_ReadsDocumentHidden()
+    public async Task Asking_whether_hidden_reads_document_hidden()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("document.hidden", true);

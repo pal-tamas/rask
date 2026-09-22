@@ -5,7 +5,7 @@ namespace Rask.Core.Tests.Routing;
 public partial class RouteFlattenerTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Flatten_SingleLevel_ProducesOneLeafPerRoute()
+    public void A_single_level_flattens_to_one_leaf_per_route()
     {
         var roots = new[] { new Route(typeof(HomePage), "/"), new Route(typeof(UserPage), "/users/{id}") };
 
@@ -17,7 +17,7 @@ public partial class RouteFlattenerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Flatten_NestedRoutes_JoinsTemplatesAndBuildsChain()
+    public void Nested_routes_join_their_templates_and_build_the_chain()
     {
         var roots = new[]
         {
@@ -43,7 +43,7 @@ public partial class RouteFlattenerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Flatten_ThreeDeep_ProducesFullChain()
+    public void Three_deep_routes_flatten_to_the_full_chain()
     {
         var roots = new[]
         {
@@ -59,7 +59,7 @@ public partial class RouteFlattenerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Flatten_LiteralBeforeParam_RegardlessOfDeclarationOrder()
+    public void A_literal_sorts_before_a_parameter_regardless_of_declaration_order()
     {
         var roots = new[] { new Route(typeof(UserPage), "/users/{id}"), new Route(typeof(UserNew), "/users/new") };
 
@@ -78,7 +78,7 @@ public partial class RouteFlattenerTests : global::Rask.Core.RaskMarkup
     [InlineData("/dashboard", "/overview", "/dashboard/overview")]
     [InlineData("/dashboard/", "overview", "/dashboard/overview")]
     [InlineData("/users/{id}", "posts/{postId}", "/users/{id}/posts/{postId}")]
-    public void Combine_NormalisesSlashes(string parent, string child, string expected) =>
+    public void Combining_templates_normalises_slashes(string parent, string child, string expected) =>
         Assert.Equal(expected, RouteFlattener.Combine(parent, child));
 
     private sealed partial class HomePage : Component

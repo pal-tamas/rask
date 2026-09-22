@@ -14,7 +14,7 @@ public class DragDropMoveTests
     private static DragDropMove Move(int from, int to, string zone = "z") => new(zone, from, zone, to);
 
     [Fact]
-    public void ApplyTo_SameList_DownOntoImmediateNeighbour_MovesItem()
+    public void Dragging_down_onto_the_immediate_neighbour_in_the_same_list_moves_the_item()
     {
         var list = Fruits();
 
@@ -25,7 +25,7 @@ public class DragDropMoveTests
     }
 
     [Fact]
-    public void ApplyTo_SameList_DownOntoLastSlot_ReachesBottom()
+    public void Dragging_down_onto_the_last_slot_in_the_same_list_reaches_the_bottom()
     {
         var list = Fruits();
 
@@ -35,7 +35,7 @@ public class DragDropMoveTests
     }
 
     [Fact]
-    public void ApplyTo_SameList_DownIntoMiddle_LandsAfterTarget()
+    public void Dragging_down_into_the_middle_of_the_same_list_lands_after_the_target()
     {
         var list = Fruits();
 
@@ -45,7 +45,7 @@ public class DragDropMoveTests
     }
 
     [Fact]
-    public void ApplyTo_SameList_UpOntoNeighbour_MovesItem()
+    public void Dragging_up_onto_the_neighbour_in_the_same_list_moves_the_item()
     {
         var list = Fruits();
 
@@ -55,7 +55,7 @@ public class DragDropMoveTests
     }
 
     [Fact]
-    public void ApplyTo_SameList_UpToTop_ReachesTop()
+    public void Dragging_up_to_the_top_of_the_same_list_reaches_the_top()
     {
         var list = Fruits();
 
@@ -65,7 +65,7 @@ public class DragDropMoveTests
     }
 
     [Fact]
-    public void ApplyTo_SameList_UpIntoMiddle_LandsBeforeTarget()
+    public void Dragging_up_into_the_middle_of_the_same_list_lands_before_the_target()
     {
         var list = Fruits();
 
@@ -75,7 +75,7 @@ public class DragDropMoveTests
     }
 
     [Fact]
-    public void ApplyTo_SingleListOverload_DelegatesToTwoArg()
+    public void The_single_list_overload_delegates_to_the_two_list_one()
     {
         var list = Fruits();
 
@@ -85,7 +85,7 @@ public class DragDropMoveTests
     }
 
     [Fact]
-    public void ApplyTo_CrossList_InsertsBeforeTarget()
+    public void A_cross_list_move_inserts_before_the_target()
     {
         var from = new List<string> { "A", "B", "C" };
         var to = new List<string> { "X", "Y", "Z" };
@@ -97,7 +97,7 @@ public class DragDropMoveTests
     }
 
     [Fact]
-    public void ApplyTo_CrossList_DropAtEnd_Appends()
+    public void A_cross_list_drop_at_the_end_appends()
     {
         var from = new List<string> { "A", "B", "C" };
         var to = new List<string> { "X", "Y" };
@@ -109,7 +109,7 @@ public class DragDropMoveTests
     }
 
     [Fact]
-    public void ApplyTo_CrossList_EmptyTarget_InsertsAtZero()
+    public void A_cross_list_move_into_an_empty_target_inserts_at_zero()
     {
         var from = new List<string> { "A", "B" };
         var to = new List<string>();
@@ -121,7 +121,7 @@ public class DragDropMoveTests
     }
 
     [Fact]
-    public void ApplyTo_SameList_FromEqualsTo_IsNoOp()
+    public void Moving_an_item_onto_its_own_slot_in_the_same_list_is_a_no_op()
     {
         var list = Fruits();
 
@@ -134,7 +134,7 @@ public class DragDropMoveTests
     [InlineData(-1)]
     [InlineData(5)]
     [InlineData(99)]
-    public void ApplyTo_FromIndexOutOfRange_IsNoOp(int fromIndex)
+    public void An_out_of_range_from_index_is_a_no_op(int fromIndex)
     {
         var list = Fruits();
 
@@ -144,7 +144,7 @@ public class DragDropMoveTests
     }
 
     [Fact]
-    public void ApplyTo_NullList_Throws()
+    public void Applying_to_a_null_list_throws()
     {
         Assert.Throws<ArgumentNullException>(() => Move(0, 1).ApplyTo((IList<string>)null!));
         Assert.Throws<ArgumentNullException>(() => Move(0, 1).ApplyTo(new List<string> { "A" }, null!));

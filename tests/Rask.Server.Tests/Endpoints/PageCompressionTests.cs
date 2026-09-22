@@ -18,7 +18,7 @@ public class PageCompressionTests
     [Theory]
     [InlineData("br")]
     [InlineData("gzip")]
-    public async Task APageIsServedCompressed_WhenTheClientAcceptsIt(string encoding)
+    public async Task A_page_is_served_compressed_when_the_client_accepts_it(string encoding)
     {
         using var host = RaskTestHost.Create<TestApp>();
 
@@ -32,7 +32,7 @@ public class PageCompressionTests
     }
 
     [Fact]
-    public async Task BrotliIsPreferred_WhenTheClientAcceptsBoth()
+    public async Task Brotli_is_preferred_when_the_client_accepts_both()
     {
         using var host = RaskTestHost.Create<TestApp>();
 
@@ -42,7 +42,7 @@ public class PageCompressionTests
     }
 
     [Fact]
-    public async Task APageIsServedRaw_WhenTheClientAcceptsNoEncoding()
+    public async Task A_page_is_served_raw_when_the_client_accepts_no_encoding()
     {
         using var host = RaskTestHost.Create<TestApp>();
 
@@ -53,7 +53,7 @@ public class PageCompressionTests
     }
 
     [Fact]
-    public async Task CompressPageHtmlFalse_ServesThePageRaw()
+    public async Task Turning_CompressPageHtml_off_serves_the_page_raw()
     {
         // The opt-out for an app whose pages render a long-lived secret next to attacker-influenced input
         // (BREACH). Every encoding offered, none taken.
@@ -66,7 +66,7 @@ public class PageCompressionTests
     }
 
     [Fact]
-    public async Task ACompressedPageKeepsItsNoStorePolicy()
+    public async Task A_compressed_page_keeps_its_no_store_policy()
     {
         // The shell embeds the session id, so it is never cacheable. Compression rewrites headers on the
         // way out (Vary, Content-Encoding, drops Content-Length); it must not disturb that one.
@@ -80,7 +80,7 @@ public class PageCompressionTests
     [Theory]
     [InlineData("br")]
     [InlineData("gzip")]
-    public async Task AnAppThatAlreadyCompresses_IsNotCompressedTwice(string encoding)
+    public async Task An_app_that_already_compresses_is_not_compressed_twice(string encoding)
     {
         // The upgrade path: an app that already runs UseResponseCompression. Its middleware wraps the body
         // the handler now writes brotli into; seeing Content-Encoding already set, it must pass the bytes
@@ -100,7 +100,7 @@ public class PageCompressionTests
     }
 
     [Fact]
-    public async Task TheAppsOwnEndpointsAreNotCompressedByRask()
+    public async Task The_apps_own_endpoints_are_not_compressed_by_Rask()
     {
         // The option names the page, and only the page is analysed for BREACH. An app's JSON API returning
         // a token beside an echoed query value is exactly that attack's shape, so Rask compressing it too
@@ -118,7 +118,7 @@ public class PageCompressionTests
     }
 
     [Fact]
-    public void AddRaskLeavesTheAppsCompressionOptionsAlone()
+    public void AddRask_leaves_the_apps_compression_options_alone()
     {
         // Registering AddResponseCompression would configure the app-GLOBAL ResponseCompressionOptions —
         // EnableForHttps on for an app's own middleware, providers and levels overwritten. AddRask must
@@ -134,7 +134,7 @@ public class PageCompressionTests
     [InlineData("gzip;q=0.5, br;q=0.5", "br")] // a tie goes to the smaller encoding
     [InlineData("gzip;q=0, br;q=0", null)]
     [InlineData("deflate, identity", null)]
-    public async Task QualityValuesAreHonoured(string acceptEncoding, string? expected)
+    public async Task Quality_values_are_honoured(string acceptEncoding, string? expected)
     {
         using var host = RaskTestHost.Create<TestApp>();
 
@@ -146,7 +146,7 @@ public class PageCompressionTests
     }
 
     [Fact]
-    public async Task AnUncompressedAnswerStillVariesOnAcceptEncoding()
+    public async Task An_uncompressed_answer_still_varies_on_Accept_Encoding()
     {
         // The raw page was chosen because of the header too, so a cache has to key on it either way — the
         // variant it stores first decides what the next client gets otherwise.
@@ -158,7 +158,7 @@ public class PageCompressionTests
     }
 
     [Fact]
-    public void CompressPageHtml_IsOnByDefault() => Assert.True(new RaskServerOptions().CompressPageHtml);
+    public void CompressPageHtml_is_on_by_default() => Assert.True(new RaskServerOptions().CompressPageHtml);
 
     private static Task<HttpResponseMessage> GetAsync(RaskTestHost host, params string[] encodings)
     {

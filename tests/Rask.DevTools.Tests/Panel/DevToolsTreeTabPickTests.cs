@@ -69,6 +69,7 @@ public sealed class DevToolsTreeTabPickTests
         Assert.Single(page.FindAll("[aria-pressed=\"true\"]"));
 
         await page.On("[aria-pressed=\"true\"]").ClickAsync();
+
         Assert.Null(AnchorsOf(page));
     }
 
@@ -142,10 +143,12 @@ public sealed class DevToolsTreeTabPickTests
         var ancestors = new List<long>();
 
         Assert.True(DevToolsTreeTab.PathTo(Tree(), 99, ancestors));
+
         Assert.Equal([1L, 2L, 21L, 22L, 23L, 24L, 25L, 26L, 27L, 28L, 29L], ancestors);
 
         ancestors.Clear();
         Assert.False(DevToolsTreeTab.PathTo(Tree(), 12345, ancestors));
+
         Assert.Empty(ancestors);
     }
 }

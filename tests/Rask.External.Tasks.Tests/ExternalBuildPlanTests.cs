@@ -260,6 +260,7 @@ public class ExternalBuildPlanTests
         Assert.DoesNotContain("@vitejs/plugin-react", litOnly, StringComparison.Ordinal);
 
         var withReact = Config([new ExternalEntry { Name = "Chart", Source = "/a/c.tsx", Runtime = "react" }]);
+
         Assert.Contains("@vitejs/plugin-react", withReact, StringComparison.Ordinal);
     }
 
@@ -627,6 +628,7 @@ public class ExternalBuildPlanTests
         var island = new ExternalEntry { Name = "Chart", Source = $"/app/Islands/Chart.{extension}", Runtime = runtime };
 
         var entry = ExternalBuildPlan.EntryModule(island, "/obj/rask-external/rask");
+
         Assert.Contains($"import {{ {factory} }} from '/obj/rask-external/rask/{runtime}'", entry, StringComparison.Ordinal);
         Assert.Contains($"export default {factory}(Component)", entry, StringComparison.Ordinal);
 

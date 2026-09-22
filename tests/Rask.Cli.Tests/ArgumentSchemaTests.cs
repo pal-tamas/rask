@@ -10,7 +10,7 @@ public sealed class ArgumentSchemaTests
             .Flag("docker");
 
     [Fact]
-    public void Parses_positionals()
+    public void Positional_arguments_are_parsed_without_errors()
     {
         var parsed = Schema().Parse(["MyApp", "extra"]);
 
@@ -19,7 +19,7 @@ public sealed class ArgumentSchemaTests
     }
 
     [Fact]
-    public void Parses_long_option_with_separate_value()
+    public void A_long_option_takes_its_value_from_the_next_argument()
     {
         var parsed = Schema().Parse(["--template", "wasm"]);
 
@@ -27,7 +27,7 @@ public sealed class ArgumentSchemaTests
     }
 
     [Fact]
-    public void Parses_long_option_with_equals()
+    public void A_long_option_takes_its_value_after_an_equals_sign()
     {
         var parsed = Schema().Parse(["--template=wasm"]);
 
@@ -35,7 +35,7 @@ public sealed class ArgumentSchemaTests
     }
 
     [Fact]
-    public void Parses_short_alias()
+    public void A_short_alias_sets_its_long_option()
     {
         var parsed = Schema().Parse(["-t", "server", "-o", "out"]);
 
@@ -44,7 +44,7 @@ public sealed class ArgumentSchemaTests
     }
 
     [Fact]
-    public void Parses_boolean_flags()
+    public void Boolean_flags_are_set_only_when_passed()
     {
         var parsed = Schema().Parse(["--auth", "--docker"]);
 

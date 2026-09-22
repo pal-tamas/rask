@@ -6,22 +6,24 @@ namespace Rask.Core.Tests.Authentication;
 public class AuthSignInTests
 {
     [Fact]
-    public async Task SignInAsync_OutsideHandler_Throws()
+    public async Task Signing_in_outside_a_handler_throws()
     {
         var auth = new AuthSignIn();
+
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             auth.SignInAsync(new ClaimsPrincipal(new ClaimsIdentity())));
     }
 
     [Fact]
-    public async Task SignOutAsync_OutsideHandler_Throws()
+    public async Task Signing_out_outside_a_handler_throws()
     {
         var auth = new AuthSignIn();
+
         await Assert.ThrowsAsync<InvalidOperationException>(() => auth.SignOutAsync());
     }
 
     [Fact]
-    public async Task SignInAsync_InsideHandler_StoresPending()
+    public async Task Signing_in_inside_a_handler_stores_a_pending_sign_in()
     {
         var auth = new AuthSignIn();
         var principal = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, "alice")], "Test"));
@@ -39,9 +41,10 @@ public class AuthSignInTests
     }
 
     [Fact]
-    public async Task SignOutAsync_InsideHandler_StoresPendingWithNullPrincipal()
+    public async Task Signing_out_inside_a_handler_stores_a_pending_sign_out_with_no_principal()
     {
         var auth = new AuthSignIn();
+
         using (auth.EnterHandler())
         {
             await auth.SignOutAsync("/bye");
@@ -54,9 +57,10 @@ public class AuthSignInTests
     }
 
     [Fact]
-    public async Task TryConsume_Twice_SecondReturnsFalse()
+    public async Task Consuming_twice_returns_false_the_second_time()
     {
         var auth = new AuthSignIn();
+
         using (auth.EnterHandler())
         {
             await auth.SignInAsync(new ClaimsPrincipal(new ClaimsIdentity()));
@@ -67,9 +71,10 @@ public class AuthSignInTests
     }
 
     [Fact]
-    public async Task SignInAsync_NullPrincipal_Throws()
+    public async Task Signing_in_a_null_principal_throws()
     {
         var auth = new AuthSignIn();
+
         using (auth.EnterHandler())
         {
             await Assert.ThrowsAsync<ArgumentNullException>(() => auth.SignInAsync(null!));
@@ -77,9 +82,10 @@ public class AuthSignInTests
     }
 
     [Fact]
-    public async Task SignInAsync_AfterHandlerScopeDisposed_Throws()
+    public async Task Signing_in_after_the_handler_scope_is_disposed_throws()
     {
         var auth = new AuthSignIn();
+
         using (auth.EnterHandler())
         {
             await auth.SignInAsync(new ClaimsPrincipal(new ClaimsIdentity()));

@@ -14,7 +14,7 @@ public class SocketLifecycleTests
     // assignment is single-threaded and can't race another class that sets a different DiffMode.
 
     [Fact]
-    public async Task NonWebSocketGet_To_RaskWs_Returns400()
+    public async Task A_plain_GET_to_the_socket_endpoint_answers_400()
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
 
@@ -24,12 +24,13 @@ public class SocketLifecycleTests
     }
 
     [Fact]
-    public async Task SocketDisconnect_SchedulesRemoval_SessionRemovedAfterShortenedGracePeriod()
+    public async Task A_socket_disconnect_schedules_removal_and_the_session_goes_after_the_shortened_grace_period()
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull,
             configureServer: o => o.SessionGracePeriod = TimeSpan.FromMilliseconds(50));
         var initial = await host.Http.GetAsync("/start");
         var sessionId = MarkupAssert.SessionId(await initial.Content.ReadAsStringAsync());
+
         var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
         _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
@@ -46,7 +47,7 @@ public class SocketLifecycleTests
     }
 
     [Fact]
-    public async Task Reconnect_BeforeGracePeriodDeadline_AttachesToExistingSession()
+    public async Task A_reconnect_before_the_grace_period_ends_attaches_to_the_existing_session()
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull,
             configureServer: o => o.SessionGracePeriod = TimeSpan.FromSeconds(2));
@@ -68,7 +69,7 @@ public class SocketLifecycleTests
     }
 
     [Fact]
-    public async Task Reconnect_AfterGracePeriodExpires_HelloIsRejected()
+    public async Task A_hello_after_the_grace_period_expires_is_rejected()
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull,
             configureServer: o => o.SessionGracePeriod = TimeSpan.FromMilliseconds(50));
@@ -96,7 +97,7 @@ public class SocketLifecycleTests
     }
 
     [Fact]
-    public async Task Reconnect_WhileExistingSocketAttached_NewSocketBecomesAuthoritative()
+    public async Task A_reconnect_while_the_old_socket_is_attached_makes_the_new_socket_authoritative()
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
         var initial = await host.Http.GetAsync("/start");
@@ -116,6 +117,7 @@ public class SocketLifecycleTests
         // ws2 is authoritative now; a handler invocation should render to ws2.
         await ws2.SendJsonAsync(new { id = handlerId });
         var ws2Reply = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+
         Assert.NotNull(ws2Reply);
         Assert.Contains("count=1", ws2Reply);
     }
@@ -124,7 +126,7 @@ public class SocketLifecycleTests
     // runs after the new socket attached. That cleanup must leave the new socket alone: still attached,
     // still counted, and the session not scheduled for removal under an open tab.
     [Fact]
-    public async Task OldSocketCleanup_AfterAReconnect_LeavesTheNewSocketLive()
+    public async Task The_old_sockets_cleanup_after_a_reconnect_leaves_the_new_socket_live()
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull,
             configureServer: o => o.SessionGracePeriod = TimeSpan.FromMilliseconds(50));
@@ -139,6 +141,7 @@ public class SocketLifecycleTests
         // A reconnect always emits a frame, so receiving one proves ws2 is attached.
         using var ws2 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws2.SendJsonAsync(new { type = "hello", session = sessionId });
+
         Assert.NotNull(await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(5)));
 
         // Only now does the first socket's loop finish.
@@ -146,24 +149,27 @@ public class SocketLifecycleTests
 
         // Outlast the 50 ms grace a wrongly armed removal would use.
         await Task.Delay(300);
+
         Assert.Equal(1, host.Store.Count);
         Assert.Equal(1, host.Store.ConnectedCount);
 
         // And ws2 still receives renders.
         await ws2.SendJsonAsync(new { id = handlerId });
         var reply = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
+
         Assert.NotNull(reply);
         Assert.Contains("count=1", reply);
 
         // Its own close is the one that counts.
         await ws2.CloseAndAwaitServerCleanupAsync();
+
         Assert.Equal(0, host.Store.ConnectedCount);
     }
 
     // A socket another hello replaced must not keep driving the session: it was admitted for whoever the
     // session belonged to then, and a sign-in on the new socket may have changed that (#1075).
     [Fact]
-    public async Task ReplacedSocket_CannotDispatchHandlers()
+    public async Task A_replaced_socket_cannot_dispatch_handlers()
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull);
         var initialHtml = await host.Http.GetStringAsync("/start");
@@ -180,6 +186,7 @@ public class SocketLifecycleTests
 
         // The replaced socket clicks: had it dispatched, the render would arrive on ws2, the attached one.
         await ws1.SendJsonAsync(new { id = handlerId });
+
         Assert.Null(await ws2.TryReceiveTextAsync(TimeSpan.FromMilliseconds(500)));
 
         // The attached socket's click is the first one that counts.
@@ -192,7 +199,7 @@ public class SocketLifecycleTests
     }
 
     [Fact]
-    public async Task Close_WithCustomReason_RemovesSessionAfterGrace()
+    public async Task A_close_with_a_custom_reason_removes_the_session_after_the_grace_period()
     {
         using var host = RaskTestHost.Create<TestApp>(diffMode: LiveDiffMode.DisabledFull,
             configureServer: o => o.SessionGracePeriod = TimeSpan.FromMilliseconds(50));

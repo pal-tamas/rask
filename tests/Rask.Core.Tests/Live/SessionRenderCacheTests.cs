@@ -8,7 +8,7 @@ namespace Rask.Core.Tests.Live;
 public partial class SessionRenderCacheTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Render_FirstCall_ReturnsFalseAndPopulatesHtml()
+    public void The_first_render_reports_no_diff_and_populates_the_html()
     {
         var cache = new SessionRenderCache();
         var sb = new StringBuilder();
@@ -22,7 +22,7 @@ public partial class SessionRenderCacheTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_SecondCall_ProducesDiffAgainstFirst()
+    public void The_second_render_diffs_against_the_first()
     {
         var cache = new SessionRenderCache();
         var ops = new List<EditOp>();
@@ -41,7 +41,7 @@ public partial class SessionRenderCacheTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_IdenticalRenders_ReturnsZeroOps()
+    public void Identical_renders_diff_to_zero_ops()
     {
         var cache = new SessionRenderCache();
         var ops = new List<EditOp>();
@@ -54,7 +54,7 @@ public partial class SessionRenderCacheTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_BuffersRotate_ThirdRenderDiffsAgainstSecondNotFirst()
+    public void The_buffers_rotate_so_the_third_render_diffs_against_the_second_not_the_first()
     {
         // A→B→C: the third render's diff must be against B (the prior render), not A.
         // This proves the buffer rotation works — without it, the cache would keep
@@ -78,7 +78,7 @@ public partial class SessionRenderCacheTests : global::Rask.Core.RaskMarkup
     // (rotate:false) and Snapshot()s exactly once afterwards. These pin that contract.
 
     [Fact]
-    public void TryComputeDiff_RotateFalse_KeepsDiffingAgainstStableBaseline()
+    public void Without_rotating_the_diff_keeps_running_against_a_stable_baseline()
     {
         var cache = new SessionRenderCache();
         var ops = new List<EditOp>();
@@ -100,7 +100,7 @@ public partial class SessionRenderCacheTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Snapshot_AfterRotateFalse_CommitsTheLastBuildAsBaseline()
+    public void A_snapshot_after_not_rotating_commits_the_last_build_as_the_baseline()
     {
         var cache = new SessionRenderCache();
         var ops = new List<EditOp>();
@@ -115,7 +115,7 @@ public partial class SessionRenderCacheTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void TryComputeDiff_OnFalseReturn_StillRotates_SoNoDoubleRotateIsNeeded()
+    public void A_diff_that_reports_false_still_rotates_so_no_double_rotate_is_needed()
     {
         // The invariant TryComputeDiff rotates on EVERY call (true or false): a first render
         // returns false but must still establish the baseline. A following identical render then

@@ -18,6 +18,7 @@ public class WebPushOptionsTests
     {
         var options = Valid();
         options.Subject = "https://example.com/contact";
+
         options.Validate(); // must not throw
     }
 
@@ -26,6 +27,7 @@ public class WebPushOptionsTests
     {
         var options = Valid();
         options.VapidKeys = null;
+
         Assert.Throws<InvalidOperationException>(options.Validate);
     }
 
@@ -34,6 +36,7 @@ public class WebPushOptionsTests
     {
         var options = Valid();
         options.Subject = "";
+
         Assert.Throws<InvalidOperationException>(options.Validate);
     }
 
@@ -45,6 +48,7 @@ public class WebPushOptionsTests
     {
         var options = Valid();
         options.Subject = subject;
+
         Assert.Throws<InvalidOperationException>(options.Validate);
     }
 
@@ -53,6 +57,7 @@ public class WebPushOptionsTests
     {
         var options = Valid();
         options.DefaultTtl = TimeSpan.FromSeconds(-1);
+
         Assert.Throws<InvalidOperationException>(options.Validate);
     }
 }

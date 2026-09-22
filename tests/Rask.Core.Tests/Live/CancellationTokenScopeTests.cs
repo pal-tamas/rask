@@ -10,7 +10,7 @@ namespace Rask.Core.Tests.Live;
 public partial class CancellationTokenScopeTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void OutsideAHandler_IsAStableLifetimeToken()
+    public void Outside_a_handler_it_is_a_stable_lifetime_token()
     {
         var c = new Probe();
         var a = c.Token;
@@ -21,7 +21,7 @@ public partial class CancellationTokenScopeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void DuringADispatch_ReflectsThePushedDispatchToken()
+    public void During_a_dispatch_it_reflects_the_pushed_dispatch_token()
     {
         var c = new Probe();
         using var cts = new CancellationTokenSource();

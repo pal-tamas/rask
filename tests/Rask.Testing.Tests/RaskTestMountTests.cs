@@ -29,19 +29,21 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void RenderComponent_MountsIt()
+    public void Rendering_a_component_mounts_it()
     {
         var probe = new Probe();
+
         Test.Render(probe);
 
         Assert.Contains("OnMount", probe.Calls);
     }
 
     [Fact]
-    public void RenderComponent_MountsItExactlyOnce_AcrossReRenders()
+    public void Rendering_a_component_mounts_it_exactly_once_across_rerenders()
     {
         var probe = new Probe();
         var page = Test.Render(probe);
+
         page.Render();
         page.Render();
 
@@ -50,22 +52,24 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void RenderComponent_ReachesTheAliveWalk_SoTheAfterRenderHooksFire()
+    public void A_rendered_component_reaches_the_alive_walk_so_the_after_render_hooks_fire()
     {
         // Mounting is only half of it: adoption is what puts the component in the root's child map, which
         // is what CollectAlive walks. Without it the component is invisible to OnFirstRendered, OnRendered and OnUnmount.
         var probe = new Probe();
+
         Test.Render(probe);
 
         Assert.Equal(["OnMount", "OnFirstRendered", "OnRendered"], probe.Calls);
     }
 
     [Fact]
-    public void RenderFactory_UnmountsAComponentItStopsReturning()
+    public void A_rendered_factory_unmounts_a_component_it_stops_returning()
     {
         var probe = new Probe();
         var show = true;
         var page = Test.Render(() => show ? probe : null);
+
         Assert.Contains("probe", page.Html);
 
         show = false;
@@ -91,7 +95,7 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task WaitForAsync_SeesTheResultOfAnAsynchronousMount()
+    public async Task WaitForAsync_sees_the_result_of_an_asynchronous_mount()
     {
         var page = Test.Render(new SlowLoader());
 
@@ -110,7 +114,7 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task WaitForAsync_ReportsTheLastMarkupWhenItGivesUp()
+    public async Task WaitForAsync_reports_the_last_markup_when_it_gives_up()
     {
         // A wait that fails should show what the component actually rendered — "it timed out" alone sends
         // you back to add the print statement the failure could have carried.
@@ -146,7 +150,7 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void AStateChangeRaisedDuringTheWalk_IsQueuedAndDrainedRatherThanReentered()
+    public void A_state_change_raised_during_the_walk_is_queued_and_drained_rather_than_reentered()
     {
         var page = Test.Render(new SignalsAfterItsFirstRender());
 
@@ -170,12 +174,13 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Adoption_DoesNotPutTheInstanceUnderPositionalReuse()
+    public void Adoption_does_not_put_the_instance_under_positional_reuse()
     {
         // The guarantee RenderedComponent<T>.Instance documents. Adoption deliberately bypasses
         // GetOrCreateChild, whose reuse branch would make the instance subject to the positional cache.
         var counter = new Counter();
         var page = Test.Render(counter);
+
         page.Render();
         page.Render();
 
@@ -184,11 +189,12 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Adoption_DoesNotClearChildrenBuiltAtTheCallSite()
+    public void Adoption_does_not_clear_children_built_at_the_call_site()
     {
         // The other half of that choice: GetOrCreateChild's reuse branch nulls Children, which would
         // delete a caller-built subtree on the second render.
         var page = Test.Render(Div[Span["kept"]]);
+
         page.Render();
         page.Render();
 

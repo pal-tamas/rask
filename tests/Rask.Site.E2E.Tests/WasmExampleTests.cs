@@ -17,7 +17,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
     protected override string ServerLog => app.ServerLog;
 
     [Fact]
-    public Task Journey_WalksEveryPageAndUnusualActivity() => RunAsync(() =>
+    public Task Journey_walks_every_page_and_unusual_activity() => RunAsync(() =>
         RunShowcaseJourneyAsync(new ShowcaseJourneyOptions
         {
             DeepLink = true,
@@ -34,13 +34,14 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
     // The WASM-only PWA example page (PwaDemo) lives in the WASM host and is surfaced in the shared
     // sidebar via a host-contributed ShowcaseNavEntry. Verify the entry routes and the page renders.
     [Fact]
-    public Task PwaExample_RoutesAndRenders() => RunAsync(async () =>
+    public Task PWA_example_routes_and_renders() => RunAsync(async () =>
     {
         await Page.GotoAsync(Docs);
         await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await OpenSection("notifications", "Notifications, push & badge");
+
         await Expect(Page.Locator("#pwa-notify")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         await Expect(Page.Locator("#pwa-push")).ToBeVisibleAsync(
@@ -57,13 +58,14 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
     // The WASM-only Wake Lock page (WakeLockDemo) — verify the host-contributed sidebar entry routes
     // and the page renders. The lock itself can't be asserted headlessly, so we only check the UI.
     [Fact]
-    public Task WakeLockExample_RoutesAndRenders() => RunAsync(async () =>
+    public Task Wake_lock_example_routes_and_renders() => RunAsync(async () =>
     {
         await Page.GotoAsync(Docs);
         await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await OpenSection("wake-lock", "Wake lock");
+
         await Expect(Page.Locator("#wakelock-toggle")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
     });
@@ -71,7 +73,7 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
     // The WASM-only Screen Orientation page (OrientationDemo) — verify it routes, renders, and that
     // reading the orientation updates the status (screen.orientation is available in headless Chromium).
     [Fact]
-    public Task OrientationExample_RoutesAndReads() => RunAsync(async () =>
+    public Task Orientation_example_routes_and_reads() => RunAsync(async () =>
     {
         await Page.GotoAsync(Docs);
         await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
@@ -103,13 +105,14 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
     // The WASM-only Fullscreen page (FullscreenDemo) — verify it routes and renders. Real fullscreen
     // needs a user gesture and is unreliable headlessly, so this only checks the UI + CodeSample source.
     [Fact]
-    public Task FullscreenExample_RoutesAndRenders() => RunAsync(async () =>
+    public Task Fullscreen_example_routes_and_renders() => RunAsync(async () =>
     {
         await Page.GotoAsync(Docs);
         await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await OpenSection("fullscreen", "Fullscreen");
+
         await Expect(Page.Locator("#fullscreen-enter")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         // CodeSample shows the demo's real source beside the live result.
@@ -121,13 +124,14 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
     // won't fire beforeinstallprompt headlessly, so the status reports "not installable yet"; real install
     // needs a user gesture + install criteria, covered by unit tests.
     [Fact]
-    public Task InstallPromptExample_RoutesAndRenders() => RunAsync(async () =>
+    public Task Install_prompt_example_routes_and_renders() => RunAsync(async () =>
     {
         await Page.GotoAsync(Docs);
         await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await OpenSection("install", "Install prompt");
+
         await Expect(Page.Locator("#install-status")).ToContainTextAsync("not installable yet",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         // CodeSample shows the demo's real source beside the live result.
@@ -139,13 +143,14 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
     // sibling scoped JS synthesizes a canvas-stream video; entering the real miniplayer needs a gesture and
     // is unreliable headlessly, so this only checks the UI + CodeSample source.
     [Fact]
-    public Task PictureInPictureExample_RoutesAndRenders() => RunAsync(async () =>
+    public Task Picture_in_picture_example_routes_and_renders() => RunAsync(async () =>
     {
         await Page.GotoAsync(Docs);
         await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await OpenSection("picture-in-picture", "Picture-in-Picture");
+
         await Expect(Page.Locator("#pip-enter")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         await Expect(Page.Locator("[data-section=picture-in-picture] .sample-code").First).ToContainTextAsync("IPictureInPicture",
@@ -155,13 +160,14 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
     // The WASM-only EyeDropper page (EyeDropperDemo) — verify it routes and renders. open() needs a gesture
     // and the picker can't be driven headlessly, so this only checks the UI + CodeSample source.
     [Fact]
-    public Task EyeDropperExample_RoutesAndRenders() => RunAsync(async () =>
+    public Task EyeDropper_example_routes_and_renders() => RunAsync(async () =>
     {
         await Page.GotoAsync(Docs);
         await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await OpenSection("eye-dropper", "EyeDropper");
+
         await Expect(Page.Locator("#eyedropper-pick")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         await Expect(Page.Locator("[data-section=eye-dropper] .sample-code").First).ToContainTextAsync("IEyeDropper",
@@ -171,13 +177,14 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
     // The WASM-only Idle detection page (IdleDetectorDemo) — verify it routes and renders. The permission
     // needs a gesture and idle can't be simulated headlessly, so this only checks the UI + CodeSample source.
     [Fact]
-    public Task IdleDetectionExample_RoutesAndRenders() => RunAsync(async () =>
+    public Task Idle_detection_example_routes_and_renders() => RunAsync(async () =>
     {
         await Page.GotoAsync(Docs);
         await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await OpenSection("idle", "Idle detection");
+
         await Expect(Page.Locator("#idle-start")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         await Expect(Page.Locator("[data-section=idle] .sample-code").First).ToContainTextAsync("IIdleDetector",
@@ -188,13 +195,14 @@ public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixtur
     // opens a real capture permission prompt that can't be driven without fake-media flags, so this only
     // checks the UI + CodeSample source; the call shapes are covered by unit tests.
     [Fact]
-    public Task MediaDevicesExample_RoutesAndRenders() => RunAsync(async () =>
+    public Task Media_devices_example_routes_and_renders() => RunAsync(async () =>
     {
         await Page.GotoAsync(Docs);
         await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
         await OpenSection("media-devices", "Camera & microphone");
+
         await Expect(Page.Locator("#media-start")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         await Expect(Page.Locator("[data-section=media-devices] .sample-code").First).ToContainTextAsync("IMediaDevices",

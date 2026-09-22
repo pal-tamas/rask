@@ -13,16 +13,18 @@ public class NavigatorCurrentTests
     private static Navigator Build(string path = "/") => new(new RouteState { Path = path });
 
     [Fact]
-    public void Current_IsNull_OutsideAHandler()
+    public void Current_is_null_outside_a_handler()
     {
         _ = Build();
+
         Assert.Null(Navigator.Current);
     }
 
     [Fact]
-    public void Current_IsTheNavigator_InsideAHandler()
+    public void Current_is_the_navigator_inside_a_handler()
     {
         var nav = Build();
+
         using (nav.EnterHandler())
         {
             Assert.Same(nav, Navigator.Current);
@@ -30,7 +32,7 @@ public class NavigatorCurrentTests
     }
 
     [Fact]
-    public void Current_IsClearedWhenTheHandlerScopeEnds()
+    public void Current_is_cleared_when_the_handler_scope_ends()
     {
         var nav = Build();
         using (nav.EnterHandler())
@@ -41,7 +43,7 @@ public class NavigatorCurrentTests
     }
 
     [Fact]
-    public void RequireCurrent_OutsideAHandler_ThrowsTheActionableMessage()
+    public void RequireCurrent_outside_a_handler_throws_the_actionable_message()
     {
         var ex = Assert.Throws<InvalidOperationException>(() => Navigator.RequireCurrent());
 
@@ -51,7 +53,7 @@ public class NavigatorCurrentTests
     }
 
     [Fact]
-    public void RequireCurrent_InsideAHandler_Navigates()
+    public void RequireCurrent_inside_a_handler_navigates()
     {
         var state = new RouteState { Path = "/" };
         var nav = new Navigator(state);
@@ -67,7 +69,7 @@ public class NavigatorCurrentTests
     }
 
     [Fact]
-    public void NestedScopes_RestoreTheOuterNavigator()
+    public void Nested_scopes_restore_the_outer_navigator()
     {
         // The Server dispatch nests scopes (navigator + authSignIn), and tests re-enter, so unwinding
         // has to restore rather than clear.
@@ -88,7 +90,7 @@ public class NavigatorCurrentTests
     }
 
     [Fact]
-    public async Task Current_FlowsAcrossAnAwait()
+    public async Task Current_flows_across_an_await()
     {
         // A handler may await; AsyncLocal is what carries the ambient navigator into the continuation,
         // which may resume on a different pool thread.

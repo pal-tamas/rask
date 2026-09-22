@@ -9,7 +9,7 @@ namespace Rask.Core.Tests.Components;
 public partial class DefaultNotFoundPageTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Render_IncludesPageNotFoundHeading()
+    public void The_page_shows_a_page_not_found_heading()
     {
         using var _ = BeginRoute("/missing");
 
@@ -19,7 +19,7 @@ public partial class DefaultNotFoundPageTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_IncludesRequestedPath()
+    public void The_page_shows_the_requested_path()
     {
         using var _ = BeginRoute("/does/not/exist");
 
@@ -29,7 +29,7 @@ public partial class DefaultNotFoundPageTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_LinksBackToHome()
+    public void The_page_links_back_to_home()
     {
         using var _ = BeginRoute("/anywhere");
 
@@ -39,7 +39,7 @@ public partial class DefaultNotFoundPageTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_NoRouteStateRegistered_FallsBackToRoot()
+    public void With_no_route_state_registered_the_path_falls_back_to_the_root()
     {
         var services = RenderHarness.EmptyServices();
         using var _ = LiveRenderContext.Begin(new StubComponent(Span), services);

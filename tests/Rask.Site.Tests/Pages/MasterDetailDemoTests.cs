@@ -9,7 +9,7 @@ namespace Rask.Site.Tests.Pages;
 public sealed class MasterDetailDemoTests
 {
     [Fact]
-    public void Render_RendersOuterGrid_WithKeyedRowsAndExpanders()
+    public void The_demo_renders_the_outer_grid_with_keyed_rows_and_expanders()
     {
         var html = Render();
 
@@ -23,7 +23,7 @@ public sealed class MasterDetailDemoTests
     }
 
     [Fact]
-    public void Default_AllRowsCollapsed_NoInnerGrid()
+    public void By_default_all_rows_are_collapsed_with_no_inner_grid()
     {
         var html = Render();
 

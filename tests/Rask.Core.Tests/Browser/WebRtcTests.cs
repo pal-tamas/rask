@@ -6,7 +6,7 @@ namespace Rask.Core.Tests.Browser;
 public class WebRtcTests
 {
     [Fact]
-    public async Task IsSupportedAsync_CallsTheHelper()
+    public async Task Support_is_asked_of_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskRtc.isSupported", true);
@@ -15,7 +15,7 @@ public class WebRtcTests
     }
 
     [Fact]
-    public async Task CreateAsync_PassesTheConfigAndMintsAConnectionId()
+    public async Task Creating_passes_the_config_and_mints_a_connection_id()
     {
         var js = new FakeJsRuntime();
         var config = new RtcConfiguration { IceServers = ["stun:stun.example.com:3478"] };
@@ -28,7 +28,7 @@ public class WebRtcTests
     }
 
     [Fact]
-    public async Task CreateAsync_MintsADistinctIdPerConnection()
+    public async Task Creating_mints_a_distinct_id_per_connection()
     {
         var js = new FakeJsRuntime();
         var rtc = new WebRtc(js);
@@ -44,7 +44,7 @@ public class WebRtcTests
     [InlineData("http://evil.example.com")]
     [InlineData("ws://evil.example.com")]
     [InlineData("stunn:stun.example.com")]
-    public async Task CreateAsync_RejectsAnIceServerThatIsNotStunOrTurn(string url)
+    public async Task Creating_rejects_an_ICE_server_that_is_not_STUN_or_TURN(string url)
     {
         var js = new FakeJsRuntime();
 
@@ -60,7 +60,7 @@ public class WebRtcTests
     [InlineData("turn:turn.example.com:3478")]
     [InlineData("turns:turn.example.com:5349")]
     [InlineData("STUN:stun.example.com:3478")]
-    public async Task CreateAsync_AcceptsEveryIceScheme(string url)
+    public async Task Creating_accepts_every_ICE_scheme(string url)
     {
         var js = new FakeJsRuntime();
 
@@ -70,7 +70,7 @@ public class WebRtcTests
     }
 
     [Fact]
-    public async Task CreateAsync_RejectsAnUnknownTransportPolicy()
+    public async Task Creating_rejects_an_unknown_transport_policy()
     {
         var js = new FakeJsRuntime();
 
@@ -79,12 +79,11 @@ public class WebRtcTests
     }
 
     [Fact]
-    public async Task CreateAsync_UnregistersTheConnectionWhenTheJsCallThrows()
+    public async Task Creating_unregisters_the_connection_when_the_JS_call_throws()
     {
         var js = new FakeJsRuntime();
         js.SetException("__raskRtc.create", new InvalidOperationException("boom"));
         var fired = false;
-
         var handlers = new RtcHandlers
         {
             OnConnectionStateChanged = _ =>
@@ -108,7 +107,7 @@ public class WebRtcTests
     }
 
     [Fact]
-    public async Task Offer_Answer_AndDescriptions_RoundTripThroughTheConnectionId()
+    public async Task The_offer_answer_and_descriptions_round_trip_through_the_connection_id()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskRtc.createOffer", new RtcDescription("offer", "v=0"));
@@ -128,7 +127,7 @@ public class WebRtcTests
     }
 
     [Fact]
-    public async Task CreateDataChannelAsync_ReturnsAHandleOverTheJsMintedId()
+    public async Task Creating_a_data_channel_returns_a_handle_over_the_JS_minted_id()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskRtc.createChannel", 7);
@@ -140,11 +139,12 @@ public class WebRtcTests
         Assert.Equal("chat", js.ArgsFor("__raskRtc.createChannel")![1]);
 
         await channel.SendAsync("hi");
+
         Assert.Equal([7, "hi"], js.ArgsFor("__raskRtc.sendText"));
     }
 
     [Fact]
-    public async Task SendAsync_BytesRideBase64Encoded()
+    public async Task Sent_bytes_ride_base64_encoded()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskRtc.createChannel", 3);
@@ -157,7 +157,7 @@ public class WebRtcTests
     }
 
     [Fact]
-    public async Task CreateDataChannelAsync_RejectsAnEmptyLabel()
+    public async Task Creating_a_data_channel_rejects_an_empty_label()
     {
         var js = new FakeJsRuntime();
         var conn = await new WebRtc(js).CreateAsync(new RtcConfiguration(), new RtcHandlers());
@@ -166,14 +166,13 @@ public class WebRtcTests
     }
 
     [Fact]
-    public async Task ListenAsync_DeliversABatchAndDecodesBothMessageShapes()
+    public async Task Listening_delivers_a_batch_and_decodes_both_message_shapes()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskRtc.createChannel", 11);
         var conn = await new WebRtc(js).CreateAsync(new RtcConfiguration(), new RtcHandlers());
         var connectionId = (int)js.ArgsFor("__raskRtc.create")![0]!;
         var channel = await conn.CreateDataChannelAsync("chat");
-
         var batches = new List<IReadOnlyList<RtcMessage>>();
         await channel.ListenAsync(b =>
         {
@@ -197,18 +196,16 @@ public class WebRtcTests
     }
 
     [Fact]
-    public async Task Messages_ForTheSameChannelIdOnAnotherConnection_DoNotCross()
+    public async Task Messages_for_the_same_channel_id_on_another_connection_do_not_cross()
     {
         // The Server host runs many sessions in one process and JS mints channel ids per client, so two
         // sessions both see channel #5. Only the (connection, channel) pair keeps them apart.
         var js = new FakeJsRuntime();
         js.SetResponse("__raskRtc.createChannel", 5);
         var rtc = new WebRtc(js);
-
         var first = await rtc.CreateAsync(new RtcConfiguration(), new RtcHandlers());
         var firstId = (int)js.Calls.Last(c => c.Identifier == "__raskRtc.create").Args![0]!;
         var second = await rtc.CreateAsync(new RtcConfiguration(), new RtcHandlers());
-
         var firstReceived = 0;
         var secondReceived = 0;
         var firstChannel = await first.CreateDataChannelAsync("chat");
@@ -233,7 +230,7 @@ public class WebRtcTests
     }
 
     [Fact]
-    public async Task Ice_DeliversTheWholeBatchToTheConnectionsHandler()
+    public async Task ICE_candidates_arrive_as_one_batch_at_the_connections_handler()
     {
         var js = new FakeJsRuntime();
         var received = new List<RtcIceCandidate>();
@@ -262,7 +259,7 @@ public class WebRtcTests
     [InlineData("closed", RtcConnectionState.Closed)]
     [InlineData("new", RtcConnectionState.New)]
     [InlineData("something-the-spec-adds-later", RtcConnectionState.New)]
-    public async Task State_MapsEveryBrowserStateName(string name, RtcConnectionState expected)
+    public async Task Every_browser_state_name_maps_to_a_connection_state(string name, RtcConnectionState expected)
     {
         var js = new FakeJsRuntime();
         RtcConnectionState? seen = null;
@@ -283,7 +280,7 @@ public class WebRtcTests
     }
 
     [Fact]
-    public async Task Channel_HandsTheAppAUsableHandleForARemoteOpenedChannel()
+    public async Task A_remote_opened_channel_hands_the_app_a_usable_handle()
     {
         var js = new FakeJsRuntime();
         IRtcDataChannel? adopted = null;
@@ -304,11 +301,12 @@ public class WebRtcTests
         Assert.Equal("from-peer", adopted.Label);
 
         await adopted.SendAsync("pong");
+
         Assert.Equal([42, "pong"], js.ArgsFor("__raskRtc.sendText"));
     }
 
     [Fact]
-    public async Task Channel_HandsTheSameHandleBackOnARepeatedPush()
+    public async Task A_repeated_channel_push_hands_back_the_same_handle()
     {
         var js = new FakeJsRuntime();
         var handles = new List<IRtcDataChannel>();
@@ -331,7 +329,7 @@ public class WebRtcTests
     }
 
     [Fact]
-    public async Task DisposeAsync_ClosesTheConnectionOnceAndStopsDelivery()
+    public async Task Disposing_closes_the_connection_once_and_stops_delivery()
     {
         var js = new FakeJsRuntime();
         var fired = false;
@@ -351,18 +349,18 @@ public class WebRtcTests
         Assert.Equal(1, js.CallCount("__raskRtc.close"));
 
         await WebRtcInterop.State(id, "connected");
+
         Assert.False(fired);
     }
 
     [Fact]
-    public async Task DisposingTheConnection_AlsoStopsItsChannels()
+    public async Task Disposing_the_connection_also_stops_its_channels()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskRtc.createChannel", 21);
         var conn = await new WebRtc(js).CreateAsync(new RtcConfiguration(), new RtcHandlers());
         var id = (int)js.ArgsFor("__raskRtc.create")![0]!;
         var channel = await conn.CreateDataChannelAsync("chat");
-
         var received = 0;
         await channel.ListenAsync(b =>
         {
@@ -377,14 +375,13 @@ public class WebRtcTests
     }
 
     [Fact]
-    public async Task DisposingAChannel_ClosesItOnceAndStopsDelivery()
+    public async Task Disposing_a_channel_closes_it_once_and_stops_delivery()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskRtc.createChannel", 31);
         var conn = await new WebRtc(js).CreateAsync(new RtcConfiguration(), new RtcHandlers());
         var id = (int)js.ArgsFor("__raskRtc.create")![0]!;
         var channel = await conn.CreateDataChannelAsync("chat");
-
         var received = 0;
         await channel.ListenAsync(b =>
         {
@@ -398,18 +395,18 @@ public class WebRtcTests
         Assert.Equal(1, js.CallCount("__raskRtc.closeChannel"));
 
         await WebRtcInterop.Messages(id, 31, [new RtcMessageWire("late", null)], 0);
+
         Assert.Equal(0, received);
     }
 
     [Fact]
-    public async Task ChannelClosed_FromTheBrowser_StopsDelivery()
+    public async Task A_channel_closed_from_the_browser_stops_delivery()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskRtc.createChannel", 41);
         var conn = await new WebRtc(js).CreateAsync(new RtcConfiguration(), new RtcHandlers());
         var id = (int)js.ArgsFor("__raskRtc.create")![0]!;
         var channel = await conn.CreateDataChannelAsync("chat");
-
         var received = 0;
         await channel.ListenAsync(b =>
         {
@@ -424,7 +421,7 @@ public class WebRtcTests
     }
 
     [Fact]
-    public async Task AddStreamAsync_AndRemoveStreamAsync_PassTheRawStreamId()
+    public async Task Adding_and_removing_a_stream_pass_the_raw_stream_id()
     {
         var js = new FakeJsRuntime();
         var conn = await new WebRtc(js).CreateAsync(new RtcConfiguration(), new RtcHandlers());
@@ -439,7 +436,7 @@ public class WebRtcTests
     }
 
     [Fact]
-    public async Task Track_DeliversTheRemoteStreamAsAMediaStreamId()
+    public async Task A_track_delivers_the_remote_stream_as_a_MediaStreamId()
     {
         var js = new FakeJsRuntime();
         MediaStreamId? received = null;
@@ -461,7 +458,7 @@ public class WebRtcTests
     }
 
     [Fact]
-    public async Task Track_ForADisposedConnection_IsIgnored()
+    public async Task A_track_for_a_disposed_connection_is_ignored()
     {
         var js = new FakeJsRuntime();
         var fired = false;
@@ -482,7 +479,7 @@ public class WebRtcTests
     }
 
     [Fact]
-    public async Task Pushes_ForAnUnknownIdAreIgnored()
+    public async Task Pushes_for_an_unknown_id_are_ignored()
     {
         await WebRtcInterop.Ice(int.MaxValue, [new RtcIceCandidate("a", null, null)]);
         await WebRtcInterop.State(int.MaxValue, "connected");
@@ -493,7 +490,7 @@ public class WebRtcTests
     }
 
     [Fact]
-    public async Task NullArgumentsAreRejected()
+    public async Task Null_arguments_are_rejected()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskRtc.createChannel", 51);

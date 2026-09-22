@@ -56,14 +56,12 @@ public sealed class HousekeepingContextTests
             var services = new ServiceCollection();
             services.AddLogging(b => b.SetMinimumLevel(LogLevel.Debug).AddProvider(new LevelRecordingProvider(entries)));
             services.AddDbContextFactory<JobsDbContext>(o => o.UseSqlite($"Data Source={path}"));
-
             using var provider = services.BuildServiceProvider();
-
             var quiet = new HousekeepingContextFactory<JobsDbContext>(provider);
             using var db = quiet.CreateDbContext();
             db.Database.EnsureCreated();
-
             entries.Clear();
+
             _ = db.Set<Job>().Count();
 
             var commands = entries
@@ -90,12 +88,10 @@ public sealed class HousekeepingContextTests
         {
             var options = new DbContextOptionsBuilder<JobsDbContext>().UseSqlite($"Data Source={path}").Options;
             var app = new CountingContextFactory(options);
-
             var services = new ServiceCollection();
             services.AddLogging();
             services.AddSingleton<IDbContextFactory<JobsDbContext>>(app);
             services.AddSingleton(options);
-
             using var provider = services.BuildServiceProvider();
 
             using var db = new HousekeepingContextFactory<JobsDbContext>(provider).CreateDbContext();

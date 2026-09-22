@@ -8,7 +8,7 @@ namespace Rask.Core.Tests.HeadAssets;
 public partial class HeadAssetRegistryTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Add_DedupsIdenticalHtml()
+    public void Adding_identical_html_dedups_it()
     {
         var registry = new HeadAssetRegistry();
         registry.Add(Link.Rel("stylesheet").Href("/a.css"));
@@ -22,7 +22,7 @@ public partial class HeadAssetRegistryTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Add_KeepsDistinctHtmlInOrder()
+    public void Adding_distinct_html_keeps_it_in_order()
     {
         var registry = new HeadAssetRegistry();
         registry.Add(Link.Rel("stylesheet").Href("/a.css"));
@@ -38,7 +38,7 @@ public partial class HeadAssetRegistryTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Add_TitleIsSingleton_LastWins()
+    public void The_title_is_a_singleton_and_the_last_wins()
     {
         var registry = new HeadAssetRegistry();
         registry.Add(Title["App default"]);
@@ -53,7 +53,7 @@ public partial class HeadAssetRegistryTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Add_TitleWithAttributes_IsStillSingleton()
+    public void A_title_with_attributes_is_still_a_singleton()
     {
         var registry = new HeadAssetRegistry();
         // The HTML spec doesn't allow arbitrary attrs on <title>, but the dedup logic
@@ -62,12 +62,13 @@ public partial class HeadAssetRegistryTests : global::Rask.Core.RaskMarkup
         registry.Add(Title["Second"]);
         var html = $"<head>{HeadAssetRegistry.Sentinel}</head>";
         var result = registry.ApplyTo(html);
+
         Assert.Equal(1, CountOccurrences(result, "<title "));
         Assert.Contains("Second", result);
     }
 
     [Fact]
-    public void Add_BaseTagIsSingleton_LastWins()
+    public void The_base_tag_is_a_singleton_and_the_last_wins()
     {
         var registry = new HeadAssetRegistry();
         registry.Add(Base.Href("/old/"));
@@ -82,7 +83,7 @@ public partial class HeadAssetRegistryTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Add_DescriptionIsSingleton_ThePageBeatsTheApp()
+    public void The_description_is_a_singleton_and_the_page_beats_the_app()
     {
         // The shape every real site has: one site-wide description on the root component, and a page
         // that says something more specific. Without a singleton key the page gets BOTH, and which one
@@ -100,7 +101,7 @@ public partial class HeadAssetRegistryTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Add_TwoDifferentMetaNames_BothSurvive()
+    public void Two_different_meta_names_both_survive()
     {
         // The key is per NAME, not "one meta per head". Getting that wrong would collapse the viewport
         // and the theme-color into one tag.
@@ -115,7 +116,7 @@ public partial class HeadAssetRegistryTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Add_OpenGraphPropertyIsSingleton_ByProperty()
+    public void An_OpenGraph_property_is_a_singleton_by_property()
     {
         // og:* names itself with `property`, not `name`. Reading only `name` would leave every Open
         // Graph tag duplicating, which is the half of a social card a page most wants to override.
@@ -130,7 +131,7 @@ public partial class HeadAssetRegistryTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Add_OgImageRepeats_BecauseTheSpecSaysItIsAList()
+    public void The_og_image_repeats_because_the_spec_says_it_is_a_list()
     {
         // The exclusion that keeps this from being a lossy rule. A page with three images means three
         // images; collapsing them to the last one would silently drop two.
@@ -146,7 +147,7 @@ public partial class HeadAssetRegistryTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Add_AMediaScopedMetaIsNotASingleton()
+    public void A_media_scoped_meta_is_not_a_singleton()
     {
         // A light/dark theme-color pair is two tags with the same name and different values, and both
         // are correct. `media` is what tells them apart, so its presence takes the tag out of the rule.
@@ -160,7 +161,7 @@ public partial class HeadAssetRegistryTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Add_CanonicalIsSingleton_ButOtherLinksAreNot()
+    public void The_canonical_link_is_a_singleton_but_other_links_are_not()
     {
         // Two canonicals is worse than none — a crawler that sees a contradiction ignores both. Every
         // other rel repeats legitimately (stylesheets, preloads, icons), so only this one is keyed.
@@ -179,7 +180,7 @@ public partial class HeadAssetRegistryTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void ASingletonMetaKeepsOneMorphIdentityAcrossRenders()
+    public void A_singleton_meta_keeps_one_morph_identity_across_renders()
     {
         // Why the key matters beyond dedup: it becomes the data-rask-key, and the client morph matches
         // head children by that. A content-derived hash would change with the text, so navigating from
@@ -201,7 +202,7 @@ public partial class HeadAssetRegistryTests : global::Rask.Core.RaskMarkup
     // branch, which matches by identity instead of position and moves nodes rather
     // than destroying them.
     [Fact]
-    public void ApplyTo_EmitsDataRaskKey_OnEveryUserAsset()
+    public void Applying_emits_a_data_rask_key_on_every_user_asset()
     {
         var registry = new HeadAssetRegistry();
         registry.Add(Link.Rel("stylesheet").Href("/bootstrap.css"));
@@ -217,7 +218,7 @@ public partial class HeadAssetRegistryTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void ApplyTo_ContentHash_StableForIdenticalHtml()
+    public void Applying_gives_a_content_hash_that_is_stable_for_identical_html()
     {
         // Two separate registries given the same HTML must produce the same
         // data-rask-key — that's what lets the morph match an unchanged asset
@@ -242,7 +243,7 @@ public partial class HeadAssetRegistryTests : global::Rask.Core.RaskMarkup
     // HeadAssetRegistry.EmitMountedAssets pathway directly.
 
     [Fact]
-    public void ApplyTo_PreservesUserSuppliedDataRaskKey()
+    public void Applying_preserves_a_user_supplied_data_rask_key()
     {
         // If a user explicitly placed a data-rask-key on a head asset, the framework
         // must not inject a second one — the user is opting into bespoke morph
@@ -275,7 +276,7 @@ public partial class HeadAssetRegistryTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Add_FragmentChildrenFlatten()
+    public void Adding_a_fragment_flattens_its_children()
     {
         var registry = new HeadAssetRegistry();
         registry.Add([
@@ -291,19 +292,21 @@ public partial class HeadAssetRegistryTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void ApplyTo_NoSentinel_ReturnsUnchanged()
+    public void Applying_without_a_sentinel_leaves_the_html_unchanged()
     {
         var registry = new HeadAssetRegistry();
         registry.Add(Link.Rel("stylesheet").Href("/a.css"));
         var input = "<head><title>x</title></head>";
+
         Assert.Equal(input, registry.ApplyTo(input));
     }
 
     [Fact]
-    public void ApplyTo_NoEntries_StripsSentinel()
+    public void Applying_with_no_entries_strips_the_sentinel()
     {
         var registry = new HeadAssetRegistry();
         var input = $"<head>{HeadAssetRegistry.Sentinel}</head>";
+
         Assert.Equal("<head></head>", registry.ApplyTo(input));
     }
 
@@ -314,7 +317,7 @@ public partial class HeadAssetRegistryTests : global::Rask.Core.RaskMarkup
     // duplicate. Both the live-root path and ApplyTo funnel through ApplyInPlace, so this locks
     // the shared splice body's "one sentinel at the given index" contract.
     [Fact]
-    public void ApplyInPlace_SplicesOnlyTheSentinelAtTheGivenIndex()
+    public void Applying_in_place_splices_only_the_sentinel_at_the_given_index()
     {
         var registry = new HeadAssetRegistry();
         registry.Add(Link.Rel("stylesheet").Href("/a.css"));

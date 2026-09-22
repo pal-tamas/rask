@@ -35,7 +35,7 @@ public class HandlerOrderingTests
 
     [Theory]
     [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
-    public async Task TenHandlers_SentRapidly_DispatchInArrivalOrder(LiveTransportKind transport)
+    public async Task Ten_handlers_sent_rapidly_dispatch_in_arrival_order(LiveTransportKind transport)
     {
         // Saturate the ThreadPool first so the dispatcher's continuations have
         // to compete for workers. Without contention, the ThreadPool happens
@@ -88,7 +88,7 @@ public class HandlerOrderingTests
 
     [Theory]
     [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
-    public async Task TwoHandlers_AcrossMultipleRounds_NeverReorder(LiveTransportKind transport)
+    public async Task Two_handlers_across_multiple_rounds_never_reorder(LiveTransportKind transport)
     {
         // Tighter loop: 50 rounds × 2 handlers (h0 then h1). The mutation
         // pattern means the only way Sequence ends in something other than

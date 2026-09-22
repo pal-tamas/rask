@@ -140,6 +140,7 @@ public sealed class StaticWebAssetsManifestFileProviderTests : IDisposable
         var root = Seed("content", "one.txt", "1");
         var path = Write(Manifest([root], ("one.txt", 0, "one.txt")));
         var provider = new StaticWebAssetsManifestFileProvider(path);
+
         Assert.True(provider.GetFileInfo("one.txt").Exists);
 
         File.WriteAllText(path, "{ \"ContentRoots\": [");

@@ -7,7 +7,7 @@ namespace Rask.Core.Tests.Lifecycle;
 public class MountTests
 {
     [Fact]
-    public void OnMount_FiresOnce_AcrossManyRenders()
+    public void OnMount_fires_once_across_many_renders()
     {
         var sp = RenderHarness.EmptyServices();
         var c = new LifecycleTrackingComponent();
@@ -22,7 +22,7 @@ public class MountTests
     }
 
     [Fact]
-    public void OnPropsChanged_FiresEveryRenderWhenPropsChange()
+    public void OnPropsChanged_fires_every_render_when_the_props_change()
     {
         var sp = RenderHarness.EmptyServices();
         var c = new LifecycleTrackingComponent();
@@ -37,7 +37,7 @@ public class MountTests
     }
 
     [Fact]
-    public void OnPropsChanged_FiresOnceWhenPropsUnchanged()
+    public void OnPropsChanged_fires_once_when_the_props_are_unchanged()
     {
         var sp = RenderHarness.EmptyServices();
         var c = new LifecycleTrackingComponent();
@@ -52,7 +52,7 @@ public class MountTests
     }
 
     [Fact]
-    public void OnMount_FiresBeforeOnPropsChanged()
+    public void OnMount_fires_before_the_first_OnPropsChanged()
     {
         var order = new List<string>();
         var c = new OrderRecorder(order);
@@ -64,7 +64,7 @@ public class MountTests
     }
 
     [Fact]
-    public async Task OnMountAsync_IncompleteTask_TriggersRerenderOnCompletion()
+    public async Task An_incomplete_OnMountAsync_task_triggers_a_rerender_on_completion()
     {
         var handle = new RecordingRenderHandle();
         var tcs = new TaskCompletionSource();

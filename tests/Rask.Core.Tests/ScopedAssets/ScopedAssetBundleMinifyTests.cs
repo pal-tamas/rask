@@ -31,7 +31,7 @@ public class ScopedAssetBundleMinifyTests : IDisposable
     }
 
     [Fact]
-    public void MinifyOn_ProducesSmallerBundleWithNoCommentsOrNewlines()
+    public void Minifying_produces_a_smaller_bundle_with_no_comments_or_newlines()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), PrettyCss);
 
@@ -49,7 +49,7 @@ public class ScopedAssetBundleMinifyTests : IDisposable
     }
 
     [Fact]
-    public void FlippingFlag_RebuildsBundle_HashChanges()
+    public void Flipping_the_flag_rebuilds_the_bundle_and_the_hash_changes()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), PrettyCss);
 
@@ -63,7 +63,7 @@ public class ScopedAssetBundleMinifyTests : IDisposable
     }
 
     [Fact]
-    public void Bundle_IsDeterministic_ForSameInputAndFlag()
+    public void The_bundle_is_deterministic_for_the_same_input_and_flag()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), PrettyCss);
         ScopedAssetRegistry.RegisterCss(typeof(WidgetB), ".btn { padding: 2px; }");
@@ -79,7 +79,7 @@ public class ScopedAssetBundleMinifyTests : IDisposable
     }
 
     [Fact]
-    public void JsBundle_IsNeverMinified()
+    public void The_js_bundle_is_never_minified()
     {
         const string prettyJs = "export function f() {\n    return 1;   /* keep me */\n}\n";
         ScopedAssetRegistry.RegisterJs(typeof(WidgetA), prettyJs);

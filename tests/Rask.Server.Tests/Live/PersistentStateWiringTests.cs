@@ -64,6 +64,7 @@ public sealed class PersistentStateWiringTests
         Assert.Same(viaInterface, viaConcrete);
 
         viaInterface.Persist("tab", "reviews");
+
         Assert.Equal(1, viaConcrete.Version);
         Assert.True(viaConcrete.Entries.ContainsKey("tab"));
     }

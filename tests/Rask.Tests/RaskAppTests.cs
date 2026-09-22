@@ -54,6 +54,7 @@ public sealed class RaskAppTests
         try
         {
             var response = await GetAsync(app, "/");
+
             Assert.True(response.IsSuccessStatusCode, $"root answered {(int)response.StatusCode}");
         }
         finally
@@ -76,6 +77,7 @@ public sealed class RaskAppTests
         try
         {
             var response = await GetAsync(app, "/rask-sw.js");
+
             Assert.True(
                 response.IsSuccessStatusCode,
                 $"the service worker answered {(int)response.StatusCode}; "
@@ -104,6 +106,7 @@ public sealed class RaskAppTests
         try
         {
             var response = await GetAsync(app, "/rask/manifest.webmanifest");
+
             Assert.True(response.IsSuccessStatusCode, $"the manifest answered {(int)response.StatusCode}");
 
             var manifest = await response.Content.ReadAsStringAsync();
@@ -128,6 +131,7 @@ public sealed class RaskAppTests
             // Not a 404: the catch-all still answers this path with the app itself. What must be gone is
             // the JavaScript — which is why the previous test checks the content type rather than the code.
             var response = await GetAsync(app, "/rask-sw.js");
+
             Assert.NotEqual("text/javascript", response.Content.Headers.ContentType?.MediaType);
         }
         finally
@@ -171,6 +175,7 @@ public sealed class RaskAppTests
         try
         {
             var response = await GetAsync(app, "/_rask/files/not-a-token");
+
             // No route any more, so the path falls through to the app's catch-all, which renders the page.
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
@@ -193,6 +198,7 @@ public sealed class RaskAppTests
         try
         {
             var response = await GetAsync(app, "/health");
+
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
         finally
@@ -328,14 +334,17 @@ public sealed class RaskAppTests
             using var client = new HttpClient { BaseAddress = new Uri(BaseAddress(app)) };
 
             var literal = await client.GetAsync("/ping");
+
             Assert.Equal(HttpStatusCode.OK, literal.StatusCode);
             Assert.Equal("pong", await literal.Content.ReadAsStringAsync());
 
             var parameterised = await client.GetAsync("/api/items/7");
+
             Assert.Equal("{\"id\":7}", await parameterised.Content.ReadAsStringAsync());
 
             // The catch-all is MapGet, so a POST proves the verb is not what saves this either.
             var posted = await client.PostAsync("/api/items", content: null);
+
             Assert.Equal("{\"created\":true}", await posted.Content.ReadAsStringAsync());
         }
         finally
@@ -355,6 +364,7 @@ public sealed class RaskAppTests
         try
         {
             var response = await GetAsync(app, "/some/deep/page");
+
             Assert.True(response.IsSuccessStatusCode, $"deep route answered {(int)response.StatusCode}");
         }
         finally
@@ -376,13 +386,13 @@ public sealed class RaskAppTests
             scheme = ctx.Request.Scheme;
             return ctx.Request.Scheme;
         }))).Build<TestApp>();
-
         await app.StartAsync();
 
         try
         {
             using var client = new HttpClient { BaseAddress = new Uri(BaseAddress(app)) };
             client.DefaultRequestHeaders.Add("X-Forwarded-Proto", "https");
+
             await client.GetAsync("/scheme");
 
             Assert.Equal("http", scheme);
@@ -406,13 +416,13 @@ public sealed class RaskAppTests
                 return ctx.Request.Scheme;
             }));
         }).Build<TestApp>();
-
         await app.StartAsync();
 
         try
         {
             using var client = new HttpClient { BaseAddress = new Uri(BaseAddress(app)) };
             client.DefaultRequestHeaders.Add("X-Forwarded-Proto", "https");
+
             await client.GetAsync("/scheme");
 
             Assert.Equal("https", scheme);

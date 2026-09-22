@@ -33,7 +33,7 @@ public class RaskVersionTests
     ///     </para>
     /// </summary>
     [Fact]
-    public void Current_MatchesThePackableHostVersion()
+    public void The_current_version_matches_the_packable_host_version()
     {
         var expected = PackableInformational.Split('+')[0];
 
@@ -51,27 +51,27 @@ public class RaskVersionTests
     }
 
     [Fact]
-    public void Current_IsNonEmpty()
+    public void The_current_version_is_non_empty()
     {
         Assert.False(string.IsNullOrWhiteSpace(RaskVersion.Current));
     }
 
     [Fact]
-    public void Current_HasNoBuildMetadataSuffix()
+    public void The_current_version_has_no_build_metadata_suffix()
     {
         // The "+<commit sha>" build-metadata suffix must be stripped.
         Assert.DoesNotContain('+', RaskVersion.Current);
     }
 
     [Fact]
-    public void Current_LooksLikeSemVer()
+    public void The_current_version_looks_like_SemVer()
     {
         // major.minor.patch with an optional prerelease label.
         Assert.Matches(new Regex(@"^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$"), RaskVersion.Current);
     }
 
     [Fact]
-    public void Current_IsStable()
+    public void The_current_version_is_stable_across_reads()
     {
         Assert.Equal(RaskVersion.Current, RaskVersion.Current);
     }

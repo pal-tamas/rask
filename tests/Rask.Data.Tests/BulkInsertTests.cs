@@ -221,6 +221,7 @@ public sealed class BulkInsertTests : IDisposable
     public async Task An_empty_sequence_writes_nothing()
     {
         await using var db = NewContext();
+
         Assert.Equal(0, await db.BulkInsertAsync(Array.Empty<Widget>()));
     }
 

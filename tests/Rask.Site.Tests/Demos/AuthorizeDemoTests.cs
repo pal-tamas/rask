@@ -12,7 +12,7 @@ namespace Rask.Site.Tests.Demos;
 public sealed class AuthorizeDemoTests
 {
     [Fact]
-    public void Anonymous_ShowsSignInPrompt()
+    public void An_anonymous_visitor_sees_the_sign_in_prompt()
     {
         var html = Render(new DemoUserProvider());
 
@@ -22,7 +22,7 @@ public sealed class AuthorizeDemoTests
     }
 
     [Fact]
-    public void SignedInUser_ShowsStandardAccess()
+    public void A_signed_in_user_sees_standard_access()
     {
         var provider = new DemoUserProvider();
         provider.SignIn("alice", "user");
@@ -36,7 +36,7 @@ public sealed class AuthorizeDemoTests
     }
 
     [Fact]
-    public void Admin_ShowsAdminContent()
+    public void An_admin_sees_the_admin_content()
     {
         var provider = new DemoUserProvider();
         provider.SignIn("rootadmin", "admin");

@@ -25,7 +25,7 @@ public sealed class DaisyUiPluginDeliveryTests
     private static readonly string _targets = ReadTargets();
 
     [Fact]
-    public void TheBundleIsPackedBesideTheTargets()
+    public void The_bundle_is_packed_beside_the_targets()
     {
         // An EmbeddedResource is only reachable at run time, and this copy has to happen at build
         // time — before Tailwind runs, not after the app has started.
@@ -36,7 +36,7 @@ public sealed class DaisyUiPluginDeliveryTests
     }
 
     [Fact]
-    public void TheInRepoFallbackNamesNoTargetFramework()
+    public void The_in_repo_fallback_names_no_target_framework()
     {
         // The stylesheet's fallback needs two steps because build output is per-TFM, and getting that
         // wrong shipped rask.sh grey (see KitStylesheetResolutionTests). This file has no such
@@ -51,7 +51,7 @@ public sealed class DaisyUiPluginDeliveryTests
     }
 
     [Fact]
-    public void ItIsOptInLikeTheStylesheet()
+    public void It_is_opt_in_like_the_stylesheet()
     {
         // Referencing the kit is not the same as wanting to compile daisyUI yourself. An app drawing
         // with Ui* components alone needs none of this.
@@ -62,7 +62,7 @@ public sealed class DaisyUiPluginDeliveryTests
     }
 
     [Fact]
-    public void AMissingBundleFailsTheBuild()
+    public void A_missing_bundle_fails_the_build()
     {
         // Same reasoning the stylesheet target records: the project asked for this file by name, so
         // there is no ambiguity left for a warning to be kind about. Without it the app compiles a
@@ -74,7 +74,7 @@ public sealed class DaisyUiPluginDeliveryTests
     }
 
     [Fact]
-    public void TheCopyIsOrderedBeforeTheTailwindCompile()
+    public void The_copy_is_ordered_before_the_Tailwind_compile()
     {
         // Rask.Tailwind also hooks BeforeBuild, and the order between two targets sharing one
         // BeforeTargets is import order — which this file does not get to decide. Naming the compile
@@ -86,7 +86,7 @@ public sealed class DaisyUiPluginDeliveryTests
     }
 
     [Fact]
-    public void AConsumersOwnSheetCompilesDaisyUiFromTheBundle()
+    public void A_consumers_own_sheet_compiles_daisyUI_from_the_bundle()
     {
         // The claim the whole approach rests on, run for real rather than reasoned about: a sheet
         // shaped like the one `rask new` writes, in a directory with no node_modules and no
@@ -105,7 +105,7 @@ public sealed class DaisyUiPluginDeliveryTests
     }
 
     [Fact]
-    public void TheBundleIsNotScannedAsASafelist()
+    public void The_bundle_is_not_scanned_as_a_safelist()
     {
         // 348 KB of daisyUI's own code, naming every class daisyUI defines. Scanned, it acts as a
         // safelist for the whole library and the sheet carries every component whether or not the app

@@ -40,7 +40,7 @@ public sealed class MountNavigationTests : IDisposable
     }
 
     [Fact]
-    public async Task AHostSession_NavigatingToAMountedPath_IsSentToLoadItAsAPage()
+    public async Task A_host_session_navigating_to_a_mounted_path_is_sent_to_load_it_as_a_page()
     {
         using var host = CreateHost();
         using var ws = await ConnectAsync(host, "/host-page");
@@ -48,13 +48,14 @@ public sealed class MountNavigationTests : IDisposable
         await ws.SendJsonAsync(new { type = "navigate", path = "/_mounted", query = "?tab=1" });
 
         var frame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
+
         Assert.NotNull(frame);
         Assert.DoesNotContain("mounted-page", frame);
         AssertLocation(frame, "/_mounted?tab=1", replace: false);
     }
 
     [Fact]
-    public async Task AMountedSession_NavigatingToAHostPath_IsSentToLoadItAsAPage()
+    public async Task A_mounted_session_navigating_to_a_host_path_is_sent_to_load_it_as_a_page()
     {
         using var host = CreateHost();
         using var ws = await ConnectAsync(host, "/_mounted");
@@ -62,6 +63,7 @@ public sealed class MountNavigationTests : IDisposable
         await ws.SendJsonAsync(new { type = "navigate", path = "/host-page", query = "", replace = true });
 
         var frame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
+
         Assert.NotNull(frame);
         Assert.DoesNotContain("host-page-body", frame);
         AssertLocation(frame, "/host-page", replace: true);
@@ -69,7 +71,7 @@ public sealed class MountNavigationTests : IDisposable
 
     // The scoping must not cost a session its own application's pages.
     [Fact]
-    public async Task AHostSession_NavigatingWithinTheHost_RendersInPlace()
+    public async Task A_host_session_navigating_within_the_host_renders_in_place()
     {
         using var host = CreateHost();
         using var ws = await ConnectAsync(host, "/host-page");
@@ -77,6 +79,7 @@ public sealed class MountNavigationTests : IDisposable
         await ws.SendJsonAsync(new { type = "navigate", path = "/host-other", query = "" });
 
         var frame = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
+
         Assert.NotNull(frame);
         Assert.Contains("host-other-body", frame);
     }
@@ -84,7 +87,7 @@ public sealed class MountNavigationTests : IDisposable
     // The Router a host session renders defaults to the host's table too, so a path that only the mount declares
     // matches nothing there even when the route state reaches it without a navigate frame.
     [Fact]
-    public async Task AHostSessionsRouter_DoesNotMatchAMountedPage()
+    public async Task A_host_sessions_router_does_not_match_a_mounted_page()
     {
         using var host = CreateHost();
         var html = await host.Http.GetStringAsync("/host-page");

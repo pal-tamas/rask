@@ -35,6 +35,7 @@ public partial class InstallTabsTests : global::Rask.Core.RaskMarkup
         // attribute, and the second click handler is unambiguously the WASM tab.
         var tabs = page.HandlerIds("click");
         Assert.Equal(2, tabs.Count);
+
         await page.InvokeAsync(tabs[1]);
 
         Assert.Contains("browser-WASM SPA", page.Html, StringComparison.Ordinal);
@@ -58,10 +59,12 @@ public partial class InstallTabsTests : global::Rask.Core.RaskMarkup
     public async Task Neither_terminal_still_leads_with_the_bare_dotnet_tool_install()
     {
         var page = Test.Render(() => InstallTabs);
+
         Assert.DoesNotContain("dotnet tool install", page.Html, StringComparison.Ordinal);
 
         var tabs = page.HandlerIds("click");
         await page.InvokeAsync(tabs[1]);
+
         Assert.DoesNotContain("dotnet tool install", page.Html, StringComparison.Ordinal);
     }
 
@@ -72,10 +75,12 @@ public partial class InstallTabsTests : global::Rask.Core.RaskMarkup
     public async Task Only_the_selected_terminal_is_rendered()
     {
         var page = Test.Render(() => InstallTabs);
+
         Assert.DoesNotContain("browser-WASM SPA", page.Html, StringComparison.Ordinal);
 
         var tabs = page.HandlerIds("click");
         await page.InvokeAsync(tabs[1]);
+
         Assert.DoesNotContain("ASP.NET live-server app", page.Html, StringComparison.Ordinal);
     }
 }

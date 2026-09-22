@@ -130,6 +130,7 @@ public sealed class WebPushSenderTests
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
             TestSender.Create(handler).SendAsync(sub, WebPushMessage.Text("T")));
+
         Assert.Null(handler.Request); // never left the process.
     }
 
@@ -158,6 +159,7 @@ public sealed class WebPushSenderTests
 
         await sender.SendAsync(a, WebPushMessage.Text("T"));
         string first = handler.Request!.Headers.GetValues("Authorization").Single();
+
         await sender.SendAsync(b, WebPushMessage.Text("T"));
         string second = handler.Request!.Headers.GetValues("Authorization").Single();
 
@@ -168,6 +170,7 @@ public sealed class WebPushSenderTests
     public void Constructor_validates_options()
     {
         var bad = new WebPushOptions { Subject = "mailto:x@y.com" }; // missing keys.
+
         Assert.Throws<InvalidOperationException>(() => new WebPushSender(new HttpClient(new RecordingHandler()), bad));
     }
 }

@@ -10,7 +10,7 @@ namespace Rask.Server.Tests.Security;
 public class WebSocketFrameRateTests
 {
     [Fact]
-    public async Task InboundFrameFlood_ClosesSocket()
+    public async Task An_inbound_frame_flood_closes_the_socket()
     {
         using var host = RaskTestHost.Create<TestApp>(
             configureServer: o => o.MaxInboundFramesPerSecond = 5); // small cap for the test
@@ -52,7 +52,7 @@ public class WebSocketFrameRateTests
     }
 
     [Fact]
-    public async Task FramesUnderRateCap_AreProcessed()
+    public async Task Frames_under_the_rate_cap_are_processed()
     {
         // Guard against the cap regressing legitimate traffic: a hello plus a few frames under the
         // default cap round-trip fine and leave the socket open.

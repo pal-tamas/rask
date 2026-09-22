@@ -13,7 +13,7 @@ namespace Rask.Site.Tests.Guides;
 public sealed class GuideChromeTests
 {
     [Fact]
-    public void Headings_ExtractsH2AndH3_WithStableAnchorIds()
+    public void Headings_extract_h2_and_h3_with_stable_anchor_ids()
     {
         var headings = Markdown.Headings("# Title\n\n## First section\n\n### A detail\n\n## Second section\n");
 
@@ -24,7 +24,7 @@ public sealed class GuideChromeTests
     }
 
     [Fact]
-    public void Headings_SkipsH1AndDeeperThanH3()
+    public void Headings_skip_h1_and_anything_deeper_than_h3()
     {
         var headings = Markdown.Headings("# H1\n\n## H2\n\n#### H4\n");
 
@@ -33,7 +33,7 @@ public sealed class GuideChromeTests
     }
 
     [Fact]
-    public void Headings_FlattensInlineCodeInHeadingText()
+    public void Inline_code_in_a_heading_is_flattened_into_its_text()
     {
         var headings = Markdown.Headings("## Programmatic navigation — `Navigator`\n");
 
@@ -51,11 +51,11 @@ public sealed class GuideChromeTests
     [InlineData("## 1. Two-way binding", "1-two-way-binding")]
     [InlineData("## Callbacks (child → parent)", "callbacks-child--parent")]
     [InlineData("## Gotcha: don't `StateHasChanged()` in unmount", "gotcha-dont-statehaschanged-in-unmount")]
-    public void Headings_UseGitHubAnchorSlugs(string markdown, string expectedId) =>
+    public void Headings_use_GitHub_anchor_slugs(string markdown, string expectedId) =>
         Assert.Equal(expectedId, Assert.Single(Markdown.Headings(markdown)).Id);
 
     [Fact]
-    public void Headings_DisambiguateRepeatedTitlesTheWayGitHubDoes()
+    public void Repeated_heading_titles_are_disambiguated_the_way_GitHub_does()
     {
         var ids = Markdown.Headings("## Notes\n\n## Notes\n\n## Notes\n").Select(h => h.Id).ToArray();
 
@@ -63,7 +63,7 @@ public sealed class GuideChromeTests
     }
 
     [Fact]
-    public void ReadingOrder_FollowsGroupOrderThenCatalogOrder()
+    public void The_reading_order_follows_group_order_then_catalog_order()
     {
         var order = GuideChrome.ReadingOrder();
 
@@ -79,7 +79,7 @@ public sealed class GuideChromeTests
     }
 
     [Fact]
-    public void Adjacent_FirstGuideHasNoPrev_LastHasNoNext()
+    public void The_first_guide_has_no_prev_and_the_last_has_no_next()
     {
         var order = GuideChrome.ReadingOrder();
 
@@ -91,7 +91,7 @@ public sealed class GuideChromeTests
     }
 
     [Fact]
-    public void Adjacent_MiddleGuide_LinksBothNeighbours()
+    public void A_middle_guide_links_both_neighbours()
     {
         var order = GuideChrome.ReadingOrder();
 
@@ -102,7 +102,7 @@ public sealed class GuideChromeTests
     }
 
     [Fact]
-    public void Adjacent_UnknownSlug_YieldsNoNeighbours()
+    public void An_unknown_slug_has_no_neighbours()
     {
         var (prev, next) = GuideChrome.Adjacent("does-not-exist");
 
@@ -111,7 +111,7 @@ public sealed class GuideChromeTests
     }
 
     [Fact]
-    public void RoutingGuide_RendersChapters_RailPrevNext_AndTheEmbeddedDemo()
+    public void The_routing_guide_renders_chapters_the_rail_prev_next_and_the_embedded_demo()
     {
         var sp = TestServices.Default();
         var js = sp.GetRequiredService<IJSRuntime>();
@@ -139,7 +139,7 @@ public sealed class GuideChromeTests
     }
 
     [Fact]
-    public void FormsGuide_MountsLiveBindingDemo()
+    public void The_forms_guide_mounts_the_live_binding_demo()
     {
         var sp = TestServices.Default();
         var js = sp.GetRequiredService<IJSRuntime>();
@@ -156,7 +156,7 @@ public sealed class GuideChromeTests
     }
 
     [Fact]
-    public void FormsValidationGuide_MountsLiveValidationDemo()
+    public void The_forms_validation_guide_mounts_the_live_validation_demo()
     {
         var sp = TestServices.Default();
         var js = sp.GetRequiredService<IJSRuntime>();
@@ -172,7 +172,7 @@ public sealed class GuideChromeTests
     }
 
     [Fact]
-    public void UnknownSlug_RendersNotFound_NotACrash()
+    public void An_unknown_guide_slug_renders_not_found_rather_than_crashing()
     {
         var sp = TestServices.Default();
         var js = sp.GetRequiredService<IJSRuntime>();

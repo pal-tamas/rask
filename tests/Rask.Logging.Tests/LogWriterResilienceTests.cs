@@ -11,7 +11,7 @@ namespace Rask.Logging.Tests;
 public sealed class LogWriterResilienceTests
 {
     [Fact]
-    public async Task AFailingStoreDoesNotFaultTheHost()
+    public async Task A_failing_store_does_not_fault_the_host()
     {
         var store = new FaultyLogStore { Fail = true };
         using var writer = Build(store, out var channel, new RaskLoggingOptions
@@ -34,11 +34,12 @@ public sealed class LogWriterResilienceTests
         await WaitUntilAsync(() => store.Appended.Count > 0);
 
         await writer.StopAsync(CancellationToken.None);
+
         Assert.Equal("after recovery", Assert.Single(store.Appended).Message);
     }
 
     [Fact]
-    public async Task AFailingShutdownDrainDoesNotThrowOutOfStop()
+    public async Task A_failing_shutdown_drain_does_not_throw_out_of_stop()
     {
         var store = new FaultyLogStore { Fail = true };
         using var writer = Build(store, out var channel, new RaskLoggingOptions
@@ -57,7 +58,7 @@ public sealed class LogWriterResilienceTests
     /// write are lost — deliberately, because a shutdown that never finishes is worse.
     /// </summary>
     [Fact]
-    public async Task AHangingStoreCannotStallShutdownPastTheDrainTimeout()
+    public async Task A_hanging_store_cannot_stall_shutdown_past_the_drain_timeout()
     {
         var store = new FaultyLogStore { Hang = true };
         using var writer = Build(store, out var channel, new RaskLoggingOptions
@@ -90,7 +91,7 @@ public sealed class LogWriterResilienceTests
     /// pins the option's effect in both directions with no timing at all.
     /// </remarks>
     [Fact]
-    public async Task NoDrainRunsWhenTheTimeoutIsZero()
+    public async Task No_drain_runs_when_the_timeout_is_zero()
     {
         var store = new FaultyLogStore();
         using var writer = Build(store, out var channel, new RaskLoggingOptions
@@ -106,9 +107,9 @@ public sealed class LogWriterResilienceTests
         Assert.Equal(0, store.Attempts);
     }
 
-    /// <inheritdoc cref="NoDrainRunsWhenTheTimeoutIsZero"/>
+    /// <inheritdoc cref="No_drain_runs_when_the_timeout_is_zero"/>
     [Fact]
-    public async Task TheDrainRunsWhenTheTimeoutIsPositive()
+    public async Task The_drain_runs_when_the_timeout_is_positive()
     {
         var store = new FaultyLogStore();
         using var writer = Build(store, out var channel, new RaskLoggingOptions
@@ -129,7 +130,7 @@ public sealed class LogWriterResilienceTests
     /// second would bury the console it is meant to warn.
     /// </summary>
     [Fact]
-    public async Task AStoreThatKeepsFailingIsReportedOnceAMinuteAndItsRecoveryOnce()
+    public async Task A_store_that_keeps_failing_is_reported_once_a_minute_and_its_recovery_once()
     {
         var store = new FaultyLogStore { Fail = true };
         var clock = new FakeTimeProvider(DateTimeOffset.UnixEpoch);

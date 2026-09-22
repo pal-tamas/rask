@@ -13,7 +13,7 @@ namespace Rask.Generators.Tests;
 ///     The real <c>Rask.Server.AddRask</c> symbol is referenced via <c>BuildReferences()</c>, so the
 ///     analyzer resolves a genuine method symbol and its containing-assembly check actually runs. A
 ///     harness that could not bind the call would report nothing and every negative case below would pass
-///     for the wrong reason — which is why <see cref="TwoCallsOnTheSameCollection_ReportsRask056"/> comes
+///     for the wrong reason — which is why <see cref="Two_calls_on_the_same_collection_report_RASK060"/> comes
 ///     first: it is the proof that this fixture binds what the analyzer looks for.
 /// </remarks>
 public class DuplicateAddRaskAnalyzerTests
@@ -37,7 +37,7 @@ public class DuplicateAddRaskAnalyzerTests
                                                    """;
 
     [Fact]
-    public async Task TwoCallsOnTheSameCollection_ReportsRask056()
+    public async Task Two_calls_on_the_same_collection_report_RASK060()
     {
         // The shape that ships an app with no languages: the second call's configureCulture runs, builds
         // its options, and then loses to the TryAddSingleton the first call already made.
@@ -51,7 +51,7 @@ public class DuplicateAddRaskAnalyzerTests
     }
 
     [Fact]
-    public async Task ThreeCalls_ReportsEveryCallAfterTheFirst() =>
+    public async Task Three_calls_report_every_call_after_the_first() =>
         // Each surplus call is a separate edit to make, so each gets its own report.
         Assert.Equal(2, (await Diagnostics(Program("""
             builder.Services.AddRask();
@@ -60,12 +60,12 @@ public class DuplicateAddRaskAnalyzerTests
             """))).Length);
 
     [Fact]
-    public async Task OneCall_NoDiagnostic() =>
+    public async Task One_call_reports_nothing() =>
         Assert.Empty(await Diagnostics(Program(
             "builder.Services.AddRask(configureCulture: c => c.SupportedCultures.Add(\"en\"));")));
 
     [Fact]
-    public async Task TwoDifferentCollections_NoDiagnostic() =>
+    public async Task Two_different_collections_report_nothing() =>
         // Two collections configured side by side are two apps' worth of registrations, not a double
         // registration. Without this the rule would fire across a test file that builds one collection per
         // case, which is how an analyzer earns being turned off.
@@ -77,7 +77,7 @@ public class DuplicateAddRaskAnalyzerTests
             """)));
 
     [Fact]
-    public async Task TwoConstructedCollections_NoDiagnostic() =>
+    public async Task Two_constructed_collections_report_nothing() =>
         // Both receivers spell `new ServiceCollection()`, and comparing spelling alone would call that one
         // collection configured twice. It is two collections — the shape a test file falls into naturally,
         // and the noise that gets a rule switched off.
@@ -87,7 +87,7 @@ public class DuplicateAddRaskAnalyzerTests
             """)));
 
     [Fact]
-    public async Task CallsOnOppositeBranches_NoDiagnostic() =>
+    public async Task Calls_on_opposite_branches_report_nothing() =>
         // One call at run time, not two. Reporting this would be telling the author to merge two lines
         // that were never both going to execute.
         Assert.Empty(await Diagnostics(Program("""
@@ -102,7 +102,7 @@ public class DuplicateAddRaskAnalyzerTests
             """)));
 
     [Fact]
-    public async Task CallsInSeparateMethods_NoDiagnostic() =>
+    public async Task Calls_in_separate_methods_report_nothing() =>
         Assert.Empty(await Diagnostics("""
             using Microsoft.Extensions.DependencyInjection;
             using Rask.Core;
@@ -123,7 +123,7 @@ public class DuplicateAddRaskAnalyzerTests
             """));
 
     [Fact]
-    public async Task AnUnrelatedAddRask_NoDiagnostic() =>
+    public async Task An_unrelated_AddRask_reports_nothing() =>
         // Name-matching alone is not enough: the rule is about Rask's host registration, so a method that
         // merely shares the name must not trip it.
         Assert.Empty(await Diagnostics("""

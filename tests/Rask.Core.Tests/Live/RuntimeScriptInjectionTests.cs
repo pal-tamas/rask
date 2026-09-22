@@ -18,7 +18,7 @@ public partial class RuntimeScriptInjectionTests : global::Rask.Core.RaskMarkup
         [Doctype, Html.Lang("en")[Head, Body[bodyChildren]]];
 
     [Fact]
-    public void Body_ProviderRegistered_InjectsScriptAsLastBodyChild()
+    public void A_registered_provider_injects_the_script_as_the_last_body_child()
     {
         var view = new StubComponent(() => Shell(P["hi"]));
 
@@ -29,7 +29,7 @@ public partial class RuntimeScriptInjectionTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Body_NoProvider_InjectsNothing()
+    public void Without_a_provider_the_body_gets_nothing_injected()
     {
         var view = new StubComponent(() => Shell(P["hi"]));
 
@@ -40,7 +40,7 @@ public partial class RuntimeScriptInjectionTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Body_LegacyRaskRuntimeScriptStillInTree_EmitsExactlyOneScript()
+    public void A_legacy_runtime_script_still_in_the_tree_emits_exactly_one_script()
     {
         // RaskRuntimeScript() is a no-op; the framework injects one script at body close.
         var view = new StubComponent(() => Shell(P["hi"], RaskRuntimeScript));
@@ -53,7 +53,7 @@ public partial class RuntimeScriptInjectionTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void NonLiveToHtml_DoesNotInject()
+    public void A_non_live_ToHtml_does_not_inject()
     {
         // Body().ToHtml() outside a live render must stay bare (no provider reachable anyway).
         Assert.Equal("<body></body>", Body.ToHtml());
@@ -72,7 +72,7 @@ public partial class RuntimeScriptInjectionTests : global::Rask.Core.RaskMarkup
     // ServerRuntimeScript does (`Script.Src(...)`) — which is the only shape that reproduces it.
 
     [Fact]
-    public void Body_ProviderBuildsThroughTheChain_LeavesNoEntrySlotBehind()
+    public void A_body_provider_building_through_the_chain_leaves_no_entry_slot_behind()
     {
         var view = new StubComponent(() => Shell(P["hi"]));
         using var provider = new ServiceCollection()
@@ -87,7 +87,7 @@ public partial class RuntimeScriptInjectionTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Head_ProviderBuildsThroughTheChain_LeavesNoEntrySlotBehind()
+    public void A_head_provider_building_through_the_chain_leaves_no_entry_slot_behind()
     {
         var view = new StubComponent(() => Shell(P["hi"]));
         using var provider = new ServiceCollection()

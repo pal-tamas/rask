@@ -29,7 +29,7 @@ public class RaskWasmBrowserApisTests
     ];
 
     [Fact]
-    public void AddWasmBrowserApis_RegistersTheThirteenWasmOnlyWrappers_AsSingletons()
+    public void AddWasmBrowserApis_registers_the_thirteen_WASM_only_wrappers_as_singletons()
     {
         var services = new ServiceCollection();
 
@@ -47,7 +47,7 @@ public class RaskWasmBrowserApisTests
     // — the Core tier's equivalent list had silently fallen three behind its registrar. Compare against what
     // AddWasmBrowserApis actually registered, so adding a wrapper without pinning it fails here.
     [Fact]
-    public void AddWasmBrowserApis_RegistersNothingBeyondThePinnedSet()
+    public void AddWasmBrowserApis_registers_nothing_beyond_the_pinned_set()
     {
         var services = new ServiceCollection();
 
@@ -64,7 +64,7 @@ public class RaskWasmBrowserApisTests
     // implementation registers it first and keeps it. Pinned on IShare because that is the one an app is
     // most likely to replace, and because the assertion moved here with it from Rask.Client.Tests.
     [Fact]
-    public void AddWasmBrowserApis_IsFallbackOnly_AnAppSuppliedShareRegisteredFirstWins()
+    public void AddWasmBrowserApis_is_fallback_only_so_an_app_supplied_share_registered_first_wins()
     {
         var services = new ServiceCollection();
 

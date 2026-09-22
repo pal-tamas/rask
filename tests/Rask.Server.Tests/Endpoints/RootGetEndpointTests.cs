@@ -7,7 +7,7 @@ namespace Rask.Server.Tests.Endpoints;
 public class RootGetEndpointTests
 {
     [Fact]
-    public async Task Get_ReturnsHtmlWithDataRaskRootAttribute()
+    public async Task A_page_request_returns_html_with_the_data_rask_root_attribute()
     {
         using var host = RaskTestHost.Create<TestApp>();
 
@@ -20,11 +20,12 @@ public class RootGetEndpointTests
     }
 
     [Fact]
-    public async Task Get_RegistersSessionInStore()
+    public async Task A_page_request_registers_a_session_in_the_store()
     {
         using var host = RaskTestHost.Create<TestApp>();
 
         Assert.Equal(0, host.Store.Count);
+
         var response = await host.Http.GetAsync("/foo");
         response.EnsureSuccessStatusCode();
 
@@ -32,7 +33,7 @@ public class RootGetEndpointTests
     }
 
     [Fact]
-    public async Task Get_ShellResponse_IsNotCacheable()
+    public async Task The_shell_response_is_not_cacheable()
     {
         // The shell embeds the session id (data-rask-root), the de-facto bearer for the WS /
         // upload / download endpoints, so it must never be cached by a shared proxy or bfcache.
@@ -49,7 +50,7 @@ public class RootGetEndpointTests
     }
 
     [Fact]
-    public async Task Get_HonoursPathFromRequest()
+    public async Task A_page_request_honours_the_path_it_asked_for()
     {
         using var host = RaskTestHost.Create<TestApp>();
 
@@ -60,7 +61,7 @@ public class RootGetEndpointTests
     }
 
     [Fact]
-    public async Task Get_StoresQueryStringOnRouteState()
+    public async Task A_page_request_stores_its_query_string_on_the_route_state()
     {
         using var host = RaskTestHost.Create<TestApp>();
 

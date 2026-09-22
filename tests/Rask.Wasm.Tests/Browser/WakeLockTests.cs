@@ -5,7 +5,7 @@ namespace Rask.Wasm.Tests.Browser;
 public class WakeLockTests
 {
     [Fact]
-    public async Task IsSupported_CallsHelper()
+    public async Task Support_is_asked_of_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskWakeLock.isSupported", true);
@@ -14,7 +14,7 @@ public class WakeLockTests
     }
 
     [Fact]
-    public async Task Request_ReturnsSentinel_ThatReleasesIdOnDispose()
+    public async Task A_request_returns_a_sentinel_that_releases_its_id_on_dispose()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskWakeLock.request", 42);
@@ -27,7 +27,7 @@ public class WakeLockTests
     }
 
     [Fact]
-    public async Task Dispose_IsIdempotent()
+    public async Task Disposing_the_sentinel_twice_releases_once()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskWakeLock.request", 1);

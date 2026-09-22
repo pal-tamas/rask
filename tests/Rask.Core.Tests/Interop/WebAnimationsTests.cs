@@ -7,7 +7,7 @@ public class WebAnimationsTests
     private static readonly Dictionary<string, string[]> Fade = new() { ["opacity"] = ["0", "1"] };
 
     [Fact]
-    public async Task IsSupported_CallsHelper()
+    public async Task Asking_whether_web_animations_are_supported_calls_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskAnim.supported", true);
@@ -16,7 +16,7 @@ public class WebAnimationsTests
     }
 
     [Fact]
-    public async Task Start_ReturnsAHandleAndPassesTheKeyframesAndTiming()
+    public async Task Starting_gives_a_handle_and_passes_the_keyframes_and_timing()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskAnim.start", 7);
@@ -35,7 +35,7 @@ public class WebAnimationsTests
     }
 
     [Fact]
-    public async Task Start_OnABrowserWithoutTheApi_YieldsAnInvalidHandleRatherThanThrowing()
+    public async Task Starting_on_a_browser_without_the_api_yields_an_invalid_handle_rather_than_throwing()
     {
         // No response registered → the helper returns 0. Starting is inert, which is what lets a caller
         // animate unconditionally without feature-testing first.
@@ -47,7 +47,7 @@ public class WebAnimationsTests
     }
 
     [Fact]
-    public async Task Start_DefaultsTheTimingWhenNoOptionsAreGiven()
+    public async Task Starting_defaults_the_timing_when_no_options_are_given()
     {
         var js = new FakeJsRuntime();
 
@@ -58,7 +58,7 @@ public class WebAnimationsTests
     }
 
     [Fact]
-    public async Task Start_RejectsNulls()
+    public async Task Starting_rejects_nulls()
     {
         var js = new WebAnimations(new FakeJsRuntime());
 
@@ -71,7 +71,7 @@ public class WebAnimationsTests
     [InlineData("finish")]
     [InlineData("pause")]
     [InlineData("play")]
-    public async Task ControlMethods_PassTheRawHandle(string verb)
+    public async Task The_control_methods_pass_the_raw_handle(string verb)
     {
         var js = new FakeJsRuntime();
         var anims = new WebAnimations(js);
@@ -90,7 +90,7 @@ public class WebAnimationsTests
     }
 
     [Fact]
-    public async Task Wait_IsFalseWhenCancelled_AndDoesNotThrow()
+    public async Task Waiting_is_false_when_cancelled_and_does_not_throw()
     {
         // The whole point of returning bool rather than letting `finished` reject: a cancelled animation
         // is an ordinary outcome, so awaiting it needs no try/catch at the call site.
@@ -101,7 +101,7 @@ public class WebAnimationsTests
     }
 
     [Fact]
-    public async Task Wait_IsTrueWhenItRanToCompletion()
+    public async Task Waiting_is_true_when_it_ran_to_completion()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskAnim.finished", true);

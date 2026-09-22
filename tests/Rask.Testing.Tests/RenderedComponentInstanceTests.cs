@@ -15,7 +15,7 @@ public partial class RenderedComponentInstanceTests : global::Rask.Core.RaskMark
     }
 
     [Fact]
-    public void Instance_IsTheObjectPassedIn()
+    public void Instance_is_the_object_passed_in()
     {
         var counter = new Counter();
         var page = Test.Render(counter);
@@ -24,7 +24,7 @@ public partial class RenderedComponentInstanceTests : global::Rask.Core.RaskMark
     }
 
     [Fact]
-    public async Task Instance_StaysTheSameObjectAcrossRenders_AndExposesState()
+    public async Task Instance_stays_the_same_object_across_renders_and_exposes_state()
     {
         var counter = new Counter();
         var page = Test.Render(counter);
@@ -49,7 +49,7 @@ public partial class RenderedComponentInstanceTests : global::Rask.Core.RaskMark
     }
 
     [Fact]
-    public async Task TryInvokeAsync_LiveHandler_DispatchesAndReports()
+    public async Task TryInvokeAsync_on_a_live_handler_dispatches_and_reports_it()
     {
         var page = Test.Render(new OneShot());
         var id = page.HandlerId("click")!;
@@ -59,7 +59,7 @@ public partial class RenderedComponentInstanceTests : global::Rask.Core.RaskMark
     }
 
     [Fact]
-    public async Task TryInvokeAsync_HandlerThatIsGone_ReturnsFalseInsteadOfThrowing()
+    public async Task TryInvokeAsync_on_a_handler_that_is_gone_returns_false_instead_of_throwing()
     {
         var page = Test.Render(new OneShot());
         var id = page.HandlerId("click")!;
@@ -83,9 +83,10 @@ public partial class RenderedComponentInstanceTests : global::Rask.Core.RaskMark
     }
 
     [Fact]
-    public async Task TryInvokeAsync_DeadHandler_DoesNotReRender()
+    public async Task TryInvokeAsync_on_a_dead_handler_does_not_rerender()
     {
         var page = Test.Render(new RenderCount());
+
         Assert.Equal(1, page.Instance.Renders);
 
         Assert.False(await page.TryInvokeAsync("not-a-real-id"));
@@ -95,7 +96,7 @@ public partial class RenderedComponentInstanceTests : global::Rask.Core.RaskMark
     }
 
     [Fact]
-    public async Task TryInvokeAsync_InvalidJson_StillThrows()
+    public async Task TryInvokeAsync_with_invalid_json_still_throws()
     {
         var page = Test.Render(new Counter());
         var id = page.HandlerId("click")!;

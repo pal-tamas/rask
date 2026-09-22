@@ -5,7 +5,7 @@ namespace Rask.Core.Tests.Interop;
 public class BrowserStorageTests
 {
     [Fact]
-    public async Task Local_Set_SendsLocalStorageSetItem_WithKeyAndValue()
+    public async Task Setting_local_storage_sends_setItem_with_the_key_and_value()
     {
         var js = new FakeJsRuntime();
         var storage = new BrowserStorage(js);
@@ -16,7 +16,7 @@ public class BrowserStorageTests
     }
 
     [Fact]
-    public async Task Session_Set_TargetsSessionStorage_NotLocal()
+    public async Task Setting_session_storage_targets_session_storage_not_local()
     {
         var js = new FakeJsRuntime();
         var storage = new BrowserStorage(js);
@@ -28,7 +28,7 @@ public class BrowserStorageTests
     }
 
     [Fact]
-    public async Task Local_Get_SendsGetItem_AndReturnsCannedValue()
+    public async Task Getting_local_storage_sends_getItem_and_gives_the_canned_value()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("localStorage.getItem", "dark");
@@ -41,7 +41,7 @@ public class BrowserStorageTests
     }
 
     [Fact]
-    public async Task Remove_And_Clear_And_Key_And_Length_UseExpectedIdentifiers()
+    public async Task Remove_clear_key_and_length_use_the_expected_identifiers()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("localStorage.length", 3);
@@ -59,7 +59,7 @@ public class BrowserStorageTests
     }
 
     [Fact]
-    public async Task Null_Key_Or_Value_Throws()
+    public async Task A_null_key_or_value_throws()
     {
         var storage = new BrowserStorage(new FakeJsRuntime());
 

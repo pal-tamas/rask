@@ -100,11 +100,11 @@ public sealed partial class DeployCommandTests
     [InlineData(null, "blue")]
     [InlineData("green", "blue")]
     [InlineData("blue", "green")]
-    public void NextColor_toggles_blue_green(string? current, string expected) =>
+    public void The_next_color_toggles_between_blue_and_green(string? current, string expected) =>
         Assert.Equal(expected, DeployCommand.NextColor(current));
 
     [Fact]
-    public void ParseDeployedApps_reads_the_label_listing_and_normalizes_no_value()
+    public void The_label_listing_is_read_into_deployed_apps_and_no_value_is_normalized()
     {
         var apps = DeployCommand.ParseDeployedApps("shop-blue\tshop\tshop.example.com\tblue\t8080\napi\tapi\t<no value>\t<no value>\t9000\n");
 
@@ -114,7 +114,7 @@ public sealed partial class DeployCommandTests
     }
 
     [Fact]
-    public void BuildRoutingMap_forces_the_deploying_app_to_its_new_container_and_keeps_others()
+    public void The_routing_map_forces_the_deploying_app_to_its_new_container_and_keeps_the_others()
     {
         IReadOnlyList<DeployedApp> apps =
         [
@@ -129,7 +129,7 @@ public sealed partial class DeployCommandTests
     }
 
     [Fact]
-    public void BuildRoutingMap_skips_port_mode_apps_without_a_domain()
+    public void The_routing_map_skips_port_mode_apps_without_a_domain()
     {
         IReadOnlyList<DeployedApp> apps = [new("api", "api", string.Empty, string.Empty, 8080)];
 
@@ -140,7 +140,7 @@ public sealed partial class DeployCommandTests
     }
 
     [Fact]
-    public void BuildCaddyfile_emits_a_block_per_route()
+    public void The_caddyfile_has_a_block_per_route()
     {
         var caddyfile = DeployCommand.BuildCaddyfile(new SortedDictionary<string, RouteTarget>(StringComparer.Ordinal)
         {
@@ -158,7 +158,7 @@ public sealed partial class DeployCommandTests
     [InlineData("My.Cool_App", "my.cool_app")]
     [InlineData("Company RaskServer", "company-raskserver")]
     [InlineData("--weird--", "weird")]
-    public void ToContainerSlug_produces_a_docker_safe_name(string input, string expected) =>
+    public void An_app_name_becomes_a_docker_safe_container_slug(string input, string expected) =>
         Assert.Equal(expected, DeployCommand.ToContainerSlug(input));
 
     // ── Orchestration (via the process/file seam) ───────────────────────────────────────────────────
@@ -550,7 +550,7 @@ public sealed partial class DeployCommandTests
     // ── HTTP health check ─────────────────────────────────────────────────────────────────────────────
 
     [Fact]
-    public void BuildHealthCheckArguments_probes_over_the_container_network_namespace()
+    public void The_health_check_probes_over_the_container_network_namespace()
     {
         var args = DeployCommand.BuildHealthCheckArguments("deploy@box", "shop-green", "/health");
 
@@ -562,7 +562,7 @@ public sealed partial class DeployCommandTests
     }
 
     [Fact]
-    public void BuildHealthCheckArguments_uses_the_custom_path()
+    public void The_health_check_uses_the_custom_path()
     {
         var args = DeployCommand.BuildHealthCheckArguments("deploy@box", "shop", "/ready");
 
@@ -655,12 +655,16 @@ public sealed partial class DeployCommandTests
     {
         var console = new StringConsole();
         var command = Create(new FakeFileSystem(), new FakeProcessRunner(), console);
+
         await command.ExecuteAsync(["--host", "deploy@box", "--domain", "shop.example.com", "--name", "shop", "--dry-run"], CancellationToken.None);
+
         Assert.Contains("curlimages/curl:8.11.1", console.OutText);
 
         var offConsole = new StringConsole();
         var offCommand = Create(new FakeFileSystem(), new FakeProcessRunner(), offConsole);
+
         await offCommand.ExecuteAsync(["--host", "deploy@box", "--domain", "shop.example.com", "--name", "shop", "--no-health-check", "--dry-run"], CancellationToken.None);
+
         Assert.DoesNotContain("curlimages/curl", offConsole.OutText);
     }
 
@@ -850,9 +854,11 @@ public sealed partial class DeployCommandTests
         var command = Create(fs, runner, new StringConsole());
 
         await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--port", "9000", "--container-port", "3000"], CancellationToken.None);
+
         Assert.Contains("\"containerPort\": 3000", fs.Files[Path.GetFullPath("/proj/.rask/deploy.json")], StringComparison.Ordinal);
 
         await command.ExecuteAsync(["--host", "deploy@box", "--name", "shop", "--port", "9000", "--container-port", "8080"], CancellationToken.None);
+
         Assert.DoesNotContain("containerPort", fs.Files[Path.GetFullPath("/proj/.rask/deploy.json")], StringComparison.Ordinal);
     }
 
@@ -1058,7 +1064,7 @@ public sealed partial class DeployCommandTests
     [InlineData(new[] { "B=2", "A=1" }, new[] { "A", "B" })]          // sorted, so the file is stable
     [InlineData(new[] { "A=1", "A=2" }, new[] { "A" })]               // de-duplicated
     [InlineData(new[] { "A=x=y" }, new[] { "A" })]                    // only the first '=' splits
-    public void EnvKeysOf_extracts_stable_sorted_names(string[] env, string[] expected) =>
+    public void Env_keys_are_extracted_as_stable_sorted_names(string[] env, string[] expected) =>
         Assert.Equal(expected, DeployCommand.EnvKeysOf(env));
 
     /// <summary>The Caddyfile the deploy generated — read from the write history, since it is deleted
@@ -1241,7 +1247,7 @@ public sealed partial class DeployCommandTests
 public sealed class ArgumentSchemaMultiOptionTests
 {
     [Fact]
-    public void MultiOption_collects_every_repeat_in_order()
+    public void A_repeatable_option_collects_every_repeat_in_order()
     {
         var parsed = new ArgumentSchema().MultiOption("env", 'e')
             .Parse(["--env", "A=1", "-e", "B=2", "--env=C=3"]);
@@ -1251,7 +1257,7 @@ public sealed class ArgumentSchemaMultiOptionTests
     }
 
     [Fact]
-    public void MultiOption_is_empty_when_absent()
+    public void A_repeatable_option_is_empty_when_absent()
     {
         var parsed = new ArgumentSchema().MultiOption("env").Parse([]);
 

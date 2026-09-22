@@ -5,7 +5,7 @@ namespace Rask.Wasm.Tests.Browser;
 public class NotificationsTests
 {
     [Fact]
-    public async Task IsSupported_CallsHelper()
+    public async Task Support_is_asked_of_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskNotify.isSupported", true);
@@ -18,7 +18,7 @@ public class NotificationsTests
     [InlineData("denied", NotificationPermission.Denied)]
     [InlineData("default", NotificationPermission.Default)]
     [InlineData(null, NotificationPermission.Default)]
-    public async Task Permission_ReadsNotificationPermission_AsProperty(string? raw, NotificationPermission expected)
+    public async Task The_permission_is_read_from_Notification_permission_as_a_property(string? raw, NotificationPermission expected)
     {
         var js = new FakeJsRuntime();
         if (raw is not null)
@@ -33,7 +33,7 @@ public class NotificationsTests
     [Theory]
     [InlineData("granted", NotificationPermission.Granted)]
     [InlineData("denied", NotificationPermission.Denied)]
-    public async Task RequestPermission_MapsResult(string raw, NotificationPermission expected)
+    public async Task Requesting_permission_maps_the_result(string raw, NotificationPermission expected)
     {
         var js = new FakeJsRuntime();
         js.SetResponse("Notification.requestPermission", raw);
@@ -42,7 +42,7 @@ public class NotificationsTests
     }
 
     [Fact]
-    public async Task Show_SendsTitleAndOptions()
+    public async Task Showing_sends_the_title_and_options()
     {
         var js = new FakeJsRuntime();
         var opts = new NotificationOptions { Body = "hi", Tag = "t", RequireInteraction = true };
@@ -53,7 +53,7 @@ public class NotificationsTests
     }
 
     [Fact]
-    public async Task Show_DefaultsOptions_WhenNull()
+    public async Task Showing_with_null_options_sends_default_options()
     {
         var js = new FakeJsRuntime();
 
@@ -65,7 +65,7 @@ public class NotificationsTests
     }
 
     [Fact]
-    public async Task Show_NullTitle_Throws()
+    public async Task Showing_a_null_title_throws()
     {
         await Assert.ThrowsAsync<ArgumentNullException>(
             async () => await new Notifications(new FakeJsRuntime()).ShowAsync(null!));

@@ -23,6 +23,7 @@ public sealed class JobOptionsTests
     public void AddRecurring_rejects_a_non_positive_interval()
     {
         var options = new JobOptions();
+
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             options.AddRecurring<TickJob>("tick", TimeSpan.Zero, () => new TickJob()));
     }
@@ -32,6 +33,7 @@ public sealed class JobOptionsTests
     {
         var options = new JobOptions();
         options.AddRecurring<TickJob>("tick", TimeSpan.FromHours(1), () => new TickJob());
+
         Assert.Throws<ArgumentException>(() =>
             options.AddRecurring<TickJob>("tick", TimeSpan.FromHours(2), () => new TickJob()));
     }
@@ -56,7 +58,6 @@ public sealed class JobOptionsTests
                 Assert.Equal("digest", r.Name);
                 Assert.Equal(TimeSpan.FromHours(24), r.Interval);
             });
-
         // The factory is reachable, so a caller can enqueue an off-schedule run of a recurring job.
         Assert.IsType<TickJob>(options.RecurringJobs[0].Factory());
     }
@@ -77,6 +78,7 @@ public sealed class JobOptionsTests
     public void Validate_rejects_a_max_retry_delay_below_the_base()
     {
         var options = new JobOptions { BaseRetryDelay = TimeSpan.FromMinutes(5), MaxRetryDelay = TimeSpan.FromMinutes(1) };
+
         Assert.Throws<ArgumentOutOfRangeException>(options.Validate);
     }
 }
@@ -113,6 +115,7 @@ public sealed class JobSerializerRegistryTests
         var (type, payload) = JobSerializerRegistry.Serialize(new Outer.NestedJob(7));
 
         Assert.DoesNotContain('+', type); // stored dotted, matching the generator's registration
+
         var back = JobSerializerRegistry.Deserialize(type, payload);
         Assert.Equal(7, Assert.IsType<Outer.NestedJob>(back).N);
     }

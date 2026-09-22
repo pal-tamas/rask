@@ -14,9 +14,10 @@ namespace Rask.Site.Tests.Demos;
 public sealed partial class BindingDemosTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void BindingManualDemo_Render_EmitsTextInputAndEmptyEcho()
+    public void BindingManualDemo_renders_a_text_input_and_an_empty_echo()
     {
         var html = new LiveHost(() => BindingManualDemo, TestServices.Default()).RenderAsLiveRoot();
+
         Assert.Contains("type=\"text\"", html);
         Assert.Contains("Type something", html);
         Assert.Contains("Echo: ", html);
@@ -24,26 +25,29 @@ public sealed partial class BindingDemosTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void BindingTypedDemo_Render_EmitsNameInput_AndStrangerFallback()
+    public void BindingTypedDemo_renders_a_name_input_and_the_stranger_fallback()
     {
         var html = new LiveHost(() => BindingTypedDemo, TestServices.Default()).RenderAsLiveRoot();
+
         Assert.Contains("Your name", html);
         Assert.Contains("stranger", html);
     }
 
     [Fact]
-    public void BindingTextareaDemo_Render_EmitsTextareaAndLengthEcho()
+    public void BindingTextareaDemo_renders_a_textarea_and_a_length_echo()
     {
         var html = new LiveHost(() => BindingTextareaDemo, TestServices.Default()).RenderAsLiveRoot();
+
         Assert.Contains("<textarea", html);
         Assert.Contains("Jot something down", html);
         Assert.Contains("Length = 0", html);
     }
 
     [Fact]
-    public void BindingNullableDemo_Render_EmitsAllFour_NullEchos()
+    public void BindingNullableDemo_renders_all_four_fields_with_null_echoes()
     {
         var html = new LiveHost(() => BindingNullableDemo, TestServices.Default()).RenderAsLiveRoot();
+
         Assert.Contains("Optional age (int?)", html);
         Assert.Contains("Optional start date", html);
         Assert.Contains("Optional colour", html);
@@ -58,17 +62,19 @@ public sealed partial class BindingDemosTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void BindingClearDefaultDemo_Render_EmitsDefaultsFromHolder()
+    public void BindingClearDefaultDemo_renders_the_defaults_from_its_holder()
     {
         var html = new LiveHost(() => BindingClearDefaultDemo, TestServices.Default()).RenderAsLiveRoot();
+
         Assert.Contains("Age         = 30", html);
         Assert.Contains("OptionalAge = 7", html);
     }
 
     [Fact]
-    public void BindingAfterBindDemo_Render_EmitsCountriesAndUsCities_ByDefault()
+    public void BindingAfterBindDemo_renders_the_countries_and_the_US_cities_by_default()
     {
         var html = new LiveHost(() => BindingAfterBindDemo, TestServices.Default()).RenderAsLiveRoot();
+
         Assert.Contains(">United States<", html);
         Assert.Contains(">Germany<", html);
         Assert.Contains(">Japan<", html);
@@ -81,10 +87,12 @@ public sealed partial class BindingDemosTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void BindingAfterBindAsyncDemo_Render_EmitsThreeTracks_AndPickATrackHint()
+    public void BindingAfterBindAsyncDemo_renders_three_tracks_and_the_pick_a_track_hint()
     {
         var host = new LiveHost(() => BindingAfterBindAsyncDemo, TestServices.Default());
+
         var html = host.RenderAsLiveRoot();
+
         Assert.Contains(">Frontend<", html);
         Assert.Contains(">Backend<", html);
         Assert.Contains(">Data<", html);
@@ -94,9 +102,10 @@ public sealed partial class BindingDemosTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void BindingMultiDemo_Render_EmitsCheckboxNumberDateSelect_AndHolderDefaults()
+    public void BindingMultiDemo_renders_checkbox_number_date_and_select_with_the_holder_defaults()
     {
         var html = new LiveHost(() => BindingMultiDemo, TestServices.Default()).RenderAsLiveRoot();
+
         Assert.Contains("Subscribe to the newsletter", html);
         // Initial holder values: Subscribe=false, Age=30, StartDate=2026-01-01, Favorite=Blue.
         Assert.Contains("Subscribe = false", html);
@@ -106,7 +115,7 @@ public sealed partial class BindingDemosTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void BindingAfterBindDemo_InvokingPrivateAfterBind_UpdatesCitiesField()
+    public void Invoking_the_private_AfterBind_of_BindingAfterBindDemo_updates_the_cities_field()
     {
         // Pull the demo instance out of the LiveHost and inspect/poke its private
         // state directly to verify the AfterBind logic actually wires the city list.
@@ -141,6 +150,7 @@ public sealed partial class BindingDemosTests : global::Rask.Core.RaskMarkup
             ["JP"] = new[] { "Tokyo", "Osaka", "Kyoto" }
         };
         cityProp.SetValue(model, cities["DE"][0]);
+
         Assert.Equal("DE", countryProp.GetValue(model));
         Assert.Equal("Berlin", cityProp.GetValue(model));
     }

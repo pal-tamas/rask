@@ -10,18 +10,22 @@ namespace Rask.Site.Tests.Pages;
 public sealed class EventsFormDemoTests
 {
     [Fact]
-    public void OnSubmit_WithNamedField_SetsSubmittedToTheValue()
+    public void Submitting_a_named_field_sets_submitted_to_its_value()
     {
         var demo = new EventsFormDemo();
+
         InvokeOnSubmit(demo, new FormData(new Dictionary<string, string> { ["name"] = "Ada" }));
+
         Assert.Equal("Ada", Submitted(demo));
     }
 
     [Fact]
-    public void OnSubmit_WithBlankField_SetsSubmittedToBlankSentinel()
+    public void Submitting_a_blank_field_sets_submitted_to_the_blank_sentinel()
     {
         var demo = new EventsFormDemo();
+
         InvokeOnSubmit(demo, new FormData(new Dictionary<string, string> { ["name"] = "   " }));
+
         Assert.Equal("(blank)", Submitted(demo));
     }
 

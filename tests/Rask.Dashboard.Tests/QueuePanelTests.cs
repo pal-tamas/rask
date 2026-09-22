@@ -88,6 +88,7 @@ public sealed class QueuePanelTests
         await using var h = new DashboardHarness(Batteries.Jobs);
 
         var outbox = h.Queue("outbox");
+
         Assert.False(outbox.IsAvailable);
 
         // And it must not throw when something asks anyway — an unavailable panel reads as nothing.

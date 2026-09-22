@@ -12,16 +12,17 @@ namespace Rask.Site.Tests.Pages;
 public sealed partial class GuidesTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Markdown_RendersHeadingsAndInlineMarkup()
+    public void Markdown_renders_headings_and_inline_markup()
     {
         var html = Markdown.Source("# Title\n\nHello **world**.").ToHtml();
+
         Assert.Contains("<div class=\"markdown-body prose\">", html);
         Assert.Contains("Title", html);
         Assert.Contains("<strong>world</strong>", html);
     }
 
     [Fact]
-    public void Markdown_RendersReferenceStyleMdnLinks_AsRealAnchors()
+    public void Markdown_renders_reference_style_MDN_links_as_real_anchors()
     {
         // The element catalog in docs/elements.md links all ~104 tags to MDN reference-style, with the
         // definitions collected at the end — inline URLs that long would bury the prose. A renderer
@@ -44,11 +45,11 @@ public sealed partial class GuidesTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Markdown_RewritesInternalGuideLink_ToSpaRoute() =>
+    public void An_internal_guide_link_is_rewritten_to_its_SPA_route() =>
         Assert.Contains($"href=\"{Features.Routes.GuidePage("routing")}/\" data-rask-nav", Markdown.Source("[Routing](routing.md)").ToHtml());
 
     [Fact]
-    public void Markdown_RewritesFragmentAndSubdirLinks()
+    public void Fragment_and_subdirectory_links_are_rewritten()
     {
         Assert.Contains($"href=\"{Features.Routes.GuidePage("forms")}/#binding\" data-rask-nav", Markdown.Source("[x](forms.md#binding)").ToHtml());
         Assert.Contains($"href=\"{Features.Routes.GuidePage("live-rendering")}/\" data-rask-nav",
@@ -56,7 +57,7 @@ public sealed partial class GuidesTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Markdown_RewritesAClimbingLinkToAGuide_ToItsSpaRoute() =>
+    public void A_climbing_link_to_a_guide_is_rewritten_to_its_SPA_route() =>
         // docs/apis/*.md link the capability matrix as "../browser-capabilities.md". Reading every "../" as
         // the repo root sent all 51 of those to a GitHub URL with no file behind it — a dead link on every
         // browser-API page, and the one internal link a crawler would follow between them sent off-site.
@@ -64,7 +65,7 @@ public sealed partial class GuidesTests : global::Rask.Core.RaskMarkup
             Markdown.Source("[matrix](../browser-capabilities.md)").SourcePath("apis/geolocation.md").ToHtml());
 
     [Fact]
-    public void Markdown_RewritesARepositoryLink_ToTheFileOnGitHub_ResolvedFromItsOwnFolder()
+    public void A_repository_link_is_rewritten_to_the_file_on_GitHub_resolved_from_its_own_folder()
     {
         // Two ways a link out of docs/ went wrong. A target that was not Markdown was left RELATIVE, so on
         // /docs/guides/cqrs it pointed at /docs/tests/…, which does not exist. And a "../" link kept only its
@@ -80,7 +81,7 @@ public sealed partial class GuidesTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Markdown_ADocOutsideDocsThatSharesAGuidesName_IsThatFileAndNotTheGuide()
+    public void A_doc_outside_docs_that_shares_a_guide_name_is_that_file_and_not_the_guide()
     {
         // Resolved by WHERE the link lands, not by its leaf alone: sqlite.md in a benchmark folder is not the
         // SQLite guide, however convenient the name.
@@ -91,32 +92,34 @@ public sealed partial class GuidesTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Markdown_RewritesRepoRootLink_ToGitHub() =>
+    public void A_repository_root_link_is_rewritten_to_GitHub() =>
         Assert.Contains("href=\"https://github.com/pal-tamas/rask/blob/main/README.md\"",
             Markdown.Source("[readme](../README.md)").ToHtml());
 
     [Fact]
-    public void Markdown_LeavesExternalAndAnchorLinksUntouched()
+    public void External_and_anchor_links_are_left_untouched()
     {
         var html = Markdown.Source("[g](https://example.com) and [a](#section)").ToHtml();
+
         Assert.Contains("href=\"https://example.com\"", html);
         Assert.DoesNotContain("/guides/", html);
     }
 
     [Fact]
-    public void GuideCatalog_ReadMarkdown_KnownSlug_ReturnsContent()
+    public void Reading_the_markdown_of_a_known_slug_returns_its_content()
     {
         var md = GuideCatalog.ReadMarkdown("routing");
+
         Assert.NotNull(md);
         Assert.Contains("# Routing", md);
     }
 
     [Fact]
-    public void GuideCatalog_ReadMarkdown_UnknownSlug_ReturnsNull() =>
+    public void Reading_the_markdown_of_an_unknown_slug_returns_null() =>
         Assert.Null(GuideCatalog.ReadMarkdown("does-not-exist"));
 
     [Fact]
-    public void GuideCatalog_EveryCuratedSlug_HasAnEmbeddedDoc()
+    public void Every_curated_catalog_slug_has_an_embedded_doc()
     {
         // Guards against a typo'd slug in the catalog: every listed guide must resolve to an embedded
         // docs/{slug}.md, or its sidebar/index entry would 404.
@@ -127,7 +130,7 @@ public sealed partial class GuidesTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void GuideCatalog_EveryEmbeddedDoc_IsCataloged()
+    public void Every_embedded_doc_is_in_the_catalog()
     {
         // The reverse guard: every user-facing doc embedded from docs/**/*.md must appear in the catalog,
         // so a doc can't be added to the repo yet silently hidden from the site. docs/README.md is the
@@ -145,27 +148,30 @@ public sealed partial class GuidesTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void GuidePage_KnownSlug_RendersGuideChromeWithMarkdownBody()
+    public void A_guide_page_for_a_known_slug_renders_the_guide_chrome_with_a_markdown_body()
     {
         // GuidePage delegates to GuideChrome (a DI-ctor component), so it renders through a live context.
         var html = Test.Render(new GuidePage { Slug = "routing" }, TestServices.Default()).Html;
+
         Assert.Contains("markdown-body", html);
         Assert.Contains("All guides", html); // the back link
         Assert.Contains("guide-chapters", html); // the Chapters TOC
     }
 
     [Fact]
-    public void GuidePage_UnknownSlug_RendersNotFound()
+    public void A_guide_page_for_an_unknown_slug_renders_not_found()
     {
         var html = Test.Render(new GuidePage { Slug = "nope" }, TestServices.Default()).Html;
+
         Assert.Contains("No guide found", html);
         Assert.DoesNotContain("markdown-body", html);
     }
 
     [Fact]
-    public void GuidesIndexPage_RendersEveryGroupAndGuide()
+    public void The_guides_index_page_renders_every_group_and_guide()
     {
         var html = new GuidesIndexPage().ToHtml();
+
         foreach (var group in GuideCatalog.GroupOrder)
         {
             // Group headings are Text-encoded (e.g. "Mobile & devices" → "Mobile &amp; devices").

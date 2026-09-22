@@ -5,7 +5,7 @@ namespace Rask.Core.Tests.Callbacks;
 /// <summary>
 ///     The three carrier families a component's props are declared with, now that the chain receives on
 ///     the component itself. Their whole job is to hold a delegate WITHOUT being one — see
-///     <see cref="CarrierIsNotADelegate" />, which is the property the entire builder surface rests on.
+///     <see cref="A_carrier_is_not_a_delegate" />, which is the property the entire builder surface rests on.
 /// </summary>
 public class CarrierTests
 {
@@ -15,7 +15,7 @@ public class CarrierTests
     // Asserted rather than assumed: if a carrier ever became a delegate, every chain step named after a
     // handler would go unreachable at once, and the failure would be reported at unrelated call sites.
     [Fact]
-    public void CarrierIsNotADelegate()
+    public void A_carrier_is_not_a_delegate()
     {
         Assert.False(typeof(Callback).IsSubclassOf(typeof(Delegate)));
         Assert.False(typeof(Callback<int>).IsSubclassOf(typeof(Delegate)));
@@ -29,7 +29,7 @@ public class CarrierTests
     // no state machine. `null` is how the slot says "nothing to await", which is what lets a caller
     // write `if (cb?.Invoke() is { } t) await t;` and stay off the async path entirely.
     [Fact]
-    public void SyncHandlerRunsAndHandsBackNothingToAwait()
+    public void A_sync_handler_runs_and_hands_back_nothing_to_await()
     {
         var ran = false;
         var cb = new Callback(() => ran = true);
@@ -39,7 +39,7 @@ public class CarrierTests
     }
 
     [Fact]
-    public async Task AsyncHandlerHandsBackTheTaskToAwait()
+    public async Task An_async_handler_hands_back_the_task_to_await()
     {
         var ran = false;
         var cb = new Callback(async () =>
@@ -58,7 +58,7 @@ public class CarrierTests
     // An unset slot is inert rather than throwing, so a component can call its optional callbacks
     // unconditionally.
     [Fact]
-    public void UnsetCarrierIsInert()
+    public void An_unset_carrier_is_inert()
     {
         Assert.Null(default(Callback).Invoke());
         Assert.Null(default(Callback<int>).Invoke(1));
@@ -70,7 +70,7 @@ public class CarrierTests
     }
 
     [Fact]
-    public void ArgumentCarryingCallbacksPassTheirArguments()
+    public void Argument_carrying_callbacks_pass_their_arguments()
     {
         var seen = 0;
         Assert.Null(new Callback<int>(v => seen = v).Invoke(42));
@@ -84,7 +84,7 @@ public class CarrierTests
     // The delegate is stored BARE, so the runtime's handler dispatch keeps type-switching on the shape
     // it always did and a sync handler stays an Action all the way down to the DOM event store.
     [Fact]
-    public void HandlerRoundTripsTheDelegateUnchanged()
+    public void The_handler_round_trips_the_delegate_unchanged()
     {
         Action handler = () => { };
         var cb = new Callback(handler);
@@ -94,7 +94,7 @@ public class CarrierTests
     }
 
     [Fact]
-    public void ValueCarriersReturnWhatTheyAreAsked()
+    public void Value_carriers_return_what_they_are_asked()
     {
         Assert.Equal("x", new Fn<string>(() => "x").Invoke());
         Assert.Equal("7", new Fn<int, string>(i => i.ToString()).Invoke(7));
@@ -106,7 +106,7 @@ public class CarrierTests
     // ValueTask, not Task: the synchronous rule is the common one and runs on every keystroke of every
     // bound control, so it has to complete without allocating.
     [Fact]
-    public async Task SyncValidatorCompletesSynchronously()
+    public async Task A_sync_validator_completes_synchronously()
     {
         var validator = new Validator<string>(new Validate<string>(v => v.Length < 3 ? ["too short"] : []));
 
@@ -117,7 +117,7 @@ public class CarrierTests
     }
 
     [Fact]
-    public async Task AsyncValidatorAwaitsItsRule()
+    public async Task An_async_validator_awaits_its_rule()
     {
         var validator = new Validator<string>(new ValidateAsync<string>(async (v, ct) =>
         {
@@ -130,7 +130,7 @@ public class CarrierTests
     }
 
     [Fact]
-    public async Task UnsetValidatorAccepts()
+    public async Task An_unset_validator_accepts_everything()
     {
         Assert.Empty(await default(Validator<string>).Invoke("anything", CancellationToken.None));
         Assert.False(default(Validator<string>).HasValue);

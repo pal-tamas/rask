@@ -81,23 +81,23 @@ public class IslandChildrenAnalyzerTests
         """;
 
     [Fact]
-    public async Task ChainBlazorIslandWithChildren_ReportsRask062() =>
+    public async Task A_chain_Blazor_island_with_children_reports_RASK062() =>
         Assert.Equal("RASK062", Assert.Single(await Diagnostics(App("return default(Chart)[leaf];"))).Id);
 
     [Fact]
-    public async Task BlazorIslandWithChildren_ReportsRask062() =>
+    public async Task A_Blazor_island_with_children_reports_RASK062() =>
         Assert.Equal("RASK062", Assert.Single(await Diagnostics(App("Chart c = new(); return c[leaf];"))).Id);
 
     // The message names the island, so the error points at the type the author wrote.
     [Fact]
-    public async Task TheMessageNamesTheIsland() =>
+    public async Task The_message_names_the_island() =>
         Assert.StartsWith("'Chart' is a Blazor island", Assert.Single(
             await Diagnostics(App("Chart c = new(); return c[leaf];"))).GetMessage(), StringComparison.Ordinal);
 
     // Rask markup inside a React island binds a hiding indexer. `var` is the spelling the compiler lets through
     // silently — a ref struct local is legal — so it is the one that proves the analyzer, not CS0029, reports it.
     [Fact]
-    public async Task RaskMarkupInsideAJsIsland_ReportsRask062_NamingTheRuntime()
+    public async Task Rask_markup_inside_a_JS_island_reports_RASK062_naming_the_runtime()
     {
         var diagnostic = Assert.Single(await Diagnostics(App("var bad = default(Card)[leaf]; return leaf;")));
 
@@ -107,20 +107,20 @@ public class IslandChildrenAnalyzerTests
     }
 
     [Fact]
-    public async Task AnotherRuntimesIslandInsideAJsIsland_ReportsRask062() =>
+    public async Task Another_runtimes_island_inside_a_JS_island_reports_RASK062() =>
         Assert.Equal("RASK062", Assert.Single(
             await Diagnostics(App("var bad = default(Card)[default(Toggle)]; return leaf;"))).Id);
 
     // An island whose component takes no content has no typed indexer, so even text is refused — with a message that
     // says so rather than listing children it would also refuse.
     [Fact]
-    public async Task AnyChildOfAnIslandThatTakesNone_SaysItTakesNoChildren() =>
+    public async Task Any_child_of_an_island_that_takes_none_says_it_takes_no_children() =>
         Assert.Equal(
             "'Badge' is a React island that takes no children; place the markup around it instead of inside it",
             Assert.Single(await Diagnostics(App("var bad = default(Badge)[\"label\"]; return leaf;"))).GetMessage());
 
     [Fact]
-    public async Task ChildrenAssignedToAnIsland_ReportsRask062()
+    public async Task Children_assigned_to_an_island_report_RASK062()
     {
         var diagnostics = await Diagnostics(App("Card card = default!; card.Children = [leaf]; Chart chart = new(); chart.Children = [leaf]; return card;"));
 
@@ -132,15 +132,15 @@ public class IslandChildrenAnalyzerTests
     // Controls. Children of the island's own runtime are its whole composition model — without these a broken analyzer
     // that reported every element access on an island would still pass every test above.
     [Fact]
-    public async Task SameRuntimeChildrenOfAJsIsland_NoDiagnostic() =>
+    public async Task Same_runtime_children_of_a_JS_island_report_nothing() =>
         Assert.Empty(await Diagnostics(App("return default(Card)[\"Revenue\", 42, default(Badge), default(Card)[\"nested\"]];")));
 
     [Fact]
-    public async Task IslandWithNoChildren_NoDiagnostic() =>
+    public async Task An_island_with_no_children_reports_nothing() =>
         Assert.Empty(await Diagnostics(App("Chart c = new(); return c;")));
 
     [Fact]
-    public async Task OrdinaryComponentWithChildren_NoDiagnostic() =>
+    public async Task An_ordinary_component_with_children_reports_nothing() =>
         Assert.Empty(await Diagnostics(App("Plain p = new(); p.Children = [leaf]; return p[leaf];")));
 
     private static async Task<ImmutableArray<Diagnostic>> Diagnostics(string source)

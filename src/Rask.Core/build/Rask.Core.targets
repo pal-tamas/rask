@@ -158,7 +158,7 @@
       ScopedAssetRegistry's `export function NAME(` regexes do not match, so every scoped method
       silently stops registering (see the toolchain note above). removeComments alters no
       declaration form, so the contract holds — pinned by
-      Tsgo_Emit_RemoveComments_PreservesTheInlineExportForm.
+      The_tsgo_emit_with_removeComments_preserves_the_inline_export_form.
 
       Debug keeps them because the emitted .js, not the .ts, is what a developer reads in devtools.
     -->

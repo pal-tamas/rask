@@ -39,7 +39,7 @@ public sealed class ThemeTests
     [Theory]
     [InlineData(ColorScheme.Light)]
     [InlineData(ColorScheme.Dark)]
-    public async Task WithNoStoredChoice_TheOperatingSystemDecides(ColorScheme scheme)
+    public async Task With_no_stored_choice_the_operating_system_decides(ColorScheme scheme)
     {
         var context = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions
         {
@@ -92,7 +92,7 @@ public sealed class ThemeTests
     }
 
     [Fact]
-    public async Task AChosenPaletteIsAppliedRememberedAndReversible()
+    public async Task A_chosen_palette_is_applied_remembered_and_reversible()
     {
         var context = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions
         {
@@ -144,7 +144,7 @@ public sealed class ThemeTests
     }
 
     [Fact]
-    public async Task ThePickerOffersTheWayBackToTheOperatingSystem()
+    public async Task The_picker_offers_the_way_back_to_the_operating_system()
     {
         var context = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions { BaseURL = _app.BaseUrl });
         var page = await context.NewPageAsync();

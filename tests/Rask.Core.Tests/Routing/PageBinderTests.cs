@@ -26,7 +26,7 @@ public partial class PageBinderTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Bind_StringFromRouteValue_AssignsProperty()
+    public void A_string_route_value_is_assigned_to_its_property()
     {
         var page = new StringPage();
 
@@ -36,7 +36,7 @@ public partial class PageBinderTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Bind_IntFromRouteValue_ConvertsAndAssigns()
+    public void An_int_route_value_is_converted_and_assigned()
     {
         var page = new IntPage();
 
@@ -46,7 +46,7 @@ public partial class PageBinderTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Bind_NullableInt_FromQuery_AssignsValue()
+    public void A_nullable_int_is_assigned_from_the_query()
     {
         var page = new IntPage();
 
@@ -56,7 +56,7 @@ public partial class PageBinderTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Bind_NullableInt_NotPresent_LeavesNull()
+    public void An_absent_nullable_int_is_left_null()
     {
         var page = new IntPage();
 
@@ -66,7 +66,7 @@ public partial class PageBinderTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Bind_GuidAndDateTimeAndBool_Convert()
+    public void Guid_DateTime_and_bool_values_are_converted()
     {
         var page = new TypedPage();
         var token = Guid.NewGuid();
@@ -83,7 +83,7 @@ public partial class PageBinderTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Bind_CaseInsensitive_MatchesPropertyByDifferentCase()
+    public void A_value_matches_its_property_in_a_different_case()
     {
         var page = new IntPage();
 
@@ -93,7 +93,7 @@ public partial class PageBinderTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Bind_RouteWinsOverQuery_WhenBothPresent()
+    public void The_route_value_wins_over_the_query_when_both_are_present()
     {
         var page = new IntPage();
 
@@ -103,7 +103,7 @@ public partial class PageBinderTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Bind_ConversionFailure_Throws()
+    public void A_conversion_failure_throws()
     {
         var page = new IntPage();
 
@@ -112,7 +112,7 @@ public partial class PageBinderTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Bind_CustomIParsable_RoundTrips()
+    public void A_custom_IParsable_value_round_trips()
     {
         var page = new CustomerPage();
 
@@ -122,7 +122,7 @@ public partial class PageBinderTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Bind_CustomIParsable_FailureThrows()
+    public void A_custom_IParsable_value_that_fails_to_parse_throws()
     {
         var page = new CustomerPage();
 
@@ -131,7 +131,7 @@ public partial class PageBinderTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Bind_DoubleFromQuery_UsesInvariantCulture()
+    public void A_double_from_the_query_is_parsed_with_the_invariant_culture()
     {
         var original = CultureInfo.CurrentCulture;
         try
@@ -150,7 +150,7 @@ public partial class PageBinderTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Bind_PropertyWithoutAttributes_DoesNotBind()
+    public void A_property_without_attributes_does_not_bind()
     {
         var page = new UnannotatedPage();
 
@@ -160,7 +160,7 @@ public partial class PageBinderTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Bind_FirstAssignmentFromUnsetProperty_ReportsChanged()
+    public void The_first_assignment_to_an_unset_property_reports_a_change()
     {
         var page = new StringPage();
 
@@ -171,7 +171,7 @@ public partial class PageBinderTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Bind_SecondAssignmentWithSameValue_ReportsUnchanged()
+    public void A_second_assignment_of_the_same_value_reports_no_change()
     {
         var page = new StringPage { Name = "alice" };
 
@@ -181,7 +181,7 @@ public partial class PageBinderTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Bind_DifferentValue_ReportsChanged()
+    public void A_different_value_reports_a_change()
     {
         var page = new StringPage { Name = "alice" };
 
@@ -192,7 +192,7 @@ public partial class PageBinderTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Bind_NoParamsResolved_ResetsBoundPropertyToDefault()
+    public void With_no_parameters_resolved_a_bound_property_resets_to_default()
     {
         // Multi-route pages reuse the same Component instance across templates that
         // bind different parameter sets — `/todos/{id}/edit` sets Id, then navigating
@@ -208,7 +208,7 @@ public partial class PageBinderTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Bind_NoParamsResolved_AlreadyAtDefault_ReportsUnchanged()
+    public void With_no_parameters_resolved_a_property_already_at_default_reports_no_change()
     {
         // The reset still goes through, but Equals(null, null) means no change is
         // reported — keeps render-cache invalidation tied to a real diff.

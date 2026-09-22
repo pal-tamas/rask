@@ -10,7 +10,7 @@ namespace Rask.Generators.Tests;
 public class RouteNavigationHelperTests
 {
     [Fact]
-    public void Route_EmitsUrlAndGoExtensions()
+    public void A_route_emits_Url_and_Go_extensions()
     {
         var src = """
                   using Rask.Core;
@@ -41,7 +41,7 @@ public class RouteNavigationHelperTests
     }
 
     [Fact]
-    public void EachPage_GetsItsOwnExtensionContainer()
+    public void Each_page_gets_its_own_extension_container()
     {
         // Static extension members lower to plain statics on the containing class with no receiver
         // parameter, so two parameterless pages sharing one container would emit two identical `Url()`
@@ -70,7 +70,7 @@ public class RouteNavigationHelperTests
     }
 
     [Fact]
-    public void ParentRoute_ComposesOntoTheParentTemplate()
+    public void A_ParentRoute_composes_onto_the_parent_template()
     {
         var src = """
                   using Rask.Core;
@@ -97,7 +97,7 @@ public class RouteNavigationHelperTests
     }
 
     [Fact]
-    public void ConstField_IsAcceptedAsTheTemplate()
+    public void A_const_field_is_accepted_as_the_template()
     {
         // An attribute argument is constant by construction, and a const (or constant concatenation)
         // satisfies that just as a literal does.
@@ -121,7 +121,7 @@ public class RouteNavigationHelperTests
     }
 
     [Fact]
-    public void ParamNamedReplace_DropsGosHistoryFlag()
+    public void A_param_named_replace_drops_the_history_flag_from_Go()
     {
         // The page's own parameter wins; Go loses the convenience flag rather than silently binding
         // the caller's `replace:` argument to the route parameter.

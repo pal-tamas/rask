@@ -16,7 +16,7 @@ namespace Rask.Server.Tests.Endpoints;
 public class QueryQuiescenceTests
 {
     [Fact]
-    public async Task Get_WaitsForAQueryThatHasNothingToShow()
+    public async Task The_first_response_waits_for_a_query_that_has_nothing_to_show()
     {
         using var host = Host<QueryPageApp>();
 
@@ -27,7 +27,7 @@ public class QueryQuiescenceTests
     }
 
     [Fact]
-    public async Task Get_DoesNotWaitForAQueryThatIsHeldBack()
+    public async Task The_first_response_does_not_wait_for_a_query_that_is_held_back()
     {
         // A disabled query is pending but nothing is coming, so there is nothing to wait for. Holding
         // the response for it would spend the whole budget to change nothing — the server-side

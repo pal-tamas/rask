@@ -5,7 +5,7 @@ namespace Rask.Wasm.Tests.Browser;
 public class BackgroundSyncTests
 {
     [Fact]
-    public async Task IsSupported_AsksForBothManagersSeparately()
+    public async Task Support_is_asked_of_both_managers_separately()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskSync.supported", true);
@@ -19,7 +19,7 @@ public class BackgroundSyncTests
     }
 
     [Fact]
-    public async Task RequestSync_PassesTheTagAndReportsWhetherTheBrowserTookIt()
+    public async Task A_sync_request_passes_the_tag_and_reports_whether_the_browser_took_it()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskSync.request", true);
@@ -29,7 +29,7 @@ public class BackgroundSyncTests
     }
 
     [Fact]
-    public async Task RequestSync_IsFalseWhenTheBrowserOrTheServiceWorkerCannotTakeIt()
+    public async Task A_sync_request_is_false_when_the_browser_or_the_service_worker_cannot_take_it()
     {
         // No canned response → the helper answers false, which is how "no SW registered", "not supported"
         // and "the browser refused" all surface. None of them is an exception at the call site.
@@ -37,7 +37,7 @@ public class BackgroundSyncTests
     }
 
     [Fact]
-    public async Task RequestPeriodicSync_SendsTheIntervalInMilliseconds()
+    public async Task A_periodic_sync_request_sends_the_interval_in_milliseconds()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskSync.requestPeriodic", true);
@@ -55,7 +55,7 @@ public class BackgroundSyncTests
     [InlineData("")]
     [InlineData("   ")]
     [InlineData(null)]
-    public async Task RequestSync_RejectsATagThatNamesNothing(string? tag)
+    public async Task A_sync_request_rejects_a_tag_that_names_nothing(string? tag)
     {
         var sync = new BackgroundSync(new FakeJsRuntime());
 
@@ -66,7 +66,7 @@ public class BackgroundSyncTests
     }
 
     [Fact]
-    public async Task RequestPeriodicSync_RejectsANonPositiveInterval()
+    public async Task A_periodic_sync_request_rejects_a_non_positive_interval()
     {
         var sync = new BackgroundSync(new FakeJsRuntime());
 
@@ -77,7 +77,7 @@ public class BackgroundSyncTests
     }
 
     [Fact]
-    public async Task Tags_AreEmptyRatherThanNullWhenTheApiIsAbsent()
+    public async Task The_tags_are_empty_rather_than_null_when_the_API_is_absent()
     {
         // The FakeJsRuntime hands back default(string[]) — null — exactly as an absent helper would. A null
         // list here would turn a plain "not supported" into a NullReferenceException inside a foreach.
@@ -88,7 +88,7 @@ public class BackgroundSyncTests
     }
 
     [Fact]
-    public async Task Tags_ComeBackFromTheHelper()
+    public async Task The_tags_come_back_from_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskSync.tags", new[] { "flush-drafts", "upload-photos" });
@@ -100,7 +100,7 @@ public class BackgroundSyncTests
     }
 
     [Fact]
-    public async Task PeriodicPermission_IsReadNotRequested()
+    public async Task The_periodic_permission_is_read_not_requested()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskSync.periodicPermission", "granted");
@@ -112,7 +112,7 @@ public class BackgroundSyncTests
     }
 
     [Fact]
-    public async Task Subscribing_ArmsTheHelperSoAnythingBufferedDuringBootIsReleased()
+    public async Task Subscribing_arms_the_helper_so_anything_buffered_during_boot_is_released()
     {
         var js = new FakeJsRuntime();
 
@@ -124,7 +124,7 @@ public class BackgroundSyncTests
     }
 
     [Fact]
-    public async Task AFiredSync_ReachesEverySubscriber_WithTheTagAndKind()
+    public async Task A_fired_sync_reaches_every_subscriber_with_the_tag_and_kind()
     {
         var js = new FakeJsRuntime();
         var sync = new BackgroundSync(js);
@@ -152,7 +152,7 @@ public class BackgroundSyncTests
     }
 
     [Fact]
-    public async Task DisposingASubscription_StopsThatHandlerOnly()
+    public async Task Disposing_a_subscription_stops_that_handler_only()
     {
         var js = new FakeJsRuntime();
         var sync = new BackgroundSync(js);
@@ -179,7 +179,7 @@ public class BackgroundSyncTests
     }
 
     [Fact]
-    public async Task AFiredSyncWithNoSubscribers_IsHarmless()
+    public async Task A_fired_sync_with_no_subscribers_is_harmless()
     {
         // The service worker forwards to whatever clients exist; a page that never subscribed is a normal
         // outcome, not an error.

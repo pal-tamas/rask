@@ -8,7 +8,7 @@ public class UsbTests
     private static UsbDeviceInfo SampleInfo => new(0x2341, 0x0043, "Acme", "Widget", "SN-1");
 
     [Fact]
-    public async Task IsSupported_CallsHelper()
+    public async Task Support_is_asked_of_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskUsb.isSupported", true);
@@ -17,12 +17,12 @@ public class UsbTests
     }
 
     [Fact]
-    public async Task RequestDevice_PassesFiltersAsOneArg_AndReturnsDeviceInfo()
+    public async Task Requesting_a_device_passes_the_filters_as_one_argument_and_returns_the_device_info()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskUsb.requestDevice", new UsbDeviceHandshake(1, SampleInfo));
-
         var filters = new[] { new UsbDeviceFilter(VendorId: 0x2341) };
+
         var device = await new Usb(js).RequestDeviceAsync(filters);
 
         Assert.NotNull(device);
@@ -33,7 +33,7 @@ public class UsbTests
     }
 
     [Fact]
-    public async Task RequestDevice_Cancelled_ReturnsNull()
+    public async Task A_cancelled_device_request_returns_null()
     {
         var js = new FakeJsRuntime(); // no canned response → JS returned null (chooser dismissed)
 
@@ -43,7 +43,7 @@ public class UsbTests
     }
 
     [Fact]
-    public async Task GetDevices_ReturnsHandlesForEach()
+    public async Task Getting_the_devices_returns_a_handle_for_each()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskUsb.getDevices", new[]
@@ -60,7 +60,7 @@ public class UsbTests
     }
 
     [Fact]
-    public async Task Lifecycle_ForwardsIdAndArgs()
+    public async Task The_lifecycle_calls_forward_the_id_and_arguments()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskUsb.requestDevice", new UsbDeviceHandshake(7, SampleInfo));
@@ -78,7 +78,7 @@ public class UsbTests
     }
 
     [Fact]
-    public async Task TransferIn_DecodesBase64Payload()
+    public async Task A_transfer_in_decodes_the_base64_payload()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskUsb.requestDevice", new UsbDeviceHandshake(1, SampleInfo));
@@ -94,14 +94,14 @@ public class UsbTests
     }
 
     [Fact]
-    public async Task TransferOut_EncodesBase64Payload()
+    public async Task A_transfer_out_encodes_the_base64_payload()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskUsb.requestDevice", new UsbDeviceHandshake(1, SampleInfo));
         js.SetResponse("__raskUsb.transferOut", new UsbOutTransferResult("ok", 3));
         var device = await new Usb(js).RequestDeviceAsync();
-
         var data = new byte[] { 9, 8, 7 };
+
         var result = await device!.TransferOutAsync(endpointNumber: 2, data);
 
         Assert.Equal(3, result.BytesWritten);
@@ -112,15 +112,15 @@ public class UsbTests
     }
 
     [Fact]
-    public async Task ControlTransferIn_PassesSetup_AndDecodesPayload()
+    public async Task A_control_transfer_in_passes_the_setup_and_decodes_the_payload()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskUsb.requestDevice", new UsbDeviceHandshake(1, SampleInfo));
         var bytes = new byte[] { 1, 2 };
         js.SetResponse("__raskUsb.controlTransferIn", new UsbInTransferWire("ok", Convert.ToBase64String(bytes)));
         var device = await new Usb(js).RequestDeviceAsync();
-
         var setup = new UsbControlTransferParams("vendor", "device", Request: 1, Value: 2, Index: 0);
+
         var result = await device!.ControlTransferInAsync(setup, length: 8);
 
         Assert.Equal(bytes, result.Data);
@@ -130,21 +130,23 @@ public class UsbTests
     }
 
     [Fact]
-    public async Task Dispose_ClosesDevice()
+    public async Task Disposing_closes_the_device()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskUsb.requestDevice", new UsbDeviceHandshake(5, SampleInfo));
         var device = await new Usb(js).RequestDeviceAsync();
 
         await device!.DisposeAsync();
+
         Assert.Equal([5], js.ArgsFor("__raskUsb.close"));
 
         await device.DisposeAsync(); // idempotent — no second close call
+
         Assert.Equal(1, js.CallCount("__raskUsb.close"));
     }
 
     [Fact]
-    public async Task Disconnect_FiresOnDisconnectCallback_Once()
+    public async Task A_disconnect_fires_the_callback_once()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskUsb.requestDevice", new UsbDeviceHandshake(9, SampleInfo));
@@ -162,7 +164,7 @@ public class UsbTests
     }
 
     [Fact]
-    public async Task Close_UnregistersDisconnectCallback()
+    public async Task Closing_unregisters_the_disconnect_callback()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskUsb.requestDevice", new UsbDeviceHandshake(3, SampleInfo));
@@ -180,7 +182,7 @@ public class UsbTests
     }
 
     [Fact]
-    public async Task Operations_AfterDispose_ThrowObjectDisposed()
+    public async Task Operations_after_dispose_throw_ObjectDisposedException()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskUsb.requestDevice", new UsbDeviceHandshake(1, SampleInfo));
@@ -192,7 +194,7 @@ public class UsbTests
     }
 
     [Fact]
-    public async Task NullArgs_Throw()
+    public async Task Null_arguments_throw()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskUsb.requestDevice", new UsbDeviceHandshake(1, SampleInfo));
@@ -204,7 +206,7 @@ public class UsbTests
     }
 
     [Fact]
-    public void VendorOnlyFilter_OmitsNullFields()
+    public void A_vendor_only_filter_omits_null_fields()
     {
         // A null id would serialize as JSON null and the chooser would match nothing. JsonIgnore(WhenWritingNull)
         // drops absent fields. Web defaults mirror the interop's RaskWasmBrowserJsonContext (camelCase) naming.

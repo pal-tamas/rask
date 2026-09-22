@@ -8,7 +8,7 @@ public class GeolocationWatchTests
         new(lat, lng, 10, null, null, null, null, 0);
 
     [Fact]
-    public async Task Watch_PassesOptions_ToHelper()
+    public async Task Watching_passes_the_options_to_the_helper()
     {
         var js = new FakeJsRuntime();
         var opts = new GeolocationOptions { EnableHighAccuracy = true, TimeoutMs = 5000, MaximumAgeMs = 1000 };
@@ -23,7 +23,7 @@ public class GeolocationWatchTests
     }
 
     [Fact]
-    public async Task Fix_RoutesPosition_ToTheRegisteredHandler()
+    public async Task A_fix_routes_the_position_to_the_registered_handler()
     {
         var js = new FakeJsRuntime();
         GeolocationPosition? got = null;
@@ -42,7 +42,7 @@ public class GeolocationWatchTests
     }
 
     [Fact]
-    public async Task Dispose_ClearsWatch_AndStopsRouting()
+    public async Task Disposing_clears_the_watch_and_stops_routing()
     {
         var js = new FakeJsRuntime();
         var hits = 0;
@@ -61,7 +61,7 @@ public class GeolocationWatchTests
     }
 
     [Fact]
-    public async Task Watch_NullHandler_Throws()
+    public async Task Watching_with_a_null_handler_throws()
     {
         await Assert.ThrowsAsync<ArgumentNullException>(
             async () => await new Geolocation(new FakeJsRuntime()).WatchAsync(null!));

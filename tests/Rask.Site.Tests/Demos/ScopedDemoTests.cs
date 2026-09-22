@@ -5,25 +5,27 @@ namespace Rask.Site.Tests.Demos;
 public sealed partial class ScopedDemoTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void ScopedRed_Render_EmitsBoxClass_AndDotChild()
+    public void ScopedRed_renders_the_box_class_and_a_dot_child()
     {
         var html = new LiveHost(() => ScopedRed, TestServices.Default()).RenderAsLiveRoot();
+
         Assert.Contains("box", html);
         Assert.Contains("dot", html);
         Assert.Contains("should be red", html);
     }
 
     [Fact]
-    public void ScopedBlue_Render_EmitsBoxClass_AndDotChild()
+    public void ScopedBlue_renders_the_box_class_and_a_dot_child()
     {
         var html = new LiveHost(() => ScopedBlue, TestServices.Default()).RenderAsLiveRoot();
+
         Assert.Contains("box", html);
         Assert.Contains("dot", html);
         Assert.Contains("should be blue", html);
     }
 
     [Fact]
-    public void ScopedRed_AndBlue_GetDistinct_DataScopeAttributes()
+    public void ScopedRed_and_ScopedBlue_get_distinct_data_scope_attributes()
     {
         var redHtml = new LiveHost(() => ScopedRed, TestServices.Default()).RenderAsLiveRoot();
         var blueHtml = new LiveHost(() => ScopedBlue, TestServices.Default()).RenderAsLiveRoot();

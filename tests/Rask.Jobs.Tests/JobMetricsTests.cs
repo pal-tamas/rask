@@ -22,7 +22,6 @@ public sealed class JobMetricsTests
 
         Assert.Equal(1, collector.Sum("rask.jobs.processed"));
         Assert.Equal("Rask.Jobs.Tests.RecordJob", collector.LastTag("rask.jobs.processed", "job.type"));
-
         // The histogram fired for the same job. Duration is wall-clock, so assert it was recorded rather
         // than pinning a value.
         Assert.True(collector.Count("rask.jobs.duration") >= 1);
@@ -62,7 +61,6 @@ public sealed class JobMetricsTests
             o.MaxRetryDelay = TimeSpan.Zero;
         });
         using var collector = new MetricCollector(h.Get<JobMetrics>());
-
         await using (var db = h.NewContext())
         {
             var now = h.Clock.GetUtcNow().UtcDateTime;
@@ -86,7 +84,6 @@ public sealed class JobMetricsTests
             o.MaxRetryDelay = TimeSpan.Zero;
         });
         using var collector = new MetricCollector(h.Get<JobMetrics>());
-
         await h.Queue.EnqueueAsync(new FailingJob());                          // becomes a dead letter
         await h.Queue.ScheduleAsync(new RecordJob("later"), TimeSpan.FromHours(1));   // stays pending
 

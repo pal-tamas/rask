@@ -16,7 +16,7 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     protected override string ServerLog => app.ServerLog;
 
     [Fact]
-    public Task EveryNavigationComponentRendersWithARealSize() => RunAsync(async () =>
+    public Task Every_navigation_component_renders_with_a_real_size() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -33,7 +33,7 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     });
 
     [Fact]
-    public Task TheMegamenuOpensAPanelThroughTheNativePopover() => RunAsync(async () =>
+    public Task The_megamenu_opens_a_panel_through_the_native_popover() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -55,7 +55,7 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     });
 
     [Fact]
-    public Task EscapeClosesTheMegamenuBecauseTheBrowserOwnsIt() => RunAsync(async () =>
+    public Task Escape_closes_the_megamenu_because_the_browser_owns_it() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -72,7 +72,7 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     });
 
     [Fact]
-    public Task OpeningOnePanelClosesTheOther() => RunAsync(async () =>
+    public Task Opening_one_panel_closes_the_other() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -90,7 +90,7 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     });
 
     [Fact]
-    public Task EveryTabIsARealLink() => RunAsync(async () =>
+    public Task Every_tab_is_a_real_link() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -108,7 +108,7 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     });
 
     [Fact]
-    public Task PagesWithAnAddressAreLinksAndTheCurrentPageIsNot() => RunAsync(async () =>
+    public Task Pages_with_an_address_are_links_and_the_current_page_is_not() => RunAsync(async () =>
     {
         await OpenAsync();
 

@@ -16,7 +16,7 @@ public sealed class HostContractCompletenessTests
             .Where(t => t.IsInterface && t.Namespace == BrowserNamespace);
 
     [Fact]
-    public void EveryPublicBrowserInterface_IsEitherARequiredService_OrDeclaredNotAService()
+    public void Every_public_browser_interface_is_either_a_required_service_or_declared_not_a_service()
     {
         var declared = RaskHostContracts.BrowserApis
             .Concat(RaskHostContracts.NonServiceBrowserTypes)
@@ -28,7 +28,7 @@ public sealed class HostContractCompletenessTests
     }
 
     [Fact]
-    public void TheTwoBrowserBuckets_DoNotOverlap()
+    public void The_two_browser_buckets_do_not_overlap()
     {
         var overlap = RaskHostContracts.BrowserApis
             .Intersect(RaskHostContracts.NonServiceBrowserTypes)
@@ -42,7 +42,7 @@ public sealed class HostContractCompletenessTests
     // for an interface Core no longer exposes, and the only way to go green would be to register a type that
     // isn't there. Catch it here, once, instead of three times over.
     [Fact]
-    public void NoDeclaredBrowserContract_HasBeenRemovedFromCore()
+    public void No_declared_browser_contract_has_been_removed_from_Core()
     {
         var live = PublicBrowserInterfaces.ToHashSet();
 
@@ -56,7 +56,7 @@ public sealed class HostContractCompletenessTests
     }
 
     [Fact]
-    public void All_IsHostServicesPlusBrowserApis_WithNoDuplicates()
+    public void All_is_the_host_services_plus_the_browser_apis_with_no_duplicates()
     {
         Assert.Equal(
             RaskHostContracts.HostServices.Count + RaskHostContracts.BrowserApis.Count,

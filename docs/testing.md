@@ -247,17 +247,17 @@ Assert.Equal("<button data-rask-on-click=\"h0\">x</button>", view.RenderAsLiveRo
 
 ## 2. Unit-testing HTML output
 
-The per-tag convention (`tests/Rask.Core.Tests/Components/{Tag}Tests.cs`) pairs a `Render_NullProps_…`
-case with a `Render_AllPropsSet_…` case that asserts the **exact attribute order**: `id`, `class`,
+The per-tag convention (`tests/Rask.Core.Tests/Components/{Tag}Tests.cs`) pairs an `Unset_props_render_only_the_open_and_close_tags`
+case with a `Setting_every_prop_emits_the_expected_attributes` case that asserts the **exact attribute order**: `id`, `class`,
 `style`, `data-*`, then the tag-specific attributes. Tests pin this with full-string equality.
 
 ```csharp
 [Fact]
-public void Render_NullProps_ReturnsEmptyButtonTags() =>
+public void Unset_props_render_only_the_open_and_close_tags() =>
     Assert.Equal("<button></button>", Button.ToHtml());
 
 [Fact]
-public void Render_AllPropsSet_EmitsBaseThenDerivedAttributesInOrder() =>
+public void Setting_every_prop_emits_base_then_derived_attributes_in_order() =>
     Assert.Equal(
         "<button id=\"go\" class=\"btn\" style=\"color:red\" data-test-id=\"primary\" type=\"submit\" disabled name=\"action\" value=\"save\"></button>",
         Button

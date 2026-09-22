@@ -21,7 +21,7 @@ public sealed class IndexedDbSnapshotStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task Save_StoresTheFileBytesUnderTheSnapshotName()
+    public async Task Saving_stores_the_file_bytes_under_the_snapshot_name()
     {
         var source = WriteTempFile("database");
 
@@ -35,7 +35,7 @@ public sealed class IndexedDbSnapshotStoreTests : IDisposable
     // The snapshotter hands over a temp file it expects to be consumed. In the browser that file sits in
     // the runtime's in-memory filesystem, so leaving it behind spends the tab's heap.
     [Fact]
-    public async Task Save_ConsumesTheSourceFile()
+    public async Task Saving_consumes_the_source_file()
     {
         var source = WriteTempFile("database");
 
@@ -45,7 +45,7 @@ public sealed class IndexedDbSnapshotStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task Prune_KeepsTheNewestAndDropsTheRest()
+    public async Task Pruning_keeps_the_newest_and_drops_the_rest()
     {
         var store = Store();
         await store.SaveAsync(WriteTempFile("1"), "app-20260808-120000000.db", CancellationToken.None);
@@ -61,7 +61,7 @@ public sealed class IndexedDbSnapshotStoreTests : IDisposable
 
     // Retention below one would empty the store, leaving nothing to restore from.
     [Fact]
-    public async Task Prune_NeverDropsEverything()
+    public async Task Pruning_never_drops_every_snapshot()
     {
         var store = Store();
         await store.SaveAsync(WriteTempFile("1"), "app-20260808-120000000.db", CancellationToken.None);
@@ -72,7 +72,7 @@ public sealed class IndexedDbSnapshotStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task ReadNewest_ReturnsTheLatestByTimestamp()
+    public async Task Reading_the_newest_returns_the_latest_by_timestamp()
     {
         var store = Store();
         await store.SaveAsync(WriteTempFile("old"), "app-20260808-120000000.db", CancellationToken.None);
@@ -85,13 +85,13 @@ public sealed class IndexedDbSnapshotStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task ReadNewest_EmptyStore_ReturnsNull()
+    public async Task Reading_the_newest_from_an_empty_store_returns_null()
     {
         Assert.Null(await Store().ReadNewestAsync());
     }
 
     [Fact]
-    public async Task List_ReportsNewestFirstWithSizeAndTimestamp()
+    public async Task Listing_reports_newest_first_with_size_and_timestamp()
     {
         var store = Store();
         await store.SaveAsync(WriteTempFile("old"), "app-20260808-120000000.db", CancellationToken.None);
@@ -106,7 +106,7 @@ public sealed class IndexedDbSnapshotStoreTests : IDisposable
 
     // A database whose own name contains dashes must not confuse the timestamp parse.
     [Fact]
-    public async Task List_ParsesTheTimestampWhenTheStemContainsDashes()
+    public async Task Listing_parses_the_timestamp_when_the_stem_contains_dashes()
     {
         var store = Store();
         await store.SaveAsync(WriteTempFile("x"), "my-app-db-20260808-140000000.db", CancellationToken.None);
@@ -117,7 +117,7 @@ public sealed class IndexedDbSnapshotStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task List_UnparseableName_StillLists()
+    public async Task Listing_still_lists_a_snapshot_whose_name_does_not_parse()
     {
         var store = Store();
         await store.SaveAsync(WriteTempFile("x"), "not-a-timestamp.db", CancellationToken.None);

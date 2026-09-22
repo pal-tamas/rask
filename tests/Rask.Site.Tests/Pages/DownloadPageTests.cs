@@ -9,11 +9,12 @@ namespace Rask.Site.Tests.Pages;
 public sealed class DownloadPageTests
 {
     [Fact]
-    public void Render_EmitsDownloadButton_AndZeroCount()
+    public void Rendering_emits_the_download_button_and_a_zero_count()
     {
         // Render DownloadDemo directly — its standalone /download page was folded into
         // docs/http-and-files.md, where the demo is embedded as a live sample.
         var nav = new Navigator(new RouteState { Path = "/" }, new CapturingDownloadSink());
+
         var html = Test.Render(new DownloadDemo(nav), TestServices.Default()).Html;
 
         Assert.Contains("download-report", html);
@@ -21,15 +22,15 @@ public sealed class DownloadPageTests
     }
 
     [Fact]
-    public void DownloadReport_FromHandler_StagesBytesThroughDownloadSink()
+    public void Downloading_a_report_from_a_handler_stages_the_bytes_through_the_download_sink()
     {
         var sink = new CapturingDownloadSink();
         var routeState = new RouteState { Path = "/download" };
         var nav = new Navigator(routeState, sink);
         var page = new DownloadDemo(nav);
-
         var mi = typeof(DownloadDemo).GetMethod("DownloadReport",
             BindingFlags.Instance | BindingFlags.NonPublic)!;
+
         TestNavigator.RunHandler(nav, () => mi.Invoke(page, null));
 
         Assert.Single(sink.Captured);
@@ -42,15 +43,15 @@ public sealed class DownloadPageTests
     }
 
     [Fact]
-    public void DownloadReport_MultipleClicks_IncrementCount()
+    public void Multiple_download_clicks_increment_the_count()
     {
         var sink = new CapturingDownloadSink();
         var routeState = new RouteState { Path = "/download" };
         var nav = new Navigator(routeState, sink);
         var page = new DownloadDemo(nav);
-
         var mi = typeof(DownloadDemo).GetMethod("DownloadReport",
             BindingFlags.Instance | BindingFlags.NonPublic)!;
+
         TestNavigator.RunHandler(nav, () => mi.Invoke(page, null));
         TestNavigator.RunHandler(nav, () => mi.Invoke(page, null));
         TestNavigator.RunHandler(nav, () => mi.Invoke(page, null));

@@ -5,7 +5,7 @@ namespace Rask.Core.Tests.Interop;
 public class WebLocksTests
 {
     [Fact]
-    public async Task IsSupported_CallsHelper() =>
+    public async Task Asking_whether_web_locks_are_supported_calls_the_helper() =>
         Assert.Equal(
             "__raskLocks.isSupported",
             await SupportCall());
@@ -18,7 +18,7 @@ public class WebLocksTests
     }
 
     [Fact]
-    public async Task Request_AcquiresRunsWork_ThenReleasesInOrder()
+    public async Task A_request_acquires_runs_the_work_then_releases_in_order()
     {
         var js = new FakeJsRuntime();
         var workRan = false;
@@ -49,15 +49,16 @@ public class WebLocksTests
     }
 
     [Fact]
-    public async Task Request_SharedMode_PassesSharedString()
+    public async Task A_shared_mode_request_passes_the_shared_string()
     {
         var js = new FakeJsRuntime();
         await new WebLocks(js).RequestAsync("feed", () => Task.CompletedTask, LockMode.Shared);
+
         Assert.Equal("shared", js.ArgsFor("__raskLocks.request")![2]);
     }
 
     [Fact]
-    public async Task Request_ReleasesEvenWhenWorkThrows()
+    public async Task A_request_releases_even_when_the_work_throws()
     {
         var js = new FakeJsRuntime();
 
@@ -69,7 +70,7 @@ public class WebLocksTests
     }
 
     [Fact]
-    public async Task TryRequest_WhenGranted_RunsWorkReleases_ReturnsTrue()
+    public async Task A_granted_try_request_runs_the_work_releases_and_reports_true()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskLocks.request", true);
@@ -88,7 +89,7 @@ public class WebLocksTests
     }
 
     [Fact]
-    public async Task TryRequest_WhenNotGranted_SkipsWork_NoRelease_ReturnsFalse()
+    public async Task A_refused_try_request_skips_the_work_releases_nothing_and_reports_false()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskLocks.request", false); // lock already held
@@ -106,7 +107,7 @@ public class WebLocksTests
     }
 
     [Fact]
-    public async Task Query_MapsHeldAndPendingLocks()
+    public async Task A_query_maps_the_held_and_pending_locks()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskLocks.query", new[]
@@ -123,13 +124,14 @@ public class WebLocksTests
     }
 
     [Fact]
-    public async Task Query_NullResult_IsEmpty() =>
+    public async Task A_null_query_result_is_empty() =>
         Assert.Empty(await new WebLocks(new FakeJsRuntime()).QueryAsync());
 
     [Fact]
-    public async Task NullArgs_Throw()
+    public async Task Null_args_throw()
     {
         var svc = new WebLocks(new FakeJsRuntime());
+
         await Assert.ThrowsAsync<ArgumentNullException>(async () => await svc.RequestAsync(null!, () => Task.CompletedTask));
         await Assert.ThrowsAsync<ArgumentNullException>(async () => await svc.RequestAsync("n", null!));
         await Assert.ThrowsAsync<ArgumentNullException>(async () => await svc.TryRequestAsync(null!, () => Task.CompletedTask));

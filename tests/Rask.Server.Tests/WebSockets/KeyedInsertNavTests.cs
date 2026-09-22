@@ -21,7 +21,7 @@ public class KeyedInsertNavTests
     [InlineData("/add-head", 5)]
     [InlineData("/add-mid", 15)]
     [InlineData("/add-tail", 40)]
-    public async Task KeyedInsertDuringNavigation_ShipsCorrectRowHtml(string path, int key)
+    public async Task A_keyed_insert_during_navigation_ships_the_correct_row_html(string path, int key)
     {
         await using var fixture = await ConnectedSession.Connect<KeyedNavApp>(LiveDiffMode.Forced);
 
@@ -35,6 +35,7 @@ public class KeyedInsertNavTests
         var frames = await DrainAll(fixture.Ws);
 
         var insert = FindInsertSubtree(frames);
+
         Assert.NotNull(insert);
         // The fragment must be the complete, correctly-sliced <li> — not garbled bytes.
         Assert.Equal($"<li class=\"line\" data-rask-key=\"{key}\">item {key}</li>", insert);

@@ -67,6 +67,7 @@ public sealed class ContentSnifferTests
     public void A_head_cut_mid_character_is_still_text()
     {
         var text = Encoding.UTF8.GetBytes(new string('é', ContentSniffer.HeadLength));
+
         Assert.Equal("text/plain", ContentSniffer.Sniff(text.AsSpan(0, ContentSniffer.HeadLength - 1).ToArray().Concat(new byte[] { 0xC3 }).ToArray()));
     }
 
@@ -75,6 +76,7 @@ public sealed class ContentSnifferTests
     {
         // Safe because an image cannot run script — which is ContentTypePolicy's job, not this one's.
         var polyglot = "GIF89a<html><script>alert(1)</script>"u8.ToArray();
+
         Assert.Equal("image/gif", ContentSniffer.Sniff(polyglot));
     }
 

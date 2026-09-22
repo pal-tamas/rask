@@ -33,6 +33,7 @@ public sealed partial class BroadcastHubTests
         var delivery = Assert.Single(session.Queued);
 
         await delivery();
+
         Assert.Equal(["first:hello", "second:hello"], received);
         Assert.True(session.RenderRequests >= 1);
     }
@@ -78,6 +79,7 @@ public sealed partial class BroadcastHubTests
         var hub = new BroadcastHub();
         var owner = Mounted(new QueueHandle());
         hub.Subscribe(owner, News, _ => { });
+
         Assert.Equal(1, hub.SubscriberCount(News));
 
         ComponentLifecycle.DisposeComponentTree(owner);

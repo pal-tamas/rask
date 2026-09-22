@@ -14,7 +14,7 @@ namespace Rask.Core.Tests.Forms;
 public partial class AfterBindTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public async Task Input_String_AfterBind_FiresOnEveryKeystroke_WithNewValue()
+    public async Task A_string_inputs_AfterBind_fires_on_every_keystroke_with_the_new_value()
     {
         var m = new TextModel { Name = "" };
         var observed = new List<string>();
@@ -22,6 +22,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         var page = Test.Render(() => Form.Model(m)[
             Input.Bind(() => m.Name).AfterBind(v => observed.Add(v))
         ]);
+
         await page.InputAsync("{\"value\":\"A\"}");
         await page.InputAsync("{\"value\":\"Ad\"}");
 
@@ -30,7 +31,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Input_Int_AfterBind_FiresOnChange_AfterModelIsSet()
+    public async Task An_int_inputs_AfterBind_fires_on_change_after_the_model_is_set()
     {
         var m = new NumberModel();
         int? captured = null;
@@ -38,6 +39,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         var page = Test.Render(() => Form.Model(m)[
             Input.Bind(() => m.Age).AfterBind(v => captured = v)
         ]);
+
         await page.ChangeAsync("{\"value\":\"42\"}");
 
         Assert.Equal(42, captured);
@@ -45,7 +47,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Input_Int_AfterBind_DoesNotFire_WhenParseFails()
+    public async Task An_int_inputs_AfterBind_does_not_fire_when_the_parse_fails()
     {
         var m = new NumberModel { Age = 7 };
         var fired = false;
@@ -53,6 +55,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         var page = Test.Render(() => Form.Model(m)[
             Input.Bind(() => m.Age).AfterBind(_ => fired = true)
         ]);
+
         await page.ChangeAsync("{\"value\":\"not-a-number\"}");
 
         Assert.False(fired);
@@ -60,7 +63,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Input_Int_AfterBindAsync_IsAwaited_BeforeValidationRuns()
+    public async Task An_int_inputs_async_AfterBind_is_awaited_before_validation_runs()
     {
         // OnChange on a non-string Input both binds (setOnChange=true) and validates — this
         // is the path that lets us assert AfterBindAsync is fully awaited before validators.
@@ -104,7 +107,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Input_Int_AfterBind_FiresAfterNotifyFieldChanged_ButBeforeValidator()
+    public async Task An_int_inputs_AfterBind_fires_after_the_field_change_but_before_the_validator()
     {
         var m = new NumberModel();
         var order = new List<string>();
@@ -125,6 +128,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
                 }),
             Test.EditContextProbe(c => captured = c)
         ]);
+
         await page.ChangeAsync("{\"value\":\"9\"}");
 
         Assert.Equal(new[] { "afterBind", "validate" }, order);
@@ -135,7 +139,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
     // asynchronous hook is AWAITED before the render continues, which is the half that could regress
     // silently. A hook that was not awaited would still run, just too late to matter.
     [Fact]
-    public async Task Input_AsyncHook_IsAwaitedBeforeTheRenderContinues()
+    public async Task An_async_AfterBind_hook_is_awaited_before_the_render_continues()
     {
         var m = new TextModel { Name = "" };
         var order = new List<string>();
@@ -148,13 +152,14 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
                     order.Add("async");
                 })
         ]);
+
         await page.InputAsync("{\"value\":\"x\"}");
 
         Assert.Equal(new[] { "async" }, order);
     }
 
     [Fact]
-    public async Task Select_AfterBind_FiresOnChange_WithNewValue()
+    public async Task A_selects_AfterBind_fires_on_change_with_the_new_value()
     {
         var m = new ColorModel { Favorite = Color.Red };
         Color? captured = null;
@@ -165,6 +170,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
                 Option.Value(nameof(Color.Blue))["Blue"]
             ]
         ]);
+
         await page.ChangeAsync("{\"value\":\"Blue\"}");
 
         Assert.Equal(Color.Blue, captured);
@@ -172,7 +178,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Select_AfterBindAsync_DependentDropdownScenario()
+    public async Task A_selects_async_AfterBind_repopulates_a_dependent_dropdown()
     {
         // Canonical use case: when Country changes, an async lookup repopulates Cities.
         var m = new RegionModel();
@@ -188,6 +194,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
                 Option.Value("DE")["DE"]
             ]
         ]);
+
         await page.ChangeAsync("{\"value\":\"US\"}");
 
         Assert.NotNull(cities);
@@ -196,7 +203,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Textarea_AfterBind_FiresOnInput_WithNewValue()
+    public async Task A_textareas_AfterBind_fires_on_input_with_the_new_value()
     {
         var m = new TextModel { Name = "" };
         string? captured = null;
@@ -204,6 +211,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         var page = Test.Render(() => Form.Model(m)[
             Textarea.Bind(() => m.Name).AfterBind(v => captured = v)
         ]);
+
         await page.InputAsync("{\"value\":\"hello\"}");
 
         Assert.Equal("hello", captured);
@@ -211,7 +219,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Checkbox_AfterBind_FiresOnToggle_WithNewValue()
+    public async Task A_checkboxs_AfterBind_fires_on_toggle_with_the_new_value()
     {
         var m = new FlagModel { Enabled = false };
         bool? captured = null;
@@ -230,7 +238,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Input_String_AfterBind_NotFired_WhenNoValueChange_DoesNotApply()
+    public async Task A_string_inputs_AfterBind_still_fires_when_the_same_value_is_retyped()
     {
         // StringSetHandler always calls TrySetTyped + AfterBind for valid strings — even when
         // the user retypes the same value. This pins that observable behavior so a future
@@ -242,6 +250,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         var page = Test.Render(() => Form.Model(m)[
             Input.Bind(() => m.Name).AfterBind(_ => fires++)
         ]);
+
         await page.InputAsync("{\"value\":\"x\"}");
         await page.InputAsync("{\"value\":\"x\"}");
 

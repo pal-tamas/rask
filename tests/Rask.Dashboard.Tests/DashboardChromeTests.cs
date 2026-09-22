@@ -53,6 +53,7 @@ public sealed partial class DashboardChromeTests : global::Rask.Core.RaskMarkup
         Assert.False(RenderChrome(h, "/_rask").Exists("header select"));
 
         var onQueue = RenderChrome(h, "/_rask/queues/jobs");
+
         Assert.True(onQueue.Exists("header select"));
 
         // Ordered by title, and only the batteries actually available.

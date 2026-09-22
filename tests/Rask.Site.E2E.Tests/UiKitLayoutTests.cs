@@ -16,7 +16,7 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
     protected override string ServerLog => app.ServerLog;
 
     [Fact]
-    public Task EveryLayoutComponentRendersWithARealSize() => RunAsync(async () =>
+    public Task Every_layout_component_renders_with_a_real_size() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -36,9 +36,10 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
     });
 
     [Fact]
-    public Task TheFluxLayoutPiecesWork() => RunAsync(async () =>
+    public Task The_Flux_layout_pieces_work() => RunAsync(async () =>
     {
         await OpenAsync();
+
         var scope = Page.Locator("[data-testid='ui-app-layout']");
 
         // The item for this page is current without being told, and says so to assistive tech.
@@ -59,9 +60,10 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
     });
 
     [Fact]
-    public Task TheDocsSidebarIsTheKitsSidebarAndOpensFromTheKeyboardOnAPhone() => RunAsync(async () =>
+    public Task The_docs_sidebar_is_the_kits_sidebar_and_opens_from_the_keyboard_on_a_phone() => RunAsync(async () =>
     {
         await OpenAsync();
+
         await Page.SetViewportSizeAsync(390, 844);
         try
         {
@@ -71,6 +73,7 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
             // The hamburger is a label for the sidebar's checkbox: a keyboard stop the runtime presses on Enter.
             await Page.Locator(".hamburger-btn").FocusAsync();
             await Page.Keyboard.PressAsync("Enter");
+
             await Expect(sideNav).ToBeInViewportAsync(new LocatorAssertionsToBeInViewportOptions { Timeout = 10_000 });
             await Expect(Page.Locator("aside.side-nav[aria-label='Guides and examples']")).ToHaveCountAsync(1);
         }
@@ -81,7 +84,7 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
     });
 
     [Fact]
-    public Task TheDrawerOpensAndThePageIsToldAboutIt() => RunAsync(async () =>
+    public Task The_drawer_opens_and_the_page_is_told_about_it() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -99,7 +102,7 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
     });
 
     [Fact]
-    public Task ACheckedControlIsActuallyCheckedInTheDom() => RunAsync(async () =>
+    public Task A_checked_control_is_actually_checked_in_the_DOM() => RunAsync(async () =>
     {
         // The regression this guards is the one markup could not show: the kit wrote the checked state
         // into the VALUE attribute, so a control the page said was on arrived off. Asserted through the
@@ -119,7 +122,7 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
     });
 
     [Fact]
-    public Task TheCodeMockupShowsItsPrefixesAndItsText() => RunAsync(async () =>
+    public Task The_code_mockup_shows_its_prefixes_and_its_text() => RunAsync(async () =>
     {
         await OpenAsync();
 

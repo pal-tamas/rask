@@ -5,7 +5,7 @@ namespace Rask.Site.Tests.Demos;
 public sealed partial class CancellationProbeTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public async Task OnMountAsync_LogsCancelledOnUnmount_ThroughRegisterCallback()
+    public async Task OnMountAsync_logs_cancelled_on_unmount_through_the_Register_callback()
     {
         var log = new LifecycleLog();
         var mounted = true;
@@ -23,7 +23,7 @@ public sealed partial class CancellationProbeTests : global::Rask.Core.RaskMarku
     }
 
     [Fact]
-    public async Task OnMountAsync_DoubleObservation_LogsOnceViaInterlocked()
+    public async Task OnMountAsync_observed_twice_logs_cancelled_once_via_Interlocked()
     {
         var log = new LifecycleLog();
         var mounted = true;

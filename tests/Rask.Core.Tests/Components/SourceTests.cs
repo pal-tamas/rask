@@ -3,11 +3,11 @@ namespace Rask.Core.Tests.Components;
 public partial class SourceTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Render_NullProps_ReturnsSelfClosingTag() =>
+    public void Unset_props_render_only_the_self_closing_tag() =>
         Assert.Equal("<source />", Source.ToHtml());
 
     [Fact]
-    public void Render_AllPropsSet_EmitsExpectedAttributes()
+    public void Setting_every_prop_emits_the_expected_attributes()
     {
         Assert.Equal(
             "<source id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" src=\"/a.mp4\" type=\"video/mp4\" srcset=\"/a.png 1x\" sizes=\"100vw\" media=\"(min-width:600px)\" />",

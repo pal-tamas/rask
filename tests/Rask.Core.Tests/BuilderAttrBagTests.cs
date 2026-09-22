@@ -67,6 +67,7 @@ public partial class BuilderAttrBagTests : global::Rask.Core.RaskMarkup
     public void A_later_duplicate_wins_the_lookup_as_a_dictionary_literal_would()
     {
         IReadOnlyDictionary<string, string?> bag = new AttrBag([("k", "first"), ("k", "second")]);
+
         Assert.Equal("second", bag["k"]);
     }
 
@@ -109,6 +110,7 @@ public partial class BuilderAttrBagTests : global::Rask.Core.RaskMarkup
     {
         var first = Div.Data("k", "v").ToHtml();
         var second = Div.Data("k", "v").ToHtml();
+
         Assert.Equal(first, second);
     }
 }

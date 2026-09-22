@@ -78,6 +78,7 @@ public sealed class DialogInvokerContractTests(PlaywrightFixture playwright) : I
 
         await page.ClickAsync("#open");
         await Expect(page.Locator("#dlg")).ToBeVisibleAsync();
+
         await page.ClickAsync("#close");
         await Expect(page.Locator("#dlg")).ToBeHiddenAsync();
     }
@@ -91,6 +92,7 @@ public sealed class DialogInvokerContractTests(PlaywrightFixture playwright) : I
 
         await page.ClickAsync("#open");
         await Expect(page.Locator("#dlg")).ToBeVisibleAsync();
+
         await page.Keyboard.PressAsync("Escape");
         await page.WaitForTimeoutAsync(300);
         await Expect(page.Locator("#dlg")).ToBeVisibleAsync();

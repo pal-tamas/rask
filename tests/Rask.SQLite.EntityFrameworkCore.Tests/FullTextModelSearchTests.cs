@@ -72,7 +72,7 @@ public sealed class FullTextModelSearchTests : IDisposable
     }
 
     [Fact]
-    public async Task Post_Search_projects_highlights()
+    public async Task Post_Search_projects_highlights_into_a_snippet()
     {
         var excerpts = await Post.Read.Search("mentions").Select(p => FullText.Snippet(p.Body, 3)).ToListAsync();
 

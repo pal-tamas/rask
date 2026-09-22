@@ -17,7 +17,7 @@ public class LisAlgorithmTests
     [InlineData(new[] { 3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5 }, 4)] // classic test
     [InlineData(new[] { 10, 22, 9, 33, 21, 50, 41, 60, 80 }, 6)] // Wikipedia LIS example
     [InlineData(new[] { 0, 2, 4, 1, 3, 5 }, 4)] // interleaved
-    public void ComputeLisIndexSet_ReturnsOptimalLengthIncreasingSubsequence(int[] input, int expectedLisLength)
+    public void The_LIS_index_set_has_the_length_of_the_longest_increasing_subsequence(int[] input, int expectedLisLength)
     {
         var lisIndexes = FrameDiffer.ComputeLisIndexSet(input);
 
@@ -34,7 +34,7 @@ public class LisAlgorithmTests
     }
 
     [Fact]
-    public void ComputeLisIndexSet_RandomLargeInput_MatchesNaiveDp()
+    public void The_LIS_index_set_of_a_random_large_input_matches_the_naive_dp()
     {
         // Patience-sort vs naive DP on 200 random elements: both must agree on length.
         // Specific indexes may differ when ties exist, but length is invariant.

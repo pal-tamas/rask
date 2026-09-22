@@ -6,7 +6,7 @@ namespace Rask.Server.Tests.Diagnostics;
 public class WsLoopMetricsTests
 {
     [Fact]
-    public async Task HandlerDispatch_EmitsDispatchedCounter_AndDurationHistogram()
+    public async Task A_handler_dispatch_emits_the_dispatched_counter_and_the_duration_histogram()
     {
         using var host = RaskTestHost.Create<TestApp>();
         var initialHtml = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();
@@ -24,6 +24,7 @@ public class WsLoopMetricsTests
         // has completed before we assert.
         await ws.SendJsonAsync(new { id = handlerId });
         var reply = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
+
         Assert.NotNull(reply);
 
         // The render frame is sent inside the dispatch's try; the duration histogram is recorded in

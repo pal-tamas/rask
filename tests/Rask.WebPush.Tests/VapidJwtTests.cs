@@ -22,6 +22,7 @@ public sealed class VapidJwtTests
     public async Task Header_is_vapid_scheme_with_t_and_k()
     {
         var options = TestSender.Options();
+
         string header = await CaptureAuthorization(options);
 
         Assert.StartsWith("vapid t=", header, StringComparison.Ordinal);
@@ -35,10 +36,11 @@ public sealed class VapidJwtTests
     public async Task Jwt_signature_verifies_against_the_public_key()
     {
         var options = TestSender.Options();
+
         string header = await CaptureAuthorization(options);
+
         (string jwt, _) = ParseHeader(header);
         string[] parts = jwt.Split('.');
-
         using ECDsa ecdsa = ImportPublic(options.VapidKeys!.PublicKey);
         byte[] signature = Base64Url.DecodeFromChars(parts[2]);
         bool ok = ecdsa.VerifyData(
@@ -46,7 +48,6 @@ public sealed class VapidJwtTests
             signature,
             HashAlgorithmName.SHA256,
             DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
-
         Assert.True(ok);
         Assert.Equal(64, signature.Length); // raw R‖S, not DER.
     }
@@ -55,16 +56,15 @@ public sealed class VapidJwtTests
     public async Task Claims_have_origin_only_aud_subject_and_bounded_exp()
     {
         var options = TestSender.Options();
-        string header = await CaptureAuthorization(options);
-        (string jwt, _) = ParseHeader(header);
 
+        string header = await CaptureAuthorization(options);
+
+        (string jwt, _) = ParseHeader(header);
         using var doc = JsonDocument.Parse(Base64Url.DecodeFromChars(jwt.Split('.')[1]));
         JsonElement claims = doc.RootElement;
-
         // aud is the endpoint's origin with no path/trailing slash.
         Assert.Equal("https://fcm.googleapis.com", claims.GetProperty("aud").GetString());
         Assert.Equal("mailto:admin@example.com", claims.GetProperty("sub").GetString());
-
         long exp = claims.GetProperty("exp").GetInt64();
         long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         Assert.InRange(exp, now, now + (24 * 60 * 60)); // must not exceed now + 24h.

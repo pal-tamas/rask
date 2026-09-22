@@ -4,7 +4,7 @@ namespace Rask.Wasm.Tests.Session;
 public class HandlerScopeTests
 {
     [Fact]
-    public async Task RequestRenderAsync_WhenInHandlerScopeTrue_ReturnsImmediatelyWithoutAcquiringLock()
+    public async Task A_render_request_inside_the_handler_scope_returns_at_once_without_taking_the_lock()
     {
         var (session, _) = NewSession();
         session.InHandlerScope = true;

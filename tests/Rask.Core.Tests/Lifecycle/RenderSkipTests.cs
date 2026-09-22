@@ -7,7 +7,7 @@ namespace Rask.Core.Tests.Lifecycle;
 public partial class RenderSkipTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Render_TwiceWithUnchangedProps_OnlyRunsOnce()
+    public void Rendering_twice_with_unchanged_props_runs_only_once()
     {
         var sp = RenderHarness.EmptyServices();
         var child = new LifecycleTrackingComponent();
@@ -22,7 +22,7 @@ public partial class RenderSkipTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_StateHasChangedOnChild_RerendersOnlyThatChild()
+    public void StateHasChanged_on_a_child_rerenders_only_that_child()
     {
         var sp = RenderHarness.EmptyServices();
         var child = new LifecycleTrackingComponent();
@@ -40,7 +40,7 @@ public partial class RenderSkipTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_PropsChange_RerendersThatComponent()
+    public void A_props_change_rerenders_that_component()
     {
         var sp = RenderHarness.EmptyServices();
         var c = new LifecycleTrackingComponent();
@@ -61,7 +61,7 @@ public partial class RenderSkipTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void SkippedParent_KeepsDescendantsAlive_AcrossRenders()
+    public void A_skipped_parent_keeps_its_descendants_alive_across_renders()
     {
         var sp = RenderHarness.EmptyServices();
         var grandchild = new LifecycleTrackingComponent();
@@ -86,7 +86,7 @@ public partial class RenderSkipTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void RootStateHasChanged_ForcesRootRender()
+    public void StateHasChanged_on_the_root_forces_a_root_render()
     {
         var sp = RenderHarness.EmptyServices();
         var root = new LifecycleTrackingComponent();
@@ -102,7 +102,7 @@ public partial class RenderSkipTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task StateHasChanged_WhileTheComponentIsRendering_IsNotLost()
+    public async Task StateHasChanged_while_the_component_is_rendering_is_not_lost()
     {
         // A lifecycle continuation changes state and calls StateHasChanged on a pool thread, and nothing stops
         // that landing while another thread's render of the same component is between reading the state and

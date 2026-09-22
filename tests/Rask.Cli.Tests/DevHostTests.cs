@@ -102,6 +102,7 @@ public sealed class DevHostTests
         var original = string.Join(newline, ["127.0.0.1\tlocalhost", "255.255.255.255\tbroadcasthost", ""]);
 
         var added = DevHostFiles.AddHost(original, "appname.test");
+
         Assert.NotNull(added);
 
         var withCarriageReturns = added!.Replace("\n", newline, StringComparison.Ordinal)

@@ -5,7 +5,7 @@ namespace Rask.Core.Tests.Forms;
 public class DelegateValidatorTests
 {
     [Fact]
-    public void RegisterFieldValidator_Sync_RunsOnValidateField_AppendsMessages()
+    public void A_sync_field_validator_runs_on_ValidateField_and_appends_messages()
     {
         var m = new Model { Name = "ab" };
         var ctx = new EditContext(m);
@@ -19,7 +19,7 @@ public class DelegateValidatorTests
     }
 
     [Fact]
-    public void RegisterFieldValidator_NullClearsPriorRegistration()
+    public void Registering_a_null_field_validator_clears_the_prior_registration()
     {
         var m = new Model { Name = "ab" };
         var ctx = new EditContext(m);
@@ -37,7 +37,7 @@ public class DelegateValidatorTests
     }
 
     [Fact]
-    public async Task RegisterFieldValidator_Async_RunsOnValidateFieldAsync()
+    public async Task An_async_field_validator_runs_on_ValidateFieldAsync()
     {
         var m = new Model { Name = "x" };
         var ctx = new EditContext(m);
@@ -55,7 +55,7 @@ public class DelegateValidatorTests
     }
 
     [Fact]
-    public async Task RegisterFieldValidator_Async_LatestWinsCancellation()
+    public async Task The_latest_async_field_validation_wins_and_cancels_the_earlier_one()
     {
         var m = new Model { Name = "x" };
         var ctx = new EditContext(m);
@@ -105,7 +105,7 @@ public class DelegateValidatorTests
     }
 
     [Fact]
-    public void RegisterFormValidator_Sync_RunsOnValidate_MessagesAttachToFormField()
+    public void A_sync_form_validator_runs_on_Validate_and_its_messages_attach_to_the_form_field()
     {
         var m = new Model { Name = "" };
         var ctx = new EditContext(m);
@@ -120,7 +120,7 @@ public class DelegateValidatorTests
     }
 
     [Fact]
-    public async Task RegisterFormValidator_Async_RunsOnValidateAsync()
+    public async Task An_async_form_validator_runs_on_ValidateAsync()
     {
         var m = new Model { Name = "" };
         var ctx = new EditContext(m);
@@ -138,7 +138,7 @@ public class DelegateValidatorTests
     }
 
     [Fact]
-    public void SyncValidate_Throws_WhenAsyncDelegateRegistered()
+    public void A_sync_Validate_throws_when_an_async_delegate_is_registered()
     {
         var m = new Model();
         var ctx = new EditContext(m);
@@ -151,7 +151,7 @@ public class DelegateValidatorTests
     }
 
     [Fact]
-    public void DelegateException_IsSwallowedIntoGenericMessage()
+    public void A_throwing_delegate_is_swallowed_into_a_generic_message()
     {
         var m = new Model();
         var ctx = new EditContext(m);
@@ -161,6 +161,7 @@ public class DelegateValidatorTests
             (Func<string, IEnumerable<string>>)(_ => throw new InvalidOperationException("boom")));
 
         ctx.ValidateField(fid);
+
         Assert.Contains(ctx.GetValidationMessages(fid),
             msg => msg.Contains("could not be completed"));
     }

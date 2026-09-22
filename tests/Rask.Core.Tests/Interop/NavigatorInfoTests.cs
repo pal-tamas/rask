@@ -5,7 +5,7 @@ namespace Rask.Core.Tests.Interop;
 public class NavigatorInfoTests
 {
     [Fact]
-    public async Task OnLine_ReadsNavigatorOnLine_AsProperty()
+    public async Task OnLine_reads_navigator_onLine_as_a_property()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("navigator.onLine", true);
@@ -19,7 +19,7 @@ public class NavigatorInfoTests
     }
 
     [Fact]
-    public async Task Language_ReadsNavigatorLanguage()
+    public async Task Language_reads_the_navigator_language()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("navigator.language", "en-US");
@@ -29,7 +29,7 @@ public class NavigatorInfoTests
     }
 
     [Fact]
-    public async Task UserAgent_ReadsNavigatorUserAgent()
+    public async Task UserAgent_reads_the_navigator_user_agent()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("navigator.userAgent", "Mozilla/5.0");

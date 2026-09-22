@@ -16,7 +16,7 @@ namespace Rask.Server.Tests;
 public sealed class HostContractParityTests
 {
     [Fact]
-    public void AddRask_ResolvesEveryCoreHostContract()
+    public void AddRask_resolves_every_core_host_contract()
     {
         using var host = RaskTestHost.Create<NoOpApp>();
         // Most of these are scoped (one per live session), so they need a scope rather than the root provider.

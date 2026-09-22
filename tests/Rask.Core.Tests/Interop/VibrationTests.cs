@@ -5,7 +5,7 @@ namespace Rask.Core.Tests.Interop;
 public class VibrationTests
 {
     [Fact]
-    public async Task Vibrate_SendsPatternAsSingleArrayArg()
+    public async Task Vibrating_sends_the_pattern_as_a_single_array_arg()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("navigator.vibrate", true);
@@ -22,7 +22,7 @@ public class VibrationTests
     }
 
     [Fact]
-    public async Task Cancel_SendsZero()
+    public async Task Cancelling_the_vibration_sends_zero()
     {
         var js = new FakeJsRuntime();
         var vibration = new Vibration(js);

@@ -109,14 +109,17 @@ public sealed class WebRootAssetFallbackTests : IDisposable
         using var http = app.GetTestClient();
 
         var asset = await http.GetAsync($"/_rask/a/{_hash}.css");
+
         Assert.Equal(HttpStatusCode.OK, asset.StatusCode);
         Assert.Equal(".app{color:teal}", await asset.Content.ReadAsStringAsync());
 
         var dashboard = await http.GetAsync("/_rask");
+
         Assert.Equal(HttpStatusCode.OK, dashboard.StatusCode);
         Assert.Contains("dashboard-marker", await dashboard.Content.ReadAsStringAsync(), StringComparison.Ordinal);
 
         var clientRoute = await http.GetAsync("/orders/42");
+
         Assert.Equal(HttpStatusCode.OK, clientRoute.StatusCode);
         Assert.Contains("data-rask-root", await clientRoute.Content.ReadAsStringAsync(), StringComparison.Ordinal);
     }

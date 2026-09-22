@@ -30,7 +30,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     protected override string ServerLog => app.ServerLog;
 
     [Fact]
-    public Task EveryActionComponentRendersWithARealSize() => RunAsync(async () =>
+    public Task Every_action_component_renders_with_a_real_size() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -63,7 +63,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
-    public Task TheDropdownOpensAndClosesFromCSharpState() => RunAsync(async () =>
+    public Task The_dropdown_opens_and_closes_from_CSharp_state() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -89,11 +89,12 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
-    public Task ChoosingAMenuActionClosesTheDropdownAndReportsIt() => RunAsync(async () =>
+    public Task Choosing_a_menu_action_closes_the_dropdown_and_reports_it() => RunAsync(async () =>
     {
         await OpenAsync();
 
         var scope = Page.Locator("[data-testid='ui-dropdown']");
+
         await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Open menu" }).ClickAsync();
         await scope.GetByRole(AriaRole.Menuitem, new LocatorGetByRoleOptions { Name = "Duplicate" }).ClickAsync();
 
@@ -103,12 +104,13 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
-    public Task TheMenuIsDrivenByTheKeyboardIntoASubmenu() => RunAsync(async () =>
+    public Task The_menu_is_driven_by_the_keyboard_into_a_submenu() => RunAsync(async () =>
     {
         await OpenAsync();
 
         var scope = Page.Locator("[data-testid='ui-dropdown']");
         var trigger = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "View" });
+
         await trigger.FocusAsync();
         await Page.Keyboard.PressAsync("Enter");
 
@@ -129,17 +131,19 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
 
         await Page.Keyboard.PressAsync("ArrowDown");
         await WaitForCursorAsync(CursorAsync, "Date modified");
+
         // Enter presses the row under the cursor, exactly as a click would.
         await Page.Keyboard.PressAsync("Enter");
         await Expect(Page.Locator("[data-testid='ui-actions-log']")).ToContainTextAsync("sorted by date");
     });
 
     [Fact]
-    public Task APointerCrossingDiagonallyIntoASubmenuKeepsItOpen() => RunAsync(async () =>
+    public Task A_pointer_crossing_diagonally_into_a_submenu_keeps_it_open() => RunAsync(async () =>
     {
         await OpenAsync();
 
         var scope = Page.Locator("[data-testid='ui-dropdown']");
+
         await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "View" }).ClickAsync();
 
         var sub = scope.GetByRole(AriaRole.Menuitem, new LocatorGetByRoleOptions { Name = "Sort by" });
@@ -156,16 +160,18 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await Page.Mouse.MoveAsync(to.X + 12, to.Y + (to.Height / 2), new MouseMoveOptions { Steps = 25 });
 
         await Expect(flyout).ToBeVisibleAsync();
+
         await target.ClickAsync();
         await Expect(Page.Locator("[data-testid='ui-actions-log']")).ToContainTextAsync("sorted by size");
     });
 
     [Fact]
-    public Task ACheckboxItemTogglesAndKeepsTheMenuOpen() => RunAsync(async () =>
+    public Task A_checkbox_item_toggles_and_keeps_the_menu_open() => RunAsync(async () =>
     {
         await OpenAsync();
 
         var scope = Page.Locator("[data-testid='ui-dropdown']");
+
         await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "View" }).ClickAsync();
         var item = scope.GetByRole(AriaRole.Menuitemcheckbox, new LocatorGetByRoleOptions { Name = "Show archived" });
 
@@ -194,7 +200,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     }
 
     [Fact]
-    public Task ARightClickOpensTheMenuAtThePointerWithTheMenuKeyboard() => RunAsync(async () =>
+    public Task A_right_click_opens_the_menu_at_the_pointer_with_the_menu_keyboard() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -245,7 +251,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
-    public Task AContextMenuOpenedAtTheEdgeOfTheViewportStaysOnScreen() => RunAsync(async () =>
+    public Task A_context_menu_opened_at_the_edge_of_the_viewport_stays_on_screen() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -279,7 +285,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
-    public Task TheShortcutOpensThePaletteAndEnterRunsTheNarrowedCommand() => RunAsync(async () =>
+    public Task The_shortcut_opens_the_palette_and_Enter_runs_the_narrowed_command() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -313,12 +319,13 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
-    public Task ThePaletteFieldOpensItAndTheArrowsSkipADisabledCommand() => RunAsync(async () =>
+    public Task The_palette_field_opens_it_and_the_arrows_skip_a_disabled_command() => RunAsync(async () =>
     {
         await OpenAsync();
 
         var scope = Page.Locator("[data-testid='ui-command']");
         var field = scope.Locator("[data-rask-shortcut]");
+
         await field.ScrollIntoViewIfNeededAsync();
         await field.ClickAsync();
 
@@ -341,7 +348,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
-    public Task TheModalOpensOnDemandAndClosesFromItsFooter() => RunAsync(async () =>
+    public Task The_modal_opens_on_demand_and_closes_from_its_footer() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -363,7 +370,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
-    public Task ThePopoverDialogOpensAndEscapeClosesIt() => RunAsync(async () =>
+    public Task The_popover_dialog_opens_and_escape_closes_it() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -393,7 +400,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
-    public Task TheDialogIsARealModalThatLocksTheScrollAndHandsFocusBack() => RunAsync(async () =>
+    public Task The_dialog_is_a_real_modal_that_locks_the_scroll_and_hands_focus_back() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -417,12 +424,13 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
-    public Task TheStateDrivenDialogTrapsFocusAndEscapeRunsItsCloseHandler() => RunAsync(async () =>
+    public Task The_state_driven_dialog_traps_focus_and_escape_runs_its_close_handler() => RunAsync(async () =>
     {
         await OpenAsync();
 
         var scope = Page.Locator("[data-testid='ui-modal']");
         var opener = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Delete order" }).First;
+
         await opener.FocusAsync();
         await Page.Keyboard.PressAsync("Enter");
 
@@ -450,12 +458,13 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
-    public Task AFlyoutRunsTheFullHeightOfTheViewport() => RunAsync(async () =>
+    public Task A_flyout_runs_the_full_height_of_the_viewport() => RunAsync(async () =>
     {
         await OpenAsync();
 
         await Page.Locator("[data-testid='ui-modal-flyout']")
             .GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Filters" }).ClickAsync();
+
         var box = Page.Locator("#demo-filters .modal-box");
         await Expect(box).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
@@ -466,7 +475,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
-    public Task ThePopoverDialogIsARealDialogElement() => RunAsync(async () =>
+    public Task The_popover_dialog_is_a_real_dialog_element() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -478,7 +487,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
-    public Task TheSwapFlipsItsFaceAndSaysSo() => RunAsync(async () =>
+    public Task The_swap_flips_its_face_and_says_so() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -498,7 +507,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
-    public Task TheFloatingActionButtonRevealsItsActionsOnFocus() => RunAsync(async () =>
+    public Task The_floating_action_button_reveals_its_actions_on_focus() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -514,7 +523,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
-    public Task TheThemeControlChoosesAThemeAndThePageAppliesIt() => RunAsync(async () =>
+    public Task The_theme_control_chooses_a_theme_and_the_page_applies_it() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -541,7 +550,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
-    public Task AnIconOnlyButtonStillHasAName() => RunAsync(async () =>
+    public Task An_icon_only_button_still_has_a_name() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -556,7 +565,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
-    public Task ADisabledButtonIsDisabledByTheBrowserRatherThanByAClass() => RunAsync(async () =>
+    public Task A_disabled_button_is_disabled_by_the_browser_rather_than_by_a_class() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -569,7 +578,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
-    public Task AButtonWaitingOnItsHandlerShowsASpinnerKeepsItsWidthAndTakesOnePress() => RunAsync(async () =>
+    public Task A_button_waiting_on_its_handler_shows_a_spinner_keeps_its_width_and_takes_one_press() => RunAsync(async () =>
     {
         await OpenAsync();
 
@@ -579,6 +588,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await Expect(count).ToContainTextAsync("Saved 0 times", new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
 
         var before = await save.BoundingBoxAsync();
+
         await save.FocusAsync();
         await Page.Keyboard.PressAsync("Enter");
 
@@ -604,7 +614,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
-    public Task AButtonGivenARouteNavigatesWithoutReloadingTheApp() => RunAsync(async () =>
+    public Task A_button_given_a_route_navigates_without_reloading_the_app() => RunAsync(async () =>
     {
         await OpenAsync();
 

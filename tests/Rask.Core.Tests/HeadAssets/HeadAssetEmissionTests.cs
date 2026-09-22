@@ -19,15 +19,16 @@ public partial class HeadAssetEmissionTests : global::Rask.Core.RaskMarkup
     public HeadAssetEmissionTests() => ScopedAssetRegistry.InvalidateAll();
 
     [Fact]
-    public void NoRegisteredAssets_EmitsNothing()
+    public void With_no_registered_assets_nothing_is_emitted()
     {
         var sb = new StringBuilder();
         HeadAssetRegistry.EmitScopedBundles(sb);
+
         Assert.Equal(0, sb.Length);
     }
 
     [Fact]
-    public void CssOnly_EmitsExactlyOneLinkTag_AtBundleHash()
+    public void Css_only_emits_exactly_one_link_tag_at_the_bundle_hash()
     {
         ScopedAssetRegistry.RegisterCss(typeof(CssOnly), ".x { color: red; }");
         var bundleHash = ScopedAssetRegistry.GetBundleHash(AssetKind.Css);
@@ -44,7 +45,7 @@ public partial class HeadAssetEmissionTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void JsOnly_EmitsExactlyOneScriptTag_WithDefer_AtBundleHash()
+    public void Js_only_emits_exactly_one_deferred_script_tag_at_the_bundle_hash()
     {
         ScopedAssetRegistry.RegisterJs(typeof(JsOnly), "export function f() {}");
         var bundleHash = ScopedAssetRegistry.GetBundleHash(AssetKind.Js);
@@ -61,7 +62,7 @@ public partial class HeadAssetEmissionTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void BothKinds_EmitsLinkBeforeScript()
+    public void Both_kinds_emit_the_link_before_the_script()
     {
         ScopedAssetRegistry.RegisterCss(typeof(BothAssets), ".x { color: red; }");
         ScopedAssetRegistry.RegisterJs(typeof(BothAssets), "export function f() {}");
@@ -77,7 +78,7 @@ public partial class HeadAssetEmissionTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void ManyCssComponents_CollapseToOneBundleLink()
+    public void Many_css_components_collapse_to_one_bundle_link()
     {
         // Every registered scoped CSS goes into ONE bundle, so no matter how many components
         // contribute, the head carries a single <link> at the bundle hash.
@@ -94,7 +95,7 @@ public partial class HeadAssetEmissionTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void BundleHash_IsStable_RegardlessOfRegistrationOrder()
+    public void The_bundle_hash_is_stable_regardless_of_registration_order()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".a { color: red; }");
         ScopedAssetRegistry.RegisterCss(typeof(WidgetB), ".b { color: blue; }");
@@ -110,13 +111,13 @@ public partial class HeadAssetEmissionTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void FrameworkAssetKeyPrefix_IsRskHyphen()
+    public void The_framework_asset_key_prefix_is_rsk_hyphen()
     {
         Assert.Equal("rsk-", HeadAssetRegistry.FrameworkAssetKeyPrefix);
     }
 
     [Fact]
-    public void BundleUrl_UsesContentAddressedPath_WithLowercaseHexOnly()
+    public void The_bundle_url_uses_a_content_addressed_path_with_lower_case_hex_only()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
 
@@ -128,7 +129,7 @@ public partial class HeadAssetEmissionTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void NullArgument_Throws()
+    public void A_null_argument_throws()
     {
         Assert.Throws<ArgumentNullException>(() => HeadAssetRegistry.EmitScopedBundles(null!));
     }
@@ -136,7 +137,7 @@ public partial class HeadAssetEmissionTests : global::Rask.Core.RaskMarkup
     // ─── User Head × scoped-bundle coexistence (via the integrated ApplyTo) ──────────────
 
     [Fact]
-    public void UserCdnLink_AppearsBeforeScopedBundleLink_InCascadeOrder()
+    public void A_user_cdn_link_appears_before_the_scoped_bundle_link_in_cascade_order()
     {
         var registry = new HeadAssetRegistry();
         registry.Add(Link.Rel("stylesheet").Href("https://cdn.example/bootstrap.css"));
@@ -151,7 +152,7 @@ public partial class HeadAssetEmissionTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void UserCdnScript_AppearsBeforeScopedBundleScript()
+    public void A_user_cdn_script_appears_before_the_scoped_bundle_script()
     {
         var registry = new HeadAssetRegistry();
         registry.Add(Script.Src("https://cdn.example/chartjs.js"));
@@ -166,7 +167,7 @@ public partial class HeadAssetEmissionTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void UserInlineStyle_PreservedVerbatim_NoScopeRewriting()
+    public void A_user_inline_style_is_preserved_verbatim_with_no_scope_rewriting()
     {
         var registry = new HeadAssetRegistry();
         registry.Add(Style[":root { --accent: hotpink; }"]);
@@ -177,7 +178,7 @@ public partial class HeadAssetEmissionTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void UserInlineScript_PreservedVerbatim_NoDeferInjection()
+    public void A_user_inline_script_is_preserved_verbatim_with_no_defer_injection()
     {
         var registry = new HeadAssetRegistry();
         registry.Add(Script["window.__inlineRan = true;"]);
@@ -188,7 +189,7 @@ public partial class HeadAssetEmissionTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void SameCdnLink_DeclaredTwice_DedupedToSingleEmission()
+    public void The_same_cdn_link_declared_twice_is_deduped_to_a_single_emission()
     {
         var registry = new HeadAssetRegistry();
         registry.Add(Link.Rel("stylesheet").Href("https://cdn.example/bootstrap.css"));
@@ -199,7 +200,7 @@ public partial class HeadAssetEmissionTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void SameCdnUrlDifferentMedia_BothEmitted()
+    public void The_same_cdn_url_with_different_media_is_emitted_twice()
     {
         var registry = new HeadAssetRegistry();
         registry.Add(Link.Rel("stylesheet").Href("https://cdn.example/x.css").Media("screen"));
@@ -210,7 +211,7 @@ public partial class HeadAssetEmissionTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void UserSuppliedDataRaskKey_PreservesUserKey()
+    public void A_user_supplied_data_rask_key_preserves_the_users_key()
     {
         var registry = new HeadAssetRegistry();
         registry.Add(Link
@@ -223,7 +224,7 @@ public partial class HeadAssetEmissionTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void SingletonDedup_StillWorks_TitleAndBase()
+    public void Singleton_dedup_still_works_for_title_and_base()
     {
         var registry = new HeadAssetRegistry();
         registry.Add(Title.Id("First"));

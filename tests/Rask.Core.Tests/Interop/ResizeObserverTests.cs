@@ -6,7 +6,7 @@ namespace Rask.Core.Tests.Interop;
 public class ResizeObserverTests
 {
     [Fact]
-    public async Task Observe_PassesElement()
+    public async Task Observing_passes_the_element()
     {
         var js = new FakeJsRuntime();
         var el = ElementRef.New();
@@ -19,7 +19,7 @@ public class ResizeObserverTests
     }
 
     [Fact]
-    public async Task Changed_RoutesEntry_ToTheRegisteredHandler()
+    public async Task A_changed_entry_is_routed_to_the_registered_handler()
     {
         var js = new FakeJsRuntime();
         ResizeEntry? got = null;
@@ -38,7 +38,7 @@ public class ResizeObserverTests
     }
 
     [Fact]
-    public async Task Dispose_StopsObserving_AndRouting()
+    public async Task Disposing_stops_observing_and_routing()
     {
         var js = new FakeJsRuntime();
         var hits = 0;
@@ -57,9 +57,10 @@ public class ResizeObserverTests
     }
 
     [Fact]
-    public async Task Observe_NullArgs_Throw()
+    public async Task Observing_with_null_args_throws()
     {
         var svc = new ResizeObserverService(new FakeJsRuntime());
+
         await Assert.ThrowsAsync<ArgumentNullException>(
             async () => await svc.ObserveAsync(null!, _ => Task.CompletedTask));
         await Assert.ThrowsAsync<ArgumentNullException>(

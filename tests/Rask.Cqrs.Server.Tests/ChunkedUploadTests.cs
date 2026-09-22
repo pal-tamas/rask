@@ -53,8 +53,8 @@ public sealed class ChunkedUploadTests
         // offset the server holds is what lets the client continue instead of starting again.
         using var server = Host();
         using var client = server.CreateClient();
-
         await SendChunkAsync(client, "aaaa", 0, 0, new byte[100]);
+
         var response = await SendChunkAsync(client, "aaaa", 0, 0, new byte[100]);
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
@@ -73,9 +73,11 @@ public sealed class ChunkedUploadTests
         await SendChunksAsync(client, "bbbb", "hello"u8.ToArray(), chunk: 8);
 
         var first = await SendMessageAsync(client, "bbbb", """{"note":"a","file":0}""");
+
         Assert.Equal(HttpStatusCode.OK, first.StatusCode);
 
         var replay = await SendMessageAsync(client, "bbbb", """{"note":"b","file":0}""");
+
         Assert.Equal(HttpStatusCode.BadRequest, replay.StatusCode);
     }
 

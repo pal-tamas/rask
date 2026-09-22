@@ -11,7 +11,7 @@ namespace Rask.Generators.Tests;
 public class Rask020CollisionTests
 {
     [Fact]
-    public void TwoComponentsSameSimpleName_DifferentNamespaces_BothHaveTs_FiresRask020Warning()
+    public void Two_components_sharing_a_simple_name_in_different_namespaces_both_with_ts_warn_RASK020()
     {
         var run = Run(
             new[]
@@ -37,7 +37,7 @@ public class Rask020CollisionTests
     }
 
     [Fact]
-    public void TwoComponentsSameSimpleName_OnlyOneHasJs_NoRask020()
+    public void Two_components_sharing_a_simple_name_where_only_one_has_js_raise_no_RASK020()
     {
         var run = Run(
             new[]
@@ -57,7 +57,7 @@ public class Rask020CollisionTests
     }
 
     [Fact]
-    public void ThreeComponentsSameSimpleName_SingleDiagnostic_ListsAllThreeFqns()
+    public void Three_components_sharing_a_simple_name_raise_one_diagnostic_listing_all_three_full_names()
     {
         var run = Run(
             new[]
@@ -91,7 +91,7 @@ public class Rask020CollisionTests
     }
 
     [Fact]
-    public void DistinctSimpleNames_NoRask020()
+    public void Distinct_simple_names_raise_no_RASK020()
     {
         var run = Run(
             new[]
@@ -110,7 +110,7 @@ public class Rask020CollisionTests
     }
 
     [Fact]
-    public void Generator_EmitsScopedAssetRegistryRegistration()
+    public void The_generator_emits_a_ScopedAssetRegistry_registration()
     {
         var run = Run(
             new[]

@@ -21,7 +21,7 @@ namespace Rask.TypeScript.Tasks.Tests;
 public class CommitlintConfigTests
 {
     [Fact]
-    public void TheWorkflowNamesAConfigFileThatExists()
+    public void The_workflow_names_a_config_file_that_exists()
     {
         var root = RepositoryRoot();
         var workflow = Path.Combine(root, ".github", "workflows", "commitlint.yml");
@@ -49,7 +49,7 @@ public class CommitlintConfigTests
     }
 
     [Fact]
-    public void TheConfigIsTypeScript_AndDeclaresItsTypeImportAsAType()
+    public void The_config_is_TypeScript_and_declares_its_type_import_as_a_type()
     {
         var config = Path.Combine(RepositoryRoot(), "commitlint.config.ts");
 

@@ -9,7 +9,7 @@ namespace Rask.Core.Tests.Live;
 public partial class RenderFrameTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Serialize_EmitsElementOpenAndCloseFrames_WithSubtreeLength()
+    public void Serializing_emits_element_open_and_close_frames_with_the_subtree_length()
     {
         // <div class="x"><span>hi</span></div>
         // Expected frames: Element(div) [SubtreeLength=4]
@@ -35,7 +35,7 @@ public partial class RenderFrameTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Serialize_NoFrameScope_LeavesHtmlOutputUnchanged()
+    public void Serializing_without_a_frame_scope_leaves_the_html_output_unchanged()
     {
         // Sanity: the frame-producing path must be invisible when no scope is active.
         // If a future change inadvertently activates the scope unconditionally, this
@@ -51,7 +51,7 @@ public partial class RenderFrameTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Serialize_DoctypeAndFragment_EmitsDoctypeFrameAndWalksFragmentChildren()
+    public void Serializing_a_doctype_and_a_fragment_emits_a_doctype_frame_and_walks_the_fragment_children()
     {
         Component tree = [Doctype, Div["hi"]];
 
@@ -66,7 +66,7 @@ public partial class RenderFrameTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Serialize_SelfClosingElement_SubtreeLengthIsOne_AndSelfClosingFlagSet()
+    public void A_serialized_self_closing_element_has_subtree_length_one_and_the_self_closing_flag_set()
     {
         var tree = Br;
 
@@ -80,7 +80,7 @@ public partial class RenderFrameTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Serialize_NestedAttributes_PreservedInOrder()
+    public void Serializing_nested_attributes_preserves_their_order()
     {
         // Element + multiple attributes: SubtreeLength must include all of them so a
         // diff consumer can skip the whole element by jumping (i + SubtreeLength).

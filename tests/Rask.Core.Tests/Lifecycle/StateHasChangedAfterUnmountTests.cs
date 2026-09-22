@@ -14,7 +14,7 @@ namespace Rask.Core.Tests.Lifecycle;
 public partial class StateHasChangedAfterUnmountTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void StateHasChanged_AfterUnmount_IsNoop()
+    public void StateHasChanged_after_unmount_does_nothing()
     {
         var handle = new RecordingHandle();
         var c = new TrivialComponent { RenderHandle = handle };
@@ -28,7 +28,7 @@ public partial class StateHasChangedAfterUnmountTests : global::Rask.Core.RaskMa
     }
 
     [Fact]
-    public async Task StateHasChangedAsync_AfterUnmount_IsNoop()
+    public async Task StateHasChangedAsync_after_unmount_does_nothing()
     {
         var handle = new RecordingHandle();
         var c = new TrivialComponent { RenderHandle = handle };
@@ -42,7 +42,7 @@ public partial class StateHasChangedAfterUnmountTests : global::Rask.Core.RaskMa
     }
 
     [Fact]
-    public void StateHasChanged_BeforeUnmount_StillRenders()
+    public void StateHasChanged_before_unmount_still_renders()
     {
         // Sanity check: the unmount guard must not affect live components.
         var handle = new RecordingHandle();
@@ -55,7 +55,7 @@ public partial class StateHasChangedAfterUnmountTests : global::Rask.Core.RaskMa
     }
 
     [Fact]
-    public async Task LateLifecycleSyncContextPost_AfterUnmount_DoesNotQueueRender()
+    public async Task A_late_lifecycle_sync_context_post_after_unmount_does_not_queue_a_render()
     {
         // Models the exact ticker-→-Lifecycle regression: a Mount
         // captures its continuation via LifecycleSyncContext; the component is

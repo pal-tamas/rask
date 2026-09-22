@@ -124,7 +124,7 @@ public class BuilderEntryEmissionTests
     // Same-named GENERIC components are the one shape that survives a shared name: their entries are
     // methods, so different arities are overloads (BsSelect<TItem> next to BsSelect<TValue, TItem>).
     [Fact]
-    public void Same_named_generic_controls_share_a_seed__and_the_arity_that_cannot_pin_keeps_no_entry()
+    public void Same_named_generic_controls_share_a_seed_and_the_arity_that_cannot_pin_keeps_no_entry()
     {
         var run = BuilderGeneratorHarness.Run("""
                                               using System;
@@ -800,6 +800,7 @@ public class BuilderEntryEmissionTests
                                               """);
 
         var message = Assert.Single(run.WithId("RASK036")).GetMessage();
+
         Assert.Contains("CardTests", message, StringComparison.Ordinal);
         Assert.Contains("framework tags", message, StringComparison.Ordinal);
     }

@@ -10,7 +10,7 @@ namespace Rask.Core.Tests.Forms;
 public class PublicBindingApiTests
 {
     [Fact]
-    public void ExpressionAccessor_Parse_ResolvesTargetGetterAndField()
+    public void ExpressionAccessor_resolves_the_target_getter_and_field()
     {
         var m = new Model();
         var acc = ExpressionAccessor.Parse((Expression<Func<string>>)(() => m.Name));
@@ -23,7 +23,7 @@ public class PublicBindingApiTests
     }
 
     [Fact]
-    public void ExpressionAccessor_Parse_BindsCollectionProperty()
+    public void ExpressionAccessor_binds_a_collection_property()
     {
         var m = new Model();
         var acc = ExpressionAccessor.Parse((Expression<Func<ICollection<string>>>)(() => m.Tags));
@@ -36,11 +36,11 @@ public class PublicBindingApiTests
     [InlineData(null, "")]
     [InlineData("hi", "hi")]
     [InlineData(42, "42")]
-    public void BindingHelpers_FormatValue_FormatsCommonValues(object? value, string expected) =>
+    public void FormatValue_formats_the_common_values(object? value, string expected) =>
         Assert.Equal(expected, BindingHelpers.FormatValue(value));
 
     [Fact]
-    public void BindingHelpers_FormatValue_UsesInvariantCulture()
+    public void FormatValue_uses_the_invariant_culture()
     {
         var prev = Thread.CurrentThread.CurrentCulture;
         Thread.CurrentThread.CurrentCulture = new CultureInfo("de-DE"); // comma decimal separator
@@ -55,36 +55,38 @@ public class PublicBindingApiTests
     }
 
     [Fact]
-    public void BindingHelpers_ResolveBindingContext_ReturnsNull_WithoutAmbientContext() =>
+    public void ResolveBindingContext_returns_null_without_an_ambient_context() =>
         // Outside a Form / live render, there's no EditContextScope or LiveRenderContext to resolve.
         Assert.Null(BindingHelpers.ResolveBindingContext(new Model()));
 
     [Fact]
-    public void SetCollectionMembership_AddsWhenAbsent_AndIsIdempotent()
+    public void Including_a_member_adds_it_when_absent_and_is_idempotent()
     {
         var list = new List<string>();
 
         Assert.True(BindingHelpers.SetCollectionMembership(list, "a", include: true));
         Assert.Equal(["a"], list);
+
         // Already present → no change, returns false.
         Assert.False(BindingHelpers.SetCollectionMembership(list, "a", include: true));
         Assert.Equal(["a"], list);
     }
 
     [Fact]
-    public void SetCollectionMembership_RemovesWhenPresent_AndNoOpWhenAbsent()
+    public void Excluding_a_member_removes_it_when_present_and_is_a_no_op_when_absent()
     {
         var list = new List<string> { "a", "b" };
 
         Assert.True(BindingHelpers.SetCollectionMembership(list, "a", include: false));
         Assert.Equal(["b"], list);
+
         // Already absent → no change, returns false.
         Assert.False(BindingHelpers.SetCollectionMembership(list, "a", include: false));
         Assert.Equal(["b"], list);
     }
 
     [Fact]
-    public void SetCollectionMembership_UsesComparer_ToRemoveMatchedInstance()
+    public void Membership_uses_the_comparer_to_remove_the_matched_instance()
     {
         // Two distinct instances that compare equal under the supplied comparer but not by reference.
         var first = new Box(1);
@@ -101,11 +103,11 @@ public class PublicBindingApiTests
     }
 
     [Fact]
-    public async Task NotifyAndValidateFieldAsync_NullContext_IsNoOp() =>
+    public async Task Notifying_and_validating_with_a_null_context_is_a_no_op() =>
         await BindingHelpers.NotifyAndValidateFieldAsync(null, new FieldIdentifier(new Model(), "Name"));
 
     [Fact]
-    public async Task NotifyAndValidateFieldAsync_MarksChangedTouched_AndRunsValidator()
+    public async Task Notifying_and_validating_marks_the_field_changed_and_touched_and_runs_its_validator()
     {
         var m = new Model { Name = "" };
         var ctx = new EditContext(m);

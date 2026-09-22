@@ -16,7 +16,7 @@ namespace Rask.Wasm.Tests.Session;
 public class WasmDiffPathTests() : ResettingTestBase(LiveDiffMode.Forced)
 {
     [Fact]
-    public async Task ClickCounter_ThreeIncrements_ProducesDiffsWithCorrectUpdateText()
+    public async Task Three_counter_clicks_produce_diffs_with_the_correct_UpdateText()
     {
         var (session, _) = NewSession(diffMode: DiffMode);
         var initial = await session.InitialRenderAsync();

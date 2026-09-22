@@ -13,7 +13,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
     // factory-time preselection).
 
     [Fact]
-    public void BoundSelect_IndexerChildren_PreselectsMatchingNonFirstOption()
+    public void A_bound_select_with_indexer_children_preselects_a_matching_non_first_option()
     {
         // The exact shape that used to break: idiomatic indexer syntax, bound value matching
         // a non-first option. Factory-time MarkSelected never saw these children.
@@ -30,7 +30,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void BoundSelect_IndexerChildren_NullValue_PreselectsEmptyOption()
+    public void A_bound_select_with_indexer_children_and_a_null_value_preselects_the_empty_option()
     {
         var model = new ColorPicker { Color = null };
         var view = new StubComponent(() => Form.Model(model)[
@@ -44,12 +44,12 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task BoundSelect_NullableString_EmptyChange_SetsPropertyToNull()
+    public async Task An_empty_change_sets_a_bound_nullable_string_to_null()
     {
         // `string?` is nullable per the C# NRT annotation; BindingHelpers reads it via
         // NullabilityInfoContext and treats empty input as null — matching Nullable<T>
         // value-type behavior. A non-nullable `string` property would set "" instead
-        // (see OnInput_NonNullableString_EmptyInput_SetsEmptyString in FormBindingTests).
+        // (see Empty_input_sets_a_non_nullable_string_to_an_empty_string in FormBindingTests).
         var model = new ColorPicker { Color = "red" };
         var view = new StubComponent(() => Form.Model(model)[
             Select.Bind(() => model.Color)[Option.Value(""), Option.Value("red")]
@@ -67,7 +67,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task BoundSelect_NullableInt_ValidChange_SetsTypedValue()
+    public async Task A_valid_change_sets_a_bound_nullable_int_to_the_typed_value()
     {
         var model = new ChoiceModel { Choice = null };
         var view = new StubComponent(() => Form.Model(model)[
@@ -84,7 +84,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task BoundSelect_NullableInt_EmptyChange_SetsPropertyToNull()
+    public async Task An_empty_change_sets_a_bound_nullable_int_to_null()
     {
         var model = new ChoiceModel { Choice = 5 };
         var view = new StubComponent(() => Form.Model(model)[
@@ -101,7 +101,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task BoundSelect_NullableEnum_ValidChange_ParsesEnum()
+    public async Task A_valid_change_parses_a_bound_nullable_enum()
     {
         var model = new StatusModel { Status = null };
         var view = new StubComponent(() => Form.Model(model)[
@@ -118,7 +118,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task BoundSelect_NullableEnum_EmptyChange_SetsPropertyToNull()
+    public async Task An_empty_change_sets_a_bound_nullable_enum_to_null()
     {
         var model = new StatusModel { Status = SelectStatus.Active };
         var view = new StubComponent(() => Form.Model(model)[
@@ -135,7 +135,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void BoundSelect_OptionWithoutValueAttribute_IsNotPreselected_ForNullBoundValue()
+    public void An_option_without_a_value_attribute_is_not_preselected_for_a_null_bound_value()
     {
         // Option { Value = null } omits the `value` attribute (Option.cs:15). HTML treats
         // such an option as having its text content as the submitted value, so server-
@@ -153,7 +153,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void BoundSelect_MarkedOption_KeepsItsReconciliationKey()
+    public void A_marked_option_keeps_its_reconciliation_key()
     {
         // Marking an option selected must preserve its Key. Dropping it shifts the selected option's key on
         // every render (the marked one loses its key while the previously-marked one regains it), so keyed
@@ -177,11 +177,11 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_NullProps_ReturnsOpenAndCloseTags() =>
+    public void Unset_props_render_only_the_open_and_close_tags() =>
         Assert.Equal("<select></select>", Select.Of<string>().ToHtml());
 
     [Fact]
-    public void Render_AllPropsSet_EmitsExpectedAttributes()
+    public void Setting_every_prop_emits_the_expected_attributes()
     {
         Assert.Equal(
             "<select id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" name=\"n\" multiple required disabled size=\"5\" form=\"f\" autofocus autocomplete=\"off\"></select>",
@@ -191,28 +191,30 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_StringChild_EncodesText() =>
+    public void A_string_child_is_encoded_as_text() =>
         Assert.Equal("<select>&lt;x&gt;</select>", Select.Of<string>()["<x>"].ToHtml());
 
     [Fact]
-    public void Render_OnChangeOutsideLiveContext_OmitsHandlerAttribute() =>
+    public void OnChange_outside_a_live_context_emits_no_handler_attribute() =>
         Assert.Equal(
             "<select></select>",
             Select.Of<string>().OnChange(_ => { }).ToHtml());
 
     [Fact]
-    public void Render_OnChangeInsideLiveContext_EmitsDataRaskOnChange()
+    public void OnChange_inside_a_live_context_emits_the_change_handler_id()
     {
         var view = new StubComponent(() => Select.Of<string>().OnChange(_ => { }));
+
         Assert.Equal(
             "<select data-rask-on-change=\"h0\"></select>",
             view.RenderAsLiveRoot());
     }
 
     [Fact]
-    public void Render_OnChangeAsyncInsideLiveContext_EmitsDataRaskOnChange()
+    public void An_async_OnChange_inside_a_live_context_emits_the_change_handler_id()
     {
         var view = new StubComponent(() => Select.Of<string>().OnChange(async _ => { await Task.Yield(); }));
+
         Assert.Equal(
             "<select data-rask-on-change=\"h0\"></select>",
             view.RenderAsLiveRoot());
@@ -224,7 +226,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
     // wrong shape rather than merely late.
 
     [Fact]
-    public async Task BoundMultiSelect_Change_BindsEveryReportedOption()
+    public async Task A_bound_multi_select_change_binds_every_reported_option()
     {
         var model = new TagsModel { Tags = [] };
         var view = new StubComponent(() => Form.Model(model)[
@@ -241,7 +243,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task BoundMultiSelect_Change_ReplacesRatherThanMerges()
+    public async Task A_bound_multi_select_change_replaces_rather_than_merges()
     {
         // Set, never merge: every change frame carries the absolute selection, so a replace re-syncs the
         // model even when an intermediate render was coalesced. A membership edit could not.
@@ -259,7 +261,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task BoundMultiSelect_EmptySelection_ClearsTheModel()
+    public async Task An_empty_multi_selection_clears_the_model()
     {
         var model = new TagsModel { Tags = ["a"] };
         var view = new StubComponent(() => Form.Model(model)[
@@ -275,7 +277,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void BoundMultiSelect_PreselectsEveryBoundOption()
+    public void A_bound_multi_select_preselects_every_bound_option()
     {
         // The render half. A single-value select marks the one option matching its formatted value;
         // a multi-select has to mark each member of the bound collection.
@@ -292,7 +294,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task BoundMultiSelect_WithoutTheValuesArray_FallsBackToTheSingleValue()
+    public async Task A_multi_select_frame_without_the_values_array_falls_back_to_the_single_value()
     {
         // A browser holding a client cached from a deploy that predates the array still sends `value`
         // alone. Reporting one option is wrong, but dropping the user's pick entirely is worse.
@@ -310,7 +312,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task BoundMultiSelect_GetOnlyCollection_IsRefilledInPlace()
+    public async Task A_get_only_collection_is_refilled_in_place()
     {
         // `public List<string> Tags { get; } = [];` is the ordinary way to declare one of these, and it
         // has no setter — the shape the existing MultiSelect sample uses. Assigning would throw; the
@@ -331,7 +333,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task BoundMultiSelect_OverAScalar_KeepsTheSingleValueHandler()
+    public async Task A_multi_select_over_a_scalar_keeps_the_single_value_handler()
     {
         // Multiple:true on a model that can only hold one answer. Silently widening it would be the
         // more surprising change, so this stays on the single-value path.
@@ -349,7 +351,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task BoundMultiSelect_StatedTypeArgument_OverAList_AssignsAList()
+    public async Task A_stated_type_argument_over_a_list_property_assigns_a_list()
     {
         // The type argument is STATED here, not inferred, so it is `ICollection<string>` while the
         // property is `List<string>`. That divergence used to reach the "satisfied by an array" branch
@@ -371,7 +373,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task BoundMultiSelect_StatedTypeArgument_OverASet_AssignsASet()
+    public async Task A_stated_type_argument_over_a_set_property_assigns_a_set()
     {
         var model = new SetTagsModel();
         var view = new StubComponent(() => Form.Model(model)[
@@ -389,7 +391,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task BoundMultiSelect_StatedTypeArgument_OverAnArray_AssignsAnArray()
+    public async Task A_stated_type_argument_over_an_array_property_assigns_an_array()
     {
         // The declared type decides, in both directions: an array property still gets an array.
         var model = new TagsModel { Tags = [] };
@@ -408,7 +410,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task BoundMultiSelect_AnInterfaceProperty_GetsACollectionThatCanStillGrow()
+    public async Task An_interface_property_gets_a_collection_that_can_still_grow()
     {
         // An array satisfies ICollection<string>, so assigning one never threw here -- it just left the
         // model holding a FIXED-SIZE collection, and the next Add threw somewhere else entirely. A list
@@ -425,6 +427,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
 
         Assert.True(ok);
         Assert.Equal(["a"], model.Tags);
+
         model.Tags.Add("b");
         Assert.Equal(["a", "b"], model.Tags);
     }

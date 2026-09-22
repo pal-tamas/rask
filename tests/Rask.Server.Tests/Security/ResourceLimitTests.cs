@@ -8,7 +8,7 @@ namespace Rask.Server.Tests.Security;
 public class ResourceLimitTests
 {
     [Fact]
-    public async Task IdleSocket_NoInboundFrames_IsClosedAfterTheTimeout()
+    public async Task A_socket_with_no_inbound_frames_is_closed_after_the_idle_timeout()
     {
         using var host = RaskTestHost.Create<TestApp>(
             configureServer: o => o.IdleSocketTimeout = TimeSpan.FromMilliseconds(300));
@@ -33,7 +33,7 @@ public class ResourceLimitTests
     }
 
     [Fact]
-    public async Task ActiveSocket_UnderIdleTimeout_StaysOpen()
+    public async Task An_active_socket_under_the_idle_timeout_stays_open()
     {
         // Comfortably larger than the inter-send gap below, so only genuine inactivity trips it.
         using var host = RaskTestHost.Create<TestApp>(
@@ -59,7 +59,7 @@ public class ResourceLimitTests
     }
 
     [Fact]
-    public async Task PendingHandlerBytes_ExceedsCap_ClosesSocket()
+    public async Task Pending_handler_bytes_over_the_cap_close_the_socket()
     {
         // 1 byte: the first handler frame's payload exceeds it, so the byte cap trips immediately
         // (the count cap is left generous so this isolates the byte path).

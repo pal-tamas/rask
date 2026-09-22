@@ -10,7 +10,7 @@ public class HelloMessageTests
 {
     [Theory]
     [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
-    public async Task Hello_UnknownSessionId_SendsSessionUnknownPayload(LiveTransportKind transport)
+    public async Task A_hello_for_an_unknown_session_id_sends_a_session_unknown_payload(LiveTransportKind transport)
     {
         using var host = RaskTestHost.Create<TestApp>();
         await using var ws = await LiveTestConnection.OpenAsync(host, transport, "no-such-id");
@@ -25,7 +25,7 @@ public class HelloMessageTests
 
     [Theory]
     [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
-    public async Task Hello_NothingPendingAfterGet_SuppressesHelloTimeFrame(LiveTransportKind transport)
+    public async Task A_hello_with_nothing_pending_after_the_GET_sends_no_frame(LiveTransportKind transport)
     {
         // Updated contract: when nothing happened between the HTTP GET render and the WS
         // hello (no dropped StateHasChanged, no queued JS invokes), the browser already has
@@ -40,15 +40,16 @@ public class HelloMessageTests
         await using var ws = await LiveTestConnection.OpenAsync(host, transport, sessionId);
 
         var text = await ws.TryReceiveTextAsync(TimeSpan.FromMilliseconds(400));
+
         Assert.Null(text);
         Assert.True(ws.IsOpen);
     }
 
     [Theory]
     [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
-    public async Task Hello_StateMutatedBeforeHello_EmitsCatchUpFrame(LiveTransportKind transport)
+    public async Task A_hello_after_state_mutated_emits_a_catch_up_frame(LiveTransportKind transport)
     {
-        // Counterpart to Hello_NothingPendingAfterGet_SuppressesHelloTimeFrame: when a
+        // Counterpart to A_hello_with_nothing_pending_after_the_GET_sends_no_frame: when a
         // StateHasChanged WAS issued during the GET→hello handoff window, the hello-time render
         // must emit so the browser picks up the post-GET state.
         //
@@ -71,6 +72,7 @@ public class HelloMessageTests
         await using var ws = await LiveTestConnection.OpenAsync(host, transport, sessionId);
 
         var text = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+
         Assert.NotNull(text);
         // The catch-up frame must carry the post-GET "loaded" state. Its wire shape depends
         // on the active diff mode: with the diff codec on, the GET render seeded the baseline
@@ -82,7 +84,7 @@ public class HelloMessageTests
 
     [Theory]
     [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
-    public async Task Hello_Reconnect_AlwaysEmitsFrame_EvenWithIdenticalHtml(LiveTransportKind transport)
+    public async Task A_reconnecting_hello_always_emits_a_frame_even_with_identical_html(LiveTransportKind transport)
     {
         // The first-attach optimisation does NOT apply to reconnects: a tab that lost
         // its socket may have missed the prior socket's last frame to a partial send or
@@ -107,7 +109,7 @@ public class HelloMessageTests
     // #1059: one session per socket. A second hello used to re-point the loop at another session without
     // detaching the first, counting a second attach the loop would only ever detach once.
     [Fact]
-    public async Task Hello_SecondOnOneSocket_ClosesItWithPolicyViolation_AndTheCountReturnsToZero()
+    public async Task A_second_hello_on_one_socket_closes_it_with_a_policy_violation_and_the_count_returns_to_zero()
     {
         using var host = RaskTestHost.Create<TestApp>();
         var first = MarkupAssert.SessionId(await host.Http.GetStringAsync("/start"));
@@ -130,7 +132,7 @@ public class HelloMessageTests
     }
 
     [Fact]
-    public async Task Hello_MissingSessionField_ConnectionStaysOpen_NoPayload()
+    public async Task A_hello_missing_its_session_field_leaves_the_connection_open_with_no_payload()
     {
         using var host = RaskTestHost.Create<TestApp>();
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);

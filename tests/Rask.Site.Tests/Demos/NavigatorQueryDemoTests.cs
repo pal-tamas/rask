@@ -11,16 +11,18 @@ namespace Rask.Site.Tests.Demos;
 public sealed partial class NavigatorQueryDemoTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Render_EmptyQuery_ShowsEmptyPlaceholder()
+    public void An_empty_query_shows_the_empty_placeholder()
     {
         var routeState = new RouteState { Path = "/guides/routing" };
+
         var html = new LiveHost(() => NavigatorQueryDemo, TestServices.Default(routeState: routeState))
             .RenderAsLiveRoot();
+
         Assert.Contains("(empty)", html);
     }
 
     [Fact]
-    public void Render_WithQuery_ShowsBuiltQueryString()
+    public void A_query_shows_the_built_query_string()
     {
         var query = new QueryCollection(new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase)
         {
@@ -28,23 +30,27 @@ public sealed partial class NavigatorQueryDemoTests : global::Rask.Core.RaskMark
             ["sort"] = "asc"
         });
         var routeState = new RouteState { Path = "/guides/routing", Query = query };
+
         var html = new LiveHost(() => NavigatorQueryDemo, TestServices.Default(routeState: routeState))
             .RenderAsLiveRoot();
+
         Assert.Contains("page=2", html);
         Assert.Contains("sort=asc", html);
     }
 
     [Fact]
-    public void SetQuery_FromHandler_AddsKeyToRouteState()
+    public void SetQuery_from_a_handler_adds_the_key_to_the_RouteState()
     {
         var routeState = new RouteState { Path = "/guides/routing" };
         var nav = new Navigator(routeState);
+
         TestNavigator.RunHandler(nav, () => nav.SetQuery("page", "1"));
+
         Assert.True(routeState.Query.ContainsKey("page"));
     }
 
     [Fact]
-    public void RemoveQuery_FromHandler_DropsKey()
+    public void RemoveQuery_from_a_handler_drops_the_key()
     {
         var initial =
             new QueryCollection(
@@ -53,11 +59,12 @@ public sealed partial class NavigatorQueryDemoTests : global::Rask.Core.RaskMark
         var nav = new Navigator(routeState);
 
         TestNavigator.RunHandler(nav, () => nav.RemoveQuery("page"));
+
         Assert.False(routeState.Query.ContainsKey("page"));
     }
 
     [Fact]
-    public void ClearQuery_FromHandler_EmptiesQuery()
+    public void ClearQuery_from_a_handler_empties_the_query()
     {
         var initial = new QueryCollection(new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase)
         {
@@ -68,6 +75,7 @@ public sealed partial class NavigatorQueryDemoTests : global::Rask.Core.RaskMark
         var nav = new Navigator(routeState);
 
         TestNavigator.RunHandler(nav, () => nav.ClearQuery());
+
         Assert.Equal(0, routeState.Query.Count);
     }
 }

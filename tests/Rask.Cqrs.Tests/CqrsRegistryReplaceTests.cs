@@ -47,12 +47,15 @@ public sealed class CqrsRegistryReplaceTests
         var log = new List<string>();
         var key = new object();
         CqrsRegistry.ReplaceRequests(key, [(typeof(Kept), Records(log, "kept")), (typeof(Removed), Records(log, "removed"))]);
+
         await Dispatcher().SendAsync(new Removed(1));
+
         Assert.Equal(["removed"], log);
 
         CqrsRegistry.ReplaceRequests(key, [(typeof(Kept), Records(log, "kept"))]);
 
         await Dispatcher().SendAsync(new Kept(1));
+
         Assert.Equal(["removed", "kept"], log);
         await Assert.ThrowsAsync<InvalidOperationException>(() => Dispatcher().SendAsync(new Removed(1)));
     }
@@ -65,12 +68,15 @@ public sealed class CqrsRegistryReplaceTests
         var log = new List<string>();
         var key = new object();
         CqrsRegistry.ReplaceNotifications(key, [(typeof(Noticed), Notes(log, "noticed"))]);
+
         await Dispatcher().PublishAsync(new Noticed(1));
+
         Assert.Equal(["noticed"], log);
 
         CqrsRegistry.ReplaceNotifications(key, []);
 
         await Dispatcher().PublishAsync(new Noticed(1));
+
         Assert.Equal(["noticed"], log); // no second entry: the deleted handler is gone
     }
 
@@ -88,6 +94,7 @@ public sealed class CqrsRegistryReplaceTests
         CqrsRegistry.ReplaceRequests(mine, []);
 
         await Dispatcher().SendAsync(new OtherGroupKept(1));
+
         Assert.Equal(["theirs"], log);
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => Dispatcher().SendAsync(new OtherGroupRemoved(1)));

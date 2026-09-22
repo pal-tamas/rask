@@ -15,7 +15,7 @@ public class LiveDiffGateTests
     // --- HeadUnchanged -----------------------------------------------------
 
     [Fact]
-    public void HeadUnchanged_IdenticalHead_DifferentBody_ReturnsTrue()
+    public void An_identical_head_with_a_different_body_counts_as_unchanged()
     {
         const string head = "<!DOCTYPE html><html><head><title>A</title></head>";
         var a = head + "<body><p>one</p></body></html>";
@@ -25,7 +25,7 @@ public class LiveDiffGateTests
     }
 
     [Fact]
-    public void HeadUnchanged_DifferentTitle_ReturnsFalse()
+    public void A_different_title_counts_as_a_changed_head()
     {
         var a = "<html><head><title>A</title></head><body>x</body></html>";
         var b = "<html><head><title>B</title></head><body>x</body></html>";
@@ -34,7 +34,7 @@ public class LiveDiffGateTests
     }
 
     [Fact]
-    public void HeadUnchanged_DifferentHeadLength_ReturnsFalse()
+    public void A_different_head_length_counts_as_a_changed_head()
     {
         // Same prefix up to a point but the </head> lands at a different offset.
         var a = "<html><head><title>A</title></head><body>x</body></html>";
@@ -44,7 +44,7 @@ public class LiveDiffGateTests
     }
 
     [Fact]
-    public void HeadUnchanged_MissingHeadCloseInEither_ReturnsFalse()
+    public void A_missing_head_close_in_either_counts_as_a_changed_head()
     {
         const string withHead = "<html><head><title>A</title></head><body>x</body></html>";
         const string noHead = "<html><body>x</body></html>";
@@ -59,7 +59,7 @@ public class LiveDiffGateTests
     // --- ExtractHead -------------------------------------------------------
 
     [Fact]
-    public void ExtractHead_WellFormed_ReturnsHeadElement()
+    public void Extracting_a_well_formed_head_gives_the_head_element()
     {
         var html = "<!DOCTYPE html><html><head><title>A</title></head><body>x</body></html>";
 
@@ -67,7 +67,7 @@ public class LiveDiffGateTests
     }
 
     [Fact]
-    public void ExtractHead_HeadWithAttributes_IncludesOpenTag()
+    public void Extracting_a_head_with_attributes_includes_the_open_tag()
     {
         var html = "<html><head data-x=\"1\"><meta charset=\"utf-8\"></head><body>x</body></html>";
 
@@ -75,15 +75,15 @@ public class LiveDiffGateTests
     }
 
     [Fact]
-    public void ExtractHead_NoHeadOpen_ReturnsNull() =>
+    public void Extracting_with_no_head_open_gives_null() =>
         Assert.Null(LiveDiffGate.ExtractHead("<html><body>x</body></html>"));
 
     [Fact]
-    public void ExtractHead_NoHeadClose_ReturnsNull() =>
+    public void Extracting_with_no_head_close_gives_null() =>
         Assert.Null(LiveDiffGate.ExtractHead("<html><head><title>A</title><body>x</body></html>"));
 
     [Fact]
-    public void ExtractHead_CloseBeforeOpen_ReturnsNull()
+    public void Extracting_with_the_close_before_the_open_gives_null()
     {
         // Pathological ordering: </head> appears before any <head — close <= open → null.
         Assert.Null(LiveDiffGate.ExtractHead("</head><head>"));
@@ -92,11 +92,11 @@ public class LiveDiffGateTests
     // --- DiffOpsAreClientSupported -----------------------------------------
 
     [Fact]
-    public void DiffOpsAreClientSupported_EmptyList_ReturnsTrue() =>
+    public void An_empty_op_list_is_client_supported() =>
         Assert.True(LiveDiffGate.DiffOpsAreClientSupported([]));
 
     [Fact]
-    public void DiffOpsAreClientSupported_OnlyAttributeAndTextOps_ReturnsTrue()
+    public void Only_attribute_and_text_ops_are_client_supported()
     {
         List<EditOp> ops =
         [
@@ -113,7 +113,7 @@ public class LiveDiffGateTests
     [InlineData(EditOpKind.RemoveSubtree)]
     [InlineData(EditOpKind.MoveSubtree)]
     [InlineData(EditOpKind.PermutationBatch)]
-    public void DiffOpsAreClientSupported_UntrustedStructuralOp_ReturnsFalse(EditOpKind kind) =>
+    public void An_untrusted_structural_op_is_not_client_supported(EditOpKind kind) =>
         Assert.False(LiveDiffGate.DiffOpsAreClientSupported([Op(kind, false)]));
 
     [Theory]
@@ -121,14 +121,14 @@ public class LiveDiffGateTests
     [InlineData(EditOpKind.RemoveSubtree)]
     [InlineData(EditOpKind.MoveSubtree)]
     [InlineData(EditOpKind.PermutationBatch)]
-    public void DiffOpsAreClientSupported_TrustedStructuralOp_ReturnsTrue(EditOpKind kind)
+    public void A_trusted_structural_op_is_client_supported(EditOpKind kind)
     {
         // Keyed-matching path marks structural ops Trusted=true; those are safe to apply.
         Assert.True(LiveDiffGate.DiffOpsAreClientSupported([Op(kind, true)]));
     }
 
     [Fact]
-    public void DiffOpsAreClientSupported_OneUntrustedStructuralAmongSafe_ReturnsFalse()
+    public void One_untrusted_structural_op_among_safe_ones_is_not_client_supported()
     {
         List<EditOp> ops =
         [
@@ -141,7 +141,7 @@ public class LiveDiffGateTests
     }
 
     [Fact]
-    public void DiffOpsAreClientSupported_MorphSubtree_ReturnsTrue()
+    public void A_MorphSubtree_op_is_client_supported()
     {
         // MorphSubtree is the Raw-tainted fallback shrunk to one parent's children — a trusted, scoped
         // morph that always ships as a diff (never routes to the full-HTML path), even mixed with the

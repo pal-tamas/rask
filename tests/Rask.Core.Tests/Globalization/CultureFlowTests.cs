@@ -23,7 +23,7 @@ public partial class CultureFlowTests : global::Rask.Core.RaskMarkup, IDisposabl
 
     [Fact]
     [RestoreCulture]
-    public void Render_ReadsTheSessionsCulture_NotTheThreads()
+    public void A_render_reads_the_sessions_culture_not_the_threads()
     {
         // The thread says German; the session says Hungarian. The session wins, because the walk reads
         // the handle rather than the ambient value.
@@ -40,7 +40,7 @@ public partial class CultureFlowTests : global::Rask.Core.RaskMarkup, IDisposabl
 
     [Fact]
     [RestoreCulture]
-    public void Render_PinsTheAmbientCulture_ForCodeThatCannotBeRoutedThroughRask()
+    public void A_render_pins_the_ambient_culture_for_code_that_cannot_be_routed_through_Rask()
     {
         // BsDataGrid's sort is the real case: comparing two strings reaches Comparer<T>.Default and so a
         // linguistic comparison under the CURRENT culture, with no seam to intercept. The pin is what
@@ -63,7 +63,7 @@ public partial class CultureFlowTests : global::Rask.Core.RaskMarkup, IDisposabl
 
     [Fact]
     [RestoreCulture]
-    public void Culture_SurvivesSuppressedExecutionContextFlow()
+    public void The_culture_survives_a_suppressed_execution_context_flow()
     {
         // THE test for this design. LifecycleSyncContext deliberately calls ExecutionContext.SuppressFlow()
         // so a continuation cannot inherit InHandlerScope. Since .NET Core, CultureInfo.CurrentCulture
@@ -115,7 +115,7 @@ public partial class CultureFlowTests : global::Rask.Core.RaskMarkup, IDisposabl
 
     [Fact]
     [RestoreCulture]
-    public void ReadingCulture_MarksTheComponentAsDependingOnAmbientState()
+    public void Reading_the_culture_marks_the_component_as_depending_on_ambient_state()
     {
         // Without this mark the clean-subtree render cache would keep serving a subtree rendered in the
         // previous language after a switch. It lives inside RaskCulture.Current precisely so a component
@@ -141,7 +141,7 @@ public partial class CultureFlowTests : global::Rask.Core.RaskMarkup, IDisposabl
 
     [Fact]
     [RestoreCulture]
-    public void OneWalkRendersInOneCulture_EvenIfTheSessionChangesMidFlight()
+    public void One_walk_renders_in_one_culture_even_if_the_session_changes_mid_flight()
     {
         // The context snapshots the culture in its constructor. A handler switching language while a
         // walk is in progress must not produce a half-translated page.

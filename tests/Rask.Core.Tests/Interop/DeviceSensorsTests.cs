@@ -8,7 +8,7 @@ public class DeviceSensorsTests
     [InlineData("granted", SensorPermission.Granted)]
     [InlineData("denied", SensorPermission.Denied)]
     [InlineData(null, SensorPermission.Denied)]
-    public async Task Orientation_RequestPermission_MapsResult(string? raw, SensorPermission expected)
+    public async Task Requesting_orientation_permission_maps_the_result(string? raw, SensorPermission expected)
     {
         var js = new FakeJsRuntime();
         if (raw is not null)
@@ -20,7 +20,7 @@ public class DeviceSensorsTests
     }
 
     [Fact]
-    public async Task Orientation_Watch_RoutesReading_AndDisposeStops()
+    public async Task Watching_orientation_routes_the_reading_and_dispose_stops_it()
     {
         var js = new FakeJsRuntime();
         OrientationReading? got = null;
@@ -44,7 +44,7 @@ public class DeviceSensorsTests
     }
 
     [Fact]
-    public async Task Motion_Watch_RoutesReading_AndDisposeStops()
+    public async Task Watching_motion_routes_the_reading_and_dispose_stops_it()
     {
         var js = new FakeJsRuntime();
         MotionReading? got = null;
@@ -65,7 +65,7 @@ public class DeviceSensorsTests
     }
 
     [Fact]
-    public async Task Watch_NullHandler_Throws()
+    public async Task Watching_with_a_null_handler_throws()
     {
         await Assert.ThrowsAsync<ArgumentNullException>(
             async () => await new DeviceOrientation(new FakeJsRuntime()).WatchAsync(null!));

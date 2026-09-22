@@ -21,7 +21,7 @@ public class SignalingRelayTests : IDisposable
     public void Dispose() => _cts.Dispose();
 
     [Fact]
-    public async Task TwoPeersInARoom_CanReachEachOther()
+    public async Task Two_peers_in_a_room_can_reach_each_other()
     {
         using var host = Host();
 
@@ -43,10 +43,9 @@ public class SignalingRelayTests : IDisposable
     }
 
     [Fact]
-    public async Task APeerCannotAddressSomeoneInAnotherRoom()
+    public async Task A_peer_cannot_address_someone_in_another_room()
     {
         using var host = Host();
-
         var (_, hereId, _) = await JoinAsync(host, "room-a");
         var (elsewhere, _, _) = await JoinAsync(host, "room-b");
 
@@ -58,7 +57,7 @@ public class SignalingRelayTests : IDisposable
     }
 
     [Fact]
-    public async Task APeerCannotAddressItself()
+    public async Task A_peer_cannot_address_itself()
     {
         // Otherwise the relay is an echo service any client can aim at itself.
         using var host = Host();
@@ -71,7 +70,7 @@ public class SignalingRelayTests : IDisposable
     }
 
     [Fact]
-    public async Task SignallingBeforeJoining_IsRefused()
+    public async Task Signalling_before_joining_is_refused()
     {
         using var host = Host();
         var socket = await ConnectAsync(host);
@@ -84,7 +83,7 @@ public class SignalingRelayTests : IDisposable
     }
 
     [Fact]
-    public async Task AnOversizedPayload_IsRefused_AndTheSocketSurvives()
+    public async Task An_oversized_payload_is_refused_and_the_socket_survives()
     {
         using var host = Host(o => o.MaxPayloadBytes = 256);
         var (socket, _, _) = await JoinAsync(host, "room");
@@ -98,7 +97,7 @@ public class SignalingRelayTests : IDisposable
     }
 
     [Fact]
-    public async Task AFullRoom_RefusesTheNextPeer()
+    public async Task A_full_room_refuses_the_next_peer()
     {
         using var host = Host(o => o.MaxPeersPerRoom = 2);
         await JoinAsync(host, "room");
@@ -113,7 +112,7 @@ public class SignalingRelayTests : IDisposable
     }
 
     [Fact]
-    public async Task AnUnauthorizedRoom_IsRefused_WithTheSameWordsAsAFullOne()
+    public async Task An_unauthorized_room_is_refused_with_the_same_words_as_a_full_one()
     {
         // The wording must not distinguish "no such room" from "not allowed in": either would let an
         // unauthorized caller probe which rooms exist.
@@ -128,7 +127,7 @@ public class SignalingRelayTests : IDisposable
     }
 
     [Fact]
-    public async Task AuthorizeRoom_SeesTheRoomTheCallerAskedFor()
+    public async Task AuthorizeRoom_sees_the_room_the_caller_asked_for()
     {
         string? seen = null;
         using var host = Host(o => o.AuthorizeRoom = c =>
@@ -143,7 +142,7 @@ public class SignalingRelayTests : IDisposable
     }
 
     [Fact]
-    public async Task JoiningTwice_IsRefused()
+    public async Task Joining_twice_is_refused()
     {
         using var host = Host();
         var (socket, _, _) = await JoinAsync(host, "room");
@@ -156,7 +155,7 @@ public class SignalingRelayTests : IDisposable
     }
 
     [Fact]
-    public async Task AMalformedMessage_IsRefused_AndTheSocketSurvives()
+    public async Task A_malformed_message_is_refused_and_the_socket_survives()
     {
         using var host = Host();
         var (socket, _, _) = await JoinAsync(host, "room");
@@ -170,7 +169,7 @@ public class SignalingRelayTests : IDisposable
     }
 
     [Fact]
-    public async Task ALeavingPeer_IsAnnouncedToTheRest()
+    public async Task A_leaving_peer_is_announced_to_the_rest()
     {
         using var host = Host();
         var (first, _, _) = await JoinAsync(host, "room");
@@ -187,7 +186,7 @@ public class SignalingRelayTests : IDisposable
     }
 
     [Fact]
-    public async Task AHostWithoutUseWebSockets_SaysWhichCallIsMissing()
+    public async Task A_host_without_UseWebSockets_says_which_call_is_missing()
     {
         // Without the middleware there is no upgrade feature, and IsWebSocketRequest is false for every
         // request — so the relay would refuse perfectly good clients with a bare 400. That is exactly the
@@ -196,7 +195,6 @@ public class SignalingRelayTests : IDisposable
         builder.WebHost.UseTestServer();
         builder.Services.AddRouting();
         builder.Services.AddRaskSignaling(o => o.RequireAuthorization = false);
-
         var app = builder.Build();
         app.UseRouting();
         // Deliberately no app.UseWebSockets().
@@ -219,7 +217,7 @@ public class SignalingRelayTests : IDisposable
     }
 
     [Fact]
-    public void MapRaskSignaling_WithoutAddRaskSignaling_SaysSo()
+    public void MapRaskSignaling_without_AddRaskSignaling_says_so()
     {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
@@ -227,6 +225,7 @@ public class SignalingRelayTests : IDisposable
         var app = builder.Build();
 
         var ex = Assert.Throws<InvalidOperationException>(() => app.MapRaskSignaling());
+
         Assert.Contains("AddRaskSignaling", ex.Message, StringComparison.Ordinal);
     }
 
@@ -238,7 +237,7 @@ public class SignalingRelayTests : IDisposable
         builder.Services.AddRaskSignaling(o =>
         {
             // The relay defaults to requiring authentication; these tests are about the relay's own rules,
-            // so they opt out rather than standing up an auth scheme. AnUnauthorizedRoom… covers the hook.
+            // so they opt out rather than standing up an auth scheme. An_unauthorized_room… covers the hook.
             o.RequireAuthorization = false;
             configure?.Invoke(o);
         });

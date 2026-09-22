@@ -8,7 +8,7 @@ namespace Rask.Core.Tests.Lifecycle;
 public partial class ComponentCancellationTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void CancellationToken_BeforeDispose_NotCancelled()
+    public void The_cancellation_token_is_not_cancelled_before_dispose()
     {
         var sp = RenderHarness.EmptyServices();
         var root = new Root();
@@ -24,7 +24,7 @@ public partial class ComponentCancellationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void DisposeComponentTree_CancelsLifetimeToken()
+    public void Disposing_the_tree_cancels_the_lifetime_token()
     {
         var c = new CancellationProbe();
         var token = c.Token;
@@ -35,7 +35,7 @@ public partial class ComponentCancellationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task DisposeComponentTreeAsync_CancelsLifetimeToken()
+    public async Task Disposing_the_tree_asynchronously_cancels_the_lifetime_token()
     {
         var c = new CancellationProbe();
         var token = c.Token;
@@ -46,7 +46,7 @@ public partial class ComponentCancellationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task InFlightOnMountAsync_ObservesCancellation_OnDispose()
+    public async Task An_in_flight_OnMountAsync_observes_cancellation_on_dispose()
     {
         var sp = RenderHarness.EmptyServices();
         var observed = new TaskCompletionSource();
@@ -120,7 +120,7 @@ public partial class ComponentCancellationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void CancellationToken_NeverAccessed_NoCtsAllocated()
+    public void A_cancellation_token_never_accessed_allocates_no_source()
     {
         var c = new CancellationProbe();
         // The lifetime CTS is hoisted into the lazy LiveState container. A component that never
@@ -146,7 +146,7 @@ public partial class ComponentCancellationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Dispose_CallsUserDisposeAfterCancellation()
+    public void Disposing_calls_the_users_dispose_after_cancellation()
     {
         var c = new TokenWatchingDisposable();
         var token = c.Token;

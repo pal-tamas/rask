@@ -188,7 +188,6 @@ public sealed class OutboxTests : IDisposable
         }
 
         Assert.Contains(_recorder.Events, e => e.Id == id && e.Customer == "grace");
-
         await using var read = NewContext();
         Assert.NotNull((await read.Set<OutboxMessage>().SingleAsync()).ProcessedAt); // marked processed
     }
@@ -221,7 +220,6 @@ public sealed class OutboxTests : IDisposable
 
         await using var read = NewContext();
         var message = await read.Set<OutboxMessage>().SingleAsync();
-
         // Delivered — and, the load-bearing half, delivered without a failed attempt. A key miss doesn't
         // throw: it records "No registered outbox event type '...'" and retries until MaxAttempts, so
         // asserting only on ProcessedAt would miss the bug entirely.
@@ -273,6 +271,7 @@ public sealed class OutboxSerializerRegistryTests
         var (type, payload) = OutboxSerializerRegistry.Serialize(new OuterScope.NestedEvent(7));
 
         Assert.DoesNotContain('+', type); // stored dotted, matching the generator's registration
+
         var back = OutboxSerializerRegistry.Deserialize(type, payload);
         Assert.Equal(7, Assert.IsType<OuterScope.NestedEvent>(back).N);
     }

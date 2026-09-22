@@ -6,7 +6,7 @@ namespace Rask.Core.Tests.Interop;
 public class FileSystemAccessTests
 {
     [Fact]
-    public async Task IsSupported_CallsHelper()
+    public async Task Asking_whether_file_system_access_is_supported_calls_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskFs.isSupported", true);
@@ -15,7 +15,7 @@ public class FileSystemAccessTests
     }
 
     [Fact]
-    public async Task OpenFile_ReturnsHandle_WithName()
+    public async Task Opening_a_file_gives_a_handle_with_its_name()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskFs.openFile", new FileSystemHandleInfo(7, "notes.txt"));
@@ -27,7 +27,7 @@ public class FileSystemAccessTests
     }
 
     [Fact]
-    public async Task OpenFile_ReturnsNull_WhenCancelled()
+    public async Task Opening_a_file_gives_null_when_cancelled()
     {
         var js = new FakeJsRuntime();
 
@@ -35,7 +35,7 @@ public class FileSystemAccessTests
     }
 
     [Fact]
-    public async Task OpenFiles_ReturnsEmpty_WhenCancelled()
+    public async Task Opening_files_gives_none_when_cancelled()
     {
         var js = new FakeJsRuntime();
 
@@ -43,7 +43,7 @@ public class FileSystemAccessTests
     }
 
     [Fact]
-    public async Task SaveFile_PassesOptions()
+    public async Task Saving_a_file_passes_the_options()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskFs.saveFile", new FileSystemHandleInfo(1, "out.txt"));
@@ -55,7 +55,7 @@ public class FileSystemAccessTests
     }
 
     [Fact]
-    public async Task ReadText_PassesHandleId()
+    public async Task Reading_text_passes_the_handle_id()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskFs.openFile", new FileSystemHandleInfo(42, "a.txt"));
@@ -69,7 +69,7 @@ public class FileSystemAccessTests
     }
 
     [Fact]
-    public async Task WriteText_PassesIdAndText()
+    public async Task Writing_text_passes_the_id_and_the_text()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskFs.openFile", new FileSystemHandleInfo(42, "a.txt"));
@@ -81,7 +81,7 @@ public class FileSystemAccessTests
     }
 
     [Fact]
-    public async Task ReadBytes_DecodesBase64()
+    public async Task Reading_bytes_decodes_base64()
     {
         var bytes = Encoding.UTF8.GetBytes("rask");
         var js = new FakeJsRuntime();
@@ -93,7 +93,7 @@ public class FileSystemAccessTests
     }
 
     [Fact]
-    public async Task WriteBytes_EncodesBase64()
+    public async Task Writing_bytes_encodes_base64()
     {
         var bytes = Encoding.UTF8.GetBytes("rask");
         var js = new FakeJsRuntime();
@@ -106,7 +106,7 @@ public class FileSystemAccessTests
     }
 
     [Fact]
-    public async Task Dispose_ReleasesHandle_Once()
+    public async Task Disposing_releases_the_handle_once()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskFs.openFile", new FileSystemHandleInfo(9, "a.txt"));
@@ -120,7 +120,7 @@ public class FileSystemAccessTests
     }
 
     [Fact]
-    public async Task OpenDirectory_ListAndGetFile_PassIds()
+    public async Task Listing_and_getting_a_file_in_an_opened_directory_pass_the_ids()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskFs.openDirectory", new FileSystemHandleInfo(3, "docs"));
@@ -138,7 +138,7 @@ public class FileSystemAccessTests
     }
 
     [Fact]
-    public async Task WriteText_NullText_Throws()
+    public async Task Writing_null_text_throws()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskFs.openFile", new FileSystemHandleInfo(1, "a.txt"));

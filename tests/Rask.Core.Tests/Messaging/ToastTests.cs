@@ -8,7 +8,7 @@ namespace Rask.Core.Tests.Messaging;
 public class ToastTests
 {
     [Fact]
-    public void Add_ThenConsume_ReturnsTheMessage()
+    public void A_consume_after_an_add_returns_the_message()
     {
         IToaster toast = new Toaster();
         toast.Add(ToastLevel.Success, "Saved", "Done");
@@ -22,18 +22,19 @@ public class ToastTests
     }
 
     [Fact]
-    public void Consume_DrainsOnce()
+    public void Consuming_drains_the_queue_once()
     {
         IToaster toast = new Toaster();
         toast.Info("hello");
 
         Assert.Single(toast.Consume());
+
         // Second consume sees an empty queue — the message was delivered exactly once.
         Assert.Empty(toast.Consume());
     }
 
     [Fact]
-    public void Consume_WhenEmpty_ReturnsEmptyNotNull()
+    public void Consuming_an_empty_queue_returns_empty_not_null()
     {
         IToaster toast = new Toaster();
 
@@ -44,7 +45,7 @@ public class ToastTests
     }
 
     [Fact]
-    public void Ids_AreMonotonic_AndPreserveOrder()
+    public void Ids_are_monotonic_and_preserve_order()
     {
         IToaster toast = new Toaster();
         toast.Info("a");
@@ -59,7 +60,7 @@ public class ToastTests
     }
 
     [Fact]
-    public void Add_RaisesChanged()
+    public void Adding_a_message_raises_Changed()
     {
         IToaster toast = new Toaster();
         var fired = 0;
@@ -75,7 +76,7 @@ public class ToastTests
     [InlineData(nameof(IToaster.Success), ToastLevel.Success)]
     [InlineData(nameof(IToaster.Warning), ToastLevel.Warning)]
     [InlineData(nameof(IToaster.Error), ToastLevel.Error)]
-    public void ConvenienceMethods_SetTheMatchingLevel(string method, ToastLevel expected)
+    public void The_convenience_methods_set_the_matching_level(string method, ToastLevel expected)
     {
         IToaster toast = new Toaster();
         switch (method)
@@ -90,7 +91,7 @@ public class ToastTests
     }
 
     [Fact]
-    public void Add_IsThreadSafe_UnderConcurrentProducers()
+    public void Adding_is_thread_safe_under_concurrent_producers()
     {
         IToaster toast = new Toaster();
         const int n = 1000;

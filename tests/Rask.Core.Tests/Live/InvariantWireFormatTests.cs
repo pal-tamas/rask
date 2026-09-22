@@ -38,7 +38,7 @@ public partial class InvariantWireFormatTests : global::Rask.Core.RaskMarkup
 
     [Fact]
     [RestoreCulture]
-    public void KeyString_NegativeIntKey_KeepsAsciiHyphen_UnderSwedish()
+    public void A_negative_int_key_string_keeps_the_ascii_hyphen_under_Swedish()
     {
         CultureInfo.CurrentCulture = Hostile("sv-SE");
 
@@ -49,7 +49,7 @@ public partial class InvariantWireFormatTests : global::Rask.Core.RaskMarkup
 
     [Fact]
     [RestoreCulture]
-    public void KeyString_DecimalAndDateKeys_AreInvariant_UnderGerman()
+    public void Decimal_and_date_key_strings_are_invariant_under_German()
     {
         CultureInfo.CurrentCulture = Hostile("de-DE");
 
@@ -65,7 +65,7 @@ public partial class InvariantWireFormatTests : global::Rask.Core.RaskMarkup
 
     [Fact]
     [RestoreCulture]
-    public void EventPayload_StringEncodedNumbers_AreReadInvariantly_UnderGerman()
+    public void String_encoded_numbers_in_an_event_payload_are_read_invariantly_under_German()
     {
         CultureInfo.CurrentCulture = Hostile("de-DE");
 
@@ -84,7 +84,7 @@ public partial class InvariantWireFormatTests : global::Rask.Core.RaskMarkup
     // wire data, and because the sibling double path shows what it costs when that contract lapses.
     [Fact]
     [RestoreCulture]
-    public void ScrollEvent_NegativeOffset_IsReadInvariantly_UnderSwedish()
+    public void A_negative_scroll_event_offset_is_read_invariantly_under_Swedish()
     {
         CultureInfo.CurrentCulture = Hostile("sv-SE");
 
@@ -99,7 +99,7 @@ public partial class InvariantWireFormatTests : global::Rask.Core.RaskMarkup
 
     [Fact]
     [RestoreCulture]
-    public void ScopeId_IsStable_UnderHostileCulture()
+    public void The_scope_id_is_stable_under_a_hostile_culture()
     {
         // A scope id is baked into scoped-CSS class names at build time (BakeScopedAssetsTask invokes
         // this very method by reflection) and recomputed at runtime. The two must agree byte-for-byte

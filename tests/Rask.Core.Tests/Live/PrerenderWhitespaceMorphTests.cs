@@ -25,7 +25,7 @@ namespace Rask.Core.Tests.Live;
 public sealed class PrerenderWhitespaceMorphTests
 {
     [Fact]
-    public void FullDocumentMorph_WithFormattingWhitespaceInHtml_KeepsTheSameBodyElement()
+    public void A_full_document_morph_with_formatting_whitespace_in_the_html_keeps_the_same_body_element()
     {
         // No node on PATH — the JS-driven reproduction cannot run. Deliberately not a failure: node is
         // not required to build or test Rask.

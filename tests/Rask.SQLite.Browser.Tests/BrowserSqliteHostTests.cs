@@ -35,7 +35,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
         _db.Store(BrowserSqlite.SnapshotStoreName(name)).Values[snapshotName] = Encoding.UTF8.GetBytes(content);
 
     [Fact]
-    public async Task Start_FreeLock_BecomesTheOwner()
+    public async Task Starting_with_the_lock_free_makes_this_tab_the_owner()
     {
         var host = Host(Options());
 
@@ -48,7 +48,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
     // Two tabs each hold their own copy of the in-memory filesystem, so a second owner would mean two
     // divergent databases and a last-writer-wins overwrite.
     [Fact]
-    public async Task Start_LockHeldByAnotherTab_DoesNotBecomeTheOwner()
+    public async Task Starting_while_another_tab_holds_the_lock_does_not_make_this_tab_the_owner()
     {
         var options = Options();
         _locks.HoldElsewhere(BrowserSqlite.OwnerLockName(options.Name));
@@ -62,7 +62,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
     // Without this an app cannot tell the user why its data is missing, and an empty page reads as
     // deletion rather than as another tab holding the database.
     [Fact]
-    public async Task Start_PublishesOwnership()
+    public async Task Starting_publishes_who_owns_the_database()
     {
         var host = Host(Options());
 
@@ -76,7 +76,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
     }
 
     [Fact]
-    public async Task Start_NonOwner_PublishesOwnershipToo()
+    public async Task A_non_owner_publishes_its_ownership_on_start_too()
     {
         var options = Options();
         _locks.HoldElsewhere(BrowserSqlite.OwnerLockName(options.Name));
@@ -89,7 +89,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
     }
 
     [Fact]
-    public async Task Start_NonOwner_DoesNotRestore()
+    public async Task A_non_owner_does_not_restore_a_snapshot_on_start()
     {
         var options = Options();
         Seed(options.Name, "app-20260808-120000000.db", "restored");
@@ -103,7 +103,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
     // No Web Locks means a second tab cannot be detected at all; owning the database is the useful
     // behaviour for the single-tab case that is overwhelmingly the common one.
     [Fact]
-    public async Task Start_WebLocksUnsupported_BecomesTheOwner()
+    public async Task Starting_without_Web_Locks_support_makes_this_tab_the_owner()
     {
         _locks.Supported = false;
         var host = Host(Options());
@@ -117,7 +117,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
     // IndexedDB is evictable, so without asking, a browser under storage pressure can discard the
     // snapshots and the database comes back empty with nothing to say why.
     [Fact]
-    public async Task Start_AsksForPersistentStorage()
+    public async Task Starting_asks_for_persistent_storage()
     {
         var host = Host(Options());
 
@@ -129,7 +129,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
 
     // Asking again would prompt a second time on the browsers that prompt, for something already granted.
     [Fact]
-    public async Task Start_AlreadyPersisted_DoesNotAskAgain()
+    public async Task Starting_does_not_ask_again_when_storage_is_already_persisted()
     {
         _storage.AlreadyPersisted = true;
         var host = Host(Options());
@@ -142,7 +142,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
 
     // A refusal changes nothing about how the app runs — it must not fail the boot, only be visible.
     [Fact]
-    public async Task Start_PersistDeclined_StillBootsAndRestores()
+    public async Task Starting_still_boots_and_restores_when_persistent_storage_is_declined()
     {
         _storage.GrantsPersist = false;
         var options = Options();
@@ -157,7 +157,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
     }
 
     [Fact]
-    public async Task Start_PersistThrows_StillBoots()
+    public async Task Starting_still_boots_when_asking_for_persistent_storage_throws()
     {
         _storage.Throws = new InvalidOperationException("interop failed");
         var host = Host(Options());
@@ -169,7 +169,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
     }
 
     [Fact]
-    public async Task Start_PersistDisabled_NeverAsks()
+    public async Task Starting_never_asks_when_persistent_storage_is_disabled()
     {
         var options = Options();
         options.RequestPersistentStorage = false;
@@ -183,7 +183,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
 
     // A non-owner persists nothing, so a prompt there would buy the user nothing.
     [Fact]
-    public async Task Start_NonOwner_NeverAsksForPersistentStorage()
+    public async Task A_non_owner_never_asks_for_persistent_storage_on_start()
     {
         var options = Options();
         _locks.HoldElsewhere(BrowserSqlite.OwnerLockName(options.Name));
@@ -196,7 +196,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
     // A second tab is otherwise stuck: told to close the other one, with no way to know when that
     // happened. This is the signal that turns "close the other tab" into "reload now".
     [Fact]
-    public async Task NonOwner_SignalsWhenTheDatabaseBecomesAvailable()
+    public async Task A_non_owner_signals_when_the_database_becomes_available()
     {
         var options = Options();
         var lockName = BrowserSqlite.OwnerLockName(options.Name);
@@ -216,7 +216,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
     // Reporting availability must not take the lock: this tab already opened its own EMPTY database, so
     // owning it would mean snapshotting nothing over the previous owner's good snapshot.
     [Fact]
-    public async Task NonOwner_DoesNotHoldTheLockItReportsAsFree()
+    public async Task A_non_owner_does_not_hold_the_lock_it_reports_as_free()
     {
         var options = Options();
         var lockName = BrowserSqlite.OwnerLockName(options.Name);
@@ -233,7 +233,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
     }
 
     [Fact]
-    public async Task Owner_NeverSignalsAvailability()
+    public async Task The_owner_never_signals_availability()
     {
         var host = Host(Options());
 
@@ -246,7 +246,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
     }
 
     [Fact]
-    public async Task Stop_EndsTheAvailabilityWatch()
+    public async Task Stopping_ends_the_availability_watch()
     {
         var options = Options();
         var lockName = BrowserSqlite.OwnerLockName(options.Name);
@@ -259,11 +259,12 @@ public sealed class BrowserSqliteHostTests : IDisposable
 
         _locks.ReleaseElsewhere(lockName);
         await Task.Delay(60);
+
         Assert.False(_ownership.Available.IsCompleted);
     }
 
     [Fact]
-    public async Task Start_RestoresTheNewestSnapshot()
+    public async Task Starting_restores_the_newest_snapshot()
     {
         var options = Options();
         Seed(options.Name, "app-20260808-120000000.db", "old");
@@ -277,7 +278,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
     }
 
     [Fact]
-    public async Task Start_NoSnapshot_LeavesNoDatabaseFile()
+    public async Task Starting_with_no_snapshot_leaves_no_database_file()
     {
         var options = Options();
         var host = Host(options);
@@ -292,7 +293,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
 
     // Restoring over a file something already opened would discard whatever it had written.
     [Fact]
-    public async Task Start_DatabaseAlreadyExists_DoesNotOverwriteIt()
+    public async Task Starting_does_not_overwrite_a_database_file_that_already_exists()
     {
         var options = Options();
         await File.WriteAllTextAsync(options.DatabasePath, "live");
@@ -306,7 +307,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
     }
 
     [Fact]
-    public async Task Stop_Owner_WritesAFinalSnapshot()
+    public async Task Stopping_the_owner_writes_a_final_snapshot()
     {
         var host = Host(Options());
         await host.StartAsync(CancellationToken.None);
@@ -317,7 +318,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
     }
 
     [Fact]
-    public async Task Stop_NonOwner_WritesNothing()
+    public async Task Stopping_a_non_owner_writes_nothing()
     {
         var options = Options();
         _locks.HoldElsewhere(BrowserSqlite.OwnerLockName(options.Name));
@@ -332,7 +333,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
     // pagehide gives no time guarantee, so a failed final snapshot must not throw out of shutdown —
     // the last interval snapshot is the fallback.
     [Fact]
-    public async Task Stop_SnapshotThrows_DoesNotPropagate()
+    public async Task Stopping_does_not_propagate_a_final_snapshot_that_throws()
     {
         var host = Host(Options());
         await host.StartAsync(CancellationToken.None);
@@ -344,7 +345,7 @@ public sealed class BrowserSqliteHostTests : IDisposable
     // The owner holds the Web Lock for the page's whole lifetime, so it must be released on shutdown or
     // a same-origin context could never take it.
     [Fact]
-    public async Task Stop_ReleasesTheOwnerLock()
+    public async Task Stopping_releases_the_owner_lock()
     {
         var options = Options();
         var host = Host(options);

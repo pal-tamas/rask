@@ -90,7 +90,7 @@ public sealed class ChromeStylesheetTests
 
     [Theory]
     [MemberData(nameof(UtilityStyledHooks))]
-    public void GlobalStylesheet_DeclaresNoRuleFor(string className)
+    public void The_global_stylesheet_declares_no_rule_for_a_utility_styled_hook(string className)
     {
         var offenders = Selectors()
             .Where(s => Regex.IsMatch(s, $@"\.{Regex.Escape(className)}(?![\w-])"))
@@ -104,10 +104,11 @@ public sealed class ChromeStylesheetTests
     }
 
     [Fact]
-    public void TheSheet_StillHasSelectorsToCheck()
+    public void The_sheet_still_has_selectors_to_check()
     {
         // Vacuous-pass guard: a parser that stops matching would pass every case above in silence.
         var selectors = Selectors();
+
         Assert.NotEmpty(selectors);
         Assert.Contains(selectors, s => s.Contains(".markdown-body", StringComparison.Ordinal));
     }

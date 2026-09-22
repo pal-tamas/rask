@@ -33,27 +33,28 @@ public class AuthBeforeRaskAnalyzerTests
                                                    """;
 
     [Fact]
-    public async Task UseRaskBeforeUseAuthentication_ReportsRask024()
+    public async Task UseRask_placed_before_UseAuthentication_is_reported_as_RASK024()
     {
         var d = Assert.Single(await Diagnostics(Program(
             "app.UseRask<App>(); app.UseAuthentication();")));
+
         Assert.Equal("RASK024", d.Id);
         Assert.Contains("UseAuthentication", d.GetMessage());
         Assert.Contains("App", d.GetMessage());
     }
 
     [Fact]
-    public async Task UseAuthenticationBeforeUseRask_NoDiagnostic() =>
+    public async Task UseAuthentication_before_UseRask_reports_nothing() =>
         Assert.Empty(await Diagnostics(Program(
             "app.UseAuthentication(); app.UseAuthorization(); app.UseRask<App>();")));
 
     [Fact]
-    public async Task NoUseAuthentication_NoDiagnostic() =>
+    public async Task An_app_without_UseAuthentication_reports_nothing() =>
         // An app that doesn't use authentication middleware is left alone.
         Assert.Empty(await Diagnostics(Program("app.UseRask<App>();")));
 
     [Fact]
-    public async Task NoUseRask_NoDiagnostic() =>
+    public async Task An_app_without_UseRask_reports_nothing() =>
         Assert.Empty(await Diagnostics(Program("app.UseAuthentication();")));
 
     private static async Task<ImmutableArray<Diagnostic>> Diagnostics(string source)

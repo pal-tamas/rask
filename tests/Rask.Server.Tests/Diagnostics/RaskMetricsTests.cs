@@ -8,7 +8,7 @@ namespace Rask.Server.Tests.Diagnostics;
 public class RaskMetricsTests
 {
     [Fact]
-    public void SessionLifecycle_EmitsCreatedRejectedEvictedCounters()
+    public void The_session_lifecycle_emits_created_rejected_and_evicted_counters()
     {
         using var metrics = new RaskMetrics();
         using var capture = MeterCapture.For(metrics.Meter);
@@ -18,8 +18,10 @@ public class RaskMetricsTests
 
         var s1 = store.TryCreate(_ => new BasicComponent());
         Assert.NotNull(s1);
+
         var s2 = store.TryCreate(_ => new BasicComponent()); // over cap → rejected
         Assert.Null(s2);
+
         store.Remove(s1!.Id); // evicted
 
         Assert.Equal(1, capture.Counter("rask.sessions.created"));
@@ -28,7 +30,7 @@ public class RaskMetricsTests
     }
 
     [Fact]
-    public async Task DisposeAsync_EvictsRemainingSessions_EmitsEvictedCounter()
+    public async Task Disposing_the_store_evicts_the_remaining_sessions_and_counts_them_evicted()
     {
         using var metrics = new RaskMetrics();
         using var capture = MeterCapture.For(metrics.Meter);
@@ -44,7 +46,7 @@ public class RaskMetricsTests
     }
 
     [Fact]
-    public void ActiveSessions_ObservableGauge_ReportsLiveCount()
+    public void The_active_sessions_gauge_reports_the_live_count()
     {
         using var metrics = new RaskMetrics();
         using var capture = MeterCapture.For(metrics.Meter);
@@ -54,11 +56,12 @@ public class RaskMetricsTests
         store.Create(_ => new BasicComponent());
 
         capture.RecordObservable();
+
         Assert.Equal(2, capture.Gauge("rask.sessions.active"));
     }
 
     [Fact]
-    public void FrameRejected_TagsTheReason()
+    public void A_rejected_frame_is_tagged_with_the_reason()
     {
         using var metrics = new RaskMetrics();
         using var capture = MeterCapture.For(metrics.Meter);

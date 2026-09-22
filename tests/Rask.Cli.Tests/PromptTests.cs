@@ -6,9 +6,11 @@ public sealed class PromptTests
     public void Interactive_reflects_stdin_redirection()
     {
         var console = new StringConsole();
+
         Assert.False(new Prompt(console).Interactive); // default: redirected
 
         console.InputLines = ["x"]; // flips to a terminal
+
         Assert.True(new Prompt(console).Interactive);
     }
 
@@ -110,7 +112,7 @@ public sealed class PromptTests
     }
 
     [Fact]
-    public void MultiSelect_toggles_with_space_and_returns_them_in_the_offered_order()
+    public void A_multi_select_toggles_with_space_and_returns_the_picks_in_the_offered_order()
     {
         // Toggle the second, move up, toggle the first, accept — the result must still read first-then-second.
         var console = new StringConsole
@@ -128,7 +130,7 @@ public sealed class PromptTests
     }
 
     [Fact]
-    public void MultiSelect_selecting_nothing_is_allowed()
+    public void A_multi_select_allows_selecting_nothing()
     {
         var console = new StringConsole { InputKeys = [ConsoleKey.Enter] };
         var options = new[] { ("data", "--data"), ("auth", "--auth") };
@@ -137,7 +139,7 @@ public sealed class PromptTests
     }
 
     [Fact]
-    public void MultiSelect_returns_nothing_when_there_is_no_terminal()
+    public void A_multi_select_returns_nothing_when_there_is_no_terminal()
     {
         var options = new[] { ("data", "--data"), ("auth", "--auth") };
 

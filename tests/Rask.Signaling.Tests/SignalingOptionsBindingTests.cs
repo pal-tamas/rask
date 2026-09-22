@@ -11,7 +11,7 @@ namespace Rask.Signaling.Tests;
 public class SignalingOptionsBindingTests
 {
     [Fact]
-    public void TheRaskSignalingSection_SetsTheOptions()
+    public void The_Rask_Signaling_section_sets_the_options()
     {
         using var provider = Provider(new()
         {
@@ -28,7 +28,7 @@ public class SignalingOptionsBindingTests
     }
 
     [Fact]
-    public void TheCallback_WinsOverConfiguration()
+    public void The_callback_wins_over_configuration()
     {
         using var provider = Provider(
             new() { ["Rask:Signaling:MaxPeersPerRoom"] = "4" },
@@ -38,7 +38,7 @@ public class SignalingOptionsBindingTests
     }
 
     [Fact]
-    public void ConfigurationFillsWhatTheCallbackLeavesAlone()
+    public void Configuration_fills_what_the_callback_leaves_alone()
     {
         using var provider = Provider(
             new() { ["Rask:Signaling:MaxRooms"] = "50" },
@@ -51,7 +51,7 @@ public class SignalingOptionsBindingTests
     }
 
     [Fact]
-    public void WithoutConfiguration_TheDefaultsApply()
+    public void Without_configuration_the_defaults_apply()
     {
         var services = new ServiceCollection();
         services.AddRaskSignaling();
@@ -61,7 +61,7 @@ public class SignalingOptionsBindingTests
     }
 
     [Fact]
-    public void ATopLevelSignalingSection_IsNotRead()
+    public void A_top_level_Signaling_section_is_not_read()
     {
         using var provider = Provider(new() { ["Signaling:MaxPeersPerRoom"] = "4" });
 
@@ -69,11 +69,13 @@ public class SignalingOptionsBindingTests
     }
 
     [Fact]
-    public void ASecondRegistration_KeepsTheFirstOptions()
+    public void A_second_registration_keeps_the_first_options()
     {
         var services = new ServiceCollection();
         services.AddRaskSignaling(o => o.MaxRooms = 10);
+
         services.AddRaskSignaling(o => o.MaxRooms = 20);
+
         using var provider = services.BuildServiceProvider();
 
         Assert.Equal(10, provider.GetRequiredService<RaskSignalingOptions>().MaxRooms);
@@ -82,16 +84,17 @@ public class SignalingOptionsBindingTests
 
     [Theory]
     [InlineData("no-leading-slash")]
-    public void APathThatIsNotRooted_IsRejected(string path)
+    public void A_path_that_is_not_rooted_is_rejected(string path)
     {
         using var provider = Provider(new(), o => o.Path = path);
 
         var ex = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<RaskSignalingOptions>());
+
         Assert.Contains("Rask:Signaling", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void APayloadCapAboveTheMessageCap_IsRejected()
+    public void A_payload_cap_above_the_message_cap_is_rejected()
     {
         using var provider = Provider(new(), o =>
         {
@@ -100,30 +103,33 @@ public class SignalingOptionsBindingTests
         });
 
         var ex = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<RaskSignalingOptions>());
+
         Assert.Contains("MaxPayloadBytes", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void AnOutOfRangeConfiguredValue_IsRejectedNamingTheSection()
+    public void An_out_of_range_configured_value_is_rejected_naming_the_section()
     {
         using var provider = Provider(new() { ["Rask:Signaling:MaxPeersPerRoom"] = "1" });
 
         var ex = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<RaskSignalingOptions>());
+
         Assert.Contains("Rask:Signaling", ex.Message, StringComparison.Ordinal);
         Assert.Contains("MaxPeersPerRoom", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void AValueThatIsNotANumber_IsRejectedNamingTheSection()
+    public void A_value_that_is_not_a_number_is_rejected_naming_the_section()
     {
         using var provider = Provider(new() { ["Rask:Signaling:MaxRooms"] = "lots" });
 
         var ex = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<RaskSignalingOptions>());
+
         Assert.Contains("Rask:Signaling", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task AnInvalidConfiguredValue_StopsTheHostStarting()
+    public async Task An_invalid_configured_value_stops_the_host_starting()
     {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
@@ -135,6 +141,7 @@ public class SignalingOptionsBindingTests
         await using var app = builder.Build();
 
         var ex = await Assert.ThrowsAsync<OptionsValidationException>(() => app.StartAsync());
+
         Assert.Contains("Rask:Signaling", ex.Message, StringComparison.Ordinal);
     }
 

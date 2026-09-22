@@ -8,7 +8,7 @@ namespace Rask.Core.Tests.Live;
 public partial class LiveRenderContextSyncGuardTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void CurrentSync_WhenThreadHoldsDisposedContext_ReadsAsNull()
+    public void CurrentSync_reads_as_null_while_the_thread_holds_a_disposed_context()
     {
         var services = RenderHarness.EmptyServices();
 

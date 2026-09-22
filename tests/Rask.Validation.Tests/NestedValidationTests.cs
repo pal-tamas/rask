@@ -11,7 +11,7 @@ namespace Rask.Validation.Tests;
 public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Validate_SubObjectProperty_FiresAtSubInstanceField()
+    public void A_sub_object_property_error_lands_on_the_sub_instance_field()
     {
         var p = new Person { Address = new Address { Street = "" } };
         var ctx = RegisterValidator(p);
@@ -24,7 +24,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Validate_DeepChain_FiresAtTerminalOwner()
+    public void A_deep_chain_error_lands_on_the_terminal_owner()
     {
         var p = new Person
         {
@@ -39,12 +39,11 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Validate_ListItems_EachFiresAtOwnInstance()
+    public void Each_list_item_error_lands_on_its_own_instance()
     {
         var alpha = new LineItem { Name = "", Quantity = 0 };
         var beta = new LineItem { Name = "beta", Quantity = -1 };
         var gamma = new LineItem { Name = "gamma", Quantity = 5 };
-
         var p = new Person { Items = new List<LineItem> { alpha, beta, gamma } };
         var ctx = RegisterValidator(p);
 
@@ -60,7 +59,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Validate_ArrayItems_Walked()
+    public void Array_items_are_walked()
     {
         var p = new Person { Tags = new[] { new Tag { Label = "" }, new Tag { Label = "ok" } } };
         var ctx = RegisterValidator(p);
@@ -73,7 +72,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Validate_DictionaryValues_Walked()
+    public void Dictionary_values_are_walked()
     {
         var p = new Person
         {
@@ -94,21 +93,21 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Validate_Cycle_NoInfiniteLoop()
+    public void A_cycle_in_the_model_does_not_loop_forever()
     {
         // Manager points back at p — the walker must visit each node once.
         var manager = new Person { Name = "Boss" };
         var p = new Person { Name = "", Manager = manager };
         manager.Manager = p;
-
         var ctx = RegisterValidator(p);
+
         ctx.Validate();
 
         Assert.Contains("Name required", ctx.GetValidationMessages(new FieldIdentifier(p, "Name")));
     }
 
     [Fact]
-    public void Validate_NullSubObject_SkippedCleanly()
+    public void A_null_sub_object_is_skipped_cleanly()
     {
         var p = new Person { Name = "Ada", Address = null };
         var ctx = RegisterValidator(p);
@@ -120,7 +119,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Validate_NullListItem_SkippedCleanly()
+    public void A_null_list_item_is_skipped_cleanly()
     {
         var alpha = new LineItem { Name = "alpha", Quantity = 1 };
         var p = new Person { Items = new List<LineItem> { alpha, null!, new() { Name = "gamma", Quantity = 2 } } };
@@ -133,7 +132,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Validate_SubObjectIValidatableObject_RoutesPerFieldMessages()
+    public void A_sub_object_IValidatableObject_routes_its_per_field_messages()
     {
         var p = new Person
         {
@@ -153,7 +152,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Validate_SubObjectIValidatableObject_FormLevelRoutesToOwnerEmptyField()
+    public void A_sub_object_IValidatableObject_form_level_error_lands_on_its_owners_empty_field()
     {
         var p = new Person
         {
@@ -175,7 +174,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void ValidateField_NestedField_OnlyTouchesNamedField()
+    public void Validating_a_nested_field_touches_only_that_field()
     {
         // Per-field validation at any depth must update only the (owner, name) slot — no
         // bleed onto root, no bleed onto sibling fields of the same owner.
@@ -196,7 +195,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void ValidateField_ListItemField_OnlyTouchesThatItem()
+    public void Validating_a_list_item_field_touches_only_that_item()
     {
         var alpha = new LineItem { Name = "", Quantity = 0 };
         var beta = new LineItem { Name = "", Quantity = 0 };
@@ -210,13 +209,14 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Validate_ReplacedRecord_NewInstanceValidated()
+    public void A_replaced_record_is_validated_as_the_new_instance()
     {
         var first = new LineRecord("", 0);
         var p = new RecordPerson { Items = new List<LineRecord> { first } };
         var ctx = RegisterValidator(p);
 
         ctx.Validate();
+
         Assert.Contains("Name required", ctx.GetValidationMessages(new FieldIdentifier(first, "Name")));
 
         // Replace the record. Re-validate — the *new* record gets a fresh state slot keyed by
@@ -224,6 +224,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
         ctx.ClearAllMessages();
         var replaced = first with { Name = "ok" };
         p.Items[0] = replaced;
+
         ctx.Validate();
 
         Assert.Empty(ctx.GetValidationMessages(new FieldIdentifier(replaced, "Name")));
@@ -232,7 +233,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task FormPipeline_NestedField_FiresOnChange()
+    public async Task A_change_on_a_nested_field_in_a_form_fires_its_validation()
     {
         // End-to-end through the Form factory + Input handler dispatch path. Without the
         // model-graph pre-walk in Form.Model's setter, the Input bound to p.Address.Street
@@ -241,14 +242,14 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
         // keystroke ValidateField call would land in an empty context, producing no message.
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
         EditContext? captured = null;
-
         var page = Test.Render(() => Form.Model(p)[
             Input.Bind(() => p.Address!.Street),
             Test.EditContextProbe(ctx => captured = ctx)
         ]);
-
         var changeId = page.HandlerId("change");
+
         Assert.NotNull(changeId);
+
         await page.InvokeAsync(changeId!, "{\"value\":\"\"}");
 
         Assert.NotNull(captured);
@@ -258,21 +259,20 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task FormPipeline_NestedField_BlurSurfacesMessageInRenderedHtml()
+    public async Task A_blur_on_a_nested_field_in_a_form_surfaces_the_message_in_the_rendered_html()
     {
         // End-to-end through the Form factory + Input handler dispatch path, asserting the
         // [Required] error surfaces in the post-blur HTML via ValidationMessage. This catches
-        // the handler/display context split that FormPipeline_NestedField_FiresOnChange
+        // the handler/display context split that A_change_on_a_nested_field_in_a_form_fires_its_validation
         // misses by reading the EditContext directly instead of going through the renderer.
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
-
         var page = Test.Render(() => Form.Model(p)[
             Input.Bind(() => p.Address!.Street),
             ValidationMessage.Template(msgs => [.. msgs.Select((m, i) => Div.Class("err").Key(i)[m])])
                 .For(() => p.Address!.Street)
         ]);
-
         var initial = page.Html;
+
         Assert.DoesNotContain("Street required", initial);
 
         var changeId = page.HandlerId("change")!;

@@ -34,7 +34,7 @@ public class RootShellAnalyzerTests
                                                       """;
 
     [Fact]
-    public async Task UseRask_RootRendersTheWholeShell_ReportsRask021()
+    public async Task A_UseRask_root_that_renders_the_whole_shell_reports_RASK021()
     {
         var src = EntryStubs + App("Doctype(); Html(\"en\"); Head(); Body();")
                              + "namespace Demo { class Host { void M() { Rask.Server.RaskEndpointExtensions.UseRask<App>(null!); } } }";
@@ -50,7 +50,7 @@ public class RootShellAnalyzerTests
     // Rask.Core entries (inherited from RaskMarkup, so they bind here) rather than the local stubs the
     // other cases declare — those stubs are methods, which is precisely what a chain is not.
     [Fact]
-    public async Task UseRask_RootRendersTheShellAsAChain_ReportsRask021()
+    public async Task A_UseRask_root_that_renders_the_shell_as_a_chain_reports_RASK021()
     {
         var src = EntryStubs + """
                                namespace Demo;
@@ -70,7 +70,7 @@ public class RootShellAnalyzerTests
     // chain matches by name, so without a symbol check this reports RASK021 on ordinary code — and the
     // repo builds -warnaserror, so a false positive here breaks a build rather than merely nagging.
     [Fact]
-    public async Task UseRask_LocalNamedLikeTheShell_NoDiagnostic()
+    public async Task A_local_named_like_the_shell_in_a_UseRask_root_raises_no_diagnostic()
     {
         var src = EntryStubs + """
                                namespace Demo;
@@ -90,7 +90,7 @@ public class RootShellAnalyzerTests
     }
 
     [Fact]
-    public async Task UseRask_RootRendersOnlyItsBody_NoDiagnostic()
+    public async Task A_UseRask_root_that_renders_only_its_body_raises_no_diagnostic()
     {
         var src = EntryStubs + App(string.Empty)
                              + "namespace Demo { class Host { void M() { Rask.Server.RaskEndpointExtensions.UseRask<App>(null!); } } }";
@@ -103,7 +103,7 @@ public class RootShellAnalyzerTests
     ///     the same mistake, and the half-built page is harder to read than the whole one.
     /// </summary>
     [Fact]
-    public async Task RunAsync_WasmEntry_RootRendersPartOfTheShell_ReportsRask021()
+    public async Task A_WASM_RunAsync_root_that_renders_part_of_the_shell_reports_RASK021()
     {
         var src = EntryStubs + App("Body();")
                              + "namespace Demo { class Host { void M() { new Rask.Wasm.WasmHostBuilder().RunAsync<App>(); } } }";
@@ -115,7 +115,7 @@ public class RootShellAnalyzerTests
     }
 
     [Fact]
-    public async Task UnrelatedGenericCall_NoDiagnostic()
+    public async Task An_unrelated_generic_call_named_UseRask_raises_no_diagnostic()
     {
         // A generic method named UseRask but NOT on the Rask entry type must be ignored.
         var src = App("Doctype();")

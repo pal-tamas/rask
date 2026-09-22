@@ -9,7 +9,7 @@ namespace Rask.Core.Tests.Forms;
 public sealed class ExpressionAccessorFallbackTests
 {
     [Fact]
-    public void Parse_MethodCallMidChain_ResolvesViaFallback()
+    public void A_method_call_mid_chain_resolves_via_the_fallback()
     {
         var p = new Node { Child = new Node { Name = "leaf" } };
 
@@ -23,7 +23,7 @@ public sealed class ExpressionAccessorFallbackTests
     }
 
     [Fact]
-    public void Parse_ArithmeticIndex_ResolvesViaFallback()
+    public void An_arithmetic_index_resolves_via_the_fallback()
     {
         var items = new List<Node> { new() { Name = "zero" }, new() { Name = "one" }, new() { Name = "two" } };
         var i = 0;
@@ -37,7 +37,7 @@ public sealed class ExpressionAccessorFallbackTests
     }
 
     [Fact]
-    public void Parse_MethodIndexedThenProperty_ResolvesViaFallback()
+    public void A_method_indexed_item_then_a_property_resolves_via_the_fallback()
     {
         // A user-defined method returning the item, then a property — also mid-chain method call.
         var box = new Box();
@@ -50,7 +50,7 @@ public sealed class ExpressionAccessorFallbackTests
     }
 
     [Fact]
-    public void Parse_MissingDictionaryKey_SurfacesOriginalException()
+    public void A_missing_dictionary_key_surfaces_the_original_exception()
     {
         // A target-chain indexer that throws must surface its own exception (as the old
         // Expression.Compile path did), not a reflection TargetInvocationException wrapper.
@@ -61,7 +61,7 @@ public sealed class ExpressionAccessorFallbackTests
     }
 
     [Fact]
-    public void Parse_ThrowingPropertyGetter_SurfacesOriginalException()
+    public void A_throwing_property_getter_surfaces_the_original_exception()
     {
         var box = new ThrowingBox();
 

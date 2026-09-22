@@ -10,7 +10,7 @@ namespace Rask.Core.Tests.Diagnostics;
 public class RaskDiagnosticsTests
 {
     [Fact]
-    public void Report_InvokesWiredSink_WithStructuredFields()
+    public void A_report_invokes_the_wired_sink_with_structured_fields()
     {
         var captured = new List<RaskDiagnosticEvent>();
         var previous = RaskDiagnostics.Sink;
@@ -33,7 +33,7 @@ public class RaskDiagnosticsTests
     }
 
     [Fact]
-    public void Report_NullSink_IsNoOp()
+    public void A_report_with_a_null_sink_does_nothing()
     {
         var previous = RaskDiagnostics.Sink;
         RaskDiagnostics.Sink = null;
@@ -49,7 +49,7 @@ public class RaskDiagnosticsTests
     }
 
     [Fact]
-    public void ReportOnce_SameKey_ReportsOnlyOnce_AndBuildsMessageOnce()
+    public void Reporting_once_with_the_same_key_reports_only_once_and_builds_the_message_once()
     {
         var captured = new List<RaskDiagnosticEvent>();
         var builds = 0;
@@ -81,7 +81,7 @@ public class RaskDiagnosticsTests
     }
 
     [Fact]
-    public void ReportOnce_DistinctKeys_EachReported()
+    public void Reporting_once_with_distinct_keys_reports_each()
     {
         var captured = new List<RaskDiagnosticEvent>();
         var previous = RaskDiagnostics.Sink;
@@ -103,7 +103,7 @@ public class RaskDiagnosticsTests
     }
 
     [Fact]
-    public void ReportOnce_NullSink_DoesNotBurnKey()
+    public void Reporting_once_with_a_null_sink_does_not_burn_the_key()
     {
         var captured = new List<RaskDiagnosticEvent>();
         var previous = RaskDiagnostics.Sink;
@@ -131,7 +131,7 @@ public class RaskDiagnosticsTests
     }
 
     [Fact]
-    public void FormatDefault_MessageOnly_CarriesCategoryAndLevel()
+    public void The_default_format_of_a_message_carries_the_category_and_level()
     {
         // The event has always carried a level and a category and the default sink dropped both, so on
         // any host without a logging bridge "framework said something" and "framework reported an error
@@ -145,7 +145,7 @@ public class RaskDiagnosticsTests
     // One Fact rather than a Theory: RaskLogLevel is internal, so it cannot be an InlineData parameter
     // on a public test method.
     [Fact]
-    public void FormatDefault_LabelsEveryLevel()
+    public void The_default_format_labels_every_level()
     {
         var expected = new[]
         {
@@ -162,7 +162,7 @@ public class RaskDiagnosticsTests
     }
 
     [Fact]
-    public void FormatDefault_WithException_AppendsExceptionAfterColon()
+    public void The_default_format_appends_an_exception_after_a_colon()
     {
         var ex = new InvalidOperationException("boom");
         var line = RaskDiagnostics.FormatDefault(

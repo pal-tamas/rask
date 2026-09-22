@@ -23,7 +23,7 @@ public sealed class DevToolsBugReportTests
         """;
 
     [Fact]
-    public void A_stack_whose_innermost_code_is_raskS_is_a_likely_framework_bug_with_the_app_collapsed()
+    public void A_stack_whose_innermost_code_is_Rasks_own_is_a_likely_framework_bug_with_the_app_collapsed()
     {
         var verdict = DevToolsBugReport.FromDotNet(FrameworkStack, ["Shop"]);
 
@@ -34,7 +34,7 @@ public sealed class DevToolsBugReportTests
     }
 
     [Fact]
-    public void A_stack_whose_innermost_code_is_the_appS_is_not_even_when_rask_called_it()
+    public void A_stack_whose_innermost_code_is_the_apps_own_is_not_even_when_Rask_called_it()
     {
         Assert.False(DevToolsBugReport.FromDotNet(AppStack, ["Shop"]).LikelyFrameworkBug);
     }
@@ -50,7 +50,7 @@ public sealed class DevToolsBugReportTests
     }
 
     [Fact]
-    public void A_script_stack_is_raskS_when_its_innermost_frame_is_in_a_rask_script_and_names_only_the_file()
+    public void A_script_stack_is_Rasks_when_its_innermost_frame_is_in_a_Rask_script_and_names_only_the_file()
     {
         const string chrome = """
             TypeError: Cannot read properties of null
@@ -61,6 +61,7 @@ public sealed class DevToolsBugReportTests
         const string app = "Error: nope\n    at draw (http://localhost:5000/js/chart.js:4:2)\n    at applyDiff (http://localhost:5000/rask/rask.js:1:2)";
 
         var fromChrome = DevToolsBugReport.FromScript(chrome);
+
         Assert.True(fromChrome.LikelyFrameworkBug);
         Assert.Equal(["applyDiff (rask.js:1:2345)", "[app code]"], fromChrome.Frames);
         Assert.True(DevToolsBugReport.FromScript(firefox).LikelyFrameworkBug);
@@ -68,7 +69,7 @@ public sealed class DevToolsBugReportTests
     }
 
     [Fact]
-    public void A_draft_carries_the_type_the_components_the_host_and_raskS_frames_and_nothing_of_the_app()
+    public void A_draft_carries_the_type_the_components_the_host_and_Rasks_frames_and_nothing_of_the_app()
     {
         var verdict = DevToolsBugReport.FromDotNet(FrameworkStack, ["Shop"]);
         var error = new DevToolsError(
@@ -95,6 +96,7 @@ public sealed class DevToolsBugReportTests
     public void The_issue_url_is_the_projects_new_issue_page_filled_in_and_kept_under_its_limit()
     {
         var url = DevToolsBugReport.IssueUrl("A title & more", "Line one\nat Rask.X");
+
         Assert.StartsWith("https://github.com/pal-tamas/rask/issues/new?labels=bug&title=A%20title%20%26%20more&body=", url);
         Assert.Contains("Line%20one%0Aat%20Rask.X", url);
 

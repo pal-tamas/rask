@@ -16,7 +16,7 @@ namespace Rask.TypeScript.Tasks.Tests;
 ///     <para>
 ///         Evaluation only (<c>-getProperty</c>), so no target runs, nothing is downloaded, and the cost is
 ///         one short MSBuild process per row. That tsgo keeps the inline export form under the flag is
-///         pinned separately, by <c>Tsgo_Emit_RemoveComments_PreservesTheInlineExportForm</c>.
+///         pinned separately, by <c>The_tsgo_emit_with_removeComments_preserves_the_inline_export_form</c>.
 ///     </para>
 /// </remarks>
 public sealed class ScopedTypeScriptRemoveCommentsTests
@@ -29,7 +29,7 @@ public sealed class ScopedTypeScriptRemoveCommentsTests
     [InlineData("-p:Configuration=Debug", "")]
     [InlineData("-p:Configuration=Release -p:RaskScopedTsRemoveComments=false", "")]
     [InlineData("-p:Configuration=Debug -p:RaskScopedTsRemoveComments=true", " --removeComments")]
-    public void TheCompilerArgument_FollowsTheConfiguration_AndTheOverride(string properties, string expected)
+    public void The_compiler_argument_follows_the_configuration_and_the_override(string properties, string expected)
     {
         var directory = Directory.CreateTempSubdirectory("rask-ts-comments-");
         try
@@ -51,7 +51,7 @@ public sealed class ScopedTypeScriptRemoveCommentsTests
     }
 
     [Fact]
-    public void TheScopedCompile_PassesTheArgument()
+    public void The_scoped_compile_passes_the_argument()
     {
         // The property is inert unless the one tsgo invocation for scoped assets actually splices it in.
         var command = XDocument.Load(_targets)
@@ -64,7 +64,7 @@ public sealed class ScopedTypeScriptRemoveCommentsTests
     }
 
     [Fact]
-    public void FlippingAnOption_IsNotJudgedUpToDate()
+    public void Flipping_an_option_is_not_judged_up_to_date()
     {
         // Inputs sees files only, so the options that shape the emit are written to a stamp the compile
         // lists as an input. Without it, `-c Release -p:RaskScopedTsRemoveComments=false` over a built tree
@@ -88,7 +88,7 @@ public sealed class ScopedTypeScriptRemoveCommentsTests
     [InlineData("-p:Configuration=Release", "false")]
     [InlineData("-p:Configuration=Release -p:RaskScopedTsSourceMap=true", "true")]
     [InlineData("-p:Configuration=Debug -p:RaskScopedTsSourceMap=false", "false")]
-    public void SourceMaps_AreDebugOnly_AndOverridable(string properties, string expected)
+    public void Source_maps_are_Debug_only_and_overridable(string properties, string expected)
     {
         // #1073: a map is for a developer's debugger; a Release bundle a visitor downloads carries none.
         var directory = Directory.CreateTempSubdirectory("rask-ts-sourcemap-");
@@ -111,7 +111,7 @@ public sealed class ScopedTypeScriptRemoveCommentsTests
     }
 
     [Fact]
-    public void TheScopedCompile_InlinesTheMapWithASourceRootThatIsAFileUrl()
+    public void The_scoped_compile_inlines_the_map_with_a_source_root_that_is_a_file_URL()
     {
         // Inline, so the map rides the compiled text the generator already embeds; sourceRoot as a file URL, so the
         // map's sources name the .ts on this machine wherever the bundle's map is served from.

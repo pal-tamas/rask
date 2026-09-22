@@ -21,7 +21,7 @@ public class WasmAuthSignInTests
     [InlineData("\\evil.com", "/")]
     [InlineData("https://evil.com", "/")] // absolute URL
     [InlineData("evil.com", "/")]         // not rooted
-    public async Task SignOut_SanitizesReturnUrl_BeforeNavigating(string? returnUrl, string expectedPath)
+    public async Task Signing_out_sanitizes_the_return_url_before_navigating(string? returnUrl, string expectedPath)
     {
         var state = new RouteState();
         var nav = new Navigator(state);

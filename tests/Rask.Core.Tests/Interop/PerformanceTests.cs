@@ -6,7 +6,7 @@ namespace Rask.Core.Tests.Interop;
 public class PerformanceTests
 {
     [Fact]
-    public async Task Now_CallsHelper()
+    public async Task Reading_now_calls_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskPerf.now", 1234.5);
@@ -15,7 +15,7 @@ public class PerformanceTests
     }
 
     [Fact]
-    public async Task GetNavigationTiming_ReturnsSnapshot_FromHelper()
+    public async Task Getting_the_navigation_timing_gives_the_snapshot_from_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskPerf.navigation", new NavigationTiming(40, 120, 130, 250, 260));
@@ -30,7 +30,7 @@ public class PerformanceTests
     }
 
     [Fact]
-    public async Task GetNavigationTiming_ReturnsNull_WhenNoEntry()
+    public async Task Getting_the_navigation_timing_gives_null_when_there_is_no_entry()
     {
         var js = new FakeJsRuntime();
 

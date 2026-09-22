@@ -30,7 +30,7 @@ public sealed class KitStylesheetResolutionTests
     private static readonly string _targets = ReadTargets();
 
     [Fact]
-    public void TheInRepoFallbackDoesNotNameATargetFramework()
+    public void The_in_repo_fallback_does_not_name_a_target_framework()
     {
         // The regression itself. Any literal TFM here is a path that is right on one machine and absent
         // on another, and the difference does not surface until a deploy.
@@ -45,7 +45,7 @@ public sealed class KitStylesheetResolutionTests
     }
 
     [Fact]
-    public void ItResolvesAgainstTheConsumersOwnTargetFramework()
+    public void It_resolves_against_the_consumers_own_target_framework()
     {
         // First choice, because it is the matching sheet rather than merely a present one.
         Assert.Contains(
@@ -53,7 +53,7 @@ public sealed class KitStylesheetResolutionTests
     }
 
     [Fact]
-    public void ItFallsBackToWhicheverFaceTheKitHasBuilt()
+    public void It_falls_back_to_whichever_face_the_kit_has_built()
     {
         // Second choice: the generated CSS is Tailwind's scan of the kit's own sources and does not vary
         // by target, so any built face is the right content. Without this a consumer whose TFM the kit
@@ -62,7 +62,7 @@ public sealed class KitStylesheetResolutionTests
     }
 
     [Fact]
-    public void AMissingStylesheetFAILSTheBuild()
+    public void A_missing_stylesheet_FAILS_the_build()
     {
         // It warned. The warning ran green through CI and deployed an unstyled site, which is the whole
         // argument: this target only runs when the project asked for the sheet with
@@ -74,7 +74,7 @@ public sealed class KitStylesheetResolutionTests
     }
 
     [Fact]
-    public void ThePackagedSheetIsCollectedByTheOuterBuild()
+    public void The_packaged_sheet_is_collected_by_the_outer_build()
     {
         // The sheet the targets above look for in a PACKAGE has to get into that package, and for a
         // long time it did not.

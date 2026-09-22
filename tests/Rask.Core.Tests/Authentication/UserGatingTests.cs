@@ -12,7 +12,7 @@ namespace Rask.Core.Tests.Authentication;
 public partial class UserGatingTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void User_Anonymous_RendersFallback()
+    public void An_anonymous_user_sees_the_fallback()
     {
         var html = Render(new ClaimsPrincipal(new ClaimsIdentity()));
 
@@ -21,7 +21,7 @@ public partial class UserGatingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void User_Authenticated_RendersGatedContent()
+    public void An_authenticated_user_sees_the_gated_content()
     {
         var html = Render(Principal("alice"));
 
@@ -30,7 +30,7 @@ public partial class UserGatingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void User_InRole_RendersRoleGatedContent()
+    public void A_user_in_the_role_sees_the_role_gated_content()
     {
         var html = Render(Principal("admin", "admin"));
 
@@ -38,7 +38,7 @@ public partial class UserGatingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void User_NotInRole_HidesRoleGatedContent()
+    public void A_user_not_in_the_role_does_not_see_the_role_gated_content()
     {
         var html = Render(Principal("alice", "user"));
 

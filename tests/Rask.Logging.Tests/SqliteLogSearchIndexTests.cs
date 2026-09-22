@@ -72,6 +72,7 @@ public sealed class SqliteLogSearchIndexTests
         await AssertIntegrityAsync(harness.DbPath);
 
         await harness.Store.ClearAsync();
+
         Assert.Empty((await harness.Store.SearchAsync(new LogQuery { Search = "needle" })).Entries);
         await AssertIntegrityAsync(harness.DbPath);
     }

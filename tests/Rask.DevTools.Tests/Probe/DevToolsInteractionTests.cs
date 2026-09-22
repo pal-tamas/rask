@@ -37,6 +37,7 @@ public sealed class DevToolsInteractionTests
         // Ended by its frame: the next render nothing asked for is an interaction of its own.
         feed.PerfWalk(40 * Ms, 41 * Ms);
         feed.PerfFrameSent(100, 41 * Ms);
+
         var items = feed.InteractionsSnapshot();
         Assert.Equal(2, items.Length);
         Assert.Equal("render", items[1].Trigger);
@@ -158,6 +159,7 @@ public sealed class DevToolsInteractionTests
         Assert.Equal(5, items[0].Bytes);
 
         feed.ClearInteractions();
+
         Assert.Empty(feed.InteractionsSnapshot());
     }
 }

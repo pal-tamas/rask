@@ -12,7 +12,7 @@ namespace Rask.Server.Tests.WebSockets;
 public class DiffWithJsInvokesTests
 {
     [Fact]
-    public async Task TypingWithPerRenderJsInvoke_ShipsDiffCarryingTheInvoke()
+    public async Task Typing_with_a_per_render_JS_invoke_ships_a_diff_carrying_the_invoke()
     {
         using var host = RaskTestHost.Create<JsInvokeBindingApp>();
         var initial = await host.Http.GetAsync("/");
@@ -29,12 +29,14 @@ public class DiffWithJsInvokesTests
         // render differs and a frame is sent.
         await ws.SendJsonAsync(new { id = inputId, value = "ab" });
         var frame1 = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+
         AssertDiffCarryingInvoke(frame1, "first keystroke");
 
         // Keystroke 2: proves _forceFullHtmlNextRender no longer sticks after a
         // diff+jsInvokes frame — a second keystroke also ships a diff.
         await ws.SendJsonAsync(new { id = inputId, value = "abc" });
         var frame2 = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+
         AssertDiffCarryingInvoke(frame2, "second keystroke");
     }
 

@@ -50,6 +50,7 @@ public sealed class CultureResumeTests
         // Establish a Hungarian session and take its resume record off the wire.
         var initial = await host.Http.GetAsync("/");
         var html = await initial.Content.ReadAsStringAsync();
+
         Assert.Contains("<p>hu</p>", html, StringComparison.Ordinal);
 
         var sessionId = SessionIdFrom(html);

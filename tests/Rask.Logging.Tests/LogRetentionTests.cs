@@ -14,7 +14,7 @@ public sealed class DbContextStoreLogRetentionTests() : LogRetentionContract(Log
 public abstract class LogRetentionContract(LogStoreKind kind)
 {
     [Fact]
-    public async Task PurgesEntriesOlderThanTheRetentionPeriod()
+    public async Task Entries_older_than_the_retention_period_are_purged()
     {
         await using var harness = Harness(o =>
         {
@@ -33,7 +33,7 @@ public abstract class LogRetentionContract(LogStoreKind kind)
     }
 
     [Fact]
-    public async Task KeepsEntriesInsideTheRetentionPeriod()
+    public async Task Entries_inside_the_retention_period_are_kept()
     {
         await using var harness = Harness(o =>
         {
@@ -52,7 +52,7 @@ public abstract class LogRetentionContract(LogStoreKind kind)
     }
 
     [Fact]
-    public async Task TrimsToTheNewestMaxRows()
+    public async Task The_log_is_trimmed_to_the_newest_MaxRows()
     {
         await using var harness = Harness(o =>
         {
@@ -61,13 +61,12 @@ public abstract class LogRetentionContract(LogStoreKind kind)
             o.QueueCapacity = 100;
             o.PurgeInterval = TimeSpan.FromMinutes(1);
         });
-
         var logger = harness.Logger();
+
         for (var i = 0; i < 20; i++)
         {
             logger.LogInformation("entry {Index}", i);
         }
-
         await harness.RunUntilAsync(async () => await harness.Store.CountAsync() == 5);
 
         var page = await harness.Store.SearchAsync(new LogQuery());
@@ -77,7 +76,7 @@ public abstract class LogRetentionContract(LogStoreKind kind)
     }
 
     [Fact]
-    public async Task KeepsEverythingWhenBothLimitsAreDisabled()
+    public async Task Everything_is_kept_when_both_limits_are_disabled()
     {
         await using var harness = Harness(o =>
         {
@@ -100,16 +99,16 @@ public abstract class LogRetentionContract(LogStoreKind kind)
     /// clears in a single sweep rather than shrinking by 1,000 rows an hour.
     /// </summary>
     [Fact]
-    public async Task PurgeDrainsABacklogLargerThanOnePage()
+    public async Task A_purge_drains_a_backlog_larger_than_one_page()
     {
         await using var harness = Harness();
         var store = harness.Store;
-
         var now = harness.Clock.GetUtcNow();
         var records = Enumerable.Range(0, 2500)
             .Select(i => new LogRecord(0, now, LogLevel.Information, "Bulk", 0, $"entry {i}", null))
             .ToList();
         await store.AppendAsync(records);
+
         Assert.Equal(2500, await store.CountAsync());
 
         harness.Clock.Advance(TimeSpan.FromDays(30));
@@ -120,11 +119,10 @@ public abstract class LogRetentionContract(LogStoreKind kind)
     }
 
     [Fact]
-    public async Task PurgeTrimsABacklogLargerThanOnePageToTheRowCap()
+    public async Task A_purge_trims_a_backlog_larger_than_one_page_to_the_row_cap()
     {
         await using var harness = Harness();
         var store = harness.Store;
-
         var now = harness.Clock.GetUtcNow();
         await store.AppendAsync(Enumerable.Range(0, 2500)
             .Select(i => new LogRecord(0, now, LogLevel.Information, "Bulk", 0, $"entry {i}", null))
@@ -138,7 +136,7 @@ public abstract class LogRetentionContract(LogStoreKind kind)
     }
 
     [Fact]
-    public async Task PurgeIsANoOpOnAnEmptyStore()
+    public async Task A_purge_is_a_no_op_on_an_empty_store()
     {
         await using var harness = Harness();
 

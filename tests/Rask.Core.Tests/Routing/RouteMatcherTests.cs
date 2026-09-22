@@ -8,7 +8,7 @@ public partial class RouteMatcherTests : global::Rask.Core.RaskMarkup
     private static IReadOnlyList<RouteLeaf> Flat(params Route[] routes) => RouteFlattener.Flatten(routes);
 
     [Fact]
-    public void TryMatch_LiteralRoot_Matches()
+    public void The_literal_root_matches()
     {
         var leaves = Flat(new Route(typeof(HomePage), "/"));
 
@@ -18,7 +18,7 @@ public partial class RouteMatcherTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void TryMatch_SingleParam_BindsValue()
+    public void A_single_parameter_binds_its_value()
     {
         var leaves = Flat(new Route(typeof(UserPage), "/users/{id}"));
 
@@ -28,7 +28,7 @@ public partial class RouteMatcherTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void TryMatch_MultipleParams_BindsAll()
+    public void Multiple_parameters_all_bind()
     {
         var leaves = Flat(new Route(typeof(OrgUserPage), "/orgs/{org}/users/{id}"));
 
@@ -38,7 +38,7 @@ public partial class RouteMatcherTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void TryMatch_NoMatch_ReturnsFalse()
+    public void A_path_nothing_matches_does_not_match()
     {
         var leaves = Flat(new Route(typeof(HomePage), "/"));
 
@@ -46,7 +46,7 @@ public partial class RouteMatcherTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void TryMatch_LiteralWinsOverParam()
+    public void A_literal_wins_over_a_parameter()
     {
         var leaves = Flat(
             new Route(typeof(UserPage), "/users/{id}"),
@@ -57,7 +57,7 @@ public partial class RouteMatcherTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void TryMatch_NestedSubroute_ReturnsFullChainAndMergedValues()
+    public void A_nested_subroute_matches_the_full_chain_with_merged_values()
     {
         var leaves = Flat(new Route(typeof(DashPage), "/dashboard",
             new[] { new Route(typeof(DashOverview), "overview/{tab}") }));
@@ -69,7 +69,7 @@ public partial class RouteMatcherTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void TryMatch_IndexSubroute_MatchesBareParent()
+    public void An_index_subroute_matches_the_bare_parent()
     {
         var leaves = Flat(new Route(typeof(DashPage), "/dashboard",
             new[] { new Route(typeof(DashHome), ""), new Route(typeof(DashOverview), "overview") }));

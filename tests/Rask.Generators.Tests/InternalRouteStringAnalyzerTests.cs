@@ -9,7 +9,7 @@ namespace Rask.Generators.Tests;
 public class InternalRouteStringAnalyzerTests
 {
     [Fact]
-    public async Task NavigateToStringLiteral_MatchingRoute_ReportsRask033()
+    public async Task NavigateTo_with_a_string_literal_matching_a_route_reports_RASK033()
     {
         var src = """
                   using Rask.Core;
@@ -32,7 +32,7 @@ public class InternalRouteStringAnalyzerTests
     }
 
     [Fact]
-    public async Task RouteUrlImplicitConversion_MatchingRoute_ReportsRask033()
+    public async Task An_implicit_RouteUrl_conversion_of_a_string_matching_a_route_reports_RASK033()
     {
         // Every RouteUrl slot (NavLink Href:, BsNavItem Href:) is a string → RouteUrl
         // implicit conversion; a local assignment exercises the same conversion the analyzer flags.
@@ -56,7 +56,7 @@ public class InternalRouteStringAnalyzerTests
     }
 
     [Fact]
-    public async Task NavigateToComposedWithParentRoute_ReportsRask033()
+    public async Task NavigateTo_a_path_composed_with_its_parent_route_reports_RASK033()
     {
         // The suggested URL composes the [ParentRoute] chain: Layout "/" + Page "todos" → "/todos".
         var src = """
@@ -83,7 +83,7 @@ public class InternalRouteStringAnalyzerTests
     }
 
     [Fact]
-    public async Task SecondaryRouteTemplate_NoFormatter_NoDiagnostic()
+    public async Task A_secondary_route_template_with_no_formatter_reports_nothing()
     {
         // The generated factory formats a page's FIRST template only ("todos"); the secondary "/todos/new"
         // has no Routes.*() equivalent, so the literal must be left alone.
@@ -106,7 +106,7 @@ public class InternalRouteStringAnalyzerTests
     }
 
     [Fact]
-    public async Task ParameterisedRoute_NoDiagnostic()
+    public async Task A_parameterised_route_reports_nothing()
     {
         // "/users/42" maps to a Routes.UserPage("42") the analyzer can't reconstruct from a literal — skip.
         var src = """
@@ -127,7 +127,7 @@ public class InternalRouteStringAnalyzerTests
     }
 
     [Fact]
-    public async Task ExternalUrl_NoDiagnostic()
+    public async Task An_external_url_reports_nothing()
     {
         var src = """
                   using Rask.Core;
@@ -147,7 +147,7 @@ public class InternalRouteStringAnalyzerTests
     }
 
     [Fact]
-    public async Task UnknownPath_NoDiagnostic()
+    public async Task An_unknown_path_reports_nothing()
     {
         var src = """
                   using Rask.Core;

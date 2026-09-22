@@ -52,7 +52,10 @@ public static class DbCollectionGuard
         var uncollected = new List<string>();
         foreach (var type in assembly.GetTypes())
         {
-            if (!IsTestClass(type) || exempt.Contains(type.Name, StringComparer.Ordinal))
+            // The repo-wide conventions linked into every test project (tests/Shared) read the assembly's own
+            // metadata and never build a context, so no project has to name them.
+            if (!IsTestClass(type) || exempt.Contains(type.Name, StringComparer.Ordinal)
+                || type.Namespace == "Rask.Tests.Conventions")
             {
                 continue;
             }

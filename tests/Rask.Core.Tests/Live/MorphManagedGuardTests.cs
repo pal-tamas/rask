@@ -16,7 +16,7 @@ namespace Rask.Core.Tests.Live;
 public sealed class MorphManagedGuardTests
 {
     [Fact]
-    public void ManagedNodeInIncomingTree_IsNotDuplicated_AndCorrectlyPlacedMarkerSurvives()
+    public void A_managed_node_in_the_incoming_tree_is_not_duplicated_and_a_correctly_placed_marker_survives()
     {
         // No node on PATH — the JS-driven reproduction cannot run. Deliberately not a
         // failure: node is not required to build or test Rask, and the browser-observable
@@ -43,7 +43,7 @@ public sealed class MorphManagedGuardTests
     }
 
     [Fact]
-    public void ArmingTheHeadWatch_TakesItOverFromTheIslandRuntime_Once()
+    public void Arming_the_head_watch_takes_it_over_from_the_island_runtime_once()
     {
         // On a prerendered page the island runtime mounts islands before this runtime watches <head>, so a library's
         // injected <style> (react-colorful, emotion) was trimmed by the takeover morph and the island rendered at zero size.

@@ -5,7 +5,7 @@ namespace Rask.Core.Tests.Interop;
 public class StorageEstimatorTests
 {
     [Fact]
-    public async Task IsSupported_CallsHelper()
+    public async Task Asking_whether_storage_estimation_is_supported_calls_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskApi.storageSupported", true);
@@ -14,7 +14,7 @@ public class StorageEstimatorTests
     }
 
     [Fact]
-    public async Task Estimate_ReturnsSnapshot_FromHelper()
+    public async Task An_estimate_gives_the_snapshot_from_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskApi.storageEstimate", new StorageEstimate(1_000_000, 250_000));
@@ -28,13 +28,13 @@ public class StorageEstimatorTests
     }
 
     [Fact]
-    public void UsageRatio_IsZero_WhenQuotaUnknown()
+    public void The_usage_ratio_is_zero_when_the_quota_is_unknown()
     {
         Assert.Equal(0, new StorageEstimate(0, 0).UsageRatio);
     }
 
     [Fact]
-    public async Task Estimate_ReturnsNull_WhenUnsupported()
+    public async Task An_estimate_is_null_when_unsupported()
     {
         var js = new FakeJsRuntime();
 
@@ -42,7 +42,7 @@ public class StorageEstimatorTests
     }
 
     [Fact]
-    public async Task IsPersisted_CallsHelper()
+    public async Task Asking_whether_storage_is_persisted_calls_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskApi.storagePersisted", true);
@@ -51,7 +51,7 @@ public class StorageEstimatorTests
     }
 
     [Fact]
-    public async Task RequestPersist_CallsHelper()
+    public async Task Requesting_persistence_calls_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskApi.storagePersist", true);
@@ -62,7 +62,7 @@ public class StorageEstimatorTests
     // The helper resolves false rather than throwing where navigator.storage.persist is absent, so an app
     // can treat "not persisted" and "can't be persisted" the same way: writes are evictable either way.
     [Fact]
-    public async Task Persistence_ReportsFalse_WhenUnsupported()
+    public async Task Persistence_reports_false_when_unsupported()
     {
         var js = new FakeJsRuntime();
 

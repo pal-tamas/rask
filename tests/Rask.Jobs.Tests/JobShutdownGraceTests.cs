@@ -16,7 +16,6 @@ public sealed class JobShutdownGraceTests
     {
         await using var h = new JobsHarness(o => o.ShutdownGracePeriod = TimeSpan.FromSeconds(5));
         await h.Queue.EnqueueAsync(new GateJob());
-
         await h.Processor.StartAsync(CancellationToken.None);
         await h.Gate.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
 
@@ -42,7 +41,6 @@ public sealed class JobShutdownGraceTests
         await using var h = new JobsHarness(o => o.ShutdownGracePeriod = TimeSpan.FromSeconds(5));
         await h.Queue.EnqueueAsync(new GateJob());
         await h.Queue.EnqueueAsync(new RecordJob("second"));
-
         await h.Processor.StartAsync(CancellationToken.None);
         await h.Gate.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
 
@@ -67,7 +65,6 @@ public sealed class JobShutdownGraceTests
         await using var h = new JobsHarness(o => o.ShutdownGracePeriod = TimeSpan.FromMilliseconds(50));
         await h.Queue.EnqueueAsync(new GateJob());
         var runAtBefore = (await h.SingleJobAsync()).RunAt;
-
         await h.Processor.StartAsync(CancellationToken.None);
         await h.Gate.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
 
@@ -93,7 +90,6 @@ public sealed class JobShutdownGraceTests
         // The documented opt-out, and the pre-existing behaviour.
         await using var h = new JobsHarness(o => o.ShutdownGracePeriod = TimeSpan.Zero);
         await h.Queue.EnqueueAsync(new GateJob());
-
         await h.Processor.StartAsync(CancellationToken.None);
         await h.Gate.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
 

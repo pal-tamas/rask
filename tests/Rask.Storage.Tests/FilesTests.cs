@@ -206,11 +206,13 @@ public sealed class FilesTests
     public async Task Urls_honour_the_path_base()
     {
         await using var harness = new StorageHarness();
+
         try
         {
             // Set on Rask.Core's side, read on Storage's through AppContext: this is what pins the two copies of the
             // data name together (RaskPathBase.DataName, LiveOptions.PathBaseDataName).
             LiveOptions.PathBase = "/appA";
+
             Assert.StartsWith("/appA/_rask/files/public/", harness.Files.Url(Guid.NewGuid()));
         }
         finally

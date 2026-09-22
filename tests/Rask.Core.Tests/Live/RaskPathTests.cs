@@ -26,11 +26,11 @@ public sealed class RaskPathTests
     [InlineData("/a/b", "/a/b")]
     [InlineData("/a/b/", "/a/b")]
     [InlineData("a/b/", "/a/b")]
-    public void Normalize_ProducesEmptyOrLeadingSlashNoTrailing(string? input, string expected)
+    public void A_normalized_path_is_empty_or_has_a_leading_slash_and_no_trailing_one(string? input, string expected)
         => Assert.Equal(expected, RaskPath.Normalize(input));
 
     [Fact]
-    public void LiveOptions_PathBase_NormalizesOnAssignment()
+    public void The_LiveOptions_path_base_normalizes_on_assignment()
     {
         var prior = LiveOptions.PathBase;
         try
@@ -54,7 +54,7 @@ public sealed class RaskPathTests
     }
 
     [Fact]
-    public void RaskLiveOptions_PathBase_NormalizesOnAssignment()
+    public void The_RaskLiveOptions_path_base_normalizes_on_assignment()
     {
         var opts = new RaskLiveOptions();
         Assert.Equal(string.Empty, opts.PathBase);
@@ -70,7 +70,7 @@ public sealed class RaskPathTests
     }
 
     [Fact]
-    public void LiveOptions_PathBase_DefaultsToEmpty()
+    public void The_LiveOptions_path_base_defaults_to_empty()
     {
         // Tests sharing the AppDomain may have written PathBase before this test runs,
         // so reset to baseline first and verify the empty default is observable.

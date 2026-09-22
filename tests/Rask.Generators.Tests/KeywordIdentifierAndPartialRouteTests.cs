@@ -7,7 +7,7 @@ namespace Rask.Generators.Tests;
 public class KeywordIdentifierAndPartialRouteTests
 {
     [Fact]
-    public void KeywordNamedProperty_GetsACompilableStep()
+    public void A_keyword_named_property_gets_a_compilable_step()
     {
         var src = """
                   using Rask.Core;
@@ -31,7 +31,7 @@ public class KeywordIdentifierAndPartialRouteTests
     }
 
     [Fact]
-    public void NonKeywordProperty_IsNotEscaped()
+    public void A_non_keyword_property_is_not_escaped()
     {
         // Escaping is a no-op for ordinary names — the common path is byte-for-byte as before.
         var src = """
@@ -53,7 +53,7 @@ public class KeywordIdentifierAndPartialRouteTests
     }
 
     [Fact]
-    public void PartialRoutedPage_AttributesOnMultipleDeclarations_RegistersOnce()
+    public void A_partial_routed_page_with_attributes_on_multiple_declarations_registers_once()
     {
         var src = """
                   using System;

@@ -8,7 +8,7 @@ namespace Rask.Core.Tests.Live;
 public class QuiescentRenderTests
 {
     [Fact]
-    public async Task WorkStartedByARenderIsAwaitedAndTheNextWaveIsReturned()
+    public async Task Work_started_by_a_render_is_awaited_and_the_next_wave_is_returned()
     {
         QuiescenceScope.ResetSyncForTests();
         var gate = new TaskCompletionSource();
@@ -34,7 +34,7 @@ public class QuiescentRenderTests
     }
 
     [Fact]
-    public async Task TheFirstWaveIsNotPublishOnlyAndEveryLaterOneIs()
+    public async Task The_first_wave_is_not_publish_only_and_every_later_one_is()
     {
         // Honouring this is what stops each wave re-firing OnRendered on everything the previous wave
         // already rendered, which multiplies lifecycle callbacks per wave rather than adding to them.
@@ -59,7 +59,7 @@ public class QuiescentRenderTests
     }
 
     [Fact]
-    public async Task WorkThatNeverSettlesGivesUpOnTheBudgetAndSaysSo()
+    public async Task Work_that_never_settles_gives_up_on_the_budget_and_says_so()
     {
         // The caller has to know: a page served with work still in flight cannot be a static document,
         // because nothing is left running that would ever replace its placeholder.
@@ -78,7 +78,7 @@ public class QuiescentRenderTests
     }
 
     [Fact]
-    public async Task BlockedWorkIsNotWaitedFor()
+    public async Task Blocked_work_is_not_waited_for()
     {
         // Waiting for work that cannot complete here spends the entire budget to learn nothing. The
         // server's case is a queued JS call, which completes only once a socket exists — so this must
@@ -101,7 +101,7 @@ public class QuiescentRenderTests
     }
 
     [Fact]
-    public async Task ARenderWhoseEveryWaveStartsMoreWorkIsCapped()
+    public async Task A_render_whose_every_wave_starts_more_work_is_capped()
     {
         // Otherwise a page that always has something pending renders until the budget, and the response
         // grows with every wave.
@@ -124,7 +124,7 @@ public class QuiescentRenderTests
     }
 
     [Fact]
-    public async Task CancellingAbandonsTheWaitRatherThanReturningMarkup()
+    public async Task Cancelling_abandons_the_wait_rather_than_returning_markup()
     {
         // A render nobody is waiting for any more — a background refresh when the host stops — must not
         // hold shutdown for the rest of its budget, and must not hand back a placeholder that reads like
@@ -146,7 +146,7 @@ public class QuiescentRenderTests
     }
 
     [Fact]
-    public async Task AnAlreadyCancelledTokenRendersNothing()
+    public async Task An_already_cancelled_token_renders_nothing()
     {
         QuiescenceScope.ResetSyncForTests();
         var rendered = false;

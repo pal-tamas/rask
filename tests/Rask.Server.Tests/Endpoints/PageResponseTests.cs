@@ -14,7 +14,7 @@ namespace Rask.Server.Tests.Endpoints;
 public class PageResponseTests
 {
     [Fact]
-    public async Task SetStatus_FromOnMount_ShapesTheResponse()
+    public async Task A_status_set_from_OnMount_shapes_the_response()
     {
         using var host = RaskTestHost.Create<StatusApp>();
 
@@ -26,7 +26,7 @@ public class PageResponseTests
     }
 
     [Fact]
-    public async Task SetStatus_LosesToAFaultedRender()
+    public async Task A_set_status_loses_to_a_faulted_render()
     {
         // A page that threw does not get to claim it succeeded, and the error document is what is
         // actually being served.
@@ -38,7 +38,7 @@ public class PageResponseTests
     }
 
     [Fact]
-    public async Task NavigateTo_DuringTheInitialRender_AnswersARealRedirect()
+    public async Task Navigating_during_the_initial_render_answers_a_real_redirect()
     {
         // The same NavigateTo a handler would call. On the first render the host turns it into a
         // 302 — one response instead of a whole page the client immediately navigates away from,
@@ -53,7 +53,7 @@ public class PageResponseTests
     }
 
     [Fact]
-    public async Task NavigateTo_DuringTheInitialRender_KeepsNoSessionBehind()
+    public async Task Navigating_during_the_initial_render_keeps_no_session_behind()
     {
         // Nothing will ever connect to a page that redirected, so holding a DI scope and a
         // component tree for it is pure waste.
@@ -65,7 +65,7 @@ public class PageResponseTests
     }
 
     [Fact]
-    public async Task ARedirect_IsNeverCacheable()
+    public async Task A_redirect_is_never_cacheable()
     {
         // One computed from runtime state — a flag, a tenant, an experiment — that a browser
         // pinned would be unrecoverable without changing the URL.
@@ -77,7 +77,7 @@ public class PageResponseTests
     }
 
     [Fact]
-    public void SetStatus_OutsideTheInitialRender_Throws()
+    public void Setting_the_status_outside_the_initial_render_throws()
     {
         var page = new Rask.Server.Http.ServerPageResponse();
 
@@ -89,7 +89,7 @@ public class PageResponseTests
     }
 
     [Fact]
-    public void SetStatus_OutsideTheHttpRange_Throws()
+    public void Setting_a_status_outside_the_HTTP_range_throws()
     {
         var page = new Rask.Server.Http.ServerPageResponse
         {

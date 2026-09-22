@@ -6,7 +6,7 @@ namespace Rask.Wasm.Tests.Browser;
 public class FullscreenTests
 {
     [Fact]
-    public async Task IsSupported_CallsHelper()
+    public async Task Support_is_asked_of_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskFullscreen.isSupported", true);
@@ -15,7 +15,7 @@ public class FullscreenTests
     }
 
     [Fact]
-    public async Task IsActive_CallsHelper()
+    public async Task Whether_it_is_active_is_asked_of_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskFullscreen.isActive", true);
@@ -24,7 +24,7 @@ public class FullscreenTests
     }
 
     [Fact]
-    public async Task Request_PassesElementRef()
+    public async Task A_request_passes_the_element_ref()
     {
         var js = new FakeJsRuntime();
         var el = ElementRef.New();
@@ -35,7 +35,7 @@ public class FullscreenTests
     }
 
     [Fact]
-    public async Task Request_WithoutElement_PassesNull()
+    public async Task A_request_without_an_element_passes_null()
     {
         var js = new FakeJsRuntime();
 
@@ -45,7 +45,7 @@ public class FullscreenTests
     }
 
     [Fact]
-    public async Task Exit_CallsHelper()
+    public async Task Exiting_calls_the_helper()
     {
         var js = new FakeJsRuntime();
 

@@ -53,6 +53,7 @@ public sealed class DiskBlobBackendTests : IDisposable
     public void Nothing_is_created_until_the_first_write()
     {
         _ = new DiskBlobBackend(_root);
+
         Assert.False(Directory.Exists(_root));
     }
 
@@ -313,6 +314,7 @@ public sealed class StorageOptionsTests
     {
         var options = Resolved("/tmp/rask-files");
         options.MaxFileSize = size;
+
         Assert.Throws<InvalidOperationException>(() => options.Validate(null));
     }
 
@@ -321,6 +323,7 @@ public sealed class StorageOptionsTests
     {
         var options = Resolved("/tmp/rask-files");
         options.OrphanGracePeriod = TimeSpan.FromMinutes(1);
+
         Assert.Throws<InvalidOperationException>(() => options.Validate(null));
     }
 
@@ -329,6 +332,7 @@ public sealed class StorageOptionsTests
     {
         var options = Resolved("/tmp/rask-files");
         options.Prefix = "../up";
+
         Assert.Throws<InvalidOperationException>(() => options.Validate(null));
     }
 

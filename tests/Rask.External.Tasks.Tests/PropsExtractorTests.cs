@@ -34,6 +34,7 @@ public sealed class PropsExtractorTests : IDisposable
     public void Each_island_is_written_exactly_as_its_committed_snapshot()
     {
         var typescript = Toolchain();
+
         var output = Extract(
             typescript,
             Island("FixtureButton", "fixture-button"),
@@ -78,6 +79,7 @@ public sealed class PropsExtractorTests : IDisposable
     public void A_missing_package_or_export_fails_only_its_own_island()
     {
         var typescript = Toolchain();
+
         var output = Extract(
             typescript,
             Island("FixtureButton", "fixture-button"),
@@ -96,6 +98,7 @@ public sealed class PropsExtractorTests : IDisposable
     public void What_cannot_be_mounted_as_a_lit_or_angular_island_is_refused_by_name()
     {
         var typescript = Toolchain();
+
         var output = Extract(
             typescript,
             Island("FxTooltip", "fixture-angular#FxTooltip", "angular"),
@@ -125,6 +128,7 @@ public sealed class PropsExtractorTests : IDisposable
     public void The_snapshot_does_not_depend_on_the_order_the_islands_are_listed_in()
     {
         var typescript = Toolchain();
+
         var forwards = File.ReadAllText(Path.Combine(
             Extract(typescript, Island("FixtureButton", "fixture-button"), Island("Badge", "fixture-button#Badge")),
             "FixtureButton.props.json"));

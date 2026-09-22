@@ -9,7 +9,7 @@ namespace Rask.Core.Tests.Live;
 public partial class ChainPropBindingTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void RequiredStep_SetsTheProperty_AndLeavesTheOptionalOneNull()
+    public void A_required_step_sets_its_property_and_leaves_the_optional_one_null()
     {
         GreetCard instance = GreetCard.Name("world");
 
@@ -19,7 +19,7 @@ public partial class ChainPropBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void OptionalStep_SetsTheProperty()
+    public void An_optional_step_sets_its_property()
     {
         GreetCard instance = GreetCard.Name("hello").Subtitle("world");
 
@@ -29,7 +29,7 @@ public partial class ChainPropBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void InsideAContext_TheChainPreservesTheInstanceAcrossRenders_AndReappliesTheProps()
+    public void Inside_a_context_the_chain_preserves_the_instance_across_renders_and_reapplies_the_props()
     {
         var services = RenderHarness.EmptyServices();
 

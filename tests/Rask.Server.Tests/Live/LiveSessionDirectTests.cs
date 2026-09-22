@@ -10,7 +10,7 @@ namespace Rask.Server.Tests.Live;
 public class LiveSessionDirectTests
 {
     [Fact]
-    public async Task RequestRenderAsync_NoSocket_NoOps()
+    public async Task A_render_request_with_no_socket_does_nothing()
     {
         using var session = NewSession(new BasicComponent());
 
@@ -18,7 +18,7 @@ public class LiveSessionDirectTests
     }
 
     [Fact]
-    public void Dispose_DisposesScopeAndDisposesComponentTree()
+    public void Disposing_the_session_disposes_its_scope_and_its_component_tree()
     {
         var sp = new ServiceCollection().BuildServiceProvider();
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
@@ -33,7 +33,7 @@ public class LiveSessionDirectTests
     // #1093: both disposal paths unhook the culture subscription, and neither delegates to the other, so each is
     // pinned. The culture service is scoped per session on this host, but the contract is the same as WASM's.
     [Fact]
-    public void Dispose_UnsubscribesFromCultureChanged()
+    public void Disposing_the_session_unsubscribes_from_CultureChanged()
     {
         var (session, culture) = NewCultureSession();
 
@@ -43,7 +43,7 @@ public class LiveSessionDirectTests
     }
 
     [Fact]
-    public async Task DisposeAsync_UnsubscribesFromCultureChanged()
+    public async Task Disposing_the_session_asynchronously_unsubscribes_from_CultureChanged()
     {
         var (session, culture) = NewCultureSession();
 
@@ -65,7 +65,7 @@ public class LiveSessionDirectTests
     }
 
     [Fact]
-    public async Task DisposeAsync_RunsAsyncDispose()
+    public async Task Disposing_the_session_asynchronously_runs_the_trees_async_dispose()
     {
         var sp = new ServiceCollection().BuildServiceProvider();
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
@@ -78,7 +78,7 @@ public class LiveSessionDirectTests
     }
 
     [Fact]
-    public async Task Constructor_AssignsRenderHandleSoStateHasChangedAsyncRoutesToSession()
+    public async Task The_constructor_assigns_the_render_handle_so_StateHasChangedAsync_routes_to_the_session()
     {
         var sp = new ServiceCollection().BuildServiceProvider();
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();

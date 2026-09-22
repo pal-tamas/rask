@@ -38,6 +38,7 @@ public class MountedAppRoutesTests : IDisposable
     public void The_mount_sees_its_own_route()
     {
         var tree = RouteRegistry.BuildTree(MountAssembly);
+
         Assert.Contains(tree, r => r.PageType == typeof(MountPage));
     }
 
@@ -45,6 +46,7 @@ public class MountedAppRoutesTests : IDisposable
     public void The_mount_CANNOT_see_the_host_application_s_routes()
     {
         var tree = RouteRegistry.BuildTree(MountAssembly);
+
         Assert.DoesNotContain(tree, r => r.PageType == typeof(HostPage));
     }
 
@@ -52,6 +54,7 @@ public class MountedAppRoutesTests : IDisposable
     public void The_host_CANNOT_see_the_mounted_application_s_routes()
     {
         var tree = RouteRegistry.BuildTreeExcept(MountAssembly);
+
         Assert.DoesNotContain(tree, r => r.PageType == typeof(MountPage));
     }
 
@@ -59,6 +62,7 @@ public class MountedAppRoutesTests : IDisposable
     public void The_host_keeps_its_own_routes()
     {
         var tree = RouteRegistry.BuildTreeExcept(MountAssembly);
+
         Assert.Contains(tree, r => r.PageType == typeof(HostPage));
     }
 
@@ -76,6 +80,7 @@ public class MountedAppRoutesTests : IDisposable
         ]);
 
         var mountTree = RouteRegistry.BuildTree(MountAssembly);
+
         Assert.DoesNotContain(mountTree, r => r.PageType == typeof(HostNotFound));
     }
 
@@ -89,6 +94,7 @@ public class MountedAppRoutesTests : IDisposable
         ]);
 
         var hostTree = RouteRegistry.BuildTreeExcept(MountAssembly);
+
         Assert.Contains(hostTree, r => r.PageType == typeof(HostNotFound));
     }
 

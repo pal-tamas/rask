@@ -5,7 +5,7 @@ namespace Rask.Core.Tests.Interop;
 public class ScreenInfoTests
 {
     [Fact]
-    public async Task Get_ReturnsSnapshot_FromHelper()
+    public async Task Getting_the_screen_info_gives_the_snapshot_from_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskApi.screen", new ScreenInfo(2560, 1440, 2560, 1400, 24, 2.0));
@@ -21,7 +21,7 @@ public class ScreenInfoTests
     }
 
     [Fact]
-    public async Task Get_CallsHelper_WithNoArgs()
+    public async Task Getting_the_screen_info_calls_the_helper_with_no_args()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskApi.screen", new ScreenInfo(1920, 1080, 1920, 1040, 24, 1.0));

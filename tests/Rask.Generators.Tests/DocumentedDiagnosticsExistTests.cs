@@ -31,7 +31,7 @@ namespace Rask.Generators.Tests;
 public class DocumentedDiagnosticsExistTests
 {
     [Fact]
-    public void EveryActiveIdInTheDocsHasADescriptorInSrc()
+    public void Every_active_id_in_the_docs_has_a_descriptor_in_src()
     {
         var root = RepoRoot();
         var docs = File.ReadAllText(Path.Combine(root, "docs", "diagnostics.md"));

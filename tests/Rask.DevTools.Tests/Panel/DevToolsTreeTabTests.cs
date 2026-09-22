@@ -26,9 +26,11 @@ public sealed class DevToolsTreeTabTests
         // was asked for at all.
         var dispatched = await WaitFor(
             () => feed.WireSnapshot().Any(e => e.Kind == "click"), TimeSpan.FromSeconds(5));
+
         Assert.True(dispatched, "the page never received the click, so it never re-rendered");
 
         var tree = await WaitForTree(feed, TimeSpan.FromSeconds(5));
+
         Assert.NotNull(tree);
         // The app's own component, somewhere under the root the host wraps it in.
         Assert.Contains(nameof(DevToolsTestApp), Types(tree!));
@@ -59,6 +61,7 @@ public sealed class DevToolsTreeTabTests
         // The shape the client really sends for a click, so this drives the page's own dispatch path.
         await socket.SendJsonAsync(new { id = handlerId, type = "click" });
         var first = await WaitForTree(feed, TimeSpan.FromSeconds(5));
+
         Assert.NotNull(first);
 
         // The shape the client really sends for a click, so this drives the page's own dispatch path.
@@ -83,6 +86,7 @@ public sealed class DevToolsTreeTabTests
         await socket.SendJsonAsync(new { id = handlerId, type = "click" });
 
         var tree = await WaitForTree(feed, TimeSpan.FromSeconds(5));
+
         Assert.NotNull(tree);
 
         // Read back through the snapshot: the value the parent passed, by name. The override that reads it is
@@ -104,6 +108,7 @@ public sealed class DevToolsTreeTabTests
         using var watch = feed.WatchTree();
 
         var tree = await WaitForTree(feed, TimeSpan.FromSeconds(5));
+
         Assert.NotNull(tree);
         Assert.Contains(nameof(DevToolsTestChild), Types(tree!));
         socket.Dispose();
@@ -117,6 +122,7 @@ public sealed class DevToolsTreeTabTests
         using var watch = feed.WatchTree();
 
         var tree = await WaitForTree(feed, TimeSpan.FromSeconds(5));
+
         Assert.NotNull(tree);
 
         // The app built the child, and the frame renders it: the page's nesting puts it under the frame.
@@ -134,6 +140,7 @@ public sealed class DevToolsTreeTabTests
         using var watch = feed.WatchTree();
 
         var tree = await WaitForTree(feed, TimeSpan.FromSeconds(5));
+
         Assert.NotNull(tree);
 
         // The frame's own <section>, and the child's <span> inside it.
@@ -158,6 +165,7 @@ public sealed class DevToolsTreeTabTests
         using var watch = feed.WatchTree();
 
         var tree = await WaitForTree(feed, TimeSpan.FromSeconds(5));
+
         Assert.NotNull(tree);
 
         var all = Nodes(tree!).ToList();

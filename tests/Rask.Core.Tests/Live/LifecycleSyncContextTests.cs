@@ -7,7 +7,7 @@ namespace Rask.Core.Tests.Live;
 public partial class LifecycleSyncContextTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Send_ExecutesInline()
+    public void A_send_executes_inline()
     {
         var component = new RecordingComponent();
         var ctx = new LifecycleSyncContext(component, quiescence: null);
@@ -20,7 +20,7 @@ public partial class LifecycleSyncContextTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Post_TriggersStateHasChanged_AfterCallback()
+    public async Task A_post_triggers_StateHasChanged_after_the_callback()
     {
         var component = new RecordingComponent();
         var ctx = new LifecycleSyncContext(component, quiescence: null);
@@ -39,7 +39,7 @@ public partial class LifecycleSyncContextTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Post_SuppressesExecutionContextFlow()
+    public async Task A_post_suppresses_the_execution_context_flow()
     {
         var component = new RecordingComponent();
         var ctx = new LifecycleSyncContext(component, quiescence: null);
@@ -59,7 +59,7 @@ public partial class LifecycleSyncContextTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void CreateCopy_ReturnsIndependentInstance()
+    public void CreateCopy_gives_an_independent_instance()
     {
         var component = new RecordingComponent();
         var ctx = new LifecycleSyncContext(component, quiescence: null);

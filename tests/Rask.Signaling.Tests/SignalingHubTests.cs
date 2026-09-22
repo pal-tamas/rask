@@ -12,7 +12,7 @@ public class SignalingHubTests
     private static WebSocket Socket() => new FakeSocket();
 
     [Fact]
-    public void Join_MintsThePeerId_AndNeverTakesItFromTheCaller()
+    public void Joining_mints_the_peer_id_and_never_takes_it_from_the_caller()
     {
         // A client-chosen id would let a caller impersonate another peer, or overwrite it. There is
         // deliberately no way to supply one.
@@ -26,7 +26,7 @@ public class SignalingHubTests
     }
 
     [Fact]
-    public void Join_ReportsThePeersAlreadyPresent()
+    public void Joining_reports_the_peers_already_present()
     {
         var hub = Hub();
         var first = hub.Join("room", Socket(), out var noneYet)!;
@@ -38,7 +38,7 @@ public class SignalingHubTests
     }
 
     [Fact]
-    public void Join_RefusesOnceTheRoomIsFull()
+    public void Joining_is_refused_once_the_room_is_full()
     {
         var hub = Hub(maxPeers: 2);
         hub.Join("room", Socket(), out _);
@@ -48,7 +48,7 @@ public class SignalingHubTests
     }
 
     [Fact]
-    public void Join_RefusesOnceThereAreTooManyRooms()
+    public void Joining_is_refused_once_there_are_too_many_rooms()
     {
         var hub = Hub(maxRooms: 1);
         hub.Join("first", Socket(), out _);
@@ -57,7 +57,7 @@ public class SignalingHubTests
     }
 
     [Fact]
-    public void Others_NeverIncludesTheCallerItself()
+    public void The_others_never_include_the_caller_itself()
     {
         // This is what stops the relay echoing a peer's own message back to it.
         var hub = Hub();
@@ -70,7 +70,7 @@ public class SignalingHubTests
     }
 
     [Fact]
-    public void Target_RefusesAPeerInAnotherRoom()
+    public void Targeting_a_peer_in_another_room_is_refused()
     {
         // The message names a peer; without this check, naming one is enough to reach it anywhere.
         var hub = Hub();
@@ -81,7 +81,7 @@ public class SignalingHubTests
     }
 
     [Fact]
-    public void Target_RefusesTheCallerItself()
+    public void Targeting_the_caller_itself_is_refused()
     {
         var hub = Hub();
         var peer = hub.Join("room", Socket(), out _)!;
@@ -90,7 +90,7 @@ public class SignalingHubTests
     }
 
     [Fact]
-    public void Target_RefusesAnUnknownPeer()
+    public void Targeting_an_unknown_peer_is_refused()
     {
         var hub = Hub();
         var peer = hub.Join("room", Socket(), out _)!;
@@ -99,7 +99,7 @@ public class SignalingHubTests
     }
 
     [Fact]
-    public void Target_FindsAPeerInTheSameRoom()
+    public void Targeting_finds_a_peer_in_the_same_room()
     {
         var hub = Hub();
         var from = hub.Join("room", Socket(), out _)!;
@@ -109,13 +109,14 @@ public class SignalingHubTests
     }
 
     [Fact]
-    public void Leave_RemovesThePeer_AndTheRoomGoesWithTheLastOne()
+    public void Leaving_removes_the_peer_and_the_room_goes_with_the_last_one()
     {
         var hub = Hub(maxRooms: 1);
         var first = hub.Join("room", Socket(), out _)!;
         var second = hub.Join("room", Socket(), out _)!;
 
         hub.Leave(first);
+
         Assert.Empty(hub.Others(second));
 
         hub.Leave(second);
@@ -126,7 +127,7 @@ public class SignalingHubTests
     }
 
     [Fact]
-    public void Leave_IsSafeTwice()
+    public void Leaving_twice_is_safe()
     {
         var hub = Hub();
         var peer = hub.Join("room", Socket(), out _)!;
@@ -136,7 +137,7 @@ public class SignalingHubTests
     }
 
     [Fact]
-    public void Rooms_AreCaseSensitiveAndDoNotBleedIntoEachOther()
+    public void Rooms_are_case_sensitive_and_do_not_bleed_into_each_other()
     {
         var hub = Hub();
         var lower = hub.Join("room", Socket(), out _)!;

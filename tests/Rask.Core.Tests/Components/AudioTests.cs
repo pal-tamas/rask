@@ -3,11 +3,11 @@ namespace Rask.Core.Tests.Components;
 public partial class AudioTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Render_NullProps_ReturnsOpenAndCloseTags() =>
+    public void Unset_props_render_only_the_open_and_close_tags() =>
         Assert.Equal("<audio></audio>", Audio.ToHtml());
 
     [Fact]
-    public void Render_AllPropsSet_EmitsExpectedAttributes()
+    public void Setting_every_prop_emits_the_expected_attributes()
     {
         // Named arguments: HtmlMediaElement now also contributes the media-event params (OnPlay, …),
         // which sort between the media attrs and Element's Id/Class/Style, so positional id/class/style
@@ -29,6 +29,6 @@ public partial class AudioTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_StringChild_EncodesText() =>
+    public void A_string_child_is_encoded_as_text() =>
         Assert.Equal("<audio>&lt;x&gt;</audio>", Audio["<x>"].ToHtml());
 }

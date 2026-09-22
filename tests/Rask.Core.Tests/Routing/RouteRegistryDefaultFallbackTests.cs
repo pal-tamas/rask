@@ -9,7 +9,7 @@ public class RouteRegistryDefaultFallbackTests : IDisposable
     public void Dispose() => RouteRegistry.Reset();
 
     [Fact]
-    public void BuildTree_OnlyFallbackSet_IncludesSyntheticCatchAll()
+    public void With_only_the_fallback_set_the_tree_holds_a_synthetic_catch_all()
     {
         RouteRegistry.SetDefaultFallback(typeof(Fallback));
 
@@ -21,7 +21,7 @@ public class RouteRegistryDefaultFallbackTests : IDisposable
     }
 
     [Fact]
-    public void BuildTree_FallbackPlusTypedRoute_BothPresent()
+    public void The_fallback_and_a_typed_route_are_both_in_the_tree()
     {
         RouteRegistry.SetDefaultFallback(typeof(Fallback));
         RouteRegistry.Add(new[] { new RouteRegistration(typeof(Home), "/", null) });
@@ -34,7 +34,7 @@ public class RouteRegistryDefaultFallbackTests : IDisposable
     }
 
     [Fact]
-    public void BuildTree_UserCatchAllRegistered_FallbackOmitted()
+    public void A_registered_user_catch_all_leaves_the_fallback_out()
     {
         RouteRegistry.SetDefaultFallback(typeof(Fallback));
         RouteRegistry.Add(new[] { new RouteRegistration(typeof(UserNotFound), "{**rest}", null) });
@@ -46,16 +46,17 @@ public class RouteRegistryDefaultFallbackTests : IDisposable
     }
 
     [Fact]
-    public void Reset_ClearsFallback()
+    public void Reset_clears_the_fallback()
     {
         RouteRegistry.SetDefaultFallback(typeof(Fallback));
+
         RouteRegistry.Reset();
 
         Assert.Empty(RouteRegistry.BuildTree());
     }
 
     [Fact]
-    public void SetDefaultFallback_AfterBuildTree_InvalidatesCache()
+    public void Setting_the_fallback_after_building_the_tree_invalidates_the_cache()
     {
         RouteRegistry.Add(new[] { new RouteRegistration(typeof(Home), "/", null) });
         var first = RouteRegistry.BuildTree();

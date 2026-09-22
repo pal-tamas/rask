@@ -22,9 +22,10 @@ public sealed class PageBaselineTests
 
     [Theory]
     [MemberData(nameof(RegisteredPages))]
-    public void Page_RenderedAtRegisteredPath_EmitsTitleAndPageMarker(Type pageType, string path, string marker)
+    public void A_page_rendered_at_its_registered_path_emits_a_title_and_its_page_marker(Type pageType, string path, string marker)
     {
         var routeState = new RouteState { Path = path };
+
         // RenderDocument, not Render: the <title> assertion below is about the <head>, which exists only
         // when the document is composed around the app the way a host composes it.
         var html = Test.RenderDocument(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
@@ -40,7 +41,7 @@ public sealed class PageBaselineTests
     [InlineData(typeof(GuidesIndexPage))]
     [InlineData(typeof(NotFoundPage))]
     [InlineData(typeof(TodosPage))]
-    public void Page_IsRoutableOrTheNotFoundPage(Type pageType)
+    public void A_page_is_routable_or_the_NotFound_page(Type pageType)
     {
         // A routable component carries [Route] — repeated once per URL it answers — or is the [NotFound]
         // catch-all. The templates are read at compile time into the route registry, so what is checked
@@ -53,14 +54,16 @@ public sealed class PageBaselineTests
     }
 
     [Fact]
-    public void NotFoundPage_HasNotFoundAttribute() =>
+    public void The_not_found_page_has_the_NotFound_attribute() =>
         Assert.True(typeof(NotFoundPage).GetCustomAttributes<NotFoundAttribute>().Any());
 
     [Fact]
-    public void UnmatchedRoute_RendersNotFoundPage()
+    public void An_unmatched_route_renders_the_not_found_page()
     {
         var routeState = new RouteState { Path = "/__no_such_route" };
+
         var html = Test.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
+
         Assert.Contains("Page not found", html);
     }
 }

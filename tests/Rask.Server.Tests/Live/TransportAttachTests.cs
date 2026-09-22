@@ -145,6 +145,7 @@ public sealed class TransportAttachTests
         var session = store.Create(_ => new Shell());
 
         store.ScheduleRemoval(session.Id, TimeSpan.FromMilliseconds(20));
+
         Assert.Same(session, store.Peek(session.Id));
 
         for (var i = 0; i < 50 && store.Peek(session.Id) is not null; i++)

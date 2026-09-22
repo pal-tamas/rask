@@ -91,6 +91,7 @@ public sealed class BrandingTests
 
         var plain = new StringConsole();
         var ragged = new StringConsole();
+
         plain.Ansi.Write(Build());
         ragged.Ansi.Write(new RaggedRight(Build()));
 

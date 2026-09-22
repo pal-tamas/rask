@@ -35,6 +35,7 @@ public sealed class DocsIndexTests
         }
 
         var orphaned = all.Except(reachable).Order(StringComparer.Ordinal).ToArray();
+
         Assert.True(
             orphaned.Length == 0,
             "These docs can't be reached from docs/README.md by any path, so a reader has no way to find "

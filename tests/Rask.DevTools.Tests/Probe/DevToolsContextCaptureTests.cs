@@ -23,6 +23,7 @@ public sealed class DevToolsContextCaptureTests
 
         // The shape the client really sends for a click, so the next render is the page's own.
         await socket.SendJsonAsync(new { id = handlerId, type = "click" });
+
         Assert.True(await DevToolsLivePage.WaitFor(
             () => Node(feed, nameof(DevToolsContextReader))?.Reads is not null,
             TimeSpan.FromSeconds(5)), "no render recorded context after the click");
@@ -51,9 +52,11 @@ public sealed class DevToolsContextCaptureTests
         var before = feed.CommitsSnapshot().Length;
 
         await socket.SendJsonAsync(new { id = handlerId, type = "click" });
+
         Assert.True(await DevToolsLivePage.WaitFor(() => feed.CommitsSnapshot().Length > before, TimeSpan.FromSeconds(5)));
 
         using var watch = feed.WatchTree();
+
         Assert.True(await DevToolsLivePage.WaitFor(() => feed.TreeSnapshot() is not null, TimeSpan.FromSeconds(5)));
         Assert.Null(Node(feed, nameof(DevToolsContextShell))?.Provides);
         socket.Dispose();

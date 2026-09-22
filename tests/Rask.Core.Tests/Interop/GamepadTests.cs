@@ -5,7 +5,7 @@ namespace Rask.Core.Tests.Interop;
 public class GamepadTests
 {
     [Fact]
-    public async Task IsSupported_CallsHelper()
+    public async Task Asking_whether_gamepads_are_supported_calls_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskGamepad.isSupported", true);
@@ -14,7 +14,7 @@ public class GamepadTests
     }
 
     [Fact]
-    public async Task Watch_RegistersHandler_AndStartsPolling()
+    public async Task Watching_registers_the_handler_and_starts_polling()
     {
         var js = new FakeJsRuntime();
 
@@ -25,7 +25,7 @@ public class GamepadTests
     }
 
     [Fact]
-    public async Task Reading_RoutesToRegisteredHandler()
+    public async Task A_reading_is_routed_to_the_registered_handler()
     {
         var js = new FakeJsRuntime();
         GamepadReading? got = null;
@@ -43,7 +43,7 @@ public class GamepadTests
     }
 
     [Fact]
-    public async Task Dispose_Unwatches_AndStopsRouting()
+    public async Task Disposing_unwatches_and_stops_routing()
     {
         var js = new FakeJsRuntime();
         var fired = 0;
@@ -62,9 +62,10 @@ public class GamepadTests
     }
 
     [Fact]
-    public async Task Watch_NullHandler_Throws()
+    public async Task Watching_with_a_null_handler_throws()
     {
         var svc = new Gamepad(new FakeJsRuntime());
+
         await Assert.ThrowsAsync<ArgumentNullException>(async () => await svc.WatchAsync(null!));
     }
 }

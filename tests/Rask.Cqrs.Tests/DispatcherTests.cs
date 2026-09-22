@@ -16,7 +16,9 @@ public sealed class DispatcherTests
     public async Task Query_dispatches_to_its_handler()
     {
         await using var sp = Build();
+
         var result = await sp.GetRequiredService<IDispatcher>().QueryAsync(new Add(2, 3));
+
         Assert.Equal(5, result);
     }
 
@@ -25,7 +27,9 @@ public sealed class DispatcherTests
     {
         var recorder = new Recorder();
         await using var sp = Build(recorder: recorder);
+
         await sp.GetRequiredService<IDispatcher>().SendAsync(new Poke("hi"));
+
         Assert.Equal(new[] { "poke:hi" }, recorder.Entries);
     }
 
@@ -33,7 +37,9 @@ public sealed class DispatcherTests
     public async Task Command_with_result_dispatches_to_its_handler()
     {
         await using var sp = Build();
+
         var length = await sp.GetRequiredService<IDispatcher>().SendAsync(new CreateThing("abcd"));
+
         Assert.Equal(4, length);
     }
 
@@ -45,6 +51,7 @@ public sealed class DispatcherTests
         var dispatcher = sp.GetRequiredService<IDispatcher>();
 
         Assert.Equal(7, await dispatcher.QueryAsync(new Add(3, 4)));
+
         await dispatcher.SendAsync(new Poke("x"));
         await dispatcher.PublishAsync(new Pinged("p"));
 
@@ -58,7 +65,9 @@ public sealed class DispatcherTests
     {
         var recorder = new Recorder();
         await using var sp = Build(recorder: recorder);
+
         await sp.GetRequiredService<IDispatcher>().PublishAsync(new Pinged("go"));
+
         Assert.Equal(new[] { "A:go", "B:go" }, recorder.Entries);
     }
 
@@ -73,6 +82,7 @@ public sealed class DispatcherTests
     public async Task Unknown_request_throws_a_clear_error()
     {
         await using var sp = Build();
+
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
             () => sp.GetRequiredService<IDispatcher>().QueryAsync(new Orphan()));
         Assert.Contains("No handler is registered", ex.Message);
@@ -84,7 +94,9 @@ public sealed class DispatcherTests
     {
         var recorder = new Recorder();
         await using var sp = Build(o => o.AddOpenBehavior(typeof(TracingBehavior<,>)), recorder);
+
         await sp.GetRequiredService<IDispatcher>().QueryAsync(new Add(1, 1));
+
         Assert.Equal(new[] { "trace-in:Add", "trace-out:Add" }, recorder.Entries);
     }
 
@@ -110,31 +122,36 @@ public sealed class DispatcherTests
     {
         var recorder = new Recorder();
         await using var sp = Build(o => o.AddBehavior<Add, int, ShortCircuitAdd>(), recorder);
+
         var result = await sp.GetRequiredService<IDispatcher>().QueryAsync(new Add(2, 2));
+
         Assert.Equal(999, result);
         Assert.Equal(new[] { "short-circuit" }, recorder.Entries);
     }
 
     [Fact]
-    public async Task WhenAll_strategy_runs_all_notification_handlers()
+    public async Task The_WhenAll_strategy_runs_all_notification_handlers()
     {
         var recorder = new Recorder();
         await using var sp = Build(o => o.NotificationPublishStrategy = NotificationPublishStrategy.WhenAll, recorder);
+
         await sp.GetRequiredService<IDispatcher>().PublishAsync(new Pinged("w"));
+
         Assert.Equal(2, recorder.Entries.Count);
         Assert.Contains("A:w", recorder.Entries);
         Assert.Contains("B:w", recorder.Entries);
     }
 
     [Fact]
-    public void AddOpenBehavior_rejects_a_non_behavior_type()
+    public void A_non_behavior_type_is_rejected_as_an_open_behavior()
     {
         var options = new CqrsOptions();
+
         Assert.Throws<ArgumentException>(() => options.AddOpenBehavior(typeof(List<>)));
     }
 
     [Fact]
-    public async Task AddRaskCqrs_is_idempotent_behaviors_run_once()
+    public async Task Registering_twice_is_idempotent_so_behaviors_run_once()
     {
         var recorder = new Recorder();
         var services = new ServiceCollection();
@@ -142,8 +159,8 @@ public sealed class DispatcherTests
         // A shared library and the app host both register; the second call must be a no-op.
         services.AddRaskCqrs(o => o.AddOpenBehavior(typeof(TracingBehavior<,>)));
         services.AddRaskCqrs(o => o.AddOpenBehavior(typeof(TracingBehavior<,>)));
-
         await using var sp = services.BuildServiceProvider();
+
         await sp.GetRequiredService<IDispatcher>().QueryAsync(new Add(1, 1));
 
         // The behavior wrapped the handler exactly once, not twice.
@@ -181,7 +198,7 @@ public sealed class DispatcherTests
     }
 
     [Fact]
-    public async Task WhenAll_publish_starts_every_handler_then_surfaces_a_failure()
+    public async Task A_WhenAll_publish_starts_every_handler_then_surfaces_a_failure()
     {
         var recorder = new Recorder();
         await using var sp = Build(o => o.NotificationPublishStrategy = NotificationPublishStrategy.WhenAll, recorder);

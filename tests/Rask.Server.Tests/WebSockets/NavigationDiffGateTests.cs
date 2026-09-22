@@ -17,7 +17,7 @@ public class NavigationDiffGateTests
     // ConnectedSession.Connect), so this class still runs in parallel with the others.
 
     [Fact]
-    public async Task Navigate_SameHead_ShipsDiffWithHistory()
+    public async Task A_navigation_with_the_same_head_ships_a_diff_with_history()
     {
         await using var fixture = await ConnectedSession.Connect<NavigateInHandlerStateHasChangedApp>(LiveDiffMode.Forced);
 
@@ -31,6 +31,7 @@ public class NavigationDiffGateTests
         await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/destination", query = "" });
 
         var frame = await DrainToLastFrame(fixture.Ws);
+
         Assert.NotNull(frame);
         using var doc = JsonDocument.Parse(frame!);
         Assert.Equal("diff", doc.RootElement.GetProperty("kind").GetString());
@@ -42,7 +43,7 @@ public class NavigationDiffGateTests
     }
 
     [Fact]
-    public async Task Navigate_QueryOnlyNoBodyChange_ShipsHistoryOnlyDiff()
+    public async Task A_query_only_navigation_with_no_body_change_ships_a_history_only_diff()
     {
         await using var fixture = await ConnectedSession.Connect<NavigateInHandlerStateHasChangedApp>(LiveDiffMode.Forced);
 
@@ -56,6 +57,7 @@ public class NavigationDiffGateTests
         await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/page", query = "?q=1" });
 
         var frame = await DrainToLastFrame(fixture.Ws);
+
         Assert.NotNull(frame);
         using var doc = JsonDocument.Parse(frame!);
         Assert.Equal("diff", doc.RootElement.GetProperty("kind").GetString());
@@ -67,7 +69,7 @@ public class NavigationDiffGateTests
     }
 
     [Fact]
-    public async Task Navigate_HeadChanges_ShipsDiffWithHeadFragment()
+    public async Task A_navigation_that_changes_the_head_ships_a_diff_with_a_head_fragment()
     {
         await using var fixture = await ConnectedSession.Connect<RouteTitleNavApp>(LiveDiffMode.Forced);
 
@@ -81,6 +83,7 @@ public class NavigationDiffGateTests
         await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/destination", query = "" });
 
         var frame = await DrainToLastFrame(fixture.Ws);
+
         Assert.NotNull(frame);
         using var doc = JsonDocument.Parse(frame!);
         Assert.Equal("diff", doc.RootElement.GetProperty("kind").GetString());
@@ -93,7 +96,7 @@ public class NavigationDiffGateTests
     }
 
     [Fact]
-    public async Task Navigate_HeadChangesWithStructuralBody_StillShipsFullHtml()
+    public async Task A_head_changing_navigation_with_a_structural_body_still_ships_full_html()
     {
         await using var fixture = await ConnectedSession.Connect<RouteTitleStructuralNavApp>(LiveDiffMode.Forced);
 
@@ -106,6 +109,7 @@ public class NavigationDiffGateTests
         await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/destination", query = "" });
 
         var frame = await DrainToLastFrame(fixture.Ws);
+
         Assert.NotNull(frame);
         using var doc = JsonDocument.Parse(frame!);
         Assert.True(doc.RootElement.TryGetProperty("html", out var html),

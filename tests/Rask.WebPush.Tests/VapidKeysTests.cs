@@ -23,7 +23,6 @@ public sealed class VapidKeysTests
         VapidKeys keys = VapidKeys.Generate();
         byte[] pub = Base64Url.DecodeFromChars(keys.PublicKey);
         byte[] priv = Base64Url.DecodeFromChars(keys.PrivateKey);
-
         var parameters = new ECParameters
         {
             Curve = ECCurve.NamedCurves.nistP256,
@@ -34,6 +33,7 @@ public sealed class VapidKeysTests
         // Validate() throws if the public point and private scalar are inconsistent.
         parameters.Validate();
         using var ecdsa = ECDsa.Create(parameters);
+
         Assert.NotNull(ecdsa);
     }
 
@@ -41,6 +41,7 @@ public sealed class VapidKeysTests
     public void Generate_public_key_is_clean_base64url()
     {
         VapidKeys keys = VapidKeys.Generate();
+
         Assert.DoesNotContain('+', keys.PublicKey);
         Assert.DoesNotContain('/', keys.PublicKey);
         Assert.DoesNotContain('=', keys.PublicKey);

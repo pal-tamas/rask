@@ -5,7 +5,7 @@ namespace Rask.Wasm.Tests.Browser;
 public class ScreenOrientationTests
 {
     [Fact]
-    public async Task IsSupported_CallsHelper()
+    public async Task Support_is_asked_of_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskOrientation.isSupported", true);
@@ -20,7 +20,7 @@ public class ScreenOrientationTests
     [InlineData("landscape-secondary", OrientationType.LandscapeSecondary)]
     [InlineData("something-new", OrientationType.Unknown)]
     [InlineData(null, OrientationType.Unknown)]
-    public async Task Get_MapsTypeAndAngle(string? raw, OrientationType expected)
+    public async Task Getting_the_orientation_maps_the_type_and_angle(string? raw, OrientationType expected)
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskOrientation.get", new OrientationReading(raw, 90));
@@ -38,7 +38,7 @@ public class ScreenOrientationTests
     [InlineData(OrientationLock.Landscape, "landscape")]
     [InlineData(OrientationLock.PortraitPrimary, "portrait-primary")]
     [InlineData(OrientationLock.LandscapeSecondary, "landscape-secondary")]
-    public async Task Lock_PassesSpecName(OrientationLock orientation, string expected)
+    public async Task Locking_passes_the_spec_name(OrientationLock orientation, string expected)
     {
         var js = new FakeJsRuntime();
 
@@ -48,7 +48,7 @@ public class ScreenOrientationTests
     }
 
     [Fact]
-    public async Task Unlock_CallsHelper()
+    public async Task Unlocking_calls_the_helper()
     {
         var js = new FakeJsRuntime();
 

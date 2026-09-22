@@ -176,6 +176,7 @@ public sealed class ExternalPackageScanTests
             File.WriteAllText(b, "partial class MuiButton { protected override string Module => \"@mui/material/Button\"; }");
 
             var runtimes = new Dictionary<string, string>(StringComparer.Ordinal) { ["MuiButton"] = "react" };
+
             var island = Assert.Single(ExternalPackageScan.PackageIslands([a, b], runtimes));
 
             Assert.Equal(b, island.DeclaringFile);

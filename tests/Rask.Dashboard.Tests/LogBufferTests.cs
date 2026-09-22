@@ -36,6 +36,7 @@ public sealed class LogBufferTests
         Assert.True(buffer.IsEnabled(LogLevel.Error));
 
         buffer.Add(LogLevel.Warning, "Cat", "kept", exception: null);
+
         Assert.Single(buffer.Snapshot());
     }
 
@@ -66,6 +67,7 @@ public sealed class LogBufferTests
     public void An_exception_is_captured_alongside_the_message()
     {
         var buffer = Buffer();
+
         buffer.Add(LogLevel.Error, "Rask.Jobs", "Job 7 failed", new InvalidOperationException("boom"));
 
         var entry = Assert.Single(buffer.Snapshot());

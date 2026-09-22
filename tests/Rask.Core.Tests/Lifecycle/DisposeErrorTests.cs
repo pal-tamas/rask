@@ -10,7 +10,7 @@ namespace Rask.Core.Tests.Lifecycle;
 public partial class DisposeErrorTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void DisposeComponentTree_ChildThrows_LogsAndContinues()
+    public void Disposing_the_tree_logs_a_throwing_child_and_continues()
     {
         var sp = RenderHarness.EmptyServices();
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
@@ -32,7 +32,7 @@ public partial class DisposeErrorTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task DisposeComponentTreeAsync_AsyncDisposeFaults_LogsAndContinues()
+    public async Task Disposing_the_tree_asynchronously_logs_a_faulting_async_dispose_and_continues()
     {
         var sp = RenderHarness.EmptyServices();
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();

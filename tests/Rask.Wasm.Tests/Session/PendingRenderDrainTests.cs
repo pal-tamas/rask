@@ -19,7 +19,7 @@ namespace Rask.Wasm.Tests.Session;
 public class PendingRenderDrainTests : ResettingTestBase
 {
     [Fact]
-    public async Task RequestParkedWhileInScope_IsDrainedIntoARealRender()
+    public async Task A_request_parked_while_in_scope_is_drained_into_a_real_render()
     {
         var app = new RenderCountingApp();
         var (session, _) = NewSession(_ => app);
@@ -31,6 +31,7 @@ public class PendingRenderDrainTests : ResettingTestBase
         // Stage the window: the dispatch is still in scope, so the request only parks.
         session.InHandlerScope = true;
         app.StateHasChanged();
+
         Assert.Equal(afterInitial, app.RenderCount);
 
         // Leaving the scope must hand the parked request a render of its own.
@@ -42,7 +43,7 @@ public class PendingRenderDrainTests : ResettingTestBase
     }
 
     [Fact]
-    public async Task NothingParked_DrainIsANoop()
+    public async Task With_nothing_parked_the_drain_does_nothing()
     {
         var app = new RenderCountingApp();
         var (session, _) = NewSession(_ => app);

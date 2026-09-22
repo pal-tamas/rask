@@ -37,7 +37,7 @@ public class ResolveTypeScriptToolTaskTests
     private static readonly Lazy<(string Esbuild, string Tsgo)> Pins = new(ReadPinnedVersions);
 
     [Fact]
-    public void Resolve_Esbuild_FetchesABinaryThatRuns()
+    public void Resolving_esbuild_fetches_a_binary_that_runs()
     {
         var path = Resolve("esbuild", Pins.Value.Esbuild);
 
@@ -46,11 +46,12 @@ public class ResolveTypeScriptToolTaskTests
         // --version rather than a transpile: this asserts the download is the right architecture and
         // is executable, which is the part the resolver is responsible for.
         var reported = Run(path, "--version");
+
         Assert.Equal(Pins.Value.Esbuild, reported.Trim());
     }
 
     [Fact]
-    public void Resolve_Tsgo_FetchesACompilerThatRuns()
+    public void Resolving_tsgo_fetches_a_compiler_that_runs()
     {
         var path = Resolve("tsgo", Pins.Value.Tsgo);
 
@@ -68,7 +69,7 @@ public class ResolveTypeScriptToolTaskTests
     ///     error and believing it.
     /// </remarks>
     [Fact]
-    public void Resolve_Tsgo_UnpacksTheTypeDefinitionLibraryToo()
+    public void Resolving_tsgo_unpacks_the_type_definition_library_too()
     {
         var path = Resolve("tsgo", Pins.Value.Tsgo);
         var lib = Path.GetDirectoryName(path)!;
@@ -105,7 +106,7 @@ public class ResolveTypeScriptToolTaskTests
     ///     </para>
     /// </remarks>
     [Fact]
-    public void Esbuild_StripsTypesButHoistsTheExports()
+    public void Esbuild_strips_types_but_hoists_the_exports()
     {
         var path = Resolve("esbuild", Pins.Value.Esbuild);
         using var source = new TempFile(
@@ -147,7 +148,7 @@ public class ResolveTypeScriptToolTaskTests
     ///     </para>
     /// </remarks>
     [Fact]
-    public void Esbuild_DropsAModuleWhoseImportIsUnreferenced()
+    public void Esbuild_drops_a_module_whose_import_is_unreferenced()
     {
         var path = Resolve("esbuild", Pins.Value.Esbuild);
         using var directory = new TempDirectory();
@@ -197,7 +198,7 @@ public class ResolveTypeScriptToolTaskTests
     ///     stay in the same capture group whether or not the modifier is present.
     /// </remarks>
     [Fact]
-    public void Tsgo_Emit_PreservesTheInlineExportForm()
+    public void The_tsgo_emit_preserves_the_inline_export_form()
     {
         var path = Resolve("tsgo", Pins.Value.Tsgo);
         using var source = new TempFile(
@@ -227,7 +228,7 @@ public class ResolveTypeScriptToolTaskTests
     ///     their own lines and inside a body here, so both the stripping and the survival are checked.
     /// </remarks>
     [Fact]
-    public void Tsgo_Emit_RemoveComments_PreservesTheInlineExportForm()
+    public void The_tsgo_emit_with_removeComments_preserves_the_inline_export_form()
     {
         var path = Resolve("tsgo", Pins.Value.Tsgo);
         using var source = new TempFile(
@@ -263,7 +264,7 @@ public class ResolveTypeScriptToolTaskTests
     ///     one. Without it the migration would deliver TypeScript's syntax and none of its guarantee.
     /// </remarks>
     [Fact]
-    public void Tsgo_RejectsATypeError()
+    public void Tsgo_rejects_a_type_error()
     {
         var path = Resolve("tsgo", Pins.Value.Tsgo);
         using var source = new TempFile(".ts", "export function n(): number { return \"not a number\"; }");
@@ -283,7 +284,7 @@ public class ResolveTypeScriptToolTaskTests
     ///     fetch it from turns the failure into an instruction.
     /// </remarks>
     [Fact]
-    public void Resolve_Offline_WithAColdCache_FailsNamingTheFileAndTheUrl()
+    public void Resolving_offline_with_a_cold_cache_fails_naming_the_file_and_the_URL()
     {
         var engine = new RecordingBuildEngine();
         var task = new ResolveTypeScriptToolTask
@@ -305,7 +306,7 @@ public class ResolveTypeScriptToolTaskTests
 
     /// <summary>An unknown tool name is refused before anything reaches the network.</summary>
     [Fact]
-    public void Resolve_UnknownTool_IsRefused()
+    public void An_unknown_tool_is_refused()
     {
         var engine = new RecordingBuildEngine();
         var task = new ResolveTypeScriptToolTask
@@ -329,7 +330,7 @@ public class ResolveTypeScriptToolTaskTests
     ///     point is that the failure happens before anything is marked executable.
     /// </remarks>
     [Fact]
-    public void Resolve_AVersionThatDoesNotExist_FailsWithoutWritingToTheCache()
+    public void Resolving_a_version_that_does_not_exist_fails_without_writing_to_the_cache()
     {
         var cache = Path.Combine(Path.GetTempPath(), "rask-bad-" + Guid.NewGuid().ToString("n"));
         var engine = new RecordingBuildEngine();
@@ -348,7 +349,7 @@ public class ResolveTypeScriptToolTaskTests
 
     /// <summary>Resolving twice is a cache hit, not a second download.</summary>
     [Fact]
-    public void Resolve_Twice_ReturnsTheSamePathWithNoSecondFetch()
+    public void Resolving_twice_returns_the_same_path_with_no_second_fetch()
     {
         var first = Resolve("esbuild", Pins.Value.Esbuild);
 

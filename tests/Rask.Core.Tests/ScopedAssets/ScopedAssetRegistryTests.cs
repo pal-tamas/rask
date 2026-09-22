@@ -17,7 +17,7 @@ public partial class ScopedAssetRegistryTests
     // ─── Registration & retrieval ─────────────────────────────────────────
 
     [Fact]
-    public void EmptyRegistry_TryGetCss_ReturnsFalse()
+    public void An_empty_registry_has_no_css()
     {
         Assert.False(ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var hash));
         Assert.Equal(string.Empty, hash);
@@ -25,14 +25,14 @@ public partial class ScopedAssetRegistryTests
     }
 
     [Fact]
-    public void EmptyRegistry_TryGetJs_ReturnsFalse()
+    public void An_empty_registry_has_no_js()
     {
         Assert.False(ScopedAssetRegistry.TryGetJs(typeof(WidgetA), out var hash));
         Assert.Equal(string.Empty, hash);
     }
 
     [Fact]
-    public void RegisterCss_ProducesHashAndAllowsLookupBoth_ByTypeAndByHash()
+    public void Registering_css_produces_a_hash_and_allows_lookup_both_by_type_and_by_hash()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
 
@@ -46,7 +46,7 @@ public partial class ScopedAssetRegistryTests
     }
 
     [Fact]
-    public void RegisterJs_ProducesHashAndAllowsLookupBoth_ByTypeAndByHash()
+    public void Registering_js_produces_a_hash_and_allows_lookup_both_by_type_and_by_hash()
     {
         ScopedAssetRegistry.RegisterJs(
             typeof(WidgetA),
@@ -63,7 +63,7 @@ public partial class ScopedAssetRegistryTests
     }
 
     [Fact]
-    public void RegisterJs_AsyncFunctionExport_StripsExportAndExposesIt()
+    public void Registering_js_with_an_async_function_export_strips_the_export_and_exposes_it()
     {
         // An `export async function` must have its `export` stripped (the wrapper IIFE is
         // not an ES module, so a leftover `export` is a SyntaxError) and still be re-exposed
@@ -87,7 +87,7 @@ public partial class ScopedAssetRegistryTests
     }
 
     [Fact]
-    public void RegisterBoth_TypeHasIndependentCssAndJsHashes()
+    public void Registering_both_gives_the_type_independent_css_and_js_hashes()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
         ScopedAssetRegistry.RegisterJs(typeof(WidgetA), "export function f() {}");
@@ -98,7 +98,7 @@ public partial class ScopedAssetRegistryTests
     }
 
     [Fact]
-    public void RegisterCss_SameContentTwice_NoEventOnSecondCall()
+    public void Registering_the_same_css_twice_raises_no_event_on_the_second_call()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
         var count = 0;
@@ -116,7 +116,7 @@ public partial class ScopedAssetRegistryTests
     }
 
     [Fact]
-    public void RegisterCss_DifferentContentForSameType_DropsOldHashFromByHashIndex()
+    public void Registering_different_css_for_the_same_type_drops_the_old_hash_from_the_hash_index()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
         ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var firstHash);
@@ -130,7 +130,7 @@ public partial class ScopedAssetRegistryTests
     }
 
     [Fact]
-    public void RegisterCss_WithWhitespaceSource_ActsAsUnregister()
+    public void Registering_css_with_a_whitespace_source_acts_as_unregister()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), "   \n  ");
@@ -139,7 +139,7 @@ public partial class ScopedAssetRegistryTests
     }
 
     [Fact]
-    public void RegisterJs_WithWhitespaceSource_ActsAsUnregister()
+    public void Registering_js_with_a_whitespace_source_acts_as_unregister()
     {
         ScopedAssetRegistry.RegisterJs(typeof(WidgetA), "export function f() {}");
         ScopedAssetRegistry.RegisterJs(typeof(WidgetA), "");
@@ -148,7 +148,7 @@ public partial class ScopedAssetRegistryTests
     }
 
     [Fact]
-    public void UnregisterUnknownType_IsNoOp_NoEvent()
+    public void Unregistering_an_unknown_type_does_nothing_and_raises_no_event()
     {
         var count = 0;
         Action<Type, AssetKind> handler = (_, _) => count++;
@@ -166,7 +166,7 @@ public partial class ScopedAssetRegistryTests
     }
 
     [Fact]
-    public void Unregister_DropsBothByTypeAndByHashEntries()
+    public void Unregistering_drops_both_the_type_and_the_hash_entries()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
         ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var hash);
@@ -179,7 +179,7 @@ public partial class ScopedAssetRegistryTests
     }
 
     [Fact]
-    public void InvalidateAll_ClearsEverything()
+    public void Invalidating_all_clears_everything()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
         ScopedAssetRegistry.RegisterJs(typeof(WidgetA), "export function f() {}");
@@ -197,7 +197,7 @@ public partial class ScopedAssetRegistryTests
     // ─── Hash collapse (refcounting) ──────────────────────────────────────
 
     [Fact]
-    public void TwoTypesWithIdenticalSource_ProduceDifferentHashes_BecauseScopeIdDiffers()
+    public void Two_types_with_identical_source_produce_different_hashes_because_the_scope_id_differs()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
         ScopedAssetRegistry.RegisterCss(typeof(WidgetB), ".x { color: red; }");
@@ -210,7 +210,7 @@ public partial class ScopedAssetRegistryTests
     }
 
     [Fact]
-    public void TwoTypesWithIdenticalRewrittenContent_ShareSingleEntry()
+    public void Two_types_with_identical_rewritten_content_share_a_single_entry()
     {
         // CSS that doesn't depend on the scope id: only @font-face. CssScoper.Rewrite passes
         // @font-face through unchanged, so both types produce byte-equal rewritten bytes and
@@ -237,7 +237,7 @@ public partial class ScopedAssetRegistryTests
     // ─── Hashing properties ───────────────────────────────────────────────
 
     [Fact]
-    public void Hash_Is12LowercaseHex()
+    public void The_hash_is_12_lower_case_hex_chars()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
         ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var hash);
@@ -247,7 +247,7 @@ public partial class ScopedAssetRegistryTests
     }
 
     [Fact]
-    public void Hash_IsStable_AcrossMultipleRegistrationsOfTheSameContent()
+    public void The_hash_is_stable_across_multiple_registrations_of_the_same_content()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
         ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var firstHash);
@@ -260,7 +260,7 @@ public partial class ScopedAssetRegistryTests
     }
 
     [Fact]
-    public void Hash_IsIndependentOfRegistrationOrder()
+    public void The_hash_is_independent_of_the_registration_order()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
         ScopedAssetRegistry.RegisterCss(typeof(WidgetB), ".y { color: blue; }");
@@ -275,7 +275,7 @@ public partial class ScopedAssetRegistryTests
     }
 
     [Fact]
-    public void Hashes_AreUnique_Across1000DistinctContentVariants()
+    public void Hashes_are_unique_across_1000_distinct_content_variants()
     {
         var hashes = new HashSet<string>(StringComparer.Ordinal);
         for (var i = 0; i < 1000; i++)
@@ -300,7 +300,7 @@ public partial class ScopedAssetRegistryTests
     // ─── Scope id ─────────────────────────────────────────────────────────
 
     [Fact]
-    public void TryGetScopeId_CssOnly_ReturnsScopeId()
+    public void A_css_only_type_has_a_scope_id()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
 
@@ -309,7 +309,7 @@ public partial class ScopedAssetRegistryTests
     }
 
     [Fact]
-    public void TryGetScopeId_JsOnly_ReturnsFalse()
+    public void A_js_only_type_has_no_scope_id()
     {
         ScopedAssetRegistry.RegisterJs(typeof(WidgetA), "export function f() {}");
 
@@ -317,7 +317,7 @@ public partial class ScopedAssetRegistryTests
     }
 
     [Fact]
-    public void ScopeId_IsStableAcrossRegistrations_DerivesFromTypeFqn()
+    public void The_scope_id_is_stable_across_registrations_and_derives_from_the_type_name()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
         ScopedAssetRegistry.TryGetScopeId(typeof(WidgetA), out var first);
@@ -331,7 +331,7 @@ public partial class ScopedAssetRegistryTests
     // ─── Kind-typed indexing ──────────────────────────────────────────────
 
     [Fact]
-    public void GetByHash_CrossKindMismatch_ReturnsNull()
+    public void Getting_by_hash_with_a_cross_kind_mismatch_gives_null()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
         ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var cssHash);
@@ -342,18 +342,18 @@ public partial class ScopedAssetRegistryTests
     }
 
     [Fact]
-    public void GetByHash_NullOrEmptyHash_ReturnsNull()
+    public void Getting_by_a_null_or_empty_hash_gives_null()
     {
         Assert.Null(ScopedAssetRegistry.GetByHash(null!, AssetKind.Css));
         Assert.Null(ScopedAssetRegistry.GetByHash("", AssetKind.Css));
     }
 
     [Fact]
-    public void GetByHash_UnknownHash_ReturnsNull() =>
+    public void Getting_by_an_unknown_hash_gives_null() =>
         Assert.Null(ScopedAssetRegistry.GetByHash("ffffffffffff", AssetKind.Css));
 
     [Fact]
-    public void AssetBytes_EtagIsHashWrappedInDoubleQuotes()
+    public void The_asset_etag_is_the_hash_wrapped_in_double_quotes()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
         ScopedAssetRegistry.TryGetCss(typeof(WidgetA), out var hash);
@@ -366,7 +366,7 @@ public partial class ScopedAssetRegistryTests
     // ─── Concurrency ──────────────────────────────────────────────────────
 
     [Fact]
-    public void Concurrent_RegisterDistinctTypes_AllSucceed()
+    public void Concurrently_registering_distinct_types_all_succeed()
     {
         var types = new[]
         {
@@ -387,7 +387,7 @@ public partial class ScopedAssetRegistryTests
     }
 
     [Fact]
-    public void Concurrent_RegisterReplaceSameType_LeavesConsistentState()
+    public void Concurrently_registering_and_replacing_the_same_type_leaves_a_consistent_state()
     {
         var hashes = new ConcurrentBag<string>();
         Parallel.For(0, 100, i =>
@@ -408,7 +408,7 @@ public partial class ScopedAssetRegistryTests
     }
 
     [Fact]
-    public void Concurrent_RegisterAndGetByHash_NeverThrows_FinalStateIsConsistent()
+    public void Concurrently_registering_and_getting_by_hash_never_throws_and_the_final_state_is_consistent()
     {
         // Concurrent register-replace + lookup race: an in-flight GetByHash may legitimately
         // return null if another thread replaced the type's hash between the two calls
@@ -439,7 +439,7 @@ public partial class ScopedAssetRegistryTests
     // ─── Events ───────────────────────────────────────────────────────────
 
     [Fact]
-    public void AssetChanged_FiresWithTypeAndKind_OnEachKindIndependently()
+    public void AssetChanged_fires_with_the_type_and_kind_on_each_kind_independently()
     {
         var events = new List<(Type, AssetKind)>();
         Action<Type, AssetKind> handler = (t, k) => events.Add((t, k));
@@ -459,7 +459,7 @@ public partial class ScopedAssetRegistryTests
     }
 
     [Fact]
-    public void AssetChanged_FiresOnReplace_NotOnNoOpRegister()
+    public void AssetChanged_fires_on_replace_not_on_a_no_op_register()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
 
@@ -481,7 +481,7 @@ public partial class ScopedAssetRegistryTests
     }
 
     [Fact]
-    public void AssetChanged_FiresOnUnregister_OnlyWhenSomethingWasRegistered()
+    public void AssetChanged_fires_on_unregister_only_when_something_was_registered()
     {
         var count = 0;
         Action<Type, AssetKind> handler = (_, _) => count++;
@@ -506,27 +506,28 @@ public partial class ScopedAssetRegistryTests
     // ─── Type-system edge cases ───────────────────────────────────────────
 
     [Fact]
-    public void RegisterCss_NullType_Throws()
+    public void Registering_css_for_a_null_type_throws()
     {
         Assert.Throws<ArgumentNullException>(() => ScopedAssetRegistry.RegisterCss(null!, ".x {}"));
     }
 
     [Fact]
-    public void RegisterCss_OpenGeneric_Throws()
+    public void Registering_css_for_an_open_generic_throws()
     {
         var ex = Assert.Throws<ArgumentException>(() => ScopedAssetRegistry.RegisterCss(typeof(Generic<>), ".x {}"));
+
         Assert.Contains("Open generic", ex.Message);
     }
 
     [Fact]
-    public void RegisterJs_OpenGeneric_Throws()
+    public void Registering_js_for_an_open_generic_throws()
     {
         Assert.Throws<ArgumentException>(() =>
             ScopedAssetRegistry.RegisterJs(typeof(Generic<>), "export function f(){}"));
     }
 
     [Fact]
-    public void Generic_DifferentTypeArgs_GetDistinctHashes()
+    public void A_generic_with_different_type_args_gets_distinct_hashes()
     {
         ScopedAssetRegistry.RegisterCss(typeof(Generic<int>), ".x { color: red; }");
         ScopedAssetRegistry.RegisterCss(typeof(Generic<string>), ".x { color: red; }");
@@ -538,7 +539,7 @@ public partial class ScopedAssetRegistryTests
     }
 
     [Fact]
-    public void Inheritance_DerivedTypeWithoutOwnCss_HasNoRegistration()
+    public void A_derived_type_without_its_own_css_has_no_registration()
     {
         ScopedAssetRegistry.RegisterCss(typeof(BaseWidget), ".base { color: red; }");
 
@@ -547,7 +548,7 @@ public partial class ScopedAssetRegistryTests
     }
 
     [Fact]
-    public void Inheritance_BothBaseAndDerivedHaveCss_StoredIndependently()
+    public void Css_on_both_a_base_and_a_derived_type_is_stored_independently()
     {
         ScopedAssetRegistry.RegisterCss(typeof(BaseWidget), ".base { color: red; }");
         ScopedAssetRegistry.RegisterCss(typeof(DerivedWidget), ".derived { color: blue; }");
@@ -558,7 +559,7 @@ public partial class ScopedAssetRegistryTests
     }
 
     [Fact]
-    public void NestedType_RegistersWithDistinctHash()
+    public void A_nested_type_registers_with_a_distinct_hash()
     {
         ScopedAssetRegistry.RegisterCss(typeof(Outer.Inner), ".n { color: red; }");
 
@@ -567,7 +568,7 @@ public partial class ScopedAssetRegistryTests
     }
 
     [Fact]
-    public void DynamicallyLoadedType_RegistersAndServes()
+    public void A_dynamically_loaded_type_registers_and_serves()
     {
         // Use the current assembly as a stand-in for "dynamically loaded" — the API
         // we exercise (RegisterCss with a runtime-resolved Type) is the same shape.
@@ -579,7 +580,7 @@ public partial class ScopedAssetRegistryTests
     }
 
     [Fact]
-    public void RegisteredType_IsHeldStronglyByRegistry()
+    public void A_registered_type_is_held_strongly_by_the_registry()
     {
         // A type from a collectible AssemblyLoadContext: while the registry holds it,
         // the ALC cannot collect. This is the documented constraint.
@@ -606,10 +607,10 @@ public partial class ScopedAssetRegistryTests
     // ─── Enumeration (for publish-time bake) ──────────────────────────────
 
     [Fact]
-    public void EnumerateAll_EmptyRegistry_YieldsNothing() => Assert.Empty(ScopedAssetRegistry.EnumerateAll());
+    public void Enumerating_an_empty_registry_yields_nothing() => Assert.Empty(ScopedAssetRegistry.EnumerateAll());
 
     [Fact]
-    public void EnumerateAll_YieldsRegisteredCssAndJsEntries_WithDistinctHashesAndKinds()
+    public void Enumerating_yields_the_registered_css_and_js_entries_with_distinct_hashes_and_kinds()
     {
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".a { color: red; }");
         ScopedAssetRegistry.RegisterJs(typeof(WidgetA), "export function f() {}");
@@ -633,7 +634,7 @@ public partial class ScopedAssetRegistryTests
     }
 
     [Fact]
-    public void EnumerateAll_TwoTypesShareSameRewrittenContent_YieldsOneEntryWithThatHash()
+    public void Enumerating_two_types_sharing_the_same_rewritten_content_yields_one_entry_with_that_hash()
     {
         const string passthrough = "@font-face { font-family: 'X'; src: url('a.woff2'); }";
         ScopedAssetRegistry.RegisterCss(typeof(WidgetA), passthrough);

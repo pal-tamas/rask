@@ -42,7 +42,6 @@ public sealed class HttpUserProviderTests
     public async Task Loading_the_user_raises_Changed_so_the_page_re_renders()
     {
         var provider = Provider(HttpStatusCode.OK, """{"id":"u1","email":"a@b.c","roles":[]}""");
-
         var raised = 0;
         provider.Changed += () => raised++;
 

@@ -5,7 +5,7 @@ namespace Rask.Core.Tests.Interop;
 public class IndexedDbTests
 {
     [Fact]
-    public async Task IsSupported_CallsHelper()
+    public async Task Asking_whether_IndexedDB_is_supported_calls_the_helper()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskIdb.isSupported", true);
@@ -14,7 +14,7 @@ public class IndexedDbTests
     }
 
     [Fact]
-    public async Task OpenStore_OpensNamedDatabase()
+    public async Task Opening_a_store_opens_the_named_database()
     {
         var js = new FakeJsRuntime();
 
@@ -25,7 +25,7 @@ public class IndexedDbTests
     }
 
     [Fact]
-    public async Task Set_PassesStoreKeyValue()
+    public async Task Setting_passes_the_store_key_and_value()
     {
         var js = new FakeJsRuntime();
         var store = await new IndexedDb(js).OpenStoreAsync("cache");
@@ -36,7 +36,7 @@ public class IndexedDbTests
     }
 
     [Fact]
-    public async Task Get_PassesStoreKey_AndReturnsValue()
+    public async Task Getting_passes_the_store_and_key_and_gives_the_value()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskIdb.get", "hello");
@@ -51,7 +51,7 @@ public class IndexedDbTests
     private static readonly byte[] Sample = [1, 2, 250];
 
     [Fact]
-    public async Task SetBytes_SendsBase64_ToTheBinaryHelper()
+    public async Task Setting_bytes_sends_base64_to_the_binary_helper()
     {
         var js = new FakeJsRuntime();
         var store = await new IndexedDb(js).OpenStoreAsync("files");
@@ -64,7 +64,7 @@ public class IndexedDbTests
     }
 
     [Fact]
-    public async Task GetBytes_DecodesBase64()
+    public async Task Getting_bytes_decodes_base64()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskIdb.getBytes", Convert.ToBase64String(Sample));
@@ -78,7 +78,7 @@ public class IndexedDbTests
     }
 
     [Fact]
-    public async Task GetBytes_AbsentKey_ReturnsNull()
+    public async Task Getting_bytes_for_an_absent_key_gives_null()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskIdb.getBytes", (string?)null);
@@ -88,7 +88,7 @@ public class IndexedDbTests
     }
 
     [Fact]
-    public async Task SetBytes_EmptyArray_RoundTripsAsEmptyNotNull()
+    public async Task Setting_an_empty_byte_array_round_trips_as_empty_not_null()
     {
         var js = new FakeJsRuntime();
         var store = await new IndexedDb(js).OpenStoreAsync("files");
@@ -109,7 +109,7 @@ public class IndexedDbTests
     // It must stay correct — just larger — rather than throwing. Held through the interface on purpose:
     // a default implementation is only reachable that way, which is exactly how callers will hit it.
     [Fact]
-    public async Task SetBytes_DefaultImplementation_FallsBackToTheStringApi()
+    public async Task The_default_implementation_of_setting_bytes_falls_back_to_the_string_api()
     {
         var backing = new StringOnlyStore();
         IKeyValueStore store = backing;
@@ -126,7 +126,7 @@ public class IndexedDbTests
     }
 
     [Fact]
-    public async Task Bytes_NullArgs_Throw()
+    public async Task The_byte_methods_throw_for_null_args()
     {
         var store = await new IndexedDb(new FakeJsRuntime()).OpenStoreAsync("files");
 
@@ -164,7 +164,7 @@ public class IndexedDbTests
     }
 
     [Fact]
-    public async Task Keys_ReturnsKeyArray()
+    public async Task Listing_keys_gives_the_key_array()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskIdb.keys", new[] { "a", "b" });
@@ -175,7 +175,7 @@ public class IndexedDbTests
     }
 
     [Fact]
-    public async Task DeleteAndClear_CallHelpers()
+    public async Task Delete_and_clear_call_their_helpers()
     {
         var js = new FakeJsRuntime();
         var store = await new IndexedDb(js).OpenStoreAsync("cache");
@@ -188,11 +188,12 @@ public class IndexedDbTests
     }
 
     [Fact]
-    public async Task NullArgs_Throw()
+    public async Task Null_args_throw()
     {
         var db = new IndexedDb(new FakeJsRuntime());
         await Assert.ThrowsAsync<ArgumentNullException>(async () => await db.OpenStoreAsync(null!));
         var store = await db.OpenStoreAsync("cache");
+
         await Assert.ThrowsAsync<ArgumentNullException>(async () => await store.SetAsync(null!, "v"));
         await Assert.ThrowsAsync<ArgumentNullException>(async () => await store.SetAsync("k", null!));
         await Assert.ThrowsAsync<ArgumentNullException>(async () => await store.GetAsync(null!));

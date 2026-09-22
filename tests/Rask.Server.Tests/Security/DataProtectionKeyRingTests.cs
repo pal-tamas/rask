@@ -117,6 +117,7 @@ public class DataProtectionKeyRingTests : IDisposable
             new ConfigurationBuilder().Build(),
             new TestEnvironment(),
             Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance);
+
         Assert.Null(setup.ResolveKeyPath());
 
         using var provider = Build(keyPath: null);
@@ -179,7 +180,7 @@ public class DataProtectionKeyRingTests : IDisposable
     }
 
     [Fact]
-    public void The_discriminator_survives_Data_Protection_arriving_after_AddRask()
+    public void The_discriminator_survives_data_protection_arriving_after_AddRask()
     {
         // The order a scaffolded app actually has: AddRask first, and Data Protection pulled in below it
         // by AddAuthentication. ASP.NET's own DataProtectionOptionsSetup writes ApplicationDiscriminator

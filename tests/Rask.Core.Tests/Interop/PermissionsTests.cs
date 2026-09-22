@@ -9,7 +9,7 @@ public class PermissionsTests
     [InlineData("denied", PermissionState.Denied)]
     [InlineData("prompt", PermissionState.Prompt)]
     [InlineData(null, PermissionState.Prompt)]
-    public async Task Query_UsesHelper_AndMapsState(string? raw, PermissionState expected)
+    public async Task A_query_uses_the_helper_and_maps_the_state(string? raw, PermissionState expected)
     {
         var js = new FakeJsRuntime();
         if (raw is not null)
@@ -28,7 +28,7 @@ public class PermissionsTests
     [InlineData(PermissionName.ClipboardWrite, "clipboard-write")]
     [InlineData(PermissionName.PersistentStorage, "persistent-storage")]
     [InlineData(PermissionName.Notifications, "notifications")]
-    public async Task Query_PassesSpecPermissionName(PermissionName name, string specName)
+    public async Task A_query_passes_the_spec_permission_name(PermissionName name, string specName)
     {
         var js = new FakeJsRuntime();
         var permissions = new Permissions(js);

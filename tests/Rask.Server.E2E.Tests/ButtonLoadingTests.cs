@@ -91,6 +91,7 @@ public sealed class ButtonLoadingTests(PlaywrightFixture playwright) : IClassFix
         await step.FocusAsync();
         await page.Keyboard.PressAsync("Enter");
         await page.WaitForTimeoutAsync(400);
+
         await Expect(step).Not.ToHaveAttributeAsync("data-loading", "");
         await page.Keyboard.PressAsync("Enter");
 

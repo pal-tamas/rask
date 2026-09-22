@@ -24,6 +24,7 @@ public sealed class LitestreamOptionsTests
             ReplicaUrl = "s3://bucket/app",
             ShutdownGracePeriod = TimeSpan.FromDays(30),
         };
+
         Assert.Throws<InvalidOperationException>(() => Validate(options));
     }
 
@@ -36,6 +37,7 @@ public sealed class LitestreamOptionsTests
             ReplicaUrl = "s3://bucket/app",
             RestartDelay = TimeSpan.FromSeconds(-1),
         };
+
         Assert.Throws<InvalidOperationException>(() => Validate(options));
     }
 
@@ -43,6 +45,7 @@ public sealed class LitestreamOptionsTests
     public void Validate_accepts_url_form()
     {
         var options = new LitestreamOptions { DatabasePath = "/data/app.db", ReplicaUrl = "s3://bucket/app" };
+
         Validate(options); // does not throw
     }
 
@@ -50,6 +53,7 @@ public sealed class LitestreamOptionsTests
     public void Validate_accepts_config_form_without_url()
     {
         var options = new LitestreamOptions { ConfigPath = "/etc/litestream.yml" };
+
         Validate(options); // does not throw
     }
 
@@ -57,6 +61,7 @@ public sealed class LitestreamOptionsTests
     public void Validate_requires_database_path_in_url_form()
     {
         var options = new LitestreamOptions { ReplicaUrl = "s3://bucket/app" };
+
         Assert.Throws<InvalidOperationException>(() => Validate(options));
     }
 
@@ -64,6 +69,7 @@ public sealed class LitestreamOptionsTests
     public void Validate_requires_replica_url_in_url_form()
     {
         var options = new LitestreamOptions { DatabasePath = "/data/app.db" };
+
         Assert.Throws<InvalidOperationException>(() => Validate(options));
     }
 
@@ -76,6 +82,7 @@ public sealed class LitestreamOptionsTests
             DatabasePath = "/data/app.db",
             ReplicaUrl = "s3://bucket/app",
         };
+
         Assert.Throws<InvalidOperationException>(() => Validate(options));
     }
 
@@ -88,6 +95,7 @@ public sealed class LitestreamOptionsTests
             ReplicaUrl = "s3://bucket/app",
             ShutdownGracePeriod = TimeSpan.FromSeconds(-1),
         };
+
         Assert.Throws<InvalidOperationException>(() => Validate(options));
     }
 
@@ -96,6 +104,7 @@ public sealed class LitestreamOptionsTests
     {
         var options = Valid();
         options.Verification.Interval = TimeSpan.Zero;
+
         Assert.Throws<InvalidOperationException>(() => Validate(options));
     }
 
@@ -104,6 +113,7 @@ public sealed class LitestreamOptionsTests
     {
         var options = Valid();
         options.Verification.PollInterval = TimeSpan.Zero;
+
         Assert.Throws<InvalidOperationException>(() => Validate(options));
     }
 

@@ -9,7 +9,7 @@ namespace Rask.Server.Tests.WebSockets;
 public class CheckboxBindingDiffTests
 {
     [Fact]
-    public async Task CheckboxChange_SetsModelToReportedState_AcrossManyClicks()
+    public async Task A_checkbox_change_sets_the_model_to_the_reported_state_across_many_clicks()
     {
         using var host = RaskTestHost.Create<CheckboxJsInvokeApp>();
         var initial = await host.Http.GetAsync("/");

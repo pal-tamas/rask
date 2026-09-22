@@ -5,17 +5,19 @@ namespace Rask.Core.Tests.Routing;
 public class RoutePatternTests
 {
     [Fact]
-    public void Root_Matches_RootPath()
+    public void The_root_pattern_matches_the_root_path()
     {
         var p = ParseInternal("/");
+
         Assert.True(TryMatch(p, "/", out var values));
         Assert.Empty(values);
     }
 
     [Fact]
-    public void Literal_Matches_ExactPath()
+    public void A_literal_matches_its_exact_path()
     {
         var p = ParseInternal("/dashboard");
+
         Assert.True(TryMatch(p, "/dashboard", out _));
         Assert.True(TryMatch(p, "/Dashboard", out _));
         Assert.False(TryMatch(p, "/users", out _));
@@ -23,9 +25,10 @@ public class RoutePatternTests
     }
 
     [Fact]
-    public void Parameter_CapturesSegment()
+    public void A_parameter_captures_its_segment()
     {
         var p = ParseInternal("/users/{id}");
+
         Assert.True(TryMatch(p, "/users/42", out var values));
         Assert.Equal("42", values["id"]);
         Assert.False(TryMatch(p, "/users", out _));
@@ -33,7 +36,7 @@ public class RoutePatternTests
     }
 
     [Fact]
-    public void TypeConstraint_StrippedFromCaptureKey()
+    public void A_type_constraint_is_stripped_from_the_capture_key()
     {
         // {id:guid} is a generator-side type hint — the runtime doesn't enforce the
         // constraint, but it MUST strip ":guid" off the captured key. Otherwise
@@ -41,15 +44,17 @@ public class RoutePatternTests
         // "id:guid", and the property stays at its default — silently breaking routes
         // like /todos/{id:guid}/edit that look correct on the page but don't bind.
         var p = ParseInternal("/todos/{id:guid}/edit");
+
         Assert.True(TryMatch(p, "/todos/3e18ad13-d95e-4808-97bd-918b457c006b/edit", out var values));
         Assert.Equal("3e18ad13-d95e-4808-97bd-918b457c006b", values["id"]);
         Assert.False(values.ContainsKey("id:guid"));
     }
 
     [Fact]
-    public void TypeConstraint_StrippedFromOptionalCaptureKey()
+    public void A_type_constraint_is_stripped_from_an_optional_capture_key()
     {
         var p = ParseInternal("/items/{count:int?}");
+
         Assert.True(TryMatch(p, "/items/42", out var withValue));
         Assert.Equal("42", withValue["count"]);
 
@@ -58,9 +63,10 @@ public class RoutePatternTests
     }
 
     [Fact]
-    public void OptionalParameter_AllowsAbsence()
+    public void An_optional_parameter_may_be_absent()
     {
         var p = ParseInternal("/counter/{name?}");
+
         Assert.True(TryMatch(p, "/counter/alice", out var withName));
         Assert.Equal("alice", withName["name"]);
 
@@ -69,16 +75,18 @@ public class RoutePatternTests
     }
 
     [Fact]
-    public void OptionalParameter_DoesNotMatchExtraSegments()
+    public void An_optional_parameter_does_not_match_extra_segments()
     {
         var p = ParseInternal("/counter/{name?}");
+
         Assert.False(TryMatch(p, "/counter/a/b", out _));
     }
 
     [Fact]
-    public void CatchAll_GreedilyConsumesRemaining()
+    public void A_catch_all_greedily_consumes_the_remaining_segments()
     {
         var p = ParseInternal("/files/{**path}");
+
         Assert.True(TryMatch(p, "/files/a/b/c.txt", out var values));
         Assert.Equal("a/b/c.txt", values["path"]);
 
@@ -87,17 +95,19 @@ public class RoutePatternTests
     }
 
     [Fact]
-    public void Parameter_DecodesPercentEncodedSegment()
+    public void A_parameter_decodes_a_percent_encoded_segment()
     {
         var p = ParseInternal("/items/{name}");
+
         Assert.True(TryMatch(p, "/items/a%20b", out var values));
         Assert.Equal("a b", values["name"]);
     }
 
     [Fact]
-    public void Multiple_Segments_Mixed()
+    public void Mixed_literal_and_optional_segments_match_together()
     {
         var p = ParseInternal("/dashboard/settings/{tab?}");
+
         Assert.True(TryMatch(p, "/dashboard/settings/billing", out var values));
         Assert.Equal("billing", values["tab"]);
 
@@ -108,16 +118,18 @@ public class RoutePatternTests
     }
 
     [Fact]
-    public void EmptyPattern_TreatedAsRoot()
+    public void An_empty_pattern_is_treated_as_the_root()
     {
         var p = ParseInternal("");
+
         Assert.True(TryMatch(p, "/", out _));
     }
 
     [Fact]
-    public void TrimsLeadingAndTrailingSlashes()
+    public void Leading_and_trailing_slashes_are_trimmed()
     {
         var p = ParseInternal("dashboard/overview/");
+
         Assert.True(TryMatch(p, "/dashboard/overview", out _));
         Assert.True(TryMatch(p, "dashboard/overview", out _));
     }

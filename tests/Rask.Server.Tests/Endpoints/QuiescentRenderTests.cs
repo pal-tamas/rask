@@ -13,7 +13,7 @@ namespace Rask.Server.Tests.Endpoints;
 public class QuiescentRenderTests
 {
     [Fact]
-    public async Task Get_AwaitsOnMountAsync_AndServesTheData()
+    public async Task The_first_response_awaits_the_mount_hook_and_serves_the_data()
     {
         using var host = RaskTestHost.Create<AsyncDataApp>();
 
@@ -24,7 +24,7 @@ public class QuiescentRenderTests
     }
 
     [Fact]
-    public async Task Get_AwaitsWorkStartedByAResolvedWave()
+    public async Task The_first_response_awaits_work_started_by_a_resolved_wave()
     {
         // The second wave exists because resolved data mounts new components, which start their own
         // work. A single wait would serve the parent's data and the child's placeholder.
@@ -37,7 +37,7 @@ public class QuiescentRenderTests
     }
 
     [Fact]
-    public async Task Get_AwaitsANestedHookWhoseAwaitsAreAllConfigureAwaitFalse()
+    public async Task The_first_response_awaits_a_nested_hook_whose_awaits_are_all_ConfigureAwait_false()
     {
         // The same wake-before-registration window as the test above, on the path where the hook's
         // continuation never reaches LifecycleSyncContext.Post at all (#1037).
@@ -56,7 +56,7 @@ public class QuiescentRenderTests
     }
 
     [Fact]
-    public async Task Get_WhenWorkNeverSettles_StillAnswersWithinBudget()
+    public async Task The_first_response_still_answers_within_budget_when_work_never_settles()
     {
         using var host = RaskTestHost.Create<NeverSettlesApp>(
             configureServer: o => o.QuiescenceTimeout = TimeSpan.FromMilliseconds(150));
@@ -73,7 +73,7 @@ public class QuiescentRenderTests
     }
 
     [Fact]
-    public async Task Get_WhenTheHookAwaitsJavaScript_DoesNotBurnTheBudget()
+    public async Task A_hook_awaiting_JavaScript_does_not_burn_the_budget()
     {
         // A JS call made during a render queues onto a frame, and during the GET there is no client
         // to send that frame to — so the awaiting task completes once the socket is up and never
@@ -92,7 +92,7 @@ public class QuiescentRenderTests
     }
 
     [Fact]
-    public async Task Get_WithTimeoutDisabled_KeepsTheSynchronousRender()
+    public async Task With_the_timeout_disabled_the_first_response_keeps_the_synchronous_render()
     {
         using var host = RaskTestHost.Create<AsyncDataApp>(
             configureServer: o => o.QuiescenceTimeout = TimeSpan.Zero);

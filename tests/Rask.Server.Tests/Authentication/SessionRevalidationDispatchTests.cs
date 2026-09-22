@@ -32,6 +32,7 @@ public class SessionRevalidationDispatchTests
 
         await ws.SendJsonAsync(new { id = handlerId });
         _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+
         Assert.Equal(1, counter.Count);
 
         // The session row is deleted on another device. Force the next dispatch to check rather than wait out the window.

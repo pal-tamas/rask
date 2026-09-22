@@ -52,6 +52,7 @@ public sealed class TemplateFlagParityTests
     public async Task Flipping_an_advertised_flag_is_never_a_no_op(string templateKey, string flag)
     {
         var (baseExit, baseline) = await ScaffoldAsync(templateKey, []);
+
         Assert.Equal(0, baseExit);
         Assert.NotEmpty(baseline);
 

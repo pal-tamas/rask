@@ -9,7 +9,7 @@ namespace Rask.Server.Tests.Security;
 public class WebSocketFrameSizeTests
 {
     [Fact]
-    public async Task OversizedInboundFrame_AbortsSocket()
+    public async Task An_oversized_inbound_frame_aborts_the_socket()
     {
         using var host = RaskTestHost.Create<TestApp>(
             configureServer: o => o.MaxInboundFrameBytes = 32 * 1024); // small cap for the test
@@ -49,7 +49,7 @@ public class WebSocketFrameSizeTests
     }
 
     [Fact]
-    public async Task NormalSizedFrame_IsProcessed()
+    public async Task A_normal_sized_frame_is_processed()
     {
         // Guard against a too-tight cap regressing legitimate traffic: a normal hello round-trips
         // fine under the default cap.

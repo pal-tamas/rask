@@ -20,7 +20,6 @@ public sealed class JobUserTests
         {
             await h.Queue.EnqueueAsync(new WhoAmIJob("alice"));
         }
-
         await h.Queue.EnqueueAsync(new WhoAmIJob("anon"));
 
         // Started under somebody else, to prove the processor does not leak its own flow's user into a job
@@ -39,7 +38,6 @@ public sealed class JobUserTests
     {
         var path = Path.Combine(Path.GetTempPath(), $"rask-nouser-{Guid.NewGuid():N}.db");
         await using var h = new JobsHarness(dbPath: path);
-
         // The table as it looked before this change: everything but UserId.
         await using (var db = h.NewContext())
         {

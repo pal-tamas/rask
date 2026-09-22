@@ -11,7 +11,7 @@ namespace Rask.Core.Tests.Live;
 public sealed class MorphSubtreeTests
 {
     [Fact]
-    public void MorphSubtree_ReconcilesTaintedSubtree_WithoutDisturbingOutsideFocus()
+    public void MorphSubtree_reconciles_a_tainted_subtree_without_disturbing_focus_outside_it()
     {
         // No node on PATH — the JS-driven reproduction cannot run. Deliberately not a
         // failure: node is not required to build or test Rask, and the browser-observable

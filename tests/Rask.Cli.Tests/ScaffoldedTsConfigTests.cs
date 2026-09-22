@@ -27,7 +27,7 @@ public class ScaffoldedTsConfigTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void TheTsConfigIncludesWhereTheBuildStagesTheAmbientDeclarations(bool wasm)
+    public void The_tsconfig_includes_where_the_build_stages_the_ambient_declarations(bool wasm)
     {
         var files = Scaffold(wasm);
 
@@ -49,7 +49,7 @@ public class ScaffoldedTsConfigTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void TheTsConfigDoesNotEmit(bool wasm)
+    public void The_tsconfig_does_not_emit_and_is_strict(bool wasm)
     {
         var files = Scaffold(wasm);
 

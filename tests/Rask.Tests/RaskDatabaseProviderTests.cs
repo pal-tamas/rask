@@ -62,6 +62,7 @@ public sealed class RaskDatabaseProviderTests
         var built = Build(Settings(provider, connectionString));
 
         using var db = built.Services.GetRequiredService<IDbContextFactory<RaskAppDbContext>>().CreateDbContext();
+
         Assert.Equal(expected, db.Database.ProviderName);
         Assert.Contains(db.Model.GetEntityTypes(), e => e.GetTableName() == "RaskLog");
         Assert.Equal("DbContextLogStore`1", built.Services.GetRequiredService<ILogs>().GetType().Name);
@@ -75,6 +76,7 @@ public sealed class RaskDatabaseProviderTests
         var built = Build(settings);
 
         using var db = built.Services.GetRequiredService<IDbContextFactory<RaskAppDbContext>>().CreateDbContext();
+
         Assert.Equal("Microsoft.EntityFrameworkCore.Sqlite", db.Database.ProviderName);
         Assert.DoesNotContain(db.Model.GetEntityTypes(), e => e.GetTableName() == "RaskLog");
         Assert.Equal("SqliteLogStore", built.Services.GetRequiredService<ILogs>().GetType().Name);
@@ -185,6 +187,7 @@ public sealed class RaskDatabaseProviderTests
     {
         var app = CreateApp(ServerSettings());
         app.Services.AddRaskLogging();
+
         var built = app.Build<TestApp>();
 
         Assert.Equal("SqliteLogStore", built.Services.GetRequiredService<ILogs>().GetType().Name);
@@ -196,6 +199,7 @@ public sealed class RaskDatabaseProviderTests
     {
         var app = CreateApp(ServerSettings());
         app.Services.AddDbContextFactory<LoggedContext>((sp, o) => o.UseRaskDatabase(sp));
+
         var built = app.Build<TestApp>();
 
         Assert.Equal("DbContextLogStore`1", built.Services.GetRequiredService<ILogs>().GetType().Name);

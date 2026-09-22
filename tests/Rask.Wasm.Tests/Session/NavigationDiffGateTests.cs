@@ -17,7 +17,7 @@ namespace Rask.Wasm.Tests.Session;
 public class NavigationDiffGateTests() : ResettingTestBase(LiveDiffMode.Forced)
 {
     [Fact]
-    public async Task Navigate_SameHead_ShipsDiffWithHistory()
+    public async Task A_navigation_with_the_same_head_ships_a_diff_with_history()
     {
         var (session, _) = NewSession(diffMode: DiffMode);
         await session.InitialRenderAsync();
@@ -35,7 +35,7 @@ public class NavigationDiffGateTests() : ResettingTestBase(LiveDiffMode.Forced)
     }
 
     [Fact]
-    public async Task Navigate_WithQuery_ShipsDiffCarryingQueryInHistory()
+    public async Task A_navigation_with_a_query_ships_a_diff_carrying_the_query_in_history()
     {
         var (session, _) = NewSession(diffMode: DiffMode);
         await session.InitialRenderAsync();
@@ -51,7 +51,7 @@ public class NavigationDiffGateTests() : ResettingTestBase(LiveDiffMode.Forced)
     }
 
     [Fact]
-    public async Task Navigate_QueryOnlyNoBodyChange_ShipsHistoryOnlyDiff()
+    public async Task A_query_only_navigation_with_no_body_change_ships_a_history_only_diff()
     {
         var (session, _) = NewSession(diffMode: DiffMode);
         await session.InitialRenderAsync();
@@ -73,7 +73,7 @@ public class NavigationDiffGateTests() : ResettingTestBase(LiveDiffMode.Forced)
     }
 
     [Fact]
-    public async Task Navigate_HeadChanges_ShipsDiffWithHeadFragment()
+    public async Task A_navigation_that_changes_the_head_ships_a_diff_with_a_head_fragment()
     {
         var (session, _) = NewSession<RouteTitleStubApp>(diffMode: DiffMode);
         await session.InitialRenderAsync();
@@ -96,7 +96,7 @@ public class NavigationDiffGateTests() : ResettingTestBase(LiveDiffMode.Forced)
     }
 
     [Fact]
-    public async Task Navigate_HeadChangesWithStructuralBody_StillShipsFullHtml()
+    public async Task A_head_changing_navigation_with_a_structural_body_still_ships_full_html()
     {
         var (session, _) = NewSession<RouteTitleStructuralStubApp>(diffMode: DiffMode);
         await session.InitialRenderAsync();
@@ -116,7 +116,7 @@ public class NavigationDiffGateTests() : ResettingTestBase(LiveDiffMode.Forced)
     }
 
     [Fact]
-    public async Task ReactiveTitleChange_NoNavigation_ShipsDiffWithHeadAndNoHistory()
+    public async Task A_reactive_title_change_without_navigation_ships_a_diff_with_the_head_and_no_history()
     {
         var (session, _) = NewSession<ReactiveTitleStubApp>(diffMode: DiffMode);
         var initial = await session.InitialRenderAsync();

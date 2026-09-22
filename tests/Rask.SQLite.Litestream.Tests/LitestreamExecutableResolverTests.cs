@@ -6,6 +6,7 @@ public sealed class LitestreamExecutableResolverTests
     public void Resolve_returns_an_absolute_path_verbatim()
     {
         var path = OperatingSystem.IsWindows() ? @"C:\tools\litestream.exe" : "/usr/local/bin/litestream";
+
         Assert.Equal(path, LitestreamExecutableResolver.Resolve(path));
     }
 
@@ -28,6 +29,7 @@ public sealed class LitestreamExecutableResolverTests
         var probeName = $"litestream-probe-{Guid.NewGuid():N}";
         var bundledPath = Path.Combine(AppContext.BaseDirectory, probeName);
         File.WriteAllText(bundledPath, "stub");
+
         try
         {
             Assert.Equal(bundledPath, LitestreamExecutableResolver.Resolve(probeName));

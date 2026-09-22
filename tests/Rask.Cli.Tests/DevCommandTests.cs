@@ -132,7 +132,7 @@ public sealed class DevCommandTests
     }
 
     [Fact]
-    public void Urls_becomes_ASPNETCORE_URLS()
+    public void The_urls_option_is_passed_on_as_ASPNETCORE_URLS()
     {
         Assert.Equal("http://localhost:5000", Env(urls: "http://localhost:5000")["ASPNETCORE_URLS"]);
         Assert.DoesNotContain("ASPNETCORE_URLS", Env().Keys);
@@ -385,6 +385,7 @@ public sealed class DevCommandTests
     public void The_open_command_is_right_for_every_platform(string platformName, string expected)
     {
         var platform = Enum.Parse<BrowserPlatform>(platformName);
+
         // Takes the platform explicitly so all three branches are covered from any host OS — a test that
         // only exercises the developer's own platform covers a third of the matrix.
         var (fileName, args) = BrowserLauncher.CommandFor(platform, "https://example.test/a?x=1&y=2");

@@ -5,7 +5,7 @@ namespace Rask.SQLite.Browser.Tests;
 public class BrowserSqliteTests
 {
     [Fact]
-    public void DatabasePath_LivesUnderTheBrowserDirectory()
+    public void The_database_path_lives_under_the_browser_directory()
     {
         Assert.Equal("/rask/app.db", BrowserSqlite.DatabasePath("app"));
     }
@@ -13,7 +13,7 @@ public class BrowserSqliteTests
     // Pooling is what returns a connection through sqlite3_close_v2's deactivation path, which
     // un-registers EF Core's user functions and yields SQLITE_BUSY on close.
     [Fact]
-    public void ConnectionString_DisablesPooling()
+    public void The_connection_string_disables_pooling()
     {
         var builder = new SqliteConnectionStringBuilder(BrowserSqlite.ConnectionString("app"));
 
@@ -24,7 +24,7 @@ public class BrowserSqliteTests
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
-    public void Name_MustNotBeBlank(string name)
+    public void A_blank_name_is_rejected(string name)
     {
         Assert.ThrowsAny<ArgumentException>(() => BrowserSqlite.DatabasePath(name));
     }
@@ -35,7 +35,7 @@ public class BrowserSqliteTests
     [InlineData("a/b")]
     [InlineData("a\\b")]
     [InlineData("../escape")]
-    public void Name_MustNotContainAPathSeparator(string name)
+    public void A_name_containing_a_path_separator_is_rejected(string name)
     {
         var ex = Assert.Throws<ArgumentException>(() => BrowserSqlite.DatabasePath(name));
 
@@ -43,7 +43,7 @@ public class BrowserSqliteTests
     }
 
     [Fact]
-    public void SnapshotStoreAndLockNames_AreScopedPerDatabase()
+    public void Snapshot_store_and_lock_names_are_scoped_per_database()
     {
         Assert.NotEqual(BrowserSqlite.SnapshotStoreName("a"), BrowserSqlite.SnapshotStoreName("b"));
         Assert.NotEqual(BrowserSqlite.OwnerLockName("a"), BrowserSqlite.OwnerLockName("b"));
@@ -53,7 +53,7 @@ public class BrowserSqliteTests
 public class BrowserSqliteOptionsTests
 {
     [Fact]
-    public void Validate_ResolvesTheDatabasePathFromTheName()
+    public void Validating_resolves_the_database_path_from_the_name()
     {
         var options = new BrowserSqliteOptions { Name = "jobs" };
 
@@ -63,7 +63,7 @@ public class BrowserSqliteOptionsTests
     }
 
     [Fact]
-    public void Validate_KeepsAnExplicitDatabasePath()
+    public void Validating_keeps_an_explicit_database_path()
     {
         var options = new BrowserSqliteOptions { Name = "jobs", DatabasePath = "/tmp/other.db" };
 
@@ -75,7 +75,7 @@ public class BrowserSqliteOptionsTests
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
-    public void Validate_RejectsANonPositiveInterval(int seconds)
+    public void Validating_rejects_a_non_positive_snapshot_interval(int seconds)
     {
         var options = new BrowserSqliteOptions { SnapshotInterval = TimeSpan.FromSeconds(seconds) };
 
@@ -83,7 +83,7 @@ public class BrowserSqliteOptionsTests
     }
 
     [Fact]
-    public void Validate_RejectsRetainBelowOne()
+    public void Validating_rejects_a_retain_count_below_one()
     {
         var options = new BrowserSqliteOptions { Retain = 0 };
 

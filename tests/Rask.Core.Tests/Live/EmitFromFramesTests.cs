@@ -60,17 +60,17 @@ public partial class EmitFromFramesTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void PlainDivWithText() => AssertReplayMatches(Div["hello"]);
+    public void A_plain_div_with_text_replays_identically() => AssertReplayMatches(Div["hello"]);
 
     [Fact]
-    public void NestedElements() =>
+    public void Nested_elements_replay_identically() =>
         AssertReplayMatches(Div.Class("wrap")[
             Div.Class("line")[Span["a"], Span["b"]],
             Div.Class("line")[Span["c"]]
         ]);
 
     [Fact]
-    public void AllUniversalAttributes() =>
+    public void All_universal_attributes_replay_identically() =>
         AssertReplayMatches(Div
             .Id("i")
             .Class("c")
@@ -81,10 +81,10 @@ public partial class EmitFromFramesTests : global::Rask.Core.RaskMarkup
             .Aria(new Dictionary<string, string?> { ["label"] = "Close", ["hidden"] = "true" })["body"]);
 
     [Fact]
-    public void KeyedElement() => AssertReplayMatches(Li.Key(42).Class("item")["row"]);
+    public void A_keyed_element_replays_identically() => AssertReplayMatches(Li.Key(42).Class("item")["row"]);
 
     [Fact]
-    public void SelfClosingElements() =>
+    public void Self_closing_elements_replay_identically() =>
         AssertReplayMatches(Div[
             Br,
             Hr.Class("sep"),
@@ -92,24 +92,24 @@ public partial class EmitFromFramesTests : global::Rask.Core.RaskMarkup
         ]);
 
     [Fact]
-    public void AnchorWithHref() => AssertReplayMatches(A.Href("/item/5").Class("lnk")["open 5"]);
+    public void An_anchor_with_an_href_replays_identically() => AssertReplayMatches(A.Href("/item/5").Class("lnk")["open 5"]);
 
     [Fact]
-    public void RawMarkup() => AssertReplayMatches(Div[Raw.Value("<b>bold</b> & <i>x</i>")]);
+    public void Raw_markup_replays_identically() => AssertReplayMatches(Div[Raw.Value("<b>bold</b> & <i>x</i>")]);
 
     [Fact]
-    public void AdjacentTextCoalesced() => AssertReplayMatches(Div["Score: ", 42, " pts"]);
+    public void Coalesced_adjacent_text_replays_identically() => AssertReplayMatches(Div["Score: ", 42, " pts"]);
 
     [Fact]
-    public void EncodedTextAndAttributeValues() =>
+    public void Encoded_text_and_attribute_values_replay_identically() =>
         AssertReplayMatches(Div.Id("a+b").Class("x{y}")["<tag> & 'quote' \"dq\" + [brackets]"]);
 
     [Fact]
-    public void DraggableAndValuelessShape() =>
+    public void The_draggable_and_valueless_attribute_shape_replays_identically() =>
         AssertReplayMatches(Div.Draggable(true).Class("drag")["x"]);
 
     [Fact]
-    public void DeepList200Rows()
+    public void A_deep_list_of_200_rows_replays_identically()
     {
         var rows = new List<Component>(200);
         for (var i = 0; i < 200; i++)
@@ -124,6 +124,6 @@ public partial class EmitFromFramesTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void FragmentChildrenAreFlatInFrames() =>
+    public void Fragment_children_are_flat_in_the_frames() =>
         AssertReplayMatches(Div[Fragment[Span["a"], Span["b"]], Span["c"]]);
 }

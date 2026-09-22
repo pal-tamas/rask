@@ -7,7 +7,7 @@ namespace Rask.Core.Tests.Live;
 public partial class EventHandlerErrorBoundaryTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public async Task SyncHandlerThrow_TripsAncestorBoundary()
+    public async Task A_throwing_sync_handler_trips_the_ancestor_boundary()
     {
         var sp = RenderHarness.EmptyServices();
         var handlerOwner = new HandlerOwner(true);
@@ -31,7 +31,7 @@ public partial class EventHandlerErrorBoundaryTests : global::Rask.Core.RaskMark
     }
 
     [Fact]
-    public async Task AsyncHandlerThrow_TripsAncestorBoundary()
+    public async Task A_throwing_async_handler_trips_the_ancestor_boundary()
     {
         var sp = RenderHarness.EmptyServices();
         var handlerOwner = new HandlerOwner(false);
@@ -51,7 +51,7 @@ public partial class EventHandlerErrorBoundaryTests : global::Rask.Core.RaskMark
     }
 
     [Fact]
-    public async Task HandlerThrow_NoBoundary_BubblesOut()
+    public async Task A_handler_throw_with_no_boundary_bubbles_out()
     {
         // When the handler's owner has no Boundary, TryInvokeHandlerAsync re-throws so
         // the dispatcher (server/WASM) can apply its own catch-and-log fallback.

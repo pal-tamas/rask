@@ -16,7 +16,7 @@ namespace Rask.Wasm.Tests.Session;
 public class InitialRenderCoalesceTests : ResettingTestBase
 {
     [Fact]
-    public async Task InitialRender_StateChangedDuringFirstBuild_LandsInTheFirstFrame()
+    public async Task State_changed_during_the_first_build_lands_in_the_first_frame()
     {
         var (session, _) = NewSession<InitialRenderStateChangeApp>();
 

@@ -11,7 +11,7 @@ public class WebAppManifestBasePathTests
     private static JsonElement Parse(string json) => JsonDocument.Parse(json).RootElement;
 
     [Fact]
-    public void ToJson_BasePath_RootsDefaultStartUrlAndScopeAtRoot()
+    public void A_base_path_roots_the_default_start_url_and_scope_at_the_root()
     {
         var root = Parse(new WebAppManifest { Name = "App" }.ToJson(""));
 
@@ -20,7 +20,7 @@ public class WebAppManifestBasePathTests
     }
 
     [Fact]
-    public void ToJson_BasePath_RootsRelativeUrlsUnderSubPathDeploy()
+    public void A_base_path_roots_relative_urls_under_a_sub_path_deploy()
     {
         var manifest = new WebAppManifest
         {
@@ -38,7 +38,7 @@ public class WebAppManifestBasePathTests
     }
 
     [Fact]
-    public void ToJson_BasePath_ResolvesRelativeSegmentsAndKeepsQueries()
+    public void A_base_path_resolves_relative_segments_and_keeps_queries()
     {
         var manifest = new WebAppManifest
         {
@@ -57,7 +57,7 @@ public class WebAppManifestBasePathTests
     [InlineData("/already/rooted")]
     [InlineData("https://cdn.example.com/icon.svg")]
     [InlineData("//cdn.example.com/icon.svg")]
-    public void ToJson_BasePath_LeavesAbsoluteUrlsUntouched(string url)
+    public void A_base_path_leaves_absolute_urls_untouched(string url)
     {
         var manifest = new WebAppManifest
         {
@@ -71,7 +71,7 @@ public class WebAppManifestBasePathTests
     }
 
     [Fact]
-    public void ToJson_BasePath_RewritesShareTargetAndFileHandlerActions()
+    public void A_base_path_rewrites_share_target_and_file_handler_actions()
     {
         var manifest = new WebAppManifest
         {
@@ -87,7 +87,7 @@ public class WebAppManifestBasePathTests
     }
 
     [Fact]
-    public void ToJson_NoArg_LeavesRelativeUrlsVerbatim()
+    public void ToJson_without_a_base_path_leaves_relative_urls_verbatim()
     {
         var root = Parse(new WebAppManifest { Name = "App" }.ToJson());
 

@@ -20,7 +20,7 @@ public class HotReloadPhaseTests
     public HotReloadPhaseTests() => ScopedAssetRegistry.InvalidateAll();
 
     [Fact]
-    public async Task RunPhases_InvokesEveryRefreshTarget()
+    public async Task Running_the_phases_invokes_every_refresh_target()
     {
         // Proves the reflective loop actually resolves and calls all six generated classes — the
         // thing the old nested-sentinel tests could not reach.
@@ -36,7 +36,7 @@ public class HotReloadPhaseTests
     }
 
     [Fact]
-    public async Task RunPhases_RefreshesAssetsBeforeRegistries()
+    public async Task Running_the_phases_refreshes_assets_before_registries()
     {
         // Assets first is not cosmetic: phase 4's repaint must observe the new bundle hash, so
         // every refresh has to complete before any session re-renders (asserted below).
@@ -54,7 +54,7 @@ public class HotReloadPhaseTests
     }
 
     [Fact]
-    public void RefreshTargetTypeNames_CoversEveryGeneratedRegistry()
+    public void The_refresh_target_type_names_cover_every_generated_registry()
     {
         // The coordinator reaches other packages by name, so a generator added without an entry
         // here would silently not hot-reload. Each generator's own suite asserts the name it
@@ -71,7 +71,7 @@ public class HotReloadPhaseTests
     }
 
     [Fact]
-    public async Task Repaint_ObservesTheRefreshedCssHash()
+    public async Task The_repaint_observes_the_refreshed_css_hash()
     {
         // The regression this whole reordering exists for. When the session re-render ran before
         // the CSS refresh, the frame carried the previous bundle hash and the edit only appeared
@@ -98,7 +98,7 @@ public class HotReloadPhaseTests
     }
 
     [Fact]
-    public async Task AThrowingRefreshTarget_DoesNotStopTheRest_NorTheRepaint()
+    public async Task A_throwing_refresh_target_does_not_stop_the_rest_nor_the_repaint()
     {
         var reached = new List<string>();
         var session = new RecordingSession(new Widget(), RenderHarness.EmptyServices());
@@ -128,7 +128,7 @@ public class HotReloadPhaseTests
     ///     but it now reports rather than swallows, and the coordinator withholds the announcement.
     /// </remarks>
     [Fact]
-    public async Task ASessionThatFailsToRepaint_IsNotAnnouncedAsApplied()
+    public async Task A_session_that_fails_to_repaint_is_not_announced_as_applied()
     {
         // The fault is switched off in the finally, and that is load-bearing rather than tidiness:
         // RegisterForHotReload puts the session in a process-global weak list that prunes only on
@@ -163,7 +163,7 @@ public class HotReloadPhaseTests
     }
 
     [Fact]
-    public async Task AThrowingRefreshTarget_StillClosesTheStagingWindow()
+    public async Task A_throwing_refresh_target_still_closes_the_staging_window()
     {
         // The nastiest failure mode: staging left open silently swallows every later
         // RegisterCss for the life of the process.
@@ -177,7 +177,7 @@ public class HotReloadPhaseTests
     }
 
     [Fact]
-    public async Task RunPhases_WithNoGeneratedRegistrations_LeavesAssetsAlone()
+    public async Task Running_the_phases_with_no_generated_registrations_leaves_the_assets_alone()
     {
         // An app with no scoped CSS has no __RaskScopedCssRegistration to invoke. Opening a
         // staging window anyway would swap an empty map over the live one on End, wiping
@@ -190,7 +190,7 @@ public class HotReloadPhaseTests
     }
 
     [Fact]
-    public async Task RunPhases_AnUnchangedCssSet_DoesNotChurnTheBundleHash()
+    public async Task Running_the_phases_with_an_unchanged_css_set_does_not_churn_the_bundle_hash()
     {
         // Most applies touch no CSS. The bundle hash is an immutable URL the browser has already
         // cached — rewriting it on every keystroke would defeat that.
@@ -207,7 +207,7 @@ public class HotReloadPhaseTests
     }
 
     [Fact]
-    public async Task RunPhases_DropsACssEntryWhoseFileWasDeleted()
+    public async Task Running_the_phases_drops_a_css_entry_whose_file_was_deleted()
     {
         ScopedAssetRegistry.RegisterCss(typeof(Widget), ".w { color: red; }");
         ScopedAssetRegistry.RegisterCss(typeof(OtherWidget), ".o { color: blue; }");
@@ -224,7 +224,7 @@ public class HotReloadPhaseTests
     }
 
     [Fact]
-    public void TheCoreAssembly_DeclaresExactlyOneMetadataUpdateHandler()
+    public void The_core_assembly_declares_exactly_one_MetadataUpdateHandler()
     {
         // Order across multiple handlers is undefined by the runtime, and Rask's phases are
         // order-dependent. This is what stops a future PR from quietly reintroducing that.
@@ -237,7 +237,7 @@ public class HotReloadPhaseTests
     }
 
     [Fact]
-    public void RefreshTargetTypeNames_HasNoDuplicates()
+    public void The_refresh_target_type_names_have_no_duplicates()
     {
         Assert.Equal(
             RaskHotReload.RefreshTargetTypeNames.Length,

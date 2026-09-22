@@ -143,6 +143,7 @@ public sealed class PostgresFullTextSearchTests : IAsyncLifetime
         await using var db = Unicode();
 
         Assert.Equal([2], await db.Articles.Search("sqlite").Where(a => a.Published).Select(a => a.Id).ToListAsync());
+
         // A read face's Search is ordered and takes ThenBy directly; a DbSet's is ordered all the same.
         var ranked = (IOrderedQueryable<SearchArticle>)db.Articles.Search("sqlite");
         Assert.Equal([1, 2], await ranked.ThenBy(a => a.Title).Select(a => a.Id).ToListAsync());

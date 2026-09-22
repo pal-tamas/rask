@@ -6,7 +6,7 @@ namespace Rask.Core.Tests.Interop;
 public class CookiesTests
 {
     [Fact]
-    public async Task Get_SendsCookieGet_AndReturnsValue()
+    public async Task Getting_a_cookie_sends_the_get_and_gives_the_value()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskApi.cookieGet", "dark");
@@ -19,7 +19,7 @@ public class CookiesTests
     }
 
     [Fact]
-    public async Task Set_NoOptions_SendsNullAttributes()
+    public async Task Setting_a_cookie_with_no_options_sends_null_attributes()
     {
         var js = new FakeJsRuntime();
         var cookies = new Cookies(js);
@@ -31,7 +31,7 @@ public class CookiesTests
     }
 
     [Fact]
-    public async Task Set_WithOptions_SendsFormattedAttributes()
+    public async Task Setting_a_cookie_with_options_sends_the_formatted_attributes()
     {
         var js = new FakeJsRuntime();
         var cookies = new Cookies(js);
@@ -54,7 +54,7 @@ public class CookiesTests
     }
 
     [Fact]
-    public async Task Delete_SendsCookieDelete_WithNameAndPath()
+    public async Task Deleting_a_cookie_sends_the_delete_with_the_name_and_path()
     {
         var js = new FakeJsRuntime();
         var cookies = new Cookies(js);
@@ -65,7 +65,7 @@ public class CookiesTests
     }
 
     [Fact]
-    public async Task GetAll_ReturnsMap()
+    public async Task Getting_all_cookies_gives_the_map()
     {
         var js = new FakeJsRuntime();
         js.SetResponse("__raskApi.cookieAll", new Dictionary<string, string> { ["a"] = "1", ["b"] = "2" });
@@ -78,7 +78,7 @@ public class CookiesTests
     }
 
     [Fact]
-    public async Task Get_NullName_Throws()
+    public async Task Getting_a_cookie_with_a_null_name_throws()
     {
         var cookies = new Cookies(new FakeJsRuntime());
 

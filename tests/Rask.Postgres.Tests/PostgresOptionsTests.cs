@@ -22,7 +22,7 @@ public sealed class PostgresOptionsTests
     }
 
     [Fact]
-    public void Defaults_validate()
+    public void The_default_options_validate()
     {
         Assert.Null(Record.Exception(new PostgresOptions().Validate));
     }
@@ -33,6 +33,7 @@ public sealed class PostgresOptionsTests
         var options = new PostgresOptions { StatementTimeout = TimeSpan.FromSeconds(-1) };
 
         var exception = Assert.Throws<InvalidOperationException>(options.Validate);
+
         Assert.StartsWith("PostgresOptions.StatementTimeout must not be negative", exception.Message);
     }
 
@@ -43,6 +44,7 @@ public sealed class PostgresOptionsTests
         var options = new PostgresOptions { IdleInTransactionSessionTimeout = TimeSpan.FromDays(30) };
 
         var exception = Assert.Throws<InvalidOperationException>(options.Validate);
+
         Assert.StartsWith("PostgresOptions.IdleInTransactionSessionTimeout must be at most 24.20:31:23.6470000", exception.Message);
     }
 
@@ -70,6 +72,7 @@ public sealed class PostgresOptionsTests
         };
 
         var exception = Assert.Throws<InvalidOperationException>(options.Validate);
+
         Assert.StartsWith("PostgresOptions.LockTimeout (00:00:10) must be below StatementTimeout", exception.Message);
     }
 
@@ -88,6 +91,7 @@ public sealed class PostgresOptionsTests
         options.Retry.MaxCount = 0;
 
         var exception = Assert.Throws<InvalidOperationException>(options.Validate);
+
         Assert.Contains("Turn retrying off with o.Retry.Enabled = false", exception.Message, StringComparison.Ordinal);
     }
 
@@ -108,6 +112,7 @@ public sealed class PostgresOptionsTests
         options.Retry.MaxDelay = TimeSpan.Zero;
 
         var exception = Assert.Throws<InvalidOperationException>(options.Validate);
+
         Assert.StartsWith("PostgresOptions.Retry.MaxDelay must be positive", exception.Message);
     }
 
@@ -198,8 +203,8 @@ public sealed class PostgresOptionsTests
             LockTimeout = TimeSpan.Zero,
             IdleInTransactionSessionTimeout = TimeSpan.Zero,
         };
-
         const string connectionString = "Host=db;Database=app";
+
         Assert.Same(connectionString, PostgresSessionSettings.Apply(connectionString, options));
     }
 }

@@ -61,7 +61,7 @@ public partial class StableHandlerIdTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task UnchangedComponentKeepsItsId_WhenAnotherComponentGainsAHandler()
+    public async Task An_unchanged_component_keeps_its_id_when_another_component_gains_a_handler()
     {
         var toggler = new Toggler();
         var steady = new Steady();
@@ -111,7 +111,7 @@ public partial class StableHandlerIdTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task MultiHandlerComponent_KeepsEverySlotId_AcrossRenders_AndEachStillDispatches()
+    public async Task A_multi_handler_component_keeps_every_slot_id_across_renders_and_each_still_dispatches()
     {
         var three = new ThreeHandlers();
         var root = new StubComponent(() => Div.Class("page")[three]);
@@ -168,7 +168,7 @@ public partial class StableHandlerIdTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task HandlerTargetingAnotherComponent_DoesNotShiftThatComponentsOwnIds()
+    public async Task A_handler_targeting_another_component_does_not_shift_that_components_own_ids()
     {
         // The delegate's target is `callee`, but it is REGISTERED during `caller`'s render. Slot
         // numbering is anchored to the component whose Render() emitted the element (CurrentParent), so
@@ -216,7 +216,7 @@ public partial class StableHandlerIdTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task UnmountedHandlerId_NoOps_AndIsNotReusedByTheComponentThatReplacesIt()
+    public async Task An_unmounted_handler_id_does_nothing_and_is_not_reused_by_the_component_that_replaces_it()
     {
         // Recycling a freed number is what makes a stale in-flight event dangerous: the click a user
         // sent a moment before the row vanished would resolve to whatever took the number. Numbers are
@@ -254,7 +254,7 @@ public partial class StableHandlerIdTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void GrowingList_KeepsEveryExistingRowsId_AndDrawsAFreshNumberForEachNewRow()
+    public void A_growing_list_keeps_every_existing_rows_id_and_draws_a_fresh_number_for_each_new_row()
     {
         // The payload win in one test. A list that grows by one used to renumber every row after the
         // insertion point, so the diff rewrote data-rask-on-click on rows whose markup was identical.
@@ -294,7 +294,7 @@ public partial class StableHandlerIdTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task ComponentRenderedUnderASecondRoot_DoesNotCollideWithThatRootsOwnIds()
+    public async Task A_component_rendered_under_a_second_root_does_not_collide_with_that_roots_own_ids()
     {
         // A slot id is minted from whichever root was rendering and then cached on the component. If a
         // component is later reached from a DIFFERENT root, handing back the id minted under the first
@@ -329,7 +329,7 @@ public partial class StableHandlerIdTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void FirstRenderStillNumbersInWalkOrder_FromZero()
+    public void The_first_render_still_numbers_in_walk_order_from_zero()
     {
         // The scheme draws a number the first time it reaches a slot, and the first render reaches
         // them in walk order — so an initial page is byte-identical to what the positional counter

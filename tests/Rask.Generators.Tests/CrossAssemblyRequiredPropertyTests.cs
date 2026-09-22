@@ -66,6 +66,7 @@ public class CrossAssemblyRequiredPropertyTests
         // component is in the same compilation (RequiredBuilderPropertyAnalyzerTests). From metadata the
         // initializer is not observable, so `Title` and `Kind` look identical and neither is reported.
         var messages = (await Diagnostics()).Select(x => x.GetMessage()).ToList();
+
         Assert.DoesNotContain(messages, m => m.Contains("'Title'", StringComparison.Ordinal));
         Assert.DoesNotContain(messages, m => m.Contains("'Kind'", StringComparison.Ordinal));
     }
@@ -78,6 +79,7 @@ public class CrossAssemblyRequiredPropertyTests
     public async Task A_published_RASK001_property_IS_reported_from_a_reference()
     {
         var messages = (await Diagnostics(Published)).Select(x => x.GetMessage()).ToList();
+
         var title = Assert.Single(messages, m => m.Contains("'Title'", StringComparison.Ordinal));
         Assert.Contains("'.Title(…)'", title, StringComparison.Ordinal);
     }
@@ -88,6 +90,7 @@ public class CrossAssemblyRequiredPropertyTests
         // `Kind` has an initializer and `Note` is nullable, so the owning compilation never published
         // either. Reading the published set is not a licence to guess about the rest.
         var messages = (await Diagnostics(Published)).Select(x => x.GetMessage()).ToList();
+
         Assert.DoesNotContain(messages, m => m.Contains("'Kind'", StringComparison.Ordinal));
         Assert.DoesNotContain(messages, m => m.Contains("'Note'", StringComparison.Ordinal));
     }
@@ -167,6 +170,7 @@ public class CrossAssemblyRequiredPropertyTests
                                                         }
                                                     }
                                                     """).Source("RaskRequiredProperties.g.cs");
+
         Assert.Contains("""
                         "Lib.Box`1", "Title"
                         """, generated, StringComparison.Ordinal);

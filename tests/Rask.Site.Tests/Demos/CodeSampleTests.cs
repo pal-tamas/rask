@@ -8,7 +8,7 @@ namespace Rask.Site.Tests.Demos;
 public sealed partial class CodeSampleTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Render_EmitsTitleSourceResultNotes()
+    public void Rendering_emits_the_title_source_result_and_notes()
     {
         var js = new FakeJsRuntime();
         var host = new LiveHost(
@@ -31,7 +31,7 @@ public sealed partial class CodeSampleTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_NullTitleAndNotes_OmitsHeader()
+    public void A_sample_without_a_title_or_notes_omits_the_header()
     {
         var js = new FakeJsRuntime();
         var host = new LiveHost(
@@ -47,7 +47,7 @@ public sealed partial class CodeSampleTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_SingleFile_ShowsFilenameLabel_NoTabStrip_HasCopyButton()
+    public void A_single_file_sample_shows_a_filename_label_and_a_copy_button_but_no_tab_strip()
     {
         var host = new LiveHost(
             () => CodeSample.Files(["ElementRefDemo.cs"]),
@@ -65,7 +65,7 @@ public sealed partial class CodeSampleTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_MultiFile_ShowsFilenameTabs_FirstActive_OnlyActivePane()
+    public void A_multi_file_sample_shows_filename_tabs_with_the_first_active_and_only_its_pane()
     {
         var host = new LiveHost(
             () => CodeSample.Files(["ElementRefDemo.cs", "ElementRefDemo.ts"]),
@@ -84,22 +84,25 @@ public sealed partial class CodeSampleTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void EmbeddedSource_ReadsRealFileText()
+    public void EmbeddedSource_reads_the_real_file_text()
     {
         // The real scoped JS the ElementRef sample shows must be readable from the manifest.
         var js = EmbeddedSource.Read("ElementRefDemo.ts");
+
         Assert.Contains("getBoundingClientRect", js);
     }
 
     [Fact]
-    public void LiveRender_ThroughApp_HighlightsServerSide_NoHljsAssets()
+    public void A_live_render_through_the_app_highlights_server_side_without_highlightjs_assets()
     {
         // Highlighting is now produced server-side by ColorCode (token <span>s in the
         // rendered HTML); there is no longer any highlight.js <link>/<script> in <head>.
         // TodosPage's CodeSample self-embeds its own source, which contains C# string
         // literals, so its tokenized output carries a <span class="string">.
         var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.TodosPage() };
+
         var html = new global::Rask.Site.App().RenderAsLiveRoot(TestServices.Default(routeState: routeState));
+
         Assert.Contains("class=\"string\"", html);
         Assert.DoesNotContain("/lib/highlightjs/", html);
     }

@@ -9,15 +9,16 @@ namespace Rask.Core.Tests.HeadAssets;
 public partial class HeadAssetRenderTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void NoHeadContribution_SentinelStrippedFromOutput()
+    public void With_no_head_contribution_the_sentinel_is_stripped_from_the_output()
     {
         var view = new PageShell(new NoHeadComponent());
         var html = view.RenderAsLiveRoot();
+
         Assert.DoesNotContain("__rask_head_assets__", html);
     }
 
     [Fact]
-    public void SingleHead_AssetSplicedAtSentinelPosition()
+    public void A_single_head_asset_is_spliced_at_the_sentinel_position()
     {
         var view = new PageShell(new ContributesLink());
         var html = view.RenderAsLiveRoot();
@@ -31,7 +32,7 @@ public partial class HeadAssetRenderTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void DuplicateContributions_DedupToSingleEmission()
+    public void Duplicate_contributions_dedup_to_a_single_emission()
     {
         // Two children both contributing the same <link> should produce exactly one
         // <link> in head — that's the whole point of dedup-by-rendered-HTML.
@@ -42,7 +43,7 @@ public partial class HeadAssetRenderTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void TitleSingleton_RootContributorOverriddenByChild()
+    public void The_title_singleton_of_the_root_is_overridden_by_a_child()
     {
         // Root contributes Title="App". Component contributes Title="Page". The page wins —
         // exactly one <title> in head, content is "Page". Exercises the singleton dedup
@@ -56,7 +57,7 @@ public partial class HeadAssetRenderTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void TitleSingleton_RootOnly_RootTitleApplies()
+    public void With_only_the_root_contributing_the_root_title_applies()
     {
         // Root contributes Title="App"; child has no Head. The App's title is the only
         // <title> in head — the fallback semantic that lets an app set a default that
@@ -69,18 +70,19 @@ public partial class HeadAssetRenderTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void InterpolatedHead_PicksUpInstanceState()
+    public void An_interpolated_head_picks_up_the_instance_state()
     {
         // Head is a property getter on the instance — it can interpolate fields the
         // same way Render() can. Mirrors the UserDetailPage pattern (Title with
         // RouteParam-bound id).
         var view = new PageShell(new ContributesTitleWithId { Id = 42 });
         var html = view.RenderAsLiveRoot();
+
         Assert.Contains(">User #42</title>", html);
     }
 
     [Fact]
-    public void RepeatedRenders_ProduceIdenticalHead()
+    public void Repeated_renders_produce_an_identical_head()
     {
         // The head-asset registry + mounted-type set are hoisted onto the root's LiveState and
         // reused across renders (cleared each frame). Re-rendering the same root must yield the
@@ -111,7 +113,7 @@ public partial class HeadAssetRenderTests : global::Rask.Core.RaskMarkup
     // text, so the page legitimately contains an HTML-ENCODED copy (&lt;!--__rask_head_assets__--&gt;) —
     // that is the demo showing its own output, not a leak.
     [Fact]
-    public void NestedToHtmlOverAHead_DoesNotSpliceIntoTheOuterRender()
+    public void A_nested_ToHtml_over_a_head_does_not_splice_into_the_outer_render()
     {
         var html = new SerializesAShell().RenderAsLiveRoot();
 
@@ -123,7 +125,7 @@ public partial class HeadAssetRenderTests : global::Rask.Core.RaskMarkup
     // The counterpart: a page that has its own <head> still splices there, and the nested ToHtml() has not
     // moved the target. Without this, "don't record from ToHtml" could be satisfied by not splicing at all.
     [Fact]
-    public void NestedToHtmlOverAHead_LeavesTheRealHeadSpliceAlone()
+    public void A_nested_ToHtml_over_a_head_leaves_the_real_head_splice_alone()
     {
         var html = new PageShell(new SerializesAShell()).RenderAsLiveRoot();
 

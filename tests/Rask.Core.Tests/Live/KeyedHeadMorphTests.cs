@@ -25,7 +25,7 @@ namespace Rask.Core.Tests.Live;
 public sealed class KeyedHeadMorphTests
 {
     [Fact]
-    public void KeyedHeadMorph_AgainstSdkInjectedHead_DoesNotThrow_AndConverges()
+    public void A_keyed_head_morph_against_an_SDK_injected_head_does_not_throw_and_converges()
     {
         // No node on PATH — the JS-driven reproduction cannot run. Deliberately not a
         // failure: node is not required to build or test Rask, and the browser-observable

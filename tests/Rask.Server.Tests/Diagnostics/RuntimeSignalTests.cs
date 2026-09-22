@@ -59,6 +59,7 @@ public sealed class RuntimeSignalTests
 
         var handlerId = MarkupAssert.FirstHandlerId(
             await fixture.Host.Http.GetStringAsync("/start"));
+
         await fixture.Ws.SendJsonAsync(new { id = handlerId, seq = 1 });
         _ = await fixture.Ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
@@ -93,6 +94,7 @@ public sealed class RuntimeSignalTests
 
         var handlerId = MarkupAssert.FirstHandlerId(
             await fixture.Host.Http.GetStringAsync("/start"));
+
         await fixture.Ws.SendJsonAsync(new { id = handlerId, seq = 1 });
         _ = await fixture.Ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 

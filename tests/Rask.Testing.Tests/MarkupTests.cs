@@ -19,7 +19,7 @@ public partial class MarkupTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void HandlerIds_ReturnsEveryWiredElement()
+    public void HandlerIds_lists_every_wired_element()
     {
         var page = Test.Render(new Trio());
 
@@ -29,7 +29,7 @@ public partial class MarkupTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task HandlerIds_AreInDocumentOrder_SoAnIndexHitsThatElement()
+    public async Task HandlerIds_are_in_document_order_so_an_index_hits_that_element()
     {
         // The contract that matters: index N in the list drives the Nth wired element in the markup, not
         // merely *some* element. Without it the list would be unusable for targeting.
@@ -37,14 +37,16 @@ public partial class MarkupTests : global::Rask.Core.RaskMarkup
         var page = Test.Render(trio);
 
         await page.InvokeAsync(page.HandlerIds("click")[1]);
+
         Assert.Equal(["b"], trio.Clicked);
 
         await page.InvokeAsync(page.HandlerIds("click")[2]);
+
         Assert.Equal(["b", "c"], trio.Clicked);
     }
 
     [Fact]
-    public void HandlerIds_NoneWired_IsEmpty()
+    public void HandlerIds_is_empty_when_nothing_is_wired()
     {
         var page = Test.Render(Div["nothing to click"]);
 
@@ -61,7 +63,7 @@ public partial class MarkupTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Attrs_ReturnsEveryValue_AndRespectsAttributeBoundaries()
+    public void Attrs_lists_every_value_and_respects_attribute_boundaries()
     {
         var page = Test.Render(new TwoLabelled());
 
@@ -77,7 +79,7 @@ public partial class MarkupTests : global::Rask.Core.RaskMarkup
         "<div data-rask-on-click=\"h0\"><span id=\"a\" data-rask-on-click=\"h1\">x</span></div>";
 
     [Fact]
-    public void Markup_ReadsAttributesOutOfARawHtmlString()
+    public void Markup_reads_attributes_out_of_a_raw_html_string()
     {
         Assert.Equal("h0", Markup.Attr(Payload, "data-rask-on-click"));
         Assert.Equal(["h0", "h1"], Markup.Attrs(Payload, "data-rask-on-click"));
@@ -87,14 +89,14 @@ public partial class MarkupTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Markup_UnterminatedValue_YieldsNothingRatherThanRunningOn()
+    public void An_unterminated_value_yields_nothing_rather_than_running_on()
     {
         Assert.Null(Markup.Attr("<div id=\"unclosed", "id"));
         Assert.Empty(Markup.Attrs("<div id=\"unclosed", "id"));
     }
 
     [Fact]
-    public void Markup_NullArguments_Throw()
+    public void Markup_throws_on_null_arguments()
     {
         Assert.Throws<ArgumentNullException>(() => Markup.Attr(null!, "id"));
         Assert.Throws<ArgumentNullException>(() => Markup.Attr("<div>", null!));

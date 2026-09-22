@@ -16,7 +16,7 @@ namespace Rask.Site.Tests.Pages;
 public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public async Task OnMountAsync_FetchesPost_PopulatesArticle()
+    public async Task Mounting_fetches_the_post_and_populates_the_article()
     {
         const string body =
             "{\"id\":1,\"title\":\"hello\",\"body\":\"the body text\"}";
@@ -39,7 +39,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnMountAsync_HttpFailure_SetsErrorPath()
+    public async Task An_HTTP_failure_on_mount_takes_the_error_path()
     {
         // A genuine HTTP-status failure carries a StatusCode and must still surface the
         // error banner (the demo's error handling is a real feature).
@@ -55,7 +55,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnMountAsync_TransientTransportFailure_RetriesAndLoads()
+    public async Task A_transient_transport_failure_on_mount_retries_and_loads()
     {
         // A fast browser refresh produces a transport-level HttpRequestException with no
         // StatusCode ("TypeError: Load failed") that can fire transiently on the surviving
@@ -92,7 +92,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnMountAsync_PersistentTransportFailure_ShowsErrorAfterRetries()
+    public async Task A_persistent_transport_failure_on_mount_shows_the_error_after_retries()
     {
         // A transport failure that never recovers (every attempt throws a null-status
         // HttpRequestException) must surface the error banner once retries are exhausted —
@@ -121,7 +121,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnMountAsync_FetchThatNeverSettles_TimesOutAfterRetries()
+    public async Task A_fetch_on_mount_that_never_settles_times_out_after_retries()
     {
         // The failure the per-attempt deadline exists for: no exception, no response, an await that would
         // never return. Each attempt must give up on its own deadline and retry, and the last must say what
@@ -142,7 +142,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task OnMountAsync_HttpNotFound_SurfacesError_DoesNotThrow()
+    public async Task An_HTTP_not_found_on_mount_surfaces_the_error_and_does_not_throw()
     {
         // A 404 carries a real StatusCode, so the demo surfaces the error banner (not a retry) and
         // never throws out of the lifecycle — the page/guide stays alive around it.

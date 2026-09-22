@@ -127,6 +127,7 @@ public sealed class HttpTransportTests
         Assert.NotNull(host.Store.Peek(sessionId));
 
         Assert.Equal(HttpStatusCode.NoContent, await PostAsync(host, $"/_rask/leave/{sessionId}", generation));
+
         Assert.True(await GoneWithinAsync(host, sessionId, TimeSpan.FromSeconds(3)));
     }
 
@@ -338,6 +339,7 @@ public sealed class HttpTransportTests
             request.Headers.Add("Rask-Stream", generation);
 
             using var left = await host.Http.SendAsync(request);
+
             Assert.Equal(HttpStatusCode.NoContent, left.StatusCode);
 
             // The stream says why it is ending before the body stops: an HTTP response that simply ends is

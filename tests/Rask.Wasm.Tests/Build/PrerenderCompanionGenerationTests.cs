@@ -72,7 +72,7 @@ public class PrerenderCompanionGenerationTests : IDisposable
     }
 
     [Fact]
-    public void TheAppsOwnGlobalUsingsReachTheCompanion()
+    public void The_apps_own_global_usings_reach_the_companion()
     {
         // The bug this file was added for. The companion compiles the app's SOURCES, so a source leaning
         // on a global using the csproj declares does not compile without it — and the resulting CS0103
@@ -83,7 +83,7 @@ public class PrerenderCompanionGenerationTests : IDisposable
     }
 
     [Fact]
-    public void AStaticUsingStaysStatic()
+    public void A_static_using_stays_static()
     {
         // Carrying the item but dropping the metadata is worse than dropping the item: `using X` and
         // `using static X` are different usings, so the companion would compile a subtly different
@@ -93,7 +93,7 @@ public class PrerenderCompanionGenerationTests : IDisposable
     }
 
     [Fact]
-    public void AnAliasedUsingKeepsItsAlias()
+    public void An_aliased_using_keeps_its_alias()
     {
         Assert.Contains(
             "<Using Include=\"System.Collections.Generic\" Alias=\"Coll\" />",
@@ -102,7 +102,7 @@ public class PrerenderCompanionGenerationTests : IDisposable
     }
 
     [Fact]
-    public void EachUsingIsEmittedExactlyOnce()
+    public void Each_using_is_emitted_exactly_once()
     {
         // Three emission lines partition the set by metadata. Getting the conditions wrong the other way
         // duplicates an item rather than dropping it, which is a build error in the companion — but one
@@ -115,7 +115,7 @@ public class PrerenderCompanionGenerationTests : IDisposable
     }
 
     [Fact]
-    public void AnEmbeddedResourceKeepsItsLogicalName()
+    public void An_embedded_resource_keeps_its_logical_name()
     {
         // A resource is found by NAME at runtime. The companion is a different assembly in a different
         // directory, so re-globbing the file is not enough — the name has to travel with it, or the
@@ -127,7 +127,7 @@ public class PrerenderCompanionGenerationTests : IDisposable
     }
 
     [Fact]
-    public void AResourceWithNoLogicalNameIsLinkedBackToTheAppsLayout()
+    public void A_resource_with_no_logical_name_is_linked_back_to_the_apps_layout()
     {
         // Without a LogicalName the SDK computes the manifest name from RootNamespace plus the path
         // RELATIVE TO THE PROJECT — and the companion's project directory is the app's obj/, so the
@@ -136,7 +136,7 @@ public class PrerenderCompanionGenerationTests : IDisposable
     }
 
     [Fact]
-    public void ThePublicApiGateDoesNotCoverTheCompanion()
+    public void The_public_API_gate_does_not_cover_the_companion()
     {
         // The gate in Directory.Build.targets covers every project under src/, and the companion is
         // GENERATED into the app's obj/ — which is under src/. It can never carry a baseline, because
@@ -151,7 +151,7 @@ public class PrerenderCompanionGenerationTests : IDisposable
     }
 
     [Fact]
-    public void TheSdksOwnResourceGlobIsOff()
+    public void The_SDKs_own_resource_glob_is_off()
     {
         // The companion's project directory sits inside the app's obj/. Left on, the SDK's default
         // EmbeddedResource glob would sweep up whatever a previous build left there and embed it.
@@ -164,7 +164,7 @@ public class PrerenderCompanionGenerationTests : IDisposable
     [Theory]
     [InlineData("net10.0-browser", "net10.0")]
     [InlineData("net11.0-browser", "net11.0")]
-    public void TheCompanionIsTheAppsDesktopTwin(string app, string companion)
+    public void The_companion_is_the_apps_desktop_twin(string app, string companion)
     {
         // The companion carries the app's own package references, so it must restore the same .NET
         // version of every one of them the app was compiled against. It was a literal net10.0, which
@@ -179,7 +179,7 @@ public class PrerenderCompanionGenerationTests : IDisposable
     }
 
     [Fact]
-    public void TheCompanionDoesNotBuildTheAppsIslands()
+    public void The_companion_does_not_build_the_apps_islands()
     {
         // The companion compiles the app's C#, so it sees every island declared there, but Rask.External
         // globs for their front-end files from the companion's own directory inside obj/ and finds none.
@@ -192,7 +192,7 @@ public class PrerenderCompanionGenerationTests : IDisposable
     }
 
     [Fact]
-    public void APackageIslandsSnapshotReachesTheCompanion()
+    public void A_package_islands_snapshot_reaches_the_companion()
     {
         // A package island's chain steps are generated from the `{Island}.props.json` beside its class, and Rask.External
         // globs for those from the companion's own directory inside obj/, where none lives. Without the app's snapshots
@@ -206,7 +206,7 @@ public class PrerenderCompanionGenerationTests : IDisposable
     }
 
     [Fact]
-    public void TheAppsScopedStylesheetsReachTheCompanion()
+    public void The_apps_scoped_stylesheets_reach_the_companion()
     {
         // The prerender renders through the scoped-asset registry, and the generator fills it only from the
         // .css AdditionalFiles it is handed. Missing, every page published with no data-r-* attributes and no
@@ -220,7 +220,7 @@ public class PrerenderCompanionGenerationTests : IDisposable
     }
 
     [Fact]
-    public void TheCompanionsOwnScopedGlobsAreOffAndTypeScriptIsRootedAtTheApp()
+    public void The_companions_own_scoped_globs_are_off_and_TypeScript_is_rooted_at_the_app()
     {
         // Rask.Core.targets globs scoped .css and .ts from the COMPANION's directory, inside obj/, where no
         // component lives. Off, and the TypeScript named from the app instead — rooted there, because tsgo's
@@ -238,7 +238,7 @@ public class PrerenderCompanionGenerationTests : IDisposable
     }
 
     [Fact]
-    public void AnAppThatOptsOutOfScopedTypeScriptGetsNoneInTheCompanion()
+    public void An_app_that_opts_out_of_scoped_TypeScript_gets_none_in_the_companion()
     {
         var csproj = Path.Combine(_dir, "App.csproj");
         File.WriteAllText(csproj, File.ReadAllText(csproj).Replace(
@@ -250,7 +250,7 @@ public class PrerenderCompanionGenerationTests : IDisposable
     }
 
     [Fact]
-    public void EachResourceIsEmittedExactlyOnce()
+    public void Each_resource_is_emitted_exactly_once()
     {
         // Two emission lines partition the set on whether the item names itself. A condition wrong the
         // other way emits both twice, which the companion then fails to build on — naming the generated

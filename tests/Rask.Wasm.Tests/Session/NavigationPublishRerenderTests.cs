@@ -16,7 +16,7 @@ namespace Rask.Wasm.Tests.Session;
 public class NavigationPublishRerenderTests : ResettingTestBase
 {
     [Fact]
-    public async Task NavigatorNavigate_WithPublishRenderRebuild_PayloadStillCarriesHistoryUrl()
+    public async Task A_handler_navigation_with_a_publish_render_rebuild_still_carries_the_history_url()
     {
         var (session, provider) = NewSession<NavigateWithPublishRenderApp>();
 

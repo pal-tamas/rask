@@ -5,11 +5,11 @@ namespace Rask.Core.Tests.Components;
 public partial class InputTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Render_NullProps_ReturnsSelfClosingTag() =>
+    public void Unset_props_render_only_the_self_closing_tag() =>
         Assert.Equal("<input />", Input.Of<string>().ToHtml());
 
     [Fact]
-    public void Render_DecimalBinding_EmitsStepAnyBetweenMaxAndPattern()
+    public void A_decimal_binding_emits_step_any_between_max_and_pattern()
     {
         // HTML defaults to step="1", so without this the browser's own constraint validation rejects a
         // fractional value and refuses to fire submit — silently, with nothing thrown and no message shown.
@@ -22,7 +22,7 @@ public partial class InputTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_IntBinding_KeepsTheImplicitWholeNumberStep()
+    public void An_int_binding_keeps_the_implicit_whole_number_step()
     {
         // Integral types must NOT get step="any" — there, whole numbers are the constraint you want.
         var model = new PriceModel();
@@ -31,7 +31,7 @@ public partial class InputTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_ExplicitStep_WinsOverTheDefault()
+    public void An_explicit_step_wins_over_the_default()
     {
         var model = new PriceModel();
 
@@ -41,7 +41,7 @@ public partial class InputTests : global::Rask.Core.RaskMarkup
     [Theory]
     [InlineData(true, "<input type=\"radio\" name=\"Express\" checked />")]
     [InlineData(false, "<input type=\"radio\" name=\"Express\" />")]
-    public void Render_BoolBoundRadio_WritesCheckedRatherThanAValue(bool express, string expected)
+    public void A_bool_bound_radio_writes_checked_rather_than_a_value(bool express, string expected)
     {
         // A radio bound over a bool is asking whether THIS option is the chosen one, which is the same
         // question a checkbox asks — so the model's value is its `checked` state. It used to fall
@@ -53,7 +53,7 @@ public partial class InputTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_NonBoolBoundRadio_StillCarriesTheGroupValue()
+    public void A_non_bool_bound_radio_still_carries_the_group_value()
     {
         // Only a bool means "this option". A radio bound over anything else is carrying the group's
         // value, and that has to reach the markup as a value.
@@ -79,7 +79,7 @@ public partial class InputTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_AllPropsSet_EmitsExpectedAttributes()
+    public void Setting_every_prop_emits_the_expected_attributes()
     {
         Assert.Equal(
             "<input id=\"i\" class=\"c\" style=\"s\" spellcheck=\"false\" data-k=\"v\" type=\"text\" name=\"n\" value=\"v\" placeholder=\"p\" required disabled readonly checked min=\"1\" max=\"10\" step=\"1\" pattern=\"[a-z]&#x2B;\" size=\"20\" maxlength=\"100\" minlength=\"1\" multiple accept=\".png\" capture=\"user\" alt=\"alt\" autocomplete=\"off\" inputmode=\"numeric\" enterkeyhint=\"done\" dirname=\"d\" autofocus form=\"f\" formaction=\"/a\" formenctype=\"multipart/form-data\" formmethod=\"post\" formnovalidate formtarget=\"_blank\" list=\"l\" src=\"/s\" width=\"80\" height=\"40\" />",
@@ -106,11 +106,11 @@ public partial class InputTests : global::Rask.Core.RaskMarkup
     [InlineData(InputType.Hidden, "hidden")]
     [InlineData(InputType.Radio, "radio")]
     [InlineData(InputType.DatetimeLocal, "datetime-local")]
-    public void Render_ExplicitType_EmitsTypeAttribute(InputType type, string html) =>
+    public void An_explicit_type_emits_the_type_attribute(InputType type, string html) =>
         Assert.Equal($"<input type=\"{html}\" />", Input.Of<string>().Type(type).ToHtml());
 
     [Fact]
-    public void Render_HonorsCallerAriaRoleAndTabIndex() =>
+    public void The_callers_aria_role_and_tabindex_are_honoured() =>
         // Global attributes come through Element in the canonical slot order (role, tabindex, aria-*) BEFORE
         // the tag-specific `type` — a caller can wire an accessible name / role onto a bare input.
         Assert.Equal(
@@ -119,19 +119,19 @@ public partial class InputTests : global::Rask.Core.RaskMarkup
                 .Aria(new Dictionary<string, string?> { ["label"] = "volume" }).ToHtml());
 
     [Fact]
-    public void Render_SpellcheckFalse_EmitsEnumeratedValue() =>
+    public void A_false_spellcheck_emits_the_enumerated_value() =>
         // spellcheck is an enumerated attribute, not a boolean-presence one — false must render explicitly.
         Assert.Equal("<input spellcheck=\"false\" />", Input.Of<string>().Spellcheck(false).ToHtml());
 
     [Fact]
-    public void Render_FileCaptureAndKeyboardHints_EmitInDeclaredOrder() =>
+    public void File_capture_and_keyboard_hints_emit_in_declared_order() =>
         Assert.Equal(
             "<input type=\"file\" capture=\"environment\" inputmode=\"none\" enterkeyhint=\"send\" dirname=\"d\" />",
             Input.Of<string>().Type(InputType.File).Capture("environment").InputMode("none").EnterKeyHint("send")
                 .Dirname("d").ToHtml());
 
     [Fact]
-    public void Render_OnInputOutsideLiveContext_OmitsHandlerAttribute()
+    public void OnInput_outside_a_live_context_emits_no_handler_attribute()
     {
         Assert.Equal(
             "<input />",
@@ -139,19 +139,21 @@ public partial class InputTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_OnInputAndOnChangeInsideLiveContext_EmitSequentialIds()
+    public void OnInput_and_OnChange_inside_a_live_context_emit_sequential_ids()
     {
         var view = new StubComponent(() => Input.Of<string>().OnInput(_ => { }).OnChange(_ => { }));
+
         Assert.Equal(
             "<input data-rask-on-input=\"h0\" data-rask-on-change=\"h1\" />",
             view.RenderAsLiveRoot());
     }
 
     [Fact]
-    public void Render_OnInputAsyncAndOnChangeAsyncInsideLiveContext_EmitSequentialIds()
+    public void Async_OnInput_and_OnChange_inside_a_live_context_emit_sequential_ids()
     {
         var view = new StubComponent(() => Input.Of<string>().OnInput(async _ => { await Task.Yield(); })
             .OnChange(async _ => { await Task.Yield(); }));
+
         Assert.Equal(
             "<input data-rask-on-input=\"h0\" data-rask-on-change=\"h1\" />",
             view.RenderAsLiveRoot());

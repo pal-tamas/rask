@@ -19,7 +19,7 @@ namespace Rask.Core.Tests.Live;
 public sealed class KeyedAnchorSkipsDoomedTests
 {
     [Fact]
-    public void AHeadWhoseSurvivorsAreAlreadyInOrder_MovesNothing()
+    public void A_head_whose_survivors_are_already_in_order_moves_nothing()
     {
         // No node on PATH — the JS-driven reproduction cannot run. Deliberately not a failure: node is
         // not required to build or test Rask.

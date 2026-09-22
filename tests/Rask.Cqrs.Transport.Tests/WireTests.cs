@@ -36,8 +36,8 @@ public sealed class WireTests
         // happened — it just has to accept the same message in a body instead of a query string, which is
         // a different parse on its side. A short and a long query must be indistinguishable in the answer.
         await using var wire = Wire.Connect();
-
         var padding = new string('x', 4000);
+
         var counted = await wire.SendAsync<int>(new CountCharacters(padding));
 
         Assert.Equal(4000, counted);
@@ -86,10 +86,10 @@ public sealed class WireTests
         // rejects anything without it. Neither suite alone can show the two agree on the spelling.
         await using var wire = Wire.Connect();
         await wire.SendAsync<Greeting>(new GetGreeting("Ada", Formal: false));
-
         var uri = wire.Recorder.Last.Uri;
         using var bare = new HttpRequestMessage(HttpMethod.Get, uri);
         bare.Headers.TryAddWithoutValidation("X-Test-User", "tester");
+
         using var refused = await wire.Http.SendAsync(bare);
 
         Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);

@@ -9,7 +9,7 @@ namespace Rask.Core.Tests.Live;
 public partial class DependencyInjectionTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void ConstructorInjection_ResolvesServicesViaGeneratedFactory()
+    public void Constructor_injection_resolves_services_via_the_generated_factory()
     {
         var services = new ServiceCollection()
             .AddRask()
@@ -25,22 +25,23 @@ public partial class DependencyInjectionTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Chain_OutsideContext_ParameterlessComponent_StillConstructs()
+    public void Outside_a_context_the_chain_still_constructs_a_parameterless_component()
     {
         // A component that injects nothing needs no provider, so its chain works with no context at all.
         Component instance = ParameterlessComponent;
+
         Assert.NotNull(instance);
         Assert.Equal("<span>plain</span>", instance.ToHtml());
     }
 
     [Fact]
-    public void Chain_OutsideContext_DependencyComponent_Throws() =>
+    public void Outside_a_context_the_chain_throws_for_a_component_with_dependencies() =>
         // Nothing to resolve the constructor argument from — the chain says so rather than handing back
         // a half-built component that fails later, somewhere else.
         Assert.Throws<InvalidOperationException>(() => { Component _ = GreetingComponent; });
 
     [Fact]
-    public void Chain_InsideContext_ResolvesViaActivatorUtilities()
+    public void Inside_a_context_the_chain_resolves_via_ActivatorUtilities()
     {
         var services = new ServiceCollection()
             .AddSingleton<IGreeter>(new FixedGreeter("ctx"))
@@ -55,7 +56,7 @@ public partial class DependencyInjectionTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void RemoveSession_DisposesScopedServices()
+    public void Removing_a_session_disposes_its_scoped_services()
     {
         var services = new ServiceCollection()
             .AddRask()
@@ -74,7 +75,7 @@ public partial class DependencyInjectionTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void EachSession_GetsDistinctComponentInstance()
+    public void Each_session_gets_a_distinct_component_instance()
     {
         var services = new ServiceCollection()
             .AddRask()

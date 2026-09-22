@@ -9,7 +9,7 @@ namespace Rask.Core.Tests.Performance;
 //
 // Pinned ceilings catch regression in CI; the diagnostic Trait test prints exact deltas
 // for manual inspection. Run the diagnostic via:
-//   dotnet test Rask.Core.Tests --filter "FullyQualifiedName~CounterAllocation_Diagnostic"
+//   dotnet test Rask.Core.Tests --filter "FullyQualifiedName~Counter_allocation_diagnostic"
 public partial class CounterAllocationPinTests : global::Rask.Core.RaskMarkup
 {
     private readonly ITestOutputHelper _output;
@@ -17,7 +17,7 @@ public partial class CounterAllocationPinTests : global::Rask.Core.RaskMarkup
     public CounterAllocationPinTests(ITestOutputHelper output) => _output = output;
 
     [Fact]
-    public void CounterRender_InnerOnly_StaysUnderPinnedCeiling()
+    public void A_counter_render_of_the_inner_tree_only_stays_under_the_pinned_ceiling()
     {
         // Match RenderHotPath_CounterBenchmarks: build + render in one call (the benchmark
         // doesn't pre-build, so the tree-construction allocations count).
@@ -46,7 +46,7 @@ public partial class CounterAllocationPinTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact(Skip = "diagnostic — run manually to gather allocation deltas")]
-    public void CounterAllocation_Diagnostic_PrintDeltaBetweenShellAndInner()
+    public void Counter_allocation_diagnostic_prints_the_delta_between_shell_and_inner()
     {
         WarmUp(BuildFullPageShell);
         WarmUp(BuildInner);

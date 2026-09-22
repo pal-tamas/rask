@@ -78,7 +78,7 @@ asserted op *count*, never the resulting order, and no E2E exercised a multi-ele
 reorder. The fix walks new indices **right-to-left**, anchoring each off-LIS element
 to the already-final element at the next new index — the standard correct minimal-move
 reconcile (Vue/Inferno). Guarded by `FrameDifferTests
-.Diff_KeyedList_RandomPermutation_MoveOpsReproduceTargetOrder` (seeded permutations
+.Move_ops_for_a_random_keyed_permutation_reproduce_the_target_order` (seeded permutations
 N=50–250, replays the emitted ops to assert they reproduce the target order).
 
 **The perf gap (now closed):** the correct algorithm also replaced the old

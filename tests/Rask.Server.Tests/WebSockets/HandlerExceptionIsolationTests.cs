@@ -20,7 +20,7 @@ public class HandlerExceptionIsolationTests
     // Assert against the legacy full-HTML `html` field (framework default is now diff mode).
 
     [Fact]
-    public async Task FaultingHandler_TripsRootErrorBoundary_KeepsSocketOpen()
+    public async Task A_faulting_handler_trips_the_root_error_boundary_and_keeps_the_socket_open()
     {
         using var host = RaskTestHost.Create<ThrowingHandlerApp>(diffMode: LiveDiffMode.DisabledFull);
         var html = await (await host.Http.GetAsync("/")).Content.ReadAsStringAsync();
@@ -43,7 +43,7 @@ public class HandlerExceptionIsolationTests
     }
 
     [Fact]
-    public async Task Reconnect_AfterParkedHandler_ResumesDispatchOnceItClears()
+    public async Task A_reconnect_after_a_parked_handler_resumes_dispatch_once_it_clears()
     {
         GatedCounterApp.Gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         try
@@ -69,6 +69,7 @@ public class HandlerExceptionIsolationTests
             using var ws2 = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
             await ws2.SendJsonAsync(new { type = "hello", session = sessionId });
             _ = await ws2.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
+
             Assert.Equal(WebSocketState.Open, ws2.State);
 
             // Queue a state-changing handler behind the parked one, then release the gate. Once the

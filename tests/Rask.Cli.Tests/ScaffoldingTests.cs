@@ -16,7 +16,7 @@ public sealed class IdentifiersTests
     [InlineData("int", false)]       // reserved keyword
     [InlineData("namespace", false)] // reserved keyword
     [InlineData("var", true)]        // contextual keyword — a legal identifier
-    public void IsValidTypeName(string value, bool expected) =>
+    public void Only_a_legal_identifier_is_accepted_as_a_type_name(string value, bool expected) =>
         Assert.Equal(expected, Identifiers.IsValidTypeName(value));
 
     [Theory]
@@ -24,28 +24,28 @@ public sealed class IdentifiersTests
     [InlineData("/orders/{id:int}", true)]
     [InlineData("a\"b", false)]
     [InlineData("a\\b", false)]
-    public void IsValidRoutePath(string route, bool expected) =>
+    public void A_route_path_is_refused_when_it_carries_a_quote_or_a_backslash(string route, bool expected) =>
         Assert.Equal(expected, Identifiers.IsValidRoutePath(route));
 
     [Theory]
     [InlineData("Products", "/products")]
     [InlineData("ProductList", "/product-list")]
     [InlineData("Orders", "/orders")]
-    public void ToRoutePath_kebab_cases(string name, string expected) =>
+    public void A_type_name_becomes_a_kebab_cased_route_path(string name, string expected) =>
         Assert.Equal(expected, Identifiers.ToRoutePath(name));
 
     [Theory]
     [InlineData("Features", "Features")]
     [InlineData("my-feature", "myfeature")]
     [InlineData("2nd", "_2nd")]
-    public void ToNamespacePart_sanitizes(string segment, string expected) =>
+    public void A_folder_name_is_sanitized_into_a_namespace_part(string segment, string expected) =>
         Assert.Equal(expected, Identifiers.ToNamespacePart(segment));
 }
 
 public sealed class ProjectContextTests
 {
     [Fact]
-    public void NamespaceFor_root_directory_is_root_namespace()
+    public void The_root_directory_maps_to_the_root_namespace()
     {
         var project = new ProjectContext("/proj", "MyApp");
 
@@ -53,7 +53,7 @@ public sealed class ProjectContextTests
     }
 
     [Fact]
-    public void NamespaceFor_subfolders_extend_the_namespace()
+    public void Subfolders_extend_the_namespace()
     {
         var project = new ProjectContext("/proj", "MyApp");
 
@@ -61,7 +61,7 @@ public sealed class ProjectContextTests
     }
 
     [Fact]
-    public void ReadRootNamespace_prefers_explicit_element()
+    public void The_root_namespace_prefers_an_explicit_RootNamespace_element()
     {
         var fs = new FakeFileSystem();
         fs.Seed("/proj/MyApp.csproj", "<Project><PropertyGroup><RootNamespace>Acme.Store</RootNamespace></PropertyGroup></Project>");
@@ -70,7 +70,7 @@ public sealed class ProjectContextTests
     }
 
     [Fact]
-    public void ReadRootNamespace_falls_back_to_project_file_name()
+    public void The_root_namespace_falls_back_to_the_project_file_name()
     {
         var fs = new FakeFileSystem();
         fs.Seed("/proj/Acme.Store.csproj", "<Project></Project>");
@@ -79,7 +79,7 @@ public sealed class ProjectContextTests
     }
 
     [Fact]
-    public void ReadRootNamespace_sanitizes_an_invalid_explicit_value()
+    public void The_root_namespace_sanitizes_an_invalid_explicit_value()
     {
         var fs = new FakeFileSystem();
         fs.Seed("/proj/App.csproj", "<Project><PropertyGroup><RootNamespace>1Store</RootNamespace></PropertyGroup></Project>");

@@ -63,7 +63,7 @@ public sealed class SiteHeaderTests
     }
 
     [Fact]
-    public void TheDocsWearTheLandingPagesBar()
+    public void The_docs_wear_the_landing_page_bar()
     {
         Assert.Equal(
             FromTheWordmark(Render("/")),
@@ -71,12 +71,12 @@ public sealed class SiteHeaderTests
     }
 
     [Fact]
-    public void BothBarsCarryTheVersionTheSiteIsBuiltOn()
+    public void Both_bars_carry_the_version_the_site_is_built_on()
     {
         // The badge reads the version off the assembly MinVer stamped. It said "v1.0.0" on every page of
         // rask.sh for as long as the badge existed, because RaskVersion lives in Rask.Core, Core is
         // IsPackable=false, and MinVer was referenced only by packable projects — see
-        // RaskVersionTests.Current_MatchesThePackableHostVersion, which is what guards the number itself.
+        // RaskVersionTests.The_current_version_matches_the_packable_host_version, which is what guards the number itself.
         // This guards that both bars ask for it, and neither prints a literal.
         var expected = $"v{RaskVersion.Current}";
 
@@ -88,7 +88,7 @@ public sealed class SiteHeaderTests
     }
 
     [Fact]
-    public void OnlyTheDocsBarCarriesTheSidebarToggle()
+    public void Only_the_docs_bar_carries_the_sidebar_toggle()
     {
         Assert.DoesNotContain("hamburger-btn", Header(Render("/")), StringComparison.Ordinal);
         Assert.Contains(
@@ -106,7 +106,7 @@ public sealed class SiteHeaderTests
     // The live route readout. PathDisplay itself stays — it is the worked example behind
     // docs/routing.md's "Reacting to navigation" — but it is not chrome.
     [InlineData("path: ")]
-    public void TheDocsBarDroppedIts(string retired)
+    public void The_docs_bar_dropped_its_retired_piece(string retired)
     {
         Assert.DoesNotContain(
             retired,

@@ -19,7 +19,7 @@ namespace Rask.Core.Tests.Live;
 public sealed class DiffPathFormattingTextTests
 {
     [Fact]
-    public void UpdateText_ThroughAFormattingNewlineInHtml_ReachesItsTextNode()
+    public void An_UpdateText_through_a_formatting_newline_in_the_html_reaches_its_text_node()
     {
         // No node on PATH — the JS-driven reproduction cannot run. Deliberately not a failure: node is
         // not required to build or test Rask.
@@ -38,7 +38,7 @@ public sealed class DiffPathFormattingTextTests
     }
 
     [Fact]
-    public void UpdateText_UnderBody_StillCountsWhitespaceTextNodes()
+    public void An_UpdateText_under_body_still_counts_whitespace_text_nodes()
     {
         var result = NodeFixture.Run("DiffPathFormattingTextFixture");
         if (result is null)

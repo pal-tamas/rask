@@ -3,11 +3,11 @@ namespace Rask.Core.Tests.Components;
 public partial class IframeTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Render_NullProps_ReturnsOpenAndCloseTags() =>
+    public void Unset_props_render_only_the_open_and_close_tags() =>
         Assert.Equal("<iframe></iframe>", Iframe.ToHtml());
 
     [Fact]
-    public void Render_AllPropsSet_EmitsExpectedAttributes()
+    public void Setting_every_prop_emits_the_expected_attributes()
     {
         Assert.Equal(
             "<iframe id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" src=\"/page\" srcdoc=\"&lt;p&gt;x&lt;/p&gt;\" name=\"n\" sandbox=\"allow-scripts\" allow=\"camera\" width=\"640\" height=\"480\" loading=\"lazy\" referrerpolicy=\"no-referrer\"></iframe>",
@@ -28,11 +28,11 @@ public partial class IframeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Render_StringChild_EncodesText() =>
+    public void A_string_child_is_encoded_as_text() =>
         Assert.Equal("<iframe>&lt;x&gt;</iframe>", Iframe["<x>"].ToHtml());
 
     [Fact]
-    public void Render_FetchPriority_EmitsAfterTheOtherIframeAttrs() =>
+    public void Fetch_priority_emits_after_the_other_iframe_attributes() =>
         Assert.Equal("<iframe src=\"/a\" loading=\"lazy\" fetchpriority=\"low\"></iframe>",
             Iframe.Src("/a").Loading("lazy").FetchPriority("low").ToHtml());
 }

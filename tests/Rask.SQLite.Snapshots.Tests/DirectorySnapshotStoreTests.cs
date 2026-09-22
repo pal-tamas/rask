@@ -28,11 +28,10 @@ public sealed class DirectorySnapshotStoreTests : IDisposable
             await File.WriteAllTextAsync(path, new string('x', i + 1));
             File.SetLastWriteTimeUtc(path, baseTime.AddMinutes(i));   // app-2 is newest
         }
-
         // Same pattern scoping as PruneAsync: what you can see is what retention manages.
         await File.WriteAllTextAsync(Path.Combine(_dir, "unrelated.txt"), "ignore me");
-
         var store = new DirectorySnapshotStore(_dir, "app-*.db");
+
         var snapshots = await store.ListAsync(CancellationToken.None);
 
         Assert.Equal(["app-2.db", "app-1.db", "app-0.db"], snapshots.Select(s => s.Name));
@@ -44,6 +43,7 @@ public sealed class DirectorySnapshotStoreTests : IDisposable
     public async Task ListAsync_is_empty_when_the_directory_does_not_exist()
     {
         var store = new DirectorySnapshotStore(_dir, "app-*.db");
+
         Assert.Empty(await store.ListAsync(CancellationToken.None));
     }
 
@@ -52,6 +52,7 @@ public sealed class DirectorySnapshotStoreTests : IDisposable
     {
         // The default interface method keeps stores written before ListAsync existed compiling.
         ISqliteSnapshotStore store = new NonListingStore();
+
         Assert.Empty(await store.ListAsync(CancellationToken.None));
     }
 
@@ -66,12 +67,11 @@ public sealed class DirectorySnapshotStoreTests : IDisposable
             await File.WriteAllTextAsync(path, "x");
             File.SetLastWriteTimeUtc(path, baseTime.AddMinutes(i));   // app-4 is newest
         }
-
         // A file that does not match the pattern must be left untouched.
         var unrelated = Path.Combine(_dir, "unrelated.txt");
         await File.WriteAllTextAsync(unrelated, "keep me");
-
         var store = new DirectorySnapshotStore(_dir, "app-*.db");
+
         await store.PruneAsync(retain: 2, CancellationToken.None);
 
         Assert.True(File.Exists(Path.Combine(_dir, "app-4.db")));

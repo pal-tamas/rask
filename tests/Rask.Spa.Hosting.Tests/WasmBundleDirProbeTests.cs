@@ -31,7 +31,7 @@ public sealed class WasmBundleDirProbeTests : IDisposable
     }
 
     [Fact]
-    public void TheBundleDirNamesTheClientsDeclaredFramework()
+    public void The_bundle_dir_names_the_clients_declared_framework()
     {
         WriteClient("<TargetFramework>net10.0-browser</TargetFramework>");
 
@@ -39,7 +39,7 @@ public sealed class WasmBundleDirProbeTests : IDisposable
     }
 
     [Fact]
-    public void TheBundleDirNamesAFrameworkTheClientInheritsRatherThanDeclares()
+    public void The_bundle_dir_names_a_framework_the_client_inherits_rather_than_declares()
     {
         // The case the old probe could not see: no <TargetFramework> element in the csproj at all. The
         // version is deliberately not the one it used to assume, so its fallback cannot pass this.
@@ -49,7 +49,7 @@ public sealed class WasmBundleDirProbeTests : IDisposable
     }
 
     [Fact]
-    public void AClientWithSeveralFrameworksIsRefusedRatherThanGuessed()
+    public void A_client_with_several_frameworks_is_refused_rather_than_guessed()
     {
         // A bundle is published for ONE framework. Picking one of several would bake a path that is right
         // or wrong depending on which the publish happened to build.
@@ -62,7 +62,7 @@ public sealed class WasmBundleDirProbeTests : IDisposable
     }
 
     [Fact]
-    public void AClientWithOneFrameworkWrittenAsAListIsServed()
+    public void A_client_with_one_framework_written_as_a_list_is_served()
     {
         // One framework spelled as a list is still one framework. MSBuild reports HasSingleTargetFramework
         // false for any <TargetFrameworks> project, so a probe that trusted the flag refused this client —

@@ -13,7 +13,7 @@ namespace Rask.Core.Tests.Live;
 public partial class CompositeHandlerOwnerTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public async Task HandlerCapturingThisAndLocal_NestedInComposite_RerendersDefiningComponent()
+    public async Task A_handler_capturing_this_and_a_local_nested_in_a_composite_rerenders_the_defining_component()
     {
         var owner = new TabOwner();
         var view = new StubComponent(() => owner);

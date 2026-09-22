@@ -51,7 +51,6 @@ public sealed class SqliteSnapshotsServiceCollectionExtensionsTests
     {
         var services = new ServiceCollection();
         services.AddSingleton<ISqliteSnapshotStore>(new FakeStore());   // registered before → wins
-
         services.AddRaskSqliteSnapshots(o => o.DatabasePath = "/data/app.db");   // no directory: OK
 
         using var provider = services.BuildServiceProvider();

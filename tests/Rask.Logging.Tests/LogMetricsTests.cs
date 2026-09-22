@@ -10,7 +10,7 @@ namespace Rask.Logging.Tests;
 public sealed class LogMetricsTests
 {
     [Fact]
-    public async Task CountsWrittenEntries()
+    public async Task Written_entries_are_counted()
     {
         await using var harness = new LoggingHarness();
         using var collector = new Collector(harness.Get<LogMetrics>());
@@ -24,12 +24,12 @@ public sealed class LogMetricsTests
     }
 
     [Fact]
-    public async Task CountsEntriesDroppedByAFullBuffer()
+    public async Task Entries_dropped_by_a_full_buffer_are_counted()
     {
         await using var harness = new LoggingHarness(o => o.QueueCapacity = 2);
         using var collector = new Collector(harness.Get<LogMetrics>());
-
         var logger = harness.Logger();
+
         for (var i = 0; i < 10; i++)
         {
             logger.LogInformation("entry {Index}", i);
@@ -40,7 +40,7 @@ public sealed class LogMetricsTests
     }
 
     [Fact]
-    public async Task CountsEntriesRemovedByRetention()
+    public async Task Entries_removed_by_retention_are_counted()
     {
         await using var harness = new LoggingHarness(o =>
         {
@@ -66,7 +66,7 @@ public sealed class LogMetricsTests
     /// on every tick. What this checks is that the sample still arrives.
     /// </summary>
     [Fact]
-    public async Task SamplesTheStoredCountWhileSomethingIsListening()
+    public async Task The_stored_count_is_sampled_while_something_is_listening()
     {
         await using var harness = new LoggingHarness();
         using var collector = new Collector(harness.Get<LogMetrics>());
