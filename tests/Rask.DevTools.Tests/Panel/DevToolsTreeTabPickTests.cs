@@ -29,7 +29,7 @@ public sealed class DevToolsTreeTabPickTests
         return new DevToolsComponentNode(1, "App", null, [], [card]);
     }
 
-    private static RenderedComponent Render()
+    private static Page Render()
     {
         var feed = new DevToolsFeed();
         feed.RecordTree(Tree());
@@ -38,7 +38,7 @@ public sealed class DevToolsTreeTabPickTests
 #pragma warning restore RASK014
     }
 
-    private static string? AnchorsOf(RenderedComponent page) =>
+    private static string? AnchorsOf(Page page) =>
         page.FindAll("[data-rask-devtools-anchors]").Select(n => n.Attributes["data-rask-devtools-anchors"]).SingleOrDefault()
             is { } raw ? WebUtility.HtmlDecode(raw) : null;
 

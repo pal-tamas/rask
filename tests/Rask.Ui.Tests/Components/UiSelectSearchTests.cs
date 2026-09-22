@@ -27,7 +27,7 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
 
     // The popover has to be OPEN before the search box is in the markup — it lives inside the popover,
     // above the list. The browser owns that state and reports it back through the toggle event.
-    private static async Task<global::Rask.Testing.RenderedComponent> OpenedAsync(
+    private static async Task<global::Rask.Testing.Page> OpenedAsync(
         global::Rask.Core.Component select)
     {
         var page = global::Rask.Testing.Test.Render(select);

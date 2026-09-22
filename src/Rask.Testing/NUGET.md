@@ -26,7 +26,7 @@ public async Task Clicking_increments()
 
 ## API
 
-- **`Test.Render(component, services?)`** → a `RenderedComponent`. Renders the component with its
+- **`Test.Render(component, services?)`** → a `Page`. Renders the component with its
   event handlers wired; pass an `IServiceProvider` when the component constructor-injects services.
 - **`Test.Render(factory, services?)`** — same, but the factory runs on **every** render, so the tree is
   rebuilt from your current state each time. Use it whenever a re-render should see changed props:
@@ -37,7 +37,7 @@ public async Task Clicking_increments()
   every mounted component contributed to, `<body class>`. `Render` adds no markup of its own, which is what
   keeps an assertion about a component from quietly becoming one about a page — reach for this only when
   the page is the thing under test.
-- **`RenderedComponent.Html`** — the current markup, reflecting the latest state.
+- **`Page.Html`** — the current markup, reflecting the latest state.
 - **`.WaitForAsync(text | predicate, timeout?)`** — re-renders until the markup contains the text (or the
   predicate accepts it), then returns it; throws with the last markup after 5 seconds by default. Use it
   for a component that loads in `OnMount`: `Render` mounts it, but the load completes on a

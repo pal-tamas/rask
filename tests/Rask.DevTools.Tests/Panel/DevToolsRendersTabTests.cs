@@ -16,7 +16,7 @@ public sealed class DevToolsRendersTabTests
 
     private static Component Board() => new DevToolsTestFrame();
 
-    private static RenderedComponent Render(DevToolsFeed feed) => Test.Render(new DevToolsRendersTab { Feed = feed });
+    private static Page Render(DevToolsFeed feed) => Test.Render(new DevToolsRendersTab { Feed = feed });
 #pragma warning restore RASK014
 
     // A board mounts with three rows; then two clicks re-render the board and one row.

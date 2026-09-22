@@ -303,14 +303,14 @@ public partial class UiDataGridInteractionTests : global::Rask.Core.RaskMarkup
         Assert.Equal(1, calls);
     }
 
-    // The nth match, by handler id. RenderedComponent.Find refuses an ambiguous selector on purpose —
+    // The nth match, by handler id. Page.Find refuses an ambiguous selector on purpose —
     // a test that silently drove the first of three checkboxes would pass for the wrong reason — so a
     // repeated control is addressed by position rather than by a selector that only looks specific.
-    private static Task<string> ClickNth(RenderedComponent page, string selector, int index) =>
+    private static Task<string> ClickNth(Page page, string selector, int index) =>
         page.InvokeAsync(page.FindAll(selector)[index].Attributes["data-rask-on-click"]!);
 
     private static Task<string> ChangeNth(
-        RenderedComponent page, string selector, int index, string value) =>
+        Page page, string selector, int index, string value) =>
         page.InvokeAsync(
             page.FindAll(selector)[index].Attributes["data-rask-on-change"]!,
             $"{{\"value\":\"{value}\"}}");

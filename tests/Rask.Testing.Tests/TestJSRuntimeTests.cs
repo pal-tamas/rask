@@ -23,7 +23,7 @@ public class TestJSRuntimeTests
             })["copy"];
     }
 
-    private static (RenderedComponent<Copier> Page, TestJSRuntime Js) RenderCopier()
+    private static (Page<Copier> Page, TestJSRuntime Js) RenderCopier()
     {
         var js = new TestJSRuntime();
         var services = new ServiceCollection().AddSingleton<IJSRuntime>(js).BuildServiceProvider();

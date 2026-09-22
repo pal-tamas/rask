@@ -15,17 +15,17 @@ namespace Rask.Testing;
 /// <summary>
 ///     Entry point for unit-testing Rask components. <see cref="Render{T}(T, IServiceProvider)" />
 ///     renders a component to HTML with its live event handlers wired, and returns a
-///     <see cref="RenderedComponent" /> you can query and drive (invoke handlers, re-render) — no browser,
+///     <see cref="Page" /> you can query and drive (invoke handlers, re-render) — no browser,
 ///     server, or WebSocket involved. Pass a factory (<see cref="Render(Func{Component}, IServiceProvider)" />)
 ///     instead when a re-render should rebuild the tree from your current state.
 /// </summary>
-public static class Test
+public static partial class Test
 {
     /// <summary>
     ///     Renders <paramref name="component" /> as a live root and returns a handle to the result. The
     ///     component is wrapped in a forwarding root (so any component — including one that can't be a
-    ///     page root — works), its event handlers are registered, and <see cref="RenderedComponent.Html" />
-    ///     holds the initial markup. The handle's <see cref="RenderedComponent{T}.Instance" /> is this same
+    ///     page root — works), its event handlers are registered, and <see cref="Page.Html" />
+    ///     holds the initial markup. The handle's <see cref="Page{T}.Instance" /> is this same
     ///     object, so a test can assert against the component's own state as well as its markup.
     /// </summary>
     /// <typeparam name="T">The component's type, inferred from <paramref name="component" />.</typeparam>
@@ -34,11 +34,11 @@ public static class Test
     ///     Services available to the component (constructor-injected framework services, your own
     ///     registrations). Defaults to an empty provider.
     /// </param>
-    public static RenderedComponent<T> Render<T>(T component, IServiceProvider? services = null)
+    public static Page<T> Render<T>(T component, IServiceProvider? services = null)
         where T : Component
     {
         ArgumentNullException.ThrowIfNull(component);
-        return new RenderedComponent<T>(new TestRoot(() => component), component, services ?? EmptyServices);
+        return new Page<T>(new TestRoot(() => component), component, services ?? EmptyServices);
     }
 
     /// <summary>
@@ -54,10 +54,10 @@ public static class Test
     ///     Services available to the component (constructor-injected framework services, your own
     ///     registrations). Defaults to an empty provider.
     /// </param>
-    public static RenderedComponent Render(Func<Component?> factory, IServiceProvider? services = null)
+    public static Page Render(Func<Component?> factory, IServiceProvider? services = null)
     {
         ArgumentNullException.ThrowIfNull(factory);
-        return new RenderedComponent(new TestRoot(factory), services ?? EmptyServices);
+        return new Page(new TestRoot(factory), services ?? EmptyServices);
     }
 
     /// <summary>
@@ -77,7 +77,7 @@ public static class Test
     /// <param name="services">
     ///     Services available to the app. Defaults to an empty provider.
     /// </param>
-    public static RenderedComponent<T> RenderDocument<T>(T app, IServiceProvider? services = null)
+    public static Page<T> RenderDocument<T>(T app, IServiceProvider? services = null)
         where T : Component
     {
         ArgumentNullException.ThrowIfNull(app);
@@ -85,7 +85,7 @@ public static class Test
         // The same wrapper Rask.Server / Rask.Wasm install: it composes the shell from the
         // app's Shell / HtmlLang / BodyClass and catches anything the subtree throws. Going through it
         // rather than reimplementing the composition is the point — a test asserts what a browser gets.
-        return new RenderedComponent<T>(new RootErrorBoundary(app), app, services ?? EmptyServices);
+        return new Page<T>(new RootErrorBoundary(app), app, services ?? EmptyServices);
     }
 
     /// <summary>

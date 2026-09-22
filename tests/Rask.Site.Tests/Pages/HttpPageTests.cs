@@ -179,7 +179,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
     // One poll of a wait: move the clock a second, past any retry delay the loop has set and a fifth of the way
     // through an attempt's deadline, then look at what rendered. The loop sets its next timer on a thread-pool
     // turn, so one large advance up front would fire nothing it had not set yet.
-    private static string AdvanceAndRender(RenderedComponent page, ManualClock clock)
+    private static string AdvanceAndRender(Page page, ManualClock clock)
     {
         clock.Advance(TimeSpan.FromSeconds(1));
         return page.Render();

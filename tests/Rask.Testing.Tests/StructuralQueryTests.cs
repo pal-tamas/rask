@@ -24,7 +24,7 @@ public partial class StructuralQueryTests : global::Rask.Core.RaskMarkup
             ];
     }
 
-    private static RenderedComponent<Card> Page() => Test.Render(new Card());
+    private static Page<Card> Page() => Test.Render(new Card());
 
     [Fact]
     public void Find_hands_back_the_element_not_just_an_attribute()

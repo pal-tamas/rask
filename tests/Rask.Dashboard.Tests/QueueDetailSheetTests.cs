@@ -79,7 +79,7 @@ public sealed class QueueDetailSheetTests
         await db.SaveChangesAsync();
     }
 
-    private static async Task<RenderedComponent<QueuePage>> RenderQueueAsync(DashboardHarness harness)
+    private static async Task<Page<QueuePage>> RenderQueueAsync(DashboardHarness harness)
     {
         var component = ActivatorUtilities.CreateInstance<QueuePage>(harness.Services);
 
@@ -97,7 +97,7 @@ public sealed class QueueDetailSheetTests
 
     // Found by label rather than by a test-only hook: these are UiButtons with no distinguishing class,
     // and adding a data-testid to production markup to make a test easier would be the wrong trade.
-    private static Task ClickAsync(RenderedComponent<QueuePage> page, string label)
+    private static Task ClickAsync(Page<QueuePage> page, string label)
     {
         var button = page.FindAll("button")
             .First(b => b.TextContent.Contains(label, StringComparison.Ordinal));

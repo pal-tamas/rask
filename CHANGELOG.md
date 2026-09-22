@@ -9,6 +9,7 @@ them until tagged releases begin.
 
 ### Added
 
+- **Tests drive the app the way a person does.** `var page = Test.Visit("/products/new");` opens a URL through the real router; `await page.Type("Tea").Into("Name")`, `await page.Pick("Green").From("Colour")`, `await page.Check("In stock")` and `await page.Click("Save")` find fields by their label (then placeholder, then aria-label) and buttons and links by their text — `.In("Tea")` picks one of several; `page.Shows("Saved")` and `page.DoesNotShow("Loading…")` wait up to `page.Patience` (5 s) for async work; `page.IsAt("/products")` checks where a click navigated. A lookup that finds nothing or too much throws a `PageException` naming what it did find.
 - **Durations and sizes read the way they are said** — `3.Seconds`, `1.5.Hours`, `2.Weeks`, `50.Megabytes`, `3.Days.Ago`, `2.Hours.FromNow`, in every app with nothing to import. A duration is a plain `TimeSpan` and a size a plain `long` (binary: `1.Kilobyte` is 1024 bytes), so each goes wherever the .NET type already does — `Task.Delay(3.Seconds)`, `o.MaxFileSize = 50.Megabytes`. `Ago`/`FromNow` read the app's clock, so a test that freezes time freezes them too. New warning [RASK092](docs/diagnostics.md#rask092) points out `2.Hour` and `1.Hours`, and its quick-fix writes the form that matches the count.
 - **The Rask.Query guide has a live demo on rask.sh (#1128).** A parcel list on one small page shows every query
   shape the guide describes: a query declared in `Render` that follows the URL's `?page=` with `KeepPreviousData`, a
@@ -233,6 +234,7 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING — `RenderedComponent` is `Page`** (`Page<T>` for `Test.Render(component)`).
 - **BREAKING — `RaskTest` is `Test`.** `Test.Render(…)`, `Test.RenderDocument(…)`: the namespace already says Rask.
 - **BREAKING — five lifecycle hooks, one per moment.** `OnMount()`, `OnUpdated()`, `OnFirstRendered()`, `OnRendered()`, `OnUnmount()`, each `protected virtual Task`, replace the eight synchronous/asynchronous twins: `OnMount`+`OnMountAsync` → `OnMount`, `OnPropsChanged`+`OnPropsChangedAsync` → `OnUpdated`, `OnUnmount`+`OnUnmountAsync` → `OnUnmount`, and `OnRendered(bool)`/`OnRenderedAsync(bool)` → `OnFirstRendered()` for the first-render branch plus `OnRendered()` for every render (the first included, after `OnFirstRendered`). What used to go in the synchronous twin goes above the first `await`, which still runs before the first render; a body with nothing to await is written `async` all the same. Code that runs inside a lifecycle hook and passes no token is now cancelled with its component, as a handler already was.
 - **A component the app built itself joins the lifecycle on its own.** An instance built at runtime — a plugin, a type chosen by name — placed straight in the tree (`Div[page]`) is adopted by the render walk and gets `OnMount`/`OnUnmount` and a handle to re-render through; several instances of one type under one parent each keep theirs. The `Mount` wrapper component that did this by hand is removed.

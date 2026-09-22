@@ -22,10 +22,10 @@ public partial class UiCommandTests : global::Rask.Core.RaskMarkup
             UiMenuItem.Text("Sign out").Tone(UiTone.Error)
         ];
 
-    private static Task TypeAsync(RenderedComponent page, string text) =>
+    private static Task TypeAsync(Page page, string text) =>
         page.On("[role=\"combobox\"]").InputAsync(text);
 
-    private static Task KeyAsync(RenderedComponent page, string key) =>
+    private static Task KeyAsync(Page page, string key) =>
         page.On("[role=\"combobox\"]").RaiseAsync("keydown", $"{{\"key\":\"{key}\"}}");
 
     private static string Highlighted(string html)

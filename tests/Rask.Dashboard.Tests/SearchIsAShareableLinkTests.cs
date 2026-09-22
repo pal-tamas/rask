@@ -78,7 +78,7 @@ public sealed class SearchIsAShareableLinkTests
 
     // History loads on PollingPanel's asynchronous mount, so the first render is a placeholder with no
     // search box on it yet.
-    private static async Task<RenderedComponent> HistoryAsync(DashboardHarness harness)
+    private static async Task<Page> HistoryAsync(DashboardHarness harness)
     {
         var logs = ActivatorUtilities.CreateInstance<LogsPage>(harness.Services);
         logs.View = "history";
@@ -116,7 +116,7 @@ public sealed class SearchIsAShareableLinkTests
     // method: Navigator refuses to run outside a handler scope, and it is the framework's dispatch that
     // establishes that scope. Calling the method directly throws — which is itself worth knowing, since
     // it means a search box wired to anything but a handler could never have navigated.
-    private static async Task SearchAsync(RenderedComponent page, string term)
+    private static async Task SearchAsync(Page page, string term)
     {
         var handler = page.HandlerIdFor("input[type=\"search\"]", "change");
         // The payload shape a change handler is fed: {"value": "…"}, exactly as the browser's own

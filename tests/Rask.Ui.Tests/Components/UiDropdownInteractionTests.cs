@@ -49,10 +49,10 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
         return Regex.Replace(Regex.Replace(row.Groups[2].Value, "<kbd.*?</kbd>", ""), "<[^>]+>", "").Trim();
     }
 
-    private static Task OpenAsync(RenderedComponent page) =>
+    private static Task OpenAsync(Page page) =>
         page.On("[popover]").RaiseAsync("toggle", "{\"oldState\":\"closed\",\"newState\":\"open\"}");
 
-    private static Task KeyAsync(RenderedComponent page, string key) =>
+    private static Task KeyAsync(Page page, string key) =>
         page.On("[role=\"menu\"][autofocus]").RaiseAsync("keydown", $"{{\"key\":\"{key}\"}}");
 
     [Fact]

@@ -94,7 +94,7 @@ public sealed partial class DashboardChromeTests : global::Rask.Core.RaskMarkup
             .Select(a => a.TextContent.Trim())
             .ToList();
 
-    private RenderedComponent<RaskDashboardShell> RenderChrome(DashboardHarness h, string path)
+    private Page<RaskDashboardShell> RenderChrome(DashboardHarness h, string path)
     {
         h.Get<RouteState>().Path = path;
         return Test.RenderDocument(RaskDashboardShell, h.Services);

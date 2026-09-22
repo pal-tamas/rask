@@ -42,7 +42,7 @@ public sealed class DevToolsTreeTabDetailsTests
     }
 
 #pragma warning disable RASK014 // the tab rendered alone, the way the panel page would chain it, with a feed given by hand
-    private static RenderedComponent Tab(long? reveal) => Test.Render(new DevToolsTreeTab { Feed = Feed(), Reveal = reveal });
+    private static Page Tab(long? reveal) => Test.Render(new DevToolsTreeTab { Feed = Feed(), Reveal = reveal });
 #pragma warning restore RASK014
 
     [Fact]

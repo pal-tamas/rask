@@ -26,7 +26,7 @@ public sealed class DevToolsErrorsTabTests
     }
 
 #pragma warning disable RASK014 // the tab and the strip rendered alone, the way the panel page would chain them
-    private static RenderedComponent Tab(DevToolsErrorLog page, DevToolsErrorLog app, Action<long>? show = null) =>
+    private static Page Tab(DevToolsErrorLog page, DevToolsErrorLog app, Action<long>? show = null) =>
         Test.Render(new DevToolsErrorsTab
         {
             PageErrors = page,
@@ -35,7 +35,7 @@ public sealed class DevToolsErrorsTabTests
             ReportEnvironment = new DevToolsBugReport.Environment("Server", "0.22.0", ".NET 10", "macOS", "Chrome 131"),
         });
 
-    private static RenderedComponent Tabs(string current, DevToolsErrorLog page, DevToolsErrorLog app, Action<string>? select = null) =>
+    private static Page Tabs(string current, DevToolsErrorLog page, DevToolsErrorLog app, Action<string>? select = null) =>
         Test.Render(new DevToolsTabs
         {
             Current = current,
@@ -45,7 +45,7 @@ public sealed class DevToolsErrorsTabTests
         });
 #pragma warning restore RASK014
 
-    private static Task<string> Click(RenderedComponent page, string text) =>
+    private static Task<string> Click(Page page, string text) =>
         page.InvokeAsync(
             page.FindAll("button").First(b => b.TextContent.Trim() == text).Attributes["data-rask-on-click"],
             "{\"type\":\"click\"}");

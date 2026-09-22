@@ -29,7 +29,7 @@ public sealed partial class FloatingLabelsDemoTests : global::Rask.Core.RaskMark
         Assert.Contains("alert-success", final, StringComparison.Ordinal);
     }
 
-    private static async Task Fill(RenderedComponent page, string html, string id, string value)
+    private static async Task Fill(Page page, string html, string id, string value)
     {
         foreach (var attr in new[] { "data-rask-on-input", "data-rask-on-change" })
         {

@@ -11,7 +11,7 @@ namespace Rask.Testing;
 ///     (<see cref="InvokeAsync(string, string?)" />, <see cref="ClickAsync(string?)" />) to simulate an event, which dispatches it
 ///     and re-renders, or call <see cref="Render" /> to re-render after mutating external state.
 /// </summary>
-public class RenderedComponent : IRenderHandle
+public partial class Page : IRenderHandle
 {
     private readonly Component _root;
     private readonly IServiceProvider _services;
@@ -26,9 +26,9 @@ public class RenderedComponent : IRenderHandle
     // the same answer: drain a bounded number, then let the next explicit render carry on.
     private const int MaxQueuedRenders = 8;
 
-    // Not sealed so RenderedComponent<T> can add Instance; the ctor stays internal, so this type is still
+    // Not sealed so Page<T> can add Instance; the ctor stays internal, so this type is still
     // only constructible — and only derivable — inside the package.
-    internal RenderedComponent(Component root, IServiceProvider services)
+    internal Page(Component root, IServiceProvider services)
     {
         _root = root;
         _services = services;
@@ -288,7 +288,7 @@ public class RenderedComponent : IRenderHandle
     /// <summary>The events of one element, resolved by selector. Obtained from <see cref="On" />.</summary>
     /// <param name="page">The rendered component the element belongs to.</param>
     /// <param name="selector">The selector that names it — re-resolved on each call, so it survives re-renders.</param>
-    public readonly struct ElementActions(RenderedComponent page, string selector)
+    public readonly struct ElementActions(Page page, string selector)
     {
         /// <summary>Dispatches this element's <c>click</c> handler, then re-renders.</summary>
         public Task<string> ClickAsync(string? jsonPayload = null) => Raise("click", jsonPayload);
@@ -492,10 +492,10 @@ public class RenderedComponent : IRenderHandle
 ///     asserting against a component's own state, rather than only the markup it produced.
 /// </summary>
 /// <typeparam name="T">The component's type.</typeparam>
-public sealed class RenderedComponent<T> : RenderedComponent
+public sealed class Page<T> : Page
     where T : Component
 {
-    internal RenderedComponent(Component root, T instance, IServiceProvider services)
+    internal Page(Component root, T instance, IServiceProvider services)
         : base(root, services) => Instance = instance;
 
     /// <summary>

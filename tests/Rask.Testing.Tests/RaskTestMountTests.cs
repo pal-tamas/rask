@@ -176,7 +176,7 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Adoption_does_not_put_the_instance_under_positional_reuse()
     {
-        // The guarantee RenderedComponent<T>.Instance documents. Adoption deliberately bypasses
+        // The guarantee Page<T>.Instance documents. Adoption deliberately bypasses
         // GetOrCreateChild, whose reuse branch would make the instance subject to the positional cache.
         var counter = new Counter();
         var page = Test.Render(counter);

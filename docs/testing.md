@@ -12,31 +12,58 @@ and when to reach for end-to-end (E2E) tests instead.
 
 ## 0. The `Rask.Testing` package (start here)
 
-Reference **`Rask.Testing`** from your test project and you can render a component, invoke its handlers,
-and assert on the re-rendered HTML through a small public API — no browser, server, or WebSocket:
+Reference **`Rask.Testing`** from your test project and drive your app the way a person does — no browser,
+server or WebSocket:
 
 ```csharp
 using Rask.Testing;
 
-public sealed partial class Counter : Component
-{
-    private int _count;
-    protected override Component? Render() =>
-        Button.Type("button").OnClick(() => _count++)[$"Count: {_count}"];
-}
-
 [Fact]
-public async Task Clicking_increments()
+public async Task Saving_a_new_product_returns_to_the_list()
 {
-    var page = Test.Render(new Counter());     // renders + wires event handlers
-    Assert.Contains("Count: 0", page.Html);
+    var page = Test.Visit("/products/new");
 
-    await page.ClickAsync();                        // dispatch the click handler, then re-render
-    Assert.Contains("Count: 1", page.Html);
+    await page.Type("Tea").Into("Name");
+    await page.Check("In stock");
+    await page.Pick("Green").From("Colour");
+    await page.Click("Save");
+
+    page.Shows("Tea");
+    page.IsAt("/products");
 }
 ```
 
-- **`Test.Render(component, services?)`** → a `RenderedComponent`. Pass an `IServiceProvider` when the
+Every element is found by **what a person sees**, never by a selector — so a test reads as the steps it proves and
+survives a markup change nobody would notice:
+
+- **`Test.Visit("/url", services?)`** — opens the app at that URL through the real router: the page registered for
+  it renders with its route and query values bound, and a click that navigates moves on to the next page.
+- **`await page.Type("Tea").Into("Name")`** — the field whose `<label>` says "Name" (then its placeholder, then its
+  `aria-label`). Raises `input` and `change`, as typing does.
+- **`await page.Pick("Green").From("Colour")`** · **`await page.Check("In stock")`** · **`await page.Uncheck(…)`** —
+  a select's option by its visible text; a checkbox by its label.
+- **`await page.Click("Save")`** — the button or link whose text (or `aria-label`) is "Save". A submit button
+  submits its form with the fields' current values; a link moves to its page. Two matches ask you which:
+  `page.Click("Delete").In("Tea")` picks the one in the row, section or form named "Tea".
+- **`page.Shows("Product saved")`** · **`page.DoesNotShow("Loading…")`** — **wait** up to `page.Patience` (5 s) for
+  async work to land, so a page that loads in `OnMount` needs nothing extra. `.In("Products")` narrows the check.
+- **`page.IsAt("/products")`** — where the app navigated to.
+
+A lookup that finds nothing, or more than one thing, fails with a `PageException` that names what it did find:
+
+```
+No field is labelled "Title". The fields on the page are: name, stock, colour, Search.
+Clicking "Delete" found 2: … Say which with .In("…") — e.g. page.Click("Delete").In("Tea")
+Expected the page to show "Product saved" within 5s. It shows:
+  Loading…
+```
+
+### One component, and precise control
+
+`Test.Render` renders a single component instead of a URL, and the same verbs drive it. Underneath them sit
+lower-level calls for the cases the verbs don't reach — an event with a hand-made payload, a handler by id:
+
+- **`Test.Render(component, services?)`** → a `Page`. Pass an `IServiceProvider` when the
   component constructor-injects framework services or your own registrations.
 - **`Test.Render(factory, services?)`** — renders the component the factory returns, re-running the
   factory on **every** render so the tree is rebuilt from your current state. Reach for this whenever a
@@ -100,7 +127,7 @@ public async Task Clicking_increments()
 
   Re-read the list after every render, for the same reason a single id can't be cached.
 - **`Markup.Attr(html, name)`** / **`Markup.Attrs(html, name)`** — the same lookups over any HTML string you
-  hold, rather than over a `RenderedComponent` (e.g. markup lifted out of a live payload).
+  hold, rather than over a `Page` (e.g. markup lifted out of a live payload).
 
 ### Components that call JavaScript
 

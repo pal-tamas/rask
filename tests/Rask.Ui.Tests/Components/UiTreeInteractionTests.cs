@@ -41,7 +41,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
         return Regex.Replace(row.Groups[1].Value, "<[^>]+>", "").Trim();
     }
 
-    private static Task KeyAsync(RenderedComponent page, string key) =>
+    private static Task KeyAsync(Page page, string key) =>
         page.On("[role=\"tree\"]").RaiseAsync("keydown", $"{{\"key\":\"{key}\"}}");
 
     [Fact]

@@ -73,8 +73,8 @@ public partial class MarkupTests : global::Rask.Core.RaskMarkup
         Assert.Empty(page.Attrs("label"));
     }
 
-    // Markup works over any HTML string, not just a RenderedComponent — e.g. markup lifted out of a live
-    // payload, which is why it is public rather than folded into RenderedComponent.
+    // Markup works over any HTML string, not just a Page — e.g. markup lifted out of a live
+    // payload, which is why it is public rather than folded into Page.
     private const string Payload =
         "<div data-rask-on-click=\"h0\"><span id=\"a\" data-rask-on-click=\"h1\">x</span></div>";
 
