@@ -5058,7 +5058,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     ///     </para>
     ///     <para>
     ///         The hook set is read off the <c>Component</c> symbol rather than hard-coded — every virtual
-    ///         <c>On*</c> it declares — so adding a hook to the framework cannot silently leave a component
+    ///         <c>Task</c>-returning method it declares — so adding a hook to the framework cannot silently leave a component
     ///         uncommitted. <c>Element</c>-derived types are NOT exempt: <c>NavLink</c> is an Element and
     ///         overrides <c>Mount</c>.
     ///     </para>
@@ -5083,10 +5083,15 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             return true;
         }
 
+        // The hooks are exactly the virtual Task-returning methods Component declares — Mount, Updated,
+        // FirstRender, Rendered, Unmount. By SHAPE, not by name: the hooks used to share an `On` prefix, and
+        // when they lost it a name test quietly matched nothing, so no component was reported as having a
+        // lifecycle and a handle-less render skipped every Mount.
         var hooks = new HashSet<string>(StringComparer.Ordinal);
         foreach (var member in componentType.GetMembers())
         {
-            if (member is IMethodSymbol { IsVirtual: true } m && m.Name.StartsWith("On", StringComparison.Ordinal))
+            if (member is IMethodSymbol { IsVirtual: true, Parameters.Length: 0 } m
+                && m.ReturnType.ToDisplayString() == "System.Threading.Tasks.Task")
             {
                 hooks.Add(m.Name);
             }
