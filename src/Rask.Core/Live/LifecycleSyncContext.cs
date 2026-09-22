@@ -23,8 +23,15 @@ internal sealed class LifecycleSyncContext : SynchronizationContext
     // buys it.
     private readonly QuiescenceScope? _quiescence;
 
+    // A lifecycle hook — OnMountAsync, OnPropsChangedAsync — runs its synchronous part and
+    // every continuation under this context, so it is where a static call made from one finds the component
+    // it is cancelled with. Read on demand, rather than pushed per mount: most hooks are the empty default.
+    private static readonly Func<CancellationToken> HookToken = static () =>
+        Current is LifecycleSyncContext hook ? hook._component.LifetimeTokenInternal : default;
+
     public LifecycleSyncContext(Component component, QuiescenceScope? quiescence)
     {
+        Ambient.FallbackToken ??= HookToken;
         _component = component;
         _quiescence = quiescence;
     }

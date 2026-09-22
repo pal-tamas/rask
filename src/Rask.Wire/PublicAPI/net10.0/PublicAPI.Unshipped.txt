@@ -410,3 +410,5 @@ static Rask.Ambient.FallbackServices.get -> System.Func<System.IServiceProvider?
 static Rask.Ambient.FallbackServices.set -> void
 static Rask.Ambient.Or(System.Threading.CancellationToken token) -> System.Threading.CancellationToken
 static Rask.Ambient.Services.get -> System.IServiceProvider?
+static Rask.Ambient.FallbackToken.get -> System.Func<System.Threading.CancellationToken>?
+static Rask.Ambient.FallbackToken.set -> void

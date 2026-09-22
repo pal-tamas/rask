@@ -85,6 +85,41 @@ public partial class ComponentCancellationTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public async Task OnMountAsync_that_passes_no_token_is_still_cancelled_with_its_component()
+    {
+        // `await Cache.Remember(…)` in OnMountAsync passes no token; the ambient one has to be the
+        // component's, before the first await and after it.
+        var sp = RenderHarness.EmptyServices();
+        var afterAwait = new TaskCompletionSource<CancellationToken>();
+        CancellationToken beforeAwait = default;
+
+        var root = new Root();
+        var c = new CancellationProbe
+        {
+            OnMountAsyncImpl = async _ =>
+            {
+                beforeAwait = Ambient.CancellationToken;
+                await Task.Yield();
+                afterAwait.TrySetResult(Ambient.CancellationToken);
+            }
+        };
+
+        using (var ctx = LiveRenderContext.Begin(root, sp))
+        {
+            var resolved = ctx.GetOrCreate(_ => c);
+            ctx.NotifyParameters(resolved, true);
+        }
+
+        var after = await afterAwait.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal(c.Token, beforeAwait);
+        Assert.Equal(c.Token, after);
+        Assert.False(Ambient.CancellationToken.CanBeCanceled);   // nothing outside the hook
+
+        ComponentLifecycle.DisposeComponentTree(root);
+        Assert.True(after.IsCancellationRequested);
+    }
+
+    [Fact]
     public void CancellationToken_NeverAccessed_NoCtsAllocated()
     {
         var c = new CancellationProbe();

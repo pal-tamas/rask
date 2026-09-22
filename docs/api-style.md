@@ -33,22 +33,22 @@ the doc comment, where it can be stated properly, not smuggled into a noun.
 against mechanism, not against length, and `Queue`/`Store`/`ConnectionFactory` fail it because they
 describe how the thing is built rather than what it is for.
 
-### 2. The verb .NET already uses, not a nicer one
+### 2. A line reads as a sentence
 
-When the BCL has a word for the operation, that is the word — a reader who knows C# should not have to
-learn Rask's synonym for something they already do.
+Read the call site aloud. If it is not an English sentence, the name is wrong — however standard it is.
 
 ```csharp
-await cache.GetOrAddAsync("products", LoadProducts, ct);   // as ConcurrentDictionary / IMemoryCache
-await cache.RemoveAsync("products", ct);
+var products = await Cache.Remember("products", LoadProducts).For(10.Minutes);
+await Cache.Forget("products");
 ```
 
-not `RememberAsync` / `ForgetAsync`. Those read beautifully in isolation and cost every reader a
-translation step, forever, for one moment of charm.
+"Remember the products for ten minutes. Forget the products." Not `GetOrAddAsync`/`RemoveAsync`: those
+are what `ConcurrentDictionary` calls the operation, and a reader who knows them still has to translate
+"get or add" into what the line is *for*. The borrowed word stays where it already reads — `Get`, `Set`,
+`Send`, `Publish`, `Delete` — and gives way where it does not.
 
 **Unless it stutters against its own parameter.** `ILogs.QueryAsync(LogQuery query)` says "query" twice
-and its type a third time; `SearchAsync(LogQuery)` is what the operator at `/_rask` is actually doing.
-Plain English wins where the borrowed word has stopped carrying information.
+and its type a third time; `Search(LogQuery)` is what the operator at `/_rask` is actually doing.
 
 ### 3. One concept, one verb, everywhere
 
@@ -67,16 +67,22 @@ exception to it. The test is whether a caller could swap one for the other and b
 the opposite case: `IQueryClient.SendAsync` is the dispatcher's `SendAsync` plus the invalidation the
 command declares, so it keeps the verb — and `Command<T>`, the renderable form, sends with it too.
 
-### 4. Every awaitable ends in `Async` and takes a cancellation token
+### 4. Awaitables are awaited, not suffixed — and the token is ambient
 
 ```csharp
-Task<TResult> QueryAsync<TResult>(IQuery<TResult> query, CancellationToken cancellationToken = default);
+await Cache.Forget("products");
+await Product.Create(model);
 ```
 
-The suffix is the .NET convention every C# developer and analyzer already reads, and the token is
-always the **last** parameter, always defaulted. Defaulted so the common call site stays short; present
-so a background loop, a timeout or a shutdown drain has somewhere to put its lifetime. An awaitable
-method with no token is a method that cannot be cancelled — say so deliberately or don't ship it.
+`await` already says the call is asynchronous; `ForgetAsync` says it twice. A Rask method drops the suffix.
+The exceptions are the ones the compiler or the BCL impose — an override of `BackgroundService.ExecuteAsync`,
+an implementation of `IDistributedCache.GetAsync` — and a synchronous twin, which gets a *different word*,
+never a suffix.
+
+A cancellation token is still the **last** parameter and still defaulted, so a hosted service or a shutdown
+drain has somewhere to put its lifetime. But the call site that leaves it out is not uncancellable: it runs
+inside a handler, a render, a request or a job, and is cancelled with that work. `Ambient.Or(token)` is the
+one line an implementation writes to honour both.
 
 ### 5. At most one `Action<TOptions>?`, and it goes last
 
@@ -145,6 +151,34 @@ finds half the story.
 them makes every reader translate. Most apps never type them at all — [`RaskApp`](one-person-framework.md)
 wires the batteries — but the escape hatch obeys the same law as everything else.
 
+### 11. Values are literals
+
+```csharp
+await Task.Delay(3.Seconds);
+o.MaxFileSize = 50.Megabytes;
+var since = 3.Days.Ago;
+```
+
+Not `TimeSpan.FromSeconds(3)` or `50 * 1024 * 1024`. The literals are plain `TimeSpan`s and `long`s, so they
+go anywhere the .NET type does; a count of one takes the singular (`1.Hour`), and
+[RASK092](diagnostics.md#rask092) points out the slip.
+
+### 12. Timing is a step at the end
+
+```csharp
+await Cache.Remember("products", LoadProducts).For(10.Minutes);
+```
+
+`for:` and `in:` are C# keywords, so a duration cannot be a named argument that reads. It is a step on an
+awaitable that does nothing until it is awaited: `.For(…)`, `.Sliding(…)`, `.Until(…)`, `.In(…)`, `.At(…)`.
+
+### 13. Nothing to inject for the everyday call
+
+The batteries are reached through a static — `Cache.Remember(…)` — that finds the services of the work in
+progress, the way `Current.UserId` and `QueryClient.Query(…)` already do. Constructor injection still works,
+and reads the same (`cache.Remember(…)`); it is what code outside any work — a hosted service, a timer —
+uses, and what the static's error message tells you to write there.
+
 ## The vocabulary
 
 What the rules above settled, so a new package has one place to look rather than a precedent to guess at.
@@ -153,11 +187,12 @@ What the rules above settled, so a new package has one place to look rather than
 |---|---|---|
 | Transactional email | `IMail` | `SendAsync`, `ScheduleAsync` |
 | Background work | `IJobs` | `EnqueueAsync`, `ScheduleAsync` |
-| Cache | `ICache` | `GetAsync`, `SetAsync`, `GetOrAddAsync`, `RemoveAsync` |
+| Cache | `Cache` (static) / `ICache` | `Remember`, `Set`, `Get`, `Forget`; `.For`, `.Sliding`, `.Until` |
 | Mediator | `IDispatcher` | `QueryAsync`, `SendAsync`, `PublishAsync` |
 | Cached reads | `QueryClient` (static) / `IQueryClient` | `Query`, `SendAsync`, `Command`, `Invalidate` |
 | Durable log | `ILogs` | `SearchAsync` |
 | SQLite connections | `ISqlite` | `InImmediateTransactionAsync` |
+| Durations and sizes | `Units` (ambient) | `3.Seconds`, `1.Hour`, `50.Megabytes`, `3.Days.Ago`, `2.Hours.FromNow` |
 | Web Push | `IWebPush` | `SubscribeAsync` (browser), `SendAsync` (server) |
 
 `IWebPush` is deliberately one name on both sides of the wire, in two namespaces
@@ -203,6 +238,9 @@ unrecorded member, an entry with nothing behind it, and a deleted baseline each 
 a control that requires the clean tree to be green.
 
 ### Working with it
+
+Rules 2, 4, 11, 12 and 13 are newer than most of the surface, and it is being brought to them package by
+package; the vocabulary above lists what already obeys.
 
 Pre-1.0, everything lives in `PublicAPI.Unshipped.txt` and `PublicAPI.Shipped.txt` is empty. Nothing
 here is frozen yet, and saying otherwise in a filename would be a claim the project has not earned;

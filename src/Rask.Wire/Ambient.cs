@@ -29,15 +29,22 @@ public static class Ambient
     /// </summary>
     public static Func<IServiceProvider?>? FallbackServices { get; set; }
 
+    /// <summary>
+    ///     Where to look for a cancellation when nothing was pushed in this flow — the renderer registers the
+    ///     component whose lifecycle hook is running, which it already tracks without a write per mount.
+    /// </summary>
+    public static Func<CancellationToken>? FallbackToken { get; set; }
+
     /// <summary>The services of the work in progress, or null outside any.</summary>
     public static IServiceProvider? Services => PushedServices.Value ?? FallbackServices?.Invoke();
 
     /// <summary>The cancellation of the work in progress, or <see cref="CancellationToken.None" /> outside any.</summary>
-    public static CancellationToken CancellationToken => PushedToken.Value;
+    public static CancellationToken CancellationToken =>
+        PushedToken.Value is { CanBeCanceled: true } pushed ? pushed : FallbackToken?.Invoke() ?? default;
 
     /// <summary><paramref name="token" /> when the caller passed one, else the work in progress's.</summary>
     public static CancellationToken Or(CancellationToken token) =>
-        token.CanBeCanceled ? token : PushedToken.Value;
+        token.CanBeCanceled ? token : CancellationToken;
 
     /// <summary>Makes <paramref name="services" /> the work in progress's until the scope is disposed.</summary>
     public static ServicesScope Enter(IServiceProvider? services)
