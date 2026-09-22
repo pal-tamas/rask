@@ -36,7 +36,7 @@ public sealed partial class LifecycleProbe : Component
 
     protected override async Task OnUpdated() => _updated++;
 
-    protected override async Task OnFirstRender() => _firstRender++;
+    protected override async Task OnFirstRendered() => _firstRender++;
 
     protected override async Task OnRendered() => _rendered++;
 
@@ -56,7 +56,7 @@ public sealed partial class LifecycleProbe : Component
                 Row("OnMount (before its await)", Ran(_mountStarted)),
                 Row("OnMount (after a 450ms await)", _mountSettled ? "resolved" : "awaiting…"),
                 Row("OnUpdated", Ran(_updated)),
-                Row("OnFirstRender", Ran(_firstRender)),
+                Row("OnFirstRendered", Ran(_firstRender)),
                 Row("OnRendered", Ran(_rendered)),
                 Row("Button clicks", Ran(_clicks))
             ]

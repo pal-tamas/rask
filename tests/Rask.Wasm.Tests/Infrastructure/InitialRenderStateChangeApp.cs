@@ -10,7 +10,7 @@ namespace Rask.Wasm.Tests.Infrastructure;
 /// </summary>
 /// <remarks>
 ///     The two gates make the race deterministic instead of one-in-six. The mount continuation is held
-///     until <c>OnFirstRender</c>, which runs after the page HTML has already been materialised, so the
+///     until <c>OnFirstRendered</c>, which runs after the page HTML has already been materialised, so the
 ///     value it sets provably cannot reach the frame that was just built. The render pass is then held
 ///     until the continuation has called <see cref="Component.StateHasChanged" />, so the repaint
 ///     request provably arrives while the initial build is still in scope. Only another build can
@@ -45,7 +45,7 @@ internal sealed partial class InitialRenderStateChangeApp : Component, IDisposab
         _requested.Set();
     }
 
-    protected override Task OnFirstRender()
+    protected override Task OnFirstRendered()
     {
         _painted.Set();
         _requested.Wait(TimeSpan.FromSeconds(10));

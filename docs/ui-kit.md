@@ -417,7 +417,7 @@ UiSidebarToggle.For("app-nav").Collapsible(UiBreakpoint.Lg)
       private bool _rail;
 
       // After the first render, because storage lives in the browser. The hook repaints when it completes.
-      protected override async Task OnFirstRender() =>
+      protected override async Task OnFirstRendered() =>
           _rail = await storage.Local.GetAsync("sidebar-rail") == "1";
 
       protected override Component? Render() =>

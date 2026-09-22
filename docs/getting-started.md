@@ -443,7 +443,7 @@ Read **[the doctrine](one-person-framework.md)** for the why. Reference guides f
 - **Add more routes / layouts** → [routing](routing.md) — nested layouts, route/query params, `Navigator`.
 - **Load or save data** → [Rask.Data](data.md) — declare a model, read and write it off the type; or
   [plain EF Core](data-access.md) with a `DbContext` of your own.
-- **Run code on mount / after render** → [lifecycle](lifecycle.md) — `OnMount`, `OnUpdated`, `OnFirstRender`, `OnRendered`, `OnUnmount`.
+- **Run code on mount / after render** → [lifecycle](lifecycle.md) — `OnMount`, `OnUpdated`, `OnFirstRendered`, `OnRendered`, `OnUnmount`.
 - **Share state without prop-drilling** → [composition](composition.md) — context, callbacks, `VirtualizeModel`.
 - **Add a login** → [authentication](authentication.md) — cookie sessions and OIDC on Server and WASM.
 - **Test your components** → [testing](testing.md) — unit-testing components and rendered HTML.

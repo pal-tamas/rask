@@ -170,7 +170,7 @@ mistake, the rule notes the ID.
   or the initial GET — it would mid-render the page out from under itself. Load-time redirects belong
   in a route guard, not `Render()`. See [routing → Navigator](routing.md#programmatic-navigation--navigator).
 - **Put the right work in the right hook.** `OnMount` for a one-time load; `OnUpdated`
-  to reload when a route/query param changes; `OnFirstRender` / `OnRendered` for post-paint side effects (it's
+  to reload when a route/query param changes; `OnFirstRendered` / `OnRendered` for post-paint side effects (it's
   loop-safe — a re-render elsewhere won't refire it). Each `await` auto-re-renders, so mutate state
   after the await and it paints. See [lifecycle](lifecycle.md).
 - **A faulted async hook is silent** — the framework logs to `Console.Error` and does *not* re-render

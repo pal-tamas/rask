@@ -20,7 +20,7 @@ New to Rask entirely? Start with [getting started](getting-started.md).
 | `@key="x"` | `.Key(x)` — an ordinary chain step |
 | `OnInitialized` / `OnInitializedAsync` | `OnMount()` — one hook; the part before its first `await` is the synchronous half |
 | `OnParametersSet` / `OnParametersSetAsync` | `OnUpdated()` |
-| `OnAfterRender(firstRender)` / async | `OnFirstRender()` for the `firstRender` branch, `OnRendered()` for every render |
+| `OnAfterRender(firstRender)` / async | `OnFirstRendered()` for the `firstRender` branch, `OnRendered()` for every render |
 | `Dispose` / `DisposeAsync` | implement `IDisposable` / `IAsyncDisposable`; or use `OnUnmount()` |
 | `NavigationManager` | `Navigator` (event-handler-only) + `RouteState` (current path/params) |
 | `@page "/path"` | `[Route("/path")]` on the class — **Rask's `Route`, from `Rask.Core.Routing`**; Blazor's attribute of the same name leaves the page unregistered ([RASK071](diagnostics.md#rask071)) |

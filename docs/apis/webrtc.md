@@ -27,7 +27,7 @@ public sealed class Call(IWebRtc rtc) : Component, IAsyncDisposable
     private IPeerConnection? _conn;
     private IRtcDataChannel? _chat;
 
-    protected override async Task OnFirstRender()
+    protected override async Task OnFirstRendered()
     {
         _conn = await rtc.CreateAsync(new RtcConfiguration(), new RtcHandlers
         {

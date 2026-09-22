@@ -5083,8 +5083,8 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             return true;
         }
 
-        // The hooks are exactly the virtual Task-returning methods Component declares — Mount, Updated,
-        // FirstRender, Rendered, Unmount. By SHAPE, not by name: the hooks used to share an `On` prefix, and
+        // The hooks are exactly the virtual Task-returning methods Component declares — OnMount, OnUpdated,
+        // OnFirstRendered, OnRendered, OnUnmount. By SHAPE, not by name: the hooks used to share an `On` prefix, and
         // when they lost it a name test quietly matched nothing, so no component was reported as having a
         // lifecycle and a handle-less render skipped every Mount.
         var hooks = new HashSet<string>(StringComparer.Ordinal);

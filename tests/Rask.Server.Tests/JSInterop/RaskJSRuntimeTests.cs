@@ -15,7 +15,7 @@ public class RaskJSRuntimeTests
     [Fact]
     public async Task InvokeAsync_RoundTrip_QueuesInvokeAndCompletesTcs()
     {
-        // Component calls IJSRuntime.InvokeAsync<string> in FirstRender. Server queues
+        // Component calls IJSRuntime.InvokeAsync<string> in OnFirstRendered. Server queues
         // the invoke onto the next outbound frame. Test acts as the JS client: receives
         // jsInvokes, asserts shape, sends a jsResult back; the component's awaiting Task
         // resolves and posts the result into a publicly observable TCS.
@@ -223,7 +223,7 @@ internal sealed partial class JsRoundTripApp : Component
 
     protected override Component? Render() => Text.Value("ready");
 
-    protected override async Task OnFirstRender()
+    protected override async Task OnFirstRendered()
     {
         try
         {
@@ -291,7 +291,7 @@ internal sealed partial class JsErrorApp : Component
 
     protected override Component? Render() => Text.Value("ready");
 
-    protected override async Task OnFirstRender()
+    protected override async Task OnFirstRendered()
     {
         try
         {

@@ -77,7 +77,7 @@ public sealed partial class ThemeToggle(IBrowserStorage storage, INavigatorInfo 
 {
     private async Task Save() => await storage.Local.SetAsync("theme", "dark");
 
-    protected override async Task OnFirstRender()
+    protected override async Task OnFirstRendered()
     {
         var theme = await storage.Local.GetAsync("theme");   // string?, null if absent
         var online = await navigator.OnLineAsync();          // bool
@@ -212,9 +212,9 @@ private readonly ElementRef _host = ElementRef.New();   // a field — the id mu
 // A leaf: no children here, ever. The library owns everything inside it.
 protected override Component? Render() => Div.Ref(_host).Class("chart");
 
-// Mount the library in FirstRender, not Mount — Mount runs *before* the first render, so the element
-// doesn't exist yet and the ref would resolve to null. FirstRender runs once, so it never mounts twice.
-protected override async Task OnFirstRender()
+// Mount the library in OnFirstRendered, not OnMount — OnMount runs *before* the first render, so the element
+// doesn't exist yet and the ref would resolve to null. OnFirstRendered runs once, so it never mounts twice.
+protected override async Task OnFirstRendered()
 {
     await _js.InvokeVoidAsync("Rask.Chart.mount", _host, DataAsJson());
 }

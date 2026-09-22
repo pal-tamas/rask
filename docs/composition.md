@@ -87,7 +87,7 @@ Put it in the tree like any other child:
 Div.Class("host")[page]
 ```
 
-It gets the whole lifecycle — `OnMount`, `OnUpdated`, `OnFirstRender`, `OnRendered`, `OnUnmount` — and a handle to re-render
+It gets the whole lifecycle — `OnMount`, `OnUpdated`, `OnFirstRendered`, `OnRendered`, `OnUnmount` — and a handle to re-render
 through, exactly as a component a chain built does: the render walk notices an instance nothing registered and
 registers it under the component whose subtree it sits in. Several instances of one type under one parent each
 keep their own lifecycle.

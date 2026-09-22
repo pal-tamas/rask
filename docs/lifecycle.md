@@ -14,7 +14,7 @@ All five are `protected virtual` on `Component`:
 ```csharp
 protected override async Task OnMount()       => _items = await LoadItems();          // once, before the first render
 protected override async Task OnUpdated()     => _product = await Product.Find(Id);   // new props arrived (and on mount)
-protected override async Task OnFirstRender() => await _map.Init(_center);            // once, after the first render
+protected override async Task OnFirstRendered() => await _map.Init(_center);            // once, after the first render
 protected override async Task OnRendered()    => await _map.Refresh(_markers);        // after every render
 protected override async Task OnUnmount()     => await _socket.Close();               // once, on the way out
 ```
@@ -35,28 +35,28 @@ A hook with nothing to await is still written `async`; the compiler does not war
 
 ## Order
 
-| Hook          | When                                                                                               |
-|---------------|----------------------------------------------------------------------------------------------------|
-| `OnMount`       | **Once**, before the instance's first render.                                                      |
-| `OnUpdated`     | On the **first render**, and on any later render where a bound prop / route or query param **actually changed**. |
-| `OnFirstRender` | **Once**, after the first render is in the page — where browser work that needs the elements starts. |
-| `OnRendered`    | After **every** render, the first included (after `OnFirstRender`).                                  |
-| `OnUnmount`     | **Once**, on disposal (navigation away, parent subtree torn down, session teardown). Children unmount before parents (depth-first). |
+| Hook              | When |
+|-------------------|----------------------------------------------------------------------------------------------------|
+| `OnMount`         | **Once**, before the instance's first render. |
+| `OnUpdated`       | On the **first render**, and on any later render where a bound prop / route or query param **actually changed**. |
+| `OnFirstRendered` | **Once**, after the first render is in the page — where browser work that needs the elements starts. |
+| `OnRendered`      | After **every** render, the first included (after `OnFirstRendered`). |
+| `OnUnmount`       | **Once**, on disposal (navigation away, parent subtree torn down, session teardown). Children unmount before parents (depth-first). |
 
 So a component's life reads:
 
 ```
-first time:  Mount → Updated → Render → FirstRender → Rendered
-new props:   Updated → Render → Rendered
-own state:   Render → Rendered
-leaving:     Unmount   (its CancellationToken is cancelled right after)
+first time:  OnMount → OnUpdated → Render → OnFirstRendered → OnRendered
+new props:   OnUpdated → Render → OnRendered
+own state:   Render → OnRendered
+leaving:     OnUnmount   (its CancellationToken is cancelled right after)
 ```
 
 ### Live probe
 
 The component below counts every hook and re-renders so you can watch the order. **Trigger re-render** fires a
 bare event-handler render — note it re-runs `OnRendered` but does **not** re-fire `OnMount` / `OnUpdated` (nothing the
-component is bound to changed), and `OnFirstRender` stays at one:
+component is bound to changed), and `OnFirstRendered` stays at one:
 
 <!-- demo:lifecycle-hooks -->
 
@@ -155,7 +155,7 @@ protected override async Task OnMount()
 **`OnRendered` is loop-safe.** The terminal auto re-render is a *publish-only* walk: it does **not** re-fire
 `OnRendered` on components that have already rendered at least once. That's what keeps a `OnRendered` hook which awaits a
 next-frame side effect (e.g. drawing a chart, or a scoped-JS call) from looping on itself. Newly-mounted children on
-the same walk still get their `OnFirstRender` and `OnRendered`.
+the same walk still get their `OnFirstRendered` and `OnRendered`.
 
 ```csharp
 protected override async Task OnRendered() =>

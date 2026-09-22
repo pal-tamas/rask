@@ -19,7 +19,7 @@ internal sealed partial class LifecycleTrackingComponent : Component
     public int FirstRenderCount;
     private bool _firstRenderPending;
 
-    // One entry per Rendered call: true for the render FirstRender ran on.
+    // One entry per OnRendered call: true for the render OnFirstRendered ran on.
     public List<bool> RenderedFlags { get; } = new();
 
     protected override Task OnMount()
@@ -36,7 +36,7 @@ internal sealed partial class LifecycleTrackingComponent : Component
         return Task.CompletedTask;
     }
 
-    protected override Task OnFirstRender()
+    protected override Task OnFirstRendered()
     {
         FirstRenderCount++;
         _firstRenderPending = true;
