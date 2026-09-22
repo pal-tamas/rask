@@ -36,8 +36,8 @@ public partial class UnmountTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void DisposeComponentTree_CalledTwice_TearsDownOnlyOnce()
     {
-        // A tree mutation inside an OnUnmount hook could route the same node through a second
-        // dispose pass. The one-shot guard (Component.TryBeginDispose) must keep OnUnmount and
+        // A tree mutation inside a Unmount hook could route the same node through a second
+        // dispose pass. The one-shot guard (Component.TryBeginDispose) must keep Unmount and
         // the user's Dispose firing exactly once even when DisposeComponentTree is re-entered.
         var disposeCount = 0;
         var c = new CountingDisposable(() => disposeCount++);
@@ -67,9 +67,9 @@ public partial class UnmountTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void DisposeComponentTree_ChildClearedDuringParentUnmount_NotDisposedTwice()
     {
-        // The parent's OnUnmount mutates its own persisted children (a realistic teardown
+        // The parent's Unmount mutates its own persisted children (a realistic teardown
         // pattern). The child was already disposed bottom-up before the parent's hook ran, so
-        // re-touching it must not re-run its OnUnmount / Dispose — the guard absorbs it.
+        // re-touching it must not re-run its Unmount / Dispose — the guard absorbs it.
         var sp = RenderHarness.EmptyServices();
         var scope = sp.GetRequiredService<IServiceScopeFactory>().CreateScope();
         var childDisposeCount = 0;
@@ -90,7 +90,7 @@ public partial class UnmountTests : global::Rask.Core.RaskMarkup
     public void OnUnmount_DoesNotFire_IfNeverMounted()
     {
         // A component created but never reaching RaiseLifecycleBeforeRender must not receive
-        // an OnUnmount — symmetric with OnMount's _hasInitialized guard.
+        // a Unmount — symmetric with Mount's _hasInitialized guard.
         var c = new LifecycleTrackingComponent();
 
         ComponentLifecycle.DisposeComponentTree(c);
@@ -304,11 +304,15 @@ public partial class UnmountTests : global::Rask.Core.RaskMarkup
         public int UnmountCount;
         public CountingDisposable(Action onDispose) => _onDispose = onDispose;
         public void Dispose() => _onDispose();
-        protected override void OnUnmount() => UnmountCount++;
+        protected override Task Unmount()
+        {
+            UnmountCount++;
+            return Task.CompletedTask;
+        }
         protected override Component? Render() => Span;
     }
 
-    // Re-disposes its already-disposed child from its own OnUnmount, mimicking a teardown that
+    // Re-disposes its already-disposed child from its own Unmount, mimicking a teardown that
     // mutates the tree mid-unmount. The one-shot guard must absorb the second pass.
     private sealed class ClearChildrenOnUnmountHost : Component
     {
@@ -316,7 +320,11 @@ public partial class UnmountTests : global::Rask.Core.RaskMarkup
         public bool IncludeChild;
         public ClearChildrenOnUnmountHost(Component child) => _child = child;
 
-        protected override void OnUnmount() => ComponentLifecycle.DisposeComponentTree(_child);
+        protected override Task Unmount()
+        {
+            ComponentLifecycle.DisposeComponentTree(_child);
+            return Task.CompletedTask;
+        }
 
         protected override Component? Render()
         {
@@ -339,10 +347,11 @@ public partial class UnmountTests : global::Rask.Core.RaskMarkup
 
         public CancellationToken GrabToken() => CancellationToken;
 
-        protected override void OnUnmount()
+        protected override Task Unmount()
         {
             UnmountFired = true;
             WasCancelledAtUnmount = CancellationToken.IsCancellationRequested;
+            return Task.CompletedTask;
         }
 
         protected override Component? Render() => Span;
@@ -353,7 +362,11 @@ public partial class UnmountTests : global::Rask.Core.RaskMarkup
         private readonly List<string> _order;
         public UnmountThenDisposable(List<string> order) => _order = order;
         public void Dispose() => _order.Add("dispose");
-        protected override void OnUnmount() => _order.Add("unmount");
+        protected override Task Unmount()
+        {
+            _order.Add("unmount");
+            return Task.CompletedTask;
+        }
         protected override Component? Render() => Span;
     }
 
@@ -368,7 +381,11 @@ public partial class UnmountTests : global::Rask.Core.RaskMarkup
             _name = name;
         }
 
-        protected override void OnUnmount() => _order.Add(_name);
+        protected override Task Unmount()
+        {
+            _order.Add(_name);
+            return Task.CompletedTask;
+        }
         protected override Component? Render() => Span;
     }
 
@@ -385,7 +402,11 @@ public partial class UnmountTests : global::Rask.Core.RaskMarkup
             _child = child;
         }
 
-        protected override void OnUnmount() => _order.Add(_name);
+        protected override Task Unmount()
+        {
+            _order.Add(_name);
+            return Task.CompletedTask;
+        }
 
         protected override Component? Render()
         {
@@ -449,10 +470,17 @@ public partial class UnmountTests : global::Rask.Core.RaskMarkup
         private readonly List<string> _order;
         public HybridCleanup(List<string> order) => _order = order;
 
-        protected override void OnMount() =>
+        protected override Task Mount()
+        {
             CancellationToken.Register(() => _order.Add("cancel-callback"));
+            return Task.CompletedTask;
+        }
 
-        protected override void OnUnmount() => _order.Add("unmount");
+        protected override Task Unmount()
+        {
+            _order.Add("unmount");
+            return Task.CompletedTask;
+        }
 
         protected override Component? Render() => Span;
     }

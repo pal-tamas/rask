@@ -25,7 +25,7 @@ public sealed partial class WeatherCard(HttpClient http) : Component
     public string City { get; set; }
 #pragma warning restore CS8618
 
-    protected override async Task OnMountAsync() =>
+    protected override async Task Mount() =>
         _forecast = await http.GetFromJsonAsync(
             $"data/weather-{City.ToLowerInvariant()}.json",
             WeatherJsonContext.Default.Forecast,

@@ -67,16 +67,17 @@ internal sealed partial class DevToolsTreeTab : Component
     protected override bool BypassRenderCache => true;
 
     /// <inheritdoc />
-    protected override void OnMount()
+    protected override Task Mount()
     {
         _gate = new DevToolsRefreshGate(StateHasChanged, CancellationToken);
         _following = Feed;
         _watch = Feed.WatchTree();
         _following.Changed += OnFeedChanged;
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc />
-    protected override void OnUnmount()
+    protected override Task Unmount()
     {
         if (_following is { } feed)
         {
@@ -87,6 +88,7 @@ internal sealed partial class DevToolsTreeTab : Component
         // Giving the watch back is what stops the page paying for a snapshot nobody reads.
         _watch?.Dispose();
         _watch = null;
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc />

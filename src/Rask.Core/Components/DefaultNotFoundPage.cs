@@ -12,30 +12,32 @@ namespace Rask.Core.Components;
 public sealed class DefaultNotFoundPage : Component
 {
     // Cached at mount because LiveRenderContext.Current is null during disposal, so
-    // OnUnmount can't re-resolve RouteState from the render scope.
+    // Unmount can't re-resolve RouteState from the render scope.
     private RouteState? _route;
 
-    protected override void OnMount()
+    protected override Task Mount()
     {
         // Re-render when the route changes so the displayed missing-path stays accurate
         // for in-session navigations into other unknown routes.
         _route = LiveRenderContext.Current?.Services?.GetService<RouteState>();
         if (_route is null)
         {
-            return;
+            return Task.CompletedTask;
         }
 
         _route.Changed += StateHasChanged;
+        return Task.CompletedTask;
     }
 
-    protected override void OnUnmount()
+    protected override Task Unmount()
     {
         if (_route is null)
         {
-            return;
+            return Task.CompletedTask;
         }
 
         _route.Changed -= StateHasChanged;
+        return Task.CompletedTask;
     }
 
     protected override Component? Render()

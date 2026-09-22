@@ -19,7 +19,7 @@ public class QuiescentRenderTests
             {
                 if (!ready)
                 {
-                    // What OnMountAsync does: start work, render the placeholder meanwhile.
+                    // What Mount does: start work, render the placeholder meanwhile.
                     QuiescenceScope.Current!.TrackExternal(Settle(gate, () => ready = true));
                     return "loading";
                 }

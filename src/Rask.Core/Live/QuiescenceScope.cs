@@ -6,10 +6,10 @@ namespace Rask.Core.Live;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         <c>OnMountAsync</c> is deliberately fire-and-forget: the render walk starts it, keeps
+///         <c>Mount</c> is deliberately fire-and-forget: the render walk starts it, keeps
 ///         walking, and the continuation paints later over the live connection. That is right once
 ///         a socket exists and wrong for the first response, where "later" is after the bytes have
-///         already gone — which is why a page that loads its data in <c>OnMountAsync</c> serves its
+///         already gone — which is why a page that loads its data in <c>Mount</c> serves its
 ///         placeholder to the first paint and to every crawler.
 ///     </para>
 ///     <para>

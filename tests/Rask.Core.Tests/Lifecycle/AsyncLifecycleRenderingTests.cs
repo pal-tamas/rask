@@ -37,7 +37,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
         // the LifecycleSyncContext.Post path AND the terminal ContinueWith both used
         // to fire StateHasChanged back-to-back — observable on the lifecycle showcase
         // page as the Render #N badge jumping from #1 to #3 instead of #1 to #2 after
-        // OnMountAsync's await completed. Post sets PostFired before launching its
+        // Mount's await completed. Post sets PostFired before launching its
         // Task.Run, so the terminal callback (which fires synchronously from inside
         // d(state) when the user method's last statement is an await) reads the flag
         // and short-circuits.
@@ -105,7 +105,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
     public async Task OnRenderedAsync_AwaitCompletes_TriggersRerender()
     {
         // OnRenderedAsync auto-rerenders on continuation completion — same ergonomics
-        // as OnMountAsync, so users can `_x = await ...;` without calling
+        // as Mount, so users can `_x = await ...;` without calling
         // StateHasChanged. The continuation routes through RequestPublishRenderAsync
         // so the resulting walk is loop-safe (already-rendered components skip the
         // hook).
@@ -181,13 +181,8 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
     {
         public TaskCompletionSource Gate { get; } = new();
 
-        protected override async Task OnRenderedAsync(bool firstRender)
+        protected override async Task FirstRender()
         {
-            if (!firstRender)
-            {
-                return;
-            }
-
             await Gate.Task;
         }
 
@@ -204,13 +199,13 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
             prev.TrySetResult();
         }
 
-        protected override Task OnRenderedAsync(bool firstRender) => _gate.Task;
+        protected override Task Rendered() => _gate.Task;
 
         protected override Component? Render() => Span[Text.Value("probe")];
     }
 
     // Two-component probe wired into one render tree. A and B each have their own
-    // unguarded OnRenderedAsync await. Calls to ReleaseAll complete both gates so
+    // unguarded Rendered await. Calls to ReleaseAll complete both gates so
     // both continuations fire, exercising the multi-component cascade path.
     private sealed class MultiAwaitProbe : Component
     {
@@ -227,13 +222,22 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
 
         protected override Component? Render() => Div[_a, _b];
 
-        protected override Task OnRenderedAsync(bool firstRender)
+        private bool _firstPending;
+
+        // Tally hook re-entries on the root too — if the publishOnly walk is broken, these counters peg at
+        // hundreds. A counts the first render, B every render after it.
+        protected override Task FirstRender()
         {
-            // Tally hook re-entries on the root too — if the publishOnly walk is broken,
-            // this counter pegs at hundreds.
-            if (firstRender)
+            AOnRenderedCount++;
+            _firstPending = true;
+            return Task.CompletedTask;
+        }
+
+        protected override Task Rendered()
+        {
+            if (_firstPending)
             {
-                AOnRenderedCount++;
+                _firstPending = false;
             }
             else
             {
@@ -251,7 +255,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
         public TaskCompletionSource Step2 { get; } = new();
         public TaskCompletionSource Done { get; } = new();
 
-        protected override async Task OnMountAsync()
+        protected override async Task Mount()
         {
             Started.TrySetResult();
             await Task.Yield();
@@ -266,7 +270,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
 
     private sealed class SyncCompletingComponent : Component
     {
-        protected override Task OnMountAsync() => Task.CompletedTask;
+        protected override Task Mount() => Task.CompletedTask;
         protected override Component? Render() => this;
     }
 
@@ -274,7 +278,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
     {
         public TaskCompletionSource Done { get; } = new();
 
-        protected override async Task OnMountAsync()
+        protected override async Task Mount()
         {
             await Task.Yield();
             Done.TrySetResult();
@@ -287,7 +291,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
     {
         public TaskCompletionSource Done { get; } = new();
 
-        protected override async Task OnMountAsync()
+        protected override async Task Mount()
         {
             await Task.Delay(1).ConfigureAwait(false);
             Done.TrySetResult();

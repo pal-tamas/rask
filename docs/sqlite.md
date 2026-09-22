@@ -930,7 +930,7 @@ Three limits, stated plainly because each one is a silent failure rather than an
   Inject `BrowserSqliteOwnership` and say so:
 
   ```csharp
-  protected override async Task OnMountAsync() => _isOwner = await ownership.Resolved;
+  protected override async Task Mount() => _isOwner = await ownership.Resolved;
   // ownership.IsOwner is null while the election is in flight, so "deciding" and
   // "not the owner" stay distinguishable and the banner never flashes during a normal boot.
   ```

@@ -35,7 +35,7 @@ Div.Class("panel")[
 > **For a component, `Key` also decides which instance is reused.**
 > A keyed component is identified by its key rather than by its position among its siblings, which
 > is what keeps the state it holds *itself* — a private field, an edit buffer, an open/closed
-> toggle, a subscription taken in `OnMount` — with the item rather than with the slot when the list
+> toggle, a subscription taken in `Mount` — with the item rather than with the slot when the list
 > changes shape. Where on the chain you write it does not matter: steps written before `Key` are
 > carried onto the instance the key keeps.
 >
@@ -81,25 +81,20 @@ until runtime:
 var page = (Component)ActivatorUtilities.CreateInstance(services, pluginType);
 ```
 
-Such an instance renders correctly if you drop it straight into a tree, but nothing has adopted it: it
-is invisible to the alive-set walk, so **no lifecycle hook ever runs** — no `OnMount`, no
-`OnMountAsync`, no `OnRendered`, no `OnUnmount` — and it has no handle to re-render through when an
-async hook completes. A component that loads its data in `OnMountAsync` then sits on its placeholder
-forever, and nothing is reported.
-
-Wrap it in **`Mount`** and it behaves like any other child:
+Put it in the tree like any other child:
 
 ```csharp
-Div.Class("host")[Mount.Child(page)]
+Div.Class("host")[page]
 ```
 
-`Mount` renders the child in place and adds no markup of its own. Passing a component that *did* come
-from a chain is harmless — it has already been adopted, and `Mount` is then a no-op.
+It gets the whole lifecycle — `Mount`, `Updated`, `FirstRender`, `Rendered`, `Unmount` — and a handle to re-render
+through, exactly as a component a chain built does: the render walk notices an instance nothing registered and
+registers it under the component whose subtree it sits in. Several instances of one type under one parent each
+keep their own lifecycle.
 
-> You only need this for instances you constructed yourself. `Div[Span["hi"]]` and every other
-> chain is already adopted. Note that constructing a component with `new` outside the framework
-> is a compile error ([RASK014](diagnostics.md#rask014)) — reflection-built instances are exactly the
-> case this exists for.
+> Constructing a component with `new` outside the framework is a compile error
+> ([RASK014](diagnostics.md#rask014)) — a type you can name, you build through its chain. Reflection-built
+> instances, whose type the compiler never sees, are the case this is for.
 
 ---
 
@@ -175,5 +170,5 @@ a stateful component when you need mutable local state.
 
 ---
 
-See also: [Lifecycle](lifecycle.md) for when `OnPropsChanged` refires, and
+See also: [Lifecycle](lifecycle.md) for when `Updated` refires, and
 [JS interop](js-interop.md) for element refs and scoped JS.

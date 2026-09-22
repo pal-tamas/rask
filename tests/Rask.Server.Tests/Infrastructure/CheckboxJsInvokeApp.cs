@@ -14,8 +14,8 @@ public sealed partial class CheckboxJsInvokeApp(IJSRuntime js) : Component
 {
     private readonly Model _m = new();
 
-    protected override async Task OnRenderedAsync(bool firstRender) =>
-        await js.InvokeVoidAsync("test.noop", firstRender);
+    protected override async Task Rendered() =>
+        await js.InvokeVoidAsync("test.noop");
 
     protected override Component? HeadAssets => new Title()["checkbox"];
     protected override string? HtmlLang => null;

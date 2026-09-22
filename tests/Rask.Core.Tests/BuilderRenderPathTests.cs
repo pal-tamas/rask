@@ -57,7 +57,7 @@ internal sealed partial class HeadEntryHost : Component
     protected override Component? Render() => Div[Leaf = HeadEntryLeaf.Word(Seed)];
 }
 
-// A child whose OnMount builds a component. Under the factory that hook fires from inside the parent's
+// A child whose Mount builds a component. Under the factory that hook fires from inside the parent's
 // Render(); under the entries it fires from the parent's deferred commit, i.e. while the parent is
 // walking its own child map — and building anything writes to that very map.
 [global::Rask.Core.RaskMarkup]
@@ -67,7 +67,11 @@ internal sealed partial class MountBuildsLeaf : Component
 
     internal Component? Built;
 
-    protected override void OnMount() => Built = Span.Id("from-mount");
+    protected override Task Mount()
+    {
+        Built = Span.Id("from-mount");
+        return Task.CompletedTask;
+    }
 
     protected override Component? Render() => Em[Word ?? ""];
 }

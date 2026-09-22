@@ -15,43 +15,30 @@ namespace Rask.Site.Features;
 public sealed partial class LifecycleProbe : Component
 {
     private int _clicks;
-    private bool _sawFirstRender;
-    private int _onMount;
-    private int _onMountAsyncStarted;
-    private bool _onMountAsyncSettled;
-    private int _onPropsChanged;
-    private int _onPropsChangedAsync;
-    private int _onRendered;
+    private int _mountStarted;
+    private bool _mountSettled;
+    private int _updated;
+    private int _firstRender;
+    private int _rendered;
     private int _renderCount;
 
-    protected override void OnMount() => _onMount++;
-
-    protected override async Task OnMountAsync()
+    // One hook, two moments: the line above the await runs before the first paint, the line below it
+    // 450ms later — and the component paints again on its own when it does.
+    protected override async Task Mount()
     {
-        _onMountAsyncStarted++;
+        _mountStarted++;
         await Task.Delay(450);
 
         // Flips a flag the row already on screen reads. Appending a line here instead is what used to
         // grow the list by an <li> and a <code>, 450ms after the first paint.
-        _onMountAsyncSettled = true;
+        _mountSettled = true;
     }
 
-    protected override void OnPropsChanged() => _onPropsChanged++;
+    protected override async Task Updated() => _updated++;
 
-    protected override Task OnPropsChangedAsync()
-    {
-        _onPropsChangedAsync++;
-        return Task.CompletedTask;
-    }
+    protected override async Task FirstRender() => _firstRender++;
 
-    protected override void OnRendered(bool firstRender)
-    {
-        _onRendered++;
-
-        // Latched, not overwritten. `firstRender` is true exactly once, and what a reader wants to know
-        // is that the framework reported it -- which a "last value" would erase on the very next render.
-        _sawFirstRender |= firstRender;
-    }
+    protected override async Task Rendered() => _rendered++;
 
     protected override Component? Render() =>
         [
@@ -66,14 +53,11 @@ public sealed partial class LifecycleProbe : Component
             ],
             H3.Class("text-base font-semibold text-ui-muted uppercase text-sm")["Hook log"],
             UiList.Ordered(true)[
-                Row("OnMount", Ran(_onMount)),
-                Row("OnMountAsync (start)", Ran(_onMountAsyncStarted)),
-                Row("OnMountAsync (after 450ms await)", _onMountAsyncSettled ? "resolved" : "awaiting…"),
-                Row("OnPropsChanged", Ran(_onPropsChanged)),
-                Row("OnPropsChangedAsync", Ran(_onPropsChangedAsync)),
-                Row("OnRendered", _onRendered == 0
-                    ? "not yet"
-                    : $"{Ran(_onRendered)}, firstRender: {(_sawFirstRender ? "true" : "false")} on the first"),
+                Row("Mount (before its await)", Ran(_mountStarted)),
+                Row("Mount (after a 450ms await)", _mountSettled ? "resolved" : "awaiting…"),
+                Row("Updated", Ran(_updated)),
+                Row("FirstRender", Ran(_firstRender)),
+                Row("Rendered", Ran(_rendered)),
                 Row("Button clicks", Ran(_clicks))
             ]
         ];

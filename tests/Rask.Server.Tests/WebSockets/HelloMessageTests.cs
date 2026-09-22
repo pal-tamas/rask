@@ -52,7 +52,7 @@ public class HelloMessageTests
         // StateHasChanged WAS issued during the GET→hello handoff window, the hello-time render
         // must emit so the browser picks up the post-GET state.
         //
-        // The window used to be opened by an OnMountAsync continuation. It no longer can be — the
+        // The window used to be opened by a Mount continuation. It no longer can be — the
         // GET awaits that work now and serves the result, which is the whole point of quiescence.
         // So the window is opened here the way it still genuinely occurs in production: work the
         // GET deliberately does NOT wait for, detached from the hook and pushing later. Rask's own
@@ -63,7 +63,7 @@ public class HelloMessageTests
         using var host = RaskTestHost.Create<DetachedPushApp>();
         var sessionId = MarkupAssert.SessionId(await host.Http.GetStringAsync("/start"));
 
-        // Let MountAsyncApp's OnMountAsync await complete before opening the socket.
+        // Let MountAsyncApp's Mount await complete before opening the socket.
         // The continuation calls StateHasChanged with no socket attached, setting the
         // session's pending-render flag.
         await DetachedPushApp.Pushed.Task.WaitAsync(TimeSpan.FromSeconds(2));
@@ -142,11 +142,11 @@ public class HelloMessageTests
         Assert.Equal(WebSocketState.Open, ws.State);
     }
 
-    // Component whose OnMountAsync flips state via StateHasChanged shortly after the GET
+    // Component whose Mount flips state via StateHasChanged shortly after the GET
     // render completes — exercises the "drop happened before hello" branch of
     // FlushPendingRenderAsync.
 #pragma warning disable RASK019 // test-helper Components predate framework-managed <head>
-    // Pushes state AFTER the response, from work detached from the lifecycle hook. OnMountAsync
+    // Pushes state AFTER the response, from work detached from the lifecycle hook. Mount
     // returns immediately, so the GET's quiescence wait settles at once and serves "loading"; the
     // detached continuation then lands in the GET→hello window with no socket attached.
     private sealed class DetachedPushApp : Component
@@ -156,7 +156,7 @@ public class HelloMessageTests
 
         private bool _loaded;
 
-        protected override Task OnMountAsync()
+        protected override Task Mount()
         {
             _ = Task.Run(async () =>
             {

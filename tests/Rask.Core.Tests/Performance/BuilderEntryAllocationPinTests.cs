@@ -206,8 +206,9 @@ internal sealed partial class AllocHeadEntryProbe : Component
 // hide inside the harness noise.
 internal sealed partial class AllocLifecycleLeaf : Component
 {
-    protected override void OnMount()
+    protected override Task Mount()
     {
+        return Task.CompletedTask;
     }
 
     protected override Component? Render() => Span["leaf"];

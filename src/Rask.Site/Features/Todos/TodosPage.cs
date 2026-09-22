@@ -51,7 +51,7 @@ public sealed partial class TodosPage : Component
     // same cached page instance (the framework OR's path change into propsChanged inside
     // RouteChainRenderer). Bare re-renders triggered by event handlers don't refire it,
     // so typing in the dialog input won't clobber what the user just typed.
-    protected override void OnPropsChanged() => _form.Title = EditingItem?.Title ?? "";
+    protected override async Task Updated() => _form.Title = EditingItem?.Title ?? "";
 
     // The list route has a generated type-safe URL; the /new and /{id}/edit dialog routes are secondary
     // [Route] templates on this same page, and the generator emits no formatter for those — so they are
@@ -149,7 +149,7 @@ public sealed partial class TodosPage : Component
                 .Title("Source")
                 .Notes("The whole CRUD screen above, verbatim — page, dialog component, and model in one file. " +
                 "Three [Route] attributes drive the dialog: /todos lists, /todos/new opens add, " +
-                "/todos/{id:guid}/edit opens edit. OnPropsChanged seeds the form from the route so browser " +
+                "/todos/{id:guid}/edit opens edit. Updated seeds the form from the route so browser " +
                 "Back closes the dialog and deep links open it, without clobbering in-progress typing."),
             // A dialog driven by the route: Open follows ShowDialog, and
             // Escape / backdrop-click / the header close button all route back to /todos via OnCancel.

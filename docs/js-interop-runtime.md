@@ -17,8 +17,8 @@ public sealed partial class CodeSample : Component
     private readonly IJSRuntime _js;
     public CodeSample(IJSRuntime js) => _js = js;
 
-    protected override async Task OnRenderedAsync(bool firstRender) =>
-        await _js.InvokeVoidAsync("Rask.CodeSample.rendered", firstRender);
+    protected override async Task Rendered() =>
+        await _js.InvokeVoidAsync("Rask.CodeSample.rendered");
 }
 ```
 
@@ -77,13 +77,10 @@ public sealed partial class ThemeToggle(IBrowserStorage storage, INavigatorInfo 
 {
     private async Task Save() => await storage.Local.SetAsync("theme", "dark");
 
-    protected override async Task OnRenderedAsync(bool firstRender)
+    protected override async Task FirstRender()
     {
-        if (firstRender)
-        {
-            var theme = await storage.Local.GetAsync("theme");   // string?, null if absent
-            var online = await navigator.OnLineAsync();          // bool
-        }
+        var theme = await storage.Local.GetAsync("theme");   // string?, null if absent
+        var online = await navigator.OnLineAsync();          // bool
     }
 }
 ```
@@ -215,19 +212,18 @@ private readonly ElementRef _host = ElementRef.New();   // a field — the id mu
 // A leaf: no children here, ever. The library owns everything inside it.
 protected override Component? Render() => Div.Ref(_host).Class("chart");
 
-// Mount in OnRendered, not OnMount — OnMount runs *before* the first render, so the element doesn't
-// exist yet and the ref would resolve to null. firstRender guards against re-mounting.
-protected override async Task OnRenderedAsync(bool firstRender)
+// Mount the library in FirstRender, not Mount — Mount runs *before* the first render, so the element
+// doesn't exist yet and the ref would resolve to null. FirstRender runs once, so it never mounts twice.
+protected override async Task FirstRender()
 {
-    if (!firstRender) return;
     await _js.InvokeVoidAsync("Rask.Chart.mount", _host, DataAsJson());
 }
 
 // Fires only on a real prop change — push new data at the library instead of re-mounting it.
-protected override async Task OnPropsChangedAsync() => await _js.InvokeVoidAsync("Rask.Chart.update", _host, DataAsJson());
+protected override async Task Updated() => await _js.InvokeVoidAsync("Rask.Chart.update", _host, DataAsJson());
 
 // Sync and fire-and-forget — see the note below on why this must not be an awaited DisposeAsync.
-protected override void OnUnmount() => _ = DestroyQuietlyAsync();
+protected override async Task Unmount() => _ = DestroyQuietlyAsync();
 ```
 
 There is one exception to "the diff can't reach it", and it is not optional. Not every frame is a diff:
@@ -264,7 +260,7 @@ that take **one** argument (bundle extras into a record): the generated chain st
 delegates for auto-re-render, so a two-arg callback silently leaves the caller reaching for
 `StateHasChanged()`.
 
-Finally, tear down from `OnUnmount` **without awaiting** the interop call. An `IAsyncDisposable`
+Finally, tear down from `Unmount` **without awaiting** the interop call. An `IAsyncDisposable`
 component is awaited by the framework's dispose walk, and that walk also runs for a session whose socket
 has already closed — where an interop call has nobody to answer it and never completes.
 

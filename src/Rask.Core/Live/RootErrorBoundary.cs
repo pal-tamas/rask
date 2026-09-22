@@ -77,8 +77,8 @@ internal sealed class RootErrorBoundary : Component
 
         // App used to be the live root, where RenderAsLiveRootCore fires lifecycle directly
         // via RaiseLifecycleBeforeRender(false). Now that the wrapper is the root, the App
-        // is a child — NotifyParameters here replicates the same call so OnMount /
-        // OnPropsChanged still fire on the App exactly as they used to.
+        // is a child — NotifyParameters here replicates the same call so Mount /
+        // Updated still fire on the App exactly as they used to.
         ctx.NotifyParameters(inner, false);
 
         // The second parameter is the boundary's Recover, and it used to be discarded. Forwarding it

@@ -30,7 +30,11 @@ public sealed partial class BroadcastApp : Component
     protected override Component? HeadAssets => new Title()["broadcast"];
     protected override string? HtmlLang => null;
 
-    protected override void OnMount() => _broadcast.Subscribe(this, Headlines, headline => _seen.Add(headline));
+    protected override Task Mount()
+    {
+        _broadcast.Subscribe(this, Headlines, headline => _seen.Add(headline));
+        return Task.CompletedTask;
+    }
 
     protected override Component? Render()
     {

@@ -78,10 +78,18 @@ public sealed class Router : Component
     protected override bool BypassRenderCache => true;
 
     // Subscribe to RouteState.Changed so Render() re-executes on every nav and the
-    // route chain reflects the new path/query. Unsubscribe in OnUnmount.
-    protected override void OnMount() => _state.Changed += StateHasChanged;
+    // route chain reflects the new path/query. Unsubscribe in Unmount.
+    protected override Task Mount()
+    {
+        _state.Changed += StateHasChanged;
+        return Task.CompletedTask;
+    }
 
-    protected override void OnUnmount() => _state.Changed -= StateHasChanged;
+    protected override Task Unmount()
+    {
+        _state.Changed -= StateHasChanged;
+        return Task.CompletedTask;
+    }
 
     protected override Component? Render()
     {

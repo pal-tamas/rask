@@ -27,10 +27,8 @@ public sealed class Call(IWebRtc rtc) : Component, IAsyncDisposable
     private IPeerConnection? _conn;
     private IRtcDataChannel? _chat;
 
-    protected override async Task OnRenderedAsync(bool first)
+    protected override async Task FirstRender()
     {
-        if (!first) return;
-
         _conn = await rtc.CreateAsync(new RtcConfiguration(), new RtcHandlers
         {
             OnIceCandidates = async cands => { foreach (var c in cands) await Signal(c); },

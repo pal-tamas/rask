@@ -6,9 +6,9 @@ using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.Endpoints;
 
-// OnMountAsync is fire-and-forget: the walk starts it, keeps walking, and the continuation paints
+// Mount is fire-and-forget: the walk starts it, keeps walking, and the continuation paints
 // later over the live connection. Right once a socket exists, wrong for the first response — where
-// "later" is after the bytes have gone. So a page that loads its data in OnMountAsync served its
+// "later" is after the bytes have gone. So a page that loads its data in Mount served its
 // placeholder as the first paint and as the whole document every crawler saw.
 public class QuiescentRenderTests
 {
@@ -110,7 +110,7 @@ public sealed partial class AsyncDataApp : Component
 
     protected override Component? HeadAssets => Title["async-data"];
 
-    protected override async Task OnMountAsync()
+    protected override async Task Mount()
     {
         await Task.Delay(20);
         _forecast = "forecast-loaded";
@@ -125,13 +125,13 @@ public sealed partial class NestedAsyncDataApp : Component
 
     protected override Component? HeadAssets => Title["nested-async-data"];
 
-    protected override async Task OnMountAsync()
+    protected override async Task Mount()
     {
         await Task.Delay(20);
         _ready = true;
     }
 
-    // The child only exists once the parent's data lands, so its own OnMountAsync cannot even
+    // The child only exists once the parent's data lands, so its own Mount cannot even
     // start until the second wave.
     protected override Component? Render() =>
         _ready ? Div[AsyncChild] : Div["parent-loading"];
@@ -141,7 +141,7 @@ public sealed partial class AsyncChild : Component
 {
     private string? _value;
 
-    protected override async Task OnMountAsync()
+    protected override async Task Mount()
     {
         await Task.Delay(20);
         _value = "child-loaded";
@@ -158,7 +158,7 @@ public sealed partial class NestedConfigureAwaitApp : Component
 
     // Every await here is ConfigureAwait(false), so nothing is ever posted back to the lifecycle sync
     // context and the terminal continuation is the only thing that can request the repaint.
-    protected override async Task OnMountAsync()
+    protected override async Task Mount()
     {
         await Task.Delay(20).ConfigureAwait(false);
         _ready = true;
@@ -174,7 +174,7 @@ public sealed partial class ConfigureAwaitChild : Component
 
     // The NESTED hook is what pins the fix: the root is force-dirtied every wave, so only a child
     // depends on its own StateHasChanged having run before the loop looks again.
-    protected override async Task OnMountAsync()
+    protected override async Task Mount()
     {
         await Task.Delay(20).ConfigureAwait(false);
         _value = "ca-child-loaded";
@@ -189,7 +189,7 @@ public sealed partial class NeverSettlesApp : Component
 
     protected override Component? HeadAssets => Title["never-settles"];
 
-    protected override async Task OnMountAsync()
+    protected override async Task Mount()
     {
         await new TaskCompletionSource().Task;
         _value = "never";
@@ -203,7 +203,7 @@ public sealed partial class JsInteropOnMountApp(IJSRuntime js) : Component
     protected override Component? HeadAssets => Title["js-on-mount"];
 
     // Never completes during the GET: the call is queued for a frame that has no client yet.
-    protected override async Task OnMountAsync() =>
+    protected override async Task Mount() =>
         await js.InvokeAsync<string>("sessionStorage.getItem", "token");
 
     protected override Component? Render() => Div["content"];

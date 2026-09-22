@@ -52,15 +52,16 @@ internal sealed partial class DevToolsRendersTab : Component
     protected override bool BypassRenderCache => true;
 
     /// <inheritdoc />
-    protected override void OnMount()
+    protected override Task Mount()
     {
         _gate = new DevToolsRefreshGate(StateHasChanged, CancellationToken);
         _following = Feed;
         _following.Changed += OnFeedChanged;
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc />
-    protected override void OnUnmount()
+    protected override Task Unmount()
     {
         // The feed outlives the panel; a handler left on it would keep this tab and its session alive.
         if (_following is { } feed)
@@ -68,6 +69,7 @@ internal sealed partial class DevToolsRendersTab : Component
             feed.Changed -= OnFeedChanged;
             _following = null;
         }
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc />

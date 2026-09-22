@@ -18,10 +18,10 @@ New to Rask entirely? Start with [getting started](getting-started.md).
 | `EventCallback` / `EventCallback<T>` | **No such type.** A plain delegate prop (`Action`, `Action<T>`, `Func<Task>`, `Func<T,Task>`) |
 | `[CascadingParameter]` / `CascadingValue` | `Context.Provide<T>(value)` / `Context.Get<T>()` / `Context.Required<T>()` |
 | `@key="x"` | `.Key(x)` — an ordinary chain step |
-| `OnInitialized` / `OnInitializedAsync` | `OnMount` / `OnMountAsync` (once per instance) |
-| `OnParametersSet` / `OnParametersSetAsync` | `OnPropsChanged` / `OnPropsChangedAsync` |
-| `OnAfterRender(firstRender)` / async | `OnRendered(firstRender)` / `OnRenderedAsync` |
-| `Dispose` / `DisposeAsync` | implement `IDisposable` / `IAsyncDisposable`; or use `OnUnmount` / `OnUnmountAsync` |
+| `OnInitialized` / `OnInitializedAsync` | `Mount()` — one hook; the part before its first `await` is the synchronous half |
+| `OnParametersSet` / `OnParametersSetAsync` | `Updated()` |
+| `OnAfterRender(firstRender)` / async | `FirstRender()` for the `firstRender` branch, `Rendered()` for every render |
+| `Dispose` / `DisposeAsync` | implement `IDisposable` / `IAsyncDisposable`; or use `Unmount()` |
 | `NavigationManager` | `Navigator` (event-handler-only) + `RouteState` (current path/params) |
 | `@page "/path"` | `[Route("/path")]` on the class — **Rask's `Route`, from `Rask.Core.Routing`**; Blazor's attribute of the same name leaves the page unregistered ([RASK071](diagnostics.md#rask071)) |
 | route/query binding | `[RouteParam]` / `[QueryParam]` on a property |
@@ -200,10 +200,10 @@ palettes, or framework classes go in a plain `wwwroot` stylesheet linked from yo
 - **`Navigator` is event-handler-only.** Calling it outside a handler throws. Read
   the current route from `RouteState`; mutate it via `Navigator` from a handler.
 
-- **Lifecycle re-fire rules differ.** `OnPropsChanged*` fires on first render and
+- **Lifecycle re-fire rules differ.** `Updated*` fires on first render and
   whenever a bound prop or route/query param actually changes — a bare
   event-handler re-render does **not** re-fire it. Don't call `StateHasChanged()` in
-  `OnUnmount*`. Faulted async hooks log to `Console.Error` and don't re-render (a
+  `Unmount*`. Faulted async hooks log to `Console.Error` and don't re-render (a
   placeholder that never resolves usually means an async hook threw).
 
 ## What stays the same

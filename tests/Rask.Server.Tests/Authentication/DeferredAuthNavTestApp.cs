@@ -10,7 +10,7 @@ namespace Rask.Server.Tests.Authentication;
 
 // A routed app modelling the real sign-in-then-land flow: a source page whose sign-in handler re-issues
 // the cookie with returnUrl pointing at a DIFFERENT page, and a destination page that records the
-// principal it observes in OnMount (standing in for a scoped data load). Exercises that the deferred
+// principal it observes in Mount (standing in for a scoped data load). Exercises that the deferred
 // auth navigation mounts the destination under the NEW identity, not the pre-SignIn snapshot.
 public sealed partial class DeferredAuthNavTestApp : Component
 {
@@ -47,10 +47,13 @@ public sealed partial class DeferredNavDashboardPage(IUserProvider userProvider)
     // it reads "alice".
     private string _mountUser = "unset";
 
-    protected override void OnMount() =>
+    protected override Task Mount()
+    {
         _mountUser = userProvider.Current.Identity?.IsAuthenticated == true
             ? userProvider.Current.Identity.Name ?? "?"
             : "anon";
+        return Task.CompletedTask;
+    }
 
     protected override Component? Render() => Div.Id("dash")["mountUser=", _mountUser];
 }

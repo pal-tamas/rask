@@ -3,8 +3,8 @@
 namespace Rask.Testing.Tests;
 
 // #555: RaskTest.Render wraps the component under test in a forwarding root, and RenderAsLiveRootCore
-// fires the lifecycle on the ROOT only — so the component itself was rendered but never mounted. OnMount
-// and OnMountAsync never ran, which left anything that loads asynchronously stuck on its placeholder
+// fires the lifecycle on the ROOT only — so the component itself was rendered but never mounted. Mount
+// and Mount never ran, which left anything that loads asynchronously stuck on its placeholder
 // forever and pushed coverage that belongs in a unit test out to E2E. These pin the mount, the repaint
 // that follows an asynchronous mount, and the guarantees that had to survive the fix.
 public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
@@ -13,17 +13,17 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
     {
         public List<string> Calls { get; } = [];
 
-        protected override void OnMount() => Calls.Add(nameof(OnMount));
+        protected override async Task Mount() => Calls.Add(nameof(Mount));
 
-        protected override Task OnMountAsync()
+        protected override async Task FirstRender() => Calls.Add(nameof(FirstRender));
+
+        protected override async Task Rendered() => Calls.Add(nameof(Rendered));
+
+        protected override Task Unmount()
         {
-            Calls.Add(nameof(OnMountAsync));
+            Calls.Add(nameof(Unmount));
             return Task.CompletedTask;
         }
-
-        protected override void OnRendered(bool firstRender) => Calls.Add($"{nameof(OnRendered)}:{firstRender}");
-
-        protected override void OnUnmount() => Calls.Add(nameof(OnUnmount));
 
         protected override Component Render() => Div["probe"];
     }
@@ -34,8 +34,7 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
         var probe = new Probe();
         RaskTest.Render(probe);
 
-        Assert.Contains("OnMount", probe.Calls);
-        Assert.Contains("OnMountAsync", probe.Calls);
+        Assert.Contains("Mount", probe.Calls);
     }
 
     [Fact]
@@ -46,19 +45,19 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
         page.Render();
         page.Render();
 
-        Assert.Single(probe.Calls, c => c == "OnMount");
-        Assert.Single(probe.Calls, c => c == "OnMountAsync");
+        Assert.Single(probe.Calls, c => c == "Mount");
+        Assert.Single(probe.Calls, c => c == "FirstRender");
     }
 
     [Fact]
-    public void RenderComponent_ReachesTheAliveWalk_SoOnRenderedFires()
+    public void RenderComponent_ReachesTheAliveWalk_SoTheAfterRenderHooksFire()
     {
         // Mounting is only half of it: adoption is what puts the component in the root's child map, which
-        // is what CollectAlive walks. Without it the component is invisible to OnRendered and OnUnmount.
+        // is what CollectAlive walks. Without it the component is invisible to FirstRender, Rendered and Unmount.
         var probe = new Probe();
         RaskTest.Render(probe);
 
-        Assert.Contains("OnRendered:True", probe.Calls);
+        Assert.Equal(["Mount", "FirstRender", "Rendered"], probe.Calls);
     }
 
     [Fact]
@@ -72,14 +71,14 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
         show = false;
         page.Render();
 
-        Assert.Contains("OnUnmount", probe.Calls);
+        Assert.Contains("Unmount", probe.Calls);
     }
 
     private sealed class SlowLoader : Component
     {
         private string? _loaded;
 
-        protected override async Task OnMountAsync()
+        protected override async Task Mount()
         {
             // ConfigureAwait(false) throughout, like the dashboard's PollingPanel: LifecycleSyncContext's
             // Post never fires, so the repaint can only come from the terminal StateHasChanged — which
@@ -127,14 +126,9 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
     {
         private string _label = "before";
 
-        protected override void OnRendered(bool firstRender)
+        protected override Task FirstRender()
         {
-            if (!firstRender)
-            {
-                return;
-            }
-
-            // Note this is NOT OnMount: state set there needs no signal at all, because OnMount runs
+            // Note this is NOT Mount: state set there needs no signal at all, because Mount runs
             // before this component's own Render() in the same walk and is therefore already in the first
             // paint. This runs *after* it, from inside the walk's alive-set enumeration — so the new value
             // can only reach the markup if the request is queued and drained once the walk unwinds.
@@ -145,6 +139,7 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
             // mid-walk.
             _label = "after";
             StateHasChanged();
+            return Task.CompletedTask;
         }
 
         protected override Component Render() => Div[_label];
@@ -165,7 +160,11 @@ public partial class RaskTestMountTests : global::Rask.Core.RaskMarkup
     {
         public int Mounts { get; private set; }
 
-        protected override void OnMount() => Mounts++;
+        protected override Task Mount()
+        {
+            Mounts++;
+            return Task.CompletedTask;
+        }
 
         protected override Component Render() => Div["counter"];
     }

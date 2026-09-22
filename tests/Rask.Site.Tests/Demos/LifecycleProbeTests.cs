@@ -42,23 +42,19 @@ public sealed partial class LifecycleProbeTests : global::Rask.Core.RaskMarkup
         // pass before a single hook had run. The claim worth making is about each row's STATUS: the
         // awaited row starts pending and becomes resolved, which is the sequence this test is named for.
         var first = page.Render();
-        Assert.Contains("OnMountAsync (after 450ms await)", first);
-        Assert.Matches(@"OnMountAsync \(after 450ms await\)</code>\s*<span[^>]*>awaiting", first);
+        Assert.Matches(@"Mount \(after a 450ms await\)</code>\s*<span[^>]*>awaiting", first);
 
-        // OnMountAsync awaits 450ms; allow time for the full sequence.
+        // Mount awaits 450ms; allow time for the full sequence.
         await WaitFor.True(() => page.Render().Contains("resolved"), TimeSpan.FromSeconds(2));
 
         var html = page.Render();
-        Assert.Matches(@"OnMount</code>\s*<span[^>]*>ran 1x", html);
-        Assert.Matches(@"OnMountAsync \(start\)</code>\s*<span[^>]*>ran 1x", html);
-        Assert.Matches(@"OnMountAsync \(after 450ms await\)</code>\s*<span[^>]*>resolved", html);
-        Assert.Contains("OnPropsChanged", html);
+        Assert.Matches(@"Mount \(before its await\)</code>\s*<span[^>]*>ran 1x", html);
+        Assert.Matches(@"Mount \(after a 450ms await\)</code>\s*<span[^>]*>resolved", html);
+        Assert.Matches(@"Updated</code>\s*<span[^>]*>ran 1x", html);
 
-        Assert.Matches(@"OnPropsChangedAsync</code>\s*<span[^>]*>ran 1x", html);
-
-        // The original claim, kept: the framework reported firstRender: true on the first render.
-        // Latched rather than last-wins, so a later render cannot erase it.
-        Assert.Contains("firstRender: true on the first", html);
+        // FirstRender runs once however many renders follow; Rendered runs after every one of them.
+        Assert.Matches(@"FirstRender</code>\s*<span[^>]*>ran 1x", html);
+        Assert.Matches(@"Rendered</code>\s*<span[^>]*>ran \d+x", html);
     }
 
     [Fact]
@@ -70,25 +66,23 @@ public sealed partial class LifecycleProbeTests : global::Rask.Core.RaskMarkup
             () => LifecycleCycleProbe.Log(log.Add).InstanceId(instanceId),
             TestServices.Default());
 
-        Assert.Contains(log.Snapshot(), e => e == "#7 OnMount");
-        Assert.Contains(log.Snapshot(), e => e.StartsWith("#7 OnMountAsync (start)"));
+        Assert.Contains(log.Snapshot(), e => e == "#7 Mount (before its await)");
     }
 
     [Fact]
-    public async Task LifecycleCycleProbe_OnUnmount_FiresWhenRemovedFromTree()
+    public async Task LifecycleCycleProbe_Unmount_FiresWhenRemovedFromTree()
     {
         var log = new LifecycleLog();
         var mounted = true;
         var page = RaskTest.Render(
             () => mounted ? LifecycleCycleProbe.Log(log.Add).InstanceId(1) : null,
             TestServices.Default());
-        await WaitFor.True(() => log.Contains("#1 OnMountAsync (after 150ms await)"), TimeSpan.FromSeconds(2));
+        await WaitFor.True(() => log.Contains("#1 Mount (after a 150ms await)"), TimeSpan.FromSeconds(2));
 
         mounted = false;
         page.Render();
-        await WaitFor.True(() => log.Contains("#1 OnUnmountAsync"), TimeSpan.FromSeconds(2));
+        await WaitFor.True(() => log.Contains("#1 Unmount"), TimeSpan.FromSeconds(2));
 
-        Assert.Contains(log.Snapshot(), e => e == "#1 OnUnmount");
-        Assert.Contains(log.Snapshot(), e => e == "#1 OnUnmountAsync");
+        Assert.Single(log.Snapshot(), e => e == "#1 Unmount");
     }
 }

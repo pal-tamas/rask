@@ -87,7 +87,7 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
         // Two routes pointing at the same page type with no [RouteParam] differences
         // (e.g., `/todos` ↔ `/todos/new`). PageBinder.Bind alone would report propsChanged
         // = false on the second navigation, so the render cache would hand back the prior
-        // result and OnPropsChanged would never refire. RouteChainRenderer's per-instance
+        // result and Updated would never refire. RouteChainRenderer's per-instance
         // path snapshot is what forces both the cache invalidation and the lifecycle hook.
         var routes = new[] { Route.To<MultiUrlPage>("/m/a"), Route.To<MultiUrlPage>("/m/b") };
         var (view, state, sp) = BuildView(routes);
@@ -101,7 +101,7 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
         Assert.Equal("<span>props:2 renders:2 path:/m/b</span>", second);
 
         // Re-rendering at the same URL (no path change, no prop change) must NOT refire
-        // OnPropsChanged — the cache should return the prior result and PropsChanges
+        // Updated — the cache should return the prior result and PropsChanges
         // stays at 2. The render here is "different" only because we're invoking it from
         // the harness; the dispatcher hasn't marked the page dirty.
         var third = Render(view, sp);
@@ -244,7 +244,11 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
     public sealed class SyncInitPage : Component
     {
         public int InitCount;
-        protected override void OnMount() => InitCount++;
+        protected override Task Mount()
+        {
+            InitCount++;
+            return Task.CompletedTask;
+        }
         protected override Component? Render() => Span[$"init:{InitCount}"];
     }
 
@@ -255,7 +259,7 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
         public bool Loaded;
         public AsyncInitPage(AsyncInitGate gate) => _gate = gate;
 
-        protected override async Task OnMountAsync()
+        protected override async Task Mount()
         {
             _gate.Started.TrySetResult();
             await _gate.Complete.Task;
@@ -308,7 +312,11 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
         public int PropsChanges { get; private set; }
         public int Renders { get; private set; }
 
-        protected override void OnPropsChanged() => PropsChanges++;
+        protected override Task Updated()
+        {
+            PropsChanges++;
+            return Task.CompletedTask;
+        }
 
         protected override Component? Render()
         {

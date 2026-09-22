@@ -7,7 +7,7 @@ using Rask.Core.Routing;
 namespace Rask.Server.Tests.Infrastructure;
 
 // Mirrors the showcase's ShowcaseLayout shape: a layout component above the
-// Router subscribes to RouteState.Changed in OnMount and calls StateHasChanged on
+// Router subscribes to RouteState.Changed in Mount and calls StateHasChanged on
 // itself when the route flips. That subscription lands inside the WS-handler
 // dispatch — RouteState.Path's setter invokes Changed synchronously, which fires
 // StateHasChanged while InHandlerScope=true. Pre-fix the LiveSession then eagerly
@@ -22,9 +22,17 @@ public sealed partial class NavigateInHandlerStateHasChangedApp : Component
 
     public NavigateInHandlerStateHasChangedApp(RouteState routeState) => _routeState = routeState;
 
-    protected override void OnMount() => _routeState.Changed += StateHasChanged;
+    protected override Task Mount()
+    {
+        _routeState.Changed += StateHasChanged;
+        return Task.CompletedTask;
+    }
 
-    protected override void OnUnmount() => _routeState.Changed -= StateHasChanged;
+    protected override Task Unmount()
+    {
+        _routeState.Changed -= StateHasChanged;
+        return Task.CompletedTask;
+    }
 
     protected override Component? HeadAssets => new Title()["nav-coalesce"];
     protected override string? HtmlLang => null;

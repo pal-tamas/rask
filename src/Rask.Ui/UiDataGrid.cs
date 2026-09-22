@@ -386,10 +386,10 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     // ---- lifecycle: the awaited source ----------------------------------------------------------
 
     /// <inheritdoc />
-    protected override Task OnMountAsync() => FetchAsync();
+    protected override Task Mount() => FetchAsync();
 
     /// <inheritdoc />
-    protected override Task OnPropsChangedAsync() => FetchAsync();
+    protected override Task Updated() => FetchAsync();
 
     // Asks the source for the page the grid currently wants, unless that is the page it already holds.
     // Called from mount, from a props change, and from the sort and page handlers — every place the

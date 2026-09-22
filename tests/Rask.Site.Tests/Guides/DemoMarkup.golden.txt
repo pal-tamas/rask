@@ -2688,9 +2688,6 @@ span .ms-2 .text-ui-muted
 li .ps-2
 code .text-sm
 span .ms-2 .text-ui-muted
-li .ps-2
-code .text-sm
-span .ms-2 .text-ui-muted
 
 === localization-formats ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm

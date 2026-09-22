@@ -28,7 +28,7 @@ public static partial class DemoRegistry
                 + "declares [ParentRoute(typeof(ShowcaseLayout))]."),
             ["routing-route-state"] = () => CodeSample
                 .Files(["PathDisplay.cs"])
-                .Notes("Subscribe to RouteState.Changed in OnMount and unsubscribe in OnUnmount. Useful for "
+                .Notes("Subscribe to RouteState.Changed in Mount and unsubscribe in Unmount. Useful for "
                 + "components rendered above the Router (sidebars, breadcrumbs, the header path display) "
                 + "that must refresh on every nav, including browser back/forward."),
             // Live: mutate the current URL's query through the scoped Navigator (its standalone example
@@ -193,7 +193,7 @@ public static partial class DemoRegistry
             //     teaching artifact — while Result mounts the live widget. ---
             //
             // Two demos that ran a CONTINUOUS loop have been removed: a live ticker whose poll loop was
-            // awaited inside OnMountAsync, and a background metrics feed with its chart and gauge. The
+            // awaited inside Mount, and a background metrics feed with its chart and gauge. The
             // ticker was the defect — a hook that never returns is a first render that never settles, so
             // this one page spent the whole prerender budget and then shipped to crawlers as a boot shell
             // (#1030) — and the rest went with it rather than leaving a page whose demos all tick. What
@@ -291,7 +291,7 @@ public static partial class DemoRegistry
                 .Result(HttpRegisterDemo),
             ["data-http-fetch"] = () => CodeSample
                 .Files(["HttpFetchDemo.cs"])
-                .Notes("OnMountAsync runs once on first render. The framework's async lifecycle handler triggers a "
+                .Notes("Mount runs once on first render. The framework's async lifecycle handler triggers a "
                 + "re-render when the awaited task completes. Component.CancellationToken cancels on unmount — "
                 + "navigate away mid-fetch and the in-flight request aborts.")
                 .Result(HttpFetchDemo),

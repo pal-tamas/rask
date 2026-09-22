@@ -53,7 +53,11 @@ public partial class DevToolsProbeSeamTests : global::Rask.Core.RaskMarkup, IDis
         var forInner = _probe.Events.Where(e => ReferenceEquals(e.Component, inner)).ToList();
         string[] expected = ["rendering", "rendered", "walked"];
         Assert.Equal(expected, forInner.Select(e => e.Name));
-        Assert.Equal(RenderCause.Uncached, forInner[0].Cause);
+
+        // A first render is a props render: mounting marks the props dirty, exactly as it does for a component a
+        // chain entry built. This used to read Uncached only because `inner`, built with `new`, was never mounted
+        // at all — the walk adopts such an instance now.
+        Assert.Equal(RenderCause.Props, forInner[0].Cause);
         Assert.True(_probe.Commits >= 1, "a live root render commits its tree");
     }
 

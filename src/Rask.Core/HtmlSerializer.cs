@@ -528,6 +528,17 @@ internal static class HtmlSerializer
                     component.Boundary = liveCtx.CurrentBoundary;
                 }
 
+                // A component no chain entry registered — one the app built itself, a plugin or a type chosen at
+                // runtime — reaches the walk with its lifecycle never started. Adopt it here, so it gets Mount,
+                // Unmount and a handle to re-render through like any other — and adopt it again on every later
+                // walk, because its parent rebuilds its child map each render and nothing else will put it back.
+                // Every chain-built child was registered and started at its parent's commit point, so for them
+                // this is one field read and nothing else.
+                if (liveCtx is not null && component.NeedsWalkAdoptionInternal)
+                {
+                    liveCtx.AdoptUnregistered(component);
+                }
+
                 // Phase B: replay a cached clean subtree straight from its retained frame span instead
                 // of re-walking (and thus retaining) its Element object graph. Only clean, pure-element,
                 // handler-free subtrees were cached (see Component.TryCacheCleanSubtree); a dirty or

@@ -1,7 +1,7 @@
 namespace Rask.Site.Features;
 
 // Cancellation demo promoted out of the former CancellationPage. Mount the probe to start a 2.5s
-// Task.Delay inside OnMountAsync; unmount before it settles to cancel via the lifetime token. The probe
+// Task.Delay inside Mount; unmount before it settles to cancel via the lifetime token. The probe
 // records the outcome into this parent-held log.
 public sealed partial class CancellationDemo : Component
 {
@@ -51,7 +51,7 @@ public sealed partial class CancellationDemo : Component
 
         _mounted = false;
         // The probe leaves the tree on the next render, the framework cancels its lifetime token,
-        // OnMountAsync's await throws OperationCanceledException, and the catch logs the cancellation
+        // Mount's await throws OperationCanceledException, and the catch logs the cancellation
         // via AppendLog — which calls StateHasChanged on us, repainting the log.
         StateHasChanged();
     }

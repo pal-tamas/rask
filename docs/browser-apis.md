@@ -39,9 +39,8 @@ parameter) and call from an **event handler or lifecycle hook**, never from `Ren
 ```csharp
 public sealed partial class ThemeToggle(IBrowserStorage storage, IMediaQuery media) : Component
 {
-    protected override async Task OnRenderedAsync(bool first)
+    protected override async Task FirstRender()
     {
-        if (!first) return;
         var saved = await storage.Local.GetAsync("theme");
         var dark = saved is null ? await media.PrefersDarkAsync() : saved == "dark";
         // …apply theme…

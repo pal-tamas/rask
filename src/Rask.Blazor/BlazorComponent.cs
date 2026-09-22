@@ -83,7 +83,7 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
     private int _componentId = -1;
 
     /// <summary>
-    ///     1 once the hosted component's after-render hook has been claimed. See <see cref="OnRenderedAsync" />.
+    ///     1 once the hosted component's after-render hook has been claimed. See <see cref="Rendered" />.
     /// </summary>
     /// <remarks>
     ///     An <c>int</c> through <c>Interlocked</c> rather than a <c>bool</c>, because the claim is not
@@ -176,7 +176,7 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
     /// </summary>
     /// <remarks>
     ///     <para>
-    ///         Everything lives here rather than being split with <c>OnMountAsync</c>, because Rask
+    ///         Everything lives here rather than being split with <c>Mount</c>, because Rask
     ///         fires this hook when <c>firstRender || propsChanged</c> — mount and update are already
     ///         one code path, so splitting them would only add a first-render special case to get
     ///         wrong.
@@ -189,7 +189,7 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
     ///         than appearing a frame later.
     ///     </para>
     /// </remarks>
-    protected override async Task OnPropsChangedAsync()
+    protected override async Task Updated()
     {
         var renderer = _renderer ??= CreateRenderer();
 
@@ -255,7 +255,7 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
     ///         on every prop change and is the hook that actually corresponds to one.
     ///     </para>
     /// </remarks>
-    protected override async Task OnRenderedAsync(bool firstRender)
+    protected override async Task Rendered()
     {
         if (_instance is not IHandleAfterRender handler || _renderer is not { } renderer)
         {
@@ -270,7 +270,7 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
             return;
         }
 
-        // Rask's firstRender is deliberately NOT forwarded: IHandleAfterRender takes no argument, and
+        // Rask's first-render distinction is deliberately NOT forwarded: IHandleAfterRender takes no argument, and
         // ComponentBase does that bookkeeping itself — it flips its own flag on the first call and hands
         // the hosted component the `firstRender` its own base class computed.
         _inAfterRender = true;
@@ -486,7 +486,7 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
     ///     Asynchronous on purpose: a <see cref="IDisposable.Dispose" /> while a render is in flight
     ///     on the renderer's dispatcher is a hang, not a leak.
     /// </remarks>
-    protected override async Task OnUnmountAsync()
+    protected override async Task Unmount()
     {
         if (_renderer is null)
         {

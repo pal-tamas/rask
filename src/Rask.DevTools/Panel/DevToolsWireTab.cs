@@ -32,17 +32,18 @@ internal sealed partial class DevToolsWireTab : Component
     public required DevToolsFeed Feed { get; set; }
 
     /// <inheritdoc />
-    protected override void OnMount()
+    protected override Task Mount()
     {
         // The lifetime token, read in a lifecycle hook: it is cancelled when the tab leaves the tree, so a refresh that
         // is already scheduled by then never runs.
         _gate = new DevToolsRefreshGate(StateHasChanged, CancellationToken);
         _following = Feed;
         _following.Changed += OnFeedChanged;
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc />
-    protected override void OnUnmount()
+    protected override Task Unmount()
     {
         // The feed belongs to the inspected session and outlives the panel. A handler left on it would keep this
         // component, and the panel session it renders in, alive for as long as the inspected page stays open.
@@ -51,6 +52,7 @@ internal sealed partial class DevToolsWireTab : Component
             feed.Changed -= OnFeedChanged;
             _following = null;
         }
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc />

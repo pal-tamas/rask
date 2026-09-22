@@ -66,7 +66,7 @@ public sealed record QueryOptions
     /// <remarks>
     ///     A polling query keeps a session doing work, so it stops when the query is disposed, and
     ///     also once every component that was reading it has gone. Dispose the query from
-    ///     <c>OnUnmount</c>: the second check is a safety net, not the mechanism.
+    ///     <c>Unmount</c>: the second check is a safety net, not the mechanism.
     /// </remarks>
     public TimeSpan? RefetchInterval { get; init; }
 

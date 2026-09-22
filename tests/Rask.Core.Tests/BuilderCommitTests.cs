@@ -7,7 +7,7 @@ using Rask.Core.Components;
 
 namespace Rask.Core.Tests;
 
-// The deferred commit is what runs OnMount for a component an entry built. These pin the case it used
+// The deferred commit is what runs Mount for a component an entry built. These pin the case it used
 // to miss.
 //
 // A chain writes only what it names, and only a FOLDING prop goes through BuilderRuntime.Track. So a
@@ -28,9 +28,17 @@ internal sealed partial class CommitProbe : Component
 
     public Callback? OnPing { get; set; }
 
-    protected override void OnMount() => Mounts++;
+    protected override Task Mount()
+    {
+        Mounts++;
+        return Task.CompletedTask;
+    }
 
-    protected override void OnPropsChanged() => PropsChanges++;
+    protected override Task Updated()
+    {
+        PropsChanges++;
+        return Task.CompletedTask;
+    }
 
     protected override Component? Render() => Span[Word ?? "ok"];
 }
@@ -63,7 +71,7 @@ internal sealed partial class ChildrenOnlyEntryHost : Component
 }
 
 // The user-visible symptom, in the component that has it worst: Authorize wires its IUserProvider in
-// OnMount, so a gate whose lifecycle never ran sees an anonymous principal and renders nothing at all.
+// Mount, so a gate whose lifecycle never ran sees an anonymous principal and renders nothing at all.
 internal sealed partial class GateHost : Component
 {
     protected override Component? Render() => Div[Authorize[Span["CHILD"]]];

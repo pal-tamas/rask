@@ -14,7 +14,7 @@ internal static class RouteChainRenderer
     // the stale prior result, and consumers that derive UI state from RouteState.Path
     // never see the transition. Snapshotting the last URL per page instance — and OR-ing
     // path change into the propsChanged signal — invalidates the cache and refires
-    // OnPropsChanged on real URL transitions for the same cached page.
+    // Updated on real URL transitions for the same cached page.
     private static readonly ConditionalWeakTable<Component, PathSnapshot> _lastPath = new();
 
     [UnconditionalSuppressMessage("Trimming", "IL2072",

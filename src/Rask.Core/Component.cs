@@ -918,29 +918,47 @@ public abstract partial class Component : RaskMarkup
         }
     }
 
-    protected virtual void OnMount() { }
-    protected virtual Task OnMountAsync() => Task.CompletedTask;
-    protected virtual void OnPropsChanged() { }
-    protected virtual Task OnPropsChangedAsync() => Task.CompletedTask;
-    protected virtual void OnRendered(bool firstRender) { }
-    protected virtual Task OnRenderedAsync(bool firstRender) => Task.CompletedTask;
+    /// <summary>
+    ///     Runs once, before this component first renders — load what it shows:
+    ///     <c>protected override async Task Mount() =&gt; _items = await Cache.Remember("catalog", Load).For(5.Minutes);</c>
+    /// </summary>
+    /// <remarks>
+    ///     Everything before the first <c>await</c> runs before the first render; the component renders again
+    ///     when the rest completes, with nothing to call. A server page waits for it before answering, so the
+    ///     first HTML already carries the data. Static calls inside it are cancelled with this component.
+    ///     A body with no <c>await</c> is written <c>async</c> all the same; the compiler no longer warns about it.
+    /// </remarks>
+    protected virtual Task Mount() => Task.CompletedTask;
 
     /// <summary>
-    ///     Runs once when this component is removed from the tree — navigation away, parent
-    ///     subtree torn down, or session disposal. Symmetric with <see cref="OnMount" />.
-    ///     The component's <see cref="CancellationToken" /> is still live here; it is
-    ///     cancelled immediately after this hook returns. Do not call
-    ///     <see cref="StateHasChanged" /> from inside — the component is leaving the tree.
+    ///     Runs when a parent passes this component new values — and once on mount, so a component whose data
+    ///     depends on a prop needs only this: <c>protected override async Task Updated() =&gt; _product = await Product.Find(Id);</c>
     /// </summary>
-    protected virtual void OnUnmount() { }
+    /// <remarks>Not for this component's own state changes, which simply render again.</remarks>
+    protected virtual Task Updated() => Task.CompletedTask;
 
     /// <summary>
-    ///     Async counterpart to <see cref="OnUnmount" />. Awaited on async disposal paths
-    ///     (e.g. <c>LiveSession.DisposeAsync</c>), fire-and-forget with fault logging on
-    ///     synchronous disposal — mirroring the framework's handling of
-    ///     <see cref="IAsyncDisposable" />.
+    ///     Runs once, after this component is first in the page — where browser work that needs its elements
+    ///     starts: <c>protected override async Task FirstRender() =&gt; _watch = await resize.Observe(_box, OnResize);</c>
     /// </summary>
-    protected virtual Task OnUnmountAsync() => Task.CompletedTask;
+    protected virtual Task FirstRender() => Task.CompletedTask;
+
+    /// <summary>
+    ///     Runs after every render, the first included (after <see cref="FirstRender" />) — to keep something
+    ///     outside Rask in step with what was just rendered.
+    /// </summary>
+    protected virtual Task Rendered() => Task.CompletedTask;
+
+    /// <summary>
+    ///     Runs once when this component leaves the tree — navigation away, its parent's subtree torn down, or
+    ///     the session ending. Symmetric with <see cref="Mount" />.
+    /// </summary>
+    /// <remarks>
+    ///     The component's <see cref="CancellationToken" /> is still live here and cancelled right after. Awaited
+    ///     on asynchronous teardown (a session disposing); on a synchronous one it runs on, and a fault is logged.
+    ///     <see cref="StateHasChanged" /> inside it does nothing — the component is leaving.
+    /// </remarks>
+    protected virtual Task Unmount() => Task.CompletedTask;
 
     /// <summary>
     ///     Whether this component has left the tree. Read by <c>QuiescenceScope</c> so a server
@@ -974,15 +992,13 @@ public abstract partial class Component : RaskMarkup
         if (firstRender)
         {
             Live.HasInitialized = true;
-            OnMount();
-            InvokeAsyncLifecycleWithRendering(OnMountAsync);
+            InvokeAsyncLifecycleWithRendering(Mount);
         }
 
         if (firstRender || propsChanged)
         {
             Live.PropsDirty = true;
-            OnPropsChanged();
-            InvokeAsyncLifecycleWithRendering(OnPropsChangedAsync);
+            InvokeAsyncLifecycleWithRendering(Updated);
         }
     }
 
@@ -1003,9 +1019,18 @@ public abstract partial class Component : RaskMarkup
 
         var firstRender = !Live.HasRenderedOnce;
         Live.HasRenderedOnce = true;
-        OnRendered(firstRender);
+        // Called directly rather than through a Func: this runs for every component on every render, and a
+        // method-group delegate would allocate each time.
+        if (firstRender)
+        {
+            AfterRendered(FirstRender());
+        }
 
-        var task = OnRenderedAsync(firstRender);
+        AfterRendered(Rendered());
+    }
+
+    private void AfterRendered(Task task)
+    {
         if (task.IsCompleted)
         {
             if (task.IsFaulted)
@@ -1016,13 +1041,13 @@ public abstract partial class Component : RaskMarkup
             return;
         }
 
-        // Auto-rerender on continuation completion so users get OnMountAsync-style
+        // Auto-rerender on continuation completion so users get Mount-style
         // "mutate state after the await and it paints" without explicit StateHasChanged.
         // RequestPublishRenderAsync flags the resulting walk as publishOnly so the
         // publish render skips this same hook on every already-rendered component (see
         // top of method). Without that flag, multi-component trees cascade infinitely:
-        // A's publish render fires B's OnRenderedAsync, B's continuation publishes,
-        // which fires A's OnRenderedAsync again, ad infinitum.
+        // A's publish render fires B's OnRendered, B's continuation publishes,
+        // which fires A's OnRendered again, ad infinitum.
         task.ContinueWith(static (t, state) =>
         {
             var comp = (Component)state!;
@@ -1054,9 +1079,9 @@ public abstract partial class Component : RaskMarkup
     }
 
     // One-shot guard for the unmount → cancel → dispose teardown. A tree mutation inside an
-    // OnUnmount hook (e.g. clearing PersistedChildren, or re-parenting) can leave a node
+    // Unmount hook (e.g. clearing PersistedChildren, or re-parenting) can leave a node
     // reachable from more than one dispose pass; without this guard that node would fire
-    // OnUnmount and the user's Dispose twice. Returns true exactly once. The lifetime CTS is
+    // Unmount and the user's Dispose twice. Returns true exactly once. The lifetime CTS is
     // already idempotent (DisposeLifetimeToken nulls it via Interlocked, Cancel swallows ODE);
     // this protects the user-visible lifecycle hooks. Disposal runs under the session render
     // lock, so a plain flag is sufficient — same threading contract as IsUnmounted.
@@ -1095,7 +1120,7 @@ public abstract partial class Component : RaskMarkup
     // wasn't overridden, completed synchronously, or already failed (faults logged inline).
     // The sync dispose path fire-and-forgets a non-null return via ObserveUnmountFault;
     // the async path awaits it directly. Skipped entirely when Live.HasInitialized is false —
-    // a component that never mounted has no unmount counterpart, symmetric with OnMount.
+    // a component that never mounted has no unmount counterpart, symmetric with Mount.
     internal Task? RaiseUnmount()
     {
         if (!Live.HasInitialized)
@@ -1103,19 +1128,16 @@ public abstract partial class Component : RaskMarkup
             return null;
         }
 
-        // Set BEFORE OnUnmount fires so any StateHasChanged inside the hook (or
+        // Set BEFORE Unmount fires so any StateHasChanged inside the hook (or
         // from in-flight async work — LifecycleSyncContext continuations from a
-        // long-running OnMountAsync — that settles during/after unmount) is
+        // long-running Mount — that settles during/after unmount) is
         // silently swallowed instead of queuing ghost session renders against a
         // disposed component. Matches the documented "StateHasChanged() inside
-        // OnUnmount is a no-op" contract.
+        // Unmount is a no-op" contract.
         Live.IsUnmounted = true;
 
-        try { OnUnmount(); }
-        catch (Exception ex) { LogUnmountError(this, ex); }
-
         Task task;
-        try { task = OnUnmountAsync(); }
+        try { task = Unmount(); }
         catch (Exception ex)
         {
             LogUnmountError(this, ex);
@@ -1756,7 +1778,7 @@ public abstract partial class Component : RaskMarkup
     ///     For a render root that forwards to a component it did not build through a generated factory —
     ///     which is every component handed to <c>RaskTest.Render</c> as an object rather than produced by
     ///     the factory during the render. Those never reach <c>GetOrCreate</c>, so without adoption they
-    ///     serialize but are invisible to the alive-set walk (no <c>OnRendered</c>, no <c>OnUnmount</c>)
+    ///     serialize but are invisible to the alive-set walk (no <c>OnRendered</c>, no <c>Unmount</c>)
     ///     and have no handle to re-render through when an asynchronous lifecycle hook completes.
     ///     <para>
     ///     Deliberately not <see cref="GetOrCreateChild{T}" />: that path's reuse branch clears the
@@ -1781,9 +1803,29 @@ public abstract partial class Component : RaskMarkup
         }
 
         child.RenderHandle ??= handle;
-        (Live.Children ??= new Dictionary<(Type, int), Component>())[
-            (child.GetType(), AdoptedChildPosition)] = child;
+
+        // Counting DOWN from AdoptedChildPosition, so a parent that adopts several instances of one type — a
+        // row of plugin widgets — keeps each of them rather than the last overwriting the rest.
+        var children = Live.Children ??= new Dictionary<(Type, int), Component>();
+        var position = AdoptedChildPosition;
+        while (children.ContainsKey((child.GetType(), position)))
+        {
+            position--;
+        }
+
+        children[(child.GetType(), position)] = child;
     }
+
+    // Whether this component's lifecycle has started — read without allocating the live state, because the
+    // serializer asks it of every component it walks.
+    internal bool HasInitializedInternal => _live is { HasInitialized: true };
+
+    // Whether the walk has to register this component with its parent: never started (nothing registered it),
+    // or registered by the walk itself last time (nothing else will register it again). Read without allocating
+    // the live state; one field read for every chain-built component.
+    internal bool NeedsWalkAdoptionInternal => _live is not { HasInitialized: true, AdoptedByWalk: false };
+
+    internal void MarkAdoptedByWalkInternal() => Live.AdoptedByWalk = true;
 
     /// <summary>
     ///     Settles which instance a keyed child actually is, replacing the one position handed us.
@@ -1792,7 +1834,7 @@ public abstract partial class Component : RaskMarkup
     ///     Called by the <c>Key</c> chain step, on the PARENT, immediately after the entry that built
     ///     <paramref name="provisional" />. `Key` has always been the diff codec's reconciliation identity
     ///     (<c>data-rask-key</c>); until #685 it was not the parent's, so a keyed row's own state — private
-    ///     fields, an <c>OnMount</c> subscription — followed its POSITION instead of its item.
+    ///     fields, a <c>Mount</c> subscription — followed its POSITION instead of its item.
     ///     <para>
     ///         The instance the entry handed over is a fresh one (<see cref="GetOrCreateChild{T}" /> stops
     ///         recycling by ordinal once a type is keyed), so claiming an earlier instance discards it.
@@ -3124,6 +3166,11 @@ public abstract partial class Component : RaskMarkup
         public HashSet<Type>? MountedTypes;
         public Dictionary<string, (Component Owner, Delegate Action)>? Handlers;
         public bool HasInitialized;
+
+        // Registered by the render walk rather than by a chain entry — an instance the app built itself. A
+        // parent rebuilds its child map every render, so the walk has to register such an instance again
+        // each time it meets it, or the next render reads it as removed and unmounts it while it is on screen.
+        public bool AdoptedByWalk;
         public bool HasRenderedOnce;
         public bool IsDisposed;
         public bool IsUnmounted;

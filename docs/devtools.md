@@ -224,7 +224,7 @@ The tab keeps the last 500 interactions. **Clear** forgets them.
 **Errors** lists what went wrong while you used the page, newest first:
 
 - **A component that threw**: in its `Render()`, in an event handler, or in an async lifecycle hook such as
-  `OnMountAsync`.
+  `Mount`.
 - **A warning or an error from the framework**, such as two list items sharing a key, or a JavaScript call that failed.
 - **A script on the page that threw**, or a promise that was rejected with nothing to catch it.
 - **An island that failed** to mount, update or unmount, or whose props it could not read.

@@ -339,7 +339,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
         await providerStarted.Task;
         Assert.False(fetchObservedCt.IsCancellationRequested);
 
-        // Stop rendering VirtualizeModel — the framework's diff fires OnUnmount on
+        // Stop rendering VirtualizeModel — the framework's diff fires Unmount on
         // the VirtualizeModel subtree, which should cancel the in-flight fetch.
         show = false;
         view.RenderAsLiveRoot();

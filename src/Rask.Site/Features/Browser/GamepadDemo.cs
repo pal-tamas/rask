@@ -13,11 +13,14 @@ public sealed partial class GamepadDemo(IGamepad gamepad) : Component, IAsyncDis
     private IAsyncDisposable? _watch;
     private string _status = "(idle)";
 
-    protected override async Task OnRenderedAsync(bool firstRender)
+    protected override async Task FirstRender()
     {
-        if (!firstRender || _watch is not null)
+        if (_watch is not null)
+
         {
+
             return;
+
         }
 
         if (!await gamepad.IsSupportedAsync())

@@ -67,7 +67,7 @@ public async Task Clicking_increments()
 - **`.WaitForAsync(text | predicate, timeout?)`** — re-renders until the markup contains the text (or the
   predicate accepts it) and returns it; throws a `TimeoutException` carrying the last markup after 5
   seconds by default. This is how you test a component that **loads asynchronously**: the component is
-  mounted by `Render`, but `OnMountAsync` completes on a continuation, so what it loads is not in the
+  mounted by `Render`, but `Mount` completes on a continuation, so what it loads is not in the
   markup yet when `Render` returns.
 
   ```csharp
@@ -75,7 +75,7 @@ public async Task Clicking_increments()
   await page.WaitForAsync("2 orders");        // rather than a fixed delay
   ```
 
-  Both overloads of `Render` fire `OnMount`, start `OnMountAsync`, and fire `OnRendered` — the component
+  Both overloads of `Render` fire `Mount`, start `Mount`, and fire `OnRendered` — the component
   renders through the handle, so state it sets after an await reaches the markup on the next render.
 - **`.ClickAsync(json?)` / `.InputAsync(json?)` / `.ChangeAsync(json?)` / `.SubmitAsync(json?)`** — dispatch
   the **first** element wired to that event (optionally with a JSON event payload, e.g.

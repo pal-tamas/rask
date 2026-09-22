@@ -5,7 +5,7 @@ using Rask.Core.Live;
 namespace Rask.Core.Tests.Lifecycle;
 
 // Regression: an unmounted component's StateHasChanged must be a no-op. Pre-fix,
-// a long-running OnMountAsync (a poll loop, say) left in-flight
+// a long-running Mount (a poll loop, say) left in-flight
 // LifecycleSyncContext continuations that, on cancellation, still called
 // StateHasChanged on the disposed component — queuing ghost session renders
 // against the newly-mounted page. The visible symptom was 11+ spurious
@@ -57,7 +57,7 @@ public partial class StateHasChangedAfterUnmountTests : global::Rask.Core.RaskMa
     [Fact]
     public async Task LateLifecycleSyncContextPost_AfterUnmount_DoesNotQueueRender()
     {
-        // Models the exact ticker-→-Lifecycle regression: an OnMountAsync
+        // Models the exact ticker-→-Lifecycle regression: a Mount
         // captures its continuation via LifecycleSyncContext; the component is
         // unmounted while the gate is still pending; the gate then resolves.
         // The settling continuation must NOT queue a session render against the
@@ -66,7 +66,7 @@ public partial class StateHasChangedAfterUnmountTests : global::Rask.Core.RaskMa
         var c = new GatedAsyncMountComponent { RenderHandle = handle };
         c.RaiseLifecycleBeforeRender(true);
 
-        // Wait for OnMountAsync to suspend on the gate.
+        // Wait for Mount to suspend on the gate.
         await c.Started.Task;
         var renderCountBefore = handle.RequestRenderCount;
 
@@ -91,7 +91,7 @@ public partial class StateHasChangedAfterUnmountTests : global::Rask.Core.RaskMa
         public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource Gate { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        protected override async Task OnMountAsync()
+        protected override async Task Mount()
         {
             Started.SetResult();
             await Gate.Task;

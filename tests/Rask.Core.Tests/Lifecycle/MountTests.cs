@@ -83,8 +83,16 @@ public class MountTests
     {
         private readonly List<string> _order;
         public OrderRecorder(List<string> order) => _order = order;
-        protected override void OnMount() => _order.Add("mount");
-        protected override void OnPropsChanged() => _order.Add("props");
+        protected override Task Mount()
+        {
+            _order.Add("mount");
+            return Task.CompletedTask;
+        }
+        protected override Task Updated()
+        {
+            _order.Add("props");
+            return Task.CompletedTask;
+        }
         protected override Component? Render() => this;
     }
 

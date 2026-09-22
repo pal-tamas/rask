@@ -9,7 +9,7 @@ public sealed partial class CqrsCounterDemo(IDispatcher dispatcher) : Component
 {
     private CounterState _view = new(0, []);
 
-    protected override async Task OnMountAsync() =>
+    protected override async Task Mount() =>
         _view = await dispatcher.QueryAsync(new GetCounterState(), CancellationToken);
 
     private async Task IncrementAsync()

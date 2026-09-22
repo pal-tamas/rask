@@ -159,7 +159,7 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
     // in _pendingRenderInScope, and nothing acted on it: the NEXT dispatch's coalescing loop opens by
     // clearing the flag, so the request was discarded, not deferred (#986).
     //
-    // On a hard load straight onto a page whose OnMountAsync fetches, that is where the fetch's
+    // On a hard load straight onto a page whose Mount fetches, that is where the fetch's
     // continuation lands — the request completes in a couple of milliseconds while the initial render
     // is still emitting — so the state was set and the page kept its spinner (#972).
     //
@@ -192,7 +192,7 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
             // takes the short-circuit in RequestRenderInternalAsync and only sets
             // _pendingRenderInScope. A bare build never drains that flag, so the request was
             // dropped and the page kept its first-paint markup until some later event forced
-            // another dispatch. The canonical loser is an OnMountAsync fetch whose continuation
+            // another dispatch. The canonical loser is a Mount fetch whose continuation
             // lands after the walk materialised the HTML (OnRendered onwards) — the spinner then
             // stayed on screen forever. Every other render path already coalesces; this one was
             // the exception (#972).

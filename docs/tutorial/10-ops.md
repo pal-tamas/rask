@@ -51,7 +51,7 @@ So: processed climbing is good, **failed above zero is the alert**.
 A page that needs refreshing won't get looked at. Poll in the background and re-render on a real change:
 
 ```csharp
-protected override async Task OnMountAsync()
+protected override async Task Mount()
 {
     await RefreshAsync().ConfigureAwait(false);
     _ = PollAsync();

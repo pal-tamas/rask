@@ -12,7 +12,7 @@ namespace Rask.Server.Tests.Authentication;
 
 // Regression coverage for the sign-in "landing page mounts under the stale principal" bug: the auth
 // handoff must defer the returnUrl navigation until the reconnect re-seeds the principal, so the
-// destination page's OnMount observes the redeemed identity — not the pre-SignIn one.
+// destination page's Mount observes the redeemed identity — not the pre-SignIn one.
 public class AuthDeferredNavDispatchTests
 {
     [Fact]
@@ -71,7 +71,7 @@ public class AuthDeferredNavDispatchTests
         Assert.NotNull(afterReconnect);
 
         // The deferred navigation is applied AFTER Set(wsUser), so the destination page mounts fresh
-        // under the redeemed identity: OnMount captured "alice", not "anon". Pre-fix, the page mounted
+        // under the redeemed identity: Mount captured "alice", not "anon". Pre-fix, the page mounted
         // during the stale-principal pre-reconnect render and never remounted, yielding "anon".
         Assert.Contains("mountUser=alice", afterReconnect!);
         Assert.DoesNotContain("mountUser=anon", afterReconnect!);

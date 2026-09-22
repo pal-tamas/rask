@@ -15,11 +15,14 @@ public sealed partial class IntersectionObserverDemo(IIntersectionObserver obser
     private bool _visible;
     private int _changes;
 
-    protected override async Task OnRenderedAsync(bool firstRender)
+    protected override async Task FirstRender()
     {
-        if (!firstRender || _observation is not null)
+        if (_observation is not null)
+
         {
+
             return;
+
         }
 
         _observation = await observer.ObserveAsync(_target, entry =>

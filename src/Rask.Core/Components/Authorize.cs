@@ -29,7 +29,7 @@ namespace Rask.Core.Components;
 ///     <para>
 ///         <see cref="Roles" /> and the authenticated check are evaluated synchronously in
 ///         <see cref="Render" /> (no flicker). <see cref="Policy" /> is the only asynchronous vector:
-///         it is evaluated via <see cref="IAuthorizationService" /> in <see cref="OnPropsChangedAsync" />
+///         it is evaluated via <see cref="IAuthorizationService" /> in <see cref="Updated" />
 ///         (and re-evaluated when the user changes), cached, and surfaced through the
 ///         <see cref="Authorizing" /> slot until it resolves. The component subscribes to
 ///         <see cref="IUserProvider.Changed" /> so a sign-in/out anywhere re-renders it.
@@ -48,8 +48,8 @@ public sealed class Authorize : Component
     private IUserProvider? _provider;
     private IServiceProvider? _services;
 
-    // The current principal from the resolved provider; never null. _provider is wired in OnMount,
-    // which the lifecycle guarantees runs before OnPropsChangedAsync/Render, so this is safe at
+    // The current principal from the resolved provider; never null. _provider is wired in Mount,
+    // which the lifecycle guarantees runs before Updated/Render, so this is safe at
     // every read site.
     private ClaimsPrincipal CurrentUser =>
         _provider?.Current ?? new ClaimsPrincipal(new ClaimsIdentity());
@@ -86,7 +86,7 @@ public sealed class Authorize : Component
     /// <summary>Rendered while the provider is loading or a <see cref="Policy" /> is resolving. Defaults to nothing.</summary>
     public Component? Authorizing { get; set; }
 
-    protected override void OnMount()
+    protected override Task Mount()
     {
         _services = LiveRenderContext.Current?.Services;
         _provider = _services?.GetService<IUserProvider>();
@@ -94,17 +94,19 @@ public sealed class Authorize : Component
         {
             _provider.Changed += OnUserChanged;
         }
+        return Task.CompletedTask;
     }
 
-    protected override void OnUnmount()
+    protected override Task Unmount()
     {
         if (_provider is not null)
         {
             _provider.Changed -= OnUserChanged;
         }
+        return Task.CompletedTask;
     }
 
-    protected override async Task OnPropsChangedAsync()
+    protected override async Task Updated()
     {
         if (string.IsNullOrEmpty(Policy))
         {

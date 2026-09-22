@@ -188,7 +188,7 @@ Other binding-related analyzers worth knowing:
 - [RASK009](diagnostics.md#rask009) / [RASK010](diagnostics.md#rask010) — `[RouteParam]` / `[QueryParam]` on a class
   that isn't a routed page (carries no `[Route]`).
 
-Route/query binding feeds the lifecycle: `OnPropsChanged*` fires on first render and whenever a bound param actually
+Route/query binding feeds the lifecycle: `Updated*` fires on first render and whenever a bound param actually
 changes value. See [lifecycle.md](lifecycle.md).
 
 A worked example: the **data table** at `/table` holds *all* of its UI state — the search filter,
@@ -332,13 +332,13 @@ Mutate `RouteState` through `Navigator`, not by setting `Path`/`Query` directly,
 value, `Query` by reference, so a no-op set doesn't fire). Components **inside** the routed page subtree usually don't
 need it — the router re-renders them on navigation. But a component rendered **above** the `Router()` (a sidebar,
 breadcrumb, header path display) won't be re-rendered by the router, so it must subscribe explicitly. Subscribe in
-`OnMount`, unsubscribe in `OnUnmount`:
+`Mount`, unsubscribe in `Unmount`:
 
 ```csharp
 public sealed partial class PathDisplay(RouteState route) : Component
 {
-    protected override void OnMount() => route.Changed += StateHasChanged;
-    protected override void OnUnmount() => route.Changed -= StateHasChanged;
+    protected override async Task Mount() => route.Changed += StateHasChanged;
+    protected override async Task Unmount() => route.Changed -= StateHasChanged;
 
     protected override Component? Render() =>
         Span["path: ", Code[route.Path]];
@@ -381,7 +381,7 @@ is not a routing fact at all: say so with `IPageResponse.SetStatus(404)`, descri
 host turns it into a real `302` before rendering a body:
 
 ```csharp
-protected override void OnMount()
+protected override async Task Mount()
 {
     if (!_tenant.IsProvisioned)
     {

@@ -195,7 +195,7 @@ public partial class LifecycleSyncContextQuiescenceTests : global::Rask.Core.Ras
 }
 
 /// <summary>
-///     A component whose <c>OnMountAsync</c> parks on a gate the test opens from another thread, then
+///     A component whose <c>Mount</c> parks on a gate the test opens from another thread, then
 ///     holds inside the continuation so the pass can be inspected mid-flight.
 /// </summary>
 public sealed partial class ForeignThreadHookProbe : Component
@@ -206,7 +206,7 @@ public sealed partial class ForeignThreadHookProbe : Component
     internal readonly TaskCompletionSource Resume =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    protected override async Task OnMountAsync()
+    protected override async Task Mount()
     {
         await Resume.Task;
         Entered.Set();
@@ -217,7 +217,7 @@ public sealed partial class ForeignThreadHookProbe : Component
 }
 
 /// <summary>
-///     A component whose <c>OnMountAsync</c> awaits with <c>ConfigureAwait(false)</c> and nothing else,
+///     A component whose <c>Mount</c> awaits with <c>ConfigureAwait(false)</c> and nothing else,
 ///     so its continuation never reaches <c>LifecycleSyncContext.Post</c>.
 /// </summary>
 public sealed partial class ConfigureAwaitHookProbe : Component
@@ -225,7 +225,7 @@ public sealed partial class ConfigureAwaitHookProbe : Component
     internal readonly TaskCompletionSource Resume =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    protected override async Task OnMountAsync() => await Resume.Task.ConfigureAwait(false);
+    protected override async Task Mount() => await Resume.Task.ConfigureAwait(false);
 
     protected override Component? Render() => null;
 }

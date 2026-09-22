@@ -16,11 +16,14 @@ public sealed partial class MediaSessionDemo(IMediaSession media) : Component, I
     private string _status = "(idle)";
     private string _last = "(none yet)";
 
-    protected override async Task OnRenderedAsync(bool firstRender)
+    protected override async Task FirstRender()
     {
-        if (!firstRender || _handlers.Count > 0)
+        if (_handlers.Count > 0)
+
         {
+
             return;
+
         }
 
         if (!await media.IsSupportedAsync())

@@ -26,7 +26,7 @@ public static partial class Virtualize
     // Wrapper-cache: dedup erased-provider closures per typed user delegate. Without this,
     // every VirtualizeModel<T> factory call would allocate a fresh `async req => …` wrapper, the
     // generated non-generic factory's per-property reference compare would flag ItemsProvider
-    // as changed every render, and VirtualizeModel.OnPropsChanged would treat that as a data-source
+    // as changed every render, and VirtualizeModel.Updated would treat that as a data-source
     // swap and reset the cache. ConditionalWeakTable lets the wrapper live exactly as long as
     // the typed delegate the user supplied.
     private static readonly ConditionalWeakTable<Delegate, Delegate> _erasedProviderCache = new();
@@ -80,7 +80,7 @@ public static partial class Virtualize
         ArgumentNullException.ThrowIfNull(Render);
 
         // Wrap the typed render fragment into a closure over a VirtualizationState. Body
-        // changes per render are fine — VirtualizeModel.OnPropsChanged doesn't reset state on
+        // changes per render are fine — VirtualizeModel.Updated doesn't reset state on
         // Body swaps, only on Items/ItemsProvider swaps.
         Func<VirtualizationState, Component> body =
             state => Render(new VirtualizationContext<T>(state));

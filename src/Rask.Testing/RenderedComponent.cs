@@ -73,7 +73,7 @@ public class RenderedComponent : IRenderHandle
 
     /// <summary>
     ///     Re-renders until <paramref name="predicate" /> accepts the markup, then returns it — the way to
-    ///     test a component that loads asynchronously. <c>OnMountAsync</c> completes on a thread-pool
+    ///     test a component that loads asynchronously. <c>Mount</c> completes on a thread-pool
     ///     continuation, so the markup it produces is not there when <see cref="Render" /> returns; this
     ///     waits for it instead of guessing with a fixed delay.
     ///     <code>

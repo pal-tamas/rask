@@ -15,13 +15,8 @@ public sealed partial class PictureInPictureDemo(IPictureInPicture pip, IJSRunti
     private readonly ElementRef _video = ElementRef.New();
     private string _status = "(idle)";
 
-    protected override async Task OnRenderedAsync(bool firstRender)
+    protected override async Task FirstRender()
     {
-        if (!firstRender)
-        {
-            return;
-        }
-
         try
         {
             await js.InvokeVoidAsync("Rask.PictureInPictureDemo.start", _video);

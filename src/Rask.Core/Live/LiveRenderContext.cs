@@ -361,7 +361,7 @@ public sealed class LiveRenderContext : IDisposable
         // GetOrCreate'd child a render handle, and setting one allocates the state; a handle-less render
         // (ToHtml, a server-rendered first paint) does not, and a chain that names no FOLDING prop never
         // calls Track either, so nothing else allocated it. The child then silently skipped its whole
-        // lifecycle — `Authorize[content]` wires its IUserProvider in OnMount and rendered as if nobody
+        // lifecycle — `Authorize[content]` wires its IUserProvider in Mount and rendered as if nobody
         // were signed in.
         //
         // So the state is claimed here, for the components that have something to run. Not for all of
@@ -387,6 +387,24 @@ public sealed class LiveRenderContext : IDisposable
 
     public void NotifyParameters(Component component, bool propsChanged) =>
         component.RaiseLifecycleBeforeRender(propsChanged);
+
+    // A component the walk met that nothing registered: registers it under the component whose subtree it sits
+    // in, and starts its lifecycle the first time. The root is the walk's own starting point, never anyone's child.
+    internal void AdoptUnregistered(Component component)
+    {
+        var parent = CurrentParent;
+        if (ReferenceEquals(parent, component))
+        {
+            return;
+        }
+
+        parent.AdoptChild(component, parent.RenderHandle);
+        if (!component.HasInitializedInternal)
+        {
+            component.MarkAdoptedByWalkInternal();
+            NotifyParameters(component, propsChanged: false);
+        }
+    }
 
     // Called from Context.Get/Required and EditContext.MarkReader while a component is mid-Render (so
     // the component sits on top of the parent stack). Flags it as reading untracked ambient state,

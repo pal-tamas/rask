@@ -54,7 +54,7 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     private bool _hasAttachedBefore;
 
     // Set true whenever a render request lands with no live socket — async lifecycle
-    // continuations from OnMountAsync / OnRenderedAsync that resolve during the HTTP-GET-
+    // continuations from Mount / OnRenderedAsync that resolve during the HTTP-GET-
     // to-WS-hello handoff window, or while a session is between sockets across a
     // reconnect. AttachSocket reads it from the hello handler to decide whether a
     // catch-up render is actually needed: when nothing was dropped, the HTML the browser
@@ -133,10 +133,10 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
 
     // A sign-in/out returnUrl parked by the handler-dispatch auth handoff and applied on the NEXT hello,
     // AFTER SessionUserProvider is re-seeded with the redeemed principal. Deferring the route change means
-    // the destination page mounts fresh under the new identity (its OnMountAsync sees the new principal),
+    // the destination page mounts fresh under the new identity (its Mount sees the new principal),
     // instead of mounting now under the pre-SignIn snapshot and never remounting on the reconnect
     // (children reconcile by (Type, position), not Key, so a same-position page instance is reused and
-    // its OnMountAsync never re-runs — leaving data loaded for the old identity/tenant).
+    // its Mount never re-runs — leaving data loaded for the old identity/tenant).
     public string? PendingAuthNavigation { get; set; }
 
     // Whether a path belongs to the application on this host the session was opened for — the host's own, or one
@@ -345,7 +345,7 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
 
     protected override async Task RequestRenderInternalAsync(bool publishOnly)
     {
-        // _disposed short-circuits a StateHasChanged raised from an Unmount/Dispose callback during
+        // _disposed short-circuits a StateHasChanged raised from a Unmount/Dispose callback during
         // teardown: the tree walk runs under _renderLock, so re-entering RenderAndSendAsync (which
         // also waits on _renderLock) would deadlock disposal against itself.
         if (_disposed || Volatile.Read(ref _transport) is not { IsOpen: true })
@@ -645,7 +645,7 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     {
         // Render at hello whenever something needs to flow over WS that the GET response
         // couldn't carry: a dropped StateHasChanged from the handoff window, or a pending
-        // IJSRuntime.InvokeAsync queued by an OnRendered / OnMountAsync sync path during
+        // IJSRuntime.InvokeAsync queued by an OnRendered / Mount sync path during
         // the GET render walk (the invoke sits in _pendingJsInvokes until the next outbound
         // frame). When neither is true, the browser's GET HTML still matches and there's
         // nothing for the WS to ship — skip the redundant render.

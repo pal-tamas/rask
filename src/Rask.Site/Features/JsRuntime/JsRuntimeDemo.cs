@@ -14,13 +14,8 @@ public sealed partial class JsRuntimeDemo(IJSRuntime js) : Component
     private string? _lastRead;
     private string? _status;
 
-    protected override async Task OnRenderedAsync(bool firstRender)
+    protected override async Task FirstRender()
     {
-        if (!firstRender)
-        {
-            return;
-        }
-
         try
         {
             _lastRead = await js.InvokeAsync<string?>("sessionStorage.getItem", "rask.jsruntime.demo");

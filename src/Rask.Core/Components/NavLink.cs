@@ -14,7 +14,7 @@ namespace Rask.Core.Components;
 public sealed partial class NavLink : Element
 {
     // Cached at mount because LiveRenderContext.Current is null during disposal, so
-    // OnUnmount can't re-resolve RouteState from the render scope.
+    // Unmount can't re-resolve RouteState from the render scope.
     private RouteState? _route;
     protected override string TagName => "a";
 
@@ -48,7 +48,7 @@ public sealed partial class NavLink : Element
     /// </summary>
     public NavLinkMatch? ActiveMatch { get; set; }
 
-    protected override void OnMount()
+    protected override Task Mount()
     {
         // Subscribe to RouteState.Changed so a NavLink rendered outside the Router
         // subtree (e.g. a top-level sidebar in App.cs) still re-evaluates its active
@@ -56,20 +56,22 @@ public sealed partial class NavLink : Element
         _route = LiveRenderContext.Current?.Services?.GetService<RouteState>();
         if (_route is null)
         {
-            return;
+            return Task.CompletedTask;
         }
 
         _route.Changed += StateHasChanged;
+        return Task.CompletedTask;
     }
 
-    protected override void OnUnmount()
+    protected override Task Unmount()
     {
         if (_route is null)
         {
-            return;
+            return Task.CompletedTask;
         }
 
         _route.Changed -= StateHasChanged;
+        return Task.CompletedTask;
     }
 
     protected override string? ResolveClass()

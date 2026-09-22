@@ -190,7 +190,7 @@ protected override async Task OnInitializedAsync()
 }
 ```
 
-That works because the island does its rendering in `OnPropsChangedAsync`, whose task is registered
+That works because the island does its rendering in `Updated`, whose task is registered
 in the page's quiescence scope — Rask renders, waits for outstanding work, and renders again, sending
 the settled wave. See [lifecycle](lifecycle.md).
 

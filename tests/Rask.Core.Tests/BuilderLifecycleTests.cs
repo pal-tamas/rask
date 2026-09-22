@@ -7,7 +7,7 @@ namespace Rask.Core.Tests;
 // A chain's props arrive one setter at a time, and `Div.Class("a").Id("b")` has no natural end — so an
 // entry can only GetOrCreate, and the notification is deferred to the moment the parent's Render()
 // returns, which is the first point at which the chain is provably complete. These tests pin what that
-// has to be worth: OnMount once, OnPropsChanged when a prop actually moved, Live.PropsDirty set so the
+// has to be worth: Mount once, Updated when a prop actually moved, Live.PropsDirty set so the
 // render cache cannot serve a stale subtree, AND silence when nothing changed.
 //
 // The probes are STATEFUL (non-Element) components on purpose. An Element is never reached through
@@ -23,9 +23,17 @@ internal sealed partial class LifecycleLeaf : Component
     internal int PropsChanges;
     internal int Renders;
 
-    protected override void OnMount() => Mounts++;
+    protected override Task Mount()
+    {
+        Mounts++;
+        return Task.CompletedTask;
+    }
 
-    protected override void OnPropsChanged() => PropsChanges++;
+    protected override Task Updated()
+    {
+        PropsChanges++;
+        return Task.CompletedTask;
+    }
 
     protected override Component? Render()
     {

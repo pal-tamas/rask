@@ -80,12 +80,16 @@ public sealed partial class LogsPage(
     }
 
     /// <inheritdoc />
-    protected override void OnUnmount() => Unsubscribe();
+    protected override Task Unmount()
+    {
+        Unsubscribe();
+        return Task.CompletedTask;
+    }
 
     /// <inheritdoc />
     protected override async Task<object?> LoadAsync(CancellationToken cancellationToken)
     {
-        // Subscribed here rather than in OnMount because PollingPanel owns OnMountAsync: the live tail
+        // Subscribed here rather than in Mount because PollingPanel owns Mount: the live tail
         // still pushes, so a log line shows up immediately instead of on the next poll.
         if (!_subscribed)
         {

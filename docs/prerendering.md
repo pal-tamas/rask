@@ -39,7 +39,7 @@ Directory-per-route so a static host serves the page at the URL the app actually
 no extension in it, and no per-host rewrite rule to configure.
 
 Each page renders through the same root boundary both hosts install and through the same wave loop
-a server's first response uses, so **a page whose `OnMountAsync` loads build-time data writes the
+a server's first response uses, so **a page whose `Mount` loads build-time data writes the
 data, not its placeholder**. Each page gets its own DI scope, as a request would, so a page
 injecting something scoped never sees the previous page's instance.
 
@@ -400,7 +400,7 @@ Two things worth repeating as shapes, both found here:
   carry the app's embedded sources. Nothing in a browser looked wrong; the count on the
   `result written=` line was the only symptom.
 - **`/docs/guides/lifecycle` is the one page that does not settle.** It embeds two demos whose
-  `OnMountAsync` runs an unbounded poll loop, so the hook's task never completes and the wave loop
+  `Mount` runs an unbounded poll loop, so the hook's task never completes and the wave loop
   waits out the whole budget. The page still serves at runtime. There is currently no way for a
   component to declare ongoing background work as *not* something the first render is waiting for,
   which is a framework gap rather than a fact about this page

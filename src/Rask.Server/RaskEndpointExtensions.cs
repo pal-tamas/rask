@@ -1838,7 +1838,7 @@ public static partial class RaskEndpointExtensions
         try
         {
             // Apply a deferred sign-in/out navigation now that the principal is re-seeded, so the destination
-            // page mounts fresh under the new identity (its OnMountAsync runs against the redeemed principal).
+            // page mounts fresh under the new identity (its Mount runs against the redeemed principal).
             // The attach flagged a pending render for this reconnect, so the flush below performs a real render
             // against the updated route. See LiveSession.PendingAuthNavigation.
             if (session.PendingAuthNavigation is { } authDest)
@@ -2149,7 +2149,7 @@ public static partial class RaskEndpointExtensions
 
                             // Do NOT navigate routeState here. Setting it to the destination now would
                             // mount the destination page under the PRE-SignIn principal — SessionUserProvider
-                            // is only re-seeded on the reconnect handshake — so its OnMountAsync would load
+                            // is only re-seeded on the reconnect handshake — so its Mount would load
                             // data for the old identity/tenant, and the reconnect re-renders without
                             // remounting (children reconcile by (Type, position), not Key), leaving that
                             // data stale. Park the returnUrl; the hello handler applies it once the reconnect

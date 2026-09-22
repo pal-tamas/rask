@@ -106,7 +106,7 @@ public sealed partial class SecurePage : Component
 > own `Render`* won't re-execute (it didn't subscribe), so a greeting built there can go stale after a
 > mid-session sign-in. If you must read the principal outside the slot, either move that markup into a **child
 > component** placed in the `Authorized` slot (it first renders once the gate opens), or subscribe the page
-> itself: `OnMount() => users.Changed += StateHasChanged;`.
+> itself: `Mount() => users.Changed += StateHasChanged;`.
 
 **`Program.cs` — wire cookie auth *before* `UseRask`:**
 

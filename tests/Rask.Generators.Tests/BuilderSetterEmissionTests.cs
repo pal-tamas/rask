@@ -129,7 +129,7 @@ public class BuilderSetterEmissionTests
     }
 
     // Key is a reconciliation identity, not a reactive prop: a changed Key means a different logical
-    // item, which mounts fresh rather than firing OnPropsChanged on the old instance.
+    // item, which mounts fresh rather than firing Updated on the old instance.
     [Fact]
     public void The_Key_setter_does_not_fold()
     {

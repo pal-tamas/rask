@@ -10,7 +10,7 @@ public sealed partial class OrderBoard(IBroadcast broadcast) : Component
 
     public required string Title { get; set; }
 
-    protected override void OnMount() =>
+    protected override async Task Mount() =>
         broadcast.Subscribe(this, BroadcastDemo.Orders, order => _orders.Insert(0, order));
 
     protected override Component? Render() =>

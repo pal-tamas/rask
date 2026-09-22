@@ -11,7 +11,7 @@ namespace Rask.Site.Tests.Infrastructure;
 // [SkipFactory] keeps the generator from emitting a Generated.LiveHost() factory in the
 // test assembly that would collide with a static import.
 //
-// Flip Mounted to false and re-render to drive the child through its OnUnmount path.
+// Flip Mounted to false and re-render to drive the child through its Unmount path.
 [SkipFactory]
 internal sealed class LiveHost : Component
 {

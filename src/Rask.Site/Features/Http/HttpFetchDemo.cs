@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace Rask.Site.Features;
 
 // HttpClient and TimeProvider are registered as services (AddExampleServices) and injected through the
-// primary constructor. OnMountAsync runs once on first render; the framework's async lifecycle handler
+// primary constructor. Mount runs once on first render; the framework's async lifecycle handler
 // triggers a re-render when the awaited task completes. Component.CancellationToken cancels on
 // unmount — navigate away mid-fetch and the in-flight request aborts.
 public sealed partial class HttpFetchDemo(HttpClient http, TimeProvider time) : Component
@@ -20,7 +20,7 @@ public sealed partial class HttpFetchDemo(HttpClient http, TimeProvider time) : 
     private string? _error;
     private Post? _post;
 
-    protected override async Task OnMountAsync()
+    protected override async Task Mount()
     {
         for (var attempt = 0; ; attempt++)
         {

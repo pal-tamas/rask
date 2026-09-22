@@ -71,7 +71,7 @@ internal sealed class WasmJSRuntime : RaskJSRuntimeBase
         _host ?? throw new InvalidOperationException(
             "IJSRuntime can only be used within a Rask session scope. " +
             "Inject it through a Component ctor (DI) and call it from a lifecycle hook " +
-            "(OnMountAsync, OnRenderedAsync) or event handler.");
+            "(Mount, OnRenderedAsync) or event handler.");
 
     // Outside a render (a handler awaiting js.InvokeAsync), dispatch immediately through the JSImport
     // bridge — WASM's long-standing handler-interop path. The result returns via the EndInvokeJSResult

@@ -18,7 +18,7 @@ public partial class AsyncLifecycleErrorBoundaryTests : global::Rask.Core.RaskMa
         boundary.SetProps(new Component[] { child }, null);
 
         // Drive a render so the descendant gets stamped with its Boundary, then its
-        // OnMountAsync fires. The faulted Task continuation routes through Boundary.Trip.
+        // Mount fires. The faulted Task continuation routes through Boundary.Trip.
         using (LiveRenderContext.Begin(boundary, sp))
         {
             _ = boundary.ToHtml();
@@ -124,7 +124,7 @@ public partial class AsyncLifecycleErrorBoundaryTests : global::Rask.Core.RaskMa
         public FaultingComponent(FaultPoint faultOn) => _faultPoint = faultOn;
         public TaskCompletionSource Fault { get; } = new();
 
-        protected override async Task OnMountAsync()
+        protected override async Task Mount()
         {
             if (_faultPoint != FaultPoint.MountAsync)
             {
@@ -136,7 +136,7 @@ public partial class AsyncLifecycleErrorBoundaryTests : global::Rask.Core.RaskMa
             throw new InvalidOperationException("mount-async");
         }
 
-        protected override async Task OnPropsChangedAsync()
+        protected override async Task Updated()
         {
             if (_faultPoint != FaultPoint.PropsAsync)
             {

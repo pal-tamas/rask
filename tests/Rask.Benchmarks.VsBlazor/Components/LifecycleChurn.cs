@@ -14,7 +14,7 @@ namespace Rask.Benchmarks.VsBlazor.Components;
 ///     <para>
 ///         Note: this benchmark walks the diff codec through
 ///         <c>RaskHarness</c>, which serializes via <c>HtmlSerializer</c> directly
-///         and therefore does NOT invoke <c>OnMount</c> / <c>OnUnmount</c>
+///         and therefore does NOT invoke <c>Mount</c> / <c>Unmount</c>
 ///         lifecycle hooks — those fire only under <c>RenderAsLiveRoot</c>. The
 ///         comparison measures wire-format and rendering cost for the user-Component
 ///         path; full live-lifecycle cost belongs in <c>Rask.Benchmarks</c>'s

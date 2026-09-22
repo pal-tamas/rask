@@ -137,7 +137,7 @@ public static class RaskTest
             // (RootErrorBoundary for the App, RouteChainRenderer for a page). RenderAsLiveRootCore fires
             // the lifecycle on the ROOT only — which here is this forwarding wrapper, not the component
             // under test — so a component handed to Render() as an object rendered forever without
-            // OnMount or OnMountAsync ever running, leaving anything that loads asynchronously stuck on
+            // Mount or Mount ever running, leaving anything that loads asynchronously stuck on
             // its placeholder. A child the factory built through its generated factory has already been
             // adopted and notified by GetOrCreate inside this render; both calls below are no-ops for it.
             AdoptChild(child, RenderHandle);

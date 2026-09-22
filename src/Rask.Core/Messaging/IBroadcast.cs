@@ -6,12 +6,12 @@ namespace Rask.Core.Messaging;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         <b>Subscribe in <c>OnMount</c>, and nothing else.</b> A subscription lives exactly as long as the component
+///         <b>Subscribe in <c>Mount</c>, and nothing else.</b> A subscription lives exactly as long as the component
 ///         that owns it: when the component unmounts, the subscription is gone. There is nothing to dispose and no
 ///         <c>StateHasChanged</c> to call — the handler runs the way an event handler does, and the owner re-renders
 ///         after it.
 ///         <code>
-///         protected override void OnMount() =>
+///         protected override async Task Mount() =>
 ///             broadcast.Subscribe(this, Topics.Orders, order => _orders.Insert(0, order));
 ///         </code>
 ///     </para>

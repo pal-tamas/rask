@@ -104,7 +104,11 @@ public sealed partial class StatusApp(IPageResponse response) : Component
 {
     protected override Component? HeadAssets => Title["status"];
 
-    protected override void OnMount() => response.SetStatus(404);
+    protected override Task Mount()
+    {
+        response.SetStatus(404);
+        return Task.CompletedTask;
+    }
 
     protected override Component? Render() => Div["no-such-product"];
 }
@@ -113,7 +117,11 @@ public sealed partial class StatusThenThrowApp(IPageResponse response) : Compone
 {
     protected override Component? HeadAssets => Title["status-throw"];
 
-    protected override void OnMount() => response.SetStatus(200);
+    protected override Task Mount()
+    {
+        response.SetStatus(200);
+        return Task.CompletedTask;
+    }
 
     protected override Component? Render() => throw new InvalidOperationException("boom");
 }
@@ -122,7 +130,11 @@ public sealed partial class RedirectApp(Navigator navigator) : Component
 {
     protected override Component? HeadAssets => Title["redirect"];
 
-    protected override void OnMount() => navigator.NavigateTo("/somewhere-else");
+    protected override Task Mount()
+    {
+        navigator.NavigateTo("/somewhere-else");
+        return Task.CompletedTask;
+    }
 
     protected override Component? Render() => Div["should-not-be-served"];
 }

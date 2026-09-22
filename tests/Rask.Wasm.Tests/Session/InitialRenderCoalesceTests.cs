@@ -5,7 +5,7 @@ namespace Rask.Wasm.Tests.Session;
 
 // Regression: InitialRenderAsync set InHandlerScope=true and then called BuildPayloadAsync
 // DIRECTLY rather than through BuildPayloadCoalescingRerendersAsync. Any StateHasChanged raised
-// while that first payload was being built — canonically an OnMountAsync continuation resolving
+// while that first payload was being built — canonically a Mount continuation resolving
 // mid-render — took the InHandlerScope short-circuit, set _pendingRenderInScope, and was then
 // dropped on the floor because nothing on the initial-render path ever drains that flag. The page
 // kept its first-paint markup (a spinner) until some unrelated event forced another dispatch.

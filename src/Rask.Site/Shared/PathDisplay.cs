@@ -12,9 +12,9 @@ namespace Rask.Site;
 // smallest correct subscribe/unsubscribe pair in the repo, and PathDisplayTests holds it to that.
 public sealed partial class PathDisplay(RouteState route) : Component
 {
-    protected override void OnMount() => route.Changed += StateHasChanged;
+    protected override async Task Mount() => route.Changed += StateHasChanged;
 
-    protected override void OnUnmount() => route.Changed -= StateHasChanged;
+    protected override async Task Unmount() => route.Changed -= StateHasChanged;
 
     protected override Component? Render() =>
         Span.Class("text-ui-muted text-sm hidden md:inline")[

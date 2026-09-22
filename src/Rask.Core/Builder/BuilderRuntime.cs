@@ -202,7 +202,7 @@ public static partial class BuilderRuntime
         // ELEMENTS keep positional identity, deliberately. An element is fully re-specified by its chain
         // on every render — whatever the chain does not name, the deferred reset puts back — so which
         // instance it gets carries nothing, and its DOM identity comes from `data-rask-key` in the diff
-        // codec rather than from here. A COMPONENT is the opposite: its private fields, its OnMount
+        // codec rather than from here. A COMPONENT is the opposite: its private fields, its Mount
         // subscription and anything else it holds itself are exactly what position was losing (#685).
         //
         // Elements are where `Div.Class(…).Key(i)` is written in their hundreds, and none of them needs

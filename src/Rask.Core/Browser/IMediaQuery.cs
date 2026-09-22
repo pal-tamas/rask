@@ -11,7 +11,7 @@ namespace Rask.Core.Browser;
 /// </summary>
 /// <remarks>
 ///     This is a one-shot evaluation (the value at call time), not a live subscription — re-read it when
-///     you need a fresh answer (e.g. in <c>OnRenderedAsync</c>). <c>window.matchMedia</c> is universally
+///     you need a fresh answer (e.g. in <c>Rendered</c>). <c>window.matchMedia</c> is universally
 ///     supported, so no capability gate is needed.
 /// </remarks>
 public interface IMediaQuery

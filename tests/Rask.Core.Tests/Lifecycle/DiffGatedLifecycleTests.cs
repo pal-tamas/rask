@@ -43,7 +43,7 @@ public class DiffGatedLifecycleTests
     [Fact]
     public void FirstRender_FiresOnPropsChanged_EvenWhenPropsChangedFlagIsFalse()
     {
-        // A first-time render is always lifecycle-driven: OnMount + OnPropsChanged must
+        // A first-time render is always lifecycle-driven: Mount + Updated must
         // fire regardless of the diff flag, because the component has never seen its initial values.
         var sp = RenderHarness.EmptyServices();
         var c = new LifecycleTrackingComponent();

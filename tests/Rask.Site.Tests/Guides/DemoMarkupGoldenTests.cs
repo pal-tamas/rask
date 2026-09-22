@@ -156,7 +156,7 @@ public sealed class DemoMarkupGoldenTests
     // then wait past everything they are waiting on, then re-read.
     //
     // Both settle deliberately and later than the 250 ms the general check allows — `lifecycle-hooks`
-    // awaits 450 ms in OnMountAsync, `virtualize-provider` fetches for 350 ms per window — which is why
+    // awaits 450 ms in Mount, `virtualize-provider` fetches for 350 ms per window — which is why
     // their entries in the golden file used to be a race against the wall clock: the shape recorded
     // there depended on which side of the settle the snapshot landed on, and nothing reported which.
     //

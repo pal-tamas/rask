@@ -42,7 +42,7 @@ public partial class ChildrenFunctionPropsTests : global::Rask.Core.RaskMarkup
     public void ItRunsTheLifecycleHookRatherThanOnlyRepainting()
     {
         // The prop change has to arrive as a prop change, not merely as different markup: a component
-        // that acts on OnPropsChanged (resetting a scroll position, restarting a timer) is as much a
+        // that acts on Updated (resetting a scroll position, restarting a timer) is as much a
         // caller of this as one that only renders its value.
         var flag = false;
         var view = new StubComponent(() => AmbientHost.Flag(flag)[
@@ -119,7 +119,11 @@ public sealed partial class AmbientProbe : Component
 
     internal static int PropsChangedCount { get; private set; }
 
-    protected override void OnPropsChanged() => PropsChangedCount++;
+    protected override Task Updated()
+    {
+        PropsChangedCount++;
+        return Task.CompletedTask;
+    }
 
     protected override Component? Render() => Span[Text ?? ""];
 }

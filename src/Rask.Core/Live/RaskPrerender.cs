@@ -56,7 +56,7 @@ public sealed record PrerenderPlan(IReadOnlyList<string> Paths, IReadOnlyList<st
 ///     <para>
 ///         What comes back is what a browser would have been sent, wrapped in the same root boundary the
 ///         hosts install, and driven through the same waves a server's first response uses — so a page
-///         whose <c>OnMountAsync</c> loads build-time data writes the data rather than its placeholder.
+///         whose <c>Mount</c> loads build-time data writes the data rather than its placeholder.
 ///     </para>
 ///     <para>
 ///         <b>Check <see cref="PrerenderResult.Faulted" /> and

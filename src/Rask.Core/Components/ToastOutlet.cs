@@ -35,7 +35,7 @@ public sealed partial class ToastOutlet : Component
     // disposed when the message is dismissed (by hand or by the timer itself) or the outlet unmounts.
     private readonly Dictionary<int, Timer> _timers = [];
 
-    // Cached at mount: LiveRenderContext.Current is null during disposal, so OnUnmount can't re-resolve
+    // Cached at mount: LiveRenderContext.Current is null during disposal, so Unmount can't re-resolve
     // the service to detach the handler (same reason NavLink caches RouteState).
     private IToaster? _toaster;
 
@@ -56,20 +56,21 @@ public sealed partial class ToastOutlet : Component
     // the render cache must not pin an earlier snapshot. Same rationale as ValidationMessage.
     protected override bool BypassRenderCache => true;
 
-    protected override void OnMount()
+    protected override Task Mount()
     {
         _toaster = LiveRenderContext.Current?.Services?.GetService<IToaster>();
         if (_toaster is not null)
         {
             _toaster.Changed += OnToastChanged;
             // Drain anything queued before this outlet mounted — the common case, where a producer set a
-            // toast on the previous page and navigated here. OnMount runs before the first Render, so the
+            // toast on the previous page and navigated here. Mount runs before the first Render, so the
             // messages appear on first paint without an explicit StateHasChanged.
             Drain();
         }
+        return Task.CompletedTask;
     }
 
-    protected override void OnUnmount()
+    protected override Task Unmount()
     {
         if (_toaster is not null)
         {
@@ -85,6 +86,7 @@ public sealed partial class ToastOutlet : Component
 
             _timers.Clear();
         }
+        return Task.CompletedTask;
     }
 
     protected override Component? Render()

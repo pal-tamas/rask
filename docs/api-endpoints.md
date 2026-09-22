@@ -107,7 +107,7 @@ public sealed class PostDetail(PostsClient posts) : Component
 
     private Post? _post;
 
-    protected override async Task OnMountAsync() => _post = await posts.Get(Id);
+    protected override async Task Mount() => _post = await posts.Get(Id);
 
     public override Component Render() =>
         _post is null ? Div["Loading…"] : Article[H1[_post.Title]];

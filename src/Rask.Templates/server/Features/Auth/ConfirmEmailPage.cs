@@ -66,7 +66,7 @@ public sealed partial class ConfirmEmailPage(IAuth auth) : AuthPage
             Span.Class("loading loading-spinner").Attributes(("aria-hidden", "true"))
         ];
 
-    protected override Task OnPropsChangedAsync()
+    protected override Task Updated()
     {
         if (string.IsNullOrEmpty(UserId) || string.IsNullOrEmpty(Token))
         {

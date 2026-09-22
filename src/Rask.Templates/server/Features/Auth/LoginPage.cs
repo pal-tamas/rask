@@ -33,13 +33,8 @@ public sealed partial class LoginPage(IAuth auth, IWebAuthn webAuthn) : AuthPage
 
     // The support check is JavaScript, so it waits for a browser to exist: on the first render this page is HTML
     // on its way out, with nothing to ask.
-    protected override async Task OnRenderedAsync(bool firstRender)
+    protected override async Task FirstRender()
     {
-        if (!firstRender)
-        {
-            return;
-        }
-
         _passkeysSupported = await webAuthn.IsSupportedAsync();
         StateHasChanged();
     }

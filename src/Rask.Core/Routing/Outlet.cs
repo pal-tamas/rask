@@ -11,7 +11,7 @@ namespace Rask.Core.Routing;
 public sealed class Outlet : Component
 {
     // Cached at mount because LiveRenderContext.Current is null during disposal, so
-    // OnUnmount can't re-resolve RouteState from the render scope.
+    // Unmount can't re-resolve RouteState from the render scope.
     private RouteState? _route;
 
     // Render() advances RouteRenderState.Cursor, which is frame-global: each Outlet takes the next
@@ -20,7 +20,7 @@ public sealed class Outlet : Component
     // itself. Router carries the matching note and the rest of the reasoning.
     protected override bool BypassRenderCache => true;
 
-    protected override void OnMount()
+    protected override Task Mount()
     {
         // Subscribe to RouteState.Changed so the cached subtree is invalidated when the
         // route chain changes. Without this, Router's re-render would walk past a cached
@@ -28,20 +28,22 @@ public sealed class Outlet : Component
         _route = LiveRenderContext.Current?.Services?.GetService<RouteState>();
         if (_route is null)
         {
-            return;
+            return Task.CompletedTask;
         }
 
         _route.Changed += StateHasChanged;
+        return Task.CompletedTask;
     }
 
-    protected override void OnUnmount()
+    protected override Task Unmount()
     {
         if (_route is null)
         {
-            return;
+            return Task.CompletedTask;
         }
 
         _route.Changed -= StateHasChanged;
+        return Task.CompletedTask;
     }
 
     protected override Component? Render()

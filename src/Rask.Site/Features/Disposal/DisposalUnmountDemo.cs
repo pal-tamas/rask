@@ -1,7 +1,7 @@
 namespace Rask.Site.Features;
 
-// "OnUnmount vs IDisposable" demo promoted out of the former DisposalPage. The probe owns a timer started
-// in a render hook, so its cleanup belongs in OnUnmount (symmetric with OnMount) rather than IDisposable.
+// "Unmount vs IDisposable" demo promoted out of the former DisposalPage. The probe owns a timer started
+// in a render hook, so its cleanup belongs in Unmount (symmetric with Mount) rather than IDisposable.
 public sealed partial class DisposalUnmountDemo : Component
 {
     private readonly List<string> _hookLog = new();
@@ -56,7 +56,7 @@ public sealed partial class DisposalUnmountDemo : Component
         _ = DeferredRerenderAsync();
     }
 
-    // OnUnmount fires inside the parent's render diff pass; yield back to the event loop so the follow-up
+    // Unmount fires inside the parent's render diff pass; yield back to the event loop so the follow-up
     // render that paints the log line escapes the current dispatch's render lock (dropped otherwise on WASM).
     private async Task DeferredRerenderAsync()
     {

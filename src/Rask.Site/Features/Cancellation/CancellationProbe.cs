@@ -11,7 +11,7 @@ public sealed partial class CancellationProbe : Component
     public required Action<string> Log { get; set; }
     public required int InstanceId { get; set; }
 
-    protected override async Task OnMountAsync()
+    protected override async Task Mount()
     {
         // Capture the lifetime token ONCE up-front. Reading Component.CancellationToken
         // after the framework has disposed the underlying CTS would lazily allocate a

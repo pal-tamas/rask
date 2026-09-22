@@ -165,7 +165,7 @@ public sealed class ShowcaseLayoutTests
     [Fact]
     public async Task OnRouteChanged_ExpandsActiveGroupAndClosesDrawer()
     {
-        // ShowcaseLayout subscribes to RouteState.Changed in OnMount so that on every nav it closes the
+        // ShowcaseLayout subscribes to RouteState.Changed in Mount so that on every nav it closes the
         // mobile drawer and expands the accordion group holding the newly-active route (OnRouteChanged →
         // _drawerOpen = false + OpenActiveGroup + StateHasChanged). Those two effects are the subscription's
         // real job — NOT the sidebar's active CSS class, which each NavLink owns and refreshes off its own

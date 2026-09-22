@@ -9,7 +9,7 @@ using Rask.Server.Tests.Infrastructure;
 namespace Rask.Server.Tests.Endpoints;
 
 // Rask.Query starts its fetch inside the client and never returns it to a lifecycle hook, so the
-// quiescence pass cannot see it the way it sees an awaited OnMountAsync. Without the hand-over at the
+// quiescence pass cannot see it the way it sees an awaited Mount. Without the hand-over at the
 // property read, a query-backed page serves its spinner as the first paint and as the whole document
 // a crawler sees — which is the exact problem quiescence exists to solve, unsolved for the framework's
 // own way of fetching data.

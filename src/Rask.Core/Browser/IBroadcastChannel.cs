@@ -25,9 +25,8 @@ namespace Rask.Core.Browser;
 ///     public sealed class Tabs(IBroadcastChannel bus) : Component, IAsyncDisposable
 ///     {
 ///         private IBroadcastChannelConnection? _conn;
-///         protected override async Task OnRenderedAsync(bool first)
+///         protected override async Task FirstRender()
 ///         {
-///             if (!first) return;
 ///             _conn = await bus.OpenAsync("app", msg => { /* update state */ StateHasChanged(); return Task.CompletedTask; });
 ///         }
 ///         public async ValueTask DisposeAsync() { if (_conn is not null) await _conn.DisposeAsync(); }

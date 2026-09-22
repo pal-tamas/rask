@@ -1,5 +1,8 @@
 namespace Rask.Core.Tests.Lifecycle;
 
+// Each hook used to come as a synchronous and an asynchronous twin, and the tests count both. The twins are one
+// Task-returning hook now, so each counter pair moves together — kept as a pair so the tests that assert "ran
+// once" against either name still say what they said.
 internal sealed partial class LifecycleTrackingComponent : Component
 {
     public int MountAsyncCount;
@@ -13,38 +16,45 @@ internal sealed partial class LifecycleTrackingComponent : Component
     public int RenderedCount;
     public int UnmountAsyncCount;
     public int UnmountCount;
+    public int FirstRenderCount;
+    private bool _firstRenderPending;
+
+    // One entry per Rendered call: true for the render FirstRender ran on.
     public List<bool> RenderedFlags { get; } = new();
 
-    protected override void OnMount() => MountCount++;
-
-    protected override Task OnMountAsync()
+    protected override Task Mount()
     {
+        MountCount++;
         MountAsyncCount++;
         return OnMountAsyncImpl?.Invoke() ?? Task.CompletedTask;
     }
 
-    protected override void OnPropsChanged() => PropsChangedCount++;
-
-    protected override Task OnPropsChangedAsync()
+    protected override Task Updated()
     {
+        PropsChangedCount++;
         PropsChangedAsyncCount++;
         return Task.CompletedTask;
     }
 
-    protected override void OnRendered(bool firstRender)
+    protected override Task FirstRender()
     {
-        RenderedCount++;
-        RenderedFlags.Add(firstRender);
+        FirstRenderCount++;
+        _firstRenderPending = true;
+        return Task.CompletedTask;
     }
 
-    protected override void OnUnmount()
+    protected override Task Rendered()
+    {
+        RenderedCount++;
+        RenderedFlags.Add(_firstRenderPending);
+        _firstRenderPending = false;
+        return Task.CompletedTask;
+    }
+
+    protected override Task Unmount()
     {
         UnmountCount++;
         OnUnmountImpl?.Invoke();
-    }
-
-    protected override Task OnUnmountAsync()
-    {
         UnmountAsyncCount++;
         return OnUnmountAsyncImpl?.Invoke() ?? Task.CompletedTask;
     }

@@ -15,7 +15,7 @@ public readonly record struct QuiescentRenderResult(string Html, bool TimedOut, 
 /// </summary>
 /// <remarks>
 ///     <para>
-///         A component that loads its data in <c>OnMountAsync</c> renders its placeholder first and its
+///         A component that loads its data in <c>Mount</c> renders its placeholder first and its
 ///         data only once the hook resolves. Rendering once and serving that is how a page ships
 ///         "Loading…" as the whole document a crawler sees. This renders, waits for the work that render
 ///         started, renders again, and repeats — because resolved data mounts new components, which start

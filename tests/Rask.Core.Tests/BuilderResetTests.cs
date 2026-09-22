@@ -26,7 +26,11 @@ internal sealed partial class ResetLeaf : Component
 
     internal int PropsChanges;
 
-    protected override void OnPropsChanged() => PropsChanges++;
+    protected override Task Updated()
+    {
+        PropsChanges++;
+        return Task.CompletedTask;
+    }
 
     protected override Component? Render() =>
         Span[$"{Word ?? "-"}|{Note}|{Count}|{(OnPing is null ? "off" : "on")}"];

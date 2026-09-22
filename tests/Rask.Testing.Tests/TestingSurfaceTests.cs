@@ -170,7 +170,7 @@ public class TestingSurfaceTests
     // which is exactly the class of fault an app author had no supported way to assert on.
     private sealed class FaultsInMountAsync : Component
     {
-        protected override async Task OnMountAsync()
+        protected override async Task Mount()
         {
             await Task.Yield();
             throw new InvalidOperationException("boom");

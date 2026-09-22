@@ -30,15 +30,10 @@ public sealed partial class GuideChrome : Component
     public string Slug { get; set; }
 #pragma warning restore CS8618
 
-    protected override async Task OnRenderedAsync(bool firstRender)
+    protected override async Task FirstRender()
     {
         // Wire the scroll-spy once the guide body is in the DOM. Guarded because the guide can render a
         // not-found state (no headings) and because JS may be unavailable on a torn-down transport.
-        if (!firstRender)
-        {
-            return;
-        }
-
         try
         {
             await _js.InvokeVoidAsync("Rask.GuideChrome.spy", _root);
@@ -65,7 +60,7 @@ public sealed partial class GuideChrome : Component
         }
     }
 
-    protected override async Task OnUnmountAsync()
+    protected override async Task Unmount()
     {
         try
         {
@@ -122,7 +117,7 @@ public sealed partial class GuideChrome : Component
     private Component Banner() =>
         Div.Class("guide-banner")[
             UiIcon.Name(UiIconName.Info).Class("me-2"),
-            Span[$"You're reading the Rask v{RaskVersion.Current} guides.", Updated()],
+            Span[$"You're reading the Rask v{RaskVersion.Current} guides.", LastUpdated()],
             A
                 .Href($"https://github.com/pal-tamas/rask/blob/main/docs/{Features.GuideCatalog.SourcePath(Slug)}")
                 .Target("_blank")
@@ -136,7 +131,7 @@ public sealed partial class GuideChrome : Component
     // dateModified and the sitemap's <lastmod> carry. A machine-readable date with no visible one beside it is
     // the combination search engines are told to distrust, and a reader deciding whether a page is stale
     // wants the answer too. Nothing at all when the build could not ask git: no date beats an invented one.
-    private Component? Updated() =>
+    private Component? LastUpdated() =>
         GuideHistory.LastModified(Slug) is { } date
             ?
             [

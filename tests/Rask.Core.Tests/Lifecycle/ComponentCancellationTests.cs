@@ -87,7 +87,7 @@ public partial class ComponentCancellationTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task OnMountAsync_that_passes_no_token_is_still_cancelled_with_its_component()
     {
-        // `await Cache.Remember(…)` in OnMountAsync passes no token; the ambient one has to be the
+        // `await Cache.Remember(…)` in Mount passes no token; the ambient one has to be the
         // component's, before the first await and after it.
         var sp = RenderHarness.EmptyServices();
         var afterAwait = new TaskCompletionSource<CancellationToken>();
@@ -163,7 +163,7 @@ public partial class ComponentCancellationTests : global::Rask.Core.RaskMarkup
 
         public CancellationToken Token => CancellationToken;
 
-        protected override Task OnMountAsync() =>
+        protected override Task Mount() =>
             OnMountAsyncImpl?.Invoke(CancellationToken) ?? Task.CompletedTask;
 
         protected override Component? Render() => Span;

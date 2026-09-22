@@ -108,7 +108,7 @@ internal static class PageRender
         {
             try
             {
-                // Awaited, so a page that loads its data in OnMountAsync ships that data rather than its
+                // Awaited, so a page that loads its data in Mount ships that data rather than its
                 // placeholder. Falls back to the synchronous render when the budget is zero.
                 html = await session
                     .RenderInitialRootAsync(limits.InitialRenderQuiescenceTimeout, cancellationToken)

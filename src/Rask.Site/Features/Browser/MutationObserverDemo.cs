@@ -19,11 +19,14 @@ public sealed partial class MutationObserverDemo(IMutationObserver observer) : C
     private int _attrChanges;
     private string _last = "(none yet)";
 
-    protected override async Task OnRenderedAsync(bool firstRender)
+    protected override async Task FirstRender()
     {
-        if (!firstRender || _observation is not null)
+        if (_observation is not null)
+
         {
+
             return;
+
         }
 
         _observation = await observer.ObserveAsync(_target, entry =>

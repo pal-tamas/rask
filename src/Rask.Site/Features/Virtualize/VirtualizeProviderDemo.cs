@@ -5,7 +5,7 @@ namespace Rask.Site.Features;
 // The same component, now backed by an ItemsProvider that simulates a 350 ms API call per
 // window. Visible rows show a "—" placeholder until the fetch resolves, then morph in.
 // Navigating away mid-fetch cancels the in-flight call: VirtualizeModel cancels its
-// CancellationTokenSource in OnUnmount (and supersedes it whenever a new viewport arrives),
+// CancellationTokenSource in Unmount (and supersedes it whenever a new viewport arrives),
 // so honour req.CancellationToken in your own providers to let the cancellation propagate.
 public sealed partial class VirtualizeProviderDemo : Component
 {

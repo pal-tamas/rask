@@ -15,13 +15,8 @@ public sealed partial class InstallPromptDemo(IInstallPrompt install) : Componen
     private bool _installed;
     private string _status = "checking…";
 
-    protected override async Task OnRenderedAsync(bool firstRender)
+    protected override async Task FirstRender()
     {
-        if (!firstRender)
-        {
-            return;
-        }
-
         await RefreshAsync();
     }
 

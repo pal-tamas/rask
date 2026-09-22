@@ -4,7 +4,7 @@ namespace Rask.Core.Tests.Live;
 
 // #685. A child's identity inside its parent is its ORDINAL among entry-built children, and `Key` does
 // not participate — the parent's child map never reads it. So inserting an item at the top of a keyed
-// list hands every later row the NEXT row's instance: private fields, OnMount subscriptions and any
+// list hands every later row the NEXT row's instance: private fields, Mount subscriptions and any
 // state the row holds itself move with the position rather than with the item. That is precisely the
 // state-follows-position bug `Key` exists to prevent, one layer below where `Key` is consulted.
 //
@@ -180,9 +180,17 @@ public sealed partial class SlottedRow : Component
 
     public Component? Badge { get; set; }
 
-    protected override void OnMount() => _instance = ++MountCount;
+    protected override Task Mount()
+    {
+        _instance = ++MountCount;
+        return Task.CompletedTask;
+    }
 
-    protected override void OnUnmount() => Unmounts++;
+    protected override Task Unmount()
+    {
+        Unmounts++;
+        return Task.CompletedTask;
+    }
 
     protected override Component? Render() => I[$"{Id}:{_instance}", Badge, Children ?? []];
 }
@@ -199,7 +207,11 @@ public sealed partial class KeyedRow : Component
 
     public required int Id { get; set; }
 
-    protected override void OnMount() => _instance = ++MountCount;
+    protected override Task Mount()
+    {
+        _instance = ++MountCount;
+        return Task.CompletedTask;
+    }
 
     protected override Component? Render() => I[$"{Id}:{_instance}"];
 }

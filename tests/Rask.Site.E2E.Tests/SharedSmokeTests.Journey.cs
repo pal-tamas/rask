@@ -320,7 +320,7 @@ public abstract partial class SharedSmokeTests
     }
 
     // The CQRS guide (docs/cqrs.md) embeds the counter slice. Driving it end-to-end proves the
-    // source-generated dispatch works on this host: OnMount runs a query, the button sends a command
+    // source-generated dispatch works on this host: Mount runs a query, the button sends a command
     // that returns a value and publishes a notification, and a pipeline behaviour logs every dispatch.
     // If AddRaskCqrs / the generated ModuleInitializer hadn't wired up on this transport, the demo
     // would throw "No handler is registered" and trip the root error boundary instead.
@@ -687,14 +687,14 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("#cancel-mount")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
 
-        // A live-ticker walk sat here — a poll loop in OnMountAsync, plus a symbol switch to prove
-        // OnPropsChanged refired. Removed with the demo: an unbounded loop awaited by a lifecycle hook is
+        // A live-ticker walk sat here — a poll loop in Mount, plus a symbol switch to prove
+        // Updated refired. Removed with the demo: an unbounded loop awaited by a lifecycle hook is
         // a first render that never settles, which cost this page its prerendered HTML entirely. The
-        // OnPropsChanged contract it also exercised is asserted by the mount/unmount cycle below.
+        // Updated contract it also exercised is asserted by the mount/unmount cycle below.
 
-        // Lifecycle hooks: the awaited OnMountAsync continuation must run, and "Trigger re-render" bumps
-        // the render counter (an event-handler render — it does not re-fire OnMount / OnPropsChanged).
-        await Expect(Page.Locator("li code:has-text('OnMountAsync (after')"))
+        // Lifecycle hooks: the awaited Mount continuation must run, and "Trigger re-render" bumps
+        // the render counter (an event-handler render — it does not re-fire Mount / Updated).
+        await Expect(Page.Locator("li code:has-text('Mount (after')"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
         var badge = Page.GetByText(new Regex("Render #\\d+")).First;
         var before = ExtractRenderCount(await badge.TextContentAsync());
@@ -702,11 +702,11 @@ public abstract partial class SharedSmokeTests
         await Expect(badge).Not.ToContainTextAsync($"Render #{before}",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
-        // Mount / unmount cycle: mounting then unmounting the probe fires OnUnmount / OnUnmountAsync,
+        // Mount / unmount cycle: mounting then unmounting the probe fires Unmount,
         // logged into the parent-held list (which survives the unmount).
         await Page.Locator("#lifecycle-cycle-mount").ClickAsync();
         await Page.Locator("#lifecycle-cycle-unmount").ClickAsync();
-        await Expect(Page.Locator("#lifecycle-cycle-log")).ToContainTextAsync("OnUnmount",
+        await Expect(Page.Locator("#lifecycle-cycle-log")).ToContainTextAsync("Unmount",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
         // Disposal: sync IDisposable + async IAsyncDisposable both fire on unmount.
@@ -1076,7 +1076,7 @@ public abstract partial class SharedSmokeTests
         await SideAsync("HTTP & files", "HTTP & files", "main .markdown-body h1");
         await AssertGuideDemosAsync(4, "http-and-files");
 
-        // HttpClient + DI: the injected client loads a post card in OnMountAsync. This also guards the
+        // HttpClient + DI: the injected client loads a post card in Mount. This also guards the
         // WASM base-address fix — the relative fetch must resolve against the app root from the two-segment
         // /guides/http-and-files route (not against /guides/), or it 404s and the error banner shows instead.
         await Expect(Page.Locator(".guide-demo .sample-result-body article").First).ToBeVisibleAsync(

@@ -18,11 +18,14 @@ public sealed partial class ResizeObserverDemo(IResizeObserver observer) : Compo
     private double _height;
     private bool _wide = true;
 
-    protected override async Task OnRenderedAsync(bool firstRender)
+    protected override async Task FirstRender()
     {
-        if (!firstRender || _observation is not null)
+        if (_observation is not null)
+
         {
+
             return;
+
         }
 
         _observation = await observer.ObserveAsync(_box, size =>

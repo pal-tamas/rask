@@ -79,7 +79,7 @@ public partial class RaskTestFactoryTests : global::Rask.Core.RaskMarkup
         Assert.NotNull(page.HandlerId("click"));
     }
 
-    // Unmount is deliberately not asserted here: OnUnmount fires only for a child registered through its
+    // Unmount is deliberately not asserted here: Unmount fires only for a child registered through its
     // generated factory, and this consumer-shaped project has no generator. The markup contract is what a
     // null factory result guarantees on its own.
     [Fact]

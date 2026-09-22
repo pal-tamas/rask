@@ -6,7 +6,7 @@ internal static class ComponentLifecycle
 {
     internal static void DisposeComponentTree(Component component)
     {
-        // Run the teardown at most once per component — a tree mutation inside an OnUnmount
+        // Run the teardown at most once per component — a tree mutation inside a Unmount
         // hook could otherwise route the same node through a second dispose pass.
         if (!component.TryBeginDispose())
         {
@@ -18,7 +18,7 @@ internal static class ComponentLifecycle
             DisposeComponentTree(child);
         }
 
-        // OnUnmount fires before token cancellation so the hook can still observe a live
+        // Unmount fires before token cancellation so the hook can still observe a live
         // token. Any user CancellationToken.Register callbacks then fire on CancelLifetimeToken
         // immediately below — both mechanisms work, additive.
         var unmountTask = component.RaiseUnmount();
@@ -48,7 +48,7 @@ internal static class ComponentLifecycle
 
     internal static async Task DisposeComponentTreeAsync(Component component)
     {
-        // Run the teardown at most once per component — a tree mutation inside an OnUnmount
+        // Run the teardown at most once per component — a tree mutation inside a Unmount
         // hook could otherwise route the same node through a second dispose pass.
         if (!component.TryBeginDispose())
         {
