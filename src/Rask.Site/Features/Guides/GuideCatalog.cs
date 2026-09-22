@@ -135,7 +135,7 @@ public static class GuideCatalog
         new("06-cache", "Ch 6 · Cache", "Cache the catalog on your own database.", "Tutorial", "tutorial/06-cache.md")
         {
             SearchTitle = "Tutorial 6: cache database queries in .NET",
-            Description = "Cache the product list in a typed, SQLite-backed cache: write an accessor around GetOrAddAsync, read through it, and invalidate it when the catalog changes.",
+            Description = "Cache the product list in a typed, SQLite-backed cache: write an accessor around Remember, read through it, and invalidate it when the catalog changes.",
         },
         new("07-outbox-events", "Ch 7 · Outbox & events", "Domain events with the transactional outbox.", "Tutorial", "tutorial/07-outbox-events.md")
         {
@@ -233,7 +233,7 @@ public static class GuideCatalog
         new("cache", "Cache", "A database-backed IDistributedCache plus a typed ICache.", "One Person Framework")
         {
             SearchTitle = "Database-backed IDistributedCache for ASP.NET Core",
-            Description = "A cache stored in your app's own database instead of Redis: it implements IDistributedCache and adds a typed ICache with GetOrAddAsync and sliding expiry.",
+            Description = "A cache stored in your app's own database instead of Redis: it implements IDistributedCache and adds a typed ICache with Remember and sliding expiry.",
         },
         new("file-storage", "File storage", "Uploads kept on disk, S3 or Azure, with a row per file.", "One Person Framework")
         {

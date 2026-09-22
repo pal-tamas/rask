@@ -133,7 +133,7 @@ builder.Services.AddRaskMail<AppDbContext>();
 // rask:end
 // rask:if cache
 // A cache on the app's own database: the standard IDistributedCache (so ASP.NET session/output
-// caching just works) plus a typed ICache with GetOrAddAsync and absolute/sliding expiry. A
+// caching just works) plus a typed ICache — Cache.Remember(key, load).For(10.Minutes) — with absolute/sliding expiry. A
 // background purger sweeps expired rows.
 builder.Services.AddRaskCache<AppDbContext>();
 

@@ -12,6 +12,14 @@ public sealed class CacheOptions
     /// </summary>
     public TimeSpan? DefaultSlidingExpiration { get; set; }
 
+    /// <summary>
+    /// The <c>JsonSerializerContext</c> cached values are serialized with — set it once in a trimmed or AOT app,
+    /// <c>o.Json = AppJson.Default</c>, and every <c>Remember</c>/<c>Set</c>/<c>Get</c> stays as it is. <c>null</c>
+    /// (the default) serializes with reflection, which an untrimmed app can.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver? Json { get; set; }
+
     /// <summary>Validates the option values once <c>Rask:Cache</c> and the callback have applied (checked at host start, so a bad value fails fast rather than tearing down the host later).</summary>
     internal void Validate()
     {

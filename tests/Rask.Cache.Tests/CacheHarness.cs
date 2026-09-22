@@ -54,6 +54,8 @@ public sealed class CacheHarness : IAsyncDisposable
 
     public ICache Cache => _provider.GetRequiredService<ICache>();
 
+    public IServiceProvider Services => _provider;
+
     public IHostedService Purger =>
         _provider.GetServices<IHostedService>().OfType<CachePurger<CacheDbContext>>().Single();
 

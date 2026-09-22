@@ -66,7 +66,7 @@ Everything a solo developer needs to go from empty folder to shipped, in the box
 | **[`Rask.Cqrs`](cqrs.md)** | Source-generated, reflection-free CQRS/mediator — trim/AOT-safe, zero runtime scanning. |
 | **[`Rask.Jobs`](jobs.md)** | Durable background jobs on the app's own database — enqueue, delayed, and recurring, run by a hosted worker. |
 | **[`Rask.Mail`](mail.md)** | Transactional email queued in the same database and delivered by a background worker (SMTP/MailKit). |
-| **[`Rask.Cache`](cache.md)** | A database-backed cache: the standard `IDistributedCache` plus a typed `ICache` with `GetOrAddAsync` and absolute/sliding expiry. |
+| **[`Rask.Cache`](cache.md)** | A database-backed cache: the standard `IDistributedCache` plus a typed `ICache` with `Cache.Remember(…).For(…)` and absolute/sliding expiry. |
 | **[`Rask.Storage`](file-storage.md)** | Uploaded files on disk, in an S3-compatible bucket or in Azure Blob, with a row per file on the app's own database — content types sniffed from the bytes, public and temporary URLs, downloads behind your own check. |
 | **[`Rask.Logging`](logging.md)** | A durable log store in a SQLite file of its own (or the app's own PostgreSQL or SQL Server database) — the `ILogger` pipeline kept across restarts, buffered off the request thread, with retention by age and row count. |
 | **[`Rask.Outbox`](outbox.md)** | Transactional outbox — domain events captured in the same transaction and relayed at-least-once, no external broker. |

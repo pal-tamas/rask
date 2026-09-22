@@ -151,7 +151,7 @@ and reset their password with no auth code written.
 - **[Outbox](docs/outbox.md)** — domain events committed in the same transaction as your data and
   relayed at-least-once, with no message broker.
 - **[Cache](docs/cache.md)** — the standard `IDistributedCache` plus a typed `ICache` with
-  `GetOrAddAsync`.
+  `Cache.Remember(…).For(…)`.
 - **[Data](docs/data.md)** · **[CQRS](docs/cqrs.md)** — audit stamps, soft delete, optimistic
   concurrency and domain events on EF Core, and a source-generated, reflection-free mediator.
 - **[Production SQLite](docs/sqlite.md)** — WAL and busy-timeout pragmas, continuous Litestream backup,

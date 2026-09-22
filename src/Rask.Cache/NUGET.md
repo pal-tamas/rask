@@ -4,8 +4,8 @@ A **developer-facing cache** for a Rask app — stored in the app's own database
 
 - Implements the standard **`IDistributedCache`**, so it drops straight into ASP.NET session state, output
   caching, and anything else built on the abstraction.
-- A typed **`ICache`** convenience layer adds `GetOrAddAsync<T>` read-through, plus `GetAsync<T>` /
-  `SetAsync<T>` / `RemoveAsync` (JSON under the hood).
+- A typed cache you reach the way you say it — `await Cache.Remember("rates", LoadRates).For(10.Minutes)` —
+  plus `Set`, `Get` and `Forget`, with nothing injected (JSON under the hood).
 - Entries carry **absolute** and **sliding** expirations; a read renews a sliding entry and an expired entry is
   evicted lazily. A background **`CachePurger`** sweeps expired rows on an interval.
 
@@ -20,11 +20,11 @@ builder.Services.AddRaskCache<AppDbContext>();
 ```
 
 ```csharp
-// read-through: the factory runs once on a miss, then the value is served from the DB.
-var rates = await cache.GetOrAddAsync(
-    $"rates:{date:yyyyMMdd}",
-    ct => exchange.FetchRatesAsync(date, ct),
-    new DistributedCacheEntryOptions { SlidingExpiration = TimeSpan.FromMinutes(10) });
+// remember: the loader runs once on a miss, then the value is served from the DB.
+var rates = await Cache.Remember($"rates:{date:yyyyMMdd}", () => exchange.FetchRates(date)).Sliding(10.Minutes);
+
+await Cache.Set("greeting", "hello").For(1.Hour);
+await Cache.Forget("greeting");
 ```
 
 Register your context as an `IDbContextFactory<AppDbContext>` (Rask Server sessions are long-lived) and run
@@ -41,10 +41,9 @@ builder.Services.AddRaskCache();   // no <AppDbContext>
 ```
 
 There is deliberately no `Rask.Cache.Redis` package —
-`Microsoft.Extensions.Caching.StackExchangeRedis` is the standard .NET API for this. The overload takes no
-`CacheOptions`, because both of them are implemented by the database-backed store and would silently do
-nothing against another one.
+`Microsoft.Extensions.Caching.StackExchangeRedis` is the standard .NET API for this. Of `CacheOptions` only
+`Json` applies there — the purge and the default expiry belong to the database-backed store.
 
-> **Trim / AOT:** the typed `GetOrAddAsync<T>`/`GetAsync<T>`/`SetAsync<T>` overloads use reflection-based
-> `System.Text.Json`. In a trimmed or AOT app, use the `JsonTypeInfo<T>` overloads with a source-generated
-> `JsonSerializerContext`. The `IDistributedCache` (`byte[]`) surface is fully trim-safe.
+> **Trim / AOT:** register your source-generated `JsonSerializerContext` once —
+> `AddRaskCache<AppDbContext>(o => o.Json = AppJson.Default)` — and every call site stays as it is. The
+> `IDistributedCache` (`byte[]`) surface is fully trim-safe.

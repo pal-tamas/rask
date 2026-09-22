@@ -4,9 +4,14 @@
 
 `Rask.Cache` caches computed values in the app's own database — no message broker, no Redis. It implements
 the standard **`IDistributedCache`** (so it drops straight into ASP.NET session state, output caching, and
-anything else built on the abstraction) and adds a typed **`ICache`** convenience layer with a read-through
-`GetOrAddAsync<T>`. Entries carry **absolute** and **sliding** expirations; a background worker sweeps
-expired rows.
+anything else built on the abstraction) and adds a typed cache you reach the way you say it —
+**remember the rates for ten minutes**:
+
+```csharp
+var rates = await Cache.Remember("rates", LoadRates).For(10.Minutes);
+```
+
+Entries carry **absolute** and **sliding** expirations; a background worker sweeps expired rows.
 
 > Included in the [`Rask`](../README.md) package — nothing to install. It is **on**; an app that does without it says so:
 >
@@ -43,22 +48,32 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 ```
 
 Add a migration for the new table before running — `rask db add AddCache && rask db update`
-(or `dotnet ef migrations add AddCache` directly). Then cache from anywhere `ICache` is injected:
+(or `dotnet ef migrations add AddCache` directly). Then cache from anywhere — a handler, a render, a
+request, a job — with nothing injected:
 
 ```csharp
-// read-through: the factory runs once on a miss, then the value is served from the DB.
-var rates = await cache.GetOrAddAsync(
-    $"rates:{date:yyyyMMdd}",
-    ct => exchange.FetchRatesAsync(date, ct),
-    new DistributedCacheEntryOptions { SlidingExpiration = TimeSpan.FromMinutes(10) });
+// remember: a hit returns what was stored; a miss runs the loader, stores it, and returns it.
+var rates = await Cache.Remember($"rates:{date:yyyyMMdd}", () => exchange.FetchRates(date)).Sliding(10.Minutes);
 
-await cache.SetAsync("greeting", "hello", new DistributedCacheEntryOptions
+await Cache.Set("greeting", "hello").For(1.Hour);
+var greeting = await Cache.Get<string>("greeting");
+await Cache.Forget("greeting");
+```
+
+How long an entry lives is a step at the end: **`.For(10.Minutes)`** from now, **`.Sliding(20.Minutes)`**
+while it keeps being read, **`.Until(midnight)`** at a fixed moment. With no step it follows
+`CacheOptions.DefaultSlidingExpiration`, and never expires when that is unset. Nothing runs until the line
+is awaited.
+
+No call takes a cancellation token: each is cancelled with the work it runs in. Where there is no such work
+— a hosted service, a timer started at boot — inject `ICache`, which reads the same:
+
+```csharp
+public sealed class RatesWarmer(ICache cache) : BackgroundService
 {
-    AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1),
-});
-
-var greeting = await cache.GetAsync<string>("greeting");
-await cache.RemoveAsync("greeting");
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken) =>
+        await cache.Remember("rates", LoadRates, stoppingToken).For(10.Minutes);
+}
 ```
 
 Or use the standard `IDistributedCache` directly (bytes in, bytes out) — for ASP.NET session state, register
@@ -71,24 +86,28 @@ it with `builder.Services.AddSession()` and `AddRaskCache` provides the store.
   short-lived context). It stores one `CacheEntry` row per key: the bytes, an optional absolute deadline, an
   optional sliding window, and the effective **`ExpiresAt`**. A read past `ExpiresAt` is a **miss** and the row
   is evicted lazily; a read of a sliding entry **renews** `ExpiresAt` (capped by any absolute deadline).
-- **`ICache` / `Cache`** — the typed layer. `GetOrAddAsync<T>`, `GetAsync<T>`, `SetAsync<T>`, `RemoveAsync`,
-  serializing `T` with `System.Text.Json`. `GetOrAddAsync` runs the factory **once** on a miss, stores the
-  result, and returns it; a concurrent second caller may also run the factory (the cache is not a lock), so
-  keep factories idempotent.
+- **`Cache` / `ICache`** — the typed layer: `Remember`, `Set`, `Get`, `Forget`, serializing `T` with
+  `System.Text.Json`. `Remember` runs the loader **once** on a miss, stores the result, and returns it; a
+  concurrent second caller may also run the loader (the cache is not a lock), so keep loaders idempotent.
 - **`CachePurger<TContext>`** — a hosted `BackgroundService` that bulk-deletes rows past `ExpiresAt` on
   `PurgeInterval` (default 5 minutes). Reads already evict lazily; the sweep is the backstop for entries that
   are simply never read again.
 
 ## Trim / AOT
 
-The typed `GetOrAddAsync<T>` / `GetAsync<T>` / `SetAsync<T>` overloads use reflection-based
-`System.Text.Json` and are annotated `[RequiresUnreferencedCode]` / `[RequiresDynamicCode]`. In a trimmed or
-AOT app, use the `JsonTypeInfo<T>` overloads with a source-generated `JsonSerializerContext`:
+Values are stored as JSON. An untrimmed app serializes them with reflection and needs nothing. A trimmed or
+AOT app registers its source-generated `JsonSerializerContext` **once**, and every call site stays exactly as
+it is:
 
 ```csharp
-await cache.SetAsync("k", widget, AppJsonContext.Default.Widget);
-var widget = await cache.GetAsync("k", AppJsonContext.Default.Widget);
+builder.Services.AddRaskCache<AppDbContext>(o => o.Json = AppJson.Default);
+
+[JsonSerializable(typeof(List<Rate>))]
+internal sealed partial class AppJson : JsonSerializerContext;
 ```
+
+A type the context does not list fails on first use with the attribute to add —
+`[JsonSerializable(typeof(Rate))]` — rather than with a trim warning at every call site.
 
 The `IDistributedCache` (`byte[]`) surface is fully trim-safe.
 
@@ -103,17 +122,16 @@ builder.Services.AddStackExchangeRedisCache(o => o.Configuration = "localhost:63
 builder.Services.AddRaskCache();   // no <AppDbContext> — the store is Redis
 ```
 
-That is the whole change. `ICache` and `GetOrAddAsync` behave identically, because the typed layer only
+That is the whole change. `Cache.Remember` and the rest behave identically, because the typed layer only
 ever talks to `IDistributedCache`; nothing about your calling code moves.
 
 There is **no `Rask.Cache.Redis` package**, and there shouldn't be:
 [`Microsoft.Extensions.Caching.StackExchangeRedis`](https://www.nuget.org/packages/Microsoft.Extensions.Caching.StackExchangeRedis)
 is the standard .NET API for this and wrapping it would only add a layer to keep in step.
 
-Note the overload takes **no `CacheOptions`**. Both of them — `PurgeInterval` and
-`DefaultSlidingExpiration` — are implemented by the database-backed store, so against Redis they would be
-settings that silently did nothing. Expiry is Redis's own business: configure it there, or pass a
-`DistributedCacheEntryOptions` per call. Using the `<AppDbContext>` overload with a Redis store registered
+Of `CacheOptions`, only `Json` applies to this overload. The other two — `PurgeInterval` and
+`DefaultSlidingExpiration` — are implemented by the database-backed store, which it does not register. Expiry
+is Redis's own business: configure it there, or say it per call with `.For(…)` and `.Sliding(…)`. Using the `<AppDbContext>` overload with a Redis store registered
 would still work, but it also registers the purge worker and so keeps needing the `CacheEntry` table and a
 migration for it — which is exactly what this overload removes.
 

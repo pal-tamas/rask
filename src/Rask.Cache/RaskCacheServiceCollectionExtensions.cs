@@ -24,11 +24,10 @@ public static class RaskCacheServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.AddRaskOptions<CacheOptions>("Rask:Cache", static (section, o) => section.Bind(o), configure,
-            static o => o.Validate());
+        AddOptions(services, configure);
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<IDistributedCache, RaskDistributedCache<TContext>>();
-        services.TryAddSingleton<ICache, Cache>();
+        services.TryAddSingleton<ICache, TypedCache>();
 
         // Before the purger, so an app whose model never mapped CacheEntry fails the boot with the line
         // to type rather than on the first cache read. The purger itself tolerates a missing table — it
@@ -54,12 +53,11 @@ public static class RaskCacheServiceCollectionExtensions
     /// other reasons, or when several instances need a cache the database shouldn't carry.
     /// </para>
     /// <para>
-    /// No <see cref="CacheOptions"/>, deliberately. Both of them — <see cref="CacheOptions.PurgeInterval"/>
-    /// and <see cref="CacheOptions.DefaultSlidingExpiration"/> — are implemented by
-    /// <see cref="RaskDistributedCache{TContext}"/>, so against another store they would be settings that
-    /// silently do nothing. Expiry is the store's own business: Redis evicts on its own schedule, and a
-    /// default expiration belongs in its configuration or in the per-call
-    /// <see cref="DistributedCacheEntryOptions"/>.
+    /// Of <see cref="CacheOptions"/> only <see cref="CacheOptions.Json"/> applies here. The other two —
+    /// <see cref="CacheOptions.PurgeInterval"/> and <see cref="CacheOptions.DefaultSlidingExpiration"/> — are
+    /// implemented by <see cref="RaskDistributedCache{TContext}"/>, which this overload does not register.
+    /// Expiry is the store's own business: Redis evicts on its own schedule, and a default expiration belongs in
+    /// its configuration or in the per-call <c>.For(…)</c>/<c>.Sliding(…)</c>.
     /// </para>
     /// <example>
     /// <code>
@@ -68,14 +66,34 @@ public static class RaskCacheServiceCollectionExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    public static IServiceCollection AddRaskCache(this IServiceCollection services)
+    public static IServiceCollection AddRaskCache(this IServiceCollection services, Action<CacheOptions>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(services);
 
         // No IDistributedCache and no purger: this overload's whole point is that the store is somebody
         // else's. Nothing here needs a DbContext, so an app using it never maps the CacheEntry table and
-        // never runs a migration for it.
-        services.TryAddSingleton<ICache, Cache>();
+        // never runs a migration for it. Of the options only Json applies — the purge and the default
+        // expiry are the database store's, which this overload does not register.
+        AddOptions(services, configure);
+        services.TryAddSingleton<ICache, TypedCache>();
         return services;
+    }
+
+    // `Json` is set in code — a serializer context cannot come from appsettings — so the section binds into
+    // a shape without it, and the binder's generator never meets a property it cannot build.
+    private static void AddOptions(IServiceCollection services, Action<CacheOptions>? configure) =>
+        services.AddRaskOptions<CacheOptions>("Rask:Cache", static (section, o) =>
+        {
+            var bound = new FromConfiguration { PurgeInterval = o.PurgeInterval, DefaultSlidingExpiration = o.DefaultSlidingExpiration };
+            section.Bind(bound);
+            o.PurgeInterval = bound.PurgeInterval;
+            o.DefaultSlidingExpiration = bound.DefaultSlidingExpiration;
+        }, configure, static o => o.Validate());
+
+    internal sealed class FromConfiguration
+    {
+        public TimeSpan PurgeInterval { get; set; }
+
+        public TimeSpan? DefaultSlidingExpiration { get; set; }
     }
 }

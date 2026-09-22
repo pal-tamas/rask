@@ -32,13 +32,13 @@ public sealed class ExternalStoreCacheTests
         });
 
         var cache = provider.GetRequiredService<ICache>();
-        await cache.SetAsync("k", new Sample("hello", 42));
+        await cache.Set("k", new Sample("hello", 42));
 
-        Assert.Equal(new Sample("hello", 42), await cache.GetAsync<Sample>("k"));
+        Assert.Equal(new Sample("hello", 42), await cache.Get<Sample>("k"));
     }
 
     [Fact]
-    public async Task GetOrCreate_still_reads_through()
+    public async Task Remember_still_reads_through()
     {
         await using var provider = Build(services =>
         {
@@ -55,8 +55,8 @@ public sealed class ExternalStoreCacheTests
             return Task.FromResult(new Sample("made", 1));
         }
 
-        Assert.Equal(new Sample("made", 1), await cache.GetOrAddAsync("k", Factory));
-        Assert.Equal(new Sample("made", 1), await cache.GetOrAddAsync("k", Factory));
+        Assert.Equal(new Sample("made", 1), await cache.Remember("k", Factory));
+        Assert.Equal(new Sample("made", 1), await cache.Remember("k", Factory));
         Assert.Equal(1, calls);
     }
 
@@ -98,9 +98,9 @@ public sealed class ExternalStoreCacheTests
         });
 
         var cache = provider.GetRequiredService<ICache>();
-        await cache.SetAsync("k", new Sample("late", 7));
+        await cache.Set("k", new Sample("late", 7));
 
-        Assert.Equal(new Sample("late", 7), await cache.GetAsync<Sample>("k"));
+        Assert.Equal(new Sample("late", 7), await cache.Get<Sample>("k"));
     }
 
     [Fact]

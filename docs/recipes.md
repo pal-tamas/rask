@@ -103,14 +103,14 @@ modelBuilder.AddRaskMail();                                          // then: ra
 
 ## Cache an expensive query
 
-One registration + one table, then wrap the read in `GetOrAddAsync` and invalidate on write.
+One registration + one table, then remember the read and forget it on write.
 
 ```csharp
 builder.Services.AddRaskCache<ProductsDbContext>();
 modelBuilder.AddRaskCache();                                         // then: rask db add AddCache && rask db update
 
-var products = await cache.GetOrAddAsync("products", async _ => await LoadAsync(), CancellationToken);
-await cache.RemoveAsync("products");                                 // when the catalog changes
+var products = await Cache.Remember("products", LoadProducts).For(10.Minutes);
+await Cache.Forget("products");                                      // when the catalog changes
 ```
 
 → Reference: [cache](cache.md) · Learn it: [Tutorial Ch 6](tutorial/06-cache.md)

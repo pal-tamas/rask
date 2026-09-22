@@ -119,9 +119,9 @@ await Product.DeleteAsync(id, db: db, cancellationToken: CancellationToken);    
 await dispatcher.SendAsync(new EditProduct { Id = id, Name = name, Version = version }, CancellationToken);
 UiDataGrid.Data(Product.Read.AsQueryable()).RowKey(p => p.Id)[c => [ c.Field(p => p.Name) ]];   // pages in SQL
 
-// Cache an expensive read; invalidate on write:
-var products = await cache.GetOrAddAsync("products", async _ => await LoadAsync(), CancellationToken);
-await cache.RemoveAsync("products");
+// Cache an expensive read; forget it on write — nothing injected:
+var products = await Cache.Remember("products", LoadProducts).For(10.Minutes);
+await Cache.Forget("products");
 
 // Keep an upload, then link to it — Url does no I/O, so it is safe inside Render:
 var saved = await files.SaveAsync(file.OpenReadStream, file.Name, file.Size, o => o.Public = true, CancellationToken);   // IFiles, ctor-injected

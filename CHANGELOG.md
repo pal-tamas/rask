@@ -233,6 +233,7 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING — the cache reads the way you say it, with nothing injected.** `await Cache.Remember("products", LoadProducts).For(10.Minutes)`, `await Cache.Set("banner", text).Until(midnight)`, `await Cache.Get<string>("banner")`, `await Cache.Forget("products")` — from a handler, a render, a request or a job; each call is cancelled with the work it runs in. Lifetimes are steps: `.For(…)`, `.Sliding(…)`, `.Until(…)`. An injected `ICache` reads the same (`cache.Remember(…).For(…)`) for a hosted service or a timer. A trimmed or AOT app registers its `JsonSerializerContext` once — `AddRaskCache<AppDbContext>(o => o.Json = AppJson.Default)` — instead of passing a `JsonTypeInfo<T>` at every call; the external-store `AddRaskCache()` takes the same `configure`. Renamed: `GetOrAddAsync` → `Remember`, `SetAsync` → `Set`, `GetAsync` → `Get`, `RemoveAsync` → `Forget`; `DistributedCacheEntryOptions` → the lifetime steps; the `JsonTypeInfo<T>` overloads → `CacheOptions.Json`; the public `Cache` implementation class is now the static entry point.
 - **The dashboard's log search is served by an index** (#1111). It was `LIKE '%…%'` over every retained row. The
   SQLite log store now keeps an FTS5 table with the `trigram` tokenizer beside the log, kept current by triggers, and
   a search of three or more characters is a case-insensitive substring match looked up in it; a shorter one is the
