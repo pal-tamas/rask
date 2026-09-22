@@ -86,7 +86,7 @@ public static class RaskAuthServiceCollectionExtensions
             }
         });
 
-        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton(Clock.TimeProvider); // Rask's clock, so Clock.Fake moves this battery's time too
         services.TryAddSingleton<FirstRunToken>();
         services.TryAddSingleton<IInstanceClaimStore, InstanceClaimStore<TContext>>();
         services.TryAddSingleton<IAuthContexts, AuthContexts<TContext>>();

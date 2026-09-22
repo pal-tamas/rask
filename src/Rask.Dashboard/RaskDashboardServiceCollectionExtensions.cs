@@ -66,7 +66,7 @@ public static class RaskDashboardServiceCollectionExtensions
 
         services.AddRaskOptions<RaskDashboardOptions>("Rask:Dashboard", static (section, o) => section.Bind(o),
             configure, static o => o.Validate());
-        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton(Clock.TimeProvider); // Rask's clock, so Clock.Fake moves this battery's time too
 
         // The console is its OWN application, not a set of pages inside the host's. RouteRegistry is
         // process-wide, so referencing this package used to be enough to put these pages in the host

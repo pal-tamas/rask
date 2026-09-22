@@ -31,7 +31,7 @@ public static class RaskMailServiceCollectionExtensions
 
         services.AddRaskOptions<MailOptions>("Rask:Mail", static (section, o) => section.Bind(o), configure,
             static o => o.Validate());
-        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton(Clock.TimeProvider); // Rask's clock, so Clock.Fake moves this battery's time too
         services.TryAddSingleton<MailMetrics>();
 
         // Chosen from the BUILT options: whether SMTP is configured can come from Rask:Mail:Smtp, which is not

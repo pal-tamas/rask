@@ -192,6 +192,7 @@ What the rules above settled, so a new package has one place to look rather than
 | Cached reads | `QueryClient` (static) / `IQueryClient` | `Query`, `SendAsync`, `Command`, `Invalidate` |
 | Durable log | `ILogs` | `SearchAsync` |
 | SQLite connections | `ISqlite` | `InImmediateTransactionAsync` |
+| Time | `Clock` (static) | `Now`; `Clock.Fake(at:)` + `Advance` in tests |
 | Durations and sizes | `Units` (ambient) | `3.Seconds`, `1.Hour`, `50.Megabytes`, `3.Days.Ago`, `2.Hours.FromNow` |
 | Web Push | `IWebPush` | `SubscribeAsync` (browser), `SendAsync` (server) |
 

@@ -34,7 +34,7 @@ public static class RaskDataServiceCollectionExtensions
 
         AddOptions(services, configure);
 
-        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton(Clock.TimeProvider); // Rask's clock, so Clock.Fake moves this battery's time too
 
         // Registration order is the interception order: soft-delete rewrites Deleted -> Modified first, so
         // auditing then stamps + versions the resulting update.

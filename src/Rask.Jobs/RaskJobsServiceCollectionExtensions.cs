@@ -31,7 +31,7 @@ public static class RaskJobsServiceCollectionExtensions
         // list of job factories, which appsettings has no way to express, so AddRecurring is the only way to
         // fill it. Every other property binds, and RaskJobsOptionsBindingTests pins that each settable one does.
         services.AddRaskOptions("Rask:Jobs", static (section, o) => section.Bind(o), configure, static o => o.Validate());
-        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton(Clock.TimeProvider); // Rask's clock, so Clock.Fake moves this battery's time too
         services.TryAddSingleton<JobMetrics>();
         services.TryAddSingleton<IJob, JobQueue<TContext>>();
 

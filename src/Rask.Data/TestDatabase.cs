@@ -71,7 +71,7 @@ public sealed class TestDatabase : IAsyncDisposable
     {
         ArgumentNullException.ThrowIfNull(configure);
 
-        var clock = timeProvider ?? TimeProvider.System;
+        var clock = timeProvider ?? Clock.TimeProvider;
 
         RaskDbContext Create()
         {

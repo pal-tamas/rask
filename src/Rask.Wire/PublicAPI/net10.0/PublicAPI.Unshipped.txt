@@ -412,3 +412,6 @@ static Rask.Ambient.Or(System.Threading.CancellationToken token) -> System.Threa
 static Rask.Ambient.Services.get -> System.IServiceProvider?
 static Rask.Ambient.FallbackToken.get -> System.Func<System.Threading.CancellationToken>?
 static Rask.Ambient.FallbackToken.set -> void
+Rask.Clock
+static Rask.Clock.Now.get -> System.DateTimeOffset
+static Rask.Clock.TimeProvider.get -> System.TimeProvider!

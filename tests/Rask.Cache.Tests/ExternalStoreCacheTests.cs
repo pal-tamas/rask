@@ -105,6 +105,17 @@ public sealed class ExternalStoreCacheTests
     }
 
     [Fact]
+    public void The_cache_keeps_time_by_Rasks_clock_so_a_faked_clock_moves_its_expiry()
+    {
+        var services = new ServiceCollection();
+
+        services.AddRaskCache<CacheDbContext>();
+
+        var registered = services.Single(d => d.ServiceType == typeof(TimeProvider)).ImplementationInstance;
+        Assert.Same(Clock.TimeProvider, registered);
+    }
+
+    [Fact]
     public void Registering_twice_is_idempotent()
     {
         var services = new ServiceCollection();

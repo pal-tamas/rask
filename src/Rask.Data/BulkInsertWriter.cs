@@ -317,7 +317,7 @@ internal static class BulkInsertWriter
             .FindExtension<CoreOptionsExtension>()?
             .ApplicationServiceProvider?
             .GetService(typeof(TimeProvider)) as TimeProvider
-        ?? TimeProvider.System;
+        ?? Clock.TimeProvider;
 
     /// <summary>What every batch of one load shares.</summary>
     private sealed record BatchWrite(BulkInsertPlan Plan, DateTime Now, bool Synchronous, int RowsPerStatement);

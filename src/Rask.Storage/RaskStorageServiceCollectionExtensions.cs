@@ -36,7 +36,7 @@ public static class RaskStorageServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton(Clock.TimeProvider); // Rask's clock, so Clock.Fake moves this battery's time too
 
         // Idempotent, and what makes a hand-wired host (no AddRask) able to sign temporary URLs. Rask's own
         // hosts persist the key ring to the deploy volume, so a link survives a redeploy.

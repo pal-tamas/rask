@@ -374,7 +374,7 @@ public static class RaskAuthEndpointExtensions
         // header — so nothing stores it on the caller's behalf.
         return WantsBearer(context) && BearerFor(context) is { } options
             ? Results.Ok(new BearerSession(
-                BearerTokens.Issue(principal, options, TimeProvider.System),
+                BearerTokens.Issue(principal, options, Clock.TimeProvider),
                 "Bearer",
                 (int)options.BearerLifetime.TotalSeconds,
                 Principal(principal)))

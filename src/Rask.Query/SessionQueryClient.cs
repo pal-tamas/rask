@@ -15,7 +15,7 @@ internal sealed class SessionQueryClient : IQueryClient
     public SessionQueryClient(IDispatcher dispatcher, TimeProvider? time = null)
     {
         _dispatcher = dispatcher;
-        _time = time ?? TimeProvider.System;
+        _time = time ?? Clock.TimeProvider;
     }
 
     public Query<TResult> Query<TResult>(

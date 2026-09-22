@@ -58,6 +58,27 @@ Expected the page to show "Product saved" within 5s. It shows:
   Loading…
 ```
 
+### Freezing time
+
+`Clock.Now` is the app's time, and `3.Days.Ago`, cache expiry, audit stamps and job schedules all read it. A test
+freezes it with one line and moves it by hand:
+
+```csharp
+[Fact]
+public async Task A_cached_price_is_loaded_again_after_ten_minutes()
+{
+    using var clock = Clock.Fake(at: new DateTimeOffset(2026, 9, 21, 9, 0, 0, TimeSpan.Zero));
+    await Cache.Remember("price", LoadPrice).For(10.Minutes);
+
+    clock.Advance(11.Minutes);
+
+    Assert.Equal(2, loads);
+}
+```
+
+The fake belongs to the test's own flow, so tests running in parallel never see each other's time; disposing it
+puts real time back.
+
 ### One component, and precise control
 
 `Test.Render` renders a single component instead of a URL, and the same verbs drive it. Underneath them sit

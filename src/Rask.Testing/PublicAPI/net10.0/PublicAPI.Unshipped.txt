@@ -192,3 +192,11 @@ Rask.Testing.Page.Typing.Typing() -> void
 Rask.Testing.Page.Typing.Typing(Rask.Testing.Page! page, string! text) -> void
 Rask.Testing.Page.Uncheck(string! label) -> System.Threading.Tasks.Task!
 static Rask.Testing.Test.Visit(string! url, System.IServiceProvider? services = null) -> Rask.Testing.Page!
+Rask.Testing.ClockFakes
+Rask.Testing.ClockFakes.extension(Rask.Clock!)
+Rask.Testing.FakeClock
+Rask.Testing.FakeClock.Advance(System.TimeSpan by) -> void
+Rask.Testing.FakeClock.Dispose() -> void
+Rask.Testing.FakeClock.Now.get -> System.DateTimeOffset
+static Rask.Testing.ClockFakes.Fake(System.DateTimeOffset at) -> Rask.Testing.FakeClock!
+static Rask.Testing.ClockFakes.extension(Rask.Clock!).Fake(System.DateTimeOffset at) -> Rask.Testing.FakeClock!

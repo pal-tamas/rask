@@ -38,7 +38,7 @@ public static class RaskOutboxServiceCollectionExtensions
         // (BackgroundServiceExceptionBehavior.StopHost) tears the host down at an unrelated moment.
         services.AddRaskOptions<OutboxOptions>("Rask:Outbox", static (section, o) => section.Bind(o), configure,
             static o => o.Validate());
-        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton(Clock.TimeProvider); // Rask's clock, so Clock.Fake moves this battery's time too
         services.TryAddSingleton<OutboxMetrics>();
 
         // Take ownership of domain-event delivery. Rask.Data's DomainEventInterceptor reads this from the

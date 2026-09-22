@@ -25,7 +25,7 @@ public static class RaskCacheServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
 
         AddOptions(services, configure);
-        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton(Clock.TimeProvider); // Rask's clock, so Clock.Fake moves this battery's time too
         services.TryAddSingleton<IDistributedCache, RaskDistributedCache<TContext>>();
         services.TryAddSingleton<ICache, TypedCache>();
 
