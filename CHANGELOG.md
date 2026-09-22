@@ -9,6 +9,7 @@ them until tagged releases begin.
 
 ### Added
 
+- **Durations and sizes read the way they are said** — `3.Seconds`, `1.5.Hours`, `2.Weeks`, `50.Megabytes`, `3.Days.Ago`, `2.Hours.FromNow`, in every app with nothing to import. A duration is a plain `TimeSpan` and a size a plain `long` (binary: `1.Kilobyte` is 1024 bytes), so each goes wherever the .NET type already does — `Task.Delay(3.Seconds)`, `o.MaxFileSize = 50.Megabytes`. `Ago`/`FromNow` read the app's clock, so a test that freezes time freezes them too. New warning [RASK092](docs/diagnostics.md#rask092) points out `2.Hour` and `1.Hours`, and its quick-fix writes the form that matches the count.
 - **The Rask.Query guide has a live demo on rask.sh (#1128).** A parcel list on one small page shows every query
   shape the guide describes: a query declared in `Render` that follows the URL's `?page=` with `KeepPreviousData`, a
   dependent query that stays paused until a pick, a function query keyed `QueryKey.For<Parcel>(input)`, and a

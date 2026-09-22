@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK091, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK092, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -125,6 +125,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK089](#rask089) | Warning | Id looks like a reference but no navigation was inferred |
 | [RASK090](#rask090) | Warning | Two entities want one DbContext set name, so neither is generated |
 | [RASK091](#rask091) | Warning | A child cannot choose its own form writes — its root decides |
+| [RASK092](#rask092) | Warning | A unit reads wrong for its count (`2.Hour`, `1.Hours`) |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -2327,3 +2328,25 @@ RaskValidators.Register(typeof(Order), sp => new OrderValidator(Pick(sp)));
 This is a warning rather than an error because the validator is still usable by hand — but until it
 is registered its rules never run, and a validator that silently does nothing is the failure worth
 naming.
+
+## RASK092
+
+**A unit reads wrong for its count** · Warning · quick-fix
+
+Durations and sizes are written the way they are said — `3.Seconds`, `1.Hour`, `50.Megabytes` — and every
+whole-number unit has a singular and a plural with the same value. Both compile; only one reads.
+
+```csharp
+await Task.Delay(2.Second);        // ⚠ RASK092: '2.Second' reads wrong — write '2.Seconds'
+o.MaxFileSize = 1.Megabytes;       // ⚠ RASK092: '1.Megabytes' reads wrong — write '1.Megabyte'
+```
+
+It looks only at a literal count: `count.Hours` has nothing to read, and a fraction (`1.5.Hours`) has no
+singular.
+
+**Fix:** take the lightbulb, which writes the form that matches the count:
+
+```csharp
+await Task.Delay(2.Seconds);
+o.MaxFileSize = 1.Megabyte;
+```
