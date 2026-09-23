@@ -42,7 +42,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
     // Set when an in-handler StateHasChanged lands mid-dispatch (InHandlerScope=true); the coalescing
     // loop reads and clears it to rebuild the payload before releasing the dispatch lock.
     //
-    // Volatile, with InHandlerScope: a server session's background request (a timer, a broadcast's other session)
+    // Volatile, with InHandlerScope: a server session's background request (a timer, a query or subscription value landing)
     // reads the scope on one thread while the dispatch clears it on another. The request sets this flag and re-reads
     // the scope; the dispatch clears the scope and re-reads this flag. Each write-then-read is only sound when both
     // reads see the other side's write, which is what volatile guarantees.
@@ -273,28 +273,6 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
     public Task RequestPublishRenderAsync() => RequestRenderInternalAsync(true);
 
     Task IRenderHandle.RenderInScopeAsync() => RenderInScopeCoreAsync();
-
-    Task IRenderHandle.DeliverAsync(Func<Task> work) => DeliverCoreAsync(work);
-
-    /// <summary>
-    ///     Queues <paramref name="work" /> on this session's dispatch queue, as an event handler would be queued, and
-    ///     renders once it has run. Returns once it is queued (see <see cref="IRenderHandle.DeliverAsync" />).
-    /// </summary>
-    /// <remarks>
-    ///     The default runs the work and then asks for a render, which serialises against a dispatch through the
-    ///     render request. The hosts replace it with their own queue.
-    /// </remarks>
-    protected virtual Task DeliverCoreAsync(Func<Task> work)
-    {
-        _ = RunThenRenderAsync(work);
-        return Task.CompletedTask;
-    }
-
-    private async Task RunThenRenderAsync(Func<Task> work)
-    {
-        await work().ConfigureAwait(false);
-        await RequestRenderInternalAsync(false).ConfigureAwait(false);
-    }
 
     protected abstract Task RequestRenderInternalAsync(bool publishOnly);
 

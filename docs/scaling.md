@@ -138,9 +138,9 @@ doesn't fix that — a file is read by people other than the one who uploaded it
 land on. Point `Rask__Storage__Provider` at S3 or Azure before adding a second host; temporary links the app signs
 itself also need the shared key ring above.
 
-**And a broadcast reaches only its own host's pages.** [`IBroadcast`](broadcast.md) delivers to the sessions one
-process holds. Add `Rask.Redis` and `AddRaskRedisBackplane()`, and declare the topics that must reach every host
-with their JSON contract — see [broadcast across servers](broadcast.md#across-servers).
+**And a published event reaches only its own process's subscriptions.** A [subscription](subscriptions.md) hears the
+notifications its own process publishes, so behind a load balancer a page hears its own host's events and catches up on
+the rest when its queries refetch. Carrying events between hosts is [on the roadmap](roadmap.md).
 
 ## Running more than one instance
 

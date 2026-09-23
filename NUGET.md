@@ -115,7 +115,6 @@ SQLite stays the default. When one box is no longer enough:
 ```bash
 dotnet add package Rask.Postgres                      # PostgreSQL via UseRaskPostgres: session timeouts + retry
 dotnet add package Rask.SqlServer                     # SQL Server via UseRaskSqlServer: XACT_ABORT, lock timeout + retry
-dotnet add package Rask.Redis                         # IBroadcast across instances via AddRaskRedisBackplane
 ```
 
 **UI and testing:**

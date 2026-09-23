@@ -299,10 +299,10 @@ public static class GuideCatalog
             SearchTitle = "Virtualized lists, toasts and drag and drop",
             Description = "Render windowed lists with Virtualize, keep list identity with keys, and add toast messages, drag-and-drop and error boundaries to C# web components.",
         },
-        new("broadcast", "Broadcast", "Publish on a topic; every subscribed component, in every open page, re-renders.", "Core")
+        new("subscriptions", "Subscriptions", "Publish an event; every page subscribed to it re-renders — scoped, authorized, across servers.", "Core")
         {
-            SearchTitle = "Real-time pub/sub to every open page in C#",
-            Description = "Push a change to every open page with IBroadcast: typed topics, subscriptions that end with the component, and a Redis backplane across servers.",
+            SearchTitle = "Real-time subscriptions in C# — tRPC-style, over CQRS",
+            Description = "Push events to open pages in C# with QueryClient.Subscribe: a CQRS notification re-renders every subscribed component, scoped by key, across servers via Redis.",
         },
         new("lifecycle", "Lifecycle", "Mount, props-changed, rendered, unmount, cancellation.", "Core")
         {
@@ -797,6 +797,19 @@ public static class GuideCatalog
     ///     the page asks for the entry once rather than for each field by slug. An unknown slug is not in the
     ///     sitemap and is not prerendered, so it only ever reaches a visitor who typed it.
     /// </remarks>
+    /// <summary>
+    ///     Slugs a guide used to answer at, and the slug it answers at now. A crawler and every link elsewhere still
+    ///     hold the old URL, so it keeps rendering the guide — with its canonical naming the new one, which is also
+    ///     what keeps the old URL out of the sitemap.
+    /// </summary>
+    public static IReadOnlyDictionary<string, string> Moved { get; } = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["broadcast"] = "subscriptions",
+    };
+
+    /// <summary>The slug a guide answers at now: <paramref name="slug" /> itself, or where it moved to.</summary>
+    public static string Resolve(string slug) => Moved.TryGetValue(slug, out var moved) ? moved : slug;
+
     public static GuideEntry? Find(string slug)
     {
         foreach (var g in All)

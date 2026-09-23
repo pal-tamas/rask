@@ -94,6 +94,7 @@
     <RaskClientUsing Include="Rask.Ui"/>
     <!-- rask:if cqrs -->
     <RaskClientPackageReference Include="Rask.Cqrs.Client" Version="{{RaskVersion}}"/>
+    <RaskClientPackageReference Include="Rask.Query" Version="{{RaskVersion}}"/>
     <!-- rask:end -->
   </ItemGroup>
 

@@ -54,10 +54,15 @@ public static class RaskCqrsClientServiceCollectionExtensions
         // The validator is OPTIONAL and resolved rather than required: Rask.Cqrs.Client is usable on its
         // own, and an app that never registered one simply sends without the local pre-check. Where the
         // Rask package is in play, AddRaskRequestValidation has registered it and the check happens.
-        services.TryAddSingleton<IRemoteDispatch>(sp => new RemoteDispatch(
+        services.TryAddSingleton(sp => new RemoteDispatch(
             ResolveHttpClient(sp, options),
             options,
             sp.GetService<IRemoteRequestValidator>()));
+        services.TryAddSingleton<IRemoteDispatch>(static sp => sp.GetRequiredService<RemoteDispatch>());
+
+        // Subscriptions open on the server too, so they hear what every host publishes — and a notification this tab
+        // publishes reaches its own subscriptions from there, once, like everyone else's.
+        services.TryAddSingleton<IRemoteSubscriptions>(static sp => sp.GetRequiredService<RemoteDispatch>());
 
         InstallRemoteInvokers();
 

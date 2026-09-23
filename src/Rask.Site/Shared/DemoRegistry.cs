@@ -185,8 +185,12 @@ public static partial class DemoRegistry
             ["boom-render"] = () => CodeSample.Files(["BoomRenderDemo.cs"]).Result(BoomRenderDemo),
             ["boom-nested"] = () => CodeSample.Files(["BoomNestedDemo.cs"]).Result(BoomNestedDemo),
 
-            // --- Broadcast guide (#1061): a publisher and two subscribers that share only a topic. ---
-            ["broadcast-orders"] = () => CodeSample.Files(["BroadcastDemo.cs", "OrderBoard.cs"]).Result(BroadcastDemo),
+            // --- Subscriptions guide: a publisher, two boards subscribed to every order, and a tracker scoped to one. ---
+            ["subscription-orders"] = () => CodeSample
+                .Files(["SubscriptionDemo.cs", "OrderBoard.cs", "OrderEvents.cs"])
+                .Notes("The boards know nothing about the buttons: each subscribes to OrderPlaced in Render, and a publish "
+                + "through IDispatcher reaches them — as it would from a command handler, a job or another server.")
+                .Result(SubscriptionDemo),
 
             // --- Lifecycle guide: hooks, mount/unmount cycle, disposal, cancellation (their standalone
             //     example pages folded into docs/lifecycle.md). The demos embed the probe source — the

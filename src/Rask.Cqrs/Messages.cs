@@ -24,7 +24,17 @@ public interface ICommand;
 public interface ICommand<out TResult>;
 
 /// <summary>
-/// Marks an event that is broadcast to zero or more <see cref="INotificationHandler{TNotification}"/>
-/// instances. Publish it through <see cref="IDispatcher.PublishAsync{TNotification}"/>.
+/// Marks an event: something that has happened. Publishing it through
+/// <see cref="IDispatcher.PublishAsync{TNotification}"/> runs every
+/// <see cref="INotificationHandler{TNotification}"/> for it <b>and</b> hands it to every open subscription —
+/// <see cref="IDispatcher.SubscribeAsync{TNotification}"/>, or a component's <c>QueryClient.Subscribe</c> — so one
+/// record reaches the code that reacts and the screens that show it.
 /// </summary>
+/// <remarks>
+/// Mark the property that says which thing the event is about with <see cref="ForAttribute{TScope}"/> and it reaches
+/// only the subscribers watching that thing, each admitted by an <see cref="IWatchPolicy{TScope}"/>:
+/// <code>
+/// public sealed record OrderShipped([For&lt;Order&gt;] Guid OrderId, string Status) : INotification;
+/// </code>
+/// </remarks>
 public interface INotification;

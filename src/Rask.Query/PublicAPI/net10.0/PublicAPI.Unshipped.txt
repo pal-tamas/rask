@@ -160,3 +160,29 @@ static Rask.Query.QueryOptions.IsWorthRetrying(System.Exception! error) -> bool
 static Rask.Query.QueryOptions.operator !=(Rask.Query.QueryOptions? left, Rask.Query.QueryOptions? right) -> bool
 static Rask.Query.QueryOptions.operator ==(Rask.Query.QueryOptions? left, Rask.Query.QueryOptions? right) -> bool
 static Rask.Query.RaskQueryServiceCollectionExtensions.AddRaskQuery(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+Rask.Query.IQueryClient.Subscribe<TInput, T>(System.Func<TInput>! input, System.Func<TInput, System.Threading.CancellationToken, System.Collections.Generic.IAsyncEnumerable<T>!>! stream) -> Rask.Query.Subscription<T>!
+Rask.Query.IQueryClient.Subscribe<TNotification>(System.Func<object?>! key) -> Rask.Query.Subscription<TNotification>!
+Rask.Query.IQueryClient.Subscribe<TNotification>(object? key = null) -> Rask.Query.Subscription<TNotification>!
+Rask.Query.Subscription<T>
+Rask.Query.Subscription<T>.Data.get -> T?
+Rask.Query.Subscription<T>.Dispose() -> void
+Rask.Query.Subscription<T>.Error.get -> System.Exception?
+Rask.Query.Subscription<T>.Into<TResult>(Rask.Query.Query<TResult>! query, System.Func<TResult, T, TResult>! patch) -> Rask.Query.Subscription<T>!
+Rask.Query.Subscription<T>.IsEnded.get -> bool
+Rask.Query.Subscription<T>.IsError.get -> bool
+Rask.Query.Subscription<T>.IsLive.get -> bool
+Rask.Query.Subscription<T>.IsLoading.get -> bool
+Rask.Query.Subscription<T>.IsReconnecting.get -> bool
+Rask.Query.Subscription<T>.Items.get -> System.Collections.Generic.IReadOnlyList<T>!
+Rask.Query.Subscription<T>.Keep(int count) -> Rask.Query.Subscription<T>!
+Rask.Query.Subscription<T>.Status.get -> Rask.Query.SubscriptionStatus
+Rask.Query.SubscriptionStatus
+Rask.Query.SubscriptionStatus.Connecting = 0 -> Rask.Query.SubscriptionStatus
+Rask.Query.SubscriptionStatus.Ended = 3 -> Rask.Query.SubscriptionStatus
+Rask.Query.SubscriptionStatus.Error = 4 -> Rask.Query.SubscriptionStatus
+Rask.Query.SubscriptionStatus.Live = 1 -> Rask.Query.SubscriptionStatus
+Rask.Query.SubscriptionStatus.Reconnecting = 2 -> Rask.Query.SubscriptionStatus
+static Rask.Query.QueryClient.Subscribe<TInput, T>(System.Func<TInput>! input, System.Func<TInput, System.Threading.CancellationToken, System.Collections.Generic.IAsyncEnumerable<T>!>! stream) -> Rask.Query.Subscription<T>!
+static Rask.Query.QueryClient.Subscribe<TInput, T>(TInput input, System.Func<TInput, System.Threading.CancellationToken, System.Collections.Generic.IAsyncEnumerable<T>!>! stream, string! callerFile = "", int callerLine = 0) -> Rask.Query.Subscription<T>!
+static Rask.Query.QueryClient.Subscribe<TNotification>(System.Func<object?>! key) -> Rask.Query.Subscription<TNotification>!
+static Rask.Query.QueryClient.Subscribe<TNotification>(object? key = null, string! callerFile = "", int callerLine = 0) -> Rask.Query.Subscription<TNotification>!

@@ -172,3 +172,36 @@ virtual Rask.Cqrs.RemoteResultWriter.Invoke(System.Text.Json.Utf8JsonWriter! wri
 virtual Rask.Cqrs.RequestHandlerDelegate<TResult>.Invoke() -> System.Threading.Tasks.Task<TResult>!
 ~override Rask.Cqrs.RequestValidationError.Equals(object obj) -> bool
 ~override Rask.Cqrs.RequestValidationError.ToString() -> string
+Rask.Cqrs.ForAttribute<TScope>
+Rask.Cqrs.ForAttribute<TScope>.ForAttribute() -> void
+Rask.Cqrs.IDispatcher.SubscribeAsync<TNotification>(object? key = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<TNotification>!
+Rask.Cqrs.IWatchPolicy<TScope>
+Rask.Cqrs.IWatchPolicy<TScope>.CanWatchAsync(object! key, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<bool>!
+Rask.Cqrs.NotificationScope
+Rask.Cqrs.NotificationScope.CanWatch.get -> System.Func<System.IServiceProvider!, object!, System.Threading.CancellationToken, System.Threading.Tasks.Task<bool>!>!
+Rask.Cqrs.NotificationScope.KeyOf.get -> System.Func<object!, object?>!
+Rask.Cqrs.NotificationScope.KeyType.get -> System.Type!
+Rask.Cqrs.NotificationScope.NotificationScope(System.Type! scope, System.Type! keyType, System.Func<object!, object?>! keyOf, System.Func<System.IServiceProvider!, object!, System.Threading.CancellationToken, System.Threading.Tasks.Task<bool>!>! canWatch, System.Func<string!, object!>? parseKey) -> void
+Rask.Cqrs.NotificationScope.ParseKey.get -> System.Func<string!, object!>?
+Rask.Cqrs.NotificationScope.Scope.get -> System.Type!
+static Rask.Cqrs.CqrsRegistry.CanWatchAsync<TScope>(System.IServiceProvider! provider, object! key, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<bool>!
+static Rask.Cqrs.CqrsRegistry.ReplaceNotificationScopes(object! groupKey, System.Collections.Generic.IEnumerable<(System.Type! Type, Rask.Cqrs.NotificationScope! Scope)>! registrations) -> void
+Rask.Cqrs.RemoteContract.SubscribeAnonymously.get -> bool
+Rask.Cqrs.RemoteContract.SubscribeAnonymously.init -> void
+Rask.Cqrs.RemoteContract.SubscribeDeclared.get -> bool
+Rask.Cqrs.RemoteContract.SubscribeDeclared.init -> void
+Rask.Cqrs.RemoteContract.SubscribePolicy.get -> string?
+Rask.Cqrs.RemoteContract.SubscribePolicy.init -> void
+Rask.Cqrs.RemoteContract.SubscribeRoles.get -> string?
+Rask.Cqrs.RemoteContract.SubscribeRoles.init -> void
+const Rask.Cqrs.RemoteEndpointDefaults.EventsSegment = "events" -> string!
+const Rask.Cqrs.RemoteEndpointDefaults.ReadyEvent = "ready" -> string!
+const Rask.Cqrs.RemoteEndpointDefaults.ScopeQueryParameter = "for" -> string!
+Rask.Cqrs.CqrsOptions.ReplayCapacity.get -> int
+Rask.Cqrs.CqrsOptions.ReplayCapacity.set -> void
+Rask.Cqrs.CqrsOptions.SubscriptionBuffer.get -> int
+Rask.Cqrs.CqrsOptions.SubscriptionBuffer.set -> void
+Rask.Cqrs.CqrsOptions.SubscriptionReconnectCeiling.get -> System.TimeSpan
+Rask.Cqrs.CqrsOptions.SubscriptionReconnectCeiling.set -> void
+Rask.Cqrs.CqrsOptions.SubscriptionReconnectDelay.get -> System.TimeSpan
+Rask.Cqrs.CqrsOptions.SubscriptionReconnectDelay.set -> void

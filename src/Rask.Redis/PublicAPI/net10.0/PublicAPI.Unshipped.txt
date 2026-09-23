@@ -1,7 +1,0 @@
-#nullable enable
-Rask.Redis.RaskRedisServiceCollectionExtensions
-Rask.Redis.RedisOptions
-Rask.Redis.RedisOptions.ChannelPrefix.get -> string!
-Rask.Redis.RedisOptions.ChannelPrefix.set -> void
-Rask.Redis.RedisOptions.RedisOptions() -> void
-static Rask.Redis.RaskRedisServiceCollectionExtensions.AddRaskRedisBackplane(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Redis.RedisOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

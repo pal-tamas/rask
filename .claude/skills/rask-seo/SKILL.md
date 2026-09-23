@@ -30,7 +30,7 @@ own ("blazor", "react"). Map every new page to one:
 | PWA in C#, browser API (Geolocation, WebUSB, …) in C# | `pwa`, `apis/*` |
 | .NET One Person Framework | `one-person-framework`, `/` |
 | live server pages when a proxy blocks WebSockets, SSE fallback | `render-modes` |
-| push updates to every open page across servers, Redis backplane for real-time .NET pages | `broadcast` (#across-servers) |
+| real-time subscriptions in C# / tRPC-style subscriptions in .NET, push events to open pages, Redis backplane | `subscriptions` (#across-servers) |
 
 ## What is enforced (and where)
 

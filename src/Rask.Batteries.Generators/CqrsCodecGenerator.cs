@@ -95,6 +95,18 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
                 model.Policy = authorization.Policy;
                 model.Roles = authorization.Roles;
                 model.AllowAnonymous = authorization.AllowAnonymous;
+
+                // Who may SUBSCRIBE is the notification's own business, so it is read off the record rather than a
+                // handler — a notification can have none. Declaring nothing leaves an unscoped one closed to remote
+                // subscribers: every auth event would otherwise be one browser request away.
+                if (message.Kind == RemoteKind.Notification && HasAuthorization(message.Type))
+                {
+                    var subscribe = Authorization(message.Type);
+                    model.SubscribeDeclared = true;
+                    model.SubscribePolicy = subscribe.Policy;
+                    model.SubscribeRoles = subscribe.Roles;
+                    model.SubscribeAnonymously = subscribe.AllowAnonymous;
+                }
             }
 
             if (model.Problem is { } problem)
@@ -331,6 +343,9 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         return (policy, roles, anonymous);
     }
 
+    private static bool HasAuthorization(INamedTypeSymbol type) =>
+        type.GetAttributes().Any(a => a.AttributeClass?.Name is "AuthorizeAttribute" or "AllowAnonymousAttribute");
+
     // The compilation itself, plus every referenced assembly that references Rask.Cqrs. Only those can
     // declare a message or a handler, so this skips the BCL and every unrelated package without walking
     // a single namespace of them.
@@ -536,6 +551,25 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
                 entry.AppendLine("            AllowAnonymous = true,");
             }
 
+            if (contract.SubscribeDeclared)
+            {
+                entry.AppendLine("            SubscribeDeclared = true,");
+                if (contract.SubscribePolicy is { } subscribePolicy)
+                {
+                    entry.AppendLine($"            SubscribePolicy = \"{subscribePolicy}\",");
+                }
+
+                if (contract.SubscribeRoles is { } subscribeRoles)
+                {
+                    entry.AppendLine($"            SubscribeRoles = \"{subscribeRoles}\",");
+                }
+
+                if (contract.SubscribeAnonymously)
+                {
+                    entry.AppendLine("            SubscribeAnonymously = true,");
+                }
+            }
+
             entry.AppendLine($"            CarriesFiles = {(contract.CarriesFiles ? "true" : "false")},");
             entry.AppendLine($"            ReturnsFile = {(contract.ReturnsFile ? "true" : "false")},");
             // The server's mirror of the invoker below: it runs the message against its local handler and
@@ -715,6 +749,14 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         public bool AllowAnonymous { get; set; }
 
         public bool HasLocalHandler { get; set; }
+
+        public bool SubscribeDeclared { get; set; }
+
+        public string? SubscribePolicy { get; set; }
+
+        public string? SubscribeRoles { get; set; }
+
+        public bool SubscribeAnonymously { get; set; }
 
         public string? Problem { get; set; }
 
