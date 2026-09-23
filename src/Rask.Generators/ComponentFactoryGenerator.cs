@@ -23,6 +23,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     private const string FactoryGenericFullName = "Rask.Core.FactoryGenericAttribute";
     private const string GenerateForwarderFactoryFullName = "Rask.Core.GenerateForwarderFactoryAttribute";
     private const string ChainEntryFullName = "Rask.Core.RaskChainEntryAttribute";
+    private const string ChainGroupFullName = "Rask.Core.RaskChainGroupAttribute";
     private const string FormControlOpenFullName = "Rask.Core.Forms.IFormControl<T>";
     private const string SubmitAwareFullName = "Rask.Core.Forms.ISubmitAware";
     private const string ColumnHostFullName = "Rask.Core.IColumnHost";
@@ -3553,6 +3554,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
 
         var entries = EntryCandidates(spc, candidates, EmptyNames);
         EmitEntryHost(spc, entries, host);
+        EmitGroupedEntries(spc, entries, host.AssemblyName);
 
         // Publishing the entry host above is unconditional; injecting them into this assembly's own hosts
         // is not. A component LIBRARY opts the injection out (RaskBuilderEntryInjection=false) and keeps
@@ -3762,6 +3764,12 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         var seeded = new HashSet<string>(StringComparer.Ordinal);
         foreach (var c in entries)
         {
+            // Its entry is a member of its group (EmitGroupedEntries); its seed and pins are still emitted below.
+            if (c.Group is not null)
+            {
+                continue;
+            }
+
             var visibility = c.IsPublic ? "public" : "internal";
             if (NeedsSeed(c))
             {
@@ -3795,6 +3803,111 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     }
 
     private static string EntryHostName(string sanitizedAssemblyName) => "RaskEntries" + sanitizedAssemblyName;
+
+    /// <summary>
+    ///     The entries that live on a group class — <c>Ui.Button</c>, <c>Mui.Button</c> — one partial per group.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The same member an entry host carries (see <see cref="EmitEntryHost" />), only declared on the group
+    ///         and under the group's member name. Nothing is injected for it anywhere: the group is an ordinary
+    ///         public class, so every assembly that can see the component reaches it by the group's name, and a
+    ///         bare name the grouped component would have taken — <c>Button</c> — stays with the HTML tag.
+    ///     </para>
+    ///     <para>
+    ///         Two components that land on one member are RASK040, like two components sharing a bare name; a group
+    ///         that cannot be re-opened because it (or a type around it) is not partial is RASK036.
+    ///     </para>
+    /// </remarks>
+    private static void EmitGroupedEntries(SourceProductionContext spc, List<Candidate> entries, string assemblyName)
+    {
+        const string runtime = "global::Rask.Core.BuilderRuntime.";
+        var groups = entries.Where(static c => c.Group is not null)
+            .GroupBy(static c => c.Group!.Fqn, StringComparer.Ordinal)
+            .OrderBy(static g => g.Key, StringComparer.Ordinal)
+            .ToList();
+        if (groups.Count == 0)
+        {
+            return;
+        }
+
+        var sb = new StringBuilder();
+        EmitGeneratedFileHeader(sb);
+
+        foreach (var group in groups)
+        {
+            var first = group.First().Group!;
+            if (!first.IsPartial)
+            {
+                foreach (var c in group)
+                {
+                    spc.ReportDiagnostic(Diagnostic.Create(
+                        Rask036,
+                        MakeDeclLocation(c),
+                        $"'{first.Fqn.Replace("global::", string.Empty)}', the group '{c.TypeName}' is reached through, "
+                        + "is not declared 'partial'",
+                        $"its entry, '{first.Member}'"));
+                }
+
+                continue;
+            }
+
+            sb.AppendLine();
+            var hasNs = first.Namespace.Length != 0;
+            if (hasNs)
+            {
+                sb.Append("namespace ").AppendLine(first.Namespace);
+                sb.AppendLine("{");
+            }
+
+            foreach (var header in first.Headers)
+            {
+                sb.AppendLine(header);
+                sb.AppendLine("{");
+            }
+
+            foreach (var byMember in group.GroupBy(static c => c.Group!.Member, StringComparer.Ordinal))
+            {
+                // Components joined by [RaskChainEntry] share one seed on purpose; anything else on one member is
+                // two components claiming one name.
+                var members = byMember.ToList();
+                if (members.Select(static c => c.EntryName).Distinct(StringComparer.Ordinal).Count() > 1
+                    || (members.Count > 1 && members.Any(static c => !NeedsSeed(c))))
+                {
+                    ReportEntryCollision(spc, members);
+                    continue;
+                }
+
+                var c = members[0];
+                var visibility = c.IsPublic ? "public" : "internal";
+                EmitEntryDoc(sb, c);
+                if (NeedsSeed(c))
+                {
+                    sb.Append("    ").Append(visibility).Append(" static ").Append(SeedFqn(c)).Append(' ')
+                        .Append(EscapeIdentifier(byMember.Key)).AppendLine(" => default;");
+                    continue;
+                }
+
+                sb.Append("    ").Append(visibility).Append(" static ").Append(c.FullyQualifiedName)
+                    .Append(' ').Append(EscapeIdentifier(byMember.Key)).Append(" => ").Append(runtime)
+                    .Append(EntryMethod(c)).Append(c.FullyQualifiedName).Append(">(");
+                EmitResetArguments(sb, c, assemblyName);
+                sb.AppendLine(");");
+            }
+
+            for (var i = 0; i < first.Headers.Count; i++)
+            {
+                sb.AppendLine("}");
+            }
+
+            if (hasNs)
+            {
+                sb.AppendLine("}");
+            }
+        }
+
+        spc.AddSource("RaskBuilderGroupedEntries.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+    }
 
     // The one fact about a component that an assembly boundary destroys: which of its properties a
     // builder chain has to set.
@@ -4002,7 +4115,8 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         var seeded = new HashSet<string>(StringComparer.Ordinal);
         foreach (var c in entries)
         {
-            if (NeedsSeed(c) && !seeded.Add(c.EntryName))
+            // A grouped entry is a member of its group, never forwarded into a host under a bare name.
+            if (c.Group is not null || (NeedsSeed(c) && !seeded.Add(c.EntryName)))
             {
                 continue;
             }
@@ -4713,7 +4827,84 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             ReachableMemberNames(symbol),
             EnclosingTypeHeaders(symbol),
             AllEnclosingPartial(symbol),
-            global::Rask.Generators.External.PackageIslands.PackageIslandProps.Facts(symbol));
+            global::Rask.Generators.External.PackageIslands.PackageIslandProps.Facts(symbol),
+            ChainGroupOf(symbol, chainEntry ?? symbol.Name));
+    }
+
+    /// <summary>
+    ///     The group <paramref name="symbol" />'s entry is added to, from the nearest
+    ///     <c>[RaskChainGroup]</c> on it or a base class, or null when it has none that applies.
+    /// </summary>
+    /// <remarks>
+    ///     Walked by hand because Roslyn's <c>GetAttributes()</c> returns only what a type declares itself, while the
+    ///     attribute is meant to be written once, on a library's base class. Honoured only when the group is declared
+    ///     in the component's OWN assembly: the entry is added by re-opening the group as a partial, which cannot be
+    ///     done to another assembly's type — so an app component deriving from a library's base keeps its bare entry.
+    /// </remarks>
+    private static ChainGroup? ChainGroupOf(INamedTypeSymbol symbol, string entryName)
+    {
+        for (var t = symbol; t is not null; t = t.BaseType)
+        {
+            foreach (var attr in t.GetAttributes())
+            {
+                if (attr.AttributeClass?.ToDisplayString() != ChainGroupFullName
+                    || attr.ConstructorArguments.Length == 0
+                    || attr.ConstructorArguments[0].Value is not INamedTypeSymbol group)
+                {
+                    continue;
+                }
+
+                if (!SymbolEqualityComparer.Default.Equals(group.ContainingAssembly, symbol.ContainingAssembly))
+                {
+                    return null;
+                }
+
+                var member = attr.ConstructorArguments.Length > 1
+                             && attr.ConstructorArguments[1].Value is string named && named.Length > 0
+                    ? named
+                    : GroupMemberName(entryName, group.Name);
+
+                var headers = new List<string>();
+                var partial = true;
+                for (var g = group; g is not null; g = g.ContainingType)
+                {
+                    headers.Add($"{AccessibilityKeyword(g)}{(g.IsStatic ? "static " : string.Empty)}partial class {g.Name}");
+                    partial &= g.DeclaringSyntaxReferences.Any(static r =>
+                        r.GetSyntax() is TypeDeclarationSyntax decl && decl.Modifiers.Any(SyntaxKind.PartialKeyword));
+                }
+
+                headers.Reverse();
+                return new ChainGroup(
+                    group.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                    group.ContainingNamespace.IsGlobalNamespace ? string.Empty : group.ContainingNamespace.ToDisplayString(),
+                    new EquatableArray<string>(headers.ToArray()),
+                    member,
+                    partial);
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    ///     A component's name with its group's taken off the front or the back — <c>UiButton</c> in <c>Ui</c> is
+    ///     <c>Button</c>, <c>FullscreenTrigger</c> in <c>Trigger</c> is <c>Fullscreen</c> — or the whole name when
+    ///     neither leaves a name behind.
+    /// </summary>
+    internal static string GroupMemberName(string component, string group)
+    {
+        if (component.Length > group.Length && component.StartsWith(group, StringComparison.Ordinal)
+                                              && char.IsUpper(component[group.Length]))
+        {
+            return component.Substring(group.Length);
+        }
+
+        if (component.Length > group.Length && component.EndsWith(group, StringComparison.Ordinal))
+        {
+            return component.Substring(0, component.Length - group.Length);
+        }
+
+        return component;
     }
 
     // Whether the component declares ISubmitAware, which is what puts its chain on the FormBuild<T>
@@ -5743,7 +5934,26 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         // What pairs an island with its committed props snapshot, when this is one — symbol-side facts only,
         // because the snapshot itself is an additional file the syntax transform cannot read. See
         // WithPackageProps, which adds the steps once snapshots and candidates are both in hand.
-        global::Rask.Generators.External.PackageIslands.IslandFacts? Package = null);
+        global::Rask.Generators.External.PackageIslands.IslandFacts? Package = null,
+        // Where the entry lives when it is not on the markup surface — `Ui.Button` rather than `UiButton`. See
+        // RaskChainGroupAttribute; null for every component reached by its bare name.
+        ChainGroup? Group = null);
+
+    /// <summary>A group class an entry is added to, as the generated partial that re-opens it.</summary>
+    /// <param name="Fqn">The group class, fully qualified — the key the group's entries are collected under.</param>
+    /// <param name="Namespace">Its namespace, or empty for the global namespace.</param>
+    /// <param name="Headers">
+    ///     The partial header of every type from the outermost enclosing one down to the group itself, each written
+    ///     with the accessibility and <c>static</c> it was declared with (CS0262 / CS0261).
+    /// </param>
+    /// <param name="Member">The entry's name in the group.</param>
+    /// <param name="IsPartial">Whether the group and every type enclosing it are declared partial.</param>
+    private sealed record ChainGroup(
+        string Fqn,
+        string Namespace,
+        EquatableArray<string> Headers,
+        string Member,
+        bool IsPartial);
 
     // Set when a component implements IFormControl<T> — drives the synthesized bound factory and the
     // exclusion of the bound-mode interface members from the controlled factory. ValueTypeFqn is the T

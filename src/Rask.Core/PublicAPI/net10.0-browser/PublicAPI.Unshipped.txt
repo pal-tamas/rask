@@ -3726,6 +3726,10 @@ Rask.Core.MouseModifiers.Shift.init -> void
 Rask.Core.RaskChainEntryAttribute
 Rask.Core.RaskChainEntryAttribute.Entry.get -> string!
 Rask.Core.RaskChainEntryAttribute.RaskChainEntryAttribute(string! entry) -> void
+Rask.Core.RaskChainGroupAttribute
+Rask.Core.RaskChainGroupAttribute.Group.get -> System.Type!
+Rask.Core.RaskChainGroupAttribute.Member.get -> string?
+Rask.Core.RaskChainGroupAttribute.RaskChainGroupAttribute(System.Type! group, string? member = null) -> void
 Rask.Core.RaskHostContracts
 Rask.Core.RaskMarkup
 Rask.Core.RaskMarkup.RaskMarkup() -> void
