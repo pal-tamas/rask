@@ -235,7 +235,7 @@ did not have, leaving them on .NET's 30s default against a 20s SIGKILL. To choos
 
 ```csharp
 builder.Services.AddRask();
-builder.Services.Configure<HostOptions>(o => o.ShutdownTimeout = TimeSpan.FromSeconds(45));
+builder.Services.Configure<HostOptions>(o => o.ShutdownTimeout = 45.Seconds);
 ```
 
 These are budgets, not guarantees. Work that outlives its rung is cancelled: live sessions are aborted

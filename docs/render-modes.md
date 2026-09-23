@@ -98,7 +98,7 @@ rows then load is two waves, not one longer wait.
 ```
 
 It is also an environment variable (`Rask__Server__QuiescenceTimeout=00:00:05`), and
-`AddRask(configureServer: o => o.QuiescenceTimeout = TimeSpan.FromSeconds(5))` still works, running after the
+`AddRask(configureServer: o => o.QuiescenceTimeout = 5.Seconds)` still works, running after the
 section.
 
 Blowing the budget is not an error. The page is served as it stands, and the load finishes over the live

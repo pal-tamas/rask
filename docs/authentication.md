@@ -399,7 +399,7 @@ app.Configure(c => c.Auth.Configure(o =>
 {
     o.PublicOrigin = "https://app.example.com";   // required behind a proxy
     o.RequireConfirmedEmail = true;
-    o.TokenLifetime = TimeSpan.FromHours(1);      // what the email promises AND what the token honours
+    o.TokenLifetime = 1.Hour;      // what the email promises AND what the token honours
 }));
 ```
 
@@ -426,7 +426,7 @@ app.Configure(c => c.Auth.Configure(o =>
     o.MinimumPasswordLength = 12;
     o.SignInAttemptsPerMinute = 5;
     o.PasswordHashing = PasswordHashing.Bcrypt;
-    o.ExpireTimeSpan = TimeSpan.FromDays(14);
+    o.ExpireTimeSpan = 14.Days;
 }));
 ```
 

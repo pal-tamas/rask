@@ -259,7 +259,7 @@ public sealed partial class CancellationProbe : Component
     {
         try
         {
-            await Task.Delay(TimeSpan.FromMilliseconds(2500), CancellationToken);
+            await Task.Delay(2500.Milliseconds, CancellationToken);
             Log($"#{InstanceId} completed");
         }
         catch (OperationCanceledException)

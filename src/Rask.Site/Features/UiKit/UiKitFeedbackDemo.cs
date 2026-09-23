@@ -121,7 +121,7 @@ public sealed partial class UiKitFeedbackDemo : Component
                             .Message(t.Message)
                             .Heading(t.Heading)
                             .Tone(t.Tone)
-                            .Duration(TimeSpan.FromSeconds(6))
+                            .Duration(6.Seconds)
                             .Action(t.Heading is null
                                 ? null
                                 : UiButton.Size(UiSize.Xs).Variant(UiVariant.Ghost)

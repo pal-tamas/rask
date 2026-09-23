@@ -371,7 +371,7 @@ own pass:
 ```csharp
 var plan = RaskPrerender.PlanRoutes();          // .Paths and .Skipped
 // seed RouteState.Path on the scope first — the caller holds the route table
-var result = await RaskPrerender.RenderDocumentAsync(app, services, TimeSpan.FromSeconds(30));
+var result = await RaskPrerender.RenderDocumentAsync(app, services, 30.Seconds);
 ```
 
 `RenderDocumentAsync` deliberately takes no route: which page it renders is the caller's decision,

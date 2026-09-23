@@ -109,7 +109,7 @@ default (`AddRaskSqlite(p => …)` takes the same callback):
 ```csharp
 o.UseRaskSqlite(sp, p =>
 {
-    p.BusyTimeout = TimeSpan.FromSeconds(10);
+    p.BusyTimeout = 10.Seconds;
     p.CacheSize = -20_000;              // negative ⇒ KiB, so 20 MB
     p.TempStore = SqliteTempStore.Memory;
     p.MmapSize = null;                  // leave SQLite's default
@@ -372,7 +372,7 @@ Tune the retry in `Rask:Sqlite:Retry` (defaults: 5 s timeout, 1 ms interval):
 or in code, which wins over the section:
 
 ```csharp
-builder.Services.AddRaskSqlite(o => o.Retry.Timeout = TimeSpan.FromSeconds(10));
+builder.Services.AddRaskSqlite(o => o.Retry.Timeout = 10.Seconds);
 ```
 
 For a transaction you drive yourself, `connection.BeginImmediate()` gives you a `SqliteTransaction`

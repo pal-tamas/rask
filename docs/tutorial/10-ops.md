@@ -61,7 +61,7 @@ private async Task PollAsync()
 {
     for (var tick = 0; tick < MaxTicks && !_stopped.IsCancellationRequested; tick++)
     {
-        await Task.Delay(TimeSpan.FromSeconds(1), _stopped.Token).ConfigureAwait(false);
+        await Task.Delay(1.Second, _stopped.Token).ConfigureAwait(false);
 
         var before = _stats;
         await RefreshAsync().ConfigureAwait(false);

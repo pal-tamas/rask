@@ -711,7 +711,7 @@ nothing to press.
 ```csharp
 UiToaster.Position(UiPosition.Bottom).Align(UiAlign.End)[
     _notices.Select(n => UiToast.Key(n.Id).Message(n.Text)
-        .Duration(TimeSpan.FromSeconds(6))
+        .Duration(6.Seconds)
         .OnDismiss(() => _notices.Remove(n)))
 ]
 ```

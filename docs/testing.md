@@ -448,26 +448,39 @@ testing per-keystroke vs blur behaviour:
 
 ```csharp
 [Fact]
-public async Task Submit_InvalidModel_CallsOnInvalidSubmit_NotOnValidSubmit()
+public async Task An_invalid_model_reaches_OnInvalidSubmit_and_not_OnSubmit()
 {
     var p = new Person { Name = "", Age = 0 };
-    var validCalled = 0; var invalidCalled = 0;
+    var submitted = 0; var refused = 0;
 
-    var view = new StubComponent(() => Form<Person>(p,
-        OnSubmit:   _ => validCalled++,
-        OnInvalidSubmit: _ => invalidCalled++,
-        Validate: m => string.IsNullOrEmpty(m.Name) ? new[] { "Name required" } : Array.Empty<string>())[
-        Input.Bind(() => p.Name), Input.Bind(() => p.Age)
-    ]);
+    var view = new StubComponent(() => Form.Model(p)
+        .OnSubmit(_ => submitted++)
+        .OnInvalidSubmit(_ => refused++)
+        .Validate(m => string.IsNullOrEmpty(m.Name) ? new[] { "Name required" } : [])[
+            Input.Bind(() => p.Name), Input.Bind(() => p.Age)
+        ]);
     var html = view.RenderAsLiveRoot();
 
     var submitId = Markup.Attr(html, "data-rask-on-submit");
     using var doc = JsonDocument.Parse("{\"form\":{\"Name\":\"\",\"Age\":\"0\"}}");
     await view.TryInvokeHandlerAsync(submitId!, doc.RootElement);
 
-    Assert.Equal(0, validCalled);
-    Assert.Equal(1, invalidCalled);
+    Assert.Equal(0, submitted);
+    Assert.Equal(1, refused);
 }
+```
+
+A submit that **throws** is not a fault to catch in the test: the form holds it on `f.Error` for the
+page to render, so assert on that instead.
+
+```csharp
+var seen = new List<Exception?>();
+
+var view = new StubComponent(() => Form.Model(p)
+    .OnSubmit(_ => throw new InvalidOperationException("boom"))[f => { seen.Add(f.Error); return []; }]);
+// … render, invoke the submit handler, render again …
+
+Assert.Equal("boom", seen[^1]!.Message);
 ```
 
 For validation state, capture the form's `EditContext` with `ContextCapture` and assert on its
@@ -478,7 +491,7 @@ var model = new SignupModel { Username = "ada" };
 var ctx = new EditContext(model);
 ctx.AddValidator(new RejectIfEqualsValidator("admin", "Already taken."));
 
-var view = new StubComponent(() => Form<SignupModel>(model, Context: ctx)[Input.Bind(() => model.Username)]);
+var view = new StubComponent(() => Form.Model(model).Context(ctx)[Input.Bind(() => model.Username)]);
 var html = view.RenderAsLiveRoot();
 
 using var inputDoc  = JsonDocument.Parse("{\"value\":\"admin\"}");

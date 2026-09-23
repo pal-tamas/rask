@@ -66,7 +66,7 @@ if (await sync.IsPeriodicSupportedAsync() && await sync.GetPeriodicPermissionAsy
 {
     // A floor, not a schedule — the browser decides the real cadence and in practice fires far less
     // often than you ask.
-    await sync.RequestPeriodicSyncAsync("refresh-feed", TimeSpan.FromHours(12));
+    await sync.RequestPeriodicSyncAsync("refresh-feed", 12.Hours);
 }
 ```
 

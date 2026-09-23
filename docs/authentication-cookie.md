@@ -120,7 +120,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         o.Cookie.HttpOnly = true;
         o.Cookie.SecurePolicy = CookieSecurePolicy.Always;
         o.Cookie.SameSite = SameSiteMode.Lax;
-        o.ExpireTimeSpan = TimeSpan.FromHours(8);
+        o.ExpireTimeSpan = 8.Hours;
         o.SlidingExpiration = true;
         o.LoginPath = "/login";
     });

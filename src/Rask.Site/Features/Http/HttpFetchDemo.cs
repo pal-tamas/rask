@@ -10,12 +10,12 @@ namespace Rask.Site.Features;
 public sealed partial class HttpFetchDemo(HttpClient http, TimeProvider time) : Component
 {
     private const int MaxTransientRetries = 3;
-    private static readonly TimeSpan RetryDelay = TimeSpan.FromMilliseconds(150);
+    private static readonly TimeSpan RetryDelay = 150.Milliseconds;
 
     // A fetch that never settles is the one failure the retry loop below could not see. Without a
     // per-attempt deadline the await simply never returns: no exception, no retry, and the spinner
     // stays up for ever — which is precisely the outcome the retries were written to prevent.
-    private static readonly TimeSpan AttemptTimeout = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan AttemptTimeout = 5.Seconds;
 
     private string? _error;
     private Post? _post;

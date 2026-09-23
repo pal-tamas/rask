@@ -303,7 +303,7 @@ In the environment: `Rask__Server__SessionGracePeriod=00:00:20`, `Rask__Server__
 ```csharp
 builder.Services.AddRask(
     live   => live.MaxSessions = 1000,
-    server => server.SessionGracePeriod = TimeSpan.FromSeconds(20));
+    server => server.SessionGracePeriod = 20.Seconds);
 ```
 
 ### Page compression
