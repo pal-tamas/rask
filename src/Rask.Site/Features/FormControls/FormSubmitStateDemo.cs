@@ -18,8 +18,8 @@ public sealed partial class FormSubmitStateDemo : Component
                         .Disabled(f.Submitting)
                         .Id("fss-input").Class("mb-2"),
                     UiButton
-                        .Tone(UiTone.Primary)
-                        .Type(UiButtonType.Submit)
+                        .Primary
+                        .Submit
                         .Disabled(f.Submitting)
                         .Id("fss-submit")[f.Submitting ? "Saving…" : "Sign up"]
                 ]]

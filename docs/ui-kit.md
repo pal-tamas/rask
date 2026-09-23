@@ -249,14 +249,34 @@ Colour, fill and size are independent and compose, so an outlined error button n
 own:
 
 ```csharp
-UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline).Size(UiSize.Lg)["Delete"]
+UiButton.Error.Outline.Lg["Delete"]
 ```
 
-| Enum | Members |
+**Every member is a step of its own**, so a value reads as a word rather than as an argument. The
+setter is still there for a value the source does not know:
+
+```csharp
+UiButton.Tone(order.IsUrgent ? UiTone.Error : UiTone.Neutral)["Ship"]
+```
+
+| Enum | Members, each a step |
 | --- | --- |
 | `UiTone` | `Neutral` `Primary` `Secondary` `Accent` `Info` `Success` `Warning` `Error` |
 | `UiVariant` | `Solid` `Outline` `Soft` `Dash` `Ghost` `Link` |
 | `UiSize` | `Default` `Xs` `Sm` `Md` `Lg` `Xl` |
+
+The steps are generated, not written, and four kinds of enum deliberately get none — in each case
+because the step would read as a claim about the component rather than about one of its properties:
+
+| No steps when | Because |
+| --- | --- |
+| the enum has more than 8 members | `UiIconName` has 78; `UiButton.ChevronRight` says the button **is** a chevron |
+| one component has two properties of it | an `Icon` and a `TrailingIcon` have no answer to which `.Search` would set |
+| it is a `[Flags]` enum | `.Top.Bottom` reads as two steps that each *replace* the other, since a step assigns |
+| it is one of the BCL's | `UiDatePicker.Sunday` says the picker is Sunday, not that its week starts there |
+
+A member whose name the component already uses is skipped too — `UiCard` has a `Default` property, so
+`UiSize.Default` stays an argument there and the rest of the size axis is unaffected.
 
 These are daisyUI's own words, deliberately. Translating them into a private vocabulary was the first
 thing this kit did and the first thing it stopped doing: daisyUI's documentation is the documentation

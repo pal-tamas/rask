@@ -6735,3 +6735,8 @@ Rask.Core.Components.FormSubmit.Deconstruct(out bool Submitting, out System.Exce
 Rask.Core.Components.FormSubmit.FormSubmit(bool Submitting, System.Exception? Error) -> void
 Rask.Core.Components.FormSubmit.Submitting.get -> bool
 Rask.Core.Components.FormSubmit.Submitting.init -> void
+RaskBuilderSettersRask_Core.extension(Rask.Core.Components.NavLink!)
+RaskBuilderSettersRask_Core.extension(Rask.Core.Components.NavLink!).Exact.get -> Rask.Core.Components.NavLink!
+RaskBuilderSettersRask_Core.extension(Rask.Core.Components.NavLink!).Prefix.get -> Rask.Core.Components.NavLink!
+static RaskBuilderSettersRask_Core.get_Exact(Rask.Core.Components.NavLink! __b) -> Rask.Core.Components.NavLink!
+static RaskBuilderSettersRask_Core.get_Prefix(Rask.Core.Components.NavLink! __b) -> Rask.Core.Components.NavLink!
