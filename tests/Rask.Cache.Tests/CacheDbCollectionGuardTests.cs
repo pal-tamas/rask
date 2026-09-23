@@ -15,5 +15,7 @@ public sealed class CacheDbCollectionGuardTests
             // validation; never builds a context, so it never touches the model.
             "CacheOptionsTests",
             // Drives an in-memory external store through the cache abstraction — no EF at all.
-            "ExternalStoreCacheTests");
+            "ExternalStoreCacheTests",
+            // The fake stands in for the whole battery, so there is no store and no database to reach.
+            "CacheFakeTests");
 }

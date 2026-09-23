@@ -44,8 +44,16 @@ public static class Cache
     public static Task Forget(string key, CancellationToken cancellationToken = default) =>
         Resolve().Forget(Key(key), Ambient.Or(cancellationToken));
 
+    /// <summary>What <c>Cache.Fake()</c> put in the way of the real cache, for this test's flow alone.</summary>
+    internal static readonly AsyncLocal<ICache?> Faked = new();
+
     internal static ICache Resolve()
     {
+        if (Faked.Value is { } fake)
+        {
+            return fake;
+        }
+
         var services = Ambient.Services
             ?? throw new InvalidOperationException(
                 "Cache was called outside any work in progress — a handler, a render, a request or a job — so "

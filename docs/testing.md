@@ -79,6 +79,75 @@ public async Task A_cached_price_is_loaded_again_after_ten_minutes()
 The fake belongs to the test's own flow, so tests running in parallel never see each other's time; disposing it
 puts real time back.
 
+### Standing in for a battery
+
+`Mail.Send`, `Jobs.Enqueue` and `Cache.Remember` reach the battery of the work they run in, so a test stands in
+front of one with a single line — and then asks what happened in the same English the code was written in:
+
+```csharp
+[Fact]
+public async Task Registering_sends_a_welcome_email_and_queues_the_follow_up()
+{
+    using var mail = Mail.Fake();
+    using var jobs = Jobs.Fake();
+
+    var page = Test.Visit("/register");
+    await page.Type("ann@x.io").Into("Email");
+    await page.Click("Create account");
+
+    mail.Sent().To("ann@x.io").WithSubject("Welcome").Once();
+    jobs.Enqueued<SendOnboardingTips>().In(24.Hours).Once();
+}
+```
+
+Each step narrows and the count asserts — `Once()`, `Twice()`, `Exactly(n)`, `None()`. A failure names what
+actually happened, because that is the half you need:
+
+```
+Expected one email to "ann@x.io"; 2 were sent. All 2 sent: to "bo@x.io" — "Welcome"; to "cy@x.io" — "Receipt".
+```
+
+For anything the steps do not cover, `Single()` hands back the one that matched:
+
+```csharp
+var sent = mail.Sent().To("ann@x.io").Single();
+Assert.Contains("unsubscribe", sent.Html, StringComparison.Ordinal);
+
+var job = jobs.Enqueued<ChaseInvoice>().Single();
+Assert.Equal(7, job.Job.Number);
+```
+
+| Fake | Asks about | Narrowed by |
+|---|---|---|
+| `Mail.Fake()` | `Sent()` | `To`, `WithSubject`, `Saying`, `In`, `At` |
+| `Jobs.Fake()` | `Enqueued<TJob>()` | `In`, `At`, `Matching` |
+| `Cache.Fake()` | `Loaded(key)`, `Read(key)`, `Forgotten(key)` | — |
+
+`Cache.Fake()` is not only a recorder: it really stores, with real expiry read from `Clock.Now`, so the code
+under test behaves as it would in production and `Clock.Fake` proves staleness without sleeping.
+
+```csharp
+using var clock = Clock.Fake(at: monday9am);
+using var cache = Cache.Fake();
+
+await Cache.Remember("products", LoadProducts).For(10.Minutes);
+clock.Advance(11.Minutes);
+await Cache.Remember("products", LoadProducts).For(10.Minutes);
+
+cache.Loaded("products").Twice();   // the second call went back to the database
+```
+
+A recorded job is **never run** — the fake asserts the work was *asked for*, and the handler has its own test.
+
+Each fake belongs to the test's own flow, so tests running in parallel never see each other's mail, jobs or
+keys, and disposing it puts the real battery back. It stands in front of the static; a class that takes
+`IMail`, `IJobs` or `ICache` in its **constructor** is handed whatever the container holds, so register the
+fake there too when the code under test injects it:
+
+```csharp
+services.AddSingleton<IMail>(mail);
+```
+
 ### One component, and precise control
 
 `Test.Render` renders a single component instead of a URL, and the same verbs drive it. Underneath them sit

@@ -23,8 +23,16 @@ public static class Jobs
     public static Enqueuing Enqueue(IJob job, CancellationToken cancellationToken = default) =>
         new(null, job, null, null, cancellationToken);
 
+    /// <summary>What <c>Jobs.Fake()</c> put in the way of the real queue, for this test's flow alone.</summary>
+    internal static readonly AsyncLocal<IJobs?> Faked = new();
+
     internal static IJobs Resolve()
     {
+        if (Faked.Value is { } fake)
+        {
+            return fake;
+        }
+
         var services = Ambient.Services
             ?? throw new InvalidOperationException(
                 "Jobs was called outside any work in progress — a handler, a render, a request or a job — so "

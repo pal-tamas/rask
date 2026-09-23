@@ -23,8 +23,16 @@ public static class Mail
     public static Sending Send(Email email, CancellationToken cancellationToken = default) =>
         new(null, email, null, null, cancellationToken);
 
+    /// <summary>What <c>Mail.Fake()</c> put in the way of the real battery, for this test's flow alone.</summary>
+    internal static readonly AsyncLocal<IMail?> Faked = new();
+
     internal static IMail Resolve()
     {
+        if (Faked.Value is { } fake)
+        {
+            return fake;
+        }
+
         var services = Ambient.Services
             ?? throw new InvalidOperationException(
                 "Mail was called outside any work in progress — a handler, a render, a request or a job — so "

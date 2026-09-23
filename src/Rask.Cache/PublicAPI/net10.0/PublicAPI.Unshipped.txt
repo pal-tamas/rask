@@ -112,3 +112,32 @@ static Rask.Cache.CacheLifetime.operator ==(Rask.Cache.CacheLifetime left, Rask.
 static Rask.Cache.RaskCacheServiceCollectionExtensions.AddRaskCache(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Cache.CacheOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 ~override Rask.Cache.CacheLifetime.Equals(object obj) -> bool
 ~override Rask.Cache.CacheLifetime.ToString() -> string
+Rask.Batteries.Counting<T>
+Rask.Batteries.Counting<T>.Count.get -> int
+Rask.Batteries.Counting<T>.Counting() -> void
+Rask.Batteries.Counting<T>.Counting(System.Collections.Generic.IReadOnlyList<T>! all, string! noun, string! verb, System.Func<T, string!>! describe, string? whenNoneAtAll = null) -> void
+Rask.Batteries.Counting<T>.Exactly(int times) -> void
+Rask.Batteries.Counting<T>.None() -> void
+Rask.Batteries.Counting<T>.Once() -> void
+Rask.Batteries.Counting<T>.Single() -> T
+Rask.Batteries.Counting<T>.Twice() -> void
+Rask.Batteries.Counting<T>.Where(System.Func<T, bool>! predicate, string! said) -> Rask.Batteries.Counting<T>
+Rask.Batteries.CountingException
+Rask.Batteries.CountingException.CountingException(string! message) -> void
+Rask.Cache.CacheFake
+Rask.Cache.CacheFake.Clear() -> void
+Rask.Cache.CacheFake.Dispose() -> void
+Rask.Cache.CacheFake.Forget(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Cache.CacheFake.Forgotten() -> Rask.Batteries.Counting<string!>
+Rask.Cache.CacheFake.Forgotten(string! key) -> Rask.Batteries.Counting<string!>
+Rask.Cache.CacheFake.Get<T>(string! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<T?>!
+Rask.Cache.CacheFake.Loaded() -> Rask.Batteries.Counting<string!>
+Rask.Cache.CacheFake.Loaded(string! key) -> Rask.Batteries.Counting<string!>
+Rask.Cache.CacheFake.Read() -> Rask.Batteries.Counting<string!>
+Rask.Cache.CacheFake.Read(string! key) -> Rask.Batteries.Counting<string!>
+Rask.Cache.CacheFake.Remember<T>(string! key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<T>!>! load, Rask.Cache.CacheLifetime lifetime, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<T>!
+Rask.Cache.CacheFake.Set<T>(string! key, T value, Rask.Cache.CacheLifetime lifetime, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Rask.Cache.CacheFakes
+Rask.Cache.CacheFakes.extension(Rask.Cache.Cache!)
+static Rask.Cache.CacheFakes.Fake() -> Rask.Cache.CacheFake!
+static Rask.Cache.CacheFakes.extension(Rask.Cache.Cache!).Fake() -> Rask.Cache.CacheFake!

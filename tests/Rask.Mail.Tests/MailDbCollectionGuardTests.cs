@@ -18,5 +18,7 @@ public sealed class MailDbCollectionGuardTests
             // argument, and never builds a context.
             "RaskMailOptionsBindingTests",
             // Reads the metrics counters the processor emits — no context of its own.
-            "MailMetricsTests");
+            "MailMetricsTests",
+            // The fake stands in for the whole battery, so there is no database to reach.
+            "MailFakeTests");
 }

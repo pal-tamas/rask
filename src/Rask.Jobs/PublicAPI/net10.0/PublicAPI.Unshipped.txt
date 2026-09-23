@@ -173,3 +173,48 @@ static Rask.Jobs.Jobs.Enqueue(Rask.Jobs.IJob! job, System.Threading.Cancellation
 static Rask.Jobs.JobsExtensions.Enqueue(this Rask.Jobs.IJobs! jobs, Rask.Jobs.IJob! job, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Jobs.Enqueuing
 Rask.Jobs.IJobs.Add(Rask.Jobs.IJob! job, System.DateTimeOffset? at, System.TimeSpan? after, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Jobs.JobQueue<TContext>.Add(Rask.Jobs.IJob! job, System.DateTimeOffset? at, System.TimeSpan? after, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Batteries.Counting<T>
+Rask.Batteries.Counting<T>.Count.get -> int
+Rask.Batteries.Counting<T>.Counting() -> void
+Rask.Batteries.Counting<T>.Counting(System.Collections.Generic.IReadOnlyList<T>! all, string! noun, string! verb, System.Func<T, string!>! describe, string? whenNoneAtAll = null) -> void
+Rask.Batteries.Counting<T>.Exactly(int times) -> void
+Rask.Batteries.Counting<T>.None() -> void
+Rask.Batteries.Counting<T>.Once() -> void
+Rask.Batteries.Counting<T>.Single() -> T
+Rask.Batteries.Counting<T>.Twice() -> void
+Rask.Batteries.Counting<T>.Where(System.Func<T, bool>! predicate, string! said) -> Rask.Batteries.Counting<T>
+Rask.Batteries.CountingException
+Rask.Batteries.CountingException.CountingException(string! message) -> void
+Rask.Jobs.EnqueuedJob<TJob>
+Rask.Jobs.EnqueuedJob<TJob>.<Clone>$() -> Rask.Jobs.EnqueuedJob<TJob>!
+Rask.Jobs.EnqueuedJob<TJob>.Deconstruct(out TJob Job, out System.TimeSpan? Delay, out System.DateTimeOffset? Moment) -> void
+Rask.Jobs.EnqueuedJob<TJob>.Delay.get -> System.TimeSpan?
+Rask.Jobs.EnqueuedJob<TJob>.Delay.init -> void
+Rask.Jobs.EnqueuedJob<TJob>.EnqueuedJob(TJob Job, System.TimeSpan? Delay, System.DateTimeOffset? Moment) -> void
+Rask.Jobs.EnqueuedJob<TJob>.Equals(Rask.Jobs.EnqueuedJob<TJob>? other) -> bool
+Rask.Jobs.EnqueuedJob<TJob>.Job.get -> TJob
+Rask.Jobs.EnqueuedJob<TJob>.Job.init -> void
+Rask.Jobs.EnqueuedJob<TJob>.Moment.get -> System.DateTimeOffset?
+Rask.Jobs.EnqueuedJob<TJob>.Moment.init -> void
+Rask.Jobs.EnqueuedJobCounting
+Rask.Jobs.EnqueuedJobCounting.extension<TJob>(Rask.Batteries.Counting<Rask.Jobs.EnqueuedJob<TJob>!>)
+Rask.Jobs.EnqueuedJobCounting.extension<TJob>(Rask.Batteries.Counting<Rask.Jobs.EnqueuedJob<TJob>!>).At(System.DateTimeOffset moment) -> Rask.Batteries.Counting<Rask.Jobs.EnqueuedJob<TJob>!>
+Rask.Jobs.EnqueuedJobCounting.extension<TJob>(Rask.Batteries.Counting<Rask.Jobs.EnqueuedJob<TJob>!>).In(System.TimeSpan delay) -> Rask.Batteries.Counting<Rask.Jobs.EnqueuedJob<TJob>!>
+Rask.Jobs.EnqueuedJobCounting.extension<TJob>(Rask.Batteries.Counting<Rask.Jobs.EnqueuedJob<TJob>!>).Matching(System.Func<TJob, bool>! matches, string! said) -> Rask.Batteries.Counting<Rask.Jobs.EnqueuedJob<TJob>!>
+Rask.Jobs.JobsFake
+Rask.Jobs.JobsFake.Clear() -> void
+Rask.Jobs.JobsFake.Count.get -> int
+Rask.Jobs.JobsFake.Dispose() -> void
+Rask.Jobs.JobsFake.Enqueued<TJob>() -> Rask.Batteries.Counting<Rask.Jobs.EnqueuedJob<TJob>!>
+Rask.Jobs.JobsFakes
+Rask.Jobs.JobsFakes.extension(Rask.Jobs.Jobs!)
+override Rask.Jobs.EnqueuedJob<TJob>.Equals(object? obj) -> bool
+override Rask.Jobs.EnqueuedJob<TJob>.GetHashCode() -> int
+override Rask.Jobs.EnqueuedJob<TJob>.ToString() -> string!
+static Rask.Jobs.EnqueuedJob<TJob>.operator !=(Rask.Jobs.EnqueuedJob<TJob>? left, Rask.Jobs.EnqueuedJob<TJob>? right) -> bool
+static Rask.Jobs.EnqueuedJob<TJob>.operator ==(Rask.Jobs.EnqueuedJob<TJob>? left, Rask.Jobs.EnqueuedJob<TJob>? right) -> bool
+static Rask.Jobs.EnqueuedJobCounting.At<TJob>(this Rask.Batteries.Counting<Rask.Jobs.EnqueuedJob<TJob>!> enqueued, System.DateTimeOffset moment) -> Rask.Batteries.Counting<Rask.Jobs.EnqueuedJob<TJob>!>
+static Rask.Jobs.EnqueuedJobCounting.In<TJob>(this Rask.Batteries.Counting<Rask.Jobs.EnqueuedJob<TJob>!> enqueued, System.TimeSpan delay) -> Rask.Batteries.Counting<Rask.Jobs.EnqueuedJob<TJob>!>
+static Rask.Jobs.EnqueuedJobCounting.Matching<TJob>(this Rask.Batteries.Counting<Rask.Jobs.EnqueuedJob<TJob>!> enqueued, System.Func<TJob, bool>! matches, string! said) -> Rask.Batteries.Counting<Rask.Jobs.EnqueuedJob<TJob>!>
+static Rask.Jobs.JobsFakes.Fake() -> Rask.Jobs.JobsFake!
+static Rask.Jobs.JobsFakes.extension(Rask.Jobs.Jobs!).Fake() -> Rask.Jobs.JobsFake!

@@ -17,6 +17,7 @@ public sealed class JobsDbCollectionGuardTests
             // and is driven here through per-test group keys — so there is no context and nothing to serialise.
             "JobOptionsTests",
             "ScheduleTests",
+            "JobsFakeTests",
             "RaskJobsOptionsBindingTests",
             "JobSerializerRegistryTests",
             "JobSerializerRegistryReplaceTests");

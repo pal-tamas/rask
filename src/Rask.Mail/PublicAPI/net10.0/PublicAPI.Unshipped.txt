@@ -214,3 +214,55 @@ Rask.Mail.Sending.In(System.TimeSpan delay) -> Rask.Mail.Sending
 Rask.Mail.Sending.Sending() -> void
 static Rask.Mail.Mail.Send(Rask.Mail.Email! email, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Mail.Sending
 static Rask.Mail.MailExtensions.Send(this Rask.Mail.IMail! mail, Rask.Mail.Email! email, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Mail.Sending
+Rask.Batteries.Counting<T>
+Rask.Batteries.Counting<T>.Count.get -> int
+Rask.Batteries.Counting<T>.Counting() -> void
+Rask.Batteries.Counting<T>.Counting(System.Collections.Generic.IReadOnlyList<T>! all, string! noun, string! verb, System.Func<T, string!>! describe, string? whenNoneAtAll = null) -> void
+Rask.Batteries.Counting<T>.Exactly(int times) -> void
+Rask.Batteries.Counting<T>.None() -> void
+Rask.Batteries.Counting<T>.Once() -> void
+Rask.Batteries.Counting<T>.Single() -> T
+Rask.Batteries.Counting<T>.Twice() -> void
+Rask.Batteries.Counting<T>.Where(System.Func<T, bool>! predicate, string! said) -> Rask.Batteries.Counting<T>
+Rask.Batteries.CountingException
+Rask.Batteries.CountingException.CountingException(string! message) -> void
+Rask.Mail.MailFake
+Rask.Mail.MailFake.Clear() -> void
+Rask.Mail.MailFake.Dispose() -> void
+Rask.Mail.MailFake.Sent() -> Rask.Batteries.Counting<Rask.Mail.SentEmail!>
+Rask.Mail.MailFakes
+Rask.Mail.MailFakes.extension(Rask.Mail.Mail!)
+Rask.Mail.SentEmail
+Rask.Mail.SentEmail.<Clone>$() -> Rask.Mail.SentEmail!
+Rask.Mail.SentEmail.Deconstruct(out System.Collections.Generic.IReadOnlyList<string!>! To, out string! Subject, out string! Html, out System.TimeSpan? Delay, out System.DateTimeOffset? Moment) -> void
+Rask.Mail.SentEmail.Delay.get -> System.TimeSpan?
+Rask.Mail.SentEmail.Delay.init -> void
+Rask.Mail.SentEmail.Equals(Rask.Mail.SentEmail? other) -> bool
+Rask.Mail.SentEmail.Html.get -> string!
+Rask.Mail.SentEmail.Html.init -> void
+Rask.Mail.SentEmail.Moment.get -> System.DateTimeOffset?
+Rask.Mail.SentEmail.Moment.init -> void
+Rask.Mail.SentEmail.SentEmail(System.Collections.Generic.IReadOnlyList<string!>! To, string! Subject, string! Html, System.TimeSpan? Delay, System.DateTimeOffset? Moment) -> void
+Rask.Mail.SentEmail.Subject.get -> string!
+Rask.Mail.SentEmail.Subject.init -> void
+Rask.Mail.SentEmail.To.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Rask.Mail.SentEmail.To.init -> void
+Rask.Mail.SentEmailCounting
+Rask.Mail.SentEmailCounting.extension(Rask.Batteries.Counting<Rask.Mail.SentEmail!>)
+Rask.Mail.SentEmailCounting.extension(Rask.Batteries.Counting<Rask.Mail.SentEmail!>).At(System.DateTimeOffset moment) -> Rask.Batteries.Counting<Rask.Mail.SentEmail!>
+Rask.Mail.SentEmailCounting.extension(Rask.Batteries.Counting<Rask.Mail.SentEmail!>).In(System.TimeSpan delay) -> Rask.Batteries.Counting<Rask.Mail.SentEmail!>
+Rask.Mail.SentEmailCounting.extension(Rask.Batteries.Counting<Rask.Mail.SentEmail!>).Saying(string! text) -> Rask.Batteries.Counting<Rask.Mail.SentEmail!>
+Rask.Mail.SentEmailCounting.extension(Rask.Batteries.Counting<Rask.Mail.SentEmail!>).To(string! address) -> Rask.Batteries.Counting<Rask.Mail.SentEmail!>
+Rask.Mail.SentEmailCounting.extension(Rask.Batteries.Counting<Rask.Mail.SentEmail!>).WithSubject(string! subject) -> Rask.Batteries.Counting<Rask.Mail.SentEmail!>
+override Rask.Mail.SentEmail.Equals(object? obj) -> bool
+override Rask.Mail.SentEmail.GetHashCode() -> int
+override Rask.Mail.SentEmail.ToString() -> string!
+static Rask.Mail.MailFakes.Fake() -> Rask.Mail.MailFake!
+static Rask.Mail.MailFakes.extension(Rask.Mail.Mail!).Fake() -> Rask.Mail.MailFake!
+static Rask.Mail.SentEmail.operator !=(Rask.Mail.SentEmail? left, Rask.Mail.SentEmail? right) -> bool
+static Rask.Mail.SentEmail.operator ==(Rask.Mail.SentEmail? left, Rask.Mail.SentEmail? right) -> bool
+static Rask.Mail.SentEmailCounting.At(this Rask.Batteries.Counting<Rask.Mail.SentEmail!> sent, System.DateTimeOffset moment) -> Rask.Batteries.Counting<Rask.Mail.SentEmail!>
+static Rask.Mail.SentEmailCounting.In(this Rask.Batteries.Counting<Rask.Mail.SentEmail!> sent, System.TimeSpan delay) -> Rask.Batteries.Counting<Rask.Mail.SentEmail!>
+static Rask.Mail.SentEmailCounting.Saying(this Rask.Batteries.Counting<Rask.Mail.SentEmail!> sent, string! text) -> Rask.Batteries.Counting<Rask.Mail.SentEmail!>
+static Rask.Mail.SentEmailCounting.To(this Rask.Batteries.Counting<Rask.Mail.SentEmail!> sent, string! address) -> Rask.Batteries.Counting<Rask.Mail.SentEmail!>
+static Rask.Mail.SentEmailCounting.WithSubject(this Rask.Batteries.Counting<Rask.Mail.SentEmail!> sent, string! subject) -> Rask.Batteries.Counting<Rask.Mail.SentEmail!>
