@@ -9,6 +9,11 @@ them until tagged releases begin.
 
 ### Added
 
+- **`rask new` scaffolds a committed `.vscode/settings.json`.** A component's paired files (`Counter.css`,
+  `Counter.ts`, a `.tsx` island, a package island's `.props.json`) nest under `Counter.cs` in the explorer, in every
+  template. The templates that compile Tailwind (`server`, `wasm`, `wasm-hosted`) also get class completion inside
+  `Div.Class("…")` and recommend the Tailwind CSS IntelliSense extension. The scaffolded `.gitignore` re-includes the
+  file. An existing app adds `!/.vscode/settings.json` and copies the file from a fresh scaffold (`docs/cli.md`).
 - **The Rask.Query guide has a live demo on rask.sh (#1128).** A parcel list on one small page shows every query
   shape the guide describes: a query declared in `Render` that follows the URL's `?page=` with `KeepPreviousData`, a
   dependent query that stays paused until a pick, a function query keyed `QueryKey.For<Parcel>(input)`, and a

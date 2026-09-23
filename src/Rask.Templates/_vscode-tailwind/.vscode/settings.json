@@ -1,0 +1,16 @@
+{
+  // A component's paired files — its scoped CSS/TypeScript, a .tsx/Lit island, a package island's props
+  // snapshot — are paired with its .cs by file name, so the explorer nests them under it.
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.patterns": {
+    "*.cs": "${capture}.css, ${capture}.ts, ${capture}.tsx, ${capture}.props.json"
+  },
+
+  // Tailwind CSS IntelliSense: class completion and hover inside Div.Class("…"). It skips C# unless C# is
+  // mapped to a language it knows, and it reads this app's Tailwind entry, the stylesheet the build compiles.
+  "tailwindCSS.experimental.configFile": "Styles/app.css",
+  "tailwindCSS.includeLanguages": {
+    "csharp": "html"
+  },
+  "tailwindCSS.experimental.classRegex": ["\\.Class\\(\\s*\"([^\"]*)\""]
+}

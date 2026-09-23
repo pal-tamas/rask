@@ -112,6 +112,7 @@ public sealed class ScaffoldIgnoreOverlapTests
         Assert.Contains(rules, r => r.Entry == "/.vscode/*" && r.ReIncluded.Contains(Root + "/.vscode/launch.json"));
         Assert.Contains(rules, r => r.Matches(Root + "/.vscode/personal.json"));
         Assert.DoesNotContain(rules, r => r.Matches(Root + "/.vscode/launch.json"));
+        Assert.DoesNotContain(rules, r => r.Matches(Root + "/.vscode/settings.json"));
     }
 
     [Fact]
