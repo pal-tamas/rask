@@ -116,8 +116,13 @@ builder.Services.AddDbContextFactory<AppDbContext>(o => o
 ```
 
 Apply migrations at startup (`Database.MigrateAsync()`): the index is built by a migration, and `EnsureCreated`
-creates none. EF Core in the browser needs an untrimmed build (`PublishTrimmed=false`) — see
-[SQLite in the browser](sqlite.md#sqlite-in-the-browser-wasm).
+creates none. EF Core in the browser needs the trimmer to leave it whole — an untrimmed build, or its assemblies
+rooted — see [SQLite in the browser](sqlite.md#sqlite-in-the-browser-wasm).
+
+The notes below are exactly that: a Rask.Data aggregate with `HasFullTextSearch`, in a SQLite database that lives
+in this browser tab. Add a note, then search for a word in it — the hit comes back highlighted, with a snippet.
+
+<!-- demo:data-notes -->
 
 ## PostgreSQL
 

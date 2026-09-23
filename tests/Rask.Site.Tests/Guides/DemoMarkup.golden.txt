@@ -1612,6 +1612,11 @@ div .mb-1 .text-sm .text-ui-muted .uppercase
 p .mb-0 .text-sm
 code
 
+=== data-notes ===
+div .flex .flex-col .gap-2
+iframe .bg-base-100 .block .border .border-base-300 .rounded-xl .w-full
+a .font-medium .self-start .text-sm .underline .underline-offset-4
+
 === data-upload ===
 div .bg-ui-bg .border .border-ui-line .card .mb-4 .overflow-hidden .sample-card .shadow-sm
 div .bg-ui-bg .border-b .border-ui-line .font-medium .px-5 .py-3

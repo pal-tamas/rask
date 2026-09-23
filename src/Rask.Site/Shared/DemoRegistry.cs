@@ -54,7 +54,7 @@ public static partial class DemoRegistry
                 .Result(BindingMultiDemo),
             ["binding-textarea"] = () => CodeSample
                 .Files(["BindingTextareaDemo.cs"])
-                .Notes("Textareas always stream — Textarea.Bound wires OnInputAsync for every keystroke so "
+                .Notes("Textareas always stream — a bound Textarea writes the model on OnInput, every keystroke, so "
                 + "the echo updates without blur or submit.")
                 .Result(BindingTextareaDemo),
 
@@ -237,6 +237,10 @@ public static partial class DemoRegistry
                 .Notes("Nothing here loads data by hand: each query follows its input, keeps its cache, and refetches "
                 + "when a Ship command it is named by succeeds.")
                 .Result(QueryParcelsDemo),
+
+            // --- Data, full-text search and query guides: the full stack in the browser. A separate app
+            //     (src/Rask.Site.DataDemo) framed lazily, so EF Core and SQLite stay out of this bundle. ---
+            ["data-notes"] = () => DataNotesDemo,
             ["asset-basic-css"] = () => CodeSample
                 .Files(["BasicScopedCss.cs", "BasicScopedCss.css"])
                 .Result(BasicScopedCss),

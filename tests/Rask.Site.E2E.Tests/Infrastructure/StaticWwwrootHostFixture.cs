@@ -59,6 +59,13 @@ public abstract class StaticWwwrootHostFixture : IAsyncLifetime
     protected abstract string ProjectRelativePath { get; }
 
     /// <summary>
+    ///     The URL path the bundle is served under — <c>/demos/data</c> for an app published with that
+    ///     <c>RaskPathBase</c>, the way a static host serves it beside another site. Empty serves it at the origin
+    ///     root; outside a non-empty mount every request is a 404, as it would be on that host.
+    /// </summary>
+    protected virtual string MountPath => string.Empty;
+
+    /// <summary>
     ///     The loopback port this fixture's host is listening on, assigned by the OS at
     ///     <see cref="InitializeAsync" /> — see <see cref="BindEphemeral" /> for why it is not a constant.
     /// </summary>
@@ -85,7 +92,8 @@ public abstract class StaticWwwrootHostFixture : IAsyncLifetime
         _cts = new CancellationTokenSource();
         (_listener, var port) = BindEphemeral(GetType().Name);
         Port = port;
-        _ = Task.Run(() => ServeLoopAsync(_listener, Wwwroot, _cts.Token));
+        var mount = MountPath.TrimEnd('/');
+        _ = Task.Run(() => ServeLoopAsync(_listener, Wwwroot, mount, _cts.Token));
 
         await WaitForReadyAsync(TimeSpan.FromSeconds(30));
     }
@@ -172,7 +180,7 @@ public abstract class StaticWwwrootHostFixture : IAsyncLifetime
     {
     }
 
-    private static async Task ServeLoopAsync(HttpListener listener, string wwwroot, CancellationToken ct)
+    private static async Task ServeLoopAsync(HttpListener listener, string wwwroot, string mount, CancellationToken ct)
     {
         while (!ct.IsCancellationRequested)
         {
@@ -186,15 +194,29 @@ public abstract class StaticWwwrootHostFixture : IAsyncLifetime
                 break; // listener stopped/disposed
             }
 
-            _ = Task.Run(() => HandleRequestAsync(context, wwwroot), ct);
+            _ = Task.Run(() => HandleRequestAsync(context, wwwroot, mount), ct);
         }
     }
 
-    private static async Task HandleRequestAsync(HttpListenerContext ctx, string wwwroot)
+    private static async Task HandleRequestAsync(HttpListenerContext ctx, string wwwroot, string mount)
     {
         try
         {
-            var rel = Uri.UnescapeDataString(ctx.Request.Url!.AbsolutePath).TrimStart('/');
+            var requested = Uri.UnescapeDataString(ctx.Request.Url!.AbsolutePath);
+            if (mount.Length > 0)
+            {
+                if (!requested.Equals(mount, StringComparison.Ordinal)
+                    && !requested.StartsWith(mount + "/", StringComparison.Ordinal))
+                {
+                    ctx.Response.StatusCode = 404;
+                    ctx.Response.Close();
+                    return;
+                }
+
+                requested = requested[mount.Length..];
+            }
+
+            var rel = requested.TrimStart('/');
             if (rel.Length == 0)
             {
                 rel = "index.html";
@@ -269,7 +291,7 @@ public abstract class StaticWwwrootHostFixture : IAsyncLifetime
         {
             try
             {
-                using var resp = await http.GetAsync($"{BaseUrl}/index.html");
+                using var resp = await http.GetAsync($"{BaseUrl}{MountPath.TrimEnd('/')}/index.html");
                 if ((int)resp.StatusCode < 500)
                 {
                     return;

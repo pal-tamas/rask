@@ -123,6 +123,7 @@ rask_lane_script_of() {
     */run-e2e-local.sh | run-e2e-local.sh) printf 'run-e2e-local.sh' ;;
     */run-devtools-e2e-local.sh | run-devtools-e2e-local.sh) printf 'run-devtools-e2e-local.sh' ;;
     */run-browser-sqlite-e2e-local.sh | run-browser-sqlite-e2e-local.sh) printf 'run-browser-sqlite-e2e-local.sh' ;;
+    */run-data-demo-e2e-local.sh | run-data-demo-e2e-local.sh) printf 'run-data-demo-e2e-local.sh' ;;
     */run-unit-local.sh | run-unit-local.sh) printf 'run-unit-local.sh' ;;
     */lane-claim.sh | lane-claim.sh) printf 'lane-claim.sh' ;;
   esac
@@ -200,7 +201,7 @@ rask_lane_cost_of() {
 
   case "$script" in
     # A browser gate builds before it claims the machine for its suite, and declares that claim when it makes it.
-    run-e2e-local.sh | run-devtools-e2e-local.sh | run-browser-sqlite-e2e-local.sh) rask_lane_build_cost ;;
+    run-e2e-local.sh | run-devtools-e2e-local.sh | run-browser-sqlite-e2e-local.sh | run-data-demo-e2e-local.sh) rask_lane_build_cost ;;
     run-unit-local.sh)
       case "$cmd" in
         *--lane-slots\ *)
@@ -235,7 +236,7 @@ rask_lane_other_gates() {
     [ "$pid" = "$self_pid" ] && continue
     [ "$pid" = "$parent_pid" ] && continue
     case "$(rask_lane_script_of "$(rask_e2e_command_of "$pid")")" in
-      run-e2e-local.sh | run-devtools-e2e-local.sh | run-browser-sqlite-e2e-local.sh | run-unit-local.sh) printf '%s\n' "$pid" ;;
+      run-e2e-local.sh | run-devtools-e2e-local.sh | run-browser-sqlite-e2e-local.sh | run-data-demo-e2e-local.sh | run-unit-local.sh) printf '%s\n' "$pid" ;;
     esac
   done
   return 0

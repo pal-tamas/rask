@@ -39,6 +39,8 @@ gates=(
   "devtools E2E|scripts/run-devtools-e2e-local.sh|"
   # Browser SQLite in a real browser. A gate of its own because it is the only one that links e_sqlite3 natively.
   "browser SQLite E2E|scripts/run-browser-sqlite-e2e-local.sh|"
+  # The rask.sh data demo in a real browser: published as pages.yml publishes it (native-linked, under /demos/data/).
+  "data demo E2E|scripts/run-data-demo-e2e-local.sh|"
   "CLI build|scripts/run-cli-build-e2e.sh|RASK_CLI_BUILD_E2E=1"
   # Every template scaffolded and built. Not --front-end here: that tier installs and builds
   # thirteen front ends and takes about an hour, which belongs to a release rather than to a run

@@ -1,0 +1,91 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+
+  <!--
+    The full-stack demo on rask.sh: a Rask.Data aggregate in a real SQLite database INSIDE the browser tab, written
+    through Note.CreateAsync, listed and searched through Rask.Query and Note.Read.Search, kept across reloads by
+    Rask.SQLite.Browser. Served at https://rask.sh/demos/data/ and embedded as an iframe on the data, full-text-search
+    and query guides (src/Rask.Site, demo key `data-notes`).
+
+    A SEPARATE app on purpose. EF Core, Rask.Data and the native e_sqlite3 cost the main site bundle about 2.4 MB
+    brotli (+50%) and ~55 trim warnings, measured; as its own bundle it is paid for only by a reader who scrolls a
+    guide to the demo, and the site's own publish stays at zero IL warnings.
+
+    Like src/Rask.Site this is an APP under src/, so it is neither packable nor public-API tracked: every public
+    member here is a page or a demo type, not an API.
+
+    It must be published WITH native linking (no -p:WasmBuildNative=false, so the wasm-tools workload is needed):
+    without it e_sqlite3 is not linked in and every database call fails at runtime. .github/workflows/pages.yml
+    publishes it that way; scripts/run-data-demo-e2e-local.sh drives the same publish in Chromium.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-browser</TargetFramework>
+    <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+    <OutputType>Exe</OutputType>
+    <UseAppHost>false</UseAppHost>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RaskWasm>true</RaskWasm>
+    <IsPackable>false</IsPackable>
+    <RaskPublicApiTracked>false</RaskPublicApiTracked>
+    <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+    <!-- Its one home: the publish rewrites <base href="/"> to "/demos/data/", where pages.yml copies it beside the
+         site. `dotnet run` keeps "/", since the rewrite runs on the published output only. -->
+    <RaskPathBase>/demos/data</RaskPathBase>
+    <!-- The kit's sheet is inlined (UiStylesheet.Css), so no Tailwind build and no stylesheet file of our own. -->
+    <RunAOTCompilation Condition=" '$(WasmBuildNative)' != 'false' ">false</RunAOTCompilation>
+
+    <!--
+      Trimmed, with EF Core ROOTED (the TrimmerRootAssembly items below). EF Core builds its model and its query
+      pipeline by reflection over types the trimmer cannot see being used, so a trimmed publish that does not root
+      it fails at the first EF call; rooted, it runs — proven in a browser by this app's E2E journey. Rooting keeps
+      those assemblies whole, so trimming still takes the rest of the framework down to what the app uses.
+    -->
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>full</TrimMode>
+    <!--
+      Suppressed in THIS app only, because the assemblies they are about are rooted above and so nothing they
+      reflect over is trimmed away: https://github.com/pal-tamas/rask/issues/1132 tracks making Rask.Data and
+      Rask.SQLite trim-safe, after which only EF Core's own IL2104 should remain.
+        IL2026 — EF Core marks the DbContext options constructor [RequiresUnreferencedCode].
+        IL2104 — EF Core (and Microsoft.JSInterop) produce trim warnings inside their own assemblies.
+        IL2060/IL2067/IL2070/IL2072/IL2087/IL2091 — Rask.Data's and Rask.SQLite's generic model paths
+          (Db.Configure, the generated writes, HasFullTextSearch, the full-text query interceptor), #1132.
+        WASM0001 — the SQLite native build reports two varargs functions (sqlite3_config, sqlite3_db_config) it
+          cannot call; nothing here reaches them.
+    -->
+    <NoWarn>$(NoWarn);IL2026;IL2104;IL2060;IL2067;IL2070;IL2072;IL2087;IL2091;WASM0001</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <TrimmerRootAssembly Include="Microsoft.EntityFrameworkCore"/>
+    <TrimmerRootAssembly Include="Microsoft.EntityFrameworkCore.Relational"/>
+    <TrimmerRootAssembly Include="Microsoft.EntityFrameworkCore.Sqlite"/>
+    <TrimmerRootAssembly Include="Microsoft.Data.Sqlite"/>
+    <TrimmerRootAssembly Include="Rask.Data"/>
+    <TrimmerRootAssembly Include="Rask.SQLite.EntityFrameworkCore"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Wasm\Rask.Wasm.csproj"/>
+    <!-- PrivateAssets="all" from Rask.Wasm, so an in-repo app names it itself. -->
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\Rask.Ui\Rask.Ui.csproj"/>
+    <ProjectReference Include="..\Rask.Cqrs\Rask.Cqrs.csproj"/>
+    <ProjectReference Include="..\Rask.Query\Rask.Query.csproj"/>
+    <ProjectReference Include="..\Rask.Data\Rask.Data.csproj"/>
+    <ProjectReference Include="..\Rask.SQLite.Browser\Rask.SQLite.Browser.csproj"/>
+    <ProjectReference Include="..\Rask.SQLite.EntityFrameworkCore\Rask.SQLite.EntityFrameworkCore.csproj"/>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"/>
+    <!-- The patched SQLitePCLRaw bundle, and what supplies the browser-wasm e_sqlite3.a and its NativeFileReference. -->
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3"/>
+    <!-- Note.Read, NoteModel and Note.CreateAsync are generated from the aggregate. -->
+    <ProjectReference Include="..\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+</Project>

@@ -104,11 +104,13 @@ rask_is_e2e_gate_command() {
     *) target="$first" ;;
   esac
 
-  # Every browser gate: the devtools and browser SQLite suites need the machine for the same reason this one does.
+  # Every browser gate: the devtools, browser SQLite and data demo suites need the machine for the same reason this
+  # one does.
   case "$target" in
     */run-e2e-local.sh | run-e2e-local.sh) return 0 ;;
     */run-devtools-e2e-local.sh | run-devtools-e2e-local.sh) return 0 ;;
     */run-browser-sqlite-e2e-local.sh | run-browser-sqlite-e2e-local.sh) return 0 ;;
+    */run-data-demo-e2e-local.sh | run-data-demo-e2e-local.sh) return 0 ;;
   esac
   return 1
 }

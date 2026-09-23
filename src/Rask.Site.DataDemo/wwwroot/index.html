@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en" data-rask-ui>
+<head>
+    <meta charset="utf-8"/>
+    <!--
+      The data demo's boot shell. data-rask-ui turns the kit's theme on for the whole document. <base href> is
+      rewritten to "/demos/data/" at publish (<RaskPathBase> in the csproj); `dotnet run` keeps "/".
+    -->
+    <base href="/"/>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <title>Notes in the browser — a Rask full-stack demo</title>
+    <link rel="preload" id="webassembly"/>
+    <script type="importmap"></script>
+    <style id="rask-scoped"></style>
+    <script>
+        // The theme the reader picked on rask.sh (same origin, same key as Ui.ThemeScript), before first paint,
+        // so the demo in a guide's iframe matches the page around it. None stored: follow the OS. Re-applied after
+        // every morph, which rewrites <html> to the attributes the app renders.
+        (function () {
+            function apply() {
+                try {
+                    var t = localStorage.getItem("rask-theme");
+                    if (t && /^[a-z0-9-]+$/.test(t)) document.documentElement.setAttribute("data-theme", t);
+                } catch (e) { }
+            }
+            apply();
+            var previous = window.raskAfterMorph;
+            window.raskAfterMorph = function () {
+                apply();
+                if (typeof previous === "function") previous();
+            };
+        })();
+    </script>
+    <style>
+        body { margin: 0; font-family: system-ui, sans-serif; }
+        .rask-boot { display: flex; align-items: center; justify-content: center; min-height: 12rem; opacity: .7; }
+    </style>
+</head>
+<body data-rask-root>
+<div class="rask-boot">Loading the notes demo…</div>
+<script src="main.js" type="module"></script>
+</body>
+</html>

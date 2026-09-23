@@ -277,6 +277,11 @@ filter over *any* element of the collection is a scan. If that filter is hot on 
 `Dictionary`, a collection of some framework type — is left alone for the entity's own `Configure` to map, and
 so is any collection that `Configure` already mapped.
 
+Here is a whole model running — a `Note` aggregate, read through `Note.Read`, written with `Note.CreateAsync`, and
+searched with `Note.Read.Search`, in a SQLite database that lives in this browser tab and survives a reload:
+
+<!-- demo:data-notes -->
+
 ## Reading: the read face
 
 An aggregate is not a query surface. Querying goes through its generated **read face** — `Product.Read`,
