@@ -9,6 +9,11 @@ them until tagged releases begin.
 
 ### Added
 
+- **`rask new` scaffolds a committed `.vscode/settings.json`.** A component's paired files (`Counter.css`,
+  `Counter.ts`, a `.tsx` island, a package island's `.props.json`) nest under `Counter.cs` in the explorer, in every
+  template. The templates that compile Tailwind (`server`, `wasm`, `wasm-hosted`) also get class completion inside
+  `Div.Class("…")` and recommend the Tailwind CSS IntelliSense extension. The scaffolded `.gitignore` re-includes the
+  file. An existing app adds `!/.vscode/settings.json` and copies the file from a fresh scaffold (`docs/cli.md`).
 - **Subscriptions: `QueryClient.Subscribe<T>()`, tRPC-style, over CQRS notifications.** A component subscribes where it
   queries — `var placed = QueryClient.Subscribe<OrderPlaced>().Keep(20);` in `Render`, or
   `QueryClient.Subscribe(new WatchOrder(Id))` — and every notification published afterwards re-renders it, whoever
@@ -436,6 +441,12 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **`UiThemeDropdown` closes on Escape and on a click outside.** It was a `<details>`, which closes on its own
+  summary and nothing else, so the theme list on rask.sh stayed open until the reader found the button again. It
+  is now a `UiPopover` around the `UiThemePicker`: Escape, a click outside and the trigger close it, and focus
+  goes back to the trigger. It stays open while a theme is picked, so the arrow keys still preview the palettes
+  one after another. The call site is unchanged (`UiThemeDropdown.Align(UiAlign.End)`), and so are `Trigger`,
+  `Position`, `Align`, `Themes`, `ShowSystem` and `SystemLabel`.
 - **WebAssembly apps get the `Rask` package's batteries (#1130).** The browser half of `Rask` wires `AddRaskCqrs`,
   request validation and `AddRaskQuery` from a `[ModuleInitializer]`, but a module initializer runs when its
   assembly is loaded, and nothing in an app loaded `Rask.dll` — so in every published WASM app the batteries silently

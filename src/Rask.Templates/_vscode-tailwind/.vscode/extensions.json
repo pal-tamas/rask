@@ -1,0 +1,6 @@
+{
+  // C# Dev Kit: C# editing, and the C# debugger F5 launches an ASP.NET host under. C# that runs in the browser
+  // needs nothing more — VS Code's built-in JavaScript debugger attaches through the WebAssembly debug proxy.
+  // Tailwind CSS IntelliSense: class completion inside Div.Class("…"), set up in settings.json.
+  "recommendations": ["ms-dotnettools.csdevkit", "bradlc.vscode-tailwindcss"]
+}
