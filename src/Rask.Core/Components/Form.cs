@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using Rask.Core.Diagnostics;
 using Rask.Core.Forms;
 using Rask.Core.Live;
 
@@ -24,7 +25,7 @@ namespace Rask.Core.Components;
 // why ComponentFactoryGenerator repeats it on every declaration it emits.
 /// <summary>
 ///     A form over a model of type <c>TModel</c>. Submission is handled in-process — the bound fields
-///     are parsed and validated, then <c>OnValidSubmit</c> or <c>OnInvalidSubmit</c> runs — so there is
+///     are parsed and validated, then <c>OnSubmit</c> or <c>OnInvalidSubmit</c> runs — so there is
 ///     no <c>action</c> or <c>method</c> to set: the page reacts rather than navigating away.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/form">MDN</see>
 /// </summary>
@@ -33,8 +34,9 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
 {
     private EditContext? _context;
 
-    private Func<bool, IEnumerable<Component?>>? _childrenFactory;
-    private bool _isSubmitting;
+    private Func<FormSubmit, IEnumerable<Component?>>? _childrenFactory;
+    private bool _submitting;
+    private Exception? _submitError;
 
     private TModel _model = default!;
     protected override string TagName => "form";
@@ -58,11 +60,11 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
     public string? Name { get; set; }
     /// <summary>
     ///     Called on every submit with the raw posted fields, whether validation passed or not. The
-    ///     low-level hook: prefer <see cref="OnValidSubmit" />, which hands you the typed model and only
+    ///     low-level hook: prefer <see cref="OnSubmit" />, which hands you the typed model and only
     ///     runs once the form is actually valid.
     /// </summary>
-    // Calling it back is `OnSubmit?.Invoke(data)`, which hands back null when there is nothing to await.
-    public Callback<FormData>? OnSubmit { get; set; }
+    // Calling it back is `OnAnySubmit?.Invoke(data)`, which hands back null when there is nothing to await.
+    public Callback<FormData>? OnAnySubmit { get; set; }
 
     // Pre-registers the form's EditContext with LiveRenderContext (creating it if needed) and
     // walks the model graph so descendant sub-objects also resolve to the same context. Without
@@ -90,7 +92,7 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
 
     /// <summary>Runs on submit when every field passes validation.</summary>
     [AutoCallback]
-    public Callback<TModel>? OnValidSubmit { get; set; }
+    public Callback<TModel>? OnSubmit { get; set; }
 
     /// <summary>Runs on submit when validation fails, so the page can react rather than sit silent.</summary>
     [AutoCallback]
@@ -165,8 +167,8 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
     }
 
     /// <summary>
-    ///     Gives the form children that depend on whether a submit is in flight, ending the chain:
-    ///     <c>Form.Model(m)[submitting =&gt; [ Button.Disabled(submitting)[ … ] ]]</c>.
+    ///     Gives the form children that depend on how its submit is going, ending the chain:
+    ///     <c>Form.Model(m)[f =&gt; [ Button.Disabled(f.Submitting)[ … ] ]]</c>.
     /// </summary>
     /// <remarks>
     ///     <para>
@@ -190,8 +192,8 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
     ///         anything.
     ///     </para>
     /// </remarks>
-    /// <param name="children">Builds the children, given whether a submit is currently in flight.</param>
-    public Component this[Func<bool, IEnumerable<Component?>> children]
+    /// <param name="children">Builds the children, given what the submit is doing — see <see cref="FormSubmit" />.</param>
+    public Component this[Func<FormSubmit, IEnumerable<Component?>> children]
     {
         get
         {
@@ -209,7 +211,7 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
             return base.RenderChildren();
         }
 
-        var built = factory(_isSubmitting);
+        var built = factory(new FormSubmit(_submitting, _submitError));
         return built is IReadOnlyCollection<Component?> ? built : built.ToArray();
     }
 
@@ -325,19 +327,23 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
             // StateHasChanged rather than a props change: the flag is the form's own state, and nothing
             // above it passed it down. A synchronous handler completes before a frame exists, so this
             // pair is only observable for the async ones — which is exactly when it is wanted.
-            _isSubmitting = true;
+            _submitting = true;
+
+            // Cleared as the next submit starts, not as it ends: a form showing "something went wrong"
+            // beside a spinner for the retry would be reporting the attempt before the one running.
+            _submitError = null;
             StateHasChanged();
             try
             {
                 await ctx.ValidateAsync().ConfigureAwait(false);
                 ctx.TouchAllRegisteredFields();
                 var isValid = !ctx.HasValidationMessages();
-                var onModel = isValid ? OnValidSubmit : OnInvalidSubmit;
+                var onModel = isValid ? OnSubmit : OnInvalidSubmit;
                 if (onModel is null)
                 {
                     // No model-shaped handler: fall back to the raw FormData one, which is what a form that
                     // only wants the posted values uses.
-                    if (OnSubmit?.Invoke(formData) is { } raw)
+                    if (OnAnySubmit?.Invoke(formData) is { } raw)
                     {
                         await raw.ConfigureAwait(false);
                     }
@@ -353,11 +359,28 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
                     await pending.ConfigureAwait(false);
                 }
             }
+#pragma warning disable CA1031 // Any failure of the app's own save is the page's to render, not the framework's to choose between.
+            catch (Exception ex)
+#pragma warning restore CA1031
+            {
+                // Held for the children to render — `f.Error` — INSTEAD of leaving the handler to fault.
+                // A save that fails is an ordinary thing for a form to show, and a page that says nothing
+                // about it is the one bug this cannot fix.
+                _submitError = ex;
+
+                // And still reported, so catching it here does not cost the dev overlay or the log entry.
+                // A cancelled submit is not a failure to report: the work was called off, usually because
+                // the component went away, and there is no one left to read a log line about it.
+                if (ex is not OperationCanceledException)
+                {
+                    ReportSubmitFault(ex);
+                }
+            }
             finally
             {
                 // Cleared however the handler left — a throwing handler must not strand the form
                 // showing a submit that is no longer running.
-                _isSubmitting = false;
+                _submitting = false;
                 StateHasChanged();
             }
         };
@@ -408,12 +431,28 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
         }
         else
         {
-            submit = OnSubmit?.Handler;
+            submit = OnAnySubmit?.Handler;
         }
 
         if (submit is not null && LiveRenderContext.CurrentSync is { } liveCtx)
         {
             AppendAttr(sb, "data-rask-on-submit", liveCtx.RegisterHandler(submit));
         }
+    }
+
+    /// <summary>
+    ///     Tells the tooling about a submit the form caught, so holding it on <c>f.Error</c> costs neither
+    ///     the development error overlay nor the log entry. An error boundary is deliberately NOT tripped:
+    ///     the page asked for this failure by rendering <c>f.Error</c>, and replacing it with the
+    ///     boundary's fallback would take away the very thing it wrote.
+    /// </summary>
+    private void ReportSubmitFault(Exception ex)
+    {
+        RaskDevToolsHook.Active?.ComponentFaulted(this, ex, ErrorSource.Action, caught: true);
+        RaskDiagnostics.Report(
+            RaskLogLevel.Error,
+            "Rask.Forms",
+            $"A form submit on {GetType().Name} failed",
+            ex);
     }
 }

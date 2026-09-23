@@ -43,7 +43,7 @@ public sealed partial class LoginPage(IAuth auth, IWebAuthn webAuthn) : AuthPage
         [
             H1.Class("text-2xl font-bold")["Sign in"],
             _error is AuthError.None ? null : Error("login-error", AuthMessages.For(_error)),
-            Form.Model(_model).OnValidSubmit(SubmitAsync)[
+            Form.Model(_model).OnSubmit(SubmitAsync)[
                 Field("email", "Email", Input.Bind(() => _model.Email).Id("email").Type(InputType.Email).Class("input w-full")),
                 Field("password", "Password", Input.Bind(() => _model.Password).Id("password").Type(InputType.Password).Class("input w-full")),
                 Label.Class("label cursor-pointer gap-2")[

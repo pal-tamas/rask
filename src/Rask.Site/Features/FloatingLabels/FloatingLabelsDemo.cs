@@ -11,7 +11,7 @@ public sealed partial class FloatingLabelsDemo : Component
 
     protected override Component? Render() =>
     [
-        Form.Model(_model).OnValidSubmit(m => _submission = $"Created account for {m.FullName} <{m.Email}>").Class("flex flex-col gap-2")[
+        Form.Model(_model).OnSubmit(m => _submission = $"Created account for {m.FullName} <{m.Email}>").Class("flex flex-col gap-2")[
             // One line per field. A labelled kit text field floats its label by default: the caption sits in
             // the field until there is content, then rises out of the way. The label is the field's real
             // <label>, linked to the control, and each bound field shows its own validation message, fed by

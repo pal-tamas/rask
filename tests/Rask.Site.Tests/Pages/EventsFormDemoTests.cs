@@ -6,7 +6,7 @@ namespace Rask.Site.Tests.Pages;
 
 // EventsFormDemo (embedded in the Composition guide) collects a FormData on submit. The end-to-end
 // fill → submit → echo path is exercised by the Composition guide walk; these unit tests pin the
-// OnSubmit → FormData mapping (named value vs blank) directly.
+// OnAnySubmit → FormData mapping (named value vs blank) directly.
 public sealed class EventsFormDemoTests
 {
     [Fact]
@@ -31,7 +31,7 @@ public sealed class EventsFormDemoTests
 
     private static void InvokeOnSubmit(EventsFormDemo demo, FormData fd)
     {
-        var mi = typeof(EventsFormDemo).GetMethod("OnSubmit", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        var mi = typeof(EventsFormDemo).GetMethod("OnAnySubmit", BindingFlags.Instance | BindingFlags.NonPublic)!;
         mi.Invoke(demo, [fd]);
     }
 

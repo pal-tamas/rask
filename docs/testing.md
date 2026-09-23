@@ -454,7 +454,7 @@ public async Task Submit_InvalidModel_CallsOnInvalidSubmit_NotOnValidSubmit()
     var validCalled = 0; var invalidCalled = 0;
 
     var view = new StubComponent(() => Form<Person>(p,
-        OnValidSubmit:   _ => validCalled++,
+        OnSubmit:   _ => validCalled++,
         OnInvalidSubmit: _ => invalidCalled++,
         Validate: m => string.IsNullOrEmpty(m.Name) ? new[] { "Name required" } : Array.Empty<string>())[
         Input.Bind(() => p.Name), Input.Bind(() => p.Age)

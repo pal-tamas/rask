@@ -1723,17 +1723,16 @@ Rask.Core.Components.Form<TModel>.Novalidate.get -> bool?
 Rask.Core.Components.Form<TModel>.Novalidate.set -> void
 Rask.Core.Components.Form<TModel>.OnInvalidSubmit.get -> Rask.Core.Callback<TModel>?
 Rask.Core.Components.Form<TModel>.OnInvalidSubmit.set -> void
-Rask.Core.Components.Form<TModel>.OnSubmit.get -> Rask.Core.Callback<Rask.Core.Live.FormData!>?
+Rask.Core.Components.Form<TModel>.OnAnySubmit.get -> Rask.Core.Callback<Rask.Core.Live.FormData!>?
+Rask.Core.Components.Form<TModel>.OnAnySubmit.set -> void
+Rask.Core.Components.Form<TModel>.OnSubmit.get -> Rask.Core.Callback<TModel>?
 Rask.Core.Components.Form<TModel>.OnSubmit.set -> void
-Rask.Core.Components.Form<TModel>.OnValidSubmit.get -> Rask.Core.Callback<TModel>?
-Rask.Core.Components.Form<TModel>.OnValidSubmit.set -> void
 Rask.Core.Components.Form<TModel>.Rel.get -> string?
 Rask.Core.Components.Form<TModel>.Rel.set -> void
 Rask.Core.Components.Form<TModel>.Target.get -> string?
 Rask.Core.Components.Form<TModel>.Target.set -> void
 Rask.Core.Components.Form<TModel>.Validate.get -> Rask.Core.Validator<TModel>?
 Rask.Core.Components.Form<TModel>.Validate.set -> void
-Rask.Core.Components.Form<TModel>.this[System.Func<bool, System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>! children].get -> Rask.Core.Component!
 Rask.Core.Components.FullscreenTrigger
 Rask.Core.Components.FullscreenTrigger.For.get -> Rask.Core.ElementRef?
 Rask.Core.Components.FullscreenTrigger.For.set -> void
@@ -5537,9 +5536,9 @@ static RaskBuilderSettersRask_Core.OnSelect<T>(this T! __b, System.Func<System.T
 static RaskBuilderSettersRask_Core.OnStream(this Rask.Core.Components.MediaCaptureTrigger! __b, Rask.Core.Callback<Rask.Core.Browser.MediaStreamId>? value) -> Rask.Core.Components.MediaCaptureTrigger!
 static RaskBuilderSettersRask_Core.OnStream(this Rask.Core.Components.MediaCaptureTrigger! __b, System.Action<Rask.Core.Browser.MediaStreamId>? value) -> Rask.Core.Components.MediaCaptureTrigger!
 static RaskBuilderSettersRask_Core.OnStream(this Rask.Core.Components.MediaCaptureTrigger! __b, System.Func<Rask.Core.Browser.MediaStreamId, System.Threading.Tasks.Task!>? value) -> Rask.Core.Components.MediaCaptureTrigger!
-static RaskBuilderSettersRask_Core.OnSubmit<TModel>(this Rask.Core.Components.Form<TModel>! __b, Rask.Core.Callback<Rask.Core.Live.FormData!>? value) -> Rask.Core.Components.Form<TModel>!
-static RaskBuilderSettersRask_Core.OnSubmit<TModel>(this Rask.Core.Components.Form<TModel>! __b, System.Action<Rask.Core.Live.FormData!>? value) -> Rask.Core.Components.Form<TModel>!
-static RaskBuilderSettersRask_Core.OnSubmit<TModel>(this Rask.Core.Components.Form<TModel>! __b, System.Func<Rask.Core.Live.FormData!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Components.Form<TModel>!
+static RaskBuilderSettersRask_Core.OnAnySubmit<TModel>(this Rask.Core.Components.Form<TModel>! __b, Rask.Core.Callback<Rask.Core.Live.FormData!>? value) -> Rask.Core.Components.Form<TModel>!
+static RaskBuilderSettersRask_Core.OnAnySubmit<TModel>(this Rask.Core.Components.Form<TModel>! __b, System.Action<Rask.Core.Live.FormData!>? value) -> Rask.Core.Components.Form<TModel>!
+static RaskBuilderSettersRask_Core.OnAnySubmit<TModel>(this Rask.Core.Components.Form<TModel>! __b, System.Func<Rask.Core.Live.FormData!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Components.Form<TModel>!
 static RaskBuilderSettersRask_Core.OnTimeUpdate(this Rask.Core.Components.Audio! __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Components.Audio!
 static RaskBuilderSettersRask_Core.OnTimeUpdate(this Rask.Core.Components.Audio! __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Components.Audio!
 static RaskBuilderSettersRask_Core.OnTimeUpdate(this Rask.Core.Components.Audio! __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Components.Audio!
@@ -5561,9 +5560,9 @@ static RaskBuilderSettersRask_Core.OnTouchMove<T>(this T! __b, System.Func<Rask.
 static RaskBuilderSettersRask_Core.OnTouchStart<T>(this T! __b, Rask.Core.Callback<Rask.Core.Live.TouchEventArgs!>? value) -> T!
 static RaskBuilderSettersRask_Core.OnTouchStart<T>(this T! __b, System.Action<Rask.Core.Live.TouchEventArgs!>? value) -> T!
 static RaskBuilderSettersRask_Core.OnTouchStart<T>(this T! __b, System.Func<Rask.Core.Live.TouchEventArgs!, System.Threading.Tasks.Task!>? value) -> T!
-static RaskBuilderSettersRask_Core.OnValidSubmit<TModel>(this Rask.Core.Components.Form<TModel>! __b, Rask.Core.Callback<TModel>? value) -> Rask.Core.Components.Form<TModel>!
-static RaskBuilderSettersRask_Core.OnValidSubmit<TModel>(this Rask.Core.Components.Form<TModel>! __b, System.Action<TModel>? value) -> Rask.Core.Components.Form<TModel>!
-static RaskBuilderSettersRask_Core.OnValidSubmit<TModel>(this Rask.Core.Components.Form<TModel>! __b, System.Func<TModel, System.Threading.Tasks.Task!>? value) -> Rask.Core.Components.Form<TModel>!
+static RaskBuilderSettersRask_Core.OnSubmit<TModel>(this Rask.Core.Components.Form<TModel>! __b, Rask.Core.Callback<TModel>? value) -> Rask.Core.Components.Form<TModel>!
+static RaskBuilderSettersRask_Core.OnSubmit<TModel>(this Rask.Core.Components.Form<TModel>! __b, System.Action<TModel>? value) -> Rask.Core.Components.Form<TModel>!
+static RaskBuilderSettersRask_Core.OnSubmit<TModel>(this Rask.Core.Components.Form<TModel>! __b, System.Func<TModel, System.Threading.Tasks.Task!>? value) -> Rask.Core.Components.Form<TModel>!
 static RaskBuilderSettersRask_Core.OnVolumeChange(this Rask.Core.Components.Audio! __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Components.Audio!
 static RaskBuilderSettersRask_Core.OnVolumeChange(this Rask.Core.Components.Audio! __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Components.Audio!
 static RaskBuilderSettersRask_Core.OnVolumeChange(this Rask.Core.Components.Audio! __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Components.Audio!
@@ -6721,3 +6720,18 @@ virtual Rask.Core.Component.OnMount() -> System.Threading.Tasks.Task!
 virtual Rask.Core.Component.OnRendered() -> System.Threading.Tasks.Task!
 virtual Rask.Core.Component.OnUnmount() -> System.Threading.Tasks.Task!
 virtual Rask.Core.Component.OnUpdated() -> System.Threading.Tasks.Task!
+Rask.Core.Components.Form<TModel>.this[System.Func<Rask.Core.Components.FormSubmit, System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>! children].get -> Rask.Core.Component!
+Rask.Core.Components.FormSubmit
+Rask.Core.Components.FormSubmit.Equals(Rask.Core.Components.FormSubmit other) -> bool
+Rask.Core.Components.FormSubmit.Error.get -> System.Exception?
+Rask.Core.Components.FormSubmit.Error.init -> void
+Rask.Core.Components.FormSubmit.FormSubmit() -> void
+override Rask.Core.Components.FormSubmit.GetHashCode() -> int
+static Rask.Core.Components.FormSubmit.operator !=(Rask.Core.Components.FormSubmit left, Rask.Core.Components.FormSubmit right) -> bool
+static Rask.Core.Components.FormSubmit.operator ==(Rask.Core.Components.FormSubmit left, Rask.Core.Components.FormSubmit right) -> bool
+~override Rask.Core.Components.FormSubmit.Equals(object obj) -> bool
+~override Rask.Core.Components.FormSubmit.ToString() -> string
+Rask.Core.Components.FormSubmit.Deconstruct(out bool Submitting, out System.Exception? Error) -> void
+Rask.Core.Components.FormSubmit.FormSubmit(bool Submitting, System.Exception? Error) -> void
+Rask.Core.Components.FormSubmit.Submitting.get -> bool
+Rask.Core.Components.FormSubmit.Submitting.init -> void

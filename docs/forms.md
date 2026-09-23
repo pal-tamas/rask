@@ -255,7 +255,7 @@ than 5011 B without any ceremony.
 validator pipeline. Bound inputs inside the form discover that context automatically.
 
 ```csharp
-Form.Model(_model).OnValidSubmit(m => Console.WriteLine(m.Username))[
+Form.Model(_model).OnSubmit(m => Console.WriteLine(m.Username))[
     Input.Bind(() => _model.Username),
     Button.Type("submit")["Sign up"]
 ]
@@ -264,27 +264,52 @@ Form.Model(_model).OnValidSubmit(m => Console.WriteLine(m.Username))[
 Submit runs the full validator pipeline (`ValidateAsync`), marks every registered field touched,
 then routes:
 
-- valid → `OnValidSubmit` (or, if unset, `OnSubmit` / `OnSubmitAsync` with the raw `FormData`),
+- valid → `OnSubmit` (or, if unset, `OnAnySubmit` / `OnSubmitAsync` with the raw `FormData`),
 - invalid → `OnInvalidSubmit`.
 
-`OnValidSubmit` / `OnInvalidSubmit` accept `Action<TModel>` or `Func<TModel, Task>` — the generic
+`OnSubmit` / `OnInvalidSubmit` accept `Action<TModel>` or `Func<TModel, Task>` — the generic
 overload narrows the delegate so you pass a bare lambda with no cast.
 
 ### Children that follow the submit
 
 Children are normally a fixed list. Give the form a **function** instead and it is called on every
-render with whether a submit is in flight, so the markup can say so without the page tracking it:
+render with how the submit is going, so the markup can say so without the page tracking it:
 
 ```csharp
-Form.Model(_model).OnValidSubmit(SaveAsync)[submitting => [
-    Input.Bind(() => _model.Username).Disabled(submitting),
-    Button.Type("submit").Disabled(submitting)[submitting ? "Saving…" : "Sign up"]
+Form.Model(_model).OnSubmit(SaveAsync)[f => [
+    UiInput.Bind(() => _model.Username).Label("Username").Disabled(f.Submitting),
+
+    f.Error is not null ? UiAlert.Error["Something went wrong — please try again."] : null,
+
+    UiButton.Submit.Primary.Disabled(f.Submitting)[f.Submitting ? "Saving…" : "Sign up"]
 ]]
 ```
 
-The flag is true from the moment the submit handler starts until it returns — including when it
-throws — and the form re-renders on both edges. Only an `async` handler can be observed in that
-state: a synchronous one returns before there is a frame to paint.
+`f.Submitting` is true from the moment the submit handler starts until it returns, and the form
+re-renders on both edges. Only an `async` handler can be observed in that state: a synchronous one
+returns before there is a frame to paint.
+
+**`f.Error` is what the last submit threw**, or `null` when it succeeded. The form catches it so a
+failed save is something the page renders rather than something that takes the handler down — which
+means a save needs no `try`:
+
+```csharp
+private async Task SaveAsync(SignUpModel model) => await Account.Register(model);
+```
+
+It is the exception itself, so the page decides what to say about which:
+
+```csharp
+f.Error is KeyNotFoundException
+    ? UiAlert.Error["That product has been deleted."]
+    : f.Error is not null ? UiAlert.Error["Something went wrong."] : null
+```
+
+Catching it costs you nothing in diagnosis: the failure is still reported, so the development error
+overlay still appears and the log still has the stack trace. A cancelled submit is not reported —
+the work was called off, usually because the component went away. `f.Error` is cleared as the next
+submit starts, not as one ends, so a retry never shows the previous attempt's message beside its own
+spinner.
 
 <!-- demo:form-submit-state -->
 
@@ -295,7 +320,7 @@ Form.Model(_model)[Input.Bind(() => _model.Username), Button.Type("submit")["Sig
 ```
 
 Only a form offers the function form. It is an indexer declared on `Form` itself, so
-`Div[submitting => …]` does not compile — there is no submit state behind a `<div>` to report. It used
+`Div[f => …]` does not compile — there is no submit state behind a `<div>` to report. It used
 to need a chain type of its own (`FormBuild<T>`) purely because an indexer cannot be constrained;
 declaring it on the component scopes it exactly as well and costs no type parameter. See
 [`ISubmitAware`](../src/Rask.Core/Forms/ISubmitAware.cs).
@@ -311,7 +336,7 @@ instance yourself when you need to drive validation imperatively, register an
 _ctx = new EditContext(_model);
 _ctx.AddValidator(new SlowTitleValidator());
 
-Form.Model(_model).OnValidSubmit(m => _submission = "Saved").Context(_ctx)[
+Form.Model(_model).OnSubmit(m => _submission = "Saved").Context(_ctx)[
     Input.Bind(() => _model.Title),
     Button.Type("button").OnClick(() => _ctx.ValidateAsync().AsTask())["Validate now"],
     Button.Type("submit").Disabled(_ctx.IsValidatingAny)["Save"]
@@ -329,7 +354,7 @@ the entity's own rules, with nothing declared here:
 ```csharp
 private readonly ProductModel _product = new();
 
-Form.Model(_product).OnValidSubmit(CreateAsync)[
+Form.Model(_product).OnSubmit(CreateAsync)[
     Input.Bind(() => _product.Name),
     Input.Bind(() => _product.Price),
     Button.Type("submit")["Create"]

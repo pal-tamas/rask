@@ -122,7 +122,7 @@ public sealed class DocSnippetTests
         """);
 
     // docs/forms.md §2 — the first form anyone reads. It taught `Form<SignupModel>(_model,
-    // OnValidSubmit: …)`, a factory call dropped in #792, sitting a few lines above the chain spelling
+    // OnSubmit: …)`, a factory call dropped in #792, sitting a few lines above the chain spelling
     // it had been replaced by: one document, two syntaxes, one of which does not compile (#1007). Prose
     // does not build, so the corrected text is compiled here.
     [Fact]
@@ -143,7 +143,7 @@ public sealed class DocSnippetTests
             private readonly SignupModel _model = new();
 
             protected override Component? Render() =>
-                Form.Model(_model).OnValidSubmit(m => Console.WriteLine(m.Username))[
+                Form.Model(_model).OnSubmit(m => Console.WriteLine(m.Username))[
                     Input.Bind(() => _model.Username),
                     Button.Type("submit")["Sign up"]
                 ];
@@ -151,7 +151,7 @@ public sealed class DocSnippetTests
         """);
 
     // The same doc's "Auto-created vs explicit Context" example, which carried the factory's
-    // `Context:` argument. `Context` is a chain step, and it composes with OnValidSubmit rather than
+    // `Context:` argument. `Context` is a chain step, and it composes with OnSubmit rather than
     // replacing it — which is exactly what the broken spelling obscured.
     [Fact]
     public void Forms_doc_explicit_context_example_compiles() => AssertCompiles("""
@@ -176,7 +176,7 @@ public sealed class DocSnippetTests
             {
                 _ctx ??= new EditContext(_model);
 
-                return Form.Model(_model).OnValidSubmit(m => _submission = "Saved").Context(_ctx)[
+                return Form.Model(_model).OnSubmit(m => _submission = "Saved").Context(_ctx)[
                     Input.Bind(() => _model.Title),
                     Button.Type("submit").Disabled(_ctx.IsValidatingAny)["Save"]
                 ];

@@ -19,7 +19,7 @@ public sealed partial class ProgrammaticValidateDemo : Component
 
     protected override Component? Render() =>
     [
-        Form.Model(_model).OnValidSubmit(m => _submission = $"Saved task: {m.Title}").Context(_ctx).Class("flex flex-col gap-3")[
+        Form.Model(_model).OnSubmit(m => _submission = $"Saved task: {m.Title}").Context(_ctx).Class("flex flex-col gap-3")[
             // The kit field shows "Checking…" while SlowTitleValidator runs, whether a keystroke or the
             // button below started it; IsValidatingAny is what holds Save back until it settles.
             UiInput.Bind(() => _model.Title).Label("Title").Id("v6-title"),

@@ -21,7 +21,7 @@ public sealed partial class UserActionsTests : global::Rask.Core.RaskMarkup
 
         protected override Component? Render() =>
         [
-            Form.Model(_product).OnValidSubmit(p => _saved = $"Saved {p.Name}, in stock {p.InStock}, {p.Colour}")[
+            Form.Model(_product).OnSubmit(p => _saved = $"Saved {p.Name}, in stock {p.InStock}, {p.Colour}")[
                 Label.For("name")["Name"],
                 Input.Bind(() => _product.Name).Id("name"),
                 Label.For("stock")["In stock"],

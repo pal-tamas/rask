@@ -21,7 +21,7 @@ public sealed partial class CrossFieldSummaryDemo : Component
     protected override Component? Render() =>
     [
         Form.Model(_model)
-            .OnValidSubmit(m => _submission = $"Booked: {m.Depart:yyyy-MM-dd} → {m.Return:yyyy-MM-dd}")
+            .OnSubmit(m => _submission = $"Booked: {m.Depart:yyyy-MM-dd} → {m.Return:yyyy-MM-dd}")
             .Class("flex flex-col gap-3")
             .Validate(m =>
                 m.Return > m.Depart

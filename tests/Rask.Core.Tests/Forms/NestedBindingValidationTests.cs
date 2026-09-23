@@ -285,11 +285,11 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
         // Mirrors the showcase submit path: fill nested+root fields with valid values, then
         // simulate submit. The submit bridge calls ctx.TouchAllRegisteredFields() and
         // ctx.ValidateAsync() — every async per-field validator must run on the form's
-        // EditContext (not a stray sub-object context) for OnValidSubmit to fire.
+        // EditContext (not a stray sub-object context) for OnSubmit to fire.
         var m = new StorefrontModel { CustomerName = "", Address = new StorefrontAddress { PostalCode = "" } };
         string? submitted = null;
 
-        var page = Test.Render(() => Form.Model(m).OnValidSubmit(mm => submitted = $"Charged to {mm.CustomerName}")[
+        var page = Test.Render(() => Form.Model(m).OnSubmit(mm => submitted = $"Charged to {mm.CustomerName}")[
             Input.Bind(() => m.CustomerName)
                 .Validate(v => string.IsNullOrWhiteSpace(v) ? new[] { "Name required" } : Array.Empty<string>()),
             Input.Bind(() => m.Address.PostalCode)

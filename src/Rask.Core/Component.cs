@@ -587,7 +587,7 @@ public abstract partial class Component : RaskMarkup
     ///     session teardown) — and, while an event handler is running, <em>also</em> when the host
     ///     cancels that dispatch: a server-side <c>RaskServerOptions.HandlerTimeout</c> elapsing, or the
     ///     WebSocket closing. Pass it into the <c>HttpClient</c> calls, <c>Task.Delay</c>s, and other
-    ///     cancellable work an <c>OnClick</c> / <c>OnSubmit</c> handler or a lifecycle hook starts, so the
+    ///     cancellable work an <c>OnClick</c> / <c>OnAnySubmit</c> handler or a lifecycle hook starts, so the
     ///     work aborts when the component goes away and a slow handler unwinds instead of pinning the
     ///     session's render pipeline. In a lifecycle hook (no handler dispatch) it is just the lifetime
     ///     token. Cancellation is cooperative — synchronous or token-ignoring handler code cannot be
@@ -2103,7 +2103,7 @@ public abstract partial class Component : RaskMarkup
         //    end of the page, which is the guarantee, and it is what CleanSubtreeCache relies on.
         //  * dispatchOwner — the component to dirty-mark after the handler runs. For lambdas / method
         //    groups that close over `this` inside a Component subclass (`() => _field++`,
-        //    `OnSubmit: SubmitHandler`), DelegateOwner resolves the component that owns the state, so
+        //    `OnAnySubmit: SubmitHandler`), DelegateOwner resolves the component that owns the state, so
         //    an element built in ComponentA.Render() but rendered inside ComponentB's subtree (passed
         //    as a child of a composite wrapper) still re-renders A. It also unwraps a closure that
         //    captured `this` alongside a local (`() => _active = index`).

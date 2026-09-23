@@ -29,7 +29,7 @@ public sealed partial class ValidatableObjectDemo : Component
 
     protected override Component? Render() =>
     [
-        Form.Model(_model).OnValidSubmit(m => _submission = $"Booked: {m.Name} {m.Departure:yyyy-MM-dd} → {m.Arrival:yyyy-MM-dd}").Class("flex flex-col gap-3")[
+        Form.Model(_model).OnSubmit(m => _submission = $"Booked: {m.Name} {m.Departure:yyyy-MM-dd} → {m.Arrival:yyyy-MM-dd}").Class("flex flex-col gap-3")[
             ValidationSummary.Template(SummaryAlert),
             Div[
                 UiInput.Bind(() => _model.Name).Label("Name").Id("v11-name").ShowValidation(false),

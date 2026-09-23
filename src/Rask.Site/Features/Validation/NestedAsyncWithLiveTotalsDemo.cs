@@ -75,7 +75,7 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
         return
         [
             Form.Model(_model)
-                .OnValidSubmit(m =>
+                .OnSubmit(m =>
                     _submission = $"Charged ${total.ToString("F2", CultureInfo.InvariantCulture)} to {m.CustomerName}")
                 .Class("flex flex-col gap-3")[
                 Div[

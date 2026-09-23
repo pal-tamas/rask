@@ -85,7 +85,7 @@ public sealed partial class DevicesPage(IAuth auth, IUserProvider users, IWebAut
                         ])
                 ],
             _passkeysSupported
-                ? Form.Model(_passkey).OnValidSubmit(AddAsync)[
+                ? Form.Model(_passkey).OnSubmit(AddAsync)[
                     Field(
                         "passkey-name",
                         "Name this device",

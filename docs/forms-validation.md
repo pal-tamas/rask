@@ -13,7 +13,7 @@ cast. An empty sequence means valid.
 
 ```csharp
 Form<LoginModel>(_model,
-    OnValidSubmit: m => _submission = "Welcome",
+    OnSubmit: m => _submission = "Welcome",
     Validate: m => m.Password == m.Confirm ? [] : ["Passwords do not match."])[   // cross-field, at submit
     Input.Bind(() => _model.Email)
         .Validate(v => v.Contains('@') ? [] : ["Email looks wrong."]),             // per-field, per-keystroke
@@ -49,7 +49,7 @@ public sealed class SignupModel
     [Required, EmailAddress]                        public string Email    { get; set; } = "";
 }
 
-Form<SignupModel>(_model, OnValidSubmit: m => Console.WriteLine(m.Username))[
+Form<SignupModel>(_model, OnSubmit: m => Console.WriteLine(m.Username))[
     Input.Bind(() => _model.Username),
     ValidationMessage.For(() => _model.Username).Template(errs => Div.Class("err")[errs[0]]),
     Input.Bind(() => _model.Email),

@@ -557,7 +557,7 @@ public sealed partial class NewProductPage(Navigator nav) : Component
     private readonly ProductModel _product = new();
 
     protected override Component Render() =>
-        Form.Model(_product).OnValidSubmit(CreateAsync)[submitting => [
+        Form.Model(_product).OnSubmit(CreateAsync)[submitting => [
             UiInput.Bind(() => _product.Name).Label("Name"),
             UiInput.Bind(() => _product.Price!.Amount).Label("Price"),
             UiButton.Type(UiButtonType.Submit).Disabled(submitting)["Create"],
@@ -587,7 +587,7 @@ public sealed partial class EditProductPage(Navigator nav) : Component
 
     protected override Component? Render() =>
         _product is null ? P["Loading…"] :
-        Form.Model(_product).OnValidSubmit(SaveAsync)[
+        Form.Model(_product).OnSubmit(SaveAsync)[
             _conflict is null ? null : UiAlert.Tone(UiTone.Warning)[_conflict],
             UiInput.Bind(() => _product.Name).Label("Name"),
             UiInput.Bind(() => _product.Price!.Amount).Label("Price"),

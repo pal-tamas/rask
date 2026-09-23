@@ -66,7 +66,7 @@ public partial class LiveViewTests : global::Rask.Core.RaskMarkup
     public async Task A_FormData_action_handler_receives_the_form_fields()
     {
         FormData? captured = null;
-        var view = new StubComponent(() => Form.Model(new object()).OnSubmit(f => captured = f));
+        var view = new StubComponent(() => Form.Model(new object()).OnAnySubmit(f => captured = f));
         view.RenderAsLiveRoot();
 
         using var doc =
@@ -120,7 +120,7 @@ public partial class LiveViewTests : global::Rask.Core.RaskMarkup
     public async Task A_task_returning_FormData_handler_receives_the_form()
     {
         FormData? captured = null;
-        var view = new StubComponent(() => Form.Model(new object()).OnSubmit(async f =>
+        var view = new StubComponent(() => Form.Model(new object()).OnAnySubmit(async f =>
         {
             await Task.Yield();
             captured = f;

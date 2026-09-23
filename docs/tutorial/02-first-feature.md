@@ -124,7 +124,7 @@ public sealed partial class CreateProduct(Navigator navigator) : Component
             UiHeader.Heading("New product").Actions(UiButton.Variant(UiVariant.Ghost).Href(Routes.ProductsPage())["Cancel"]),
             UiCard[
                 save.IsError ? UiAlert.Tone(UiTone.Error)["Something went wrong — please try again."] : null,
-                Form.Model(_model).OnValidSubmit(async model => await save.Send(async ct =>
+                Form.Model(_model).OnSubmit(async model => await save.Send(async ct =>
                 {
                     await Product.CreateAsync(model, cancellationToken: ct);
                     navigator.NavigateTo(Routes.ProductsPage());
@@ -226,7 +226,7 @@ public sealed partial class UpdateProduct(Navigator navigator) : Component
                     KeyNotFoundException => UiAlert.Tone(UiTone.Error)["This product has been deleted."],
                     _ => UiAlert.Tone(UiTone.Error)["Something went wrong — please try again."],
                 },
-                Form.Model(_model).OnValidSubmit(async model => await save.Send(async ct =>
+                Form.Model(_model).OnSubmit(async model => await save.Send(async ct =>
                 {
                     await Product.UpdateAsync(Id, model, cancellationToken: ct);
                     navigator.NavigateTo(Routes.ProductsPage());

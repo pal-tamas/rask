@@ -14,7 +14,7 @@ public sealed partial class ValidationFieldsDemo : Component
 
     protected override Component? Render() =>
     [
-        Form.Model(_model).OnValidSubmit(m => _submission = $"Registered: {m.Name} <{m.Email}>").Class("flex flex-col gap-3")[
+        Form.Model(_model).OnSubmit(m => _submission = $"Registered: {m.Name} <{m.Email}>").Class("flex flex-col gap-3")[
             Div[
                 UiInput.Bind(() => _model.Name).Label("Name").Id("v1-name").ShowValidation(false),
                 ValidationMessage.Template(FieldError).For(() => _model.Name)

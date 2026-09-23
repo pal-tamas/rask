@@ -44,7 +44,7 @@ public sealed partial class FormSubmitStateDemoTests : global::Rask.Core.RaskMar
     public async Task Submitting_shows_the_saved_value_outside_the_form()
     {
         // The browser half of this is the journey step that waits for "ada" in #fss-out. The readout belongs
-        // to the demo, not the Form, so it repaints only because OnValidSubmit's callback re-renders its
+        // to the demo, not the Form, so it repaints only because OnSubmit's callback re-renders its
         // owner after the slow save returns — on a pool thread, while nothing stops a render running. That
         // is the shape the lost StateHasChanged of #1067 broke, so it is asserted here without a browser.
         var page = Test.Render(() => FormSubmitStateDemo, TestServices.Default());

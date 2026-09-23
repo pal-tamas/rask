@@ -34,15 +34,15 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
         Assert.Equal("<form>&lt;x&gt;</form>", Form.Model(Empty)["<x>"].ToHtml());
 
     [Fact]
-    public void OnSubmit_outside_a_live_context_emits_no_handler_attribute() =>
+    public void OnAnySubmit_outside_a_live_context_emits_no_handler_attribute() =>
         Assert.Equal(
             "<form></form>",
-            Form.Model(Empty).OnSubmit(_ => { }).ToHtml());
+            Form.Model(Empty).OnAnySubmit(_ => { }).ToHtml());
 
     [Fact]
-    public void OnSubmit_inside_a_live_context_emits_the_submit_handler_id()
+    public void OnAnySubmit_inside_a_live_context_emits_the_submit_handler_id()
     {
-        var view = new StubComponent(() => Form.Model(Empty).OnSubmit(_ => { }));
+        var view = new StubComponent(() => Form.Model(Empty).OnAnySubmit(_ => { }));
 
         Assert.Equal(
             "<form data-rask-on-submit=\"h0\"></form>",
@@ -50,9 +50,9 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void An_async_OnSubmit_inside_a_live_context_emits_the_submit_handler_id()
+    public void An_async_OnAnySubmit_inside_a_live_context_emits_the_submit_handler_id()
     {
-        var view = new StubComponent(() => Form.Model(Empty).OnSubmit(async _ => { await Task.Yield(); }));
+        var view = new StubComponent(() => Form.Model(Empty).OnAnySubmit(async _ => { await Task.Yield(); }));
 
         Assert.Equal(
             "<form data-rask-on-submit=\"h0\"></form>",
@@ -69,7 +69,7 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
         ctx.AddValidator(new RejectingAsyncValidator());
 
         var view = new StubComponent(() => Form.Model(p)
-            .OnValidSubmit(_ => validCalled++)
+            .OnSubmit(_ => validCalled++)
             .OnInvalidSubmit(_ => invalidCalled++)
             .Context(ctx)[Input.Bind(() => p.Name), Input.Bind(() => p.Age)]);
         var html = view.RenderAsLiveRoot();
@@ -86,7 +86,7 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
     public void Submit_state_children_are_built_as_not_submitting() =>
         Assert.Equal(
             "<form>idle</form>",
-            Form.Model(Empty)[submitting => [submitting ? "busy" : "idle"]].ToHtml());
+            Form.Model(Empty)[f => [f.Submitting ? "busy" : "idle"]].ToHtml());
 
     // The old syntax is the point of the overload, not a side effect of it: a fixed list still binds to
     // the typed indexer, and a bare string still reaches the loose one as ONE text child rather than one
@@ -126,9 +126,9 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
         var seen = new List<bool>();
 
         var view = new StubComponent(() => Form.Model(p)
-            .OnValidSubmit(async _ => await release.Task)[submitting =>
+            .OnSubmit(async _ => await release.Task)[f =>
         {
-            seen.Add(submitting);
+            seen.Add(f.Submitting);
             return [];
         }
         ]);
@@ -156,9 +156,9 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
         var seen = new List<bool>();
 
         var view = new StubComponent(() => Form.Model(p)
-            .OnValidSubmit(_ => throw new InvalidOperationException("boom"))[submitting =>
+            .OnSubmit(_ => throw new InvalidOperationException("boom"))[f =>
         {
-            seen.Add(submitting);
+            seen.Add(f.Submitting);
             return [];
         }
         ]);
@@ -167,12 +167,71 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
         var submitId = Markup.Attr(html, "data-rask-on-submit");
         using var doc = JsonDocument.Parse("{\"form\":{\"Name\":\"Ada\",\"Age\":\"30\"}}");
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => view.TryInvokeHandlerAsync(submitId!, doc.RootElement).AsTask());
-
+        await view.TryInvokeHandlerAsync(submitId!, doc.RootElement);
         view.RenderAsLiveRoot();
 
         Assert.False(seen[^1]);
+    }
+
+    // The point of catching it: a failed save is something the page RENDERS, not something that takes
+    // the handler down. Without this the only way to show the reader anything is a try/catch in every
+    // submit, and the one a page forgets is the one that fails silently.
+    [Fact]
+    public async Task A_handler_that_throws_lands_on_the_forms_error_instead_of_faulting()
+    {
+        var p = new Person { Name = "Ada", Age = 30 };
+        var seen = new List<Exception?>();
+
+        var view = new StubComponent(() => Form.Model(p)
+            .OnSubmit(_ => throw new InvalidOperationException("boom"))[f =>
+        {
+            seen.Add(f.Error);
+            return [];
+        }
+        ]);
+
+        var html = view.RenderAsLiveRoot();
+        var submitId = Markup.Attr(html, "data-rask-on-submit");
+        using var doc = JsonDocument.Parse("{\"form\":{\"Name\":\"Ada\",\"Age\":\"30\"}}");
+
+        await view.TryInvokeHandlerAsync(submitId!, doc.RootElement);
+        view.RenderAsLiveRoot();
+
+        Assert.Null(seen[0]);
+        var error = Assert.IsType<InvalidOperationException>(seen[^1]);
+        Assert.Equal("boom", error.Message);
+    }
+
+    [Fact]
+    public async Task The_error_is_cleared_as_the_next_submit_starts_not_as_one_ends()
+    {
+        var p = new Person { Name = "Ada", Age = 30 };
+        var fail = true;
+        var seen = new List<Exception?>();
+
+        var view = new StubComponent(() => Form.Model(p)
+            .OnSubmit(_ => fail ? throw new InvalidOperationException("boom") : Task.CompletedTask)[f =>
+        {
+            seen.Add(f.Error);
+            return [];
+        }
+        ]);
+
+        var html = view.RenderAsLiveRoot();
+        var submitId = Markup.Attr(html, "data-rask-on-submit");
+        using var doc = JsonDocument.Parse("{\"form\":{\"Name\":\"Ada\",\"Age\":\"30\"}}");
+
+        await view.TryInvokeHandlerAsync(submitId!, doc.RootElement);
+        view.RenderAsLiveRoot();
+        Assert.NotNull(seen[^1]);
+
+        // The retry: a form showing the last attempt's message beside this one's spinner would be
+        // reporting something that is no longer happening.
+        fail = false;
+        await view.TryInvokeHandlerAsync(submitId!, doc.RootElement);
+        view.RenderAsLiveRoot();
+
+        Assert.Null(seen[^1]);
     }
 
     private sealed class Person

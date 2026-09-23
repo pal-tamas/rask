@@ -43,7 +43,7 @@ public sealed partial class NestedListForeachDemo : Component
 
         return
         [
-            Form.Model(_model).OnValidSubmit(m => _submission = $"Submitted {m.Items.Count} line item(s).").Class("flex flex-col gap-3")[
+            Form.Model(_model).OnSubmit(m => _submission = $"Submitted {m.Items.Count} line item(s).").Class("flex flex-col gap-3")[
                 UiTable.Class("align-middle mb-0")[
                     Thead[Tr[Th["Description"], Th["Quantity"], Th]],
                     Tbody[rows]

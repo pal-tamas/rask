@@ -322,7 +322,7 @@ public static partial class DemoRegistry
             ["events-select"] = () => CodeSample.Files(["EventsSelectDemo.cs"]).Result(EventsSelectDemo),
             ["events-form"] = () => CodeSample
                 .Files(["EventsFormDemo.cs"])
-                .Notes("OnSubmit receives a FormData object collected from all named form fields.")
+                .Notes("OnAnySubmit receives a FormData object collected from all named form fields.")
                 .Result(EventsFormDemo),
             // User & auth → authentication.md (imperative gate + declarative Authorize).
             ["auth-user-gate"] = () => CodeSample

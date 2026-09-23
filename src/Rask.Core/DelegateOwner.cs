@@ -14,7 +14,7 @@ namespace Rask.Core;
 /// <remarks>
 ///     <para>
 ///         The direct case: the delegate <c>Target</c> is the component itself — a method group
-///         (<c>OnSubmit: Save</c>) or a lambda that captures only <c>this</c>, which Roslyn lowers to a
+///         (<c>OnAnySubmit: Save</c>) or a lambda that captures only <c>this</c>, which Roslyn lowers to a
 ///         private instance method on the component. No reflection runs for this (the common) case.
 ///     </para>
 ///     <para>

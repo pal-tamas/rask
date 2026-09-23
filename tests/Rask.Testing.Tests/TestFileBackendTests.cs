@@ -158,10 +158,10 @@ internal sealed partial class UploadFormProbe : Component
 
     public IReadOnlyList<RaskFile> Received { get; private set; } = [];
 
-    private void OnSubmit(FormData form) => Received = form.Files("attachment");
+    private void OnAnySubmit(FormData form) => Received = form.Files("attachment");
 
     protected override Component? Render() =>
-        Form.Model(_model).Id("form").OnSubmit(OnSubmit)[
+        Form.Model(_model).Id("form").OnAnySubmit(OnAnySubmit)[
             Input.Value<string>(null).Type(InputType.File).Name("attachment")
         ];
 

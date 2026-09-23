@@ -52,7 +52,7 @@ public sealed partial class NestedListIndexerDemo : Component
 
         return
         [
-            Form.Model(_model).OnValidSubmit(m => _submission =
+            Form.Model(_model).OnSubmit(m => _submission =
                     $"Invoice with {m.Skus.Count} sku line(s) at total {m.Skus.Sum(s => s.Price):F2}").Class("flex flex-col gap-3")[
                 UiTable.Class("align-middle mb-0")[
                     Thead[Tr[Th.Style("width: 3rem;")["#"], Th["SKU"], Th["Price"], Th]],

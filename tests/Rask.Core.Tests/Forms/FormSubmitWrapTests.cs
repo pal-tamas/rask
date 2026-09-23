@@ -2,13 +2,13 @@
 
 namespace Rask.Core.Tests.Forms;
 
-// Does the builder surface's untyped `OnValidSubmit(Delegate?)` setter have to AutoCallback-wrap what it
+// Does the builder surface's untyped `OnSubmit(Delegate?)` setter have to AutoCallback-wrap what it
 // is handed, or is the wrap redundant for Form?
 //
 // The two surfaces disagree today. Form folds its submit handler into one untyped `Delegate?` property,
 // and the GENERIC factory — the overload every real call site uses — wraps on the way in; the
 // NON-generic one, and the setter generated from the property, assign it raw. A method group reaches
-// that setter through its natural type, so `Form.Model(m).OnValidSubmit(SaveAsync)` compiles, looks
+// that setter through its natural type, so `Form.Model(m).OnSubmit(SaveAsync)` compiles, looks
 // right, and skips the wrap.
 //
 // Whether that matters is not answerable by reasoning about it. What the wrap adds is
@@ -58,8 +58,8 @@ internal sealed partial class WrapFormChild : Component
             // The naive migration of the line below: the handler set through the chain, with no wrapping
             // anywhere. `SaveAsync` returns Task, so it is the async handler on both arms — what differs
             // is which surface registered it.
-            ? Form.Model(owner.Model).OnValidSubmit(owner.SaveAsync)[Input.Bind(() => owner.Model.Name)]
-            : Form.Model(owner.Model).OnValidSubmit(owner.SaveAsync)[
+            ? Form.Model(owner.Model).OnSubmit(owner.SaveAsync)[Input.Bind(() => owner.Model.Name)]
+            : Form.Model(owner.Model).OnSubmit(owner.SaveAsync)[
                 Input.Bind(() => owner.Model.Name)
             ];
     }

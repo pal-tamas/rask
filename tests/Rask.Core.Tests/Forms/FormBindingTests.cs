@@ -63,14 +63,14 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Submitting_an_invalid_model_calls_OnInvalidSubmit_not_OnValidSubmit()
+    public async Task Submitting_an_invalid_model_calls_OnInvalidSubmit_not_OnSubmit()
     {
         var p = new Person { Name = "", Age = 0 };
         var validCalled = 0;
         var invalidCalled = 0;
 
         var page = Test.Render(() => Form.Model(p)
-            .OnValidSubmit(_ => validCalled++)
+            .OnSubmit(_ => validCalled++)
             .OnInvalidSubmit(_ => invalidCalled++)
             .Validate(m =>
                 string.IsNullOrEmpty(m.Name) ? new[] { "Name required" } : Array.Empty<string>())[
@@ -116,12 +116,12 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Submitting_a_valid_model_calls_OnValidSubmit_with_the_populated_model()
+    public async Task Submitting_a_valid_model_calls_OnSubmit_with_the_populated_model()
     {
         var p = new Person { Name = "Ada", Age = 30 };
         Person? captured = null;
 
-        var page = Test.Render(() => Form.Model(p).OnValidSubmit(m => captured = m)[Input.Bind(() => p.Name), Input.Bind(() => p.Age)]);
+        var page = Test.Render(() => Form.Model(p).OnSubmit(m => captured = m)[Input.Bind(() => p.Name), Input.Bind(() => p.Age)]);
 
         await page.SubmitAsync("{\"form\":{\"Name\":\"Ada\",\"Age\":\"30\"}}");
 

@@ -35,13 +35,13 @@ public partial class InputDelegateValidateTests : global::Rask.Core.RaskMarkup
     {
         // Reproduces the user's report: the inline `Validate:` on a field must run during
         // the form's submit pipeline regardless of whether the field was ever touched, so
-        // that "submit untouched form" still gates OnValidSubmit on the field's rule.
+        // that "submit untouched form" still gates OnSubmit on the field's rule.
         var p = new Person { Name = "" };
         var validCalled = 0;
         var invalidCalled = 0;
         EditContext? captured = null;
 
-        var page = Test.Render(() => Form.Model(p).OnValidSubmit(_ => validCalled++).OnInvalidSubmit(_ => invalidCalled++)[
+        var page = Test.Render(() => Form.Model(p).OnSubmit(_ => validCalled++).OnInvalidSubmit(_ => invalidCalled++)[
             Input.Bind(() => p.Name)
                 .Validate(_ => new[] { "always-fail" }),
             Test.EditContextProbe(ctx => captured = ctx)

@@ -12,7 +12,7 @@ public sealed partial class FluentValidationDemo : Component
 
     protected override Component? Render() =>
     [
-        Form.Model(_model).OnValidSubmit(m => _submission = $"Ordered {m.Quantity} × {m.Product}").Class("flex flex-col gap-3")[
+        Form.Model(_model).OnSubmit(m => _submission = $"Ordered {m.Quantity} × {m.Product}").Class("flex flex-col gap-3")[
             Div[
                 UiInput.Bind(() => _model.Product).Label("Product").Id("v7-product").ShowValidation(false),
                 ValidationMessage.Template(FieldError).For(() => _model.Product)

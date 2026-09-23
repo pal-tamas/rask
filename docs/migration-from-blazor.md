@@ -25,7 +25,7 @@ New to Rask entirely? Start with [getting started](getting-started.md).
 | `NavigationManager` | `Navigator` (event-handler-only) + `RouteState` (current path/params) |
 | `@page "/path"` | `[Route("/path")]` on the class — **Rask's `Route`, from `Rask.Core.Routing`**; Blazor's attribute of the same name leaves the page unregistered ([RASK071](diagnostics.md#rask071)) |
 | route/query binding | `[RouteParam]` / `[QueryParam]` on a property |
-| `<EditForm>` + `InputText`/`InputNumber` | `Form.Model(model).OnValidSubmit(…)` + `Input.Bind(() => model.X)` |
+| `<EditForm>` + `InputText`/`InputNumber` | `Form.Model(model).OnSubmit(…)` + `Input.Bind(() => model.X)` |
 | `<DataAnnotationsValidator>` | nothing — a `Form` validates its model itself |
 | `<AuthorizeView>` (+ `Context="user"` / `@context.User`) | headless `Authorize` — its `.Authorized(user => …)` slot receives the `ClaimsPrincipal`, like `@context.User` |
 | `AuthenticationStateProvider` | inject `IUserProvider` and read `.Current` |
@@ -140,7 +140,7 @@ NavLink.Href(Routes.UserPage(42))["View user"]
 
 ```razor
 @* Blazor *@
-<EditForm Model="model" OnValidSubmit="Save">
+<EditForm Model="model" OnSubmit="Save">
     <DataAnnotationsValidator />
     <InputText @bind-Value="model.Name" />
 </EditForm>
@@ -148,7 +148,7 @@ NavLink.Href(Routes.UserPage(42))["View user"]
 
 ```csharp
 // Rask
-Form.Model(_model).OnValidSubmit(m => Save(m))[
+Form.Model(_model).OnSubmit(m => Save(m))[
     // no validator declared -- the attributes on _model are enforced by the Form itself
     Input.Bind(() => _model.Name),              // input type inferred from the CLR type
     ValidationMessage.For(() => _model.Name).Template(errs => Div.Class("field-error")[errs[0]]),

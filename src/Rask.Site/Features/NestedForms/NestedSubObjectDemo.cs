@@ -14,7 +14,7 @@ public sealed partial class NestedSubObjectDemo : Component
 
     protected override Component? Render() =>
     [
-        Form.Model(_model).OnValidSubmit(m => _submission =
+        Form.Model(_model).OnSubmit(m => _submission =
                 $"Checked out as {m.Name} to {m.Address.Street}, {m.Address.City} ({m.Address.Country}).").Class("flex flex-col gap-3")[
             Div[
                 UiInput.Bind(() => _model.Name).Label("Name").Id("nf-name").ShowValidation(false),

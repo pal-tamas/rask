@@ -1076,7 +1076,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     // component.
     /// <summary>
     ///     Whether <paramref name="propName" /> is a property a <c>[FactoryGeneric]</c> component folds a
-    ///     <i>typed</i> callback into — <c>Form.OnValidSubmit</c> and <c>OnInvalidSubmit</c>, whose generic
+    ///     <i>typed</i> callback into — <c>Form.OnSubmit</c> and <c>OnInvalidSubmit</c>, whose generic
     ///     factory takes <c>Callback&lt;TModel&gt;</c>/<c>CallbackAsync&lt;TModel&gt;</c>, wraps whichever it
     ///     was handed in <c>AutoCallback</c>, and stores the result as a bare <c>Delegate?</c>.
     /// </summary>
@@ -5794,7 +5794,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     ///         <c>GetDocumentationCommentXml</c> hands back the literal <c>&lt;inheritdoc/&gt;</c> element,
     ///         because resolving it is an IDE/DocFX-layer job, not a compiler one. That made every async
     ///         twin in the framework — <c>OnValidSubmitAsync</c>, <c>ValidateAsync</c>, each written as
-    ///         <c>&lt;inheritdoc cref="OnValidSubmit"/&gt;</c> — emit a setter with no documentation at all,
+    ///         <c>&lt;inheritdoc cref="OnSubmit"/&gt;</c> — emit a setter with no documentation at all,
     ///         while its sibling was fully documented and the source looked complete either way.
     ///     </para>
     /// </remarks>

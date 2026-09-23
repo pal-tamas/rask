@@ -8,7 +8,7 @@ namespace Rask.Site.Tests.Demos;
 public sealed partial class FloatingLabelsDemoTests : global::Rask.Core.RaskMarkup
 {
     // A valid submit must re-render the consumer (FloatingLabelsDemo) so its success alert — which
-    // lives OUTSIDE the Form — appears. OnValidSubmit sets the demo's _submission; the Form must
+    // lives OUTSIDE the Form — appears. OnSubmit sets the demo's _submission; the Form must
     // re-render the callback's owner. Regression guard for the submit-success-not-shown bug.
     [Fact]
     public async Task A_valid_submit_shows_the_success_alert()

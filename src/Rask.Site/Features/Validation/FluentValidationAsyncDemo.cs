@@ -13,7 +13,7 @@ public sealed partial class FluentValidationAsyncDemo : Component
 
     protected override Component? Render() =>
     [
-        Form.Model(_model).OnValidSubmit(m => _submission = $"Reserved: {m.Code}").Class("flex flex-col gap-3")[
+        Form.Model(_model).OnSubmit(m => _submission = $"Reserved: {m.Code}").Class("flex flex-col gap-3")[
             UiInput.Bind(() => _model.Code).Label("Ticket code").Id("v9-code"),
             Div[
                 UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit)[UiIcon.Name(UiIconName.Ticket), "Reserve"]

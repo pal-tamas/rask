@@ -7,7 +7,7 @@ namespace Rask.Validation.Tests;
 public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public async Task A_form_submitted_invalid_then_filled_in_reaches_OnValidSubmit()
+    public async Task A_form_submitted_invalid_then_filled_in_reaches_OnSubmit()
     {
         // Reproduces the showcase ValidationSummary demo flow as a unit test:
         //   1. Render Form — the validator is registered by the form itself, nothing declared.
@@ -16,10 +16,10 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
         //   3. Re-render — the same EditContext must survive, the form re-registers
         //      idempotently, and the freshly-issued submit handler id must close over a
         //      context that still recognises the validator.
-        //   4. Submit a valid payload via the new handler — must reach OnValidSubmit.
+        //   4. Submit a valid payload via the new handler — must reach OnSubmit.
         var p = new Person { Name = "", Age = 0 };
         Person? captured = null;
-        var page = Test.Render(() => Form.Model(p).OnValidSubmit((Action<Person>)(m => captured = m))[
+        var page = Test.Render(() => Form.Model(p).OnSubmit((Action<Person>)(m => captured = m))[
             Input.Bind(() => p.Name),
             Input.Bind(() => p.Age)
         ]);

@@ -43,7 +43,7 @@ public sealed partial class NestedFluentValidationDemo : Component
 
         return
         [
-            Form.Model(_model).OnValidSubmit(m => _submission = $"Order routed: {m.CustomerName} → {m.Address.Street}, {m.Lines.Count} line(s)").Class("flex flex-col gap-3")[
+            Form.Model(_model).OnSubmit(m => _submission = $"Order routed: {m.CustomerName} → {m.Address.Street}, {m.Lines.Count} line(s)").Class("flex flex-col gap-3")[
                 Div[
                     UiInput.Bind(() => _model.CustomerName).Label("Customer").Id("nf-fv-name").ShowValidation(false),
                     ValidationMessage.Template(FieldError).For(() => _model.CustomerName)

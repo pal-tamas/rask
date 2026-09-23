@@ -169,7 +169,7 @@ public static class AutoCallback
     /// <remarks>
     ///     <para>
     ///         For the properties that <em>fold</em> a typed callback into a bare <see cref="Delegate" />.
-    ///         <c>Form.OnValidSubmit</c> is the case: its generic factory takes
+    ///         <c>Form.OnSubmit</c> is the case: its generic factory takes
     ///         <c>Action&lt;TModel&gt;</c> and <c>Func&lt;TModel, Task&gt;</c>, wraps whichever it was
     ///         given, and stores the result untyped — and <c>Form</c> calls it back with
     ///         <c>DynamicInvoke(model)</c>. A builder chain reaches the same property through a setter that

@@ -529,7 +529,7 @@ public abstract partial class SharedSmokeTests
         await eInput.Locator("input[type=text]").First.FillAsync("Hello Rask");
         await Expect(eInput).ToContainTextAsync("You typed: \"Hello Rask\"", contains);
 
-        // Form (onSubmit → FormData): fill the named field and submit; OnSubmit reads it off a FormData and
+        // Form (onSubmit → FormData): fill the named field and submit; OnAnySubmit reads it off a FormData and
         // echoes it. This is reliable now that the morph no longer wipes an uncontrolled input's value on a
         // full reply (it previously landed "(blank)" on the busy co-mounted guide — see the uncontrolled-input
         // reconnect guard in RunUnusualActivityAsync). The readout wraps the value in <strong>.

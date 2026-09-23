@@ -21,7 +21,7 @@ public sealed partial class CustomAttributeDemo : Component
 
     protected override Component? Render() =>
     [
-        Form.Model(_model).OnValidSubmit(m => _submission = $"Welcome, {m.Username}!").Class("flex flex-col gap-3")[
+        Form.Model(_model).OnSubmit(m => _submission = $"Welcome, {m.Username}!").Class("flex flex-col gap-3")[
             Div[
                 UiInput.Bind(() => _model.Username).Label("Username").Id("v12-username").ShowValidation(false),
                 ValidationMessage.Template(FieldError).For(() => _model.Username)

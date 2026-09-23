@@ -27,7 +27,7 @@ public sealed partial class InlineValidateDemo : Component
     protected override Component? Render() =>
     [
         Form.Model(_model)
-            .OnValidSubmit(m => _submission = $"Welcome, {m.Email}")
+            .OnSubmit(m => _submission = $"Welcome, {m.Email}")
             .Class("flex flex-col gap-3")
             .Validate(m =>
                 m.Password == m.Confirm ? Array.Empty<string>() : new[] { "Passwords do not match." })[

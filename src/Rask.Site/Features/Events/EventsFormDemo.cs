@@ -11,7 +11,7 @@ public sealed partial class EventsFormDemo : Component
 
     protected override Component? Render() =>
     [
-        Form.Model(_fields).OnSubmit(OnSubmit).Class("mb-2")[
+        Form.Model(_fields).OnAnySubmit(OnAnySubmit).Class("mb-2")[
             Div.Class("flex items-stretch gap-2")[
                 UiInput.Value<string>(null)
                     .AccessibleLabel("Your name")
@@ -24,7 +24,7 @@ public sealed partial class EventsFormDemo : Component
         P.Class("text-sm mb-0")["Last submitted: ", Strong[_submitted]]
     ];
 
-    private void OnSubmit(FormData fd)
+    private void OnAnySubmit(FormData fd)
     {
         var name = fd.Get("name");
         _submitted = string.IsNullOrWhiteSpace(name) ? "(blank)" : name;

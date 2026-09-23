@@ -8,7 +8,7 @@ namespace Rask.Core.Forms;
 //   async  — Func<TValue, CancellationToken, ValueTask<IEnumerable<string>>>      (2 params)
 // The delegate is stored as `Delegate?` rather than two typed properties because the user
 // picked the single-prop call-site shape (see plan: scalable-bubbling-flame.md). Dispatch
-// uses DynamicInvoke — the same trim-suppression rationale as Form's OnValidSubmit (Form.cs).
+// uses DynamicInvoke — the same trim-suppression rationale as Form's OnSubmit (Form.cs).
 internal static class DelegateValidator
 {
     [UnconditionalSuppressMessage("Trimming", "IL2026",

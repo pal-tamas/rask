@@ -8,7 +8,7 @@ using Microsoft.CodeAnalysis.Operations;
 namespace Rask.Generators.Analyzers;
 
 // RASK026 — warn when StateHasChanged()/StateHasChangedAsync() is called on the component itself from
-// inside a Rask event or binding callback (OnChange, OnClick, OnInput, OnSubmit, AfterBind, …). Rask
+// inside a Rask event or binding callback (OnChange, OnClick, OnInput, OnAnySubmit, AfterBind, …). Rask
 // re-renders the component that owns the callback automatically after the callback runs — even when a
 // child control fires it (the framework re-renders the delegate's owner) and even for two-way bindings
 // (a write re-renders the binding's authoring component). So a manual StateHasChanged inside one of these
@@ -29,7 +29,7 @@ public sealed class RedundantStateHasChangedAnalyzer : DiagnosticAnalyzer
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
-        "Rask wraps event callbacks (OnChange/OnClick/OnInput/OnSubmit/…) and binding hooks "
+        "Rask wraps event callbacks (OnChange/OnClick/OnInput/OnAnySubmit/…) and binding hooks "
         + "(AfterBind/AfterBindAsync) so the component that owns the callback re-renders after it runs — "
         + "including when a child control raised it, and after a two-way bound write. Calling "
         + "StateHasChanged() inside one is unnecessary (the tell-tale anti-pattern is "

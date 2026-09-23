@@ -16,7 +16,7 @@ public sealed partial class FirstErrorWinsDemo : Component
 
     protected override Component? Render() =>
     [
-        Form.Model(_model).OnValidSubmit(m => _submission = $"Activated: {m.Code}").Class("flex flex-col gap-3")[
+        Form.Model(_model).OnSubmit(m => _submission = $"Activated: {m.Code}").Class("flex flex-col gap-3")[
             Div[
                 UiInput.Bind(() => _model.Code).Label("License code")
                     .Id("v8-code")
