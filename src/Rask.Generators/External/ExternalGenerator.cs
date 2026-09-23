@@ -90,16 +90,16 @@ public sealed class ExternalGenerator : IIncrementalGenerator
 
     private static readonly DiagnosticDescriptor Rask059 = new(
         "RASK059",
-        "Module override must be a constant string",
-        "'{0}' overrides Module with an expression the build cannot read — return a constant string literal",
+        "Module or Export override must be a constant string",
+        "'{0}' overrides {1} with an expression the build cannot read — return a constant string literal",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
         description: "The bundler needs the module specifier at BUILD time, to generate the entry that pairs the "
                      + "component with its adapter — long before any of this code runs. So the override has to be a "
                      + "literal the generator can read out of the syntax: `protected override string Module => "
-                     + "\"@acme/charts/Chart\";`. Anything computed would leave the browser resolving a name the "
-                     + "bundle never built.",
+                     + "\"@acme/charts/Chart\";`, and the same for `Export`, which names the package's component. "
+                     + "Anything computed would leave the browser resolving a name the bundle never built.",
         helpLinkUri: DiagnosticHelp.Link("RASK059"));
 
     private static readonly DiagnosticDescriptor Rask077 = new(
@@ -134,12 +134,12 @@ public sealed class ExternalGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor Rask079 = new(
         "RASK079",
         "Props snapshot describes a different component",
-        "'{0}.props.json' was extracted for {1} — re-extract it, or correct the island's base class or Module",
+        "'{0}.props.json' was extracted for {1} — re-extract it, or correct the island's base class, Module or Export",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
         description: "A snapshot records which runtime and which module it was extracted from. When the class beside it "
-                     + "now names another — the base class changed runtime, or Module points at a different export — "
+                     + "now names another — the base class changed runtime, or Module or Export points at another component — "
                      + "its props describe some other component, so none are generated rather than steps the "
                      + "component does not have.",
         helpLinkUri: DiagnosticHelp.Link("RASK079"));
@@ -553,7 +553,14 @@ public sealed class ExternalGenerator : IIncrementalGenerator
         var declaredModule = ModuleLiteral.Read(type);
         if (declaredModule.Failed)
         {
-            spc.ReportDiagnostic(Diagnostic.Create(Rask059, declaredModule.Location ?? location, type.Name));
+            spc.ReportDiagnostic(Diagnostic.Create(Rask059, declaredModule.Location ?? location, type.Name, "Module"));
+            return null;
+        }
+
+        var declaredExport = ModuleLiteral.ReadExport(type);
+        if (declaredExport.Failed)
+        {
+            spc.ReportDiagnostic(Diagnostic.Create(Rask059, declaredExport.Location ?? location, type.Name, "Export"));
             return null;
         }
 

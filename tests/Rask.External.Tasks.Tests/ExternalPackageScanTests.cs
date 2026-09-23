@@ -11,6 +11,7 @@ public sealed class ExternalPackageScanTests
     {
         ["MuiButton"] = "react",
         ["Toggle"] = "vue",
+        ["Chart"] = "react",
     };
 
     [Theory]
@@ -28,13 +29,38 @@ public sealed class ExternalPackageScanTests
         Assert.Equal("@mui/material/Button", island.Module);
     }
 
-    [Fact]
-    public void A_named_export_is_kept_whole_for_the_caller_to_split()
+    [Theory]
+    [InlineData("protected override string Export => \"Button\";")]
+    [InlineData("protected override string? Export => \"Button\";")]
+    [InlineData("protected override string Export { get { return \"Button\"; } }")]
+    public void A_named_export_is_read_beside_the_module(string export)
     {
         var island = Assert.Single(Scan(
-            "partial class MuiButton : ReactComponent { protected override string Module => \"@mui/material#Button\"; }"));
+            $"partial class MuiButton : ReactComponent {{ protected override string Module => \"@mui/material\"; {export} }}"));
 
-        Assert.Equal("@mui/material#Button", island.Module);
+        Assert.Equal("@mui/material", island.Module);
+        Assert.Equal("Button", island.Export);
+        Assert.Equal("Button", island.ExportOrDefault);
+    }
+
+    [Fact]
+    public void No_export_is_the_default_export()
+    {
+        var island = Assert.Single(Scan(
+            "partial class MuiButton : ReactComponent { protected override string Module => \"@mui/material/Button\"; }"));
+
+        Assert.Null(island.Export);
+        Assert.Equal("default", island.ExportOrDefault);
+    }
+
+    [Fact]
+    public void An_export_without_a_package_is_still_found_so_the_task_can_refuse_it()
+    {
+        var island = Assert.Single(Scan(
+            "partial class Chart : ReactComponent { protected override string Export => \"Chart\"; }"));
+
+        Assert.False(island.IsPackage);
+        Assert.Equal("Chart", island.Export);
     }
 
     [Fact]
@@ -158,7 +184,7 @@ public sealed class ExternalPackageScanTests
     [Fact]
     public void The_snapshot_sits_beside_the_file_holding_the_override()
     {
-        var island = new ScannedPackageIsland("MuiButton", "react", "@mui/material/Button", "/src/Shop/MuiButton.cs", 3);
+        var island = new ScannedPackageIsland("MuiButton", "react", "@mui/material/Button", null, "/src/Shop/MuiButton.cs", 3);
 
         Assert.Equal(Path.Combine("/src/Shop", "MuiButton.props.json"), island.SnapshotPath);
     }
@@ -186,6 +212,31 @@ public sealed class ExternalPackageScanTests
         }
     }
 
+    [Fact]
+    public void An_export_in_another_part_joins_the_module_and_the_snapshot_stays_beside_the_module()
+    {
+        var root = Directory.CreateTempSubdirectory("rask-package-scan").FullName;
+        try
+        {
+            var a = Path.Combine(root, "MuiButton.cs");
+            var b = Path.Combine(root, "Props", "MuiButton.Props.cs");
+            Directory.CreateDirectory(Path.GetDirectoryName(b)!);
+            File.WriteAllText(a, "public sealed partial class MuiButton : ReactComponent { protected override string Export => \"Button\"; }");
+            File.WriteAllText(b, "partial class MuiButton { protected override string Module => \"@mui/material\"; }");
+
+            var runtimes = new Dictionary<string, string>(StringComparer.Ordinal) { ["MuiButton"] = "react" };
+            var island = Assert.Single(ExternalPackageScan.PackageIslands([a, b], runtimes));
+
+            Assert.Equal("@mui/material", island.Module);
+            Assert.Equal("Button", island.Export);
+            Assert.Equal(b, island.DeclaringFile);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     [Theory]
     [InlineData("@mui/material/Button", true)]
     [InlineData("react-colorful", true)]
@@ -199,16 +250,6 @@ public sealed class ExternalPackageScanTests
     public void A_specifier_is_a_package_only_when_it_is_bare(string module, bool bare)
     {
         Assert.Equal(bare, ExternalPackageSpecifier.IsBare(module));
-    }
-
-    [Theory]
-    [InlineData("@mui/material#Button", "@mui/material", "Button")]
-    [InlineData("@mui/material/Button", "@mui/material/Button", "default")]
-    [InlineData("bits-ui#Switch.Root", "bits-ui", "Switch.Root")]
-    [InlineData("pkg#", "pkg#", "default")]
-    public void A_specifier_splits_into_module_and_export(string module, string specifier, string export)
-    {
-        Assert.Equal((specifier, export), ExternalPackageSpecifier.Split(module));
     }
 
     [Theory]

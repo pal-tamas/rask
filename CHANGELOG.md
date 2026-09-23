@@ -250,6 +250,23 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: a package island names its component in `Export`, not after a `#` in `Module`.** The two halves of
+  `import { HexColorPicker } from "react-colorful"` are now two overrides:
+
+  ```csharp
+  // before
+  protected override string Module => "react-colorful#HexColorPicker";
+  // after
+  protected override string Module => "react-colorful";
+  protected override string Export => "HexColorPicker";
+  ```
+
+  No `Export` still means the package's default export; a dotted `Export` (`"Switch.Root"`) still reaches a member,
+  and a Lit island still names its tag there. The old spelling is refused at build time (RASKISLAND005) with the two
+  overrides to write instead, and so is an `Export` on an island whose `Module` names no package. A computed
+  `Export` is RASK059, like a computed `Module`. Committed `*.props.json` snapshots are unchanged — they already
+  kept `module` and `export` apart.
+
 - **BREAKING: `IBroadcast` and `Topic<T>` are removed; a CQRS notification is the topic.** Publish with
   `dispatcher.PublishAsync(new OrderPlaced(…))` instead of `broadcast.PublishAsync(Topics.Orders, …)`, and subscribe with
   `QueryClient.Subscribe<OrderPlaced>()` in `Render` instead of `broadcast.Subscribe(this, Topics.Orders, …)` in

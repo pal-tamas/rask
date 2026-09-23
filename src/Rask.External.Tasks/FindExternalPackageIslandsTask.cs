@@ -52,7 +52,8 @@ public sealed class FindExternalPackageIslandsTask : Task
 
     /// <summary>
     ///     The package islands: the item is the snapshot path, with <c>IslandName</c>, <c>Runtime</c>,
-    ///     <c>PackageModule</c>, <c>DeclaringFile</c> and <c>ModuleLine</c>.
+    ///     <c>PackageModule</c>, <c>PackageExport</c> (<c>default</c> when the class names none), <c>DeclaringFile</c>
+    ///     and <c>ModuleLine</c>.
     /// </summary>
     [Output]
     public ITaskItem[] PackageIslands { get; private set; } = [];
@@ -75,12 +76,33 @@ public sealed class FindExternalPackageIslandsTask : Task
 
         foreach (var island in ExternalPackageScan.PackageIslands(sources, runtimes))
         {
-            var (_, export) = ExternalPackageSpecifier.Split(island.Module);
+            if (!island.IsPackage)
+            {
+                // Silently ignored, it would read as the island's component while the build mounts the file's default.
+                Error(island,
+                    $"Rask.External: '{island.Name}' overrides Export, but its Module names no package — Export picks a "
+                    + "component out of an npm package, so return the package from Module as well "
+                    + "(protected override string Module => \"react-colorful\";) or remove the Export override.");
+                continue;
+            }
+
+            var hash = island.Module.IndexOf('#');
+            if (hash > 0)
+            {
+                // The old spelling. Refused rather than read, so there is one way to name an export.
+                Error(island,
+                    $"Rask.External: '{island.Name}' writes its export after a '#' in Module — name it in Export "
+                    + $"instead: protected override string Module => \"{island.Module.Substring(0, hash)}\"; "
+                    + $"protected override string Export => \"{island.Module.Substring(hash + 1)}\";");
+                continue;
+            }
+
+            var export = island.ExportOrDefault;
             if (!ExternalPackageSpecifier.IsValidExport(export, island.Runtime))
             {
                 Error(island,
-                    $"Rask.External: '{island.Name}' names the export '{export}', which is not an identifier — write "
-                    + "the export's exact name after the '#' (a Lit island may name the tag its module registers).");
+                    $"Rask.External: '{island.Name}' names the export '{export}', which is not an identifier — return "
+                    + "the export's exact name from Export (a Lit island may name the tag its module registers).");
                 continue;
             }
 
@@ -99,6 +121,7 @@ public sealed class FindExternalPackageIslandsTask : Task
             item.SetMetadata("IslandName", island.Name);
             item.SetMetadata("Runtime", island.Runtime);
             item.SetMetadata("PackageModule", island.Module);
+            item.SetMetadata("PackageExport", export);
             item.SetMetadata("DeclaringFile", island.DeclaringFile);
             item.SetMetadata("ModuleLine", island.Line.ToString(System.Globalization.CultureInfo.InvariantCulture));
             items.Add(item);

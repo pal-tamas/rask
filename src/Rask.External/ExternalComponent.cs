@@ -65,6 +65,27 @@ public abstract partial class ExternalComponent : Component
     /// </remarks>
     protected abstract string Module { get; }
 
+    /// <summary>
+    ///     The component a package island mounts out of the package its <see cref="Module" /> names, or <c>null</c>
+    ///     for the package's default export.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         <c>Module</c> says where to import from and this says what — the two halves of
+    ///         <c>import { HexColorPicker } from "react-colorful"</c>:
+    ///     </para>
+    ///     <code>
+    ///     protected override string Module => "react-colorful";
+    ///     protected override string Export => "HexColorPicker";
+    ///     </code>
+    ///     <para>
+    ///         A dotted name reaches a member of an export (<c>"Switch.Root"</c>), and a Lit island may name the tag
+    ///         its module registers (<c>"sl-switch"</c>). Like <see cref="Module" />, it must be a constant string —
+    ///         the build reads it before any of this code runs.
+    ///     </para>
+    /// </remarks>
+    protected virtual string? Export => null;
+
     /// <summary>The name the client runtime resolves a module by. Generated from the type name.</summary>
     protected abstract string ComponentName { get; }
 

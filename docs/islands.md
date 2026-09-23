@@ -217,9 +217,21 @@ MuiButton
 ```
 
 A `Module` that names a package rather than a file — anything not starting with `./`, `../`, `/` or `#` — makes
-this a **package island**. A named export is written after a `#`: `"@mui/material#Button"` imports `Button`
-from `@mui/material`, and a specifier without one imports the default export. A library that exports namespaces of
-parts is reached with a dot: `"bits-ui#Switch.Root"` is the `Root` member of the `Switch` export.
+this a **package island**, and it imports the package's default export. A named export goes in `Export`, the other
+half of the same `import`:
+
+```csharp
+// import { HexColorPicker } from "react-colorful"
+public sealed partial class ColorPicker : ReactComponent
+{
+    protected override string Module => "react-colorful";
+    protected override string Export => "HexColorPicker";
+}
+```
+
+A library that exports namespaces of parts is reached with a dot: `Export => "Switch.Root"` is the `Root` member of
+the `Switch` export. Both must be constant strings ([RASK059](diagnostics.md#rask059)) — the build reads them before
+anything compiles.
 
 ### The snapshot is committed
 
@@ -273,7 +285,7 @@ the build instead of being refreshed, so CI proves the committed files are true 
 
 | Code | Severity | When |
 | --- | --- | --- |
-| `RASKISLAND005` | error | The class also has a front-end file beside it, or the export after `#` is not an identifier or a dotted path of them. |
+| `RASKISLAND005` | error | The class also has a front-end file beside it; its `Export` is not an identifier or a dotted path of them; it declares an `Export` but its `Module` names no package; or it still writes the export after a `#` in `Module` (the message gives the two overrides to write instead). |
 | `RASKISLAND006` | error | There is no snapshot, and this build cannot extract one; the message says why. |
 | `RASKISLAND007` | error | The package or the export could not be read, or it is not a component — reported at the `Module` line. |
 | `RASKISLAND008` | error | A locked build found an out-of-date snapshot. |
@@ -292,8 +304,8 @@ Each runtime's declarations are read where they put the props:
   take content. **Svelte 4** typings give their props from `$$prop_def`; their `on:` events cannot be passed as props,
   and the snapshot lists them as `legacy-event` skips.
 - **Lit** — a custom element's public, writable fields, all optional. Its tag is the one `HTMLElementTagNameMap` gives
-  the class; a module that only registers an element exports nothing to name, so name its tag instead:
-  `"@spectrum-web-components/button/sp-button.js#sp-button"`. The entry imports the module for its side effect, so the
+  the class; a module that only registers an element exports nothing to name, so name its tag in `Export` instead:
+  `Module => "@spectrum-web-components/button/sp-button.js"` with `Export => "sp-button"`. The entry imports the module for its side effect, so the
   tag has to be registered by that module or a file it imports directly — a class module that registers nothing is
   refused rather than mounted under a tag some other module defines. Where the package ships a `custom-elements.json`,
   the events it lists become handler props — `sl-change` is `OnSlChange` — which the adapter adds as event listeners.

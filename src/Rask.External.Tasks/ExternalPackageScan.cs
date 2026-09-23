@@ -12,14 +12,17 @@ internal sealed class ScannedPackageIsland
 {
     /// <param name="name">The class's simple name.</param>
     /// <param name="runtime">The runtime its base chain reaches.</param>
-    /// <param name="module">The constant its <c>Module</c> override returns.</param>
+    /// <param name="module">The constant its <c>Module</c> override returns, or empty when it declares none.</param>
+    /// <param name="export">The constant its <c>Export</c> override returns, or null when it declares none.</param>
     /// <param name="declaringFile">The file holding the override — the snapshot is written beside it.</param>
     /// <param name="line">The 1-based line of the override, for diagnostics.</param>
-    public ScannedPackageIsland(string name, string runtime, string module, string declaringFile, int line)
+    public ScannedPackageIsland(string name, string runtime, string module, string? export, string declaringFile,
+        int line)
     {
         Name = name;
         Runtime = runtime;
         Module = module;
+        Export = export;
         DeclaringFile = declaringFile;
         Line = line;
     }
@@ -32,6 +35,15 @@ internal sealed class ScannedPackageIsland
 
     /// <summary>The constant its <c>Module</c> override returns.</summary>
     public string Module { get; }
+
+    /// <summary>The constant its <c>Export</c> override returns, or null for the package's default export.</summary>
+    public string? Export { get; }
+
+    /// <summary>Whether <see cref="Module" /> names a package; when it does not, the class only declared an Export.</summary>
+    public bool IsPackage => ExternalPackageSpecifier.IsBare(Module);
+
+    /// <summary>The export the island mounts: its <see cref="Export" />, or <c>default</c>.</summary>
+    public string ExportOrDefault => Export ?? "default";
 
     /// <summary>The file holding the override.</summary>
     public string DeclaringFile { get; }
@@ -76,8 +88,13 @@ internal static class ExternalPackageScan
         @"\bclass\s+(?<name>[A-Za-z_]\w*)",
         RegexOptions.CultureInvariant);
 
-    private static readonly Regex ModuleOverride = new(
-        @"\boverride\s+string\s+Module\b",
+    private static readonly Regex ModuleOverride = Override("Module");
+
+    // `string?` as well as `string`: the base declares Export nullable, and an override may repeat either.
+    private static readonly Regex ExportOverride = Override("Export");
+
+    private static Regex Override(string property) => new(
+        @"\boverride\s+string\??\s+" + property + @"\b",
         RegexOptions.CultureInvariant);
 
     /// <summary>
@@ -107,17 +124,26 @@ internal static class ExternalPackageScan
                 continue;
             }
 
-            if (text.IndexOf("Module", StringComparison.Ordinal) < 0)
+            if (text.IndexOf("Module", StringComparison.Ordinal) < 0
+                && text.IndexOf("Export", StringComparison.Ordinal) < 0)
             {
                 continue;
             }
 
             foreach (var island in Scan(text, path, runtimes))
             {
-                // A partial class spelled across files: the part that overrides Module is the one that counts.
-                if (!found.ContainsKey(island.Name))
+                // A partial class spelled across files: the part that overrides Module is the one that counts — it is
+                // where the snapshot goes — and an Export written in another part joins it.
+                if (!found.TryGetValue(island.Name, out var seen))
                 {
                     found[island.Name] = island;
+                }
+                else if (seen.Module.Length == 0 || seen.Export is null)
+                {
+                    var owner = seen.Module.Length != 0 ? seen : island;
+                    found[island.Name] = new ScannedPackageIsland(
+                        island.Name, island.Runtime, owner.Module, seen.Export ?? island.Export, owner.DeclaringFile,
+                        owner.Line);
                 }
             }
         }
@@ -157,23 +183,29 @@ internal static class ExternalPackageScan
                 continue;
             }
 
-            if (FindOverride(text, structure, open + 1, close) is { } module
-                && ExternalPackageSpecifier.IsBare(module.Value))
+            var module = FindOverride(ModuleOverride, text, structure, open + 1, close);
+            var export = FindOverride(ExportOverride, text, structure, open + 1, close);
+
+            // An Export with no package Module is returned too, so the task can say that it names nothing.
+            if ((module is { } m && ExternalPackageSpecifier.IsBare(m.Value)) || export is not null)
             {
-                yield return new ScannedPackageIsland(name, runtime, module.Value, path, LineOf(text, module.Position));
+                var at = module?.Position ?? export!.Value.Position;
+                yield return new ScannedPackageIsland(
+                    name, runtime, module?.Value ?? string.Empty, export?.Value, path, LineOf(text, at));
             }
         }
     }
 
     /// <summary>
-    ///     The constant a <c>Module</c> override at the top level of a class body returns, in any of the four
-    ///     forms the island generator reads: <c>=&gt; "…";</c>, <c>{ get =&gt; "…"; }</c>,
+    ///     The constant a <c>Module</c> or <c>Export</c> override at the top level of a class body returns, in
+    ///     any of the four forms the island generator reads: <c>=&gt; "…";</c>, <c>{ get =&gt; "…"; }</c>,
     ///     <c>{ get { return "…"; } }</c>, and <c>{ get; } = "…";</c>.
     /// </summary>
-    private static (string Value, int Position)? FindOverride(string text, string structure, int start, int end)
+    private static (string Value, int Position)? FindOverride(
+        Regex property, string text, string structure, int start, int end)
     {
         var body = structure.Substring(start, end - start);
-        foreach (Match match in ModuleOverride.Matches(body))
+        foreach (Match match in property.Matches(body))
         {
             var at = start + match.Index;
 

@@ -5,7 +5,8 @@ namespace Rask.Site.Features.Islands;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         A <b>package island</b>: <see cref="Module" /> names a package export instead of a file, and the chain steps
+///         A <b>package island</b>: <see cref="Module" /> names a package instead of a file and <see cref="Export" /> the
+///         component in it — <c>import { HexColorPicker } from "react-colorful"</c>, split in two. The chain steps
 ///         — <c>.Color(…)</c>, <c>.OnChange(…)</c>, <c>.OnChangeEnd(…)</c> — are generated from
 ///         <c>ColorPicker.props.json</c> beside this class, which the build extracts from the package's own TypeScript
 ///         declarations. That snapshot is committed, so a fresh clone, the IDE and a build without Node all see the same
@@ -18,6 +19,9 @@ namespace Rask.Site.Features.Islands;
 /// </remarks>
 public sealed partial class ColorPicker : Rask.External.ReactComponent
 {
-    /// <summary>The package and the export this island renders.</summary>
-    protected override string Module => "react-colorful#HexColorPicker";
+    /// <summary>The package this island imports.</summary>
+    protected override string Module => "react-colorful";
+
+    /// <summary>The component it renders out of that package.</summary>
+    protected override string Export => "HexColorPicker";
 }

@@ -199,4 +199,5 @@ static Rask.External.VueChild.implicit operator Rask.External.VueChild(float val
 static Rask.External.VueChild.implicit operator Rask.External.VueChild(int value) -> Rask.External.VueChild
 static Rask.External.VueChild.implicit operator Rask.External.VueChild(long value) -> Rask.External.VueChild
 static Rask.External.VueChild.implicit operator Rask.External.VueChild(string? text) -> Rask.External.VueChild
+virtual Rask.External.ExternalComponent.Export.get -> string?
 virtual Rask.External.ExternalComponent.ManifestUrl.get -> string?

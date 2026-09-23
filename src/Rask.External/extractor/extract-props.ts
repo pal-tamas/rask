@@ -266,7 +266,7 @@ function extractIsland(
     const propsType = propsOf(ts, checker, componentType, runtime);
     if (!propsType) {
         throw new IslandError("not-a-component",
-            `'${island.module}${island.export === "default" ? "" : "#" + island.export}' is not a ${runtime} component: it has no call signature taking props.`);
+            `${island.export === "default" ? "The default export" : `'${island.export}'`} of '${island.module}' is not a ${runtime} component: it has no call signature taking props.`);
     }
 
     const walker = new TypeWalker(ts, checker, runtime);
@@ -991,7 +991,7 @@ function extractLit(
     const tag = byTag ? island.export : tagOf(checker, tagMap, element, files);
     if (!tag) {
         throw new IslandError("lit-tag-unknown",
-            `Rask cannot tell which tag '${element.getName()}' registers — name it after the '#': "${island.module}#my-element".`);
+            `Rask cannot tell which tag '${element.getName()}' registers — return it from Export: protected override string Export => "my-element";`);
     }
 
     const events = manifestEvents(island.module, element, tag);

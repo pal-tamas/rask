@@ -126,12 +126,14 @@ public sealed class WriteExternalBuildInputsTask : Task
             }
 
             var package = item.GetMetadata("PackageModule");
+            var export = item.GetMetadata("PackageExport");
             islands.Add(new ExternalEntry
             {
                 Name = name,
                 Source = source,
                 Runtime = runtime,
                 Package = string.IsNullOrEmpty(package) ? null : package,
+                Export = string.IsNullOrEmpty(export) ? "default" : export,
                 // A Lit element named by its class mounts by the tag its snapshot recorded; the item IS the snapshot.
                 Tag = !string.IsNullOrEmpty(package) && runtime == ExternalRuntime.Lit.Key && File.Exists(source)
                     ? ExternalBuildPlan.SnapshotTag(File.ReadAllText(source))

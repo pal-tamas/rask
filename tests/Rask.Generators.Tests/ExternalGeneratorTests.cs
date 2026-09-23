@@ -91,6 +91,25 @@ public class ExternalGeneratorTests
 
         var diagnostic = Assert.Single(Distinct(run, "RASK059"));
         Assert.Contains("Chart", diagnostic, StringComparison.Ordinal);
+        Assert.Contains("overrides Module", diagnostic, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_computed_export_override_is_reported_as_RASK059_naming_Export()
+    {
+        var run = Run(
+            """
+            namespace App;
+
+            public sealed partial class Picker : Rask.External.ReactComponent
+            {
+                protected override string Module => "react-colorful";
+                protected override string Export => nameof(Picker);
+            }
+            """);
+
+        var diagnostic = Assert.Single(Distinct(run, "RASK059"));
+        Assert.Contains("overrides Export", diagnostic, StringComparison.Ordinal);
     }
 
     [Fact]

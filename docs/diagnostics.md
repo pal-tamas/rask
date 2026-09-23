@@ -94,7 +94,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK056](#rask056) | Error | External component must be partial |
 | [RASK057](#rask057) | Error | External component prop has no wire encoding |
 | [RASK058](#rask058) | Error | External component name collision |
-| [RASK059](#rask059) | Error | Module override must be a constant string |
+| [RASK059](#rask059) | Error | Module or Export override must be a constant string |
 | [RASK060](#rask060) | Warning | `AddRask` is called twice on the same service collection |
 | [RASK061](#rask061) | Error | Blazor island must be partial |
 | [RASK062](#rask062) | Error | An island cannot render these children |
@@ -1259,18 +1259,21 @@ Rename one, or give it an explicit module by overriding `Module`.
 
 ## RASK059
 
-**Module override must be a constant string** · Error
+**Module or Export override must be a constant string** · Error
 
 The bundler needs the module specifier at *build* time, to generate the entry that pairs the component
 with its adapter — long before any of this code runs. So the override has to be a literal the
-generator can read straight out of the syntax.
+generator can read straight out of the syntax. The same holds for a package island's `Export`, which names the
+component the entry imports.
 
 ```csharp
 // ✗ RASK059 — the build cannot evaluate this
 protected override string Module => $"./widgets/{Name}.ts";
+protected override string Export => nameof(HexColorPicker);
 
 // ✓
-protected override string Module => "@acme/charts/Chart";
+protected override string Module => "react-colorful";
+protected override string Export => "HexColorPicker";
 ```
 
 Anything computed would leave the browser resolving a name the bundle never built — markup pointing at
@@ -1791,19 +1794,21 @@ Rask.External when the schema is newer than it reads.
 
 **Props snapshot describes a different component** · Error
 
-A snapshot records the runtime and the module it was extracted for. The class beside it now names another:
+A snapshot records the runtime, the module and the export it was extracted for. The class beside it now names
+another:
 
 ```csharp
 public sealed partial class MuiButton : ReactComponent
 {
-    // ✗ RASK079 — MuiButton.props.json was extracted for "@mui/material/Button"
-    protected override string Module => "@mui/material#Button";
+    // ✗ RASK079 — MuiButton.props.json was extracted for the default export of '@mui/material/Button'
+    protected override string Module => "@mui/material";
+    protected override string Export => "Button";
 }
 ```
 
-`"@mui/material/Button"` and `"@mui/material#Button"` import different exports, and the base class decides
-whose types were read, so the props cannot be assumed to match. Re-extract the snapshot, or put the base class
-and `Module` back to what it was taken from.
+The default export of `@mui/material/Button` and the `Button` export of `@mui/material` are different imports, and
+the base class decides whose types were read, so the props cannot be assumed to match. Re-extract the snapshot, or
+put the base class, `Module` and `Export` back to what it was taken from.
 
 ## RASK080
 

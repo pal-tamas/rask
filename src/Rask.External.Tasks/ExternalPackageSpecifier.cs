@@ -3,8 +3,8 @@ using System;
 namespace Rask.External.Tasks;
 
 /// <summary>
-///     Reads a package island's <c>Module</c> specifier on the build side: whether it names a package, which
-///     export, and which package.
+///     Reads a package island's <c>Module</c> and <c>Export</c> on the build side: whether the module names a
+///     package, which package, and whether the export can be written into generated JavaScript.
 /// </summary>
 /// <remarks>
 ///     The same rules as the island generator's <c>PackageSpecifier</c>, restated because this assembly is an
@@ -32,18 +32,6 @@ internal static class ExternalPackageSpecifier
         }
 
         return module.IndexOf("://", StringComparison.Ordinal) < 0 && !(module.Length > 1 && module[1] == ':');
-    }
-
-    /// <summary>
-    ///     The specifier and the export: <c>"@mui/material#Button"</c> is <c>(@mui/material, Button)</c>; a
-    ///     specifier without a <c>#</c> names the default export.
-    /// </summary>
-    public static (string Specifier, string Export) Split(string module)
-    {
-        var hash = module.LastIndexOf('#');
-        return hash > 0 && hash < module.Length - 1
-            ? (module.Substring(0, hash), module.Substring(hash + 1))
-            : (module, "default");
     }
 
     /// <summary>The package a specifier imports from: <c>@mui/material/Button</c> is <c>@mui/material</c>.</summary>
