@@ -15,6 +15,23 @@ internal static class CodeFixHarness
 {
     // Applies the fix for an analyzer-produced diagnostic (e.g. RASK023). `extraAssemblies` names libraries
     // the source compiles against beyond the component references — Rask.Data for the model-state fixes.
+    // A provider that offers SEVERAL fixes for one diagnostic needs the one under test named, or the
+    // test silently pins whichever happens to be registered first. Deliberately NOT an overload of the
+    // method below: `(…, source, "Rask.Data")` would then bind the assembly name as the fix name, which
+    // is a compiling, green, completely wrong test.
+    public static async Task<string> ApplyNamedAnalyzerFixAsync(
+        DiagnosticAnalyzer analyzer, CodeFixProvider provider, string diagnosticId, string source,
+        string equivalenceKey, params string[] extraAssemblies)
+    {
+        var document = CreateDocument(source, extraAssemblies);
+        var compilation = (CSharpCompilation)(await document.Project.GetCompilationAsync())!;
+        compilation = (CSharpCompilation)GeneratorDriverFixture.WithBuilderSurface(compilation);
+        var diagnostics = await compilation
+            .WithAnalyzers(ImmutableArray.Create(analyzer))
+            .GetAnalyzerDiagnosticsAsync();
+        return await ApplyAsync(provider, document, FirstOf(diagnostics, diagnosticId), equivalenceKey);
+    }
+
     public static async Task<string> ApplyAnalyzerFixAsync(
         DiagnosticAnalyzer analyzer, CodeFixProvider provider, string diagnosticId, string source,
         params string[] extraAssemblies)
@@ -100,12 +117,16 @@ internal static class CodeFixHarness
         return actions;
     }
 
-    private static async Task<string> ApplyAsync(CodeFixProvider provider, Document document, Diagnostic diagnostic)
+    private static async Task<string> ApplyAsync(
+        CodeFixProvider provider, Document document, Diagnostic diagnostic, string? equivalenceKey = null)
     {
         var actions = await CollectActionsAsync(provider, document, diagnostic);
         Assert.NotEmpty(actions);
 
-        var operations = await actions[0].GetOperationsAsync(CancellationToken.None);
+        var action = equivalenceKey is null
+            ? actions[0]
+            : actions.Single(a => a.EquivalenceKey == equivalenceKey);
+        var operations = await action.GetOperationsAsync(CancellationToken.None);
         var applied = operations.OfType<ApplyChangesOperation>().Single();
         var changedDocument = applied.ChangedSolution.GetDocument(document.Id)!;
         var text = await changedDocument.GetTextAsync();

@@ -92,7 +92,8 @@ internal sealed class LifecycleSyncContext : SynchronizationContext
         // inline without acquiring the lock — re-entering an in-progress render.
         using (ExecutionContext.SuppressFlow())
         {
-            Task.Run(() =>
+            // Discarded on purpose: this is the continuation itself, with nothing to await it (RASK093).
+            _ = Task.Run(() =>
             {
                 try
                 {

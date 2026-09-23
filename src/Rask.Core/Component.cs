@@ -1048,7 +1048,8 @@ public abstract partial class Component : RaskMarkup
         // top of method). Without that flag, multi-component trees cascade infinitely:
         // A's publish render fires B's OnRendered, B's continuation publishes,
         // which fires A's OnRendered again, ad infinitum.
-        task.ContinueWith(static (t, state) =>
+        // Discarded on purpose: the continuation IS the work, and nothing awaits it (RASK093).
+        _ = task.ContinueWith(static (t, state) =>
         {
             var comp = (Component)state!;
             if (t.IsFaulted)
@@ -1983,7 +1984,8 @@ public abstract partial class Component : RaskMarkup
             return;
         }
 
-        t.ContinueWith(static (task, state) =>
+        // Discarded on purpose: the continuation IS the work, and nothing awaits it (RASK093).
+        _ = t.ContinueWith(static (task, state) =>
         {
             var (comp, doRerender) = ((Component, bool))state!;
             if (task.IsFaulted)

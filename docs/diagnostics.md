@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK092, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK093, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -126,6 +126,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK090](#rask090) | Warning | Two entities want one DbContext set name, so neither is generated |
 | [RASK091](#rask091) | Warning | A child cannot choose its own form writes — its root decides |
 | [RASK092](#rask092) | Warning | A unit reads wrong for its count (`2.Hour`, `1.Hours`) |
+| [RASK093](#rask093) | Error | An awaitable result is dropped, so the call never runs |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -2350,3 +2351,70 @@ singular.
 await Task.Delay(2.Seconds);
 o.MaxFileSize = 1.Megabyte;
 ```
+
+## RASK093
+
+**An awaitable result is dropped** · Error · quick-fix
+
+A call that hands back something awaitable has not run when it returns — awaiting it is what runs it.
+Rask's timing steps are built this way, so nothing is queued, stored or written until the `await`:
+
+```csharp
+void Register(User user)
+{
+    Mail.Send(Email.To(user.Email).Subject("Welcome"));   // ❌ RASK093: does nothing
+    Jobs.Enqueue(new SendOnboardingTips(user.Id)).In(24.Hours);   // ❌ RASK093: does nothing
+}
+```
+
+Inside an `async` method the compiler already refuses this (CS4014, an error under
+warnings-as-errors). This rule covers the half it leaves open: anywhere that is not async, where the same
+line compiles clean, sends no mail, queues no job and reports nothing at all.
+
+**The one that bites hardest is an event handler.** Every event prop takes either a plain `Action` or a
+`Func<Task>`, so a lambda whose body is a builder binds to `Action` — the value is discarded, and the line
+looks exactly like the one that works:
+
+```csharp
+Button.OnClick(() => Mail.Send(email))["Send"]          // ❌ RASK093: binds to Action, sends nothing
+Button.OnClick(async () => await Mail.Send(email))["Send"]   // ✅ what you meant
+```
+
+It fires on any awaitable — Rask's builders, a `Task`, a `ValueTask`, one of your own — and on all three
+shapes that drop a value:
+
+```csharp
+Mail.Send(email);                      // ❌ a statement
+void Register() => Mail.Send(email);   // ❌ an expression body returning void
+El.OnClick(() => Mail.Send(email));    // ❌ a lambda bound to a void delegate
+```
+
+**Fix:** take the lightbulb, which offers the two honest intentions.
+
+*Await it* — you meant to wait. A `void` method becomes `async Task`, because `async void` swallows the
+exception and takes the process down with it:
+
+```csharp
+async Task Register(User user)
+{
+    await Mail.Send(Email.To(user.Email).Subject("Welcome"));
+    await Jobs.Enqueue(new SendOnboardingTips(user.Id)).In(24.Hours);
+}
+```
+
+*Discard it* — you meant to let it run unwatched, which is what a fire-and-forget continuation is:
+
+```csharp
+_ = Task.Run(() => Drain(queue));
+```
+
+The discard is not a way to silence the rule; it is the rule's point. Unwatched work is a real choice, and
+`_ =` is how C# writes it down so the next reader can see it was one.
+
+A builder held in a variable is left alone, because awaiting it later is a legitimate shape:
+
+```csharp
+var sending = Mail.Send(email).In(24.Hours);
+await sending;
+```
+
