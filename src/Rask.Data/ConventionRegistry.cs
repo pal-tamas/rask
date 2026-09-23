@@ -32,6 +32,7 @@ public static class ConventionRegistry
     private static readonly ConcurrentDictionary<Type, Concurrency> DeclaredChecks = new();
     private static readonly ConcurrentDictionary<Type, List<ValueCollection>> DeclaredCollections = new();
     private static readonly ConcurrentDictionary<Type, Tenancy> DeclaredScopes = new();
+    private static readonly ConcurrentDictionary<Type, Broadcasts> DeclaredBroadcasts = new();
 
     /// <summary>Records what <paramref name="entity" /> declared. Called by generated code.</summary>
     /// <param name="entity">The entity type.</param>
@@ -49,6 +50,15 @@ public static class ConventionRegistry
     {
         ArgumentNullException.ThrowIfNull(entity);
         DeclaredDeletes[entity] = deletes;
+    }
+
+    /// <summary>Records what <paramref name="entity" /> declared. Called by generated code.</summary>
+    /// <param name="entity">The entity type.</param>
+    /// <param name="broadcasts">The value of its <c>Broadcast</c> const.</param>
+    public static void Declare(Type entity, Broadcasts broadcasts)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+        DeclaredBroadcasts[entity] = broadcasts;
     }
 
     /// <summary>Records what <paramref name="entity" /> declared. Called by generated code.</summary>
@@ -122,6 +132,11 @@ public static class ConventionRegistry
     /// <param name="entity">The entity type.</param>
     internal static Concurrency ChecksFor(Type entity) =>
         DeclaredChecks.TryGetValue(entity, out var checks) ? checks : Concurrency.Version;
+
+    /// <summary>Whether a save of <paramref name="entity" /> is announced process-wide. It is not unless it asked.</summary>
+    /// <param name="entity">The entity type.</param>
+    internal static Broadcasts BroadcastsFor(Type entity) =>
+        DeclaredBroadcasts.TryGetValue(entity, out var broadcasts) ? broadcasts : Broadcasts.Never;
 }
 
 /// <summary>One collection of values an entity holds, as the generator read it.</summary>

@@ -158,6 +158,10 @@ internal sealed class DataChangesInterceptor : SaveChangesInterceptor, IDbTransa
                         + "or the caller retries a write that already happened.")]
     private static void Notify(HashSet<Type> types)
     {
+        // Process-wide first, and deliberately outside the scope check below: an entity that announces itself is
+        // telling every open page, and a background job's save has no session of its own to tell.
+        Announce(types);
+
         if (Db.ScopeServices is not { } scope)
         {
             return;
@@ -172,6 +176,48 @@ internal sealed class DataChangesInterceptor : SaveChangesInterceptor, IDbTransa
             catch (Exception)
             {
                 // See the justification: a stale screen is recoverable, a duplicated write is not.
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Publishes a <c>DataChanged</c> for each written entity that declared <c>Broadcast = Broadcasts.OnCommit</c>,
+    ///     which is what a query's <c>Live()</c> listens for.
+    /// </summary>
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "Same reason as Notify: the save has committed, and a feed that refused the announcement "
+                        + "must not surface as a failed save.")]
+    private static void Announce(HashSet<Type> types)
+    {
+        if (!Cqrs.Notify.IsConfigured)
+        {
+            return;
+        }
+
+        foreach (var type in types)
+        {
+            if (ConventionRegistry.BroadcastsFor(type) != Broadcasts.OnCommit)
+            {
+                continue;
+            }
+
+            try
+            {
+                // Not awaited: the save is done and its caller is not waiting on anyone's screen. Subscribers are
+                // told inside the publish itself, before any handler runs, so nothing is lost by letting go here.
+                _ = Cqrs.Notify
+                    .Send(new Cqrs.DataChanged(type.FullName ?? type.Name, DateTimeOffset.UtcNow))
+                    .ContinueWith(
+                        static completed => _ = completed.Exception,
+                        CancellationToken.None,
+                        TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+                        TaskScheduler.Default);
+            }
+            catch (Exception)
+            {
+                // See the justification above.
             }
         }
     }

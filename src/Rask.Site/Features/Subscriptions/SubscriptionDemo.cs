@@ -3,10 +3,10 @@ using Rask.Query;
 
 namespace Rask.Site.Features;
 
-// Publishes through the dispatcher, the same call a command handler or a background job makes. It holds no reference to
-// the boards below — they only subscribe to OrderPlaced — so a board anywhere else (or, on a server, in anyone else's
-// open tab) would receive the same order.
-public sealed partial class SubscriptionDemo(IDispatcher dispatcher) : Component
+// Publishes with Notify.Send, the same call a command handler or a background job makes and with nothing injected. It
+// holds no reference to the boards below — they only subscribe to OrderPlaced — so a board anywhere else (or, on a
+// server, in anyone else's open tab) would receive the same order.
+public sealed partial class SubscriptionDemo : Component
 {
     private static readonly string[] Items = ["anvil", "rocket skates", "giant magnet", "earthquake pills"];
 
@@ -38,7 +38,7 @@ public sealed partial class SubscriptionDemo(IDispatcher dispatcher) : Component
     };
 
     private Task PlaceOrderAsync() =>
-        dispatcher.PublishAsync(new OrderPlaced(++_placed, Items[(_placed - 1) % Items.Length]));
+        Notify.Send(new OrderPlaced(++_placed, Items[(_placed - 1) % Items.Length]));
 
-    private Task ShipOrderAsync() => dispatcher.PublishAsync(new OrderShipped(_placed));
+    private Task ShipOrderAsync() => Notify.Send(new OrderShipped(_placed));
 }

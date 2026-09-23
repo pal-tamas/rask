@@ -61,6 +61,12 @@ public static class CqrsServiceCollectionExtensions
 
         services.TryAddSingleton(execution);
 
+        // Notify.Send has no provider of its own. Two hooks, because neither covers everything: the hosted service
+        // runs before anything is dispatched but only in a host, and NotifyRoot covers every container — a browser
+        // app, a test — but only once something resolves a dispatcher. Both are idempotent.
+        services.TryAddSingleton<NotifyRoot>();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, NotifyBinding>());
+
         // Apply the generated handler registrations (populated by [ModuleInitializer]s at module load).
         CqrsRegistry.ApplyRegistrations(services, options.HandlerLifetime);
 

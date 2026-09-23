@@ -14,6 +14,38 @@ them until tagged releases begin.
   template. The templates that compile Tailwind (`server`, `wasm`, `wasm-hosted`) also get class completion inside
   `Div.Class("…")` and recommend the Tailwind CSS IntelliSense extension. The scaffolded `.gitignore` re-includes the
   file. An existing app adds `!/.vscode/settings.json` and copies the file from a fresh scaffold (`docs/cli.md`).
+- **A live query refreshes itself: `[Live(typeof(Order))]`.** A save already refreshes the screen of the session that
+  made it, free and with no call. Being live is for everyone else's writes — another visitor's command, a background
+  job — and it is declared where the query is, never at the call site:
+  ```csharp
+  [Live(typeof(Order))]
+  public sealed record GetOrders(int Page) : IQuery<IReadOnlyList<OrderRead>>;
+
+  var orders = QueryClient.Query(new GetOrders(Page));   // Render is untouched
+  ```
+  The read-side mirror of `[Invalidates]`, and declared for the same reason: a message query is keyed by itself, so a
+  write cannot know which message types read the table. **A query keyed by the thing it reads needs no attribute** —
+  `QueryKey.For<Order>(…)`, a Rask.Data read face, is live the moment the model opts in. Authorization comes free and
+  stays closed: the query already decided who may read it, so a refresh of it is admitted by the same rule. One
+  listener serves every live query in a session, and the change a subscription replays when it opens is ignored, so a
+  page costs no second fetch.
+- **An entity announces its own saves: `public const Broadcasts Broadcast = Broadcasts.OnCommit;`.** The fifth const
+  beside `Writes`/`Stamps`/`Deletes`/`Checks`, and the publishing half of `Live()` — Rails' `after_update_commit`
+  without the callback. Announcing happens after the commit, never on a rollback, and needs no session, so a
+  background job's write reaches open pages; `IDataChanges` could not, being the saving session's own. Off by default,
+  so nothing is published for a table no page watches.
+- **`Notify.Send(…)` publishes a notification with nothing injected.** `IDispatcher` is transient and reaches handlers
+  through the provider that built it, so publishing from a singleton meant opening a scope by hand. Laravel's
+  `event()`, in Rask's shape:
+  ```csharp
+  public sealed class ReportWorker : BackgroundService
+  {
+      protected override Task ExecuteAsync(CancellationToken stoppingToken) =>
+          Notify.Send(new ReportReady(reportId), stoppingToken);
+  }
+  ```
+  It is the same publish — subscribers first, then the handlers — and injecting `IDispatcher` where one is to hand
+  stays right. It uses the scope `Notify.UseScope` bound, else one of its own, disposed once the handlers finish.
 - **Subscriptions: `QueryClient.Subscribe<T>()`, tRPC-style, over CQRS notifications.** A component subscribes where it
   queries — `var placed = QueryClient.Subscribe<OrderPlaced>().Keep(20);` in `Render`, or
   `QueryClient.Subscribe(new WatchOrder(Id))` — and every notification published afterwards re-renders it, whoever

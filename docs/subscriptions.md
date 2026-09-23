@@ -172,8 +172,21 @@ out, `Status` is `Ended`; when it throws, the subscription reopens it.
 Everything that publishes a notification reaches subscribers, because they are the same notification:
 
 - **A command handler** or any code with `IDispatcher` — `dispatcher.PublishAsync(new OrderShipped(id, "Shipped"))`.
-- **A background job** — a job's handler publishes the same way, so progress and "your report is ready" reach the page that
-  is waiting for them.
+- **A background job or a hosted service** — `Notify.Send(new ReportReady(id), ct)`, with nothing injected, so progress
+  and "your report is ready" reach the page that is waiting for them:
+
+  ```csharp
+  public sealed class ReportWorker : BackgroundService
+  {
+      protected override Task ExecuteAsync(CancellationToken stoppingToken) =>
+          Notify.Send(new ReportReady(reportId), stoppingToken);
+  }
+  ```
+
+  `IDispatcher` is registered transient and reaches its handlers through the provider that built it, so publishing from
+  a singleton would otherwise mean opening a scope by hand. `Notify.Send` does that part, and is the same publish in
+  every other respect. Where a dispatcher is already to hand — a command handler, an endpoint — injecting it stays
+  exactly right, and is what the facade does underneath.
 - **A domain event** raised by an aggregate is published after its save commits ([Rask.Data](data.md)), and one relayed by
   the [outbox](outbox.md) is published when it is relayed.
 
@@ -245,6 +258,12 @@ the event stream's keep-alive is `Rask:Cqrs:Server:EventKeepAlive` (`00:00:15`).
 
 - **Not a queue.** Beyond the one replayed value, delivery is at most once, to the subscriptions open when it is published.
   When a page needs the current state rather than the latest change, query it, and patch the query with `.Into`.
+- **Not the first thing to reach for.** Most "real-time" in an ordinary application is not an event at all — it is a
+  list that should not go stale. That needs no notification, no subscription record and no watch policy:
+  a query that reads orders refetches when anyone writes one — `[Live(typeof(Order))]` on the query message, or a
+  key that already names the entity — and the query's own authorization says who may see it. See [live queries](query.md#staying-fresh). Subscriptions are for what is
+  genuinely an event — a chat message, a price tick, job progress, "your export is ready" — where there is no query to
+  refresh.
 - **Not beyond its own process** — below.
 
 ## One process, for now

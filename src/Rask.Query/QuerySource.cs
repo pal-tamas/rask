@@ -12,8 +12,13 @@ internal readonly record struct QueryTarget(QueryKey Key, Func<CancellationToken
     public static QueryTarget Paused { get; } =
         new(QueryKey.Of(typeof(QueryTarget), "paused"), static _ => Task.FromResult<object?>(null), IsPaused: true);
 
-    public static QueryTarget ForMessage<TResult>(SessionQueryClient client, IQuery<TResult> message) =>
-        new(MessageKey.For(message), client.DispatchFetch(message), IsPaused: false);
+    public static QueryTarget ForMessage<TResult>(SessionQueryClient client, IQuery<TResult> message)
+    {
+        // A lambda query's message does not exist until the lambda has run, so [Live] is read here rather than
+        // where the query was declared — otherwise a dependent query would never be live.
+        client.WatchDeclared(message);
+        return new(MessageKey.For(message), client.DispatchFetch(message), IsPaused: false);
+    }
 
     /// <summary>
     ///     <c>[..prefix, input]</c>, fetched with the same <paramref name="input" /> the key was built from

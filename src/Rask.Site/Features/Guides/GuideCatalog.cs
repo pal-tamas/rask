@@ -299,10 +299,10 @@ public static class GuideCatalog
             SearchTitle = "Virtualized lists, toasts and drag and drop",
             Description = "Render windowed lists with Virtualize, keep list identity with keys, and add toast messages, drag-and-drop and error boundaries to C# web components.",
         },
-        new("subscriptions", "Subscriptions", "Publish an event; every page subscribed to it re-renders — narrowed by a record, authorized by a policy.", "Core")
+        new("subscriptions", "Subscriptions", "Keep a page current: a live query, or an event published to every page subscribed to it.", "Core")
         {
-            SearchTitle = "Real-time subscriptions in C# — tRPC-style, over CQRS",
-            Description = "Push events to open pages in C# with QueryClient.Subscribe: a published CQRS notification re-renders every subscribed component, narrowed by a record.",
+            SearchTitle = "Live queries and real-time subscriptions in C#",
+            Description = "Keep C# pages current: Live() refetches a query when anyone writes, and QueryClient.Subscribe pushes real events to every subscribed component.",
         },
         new("lifecycle", "Lifecycle", "Mount, props-changed, rendered, unmount, cancellation.", "Core")
         {

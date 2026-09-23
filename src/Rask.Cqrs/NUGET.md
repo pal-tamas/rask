@@ -48,6 +48,12 @@ To watch the events about one thing, write an `ISubscription<T>` record saying w
 .SubscribeAsync(new WatchOrder(id), ct)` — admitted by its own `IWatchPolicy<WatchOrder>`; none registered means nobody
 may open it.
 
+Publishing from a singleton — a `BackgroundService`, a timer — takes no dispatcher and no scope of its own:
+
+```csharp
+await Notify.Send(new ReportReady(reportId), stoppingToken);
+```
+
 ## Pipeline behaviors
 
 Cross-cutting concerns (logging, validation, transactions, caching) are decorators — implement
