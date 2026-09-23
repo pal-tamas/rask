@@ -77,12 +77,12 @@ than code — edit the `Rask:Mail` section `rask new` wrote into `appsettings.js
 ## 3. Send it from the job
 
 Remember the `SendOrderReceipt` job from Chapter 4? That's exactly where the email belongs — off the request
-thread. Inject `IMail` into the handler and send:
+thread. The handler sends with nothing injected:
 
 ```csharp
 using Shop.Features.Orders;   // for Order
 
-public sealed class SendOrderReceiptHandler(IMail mail) : ICommandHandler<SendOrderReceipt>
+public sealed class SendOrderReceiptHandler : ICommandHandler<SendOrderReceipt>
 {
     public async Task Handle(SendOrderReceipt job)
     {
@@ -90,11 +90,10 @@ public sealed class SendOrderReceiptHandler(IMail mail) : ICommandHandler<SendOr
         if (order is null) return;
 
         // Hard-coded recipient for now — Order has no customer-email field yet; add one and use it here.
-        await mail.SendAsync(
+        await Mail.Send(
             Email.To("customer@example.com")
                  .Subject($"Your order {order.Id}")
-                 .Body(OrderReceipt.OrderId(order.Id).Total(order.Total)),
-            Current.Cancellation);
+                 .Body(OrderReceipt.OrderId(order.Id).Total(order.Total)));
     }
 }
 ```
@@ -105,8 +104,9 @@ the handler checks before sending.
 `Email.To(...)` is a fluent builder — chain `Subject(...)`, `Cc/Bcc`, `Attach(...)`, and `Body(component)`,
 which renders your component to HTML right there. Note `Body(OrderReceipt.OrderId(…).Total(…))` builds the
 component with its **chain**, not `new OrderReceipt(...)` — every Rask component is built that way (the
-framework enforces it, [RASK014](../diagnostics.md#rask014)), and each public property is one step. `SendAsync`
-just queues the row; the background sender delivers it. You now have the full chain: **place order → enqueue job
+framework enforces it, [RASK014](../diagnostics.md#rask014)), and each public property is one step. `Mail.Send`
+just queues the row — nothing is injected, because it reaches the mail of the work it runs in — and the
+background sender delivers it. You now have the full chain: **place order → enqueue job
 → job sends email**, none of it on the customer's request.
 
 ## Verify

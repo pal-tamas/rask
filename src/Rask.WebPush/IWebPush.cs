@@ -27,7 +27,7 @@ public interface IWebPush
     /// <param name="message">What to deliver.</param>
     /// <param name="cancellationToken">Cancels the send.</param>
     /// <returns>The outcome, classified by what to do next.</returns>
-    Task<WebPushResult> SendAsync(
+    Task<WebPushResult> Send(
         PushSubscription subscription,
         WebPushMessage message,
         CancellationToken cancellationToken = default);

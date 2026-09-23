@@ -38,7 +38,7 @@ public sealed class RaskMailOptionsBindingTests
 
         Assert.Equal("smtp.example.test", options.Smtp!.Host);
         Assert.Equal(2525, options.Smtp.Port);
-        Assert.IsType<MailKitMailSender>(provider.GetRequiredService<IMailSender>());
+        Assert.IsType<MailKitSender>(provider.GetRequiredService<IMailSender>());
     }
 
     [Fact]

@@ -14,7 +14,7 @@ public sealed class Rfc8291RoundTripTests
         var sender = TestSender.Create(handler);
         var sub = new PushSubscription(TestSender.Endpoint, client.P256dhB64, client.AuthB64);
 
-        WebPushResult result = await sender.SendAsync(sub, message);
+        WebPushResult result = await sender.Send(sub, message);
 
         Assert.True(result.IsSuccess);
         byte[] plaintext = TestCrypto.Decrypt(handler.Body, client);
@@ -57,8 +57,8 @@ public sealed class Rfc8291RoundTripTests
         var h1 = new RecordingHandler();
         var h2 = new RecordingHandler();
 
-        await TestSender.Create(h1).SendAsync(sub, WebPushMessage.Text("A"));
-        await TestSender.Create(h2).SendAsync(sub, WebPushMessage.Text("A"));
+        await TestSender.Create(h1).Send(sub, WebPushMessage.Text("A"));
+        await TestSender.Create(h2).Send(sub, WebPushMessage.Text("A"));
 
         // Same plaintext, but the ciphertext differs (random salt + ephemeral key each time)...
         Assert.False(h1.Body.AsSpan().SequenceEqual(h2.Body));

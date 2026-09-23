@@ -10,7 +10,7 @@ namespace Rask.Mail;
 public sealed partial class LogMailSender(ILogger<LogMailSender> logger) : IMailSender
 {
     /// <inheritdoc/>
-    public Task SendAsync(OutgoingMail mail, CancellationToken cancellationToken = default)
+    public Task Send(OutgoingMail mail, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(mail);
         LogMail(logger, string.Join(", ", mail.To.Select(a => a.Address)), mail.Subject);

@@ -48,8 +48,8 @@ public sealed partial class WebPushSender : IWebPush
         _logger = logger ?? NullLogger<WebPushSender>.Instance;
     }
 
-    /// <inheritdoc cref="IWebPush.SendAsync" />
-    public async Task<WebPushResult> SendAsync(
+    /// <inheritdoc cref="IWebPush.Send" />
+    public async Task<WebPushResult> Send(
         PushSubscription subscription,
         WebPushMessage message,
         CancellationToken cancellationToken = default)

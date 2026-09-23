@@ -10,5 +10,5 @@ namespace Rask.Mail;
 public interface IMailSender
 {
     /// <summary>Delivers <paramref name="mail"/>. Throw to signal a failure the processor should retry.</summary>
-    Task SendAsync(OutgoingMail mail, CancellationToken cancellationToken = default);
+    Task Send(OutgoingMail mail, CancellationToken cancellationToken = default);
 }

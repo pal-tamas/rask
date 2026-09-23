@@ -47,7 +47,7 @@ public sealed class RecordingMailSender : IMailSender
 
     public int Attempts => Volatile.Read(ref _attempts);
 
-    public async Task SendAsync(OutgoingMail mail, CancellationToken cancellationToken = default)
+    public async Task Send(OutgoingMail mail, CancellationToken cancellationToken = default)
     {
         var n = Interlocked.Increment(ref _attempts);
         if (AlwaysFail || n <= FailFirst)

@@ -228,7 +228,7 @@ public sealed class MailProcessor<TContext>(
                 // tenant-scoped table would otherwise throw, since background work carries no principal.
                 using var tenant = message.TenantId is { } owner ? Tenant.Use(owner) : null;
 
-                await sender.SendAsync(outgoing, graceToken).ConfigureAwait(false);
+                await sender.Send(outgoing, graceToken).ConfigureAwait(false);
                 message.ProcessedAt = timeProvider.GetUtcNow().UtcDateTime;
                 message.Error = null;
                 Release(message);

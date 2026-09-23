@@ -122,7 +122,7 @@ Catch **both**: a rejection caught in the browser is a `RaskValidationException`
 could not evaluate — a `MustAsync` that needs the database — comes back from the server as a
 `RemoteDispatchException` whose `Errors` carry the same field map.
 
-Notifications are not validated. `PublishAsync` does not go through the request pipeline, so a rule on
+Notifications are not validated. `Publish` does not go through the request pipeline, so a rule on
 a notification would be enforced nowhere; put it on the command that raises the notification instead.
 
 ## HTTP endpoints

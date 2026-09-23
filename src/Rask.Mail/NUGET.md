@@ -5,10 +5,10 @@ request thread, with no broker or Redis.
 
 - Compose with a fluent **`Email`** builder; the body is a **Rask component rendered to HTML**, so an email
   template is just another component.
-- Call **`IMail.SendAsync(email)`** and it persists one `QueuedMail` row; a background **`MailProcessor`**
+- Call **`Mail.Send(email)`** and it persists one `QueuedMail` row; a background **`MailProcessor`**
   delivers it over SMTP — **at-least-once**, with **exponential-backoff** retries up to `MaxAttempts` (then
   left as a dead letter for inspection).
-- **Delayed** send with `ScheduleAsync(email, delay)`.
+- **Delayed** send with `Mail.Send(email).In(24.Hours)` or `.At(moment)`.
 - **Zero-config in development** — with no SMTP configured, mail is logged; point `Rask:Mail:PickupDirectory` at a folder
   to write `.eml` files instead. Production sends over SMTP via [MailKit](https://github.com/jstedfast/MailKit).
 
@@ -49,12 +49,12 @@ after the section and wins.
 
 ```csharp
 // send from anywhere IMail is injected — a component, or any class marked [RaskMarkup], where the chain lives:
-await mail.SendAsync(Email
+await mail.Send(Email
     .To(user.Email, user.Name)
     .Subject("Welcome")
     .Body(WelcomeEmail.Name(user.Name)));   // the chain, not new (RASK014)
 
-await mail.ScheduleAsync(reminder, delay: TimeSpan.FromHours(24));
+await mail.Send(reminder).In(TimeSpan.FromHours(24));
 ```
 
 Register your context as an `IDbContextFactory<AppDbContext>`. Several instances is safe: each processor

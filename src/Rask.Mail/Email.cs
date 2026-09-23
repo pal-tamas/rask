@@ -17,7 +17,7 @@ public sealed record EmailAttachment(string FileName, string ContentType, byte[]
 /// <summary>
 /// A fluent builder for an email. Start with <see cref="To(string, string?)"/>, chain recipients, a
 /// <see cref="Subject"/>, and a body — <see cref="Body(Component)"/> renders a Rask component to HTML,
-/// <see cref="Html(string)"/> takes the HTML directly — then hand it to <see cref="IMail.SendAsync"/>. After building
+/// <see cref="Html(string)"/> takes the HTML directly — then hand it to <c>Mail.Send(email)</c>. After building
 /// it holds only strings and bytes, so it serializes to a <see cref="QueuedMail"/> row trivially.
 /// </summary>
 public sealed class Email

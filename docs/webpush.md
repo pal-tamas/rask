@@ -91,7 +91,7 @@ public sealed class Notifier(IWebPush sender, ISubscriptionStore store)
     {
         foreach (var sub in await store.ForUserAsync(userId, ct))
         {
-            var result = await sender.SendAsync(sub, WebPushMessage.Text(title, body, url), ct);
+            var result = await sender.Send(sub, WebPushMessage.Text(title, body, url), ct);
 
             if (result.ShouldDelete) await store.RemoveAsync(sub, ct);   // 404/410 — subscription is gone
             else if (result.ShouldRetry) { /* 429/5xx — enqueue and try later (e.g. via Rask.Jobs) */ }
@@ -114,7 +114,7 @@ public sealed class Notifier(IWebPush sender, ISubscriptionStore store)
   the common case; `WebPushMessage.Raw(json)` (or setting `RawPayload`) sends a hand-built payload verbatim for
   your own worker. `Urgency` ([RFC 8030](https://www.rfc-editor.org/rfc/rfc8030) §5.3), `Ttl`, and `Topic` (a
   ≤32-char collapse key) map to the corresponding push-service semantics.
-- **`IWebPush.SendAsync`** — signs (VAPID), encrypts (aes128gcm), and POSTs via an `IHttpClientFactory`
+- **`IWebPush.Send`** — signs (VAPID), encrypts (aes128gcm), and POSTs via an `IHttpClientFactory`
   typed client, returning a **`WebPushResult`**.
 - **`WebPushResult`** — classifies the outcome so the caller knows what to do: `IsSuccess`, `ShouldDelete`
   (HTTP 404/410 — the subscription expired, remove it from your store), `ShouldRetry` (429/5xx — transient,

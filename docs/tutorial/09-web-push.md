@@ -121,7 +121,7 @@ public sealed class OrderShippedHandler(IWebPush sender, PushSubscriptionStore s
 
         foreach (var subscription in store.All)
         {
-            var result = await sender.SendAsync(subscription, message, Current.Cancellation);
+            var result = await sender.Send(subscription, message, Current.Cancellation);
 
             // A subscription that has expired (404/410) will never work again — drop it rather than
             // retrying forever. `ShouldDelete` and `ShouldRetry` map the status to the action, so the

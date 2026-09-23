@@ -18,7 +18,7 @@ public sealed class PickupDirectoryMailSender : IMailSender
     }
 
     /// <inheritdoc/>
-    public async Task SendAsync(OutgoingMail mail, CancellationToken cancellationToken = default)
+    public async Task Send(OutgoingMail mail, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(mail);
         Directory.CreateDirectory(_directory);

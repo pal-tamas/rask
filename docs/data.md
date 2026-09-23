@@ -1400,7 +1400,7 @@ overridden `ConfigureConventions`.
   Your handler just calls `db.Remove(entity)`; to restore, load with `IgnoreQueryFilters()` and clear
   `DeletedAt`.
 - **`DomainEventInterceptor`** — after the change commits, publishes each entity's `DomainEvents`
-  through `IDispatcher.PublishAsync` (in a fresh scope) and clears them. Any
+  through `IDispatcher.Publish` (in a fresh scope) and clears them. Any
   `INotificationHandler<T>` registered by `AddRaskCqrs()` reacts automatically.
 
   It **stands down on its own** when something else owns delivery — [`Rask.Outbox`](outbox.md) claims it by

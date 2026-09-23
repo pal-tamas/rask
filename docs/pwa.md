@@ -320,7 +320,7 @@ public sealed class Notifier(IWebPush sender, ISubscriptionStore store)
     {
         foreach (var sub in store.All)
         {
-            var result = await sender.SendAsync(sub, WebPushMessage.Text(
+            var result = await sender.Send(sub, WebPushMessage.Text(
                 "New message", "You have one unread item.", url: "/inbox"));
 
             if (result.ShouldDelete) store.Remove(sub);   // 404/410 — the subscription is gone

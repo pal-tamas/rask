@@ -46,7 +46,7 @@ Deployed, both keys come from the environment instead: `Rask__WebPush__VapidKeys
 builder.Services.AddRaskWebPush();   // reads Rask:WebPush; a callback here would run after it and win
 
 // ... inject IWebPush, then given a PushSubscription the browser sent you:
-var result = await sender.SendAsync(
+var result = await sender.Send(
     subscription,
     new WebPushMessage { Title = "Hello", Body = "from the server" },
     ct);
@@ -62,7 +62,7 @@ if (result.ShouldDelete) await store.RemoveAsync(subscription);
 - **Zero external deps** — ECDH, HKDF and AES-GCM come from `System.Security.Cryptography`.
 - Generate a VAPID key pair once with `VapidKeys.Generate()` and keep the private key server-side;
   hand the public key to the browser subscription.
-- `SendAsync` returns a `WebPushResult` whose `ShouldDelete` / `ShouldRetry` flags map the push
+- `Send` returns a `WebPushResult` whose `ShouldDelete` / `ShouldRetry` flags map the push
   service's response to the action to take on the subscription.
 
 Full documentation: <https://github.com/pal-tamas/rask/blob/main/docs/pwa.md>

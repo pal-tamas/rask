@@ -59,12 +59,12 @@ public sealed partial class CounterView(IDispatcher dispatcher) : Component
     private CounterState _view = new(0, []);
 
     protected override async Task OnMount() =>
-        _view = await dispatcher.QueryAsync(new GetCounterState(), CancellationToken);
+        _view = await dispatcher.Query(new GetCounterState(), CancellationToken);
 
     private async Task IncrementAsync()
     {
-        await dispatcher.SendAsync(new IncrementCounter(1), CancellationToken); // ICommand<int>
-        _view = await dispatcher.QueryAsync(new GetCounterState(), CancellationToken);
+        await dispatcher.Send(new IncrementCounter(1), CancellationToken); // ICommand<int>
+        _view = await dispatcher.Query(new GetCounterState(), CancellationToken);
     }
 }
 ```
@@ -84,7 +84,7 @@ public sealed class IncrementCounterHandler(CqrsCounterStore store, IDispatcher 
     public async Task<int> Handle(IncrementCounter command)
     {
         var value = store.IncrementBy(command.By);
-        await dispatcher.PublishAsync(new CounterIncremented(value), Current.Cancellation);
+        await dispatcher.Publish(new CounterIncremented(value), Current.Cancellation);
         return value;
     }
 }
@@ -263,10 +263,10 @@ file a user picked is passed straight to the handler, with nothing to convert an
 public sealed record AttachReceipt(int OrderId, RaskFile File) : ICommand;
 
 // The call site. Identical whether this page is server-rendered or running in the browser.
-await dispatcher.SendAsync(new AttachReceipt(orderId, picked));
+await dispatcher.Send(new AttachReceipt(orderId, picked));
 
 // Download: the file the handler returned, saved by the browser.
-navigator.Download(await dispatcher.QueryAsync(new ExportOrders(year)));
+navigator.Download(await dispatcher.Query(new ExportOrders(year)));
 ```
 
 The handler receives a `RaskFile` too, and reads it exactly as it would in-process:

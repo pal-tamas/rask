@@ -31,17 +31,14 @@ Rask.Mail.EmailAttachment.Equals(Rask.Mail.EmailAttachment? other) -> bool
 Rask.Mail.EmailAttachment.FileName.get -> string!
 Rask.Mail.EmailAttachment.FileName.init -> void
 Rask.Mail.IMail
-Rask.Mail.IMail.ScheduleAsync(Rask.Mail.Email! email, System.DateTimeOffset runAt, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-Rask.Mail.IMail.ScheduleAsync(Rask.Mail.Email! email, System.TimeSpan delay, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-Rask.Mail.IMail.SendAsync(Rask.Mail.Email! email, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Mail.IMailSender
-Rask.Mail.IMailSender.SendAsync(Rask.Mail.OutgoingMail! mail, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Mail.IMailSender.Send(Rask.Mail.OutgoingMail! mail, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Mail.LogMailSender
 Rask.Mail.LogMailSender.LogMailSender(Microsoft.Extensions.Logging.ILogger<Rask.Mail.LogMailSender!>! logger) -> void
-Rask.Mail.LogMailSender.SendAsync(Rask.Mail.OutgoingMail! mail, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-Rask.Mail.MailKitMailSender
-Rask.Mail.MailKitMailSender.MailKitMailSender(Rask.Mail.MailOptions! options) -> void
-Rask.Mail.MailKitMailSender.SendAsync(Rask.Mail.OutgoingMail! mail, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Mail.LogMailSender.Send(Rask.Mail.OutgoingMail! mail, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Mail.MailKitSender
+Rask.Mail.MailKitSender.MailKitSender(Rask.Mail.MailOptions! options) -> void
+Rask.Mail.MailKitSender.Send(Rask.Mail.OutgoingMail! mail, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Mail.MailMetrics
 Rask.Mail.MailMetrics.DeadLettered() -> void
 Rask.Mail.MailMetrics.Dispose() -> void
@@ -82,9 +79,6 @@ Rask.Mail.MailProcessor<TContext>
 Rask.Mail.MailProcessor<TContext>.MailProcessor(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! contextFactory, Microsoft.Extensions.DependencyInjection.IServiceScopeFactory! scopeFactory, Rask.Mail.MailOptions! options, System.TimeProvider! timeProvider, Rask.Mail.MailMetrics! metrics, Microsoft.Extensions.Logging.ILogger<Rask.Mail.MailProcessor<TContext!>!>! logger) -> void
 Rask.Mail.MailQueue<TContext>
 Rask.Mail.MailQueue<TContext>.MailQueue(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! contextFactory, Rask.Mail.MailOptions! options, System.TimeProvider! timeProvider) -> void
-Rask.Mail.MailQueue<TContext>.ScheduleAsync(Rask.Mail.Email! email, System.DateTimeOffset runAt, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-Rask.Mail.MailQueue<TContext>.ScheduleAsync(Rask.Mail.Email! email, System.TimeSpan delay, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-Rask.Mail.MailQueue<TContext>.SendAsync(Rask.Mail.Email! email, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Mail.OutgoingMail
 Rask.Mail.OutgoingMail.Attachments.get -> System.Collections.Generic.IReadOnlyList<Rask.Mail.EmailAttachment!>!
 Rask.Mail.OutgoingMail.Attachments.init -> void
@@ -107,7 +101,7 @@ Rask.Mail.OutgoingMail.To.get -> System.Collections.Generic.IReadOnlyList<Rask.M
 Rask.Mail.OutgoingMail.To.init -> void
 Rask.Mail.PickupDirectoryMailSender
 Rask.Mail.PickupDirectoryMailSender.PickupDirectoryMailSender(Rask.Mail.MailOptions! options) -> void
-Rask.Mail.PickupDirectoryMailSender.SendAsync(Rask.Mail.OutgoingMail! mail, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Mail.PickupDirectoryMailSender.Send(Rask.Mail.OutgoingMail! mail, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Mail.QueuedMail
 Rask.Mail.QueuedMail.Attachments.get -> string?
 Rask.Mail.QueuedMail.Attempts.get -> int
@@ -205,3 +199,18 @@ static Rask.Mail.MailModelBuilderExtensions.AddRaskMail(this Microsoft.EntityFra
 static Rask.Mail.QueuedMailReadAccess.extension(Rask.Mail.QueuedMail!).Read.get -> Rask.Data.ModelQuery<Rask.Mail.QueuedMailRead!>!
 static Rask.Mail.QueuedMailReadAccess.get_Read() -> Rask.Data.ModelQuery<Rask.Mail.QueuedMailRead!>!
 static Rask.Mail.RaskMailServiceCollectionExtensions.AddRaskMail<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Mail.MailOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+Rask.Mail.IMail.Add(Rask.Mail.Email! email, System.DateTimeOffset? at, System.TimeSpan? after, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Mail.Mail
+Rask.Mail.MailExtensions
+Rask.Mail.MailExtensions.extension(Rask.Mail.IMail!)
+Rask.Mail.MailExtensions.extension(Rask.Mail.IMail!).Send(Rask.Mail.Email! email, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Mail.Sending
+Rask.Mail.MailQueue<TContext>.Add(Rask.Mail.Email! email, System.DateTimeOffset? at, System.TimeSpan? after, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Mail.Sending
+Rask.Mail.Sending.AsTask() -> System.Threading.Tasks.Task!
+Rask.Mail.Sending.At(System.DateTimeOffset moment) -> Rask.Mail.Sending
+Rask.Mail.Sending.ConfigureAwait(bool continueOnCapturedContext) -> System.Runtime.CompilerServices.ConfiguredTaskAwaitable
+Rask.Mail.Sending.GetAwaiter() -> System.Runtime.CompilerServices.TaskAwaiter
+Rask.Mail.Sending.In(System.TimeSpan delay) -> Rask.Mail.Sending
+Rask.Mail.Sending.Sending() -> void
+static Rask.Mail.Mail.Send(Rask.Mail.Email! email, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Mail.Sending
+static Rask.Mail.MailExtensions.Send(this Rask.Mail.IMail! mail, Rask.Mail.Email! email, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Mail.Sending

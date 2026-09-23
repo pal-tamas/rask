@@ -54,7 +54,7 @@ public sealed class MailSpy : IMail
     /// <summary>The last message sent to an address, or null when there is none.</summary>
     public SentMail? LastTo(string address) => _sent.FindLast(m => m.To == address);
 
-    public Task SendAsync(Email email, CancellationToken cancellationToken = default)
+    public Task Add(Email email, DateTimeOffset? at, TimeSpan? after, CancellationToken cancellationToken = default)
     {
         if (Throws)
         {
@@ -70,12 +70,6 @@ public sealed class MailSpy : IMail
 
         return Task.CompletedTask;
     }
-
-    public Task ScheduleAsync(Email email, TimeSpan delay, CancellationToken cancellationToken = default) =>
-        SendAsync(email, cancellationToken);
-
-    public Task ScheduleAsync(Email email, DateTimeOffset runAt, CancellationToken cancellationToken = default) =>
-        SendAsync(email, cancellationToken);
 }
 
 /// <summary>The application context an app would write, with the auth tables mapped onto it.</summary>

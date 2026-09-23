@@ -13,7 +13,7 @@ public sealed class WebPushSenderTests
         var handler = new RecordingHandler();
         using var client = TestCrypto.GenerateClient();
 
-        await TestSender.Create(handler).SendAsync(Sub(client),
+        await TestSender.Create(handler).Send(Sub(client),
             new WebPushMessage { Title = "T", Urgency = PushUrgency.High, Topic = "news" });
 
         HttpRequestMessage req = handler.Request!;
@@ -35,7 +35,7 @@ public sealed class WebPushSenderTests
         var handler = new RecordingHandler();
         using var client = TestCrypto.GenerateClient();
 
-        await TestSender.Create(handler).SendAsync(Sub(client),
+        await TestSender.Create(handler).Send(Sub(client),
             new WebPushMessage { Title = "T", Ttl = TimeSpan.FromMinutes(5) });
 
         Assert.Equal("300", handler.Request!.Headers.GetValues("TTL").Single());
@@ -47,7 +47,7 @@ public sealed class WebPushSenderTests
         var handler = new RecordingHandler();
         using var client = TestCrypto.GenerateClient();
 
-        await TestSender.Create(handler).SendAsync(Sub(client), WebPushMessage.Text("T"));
+        await TestSender.Create(handler).Send(Sub(client), WebPushMessage.Text("T"));
 
         Assert.False(handler.Request!.Headers.Contains("Topic"));
     }
@@ -58,7 +58,7 @@ public sealed class WebPushSenderTests
         var handler = new RecordingHandler();
         using var client = TestCrypto.GenerateClient();
 
-        await TestSender.Create(handler).SendAsync(Sub(client), new WebPushMessage());
+        await TestSender.Create(handler).Send(Sub(client), new WebPushMessage());
 
         Assert.Empty(handler.Body);
         Assert.Empty(handler.Request!.Content!.Headers.ContentEncoding); // no aes128gcm for a tickle.
@@ -78,7 +78,7 @@ public sealed class WebPushSenderTests
         var handler = new RecordingHandler(http);
         using var client = TestCrypto.GenerateClient();
 
-        WebPushResult result = await TestSender.Create(handler).SendAsync(Sub(client), WebPushMessage.Text("T"));
+        WebPushResult result = await TestSender.Create(handler).Send(Sub(client), WebPushMessage.Text("T"));
 
         Assert.Equal(expected, result.Status);
         Assert.Equal((int)http, result.StatusCode);
@@ -89,8 +89,8 @@ public sealed class WebPushSenderTests
     {
         using var client = TestCrypto.GenerateClient();
 
-        WebPushResult gone = await TestSender.Create(new RecordingHandler(HttpStatusCode.Gone)).SendAsync(Sub(client), WebPushMessage.Text("T"));
-        WebPushResult busy = await TestSender.Create(new RecordingHandler(HttpStatusCode.TooManyRequests)).SendAsync(Sub(client), WebPushMessage.Text("T"));
+        WebPushResult gone = await TestSender.Create(new RecordingHandler(HttpStatusCode.Gone)).Send(Sub(client), WebPushMessage.Text("T"));
+        WebPushResult busy = await TestSender.Create(new RecordingHandler(HttpStatusCode.TooManyRequests)).Send(Sub(client), WebPushMessage.Text("T"));
 
         Assert.True(gone.ShouldDelete);
         Assert.False(gone.ShouldRetry);
@@ -104,7 +104,7 @@ public sealed class WebPushSenderTests
         using var client = TestCrypto.GenerateClient();
         var sender = new WebPushSender(new HttpClient(new ThrowingHandler()), TestSender.Options());
 
-        WebPushResult result = await sender.SendAsync(Sub(client), WebPushMessage.Text("T"));
+        WebPushResult result = await sender.Send(Sub(client), WebPushMessage.Text("T"));
 
         Assert.Equal(WebPushStatus.TransientFailure, result.Status);
         Assert.True(result.ShouldRetry);
@@ -129,7 +129,7 @@ public sealed class WebPushSenderTests
         var sub = new PushSubscription(endpoint, client.P256dhB64, client.AuthB64);
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
-            TestSender.Create(handler).SendAsync(sub, WebPushMessage.Text("T")));
+            TestSender.Create(handler).Send(sub, WebPushMessage.Text("T")));
 
         Assert.Null(handler.Request); // never left the process.
     }
@@ -144,7 +144,7 @@ public sealed class WebPushSenderTests
             System.Buffers.Text.Base64Url.EncodeToString(new byte[9]));
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
-            TestSender.Create(handler).SendAsync(sub, WebPushMessage.Text("T")));
+            TestSender.Create(handler).Send(sub, WebPushMessage.Text("T")));
     }
 
     [Fact]
@@ -157,10 +157,10 @@ public sealed class WebPushSenderTests
         var a = new PushSubscription("https://fcm.googleapis.com/fcm/send/a", client.P256dhB64, client.AuthB64);
         var b = new PushSubscription("https://fcm.googleapis.com/fcm/send/b", client.P256dhB64, client.AuthB64);
 
-        await sender.SendAsync(a, WebPushMessage.Text("T"));
+        await sender.Send(a, WebPushMessage.Text("T"));
         string first = handler.Request!.Headers.GetValues("Authorization").Single();
 
-        await sender.SendAsync(b, WebPushMessage.Text("T"));
+        await sender.Send(b, WebPushMessage.Text("T"));
         string second = handler.Request!.Headers.GetValues("Authorization").Single();
 
         Assert.Equal(first, second);

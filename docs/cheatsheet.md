@@ -96,7 +96,7 @@ After any `modelBuilder.AddRask…` line: `rask db add <Name>` → `rask db upda
 
 ```csharp
 // Dispatch a query or command — one method, result type inferred from the message:
-var view = await dispatcher.QueryAsync(new GetProducts(), CancellationToken);   // IDispatcher, ctor-injected
+var view = await dispatcher.Query(new GetProducts(), CancellationToken);   // IDispatcher, ctor-injected
 
 // Type-safe URL for a routed page — never a string path:
 NavLink.Href(Routes.ProductsPage())["Catalog"];       // list page → <Plural>Page
@@ -116,7 +116,7 @@ var product  = await Product.CreateAsync(model, cancellationToken: CancellationT
 var edit     = product.ToModel();                                                               // fills an edit form
 await Product.UpdateAsync(id, edit, p => p.Touch(now), cancellationToken: CancellationToken);   // + values not from the form
 await Product.DeleteAsync(id, db: db, cancellationToken: CancellationToken);                   // join a context you hold
-await dispatcher.SendAsync(new EditProduct { Id = id, Name = name, Version = version }, CancellationToken);
+await dispatcher.Send(new EditProduct { Id = id, Name = name, Version = version }, CancellationToken);
 UiDataGrid.Data(Product.Read.AsQueryable()).RowKey(p => p.Id)[c => [ c.Field(p => p.Name) ]];   // pages in SQL
 
 // Cache an expensive read; forget it on write — nothing injected:

@@ -90,7 +90,7 @@ public sealed class MailUnitTests
         {
             var sender = new PickupDirectoryMailSender(new MailOptions { From = "x@example.com", PickupDirectory = dir });
 
-            await sender.SendAsync(new OutgoingMail
+            await sender.Send(new OutgoingMail
             {
                 From = new EmailAddress("noreply@example.com"),
                 To = [new EmailAddress("ada@example.com")],

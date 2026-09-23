@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Microsoft.EntityFrameworkCore;
 
 namespace Rask.Mail;
@@ -9,24 +10,15 @@ namespace Rask.Mail;
 /// <see cref="MailOptions.From"/> — so the stored row is self-contained.
 /// </summary>
 /// <typeparam name="TContext">The application <see cref="DbContext"/> that owns the mail table.</typeparam>
+[EditorBrowsable(EditorBrowsableState.Never)]
 public sealed class MailQueue<TContext>(IDbContextFactory<TContext> contextFactory, MailOptions options, TimeProvider timeProvider) : IMail
     where TContext : DbContext
 {
     /// <inheritdoc/>
-    public Task SendAsync(Email email, CancellationToken cancellationToken = default) =>
-        WriteAsync(email, timeProvider.GetUtcNow().UtcDateTime, cancellationToken);
-
-    /// <inheritdoc/>
-    public Task ScheduleAsync(Email email, TimeSpan delay, CancellationToken cancellationToken = default) =>
-        WriteAsync(email, timeProvider.GetUtcNow().UtcDateTime + delay, cancellationToken);
-
-    /// <inheritdoc/>
-    public Task ScheduleAsync(Email email, DateTimeOffset runAt, CancellationToken cancellationToken = default) =>
-        WriteAsync(email, runAt.UtcDateTime, cancellationToken);
-
-    private async Task WriteAsync(Email email, DateTime runAt, CancellationToken cancellationToken)
+    public async Task Add(Email email, DateTimeOffset? at, TimeSpan? after, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(email);
+        var runAt = (at ?? timeProvider.GetUtcNow() + (after ?? TimeSpan.Zero)).UtcDateTime;
         var from = email.FromAddress ?? new EmailAddress(options.From, options.FromName);
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var message = MailSerializer.ToQueuedMail(email, from, runAt, now);

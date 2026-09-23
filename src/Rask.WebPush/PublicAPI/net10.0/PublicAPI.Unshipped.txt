@@ -1,6 +1,5 @@
 #nullable enable
 Rask.WebPush.IWebPush
-Rask.WebPush.IWebPush.SendAsync(Rask.WebPush.PushSubscription! subscription, Rask.WebPush.WebPushMessage! message, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.WebPush.WebPushResult!>!
 Rask.WebPush.PushSubscription
 Rask.WebPush.PushSubscription.<Clone>$() -> Rask.WebPush.PushSubscription!
 Rask.WebPush.PushSubscription.Auth.get -> string!
@@ -74,7 +73,6 @@ Rask.WebPush.WebPushResult.StatusCode.get -> int?
 Rask.WebPush.WebPushResult.StatusCode.init -> void
 Rask.WebPush.WebPushResult.WebPushResult(Rask.WebPush.WebPushStatus Status, int? StatusCode = null, string? ReasonPhrase = null) -> void
 Rask.WebPush.WebPushSender
-Rask.WebPush.WebPushSender.SendAsync(Rask.WebPush.PushSubscription! subscription, Rask.WebPush.WebPushMessage! message, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.WebPush.WebPushResult!>!
 Rask.WebPush.WebPushSender.WebPushSender(System.Net.Http.HttpClient! http, Rask.WebPush.WebPushOptions! options, Microsoft.Extensions.Logging.ILogger<Rask.WebPush.WebPushSender!>? logger = null) -> void
 Rask.WebPush.WebPushServiceCollectionExtensions
 Rask.WebPush.WebPushStatus
@@ -106,3 +104,5 @@ static Rask.WebPush.WebPushMessage.operator ==(Rask.WebPush.WebPushMessage? left
 static Rask.WebPush.WebPushResult.operator !=(Rask.WebPush.WebPushResult? left, Rask.WebPush.WebPushResult? right) -> bool
 static Rask.WebPush.WebPushResult.operator ==(Rask.WebPush.WebPushResult? left, Rask.WebPush.WebPushResult? right) -> bool
 static Rask.WebPush.WebPushServiceCollectionExtensions.AddRaskWebPush(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.WebPush.WebPushOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+Rask.WebPush.IWebPush.Send(Rask.WebPush.PushSubscription! subscription, Rask.WebPush.WebPushMessage! message, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.WebPush.WebPushResult!>!
+Rask.WebPush.WebPushSender.Send(Rask.WebPush.PushSubscription! subscription, Rask.WebPush.WebPushMessage! message, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.WebPush.WebPushResult!>!

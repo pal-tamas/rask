@@ -14,7 +14,7 @@ public sealed class VapidJwtTests
         var handler = new RecordingHandler();
         using var client = TestCrypto.GenerateClient();
         var sub = new PushSubscription(TestSender.Endpoint, client.P256dhB64, client.AuthB64);
-        await TestSender.Create(handler, options).SendAsync(sub, WebPushMessage.Text("hi"));
+        await TestSender.Create(handler, options).Send(sub, WebPushMessage.Text("hi"));
         return handler.Request!.Headers.GetValues("Authorization").Single();
     }
 

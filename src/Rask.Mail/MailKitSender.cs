@@ -7,13 +7,13 @@ namespace Rask.Mail;
 /// The default <see cref="IMailSender"/> when <see cref="MailOptions.Smtp"/> is configured: builds a MIME
 /// message and sends it over SMTP with MailKit, opening and closing a fresh connection per message.
 /// </summary>
-public sealed class MailKitMailSender(MailOptions options) : IMailSender
+public sealed class MailKitSender(MailOptions options) : IMailSender
 {
     private readonly SmtpOptions _smtp = options.Smtp
-        ?? throw new ArgumentException("MailKitMailSender requires MailOptions.Smtp to be set.", nameof(options));
+        ?? throw new ArgumentException("MailKitSender requires MailOptions.Smtp to be set.", nameof(options));
 
     /// <inheritdoc/>
-    public async Task SendAsync(OutgoingMail mail, CancellationToken cancellationToken = default)
+    public async Task Send(OutgoingMail mail, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(mail);
         var message = MimeMailFactory.Build(mail);

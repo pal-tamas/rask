@@ -57,7 +57,7 @@ public static class RaskMailServiceCollectionExtensions
     {
         if (options.Smtp is not null)
         {
-            return new MailKitMailSender(options);
+            return new MailKitSender(options);
         }
 
         if (options.PickupDirectory is not null)

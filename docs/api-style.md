@@ -52,8 +52,8 @@ and its type a third time; `Search(LogQuery)` is what the operator at `/_rask` i
 
 ### 3. One concept, one verb, everywhere
 
-A verb means the same thing in every package. Ask for data with `QueryAsync`, tell the system to do
-something with `SendAsync`, announce that something happened with `PublishAsync` — in `Rask.Cqrs`, and
+A verb means the same thing in every package. Ask for data with `Query`, tell the system to do
+something with `Send`, announce that something happened with `Publish` — in `Rask.Cqrs`, and
 in anything that comes later.
 
 This is the rule the codebase broke worst. One `DispatchAsync` did three jobs, distinguished only by
@@ -61,10 +61,10 @@ parameter type, and the same operations were called `MutateAsync`, `FetchAsync` 
 over — four words for two ideas, so moving between two first-party packages meant relearning both.
 
 **Different semantics earn a different verb.** `Rask.Query`'s `Query(...)` deliberately does *not*
-share the mediator's `QueryAsync`: it returns an observable `Query<T>` that re-renders its component,
+share the mediator's `Query`: it returns an observable `Query<T>` that re-renders its component,
 not a `Task<T>` you await once. Two names because they are two things — which is the rule, not an
 exception to it. The test is whether a caller could swap one for the other and be right. Sending is
-the opposite case: `IQueryClient.SendAsync` is the dispatcher's `SendAsync` plus the invalidation the
+the opposite case: `IQueryClient.SendAsync` is the dispatcher's `Send` plus the invalidation the
 command declares, so it keeps the verb — and `Command<T>`, the renderable form, sends with it too.
 
 ### 4. Awaitables are awaited, not suffixed — and the token is ambient
@@ -185,16 +185,16 @@ What the rules above settled, so a new package has one place to look rather than
 
 | Idea | Noun | Verbs |
 |---|---|---|
-| Transactional email | `IMail` | `SendAsync`, `ScheduleAsync` |
+| Transactional email | `IMail` | `Send(email)`, `.In(24.Hours)`, `.At(moment)` |
 | Background work | `IJobs` | `Enqueue(job)`, `.In(24.Hours)`, `.At(moment)` |
 | Cache | `Cache` (static) / `ICache` | `Remember`, `Set`, `Get`, `Forget`; `.For`, `.Sliding`, `.Until` |
-| Mediator | `IDispatcher` | `QueryAsync`, `SendAsync`, `PublishAsync` |
+| Mediator | `IDispatcher` | `Query`, `Send`, `Publish` |
 | Cached reads | `QueryClient` (static) / `IQueryClient` | `Query`, `SendAsync`, `Command`, `Invalidate` |
 | Durable log | `ILogs` | `SearchAsync` |
 | SQLite connections | `ISqlite` | `InImmediateTransactionAsync` |
 | Time | `Clock` (static) | `Now`; `Clock.Fake(at:)` + `Advance` in tests |
 | Durations and sizes | `Units` (ambient) | `3.Seconds`, `1.Hour`, `50.Megabytes`, `3.Days.Ago`, `2.Hours.FromNow` |
-| Web Push | `IWebPush` | `SubscribeAsync` (browser), `SendAsync` (server) |
+| Web Push | `IWebPush` | `SubscribeAsync` (browser), `Send` (server) |
 
 `IWebPush` is deliberately one name on both sides of the wire, in two namespaces
 (`Rask.Core.Browser` subscribes, `Rask.WebPush` sends) over one shared `PushSubscription`. A file that
