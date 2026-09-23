@@ -105,6 +105,27 @@ public sealed class PackageDeclarationGeneratorTests
     }
 
     [Fact]
+    public void A_module_with_a_line_break_cannot_end_the_generated_doc_comment()
+    {
+        const string declaration =
+            """
+            namespace Shop;
+
+            public sealed partial class Mui : Rask.External.ReactPackage
+            {
+                protected override string Module => "@mui/material\n}\nclass Evil { }";
+                protected override string[] Exports => ["Button"];
+            }
+            """;
+
+        var run = Run(declaration);
+
+        Assert.DoesNotContain(
+            run.RunResult.Results.SelectMany(r => r.GeneratedSources),
+            s => s.SourceText.ToString().Contains("\nclass Evil", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void A_computed_exports_list_is_RASK059_naming_Exports()
     {
         const string declaration =
@@ -137,7 +158,44 @@ public sealed class PackageDeclarationGeneratorTests
             }
             """;
 
-        Assert.Contains(Run(declaration).Diagnostics, d => d.Id == "RASK056");
+        var run = Run(declaration);
+
+        Assert.Contains(run.Diagnostics, d => d.Id == "RASK056");
+        // Nothing generated for an island that was never declared: RASK056 is the only thing to read.
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
+    public void A_declaration_nested_in_another_class_compiles_and_names_itself_fully()
+    {
+        const string declaration =
+            """
+            namespace Shop;
+
+            public static partial class Vendors
+            {
+                public sealed partial class Mui : Rask.External.ReactPackage
+                {
+                    protected override string Module => "@mui/material";
+                    protected override string[] Exports => ["Button"];
+                }
+            }
+            """;
+
+        const string page =
+            """
+            namespace Shop;
+
+            public sealed partial class Page : Rask.Core.Component
+            {
+                protected override Rask.Core.Component? Render() => Vendors.Mui.Button["Save"];
+            }
+            """;
+
+        var run = Run(declaration, page);
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("cref=\"Shop.Vendors.Mui.Button\"", run.GeneratedSource("MuiButton.External"), StringComparison.Ordinal);
     }
 
     [Fact]

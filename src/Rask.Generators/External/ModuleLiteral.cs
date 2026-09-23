@@ -22,14 +22,21 @@ internal readonly record struct ModuleOverride(string? Value, bool Declared, boo
 /// </remarks>
 internal static class ModuleLiteral
 {
-    public static ModuleOverride Read(INamedTypeSymbol type) => Read(type, "Module");
+    public static ModuleOverride Read(INamedTypeSymbol type) => Read(type, "Module", exportOverride: false);
 
     /// <summary>The package export an island's <c>Export</c> override names, read the same way.</summary>
-    public static ModuleOverride ReadExport(INamedTypeSymbol type) => Read(type, "Export");
+    /// <remarks>
+    ///     Only the OVERRIDE of <c>ExternalComponent.Export</c> counts. An island may well have a prop of its own named
+    ///     <c>Export</c> — a chart's "export as PNG" flag — and reading that as the package export would report RASK059
+    ///     against a prop the author never meant as one and generate nothing. <c>=&gt; null</c> is the base's own
+    ///     default spelled out, so it reads as "no export", not as an expression the build cannot evaluate.
+    /// </remarks>
+    public static ModuleOverride ReadExport(INamedTypeSymbol type) => Read(type, "Export", exportOverride: true);
 
-    private static ModuleOverride Read(INamedTypeSymbol type, string name)
+    private static ModuleOverride Read(INamedTypeSymbol type, string name, bool exportOverride)
     {
-        var property = type.GetMembers(name).OfType<IPropertySymbol>().FirstOrDefault();
+        var property = type.GetMembers(name).OfType<IPropertySymbol>()
+            .FirstOrDefault(p => !exportOverride || (p.IsOverride && !p.IsStatic));
         if (property is null)
         {
             return default;
@@ -41,6 +48,11 @@ internal static class ModuleLiteral
             .Select(static r => r.GetSyntax())
             .OfType<PropertyDeclarationSyntax>()
             .FirstOrDefault();
+
+        if (exportOverride && IsNull(syntax?.ExpressionBody?.Expression ?? syntax?.Initializer?.Value))
+        {
+            return new ModuleOverride(null, true, false, location);
+        }
 
         if (Literal(syntax?.ExpressionBody?.Expression) is { } arrow)
         {
@@ -70,6 +82,9 @@ internal static class ModuleLiteral
 
         return new ModuleOverride(null, true, true, location);
     }
+
+    private static bool IsNull(ExpressionSyntax? expression) =>
+        expression is LiteralExpressionSyntax literal && literal.IsKind(SyntaxKind.NullLiteralExpression);
 
     /// <summary>The text of a string literal expression, or null for anything else.</summary>
     private static string? Literal(ExpressionSyntax? expression) =>

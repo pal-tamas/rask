@@ -76,6 +76,15 @@ public sealed class FindExternalPackageIslandsTask : Task
 
         foreach (var island in ExternalPackageScan.PackageIslands(sources, runtimes))
         {
+            if (!island.IsPackage && island.FromDeclaration)
+            {
+                Error(island,
+                    $"Rask.External: '{island.Name}' comes from a package declaration whose Module, '{island.Module}', "
+                    + "names no npm package — return the package its Exports come from, e.g. "
+                    + "protected override string Module => \"@mui/material\";");
+                continue;
+            }
+
             if (!island.IsPackage)
             {
                 // Silently ignored, it would read as the island's component while the build mounts the file's default.

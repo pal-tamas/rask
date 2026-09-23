@@ -17,9 +17,11 @@ internal sealed class ScannedPackageIsland
     /// <param name="export">The constant its <c>Export</c> override returns, or null when it declares none.</param>
     /// <param name="declaringFile">The file holding the override — the snapshot is written beside it.</param>
     /// <param name="line">The 1-based line of the override, for diagnostics.</param>
+    /// <param name="fromDeclaration">Whether a package declaration (<c>Mui : ReactPackage</c>) exported it.</param>
     public ScannedPackageIsland(string name, string runtime, string module, string? export, string declaringFile,
-        int line)
+        int line, bool fromDeclaration = false)
     {
+        FromDeclaration = fromDeclaration;
         Name = name;
         Runtime = runtime;
         Module = module;
@@ -30,6 +32,9 @@ internal sealed class ScannedPackageIsland
 
     /// <summary>The class's simple name.</summary>
     public string Name { get; }
+
+    /// <summary>Whether a package declaration exported it, rather than a class of its own naming a Module.</summary>
+    public bool FromDeclaration { get; }
 
     /// <summary>The runtime its base chain reaches.</summary>
     public string Runtime { get; }
@@ -97,7 +102,7 @@ internal static class ExternalPackageScan
     // A package declaration: `class Mui : ReactPackage` (or a qualified `Rask.External.ReactPackage`). The base class
     // is what makes it one, so unlike an island's part, the part that declares it must carry the base list.
     private static readonly Regex PackageDeclaration = new(
-        @"\bclass\s+(?<name>[A-Za-z_]\w*)\s*(?:\([^()]*\))?\s*:\s*(?:[\w.]+\.)?"
+        @"\bclass\s+(?<name>[A-Za-z_]\w*)\s*(?:\([^()]*\))?\s*:\s*(?:global::)?(?:[\w.]+\.)?"
         + @"(?<runtime>React|Preact|Solid|Vue|Svelte|Angular|Lit)Package\b",
         RegexOptions.CultureInvariant);
 
@@ -118,6 +123,7 @@ internal static class ExternalPackageScan
         IReadOnlyDictionary<string, string> runtimes)
     {
         var found = new Dictionary<string, ScannedPackageIsland>(StringComparer.Ordinal);
+        var files = new List<(string Path, string Text)>();
 
         foreach (var path in sources)
         {
@@ -137,12 +143,18 @@ internal static class ExternalPackageScan
             }
 
             if (text.IndexOf("Module", StringComparison.Ordinal) < 0
-                && text.IndexOf("Export", StringComparison.Ordinal) < 0)
+                && text.IndexOf("Export", StringComparison.Ordinal) < 0
+                && text.IndexOf("Package", StringComparison.Ordinal) < 0)
             {
                 continue;
             }
 
-            foreach (var island in Scan(text, path, runtimes).Concat(ScanDeclarations(text, path)))
+            files.Add((path, text));
+        }
+
+        var scanned = files.SelectMany(f => Scan(f.Text, f.Path, runtimes)).Concat(ScanDeclarations(files));
+        foreach (var island in scanned)
+        {
             {
                 // A partial class spelled across files: the part that overrides Module is the one that counts — it is
                 // where the snapshot goes — and an Export written in another part joins it.
@@ -155,7 +167,7 @@ internal static class ExternalPackageScan
                     var owner = seen.Module.Length != 0 ? seen : island;
                     found[island.Name] = new ScannedPackageIsland(
                         island.Name, island.Runtime, owner.Module, seen.Export ?? island.Export, owner.DeclaringFile,
-                        owner.Line);
+                        owner.Line, owner.FromDeclaration);
                 }
             }
         }
@@ -170,41 +182,91 @@ internal static class ExternalPackageScan
     ///     <c>Exports =&gt; ["Button"]</c> is the island <c>MuiButton</c>, its snapshot beside the declaration. Exposed
     ///     for tests.
     /// </summary>
-    internal static IEnumerable<ScannedPackageIsland> ScanDeclarations(string text, string path)
+    internal static IEnumerable<ScannedPackageIsland> ScanDeclarations(string text, string path) =>
+        ScanDeclarations([(path, text)]);
+
+    /// <summary>
+    ///     The islands every package declaration exports, reading the declaration the way the generator does: the
+    ///     part with the base list names the runtime and is where the snapshots go, and <c>Module</c> and
+    ///     <c>Exports</c> may sit in any part of the class, in any file.
+    /// </summary>
+    /// <remarks>
+    ///     A declaration whose <c>Module</c> is not a package still yields its islands, flagged, so the task can say
+    ///     so — skipping it would leave <c>Mui.Button</c> failing to compile with nothing naming why.
+    /// </remarks>
+    private static IEnumerable<ScannedPackageIsland> ScanDeclarations(IReadOnlyList<(string Path, string Text)> files)
     {
-        if (text.IndexOf("Package", StringComparison.Ordinal) < 0)
+        var declarations = new Dictionary<string, (string Runtime, string Path, int Line)>(StringComparer.Ordinal);
+        var structures = new List<(string Path, string Text, string Structure)>(files.Count);
+        foreach (var (path, text) in files)
+        {
+            var structure = Blank(text);
+            structures.Add((path, text, structure));
+            foreach (Match declaration in PackageDeclaration.Matches(structure))
+            {
+                var name = declaration.Groups["name"].Value;
+                if (!declarations.ContainsKey(name))
+                {
+                    declarations[name] = (declaration.Groups["runtime"].Value.ToLowerInvariant(), path,
+                        LineOf(text, declaration.Index));
+                }
+            }
+        }
+
+        if (declarations.Count == 0)
         {
             yield break;
         }
 
-        var structure = Blank(text);
-        foreach (Match declaration in PackageDeclaration.Matches(structure))
+        var modules = new Dictionary<string, string>(StringComparer.Ordinal);
+        var exports = new Dictionary<string, (List<string> Values, string Path, int Line)>(StringComparer.Ordinal);
+        foreach (var (path, text, structure) in structures)
         {
-            var open = structure.IndexOfAny(['{', ';'], declaration.Index + declaration.Length);
-            if (open < 0 || structure[open] != '{')
+            foreach (Match part in Declaration.Matches(structure))
+            {
+                var name = part.Groups["name"].Value;
+                if (!declarations.ContainsKey(name))
+                {
+                    continue;
+                }
+
+                var open = structure.IndexOfAny(['{', ';'], part.Index + part.Length);
+                if (open < 0 || structure[open] != '{' || MatchingBrace(structure, open) is var close && close < 0)
+                {
+                    continue;
+                }
+
+                if (!modules.ContainsKey(name)
+                    && FindOverride(ModuleOverride, text, structure, open + 1, close) is { } module)
+                {
+                    modules[name] = module.Value;
+                }
+
+                if (!exports.ContainsKey(name) && FindExports(text, structure, open + 1, close) is { } list)
+                {
+                    exports[name] = (list.Values, path, LineOf(text, list.Position));
+                }
+            }
+        }
+
+        foreach (var pair in declarations)
+        {
+            if (!modules.TryGetValue(pair.Key, out var module) || !exports.TryGetValue(pair.Key, out var list))
             {
                 continue;
             }
 
-            var close = MatchingBrace(structure, open);
-            if (close < 0
-                || FindOverride(ModuleOverride, text, structure, open + 1, close) is not { } module
-                || !ExternalPackageSpecifier.IsBare(module.Value)
-                || FindExports(text, structure, open + 1, close) is not { } exports)
-            {
-                continue;
-            }
-
-            var name = declaration.Groups["name"].Value;
-            var runtime = declaration.Groups["runtime"].Value.ToLowerInvariant();
-            var line = LineOf(text, exports.Position);
+            // Diagnostics point at the Exports line when it sits beside the declaration, else at the declaration.
+            var line = string.Equals(list.Path, pair.Value.Path, StringComparison.Ordinal) ? list.Line : pair.Value.Line;
             var seen = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var export in exports.Values)
+            foreach (var export in list.Values)
             {
                 var member = ExternalPackageSpecifier.MemberName(export);
                 if (member.Length != 0 && seen.Add(member))
                 {
-                    yield return new ScannedPackageIsland(name + member, runtime, module.Value, export, path, line);
+                    yield return new ScannedPackageIsland(
+                        pair.Key + member, pair.Value.Runtime, module, export, pair.Value.Path, line,
+                        fromDeclaration: true);
                 }
             }
         }
@@ -212,8 +274,9 @@ internal static class ExternalPackageScan
 
     /// <summary>
     ///     The string literals an <c>Exports</c> override at the top level of a class body returns — a collection
-    ///     expression, <c>=&gt; ["Button", "Card"];</c>, or the same list as <c>new[] { … }</c> — or null when it is
-    ///     anything else. Plain literals only: an export name has nothing in it to escape.
+    ///     expression or the same list as <c>new[] { … }</c>, written <c>=&gt; […];</c>, <c>{ get =&gt; […]; }</c> or
+    ///     <c>{ get; } = […];</c>, the forms the generator reads — or null when it is anything else. Plain literals
+    ///     only: an export name has nothing in it to escape.
     /// </summary>
     private static (List<string> Values, int Position)? FindExports(string text, string structure, int start, int end)
     {
@@ -226,13 +289,12 @@ internal static class ExternalPackageScan
                 continue;
             }
 
-            var cursor = SkipSpace(structure, at + match.Length);
-            if (!Starts(structure, cursor, "=>"))
+            var cursor = ListStart(structure, SkipSpace(structure, at + match.Length));
+            if (cursor < 0)
             {
                 continue;
             }
 
-            cursor = SkipSpace(structure, cursor + 2);
             char closer;
             if (Starts(structure, cursor, "["))
             {
@@ -302,6 +364,49 @@ internal static class ExternalPackageScan
         }
 
         return null;
+    }
+
+    /// <summary>
+    ///     Where the list an <c>Exports</c> property returns starts, after <c>=&gt;</c>, <c>{ get =&gt;</c> or
+    ///     <c>{ get; } =</c>, or -1.
+    /// </summary>
+    private static int ListStart(string structure, int cursor)
+    {
+        if (Starts(structure, cursor, "=>"))
+        {
+            return SkipSpace(structure, cursor + 2);
+        }
+
+        if (!Starts(structure, cursor, "{"))
+        {
+            return -1;
+        }
+
+        var inner = SkipSpace(structure, cursor + 1);
+        if (!Starts(structure, inner, "get"))
+        {
+            return -1;
+        }
+
+        var afterGet = SkipSpace(structure, inner + 3);
+        if (Starts(structure, afterGet, "=>"))
+        {
+            return SkipSpace(structure, afterGet + 2);
+        }
+
+        if (!Starts(structure, afterGet, ";"))
+        {
+            return -1;
+        }
+
+        var closing = SkipSpace(structure, afterGet + 1);
+        if (!Starts(structure, closing, "}"))
+        {
+            return -1;
+        }
+
+        var equals = SkipSpace(structure, closing + 1);
+        return Starts(structure, equals, "=") ? SkipSpace(structure, equals + 1) : -1;
     }
 
     /// <summary>The package islands one file declares. Exposed for tests.</summary>

@@ -736,7 +736,8 @@ public sealed class ExternalGenerator : IIncrementalGenerator
                 IsPackage = true,
                 Export = export.Export,
                 Declaration =
-                    $"/// <summary><c>{export.Export}</c> from <c>{module}</c>, reached as <see cref=\"{type.Name}.{export.Member}\" />.</summary>\n"
+                    $"/// <summary><c>{Prose(export.Export)}</c> from <c>{Prose(module)}</c>, reached as "
+                    + $"<see cref=\"{type.ToDisplayString()}.{export.Member}\" />.</summary>\n"
                     + $"[global::Rask.Core.RaskChainGroup(typeof({group}), \"{export.Member}\")]\n"
                     + $"{visibility} sealed partial class {export.Name} : "
                     + runtimeBase.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
@@ -746,6 +747,9 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             yield return model;
         }
     }
+
+    // The author's own literal, but still text in a doc comment: one line, XML-escaped, so it cannot end the comment.
+    private static string Prose(string text) => PackageIslandNaming.Escape(PackageIslandNaming.SingleLine(text));
 
     /// <summary>
     ///     Pairs a package island with its committed props snapshot, reporting what cannot be generated.

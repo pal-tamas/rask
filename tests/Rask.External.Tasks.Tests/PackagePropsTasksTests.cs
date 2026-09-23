@@ -157,6 +157,22 @@ public sealed class PackagePropsTasksTests : IDisposable
     }
 
     [Fact]
+    public void A_package_declaration_naming_no_package_is_refused_by_name()
+    {
+        var source = Write("Mui.cs",
+            "public sealed partial class Mui : ReactPackage { protected override string Module => \"./mui.tsx\"; "
+            + "protected override string[] Exports => [\"Button\"]; }");
+
+        var engine = new RecordingEngine();
+        var task = new FindExternalPackageIslandsTask { BuildEngine = engine, Sources = [new TaskItem(source)] };
+
+        Assert.False(task.Execute());
+        var error = Assert.Single(engine.Errors);
+        Assert.Equal("RASKISLAND005", error.Code);
+        Assert.Contains("package declaration", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void An_export_on_an_island_that_names_no_package_is_refused_rather_than_ignored()
     {
         var source = Write("Chart.cs",

@@ -271,8 +271,8 @@ them until tagged releases begin.
 
 - **BREAKING: every element is also a member of `Rask.Html`, and the `<html>` element is `Document`.** Components
   still inherit the tags, so nothing inside a component changes. What is new is that any other class — a test, a
-  helper, a static factory of components — writes them bare too, with the `global using static Rask.Html;` every
-  template now carries, and that a tag your own member has hidden is one word away:
+  helper, a static factory of components — writes them bare too, with the `global using static Rask.Html;` the
+  server, wasm and wasm-hosted templates now carry, and that a tag your own member has hidden is one word away:
 
   ```csharp
   // a helper class, not a component
@@ -312,7 +312,8 @@ them until tagged releases begin.
   - The namespace `Rask.Ui` is gone: every kit type is in `Rask`, so replace `using Rask.Ui;` with `using Rask;`.
     The package is still `Rask.Ui`. A bare `Ui` now means the kit from inside any `Rask.*` namespace too, which the
     old namespace shadowed.
-  - Every `rask new` template carries a `GlobalUsings.cs` with `global using Rask;` instead of `<Using>` items in the
+  - Every `rask new` template carries a `GlobalUsings.cs` with `global using Rask;` (plus `global using static
+    Rask.Html;` in the three that write C# markup) instead of `<Using>` items in the
     `.csproj`, so the project's global usings are a file you can read and edit.
   - A component library can group its own entries the same way with `[assembly: RaskChainGroup(typeof(Group))]`.
 
@@ -330,7 +331,8 @@ them until tagged releases begin.
   No `Export` still means the package's default export; a dotted `Export` (`"Switch.Root"`) still reaches a member,
   and a Lit island still names its tag there. The old spelling is refused at build time (RASKISLAND005) with the two
   overrides to write instead, and so is an `Export` on an island whose `Module` names no package. A computed
-  `Export` is RASK059, like a computed `Module`. Committed `*.props.json` snapshots are unchanged — they already
+  `Export` is RASK059, like a computed `Module`. An island that declared a prop of its own named `Export` now hides
+  the base member and needs `new` (CS0108). Committed `*.props.json` snapshots are unchanged — they already
   kept `module` and `export` apart.
 
 - **BREAKING: `IBroadcast` and `Topic<T>` are removed; a CQRS notification is the topic.** Publish with

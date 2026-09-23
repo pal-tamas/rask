@@ -4787,7 +4787,12 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         global::Rask.Generators.External.PackageIslands.PackageDeclaration read,
         Compilation compilation)
     {
-        if (read.Failed is not null
+        // The island generator declares nothing for a declaration it reports (RASK056, RASK059), so neither does this:
+        // steps for a class that was never declared would bury the one real diagnostic under errors in generated code.
+        var isPartial = declaration.DeclaringSyntaxReferences.Any(static r =>
+            r.GetSyntax() is ClassDeclarationSyntax c && c.Modifiers.Any(SyntaxKind.PartialKeyword));
+        if (!isPartial
+            || read.Failed is not null
             || read.Module is not { } module
             || !global::Rask.Generators.External.PackageIslands.PackageSpecifier.IsBare(module)
             || global::Rask.Generators.External.PackageIslands.PackageDeclarations.RuntimeBase(compilation, read.Runtime)
@@ -4832,7 +4837,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 classDecl.Identifier.GetLocation().SourceTree?.FilePath ?? string.Empty,
                 classDecl.Identifier.Span.Start,
                 classDecl.Identifier.Span.Length,
-                $"<c>{EscapeXml(island.Export)}</c> from <c>{EscapeXml(module)}</c>.",
+                $"<c>{Prose(island.Export)}</c> from <c>{Prose(module)}</c>.",
                 new EquatableArray<string>(memberNames.ToArray()),
                 default,
                 true,
@@ -4844,8 +4849,10 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         return new EquatableArray<Candidate>(result.ToArray());
     }
 
-    private static string EscapeXml(string text) =>
-        text.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
+    // The author's own literal, but still text in a doc comment: one line, XML-escaped, so it cannot end the comment.
+    private static string Prose(string text) =>
+        global::Rask.Generators.External.PackageIslands.PackageIslandNaming.Escape(
+            global::Rask.Generators.External.PackageIslands.PackageIslandNaming.SingleLine(text));
 
     private static Candidate? GetCandidate(GeneratorSyntaxContext ctx)
     {

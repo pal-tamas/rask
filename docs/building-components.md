@@ -121,7 +121,7 @@ Every name you chain from is reached one of three ways, and each reads the same 
 
 ```csharp
 using Rask;                        // every template's GlobalUsings.cs
-using static Rask.Html;            // …and this, so the tags are bare in any class
+using static Rask.Html;            // the C# templates' too, so the tags are bare in any class
 
 Div.Class("panel")[                          // an element: bare
     Ui.Button.Tone(Ui.Tone.Primary)["Save"], // the UI kit: through `Ui`
