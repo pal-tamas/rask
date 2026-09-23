@@ -39,6 +39,25 @@ builder.Services.AddRaskBrowserSqlite("app", o =>
 });
 ```
 
+## Full-text search
+
+Ranked, word-aware search over the local database works the way it does on the server. Add
+[`Rask.SQLite.EntityFrameworkCore`](https://www.nuget.org/packages/Rask.SQLite.EntityFrameworkCore) and put
+`UseRaskFullTextSearch()` after the plain `UseSqlite` — it registers only what search needs, none of the
+server's pragmas:
+
+```csharp
+builder.Services.AddDbContextFactory<AppDbContext>(o => o
+    .UseSqlite(BrowserSqlite.ConnectionString("app"))
+    .UseRaskFullTextSearch());
+
+var hits = await db.Set<Post>().Search(query).Take(20).ToListAsync();   // best match first
+```
+
+Declare the index with `Rask.Data`'s `HasFullTextSearch(p => new { p.Title, p.Body })` and apply migrations
+(`Database.MigrateAsync()`): the FTS5 index is built by a migration, and `EnsureCreated` creates none. FTS5 is
+compiled into the SQLite build that is linked into the WebAssembly app.
+
 ## What to know before you rely on it
 
 - **Entity Framework Core requires `PublishTrimmed=false`.** EF Core does not survive the trimmer in a
@@ -67,3 +86,4 @@ builder.Services.AddRaskBrowserSqlite("app", o =>
 
 - [Repository](https://github.com/pal-tamas/rask)
 - [SQLite guide](https://github.com/pal-tamas/rask/blob/main/docs/sqlite.md)
+- [Full-text search guide](https://github.com/pal-tamas/rask/blob/main/docs/full-text-search.md)

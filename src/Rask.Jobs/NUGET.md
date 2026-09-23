@@ -44,3 +44,9 @@ Several instances is safe: each processor **leases** the batch it claims, so a j
 them. On SQLite you will still usually run one, because SQLite is single-writer, so the processor claims
 work by polling and writing sequentially. Need a job to commit atomically with a business change? Raise a domain event and deliver it with
 [Rask.Outbox](https://www.nuget.org/packages/Rask.Outbox) instead — the two pillars are complementary.
+
+**A job runs as whoever enqueued it.** The row records the signed-in user (`Current.UserId`) and, in a
+multi-tenant app, the tenant; the processor re-enters both before the handler runs, so the handler reads
+`Current.UserId` and filters tenant-scoped tables as the page that enqueued it would have. Upgrading adds the
+`UserId` column: `rask db add AddJobUser && rask db update`. `Job.Read` queries the queue with no context of your
+own.

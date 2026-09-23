@@ -28,6 +28,9 @@ app.MapGet("/invoices/{id}", (Guid id, IFiles files) => files.Download(id)); // 
   are served inline; everything else — SVG and HTML included — downloads as an attachment.
 - **Uploads are capped** at 50 MB by default (`MaxFileSize`), and `AllowedTypes` narrows what is accepted.
 - **Orphaned bytes are swept**: a file whose row was never written is removed after a grace period.
+- **A file belongs to the tenant that saved it** in a multi-tenant app: finding, opening, linking and deleting
+  it by id are scoped to the tenant in flight, so another tenant holding the id cannot reach it.
+  `StoredFile.Read` lists uploads with no context of your own.
 
 Included in the [`Rask`](https://www.nuget.org/packages/Rask) package and on by default. See the
 [file storage guide](https://rask.sh/docs/guides/file-storage).

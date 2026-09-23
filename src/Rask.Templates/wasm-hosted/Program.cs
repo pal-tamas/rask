@@ -114,7 +114,8 @@ builder.Services.AddRaskCqrsServer();
 // rask:end
 // rask:if data
 // The app's database, on its own disk — no external server. AddRaskData registers the
-// auditing/soft-delete/concurrency/domain-event interceptors; UseRaskSqlite is a drop-in for
+// auditing/concurrency/domain-event interceptors, and soft delete for an aggregate that opts in;
+// UseRaskSqlite is a drop-in for
 // UseSqlite that also applies the production pragmas (WAL, busy_timeout, foreign_keys), and reads
 // its connection string from Rask:ConnectionStrings:App — a local app.db in appsettings.json, which
 // `rask deploy` points at a mounted volume so the DB survives redeploys.
@@ -133,7 +134,7 @@ builder.Services.AddRaskCqrsServer();
 builder.Services.AddRaskCqrsServer();
 // rask:end
 // rask:if data
-// The generic overload is what names the context to the model surface, so `Product.Where(…)`
+// The generic overload is what names the context to the model surface, so `Product.Read.Where(…)`
 // knows which one to open. The non-generic
 // AddRaskData() registers only the interceptors, and Db.Configure below then has nothing to bind.
 builder.Services.AddRaskData<AppDbContext>();
@@ -273,7 +274,7 @@ builder.Services.AddAuthorization(o =>
 var app = builder.Build();
 // rask:if cqrs data
 // Point the model surface at the context registered above. This is what lets a model be read
-// from anywhere — Product.Where(…), Product.FindAsync(id) — with no DbContext injected.
+// from anywhere — Product.Read.Where(…), Product.CreateAsync(model) — with no DbContext injected.
 Db.Configure(app.Services);
 // rask:end
 // FIRST: rewrite Request.Scheme/RemoteIpAddress from the proxy's headers, so everything below

@@ -23,6 +23,14 @@
     <Description>ASP.NET Core host for a built single-page app: a TypeScript front end from any bundler (React, Vue, Angular) or a Rask WebAssembly app written in C#. `app.UseRaskSpa()` serves the build output with correct MIME types, cache headers that follow what the build guarantees, precompressed siblings and a SPA fallback that still 404s a missing asset; a referenced WebAssembly client is published by the build and served with hot reload under `rask dev`. Pairs with Rask.Cqrs.Server, which gives the client a typed JSON wire and generates its TypeScript from your C# message records; a front end that is not TypeScript is refused at build time rather than served half a guarantee. Depends on nothing else in Rask.</Description>
   </PropertyGroup>
 
+  <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
+       overview that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Remove="NUGET.md" />
+    <None Include="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
   </ItemGroup>

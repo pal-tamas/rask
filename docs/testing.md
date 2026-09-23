@@ -58,7 +58,7 @@ public async Task Clicking_increments()
   about a component from quietly becoming an assertion about a page.
 
   ```csharp
-  var page = RaskTest.RenderDocument(new App, services);
+  var page = RaskTest.RenderDocument(new App(), services);
   Assert.StartsWith("<!DOCTYPE html>", page.Html);
   Assert.Contains("<html lang=\"en\">", page.Html);
   Assert.Contains(">My app</title>", page.Html);   // head tags carry a dedupe key attribute
@@ -93,7 +93,10 @@ public async Task Clicking_increments()
   one of several same-event elements — a grid's sort headers, a list's row buttons:
 
   ```csharp
-  var grid = RaskTest.Render(() => BsDataGrid<Row>(Data: rows, Columns: columns));
+  var grid = RaskTest.Render(() => Ui.DataGrid.Data(rows).RowKey(r => r.Id)[c => [
+      c.Field(r => r.Name).Sortable(true),
+      c.Field(r => r.Total).Sortable(true),
+  ]]);
 
   await grid.InvokeAsync(grid.HandlerIds("click")[1]);   // click the second sortable header
   ```
@@ -335,10 +338,10 @@ public async Task Submit_InvalidModel_CallsOnInvalidSubmit_NotOnValidSubmit()
     var p = new Person { Name = "", Age = 0 };
     var validCalled = 0; var invalidCalled = 0;
 
-    var view = new StubComponent(() => Form<Person>(p,
-        OnValidSubmit:   _ => validCalled++,
-        OnInvalidSubmit: _ => invalidCalled++,
-        Validate: m => string.IsNullOrEmpty(m.Name) ? new[] { "Name required" } : Array.Empty<string>())[
+    var view = new StubComponent(() => Form.Model(p)
+        .OnValidSubmit(_ => validCalled++)
+        .OnInvalidSubmit(_ => invalidCalled++)
+        .Validate(m => string.IsNullOrEmpty(m.Name) ? ["Name required"] : [])[
         Input.Bind(() => p.Name), Input.Bind(() => p.Age)
     ]);
     var html = view.RenderAsLiveRoot();
@@ -360,7 +363,7 @@ var model = new SignupModel { Username = "ada" };
 var ctx = new EditContext(model);
 ctx.AddValidator(new RejectIfEqualsValidator("admin", "Already taken."));
 
-var view = new StubComponent(() => Form<SignupModel>(model, Context: ctx)[Input.Bind(() => model.Username)]);
+var view = new StubComponent(() => Form.Model(model).Context(ctx)[Input.Bind(() => model.Username)]);
 var html = view.RenderAsLiveRoot();
 
 using var inputDoc  = JsonDocument.Parse("{\"value\":\"admin\"}");
@@ -387,7 +390,7 @@ it needs, then asserted on the resulting HTML:
 
 ```csharp
 var routeState = new RouteState { Path = "/" };
-var html = new App.RenderAsLiveRoot(TestServiceProvider.Default(routeState: routeState));
+var html = new App().RenderAsLiveRoot(TestServiceProvider.Default(routeState: routeState));
 Assert.Contains("Hello, world!", html);
 ```
 
@@ -396,7 +399,7 @@ assertion is about the *page* (the doctype, `<html lang>`, what landed in `<head
 through `RaskTest.RenderDocument` instead, which composes the document the way a host does:
 
 ```csharp
-var html = RaskTest.RenderDocument(new App, TestServiceProvider.Default(routeState: routeState)).Html;
+var html = RaskTest.RenderDocument(new App(), TestServiceProvider.Default(routeState: routeState)).Html;
 Assert.StartsWith("<!DOCTYPE html>", html);
 ```
 

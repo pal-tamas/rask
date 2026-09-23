@@ -63,4 +63,7 @@ single-writer, so the processor claims work by polling and writing. Use
 [`UseRaskSqlite`](https://www.nuget.org/packages/Rask.SQLite) (WAL + a `busy_timeout`) so a concurrent send
 waits for the write lock instead of failing.
 
+In a multi-tenant app each message records the tenant it was queued in, and the processor re-enters it
+before sending. `QueuedMail.Read` queries the queue with no context of your own.
+
 Part of [Rask](https://www.nuget.org/packages/Rask.Server) — the .NET One Person Framework.

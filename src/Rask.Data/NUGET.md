@@ -12,8 +12,10 @@ richer than a create, an update or a delete is EF Core exactly as you know it.
 - **Value objects with no marker**: any record, struct or class an entity holds that is not an entity maps as an
   EF **complex type**, columns on the owner's row. **Strongly-typed ids** get a generated value converter with
   nothing declared; mapping rules live in a plain `public static void Configure(EntityTypeBuilder<T>)` on the type.
-- **Reads off the type**: `Product.Where(...)`, `Product.FindAsync(id)`, `Product.CountAsync()`,
-  `Product.AsQueryable()`. C# 14 static extension members, so an aggregate that compiles today has them.
+- **Reads through a generated read face**: `Product.Read.Where(...)`, `Product.Read.CountAsync()`,
+  `Product.Read.Search(text)`, `Product.Read.AsQueryable()` — one by id is
+  `Product.Read.Where(p => p.Id == id).FirstOrDefaultAsync()`, since EF Core's `Find` would bypass the query
+  filters. A C# 14 static extension member, so an aggregate that compiles today has it.
   **Every read is untracked and opens and disposes its own context**, which is what makes them safe on a
   page that lives as long as a browser's socket. `AsQueryable()` is a standard `IQueryable<T>` that opens a
   context per execution: hand it to a data grid and it sorts and pages in the database.
@@ -36,6 +38,10 @@ richer than a create, an update or a delete is EF Core exactly as you know it.
 - **Three `ISaveChangesInterceptor`s**: auditing timestamps and versions, **opt-in soft delete** (for an aggregate
   that declares it, a delete becomes a `DeletedAt` stamp behind a global query filter), and **after-commit domain-event publication**
   through [Rask.Cqrs](https://www.nuget.org/packages/Rask.Cqrs).
+- **`Current` and multi-tenancy**: `Current.UserId`, `Current.Principal` and `Current.Tenant` answer from a
+  static factory or anywhere else with no constructor to inject into. `public const Tenancy Scope =
+  Tenancy.PerTenant;` gives a table a `TenantId`, a query filter no read can compose away and a tenant prefix on
+  every index; the tenant comes from the signed-in user.
 - **`BulkInsertAsync`**: the bulk insert EF Core leaves out (`ExecuteUpdate`/`ExecuteDelete` exist; inserts
   are out of its scope). Batched, with the change tracker cleared as it goes so memory stays flat.
 
@@ -55,7 +61,7 @@ public sealed class Product : Aggregate<Guid>
 public sealed record Money(decimal Amount, string Currency);
 
 // read: no context in scope, nothing left open, nothing tracked
-var products = await Product.OrderBy(p => p.Name).ToListAsync();
+var products = await Product.Read.OrderBy(p => p.Name).ToListAsync();
 
 // write: off the type too; the form model carries the values, the id is yours
 var product = await Product.CreateAsync(model);
@@ -127,14 +133,27 @@ Declare which text is searchable, and search it from LINQ — ranked, word-aware
 ```csharp
 modelBuilder.Entity<Post>().HasFullTextSearch(p => new { p.Title, p.Body });
 
-var hits = await Post.Search(query).Where(p => p.Published).Take(20).ToListAsync();
-var marked = await Post.Search(query).Select(p => FullText.Snippet(p.Body)).ToListAsync();
+var hits = await Post.Read.Search(query).Where(p => p.Published).Take(20).ToListAsync();
+var marked = await Post.Read.Search(query).Select(p => FullText.Snippet(p.Body)).ToListAsync();
 ```
 
-`Search(text)` works on `Post`, on a `ModelQuery` and on any EF Core `IQueryable`; it returns best matches
-first and keeps composing. Typed text is always words, never FTS query syntax. With
-`Rask.SQLite.EntityFrameworkCore`'s `UseRaskSqlite(...)`, migrations create an FTS5 index kept current by
-triggers — adding it to an existing table fills it. Other providers are refused at boot: full-text search is
-SQLite-only for now.
+`Search(text)` works on a read face, on a `ModelQuery` and on any EF Core `IQueryable`; it returns best
+matches first and keeps composing. Typed text is always words, never query syntax. The index arrives through
+a migration and the database keeps it current:
+
+- **SQLite** — `UseRaskSqlite(...)` from `Rask.SQLite.EntityFrameworkCore`, or a plain `UseSqlite` plus
+  `UseRaskFullTextSearch()`: an FTS5 index kept current by triggers; adding it to an existing table fills it.
+- **In the browser** — `Rask.SQLite.Browser`'s `UseSqlite(BrowserSqlite.ConnectionString("app"))` plus the same
+  `UseRaskFullTextSearch()`: the same FTS5 index in the WebAssembly app's local database.
+- **PostgreSQL** — `UseRaskPostgres(...)` from `Rask.Postgres`: a stored generated `tsvector` column with a GIN
+  index, no triggers.
+
+On SQL Server, or a plain `UseSqlite` without `UseRaskFullTextSearch()`, `AddRaskData<TContext>()` refuses to
+boot a context that declares an index.
+
+A value inside a JSON column gets its own index the same way: `HasJsonIndex(o => o.Meta.Status)` adds an
+expression index spelled exactly as EF Core writes the filter, so the filter is an index search. SQLite only
+for now, and refused at boot elsewhere. See the
+[full-text search guide](https://github.com/pal-tamas/rask/blob/main/docs/full-text-search.md).
 
 Part of the [Rask](https://github.com/pal-tamas/rask) framework. MIT licensed.

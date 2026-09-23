@@ -66,10 +66,11 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK027](#rask027) | — | *Retired* — both the sync and async handler are set for one event |
 | [RASK028](#rask028) | Error | Ambiguous request handler (more than one handler for a query/command) |
 | [RASK029](#rask029) | Warning | Handler cannot be registered (open generic, no public constructor, or unnameable) |
+| [RASK030](#rask030) | — | *Retired* — a factory call passed three or more arguments positionally |
 | [RASK031](#rask031) | Warning | Two pages resolve to the same route |
 | RASK032 | — | *Retired* — native chrome cannot sit inside an HTML tree |
 | [RASK033](#rask033) | Warning | Hardcoded path for internal navigation instead of the generated route URL |
-| RASK034 | — | *Retired* — the `BsDataGrid` it analysed went with `Rask.Bootstrap` |
+| [RASK034](#rask034) | — | *Retired* — the `BsDataGrid` it analysed went with `Rask.Bootstrap` |
 | [RASK035](#rask035) | Warning | Background job or outbox event type cannot be registered |
 | [RASK036](#rask036) | Warning | A builder-entry host must be `partial` |
 | [RASK037](#rask037) | Warning | `using` alias is hidden by a builder entry |
@@ -383,8 +384,8 @@ own examples should have tripped never fired at all.
 // ✓ Img.Src("/divider.png").Alt("")   // decorative: empty alt hides it from assistive tech
 ```
 
-**Fix:** pass a meaningful `Alt:`, or the empty string `Alt: ""` for a purely decorative image so
-assistive technology skips it (**quick-fix available** — the IDE lightbulb inserts `Alt: ""`, which you
+**Fix:** add a meaningful `.Alt(…)`, or the empty string `.Alt("")` for a purely decorative image so
+assistive technology skips it (**quick-fix available** — the IDE lightbulb appends `.Alt("")`, which you
 then fill in for informative images). See [accessibility](accessibility.md).
 
 ## RASK024
@@ -436,7 +437,7 @@ runs — including when a child control raised it (the framework re-renders the 
 from the lambda's `this`) and after a two-way bound write (the binding re-renders its authoring
 component). So calling your own `StateHasChanged()` from inside `OnChange`/`OnClick`/`OnInput`/`OnSubmit`/…
 or the `AfterBind` hook is dead weight. The tell-tale anti-pattern is reaching for
-`AfterBind: _ => StateHasChanged()` to make derived UI refresh.
+`.AfterBind(_ => StateHasChanged())` to make derived UI refresh.
 
 ```csharp
 // ✗ redundant — the framework re-renders this component after OnChange runs:
@@ -546,8 +547,8 @@ Rask generates a type-safe `RouteUrl` factory — `Routes.<Page>()` — for ever
 (see [Routing → type-safe URLs](routing.md)). Using the raw path string for internal navigation bypasses
 that safety: rename or remove the `[Route]` and the string becomes a silent dead link that still compiles,
 whereas `Routes.<Page>()` becomes a compile error you fix immediately. The analyzer flags a string literal
-passed to internal navigation — `Navigator.NavigateTo("…")` or any `RouteUrl` slot (`NavLink(Href: …)`,
-`BsNavItem.Href(…)`, via the `string → RouteUrl` implicit conversion) — **only** when
+passed to internal navigation — `Navigator.NavigateTo("…")` or any `RouteUrl` slot (`NavLink.Href(…)`,
+`Ui.NavItem.Href(…)`, via the `string → RouteUrl` implicit conversion) — **only** when
 the path maps to a generated parameterless factory.
 
 It deliberately leaves alone:
@@ -571,6 +572,11 @@ A("https://example.com", "_blank")["Docs"]; // ✓ external — untouched
 **Fix:** call the generated `Routes.<Page>()` (with arguments for any route/query params). For a genuinely
 dynamic or external target, use `RouteUrl.External("…")`, or suppress with `#pragma warning disable RASK033`
 / `.editorconfig` (`dotnet_diagnostic.RASK033.severity = none`).
+
+## RASK034
+*Retired.* It analysed `BsDataGrid`'s columns, and went with the `Rask.Bootstrap` package that shipped that
+grid. The kit's grid, `Ui.DataGrid`, is checked by its successor [RASK076](#rask076). The id is retired, not
+reused.
 
 ## RASK035
 **Background job or outbox event type cannot be registered** · Warning
@@ -613,7 +619,7 @@ you never enqueue that type.
 ## RASK036
 **A builder-entry host must be `partial`** · Warning
 
-Rask's own components (`Div`, `BsCard`, …) get their entries from `Rask.Core.RaskMarkup`, which
+Rask's own components (`Div`, `Span`, …) get their entries from `Rask.Core.RaskMarkup`, which
 `Component` derives from — so every component inherits them, and so does anything else that derives
 from `RaskMarkup` (a test class, a fixture, a factory of demo components). **Your** components cannot
 ride there: a source generator can only add members to types in the compilation it is running in, and
@@ -726,15 +732,14 @@ Card.Note("later")                             // ✗ RASK038 — 'Title' is nev
 Card.Title("Q3").Note("later")                 // ✓
 ```
 
-Order does not matter, and child indexing (`Card.Title("Q3")[…]`) is part of the same expression. A
-property whose setter drops an `On` prefix (`OnSave` → `.Save(…)`) counts under either spelling.
+Order does not matter, and child indexing (`Card.Title("Q3")[…]`) is part of the same expression.
 
 Properties **declared in your own compilation** are read straight off the syntax, where the member
 initializer is right there. A property from a **referenced assembly** cannot be: an initializer
 compiles into the constructor and leaves no trace in metadata, so `string Title` and
 `string Title = ""` are the same symbol from outside. The owning assembly therefore publishes the
 answer — the factory generator emits one
-`[assembly: RaskRequiredProperties("Rask.Bootstrap.BsIcon", "Name")]` per component with such a
+`[assembly: RaskRequiredProperties("Lib.Card", "Title")]` per component with such a
 property — and this analyzer reads it back. A library built by an older Rask, or by no Rask at all,
 publishes nothing, and its properties are then counted only when they carry the language's `required`
 modifier, which metadata does preserve.
@@ -814,9 +819,10 @@ Reported while a chain's receiver was the component itself: a delegate-typed pro
 `.OnClick(Save)` bound to the property instead of to the same-named setter, and the setter was
 unreachable dead code. The fix at the time was to wrap the delegate in a carrier.
 
-A chain now receives on `Build<TComponent>`, so the property is not on the receiver, the lookup that
-caused this cannot happen, and a callback property is an ordinary `Action` / `Func<…>`. The ID is not
-reused.
+It is retired because the collision can no longer be written, not because the receiver moved: the chain
+still receives on the component, and every event property is a `Callback` / `Callback<T>` — a
+non-invocable **struct** — while a template or selector is an `Fn<…>`, so lookup falls through to the
+setter. A carrier is simply what every callback property is now. The ID is not reused.
 
 ## RASK043
 **A component name is used in a type that has no builder entries** · Warning
@@ -870,7 +876,7 @@ component contributes an entry named after itself, and the HTML/SVG tags land on
 every component inherits, an ordinary member that happens to share a tag's name **hides** one:
 
 ```csharp
-public sealed partial class BsModal : Component
+public sealed partial class ConfirmDialog : Component
 {
     public Component? Footer { get; set; }        // vs the <footer> entry
     private Component Section(string t) => …;     // vs the <section> entry
@@ -895,8 +901,8 @@ public class Wide : Panel { public int Count => 2; }   // ✗ CS0108 still fires
 
 Hiding a real member of your own base type is an ordinary hiding mistake and still warns, inside a
 component or outside one. Only entries are silenced. Generic components (`Form<T>`, `Select<T>`,
-`Input<T>`) open the chain through a `RaskSeed_*` field rather than a `Build<T>` member; both shapes
-are recognised.
+`Input<T>`) open the chain through a `RaskSeed_*` field rather than a member typed as the component; both
+shapes are recognised.
 
 > **`dotnet format` does not honour `DiagnosticSuppressor`s.** It surfaces the diagnostic itself and
 > fails on any warning-severity report, so a gate built on it sees CS0108 even where the compiler has
@@ -963,11 +969,11 @@ Only a component a **chain** produced is held to this. One built any other way �
 field the component assigned itself — is not reported: the surface it came through is what decides, and
 only a chain promises to be the whole story.
 
-It has to be an analyzer rather than a property of the type. `Build<T>` converts implicitly to the
-component it built, which is what keeps the chain out of the way at every call site that wants the
-component itself (a property typed as a particular component, a strongly-typed children collection, a
-test asserting on the result). Once it has converted, the result is an ordinary component with ordinary
-settable properties, and nothing in the type system is left to forbid the write.
+It has to be an analyzer rather than a property of the type. A chain's receiver is the component itself,
+which is what keeps the chain out of the way at every call site that wants the component (a property
+typed as a particular component, a strongly-typed children collection, a test asserting on the result).
+So the result is an ordinary component with ordinary settable properties, and nothing in the type system
+is left to forbid the write.
 
 **Fix:** move the assignment into the chain — every property a chain can reach has a step of the same
 name. Suppress with `#pragma warning disable RASK045` / `.editorconfig`

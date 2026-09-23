@@ -8,11 +8,18 @@
 
     <PackageId>Rask.Validation.FluentValidation</PackageId>
     <Title>Rask — FluentValidation Validation</Title>
-    <Description>Rask validator that delegates to a `FluentValidation.IValidator`. Drop `FluentValidationValidator(new MyValidator())` inside a `Form&lt;T&gt;` to wire FluentValidation rules into Rask's EditContext, including async per-field validation. Depends on FluentValidation 12.x.</Description>
+    <Description>Rask validator that delegates to a `FluentValidation.IValidator`. Writing an `AbstractValidator&lt;T&gt;` is the registration: a source generator finds it at compile time (no assembly scan, trim-safe) and a `Form&lt;T&gt;` over that model validates with it, including async per-field rules. Depends on FluentValidation 12.x.</Description>
     <!-- Override the framework default tags (web/component/wasm) — this is a forms-validation adapter. -->
     <PackageTags>validation fluentvalidation forms model-validation rask dotnet net10 net11</PackageTags>
   </PropertyGroup>
 
+  <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
+       overview that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Remove="NUGET.md" />
+    <None Include="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="FluentValidation"/>

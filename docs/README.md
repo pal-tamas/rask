@@ -1,11 +1,11 @@
 # Rask documentation
 
-Guides and references for building with Rask, **the .NET One Person Framework** — build, run, and ship a
-whole product solo, in C#, on one server. **New to Rask?** Read
+Guides and references for building with Rask, **the full-stack .NET web framework** — UI, data, auth,
+background work, realtime and deploy, all in C#, for a team of one or fifty. **New to Rask?** Read
 [Getting started](getting-started.md) start to finish — it goes from zero to a running, routed,
 interactive app. **Ready to build something real?** The [**Tutorial**](tutorial/00-overview.md) takes you
 from an empty folder to a deployed, database-backed product that uses every pillar. Want the philosophy
-first? Read **[The .NET One Person Framework](one-person-framework.md)**. Want the pitch and a quick demo?
+first? Read **[The One Person Framework](one-person-framework.md)**. Want the pitch and a quick demo?
 See the project [README](../README.md). Already building? Keep the [**Cheat sheet**](cheatsheet.md) open
 and reach for the [**Recipes**](recipes.md) when you need "how do I do X?".
 
@@ -13,11 +13,11 @@ and reach for the [**Recipes**](recipes.md) when you need "how do I do X?".
 
 | Guide | What it covers |
 |-------|----------------|
-| [**The .NET One Person Framework**](one-person-framework.md) | The doctrine: one developer, a whole product, one C# codebase, one server, SQLite-first — and the batteries that make it real. |
+| [**The One Person Framework**](one-person-framework.md) | The philosophy: a whole product from one C# codebase on one server, SQLite-first — why it lets one developer ship alone and a team move as fast. |
 | [**Tutorial: zero to deploy**](tutorial/00-overview.md) | Build the "Shop" app end to end — scaffold → first DB-backed feature → auth → jobs → email → cache → events → production SQLite → push → ops → deploy to one box. One chapter per pillar; you build the app as you go, starting from `rask new Shop`. |
 | [**Cheat sheet**](cheatsheet.md) | The one page to keep open — every CLI command, feature field token, wiring one-liner (`AddRask…`), and code idiom, dense and scannable. |
 | [**Recipes**](recipes.md) | Task-first "how do I do X?" — add a feature to an existing database, gate a page, run a job, cache a query, deploy an update — the command, the wiring line, and where to go deeper. |
-| [Roadmap](roadmap.md) | The One Person Framework pillars — what's shipped (DB-backed jobs, outbox, mail, cache, file storage) and what's next. |
+| [Roadmap](roadmap.md) | The pillars — what's shipped (DB-backed jobs, outbox, mail, cache, file storage, subscriptions, multi-tenancy, full-text search), what's partial, and what's next. |
 
 ## Guides
 
@@ -33,8 +33,8 @@ and reach for the [**Recipes**](recipes.md) when you need "how do I do X?".
 | [Subscriptions](subscriptions.md) | `QueryClient.Subscribe<T>()`: a published CQRS notification re-renders every subscribed page — narrowed to one thing by an `ISubscription<T>` record and its watch policy, over server-sent events from WebAssembly. |
 | [Composition](composition.md) | Children & fragments, callbacks (child→parent), context (provide/consume), toast messages (`IToaster`/`ToastOutlet`), `VirtualizeModel`, drag-and-drop. |
 | [JS interop](js-interop.md) | Scoped CSS & TypeScript conventions (a `.js` sibling is RASK055), calling JS via `IJSRuntime`, element refs (`Ref:`), typed browser APIs, asset delivery. |
-| [Browser APIs](browser-apis.md) | The map of all 50 typed Web-API wrappers — shared vs WASM-only, one-shot vs subscription, the inject-from-ctor and push/`[JSInvokable]` patterns. |
-| [Capability matrix](browser-capabilities.md) | Where each of the 50 APIs works (Web / PWA) — links to a reference page per API under [`apis/`](apis/). |
+| [Browser APIs](browser-apis.md) | The map of all 53 typed Web-API wrappers — shared vs WASM-only, one-shot vs subscription, the inject-from-ctor and push/`[JSInvokable]` patterns. |
+| [Capability matrix](browser-capabilities.md) | Where each of the 53 APIs works (Web / PWA) — links to a reference page per API under [`apis/`](apis/). |
 | [📱 Mobile & PWA](pwa.md) | Build installable, offline mobile apps in C# (WASM): web app manifest, service worker, Web Push (`IWebPush`), `rask new MyApp --template wasm`. |
 | [AOT compilation](aot.md) | Opt-in full WASM AOT (`-p:RaskWasmAot=true`): the reflection-free binding registry, registering custom `IParsable` types, `InvokeAsync<T>` under AOT, and the continuous analyzer gate. |
 | [Prerendering](prerendering.md) | Render a standalone WASM app's pages to real HTML at publish (`<RaskPrerender>true</RaskPrerender>`), so a crawler gets the page instead of the boot spinner: what is written, which routes are skipped and why, and why a route that throws is deliberately left out. |
@@ -50,17 +50,20 @@ and reach for the [**Recipes**](recipes.md) when you need "how do I do X?".
 | [Migrating from Blazor](migration-from-blazor.md) | Concept mapping, behavioural gotchas, and what stays the same. |
 | [Building with AI assistants](ai-agents.md) | The `AGENTS.md` / `llms.txt` artifacts that let AI tools scaffold and extend Rask apps. |
 
-## The One Person Framework batteries (the back half)
+## The full-stack batteries (the back half)
 
-The opinionated, DB-backed pillars that make a solo developer productive — each a thin, trim/AOT-safe package
-that rides the app's own SQLite database. No Redis, no broker, no second server. Walk through them in order
+The opinionated, DB-backed pillars that let a small team ship like a big one, and one developer ship alone —
+each a thin, trim/AOT-safe package that rides the app's own database (SQLite by default). No Redis, no broker,
+no second server. Walk through them in order
 in the [Tutorial](tutorial/00-overview.md); the reference for each is here.
 
 | Guide | What it covers |
 |-------|----------------|
-| [Rask.Data](data.md) | Declare an `Aggregate<TId>` and nothing else: writes off the type (`Product.CreateAsync(model)`), reads off its generated read face (`Product.Read.Where(…)`) whose navigations are inferred from the ids the aggregates hold, generated form models (`ProductModel`), value objects with no marker, audit stamps, soft delete, optimistic concurrency, domain events and ranked full-text search (`Product.Read.Search(text)`). |
+| [Rask.Data](data.md) | Declare an `Aggregate<TId>` and nothing else: writes off the type (`Product.CreateAsync(model)`), reads off its generated read face (`Product.Read.Where(…)`) whose navigations are inferred from the ids the aggregates hold, generated form models (`ProductModel`), value objects with no marker, collections of values as one column, audit stamps, opt-in soft delete (`Deletion.Soft`, or `Deletion.None` for a table nothing deletes), optimistic concurrency, domain events, the signed-in user with nothing injected (`Current.UserId`), multi-tenancy and ranked full-text search (`Product.Read.Search(text)`). |
+| [Multi-tenancy](multi-tenancy.md) | One `const` partitions a table by tenant — a `TenantId`, a query filter no read composes away, tenant-prefixed indexes — with the tenant taken from the signed-in user; `Tenant.Use`/`Tenant.Across` for explicit work, and what jobs, mail, the outbox, the cache, file storage and accounts do with it. |
 | [Data access (EF Core)](data-access.md) | Plain EF Core + SQLite with a `DbContext` of your own: `IDbContextFactory`, loading in the lifecycle, vertical slices, a DDD aggregate + value objects, and the SQLite decimal gotcha. |
-| [SQLite production pragmas](sqlite.md) | Production SQLite via `UseRaskSqlite` / `AddRaskSqlite` (standalone `Rask.SQLite`): WAL, `foreign_keys`, `busy_timeout` & friends applied on every connection open, STRICT tables, FTS5 full-text search through EF Core, plus Litestream backup. |
+| [SQLite production pragmas](sqlite.md) | Production SQLite via `UseRaskSqlite` / `AddRaskSqlite` (standalone `Rask.SQLite`): WAL, `foreign_keys`, `busy_timeout` & friends applied on every connection open, STRICT tables, FTS5 full-text search and JSON path indexes through EF Core, the browser database (`Rask.SQLite.Browser`), plus Litestream backup. |
+| [Full-text search](full-text-search.md) | `HasFullTextSearch` + `Search(text)`: ranked, word-aware, diacritic-insensitive search from LINQ, with highlighted matches — on SQLite FTS5, in the browser and on PostgreSQL (`tsvector` + GIN). |
 | [CQRS](cqrs.md) | Source-generated, trim-safe queries / commands / notifications and pipeline behaviors via `AddRaskCqrs()` + `IDispatcher` (standalone `Rask.Cqrs`). |
 | [HTTP APIs](api-endpoints.md) | Ordinary API controllers and minimal API endpoints, hosted properly and callable without a URL: `AddRaskApi()` + `MapRaskApi()` map them and answer 404 with a problem document under `/api` — where the catch-all used to render the app with a 200 — and `Rask.Api.Client` generates one typed client per controller straight from the declaration, so a route renamed on the server breaks the call site at compile time instead of at 404 time. For when someone other than your own browser code has to call you; [CQRS](cqrs.md) is the answer when nobody does. |
 | [TypeScript front ends](spa.md) | A TypeScript SPA with a typed connection to your C#: `rask new --template react`, TypeScript generated from the message records, and `UseRaskSpa()` (standalone `Rask.Spa.Hosting`). React, Preact, Vue, Angular, Solid, Svelte or Lit — the framework is yours, the language is not. |
@@ -68,7 +71,7 @@ in the [Tutorial](tutorial/00-overview.md); the reference for each is here.
 | [Blazor components](blazor-components.md) | A **real** Blazor component — from a Razor Class Library, MudBlazor, Radzen — as an ordinary Rask component: derive a `partial` class from `BlazorComponent<T>` and place it anywhere the chain goes. The Razor SDK compiles `.razor` untouched; Rask renders the result server-side into the *first* HTTP response, passes parameters as live C# objects rather than JSON, and wires the hosted component's own `@onclick` to Rask's existing channel so it fires with no Blazor circuit. Runs on both hosts, a trimmed WebAssembly publish included (the hosted type is DAM-annotated, or the trimmer removes its `[Parameter]` setters and the island renders empty). A statically rendered island is deliberately not opaque. |
 | [Islands](islands.md) | A `.tsx`, `.vue`, `.svelte`, Angular or Lit file as an *ordinary Rask component*: derive from one of seven base classes — `ReactComponent`, `PreactComponent`, `SolidComponent`, `VueComponent`, `SvelteComponent`, `AngularComponent`, `LitComponent` — drop the front-end file beside it, and place it anywhere the chain goes — a leaf, a subtree, or a whole route. Props are declared in C# and serialized without reflection, callbacks re-enter C# over the channel every DOM handler already uses, and the live diff treats the subtree as opaque because its own renderer owns it. |
 | [Tailwind CSS](tailwind.md) | Every project, no flag and no package: Tailwind v4 ships inside the host package and is compiled by `dotnet build` with no npm, no config file and no `node_modules` — it scans your C# string literals for class names. The standalone binary where one exists, npm where it doesn't, so no platform is left out. |
-| [Rask.Query](query.md) | The dispatcher wrapped in a cache for Rask components (standalone `Rask.Query`): request dedup, staleness, background refetch, and TanStack-shaped keys matched by prefix. The SPA templates ship no cache of their own; `raskQuery` is vendored beside the client for anyone who wants to add one. |
+| [Rask.Query](query.md) | The dispatcher wrapped in a cache for Rask components (standalone `Rask.Query`), reached through the static `QueryClient`: request dedup, staleness, background refetch, TanStack-shaped keys matched by prefix, commands (`Command<T>`) that invalidate what they change, and a `Rask.Data` write refreshing the queries about what it wrote. The SPA templates ship no cache of their own; `raskQuery` is vendored beside the client for anyone who wants to add one. |
 | [Background jobs](jobs.md) | Durable enqueued / delayed / recurring work on the app's own database via `AddRaskJobs<Ctx>()` + `IJob` (standalone `Rask.Jobs`) — at-least-once, with backoff. |
 | [Transactional email](mail.md) | Durable email queued on the app's own database via `AddRaskMail<Ctx>()` + `IMail` (standalone `Rask.Mail`) — delivered off the request thread over SMTP with backoff; bodies are Rask components. |
 | [Cache](cache.md) | A developer-facing cache on the app's own database via `AddRaskCache<Ctx>()` (standalone `Rask.Cache`) — standard `IDistributedCache` plus a typed `ICache` with `GetOrAddAsync`, absolute/sliding expiry. |

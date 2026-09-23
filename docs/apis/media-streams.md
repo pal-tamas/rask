@@ -39,9 +39,9 @@ public sealed class Camera(IMediaStreams streams) : Component
 
     protected override Component? Render() =>
         Div[
-            Trigger.MediaCapture.For(_video).Video(true)
-                .OnStream(id => { _stream = id; StateHasChanged(); return Task.CompletedTask; })
-                .Template(g => Button.Type("button").Data(g)["Start camera"]),
+            Trigger.MediaCapture.For(_video).Template(g => Button.Type("button").Data(g)["Start camera"])
+                .Video(true)
+                .OnStream(id => { _stream = id; StateHasChanged(); return Task.CompletedTask; }),
             Button.Type("button").Disabled(_stream is null).OnClick(StopAsync)["Stop camera"],
             Video.Ref(_video).Muted(true)
         ];

@@ -19,9 +19,9 @@ using Rask;
 Ui.Button.Tone(Ui.Tone.Primary)["Save"]
 ```
 
-Live, on this site: [Actions](/docs/ui/actions) · [Data display](/docs/ui/data-display) ·
-[Navigation](/docs/ui/navigation) · [Feedback](/docs/ui/feedback) ·
-[Data input](/docs/ui/data-input) · [Layout & mockups](/docs/ui/layout).
+Live, on rask.sh: [Actions](https://rask.sh/docs/ui/actions) · [Data display](https://rask.sh/docs/ui/data-display) ·
+[Navigation](https://rask.sh/docs/ui/navigation) · [Feedback](https://rask.sh/docs/ui/feedback) ·
+[Data input](https://rask.sh/docs/ui/data-input) · [Layout & mockups](https://rask.sh/docs/ui/layout).
 
 ## Principles
 
@@ -555,9 +555,9 @@ triangle** with no script. A tap opens it on a touch screen. `Ui.MenuCheckbox` k
 flipping three switches should not mean opening it three times; any row can ask for the same with `KeepOpen`.
 Style the rows from `data-highlighted` (the cursor), `data-checked` and the dropdown's `data-open`.
 
-A controlled item written as `.Value(x).Key("k")` keeps the value it had when the key first claimed it — put
-`Key` first on a non-generic item (`Ui.MenuCheckbox.Key("k").Value(x)`), and leave a generic one such as
-`Ui.MenuRadioGroup` unkeyed.
+`Key` can go anywhere in an item's chain — `Ui.MenuCheckbox.Value(x).Key("k")` and
+`Ui.MenuCheckbox.Key("k").Value(x)` mean the same thing, and a generic item such as `Ui.MenuRadioGroup` takes
+one too (see [composition.md](composition.md)).
 
 `Open` is nullable and the three settings mean three things: unset leaves it to the reader; `true` and `false`
 hand it to the page, and the runtime shows or hides the popover to match whenever the page changes its mind,
@@ -629,7 +629,7 @@ The controlled opening is spelled `Values` rather than `Value` because `["a", "b
 target-typed: they fit every collection shape equally, so one name could not tell the two controls
 apart without guessing.
 
-Native is a real `<select multiple>`; `Native: false` draws the list, shows the chosen answers as
+Native is a real `<select multiple>`; `.Native(false)` draws the list, shows the chosen answers as
 removable chips in the box, and — unlike the single-select — leaves the list OPEN as you pick, because
 choosing three answers should not mean opening it three times. `SelectAll` adds a bulk row and `Chips`
 caps how many chips the box shows before the rest collapse into "+N more".

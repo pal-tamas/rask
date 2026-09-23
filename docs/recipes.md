@@ -9,6 +9,11 @@ open alongside.
 |---|---|
 | add a CRUD feature to a database I already have | [↓](#add-a-feature-to-an-existing-database) |
 | relate two entities (one-to-many, many-to-many) | [↓](#add-a-related-entity) |
+| keep deleted rows, or forbid deleting | [↓](#keep-deleted-rows-or-forbid-deleting) |
+| add a search box over a table | [↓](#add-a-search-box) |
+| know who is signed in, from anywhere | [↓](#know-who-is-signed-in) |
+| keep each customer's data apart | [↓](#keep-each-customers-data-apart) |
+| cache a query for the page, refreshed after writes | [↓](#cache-a-query-for-the-page) |
 | require a login to reach a page | [↓](#require-login-on-a-page) |
 | run work off the request thread | [↓](#run-work-off-the-request-thread) |
 | send a transactional email | [↓](#send-a-transactional-email) |
@@ -23,36 +28,109 @@ open alongside.
 
 ## Add a feature to an existing database
 
-A feature maps through the `DbContext` the project already has — add the entity, its configuration and its
-pages under `Features/Orders/`, then one line to the context:
+Declare the aggregate under `Features/Orders/` and its pages beside it. Nothing goes on the context — no
+`DbSet`, no configuration class: `RaskDbContext` maps every aggregate you declare, and the build generates
+its form model (`OrderModel`), read face (`Order.Read`) and writes (`Order.CreateAsync(model)`).
 
 ```csharp
-public DbSet<Order> Orders => Set<Order>();
+public sealed class Order : Aggregate<Guid>
+{
+    [Required, MaxLength(40)]
+    public string Reference { get; private set; } = "";
+}
 ```
 
 ```bash
 rask db add AddOrder && rask db update
 ```
 
-→ Reference: [data access](data.md) · Learn it: [Tutorial Ch 3](tutorial/03-orders-and-auth.md)
+→ Reference: [Rask.Data](data.md) · Learn it: [Tutorial Ch 3](tutorial/03-orders-and-auth.md)
 
 ## Add a related entity
 
-Give the child a foreign key and the parent a collection, then map it in the child's
-`IEntityTypeConfiguration`:
+**Another aggregate** is referred to by its id, never held — a navigation from one aggregate to another is a
+build error ([RASK087](diagnostics.md#rask087)). The read face infers the join from the id's name:
 
 ```csharp
-// Comment.cs
-public Guid PostId { get; private set; }
+public Guid CustomerId { get; private set; }            // on Order
 
-// CommentConfiguration.cs
-entity.HasOne<Post>().WithMany().HasForeignKey(x => x.PostId);
+var mine = await Order.Read.Where(o => o.Customer.Country == "HU").ToListAsync();   // navigation, inferred
 ```
 
-Use `.IsRequired(false)` on the foreign key for an optional relationship, and EF Core's implicit join
-table for many-to-many (no join entity needed).
+**A part of the aggregate** — an order's lines — is an `Entity<TId>` kept in a private list and changed only
+through the root; loading the root by id loads it whole. Many-to-many between aggregates is a list of ids.
 
-→ Reference: [the `rask` CLI](cli.md) · Learn it: [Tutorial Ch 3](tutorial/03-orders-and-auth.md)
+→ Reference: [children](data.md#children) · [the read face](data.md#what-the-read-face-is) · Learn it: [Tutorial Ch 3](tutorial/03-orders-and-auth.md)
+
+## Keep deleted rows, or forbid deleting
+
+A delete removes the row. Declare a `const` on the aggregate to say otherwise:
+
+```csharp
+public const Deletion Deletes = Deletion.Soft;   // Order.DeleteAsync stamps DeletedAt; reads hide the row
+public const Deletion Deletes = Deletion.None;   // no Order.DeleteAsync at all — cancel it instead
+```
+
+Then `rask db add OrderDeletes && rask db update`. `Order.Read.IgnoreQueryFilters()` brings soft-deleted rows
+back into a read.
+
+→ Reference: [choosing what a table carries](data.md#choosing-what-a-table-carries)
+
+## Add a search box
+
+Declare which text is searchable in the aggregate's `static Configure`, add a migration, and search the read
+face — ranked, word-aware and accent-insensitive, on SQLite, in the browser and on PostgreSQL:
+
+```csharp
+public static void Configure(EntityTypeBuilder<Product> builder) =>
+    builder.HasFullTextSearch(p => new { p.Name, p.Description });   // then: rask db add ProductSearch && rask db update
+
+var hits = await Product.Read.Search(query).Take(20).ToListAsync(CancellationToken);
+Ui.DataGrid.Data(Product.Read.Search(query).AsQueryable())           // best match first, paged in SQL
+```
+
+→ Reference: [full-text search](full-text-search.md)
+
+## Know who is signed in
+
+`Current` answers from anywhere — a static factory, a command handler, an API endpoint, a job — with nothing
+injected:
+
+```csharp
+public static Note Create(string text) => new() { Id = Guid.CreateVersion7(), Text = text, OwnerId = Current.RequiredUserId };
+```
+
+`Current.UserId` is `null` when nobody is signed in, and `Current.RequiredUserId` throws. A component that
+must re-render on sign-in injects `IUserProvider` instead.
+
+→ Reference: [`Current`](data.md#the-current-user--current)
+
+## Keep each customer's data apart
+
+One `const` partitions a table by tenant; every read filters to the signed-in user's tenant and every create
+stamps it:
+
+```csharp
+public sealed class Invoice : Aggregate<Guid>
+{
+    public const Tenancy Scope = Tenancy.PerTenant;
+}
+
+using (Tenant.Use(tenantId)) { /* an admin working in one tenant */ }
+```
+
+→ Reference: [multi-tenancy](multi-tenancy.md)
+
+## Cache a query for the page
+
+`QueryClient.Query` caches a read for the session, deduplicates it and refetches it in the background. Keyed
+by the aggregate, it refreshes itself after any write to that aggregate — no invalidation to write:
+
+```csharp
+var count = QueryClient.Query(QueryKey.For<Product>("count"), ct => Product.Read.CountAsync(ct));
+```
+
+→ Reference: [Rask.Query](query.md) · Learn it: [Tutorial Ch 2](tutorial/02-first-feature.md)
 
 ## Require login on a page
 

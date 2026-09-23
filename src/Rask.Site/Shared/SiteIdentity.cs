@@ -19,10 +19,11 @@ public static class SiteIdentity
     ///     The front door's title: the name, the identity, and the words someone looking for it types.
     /// </summary>
     /// <remarks>
-    ///     Name first, because this is the one page whose query is the name. "C# web apps" is there for
-    ///     everyone who has not heard of it yet — and to separate it from the other things called Rask.
+    ///     Name first, because this is the one page whose query is the name. "full-stack C# web framework"
+    ///     and ".NET" are there for everyone who has not heard of it yet — and to separate it from the other
+    ///     things called Rask.
     /// </remarks>
-    public const string Title = "Rask — the .NET One Person Framework for C# web apps";
+    public const string Title = "Rask — the full-stack C# web framework for .NET";
 
     /// <summary>
     ///     The site's description, inside the ~160 characters a search result shows before it cuts.
@@ -32,8 +33,8 @@ public static class SiteIdentity
     ///     components run on…". <c>PageMetaTests</c> holds every page's description to that budget.
     /// </remarks>
     public const string Description =
-        "Rask is the .NET One Person Framework: build, run and ship a whole C# web app — UI, data, auth, "
-        + "jobs and deploy — from one codebase on one server.";
+        "Rask is the full-stack .NET web framework: UI, data, auth, background jobs, realtime and deploy in "
+        + "one C# codebase, for a team of one or fifty.";
 
     /// <summary>
     ///     The version this site says it is — the top bar's badge and the guide banner read it.

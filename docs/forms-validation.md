@@ -6,18 +6,18 @@ Inline, DataAnnotations, FluentValidation, and async validators for Rask forms.
 
 ## Inline validation
 
-The lightest layer. Pass a `Validate:` lambda — per-field or per-form. Both
+The lightest layer. Chain a `.Validate(…)` rule — per-field or per-form. Both
 accept a sync `Func<…, IEnumerable<string>>` or an async
 `Func<…, CancellationToken, ValueTask<IEnumerable<string>>>`; overload resolution picks by arity, no
 cast. An empty sequence means valid.
 
 ```csharp
-Form<LoginModel>(_model,
-    OnValidSubmit: m => _submission = "Welcome",
-    Validate: m => m.Password == m.Confirm ? [] : ["Passwords do not match."])[   // cross-field, at submit
+Form.Model(_model)
+    .OnValidSubmit(m => _submission = "Welcome")
+    .Validate(m => m.Password == m.Confirm ? [] : ["Passwords do not match."])[   // cross-field, at submit
     Input.Bind(() => _model.Email)
         .Validate(v => v.Contains('@') ? [] : ["Email looks wrong."]),             // per-field, per-keystroke
-    Validation.Message.For(() => _model.Email).Template(errs => Div.Class("err")[errs[0]]),
+    Validation.Message.Template(errs => Div.Class("err")[errs[0]]).For(() => _model.Email),
     Validation.Summary.Template(SummaryAlert),
     Button.Type("submit")["Sign in"]
 ]
@@ -49,11 +49,11 @@ public sealed class SignupModel
     [Required, EmailAddress]                        public string Email    { get; set; } = "";
 }
 
-Form<SignupModel>(_model, OnValidSubmit: m => Console.WriteLine(m.Username))[
+Form.Model(_model).OnValidSubmit(m => Console.WriteLine(m.Username))[
     Input.Bind(() => _model.Username),
-    Validation.Message.For(() => _model.Username).Template(errs => Div.Class("err")[errs[0]]),
+    Validation.Message.Template(errs => Div.Class("err")[errs[0]]).For(() => _model.Username),
     Input.Bind(() => _model.Email),
-    Validation.Message.For(() => _model.Email).Template(errs => Div.Class("err")[errs[0]]),
+    Validation.Message.Template(errs => Div.Class("err")[errs[0]]).For(() => _model.Email),
     Button.Type("submit")["Register"]
 ]
 ```
@@ -114,11 +114,11 @@ public sealed class OrderValidator : AbstractValidator<OrderModel>
     }
 }
 
-Form<OrderModel>(_model, m => _submission = "Ordered")[
+Form.Model(_model).OnValidSubmit(m => _submission = "Ordered")[
     Input.Bind(() => _model.Product),
-    Validation.Message.For(() => _model.Product).Template(errs => Div.Class("err")[errs[0]]),
+    Validation.Message.Template(errs => Div.Class("err")[errs[0]]).For(() => _model.Product),
     Input.Bind(() => _model.Quantity),
-    Validation.Message.For(() => _model.Quantity).Template(errs => Div.Class("err")[errs[0]]),
+    Validation.Message.Template(errs => Div.Class("err")[errs[0]]).For(() => _model.Quantity),
     Button.Type("submit")["Order"]
 ]
 ```
@@ -187,7 +187,7 @@ Three ways to validate asynchronously:
 
    _ctx = new EditContext(_model);
    _ctx.AddValidator(new UniqueUsernameValidator());
-   // Form<…>(_model, Context: _ctx)[ … ]
+   // Form.Model(_model).Context(_ctx)[ … ]
    ```
 3. **FluentValidation `MustAsync`** — async rules ride the discovered validator, which is wrapped as an `IAsyncFieldValidator`.
 
@@ -195,7 +195,7 @@ Each `await` in a handler triggers a re-render, so a `Validation.Indicator` can 
 check is in flight:
 
 ```csharp
-Validation.Indicator.For(() => _model.Username).Template(() => Span.Class("spinner")["Checking…"])
+Validation.Indicator.Template(() => Span.Class("spinner")["Checking…"]).For(() => _model.Username)
 ```
 
 A bound `Rask.Ui` field (`Ui.Input`, `Ui.Textarea`, `Ui.Select`) renders this for you, as a small spinner
@@ -214,7 +214,7 @@ Validation can also be driven **programmatically** — `EditContext.Validate()` 
 ### `IsValidating` vs `ShouldShowValidatingIndicator`
 
 - `EditContext.IsValidating(field)` / `IsValidatingAny` — the exact "a validator is in flight right
-  now" answer. Use it for control flow (e.g. `Disabled: _ctx.IsValidatingAny` on a submit button).
+  now" answer. Use it for control flow (e.g. `.Disabled(_ctx.IsValidatingAny)` on a submit button).
 - `ShouldShowValidatingIndicator(field)` — `IsValidating` extended with a short **sticky tail**
   (`EditContext.ValidatingStickyMs`, default 200ms). A sub-second check still reads as "showing" for
   the sticky window so the indicator has a footprint screen-readers and Playwright can observe. This
@@ -231,6 +231,6 @@ generic `"Validation could not be completed."` rather than killing the submit pi
 
 <!-- demo:validation-first-error-wins -->
 
-A **cross-field** rule (form-level `Validate:` feeding the `Validation.Summary`):
+A **cross-field** rule (form-level `.Validate(…)` feeding the `Validation.Summary`):
 
 <!-- demo:validation-cross-field -->

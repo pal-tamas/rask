@@ -10,12 +10,12 @@ description: Add a new RASK0xx compile-time diagnostic to the Rask Roslyn genera
 already taken on a branch base that was ahead of the checkout it was picked against. Run the grep, and
 run it again before you merge.
 
-At the last edit the highest allocated here was RASK086 (RASK077–080 package islands; RASK081 the
-retired generated-writes constructor rule, RASK082/083 the generated form model, RASK084/085 the model-state analyzers and RASK086 the
-returned constructor rule, in `Rask.Batteries.Generators`), so the next free is **RASK087** — and note this line once said RASK076 while RASK076 was already taken, and the form
-model's ids were first written as RASK077–081 while package islands held RASK077–080 on main, which is the
-staleness it warns about; RASK063/065 are
-RESERVED for Rask.Blazor and unimplemented, and RASK027/030/032/034/042/047/048/049/050/054/081 are retired and
+At the last edit the highest allocated here was RASK091 (RASK087–091 the aggregate/form-model rules in
+`Rask.Batteries.Generators`), so the next free is **RASK092** — and note this line once said RASK087 while
+RASK087–091 were already taken, once said RASK076 while RASK076 was already taken, and the form model's ids
+were first written as RASK077–081 while package islands held RASK077–080 on main, which is the staleness it
+warns about; RASK063/065 are
+RESERVED for Rask.Blazor and unimplemented, and RASK027/030/032/034/042/046/047/048/049/050/054/081 are retired and
 never recycled — a retired id is absent from the grep below, so never take one for a gap. **FOUR** assemblies allocate in this space, and RS1019 only checks one compilation:
 
 ```bash

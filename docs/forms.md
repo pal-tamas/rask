@@ -89,8 +89,8 @@ checkbox's `checked`) from the model and installs its own `oninput`/`onchange` w
 effect on
 each bound write? That is what `AfterBind` is for.
 
-The generated factories carry the same split — `Input(() => m.Name, OnInput: …)` has no such
-parameter — so neither surface can express a mode it will not honour.
+The openings themselves stay exclusive: `Input.Bind(…)` and `Input.Value(…)` both live on the chain's
+entry, so once you have taken one the other is not there to take.
 
 Beyond the constraint/affordance attributes shared with plain HTML (`Min`/`Max`/`Step`/`Pattern`/
 `MaxLength`/`MinLength`/`Multiple`/`Accept`/`List`/`Autocomplete`/`Autofocus`), the core `Input` also
@@ -103,18 +103,18 @@ input), and `Dirname`. A control of your own forwards them the same way (see
 > renders `<input type="number" step="any">`. Without it HTML's default is `step="1"`, so the browser's own
 > constraint validation rejects `42.50` and **refuses to fire submit** — silently, with nothing thrown and
 > no validation message, which reads as the form being broken. Integral types keep the implicit whole-number
-> constraint. An explicit `Step:` always wins, and is worth setting for money (`Step: "0.01"` makes the
+> constraint. An explicit `.Step(…)` always wins, and is worth setting for money (`.Step("0.01")` makes the
 > spinner step by cents).
 
 ### File inputs
 
 `InputType.File` turns an `<input>` into a file picker. Instead of binding a value, hand it an
-`OnFiles` (or `OnFilesAsync`) callback that receives the selected `RaskFile`s (`Name`/`Size`/
+`OnFiles` callback (a synchronous or an asynchronous handler) that receives the selected `RaskFile`s (`Name`/`Size`/
 `ContentType`/`OpenReadStream()`), and constrain the picker with `Accept`, `Multiple`, and `Capture`:
 
 ```csharp
-Input<string>().Type(InputType.File).Accept("image/*").Multiple(true)
-     .FilesAsync(async files => { foreach (var f in files) await Save(f); })
+Input.Of<string>().Type(InputType.File).Accept("image/*").Multiple(true)
+     .OnFiles(async files => { foreach (var f in files) await Save(f); })
 ```
 
 Uploading the bytes (streaming to a server endpoint, size limits, progress) is covered end-to-end in
@@ -264,11 +264,12 @@ Form.Model(_model).OnValidSubmit(m => Console.WriteLine(m.Username))[
 Submit runs the full validator pipeline (`ValidateAsync`), marks every registered field touched,
 then routes:
 
-- valid → `OnValidSubmit` (or, if unset, `OnSubmit` / `OnSubmitAsync` with the raw `FormData`),
+- valid → `OnValidSubmit` (or, if unset, `OnSubmit` with the raw `FormData`),
 - invalid → `OnInvalidSubmit`.
 
-`OnValidSubmit` / `OnInvalidSubmit` accept `Action<TModel>` or `Func<TModel, Task>` — the generic
-overload narrows the delegate so you pass a bare lambda with no cast.
+`OnValidSubmit` / `OnInvalidSubmit` are one `Callback<TModel>` each, so either takes a synchronous
+(`Action<TModel>`) or an asynchronous (`Func<TModel, Task>`) handler — a bare lambda or a method group,
+no cast, no `…Async` twin.
 
 ### Children that follow the submit
 
@@ -351,11 +352,11 @@ lost a race rather than overwriting the other one. See
 
 ### Rendering messages
 
-Two headless components read the context — both take a required `Template:` so you own the markup,
+Two headless components read the context — both take a required `Template` step, written first, so you own the markup,
 and both render nothing when there's nothing to show:
 
 ```csharp
-Validation.Message.For(() => _model.Email).Template(errs => Div.Class("field-error")[errs[0]])
+Validation.Message.Template(errs => Div.Class("field-error")[errs[0]]).For(() => _model.Email)
 
 Validation.Summary.Template(entries => Ul[entries.Select(e => Li[Strong[e.Field], ": ", e.Message])])
 ```
@@ -368,7 +369,7 @@ Validation.Summary.Template(entries => Ul[entries.Select(e => Li[Strong[e.Field]
 ### Controls at a glance
 
 Every input works in two shapes — **controlled** (`Value` + `OnChange`, the parent owns the value) and
-**bound** (`Bind: () => model.X`, two-way). A derived readout rendered *outside* the control updates
+**bound** (`.Bind(() => model.X)`, two-way). A derived readout rendered *outside* the control updates
 live either way. The matrix below covers text, textarea and select; the [UI kit](ui-kit.md)'s controls
 take the same two shapes, since they implement the same `IFormControl<T>`.
 
@@ -389,13 +390,12 @@ default. The caption sits in the field until there is content, then rises. It st
 
 A control of your own (see [building form controls](building-form-controls.md)),
 and the [UI kit](ui-kit.md)'s controls) expose validation to assistive tech automatically — no extra props.
-When a bound field has messages, the control renders `aria-invalid="true"`, an `aria-describedby` that
-points at the error message's `id` (and the help-text `id` when `HelpText:` is set), and the
-`.invalid-feedback` as a `role="alert"` live region so screen readers announce the error the moment it
-appears, associated with the field rather than detached from it. Valid fields with `HelpText:` still get
-`aria-describedby` to the help text.
+When a bound field has messages, the control renders `aria-invalid="true"` and an `aria-describedby` that
+points at the error message's `id` (and the hint's `id` when `.Hint(…)` is set), so a screen reader reads
+the error with the field rather than detached from it. Valid fields with a `Hint` still get
+`aria-describedby` to the hint.
 
-A combobox control — [`UiSelect<T>`](ui-kit.md) with `Native: false`, over one answer or many — carries `role="combobox"`,
+A combobox control — [`Ui.Select`](ui-kit.md) with `.Native(false)`, over one answer or many — carries `role="combobox"`,
 which is not a labelable element, so its name is given directly (`aria-label`, or `aria-labelledby`
 pointing at a visible label) rather than through a `<label for>` that would bind to nothing. Alongside
 it goes the popup contract: `aria-haspopup="listbox"`, `aria-expanded`, `aria-controls` naming the

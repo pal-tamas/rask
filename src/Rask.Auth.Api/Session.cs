@@ -12,7 +12,7 @@ namespace Rask.Auth;
 /// device's next request instead of when its cookie happens to expire.
 /// </para>
 /// <para>
-/// Read it like any aggregate to list a user's devices: <c>Session.Where(s =&gt; s.UserId == id).ToListAsync()</c>. Rask.Auth
+/// Read it like any aggregate to list a user's devices: <c>Session.Read.Where(s =&gt; s.UserId == id).ToListAsync()</c>. Rask.Auth
 /// creates and ends sessions; an app does not.
 /// </para>
 /// </remarks>

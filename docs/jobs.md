@@ -94,6 +94,23 @@ await jobs.ScheduleAsync(new SendReminder(order.Id), delay: TimeSpan.FromHours(2
 - **The `Rask.Jobs` source generator** registers every `IBackgroundJob` type (name → CLR type) at module load, so the
   processor rehydrates a stored job with no runtime `Type.GetType` or assembly scanning.
 
+## The user and tenant a job runs for
+
+A job runs later, on another thread, with nobody signed in — but its handler usually needs to know whom the
+work is for. So the `Job` row records the user in flight when it was enqueued (`Current.UserId`, into
+`Job.UserId`) and, in an app with [multi-tenancy](multi-tenancy.md), the tenant. The processor re-enters both
+before it calls the handler, so the handler reads [`Current.UserId`](data.md#the-current-user--current) and
+filters tenant-scoped tables exactly as the page that enqueued it would have. A job enqueued by the host
+itself — a recurring job, work at startup — records nobody, and runs for nobody.
+
+**Upgrading adds a column.** The `UserId` column is new; generate and apply its migration —
+`rask db add AddJobUser && rask db update`. Until then the processor logs exactly that, instead of a generic
+failure, once it loads a pending job.
+
+`Job` and `RecurringJobState` are Rask.Data entities with read faces, so the queue can be queried with no
+context of your own — `Job.Read.Where(j => j.ProcessedAt == null).CountAsync()` for the backlog. The
+[dashboard](dashboard.md) shows the same table, with retry.
+
 ## Shutdown
 
 On `SIGTERM` — a redeploy, a container recycle, `Ctrl+C` — the processor stops picking up **new** jobs
@@ -109,9 +126,10 @@ count a failed attempt — a redeploy is not a failure, and counting it would ma
 its dead letter at the cadence you deploy. `rask.jobs.interrupted` counts these, and a warning is logged;
 a nonzero rate means your grace period is shorter than your work.
 
-> **Handlers must be idempotent regardless.** There is no lease, claim or visibility-timeout column — an
-> interrupted job re-runs *whole*, not from where it stopped. That is also why an interrupted job is
-> immediately eligible again rather than waiting out a lease after a redeploy.
+> **Handlers must be idempotent regardless.** An interrupted job re-runs *whole*, not from where it stopped.
+> The processor [leases](scaling.md#running-more-than-one-instance) the jobs it claims, and a graceful shutdown
+> hands the lease back, which is why an interrupted job is immediately eligible again rather than waiting out
+> its lease after a redeploy; a processor that dies mid-job releases it when the lease runs out.
 
 `ShutdownGracePeriod` cannot exceed `HostOptions.ShutdownTimeout`: once that elapses the host stops waiting
 for hosted services, so a longer grace silently does not happen. `TimeSpan.Zero` cancels immediately.

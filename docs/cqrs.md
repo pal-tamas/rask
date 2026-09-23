@@ -249,6 +249,12 @@ authentication and rate limit.
   (`IncludeExceptionDetail`): an exception message is written for an operator, not a browser, and
   routinely names tables, paths and credentials.
 
+**A handler knows who is calling without being told.** In a Rask app with its data layer on, a remote
+request's handler runs with the caller's principal ambient, as a live session's in-process dispatch does:
+[`Current.UserId`](data.md#the-current-user--current) is the caller, and a [tenant-scoped](multi-tenancy.md)
+read filters to the caller's tenant. A command therefore does not carry a user id the client could forge — the
+handler reads it. A job's handler gets the user and tenant it was enqueued for, the same way.
+
 Failure to *arrive* is the one thing remote dispatch adds to the in-process call, and it is a
 `RemoteDispatchException` — a null `StatusCode` means the request never reached the server.
 

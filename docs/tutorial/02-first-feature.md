@@ -457,7 +457,7 @@ it's on disk in `app.db`.
 
 > **Troubleshooting.** `rask db` can't find the project → make sure you `cd`'d into `Shop` first.
 > `/products` fails with `no such table` → you skipped `rask db update`. The build can't find
-> `Routes.ProductsPage()`, `ProductModel` or `Product.Where` → those are generated; build once and the IDE
+> `Routes.ProductsPage()`, `ProductModel` or `Product.Read` → those are generated; build once and the IDE
 > catches up. For a route, the generator also needs the `[Route]` attribute on the page.
 
 **Learn more:** [Rask.Data](../data.md) · [forms](../forms.md) · [data grid](../data-grid.md) ·

@@ -10,7 +10,7 @@ public sealed class Counter : Component
 {
     private int _count;
     protected override Component? Render() =>
-        Button(Type: "button", OnClick: () => _count++)[$"Count: {_count}"];
+        Button.Type("button").OnClick(() => _count++)[$"Count: {_count}"];
 }
 
 [Fact]

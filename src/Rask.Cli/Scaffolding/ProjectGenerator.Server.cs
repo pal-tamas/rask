@@ -252,10 +252,10 @@ internal static partial class ProjectGenerator
                 // file still compiles and every model you declare is silently absent from the database.
                 base.OnModelCreating(modelBuilder);
 
-                // ApplyRaskConventions walks the model as it stands, giving every entity its audit stamps and
-                // every aggregate its soft-delete query filter and concurrency token — so it has to come LAST,
-                // after the models, the configurations AND every battery's tables. Anything mapped after it
-                // silently misses out.
+                // ApplyRaskConventions walks the model as it stands, giving every entity its audit stamps, every
+                // aggregate its concurrency token, and a soft-delete query filter to an aggregate that declares
+                // `Deletes = Deletion.Soft` — so it has to come LAST, after the models, the configurations AND
+                // every battery's tables. Anything mapped after it silently misses out.
                 modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);{{schema}}
                 modelBuilder.ApplyRaskConventions();
             }

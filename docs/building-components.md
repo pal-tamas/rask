@@ -18,14 +18,14 @@ inherited HTML surface. Children go in the indexer.
 ## Components that need something first
 
 Some components cannot exist until you have told them something. A form control does not know what type it
-binds until you say; a toast has no message until you give it one. Those properties are **steps** rather
-than setters, and the chain asks for them first:
+binds until you say; a stat has nothing to show until you give it a label and a value. Those properties
+are **steps** rather than setters, and the chain asks for them first:
 
 ```csharp
-BsToast.Id(7).Message("Saved").Delay(3000)
+Ui.Stat.Label("Orders").Value("1,204").Caption("this week")
 ```
 
-`Id` and `Message` are required, so they come first — in either order. Everything optional follows. Miss
+`Label` and `Value` are required, so they come first — in either order. Everything optional follows. Miss
 one and there is nothing to render: the component does not exist yet, so the mistake is a compile error at
 the point you made it, not a null at runtime.
 
@@ -94,26 +94,29 @@ machinery. They are hidden from completion and never written by hand.
 
 ## Callbacks
 
-Callbacks are ordinary properties, set like any other:
+Callbacks are ordinary properties, set like any other, and each one takes a synchronous or an
+asynchronous handler at the call site:
 
 ```csharp
 Button.OnClick(Save)["Save"]
-BsToast.Id(1).Message("Saved").OnClose(() => _open = false)
+Ui.Toast.Message("Saved").OnDismiss(() => _open = false)
 ```
 
-A callback property on a component you write is an ordinary delegate — nothing to wrap, nothing to
-learn:
+On a component you write, an event is a `Callback` (or `Callback<T>` when it carries an argument), and a
+value the framework asks you for — a template, a selector — is an `Fn<…>`:
 
 ```csharp
-public Action? OnPick { get; set; }
-public Func<Task>? OnSaveAsync { get; set; }
-public Action<int>? OnRate { get; set; }
-public Func<Product, Component>? Template { get; set; }
+public Callback? OnPick { get; set; }              // Pick or PickAsync — one property, either shape
+public Callback<int>? OnRate { get; set; }
+public Fn<Product, Component>? Template { get; set; }
 ```
 
-The chain's receiver is `Build<TComponent>` rather than the component, so `.OnPick(fn)` resolves to the
-setter and not to invoking the property — which is what a delegate-typed property on the receiver would
-have meant (CS1593). Call one back the way you call any delegate: `OnPick?.Invoke()`.
+The chain's receiver is the component itself, and both are **structs**, not delegates. That is what keeps
+`.OnPick(fn)` a setter: a delegate-typed property on the receiver would be *invocable*, and C# would read
+the call as invoking it (CS1593) and never reach the step. There is no `OnPickAsync` twin to declare.
+
+Fire an event with `if (OnPick?.Invoke() is { } t) await t;` — `Invoke` returns `null` for a synchronous
+handler, so the sync path never picks up a `Task` — and call a template with `Template?.Invoke(item)`.
 
 ## Where the names come from
 
@@ -125,8 +128,8 @@ using static Rask.Html;            // the C# templates' too, so the tags are bar
 
 Div.Class("panel")[                          // an element: bare
     Ui.Button.Tone(Ui.Tone.Primary)["Save"], // the UI kit: through `Ui`
-    Trigger.Fullscreen.Target(_video)["⛶"],  // a browser capability: through `Trigger`
-    Validation.Message.For(() => m.Email),   // form feedback: through `Validation`
+    Trigger.Fullscreen.Template(g => Button.Data(g)["⛶"]).For(_video),   // a browser capability: through `Trigger`
+    Validation.Message.Template(m => Span[m[0]]).For(() => _m.Email),    // form feedback: through `Validation`
     Mui.Button["From npm"]                   // an npm package you declared: through its class
 ]
 ```
@@ -152,7 +155,7 @@ public sealed partial class ProductCard : Component
 {
     public required string Title { get; set; }   // a step
     public string? Subtitle { get; set; }        // a setter
-    public Action? OnPick { get; set; }
+    public Callback? OnPick { get; set; }
 
     protected override Component? Render() => …;
 }
@@ -173,10 +176,8 @@ worked:
 Tbody[rows.Select(r => Tr.Key(r.Id)[Td[r.Name], Td[r.Total]])]
 ```
 
-A chain that ends at a **step** is different. `OpsBadge.Key(k).Label(v)` has the type
-`Build<OpsBadge>`, and the implicit conversion that makes it a component at a call site does not lift
-through `IEnumerable<>` — so a projection of those is not a sequence of components. The children
-indexer accepts it anyway:
+So does a chain that ends at a **step**: the receiver is the component, so `OpsBadge.Key(k).Label(v)`
+is an `OpsBadge`, and a projection of those is a sequence of components:
 
 ```csharp
 Div[scopes.Select(s => OpsBadge.Key(s.Key).Label($"{s.Key}={s.Value}"))]

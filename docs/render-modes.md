@@ -130,12 +130,13 @@ lifecycle hook, so the render hands it over at the point a component reads it �
 for exactly the queries that page actually displays:
 
 ```csharp
-public sealed partial class Orders(IQueryClient client) : Component
+public sealed partial class Orders : Component
 {
-    private readonly Query<Order[]> _orders = client.Query(new GetOrders());
-
-    protected override Component? Render() =>
-        _orders.IsLoading ? P["Loading…"] : Ul[_orders.Data!.Select(o => Li[o.Ref])];
+    protected override Component? Render()
+    {
+        var orders = QueryClient.Query(new GetOrders());
+        return orders.IsLoading ? P["Loading…"] : Ul[orders.Data!.Select(o => Li[o.Ref])];
+    }
 }
 ```
 
@@ -146,8 +147,8 @@ false`) is pending but has nothing coming, so waiting for it would spend the who
 One that is serving cached data while it revalidates has real content to render, and its refresh lands over
 the live connection.
 
-Worth knowing when reasoning about cache hits: `IQueryClient` is registered **scoped**, which on the Server
-host means one cache per session. Every initial `GET` therefore starts cold — stale-while-revalidate only
+Worth knowing when reasoning about cache hits: the query cache is registered **scoped** (`AddRaskQuery()`), and
+the static `QueryClient` reaches the current session's one — on the Server host, one cache per session. Every initial `GET` therefore starts cold — stale-while-revalidate only
 arises after a navigation inside a live session, never on a first paint.
 
 ## Caching

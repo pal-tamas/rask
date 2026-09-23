@@ -11,6 +11,14 @@
     <Description>Wraps IDispatcher with a query cache and tRPC-style subscriptions for Rask components: dedup, staleness, background refetch and invalidation, scoped to the live session so one visitor is never served another's data, plus QueryClient.Subscribe — every published CQRS notification re-renders the pages watching it. The C# counterpart of what a React front end gets from TanStack Query, on every .NET host.</Description>
   </PropertyGroup>
 
+  <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
+       overview that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Remove="NUGET.md" />
+    <None Include="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Rask.Cqrs\Rask.Cqrs.csproj"/>
     <!-- PrivateAssets="all" — Rask.Core is IsPackable=false, so without it the nuspec would list a

@@ -27,7 +27,7 @@ public sealed partial class DashboardPage : Component
         Div.Class("grid")[
             H1["Revenue"],                 // Rask
             Chart.Series(_points),         // Chart.tsx, hydrated in the browser
-            BsCard[ Table.Rows(_rows) ],   // Rask again
+            Ui.Card[ Table.Rows(_rows) ]   // Rask again
         ];
 }
 ```
@@ -106,13 +106,13 @@ package's own TypeScript instead of being declared here — see
 
 ### It costs the inheritance slot, and that is the trade
 
-A component already extending `BsBlock` or your own base cannot also be a `ReactComponent` — C# gives
+A component already extending a base class of your own cannot also be a `ReactComponent` — C# gives
 every class one base. That is deliberate rather than an oversight: chrome in Rask comes from the
 chain, not from inheritance, so the answer is to compose.
 
 ```csharp
-BsCard[ Chart.Series(points) ]        // ✓ Bootstrap chrome around a React component
-class Themed : BsBlock, ReactComponent // ✗ does not compile, and should not
+Ui.Card[ Chart.Series(points) ]        // ✓ kit chrome around a React component
+class Themed : MyBase, ReactComponent   // ✗ does not compile, and should not
 ```
 
 The alternative — a marker attribute usable on any class — was tried first. It works, but it means
@@ -608,7 +608,7 @@ and its framework renders them, so a card from one package can hold a button fro
 MuiCard[
     "Revenue ",
     _total,
-    MuiButton.Variant(MuiButtonVariant.Contained).OnClick(Save)["Save"],
+    MuiButton.Variant(MuiButtonVariant.Contained).OnClick(Save)["Save"]
 ]
 
 MuiList[_people.Select(p => MuiListItem.Key(p.Id)[p.Name])]
@@ -642,10 +642,10 @@ When the markup is Rask's, compose the other way round. It costs nothing, and ev
 side stays live:
 
 ```csharp
-BsCard[
+Ui.Card[
     Panel.Heading("Sales"),
     Table.Rows(_rows),
-    BsButton.OnClick(Save)["Save"],
+    Ui.Button.OnClick(Save)["Save"]
 ]
 ```
 

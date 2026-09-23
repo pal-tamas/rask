@@ -168,7 +168,7 @@ public sealed partial class GuidesTests : global::Rask.Core.RaskMarkup
         var html = new GuidesIndexPage().ToHtml();
         foreach (var group in GuideCatalog.GroupOrder)
         {
-            // Group headings are Text-encoded (e.g. "Mobile & devices" → "Mobile &amp; devices").
+            // Group headings are Text-encoded (e.g. "Browser & devices" → "Browser &amp; devices").
             Assert.Contains($">{HtmlEncoder.Default.Encode(group)}<", html);
         }
 

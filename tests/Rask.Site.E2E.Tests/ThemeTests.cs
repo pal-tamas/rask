@@ -52,7 +52,7 @@ public sealed class ThemeTests
         try
         {
             await page.GotoAsync("/index.html");
-            await Expect(page.Locator("h1")).ToContainTextAsync("Ship a whole product");
+            await Expect(page.Locator("h1")).ToContainTextAsync("The whole stack");
 
             // No attribute, in either direction. The palette is decided by the media query alone.
             Assert.Null(await page.Locator("html").GetAttributeAsync("data-theme"));
@@ -105,7 +105,7 @@ public sealed class ThemeTests
         try
         {
             await page.GotoAsync("/index.html");
-            await Expect(page.Locator("h1")).ToContainTextAsync("Ship a whole product");
+            await Expect(page.Locator("h1")).ToContainTextAsync("The whole stack");
 
             // Through the same entry point the picker's radios use, so the test exercises the path a
             // reader does rather than a private helper.
@@ -152,7 +152,7 @@ public sealed class ThemeTests
         try
         {
             await page.GotoAsync("/index.html");
-            await Expect(page.Locator("h1")).ToContainTextAsync("Ship a whole product");
+            await Expect(page.Locator("h1")).ToContainTextAsync("The whole stack");
 
             // It is in the prerendered document, not added after boot: a reader on a dark machine who wants
             // light should not have to wait for a WASM runtime to download before they can say so.

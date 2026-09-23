@@ -83,8 +83,8 @@ public static partial class PageMeta
 
     /// <summary>What the social card shows, for a reader who cannot see it.</summary>
     public const string SocialImageAlt =
-        "Rask — the .NET One Person Framework: build, run and ship a whole C# web app from one codebase on "
-        + "one server.";
+        "Rask — the full-stack .NET web framework: UI, data, auth, background work, realtime and deploy, all "
+        + "in C#, for a team of one or fifty.";
 
     /// <summary>The social card's absolute URL, which is the only form <c>og:image</c> accepts.</summary>
     public static string SocialImageUrl => Origin + LiveOptions.PathBase + SocialImagePath;

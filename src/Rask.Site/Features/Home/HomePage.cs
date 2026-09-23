@@ -86,8 +86,10 @@ public sealed partial class HomePage : Component
         // badges, a route readout and a bordered button.
         SiteHeader.FullBleed(false),
         Hero(),
-        FeaturesSection(),
-        WholeBackEndSection(),
+        // Back end first. Rask is the whole stack, and the stack is what a visitor cannot get from a UI
+        // library; the components come second, then where they run, then which front end to put on it.
+        WholeStackSection(),
+        FrontendSection(),
         HostsSection(),
         FrontEndsSection(),
         InstallSection(),
@@ -98,12 +100,12 @@ public sealed partial class HomePage : Component
     private Component Hero() =>
         Section.Class("pt-14 pb-16 sm:pt-20 sm:pb-24")[
             Div.Class(Wrap)[
-                // The code track is SIZED FOR ITS CODE, not half the row. At an even split the Counter.cs
-                // window is 496px and its longest line 510px in JetBrains Mono (525px in the fallback a
-                // cold load paints first), so at every two-column width the <pre> was a live horizontal
+                // The code track is SIZED FOR ITS CODE, not half the row. At an even split the code
+                // window was 496px against a 510px line in JetBrains Mono (525px in the fallback a cold
+                // load paints first), so at every two-column width the <pre> was a live horizontal
                 // scroller over 14px of nothing — and Safari shows an overlay scrollbar late, when a
                 // scroller's content size changes under it (the font swapping in). 34rem clears the
-                // fallback with room to spare; nothing to scroll means no scrollbar to show.
+                // fallback with room to spare, and HeroCode keeps its lines short enough to stay inside.
                 Div.Class("hero-grid grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:gap-14")[
                     // min-w-0 on BOTH tracks. A grid item's min-width defaults to `auto`, which
                     // resolves to its min-content size — and the code window's <pre> carries
@@ -114,15 +116,15 @@ public sealed partial class HomePage : Component
                     // measured at 532px against a 390px screen, which is why the hero text was
                     // rendered small and clipped rather than wrapped.
                     Div.Class("min-w-0")[
-                        P.Class(Eyebrow)["The .NET One Person Framework"],
-                        // 2.75rem beside the code: "Ship a whole product." is 483px at 3rem, and the narrower
-                        // text track (452px) would break the headline's two designed lines into three.
+                        P.Class(Eyebrow)["The full-stack .NET web framework"],
+                        // 2.75rem beside the code: the text track is 452px there, and a longer first line
+                        // would break the headline's two designed lines into three.
                         H1.Class("text-4xl font-semibold leading-[1.1] tracking-tight text-ui-ink sm:text-5xl lg:text-[2.75rem]")[
-                            "Ship a whole product.", Br, "Just you, and ",
+                            "The whole stack,", Br, "in ",
                             Span.Class("text-ui-brand-ink")["C#"], "."
                         ],
-                        P.Class(Lede)["Build, run, and ship a complete product — the UI, the data, the auth, the background work, and the deploy — from one C# codebase on one server."],
-                        P.Class(Sub)["The same components run server-rendered over a WebSocket or fully client-side on WebAssembly — no ", Code[".razor"], ", no JavaScript, no second language. SQLite is the production database; one box runs the whole thing."],
+                        P.Class(Lede)["Data, queries, auth, background jobs, email, realtime and deploy — one framework and one C# codebase, for a team of one or fifty."],
+                        P.Class(Sub)["Declare an aggregate, query it from a page, ship it with ", Code["rask deploy"], ". The UI is C# components, live over a WebSocket or running in WebAssembly — or bring React, Vue, Angular or Nuxt to the same back end."],
                         Div.Class("mt-8 flex flex-wrap gap-3")[
                             NavLink
                                 .Href(PageMeta.LinkTo(Rask.Site.Features.Routes.GuidesIndexPage()))
@@ -139,18 +141,18 @@ public sealed partial class HomePage : Component
                             Span.Class(Badge)[B[".NET 10"], " · 11"],
                             Span.Class(Badge)["MIT"],
                             Span.Class(Badge)[B["Server"], " · WASM"],
-                            Span.Class(Badge)[B["SQLite"], " · production DB"]
+                            Span.Class(Badge)[B["SQLite"], " · Postgres · SQL Server"]
                         ]
                     ],
-                    // The page proving its own thesis, on first paint: the component's source, and the
-                    // component itself, running.
-                    Div.Class("flex min-w-0 flex-col gap-4")[CodeWindow(), LiveCounter]
+                    // One feature back to front, on first paint: the aggregate that is the table, and the
+                    // page that queries it. The counter that used to sit here leads the Frontend section.
+                    Div.Class("flex min-w-0 flex-col gap-4")[HeroCode]
                 ]
             ]
         ];
 
-    private Component CodeWindow() =>
-        Div.Class($"{Card} overflow-hidden")[
+    private static Component CodeWindow() =>
+        Div.Class($"{Card} min-w-0 overflow-hidden")[
             Div.Class("flex items-center gap-2 border-b border-ui-line bg-ui-well px-4 py-2.5")[
                 Dot("#ff5f57"), Dot("#febc2e"), Dot("#28c840"),
                 Span.Class("ml-2 font-mono text-xs text-ui-muted")["Counter.cs"]
@@ -277,67 +279,89 @@ public sealed partial class HomePage : Component
             P.Class("mt-2 text-sm leading-relaxed text-ui-muted")[desc]
         ];
 
-    /// <summary>Where a guide lives, relative to this page.</summary>
-    /// <remarks>
-    /// Document-relative, with no leading slash, exactly like every other asset URL this app emits — the
-    /// published <c>&lt;base href&gt;</c> is what decides the prefix, so the same markup is correct at the
-    /// origin root and under a sub-path.
-    /// </remarks>
-    private Component FeaturesSection() =>
-        Section.Id(BatteriesSectionId).Class(SectionPad)[
-            Div.Class(Wrap)[
-                SecHead("Batteries included · all type-safe",
-                    "A full framework, generated at compile time.",
-                    "Roslyn source generators build each component's chain surface and typed route URLs — trim-safe, reflection-free, and checked by 60+ compile-time diagnostics."),
-                Div.Class("grid gap-4 sm:grid-cols-2 lg:grid-cols-3")[
-                    Feature(Ui.IconName.Bolt, "Source generators", "building-components", "A chain surface per component — ", Code["Card.Title(…)"], " — that demands what the component can't do without, plus type-safe ", Code["Routes.*"], " URL builders. Rename a route, break the build — never a dead link."),
-                    Feature(Ui.IconName.PaintBrush, "Scoped CSS & TypeScript", "js-interop", "Drop a sibling ", Code["{Component}.css"], "/", Code[".ts"], ". Auto-scoped, no leaks, no class-name discipline — a mismatch is a build error. Tailwind v4 compiles from ", Code["dotnet build"], ", with no npm and no config file."),
-                    Feature(Ui.IconName.Clipboard, "Forms & validation", "forms", Code["Form<T>"], " with two-way binding, plus inline, DataAnnotations, FluentValidation, and async validators."),
-                    Feature(Ui.IconName.Lock, "Auth, on by default", "authentication", "Register, sign in and sign out with no auth code — a cookie session on both Server and WASM, route guards, and the first account to register becomes the admin. Identity, Keycloak, Auth0, OIDC."),
-                    Feature(Ui.IconName.ArrowsRightLeft, "CQRS", "cqrs", "Source-generated, trim-safe queries, commands, notifications and pipeline behaviors via ", Code["AddRaskCqrs()"], " — standalone, zero reflection."),
-                    Feature(Ui.IconName.Phone, "PWA & Web Push", "pwa", "Typed manifest, a default service worker, and VAPID/RFC-8291 Web Push with zero external deps. ", Code["--pwa"], " and you're installable."),
-                    Feature(Ui.IconName.Cube, "50 typed browser APIs", "browser-apis", "Storage, clipboard, geolocation, passkeys, share, sensors, observers, serial/USB/HID/Bluetooth — one awaitable C# layer, identical on Server & WASM."),
-                    Feature(Ui.IconName.ShieldOk, "Secure by default", "best-practices", "Strings are HTML-encoded, URL attributes are scheme-sanitized (", Code["javascript:"], " → ", Code["about:blank"], "). Safe output is the default, not a flag."),
-                    Feature(Ui.IconName.Retry, "C# Hot Reload", "getting-started", "Edit ", Code["Render()"], " or scoped css/js under ", Code["dotnet watch"], " and it re-renders live — the closest a compiled framework gets to a no-build loop."),
-                    Feature(Ui.IconName.Sparkles, "Prerendering", "prerendering", "A WASM app renders every route to real HTML at publish, so a crawler is served the page rather than a spinner. On the server, every page is live, and ", Code["QuiescenceTimeout"], " holds its first response until its data has loaded."),
-                    Feature(Ui.IconName.Terminal, "One CLI", "cli", Code["rask new"], ", ", Code["rask dev"], ", ", Code["rask db"], ", ", Code["rask deploy"], " — scaffold, run, migrate and ship without leaving the terminal.")
-                ]
-            ]
-        ];
-
     /// <summary>
-    ///     The batteries section's DOM id — the handle its tests address it by.
+    ///     The whole-stack section's DOM id — the handle its tests address it by.
     /// </summary>
     /// <remarks>
-    /// It is the first section under the hero, where a byte table against Blazor used to be:
-    /// <c>HomePageTests</c> and the site journey assert that it still is, so a section slotted in above
-    /// it has to mean to push the batteries down.
+    /// It is the first section under the hero, and it is the back end: <c>HomePageTests</c> and the site
+    /// journey assert that it still is, and that it comes before the front end, so a section slotted in
+    /// above it has to mean to push the stack down.
     /// </remarks>
-    internal const string BatteriesSectionId = "batteries";
+    internal const string WholeStackSectionId = "whole-stack";
 
-    // ---- one person's whole back end ----
-    private Component WholeBackEndSection() =>
-        Section.Class(SectionPad)[
+    /// <summary>The frontend section's DOM id — the handle its tests address it by.</summary>
+    internal const string FrontendSectionId = "frontend";
+
+    // ---- the whole stack (back end first) ----
+    //
+    // One card per shipped piece, each the way into its guide. No card for anything that is not in the
+    // box: a front door that promises a package nobody can reference is worse than a shorter list.
+    private Component WholeStackSection() =>
+        Section.Id(WholeStackSectionId).Class(SectionPad)[
             Div.Class(Wrap)[
-                SecHead("DB-backed by default · no external services",
-                    "One person's whole back end.",
-                    "Behind the same C# UI, every stateful pillar rides the app's own SQLite database — no broker, no Redis, no second service to run. They build on the standard .NET pieces — EF Core, hosted services, ILogger, IDistributedCache — so adding one is a package reference, not a new box to operate."),
+                SecHead("The whole stack · one codebase",
+                    "Everything behind the page, already built.",
+                    "Data, queries, auth, jobs, email, cache, files, realtime, tenants and search ship with the framework and ride your app's own database — no broker to stand up, no Redis to run, and a Redis you already have plugs in as the cache. They are built on the standard .NET pieces — EF Core, hosted services, ILogger, IDistributedCache — so each is a package reference, not a new box to operate."),
                 Div.Class("grid gap-4 sm:grid-cols-2 lg:grid-cols-3")[
-                    Feature(Ui.IconName.Stack, "A feature slice", "cqrs", "A CQRS + EF Core CRUD slice — entity, validation, list/create/edit pages, and tests — written once in the tutorial and repeated per feature. Small enough to type, so nothing is generated you can't read."),
-                    Feature(Ui.IconName.Clock, "Background jobs", "jobs", "Durable enqueued, delayed, and recurring work on your database, run by a hosted worker — at-least-once, with exponential backoff."),
-                    Feature(Ui.IconName.Envelope, "Transactional email", "mail", "Email queued on the same database and delivered over SMTP off the request thread; bodies are Rask components."),
-                    Feature(Ui.IconName.Outbox, "Transactional outbox", "outbox", "Domain events captured in the same transaction as your data and relayed at-least-once — crash-safe, no message broker."),
-                    Feature(Ui.IconName.Bolt, "Cache & query", "cache", "A database-backed ", Code["IDistributedCache"], ", a typed ", Code["ICache"], " with ", Code["GetOrAddAsync"], ", and ", Code["Rask.Query"], " wrapping the dispatcher with dedup, staleness and invalidation."),
-                    Feature(Ui.IconName.Database, "Production SQLite", "sqlite", "SQLite as the production database — WAL + busy-timeout pragmas, continuous Litestream backup, scheduled snapshots. Postgres and SQL Server are a package away."),
-                    Feature(Ui.IconName.Overview, "An operator console", "dashboard", "A dashboard at ", Code["/_rask"], " over every pillar's own table — queue depth, dead letters and the errors behind them, cache contents, a log tail, SQLite pragmas. Fail-closed behind an authorization policy."),
-                    Feature(Ui.IconName.Archive, "Durable logs", "logging", Code["Rask.Logging"], " keeps the ", Code["ILogger"], " pipeline in a SQLite file of its own, buffered off the request thread, with retention by age and row count — and a searchable view in the console."),
-                    Feature(Ui.IconName.Rocket, "One-command deploy", "deployment", Code["rask deploy"], " takes a bare VPS to a live HTTPS site — Docker, a non-root deploy user, firewall + SSH hardening, and zero-downtime swaps."),
+                    Feature(Ui.IconName.Database, "Data & aggregates", "data", "Derive from ", Code["Aggregate<Guid>"], " and the class is the table — key, timestamps and a concurrency version included, plus a generated read face to query. EF Core on SQLite, PostgreSQL or SQL Server."),
+                    Feature(Ui.IconName.ArrowsRightLeft, "Queries & commands", "query", Code["QueryClient.Query(…)"], " in ", Code["Render"], " — cached, deduplicated, refetched after a write. Source-generated CQRS underneath, and the same call from the browser or the server."),
+                    Feature(Ui.IconName.Lock, "Auth, on by default", "authentication", "Register, sign in, passkeys and a session row per device with no auth code — sign-in pages scaffolded into your app, the first account made admin. OIDC providers when you need them."),
+                    Feature(Ui.IconName.Clock, "Background jobs", "jobs", "Enqueued, delayed and recurring work stored in your database and run by a hosted worker — at-least-once, with exponential backoff."),
+                    Feature(Ui.IconName.Envelope, "Transactional email", "mail", "Mail queued on the same database and delivered over SMTP off the request thread; the bodies are components."),
+                    Feature(Ui.IconName.Outbox, "Transactional outbox", "outbox", "Domain events committed in the same transaction as the data that raised them, then delivered at-least-once — crash-safe, no message broker."),
+                    Feature(Ui.IconName.Bolt, "Cache", "cache", "A database-backed ", Code["IDistributedCache"], " plus a typed ", Code["ICache"], " with ", Code["GetOrAddAsync"], " — or point it at the Redis you already run."),
+                    Feature(Ui.IconName.Storage, "File storage", "file-storage", Code["Rask.Storage"], " keeps uploads on disk, in S3-compatible storage or in Azure Blob, with a row per file — public or expiring links, and the content type sniffed from the bytes."),
+                    Feature(Ui.IconName.Signal, "Realtime subscriptions", "subscriptions", Code["QueryClient.Subscribe<OrderPlaced>()"], " in a page, and every ", Code["OrderPlaced"], " published afterwards re-renders it — narrowed by a record, opened only through a policy."),
                     Feature(Ui.IconName.Bell, "Web Push", "webpush", "Send Web Push from your backend on your own VAPID keys (RFC 8292/8291) — zero external dependencies."),
-                    Feature(Ui.IconName.Globe, "WebRTC signaling", "browser-apis", Code["Rask.Signaling"], " hosts the relay that ", Code["IWebRtc"], " connects to, so peer-to-peer works without a third-party service."),
-                    Feature(Ui.IconName.Storage, "File storage", "file-storage", Code["Rask.Storage"], " keeps uploads on disk, in S3-compatible storage or in Azure Blob, with a row per file on your database — public or expiring links, and the content type sniffed from the bytes rather than taken from the browser.")
+                    Feature(Ui.IconName.Stack, "Multi-tenancy", "multi-tenancy", Code["Tenancy.PerTenant"], " on a table adds the tenant column, the query filter and tenant-prefixed indexes; ", Code["Tenant.Across()"], " is the one greppable way around them."),
+                    Feature(Ui.IconName.Search, "Full-text search", "full-text-search", Code["Product.Read.Search(\"red anvil\")"], " — ranked, best match first, with highlights and snippets, on SQLite FTS5 or PostgreSQL."),
+                    Feature(Ui.IconName.Overview, "The operator console", "dashboard", "A dashboard at ", Code["/_rask"], " over every battery's own table — queue depth, dead letters and the errors behind them, cache, a log tail, SQLite status. Fail-closed behind an authorization policy."),
+                    Feature(Ui.IconName.Terminal, "One CLI", "cli", Code["rask new"], " scaffolds a working app with data, auth and the batteries wired; ", Code["rask dev"], " runs it with hot reload; ", Code["rask db"], " migrates and backs up."),
+                    Feature(Ui.IconName.Rocket, "One-command deploy", "deployment", Code["rask deploy"], " takes a bare VPS to a live HTTPS site — Docker, a non-root deploy user, firewall + SSH hardening, and zero-downtime swaps.")
                 ]
             ]
         ];
+
+    // ---- frontend ----
+    //
+    // The page's own proof leads it: a component's whole source beside the component, running. It sat in
+    // the hero while the page was about UI; the hero is the stack now, and the counter is still the
+    // shortest honest answer to "what is a Rask component".
+    private Component FrontendSection() =>
+        Section.Id(FrontendSectionId).Class(SectionPad)[
+            Div.Class(Wrap)[
+                SecHead("Frontend · C# components",
+                    "The UI is C# too.",
+                    "Components are plain C# classes — no ", Code[".razor"], ", no JavaScript, no second language. Roslyn source generators build each one's chain and typed route URLs, trim-safe and reflection-free."),
+                // The same 34rem track the hero uses, for the same reason: the counter's longest line is
+                // 510px, and a narrower window would scroll it.
+                Div.Class("mb-10 grid items-start gap-4 lg:grid-cols-[minmax(0,34rem)_minmax(0,1fr)]")[
+                    CodeWindow(),
+                    Div.Class("min-w-0")[LiveCounter]
+                ],
+                Div.Class("grid gap-4 sm:grid-cols-2 lg:grid-cols-3")[
+                    Feature(Ui.IconName.Cube, "Components as a chain", "building-components", "A chain surface per component — ", Code["Card.Title(…)"], " — that demands what the component can't do without, plus type-safe ", Code["Routes.*"], " URL builders. Rename a route, break the build — never a dead link."),
+                    Feature(Ui.IconName.Clipboard, "Forms & validation", "forms", Code["Form<T>"], " with two-way binding, plus inline, DataAnnotations, FluentValidation, and async validators — the same rules checked again on the server."),
+                    Feature(Ui.IconName.PaintBrush, "Scoped CSS & TypeScript", "js-interop", "Drop a sibling ", Code["{Component}.css"], "/", Code[".ts"], ". Auto-scoped, no leaks — a mismatch is a build error. Tailwind v4 compiles from ", Code["dotnet build"], ", with no npm and no config file."),
+                    Feature(Ui.IconName.Desktop, "A typed UI kit", "ui-kit", "Every daisyUI component as a C# component — ", Code["Ui.Button"], ", ", Code["Ui.DataGrid"], ", ", Code["Ui.Tree"], " — accessible and themed, with no npm and no Tailwind config."),
+                    Feature(Ui.IconName.Phone, $"{BrowserApiCount} typed browser APIs", "browser-apis", "Storage, clipboard, geolocation, passkeys, share, sensors, observers, WebRTC, serial/USB/HID/Bluetooth — one awaitable C# layer, identical on Server & WASM."),
+                    Feature(Ui.IconName.Download, "Installable PWA", "pwa", "A typed manifest, a default service worker, offline and background sync — the ", Code["wasm"], " template is installable out of the box."),
+                    Feature(Ui.IconName.Retry, "C# Hot Reload", "getting-started", "Edit ", Code["Render()"], " or scoped css/js under ", Code["rask dev"], " and it re-renders live — the closest a compiled framework gets to a no-build loop."),
+                    Feature(Ui.IconName.Sparkles, "Prerendering", "prerendering", "A WASM app renders every route to real HTML at publish, so a crawler is served the page rather than a spinner. On the server, every page is live, and its first response waits for its data."),
+                    Feature(Ui.IconName.ShieldOk, "70+ compile-time diagnostics", "diagnostics", "A missing required step, a public setter on an aggregate, an image with no alt text — each is a RASK error at build time that names the fix, several with an IDE quick-fix.")
+                ]
+            ]
+        ];
+
+    /// <summary>How many typed browser-API wrappers ship, as the Frontend section counts them.</summary>
+    /// <remarks>
+    /// Every injectable wrapper service: the 40 every host registers
+    /// (<c>RaskHostContracts.BrowserApis</c>) plus the 13 only the WASM host can run
+    /// (<c>RaskWasmBrowserApis</c>). The capability matrix lists 51 of them — <c>IViewTransitions</c> and
+    /// <c>IWebAnimations</c> have no page of their own under docs/apis/ and are documented in the reference
+    /// guide instead. <c>BrowserApiCountTests</c> recounts the source and fails when this goes stale.
+    /// </remarks>
+    internal const int BrowserApiCount = 53;
 
     // ---- install ----
     private Component InstallSection() =>

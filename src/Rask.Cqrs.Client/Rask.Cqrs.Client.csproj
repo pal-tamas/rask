@@ -12,6 +12,14 @@
     <PackageTags>cqrs mediator rpc remote-dispatch wasm blazor source-generator reflection-free aot trimming</PackageTags>
   </PropertyGroup>
 
+  <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
+       overview that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Remove="NUGET.md" />
+    <None Include="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Rask.Cqrs\Rask.Cqrs.csproj"/>
     <!-- For the file bridge: RaskFile -> RemoteFile, and Navigator.Download(FileDownload). The transport

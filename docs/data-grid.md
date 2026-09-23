@@ -124,12 +124,14 @@ Ui.DataGrid.Data(_page).RowKey(p => p.Id)
 
 | Axis | State | Callback |
 | --- | --- | --- |
-| Sort | `Sort`, `SortDescending` | `OnSortChange` / `OnSortChangeAsync` |
-| Page | `Page` | `OnPageChange` / `OnPageChangeAsync` |
-| Selection | `Selected` | `OnSelectionChange` / `OnSelectionChangeAsync` |
-| Grouping | `Grouped` | `OnGroupedChange` / `OnGroupedChangeAsync` |
-| Hidden columns | `HiddenColumns` | `OnHiddenColumnsChange` / `…Async` |
-| Column order | `ColumnOrder` | `OnColumnOrderChange` / `…Async` |
+| Sort | `Sort`, `SortDescending` | `OnSortChange` |
+| Page | `Page` | `OnPageChange` |
+| Selection | `Selected` | `OnSelectionChange` |
+| Grouping | `Grouped` | `OnGroupedChange` |
+| Hidden columns | `HiddenColumns` | `OnHiddenColumnsChange` |
+| Column order | `ColumnOrder` | `OnColumnOrderChange` |
+
+Each callback is one property taking a synchronous or an asynchronous handler — there is no `…Async` twin.
 
 A sortable header cycles **ascending → descending → off**. The third state is not decoration: it is the
 only way back to the order the source itself chose.

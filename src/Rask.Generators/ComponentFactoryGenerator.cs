@@ -156,8 +156,8 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         // both need the surface injected into their own partial:
         //
         //  * an ABSTRACT component. Nothing can construct it, so it gets no factory and no entry, but it
-        //    is still a component, and an abstract base that composes other components (BsBlock,
-        //    BsFormControl<T>, PollingPanel) could otherwise name no entry at all.
+        //    is still a component, and an abstract base that composes other components (UiElement,
+        //    UiFormField<T>, PollingPanel) could otherwise name no entry at all.
         //  * a MARKUP host: a type deriving from Rask.Core.RaskMarkup, or carrying [RaskMarkup], that is
         //    not a Component. This is how the surface reaches code that is not inside a component — a
         //    test class, a fixture, a factory of demo components — which is a quarter of every call site
@@ -332,7 +332,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         sb.AppendLine("{");
 
         // The universal surface — Component.Key plus Element's attributes and its ~88 GlobalEventHandlers —
-        // as constrained generic extensions over Build<T>. Being generic they already cover every component
+        // as constrained generic extensions over the component itself. Being generic they already cover every component
         // in the graph, so an assembly that is only a component LIBRARY re-emits an identical set into the
         // same global namespace and makes `.Key(id)` ambiguous to infer (CS0411). A component LIBRARY is
         // that shape, and opts out through the same switch that stops it injecting its own entries.
@@ -342,15 +342,14 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             ReportSharedBitOverflow(spc, host, sharedBits);
             foreach (var s in host.Shared)
             {
-                // No reachability skip, and none needed anywhere any more: the setter's receiver is the
-                // CHAIN, so a delegate-typed property is not on it and cannot swallow its own setter.
+                // No reachability skip, and none needed: every event property on the shared surface is a
+                // `Callback` carrier — a struct, not a delegate — so it cannot swallow its own setter even
+                // though the setter's receiver is the component itself.
                 //
-                // Once per chain SHAPE, because the shared surface belongs to all of them: an ordinary
-                // component's `Build<T>`, a form control's mode-carrying `Build<T, TMode>`, a form's
-                // `FormBuild<T>` and a grid's `GridBuild<T, TKey>`. The ones carrying an argument are
-                // written over an OPEN one, so `Input.Bind(…).Class("x")` keeps the mode it was in and
-                // `Ui.DataGrid.Data(…).RowKey(…).Class("x")` keeps its key — and the next step still knows
-                // it. A form control or a grid that could not say `.Class(…)` would be no trade at all.
+                // Once, over the component: there is one chain shape now (see "THE CHAIN'S RECEIVER IS THE
+                // COMPONENT" below), so `Input.Bind(…).Class("x")` and `Ui.DataGrid.Data(…).RowKey(…).Class("x")`
+                // hand back exactly the control or grid they were called on, and the next step still knows
+                // its type. A form control or a grid that could not say `.Class(…)` would be no trade at all.
                 //
                 // The GRID shape takes only the COMPONENT-owned half, and that is a measurement rather
                 // than a policy: of the 121 shared members, 120 are constrained `where T : Element` and a
@@ -376,11 +375,11 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             var ownBits = OwnPendingBits(c);
             // OwnSetterProps is everything the component does not inherit from Rask.Core's
             // Element/Component chain — its own props AND those it inherits from an intermediate base
-            // (HtmlMediaElement, BsBlock, BsFormControl<T>, a consumer's own base). The shared chain is
+            // (HtmlMediaElement, UiElement, UiFormField<T>, a consumer's own base). The shared chain is
             // emitted once as constrained generic extensions above and must not be duplicated per tag;
             // an intermediate base has no such emission, so skipping it left those props with no setter
-            // at all (every Bs control's Id/Class/Label/Size, every media element's Src). The receiver
-            // stays the CONCRETE component so the chain keeps its type — a `BsFormControl<T>`-typed
+            // at all (every kit control's Label/Size, every media element's Src). The receiver
+            // stays the CONCRETE component so the chain keeps its type — a `UiFormField<T>`-typed
             // extension would return the base and break the next setter. An init-only prop can only be
             // assigned in an object initializer (CS8852), so it has no setter — the factory reaches it
             // through the initializer instead. The bound IFormControl<T> members are emitted below from
@@ -995,14 +994,14 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     // dropped a leading `On` to dodge that (`OnRate` -> `.Rate(…)`), and where it could not, the property
     // had no reachable setter at all and RASK042 asked the author to wrap the delegate in a carrier.
     //
-    // Both are gone because the chain's receiver is `Build<TComponent>` rather than the component: the
-    // property is no longer on the receiver, so the lookup never finds it and the setter binds whatever
-    // the property's type. A callback property is now an ordinary `Action`/`Func`, and its setter says
-    // what the property says.
+    // Both are gone because every callback property is now a carrier — `Callback`/`Callback<T>` for an
+    // event, `Fn<…>` for a template or selector — a STRUCT rather than a delegate. The chain's receiver
+    // is the component, so the property IS on the receiver; being non-invocable, it does not stop the
+    // lookup, the call falls through to the extension setter, and the setter keeps the property's name.
 
     // The bound half of an IFormControl<T> control: one setter per interface member, typed from the
     // interface's T rather than from the declaring class. That matters twice — the members may be
-    // inherited from a non-Element base (BsInput<T> gets them from BsFormControl<T>, which the
+    // inherited from a non-Element base (Ui.Input's UiInput<T> gets them from UiFormField<T>, which the
     // depth-0 rule above would skip), and it is what lets the generic entry take only `Bind`:
     //
     //     Input.Bind(() => _form.Name).Validate(ProductName.Validate).Id("name")
@@ -1059,9 +1058,9 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             // folding them would report propsChanged on every frame. Exactly what EmitBoundOverload's
             // foldProps does (only the shared display props participate there too).
             //
-            // mode: these are the BOUND members, so they are declared only on a bound chain. A chain that
-            // opened with `Value` never sees them — `.AfterBind(…)` on it is a compile error naming
-            // Build<…, Controlled>, where before it compiled and the hook simply never ran.
+            // mode: these are the BOUND members. With the component as the receiver they are ordinary
+            // setters on it, so `.AfterBind(…)` after a `Value` opening compiles and is simply never read;
+            // what stays exclusive is the pair of OPENINGS, which live only on the seed.
             EmitSetter(sb, name, typeFqn, c.FullyQualifiedName, isDelegate: false, wrap: false, generic: false,
                 fold: false, AnnotateDecl(c, c.TypeParameters), c.TypeParameterConstraints, visibility,
                 pendingBit: -1, summary: summary);
@@ -1183,7 +1182,8 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         if (generic && string.Equals(name, "Key", StringComparison.Ordinal))
         {
             // Emitted ONCE, over the component's own type parameter. This used to be emitted per chain
-            // SHAPE, and writing `Build<T>` literally here produced the same `Key<T>` twice — CS0111.
+            // SHAPE (when `Build<T>` and its siblings wrapped the component), which produced the same
+            // `Key<T>` twice — CS0111.
             var self = "T";
             sb.Append("    ").Append(visibility).Append(" static ")
                 .Append(self).Append(" Key").Append("<T>").Append("(this ").Append(self)
@@ -1250,11 +1250,11 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
 
         // An `internal` component cannot appear in a `public` signature (CS0050/CS0051), so the
         // setter's accessibility tracks its component's — the same rule the factory emission uses.
-        // The receiver is `Build<TComponent>`, never the component. That is the whole reason a callback
-        // property can be an ORDINARY delegate: C# stops at a delegate-typed property when it resolves
-        // `x.OnClick(fn)` and reads the call as an invocation (CS1593), never reaching an extension
-        // method — but only if the property is on the receiver. One step off it, the lookup finds
-        // nothing and the setter binds. See Rask.Core.Build{T}.
+        // The receiver is the component itself. That is the whole reason a callback property is a
+        // CARRIER (`Callback`/`Callback<T>`/`Fn<…>`), never an ordinary delegate: C# stops at a
+        // delegate-typed property when it resolves `x.OnClick(fn)` and reads the call as an invocation
+        // (CS1593), never reaching an extension method. A struct is not invocable, so the lookup falls
+        // through and the setter binds. See Rask.Core.Callback.
         // A carrier-typed prop gets bare-delegate overloads beside this setter, and `null` converts to
         // every one of them. Priority makes the carrier-typed one win that call rather than CS0121.
         if (CarrierDelegates(typeFqn).Count > 0)
@@ -1505,14 +1505,14 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         // are unaffected: the list is empty either way.
         var typeArgs = (generic ? "<T>" : typeParameters);
         // …and with them their CONSTRAINTS, or a constrained generic component with a bag prop emits
-        // `Foo<TValue>(this Build<Widget<TValue>, TMode> …)` with no `where TValue : …` and fails to
+        // `Foo<TValue>(this Widget<TValue> …)` with no `where TValue : …` and fails to
         // compile (CS0314). Carrying the parameters without the constraints was half a fix.
         var where = generic ? " where T : " + receiver : constraints;
 
         // The body is assigned here rather than forwarded to the dictionary overload. Every component's
-        // setters are extension methods on Build<…> in one static class, so a forwarding `Data(__b, …)`
+        // setters are extension methods in one static class, so a forwarding `Data(__b, …)`
         // is resolved against ALL of them and binds to whichever component's overload wins — it picked
-        // Build<FullscreenTrigger> for an Trigger.EyeDropper. Assigning the property directly has no name
+        // FullscreenTrigger's for a Trigger.EyeDropper. Assigning the property directly has no name
         // to resolve.
         // The prefix these entries render under, which is the whole point of the overload: `.Aria("label",
         // "Close")` is aria-label, not an attribute called "label". Naming it in the doc is what tells a
@@ -1689,9 +1689,10 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     // itself. There used to be a layer here: a callback property was a CARRIER wrapping its delegate, so
     // every parameter had to be typed as the carried delegate (a lambda cannot reach a carrier — that
     // needs a delegate conversion followed by a user-defined one, which C# will not chain) and every
-    // assignment had to run back through `From`. The carriers existed only so a delegate-typed property
-    // would not swallow its own setter; the chain's `Build<TComponent>` receiver removes the collision at
-    // its source, so the property is the delegate and there is nothing to map.
+    // assignment had to run back through `From`. A callback property is still a carrier (`Callback<T>`,
+    // `Fn<…>`) so it cannot swallow its own setter on a component receiver, but the setter now takes the
+    // carrier type directly and the bare-delegate overloads beside it (see CarrierDelegates) convert a
+    // lambda, so a parameter is the property's own type and there is nothing to map.
     private static string ParamType(PropInfo p) => p.TypeFqn;
 
     private static string SanitizeIdentifier(string value)
@@ -1863,9 +1864,9 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             // An internal component cannot surface through a `protected` member of the public
             // Component (CS0053); `private protected` keeps it to derived types in this assembly.
             //
-            // The entry opens a chain, so it hands back `Build<TComponent>` and not the component: the
-            // steps after it are extension methods on the chain, which is what keeps a delegate-typed
-            // property from swallowing its own setter (see Rask.Core.Callback).
+            // The entry opens a chain and hands back the component itself: the steps after it are
+            // extension methods on the component, and a carrier-typed property (not a delegate) is what
+            // keeps one from swallowing its own setter (see Rask.Core.Callback).
             EmitEntryDoc(sb, c);
             sb.Append(c.IsPublic ? "    protected static " : "    private protected static ")
                 .Append(c.FullyQualifiedName).Append(' ')
@@ -1928,8 +1929,8 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     ///     </para>
     ///     <para>
     ///         States are identified by WHICH required properties are already set, so the remaining ones
-    ///         may be given in any order — <c>BsToast.Id(7).Message("…")</c> and
-    ///         <c>BsToast.Message("…").Id(7)</c> are both chains and both end at the component. That costs
+    ///         may be given in any order — <c>Ui.Stat.Label("…").Value("…")</c> and
+    ///         <c>Ui.Stat.Value("…").Label("…")</c> are both chains and both end at the component. That costs
     ///         one struct per reachable subset, which is why only REQUIRED properties take part: the
     ///         optional surface would make it 2^n over everything.
     ///     </para>
@@ -2729,9 +2730,10 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     //
     // A `required` RAW DELEGATE used to block as well, and that one was not about construction either:
     // the prop was invocable, so a same-named setter could never be reached and the component would have
-    // been constructible and permanently incomplete. The chain's `Build<TComponent>` receiver removed
-    // that, so Validation.Message, Validation.Summary, Validation.Indicator, ToastOutlet, Shareable, the
-    // Trigger.Gesture family and BsSelect's OptionValue simply have entries.
+    // been constructible and permanently incomplete. A REQUIRED property is a step on the seed or a
+    // pending stage — never on the component — so it is not on the receiver and cannot swallow its step
+    // whatever its type; Validation.Message, Validation.Summary, Validation.Indicator, ToastOutlet, Shareable, the
+    // Trigger.Gesture family and Ui.DataGrid's RowKey simply have entries.
     //
     // …and a name Component already declares (`Head`) still blocks too, which would be CS0102.
     private static bool CanHaveEntry(Candidate c, HashSet<string> taken) =>
@@ -3812,9 +3814,9 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 continue;
             }
 
-            // The entry opens a chain, so it hands back `Build<TComponent>` rather than the component:
-            // the steps that follow are extension methods on the component, and a carrier-typed property
-            // is what keeps one from swallowing its own setter (see Rask.Core.Callback).
+            // The entry opens a chain and hands back the component itself: the steps that follow are
+            // extension methods on the component, and a carrier-typed property is what keeps one from
+            // swallowing its own setter (see Rask.Core.Callback).
             EmitEntryDoc(sb, c);
             sb.Append("    ").Append(visibility).Append(" static ").Append(c.FullyQualifiedName)
                 .Append(' ').Append(EscapeIdentifier(c.TypeName)).Append(" => ").Append(runtime)
@@ -5058,9 +5060,9 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         return component;
     }
 
-    // Whether the component declares ISubmitAware, which is what puts its chain on the FormBuild<T>
-    // shape. Interfaces rather than an attribute, so it reads exactly like the form-control check
-    // below and a component cannot claim the chain without implementing what the chain calls.
+    // Whether the component declares ISubmitAware — a relic of the FormBuild<T> chain shape. That shape
+    // is gone (Form declares its submit-state indexer on itself) and nothing implements the interface
+    // any more, so this is always false in practice.
     private static bool IsSubmitAware(INamedTypeSymbol symbol) =>
         ImplementsInterface(symbol, SubmitAwareFullName);
 
@@ -6042,13 +6044,13 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         bool IsPublic,
         GenericFactoryConfig? GenericFactory,
         FormControlInfo? FormControl,
-        // Whether the component's chain is the FORM shape — Rask.Core.FormBuild<T>, which adds the
-        // children indexer that takes the submit state. A capability, like FormControl above, and
-        // read the same way: off the implemented interfaces.
+        // Whether the component implements ISubmitAware — once the marker for the FORM chain shape
+        // (FormBuild<T>, now gone; Form declares its submit-state indexer on itself). Read off the
+        // implemented interfaces, like FormControl above.
         bool SubmitAware,
-        // Whether the component's chain is the GRID shape — Rask.Core.GridBuild<T, TKey>, whose children
-        // indexer takes a column factory rather than a list. Read off the implemented interfaces for the
-        // same reason SubmitAware is: the shape calls something, so claiming it has to mean supplying it.
+        // Whether the component is a column host (Rask.Core.IColumnHost) — once the marker for the GRID
+        // chain shape (GridBuild<T, TKey>, now gone; the grid declares its column-factory indexer on
+        // itself). The interface no longer exists either, so this is always false in practice.
         bool ColumnHost,
         EquatableArray<PropInfo> Properties,
         EquatableArray<ForwarderInfo> Forwarders,

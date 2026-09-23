@@ -9,6 +9,16 @@ them until tagged releases begin.
 
 ### Added
 
+- **Two new guides: [Multi-tenancy](docs/multi-tenancy.md) and [Full-text search](docs/full-text-search.md).**
+  Multi-tenancy gathers the tenant const, how the tenant comes from the principal, `Current`, an administrator
+  switching tenant, and what tenancy means for the cache, stored files, jobs, mail, the outbox and sign-in. Full-text
+  search covers SQLite (`UseRaskSqlite`, or a plain `UseSqlite` plus `UseRaskFullTextSearch()`), PostgreSQL (a stored
+  `tsvector` column with a GIN index) and the browser in one place. Both are in the Data group on rask.sh and in
+  `llms.txt`.
+- **Every shipped package has its own NuGet readme.** Rask.Server, Rask.Wasm, Rask.Query, Rask.Blazor, Rask.DevTools,
+  Rask.External, Rask.Meta.Hosting, Rask.Spa.Hosting, Rask.Cqrs.Client, Rask.Cqrs.Server and
+  Rask.Validation.FluentValidation fell back to the generic root readme on nuget.org.
+
 - **Several npm components from one package, reached as `Mui.Button`.** Declare the package once and list what you
   use from it; each export becomes a package island, with its props generated from the package's TypeScript exactly
   as a single island's are:
@@ -276,6 +286,19 @@ them until tagged releases begin.
   and a collection the entity's own `Configure` already mapped is left exactly as it is.
 
 ### Changed
+
+- **rask.sh, the README, the NuGet readmes and `llms.txt` present Rask as the full-stack .NET web framework, for a
+  team of one or fifty.** The landing page leads with the whole stack (data and queries, auth, jobs, email, outbox,
+  cache, files, realtime subscriptions, multi-tenancy, full-text search, the `/_rask` console, `rask new`/`db`/
+  `deploy`), with the hero showing an aggregate and the page that queries it; the UI follows. The docs sidebar is
+  grouped by domain (Data, Auth, Backend services, Realtime, Frontend, Deploy & operate, …) instead of "One Person
+  Framework" and "Integration". The One Person Framework is now the philosophy guide rather than the headline, the
+  package tag `one-person-framework` is replaced by full-stack tags, and the social card is redrawn.
+- **The docs match the code again.** Reads go through the read face (`Product.Read.Where(...)`; there is no
+  `FindAsync`); soft delete is described as opt-in everywhere; `ApplyRaskConventions(this)`; full-text search is no
+  longer called SQLite-only; tenancy is documented in every battery; examples no longer use factory calls, the removed
+  `Build<T>` receiver, the gone `Bs*` components or `On…Async` callbacks that do not exist; samples take required chain
+  steps before optional ones (`Validation.Message.Template(...).For(...)`); the diagnostics range is RASK001–091.
 
 - **BREAKING: every element is also a member of `Rask.Html`, and the `<html>` element is `Document`.** Components
   still inherit the tags, so nothing inside a component changes. What is new is that any other class — a test, a

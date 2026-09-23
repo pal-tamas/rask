@@ -4,25 +4,25 @@ namespace Rask.Core.Components;
 
 /// <summary>
 ///     Hosts a component instance the application built itself, giving it the full lifecycle a component
-///     built by its generated factory gets.
+///     built by its chain gets.
 /// </summary>
 /// <remarks>
-///     Nearly every component enters the tree through its generated factory, and that factory's
+///     Nearly every component enters the tree through its generated chain, and the chain's
 ///     <c>GetOrCreate</c> is what registers the instance with its parent and notifies it. A component
 ///     constructed some other way — the usual reason being that its type is not known until runtime, so
-///     there is no factory to call: a plugin, a component chosen by name, one compiled at runtime — reaches
+///     there is no chain to write: a plugin, a component chosen by name, one compiled at runtime — reaches
 ///     the tree as a plain object. It renders correctly, but it is invisible to the alive-set walk: no
 ///     <c>OnMount</c>, no <c>OnMountAsync</c>, no <c>OnRendered</c>, no <c>OnUnmount</c>, and no handle to
 ///     re-render through when an asynchronous hook completes. Anything that loads its data in
 ///     <c>OnMountAsync</c> therefore sits on its placeholder forever, with nothing reported.
 ///     <para>
-///         Wrapping it fixes that: <c>Mount(Child: instance)</c> adopts the instance and notifies it, so it
-///         behaves like any other child. Passing a component that <i>did</i> come from a generated factory
+///         Wrapping it fixes that: <c>Mount.Child(instance)</c> adopts the instance and notifies it, so it
+///         behaves like any other child. Passing a component that <i>did</i> come from a chain
 ///         is harmless — it has already been adopted, and both steps here are no-ops for it.
 ///     </para>
 ///     <code>
 ///     var page = (Component)ActivatorUtilities.CreateInstance(services, pluginType);
-///     return Div(Class: "host")[Mount(Child: page)];
+///     return Div.Class("host")[Mount.Child(page)];
 ///     </code>
 /// </remarks>
 public sealed class Mount : Component

@@ -2,15 +2,22 @@
 
 <img alt="Rask" src="https://raw.githubusercontent.com/pal-tamas/rask/main/assets/rask-logo.svg" width="280">
 
-### The .NET One Person Framework — build, run, and ship a whole product solo, in C#, on one server.
+### The full-stack .NET web framework — for a team of one or fifty.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/pal-tamas/rask/blob/main/LICENSE)
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4)
 
 </div>
 
-Write components as plain C# classes. Return a tree of HTML from `Render()`: state is a field, and an
-event handler is a delegate. The *same* component code runs server-rendered with live WebSocket
+UI, data, auth, background work, realtime and deploy — all in C#, in one codebase, on standard ASP.NET
+Core and EF Core: Rask.Data and source-generated CQRS, accounts, background jobs, email, an outbox,
+cache and file storage on your own database, realtime subscriptions, multi-tenancy, full-text search,
+the `/_rask` operator console, and `rask new` / `rask db` / `rask deploy` from the CLI. SQLite is the
+production default; PostgreSQL and SQL Server are a package away. Small teams ship like big ones, and
+one developer can still ship the whole thing alone. Guides: [rask.sh/docs](https://rask.sh/docs/).
+
+The UI is C# too. Write components as plain C# classes that return a tree of HTML from `Render()`:
+state is a field, and an event handler is a delegate. The *same* component code runs server-rendered with live WebSocket
 updates or fully client-side on WebAssembly.
 
 Rask is a superset, not a rival: React, Vue, Svelte, Angular and Lit components, real Blazor components

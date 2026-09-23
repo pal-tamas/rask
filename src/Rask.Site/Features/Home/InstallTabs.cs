@@ -40,11 +40,12 @@ public sealed partial class InstallTabs : Component
             ],
             P.Class("install-foot mt-4 text-center text-xs text-ui-muted")[
                 "Accounts and cookie sign-in are already on · full path in the ",
-                A
-                    .Class("text-ui-brand-ink no-underline hover:underline")
-                    .Href("https://github.com/pal-tamas/rask/blob/main/docs/getting-started.md")
-                    .Target("_blank")
-                    .Rel("noopener")["getting-started guide"], "."
+                // The on-site guide, through the typed route like every other card on the page: it
+                // navigates inside the app instead of leaving for GitHub's raw markdown in a new tab.
+                NavLink
+                    .Href(PageMeta.LinkTo(Features.Routes.GuidePage("getting-started")))
+                    .ActiveClass("")
+                    .Class("text-ui-brand-ink no-underline hover:underline")["getting-started guide"], "."
             ]
         ];
 

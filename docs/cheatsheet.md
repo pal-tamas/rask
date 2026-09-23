@@ -42,17 +42,19 @@ probably meant.
 
 ## A CRUD slice, in one place
 
-A vertical slice under `Features/<Plural>/` is five kinds of file:
+A vertical slice under `Features/<Plural>/` is one aggregate and the components over it:
 
 | File | What it is |
 |---|---|
-| `Product.cs` | the entity — `Entity<Guid>`, private setters, `Create`/`Update` factories |
-| `ProductRequest.cs` | the form model the create/edit pages bind to |
-| `ProductConfiguration.cs` | the EF `IEntityTypeConfiguration<Product>` (lengths, keys, relationships) |
-| `ProductsPage.cs` | the routed list page + its query and handler |
-| `CreateProduct.cs` · `UpdateProduct.cs` · `DeleteProduct.cs` | one command + handler + page each |
+| `Product.cs` | the aggregate — `Aggregate<Guid>`, `private set` properties, validation attributes, no constructor |
+| `CreateProduct.cs` | `[Route("/products/new")]` — a form over the generated `ProductModel`, saved through a `QueryClient.Command()` that runs `Product.CreateAsync(model)` |
+| `UpdateProduct.cs` | `[Route("/products/{id:guid}/edit")]` — loads `Product.ModelAsync(id)` through `QueryClient.Query`, saves with `Product.UpdateAsync(id, model)` |
+| `DeleteProduct.cs` | a button per row — `Product.DeleteAsync(id, version)` behind a command |
+| `ProductsPage.cs` | `[Route("/products")]` — a `Ui.DataGrid` over `Product.Read.OrderBy(…).AsQueryable()` |
 
-Plus `public DbSet<Product> Products => Set<Product>();` on the app's one `AppDbContext`.
+Nothing else is written: the build generates `ProductModel`, the read face (`Product.Read`, rows of
+`ProductRead`) and the writes, `RaskDbContext` maps the aggregate, and a write refreshes every query keyed
+`QueryKey.For<Product>(…)` by itself. Then `rask db add AddProducts && rask db update`.
 [Chapter 2](tutorial/02-first-feature.md) writes all of it out.
 
 ## Wiring one-liners
@@ -67,7 +69,7 @@ builder.Services.AddDbContextFactory<ProductsDbContext>((sp, o) => o
     .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));   // audit/soft-delete/events/outbox
 
 var app = builder.Build();
-Db.Configure(app.Services);                            // Product.Where(…) now knows which database
+Db.Configure(app.Services);                            // Product.Read.Where(…) now knows which database
 ```
 
 The type argument and `Db.Configure` are a pair: the bare `AddRaskData()` registers only the
@@ -110,6 +112,21 @@ Authorize.Roles(["admin"])[ DeleteProductButton(id) ]
 // Declare an aggregate: private setters, no constructor, a static factory; value objects need no marker (Rask.Data):
 public sealed class Product : Aggregate<Guid> { public string Name { get; private set; } = ""; }
 
+// What a table carries — a const on the aggregate, each optional (Rask.Data):
+public const Deletion Deletes = Deletion.Soft;      // keep the row as DeletedAt (default: Hard — the row goes)
+public const Deletion Deletes = Deletion.None;      // never deleted: no DeleteAsync is generated
+public const Tenancy Scope = Tenancy.PerTenant;     // a TenantId, a filter, tenant-prefixed indexes — docs/multi-tenancy.md
+
+// Who is signed in, from a static factory or anything with no constructor to inject into:
+OwnerId = Current.RequiredUserId,                   // Current.UserId is null when nobody is
+using (Tenant.Use(tenantId)) { /* … */ }           // work as one tenant; Tenant.Across() spans them
+
+// One row by id — there is no FindAsync on the read face, because Find would skip the query filters:
+var one = await Product.Read.Where(p => p.Id == id).FirstOrDefaultAsync(CancellationToken);
+
+// Ranked full-text search — builder.HasFullTextSearch(p => new { p.Name, p.Description }) in static Configure, then:
+var hits = await Product.Read.Search(query).Take(20).ToListAsync(CancellationToken);
+
 // Read and write it — no context injected; or send a command whose handler does the save:
 var products = await Product.Read.Where(p => p.Price > 0).OrderBy(p => p.Name).ToListAsync(CancellationToken);
 var product  = await Product.CreateAsync(model, cancellationToken: CancellationToken);          // ProductModel from a form
@@ -118,6 +135,11 @@ await Product.UpdateAsync(id, edit, p => p.Touch(now), cancellationToken: Cancel
 await Product.DeleteAsync(id, db: db, cancellationToken: CancellationToken);                   // join a context you hold
 await dispatcher.SendAsync(new EditProduct { Id = id, Name = name, Version = version }, CancellationToken);
 Ui.DataGrid.Data(Product.Read.AsQueryable()).RowKey(p => p.Id)[c => [ c.Field(p => p.Name) ]];   // pages in SQL
+
+// Cache a query for the session, from Render — refetched by itself after any Product write (Rask.Query):
+var count = QueryClient.Query(QueryKey.For<Product>("count"), ct => Product.Read.CountAsync(ct));
+count.IsLoading ? Ui.Loading.Text("Loading…") : Text($"{count.Data} products")
+var save = QueryClient.Command();                    // pending/error state for a write; save.IsPending disables Save
 
 // Cache an expensive read; invalidate on write:
 var products = await cache.GetOrAddAsync("products", async _ => await LoadAsync(), CancellationToken);

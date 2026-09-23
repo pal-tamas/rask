@@ -54,9 +54,10 @@ public sealed class ShowcaseLayoutTests
         var html = RaskTest.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
         // Each group renders a collapsible toggle whose label is the group name. Guides-first, so the
-        // guide category groups lead (Overview + Core + Bootstrap + …); the surviving Examples group is Apps.
+        // guide category groups lead (Overview + the domain groups — Data, Frontend, …); the surviving Examples group is Apps.
         Assert.Contains(">Overview<", html);
-        Assert.Contains(">Core<", html);
+        Assert.Contains(">Data<", html);
+        Assert.Contains(">Frontend<", html);
         Assert.Contains(">Apps<", html);
         // The top-level sections are present, guides-first: Guides leads, then the demoted Examples.
         Assert.Contains(">Guides<", html);

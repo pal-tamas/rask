@@ -35,7 +35,7 @@ public class PrerenderShellTests
     private const string Document =
         """
         <!doctype html><html lang="en"><head><meta charset="utf-8"/>
-        <title>Rask — the .NET One Person Framework</title>
+        <title>Rask — the full-stack C# web framework for .NET</title>
         <meta name="description" content="Ship a whole product."/>
         <link rel="stylesheet" href="/css/app.css"/></head>
         <body><h1>Ship a whole product.</h1><p>Just you, and C#.</p></body></html>
@@ -300,7 +300,7 @@ public class PrerenderShellTests
         // A browser takes the FIRST <title>, and the shell's is a placeholder that ships with every
         // page. Appending the document's head without resolving this would leave every prerendered
         // page titled "Rask" — the search result the feature exists to fix.
-        Assert.Contains("<title>Rask — the .NET One Person Framework</title>", merged, StringComparison.Ordinal);
+        Assert.Contains("<title>Rask — the full-stack C# web framework for .NET</title>", merged, StringComparison.Ordinal);
         Assert.DoesNotContain("<title>Rask</title>", merged, StringComparison.Ordinal);
         Assert.Equal(1, CountOf(merged, "<title"));
     }
@@ -439,7 +439,7 @@ public class PrerenderShellTests
         // And stripping the prose did not confuse the splice it mentions: one base, one title, the document's.
         Assert.Equal(1, CountOf(merged, "<base "));
         Assert.Equal(1, CountOf(merged, "<title>"));
-        Assert.Contains("<title>Rask — the .NET One Person Framework</title>", merged, StringComparison.Ordinal);
+        Assert.Contains("<title>Rask — the full-stack C# web framework for .NET</title>", merged, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -1,8 +1,9 @@
 # Getting started with Rask
 
-Rask is **the .NET One Person Framework** — one developer builds, runs, and ships a whole product solo, in
-C#, on one server ([read the doctrine](one-person-framework.md)). It starts with the UI: you build it as
-plain C# classes — no `.razor`, no JSX, no JavaScript to write. A component is a class that returns a tree
+Rask is **the full-stack .NET web framework** — UI, data, auth, background work, realtime and deploy, all
+in C#, for a team of one or fifty ([read the philosophy](one-person-framework.md)). This guide starts with
+the UI; the [tutorial](tutorial/00-overview.md) adds the rest of the stack. You build the UI as plain C#
+classes — no `.razor`, no JSX, no JavaScript to write. A component is a class that returns a tree
 of HTML from `Render()`, and the *same* component runs either server-rendered (live updates over a
 WebSocket) or fully client-side in the browser on WebAssembly.
 
@@ -423,7 +424,7 @@ The snags you're most likely to hit on a fresh project:
 
 ## Next steps
 
-You now have a running, routed, interactive app. From here, the One Person Framework path takes it to a
+You now have a running, routed, interactive app. From here, the rest of the stack takes it to a
 shipped product — and the **[zero-to-deploy tutorial](tutorial/00-overview.md)** walks that whole path
 step by step (database, auth, jobs, email, cache, events, and deployment). In short:
 

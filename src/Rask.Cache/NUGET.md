@@ -45,6 +45,10 @@ There is deliberately no `Rask.Cache.Redis` package —
 `CacheOptions`, because both of them are implemented by the database-backed store and would silently do
 nothing against another one.
 
+**Isolated per tenant.** In a multi-tenant app the database-backed store scopes each key to the tenant in
+flight, so every tenant gets its own value under the same name and cannot read another's; with no tenant the
+key is stored as given, which keeps anonymous session and output caching working.
+
 > **Trim / AOT:** the typed `GetOrAddAsync<T>`/`GetAsync<T>`/`SetAsync<T>` overloads use reflection-based
 > `System.Text.Json`. In a trimmed or AOT app, use the `JsonTypeInfo<T>` overloads with a source-generated
 > `JsonSerializerContext`. The `IDistributedCache` (`byte[]`) surface is fully trim-safe.

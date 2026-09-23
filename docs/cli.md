@@ -401,7 +401,7 @@ rask new Shop --no-logs     # …and nothing else: the log store owns a database
 
 The generated `Program.cs` composes them in an order that is load-bearing rather than stylistic — the
 outbox registered before the `DbContext` factory (so its interceptor joins the `SaveChanges` pipeline),
-`ApplyRaskConventions()` after the entity configurations (it walks the model as it stands), and the
+`ApplyRaskConventions(this)` after the entity configurations (it walks the model as it stands), and the
 Litestream restore before anything opens the database. Those are pinned by tests, not left to chance.
 
 Turning off a battery a template doesn't have (for example `--no-cqrs` on `wasm`) fails fast with the
@@ -1095,6 +1095,6 @@ their `--options`. Re-run it after upgrading `rask` to pick up new commands and 
 
 ## Roadmap
 
-The CLI is the front door for Rask's "one person framework" tooling — from `rask new` to `rask deploy`,
+The CLI is the front door to the whole Rask stack — from `rask new` through `rask db` to `rask deploy`,
 the whole lifecycle lives here. See the [development workflow](development-workflow.md) for how the
 framework is built.

@@ -122,7 +122,7 @@ dotnet run --project src/Rask.Site
 - **Factory params** (generated per public prop): nullable→optional(null); non-nullable no-initializer→**required**
   (RASK001); initializer/`[SkipFactory]`/`Children`→excluded. Inject framework services via the **ctor**, not
   settable non-nullable props (those become required params; `required`+DI ctor→RASK002).
-- **`Key`** — reconciliation identity (last factory `Key:` param), enables trusted structural diff; not a reactive prop.
+- **`Key`** — reconciliation identity, a chain step that can go ANYWHERE in the chain (generic components too; #1118, RASK046 retired); enables trusted structural diff; not a reactive prop.
 - **One `Callback`/`Callback<T>` property per event**, taking either handler shape (sync or async) at the
   call site — a plain `Func<…>` still types a template or a selector. It is a STRUCT, which is what keeps
   the setter reachable now the component is the receiver (above). Auto-wrapped to re-render the owning parent.
@@ -131,7 +131,7 @@ dotnet run --project src/Rask.Site
 
 ## Subsystems → read `docs/`
 Routing/lifecycle (`docs/routing.md`, `docs/lifecycle.md`), scoped CSS/TypeScript + typed browser APIs
-(`docs/js-interop.md`, `docs/browser-apis.md` — the 50-wrapper map), forms +
+(`docs/js-interop.md`, `docs/browser-apis.md` — the 53-wrapper map), forms +
 validation (`docs/forms.md`), auth (`docs/authentication.md`), context/callbacks (`docs/composition.md`),
 diagnostics RASK001–091, RASK027/030/032/034/042/046/047/048–050/054/081 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
 started / migration / testing / architecture (`docs/`). Trimming: `src/Rask.Site` must

@@ -271,9 +271,9 @@ public abstract partial class SharedSmokeTests
         Assert.True(groups >= 6, $"expected the nav split into many collapsible groups, got {groups}");
 
         // Collapse/expand toggle: the guide category groups are open by default (guides-first), so
-        // collapsing one hides its links and re-expanding reveals them. The "Core" guide group is stable
-        // across the whole example→guide migration.
-        var core = Page.Locator(".side-nav .nav-group-toggle:has-text(\"Core\")").First;
+        // collapsing one hides its links and re-expanding reveals them. The "Frontend" guide group (the
+        // old "Core", renamed when the nav regrouped by domain) holds the routing guide.
+        var core = Page.Locator(".side-nav .nav-group-toggle:has-text(\"Frontend\")").First;
         var routingGuide = Page.Locator($".side-nav a.side-nav-link[href=\"{Docs}/guides/routing/\"]");
         await core.ClickAsync(); // collapse
         await Expect(routingGuide).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
