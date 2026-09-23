@@ -21,7 +21,7 @@ public sealed class VsCodeScaffoldTests
     private const string Version = "9.9.9";
 
     private static readonly string[] VsCodeFiles =
-        [".vscode/launch.json", ".vscode/tasks.json", ".vscode/extensions.json"];
+        [".vscode/launch.json", ".vscode/tasks.json", ".vscode/extensions.json", ".vscode/settings.json"];
 
     private static readonly JsonDocumentOptions Jsonc = new()
     {
@@ -119,6 +119,69 @@ public sealed class VsCodeScaffoldTests
         Assert.DoesNotContain("inspectUri", files[".vscode/launch.json"], StringComparison.Ordinal);
     }
 
+    /// <summary>Every scaffold with a <c>.vscode/</c>: the hosts, and the standalone WebAssembly app.</summary>
+    private static IEnumerable<(string Label, ScaffoldResult Result)> AllScaffolds() =>
+        HostScaffolds().Append(("wasm", ProjectGenerator.GenerateWasm(Root, "App", pwa: false, docker: false, Version)));
+
+    [Fact]
+    public void A_component_nests_its_paired_files()
+    {
+        // Scoped CSS/TypeScript, a .tsx/Lit island and a package island's props snapshot are paired with the
+        // component's .cs by file name — the same pairing the build does, so the explorer shows them as one.
+        foreach (var (label, result) in AllScaffolds())
+        {
+            using var settings = JsonDocument.Parse(Index(result)[".vscode/settings.json"], Jsonc);
+            Assert.True(settings.RootElement.GetProperty("explorer.fileNesting.enabled").GetBoolean(), label);
+
+            var nested = settings.RootElement.GetProperty("explorer.fileNesting.patterns").GetProperty("*.cs").GetString()!
+                .Split(',', StringSplitOptions.TrimEntries);
+            Assert.Equal(["${capture}.css", "${capture}.ts", "${capture}.tsx", "${capture}.props.json"], nested);
+        }
+    }
+
+    [Fact]
+    public void Tailwind_completion_ships_only_with_a_tailwind_stylesheet()
+    {
+        var tailwind = new List<string>();
+        foreach (var (label, result) in AllScaffolds())
+        {
+            var files = Index(result);
+            using var settings = JsonDocument.Parse(files[".vscode/settings.json"], Jsonc);
+            using var extensions = JsonDocument.Parse(files[".vscode/extensions.json"], Jsonc);
+            var recommended = extensions.RootElement.GetProperty("recommendations").EnumerateArray()
+                .Select(r => r.GetString()).ToList();
+            Assert.Contains("ms-dotnettools.csdevkit", recommended);
+
+            var entry = files.GetValueOrDefault(VsCodeAssembly.TailwindEntry);
+            if (entry is null || !entry.Contains("@import \"tailwindcss\"", StringComparison.Ordinal))
+            {
+                // A SPA or meta host's C# side has no Tailwind: nothing to complete, nothing to install.
+                Assert.DoesNotContain("tailwindCSS", files[".vscode/settings.json"], StringComparison.Ordinal);
+                Assert.DoesNotContain("bradlc.vscode-tailwindcss", recommended);
+                continue;
+            }
+
+            tailwind.Add(label);
+            var root = settings.RootElement;
+            Assert.Contains("bradlc.vscode-tailwindcss", recommended);
+            Assert.Equal(VsCodeAssembly.TailwindEntry, root.GetProperty("tailwindCSS.experimental.configFile").GetString());
+            Assert.Equal("html", root.GetProperty("tailwindCSS.includeLanguages").GetProperty("csharp").GetString());
+
+            // The regex has to find the classes in the markup the template actually wrote.
+            var pattern = root.GetProperty("tailwindCSS.experimental.classRegex").EnumerateArray().Single().GetString()!;
+            var markup = files.Single(f => f.Key.EndsWith("HomePage.cs", StringComparison.Ordinal)).Value;
+            var match = Regex.Match(markup, pattern);
+            Assert.True(match.Success, $"{label}: classRegex '{pattern}' finds no .Class(\"…\") in HomePage.cs");
+            Assert.Matches("^[a-z0-9:-]+( [a-z0-9:/\\[\\]().-]+)*$", match.Groups[1].Value);
+        }
+
+        // server, wasm-hosted and wasm compile Tailwind; a pass that found none would be checking nothing.
+        Assert.Contains("server", tailwind);
+        Assert.Contains("wasm-hosted", tailwind);
+        Assert.Contains("wasm", tailwind);
+        Assert.DoesNotContain(SpaFramework.All[0].Key, tailwind);
+    }
+
     private static void AssertInspectsThroughTheProxy(JsonElement config)
     {
         Assert.Equal("launch", config.GetProperty("request").GetString());
@@ -184,7 +247,6 @@ public sealed class VsCodeScaffoldTests
         // edits under the debugger need a restart, and `rask dev` is the live-edit loop.
         var files = Index(ProjectGenerator.GenerateServer(Root, "App", new ServerBatteries(), Version));
 
-        Assert.DoesNotContain(".vscode/settings.json", files.Keys);
         Assert.DoesNotContain(files, f => f.Key.StartsWith(".vscode/", StringComparison.Ordinal)
                                           && (f.Value.Contains("hotReload", StringComparison.OrdinalIgnoreCase)
                                               || f.Value.Contains("DOTNET_MODIFIABLE_ASSEMBLIES", StringComparison.Ordinal)));

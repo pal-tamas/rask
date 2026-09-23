@@ -59,7 +59,9 @@ public sealed class SiteHeaderTests
         var brand = header.IndexOf("app-brand", StringComparison.Ordinal);
         Assert.True(brand >= 0, $"no .app-brand in the top bar:\n{header}");
 
-        return header[brand..];
+        // The theme picker is a Ui.Popover, which numbers its ids per instance so two on one page cannot
+        // collide — so two renders of the same bar differ in that number and in nothing else it is allowed to.
+        return System.Text.RegularExpressions.Regex.Replace(header[brand..], "uipop-\\d+", "uipop-N");
     }
 
     [Fact]

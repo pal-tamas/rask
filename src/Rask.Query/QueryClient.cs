@@ -263,55 +263,93 @@ public static class QueryClient
     // ---- subscriptions ------------------------------------------------------------------------------
 
     /// <summary>
-    ///     A live view of every <typeparamref name="TNotification" /> published — starting with the last one — for
-    ///     <paramref name="key" />, when the notification is scoped. Inside <c>Render</c> the same call returns the same
-    ///     subscription every render, re-pointed when the key changes.
+    ///     A live view of every <typeparamref name="TNotification" /> published — starting with the last one. Inside
+    ///     <c>Render</c> the same call returns the same subscription every render.
     /// </summary>
     /// <remarks>
     ///     <code>
-    ///     var shipped = QueryClient.Subscribe&lt;OrderShipped&gt;(Id);          // one order's, admitted by its policy
-    ///     var placed  = QueryClient.Subscribe&lt;OrderPlaced&gt;().Keep(20);   // everyone's, the last twenty
+    ///     var placed = QueryClient.Subscribe&lt;OrderPlaced&gt;().Keep(20);   // everyone's, the last twenty
     ///     </code>
     ///     A notification reaches a subscription wherever it was published — a command handler, a background job, a
-    ///     domain event after a save, another host through a backplane.
+    ///     domain event after a save.
     /// </remarks>
     /// <typeparam name="TNotification">The notification to watch.</typeparam>
-    /// <param name="key">What to watch, for a notification marked <see cref="ForAttribute{TScope}" />; omitted otherwise.</param>
     /// <param name="callerFile">Supplied by the compiler; identifies this call inside <c>Render</c>.</param>
     /// <param name="callerLine">Supplied by the compiler; identifies this call inside <c>Render</c>.</param>
     public static Subscription<TNotification> Subscribe<TNotification>(
-        object? key = null,
         [CallerFilePath] string callerFile = "",
         [CallerLineNumber] int callerLine = 0)
+        where TNotification : INotification =>
+        Slotted<TNotification>(null, callerFile, callerLine);
+
+    /// <summary>
+    ///     A live view of the <typeparamref name="TNotification" />s <paramref name="subscription" /> asks for —
+    ///     starting with the last matching one. Inside <c>Render</c> the same call returns the same subscription every
+    ///     render, re-pointed when the record changes.
+    /// </summary>
+    /// <remarks>
+    ///     <code>
+    ///     var shipped = QueryClient.Subscribe(new WatchOrder(Id));   // one order's, admitted by its policy
+    ///     </code>
+    ///     Two records that are equal are the same subscription, so building one per render costs nothing.
+    /// </remarks>
+    /// <typeparam name="TNotification">The notification the subscription carries.</typeparam>
+    /// <param name="subscription">What to watch.</param>
+    /// <param name="callerFile">Supplied by the compiler; identifies this call inside <c>Render</c>.</param>
+    /// <param name="callerLine">Supplied by the compiler; identifies this call inside <c>Render</c>.</param>
+    public static Subscription<TNotification> Subscribe<TNotification>(
+        ISubscription<TNotification> subscription,
+        [CallerFilePath] string callerFile = "",
+        [CallerLineNumber] int callerLine = 0)
+        where TNotification : INotification
+    {
+        ArgumentNullException.ThrowIfNull(subscription);
+        return Slotted<TNotification>(subscription, callerFile, callerLine);
+    }
+
+    /// <inheritdoc cref="IQueryClient.Subscribe{TNotification}(Func{ISubscription{TNotification}})" />
+    public static Subscription<TNotification> Subscribe<TNotification>(
+        Func<ISubscription<TNotification>?> subscription)
+        where TNotification : INotification =>
+        Current().Subscribe(subscription);
+
+    // One subscription per call site, re-pointed when what it watches changes.
+    private static Subscription<TNotification> Slotted<TNotification>(
+        object? subscription,
+        string callerFile,
+        int callerLine)
         where TNotification : INotification
     {
         var client = Current();
         if (RenderSlots.For(callerFile, callerLine, key: null) is not { } slot)
         {
-            return client.Subscribe<TNotification>(key);
+            return New<TNotification>(client, subscription);
         }
 
         if (slot.Handle is Subscription<TNotification> existing)
         {
-            if (!Equals(slot.Last, key))
+            if (!Equals(slot.Last, subscription))
             {
-                existing.Repoint(client.NotificationTarget<TNotification>(key));
-                slot.Last = key;
+                existing.Repoint(client.NotificationTarget<TNotification>(subscription));
+                slot.Last = subscription;
             }
 
             return existing;
         }
 
-        var created = client.Subscribe<TNotification>(key);
+        var created = New<TNotification>(client, subscription);
         slot.Handle = created;
-        slot.Last = key;
+        slot.Last = subscription;
         return created;
     }
 
-    /// <inheritdoc cref="IQueryClient.Subscribe{TNotification}(Func{object?})" />
-    public static Subscription<TNotification> Subscribe<TNotification>(Func<object?> key)
+    private static Subscription<TNotification> New<TNotification>(
+        SessionQueryClient client,
+        object? subscription)
         where TNotification : INotification =>
-        Current().Subscribe<TNotification>(key);
+        subscription is ISubscription<TNotification> record
+            ? client.Subscribe(record)
+            : client.Subscribe<TNotification>();
 
     /// <summary>
     ///     A live view of a stream that is a function — a price feed, a progress report — opened for

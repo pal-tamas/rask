@@ -432,7 +432,7 @@ public sealed class SiteExampleTests
             Assert.Null(await page.Locator("html").GetAttributeAsync("data-theme"));
             Assert.Null(await page.EvaluateAsync<string?>("() => localStorage.getItem('rask-theme')"));
 
-            await page.Locator("details.dropdown > summary").First.ClickAsync();
+            await page.Locator(ThemeTrigger).First.ClickAsync();
             await page.Locator("input.theme-controller[value='dracula']").First.CheckAsync();
 
             await Expect(page.Locator("html")).ToHaveAttributeAsync("data-theme", "dracula");
@@ -451,10 +451,68 @@ public sealed class SiteExampleTests
             // back to a dracula page would find the list claiming nothing was chosen.
             await Expect(page.Locator("input.theme-controller[value='dracula']")).ToBeCheckedAsync();
 
-            // And the picker adds NO handlers to the page — the property the islands depend on. Any
-            // C# handler in this chrome shifts every handler id after it, and an island holds the id it
-            // read from the prerendered markup. (h28 -> h63 with 35 buttons; h28 -> h29 with one.)
-            Assert.Equal(0, await page.Locator("details.dropdown [data-rask-on-click]").CountAsync());
+            // Picking runs no C# — the radios are CSS-only and the boot script remembers the choice — so
+            // thirty-five of them add no handlers. (h28 -> h63 when they were buttons.)
+            Assert.Equal(0, await page.Locator("input.theme-controller[data-rask-on-click]").CountAsync());
+            Assert.Equal(0, await page.Locator("input.theme-controller[data-rask-on-change]").CountAsync());
+        }
+        finally
+        {
+            await context.CloseAsync();
+        }
+    }
+
+    /// <summary>The header's theme trigger: the popover invoker that names the theme list.</summary>
+    private const string ThemeTrigger = "header button[popovertarget]:has-text('Theme')";
+
+    /// <summary>
+    ///     The theme list closes like everything else that floats: on Escape, on a click outside, and on
+    ///     its own trigger — and it stays open while a theme is picked, so the palettes can be compared.
+    /// </summary>
+    /// <remarks>
+    ///     It was a <c>&lt;details&gt;</c>, which closes on its summary and nothing else. Driven with the
+    ///     MOUSE: a popover's keyboard path has passed before while a click never opened it at all.
+    /// </remarks>
+    [Fact]
+    public async Task ThemePicker_ClosesOnEscapeAndOnAClickOutside()
+    {
+        var context = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions { BaseURL = _app.BaseUrl });
+        var page = await context.NewPageAsync();
+        try
+        {
+            await page.GotoAsync("/index.html");
+            await Expect(page.Locator("body[data-rask-root='wasm']"))
+                .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 60_000 });
+
+            var trigger = page.Locator(ThemeTrigger).First;
+            var dracula = page.Locator("input.theme-controller[value='dracula']").First;
+            await Expect(dracula).ToBeHiddenAsync();
+
+            // Opens on a click, and stays open while a theme is picked.
+            await trigger.ClickAsync();
+            await Expect(dracula).ToBeVisibleAsync();
+            await dracula.CheckAsync();
+            await Expect(page.Locator("html")).ToHaveAttributeAsync("data-theme", "dracula");
+            await Expect(dracula).ToBeVisibleAsync();
+
+            // Escape closes it and gives focus back to the trigger.
+            await page.Keyboard.PressAsync("Escape");
+            await Expect(dracula).ToBeHiddenAsync();
+            await Expect(trigger).ToBeFocusedAsync();
+            await Expect(trigger).ToHaveAttributeAsync("aria-expanded", "false");
+
+            // A click outside closes it.
+            await trigger.ClickAsync();
+            await Expect(dracula).ToBeVisibleAsync();
+            await Expect(trigger).ToHaveAttributeAsync("aria-expanded", "true");
+            await page.Locator("h1").First.ClickAsync();
+            await Expect(dracula).ToBeHiddenAsync();
+
+            // And so does its own trigger.
+            await trigger.ClickAsync();
+            await Expect(dracula).ToBeVisibleAsync();
+            await trigger.ClickAsync();
+            await Expect(dracula).ToBeHiddenAsync();
         }
         finally
         {

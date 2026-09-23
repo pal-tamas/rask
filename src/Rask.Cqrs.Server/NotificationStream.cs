@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,15 +8,16 @@ using Microsoft.Net.Http.Headers;
 namespace Rask.Cqrs.Server;
 
 /// <summary>
-///     Serves a remote subscription: <c>GET {prefix}/events/{name}?for={key}</c>, answered with a
+///     Serves a remote subscription: <c>GET {prefix}/events/{name}?m={json}</c>, answered with a
 ///     <c>text/event-stream</c> of the notification's generated JSON for as long as the client stays connected.
 /// </summary>
 /// <remarks>
 ///     <para>
-///         <b>Closed unless opened.</b> A notification is subscribable from outside only when it is scoped — marked
-///         <see cref="ForAttribute{TScope}" />, so its <see cref="IWatchPolicy{TScope}" /> decides per key — or when
-///         its record declares <c>[Authorize]</c> / <c>[AllowAnonymous]</c> itself. Anything else answers 404, the
-///         same as a name that does not exist, so an app's auth and domain events are never one request away.
+///         <b>Closed unless opened.</b> Two names answer here: an <see cref="ISubscription{TNotification}" /> record,
+///         whose <see cref="IWatchPolicy{TSubscription}" /> decides per subscription — it arrives as <c>?m=</c>, the
+///         same JSON a query's message travels as — and a notification whose own record declares <c>[Authorize]</c> /
+///         <c>[AllowAnonymous]</c>, watched by type. Anything else answers 404, the same as a name that does not exist,
+///         so an app's auth and domain events are never one request away.
 ///     </para>
 ///     <para>
 ///         <b>Authenticated by default,</b> exactly like a request: only a record marked <c>[AllowAnonymous]</c> lets a
@@ -51,8 +53,13 @@ internal static class NotificationStream
 
         var name = context.Request.RouteValues["name"] as string;
         RemoteContract? contract = null;
+        // A subscription's result codec is what writes each delivered notification, so one without it is not
+        // servable — the same 404 as a name nobody registered.
         if (!string.IsNullOrEmpty(name) && RemoteContractRegistry.TryGet(name, out var found)
-                                        && found is { Kind: RemoteMessageKind.Notification, CarriesFiles: false })
+                                        && found is { CarriesFiles: false }
+                                        && (found.Kind == RemoteMessageKind.Notification
+                                            || (found.Kind == RemoteMessageKind.Subscription
+                                                && found.WriteResult is not null)))
         {
             contract = found;
         }
@@ -68,8 +75,9 @@ internal static class NotificationStream
             return;
         }
 
-        var scope = contract is null ? null : CqrsRegistry.FindNotificationScope(contract.MessageType);
-        if (contract is null || (scope is null && !contract.SubscribeDeclared))
+        // A subscription record is opened by its policy; a bare notification only by what its own record declares.
+        if (contract is null
+            || (contract.Kind == RemoteMessageKind.Notification && !contract.SubscribeDeclared))
         {
             await RaskCqrsEndpointExtensions.ProblemAsync(context, StatusCodes.Status404NotFound, "Unknown notification", null)
                 .ConfigureAwait(false);
@@ -83,58 +91,55 @@ internal static class NotificationStream
             return;
         }
 
-        var text = context.Request.Query[RemoteEndpointDefaults.ScopeQueryParameter].ToString();
-        object? key = null;
-        if (scope is not null)
+        var encoded = context.Request.Query[RemoteEndpointDefaults.MessageQueryParameter].ToString();
+        object? subscription = null;
+        if (contract.Kind == RemoteMessageKind.Subscription)
         {
-            // A key with no text form cannot be asked for from outside, which is indistinguishable from not existing.
-            if (scope.ParseKey is not { } parse)
-            {
-                await RaskCqrsEndpointExtensions.ProblemAsync(context, StatusCodes.Status404NotFound, "Unknown notification", null)
-                    .ConfigureAwait(false);
-                return;
-            }
-
             try
             {
-                key = string.IsNullOrEmpty(text) ? null : parse(text);
+                subscription = string.IsNullOrEmpty(encoded)
+                    ? null
+                    : NotificationWire.DecodeMessage(contract, Encoding.UTF8.GetBytes(encoded));
             }
-            catch (Exception ex) when (ex is FormatException or OverflowException or ArgumentException)
+            catch (JsonException)
             {
-                key = null;
+                subscription = null;
             }
 
-            if (key is null)
+            if (subscription is null)
             {
-                await RaskCqrsEndpointExtensions.ProblemAsync(context, StatusCodes.Status400BadRequest, "Malformed key",
-                    $"'{contract.Name}' is about one {scope.Scope.Name}; name it with ?{RemoteEndpointDefaults.ScopeQueryParameter}=.")
+                await RaskCqrsEndpointExtensions.ProblemAsync(context, StatusCodes.Status400BadRequest,
+                    "Malformed subscription",
+                    $"'{contract.Name}' carries what it watches in the "
+                    + $"'{RemoteEndpointDefaults.MessageQueryParameter}' parameter, as JSON.")
                     .ConfigureAwait(false);
                 return;
             }
         }
-        else if (text.Length > 0)
+        else if (encoded.Length > 0)
         {
-            await RaskCqrsEndpointExtensions.ProblemAsync(context, StatusCodes.Status400BadRequest, "Malformed key",
-                $"'{contract.Name}' goes to every subscriber, so it takes no key.").ConfigureAwait(false);
+            await RaskCqrsEndpointExtensions.ProblemAsync(context, StatusCodes.Status400BadRequest,
+                "Malformed subscription",
+                $"'{contract.Name}' goes to every subscriber, so it takes nothing to watch.").ConfigureAwait(false);
             return;
         }
 
         var dispatcher = context.RequestServices.GetService<Dispatcher>()
                          ?? throw new InvalidOperationException("MapRaskCqrs() needs AddRaskCqrsServer() during startup.");
-        await StreamAsync(context, dispatcher, contract, key, options).ConfigureAwait(false);
+        await StreamAsync(context, dispatcher, contract, subscription, options).ConfigureAwait(false);
     }
 
     private static async Task StreamAsync(
         HttpContext context,
         Dispatcher dispatcher,
         RemoteContract contract,
-        object? key,
+        object? subscription,
         RaskCqrsServerOptions options)
     {
         var aborted = context.RequestAborted;
         var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var notifications = dispatcher
-            .Watch(contract.MessageType, key, () => ready.TrySetResult(), aborted)
+            .Watch(contract.MessageType, subscription, () => ready.TrySetResult(), aborted)
             .GetAsyncEnumerator(aborted);
         var step = new Step(notifications);
         try
@@ -237,7 +242,7 @@ internal static class NotificationStream
 
                 // The codec writes compact JSON — a string's newlines are escaped — so one event is one data line.
                 await response.Body.WriteAsync(DataPrefix, aborted).ConfigureAwait(false);
-                await response.Body.WriteAsync(NotificationWire.Encode(contract, step.Current), aborted)
+                await response.Body.WriteAsync(NotificationWire.EncodeEvent(contract, step.Current), aborted)
                     .ConfigureAwait(false);
                 await response.Body.WriteAsync(FrameEnd, aborted).ConfigureAwait(false);
                 await response.Body.FlushAsync(aborted).ConfigureAwait(false);

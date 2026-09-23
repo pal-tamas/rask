@@ -76,15 +76,15 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
 
         var compilation = ctx.SemanticModel.Compilation;
 
-        // A notification marked [For<T>] — a record struct as readily as a record class, so this comes before the
+        // An ISubscription<T> record — a record struct as readily as a record class, so this comes before the
         // handler-only filter below.
-        var scope = GetScope(symbol, compilation);
+        var subscription = GetSubscription(symbol, compilation);
 
         // Handlers must be concrete classes (record classes included). Interfaces, structs and
         // record structs can't be DI-constructed handlers.
         if (symbol.IsAbstract || symbol.TypeKind != TypeKind.Class)
         {
-            return scope is null ? null : new Candidate(NoHandlers, null, scope, NoPolicies);
+            return subscription is null ? null : new Candidate(NoHandlers, null, subscription, NoPolicies);
         }
 
         var policies = new List<PolicyModel>();
@@ -143,7 +143,7 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
                 registerability?.Remedy));
         }
 
-        if (handlers.Count == 0 && policies.Count == 0 && scope is null)
+        if (handlers.Count == 0 && policies.Count == 0 && subscription is null)
         {
             return null;
         }
@@ -151,7 +151,7 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         return new Candidate(
             new EquatableArray<HandlerModel>(handlers),
             LocationInfo.From(symbol),
-            scope,
+            subscription,
             new EquatableArray<PolicyModel>(policies));
     }
 
@@ -159,99 +159,25 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
 
     private static readonly EquatableArray<PolicyModel> NoPolicies = new(Array.Empty<PolicyModel>());
 
-    // The notification's [For<T>] property, when it has one: on the property itself, or on a positional record's
-    // parameter — where `[For<Order>] Guid OrderId` lands by default, since an attribute on a primary-constructor
-    // parameter stays on the parameter unless it says `property:`.
-    private static ScopeModel? GetScope(INamedTypeSymbol symbol, Compilation compilation)
+    // The record's ISubscription<T>, when it declares one. A subscription is a message like any other, so it is
+    // looked for on records and structs as well as classes — and skipped when the generated file could not name it.
+    private static SubscriptionModel? GetSubscription(INamedTypeSymbol symbol, Compilation compilation)
     {
-        if (symbol.IsAbstract || symbol.IsGenericType
-                              || !symbol.AllInterfaces.Any(i => i.ContainingNamespace?.ToDisplayString() == Namespace
-                                                                && i.MetadataName == "INotification")
-                              || SymbolRegistration.DescribeUnnameable(symbol) is not null)
+        if (symbol.IsAbstract || symbol.IsGenericType || SymbolRegistration.DescribeUnnameable(symbol) is not null)
         {
             return null;
         }
 
-        foreach (var property in symbol.GetMembers().OfType<IPropertySymbol>())
+        foreach (var iface in symbol.AllInterfaces)
         {
-            if (property.IsStatic || property.GetMethod is null)
+            if (iface.MetadataName == "ISubscription`1"
+                && iface.ContainingNamespace?.ToDisplayString() == Namespace)
             {
-                continue;
-            }
-
-            var scope = ForScope(property.GetAttributes()) ?? ForScope(PrimaryParameter(symbol, property.Name));
-            if (scope is null)
-            {
-                continue;
-            }
-
-            var keyType = property.Type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable
-                ? nullable.TypeArguments[0]
-                : property.Type;
-
-            return new ScopeModel(
-                Fqn(symbol, compilation),
-                Fqn(scope, compilation),
-                Fqn(keyType, compilation).TrimEnd('?'),
-                property.Name,
-                ParseExpression(keyType, compilation));
-        }
-
-        return null;
-    }
-
-    private static ITypeSymbol? ForScope(ImmutableArray<AttributeData> attributes)
-    {
-        foreach (var attribute in attributes)
-        {
-            if (attribute.AttributeClass is { IsGenericType: true } type
-                && type.ContainingNamespace?.ToDisplayString() == Namespace
-                && type.MetadataName == "ForAttribute`1")
-            {
-                return type.TypeArguments[0];
+                return new SubscriptionModel(Fqn(symbol, compilation), Fqn(iface.TypeArguments[0], compilation));
             }
         }
 
         return null;
-    }
-
-    private static ImmutableArray<AttributeData> PrimaryParameter(INamedTypeSymbol symbol, string name)
-    {
-        foreach (var constructor in symbol.InstanceConstructors)
-        {
-            foreach (var parameter in constructor.Parameters)
-            {
-                if (parameter.Name == name)
-                {
-                    return parameter.GetAttributes();
-                }
-            }
-        }
-
-        return ImmutableArray<AttributeData>.Empty;
-    }
-
-    // How a key comes back from its invariant string on the far side of the wire, or null when it has no text form
-    // (such a notification is watched in-process only). Everything here is a closed static call, so it trims.
-    private static string? ParseExpression(ITypeSymbol keyType, Compilation compilation)
-    {
-        var fqn = Fqn(keyType, compilation).TrimEnd('?');
-        if (keyType.SpecialType == SpecialType.System_String)
-        {
-            return "static s => s";
-        }
-
-        if (keyType.TypeKind == TypeKind.Enum)
-        {
-            return $"static s => global::System.Enum.Parse<{fqn}>(s)";
-        }
-
-        var parsable = keyType.AllInterfaces.Any(i => i.MetadataName == "IParsable`1"
-                                                      && i.ContainingNamespace?.ToDisplayString() == "System"
-                                                      && SymbolEqualityComparer.Default.Equals(i.TypeArguments[0], keyType));
-        return parsable
-            ? $"static s => {fqn}.Parse(s, global::System.Globalization.CultureInfo.InvariantCulture)"
-            : null;
     }
 
     // Returns the reason a handler cannot be registered, or null when it is fine. Open generic
@@ -311,7 +237,7 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         // (b) emit duplicate registrations. A genuine second handler has a different type FQN.
         var models = new List<(HandlerModel Model, LocationInfo? Location)>();
         var seen = new HashSet<(string, string)>();
-        var scopes = new Dictionary<string, ScopeModel>(StringComparer.Ordinal);
+        var subscriptions = new Dictionary<string, SubscriptionModel>(StringComparer.Ordinal);
         var policies = new SortedSet<(string ServiceFqn, string ImplementationFqn)>();
         foreach (var candidate in candidates)
         {
@@ -323,9 +249,9 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
                 }
             }
 
-            if (candidate.Scope is { } scope)
+            if (candidate.Subscription is { } subscription)
             {
-                scopes[scope.NotificationFqn] = scope;
+                subscriptions[subscription.SubscriptionFqn] = subscription;
             }
 
             foreach (var policy in candidate.Policies)
@@ -334,7 +260,7 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
             }
         }
 
-        if (models.Count == 0 && scopes.Count == 0 && policies.Count == 0)
+        if (models.Count == 0 && subscriptions.Count == 0 && policies.Count == 0)
         {
             return;
         }
@@ -412,7 +338,7 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
                 notificationTypes,
                 handlerImpls,
                 distinctImplTypes,
-                scopes.Values.OrderBy(s => s.NotificationFqn, StringComparer.Ordinal).ToList(),
+                subscriptions.Values.OrderBy(s => s.SubscriptionFqn, StringComparer.Ordinal).ToList(),
                 policies.ToList()),
             Encoding.UTF8));
     }
@@ -422,7 +348,7 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         List<string> notificationTypes,
         List<(string ServiceInterfaceFqn, string HandlerTypeFqn, bool IsNotification)> handlerImpls,
         List<string> distinctImplTypes,
-        List<ScopeModel> scopes,
+        List<SubscriptionModel> subscriptions,
         List<(string ServiceFqn, string ImplementationFqn)> policies)
     {
         var sb = new StringBuilder();
@@ -513,24 +439,28 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
 
         sb.AppendLine("        });");
 
-        // Only when there is something to install, so an assembly with no scoped notification makes no call that an
+        // Only when there is something to install, so an assembly that declares no subscription makes no call that an
         // older Rask.Cqrs would not have.
-        if (scopes.Count > 0)
+        if (subscriptions.Count > 0)
         {
             sb.AppendLine();
             sb.AppendLine(
-                "        global::Rask.Cqrs.CqrsRegistry.ReplaceNotificationScopes(typeof(__RaskCqrsRegistry), " +
-                "new (global::System.Type, global::Rask.Cqrs.NotificationScope)[]");
+                "        global::Rask.Cqrs.CqrsRegistry.ReplaceSubscriptions(typeof(__RaskCqrsRegistry), " +
+                "new (global::System.Type, global::Rask.Cqrs.SubscriptionRegistration)[]");
             sb.AppendLine("        {");
-            foreach (var scope in scopes)
+            foreach (var subscription in subscriptions)
             {
-                sb.Append("            (typeof(").Append(scope.NotificationFqn)
-                    .Append("), new global::Rask.Cqrs.NotificationScope(typeof(").Append(scope.ScopeFqn)
-                    .Append("), typeof(").Append(scope.KeyTypeFqn)
-                    .Append("), static n => ((").Append(scope.NotificationFqn).Append(")n).").Append(scope.PropertyName)
-                    .Append(", static (sp, key, ct) => global::Rask.Cqrs.CqrsRegistry.CanWatchAsync<")
-                    .Append(scope.ScopeFqn).Append(">(sp, key, ct), ")
-                    .Append(scope.ParseExpression ?? "null").AppendLine(")),");
+                // Matches goes through the interface rather than the record: an explicit implementation is still a
+                // legitimate way to write one, and casting to the concrete type would not find it.
+                sb.Append("            (typeof(").Append(subscription.SubscriptionFqn)
+                    .AppendLine("), new global::Rask.Cqrs.SubscriptionRegistration(");
+                sb.Append("                typeof(").Append(subscription.NotificationFqn).AppendLine("),");
+                sb.Append("                static (s, n) => ((global::Rask.Cqrs.ISubscription<")
+                    .Append(subscription.NotificationFqn).Append(">)s).Matches((")
+                    .Append(subscription.NotificationFqn).AppendLine(")n),");
+                sb.Append("                static (sp, s, ct) => global::Rask.Cqrs.CqrsRegistry.CanWatchAsync<")
+                    .Append(subscription.SubscriptionFqn).Append(">(sp, (")
+                    .Append(subscription.SubscriptionFqn).AppendLine(")s, ct))),");
             }
 
             sb.AppendLine("        });");
@@ -642,15 +572,10 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
     private sealed record Candidate(
         EquatableArray<HandlerModel> Handlers,
         LocationInfo? Location,
-        ScopeModel? Scope,
+        SubscriptionModel? Subscription,
         EquatableArray<PolicyModel> Policies);
 
-    private sealed record ScopeModel(
-        string NotificationFqn,
-        string ScopeFqn,
-        string KeyTypeFqn,
-        string PropertyName,
-        string? ParseExpression);
+    private sealed record SubscriptionModel(string SubscriptionFqn, string NotificationFqn);
 
     private sealed record PolicyModel(string ServiceFqn, string ImplementationFqn);
 

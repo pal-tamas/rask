@@ -21,7 +21,7 @@ public sealed class ProjectGeneratorTests
         "Styles/app.css",
         "tsconfig.json",
         // F5 in VS Code: build as a dev session, run under the C# debugger (VsCodeAssembly).
-        ".vscode/launch.json", ".vscode/tasks.json", ".vscode/extensions.json",
+        ".vscode/launch.json", ".vscode/tasks.json", ".vscode/extensions.json", ".vscode/settings.json",
     ];
 
     // Demo content `rask new` used to scaffold and deliberately no longer does — a new project ships one
@@ -498,7 +498,7 @@ public sealed class ProjectGeneratorTests
         "Styles/app.css",
         "tsconfig.json",
         // F5 in VS Code: the dev server, and a browser under the JavaScript debugger through its proxy (#1073).
-        ".vscode/launch.json", ".vscode/tasks.json", ".vscode/extensions.json",
+        ".vscode/launch.json", ".vscode/tasks.json", ".vscode/extensions.json", ".vscode/settings.json",
     ];
 
     [Fact]

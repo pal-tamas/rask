@@ -648,8 +648,8 @@ public abstract partial class SharedSmokeTests
     }
 
     // Subscriptions guide: one publish through IDispatcher reaches both boards, which share nothing with the button but
-    // the notification type, and the tracker scoped to one order hears that order ship — each change proves delivery
-    // into the page and the re-render after it, in the real browser.
+    // the notification type, and the tracker — a WatchOrder record its policy admits — hears that ONE order ship. Each
+    // change proves delivery into the page and the re-render after it, in the real browser.
     protected async Task WalkSubscriptionsGuideAsync()
     {
         var contains = new LocatorAssertionsToContainTextOptions { Timeout = 10_000 };

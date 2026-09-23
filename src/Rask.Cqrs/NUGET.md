@@ -40,12 +40,13 @@ var user = await dispatcher.QueryAsync(new GetUser(42));   // returns User
 via `PublishAsync` — and to every open subscription, tRPC-style:
 
 ```csharp
-await foreach (var placed in dispatcher.SubscribeAsync<OrderPlaced>(cancellationToken: ct))
+await foreach (var placed in dispatcher.SubscribeAsync<OrderPlaced>(ct))
     Console.WriteLine(placed.Customer);
 ```
 
-Mark the property an event is about with `[For<Order>]` and it reaches only the subscribers watching that key, each
-admitted by an `IWatchPolicy<Order>` — none registered means nobody may watch.
+To watch the events about one thing, write an `ISubscription<T>` record saying which those are — `dispatcher
+.SubscribeAsync(new WatchOrder(id), ct)` — admitted by its own `IWatchPolicy<WatchOrder>`; none registered means nobody
+may open it.
 
 ## Pipeline behaviors
 

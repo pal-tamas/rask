@@ -8,13 +8,14 @@ namespace Rask.Cqrs;
 internal interface IRemoteSubscriptions
 {
     /// <summary>
-    ///     Streams the server's notifications of <paramref name="contract" />'s type for <paramref name="key" />, calling
-    ///     <paramref name="connected" /> once the server has admitted the subscription. Ends by throwing when the
-    ///     connection drops; the caller decides whether to open another.
+    ///     Streams what <paramref name="contract" /> opens — the notifications <paramref name="subscription" /> asks for,
+    ///     or every one of the contract's own notification type when it is null — calling <paramref name="connected" />
+    ///     once the server has admitted it. Ends by throwing when the connection drops; the caller decides whether to
+    ///     open another.
     /// </summary>
     IAsyncEnumerable<INotification> Subscribe(
         RemoteContract contract,
-        object? key,
+        object? subscription,
         Action? connected,
         CancellationToken cancellationToken);
 }

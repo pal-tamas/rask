@@ -19,26 +19,27 @@ public sealed class SubscriptionWireTests
     }
 
     [Fact]
-    public async Task The_request_goes_to_the_events_route_with_the_key_in_the_query()
+    public async Task The_request_goes_to_the_events_route_with_the_subscription_in_the_query()
     {
         await using var wire = Wire.Connect();
-        await using var stream = await OpenAsync<RoomMessage>(wire, key: 1);
+        await using var stream = await OpenAsync<RoomMessage>(wire, new WatchRoom(1));
 
         var sent = wire.Recorder.Last;
 
         Assert.Equal(HttpMethod.Get, sent.Method);
         Assert.Equal(
             RemoteEndpointDefaults.RoutePrefix + "/" + RemoteEndpointDefaults.EventsSegment + "/"
-            + Uri.EscapeDataString(Wire.Contract(new RoomMessage(1, "")).Name),
+            + Uri.EscapeDataString(Wire.Contract(new WatchRoom(1)).Name),
             sent.Uri.AbsolutePath);
-        Assert.Equal("?for=1", sent.Uri.Query);
+        Assert.Contains(RemoteEndpointDefaults.MessageQueryParameter + "=", sent.Uri.Query, StringComparison.Ordinal);
+        Assert.Contains("1", Uri.UnescapeDataString(sent.Uri.Query), StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task A_scoped_subscription_hears_only_its_own_key()
+    public async Task A_subscription_hears_only_what_it_matches()
     {
         await using var wire = Wire.Connect();
-        await using var stream = await OpenAsync<RoomMessage>(wire, key: 1);
+        await using var stream = await OpenAsync<RoomMessage>(wire, new WatchRoom(1));
 
         await wire.Server.PublishAsync(new RoomMessage(2, "elsewhere"));
         await wire.Server.PublishAsync(new RoomMessage(1, "here"));
@@ -47,11 +48,12 @@ public sealed class SubscriptionWireTests
     }
 
     [Fact]
-    public async Task The_server_s_policy_refuses_a_key_with_403()
+    public async Task The_server_s_policy_refuses_a_subscription_with_403()
     {
         await using var wire = Wire.Connect();
 
-        var error = await Assert.ThrowsAsync<RemoteDispatchException>(() => OpenAsync<RoomMessage>(wire, key: 2));
+        var error = await Assert.ThrowsAsync<RemoteDispatchException>(
+            () => OpenAsync<RoomMessage>(wire, new WatchRoom(2)));
 
         Assert.Equal(403, error.StatusCode);
     }
@@ -72,7 +74,7 @@ public sealed class SubscriptionWireTests
     }
 
     [Fact]
-    public async Task An_unscoped_notification_that_declares_nothing_answers_404()
+    public async Task A_notification_that_declares_nothing_answers_404()
     {
         await using var wire = Wire.Connect();
 
@@ -107,10 +109,10 @@ public sealed class SubscriptionWireTests
     }
 
     [Fact]
-    public async Task A_scoped_subscription_without_a_key_is_rejected_with_400()
+    public async Task A_subscription_record_with_nothing_in_the_query_is_rejected_with_400()
     {
         await using var wire = Wire.Connect();
-        var contract = Wire.Contract(new RoomMessage(1, ""));
+        var contract = Wire.Contract(new WatchRoom(1));
         using var request = new HttpRequestMessage(
             HttpMethod.Get,
             RemoteEndpointDefaults.RoutePrefix + "/" + RemoteEndpointDefaults.EventsSegment + "/" + Uri.EscapeDataString(contract.Name));
@@ -139,13 +141,14 @@ public sealed class SubscriptionWireTests
 
     // Opens the subscription and returns once the server has admitted it — the "ready" event — so a publish after this
     // is one the stream is already listening for.
-    private static async Task<Stream<T>> OpenAsync<T>(Wire wire, object? key = null)
+    private static async Task<Stream<T>> OpenAsync<T>(Wire wire, ISubscription<T>? subscription = null)
         where T : INotification
     {
         var stop = new CancellationTokenSource();
         var admitted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var contract = subscription is null ? Wire.Contract(Sample<T>()) : Wire.Contract(subscription);
         var enumerator = wire.Subscriptions
-            .Subscribe(Wire.Contract(Sample<T>()), key, () => admitted.TrySetResult(), stop.Token)
+            .Subscribe(contract, subscription, () => admitted.TrySetResult(), stop.Token)
             .GetAsyncEnumerator(stop.Token);
         var next = enumerator.MoveNextAsync().AsTask();
 

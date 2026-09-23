@@ -758,15 +758,25 @@ your throw line.
 **Stack frames open the file.** In development, every frame of the panel's stack and every compiler error that
 names a file on your machine is a `vscode://` link to that line.
 
+**Editor settings.** The folder's `settings.json` is committed too, so everyone who clones the app gets it:
+
+| Setting | What you get |
+| --- | --- |
+| File nesting | A component's paired files (`Counter.css`, `Counter.ts`, a `Counter.tsx` island, a package island's `Counter.props.json`) fold under `Counter.cs` in the explorer. Every template. |
+| Tailwind completion | Class completion and hover inside `Div.Class("…")`, from the [Tailwind CSS IntelliSense](https://marketplace.visualstudio.com/items?itemName=bradlc.vscode-tailwindcss) extension the folder then also recommends. Only the templates that compile Tailwind (`server`, `wasm`, `wasm-hosted`); a SPA or meta host's C# side has none. |
+
+Your own preferences belong in your VS Code *User* settings, which a workspace `settings.json` does not replace.
+
 **An existing project** gets the same setup by copying `.vscode/` from a fresh `rask new` app of the same
 template and replacing the project name in `launch.json` and `tasks.json`. Add these lines to `.gitignore`, so
-the three files are committed and the rest of `.vscode/` stays yours:
+the four files are committed and the rest of `.vscode/` stays yours:
 
 ```gitignore
 /.vscode/*
 !/.vscode/launch.json
 !/.vscode/tasks.json
 !/.vscode/extensions.json
+!/.vscode/settings.json
 ```
 
 #### Code that runs in the browser
