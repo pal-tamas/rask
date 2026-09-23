@@ -23,6 +23,11 @@ public sealed class GuidePrerenderPaths : IPrerenderPaths
     // The cast is the RouteUrl -> string conversion, spelled out because Select cannot infer it: the
     // generated helper returns a RouteUrl so that a call site which forgets a parameter is a compile
     // error rather than a URL with a brace in it.
+    //
+    // A moved slug is written too, so the old URL still answers on a static host; its canonical names the new one,
+    // which keeps it out of the sitemap.
     public IEnumerable<string> Paths() =>
-        GuideCatalog.All.Select(guide => (string)Routes.GuidePage(guide.Slug));
+        GuideCatalog.All.Select(guide => guide.Slug)
+            .Concat(GuideCatalog.Moved.Keys)
+            .Select(slug => (string)Routes.GuidePage(slug));
 }

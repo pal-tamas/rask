@@ -45,11 +45,21 @@ public static class CqrsServiceCollectionExtensions
         services.TryAddTransient<Dispatcher>();
         services.TryAddTransient<IDispatcher>(static sp => sp.GetRequiredService<Dispatcher>());
 
-        services.TryAddSingleton(new CqrsExecutionOptions
+        // One feed per container — the process on a server, the tab in a browser — so every dispatcher, whatever scope
+        // resolved it, publishes into the same subscriptions.
+        var execution = new CqrsExecutionOptions
         {
             PublishStrategy = options.NotificationPublishStrategy,
             StopOnFirstException = options.StopOnFirstNotificationException,
-        });
+            ReplayCapacity = options.ReplayCapacity,
+            SubscriptionBuffer = options.SubscriptionBuffer,
+            SubscriptionReconnectDelay = options.SubscriptionReconnectDelay,
+            SubscriptionReconnectCeiling = options.SubscriptionReconnectCeiling,
+        };
+
+        services.TryAddSingleton(new NotificationFeed(execution));
+
+        services.TryAddSingleton(execution);
 
         // Apply the generated handler registrations (populated by [ModuleInitializer]s at module load).
         CqrsRegistry.ApplyRegistrations(services, options.HandlerLifetime);
@@ -109,6 +119,26 @@ public static class CqrsServiceCollectionExtensions
         {
             options.ValidateRequests = ParseBool(validate, nameof(CqrsOptions.ValidateRequests));
         }
+
+        if (section[nameof(CqrsOptions.ReplayCapacity)] is { Length: > 0 } replay)
+        {
+            options.ReplayCapacity = ParseInt(replay, nameof(CqrsOptions.ReplayCapacity));
+        }
+
+        if (section[nameof(CqrsOptions.SubscriptionBuffer)] is { Length: > 0 } buffer)
+        {
+            options.SubscriptionBuffer = ParseInt(buffer, nameof(CqrsOptions.SubscriptionBuffer));
+        }
+
+        if (section[nameof(CqrsOptions.SubscriptionReconnectDelay)] is { Length: > 0 } delay)
+        {
+            options.SubscriptionReconnectDelay = ParseTime(delay, nameof(CqrsOptions.SubscriptionReconnectDelay));
+        }
+
+        if (section[nameof(CqrsOptions.SubscriptionReconnectCeiling)] is { Length: > 0 } ceiling)
+        {
+            options.SubscriptionReconnectCeiling = ParseTime(ceiling, nameof(CqrsOptions.SubscriptionReconnectCeiling));
+        }
     }
 
     // The host's configuration as it stands at this call. HostApplicationBuilder (and so WebApplicationBuilder) and the
@@ -139,6 +169,17 @@ public static class CqrsServiceCollectionExtensions
             ? parsed
             : throw new InvalidOperationException(
                 $"Rask:Cqrs:{key} is '{value}'; use one of: {string.Join(", ", Enum.GetNames<TEnum>())}.");
+
+    private static int ParseInt(string value, string key) =>
+        int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)
+            ? parsed
+            : throw new InvalidOperationException($"Rask:Cqrs:{key} is '{value}'; use a whole number.");
+
+    // The shape every other Rask duration takes in configuration: "00:00:00.500", "00:00:30".
+    private static TimeSpan ParseTime(string value, string key) =>
+        TimeSpan.TryParse(value, CultureInfo.InvariantCulture, out var parsed)
+            ? parsed
+            : throw new InvalidOperationException($"Rask:Cqrs:{key} is '{value}'; use a duration such as 00:00:00.500.");
 
     private static bool ParseBool(string value, string key) =>
         bool.TryParse(value, out var parsed)

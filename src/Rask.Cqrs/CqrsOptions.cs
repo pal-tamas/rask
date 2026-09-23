@@ -82,8 +82,51 @@ public sealed class CqrsOptions
         return this;
     }
 
+    /// <summary>
+    /// How many "last values" the feed remembers, so a subscription that opens after a publish still starts with it —
+    /// one per notification type and key, oldest out first. Defaults to 4096.
+    /// </summary>
+    public int ReplayCapacity { get; set; } = 4096;
+
+    /// <summary>
+    /// How far one subscription may fall behind before its oldest undelivered notifications are dropped. Defaults to
+    /// 256: a subscription shows the latest state, so losing the middle of a burst costs nothing on screen, while an
+    /// unbounded buffer behind a stalled reader is memory a publisher can grow for ever.
+    /// </summary>
+    public int SubscriptionBuffer { get; set; } = 256;
+
+    /// <summary>
+    /// How long a subscription waits before reopening a dropped connection, doubling up to
+    /// <see cref="SubscriptionReconnectCeiling"/>. Defaults to half a second.
+    /// </summary>
+    public TimeSpan SubscriptionReconnectDelay { get; set; } = TimeSpan.FromMilliseconds(500);
+
+    /// <summary>The longest a subscription waits between attempts to reopen. Defaults to thirty seconds.</summary>
+    public TimeSpan SubscriptionReconnectCeiling { get; set; } = TimeSpan.FromSeconds(30);
+
     internal void Validate()
     {
+        if (ReplayCapacity < 0)
+        {
+            throw new InvalidOperationException($"{nameof(ReplayCapacity)} cannot be negative.");
+        }
+
+        if (SubscriptionBuffer <= 0)
+        {
+            throw new InvalidOperationException($"{nameof(SubscriptionBuffer)} must be positive.");
+        }
+
+        if (SubscriptionReconnectDelay <= TimeSpan.Zero)
+        {
+            throw new InvalidOperationException($"{nameof(SubscriptionReconnectDelay)} must be positive.");
+        }
+
+        if (SubscriptionReconnectCeiling < SubscriptionReconnectDelay)
+        {
+            throw new InvalidOperationException(
+                $"{nameof(SubscriptionReconnectCeiling)} cannot be shorter than {nameof(SubscriptionReconnectDelay)}.");
+        }
+
         if (!Enum.IsDefined(HandlerLifetime))
         {
             throw new InvalidOperationException($"{nameof(HandlerLifetime)} has an invalid value: {HandlerLifetime}.");

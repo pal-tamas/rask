@@ -37,7 +37,15 @@ var user = await dispatcher.QueryAsync(new GetUser(42));   // returns User
 ```
 
 `ICommand` / `ICommand<TResult>` dispatch the same way; `INotification` fans out to every handler
-via `PublishAsync`.
+via `PublishAsync` — and to every open subscription, tRPC-style:
+
+```csharp
+await foreach (var placed in dispatcher.SubscribeAsync<OrderPlaced>(cancellationToken: ct))
+    Console.WriteLine(placed.Customer);
+```
+
+Mark the property an event is about with `[For<Order>]` and it reaches only the subscribers watching that key, each
+admitted by an `IWatchPolicy<Order>` — none registered means nobody may watch.
 
 ## Pipeline behaviors
 

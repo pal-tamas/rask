@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Rask.Api;
 using Rask.Auth;
 using Rask.Cache;
@@ -153,6 +154,10 @@ internal static class RaskBatteryWiring
             // read, a write's tenant stamp and Current.UserId.
             services.AddScoped<ClaimsPrincipalSource>();
             services.AddScoped<IPrincipalSource>(static sp => sp.GetRequiredService<ClaimsPrincipalSource>());
+
+            // Every scope's watch policy until the app writes one: a user may watch what is keyed by their own id. An
+            // open generic, so the app's IWatchPolicy<Order> — closed, and registered by the generator — wins for Order.
+            services.TryAdd(ServiceDescriptor.Scoped(typeof(IWatchPolicy<>), typeof(OwnUserWatchPolicy<>)));
 
             // A write refreshes the queries about what it wrote, on the screen of the session that made it:
             // Person.CreateAsync(model) refetches QueryKey.For<Person> queries with no invalidation to write.

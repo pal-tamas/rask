@@ -65,7 +65,30 @@ internal static class GeneratorHarness
         string source,
         IIncrementalGenerator[] generators,
         IReadOnlyDictionary<string, string>? globalOptions,
-        params string[] extraAssemblies)
+        params string[] extraAssemblies) =>
+        Run(source, generators, globalOptions, excludedAssemblies: [], extraAssemblies);
+
+    /// <summary>
+    /// Runs <paramref name="generator"/> with <paramref name="excludedAssemblies"/> left out of the compilation.
+    /// </summary>
+    /// <remarks>
+    /// The references start from the test host's trusted platform assemblies, which carry every assembly the test
+    /// project references — so a generator gated on what the compilation references (a transport, say) always finds
+    /// it. Leaving one out by simple name is how the other side of such a gate gets tested at all.
+    /// </remarks>
+    public static GeneratorRun RunWithout(
+        string source,
+        IIncrementalGenerator generator,
+        string[] excludedAssemblies,
+        params string[] extraAssemblies) =>
+        Run(source, [generator], globalOptions: null, excludedAssemblies, extraAssemblies);
+
+    private static GeneratorRun Run(
+        string source,
+        IIncrementalGenerator[] generators,
+        IReadOnlyDictionary<string, string>? globalOptions,
+        string[] excludedAssemblies,
+        string[] extraAssemblies)
     {
         // Give the tree a real path. Roslyn scopes `file`-local types by syntax-tree path, so trees that
         // all share the default empty path are treated as one file — which would silently hide exactly
@@ -75,7 +98,7 @@ internal static class GeneratorHarness
         var compilation = CSharpCompilation.Create(
             "TestAssembly",
             new[] { syntaxTree },
-            BuildReferences(extraAssemblies),
+            BuildReferences(excludedAssemblies, extraAssemblies),
             new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
                 nullableContextOptions: NullableContextOptions.Enable));
@@ -108,10 +131,11 @@ internal static class GeneratorHarness
             options.TryGetValue(key, out value);
     }
 
-    private static ImmutableArray<MetadataReference> BuildReferences(params string[] extraAssemblies)
+    private static ImmutableArray<MetadataReference> BuildReferences(string[] excludedAssemblies, string[] extraAssemblies)
     {
         var trusted = ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? string.Empty)
-            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+            .Where(path => !excludedAssemblies.Contains(Path.GetFileNameWithoutExtension(path), StringComparer.Ordinal));
         var refs = trusted
             .Select(path => (MetadataReference)MetadataReference.CreateFromFile(path))
             .ToList();

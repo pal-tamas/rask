@@ -68,6 +68,12 @@ public static class RaskCqrsEndpointExtensions
             options.RoutePrefix + "/" + RemoteEndpointDefaults.UploadSegment,
             (RequestDelegate)(context => UploadChunkAsync(context, options, uploads)));
 
+        // A fourth, for subscriptions: a long-lived GET answered with a server-sent event stream. Under the same
+        // prefix for the same reasons as the upload route — one CSRF header, one authentication rule, one rate limit.
+        group.MapGet(
+            options.RoutePrefix + "/" + RemoteEndpointDefaults.EventsSegment + "/{name}",
+            (RequestDelegate)(context => NotificationStream.ServeAsync(context, options)));
+
         return group;
     }
 
@@ -324,12 +330,21 @@ public static class RaskCqrsEndpointExtensions
         await WriteResultAsync(context, contract, result).ConfigureAwait(false);
     }
 
-    private static async Task<bool> AuthorizedAsync(
+    private static Task<bool> AuthorizedAsync(
         HttpContext context,
         RemoteContract contract,
-        RaskCqrsServerOptions options)
+        RaskCqrsServerOptions options) =>
+        AuthorizedAsync(context, contract.Name, contract.AllowAnonymous, contract.Roles, contract.Policy);
+
+    // The one authorization check, for a request (the handler's attributes) and a subscription (the notification's).
+    internal static async Task<bool> AuthorizedAsync(
+        HttpContext context,
+        string name,
+        bool allowAnonymous,
+        string? declaredRoles,
+        string? declaredPolicy)
     {
-        if (contract.AllowAnonymous)
+        if (allowAnonymous)
         {
             return true;
         }
@@ -337,7 +352,7 @@ public static class RaskCqrsEndpointExtensions
         var user = context.User;
         var authenticated = user.Identity?.IsAuthenticated == true;
 
-        if (contract.Roles is { Length: > 0 } roles)
+        if (declaredRoles is { Length: > 0 } roles)
         {
             var permitted = roles.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             if (!permitted.Any(user.IsInRole))
@@ -347,11 +362,11 @@ public static class RaskCqrsEndpointExtensions
             }
         }
 
-        if (contract.Policy is { Length: > 0 } policy)
+        if (declaredPolicy is { Length: > 0 } policy)
         {
             var authorization = context.RequestServices.GetService<IAuthorizationService>()
                                 ?? throw new InvalidOperationException(
-                                    $"'{contract.Name}' declares the policy '{policy}', but no authorization "
+                                    $"'{name}' declares the policy '{policy}', but no authorization "
                                     + "services are registered. Call AddAuthorization() during startup — the "
                                     + "alternative would be to ignore the policy, which is not a choice this "
                                     + "endpoint gets to make.");
@@ -613,7 +628,7 @@ public static class RaskCqrsEndpointExtensions
         return string.IsNullOrEmpty(leaf) || leaf is "." or ".." ? "download" : leaf;
     }
 
-    private static Task ProblemAsync(HttpContext context, int status, string title, string? detail) =>
+    internal static Task ProblemAsync(HttpContext context, int status, string title, string? detail) =>
         ProblemAsync(context, status, title, detail, ProblemType, errors: null);
 
     // Validation is the one failure whose text is written FOR the caller.

@@ -71,6 +71,12 @@ internal sealed class Wire : IAsyncDisposable
 
     public Ledger Ledger => _host.Services.GetRequiredService<Ledger>();
 
+    /// <summary>The server's own dispatcher — what a handler or a job there publishes through.</summary>
+    public IDispatcher Server => _host.Services.GetRequiredService<IDispatcher>();
+
+    /// <summary>The client half's subscription side: what a browser dispatcher opens a remote subscription with.</summary>
+    public IRemoteSubscriptions Subscriptions => (IRemoteSubscriptions)Transport;
+
     /// <summary>
     ///     Boots the pair.
     /// </summary>

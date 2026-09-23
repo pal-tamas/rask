@@ -43,10 +43,12 @@ broker, no Redis, no separate infrastructure for a hello-world. Ordered by lever
 The developer-facing cache has [shipped](cache.md). Still planned: a render/fragment cache reusing the
 framework's existing subtree-cache machinery, to memoize a component subtree across sessions by an explicit key.
 
-### Broadcast — across servers
-[Broadcast](broadcast.md) has shipped for one process: publish on a topic and every subscribed component in every
-open session re-renders. Still planned: a backplane that carries a publish to the sessions held by other instances
-behind a load balancer.
+### Subscriptions — beyond one process
+[Subscriptions](subscriptions.md) have shipped: a published notification reaches every subscribed component, scoped by
+key and admitted by a watch policy, and from WebAssembly over server-sent events. They reach the process that published
+them. Still planned: carrying events between processes and hosts — the blue and green containers of a deploy, and the
+instances behind a load balancer — and resuming a dropped stream from the last event it saw rather than from the latest
+value.
 
 ## Not shipped
 

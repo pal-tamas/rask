@@ -75,7 +75,8 @@ A command handler can publish an `INotification`; every registered `INotificatio
 `Sequential` (default) or `WhenAll` fan-out via `CqrsOptions.NotificationPublishStrategy`. Handlers are
 matched by the notification's **concrete runtime type** (a handler declared against a base type is not
 invoked for a derived one — see Limitations), their run order is deterministic but not the declaration
-order, so don't depend on it, and publishing a notification that has no handlers is a no-op.
+order, so don't depend on it, and a notification with no handlers reaches only its subscribers
+([below](#subscribing)).
 
 ```csharp
 public sealed class IncrementCounterHandler(CqrsCounterStore store, IDispatcher dispatcher)
@@ -89,6 +90,19 @@ public sealed class IncrementCounterHandler(CqrsCounterStore store, IDispatcher 
     }
 }
 ```
+
+### Subscribing
+
+A notification is also what a screen subscribes to. `PublishAsync` runs its handlers and hands it to every open
+subscription — a component's `QueryClient.Subscribe<T>()`, or `SubscribeAsync` anywhere else:
+
+```csharp
+await foreach (var incremented in dispatcher.SubscribeAsync<CounterIncremented>(cancellationToken: ct))
+    Console.WriteLine(incremented.Value);
+```
+
+A notification marked `[For<T>]` reaches only the subscribers watching its key, each admitted by an `IWatchPolicy<T>`.
+See [subscriptions](subscriptions.md).
 
 ## Pipeline behaviors (decorators)
 
@@ -218,6 +232,10 @@ query too long for a URL falls back to POST automatically, with an identical res
 Because the name is a route segment, logs, metrics and rate-limit partitions get it for free.
 `MapRaskCqrs()` returns the endpoint group, so `.RequireRateLimiting(...)`, CORS or output caching is a
 one-line addition.
+
+A third route under the same prefix, `GET /_rask/cqrs/request/events/{name}`, serves a browser's
+[subscriptions](subscriptions.md#in-a-webassembly-front-end) as server-sent events — the same group, so the same header,
+authentication and rate limit.
 
 ### It fails closed
 

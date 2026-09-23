@@ -3679,10 +3679,6 @@ Rask.Core.Live.WheelEventArgs.Equals(Rask.Core.Live.WheelEventArgs? other) -> bo
 Rask.Core.Live.WheelEventArgs.Mouse.get -> Rask.Core.Live.MouseEventArgs!
 Rask.Core.Live.WheelEventArgs.Mouse.init -> void
 Rask.Core.Live.WheelEventArgs.WheelEventArgs(Rask.Core.Live.MouseEventArgs! Mouse, double DeltaX, double DeltaY, double DeltaZ, int DeltaMode) -> void
-Rask.Core.Messaging.IBroadcast
-Rask.Core.Messaging.IBroadcast.PublishAsync<T>(Rask.Core.Messaging.Topic<T>! topic, T message, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
-Rask.Core.Messaging.IBroadcast.Subscribe<T>(Rask.Core.Component! owner, Rask.Core.Messaging.Topic<T>! topic, System.Action<T>! handler) -> void
-Rask.Core.Messaging.IBroadcast.Subscribe<T>(Rask.Core.Component! owner, Rask.Core.Messaging.Topic<T>! topic, System.Func<T, System.Threading.Tasks.Task!>! handler) -> void
 Rask.Core.Messaging.IToaster
 Rask.Core.Messaging.IToaster.Add(Rask.Core.Messaging.ToastLevel level, string! message, string? title = null) -> void
 Rask.Core.Messaging.IToaster.Changed -> System.Action?
@@ -3714,10 +3710,6 @@ Rask.Core.Messaging.Toaster.Add(Rask.Core.Messaging.ToastLevel level, string! me
 Rask.Core.Messaging.Toaster.Changed -> System.Action?
 Rask.Core.Messaging.Toaster.Consume() -> System.Collections.Generic.IReadOnlyList<Rask.Core.Messaging.ToastMessage!>!
 Rask.Core.Messaging.Toaster.Toaster() -> void
-Rask.Core.Messaging.Topic<T>
-Rask.Core.Messaging.Topic<T>.Name.get -> string!
-Rask.Core.Messaging.Topic<T>.Topic(string! name) -> void
-Rask.Core.Messaging.Topic<T>.Topic(string! name, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! crossHost) -> void
 Rask.Core.MouseModifiers
 Rask.Core.MouseModifiers.Alt.get -> bool
 Rask.Core.MouseModifiers.Alt.init -> void
@@ -4208,7 +4200,6 @@ override Rask.Core.Live.WheelEventArgs.ToString() -> string!
 override Rask.Core.Messaging.ToastMessage.Equals(object? obj) -> bool
 override Rask.Core.Messaging.ToastMessage.GetHashCode() -> int
 override Rask.Core.Messaging.ToastMessage.ToString() -> string!
-override Rask.Core.Messaging.Topic<T>.ToString() -> string!
 override Rask.Core.MouseModifiers.GetHashCode() -> int
 override Rask.Core.Routing.PendingDownload.Equals(object? obj) -> bool
 override Rask.Core.Routing.PendingDownload.GetHashCode() -> int

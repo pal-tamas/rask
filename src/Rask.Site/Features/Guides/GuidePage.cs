@@ -23,18 +23,22 @@ public sealed partial class GuidePage : Component
     // who is not, and "IBattery — Guides — Rask" matched nothing anyone types.
     //
     // And it is an article: a section, the date git last saw its source change, and a Markdown twin.
+    //
+    // A slug the guide moved away from renders the guide it moved to, canonical and all — see GuideCatalog.Moved.
     protected override Component? HeadAssets =>
-        GuideCatalog.Find(Slug) is { } guide
+        GuideCatalog.Find(Current) is { } guide
             ? PageMeta.For(
                 guide.SearchTitle + PageMeta.TitleSuffix,
                 guide.Description,
-                Routes.GuidePage(Slug),
-                new PageArticle(guide.Group, GuideHistory.LastModified(Slug), LlmsText.MarkdownUrl(Slug)))
+                Routes.GuidePage(Current),
+                new PageArticle(guide.Group, GuideHistory.LastModified(Current), LlmsText.MarkdownUrl(Current)))
             : PageMeta.For(
                 Slug + PageMeta.TitleSuffix,
                 "There is no guide by this name. The Rask guides cover components, routing, forms, data, auth, "
                 + "background work and deployment in C#.",
                 Routes.GuidePage(Slug));
 
-    protected override Component? Render() => GuideChrome.Slug(Slug);
+    protected override Component? Render() => GuideChrome.Slug(Current);
+
+    private string Current => GuideCatalog.Resolve(Slug);
 }

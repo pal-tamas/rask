@@ -74,18 +74,37 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
             return null;
         }
 
+        var compilation = ctx.SemanticModel.Compilation;
+
+        // A notification marked [For<T>] — a record struct as readily as a record class, so this comes before the
+        // handler-only filter below.
+        var scope = GetScope(symbol, compilation);
+
         // Handlers must be concrete classes (record classes included). Interfaces, structs and
         // record structs can't be DI-constructed handlers.
         if (symbol.IsAbstract || symbol.TypeKind != TypeKind.Class)
         {
-            return null;
+            return scope is null ? null : new Candidate(NoHandlers, null, scope, NoPolicies);
         }
 
+        var policies = new List<PolicyModel>();
         var handlers = new List<HandlerModel>();
         foreach (var iface in symbol.AllInterfaces)
         {
             if (iface.ContainingNamespace?.ToDisplayString() != Namespace || !iface.IsGenericType)
             {
+                continue;
+            }
+
+            if (iface.MetadataName == "IWatchPolicy`1")
+            {
+                // Registered like a handler, and skipped for the same reasons one would be — silently, since a
+                // missing policy already fails closed and says which policy it looked for.
+                if (DescribeRegisterability(symbol, iface.TypeArguments, compilation) is null)
+                {
+                    policies.Add(new PolicyModel(Fqn(iface, compilation), Fqn(symbol, compilation)));
+                }
+
                 continue;
             }
 
@@ -104,7 +123,6 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
             }
 
             var args = iface.TypeArguments;
-            var compilation = ctx.SemanticModel.Compilation;
             var requestFqn = Fqn(args[0], compilation);
             var resultFqn = kind switch
             {
@@ -125,12 +143,115 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
                 registerability?.Remedy));
         }
 
-        if (handlers.Count == 0)
+        if (handlers.Count == 0 && policies.Count == 0 && scope is null)
         {
             return null;
         }
 
-        return new Candidate(new EquatableArray<HandlerModel>(handlers), LocationInfo.From(symbol));
+        return new Candidate(
+            new EquatableArray<HandlerModel>(handlers),
+            LocationInfo.From(symbol),
+            scope,
+            new EquatableArray<PolicyModel>(policies));
+    }
+
+    private static readonly EquatableArray<HandlerModel> NoHandlers = new(Array.Empty<HandlerModel>());
+
+    private static readonly EquatableArray<PolicyModel> NoPolicies = new(Array.Empty<PolicyModel>());
+
+    // The notification's [For<T>] property, when it has one: on the property itself, or on a positional record's
+    // parameter — where `[For<Order>] Guid OrderId` lands by default, since an attribute on a primary-constructor
+    // parameter stays on the parameter unless it says `property:`.
+    private static ScopeModel? GetScope(INamedTypeSymbol symbol, Compilation compilation)
+    {
+        if (symbol.IsAbstract || symbol.IsGenericType
+                              || !symbol.AllInterfaces.Any(i => i.ContainingNamespace?.ToDisplayString() == Namespace
+                                                                && i.MetadataName == "INotification")
+                              || SymbolRegistration.DescribeUnnameable(symbol) is not null)
+        {
+            return null;
+        }
+
+        foreach (var property in symbol.GetMembers().OfType<IPropertySymbol>())
+        {
+            if (property.IsStatic || property.GetMethod is null)
+            {
+                continue;
+            }
+
+            var scope = ForScope(property.GetAttributes()) ?? ForScope(PrimaryParameter(symbol, property.Name));
+            if (scope is null)
+            {
+                continue;
+            }
+
+            var keyType = property.Type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable
+                ? nullable.TypeArguments[0]
+                : property.Type;
+
+            return new ScopeModel(
+                Fqn(symbol, compilation),
+                Fqn(scope, compilation),
+                Fqn(keyType, compilation).TrimEnd('?'),
+                property.Name,
+                ParseExpression(keyType, compilation));
+        }
+
+        return null;
+    }
+
+    private static ITypeSymbol? ForScope(ImmutableArray<AttributeData> attributes)
+    {
+        foreach (var attribute in attributes)
+        {
+            if (attribute.AttributeClass is { IsGenericType: true } type
+                && type.ContainingNamespace?.ToDisplayString() == Namespace
+                && type.MetadataName == "ForAttribute`1")
+            {
+                return type.TypeArguments[0];
+            }
+        }
+
+        return null;
+    }
+
+    private static ImmutableArray<AttributeData> PrimaryParameter(INamedTypeSymbol symbol, string name)
+    {
+        foreach (var constructor in symbol.InstanceConstructors)
+        {
+            foreach (var parameter in constructor.Parameters)
+            {
+                if (parameter.Name == name)
+                {
+                    return parameter.GetAttributes();
+                }
+            }
+        }
+
+        return ImmutableArray<AttributeData>.Empty;
+    }
+
+    // How a key comes back from its invariant string on the far side of the wire, or null when it has no text form
+    // (such a notification is watched in-process only). Everything here is a closed static call, so it trims.
+    private static string? ParseExpression(ITypeSymbol keyType, Compilation compilation)
+    {
+        var fqn = Fqn(keyType, compilation).TrimEnd('?');
+        if (keyType.SpecialType == SpecialType.System_String)
+        {
+            return "static s => s";
+        }
+
+        if (keyType.TypeKind == TypeKind.Enum)
+        {
+            return $"static s => global::System.Enum.Parse<{fqn}>(s)";
+        }
+
+        var parsable = keyType.AllInterfaces.Any(i => i.MetadataName == "IParsable`1"
+                                                      && i.ContainingNamespace?.ToDisplayString() == "System"
+                                                      && SymbolEqualityComparer.Default.Equals(i.TypeArguments[0], keyType));
+        return parsable
+            ? $"static s => {fqn}.Parse(s, global::System.Globalization.CultureInfo.InvariantCulture)"
+            : null;
     }
 
     // Returns the reason a handler cannot be registered, or null when it is fine. Open generic
@@ -190,6 +311,8 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         // (b) emit duplicate registrations. A genuine second handler has a different type FQN.
         var models = new List<(HandlerModel Model, LocationInfo? Location)>();
         var seen = new HashSet<(string, string)>();
+        var scopes = new Dictionary<string, ScopeModel>(StringComparer.Ordinal);
+        var policies = new SortedSet<(string ServiceFqn, string ImplementationFqn)>();
         foreach (var candidate in candidates)
         {
             foreach (var handler in candidate.Handlers)
@@ -199,9 +322,19 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
                     models.Add((handler, candidate.Location));
                 }
             }
+
+            if (candidate.Scope is { } scope)
+            {
+                scopes[scope.NotificationFqn] = scope;
+            }
+
+            foreach (var policy in candidate.Policies)
+            {
+                policies.Add((policy.ServiceFqn, policy.ImplementationFqn));
+            }
         }
 
-        if (models.Count == 0)
+        if (models.Count == 0 && scopes.Count == 0 && policies.Count == 0)
         {
             return;
         }
@@ -268,21 +401,29 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
 
         var distinctImplTypes = registerable
             .Select(e => e.Model.HandlerTypeFqn)
+            .Concat(policies.Select(p => p.ImplementationFqn))
             .Distinct(StringComparer.Ordinal)
             .OrderBy(t => t, StringComparer.Ordinal)
             .ToList();
 
         spc.AddSource("__RaskCqrsRegistry.g.cs", SourceText.From(
-            Build(uniqueRequests, notifications, notificationTypes, handlerImpls, distinctImplTypes),
+            Build(
+                uniqueRequests,
+                notificationTypes,
+                handlerImpls,
+                distinctImplTypes,
+                scopes.Values.OrderBy(s => s.NotificationFqn, StringComparer.Ordinal).ToList(),
+                policies.ToList()),
             Encoding.UTF8));
     }
 
     private static string Build(
         List<HandlerModel> requests,
-        List<(HandlerModel Model, LocationInfo? Location)> notifications,
         List<string> notificationTypes,
         List<(string ServiceInterfaceFqn, string HandlerTypeFqn, bool IsNotification)> handlerImpls,
-        List<string> distinctImplTypes)
+        List<string> distinctImplTypes,
+        List<ScopeModel> scopes,
+        List<(string ServiceFqn, string ImplementationFqn)> policies)
     {
         var sb = new StringBuilder();
         sb.AppendLine("// <auto-generated />");
@@ -325,6 +466,18 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
                 .AppendLine("), lifetime)));");
         }
 
+        // A watch policy runs in the subscriber's scope with the handlers' lifetime, so it can read the signed-in user
+        // and a scoped DbContext exactly as a handler does. TryAdd: an app that registers its own keeps it.
+        foreach (var (service, implementation) in policies)
+        {
+            sb.Append("        global::Rask.Cqrs.CqrsRegistry.RegisterServices(static (services, lifetime) => ")
+                .Append("global::Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.")
+                .AppendLine("TryAdd(services,")
+                .Append("            new global::Microsoft.Extensions.DependencyInjection.ServiceDescriptor(typeof(")
+                .Append(service).Append("), typeof(").Append(implementation)
+                .AppendLine("), lifetime)));");
+        }
+
         sb.AppendLine("    }");
         sb.AppendLine();
 
@@ -359,6 +512,30 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         }
 
         sb.AppendLine("        });");
+
+        // Only when there is something to install, so an assembly with no scoped notification makes no call that an
+        // older Rask.Cqrs would not have.
+        if (scopes.Count > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine(
+                "        global::Rask.Cqrs.CqrsRegistry.ReplaceNotificationScopes(typeof(__RaskCqrsRegistry), " +
+                "new (global::System.Type, global::Rask.Cqrs.NotificationScope)[]");
+            sb.AppendLine("        {");
+            foreach (var scope in scopes)
+            {
+                sb.Append("            (typeof(").Append(scope.NotificationFqn)
+                    .Append("), new global::Rask.Cqrs.NotificationScope(typeof(").Append(scope.ScopeFqn)
+                    .Append("), typeof(").Append(scope.KeyTypeFqn)
+                    .Append("), static n => ((").Append(scope.NotificationFqn).Append(")n).").Append(scope.PropertyName)
+                    .Append(", static (sp, key, ct) => global::Rask.Cqrs.CqrsRegistry.CanWatchAsync<")
+                    .Append(scope.ScopeFqn).Append(">(sp, key, ct), ")
+                    .Append(scope.ParseExpression ?? "null").AppendLine(")),");
+            }
+
+            sb.AppendLine("        });");
+        }
+
         sb.AppendLine("    }");
         sb.AppendLine();
 
@@ -462,7 +639,20 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         string? RegisterabilityProblem,
         string? RegisterabilityRemedy) : IEquatable<HandlerModel>;
 
-    private sealed record Candidate(EquatableArray<HandlerModel> Handlers, LocationInfo? Location);
+    private sealed record Candidate(
+        EquatableArray<HandlerModel> Handlers,
+        LocationInfo? Location,
+        ScopeModel? Scope,
+        EquatableArray<PolicyModel> Policies);
+
+    private sealed record ScopeModel(
+        string NotificationFqn,
+        string ScopeFqn,
+        string KeyTypeFqn,
+        string PropertyName,
+        string? ParseExpression);
+
+    private sealed record PolicyModel(string ServiceFqn, string ImplementationFqn);
 
     private sealed record LocationInfo(
         string FilePath, int Start, int Length, int StartLine, int StartChar, int EndLine, int EndChar)
