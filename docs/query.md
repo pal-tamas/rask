@@ -299,6 +299,53 @@ Three things it deliberately does not do:
   commit, and a rollback tells nobody — a refetch before the commit could read the rows as they were and
   cache that.
 
+## Staying fresh
+
+A save already refreshes the screen of the session that made it. `Person.CreateAsync(model)` refetches every query
+about people beside the form, and that costs nothing and needs no call — it is the list of exceptions just above.
+
+What it deliberately does not do is reach **anyone else's** screen. That is declared, once, in the two places the
+facts already live — and never at the call site:
+
+```csharp
+public sealed class Order : Aggregate<Guid>          // the model announces its saves
+{
+    public const Broadcasts Broadcast = Broadcasts.OnCommit;
+}
+
+[Live(typeof(Order))]                                 // the query says what it reads
+public sealed record GetOrders(int Page) : IQuery<IReadOnlyList<OrderRead>>;
+```
+
+Nothing changes in the component. `Render` keeps saying what to show, not how it is kept fresh:
+
+```csharp
+var orders = QueryClient.Query(new GetOrders(Page));   // refetches when anyone writes an order
+```
+
+**A query keyed by the thing it reads needs no attribute at all.** `QueryKey.For<Order>(…)` already names the entity,
+so a Rask.Data read face is live the moment the model opts in:
+
+```csharp
+var people = QueryClient.Query(QueryKey.For<Person>("active"),
+                       ct => Person.Read.Where(p => p.Active).ToListAsync(ct));
+```
+
+**Why a message query has to say it.** `new GetOrders(Page)` is keyed by `GetOrders`, not by `Order` — a write cannot
+know which message types read the table. That is exactly why a command states `[Invalidates(typeof(Order))]`, and
+`[Live]` is its mirror on the read side. A query that declares nothing simply is not live; it is never guessed at.
+
+**Who may see it.** Nobody new. The query already decided who may read the data, so a refetch of it is admitted by the
+same rule — there is no second policy to write, and no way to be told about a row you could not have queried.
+
+**What it costs.** One extra refetch when the entity is written, and nothing at all when it is not. The session keeps
+**one** listener however many live queries read it. The change a subscription replays when it opens is ignored,
+because the fetch that brought the page up already reflects it — so a page load never pays for a write that happened
+before it.
+
+**One process, for now.** Like every subscription, this reaches the process it was published in. Behind a load
+balancer a page on the other server still catches up on its next refetch rather than the moment the write lands.
+
 ## Subscriptions
 
 A query asks; a subscription is told. `QueryClient.Subscribe<T>()` is declared where a query is and read the same way, and

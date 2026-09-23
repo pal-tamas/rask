@@ -265,10 +265,10 @@ public static class GuideCatalog
         },
 
         // ---- Realtime ----
-        new("subscriptions", "Subscriptions", "Publish an event; every page subscribed to it re-renders — narrowed by a record, authorized by a policy.", "Realtime")
+        new("subscriptions", "Subscriptions", "Keep a page current: a live query, or an event published to every page subscribed to it.", "Realtime")
         {
-            SearchTitle = "Real-time subscriptions in C# — tRPC-style, over CQRS",
-            Description = "Push events to open pages in C# with QueryClient.Subscribe: a published CQRS notification re-renders every subscribed component, narrowed by a record.",
+            SearchTitle = "Live queries and real-time subscriptions in C#",
+            Description = "Keep C# pages current: Live() refetches a query when anyone writes, and QueryClient.Subscribe pushes real events to every subscribed component.",
         },
         new("webpush", "Web Push (server)", "Send Web Push from your backend — VAPID keys, IWebPush, delivery results.", "Realtime")
         {

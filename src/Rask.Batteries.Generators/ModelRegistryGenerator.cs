@@ -144,6 +144,7 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
             ConstOf(symbol, "Stamps", "Timestamps"),
             ConstOf(symbol, "Deletes", "Deletion"),
             ConstOf(symbol, "Checks", "Concurrency"),
+            ConstOf(symbol, "Broadcast", "Broadcasts"),
             ValueCollections(symbol),
             ConstOf(symbol, "Scope", "Tenancy"),
             ChildTypeNames(symbol));
@@ -549,6 +550,7 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
 
         var declared = distinct
             .Where(c => c.Stamps is not null || c.Deletes is not null || c.Checks is not null ||
+                        c.Broadcast is not null ||
                         c.Collections.Count > 0 || scopeByType.ContainsKey(c.FullyQualifiedName))
             .OrderBy(static c => c.FullyQualifiedName, StringComparer.Ordinal)
             .ToList();
@@ -581,6 +583,7 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
                 scopeByType.TryGetValue(entity.FullyQualifiedName, out var scope) ? scope : null);
             Declare(source, entity.FullyQualifiedName, "Deletion", entity.Deletes);
             Declare(source, entity.FullyQualifiedName, "Concurrency", entity.Checks);
+            Declare(source, entity.FullyQualifiedName, "Broadcasts", entity.Broadcast);
 
             foreach (var collection in entity.Collections)
             {
@@ -862,6 +865,7 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
         int? Stamps,
         int? Deletes,
         int? Checks,
+        int? Broadcast,
         EquatableArray<ValueCollectionSpec> Collections,
         int? Scope,
         EquatableArray<string> ChildTypeNames);

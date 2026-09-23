@@ -627,6 +627,7 @@ default, so an entity that says nothing is unchanged.
 | `Deletes` | `Deletion` | `Hard` | whether `DeleteAsync` removes the row, stamps `DeletedAt`, or [is not generated at all](#behaviour-rich-aggregates) (`None`) |
 | `Checks` | `Concurrency` | `Version` | the optimistic-concurrency token |
 | `Scope` | `Tenancy` | `Shared` | whether the table is partitioned by tenant — see [Multi-tenancy](multi-tenancy.md) |
+| `Broadcast` | `Broadcasts` | `Never` | whether a save is announced to the whole process — see [Announcing a save](#announcing-a-save) |
 
 ```csharp
 public sealed class Order : Aggregate<Guid>
@@ -645,6 +646,36 @@ public sealed class Reading : Aggregate<Guid>
     public const Concurrency Checks = Concurrency.None;    // and nothing edits one twice
 }
 ```
+
+### Announcing a save
+
+A save already refreshes the screen of the session that made it — that is `IDataChanges`, and it costs nothing and
+needs no declaration. What it deliberately does not do is reach anyone else's screen, because another session's cache
+is not this save's to touch.
+
+`Broadcast` is that other half:
+
+```csharp
+public sealed class Order : Aggregate<Guid>
+{
+    public const Broadcasts Broadcast = Broadcasts.OnCommit;
+}
+```
+
+The save is now announced to the whole process once it commits, and every query that reads orders refetches — a
+read face keyed `QueryKey.For<Order>(…)`, or a message query carrying `[Live(typeof(Order))]`. Nothing is said in the
+component; see [live queries](query.md#staying-fresh). Nothing is published unless a page is listening, and the
+page's own query decides who may see the refresh.
+
+Three things worth knowing:
+
+- **After the commit, never on a rollback** — the same rule the interceptors already follow.
+- **It needs no session.** A background job's write announces itself; `IDataChanges` could not, having no session's
+  cache to invalidate. That is the gap this closes.
+- **It is off by default**, so nothing is published for a table no page is watching.
+
+Like every subscription in Rask today, it reaches the process it was published in. Behind a load balancer, a page on
+the other server catches up on its next refetch.
 
 **Why a `const` and not an attribute.** C# refuses a non-constant initializer, so the value is always there to
 be read at compile time — the generator can never quietly fail to find it and emit the whole surface anyway.

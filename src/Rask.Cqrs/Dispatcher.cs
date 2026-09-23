@@ -10,8 +10,18 @@ namespace Rask.Cqrs;
 /// reflection. Registered transient so it captures whatever <see cref="IServiceProvider"/> constructs
 /// it: the per-session scope on the Rask Server host, or the single root scope on WASM.
 /// </summary>
-internal sealed class Dispatcher(IServiceProvider provider) : IDispatcher
+internal sealed class Dispatcher : IDispatcher
 {
+    private readonly IServiceProvider provider;
+
+    public Dispatcher(IServiceProvider provider)
+    {
+        this.provider = provider;
+
+        // Resolving the singleton is what gives Notify the ROOT provider: asking for it here, rather than from a
+        // hosted service, is what makes Notify.Send work in a browser app and in a test that starts no host.
+        provider.GetService<NotifyRoot>();
+    }
 
     private NotificationFeed? _feed;
     private CqrsExecutionOptions? _subscriptions;
