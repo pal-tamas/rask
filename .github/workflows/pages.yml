@@ -45,6 +45,12 @@ jobs:
       - name: Publish the site (src/Rask.Site → /)
         run: dotnet publish src/Rask.Site -c Release
 
+      # The full-stack data demo, embedded as a lazy iframe on the data, full-text-search and query guides. Its own
+      # small WASM app so EF Core and SQLite stay out of the site's bundle. Native-linked like the site (no
+      # -p:WasmBuildNative=false): without it e_sqlite3 is not linked in and every database call fails. Its csproj
+      # sets <RaskPathBase>/demos/data</RaskPathBase>, so the publish already carries <base href="/demos/data/">.
+      - name: Publish the data demo (src/Rask.Site.DataDemo → /demos/data/)
+        run: dotnet publish src/Rask.Site.DataDemo -c Release
 
       # Expected, harmless: with DevTools open each WASM app logs a 404 for _framework/dotnet.runtime.js.map.
       # The Release publish strips all .map files, but the fingerprinted dotnet.runtime.*.js keeps its
@@ -57,7 +63,8 @@ jobs:
         id: bundle
         run: |
           SITE_PUBLISH=src/Rask.Site/bin/Release/net10.0-browser/publish/wwwroot
-          for d in "$SITE_PUBLISH"; do
+          DATA_DEMO_PUBLISH=src/Rask.Site.DataDemo/bin/Release/net10.0-browser/publish/wwwroot
+          for d in "$SITE_PUBLISH" "$DATA_DEMO_PUBLISH"; do
             if [ ! -d "$d" ]; then
               echo "Could not locate published wwwroot: $d" >&2
               find . -maxdepth 6 -type d -name wwwroot
@@ -67,6 +74,8 @@ jobs:
           SITE="$RUNNER_TEMP/site"
           mkdir -p "$SITE"
           cp -r "$SITE_PUBLISH"/. "$SITE"/            # one app: landing at /, showcase at /docs
+          mkdir -p "$SITE/demos/data"
+          cp -r "$DATA_DEMO_PUBLISH"/. "$SITE/demos/data"/   # the data demo the guides frame
           # The installers every doc advertises: https://<site>/rask.sh and /rask.ps1. They live at
           # the repo root as the single source of truth and are published from there rather than
           # duplicated into the landing app's wwwroot, so there is exactly one copy to review, test
@@ -86,7 +95,7 @@ jobs:
           # more: /docs/ is a route inside the one app rather than a nested sub-app, and the prerender
           # pass writes an untouched boot shell to 404.html itself (#974). Copying a RENDERED page over
           # it is what that issue was about — every deep link would boot into whatever page got copied.
-          echo "--- <base> ---"; grep -i "<base" "$SITE/index.html" || true
+          echo "--- <base> ---"; grep -i "<base" "$SITE/index.html" "$SITE/demos/data/index.html" || true
           echo "dir=$SITE" >> "$GITHUB_OUTPUT"
 
       - uses: actions/configure-pages@v6

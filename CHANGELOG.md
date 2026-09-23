@@ -9,6 +9,15 @@ them until tagged releases begin.
 
 ### Added
 
+- **rask.sh shows the full stack: a notes app with its database in the browser tab, at `/demos/data/`.** A
+  `Note : Aggregate<Guid>` in SQLite through EF Core, saved with `Note.CreateAsync(model)` from a kit form, listed by
+  a `Rask.Query` query that refreshes itself on the save, searched with `Note.Read.Search(text)` and
+  `FullText.Highlight`/`Snippet`, and kept across reloads by `Rask.SQLite.Browser`. It is its own small WASM app
+  (`src/Rask.Site.DataDemo`, published by `pages.yml` beside the site), so the site's bundle and its zero IL warnings
+  are unchanged; guides frame it lazily through the `data-notes` demo key. Trimmed with EF Core rooted; the Rask.Data
+  and Rask.SQLite trim warnings it suppresses are #1132. Driven in Chromium by `scripts/run-data-demo-e2e-local.sh`,
+  listed in `run-all-gates.sh`.
+
 - **Several npm components from one package, reached as `Mui.Button`.** Declare the package once and list what you
   use from it; each export becomes a package island, with its props generated from the package's TypeScript exactly
   as a single island's are:
