@@ -51,7 +51,7 @@ public sealed class JsLaneAuthWiringTests
     [Fact]
     public void Auth_is_mapped_before_the_fallback_that_would_swallow_it()
     {
-        // UseRaskSpa ends the pipeline with a fallback to index.html and UseRaskMeta forwards everything
+        // MapRaskSpa ends the pipeline with a fallback to index.html and MapRaskMeta forwards everything
         // else to the node process, so an endpoint added after either answers HTML instead of JSON —
         // which reads as a front-end bug rather than a wiring one.
         var spa = Program(ProjectGenerator.GenerateSpa(
@@ -59,16 +59,16 @@ public sealed class JsLaneAuthWiringTests
 
         Assert.True(
             spa.IndexOf("app.MapRaskAuth();", StringComparison.Ordinal)
-            < spa.IndexOf("app.UseRaskSpa();", StringComparison.Ordinal),
-            "MapRaskAuth must come before UseRaskSpa's fallback.");
+            < spa.IndexOf("app.MapRaskSpa();", StringComparison.Ordinal),
+            "MapRaskAuth must come before MapRaskSpa's fallback.");
 
         var meta = Program(ProjectGenerator.GenerateMeta(
             Root, "App", MetaTemplate.Nuxt, new ServerBatteries { Data = true }, "1.2.3"));
 
         Assert.True(
             meta.IndexOf("app.MapRaskAuth();", StringComparison.Ordinal)
-            < meta.IndexOf("app.UseRaskMeta();", StringComparison.Ordinal),
-            "MapRaskAuth must come before UseRaskMeta's forward.");
+            < meta.IndexOf("app.MapRaskMeta();", StringComparison.Ordinal),
+            "MapRaskAuth must come before MapRaskMeta's forward.");
     }
 
     [Fact]
@@ -81,16 +81,16 @@ public sealed class JsLaneAuthWiringTests
         var spaStorage = spa.IndexOf("app.MapRaskStorage();", StringComparison.Ordinal);
 
         Assert.True(
-            spaStorage >= 0 && spaStorage < spa.IndexOf("app.UseRaskSpa();", StringComparison.Ordinal),
-            "MapRaskStorage must come before UseRaskSpa's fallback.");
+            spaStorage >= 0 && spaStorage < spa.IndexOf("app.MapRaskSpa();", StringComparison.Ordinal),
+            "MapRaskStorage must come before MapRaskSpa's fallback.");
 
         var meta = Program(ProjectGenerator.GenerateMeta(
             Root, "App", MetaTemplate.Nuxt, new ServerBatteries { Data = true, Storage = true }, "1.2.3"));
         var metaStorage = meta.IndexOf("app.MapRaskStorage();", StringComparison.Ordinal);
 
         Assert.True(
-            metaStorage >= 0 && metaStorage < meta.IndexOf("app.UseRaskMeta();", StringComparison.Ordinal),
-            "MapRaskStorage must come before UseRaskMeta's forward.");
+            metaStorage >= 0 && metaStorage < meta.IndexOf("app.MapRaskMeta();", StringComparison.Ordinal),
+            "MapRaskStorage must come before MapRaskMeta's forward.");
         Assert.Contains("using Rask.Storage;", meta, StringComparison.Ordinal);
     }
 

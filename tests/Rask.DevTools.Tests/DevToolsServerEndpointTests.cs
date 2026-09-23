@@ -12,7 +12,7 @@ namespace Rask.DevTools.Tests;
 
 /// <summary>
 ///     The host script endpoint and the page stamp that names it, through the real <c>AddRask</c> /
-///     <c>UseRask</c> wiring. The devtools are attached with the switch-independent
+///     <c>MapRask</c> wiring. The devtools are attached with the switch-independent
 ///     <see cref="RaskDevToolsLoader.Attach" />, because the unit gate builds Release, where the switch is off
 ///     and <c>AddRask</c>'s own attach does nothing.
 /// </summary>

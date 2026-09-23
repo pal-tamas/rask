@@ -366,7 +366,7 @@
     Where the WebAssembly debug proxy is, for a host that serves this client in Development (#1073).
 
     The SDK's own dev server (WasmAppHost) maps /_framework/debug for a standalone app. A host serving the
-    client through UseRaskSpa has no such proxy, and BrowserDebugHost.dll lives beside WasmAppHost in the
+    client through MapRaskSpa has no such proxy, and BrowserDebugHost.dll lives beside WasmAppHost in the
     WebAssembly SDK pack — a path only THIS project's evaluation knows ($(WasmAppHostDir)). So the build writes
     it next to the static-web-assets manifest the host already reads in Development, and the host finds it
     there. Never in a publish: a deployed app has no debugger to attach.

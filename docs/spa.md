@@ -107,7 +107,7 @@ Two ways out, and both are honest ones:
   `<RaskSpaTypeScriptConfig>tsconfig.app.json</RaskSpaTypeScriptConfig>`.
 - You want the **hosting** and not the contracts — an existing front end, in any language, that you
   would like served properly. Set `RaskEmitTypeScript=false`. Nothing is generated, the check does
-  not apply, and `UseRaskSpa` serves the bundle exactly as before; it has no opinion about what
+  not apply, and `MapRaskSpa` serves the bundle exactly as before; it has no opinion about what
   produced it.
 
 ## What you get
@@ -285,10 +285,10 @@ the line the front end's language is its own business, since nothing is generate
 
 ```csharp
 app.MapRaskCqrs();   // map your API FIRST
-app.UseRaskSpa();
+app.MapRaskSpa();
 ```
 
-**Order matters.** `UseRaskSpa` ends the pipeline with a fallback to `index.html`; an endpoint mapped
+**Order matters.** `MapRaskSpa` ends the pipeline with a fallback to `index.html`; an endpoint mapped
 after it is shadowed by that fallback rather than reached, and the symptom is an API call answered
 with HTML.
 
@@ -310,7 +310,7 @@ What it does beyond `UseStaticFiles` + a fallback:
 
 ### A Rask WebAssembly app
 
-WebAssembly is a single-page app too, so the same call serves one. `UseRaskSpa` recognises a Rask
+WebAssembly is a single-page app too, so the same call serves one. `MapRaskSpa` recognises a Rask
 WebAssembly bundle from its files — `rask.wasm.js` beside the .NET runtime's `_framework/dotnet*.js` —
 and applies what that publish guarantees instead of a bundler's rules:
 
@@ -338,11 +338,11 @@ builder.Services.AddRaskSpaHost();
 
 var app = builder.Build();
 app.MapRaskCqrs();   // your API first
-app.UseRaskSpa();
+app.MapRaskSpa();
 ```
 
 `dotnet build` publishes the client — any referenced project declaring `<RaskWasm>true</RaskWasm>` — and
-`dotnet publish` copies its bundle into the host's `wwwroot`, where `UseRaskSpa` finds it with no
+`dotnet publish` copies its bundle into the host's `wwwroot`, where `MapRaskSpa` finds it with no
 arguments. A host serves one client: two WebAssembly clients are refused as `RASKSPA006`, and a
 WebAssembly client beside a front-end `client` folder as `RASKSPA007`. The client's framework is read
 from its own evaluation, so a `Directory.Build.props` or another .NET version is honoured; a client that
@@ -354,9 +354,9 @@ trimming turns hot reload off in the browser, so a dev session turns `RaskSpaBui
 publish is skipped, and the host serves what its ordinary build wrote, with hot reload.
 
 **The operator dashboard can sit beside it.** Mount it above the app —
-`app.UseRaskServer<RaskDashboardShell>("/_rask/{**path}")` — and both halves share `/_rask/a/{hash}`
+`app.MapRaskServer<RaskDashboardShell>("/_rask/{**path}")` — and both halves share `/_rask/a/{hash}`
 safely: the dashboard's endpoint answers a hash its own process never registered from the web root,
-where `UseRaskSpa` places the bundle's scoped assets.
+where `MapRaskSpa` places the bundle's scoped assets.
 
 ### Options
 
@@ -376,11 +376,11 @@ A [Rask WebAssembly app](#a-rask-webassembly-app) reads the same section. Its `/
 rules apply whatever the section says, and the `/assets/` default is left out for it until you change the
 list.
 
-`Rask:Spa` is read when `UseRaskSpa` maps the app. The two delegates, `ExcludeFromFallback` and
+`Rask:Spa` is read when `MapRaskSpa` maps the app. The two delegates, `ExcludeFromFallback` and
 `OnPrepareResponse`, can only be set in code, on the callback — which runs after the section and wins:
 
 ```csharp
-app.UseRaskSpa(configure: options =>
+app.MapRaskSpa(configure: options =>
 {
     options.DevServerUrl = "http://localhost:5173";
     options.ImmutablePathPrefixes.Add("/static/");
@@ -604,7 +604,7 @@ empty key and `subscribeToPush()` returns `null` rather than throwing. See [Web 
 ## Signing people in
 
 The [accounts battery](authentication.md) is on in the host, and `rask new` maps its endpoints — an app
-with a database gets `app.MapRaskAuth()` in its `Program.cs`, before `UseRaskSpa()`, because that call
+with a database gets `app.MapRaskAuth()` in its `Program.cs`, before `MapRaskSpa()`, because that call
 ends the pipeline with a fallback to `index.html` and an endpoint added after it would answer HTML
 instead of JSON. The `rask dev` proxy forwards `/api/auth` alongside `/_rask`, so a sign-in works the
 same in development, where the browser is talking to the bundler rather than to Kestrel.
@@ -686,7 +686,7 @@ Client-side routing decides what a visitor *sees*, which is presentation rather 
 actually protects data is the endpoint: put `[Authorize]` on your controllers and minimal APIs, and
 they answer `401` regardless of what the front end chose to render.
 
-> **Map your API before `UseRaskSpa()`.** It ends the pipeline with a fallback that serves the bundle
+> **Map your API before `MapRaskSpa()`.** It ends the pipeline with a fallback that serves the bundle
 > for anything unmatched, so an endpoint mapped after it is never reached — the same ordering rule
 > `MapRaskCqrs()` has.
 

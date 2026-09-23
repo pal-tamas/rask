@@ -182,7 +182,7 @@ var app = builder.Build();
 // the verb carries what IQuery and ICommand already declare — so a command is 405 on GET and
 // cannot be triggered by a URL, a prefetch or a link scanner.
 //
-// Mapped BEFORE UseRaskMeta. That call ends the pipeline with a fallback that forwards to the
+// Mapped BEFORE MapRaskMeta. That call ends the pipeline with a fallback that forwards to the
 // front end, so an endpoint added after it would be answered with a rendered page instead —
 // which is the one failure of this lane that looks like a front-end bug.
 app.MapRaskCqrs();
@@ -196,7 +196,7 @@ app.MapHealthChecks("/healthz");
 // endpoints on the pipeline, and without it every call from the front end 404s. The
 // client is already there: `import { login } from '@rask/browser/auth'`.
 //
-// Before UseRaskMeta for the same reason MapRaskCqrs is — that call forwards everything
+// Before MapRaskMeta for the same reason MapRaskCqrs is — that call forwards everything
 // it has not already answered to the node process, which would render a page at these
 // routes instead of answering JSON.
 app.UseAuthentication();
@@ -205,7 +205,7 @@ app.MapRaskAuth();
 
 // rask:end
 // rask:if storage
-// The routes behind files.Url(id) and files.Share(id).For(lifetime). Before UseRaskMeta for
+// The routes behind files.Url(id) and files.Share(id).For(lifetime). Before MapRaskMeta for
 // the same reason MapRaskAuth is: it forwards everything it has not answered to the node process.
 app.MapRaskStorage();
 
@@ -214,7 +214,7 @@ app.MapRaskStorage();
 // immutable cache headers written for you) and forwards everything else to the node process.
 // Before the port answers, requests get 503 with Retry-After rather than a 502 from
 // forwarding into a closed socket.
-app.UseRaskMeta();
+app.MapRaskMeta();
 
 app.Run();
 

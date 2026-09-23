@@ -200,7 +200,7 @@ public class HandlerDispatchTests
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
         _ = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(2));
 
-        // UseRask<TApp> wraps the App in an implicit RootErrorBoundary, so a handler throw trips the boundary
+        // MapRask<TApp> wraps the App in an implicit RootErrorBoundary, so a handler throw trips the boundary
         // and its render replaces the App's tree with the built-in DefaultErrorPage. The dispatcher must remain
         // open afterwards.
         //

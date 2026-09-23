@@ -31,7 +31,7 @@ public static class RaskApiEndpointExtensions
     ///         <b>Where you call this does not decide whether your endpoints run.</b> Endpoint routing
     ///         matches on precedence, never on registration order, and every route an app writes is more
     ///         specific than Rask's <c>/{**path}</c> catch-all — so a controller answers from either side
-    ///         of <c>UseRask</c>. Call it wherever the file reads best.
+    ///         of <c>MapRask</c>. Call it wherever the file reads best.
     ///     </para>
     ///     <para>
     ///         What order <em>cannot</em> fix, and this does: a request under the API prefix matching

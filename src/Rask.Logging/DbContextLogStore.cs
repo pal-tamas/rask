@@ -29,7 +29,7 @@ internal sealed class DbContextLogStore<TContext>(IDbContextFactory<TContext> co
     // The file store's page: an unbounded DELETE would hold its locks for the length of a whole sweep.
     private const int PurgePageSize = 1000;
 
-    public async Task AppendAsync(IReadOnlyList<LogRecord> records, CancellationToken cancellationToken = default)
+    public async Task Append(IReadOnlyList<LogRecord> records, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(records);
         if (records.Count == 0)
@@ -54,7 +54,7 @@ internal sealed class DbContextLogStore<TContext>(IDbContextFactory<TContext> co
         }
     }
 
-    public async Task<LogPage> SearchAsync(LogQuery query, CancellationToken cancellationToken = default)
+    public async Task<LogPage> Search(LogQuery query, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(query);
 
@@ -87,7 +87,7 @@ internal sealed class DbContextLogStore<TContext>(IDbContextFactory<TContext> co
         }
     }
 
-    public async Task<IReadOnlyList<string>> CategoriesAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<string>> Categories(CancellationToken cancellationToken = default)
     {
         using var scope = LogStoreScope.Enter();
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
@@ -102,7 +102,7 @@ internal sealed class DbContextLogStore<TContext>(IDbContextFactory<TContext> co
         }
     }
 
-    public async Task<long> CountAsync(CancellationToken cancellationToken = default)
+    public async Task<long> Count(CancellationToken cancellationToken = default)
     {
         using var scope = LogStoreScope.Enter();
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
@@ -112,8 +112,12 @@ internal sealed class DbContextLogStore<TContext>(IDbContextFactory<TContext> co
         }
     }
 
-    public async Task<int> PurgeAsync(TimeSpan retention, int maxRows, CancellationToken cancellationToken = default)
+    public async Task<int> Trim(TimeSpan? olderThan, int? keepNewest, CancellationToken cancellationToken = default)
     {
+        // The nullable pair is the interface's; the body below still reasons in the old "zero means skip"
+        // terms, so it is translated once, here, rather than at every comparison.
+        var retention = olderThan ?? TimeSpan.Zero;
+        var maxRows = keepNewest ?? 0;
         using var scope = LogStoreScope.Enter();
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using (db.ConfigureAwait(false))
@@ -150,7 +154,7 @@ internal sealed class DbContextLogStore<TContext>(IDbContextFactory<TContext> co
         }
     }
 
-    public async Task ClearAsync(CancellationToken cancellationToken = default)
+    public async Task Clear(CancellationToken cancellationToken = default)
     {
         using var scope = LogStoreScope.Enter();
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);

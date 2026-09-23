@@ -110,7 +110,7 @@ public static class RaskSignalingExtensions
             ctx.Response.StatusCode = StatusCodes.Status500InternalServerError;
             await ctx.Response.WriteAsync(
                 "The Rask signaling relay needs WebSocket support in the pipeline. Call app.UseWebSockets() "
-                + "before app.MapRaskSignaling(). (Rask.Server's UseRask() does this for you; a static-file "
+                + "before app.MapRaskSignaling(). (Rask.Server's MapRask() does this for you; a static-file "
                 + "host serving a published WASM bundle does not.)");
             return;
         }

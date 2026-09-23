@@ -9,13 +9,13 @@ namespace Rask.Generators.Tests;
 public class RootShellAnalyzerTests
 {
     // Minimal stubs whose full metadata names match the real entry points the analyzer keys on
-    // (Rask.Server.RaskEndpointExtensions.UseRask<T>, Rask.Wasm.WasmHostBuilder.RunAsync<T>), so
+    // (Rask.Server.RaskEndpointExtensions.MapRask<T>, Rask.Wasm.WasmHostBuilder.RunAsync<T>), so
     // the tests don't need to reference the host assemblies. The shell factories (Doctype/Html/
     // Head/Body) are matched by name, so the App declares same-named local helpers.
     private const string EntryStubs = """
                                       using Rask.Core;
                                       namespace Rask.Server { public static class RaskEndpointExtensions {
-                                          public static void UseRask<TApp>(object app) where TApp : Component { } } }
+                                          public static void MapRask<TApp>(object app) where TApp : Component { } } }
                                       namespace Rask.Wasm { public sealed class WasmHostBuilder {
                                           public void RunAsync<TApp>() where TApp : Component { } } }
                                       """;
@@ -37,7 +37,7 @@ public class RootShellAnalyzerTests
     public async Task A_UseRask_root_that_renders_the_whole_shell_reports_RASK021()
     {
         var src = EntryStubs + App("Doctype(); Html(\"en\"); Head(); Body();")
-                             + "namespace Demo { class Host { void M() { Rask.Server.RaskEndpointExtensions.UseRask<App>(null!); } } }";
+                             + "namespace Demo { class Host { void M() { Rask.Server.RaskEndpointExtensions.MapRask<App>(null!); } } }";
 
         var d = Assert.Single(await GetDiagnosticsAsync(src));
         Assert.Equal("RASK021", d.Id);
@@ -59,7 +59,7 @@ public class RootShellAnalyzerTests
                                    protected override Component? Render() => Html[Body[Div["hi"]]];
                                }
                                """
-                             + "namespace Demo { class Host { void M() { Rask.Server.RaskEndpointExtensions.UseRask<ChainApp>(null!); } } }";
+                             + "namespace Demo { class Host { void M() { Rask.Server.RaskEndpointExtensions.MapRask<ChainApp>(null!); } } }";
 
         var d = Assert.Single(await GetDiagnosticsAsync(src));
         Assert.Equal("RASK021", d.Id);
@@ -84,7 +84,7 @@ public class RootShellAnalyzerTests
                                    }
                                }
                                """
-                             + "namespace Demo { class Host { void M() { Rask.Server.RaskEndpointExtensions.UseRask<LocalApp>(null!); } } }";
+                             + "namespace Demo { class Host { void M() { Rask.Server.RaskEndpointExtensions.MapRask<LocalApp>(null!); } } }";
 
         Assert.Empty(await GetDiagnosticsAsync(src));
     }
@@ -93,7 +93,7 @@ public class RootShellAnalyzerTests
     public async Task A_UseRask_root_that_renders_only_its_body_raises_no_diagnostic()
     {
         var src = EntryStubs + App(string.Empty)
-                             + "namespace Demo { class Host { void M() { Rask.Server.RaskEndpointExtensions.UseRask<App>(null!); } } }";
+                             + "namespace Demo { class Host { void M() { Rask.Server.RaskEndpointExtensions.MapRask<App>(null!); } } }";
 
         Assert.Empty(await GetDiagnosticsAsync(src));
     }
@@ -117,10 +117,10 @@ public class RootShellAnalyzerTests
     [Fact]
     public async Task An_unrelated_generic_call_named_UseRask_raises_no_diagnostic()
     {
-        // A generic method named UseRask but NOT on the Rask entry type must be ignored.
+        // A generic method named MapRask but NOT on the Rask entry type must be ignored.
         var src = App("Doctype();")
-                  + "namespace Demo { static class Other { public static void UseRask<T>() { } } "
-                  + "class Host { void M() { Other.UseRask<App>(); } } }";
+                  + "namespace Demo { static class Other { public static void MapRask<T>() { } } "
+                  + "class Host { void M() { Other.MapRask<App>(); } } }";
 
         Assert.Empty(await GetDiagnosticsAsync(src));
     }

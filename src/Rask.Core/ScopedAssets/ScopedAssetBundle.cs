@@ -9,7 +9,7 @@ namespace Rask.Core.ScopedAssets;
 ///     <c>Rask.Server</c> process that shares a host with such a bundle — the operator dashboard beside a
 ///     WebAssembly app — owns the <c>/_rask/a/{hash}.{ext}</c> route, and its registry only carries what
 ///     that process loaded, so a hash it lacks is answered from the app's web root, where
-///     <c>UseRaskSpa</c> places the bundle's files.
+///     <c>MapRaskSpa</c> places the bundle's files.
 /// </remarks>
 public static class ScopedAssetBundle
 {

@@ -61,7 +61,7 @@ internal sealed class StorageStartupCheck(IServiceProvider services, ILogger<Sto
         {
             logger.LogWarning(
                 "Rask.Storage is registered but MapRaskStorage() was never called, so links from files.Url(...) and "
-                + "files.TemporaryUrlAsync(...) will answer 404. Add app.MapRaskStorage(); after app.UseRask<App>();.");
+                + "files.TemporaryUrlAsync(...) will answer 404. Add app.MapRaskStorage(); after app.MapRask<App>();.");
         }
 
         return Task.CompletedTask;

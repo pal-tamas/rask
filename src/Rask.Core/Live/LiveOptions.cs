@@ -74,7 +74,7 @@ public sealed class RaskLiveOptions
     ///     Whether the scoped-CSS bundle is minified (comments + insignificant whitespace stripped) before
     ///     it is hashed and served. <c>null</c> (default) means <b>auto</b>: on outside the Development
     ///     environment, off in Development so hot-reloaded CSS stays readable — resolved by
-    ///     <c>UseRask</c> from <c>IHostEnvironment</c>. Set <c>true</c>/<c>false</c> to force it. Minifying
+    ///     <c>MapRask</c> from <c>IHostEnvironment</c>. Set <c>true</c>/<c>false</c> to force it. Minifying
     ///     before hashing keeps the digest, immutable URL, and brotli/gzip caches all keyed off the
     ///     minified bytes. Only the CSS bundle is minified; the JS bundle is served as-is.
     /// </summary>
@@ -99,7 +99,7 @@ public sealed class RaskLiveOptions
 
 /// <summary>
 ///     Static accessor for the process-wide live options that back the content-addressed asset
-///     registries. Set by <c>AddRask()</c> / <c>UseRask&lt;TApp&gt;()</c> from the configured
+///     registries. Set by <c>AddRask()</c> / <c>MapRask&lt;TApp&gt;()</c> from the configured
 ///     <see cref="RaskLiveOptions" />. <see cref="PathBase" /> and <see cref="MinifyScopedAssets" />
 ///     live here because the <see cref="ScopedAssets.ScopedAssetRegistry" /> and
 ///     <c>HeadAssetRegistry</c> build one shared, content-hashed bundle per process — not per session.
@@ -114,7 +114,7 @@ public static class LiveOptions
 
     /// <summary>
     ///     Resolved scoped-CSS minification switch read by <see cref="ScopedAssets.ScopedAssetRegistry" />
-    ///     when it builds the bundle. <c>null</c> (default) = unresolved/off — <c>UseRask</c> resolves the
+    ///     when it builds the bundle. <c>null</c> (default) = unresolved/off — <c>MapRask</c> resolves the
     ///     auto default from <see cref="RaskLiveOptions.MinifyScopedAssets" /> + the host environment; a
     ///     standalone host (or a test) can also set it directly.
     /// </summary>
@@ -133,7 +133,7 @@ public static class LiveOptions
     ///     arrived that way. <c>dotnet run --environment Development</c>, <c>appsettings.json</c>,
     ///     assigning <c>builder.Environment.EnvironmentName</c>, and IDE profiles that set configuration
     ///     rather than the process environment all select Development without setting a variable, and all
-    ///     of them silently produced the production error page while developing (#605). <c>UseRask</c>
+    ///     of them silently produced the production error page while developing (#605). <c>MapRask</c>
     ///     now resolves this from <c>IWebHostEnvironment</c>; a standalone host or a test can set it
     ///     directly. Host-wide rather than per-session, like <see cref="MinifyScopedAssets" />.
     /// </remarks>

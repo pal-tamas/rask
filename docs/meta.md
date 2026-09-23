@@ -23,7 +23,7 @@ The whole surface it adds to your project file is one property:
 builder.Services.AddRaskMeta();
 
 app.MapRaskCqrs();   // map your API FIRST
-app.UseRaskMeta();   // everything else goes to the framework
+app.MapRaskMeta();   // everything else goes to the framework
 ```
 
 That is the whole surface. The framework is named once, in the project file, because the build needs
@@ -60,7 +60,7 @@ Kestrel keeps the public port, so ASP.NET authentication, rate limiting, logging
 still sit in front of every request. The framework's server is a **supervised child process** bound to
 loopback: publishing the container's ports cannot expose an unauthenticated renderer beside your app.
 
-`UseRaskMeta()` registers a **fallback**, so anything you mapped first still wins. Map your API
+`MapRaskMeta()` registers a **fallback**, so anything you mapped first still wins. Map your API
 before it — the symptom of getting that backwards is an API call answered with a rendered page.
 
 ## What the scaffold does per framework
@@ -122,7 +122,7 @@ They are a form over `login` and `register` from `@rask/browser/auth`, which the
 into your client: typed, carrying the CSRF header these endpoints require, and answering
 `{ok: true, user}` or `{ok: false, failure}` rather than a status code to interpret. The cookie is
 HttpOnly, so nothing here touches browser storage. `Program.cs` maps the endpoints with
-`app.MapRaskAuth()`, before `UseRaskMeta()` — that call forwards everything it has not answered to the
+`app.MapRaskAuth()`, before `MapRaskMeta()` — that call forwards everything it has not answered to the
 node process, so an endpoint added after it would be answered with a rendered page.
 
 **This is the one thing Rask overlays that is a page rather than a config file**, and on Nuxt it is not
@@ -453,7 +453,7 @@ Same origin, so the `HttpOnly` cookie rides on its own; `X-Rask-Auth` is require
 state-changing call. See [the SPA guide](spa.md#signing-people-in) — the contract is identical,
 because it is the same contract.
 
-> **Map them before `UseRaskMeta()`.** That call ends the pipeline with a fallback that forwards
+> **Map them before `MapRaskMeta()`.** That call ends the pipeline with a fallback that forwards
 > *everything* unmatched to Node, so an endpoint mapped after it never runs. Your own API has the same
 > rule for the same reason.
 

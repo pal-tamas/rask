@@ -266,3 +266,4 @@ static Rask.Mail.SentEmailCounting.In(this Rask.Batteries.Counting<Rask.Mail.Sen
 static Rask.Mail.SentEmailCounting.Saying(this Rask.Batteries.Counting<Rask.Mail.SentEmail!> sent, string! text) -> Rask.Batteries.Counting<Rask.Mail.SentEmail!>
 static Rask.Mail.SentEmailCounting.To(this Rask.Batteries.Counting<Rask.Mail.SentEmail!> sent, string! address) -> Rask.Batteries.Counting<Rask.Mail.SentEmail!>
 static Rask.Mail.SentEmailCounting.WithSubject(this Rask.Batteries.Counting<Rask.Mail.SentEmail!> sent, string! subject) -> Rask.Batteries.Counting<Rask.Mail.SentEmail!>
+static Rask.Mail.Mail.IsOn.get -> bool

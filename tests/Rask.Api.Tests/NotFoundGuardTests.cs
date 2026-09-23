@@ -14,7 +14,7 @@ namespace Rask.Api.Tests;
 /// </summary>
 /// <remarks>
 ///     Every test here stands up a real server with a stand-in for Rask's catch-all — a plain
-///     <c>MapGet("/{**path}")</c> returning HTML, which is exactly what <c>UseRask</c> registers. Nothing
+///     <c>MapGet("/{**path}")</c> returning HTML, which is exactly what <c>MapRask</c> registers. Nothing
 ///     is asserted by reading the endpoint table: the whole point is which endpoint a request reaches,
 ///     and route precedence is the sort of thing that reads correct in a list and answers wrong over
 ///     HTTP. That mistake is what this feature exists to correct, so this suite does not repeat it.
@@ -43,7 +43,7 @@ public sealed class NotFoundGuardTests
                         map?.Invoke(endpoints);
                         endpoints.MapRaskApi();
 
-                        // Stands in for UseRask's catch-all: an ordinary MapGet at the default order,
+                        // Stands in for MapRask's catch-all: an ordinary MapGet at the default order,
                         // serving the app for anything unmatched.
                         endpoints.MapGet("/{**path}", () => Results.Content(AppMarker, "text/html"));
                     });

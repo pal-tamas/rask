@@ -12,7 +12,7 @@ namespace Rask.Generators.Analyzers;
 /// <summary>
 ///     RASK021 — flags a root component that renders the page shell itself.
 ///     <para>
-///         The component passed to <c>UseRask&lt;TApp&gt;()</c> (Server / Wasm.Hosting) or
+///         The component passed to <c>MapRask&lt;TApp&gt;()</c> (Server / Wasm.Hosting) or
 ///         <c>RunAsync&lt;TApp&gt;()</c> (standalone WASM) renders straight into <c>&lt;body&gt;</c>:
 ///         Rask emits the doctype, <c>&lt;html&gt;</c>, <c>&lt;head&gt;</c> and <c>&lt;body&gt;</c>
 ///         around whatever it returns. A root that still builds them itself nests a second document
@@ -145,7 +145,7 @@ public sealed class RootShellAnalyzer : DiagnosticAnalyzer
         var containing = method.ContainingType?.ToDisplayString();
         return method.Name switch
         {
-            "UseRask" => containing == ServerExtensions,
+            "MapRask" => containing == ServerExtensions,
             "RunAsync" => containing == WasmHostBuilder,
             _ => false
         };

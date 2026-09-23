@@ -16,7 +16,7 @@ namespace Rask.Spa.Hosting;
 /// <remarks>
 ///     <para>
 ///         A standalone app runs under the SDK's dev server, which maps <c>/_framework/debug</c> itself. A host that
-///         serves its client through <see cref="RaskSpaEndpointExtensions.UseRaskSpa" /> had nothing there, and the
+///         serves its client through <see cref="RaskSpaEndpointExtensions.MapRaskSpa" /> had nothing there, and the
 ///         request fell to the asset 404. This maps the same two routes the SDK's server does and answers them the
 ///         same way: <c>ws-proxy</c> starts <c>BrowserDebugHost.dll</c> for the browser named in <c>?browser=</c> and
 ///         redirects the debugger's socket to it, so VS Code's <c>inspectUri</c> works unchanged against either.

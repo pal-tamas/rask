@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -61,6 +62,15 @@ public static class Files
 
     /// <summary>A response that streams the file, for an endpoint that has checked the caller may see it.</summary>
     public static IResult Download(Guid id) => Resolve().Download(id);
+
+    /// <summary>
+    ///     Whether Rask.Storage is registered at all. For an operator surface that renders "off" rather than
+    ///     failing — <c>Rask.Dashboard</c> does exactly that. An app should not branch on this: a call with
+    ///     nothing registered throws and names the registration that fixes it.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static bool IsOn =>
+        Faked.Value is not null || Ambient.Services?.GetService<IFiles>() is not null;
 
     /// <summary>What <c>Files.Fake()</c> put in the way of the real store, for this test's flow alone.</summary>
     internal static readonly AsyncLocal<IFiles?> Faked = new();

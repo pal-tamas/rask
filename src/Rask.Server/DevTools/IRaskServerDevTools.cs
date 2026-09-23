@@ -8,7 +8,7 @@ namespace Rask.Server.DevTools;
 /// </summary>
 /// <remarks>
 ///     The devtools bootstrap only ever sees an <c>IServiceCollection</c> — <c>AddRask</c> attaches it — but what it
-///     serves needs the route builder and the request, which exist only once <c>UseRask</c> runs. So the bootstrap
+///     serves needs the route builder and the request, which exist only once <c>MapRask</c> runs. So the bootstrap
 ///     registers this and the host calls it at the four points that matter. It is present exactly when the devtools
 ///     attached, which already took a build carrying them with their feature switch on; whether they serve anything is
 ///     still the implementation's call (Development only).

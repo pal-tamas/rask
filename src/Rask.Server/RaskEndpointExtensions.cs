@@ -57,7 +57,7 @@ namespace Rask.Server;
 
 /// <summary>
 ///     The endpoints that make an ASP.NET Core app a Rask app: the page routes, the live WebSocket the
-///     diff runtime talks over, and the client runtime script. Wired up by <c>UseRask&lt;TApp&gt;()</c>.
+///     diff runtime talks over, and the client runtime script. Wired up by <c>MapRask&lt;TApp&gt;()</c>.
 /// </summary>
 [global::Rask.Core.RaskMarkup]
 public static partial class RaskEndpointExtensions
@@ -83,7 +83,7 @@ public static partial class RaskEndpointExtensions
     // fields — instead of process-global statics. See RaskServerLimits / RaskServerOptions.
     // A fixed, content-free payload — written as a literal rather than JsonSerializer.Serialize(anonymous)
     // so it needs no reflection-based serialization. Under NativeAOT (reflection JSON disabled) the
-    // serializer call threw at static-init and crashed UseRask before the host could start.
+    // serializer call threw at static-init and crashed MapRask before the host could start.
     private static readonly byte[] SessionUnknownPayload =
         Encoding.UTF8.GetBytes("""{"type":"session","status":"unknown"}""");
 
@@ -104,7 +104,7 @@ public static partial class RaskEndpointExtensions
     ///     Registers the Rask server-side live-rendering services (session store, routing,
     ///     authentication, file upload/download, <see cref="IJSRuntime" /> bridge, and the live
     ///     runtime script). Call this in <c>ConfigureServices</c>, then
-    ///     <see cref="UseRask{TApp}(WebApplication, string, string)" />
+    ///     <see cref="MapRask{TApp}(WebApplication, string, string)" />
     ///     in the pipeline. The session Rask authenticates is a cookie, and the <c>Rask.Auth</c>
     ///     battery owns that scheme — <c>AddRask</c> itself carries no auth options object.
     /// </summary>
@@ -146,7 +146,7 @@ public static partial class RaskEndpointExtensions
         // Nothing is READ here. A host registers IConfiguration through a factory, so the options are built on
         // first use, and every value that used to be copied out at this point is read from the built options
         // where it is needed: the session cap and diff mode by the LiveSessionStore factory below, PathBase and
-        // MinifyScopedAssets by UseRask (they back the process-wide content-addressed asset registries, so they
+        // MinifyScopedAssets by MapRask (they back the process-wide content-addressed asset registries, so they
         // stay statics). DiffMode is a per-host value carried on the LiveSessionStore (and handed to each
         // LiveSession), NOT a process-global static — so two hosts in one process, and parallel tests, each
         // render in their own mode instead of racing shared state.
@@ -281,7 +281,7 @@ public static partial class RaskEndpointExtensions
         // The options bind from Rask:Culture and then configureCulture, registered HERE rather than inside
         // Core's AddRaskCulture: Core is shared with the browser, which has no configuration to bind. Core's
         // own TryAddSingleton of the options is then a no-op, and so is its IsEnabled switch — which is read
-        // off the built options by UseRask instead, since nothing is built yet.
+        // off the built options by MapRask instead, since nothing is built yet.
         services.AddRaskOptions<RaskCultureOptions>("Rask:Culture", static (section, o) => section.Bind(o), configureCulture,
             validate: null);
         services.AddRaskCulture(configure: null, ServiceLifetime.Scoped);
@@ -341,7 +341,7 @@ public static partial class RaskEndpointExtensions
     ///     (e.g. <c>/app1</c>). Overrides any path base set via <see cref="AddRask" />.
     /// </param>
     /// <returns>The same <paramref name="app" /> instance, for chaining.</returns>
-    public static WebApplication UseRask<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
+    public static WebApplication MapRask<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
         this WebApplication app,
         string pattern = "/{**path}",
         string pathBase = "")
@@ -371,7 +371,7 @@ public static partial class RaskEndpointExtensions
         LiveOptions.IsDevelopment ??= app.Environment.IsDevelopment();
 
         app.UseWebSockets();
-        ((IEndpointRouteBuilder)app).UseRask<TApp>(pattern, pathBase);
+        ((IEndpointRouteBuilder)app).MapRask<TApp>(pattern, pathBase);
         return app;
     }
 
@@ -390,24 +390,24 @@ public static partial class RaskEndpointExtensions
         services.AddRask(configure, configureServer);
 
     /// <summary>
-    ///     <see cref="UseRask{TApp}(WebApplication, string, string)" /> under a name only this package
+    ///     <see cref="MapRask{TApp}(WebApplication, string, string)" /> under a name only this package
     ///     defines — for an app whose own UI is served by another host.
     ///     <para>
     ///         A single-page app that mounts the operator dashboard serves the app with
-    ///         <c>UseRaskSpa</c> and the dashboard's server-rendered chain with this, under its own
+    ///         <c>MapRaskSpa</c> and the dashboard's server-rendered chain with this, under its own
     ///         prefix; the name says at the call site which of the two a line is.
     ///     </para>
     /// </summary>
     /// <typeparam name="TApp">The root <see cref="Component" /> rendered for every matched route.</typeparam>
     /// <param name="app">The web application to map endpoints on.</param>
     /// <param name="pattern">Catch-all route pattern Rask serves (default <c>/{**path}</c>).</param>
-    /// <param name="pathBase">Optional URL prefix; see the <c>UseRask</c> it forwards to.</param>
-    public static WebApplication UseRaskServer<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
+    /// <param name="pathBase">Optional URL prefix; see the <c>MapRask</c> it forwards to.</param>
+    public static WebApplication MapRaskServer<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
         this WebApplication app,
         string pattern = "/{**path}",
         string pathBase = "")
         where TApp : Component =>
-        app.UseRask<TApp>(pattern, pathBase);
+        app.MapRask<TApp>(pattern, pathBase);
 
     /// <summary>
     ///     Warns when the shutdown drain cannot fit inside the host's own shutdown budget. A warning and
@@ -443,7 +443,7 @@ public static partial class RaskEndpointExtensions
     }
 
     /// <summary>
-    ///     Endpoint-routing overload of <see cref="UseRask{TApp}(WebApplication, string, string)" />: maps the
+    ///     Endpoint-routing overload of <see cref="MapRask{TApp}(WebApplication, string, string)" />: maps the
     ///     Rask live endpoints onto an existing <see cref="IEndpointRouteBuilder" /> without touching the
     ///     middleware pipeline (the caller is responsible for <c>UseWebSockets()</c>).
     /// </summary>
@@ -452,7 +452,7 @@ public static partial class RaskEndpointExtensions
     /// <param name="pattern">Catch-all route pattern Rask serves (default <c>/{**path}</c>).</param>
     /// <param name="pathBase">Optional URL prefix; see the <see cref="WebApplication" /> overload.</param>
     /// <returns>The same <paramref name="endpoints" /> instance, for chaining.</returns>
-    public static IEndpointRouteBuilder UseRask<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
+    public static IEndpointRouteBuilder MapRask<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
         this IEndpointRouteBuilder endpoints,
         string pattern = "/{**path}",
         string pathBase = "")
@@ -847,7 +847,7 @@ public static partial class RaskEndpointExtensions
         // methods). Marked `.AllowAnonymous()` so a host with a fallback authorization
         // policy still serves assets — content-addressed URLs carry no PII, and an unknown
         // hash returns 404 instead of leaking the registered set.
-        // Mapped at most once per app. Two chains in one app (UseRask under two prefixes) would each map
+        // Mapped at most once per app. Two chains in one app (MapRask under two prefixes) would each map
         // this route, and two endpoints with an identical template and precedence are accepted at startup
         // and then throw AmbiguousMatchException on the first request for a scoped stylesheet — an app
         // that boots clean and serves an unstyled 500. Skipping when it is already mapped costs nothing.
@@ -2874,7 +2874,7 @@ public static partial class RaskEndpointExtensions
         {
             // A plain server app has nothing under _rask/a in its web root, so the miss is a 404. The
             // file is there when this process shares a host with a WebAssembly app — the operator
-            // dashboard beside a bundle UseRaskSpa serves — because routing gives this endpoint the
+            // dashboard beside a bundle MapRaskSpa serves — because routing gives this endpoint the
             // bundle's /_rask/a/{hash} requests before static files run, and the bundle's hashes were
             // registered in the browser's runtime, never in this one.
             return ServeWebRootAssetAsync(ctx, hash, kind);
@@ -2938,7 +2938,7 @@ public static partial class RaskEndpointExtensions
     /// <remarks>
     ///     Read through <see cref="IWebHostEnvironment.WebRootFileProvider" /> rather than a directory, so
     ///     it finds the file wherever the web root is composed from — a published <c>wwwroot</c>, or a
-    ///     bundle <c>UseRaskSpa</c> serves from elsewhere. The hash was validated as fixed-length hex
+    ///     bundle <c>MapRaskSpa</c> serves from elsewhere. The hash was validated as fixed-length hex
     ///     before it got here, so the path cannot leave <c>_rask/a/</c>.
     /// </remarks>
     private static async Task ServeWebRootAssetAsync(HttpContext ctx, string hash, AssetKind kind)

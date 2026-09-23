@@ -6,7 +6,7 @@ storage or Azure Blob Storage by configuration — with a row per file on your a
 ```csharp
 builder.Services.AddRaskStorage<AppDbContext>();
 // OnModelCreating: modelBuilder.AddRaskStorage();
-// after app.UseRask<App>(): app.MapRaskStorage();
+// after app.MapRask<App>(): app.MapRaskStorage();
 ```
 
 ```csharp

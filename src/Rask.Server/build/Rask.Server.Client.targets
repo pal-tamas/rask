@@ -20,11 +20,11 @@
     Switched on by convention — Client/Program.cs beside the project file — and off with
     <RaskClient>false</RaskClient>. `rask dev` reads the same two signals.
 
-    The bundle is a single-page app, and Rask.Spa.Hosting's UseRaskSpa() serves it:
+    The bundle is a single-page app, and Rask.Spa.Hosting's MapRaskSpa() serves it:
       * `dotnet publish` publishes the client and copies its wwwroot into this app's wwwroot, where
-        UseRaskSpa finds it first;
+        MapRaskSpa finds it first;
       * every other build — `dotnet build`, `dotnet run`, `rask dev` — BUILDS the client and bakes its
-        build-output manifest, and in Development UseRaskSpa serves that, so a development run never shows
+        build-output manifest, and in Development MapRaskSpa serves that, so a development run never shows
         a stale publish or a "nothing built yet" page. It is a build, not a publish: no trimming and no
         runtime link, which is what takes minutes;
       * an edit in Client/ is rebuilt and the app restarted. `dotnet watch` cannot hot-apply it, because the
@@ -357,7 +357,7 @@
     <ItemGroup>
       <_RaskClientAsset Include="$(RaskClientCompanionOutput)wwwroot\**\*"/>
 
-      <!-- Into the server's own wwwroot, which is the first place UseRaskSpa looks. -->
+      <!-- Into the server's own wwwroot, which is the first place MapRaskSpa looks. -->
       <ResolvedFileToPublish Include="@(_RaskClientAsset)">
         <RelativePath>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</RelativePath>
         <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
@@ -386,7 +386,7 @@
   </Target>
 
   <!--
-    What UseRaskSpa reads to find the bundle with no arguments: the published bundle's directory, which
+    What MapRaskSpa reads to find the bundle with no arguments: the published bundle's directory, which
     publish also copies next to the app; the client folder, named in the page shown when nothing is built
     yet; and the build output's static-web-assets manifest, which it serves in Development.
   -->

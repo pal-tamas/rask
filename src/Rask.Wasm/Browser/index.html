@@ -1,7 +1,7 @@
 <!--
   Default Rask WASM page shell. Served as the SPA entry point under both run
   modes: the standalone `dotnet run` on the browser-wasm project (which boots
-  WasmAppHost) and `Rask.Spa.Hosting`'s `app.UseRaskSpa()` (UseDefaultFiles +
+  WasmAppHost) and `Rask.Spa.Hosting`'s `app.MapRaskSpa()` (UseDefaultFiles +
   UseStaticFiles + a fallback that sends this file). The browser parses
   this HTML, the runtime imports main.js, dotnet boots, and the App's
   rendered HTML morphs onto document.documentElement — so the App's <head>

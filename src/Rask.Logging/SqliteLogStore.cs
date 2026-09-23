@@ -52,7 +52,7 @@ internal sealed class SqliteLogStore : ILogs
         _timeProvider = timeProvider;
     }
 
-    public async Task AppendAsync(IReadOnlyList<LogRecord> records, CancellationToken cancellationToken = default)
+    public async Task Append(IReadOnlyList<LogRecord> records, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(records);
         if (records.Count == 0)
@@ -105,7 +105,7 @@ internal sealed class SqliteLogStore : ILogs
         }
     }
 
-    public async Task<LogPage> SearchAsync(LogQuery query, CancellationToken cancellationToken = default)
+    public async Task<LogPage> Search(LogQuery query, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(query);
 
@@ -161,7 +161,7 @@ internal sealed class SqliteLogStore : ILogs
         }
     }
 
-    public async Task<IReadOnlyList<string>> CategoriesAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<string>> Categories(CancellationToken cancellationToken = default)
     {
         var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         await using (connection.ConfigureAwait(false))
@@ -186,7 +186,7 @@ internal sealed class SqliteLogStore : ILogs
         }
     }
 
-    public async Task<long> CountAsync(CancellationToken cancellationToken = default)
+    public async Task<long> Count(CancellationToken cancellationToken = default)
     {
         var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         await using (connection.ConfigureAwait(false))
@@ -195,11 +195,15 @@ internal sealed class SqliteLogStore : ILogs
         }
     }
 
-    public async Task<int> PurgeAsync(
-        TimeSpan retention,
-        int maxRows,
+    public async Task<int> Trim(
+        TimeSpan? olderThan,
+        int? keepNewest,
         CancellationToken cancellationToken = default)
     {
+        // The nullable pair is the interface's; the body below still reasons in the old "zero means skip"
+        // terms, so it is translated once, here, rather than at every comparison.
+        var retention = olderThan ?? TimeSpan.Zero;
+        var maxRows = keepNewest ?? 0;
         var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         await using (connection.ConfigureAwait(false))
         {
@@ -241,7 +245,7 @@ internal sealed class SqliteLogStore : ILogs
         }
     }
 
-    public async Task ClearAsync(CancellationToken cancellationToken = default)
+    public async Task Clear(CancellationToken cancellationToken = default)
     {
         var connection = await OpenAsync(cancellationToken).ConfigureAwait(false);
         await using (connection.ConfigureAwait(false))

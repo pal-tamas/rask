@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Cache;
@@ -43,6 +44,15 @@ public static class Cache
     /// <summary>Removes <paramref name="key" />, so the next <c>Remember</c> loads it afresh.</summary>
     public static Task Forget(string key, CancellationToken cancellationToken = default) =>
         Resolve().Forget(Key(key), Ambient.Or(cancellationToken));
+
+    /// <summary>
+    ///     Whether Rask.Cache is registered at all. For an operator surface that renders "off" rather than
+    ///     failing — <c>Rask.Dashboard</c> does exactly that. An app should not branch on this: a call with
+    ///     nothing registered throws and names the registration that fixes it.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static bool IsOn =>
+        Faked.Value is not null || Ambient.Services?.GetService<ICache>() is not null;
 
     /// <summary>What <c>Cache.Fake()</c> put in the way of the real cache, for this test's flow alone.</summary>
     internal static readonly AsyncLocal<ICache?> Faked = new();

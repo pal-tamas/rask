@@ -108,7 +108,7 @@ public sealed partial class SecurePage : Component
 > component** placed in the `Authorized` slot (it first renders once the gate opens), or subscribe the page
 > itself: `OnMount() => users.Changed += StateHasChanged;`.
 
-**`Program.cs` — wire cookie auth *before* `UseRask`:**
+**`Program.cs` — wire cookie auth *before* `MapRask`:**
 
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
@@ -129,14 +129,14 @@ builder.Services.AddRask(); // no auth config on AddRask — it's all on AddCook
 
 var app = builder.Build();
 
-app.UseAuthentication();   // ⚠️ MUST precede UseRask — populates HttpContext.User on GET and WS upgrade
+app.UseAuthentication();   // ⚠️ MUST precede MapRask — populates HttpContext.User on GET and WS upgrade
 app.UseAuthorization();
-app.UseRask<App>();
+app.MapRask<App>();
 app.Run();
 ```
 
-> **Ordering matters.** If `UseAuthentication` runs *after* `UseRask`, `HttpContext.User` is empty when the
-> session is seeded and every `[Authorize]` page challenges. Keep it before `UseRask`.
+> **Ordering matters.** If `UseAuthentication` runs *after* `MapRask`, `HttpContext.User` is empty when the
+> session is seeded and every `[Authorize]` page challenges. Keep it before `MapRask`.
 
 Sign out from any event handler: `await auth.SignOutAsync(returnUrl: "/");`
 

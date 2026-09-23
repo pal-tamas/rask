@@ -17,7 +17,7 @@ Everything is on by default with zero configuration; you opt in to *exporting* i
 ## Structured logging
 
 `Rask.Core` and the WASM host take no dependency on `Microsoft.Extensions.Logging` — instead they
-report diagnostics through an internal seam (`RaskDiagnostics`). On the server, `UseRask<TApp>()`
+report diagnostics through an internal seam (`RaskDiagnostics`). On the server, `MapRask<TApp>()`
 bridges that seam to your application's `ILogger` automatically. From then on every framework
 diagnostic — a lifecycle hook that threw with no ancestor `ErrorBoundary`, a component `Dispose`
 that faulted, a duplicate sibling `Key`, a malformed WebSocket frame, an event handler that threw —
@@ -190,7 +190,7 @@ builder.Services.AddRask();   // "Rask": { "Live": { "MaxSessions": 1000 } } in 
 builder.Services.AddHealthChecks().AddRaskLiveSessions();
 // ...
 app.MapHealthChecks("/health");
-app.UseRask<App>();
+app.MapRask<App>();
 ```
 
 | Status | Condition |

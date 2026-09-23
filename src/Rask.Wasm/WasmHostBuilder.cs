@@ -24,7 +24,7 @@ namespace Rask.Wasm;
 /// <summary>
 ///     Entry point for a browser-WASM Rask app. Build with <see cref="CreateDefault()" />, register
 ///     app services on <see cref="Services" />, then <c>await</c> <see cref="RunAsync{TApp}" /> with the
-///     root component. Mirrors <c>Rask.Server</c>'s <c>AddRask</c>/<c>UseRask</c> pair for the
+///     root component. Mirrors <c>Rask.Server</c>'s <c>AddRask</c>/<c>MapRask</c> pair for the
 ///     JSImport/JSExport transport.
 /// </summary>
 public sealed class WasmHostBuilder

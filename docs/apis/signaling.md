@@ -32,7 +32,7 @@ builder.Services.AddRaskSignaling(o =>
 app.MapRaskSignaling();
 ```
 
-The host must have WebSocket support in the pipeline: `Rask.Server`'s `UseRask()` calls
+The host must have WebSocket support in the pipeline: `Rask.Server`'s `MapRask()` calls
 `app.UseWebSockets()` for you, but a static-file host serving a published WASM bundle does not — call it
 yourself before mapping. The relay says so explicitly rather than refusing clients with a bare 400.
 

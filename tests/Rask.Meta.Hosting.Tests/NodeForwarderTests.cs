@@ -57,7 +57,7 @@ public class NodeForwarderTests
             app =>
             {
                 map?.Invoke(app);
-                app.UseRaskMeta();
+                app.MapRaskMeta();
             });
 
     private static HttpClient ClientFor(int port) =>
@@ -288,13 +288,13 @@ public class NodeForwarderTests
 
     /// <summary>Forwarding without the services that start the process is a startup error.</summary>
     [Fact]
-    public async Task UseRaskMeta_throws_when_AddRaskMeta_was_never_called()
+    public async Task MapRaskMeta_throws_when_AddRaskMeta_was_never_called()
     {
         var builder = WebApplication.CreateSlimBuilder();
         builder.Logging.ClearProviders();
         await using var app = builder.Build();
 
-        var error = Assert.Throws<InvalidOperationException>(() => app.UseRaskMeta());
+        var error = Assert.Throws<InvalidOperationException>(() => app.MapRaskMeta());
 
         Assert.Contains("AddRaskMeta", error.Message, StringComparison.Ordinal);
     }

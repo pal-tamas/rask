@@ -190,3 +190,4 @@ static Rask.Storage.SavedFile.operator ==(Rask.Storage.SavedFile? left, Rask.Sto
 static Rask.Storage.SavedFileCounting.Named(this Rask.Batteries.Counting<Rask.Storage.SavedFile!> saved, string! name) -> Rask.Batteries.Counting<Rask.Storage.SavedFile!>
 static Rask.Storage.SavedFileCounting.Private(this Rask.Batteries.Counting<Rask.Storage.SavedFile!> saved) -> Rask.Batteries.Counting<Rask.Storage.SavedFile!>
 static Rask.Storage.SavedFileCounting.Public(this Rask.Batteries.Counting<Rask.Storage.SavedFile!> saved) -> Rask.Batteries.Counting<Rask.Storage.SavedFile!>
+static Rask.Storage.Files.IsOn.get -> bool

@@ -327,7 +327,7 @@ public sealed class DefaultErrorPage : Component
     ///     is process-global and read by every render that reaches <c>RootErrorBoundary</c> — a test that
     ///     flipped it would be able to change what a concurrently-running test's error page contains.
     ///     <para>
-    ///         <paramref name="hostAnswer" /> wins outright. It comes from <c>UseRask</c> via
+    ///         <paramref name="hostAnswer" /> wins outright. It comes from <c>MapRask</c> via
     ///         <c>IWebHostEnvironment</c>, and is the only input that sees Development selected by
     ///         configuration rather than by a process environment variable — <c>dotnet run
     ///         --environment</c>, <c>appsettings.json</c>, an assigned <c>EnvironmentName</c>, an IDE

@@ -26,13 +26,13 @@ public sealed class DbContextLogStoreTests
         try
         {
             harness.Logger("App.Checkout").LogInformation("the only line");
-            await harness.WaitUntilAsync(async () => await harness.Store.CountAsync() >= 1);
+            await harness.WaitUntilAsync(async () => await harness.Store.Count() >= 1);
 
             // Fifteen flush intervals of nothing to write but whatever the store logged about itself.
             await Task.Delay(TimeSpan.FromMilliseconds(300));
 
-            Assert.Equal(1, await harness.Store.CountAsync());
-            Assert.Equal(["App.Checkout"], await harness.Store.CategoriesAsync());
+            Assert.Equal(1, await harness.Store.Count());
+            Assert.Equal(["App.Checkout"], await harness.Store.Categories());
 
             // The guard is the store's own flow, not a category: the application's EF Core commands are still its log.
             await using (var db = await harness.Get<IDbContextFactory<LogTestDbContext>>().CreateDbContextAsync())
@@ -41,7 +41,7 @@ public sealed class DbContextLogStoreTests
             }
 
             await harness.WaitUntilAsync(async () =>
-                (await harness.Store.CategoriesAsync()).Contains("Microsoft.EntityFrameworkCore.Database.Command"));
+                (await harness.Store.Categories()).Contains("Microsoft.EntityFrameworkCore.Database.Command"));
         }
         finally
         {
@@ -70,7 +70,7 @@ public sealed class DbContextLogStoreTests
         }
 
         await harness.RunUntilAsync(async () =>
-            (await harness.Store.SearchAsync(new LogQuery { Search = "rolling back" })).TotalCount == 1);
+            (await harness.Store.Search(new LogQuery { Search = "rolling back" })).TotalCount == 1);
 
         await using var verify = await contexts.CreateDbContextAsync();
         Assert.Equal(0, await verify.Widgets.CountAsync());
@@ -123,10 +123,10 @@ public sealed class DbContextLogStoreTests
         await using var harness = new LoggingHarness(kind: LogStoreKind.DbContext);
         var category = new string('c', LogEntry.CategoryMaxLength + 88);
 
-        await harness.Store.AppendAsync(
+        await harness.Store.Append(
             [new LogRecord(0, harness.Clock.GetUtcNow(), LogLevel.Warning, category, 0, "long category", null)]);
 
-        var entry = Assert.Single((await harness.Store.SearchAsync(new LogQuery())).Entries);
+        var entry = Assert.Single((await harness.Store.Search(new LogQuery())).Entries);
         Assert.Equal(category[..LogEntry.CategoryMaxLength], entry.Category);
     }
 

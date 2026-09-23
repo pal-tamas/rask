@@ -42,7 +42,7 @@ internal sealed class DevToolsServerHost : IAsyncDisposable
     /// <param name="islands">
     ///     Serve what islands load in the browser: Rask.External's client script, and the chunks the build bundled into
     ///     this project. A Web SDK app serves both as static web assets; this host is a test assembly, which has none, and
-    ///     UseRask serves no static files — so without these a page's islands never load.
+    ///     MapRask serves no static files — so without these a page's islands never load.
     /// </param>
     public static async Task<DevToolsServerHost> StartAsync<TApp>(bool islands = false)
         where TApp : Component
@@ -66,7 +66,7 @@ internal sealed class DevToolsServerHost : IAsyncDisposable
 
         app.UseRouting();
         app.UseWebSockets();
-        app.UseRask<TApp>();
+        app.MapRask<TApp>();
         await app.StartAsync();
 
         var address = app.Services.GetRequiredService<IServer>().Features

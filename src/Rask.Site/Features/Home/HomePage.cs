@@ -200,11 +200,11 @@ public sealed partial class HomePage : Component
                     "Write it once. Ship it where you need it.",
                     "The identical C# component runs unchanged across every host — you choose the runtime per project, not per component."),
                 Div.Class("grid gap-4 md:grid-cols-3")[
-                    LaneCard(UiIconName.Server, "Rask.Server", "Server", "render-modes", "AddRask() · UseRask<TApp>()",
+                    LaneCard(UiIconName.Server, "Rask.Server", "Server", "render-modes", "AddRask() · MapRask<TApp>()",
                         "ASP.NET host. State lives on the server; a live diff streams to the browser over a WebSocket. Nothing to compile client-side."),
                     LaneCard(UiIconName.Globe, "Rask.Wasm", "WebAssembly", "pwa", "WasmHostBuilder.CreateDefault()",
                         "The same component runs fully client-side on the browser's Mono/WASM runtime via JSImport/JSExport. Ships as an installable, offline PWA."),
-                    LaneCard(UiIconName.Storage, "Rask.Spa.Hosting", "Single-page host", "spa", "AddRaskSpaHost() · UseRaskSpa()",
+                    LaneCard(UiIconName.Storage, "Rask.Spa.Hosting", "Single-page host", "spa", "AddRaskSpaHost() · MapRaskSpa()",
                         "Serves a WebAssembly app or a TypeScript bundle from an ASP.NET host, cached by what its build guarantees, with pre-compressed variants.")
                 ]
             ]

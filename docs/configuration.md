@@ -119,7 +119,7 @@ A few things to know:
 
 | Section | Options type | Package | Notes |
 | --- | --- | --- | --- |
-| `Rask:Live` | `RaskLiveOptions` | `Rask.Server` | `DiffMode`, `MaxSessions`, `MinifyScopedAssets`, `PathBase`. A non-empty `UseRask<App>(pathBase:)` argument wins over `PathBase`. [Details](#live-runtime--rasklive). |
+| `Rask:Live` | `RaskLiveOptions` | `Rask.Server` | `DiffMode`, `MaxSessions`, `MinifyScopedAssets`, `PathBase`. A non-empty `MapRask<App>(pathBase:)` argument wins over `PathBase`. [Details](#live-runtime--rasklive). |
 | `Rask:Server` | `RaskServerOptions` | `Rask.Server` | WebSocket caps, grace periods, resume, shutdown drain, and the initial render's `QuiescenceTimeout`. [Details](#server-host--raskserver). |
 | `Rask:Culture` | `RaskCultureOptions` | `Rask.Server` | `SupportedCultures` (the first is the default; appended to), negotiation switches. See [localization](localization.md). |
 | `Rask:Uploads` | `RaskUploadOptions` | `Rask.Server` | [File uploads](#file-uploads--raskuploads). |
@@ -128,7 +128,7 @@ A few things to know:
 | `Rask:Api` | `ApiOptions` | `Rask.Api` | `NotFound`, `Controllers`. |
 | `Rask:Signaling` | `RaskSignalingOptions` | `Rask.Signaling` | `Path`, `RequireAuthorization` and the relay limits. `AuthorizeRoom` is code-only. |
 | `Rask:Dashboard` | `RaskDashboardOptions` | `Rask.Dashboard` | Includes `AllowAnonymousAccess` — see [below](#guard-the-environment-like-code). See [dashboard](dashboard.md). |
-| `Rask:Spa` | `SpaHostingOptions` | `Rask.Spa.Hosting` | Read when `UseRaskSpa` maps the app. `ImmutablePathPrefixes` is appended to; `ExcludeFromFallback` and `OnPrepareResponse` are code-only. See [TypeScript front ends](spa.md). |
+| `Rask:Spa` | `SpaHostingOptions` | `Rask.Spa.Hosting` | Read when `MapRaskSpa` maps the app. `ImmutablePathPrefixes` is appended to; `ExcludeFromFallback` and `OnPrepareResponse` are code-only. See [TypeScript front ends](spa.md). |
 | `Rask:Meta` | `MetaHostingOptions` | `Rask.Meta.Hosting` | `Framework` by the build's names (`nuxt`, `nextjs`, `tanstack-start`, `solidstart`, `sveltekit`, `analog`). Precedence: build metadata, then this section, then the callback, then a `rask dev` session's dev server. See [meta frameworks](meta.md). |
 | `Rask:Data` | `RaskDataOptions` | `Rask.Data` | See [Rask.Data](data.md). |
 | `Rask:Database:Provider` | — | `Rask` | Which database the app opens at `Rask:ConnectionStrings:App`: `sqlite` (the default), `postgres` or `sqlserver`. Read by `UseRaskDatabase(sp)`, and by `RaskApp` while services are registered. See [choosing the database](data.md#choosing-the-database). |
@@ -245,9 +245,9 @@ browser app, set in code).
 | Option | Default | Purpose |
 | --- | --- | --- |
 | `DiffMode` | `Auto` | Wire payload shape — `Auto` ships a diff when smaller, `DisabledFull` always full HTML, `Forced` always a diff. |
-| `PathBase` | `""` | URL prefix so two Rask apps share one origin (e.g. `/appA`). An explicit, non-empty `UseRask<App>(pathBase: …)` wins over it. |
+| `PathBase` | `""` | URL prefix so two Rask apps share one origin (e.g. `/appA`). An explicit, non-empty `MapRask<App>(pathBase: …)` wins over it. |
 | `MaxSessions` | `0` (uncapped) | Hard cap on concurrent live sessions; a GET past the cap gets `503` + `Retry-After`. Pairs with the [health check](observability.md#health-checks). See [sizing it for a memory budget](#sizing-maxsessions-for-a-memory-budget). |
-| `MinifyScopedAssets` | `null` (auto) | Minify the scoped-CSS bundle (strip comments + insignificant whitespace) before it's hashed and served. `null` = **auto**: on outside `Development`, off in `Development` (so hot-reloaded CSS stays readable) — resolved by `UseRask` from `IHostEnvironment`. Set `true`/`false` to force it. Minifying before hashing keeps the digest, immutable URL, and brotli/gzip caches all keyed off the minified bytes. Conservative: only the CSS bundle is minified (JS is served as-is), and only whitespace around `{ } ; ,` is stripped, so combinators and `calc()` are untouched. |
+| `MinifyScopedAssets` | `null` (auto) | Minify the scoped-CSS bundle (strip comments + insignificant whitespace) before it's hashed and served. `null` = **auto**: on outside `Development`, off in `Development` (so hot-reloaded CSS stays readable) — resolved by `MapRask` from `IHostEnvironment`. Set `true`/`false` to force it. Minifying before hashing keeps the digest, immutable URL, and brotli/gzip caches all keyed off the minified bytes. Conservative: only the CSS bundle is minified (JS is served as-is), and only whitespace around `{ } ; ,` is stripped, so combinators and `calc()` are untouched. |
 
 ```jsonc
 {

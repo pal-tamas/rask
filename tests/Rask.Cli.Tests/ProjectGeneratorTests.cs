@@ -200,7 +200,7 @@ public sealed class ProjectGeneratorTests
 
         // ...and it must run before anything opens the database.
         Assert.True(
-            restore < program.IndexOf("app.UseRask<App>()", StringComparison.Ordinal),
+            restore < program.IndexOf("app.MapRask<App>()", StringComparison.Ordinal),
             "the restore must happen before the app starts serving.");
     }
 

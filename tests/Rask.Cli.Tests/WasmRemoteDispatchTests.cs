@@ -55,8 +55,8 @@ public sealed class WasmRemoteDispatchTests
         Assert.DoesNotContain("Features/Shared/ErrorPage.cs", files.Keys);
 
         var program = files["Program.cs"];
-        Assert.Contains("app.UseRaskSpa();", program, StringComparison.Ordinal);
-        Assert.DoesNotContain("UseRask<App>", program, StringComparison.Ordinal);
+        Assert.Contains("app.MapRaskSpa();", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("MapRask<App>", program, StringComparison.Ordinal);
         Assert.Contains("using Rask.Spa.Hosting;", program, StringComparison.Ordinal);
     }
 
@@ -68,7 +68,7 @@ public sealed class WasmRemoteDispatchTests
         Assert.Contains("Features/Home/HomePage.cs", files.Keys);
         Assert.Contains("Features/Shared/App.cs", files.Keys);
         Assert.DoesNotContain(files.Keys, k => k.StartsWith("Client/", StringComparison.Ordinal));
-        Assert.Contains("app.UseRask<App>();", files["Program.cs"], StringComparison.Ordinal);
+        Assert.Contains("app.MapRask<App>();", files["Program.cs"], StringComparison.Ordinal);
         Assert.DoesNotContain("Rask.Cqrs.Client", files["App.csproj"], StringComparison.Ordinal);
 
         // Nor the endpoint half of remote dispatch, which answers a browser app this project does not have.
@@ -143,12 +143,12 @@ public sealed class WasmRemoteDispatchTests
         var program = Hosted()["Program.cs"];
 
         var map = program.IndexOf("app.MapRaskCqrs();", StringComparison.Ordinal);
-        var spa = program.IndexOf("app.UseRaskSpa();", StringComparison.Ordinal);
+        var spa = program.IndexOf("app.MapRaskSpa();", StringComparison.Ordinal);
 
         Assert.Contains("using Rask.Cqrs.Server;", program, StringComparison.Ordinal);
         Assert.True(map >= 0, "the CQRS endpoints are never mapped.");
         Assert.True(spa >= 0, "the browser app is never served.");
-        Assert.True(map < spa, "MapRaskCqrs reads above UseRaskSpa, whose fallback answers every other route.");
+        Assert.True(map < spa, "MapRaskCqrs reads above MapRaskSpa, whose fallback answers every other route.");
     }
 
     [Fact]
@@ -158,12 +158,12 @@ public sealed class WasmRemoteDispatchTests
 
         Assert.Contains("builder.Services.AddRaskServer();", program, StringComparison.Ordinal);
         Assert.Contains(
-            """app.UseRaskServer<RaskDashboardShell>("/_rask/{**path}");""",
+            """app.MapRaskServer<RaskDashboardShell>("/_rask/{**path}");""",
             program,
             StringComparison.Ordinal);
         Assert.True(
-            program.IndexOf("UseRaskServer<RaskDashboardShell>", StringComparison.Ordinal)
-            < program.IndexOf("app.UseRaskSpa();", StringComparison.Ordinal),
+            program.IndexOf("MapRaskServer<RaskDashboardShell>", StringComparison.Ordinal)
+            < program.IndexOf("app.MapRaskSpa();", StringComparison.Ordinal),
             "the dashboard must be mounted above the browser app's fallback.");
     }
 

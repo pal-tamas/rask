@@ -3,7 +3,7 @@ using Rask.Spa.Hosting.Tests.Infrastructure;
 
 namespace Rask.Spa.Hosting.Tests;
 
-// SpaHostingOptions are read from Rask:Spa while UseRaskSpa maps the app, and the callback passed to it is applied on
+// SpaHostingOptions are read from Rask:Spa while MapRaskSpa maps the app, and the callback passed to it is applied on
 // top. Nothing lives in DI, so the document the fallback serves is the thing to observe: the fake bundle carries both
 // its usual index.html and an app.html, and each test checks which one a client route gets.
 public class SpaOptionsBindingTests

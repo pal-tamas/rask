@@ -30,7 +30,7 @@ public static class RaskMetaServiceCollectionExtensions
     /// <remarks>
     ///     <para>
     ///         Registration is where the options live, rather than at
-    ///         <see cref="RaskMetaEndpointExtensions.UseRaskMeta" />, because the supervisor needs them
+    ///         <see cref="RaskMetaEndpointExtensions.MapRaskMeta" />, because the supervisor needs them
     ///         before the pipeline is built — it has to start the process and wait for it to listen while
     ///         the app is still coming up.
     ///     </para>

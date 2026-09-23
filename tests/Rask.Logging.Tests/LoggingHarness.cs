@@ -128,7 +128,7 @@ public sealed class LoggingHarness : IAsyncDisposable
 
     /// <summary>Runs the writer until the store holds at least <paramref name="count"/> entries.</summary>
     public Task RunUntilStoredAsync(int count, TimeSpan? timeout = null) =>
-        RunUntilAsync(async () => await Store.CountAsync() >= count, timeout);
+        RunUntilAsync(async () => await Store.Count() >= count, timeout);
 
     /// <summary>
     ///     Polls <paramref name="condition"/> until it holds. The timeout names the predicate it gave up on

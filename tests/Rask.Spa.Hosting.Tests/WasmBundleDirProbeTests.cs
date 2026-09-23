@@ -3,7 +3,7 @@ using System.Diagnostics;
 namespace Rask.Spa.Hosting.Tests;
 
 /// <summary>
-///     A host serving a Rask WebAssembly client through <c>UseRaskSpa</c> bakes the client's publish
+///     A host serving a Rask WebAssembly client through <c>MapRaskSpa</c> bakes the client's publish
 ///     directory into its own assembly, and that path names the
 ///     client's target framework. These assert where the framework is read from.
 /// </summary>

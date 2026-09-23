@@ -43,8 +43,8 @@ is created on first use, so there is no migration to add. Every option is config
 A callback — `AddRaskLogging(o => …)` — runs after the `Rask:Logging` section and wins.
 
 ```csharp
-// Read it back from your own code.
-var page = await store.SearchAsync(new LogQuery
+// Read it back from your own code, with nothing injected.
+var page = await Logs.Search(new LogQuery
 {
     MinimumLevel = LogLevel.Error,
     Search = "checkout",

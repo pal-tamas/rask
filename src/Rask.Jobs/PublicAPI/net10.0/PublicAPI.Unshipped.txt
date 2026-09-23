@@ -218,3 +218,4 @@ static Rask.Jobs.EnqueuedJobCounting.In<TJob>(this Rask.Batteries.Counting<Rask.
 static Rask.Jobs.EnqueuedJobCounting.Matching<TJob>(this Rask.Batteries.Counting<Rask.Jobs.EnqueuedJob<TJob>!> enqueued, System.Func<TJob, bool>! matches, string! said) -> Rask.Batteries.Counting<Rask.Jobs.EnqueuedJob<TJob>!>
 static Rask.Jobs.JobsFakes.Fake() -> Rask.Jobs.JobsFake!
 static Rask.Jobs.JobsFakes.extension(Rask.Jobs.Jobs!).Fake() -> Rask.Jobs.JobsFake!
+static Rask.Jobs.Jobs.IsOn.get -> bool

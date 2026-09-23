@@ -26,7 +26,7 @@ internal sealed class DevCommand(
     string workingDirectory) : CliCommand(console)
 {
     /// <summary>
-    ///     How the app learns where to point the browser for build status. Read by <c>UseRask</c> in
+    ///     How the app learns where to point the browser for build status. Read by <c>MapRask</c> in
     ///     Development and stamped onto the page; the client keeps it from the last page it loaded, which
     ///     is what lets it ask a question after the server it came from has gone away.
     /// </summary>

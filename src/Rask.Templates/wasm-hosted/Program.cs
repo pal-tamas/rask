@@ -56,13 +56,13 @@ using Rask.Dashboard;
 var builder = WebApplication.CreateBuilder(args);
 
 // EVERY SETTING LIVES IN appsettings.json, under "Rask". Each call below reads its own section —
-// UseRaskSpa reads Rask:Spa, AddRaskMail reads Rask:Mail, and so on — so this file
+// MapRaskSpa reads Rask:Spa, AddRaskMail reads Rask:Mail, and so on — so this file
 // says WHAT the app is made of and appsettings.json says how it is tuned. An environment variable
 // overrides any key with double underscores (Rask__Mail__From), which is how `rask deploy` points a
 // deployed app at its volume. A callback here — AddRaskMail(o => …) — still wins over both, for the
 // rare value that has to be code. The full list of sections is in docs/configuration.md.
 // This server renders no pages of its own. The app is the WebAssembly build of Client/, served below
-// by UseRaskSpa; AddRaskSpaHost compresses what it serves and applies the defaults every Rask host
+// by MapRaskSpa; AddRaskSpaHost compresses what it serves and applies the defaults every Rask host
 // gets — a persisted key ring, so a deploy does not sign everyone out, and a shutdown budget that fits
 // under the deploy's SIGKILL.
 builder.Services.AddRaskSpaHost();
@@ -317,13 +317,13 @@ if (!string.IsNullOrWhiteSpace(replicaUrl))
 {
     await app.Services.RestoreSqliteFromLitestreamAsync();
 }
-// Must precede UseRask so HttpContext.User is populated on the GET and the WS upgrade.
+// Must precede MapRask so HttpContext.User is populated on the GET and the WS upgrade.
 app.UseAuthentication();
 app.UseAuthorization();
 
 // rask:end
 // rask:if push pwa
-// Endpoints go here, before UseRask, so they read in one place. Order is not what makes them work:
+// Endpoints go here, before MapRask, so they read in one place. Order is not what makes them work:
 // routing matches on precedence, and any route is more specific than the catch-all.
 app.MapPushSubscriptions();
 
@@ -338,15 +338,15 @@ app.MapRaskCqrs();
 // rask:if cqrs data ops
 // The operator dashboard, rendered by this server under its own prefix. Every other route stays the
 // browser app's.
-app.UseRaskServer<RaskDashboardShell>("/_rask/{**path}");
+app.MapRaskServer<RaskDashboardShell>("/_rask/{**path}");
 // rask:end
 // The browser app in Client/: its build output in Development, its published bundle otherwise. Its
 // fallback answers every route nothing above claims — which is what keeps a refresh or a deep link on a
 // client-side route working — so it goes last.
-app.UseRaskSpa();
+app.MapRaskSpa();
 
 // rask:if storage
-// The routes behind files.Url(id) and files.Share(id).For(lifetime). After UseRask, which sets
+// The routes behind files.Url(id) and files.Share(id).For(lifetime). After MapRask, which sets
 // the path base they live under.
 app.MapRaskStorage();
 

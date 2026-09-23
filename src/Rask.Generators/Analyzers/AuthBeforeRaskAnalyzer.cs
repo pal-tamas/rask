@@ -9,31 +9,31 @@ using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Rask.Generators.Analyzers;
 
-// RASK024 — warn when app.UseRask<App>() is wired before app.UseAuthentication(). Rask seeds the
+// RASK024 — warn when app.MapRask<App>() is wired before app.UseAuthentication(). Rask seeds the
 // live session from HttpContext.User during the initial GET render and the WebSocket upgrade; if the
-// authentication middleware runs after UseRask, the principal is empty at that point and every
+// authentication middleware runs after MapRask, the principal is empty at that point and every
 // [Authorize] page challenges. The fix is to call UseAuthentication() (and UseAuthorization()) before
-// UseRask(). Fires only when both calls are present and the earliest UseAuthentication is positioned
-// after UseRask in source — an app with no UseAuthentication at all is left alone. Suppressible.
+// MapRask(). Fires only when both calls are present and the earliest UseAuthentication is positioned
+// after MapRask in source — an app with no UseAuthentication at all is left alone. Suppressible.
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class AuthBeforeRaskAnalyzer : DiagnosticAnalyzer
 {
     private const string RaskServerAssembly = "Rask.Server";
-    private const string UseRaskMethod = "UseRask";
+    private const string UseRaskMethod = "MapRask";
     private const string UseAuthenticationMethod = "UseAuthentication";
     private const string AspNetBuilderNamespace = "Microsoft.AspNetCore.Builder";
 
     private static readonly DiagnosticDescriptor Rask024 = new(
         "RASK024",
-        "UseAuthentication must precede UseRask",
-        "UseAuthentication() is called after UseRask<{0}>() — move it before UseRask so HttpContext.User is "
+        "UseAuthentication must precede MapRask",
+        "UseAuthentication() is called after MapRask<{0}>() — move it before MapRask so HttpContext.User is "
         + "populated on the GET render and the WebSocket upgrade; otherwise every [Authorize] page challenges",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
         "Rask seeds the live session from HttpContext.User during the initial GET and the WS upgrade. If the "
-        + "authentication middleware runs after UseRask, the principal is empty at that point and authorized "
-        + "routes reject the user. Call app.UseAuthentication() (and UseAuthorization()) before app.UseRask().",
+        + "authentication middleware runs after MapRask, the principal is empty at that point and authorized "
+        + "routes reject the user. Call app.UseAuthentication() (and UseAuthorization()) before app.MapRask().",
         DiagnosticHelp.Link("RASK024"));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
@@ -44,7 +44,7 @@ public sealed class AuthBeforeRaskAnalyzer : DiagnosticAnalyzer
         context.EnableConcurrentExecution();
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
 
-        // A per-tree pass: the ordering check needs to see every UseRask / UseAuthentication call in
+        // A per-tree pass: the ordering check needs to see every MapRask / UseAuthentication call in
         // the file at once (Program.cs is one tree), which RegisterSyntaxNodeAction can't do statelessly.
         context.RegisterSemanticModelAction(Analyze);
     }
@@ -97,7 +97,7 @@ public sealed class AuthBeforeRaskAnalyzer : DiagnosticAnalyzer
 
         foreach (var (inv, appType) in raskCalls)
         {
-            // Safe when any UseAuthentication call precedes this UseRask in source order. Only flag when
+            // Safe when any UseAuthentication call precedes this MapRask in source order. Only flag when
             // every UseAuthentication is positioned after it (the documented misordering footgun).
             if (authPositions.All(p => p > inv.SpanStart))
             {

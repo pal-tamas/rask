@@ -31,7 +31,7 @@ Service, …) the app receives the request on an internal address, so `HttpConte
 (`app.example.com`). Those don't match, and **every legitimate same-origin WebSocket handshake and
 redeem POST is rejected** — auth appears to silently break in production but works locally.
 
-Restore the public host by enabling forwarded headers **before** `UseAuthentication()`/`UseRask()`, so
+Restore the public host by enabling forwarded headers **before** `UseAuthentication()`/`MapRask()`, so
 the rest of the pipeline (including Rask's origin checks) sees the real host and scheme:
 
 ```csharp
@@ -52,7 +52,7 @@ var app = builder.Build();
 app.UseForwardedHeaders();   // FIRST — before auth/Rask, so Host/Scheme are corrected upstream
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseRask<App>();
+app.MapRask<App>();
 ```
 
 > **Make sure the proxy actually sends `X-Forwarded-Host`** (and `X-Forwarded-Proto`). Some proxies
@@ -79,7 +79,7 @@ Two things do shape the policy:
 - **The WebSocket (Server host).** The live runtime opens a **same-origin** WebSocket to `/rask/ws`,
   covered by `connect-src 'self'`.
 
-A working baseline, set as middleware **before** `UseRask<App>()`:
+A working baseline, set as middleware **before** `MapRask<App>()`:
 
 ```csharp
 app.Use(async (ctx, next) =>
@@ -111,7 +111,7 @@ origins you actually use, and consider `report-uri`/`report-to` to catch violati
 - ☑ Serve auth over **HTTPS** only — the battery sets `Cookie.SecurePolicy = Always` and it is not a knob.
 - ☑ Cookies are `HttpOnly`, `Secure`, `SameSite=Lax`, set by the battery rather than by the app.
 - ☑ Keep the session short — `AuthOptions.ExpireTimeSpan` with `SlidingExpiration`, rather than a long-lived one.
-- ☑ Keep `UseAuthentication()` **before** `UseRask()`.
+- ☑ Keep `UseAuthentication()` **before** `MapRask()`.
 - ☑ Validate redirect targets — Rask sanitizes the `returnUrl` to local same-origin paths (rejects `//`, `/\`, and backslash/control-char variants).
 - ☑ Set a **[Content-Security-Policy](#content-security-policy)** — Rask runs under a strict policy (`script-src 'self'`, plus `'wasm-unsafe-eval'` on WASM); only `style-src` needs `'unsafe-inline'` for `Style:` attributes.
 - ☑ Treat the **session id as a bearer secret** — HTTPS only, never logged or placed in URLs that leak via `Referer`.

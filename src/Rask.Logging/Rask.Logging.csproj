@@ -22,7 +22,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\Rask.Batteries.Shared\Counting.cs" Link="Shared\Counting.cs"/>
+
     <ProjectReference Include="..\Rask.SQLite\Rask.SQLite.csproj"/>
+
+    <!-- Ambient (for the `Logs` facade) and Clock. A dependency-free leaf, so this adds nothing else. -->
+    <ProjectReference Include="..\Rask.Wire\Rask.Wire.csproj"/>
   </ItemGroup>
 
   <ItemGroup>

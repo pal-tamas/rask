@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Mail;
@@ -22,6 +23,15 @@ public static class Mail
     /// <summary>Queues <paramref name="email" /> to go out as soon as the processor next polls.</summary>
     public static Sending Send(Email email, CancellationToken cancellationToken = default) =>
         new(null, email, null, null, cancellationToken);
+
+    /// <summary>
+    ///     Whether Rask.Mail is registered at all. For an operator surface that renders "off" rather than
+    ///     failing — <c>Rask.Dashboard</c> does exactly that. An app should not branch on this: a call with
+    ///     nothing registered throws and names the registration that fixes it.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static bool IsOn =>
+        Faked.Value is not null || Ambient.Services?.GetService<IMail>() is not null;
 
     /// <summary>What <c>Mail.Fake()</c> put in the way of the real battery, for this test's flow alone.</summary>
     internal static readonly AsyncLocal<IMail?> Faked = new();

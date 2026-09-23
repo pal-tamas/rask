@@ -6,9 +6,9 @@ namespace Rask.Dashboard;
 /// A <c>server</c>-template app never needs this: its own <c>App</c> is already the root, it already
 /// renders the router, and the dashboard's pages join that app's route chain through the module
 /// initializer <c>Rask.Dashboard</c> ships. A host serving a single-page app is the case this exists for —
-/// a WebAssembly app or a TypeScript front end served by <c>UseRaskSpa</c>, where the ASP.NET host runs no
+/// a WebAssembly app or a TypeScript front end served by <c>MapRaskSpa</c>, where the ASP.NET host runs no
 /// components at all, and mounting the operator dashboard on it means naming a root for
-/// <c>UseRaskServer&lt;TApp&gt;</c> to render. Without this, every such host would hand-roll the same four
+/// <c>MapRaskServer&lt;TApp&gt;</c> to render. Without this, every such host would hand-roll the same four
 /// lines.
 /// </para>
 /// <para>
@@ -20,8 +20,8 @@ namespace Rask.Dashboard;
 /// In a host serving a single-page app, mounted under the dashboard's own prefix so the SPA fallback
 /// keeps every other route:
 /// <code>
-/// app.UseRaskServer&lt;RaskDashboardShell&gt;("/_rask/{**path}");
-/// app.UseRaskSpa();
+/// app.MapRaskServer&lt;RaskDashboardShell&gt;("/_rask/{**path}");
+/// app.MapRaskSpa();
 /// </code>
 /// </example>
 /// </summary>

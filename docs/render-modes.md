@@ -8,7 +8,7 @@ step: the ids in the served HTML *are* the event binding.
 
 ## Every page is live
 
-There is nothing to choose. `builder.Services.AddRask()` and `app.UseRask<App>()` are the whole of it, and
+There is nothing to choose. `builder.Services.AddRask()` and `app.MapRask<App>()` are the whole of it, and
 every page a Rask Server app renders is live:
 
 1. the `GET` creates the page's session and renders it;

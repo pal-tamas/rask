@@ -29,7 +29,7 @@ public static class RaskPwaExtensions
     /// <summary>
     ///     Enables PWA support for the Server host from a typed <see cref="WebAppManifest" />. Registers the
     ///     manifest and a head contribution that emits <c>&lt;link rel="manifest"&gt;</c> +
-    ///     <c>&lt;meta name="theme-color"&gt;</c>; <c>UseRask&lt;TApp&gt;()</c> then serves the manifest and
+    ///     <c>&lt;meta name="theme-color"&gt;</c>; <c>MapRask&lt;TApp&gt;()</c> then serves the manifest and
     ///     service-worker endpoints. PWA stays off unless this is called.
     /// </summary>
     /// <param name="services">The app's service collection (after <c>AddRask()</c>).</param>

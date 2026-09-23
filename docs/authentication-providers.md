@@ -30,7 +30,7 @@ builder.Services
 builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
     .AddCookie(IdentityConstants.ApplicationScheme);
 builder.Services.AddRask();
-// app: UseAuthentication(); UseAuthorization(); UseRask<App>();
+// app: UseAuthentication(); UseAuthorization(); MapRask<App>();
 ```
 
 In the login page, validate with `SignInManager` / `UserManager` and build the principal Identity provides:
@@ -101,7 +101,7 @@ builder.Services.Configure<AuthenticationOptions>(
     o => o.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme);
 
 builder.Services.AddRask(auth => auth.ChallengePath = "/login");
-// app: UseAuthentication(); UseAuthorization(); UseRask<App>();
+// app: UseAuthentication(); UseAuthorization(); MapRask<App>();
 ```
 
 Because the challenge is an HTTP redirect to Keycloak (not an in-app form), expose plain endpoints for the

@@ -78,8 +78,8 @@ public static class RaskSpaEndpointExtensions
     ///         which is what lets hot reload reach the browser.
     ///     </para>
     ///     <para>
-    ///         There is deliberately no <c>UseRask</c> overload: <c>Rask.Server</c> declares a
-    ///         <c>UseRask</c> whose second parameter is a route pattern rather than a path, and an app
+    ///         There is deliberately no <c>MapRask</c> overload: <c>Rask.Server</c> declares a
+    ///         <c>MapRask</c> whose second parameter is a route pattern rather than a path, and an app
     ///         serving a SPA beside the server-rendered operator dashboard references both.
     ///     </para>
     ///     <para>
@@ -97,7 +97,7 @@ public static class RaskSpaEndpointExtensions
     ///     wins. The two delegates can only be set here.
     /// </param>
     /// <returns><paramref name="endpoints" />, for chaining.</returns>
-    public static IEndpointRouteBuilder UseRaskSpa(
+    public static IEndpointRouteBuilder MapRaskSpa(
         this IEndpointRouteBuilder endpoints,
         string? distPath = null,
         string pathBase = "",
@@ -132,7 +132,7 @@ public static class RaskSpaEndpointExtensions
         if (endpoints is not IApplicationBuilder app)
         {
             throw new InvalidOperationException(
-                "UseRaskSpa must be called on an IEndpointRouteBuilder that is also an "
+                "MapRaskSpa must be called on an IEndpointRouteBuilder that is also an "
                 + "IApplicationBuilder (e.g. WebApplication).");
         }
 

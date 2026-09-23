@@ -11,7 +11,7 @@ using Rask.Server.Tests.Infrastructure;
 namespace Rask.DevTools.Tests;
 
 /// <summary>
-///     Who may open the devtools panel, through the real <c>AddRask</c> / <c>UseRask</c> page handler.
+///     Who may open the devtools panel, through the real <c>AddRask</c> / <c>MapRask</c> page handler.
 /// </summary>
 /// <remarks>
 ///     <para>

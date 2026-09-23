@@ -5,5 +5,5 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRask();
 
 var app = builder.Build();
-app.UseRask<App>();
+app.MapRask<App>();
 app.Run();

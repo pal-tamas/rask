@@ -44,7 +44,7 @@ internal enum VsCodeSetup
 ///     <para>
 ///         C# that runs in the browser cannot be reached by the coreclr debugger. It is debugged by launching a
 ///         browser under VS Code's JavaScript debugger with an <c>inspectUri</c> through the WebAssembly debug
-///         proxy: the SDK's dev server maps one for a standalone app, and <c>UseRaskSpa</c> maps one in
+///         proxy: the SDK's dev server maps one for a standalone app, and <c>MapRaskSpa</c> maps one in
 ///         Development for a host serving its client (#1073).
 ///     </para>
 /// </remarks>

@@ -45,7 +45,7 @@ var builder = WebApplication.CreateBuilder(args);
 // deployed app at its volume. A callback here still wins over both, for the rare value that has to be
 // code. The full list of sections is in docs/configuration.md.
 //
-// The host half of `app.UseRaskSpa()` below. It brings brotli + gzip over the types a bundler
+// The host half of `app.MapRaskSpa()` below. It brings brotli + gzip over the types a bundler
 // emits — text/javascript above all, which is what the largest file in the app is served as —
 // and the defaults every Rask web host applies: a Data Protection key ring that outlives the
 // container a deploy replaces, and a shutdown budget that fits inside the SIGKILL, with the
@@ -203,7 +203,7 @@ var app = builder.Build();
 // the verb carries what IQuery and ICommand already declare — so a command is 405 on GET and
 // cannot be triggered by a URL, a prefetch or a link scanner.
 //
-// Mapped BEFORE UseRaskSpa. That call ends the pipeline with a fallback to index.html, and an
+// Mapped BEFORE MapRaskSpa. That call ends the pipeline with a fallback to index.html, and an
 // endpoint added after it would be shadowed by the fallback rather than reached.
 app.MapRaskCqrs();
 
@@ -216,7 +216,7 @@ app.MapHealthChecks("/healthz");
 // endpoints on the pipeline, and without it every call from the front end 404s. The
 // client is already there: `import { login } from './rask/browser/auth'`.
 //
-// Before UseRaskSpa for the same reason MapRaskCqrs is — that call ends the pipeline with
+// Before MapRaskSpa for the same reason MapRaskCqrs is — that call ends the pipeline with
 // a fallback to index.html, so an endpoint added after it answers HTML instead of JSON.
 app.UseAuthentication();
 app.UseAuthorization();
@@ -227,13 +227,13 @@ app.MapRaskAuth();
 // GET /_push/key hands the browser the PUBLIC VAPID key; the two POSTs register and forget a
 // subscription. src/push.ts in the client calls exactly these three.
 //
-// Before UseRaskSpa for the same reason MapRaskCqrs is: that call ends the pipeline with a
+// Before MapRaskSpa for the same reason MapRaskCqrs is: that call ends the pipeline with a
 // fallback to index.html, so an endpoint added after it answers HTML instead of JSON.
 app.MapPushSubscriptions();
 
 // rask:end
 // rask:if storage
-// The routes behind files.Url(id) and files.Share(id).For(lifetime). Before UseRaskSpa for
+// The routes behind files.Url(id) and files.Share(id).For(lifetime). Before MapRaskSpa for
 // the same reason MapRaskAuth is: its fallback to index.html would otherwise answer them.
 app.MapRaskStorage();
 
@@ -241,7 +241,7 @@ app.MapRaskStorage();
 // Serves the bundler's dist/ — correct MIME types, bundler-aware cache headers, precompressed
 // siblings, and a SPA fallback that still 404s a missing asset rather than answering it with
 // HTML. In development, before anything is built, it explains where the dev server is instead.
-app.UseRaskSpa();
+app.MapRaskSpa();
 
 app.Run();
 

@@ -17,7 +17,7 @@ namespace Rask.Server.Tests.Endpoints;
 /// </summary>
 /// <remarks>
 ///     The case it exists for: the operator dashboard, server-rendered by <c>Rask.Server</c>, mounted
-///     beside a WebAssembly app that <c>UseRaskSpa</c> serves. The dashboard's chain owns the
+///     beside a WebAssembly app that <c>MapRaskSpa</c> serves. The dashboard's chain owns the
 ///     <c>/_rask/a/{hash}</c> route, routing gives it the app's asset requests before static files run,
 ///     and the app's hashes were registered in the browser's runtime, never in this one.
 /// </remarks>
@@ -98,7 +98,7 @@ public sealed class WebRootAssetFallbackTests : IDisposable
     public async Task A_dashboard_beside_a_wasm_app_serves_the_apps_scoped_assets_and_leaves_it_its_routes()
     {
         // The bundle lives outside the web root, the way a build-machine dist path or an explicit
-        // distPath does, so only UseRaskSpa sharing its _rask/a subtree can make the file reachable.
+        // distPath does, so only MapRaskSpa sharing its _rask/a subtree can make the file reachable.
         var bundle = Seed("bundle", $"_rask/a/{_hash}.css", ".app{color:teal}");
         await File.WriteAllTextAsync(Path.Combine(bundle, "index.html"), "<!doctype html><body data-rask-root>spa</body>");
         await File.WriteAllTextAsync(Path.Combine(bundle, "rask.wasm.js"), "export function boot() {}");
@@ -145,12 +145,12 @@ public sealed class WebRootAssetFallbackTests : IDisposable
 
         if (spaBundle is null)
         {
-            app.UseRask<DashboardApp>();
+            app.MapRask<DashboardApp>();
         }
         else
         {
-            app.UseRaskServer<DashboardApp>("/_rask/{**path}");
-            app.UseRaskSpa(spaBundle);
+            app.MapRaskServer<DashboardApp>("/_rask/{**path}");
+            app.MapRaskSpa(spaBundle);
         }
 
         await app.StartAsync();

@@ -280,7 +280,7 @@ public sealed class LogWriterResilienceTests
             get { lock (_gate) { return _appended.ToArray(); } }
         }
 
-        public async Task AppendAsync(
+        public async Task Append(
             IReadOnlyList<LogRecord> records,
             CancellationToken cancellationToken = default)
         {
@@ -302,23 +302,23 @@ public sealed class LogWriterResilienceTests
             }
         }
 
-        public Task<LogPage> SearchAsync(LogQuery query, CancellationToken cancellationToken = default) =>
+        public Task<LogPage> Search(LogQuery query, CancellationToken cancellationToken = default) =>
             Task.FromResult(LogPage.Empty(1, 50));
 
-        public Task<IReadOnlyList<string>> CategoriesAsync(CancellationToken cancellationToken = default) =>
+        public Task<IReadOnlyList<string>> Categories(CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<string>>([]);
 
-        public Task<long> CountAsync(CancellationToken cancellationToken = default) => Task.FromResult(0L);
+        public Task<long> Count(CancellationToken cancellationToken = default) => Task.FromResult(0L);
 
-        public Task<int> PurgeAsync(
-            TimeSpan retention,
-            int maxRows,
+        public Task<int> Trim(
+            TimeSpan? olderThan,
+            int? keepNewest,
             CancellationToken cancellationToken = default)
         {
             Interlocked.Increment(ref _purges);
             return Task.FromResult(0);
         }
 
-        public Task ClearAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task Clear(CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 }

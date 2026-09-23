@@ -27,7 +27,7 @@
     <ProjectReference Include="..\..\src\Rask.Generators.CodeFixes\Rask.Generators.CodeFixes.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <!-- Rask.Server (and, transitively, the ASP.NET Core shared framework) so AuthBeforeRaskAnalyzer
-         tests can resolve the real UseRask / UseAuthentication symbols in their test compilations. -->
+         tests can resolve the real MapRask / UseAuthentication symbols in their test compilations. -->
     <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
     <!-- The other analyzer assembly, referenced as a plain library (not as an analyzer) so
          DiagnosticDescriptorTests can enumerate the WHOLE RASK family by reflection. RASK028/029 and

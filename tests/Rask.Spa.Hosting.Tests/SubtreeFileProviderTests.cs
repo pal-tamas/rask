@@ -3,7 +3,7 @@ using Microsoft.Extensions.FileProviders;
 namespace Rask.Spa.Hosting.Tests;
 
 /// <summary>
-///     The one subtree of a WebAssembly bundle that <c>UseRaskSpa</c> adds to the host's web root.
+///     The one subtree of a WebAssembly bundle that <c>MapRaskSpa</c> adds to the host's web root.
 /// </summary>
 /// <remarks>
 ///     Only <c>_rask/a/</c> may be reachable through it. Anything else would let a plain

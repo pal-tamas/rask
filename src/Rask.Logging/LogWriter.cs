@@ -89,7 +89,7 @@ internal sealed class LogWriter(
                 _failedCycles = 0;
             }
 
-            await PurgeAsync(cancellationToken).ConfigureAwait(false);
+            await TrimAsync(cancellationToken).ConfigureAwait(false);
             await SampleStoredAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -164,7 +164,7 @@ internal sealed class LogWriter(
 
             try
             {
-                await store.AppendAsync(batch, cancellationToken).ConfigureAwait(false);
+                await store.Append(batch, cancellationToken).ConfigureAwait(false);
             }
             catch
             {
@@ -183,7 +183,7 @@ internal sealed class LogWriter(
         return wrote;
     }
 
-    private async Task PurgeAsync(CancellationToken cancellationToken)
+    private async Task TrimAsync(CancellationToken cancellationToken)
     {
         if (options.Retention <= TimeSpan.Zero && options.MaxRows <= 0)
         {
@@ -197,7 +197,10 @@ internal sealed class LogWriter(
         }
 
         _lastPurge = now;
-        var removed = await store.PurgeAsync(options.Retention, options.MaxRows, cancellationToken)
+        var removed = await store.Trim(
+                options.Retention > TimeSpan.Zero ? options.Retention : null,
+                options.MaxRows > 0 ? options.MaxRows : null,
+                cancellationToken)
             .ConfigureAwait(false);
         metrics.Purged(removed);
     }
@@ -209,6 +212,6 @@ internal sealed class LogWriter(
             return;
         }
 
-        metrics.ObserveStored(await store.CountAsync(cancellationToken).ConfigureAwait(false));
+        metrics.ObserveStored(await store.Count(cancellationToken).ConfigureAwait(false));
     }
 }

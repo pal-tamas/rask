@@ -47,7 +47,7 @@ public sealed class ClientPublishE2ETests
 
             var wwwroot = Path.Combine(publishDir, "wwwroot");
 
-            // The page UseRaskSpa serves at every client route, with the SDK's import map filled in. An empty
+            // The page MapRaskSpa serves at every client route, with the SDK's import map filled in. An empty
             // map is a page that cannot resolve the fingerprinted runtime: it boots in a build and not here.
             var index = Path.Combine(wwwroot, "index.html");
             Assert.True(File.Exists(index), $"the browser app's boot page is absent: {index}");

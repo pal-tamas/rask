@@ -49,14 +49,14 @@ public sealed class ErrorPageScaffoldTests
     [Fact]
     public void The_handler_runs_before_the_UseRask_catch_all()
     {
-        // Exception handling has to wrap the middleware that actually renders the app, and UseRask's
+        // Exception handling has to wrap the middleware that actually renders the app, and MapRask's
         // catch-all is what serves it.
         var program = Generate()["Program.cs"];
 
         Assert.True(
             program.IndexOf("""app.UseExceptionHandler("/error");""", StringComparison.Ordinal) <
-            program.IndexOf("app.UseRask<App>();", StringComparison.Ordinal),
-            "UseExceptionHandler must precede UseRask.");
+            program.IndexOf("app.MapRask<App>();", StringComparison.Ordinal),
+            "UseExceptionHandler must precede MapRask.");
     }
 
     [Fact]

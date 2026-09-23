@@ -48,7 +48,7 @@ internal static class StaticSpaFiles
     ///     a 404 instead of a page of HTML — handing a browser <c>index.html</c> for a module import
     ///     produces a decode error that reads as a broken framework. The prefixed shape spells the
     ///     constraint out; the root shape gets it from <c>MapFallback(RequestDelegate)</c>, whose default
-    ///     pattern is exactly that. <c>UseRaskSpaTests</c> pins a missing <c>/main.js</c> as a 404 (#1078).
+    ///     pattern is exactly that. <c>MapRaskSpaTests</c> pins a missing <c>/main.js</c> as a 404 (#1078).
     /// </remarks>
     public static void MapCatchAll(IEndpointRouteBuilder endpoints, string pathBase, RequestDelegate handler)
     {

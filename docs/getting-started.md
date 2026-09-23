@@ -128,7 +128,7 @@ WASM templates differ mainly in `Program.cs`):
   app.UseForwardedHeaders();
   app.UseHealthChecks("/health");
   // … exception handler, HSTS + HTTPS redirection, static assets, authentication
-  app.UseRask<App>();
+  app.MapRask<App>();
   app.MapRaskStorage();
   app.Run();
   ```
@@ -137,7 +137,7 @@ WASM templates differ mainly in `Program.cs`):
   transactional email, cache, outbox, file storage, operator dashboard, durable logs, Web Push, snapshots
   and continuous backup (inert until `Rask:Litestream:ReplicaUrl` is set) — and each is an ordinary line you can read, edit or delete. The ones
   you don't want are easier left out at scaffold time with `--no-<battery>` ([`rask new`](cli.md#rask-new--scaffold-a-project)).
-  `app.UseRask<App>()` mounts your root component as the whole site, after the middleware above it —
+  `app.MapRask<App>()` mounts your root component as the whole site, after the middleware above it —
   the order in the file is load-bearing, and its comments say why. Your own services and endpoints go in
   this file too, like in any ASP.NET Core app.
 

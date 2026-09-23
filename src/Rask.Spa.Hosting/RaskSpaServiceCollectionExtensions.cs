@@ -12,7 +12,7 @@ using Rask.Hosting.Shared;
 namespace Rask.Spa.Hosting;
 
 /// <summary>
-///     Registers what <see cref="RaskSpaEndpointExtensions.UseRaskSpa" /> uses when it is there.
+///     Registers what <see cref="RaskSpaEndpointExtensions.MapRaskSpa" /> uses when it is there.
 /// </summary>
 public static class RaskSpaServiceCollectionExtensions
 {
@@ -21,7 +21,7 @@ public static class RaskSpaServiceCollectionExtensions
     ///     publish emits.
     /// </summary>
     /// <remarks>
-    ///     Optional: <c>UseRaskSpa</c> works without it, just uncompressed for any file with no
+    ///     Optional: <c>MapRaskSpa</c> works without it, just uncompressed for any file with no
     ///     precompressed sibling on disk. Named <c>AddRaskSpaHost</c> rather than <c>AddRask</c>
     ///     deliberately — <c>Rask.Server</c> declares an <c>AddRask</c>, and an app serving a SPA beside
     ///     the server-rendered operator dashboard calls both. Each call names the host it means.

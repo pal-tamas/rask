@@ -45,7 +45,7 @@ internal static class LogStoreScenarios
     internal static async Task FiltersAndPagesAsync(ILogs store)
     {
         var now = DateTimeOffset.UtcNow;
-        await store.AppendAsync(
+        await store.Append(
         [
             new LogRecord(0, now.AddMinutes(-30), LogLevel.Information, "Shop.Checkout", 0, "cart opened", null,
                 [new LogScopeValue("RequestId", "r1")]),
@@ -56,32 +56,32 @@ internal static class LogStoreScenarios
                 [new LogScopeValue("RequestId", "r22"), new LogScopeValue("UserId", "u1")]),
         ]);
 
-        Assert.Equal(3, await store.CountAsync());
-        Assert.Equal(2, (await store.SearchAsync(new LogQuery { MinimumLevel = LogLevel.Warning })).TotalCount);
+        Assert.Equal(3, await store.Count());
+        Assert.Equal(2, (await store.Search(new LogQuery { MinimumLevel = LogLevel.Warning })).TotalCount);
 
         // Case-insensitive on a server whose own comparisons are not (PostgreSQL), over the exception too.
-        Assert.Equal(2, (await store.SearchAsync(new LogQuery { Category = "CHECKOUT" })).TotalCount);
-        Assert.Equal("opaque", Assert.Single((await store.SearchAsync(new LogQuery { Search = "needle" })).Entries).Message);
+        Assert.Equal(2, (await store.Search(new LogQuery { Category = "CHECKOUT" })).TotalCount);
+        Assert.Equal("opaque", Assert.Single((await store.Search(new LogQuery { Search = "needle" })).Entries).Message);
 
         // A LIKE wildcard in the text is literal.
-        Assert.Single((await store.SearchAsync(new LogQuery { Search = "100%" })).Entries);
-        Assert.Empty((await store.SearchAsync(new LogQuery { Search = "%capacity%" })).Entries);
+        Assert.Single((await store.Search(new LogQuery { Search = "100%" })).Entries);
+        Assert.Empty((await store.Search(new LogQuery { Search = "%capacity%" })).Entries);
 
         // The scope filter is exact: r2 is not a prefix match for r22.
         var request = Assert.Single(
-            (await store.SearchAsync(new LogQuery { ScopeKey = "RequestId", ScopeValue = "r2" })).Entries);
+            (await store.Search(new LogQuery { ScopeKey = "RequestId", ScopeValue = "r2" })).Entries);
         Assert.Equal("disk at 100% capacity", request.Message);
-        Assert.Equal(3, (await store.SearchAsync(new LogQuery { ScopeKey = "RequestId" })).TotalCount);
+        Assert.Equal(3, (await store.Search(new LogQuery { ScopeKey = "RequestId" })).TotalCount);
 
         Assert.Equal(
             "cart opened",
-            Assert.Single((await store.SearchAsync(new LogQuery { To = now.AddMinutes(-25) })).Entries).Message);
+            Assert.Single((await store.Search(new LogQuery { To = now.AddMinutes(-25) })).Entries).Message);
 
-        var first = await store.SearchAsync(new LogQuery { PageSize = 2 });
+        var first = await store.Search(new LogQuery { PageSize = 2 });
         Assert.Equal(2, first.PageCount);
         Assert.Equal(["opaque", "disk at 100% capacity"], first.Entries.Select(e => e.Message));
 
-        Assert.Equal(["Shop.Checkout", "Shop.Orders"], await store.CategoriesAsync());
+        Assert.Equal(["Shop.Checkout", "Shop.Orders"], await store.Categories());
 
         // The same instant back. PostgreSQL keeps microseconds, so the comparison allows the last tick.
         var stored = first.Entries[0];
@@ -95,37 +95,37 @@ internal static class LogStoreScenarios
     internal static async Task RetentionAndRowCapAsync(ILogs store)
     {
         var old = DateTimeOffset.UtcNow.AddDays(-30);
-        await store.AppendAsync(Records(2500, old, "old"));
-        await store.AppendAsync(Records(300, DateTimeOffset.UtcNow, "new"));
+        await store.Append(Records(2500, old, "old"));
+        await store.Append(Records(300, DateTimeOffset.UtcNow, "new"));
 
         // More than two pages of 1,000 go in one sweep.
-        Assert.Equal(2500, await store.PurgeAsync(TimeSpan.FromDays(14), 0));
-        Assert.Equal(200, await store.PurgeAsync(TimeSpan.Zero, 100));
+        Assert.Equal(2500, await store.Trim().OlderThan(14.Days));
+        Assert.Equal(200, await store.Trim().KeepingNewest(100));
 
-        Assert.Equal(100, await store.CountAsync());
-        Assert.Equal("new 299", (await store.SearchAsync(new LogQuery())).Entries[0].Message);
+        Assert.Equal(100, await store.Count());
+        Assert.Equal("new 299", (await store.Search(new LogQuery())).Entries[0].Message);
 
-        await store.ClearAsync();
-        Assert.Equal(0, await store.CountAsync());
+        await store.Clear();
+        Assert.Equal(0, await store.Count());
     }
 
     /// <summary>Two instances of the app sweep the same table at once; every row is removed, and counted, once.</summary>
     internal static async Task TwoHostsPurgingAtOnceAsync(ILogs first, ILogs second)
     {
-        await first.AppendAsync(Records(5000, DateTimeOffset.UtcNow.AddDays(-30), "old"));
+        await first.Append(Records(5000, DateTimeOffset.UtcNow.AddDays(-30), "old"));
 
         var start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var sweeps = new[] { first, second }.Select(async store =>
         {
             await start.Task;
-            return await store.PurgeAsync(TimeSpan.FromDays(14), 0);
+            return await store.Trim().OlderThan(14.Days);
         }).ToList();
 
         start.SetResult();
         var removed = await Task.WhenAll(sweeps);
 
         Assert.Equal(5000, removed.Sum());
-        Assert.Equal(0, await first.CountAsync());
+        Assert.Equal(0, await first.Count());
     }
 
     /// <summary>
@@ -146,14 +146,14 @@ internal static class LogStoreScenarios
                 app.Set<LogWidget>().Add(new LogWidget { Name = "never committed" });
                 await app.SaveChangesAsync();
 
-                await store.AppendAsync(
+                await store.Append(
                     [new LogRecord(0, DateTimeOffset.UtcNow, LogLevel.Error, "App.Checkout", 0, "payment failed, rolling back", null)]);
 
                 await transaction.RollbackAsync();
             });
         }
 
-        Assert.Equal(1, (await store.SearchAsync(new LogQuery { Search = "rolling back" })).TotalCount);
+        Assert.Equal(1, (await store.Search(new LogQuery { Search = "rolling back" })).TotalCount);
 
         await using var verify = await contexts.CreateDbContextAsync();
         Assert.Equal(0, await verify.Set<LogWidget>().CountAsync());
@@ -162,13 +162,13 @@ internal static class LogStoreScenarios
     /// <summary>PostgreSQL refuses NUL in text; one such line must cost only its NUL, not its whole batch.</summary>
     internal static async Task ANulCharacterCostsNothingButItselfAsync(ILogs store)
     {
-        await store.AppendAsync(
+        await store.Append(
         [
             new LogRecord(0, DateTimeOffset.UtcNow, LogLevel.Warning, "Shop.Input", 0, "user sent a\0b", "System.Exception: x\0y"),
             new LogRecord(0, DateTimeOffset.UtcNow, LogLevel.Information, "Shop.Input", 0, "an ordinary line", null),
         ]);
 
-        var page = await store.SearchAsync(new LogQuery());
+        var page = await store.Search(new LogQuery());
         Assert.Equal(2, page.TotalCount);
 
         var entry = page.Entries.Single(e => e.Level == LogLevel.Warning);

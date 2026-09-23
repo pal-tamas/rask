@@ -8,7 +8,7 @@ using Rask.Spa.Hosting.Tests.Infrastructure;
 namespace Rask.Spa.Hosting.Tests;
 
 /// <summary>
-///     <c>UseRaskSpa</c> serving a published Rask WebAssembly app — the job <c>Rask.Wasm.Hosting</c> used
+///     <c>MapRaskSpa</c> serving a published Rask WebAssembly app — the job <c>Rask.Wasm.Hosting</c> used
 ///     to do with a host of its own.
 /// </summary>
 public class WasmBundleTests

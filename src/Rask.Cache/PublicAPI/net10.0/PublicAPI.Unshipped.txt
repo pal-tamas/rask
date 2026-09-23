@@ -141,3 +141,4 @@ Rask.Cache.CacheFakes
 Rask.Cache.CacheFakes.extension(Rask.Cache.Cache!)
 static Rask.Cache.CacheFakes.Fake() -> Rask.Cache.CacheFake!
 static Rask.Cache.CacheFakes.extension(Rask.Cache.Cache!).Fake() -> Rask.Cache.CacheFake!
+static Rask.Cache.Cache.IsOn.get -> bool

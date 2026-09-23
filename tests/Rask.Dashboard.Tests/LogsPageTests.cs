@@ -239,7 +239,7 @@ public sealed class LogsPageTests
         /// on an interval, so a logged line is not on disk yet when the page reads it.
         /// </summary>
         public Task AppendAsync(string message, LogLevel level = LogLevel.Information) =>
-            _dashboard!.Get<ILogs>().AppendAsync([
+            _dashboard!.Get<ILogs>().Append([
                 new LogRecord(0, DateTimeOffset.UtcNow, level, "Test", 0, message, null)
             ]);
 

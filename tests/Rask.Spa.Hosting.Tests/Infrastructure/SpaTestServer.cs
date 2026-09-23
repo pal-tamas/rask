@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Rask.Spa.Hosting.Tests.Infrastructure;
 
 /// <summary>
-///     A host running <see cref="RaskSpaEndpointExtensions.UseRaskSpa" />.
+///     A host running <see cref="RaskSpaEndpointExtensions.MapRaskSpa" />.
 /// </summary>
 /// <remarks>
 ///     Deliberately not in a shared xUnit collection. This package writes no process-wide state — a
@@ -57,7 +57,7 @@ internal sealed class SpaTestServer : IAsyncDisposable
 
         if (settings is not null)
         {
-            // What appsettings.json would carry; UseRaskSpa reads Rask:Spa from it while mapping.
+            // What appsettings.json would carry; MapRaskSpa reads Rask:Spa from it while mapping.
             builder.Configuration.AddInMemoryCollection(settings);
         }
 
@@ -71,11 +71,11 @@ internal sealed class SpaTestServer : IAsyncDisposable
 
         if (withApi)
         {
-            // Mapped before UseRaskSpa, which is the documented contract.
+            // Mapped before MapRaskSpa, which is the documented contract.
             app.MapGet("/api/ping", () => Results.Text("pong"));
         }
 
-        app.UseRaskSpa(distPath, pathBase, configure);
+        app.MapRaskSpa(distPath, pathBase, configure);
 
         await app.StartAsync();
         return new SpaTestServer(app);

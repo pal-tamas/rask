@@ -135,7 +135,7 @@ public sealed class TemplateJourneyE2ETests(PlaywrightFixture browser) : IClassF
     ///         gap was not academic: every fault those journeys turned up (#1069) was a battery reaching
     ///         for something only a Rask HOST provides. The mirror of that — a Rask host whose battery
     ///         wiring is wrong — would show here and nowhere else, because building proves neither that
-    ///         <c>UseRask&lt;App&gt;()</c> serves a page nor that the runtime on it starts.
+    ///         <c>MapRask&lt;App&gt;()</c> serves a page nor that the runtime on it starts.
     ///     </para>
     ///     <para>
     ///         The starter draws no interactive control, so the assertion is what the lane uniquely
@@ -203,7 +203,7 @@ public sealed class TemplateJourneyE2ETests(PlaywrightFixture browser) : IClassF
         var projectDirectory = Path.Combine(work, name);
 
         // Without its WebAssembly client. These journeys run the host as `dotnet run` does and never publish a client,
-        // so a server scaffold WITH one answered every request 503 from UseRaskSpa's missing-bundle page, and the
+        // so a server scaffold WITH one answered every request 503 from MapRaskSpa's missing-bundle page, and the
         // server journey could not reach the component it asserts on (#1105). The SPA and meta templates carry no
         // `wasm` flag, so this changes nothing for them.
         var result = TemplateBuildE2ETests.Scaffold(key, projectDirectory, name, version, islands: []);

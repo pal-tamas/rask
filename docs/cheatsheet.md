@@ -83,7 +83,7 @@ builder.Services.AddRaskCache<ProductsDbContext>();                  modelBuilde
 builder.Services.AddRaskStorage<ProductsDbContext>();                modelBuilder.AddRaskStorage();
 builder.Services.AddRaskOutbox<ProductsDbContext>(o => { /* … */ }); modelBuilder.AddRaskOutbox();
 // the outbox claims domain-event delivery on its own — AddRaskData stays bare, in any order
-app.MapRaskStorage();   // file storage's public/temporary link routes — after app.UseRask<App>()
+app.MapRaskStorage();   // file storage's public/temporary link routes — after app.MapRask<App>()
 
 // production SQLite — a drop-in for .UseSqlite that installs the pragma interceptor:
 .UseRaskSqlite(sp)                            // in AddDbContextFactory((sp, o) => o…); reads Rask:ConnectionStrings:App

@@ -173,10 +173,10 @@ to pick a connection — so there the batteries log at `Information` like everyt
 ### Reading it back
 
 ```csharp
-public sealed partial class IncidentPage(ILogs store) : Component
+public sealed partial class IncidentPage : Component
 {
-    // …
-    var page = await store.SearchAsync(new LogQuery
+    // … nothing injected: Logs reaches the store of the work this render runs in
+    var page = await Logs.Search(new LogQuery
     {
         MinimumLevel = LogLevel.Error,
         Category = "Shop.Checkout",
@@ -197,8 +197,17 @@ spaces, quotes or accents. On SQL Server the comparison follows the database's c
 default.
 
 `LogPage` carries the matching entries (newest first), the `TotalCount` behind the filter, and a `PageCount`.
-`ILogs` also exposes `CategoriesAsync()`, `CountAsync()`, `PurgeAsync(retention, maxRows)` and
-`ClearAsync()`.
+`Logs` also offers `Categories()` for a filter dropdown, `Count()`, `Clear()`, and retention as steps:
+
+```csharp
+await Logs.Trim().OlderThan(30.Days);                       // by age
+await Logs.Trim().KeepingNewest(100_000);                   // by count
+await Logs.Trim().OlderThan(30.Days).KeepingNewest(100_000); // both, in one pass
+```
+
+A `Trim()` with neither step removes nothing, and each step refuses a value that would empty the store —
+`Logs.Clear()` says that out loud. Inject `ILogs` where there is no work in progress to reach it through,
+and it words the same sentences.
 
 ## How it works
 

@@ -15,7 +15,7 @@ public static class RaskStorageEndpointExtensions
 
     /// <summary>
     /// Maps <c>GET /_rask/files/public/{id}</c> (files saved as public) and <c>GET /_rask/files/{token}</c>
-    /// (temporary URLs the app signs itself). Call it after <c>app.UseRask&lt;App&gt;()</c>, which sets the path
+    /// (temporary URLs the app signs itself). Call it after <c>app.MapRask&lt;App&gt;()</c>, which sets the path
     /// base these routes live under.
     /// </summary>
     /// <remarks>

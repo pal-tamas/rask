@@ -14,5 +14,5 @@ Rask.Spa.Hosting.SpaHostingOptions.OnPrepareResponse.set -> void
 Rask.Spa.Hosting.SpaHostingOptions.ServePrecompressed.get -> bool
 Rask.Spa.Hosting.SpaHostingOptions.ServePrecompressed.set -> void
 Rask.Spa.Hosting.SpaHostingOptions.SpaHostingOptions() -> void
-static Rask.Spa.Hosting.RaskSpaEndpointExtensions.UseRaskSpa(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints, string? distPath = null, string! pathBase = "", System.Action<Rask.Spa.Hosting.SpaHostingOptions!>? configure = null) -> Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!
+static Rask.Spa.Hosting.RaskSpaEndpointExtensions.MapRaskSpa(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints, string? distPath = null, string! pathBase = "", System.Action<Rask.Spa.Hosting.SpaHostingOptions!>? configure = null) -> Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!
 static Rask.Spa.Hosting.RaskSpaServiceCollectionExtensions.AddRaskSpaHost(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

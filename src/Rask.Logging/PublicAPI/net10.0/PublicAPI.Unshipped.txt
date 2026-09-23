@@ -1,11 +1,5 @@
 #nullable enable
 Rask.Logging.ILogs
-Rask.Logging.ILogs.AppendAsync(System.Collections.Generic.IReadOnlyList<Rask.Logging.LogRecord!>! records, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-Rask.Logging.ILogs.CategoriesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!
-Rask.Logging.ILogs.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-Rask.Logging.ILogs.CountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
-Rask.Logging.ILogs.PurgeAsync(System.TimeSpan retention, int maxRows, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
-Rask.Logging.ILogs.SearchAsync(Rask.Logging.LogQuery! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Logging.LogPage!>!
 Rask.Logging.LoggingModelBuilderExtensions
 Rask.Logging.LogMetrics
 Rask.Logging.LogMetrics.Dispose() -> void
@@ -137,3 +131,61 @@ static Rask.Logging.RaskLoggingServiceCollectionExtensions.AddRaskLogging(this M
 static Rask.Logging.RaskLoggingServiceCollectionExtensions.AddRaskLogging<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Logging.RaskLoggingOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 ~override Rask.Logging.LogScopeValue.Equals(object obj) -> bool
 ~override Rask.Logging.LogScopeValue.ToString() -> string
+Rask.Logging.ILogs.Append(System.Collections.Generic.IReadOnlyList<Rask.Logging.LogRecord!>! records, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Logging.ILogs.Categories(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!
+Rask.Logging.ILogs.Clear(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Logging.ILogs.Count(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+Rask.Logging.ILogs.Search(Rask.Logging.LogQuery! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Logging.LogPage!>!
+Rask.Logging.ILogs.Trim(System.TimeSpan? olderThan, int? keepNewest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+Rask.Logging.Logs
+Rask.Logging.LogsExtensions
+Rask.Logging.LogsExtensions.extension(Rask.Logging.ILogs!)
+Rask.Logging.LogsExtensions.extension(Rask.Logging.ILogs!).Trim(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Logging.Trimming
+Rask.Logging.Trimming
+Rask.Logging.Trimming.AsTask() -> System.Threading.Tasks.Task<int>!
+Rask.Logging.Trimming.ConfigureAwait(bool continueOnCapturedContext) -> System.Runtime.CompilerServices.ConfiguredTaskAwaitable<int>
+Rask.Logging.Trimming.GetAwaiter() -> System.Runtime.CompilerServices.TaskAwaiter<int>
+Rask.Logging.Trimming.KeepingNewest(int rows) -> Rask.Logging.Trimming
+Rask.Logging.Trimming.OlderThan(System.TimeSpan age) -> Rask.Logging.Trimming
+Rask.Logging.Trimming.Trimming() -> void
+static Rask.Logging.Logs.Categories(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!
+static Rask.Logging.Logs.Clear(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+static Rask.Logging.Logs.Count(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+static Rask.Logging.Logs.IsOn.get -> bool
+static Rask.Logging.Logs.Search(Rask.Logging.LogQuery! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Logging.LogPage!>!
+static Rask.Logging.Logs.Trim(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Logging.Trimming
+static Rask.Logging.LogsExtensions.Trim(this Rask.Logging.ILogs! logs, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Logging.Trimming
+Rask.Batteries.Counting<T>
+Rask.Batteries.Counting<T>.Count.get -> int
+Rask.Batteries.Counting<T>.Counting() -> void
+Rask.Batteries.Counting<T>.Counting(System.Collections.Generic.IReadOnlyList<T>! all, string! noun, string! verb, System.Func<T, string!>! describe, string? whenNoneAtAll = null) -> void
+Rask.Batteries.Counting<T>.Exactly(int times) -> void
+Rask.Batteries.Counting<T>.None() -> void
+Rask.Batteries.Counting<T>.Once() -> void
+Rask.Batteries.Counting<T>.Single() -> T
+Rask.Batteries.Counting<T>.Twice() -> void
+Rask.Batteries.Counting<T>.Where(System.Func<T, bool>! predicate, string! said) -> Rask.Batteries.Counting<T>
+Rask.Batteries.CountingException
+Rask.Batteries.CountingException.CountingException(string! message) -> void
+Rask.Logging.LogsFake
+Rask.Logging.LogsFake.Append(System.Collections.Generic.IReadOnlyList<Rask.Logging.LogRecord!>! records, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Logging.LogsFake.Categories(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string!>!>!
+Rask.Logging.LogsFake.Clear() -> void
+Rask.Logging.LogsFake.Clear(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Logging.LogsFake.Count(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+Rask.Logging.LogsFake.Dispose() -> void
+Rask.Logging.LogsFake.Search(Rask.Logging.LogQuery! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Logging.LogPage!>!
+Rask.Logging.LogsFake.Stored() -> Rask.Batteries.Counting<Rask.Logging.LogRecord!>
+Rask.Logging.LogsFake.Trim(System.TimeSpan? olderThan, int? keepNewest, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+Rask.Logging.LogsFakes
+Rask.Logging.LogsFakes.extension(Rask.Logging.Logs!)
+Rask.Logging.StoredLogCounting
+Rask.Logging.StoredLogCounting.extension(Rask.Batteries.Counting<Rask.Logging.LogRecord!>)
+Rask.Logging.StoredLogCounting.extension(Rask.Batteries.Counting<Rask.Logging.LogRecord!>).AtLeast(Microsoft.Extensions.Logging.LogLevel level) -> Rask.Batteries.Counting<Rask.Logging.LogRecord!>
+Rask.Logging.StoredLogCounting.extension(Rask.Batteries.Counting<Rask.Logging.LogRecord!>).From(string! category) -> Rask.Batteries.Counting<Rask.Logging.LogRecord!>
+Rask.Logging.StoredLogCounting.extension(Rask.Batteries.Counting<Rask.Logging.LogRecord!>).Saying(string! text) -> Rask.Batteries.Counting<Rask.Logging.LogRecord!>
+static Rask.Logging.LogsFakes.Fake() -> Rask.Logging.LogsFake!
+static Rask.Logging.LogsFakes.extension(Rask.Logging.Logs!).Fake() -> Rask.Logging.LogsFake!
+static Rask.Logging.StoredLogCounting.AtLeast(this Rask.Batteries.Counting<Rask.Logging.LogRecord!> stored, Microsoft.Extensions.Logging.LogLevel level) -> Rask.Batteries.Counting<Rask.Logging.LogRecord!>
+static Rask.Logging.StoredLogCounting.From(this Rask.Batteries.Counting<Rask.Logging.LogRecord!> stored, string! category) -> Rask.Batteries.Counting<Rask.Logging.LogRecord!>
+static Rask.Logging.StoredLogCounting.Saying(this Rask.Batteries.Counting<Rask.Logging.LogRecord!> stored, string! text) -> Rask.Batteries.Counting<Rask.Logging.LogRecord!>

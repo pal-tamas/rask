@@ -14,7 +14,7 @@ namespace Rask.Server.Http;
 ///     <para>
 ///         Done HERE, in the one handler that writes <c>text/html</c>, rather than by putting
 ///         <c>UseResponseCompression()</c> in the pipeline. That middleware is app-wide: inserted by
-///         <c>UseRask</c> it wraps every endpoint after it, so an app's own JSON API would be compressed
+///         <c>MapRask</c> it wraps every endpoint after it, so an app's own JSON API would be compressed
 ///         over HTTPS too — the BREACH shape (a secret beside reflected input) on responses this option
 ///         never analysed and does not name. Registering <c>AddResponseCompression</c> to get
 ///         ASP.NET's provider instead would mutate the app-global <c>ResponseCompressionOptions</c>, turning

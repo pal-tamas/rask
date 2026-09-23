@@ -49,7 +49,7 @@ namespace Rask;
 /// </example>
 /// <para>
 /// It wraps <see cref="WebApplicationBuilder"/> rather than replacing it: <see cref="Services"/> is the
-/// same collection, <see cref="Create"/> hands you the builder itself, and <c>AddRask</c>/<c>UseRask</c>
+/// same collection, <see cref="Create"/> hands you the builder itself, and <c>AddRask</c>/<c>MapRask</c>
 /// remain public. This is a layer over them.
 /// </para>
 /// </remarks>
@@ -104,7 +104,7 @@ public sealed class RaskApp
     /// <para>
     /// This is a place, not a fix. Endpoint routing matches on <em>precedence</em>, never on registration
     /// order, and Rask's catch-all is the least specific pattern there is (<c>/{**path}</c>), so a route
-    /// mapped after <c>UseRask</c> still wins for the paths it names. Mapping through here rather than on
+    /// mapped after <c>MapRask</c> still wins for the paths it names. Mapping through here rather than on
     /// the built <see cref="WebApplication"/> buys ordering only against genuine <em>middleware</em>, and
     /// keeps the app's endpoints in one readable spot.
     /// </para>
@@ -233,7 +233,7 @@ public sealed class RaskApp
             restore(app.Services).GetAwaiter().GetResult();
         }
 
-        // Must precede UseRask so HttpContext.User is populated on the initial GET and the WebSocket
+        // Must precede MapRask so HttpContext.User is populated on the initial GET and the WebSocket
         // upgrade — otherwise the principal is empty at both and every authorized page challenges
         // (RASK024). Conditional, because UseAuthentication throws when no scheme is registered.
         if (app.Services.GetService<IAuthenticationSchemeProvider>() is not null)
@@ -292,9 +292,9 @@ public sealed class RaskApp
             }
         }
 
-        app.UseRask<TApp>(pathBase: pathBase);
+        app.MapRask<TApp>(pathBase: pathBase);
 
-        // The routes that serve public files and the temporary links the app signs itself. After UseRask, which
+        // The routes that serve public files and the temporary links the app signs itself. After MapRask, which
         // sets the path base they live under; routing precedence, not order, is what keeps the literal
         // /_rask/files prefix ahead of the catch-alls. Only when storage was actually wired — turning the
         // database off takes it with it.

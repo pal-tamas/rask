@@ -60,7 +60,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The Server tests' host, shared rather than copied: the endpoint tests need the same AddRask/UseRask
+    <!-- The Server tests' host, shared rather than copied: the endpoint tests need the same AddRask/MapRask
          wiring a real app gets. -->
     <Compile Include="..\Rask.Server.Tests\Infrastructure\RaskTestHost.cs" Link="Infrastructure\RaskTestHost.cs"/>
     <Compile Include="..\Rask.Server.Tests\Infrastructure\WebSocketHelper.cs" Link="Infrastructure\WebSocketHelper.cs"/>

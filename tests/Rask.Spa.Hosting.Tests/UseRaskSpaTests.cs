@@ -4,7 +4,7 @@ using Rask.Spa.Hosting.Tests.Infrastructure;
 
 namespace Rask.Spa.Hosting.Tests;
 
-public class UseRaskSpaTests
+public class MapRaskSpaTests
 {
     [Fact]
     public async Task A_client_side_route_gets_the_index_document()

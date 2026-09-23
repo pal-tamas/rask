@@ -84,7 +84,7 @@ public sealed class RaskAppTests
                 + "IWebPush.RegisterServiceWorkerAsync() defaults to this URL, so a failure here is a "
                 + "runtime failure for every push subscription");
 
-            // Status alone would prove nothing: UseRask ends in a catch-all serving the app for any
+            // Status alone would prove nothing: MapRask ends in a catch-all serving the app for any
             // unmatched path, so an ABSENT worker answers 200 with HTML. The content type is the evidence.
             Assert.Equal("text/javascript", response.Content.Headers.ContentType?.MediaType);
             Assert.Contains("push", await response.Content.ReadAsStringAsync(), StringComparison.OrdinalIgnoreCase);
@@ -310,7 +310,7 @@ public sealed class RaskAppTests
     [Fact]
     public async Task An_endpoint_mapped_after_UseRask_still_runs()
     {
-        // This repo told itself for a long time that an endpoint mapped after UseRask "never runs — and
+        // This repo told itself for a long time that an endpoint mapped after MapRask "never runs — and
         // does not error either: the request renders the app where the author expected JSON", and said so
         // in RaskApp.MapEndpoints' own docs, in Rask.Spa.Hosting, in the scaffolded Program.cs and in the
         // comment that used to sit on the test above. Nothing pinned it, and it is not true.
@@ -318,7 +318,7 @@ public sealed class RaskAppTests
         // Rask's catch-all is a plain MapGet("/{**path}") — an ordinary endpoint, not a terminal
         // middleware and not MapFallback. Endpoint routing matches on PRECEDENCE, never on registration
         // order, and every route an app writes is more specific than a catch-all. So this test maps three
-        // endpoints AFTER Build<TApp>() has already run UseRask, and all three answer.
+        // endpoints AFTER Build<TApp>() has already run MapRask, and all three answer.
         //
         // It exists to keep the false version from coming back into the docs.
         var app = NewApp().Build<TestApp>();

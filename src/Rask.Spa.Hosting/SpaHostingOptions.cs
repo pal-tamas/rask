@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.StaticFiles;
 namespace Rask.Spa.Hosting;
 
 /// <summary>
-///     Configures <see cref="RaskSpaEndpointExtensions.UseRaskSpa" />. Every default is the one a
+///     Configures <see cref="RaskSpaEndpointExtensions.MapRaskSpa" />. Every default is the one a
 ///     Vite-built app wants; each property is a deliberate departure from it.
 /// </summary>
 public sealed class SpaHostingOptions

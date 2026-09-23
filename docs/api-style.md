@@ -47,7 +47,7 @@ are what `ConcurrentDictionary` calls the operation, and a reader who knows them
 "get or add" into what the line is *for*. The borrowed word stays where it already reads — `Get`, `Set`,
 `Send`, `Publish`, `Delete` — and gives way where it does not.
 
-**Unless it stutters against its own parameter.** `ILogs.QueryAsync(LogQuery query)` says "query" twice
+**Unless it stutters against its own parameter.** `ILogs.Query(LogQuery query)` would say "query" twice
 and its type a third time; `Search(LogQuery)` is what the operator at `/_rask` is actually doing.
 
 ### 3. One concept, one verb, everywhere
@@ -190,7 +190,7 @@ What the rules above settled, so a new package has one place to look rather than
 | Cache | `Cache` (static) / `ICache` | `Remember`, `Set`, `Get`, `Forget`; `.For`, `.Sliding`, `.Until` |
 | Mediator | `IDispatcher` | `Query`, `Send`, `Publish` |
 | Cached reads | `QueryClient` (static) / `IQueryClient` | `Query`, `Load`, `Warm`, `Send`, `Command`, `Invalidate` |
-| Durable log | `ILogs` | `SearchAsync` |
+| Durable log | `ILogs` | `Search`, `Categories`, `Count`, `Trim().OlderThan(30.Days)` |
 | SQLite connections | `ISqlite` | `InImmediateTransactionAsync` |
 | Time | `Clock` (static) | `Now`; `Clock.Fake(at:)` + `Advance` in tests |
 | Durations and sizes | `Units` (ambient) | `3.Seconds`, `1.Hour`, `50.Megabytes`, `3.Days.Ago`, `2.Hours.FromNow` |

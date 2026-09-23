@@ -68,7 +68,7 @@ also have a working **`/login`** page and a protected **`/members`** page.
 The `server` template is deliberately small — a handful of files, no example pages to clean up:
 
 - **`Program.cs`** — host setup. `builder.Services.AddRask()` registers the framework and
-  `app.UseRask<App>()` mounts your root component. Between them, one commented registration per battery,
+  `app.MapRask<App>()` mounts your root component. Between them, one commented registration per battery,
   each naming the app's context — `AddRaskAuth<AppDbContext>()`, `AddRaskJobs<AppDbContext>()`,
   `AddRaskMail<AppDbContext>()` and so on. None of them carries settings: each reads its own section of
   `appsettings.json` (`Rask:Mail`, `Rask:Jobs`, …), so when a later chapter tunes a pillar, that section is

@@ -85,7 +85,7 @@ internal sealed class DevToolsServerEndpoints : IRaskServerDevTools
             }
         });
 
-        // A RequestDelegate, not a minimal-API Delegate, for the reason UseRask gives for its own endpoints:
+        // A RequestDelegate, not a minimal-API Delegate, for the reason MapRask gives for its own endpoints:
         // RequestDelegateFactory is RequiresDynamicCode, and nothing generates this library's delegates.
         var script = DevToolsScripts.LoadHost();
         endpoints.MapGet(pathBase + HostScriptPath, (RequestDelegate)(ctx =>

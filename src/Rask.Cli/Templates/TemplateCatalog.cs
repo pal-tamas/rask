@@ -68,7 +68,7 @@ internal static class TemplateCatalog
     ///     and travels inside the host packages that render components, so <c>Rask.Spa.Hosting</c> and
     ///     <c>Rask.Meta.Hosting</c> ship no copy and an app that reaches for it aborts before <c>Main</c>
     ///     (#1069). The operator dashboard is also Rask components carrying <c>[Route]</c>, reachable only
-    ///     through <c>UseRask&lt;TApp&gt;()</c>, which only the server template calls. It is listed on the
+    ///     through <c>MapRask&lt;TApp&gt;()</c>, which only the server template calls. It is listed on the
     ///     server template alone rather than accepted and then disregarded.
     ///     </para>
     ///     <para>
@@ -98,11 +98,11 @@ internal static class TemplateCatalog
             new HashSet<string>(WebFlags, StringComparer.Ordinal)),
         // The same lane as react/angular below — a front end on an ASP.NET host — except the front end is
         // C#. It lives in Client/ (capital, because it IS a C# project; the JS lanes use lowercase
-        // client/), the host serves it with UseRaskSpa, and the two halves talk over remote CQRS.
+        // client/), the host serves it with MapRaskSpa, and the two halves talk over remote CQRS.
         //
         // "ops" is here and is NOT on the SPA lane, which is not an inconsistency: this host still
         // references Rask.Server, so Rask.Dashboard's components have the Rask.Core they need and
-        // UseRask<TApp>() to mount them. Rask.Spa.Hosting alone ships no Core, which is what rules ops out
+        // MapRask<TApp>() to mount them. Rask.Spa.Hosting alone ships no Core, which is what rules ops out
         // for the TypeScript templates (#1069).
         //
         // ShipsLocalization stays false for the same reason as wasm above: the browser half is where a

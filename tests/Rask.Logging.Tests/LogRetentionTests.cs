@@ -27,9 +27,9 @@ public abstract class LogRetentionContract(LogStoreKind kind)
         await harness.RunUntilStoredAsync(1);
 
         harness.Clock.Advance(TimeSpan.FromDays(8));
-        await harness.RunUntilAsync(async () => await harness.Store.CountAsync() == 0);
+        await harness.RunUntilAsync(async () => await harness.Store.Count() == 0);
 
-        Assert.Equal(0, await harness.Store.CountAsync());
+        Assert.Equal(0, await harness.Store.Count());
     }
 
     [Fact]
@@ -48,7 +48,7 @@ public abstract class LogRetentionContract(LogStoreKind kind)
         harness.Clock.Advance(TimeSpan.FromDays(3));
         await harness.RunUntilAsync(() => Task.FromResult(true));
 
-        Assert.Equal(1, await harness.Store.CountAsync());
+        Assert.Equal(1, await harness.Store.Count());
     }
 
     [Fact]
@@ -67,9 +67,9 @@ public abstract class LogRetentionContract(LogStoreKind kind)
         {
             logger.LogInformation("entry {Index}", i);
         }
-        await harness.RunUntilAsync(async () => await harness.Store.CountAsync() == 5);
+        await harness.RunUntilAsync(async () => await harness.Store.Count() == 5);
 
-        var page = await harness.Store.SearchAsync(new LogQuery());
+        var page = await harness.Store.Search(new LogQuery());
         Assert.Equal(
             ["entry 19", "entry 18", "entry 17", "entry 16", "entry 15"],
             page.Entries.Select(e => e.Message));
@@ -91,7 +91,7 @@ public abstract class LogRetentionContract(LogStoreKind kind)
         harness.Clock.Advance(TimeSpan.FromDays(3650));
         await harness.RunUntilAsync(() => Task.FromResult(true));
 
-        Assert.Equal(1, await harness.Store.CountAsync());
+        Assert.Equal(1, await harness.Store.Count());
     }
 
     /// <summary>
@@ -107,15 +107,15 @@ public abstract class LogRetentionContract(LogStoreKind kind)
         var records = Enumerable.Range(0, 2500)
             .Select(i => new LogRecord(0, now, LogLevel.Information, "Bulk", 0, $"entry {i}", null))
             .ToList();
-        await store.AppendAsync(records);
+        await store.Append(records);
 
-        Assert.Equal(2500, await store.CountAsync());
+        Assert.Equal(2500, await store.Count());
 
         harness.Clock.Advance(TimeSpan.FromDays(30));
-        var removed = await store.PurgeAsync(TimeSpan.FromDays(14), 0);
+        var removed = await store.Trim().OlderThan(14.Days);
 
         Assert.Equal(2500, removed);
-        Assert.Equal(0, await store.CountAsync());
+        Assert.Equal(0, await store.Count());
     }
 
     [Fact]
@@ -124,15 +124,15 @@ public abstract class LogRetentionContract(LogStoreKind kind)
         await using var harness = Harness();
         var store = harness.Store;
         var now = harness.Clock.GetUtcNow();
-        await store.AppendAsync(Enumerable.Range(0, 2500)
+        await store.Append(Enumerable.Range(0, 2500)
             .Select(i => new LogRecord(0, now, LogLevel.Information, "Bulk", 0, $"entry {i}", null))
             .ToList());
 
-        var removed = await store.PurgeAsync(TimeSpan.Zero, 100);
+        var removed = await store.Trim().KeepingNewest(100);
 
         Assert.Equal(2400, removed);
-        Assert.Equal(100, await store.CountAsync());
-        Assert.Equal("entry 2499", (await store.SearchAsync(new LogQuery())).Entries[0].Message);
+        Assert.Equal(100, await store.Count());
+        Assert.Equal("entry 2499", (await store.Search(new LogQuery())).Entries[0].Message);
     }
 
     [Fact]
@@ -140,7 +140,7 @@ public abstract class LogRetentionContract(LogStoreKind kind)
     {
         await using var harness = Harness();
 
-        Assert.Equal(0, await harness.Store.PurgeAsync(TimeSpan.FromDays(1), 10));
+        Assert.Equal(0, await harness.Store.Trim().OlderThan(1.Day).KeepingNewest(10));
     }
 
     private LoggingHarness Harness(Action<RaskLoggingOptions>? configure = null) => new(configure, kind: kind);

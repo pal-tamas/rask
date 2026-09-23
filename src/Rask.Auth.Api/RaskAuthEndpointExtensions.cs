@@ -34,8 +34,8 @@ public static class RaskAuthEndpointExtensions
     /// "the same API in every host" is one contract rather than one per host.
     /// </para>
     /// <para>
-    /// <b>Map this before the host's catch-all.</b> <c>UseRask</c>, <c>UseRaskSpa</c> and
-    /// <c>UseRaskMeta</c> all end the pipeline with a fallback that answers every unmatched path — the
+    /// <b>Map this before the host's catch-all.</b> <c>MapRask</c>, <c>MapRaskSpa</c> and
+    /// <c>MapRaskMeta</c> all end the pipeline with a fallback that answers every unmatched path — the
     /// meta host forwards it to Node — so auth endpoints mapped afterwards are never reached.
     /// </para>
     /// </remarks>

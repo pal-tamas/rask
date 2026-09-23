@@ -2,7 +2,7 @@ using Rask.Core.Components;
 
 namespace Rask.Core.Live;
 
-// The document root installed by Rask.Server.UseRask<TApp> and Rask.Wasm.WasmHostBuilder. Two jobs:
+// The document root installed by Rask.Server.MapRask<TApp> and Rask.Wasm.WasmHostBuilder. Two jobs:
 //
 //  1. It COMPOSES THE PAGE SHELL around the App. The App renders straight into <body>; the doctype,
 //     <html>, <head> and <body> are the framework's, built here from the App's own Shell/HtmlLang/
@@ -62,7 +62,7 @@ internal sealed class RootErrorBoundary : Component
         var ctx = Current
                   ?? throw new InvalidOperationException(
                       "A Rask app was rendered outside a live render context, so the framework's root "
-                      + "error boundary has nothing to wrap. Render through the host — UseRask<TApp>() "
+                      + "error boundary has nothing to wrap. Render through the host — MapRask<TApp>() "
                       + "on the server, the WASM host builder in the browser — or, in a test, through "
                       + "Test.Render, which sets one up for you.");
         var inner = ctx.GetOrCreate(Inner.GetType(), _ => Inner);

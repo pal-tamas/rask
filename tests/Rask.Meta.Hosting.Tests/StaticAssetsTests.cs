@@ -71,7 +71,7 @@ public class StaticAssetsTests : IDisposable
                 options.Framework = framework;
                 options.AppDirectory = _root;
             }),
-            app => app.UseRaskMeta());
+            app => app.MapRaskMeta());
 
     private static HttpClient ClientFor(int port) =>
         new() { BaseAddress = new Uri($"http://127.0.0.1:{port}") };

@@ -54,7 +54,7 @@ public sealed class LogMetricsTests
         await harness.RunUntilStoredAsync(1);
 
         harness.Clock.Advance(TimeSpan.FromDays(2));
-        await harness.RunUntilAsync(async () => await harness.Store.CountAsync() == 0);
+        await harness.RunUntilAsync(async () => await harness.Store.Count() == 0);
 
         collector.Collect();
         Assert.Equal(1, collector.Total("rask.logs.purged"));
@@ -74,7 +74,7 @@ public sealed class LogMetricsTests
         harness.Logger().LogInformation("one");
         await harness.RunUntilAsync(async () =>
         {
-            if (await harness.Store.CountAsync() == 0)
+            if (await harness.Store.Count() == 0)
             {
                 return false;
             }

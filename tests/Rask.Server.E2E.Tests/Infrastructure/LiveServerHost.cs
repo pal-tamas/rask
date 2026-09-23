@@ -66,7 +66,7 @@ internal sealed class LiveServerHost : IAsyncDisposable
 
         app.UseRouting();
         app.UseWebSockets();
-        app.UseRask<TApp>();
+        app.MapRask<TApp>();
         await app.StartAsync();
 
         var address = app.Services.GetRequiredService<IServer>().Features

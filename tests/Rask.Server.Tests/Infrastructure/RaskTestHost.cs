@@ -45,7 +45,7 @@ internal sealed class RaskTestHost : IDisposable
         // existing Diff-mode reset convention.
         LiveOptions.PathBase = string.Empty;
 
-        // Same reason, and sharper: UseRask sets IsDevelopment with `??=`, so it is claimed by the FIRST
+        // Same reason, and sharper: MapRask sets IsDevelopment with `??=`, so it is claimed by the FIRST
         // host in the process and never revised. Left set, one host built with environment "Development"
         // would decide what every later host in the run reports — and the dev-only behaviour gated on it
         // (the error overlay, the dev error page) would then be tested against somebody else's answer.
@@ -96,7 +96,7 @@ internal sealed class RaskTestHost : IDisposable
         app.UseRouting();
         app.UseWebSockets();
         configureMiddleware?.Invoke(app);
-        app.UseRask<TApp>(pathBase: pathBase);
+        app.MapRask<TApp>(pathBase: pathBase);
 
         app.StartAsync().GetAwaiter().GetResult();
 

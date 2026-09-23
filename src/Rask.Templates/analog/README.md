@@ -44,5 +44,5 @@ Kestrel owns the public port. It serves the framework's content-hashed assets it
 everything else to the framework's server on loopback, and supervises that process — so ASP.NET
 authentication, rate limiting and health checks sit in front of every request.
 
-Map your API **before** `app.UseRaskMeta()`: it registers a fallback, and the symptom of getting
+Map your API **before** `app.MapRaskMeta()`: it registers a fallback, and the symptom of getting
 that backwards is an API call answered with a rendered page.

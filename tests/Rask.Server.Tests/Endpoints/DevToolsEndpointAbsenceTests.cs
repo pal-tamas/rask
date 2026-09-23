@@ -5,7 +5,7 @@ using Rask.Server.Tests.Infrastructure;
 namespace Rask.Server.Tests.Endpoints;
 
 /// <summary>
-///     UseRask maps the devtools' endpoints only when the devtools attached. This assembly does not reference
+///     MapRask maps the devtools' endpoints only when the devtools attached. This assembly does not reference
 ///     Rask.DevTools, so even a Debug build — switch on, environment Development — finds no bootstrap and must
 ///     map nothing under <c>/_rask-devtools</c>.
 /// </summary>

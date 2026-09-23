@@ -44,7 +44,7 @@ public sealed class PostsController(AppDb db) : ControllerBase
 
 It is worth being blunt about this, because Rask's own docs used to say the opposite. Endpoint routing
 matches on **precedence**, never on registration order, and every route you write is more specific than
-Rask's `/{**path}` catch-all. Your endpoints answer from either side of `UseRask`. `MapEndpoints` is a
+Rask's `/{**path}` catch-all. Your endpoints answer from either side of `MapRask`. `MapEndpoints` is a
 readable place to put them, not a fix for a bug.
 
 What order *cannot* fix — and what `MapRaskApi()` does — is a request under your API prefix that

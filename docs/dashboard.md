@@ -24,7 +24,7 @@ builder.Services.AddAuthorization(o =>
 
 The dashboard is server-rendered and reads your database directly, so it lives wherever your ASP.NET host
 does — the `server` template, and a host that serves a single-page app (a Rask WebAssembly app or a
-TypeScript front end) through [`UseRaskSpa`](spa.md#a-rask-webassembly-app).
+TypeScript front end) through [`MapRaskSpa`](spa.md#a-rask-webassembly-app).
 
 A SPA host normally runs no components at all: it serves the app and an API. Mounting the dashboard gives
 it exactly one server-rendered route chain, scoped so the client keeps everything else:
@@ -35,8 +35,8 @@ builder.Services.AddRaskSpaHost();      // compression for the app's files
 
 // …
 
-app.UseRaskServer<RaskDashboardShell>("/_rask/{**path}");   // the dashboard, server-rendered
-app.UseRaskSpa();                                           // the app, everywhere else
+app.MapRaskServer<RaskDashboardShell>("/_rask/{**path}");   // the dashboard, server-rendered
+app.MapRaskSpa();                                           // the app, everywhere else
 ```
 
 `rask new --ops` writes all of it on a server app, including the database the panels read.
@@ -45,10 +45,10 @@ Two details are worth knowing if you assemble this by hand. The SPA's fallback i
 there is, so mounting the dashboard above it claims the dashboard's routes without taking any of the
 client's. And both halves want `/_rask/a/{hash}` — the dashboard's scoped styles and a WebAssembly app's
 baked ones — so the dashboard's endpoint answers a hash its own process never registered from the web
-root, where `UseRaskSpa` puts the app's.
+root, where `MapRaskSpa` puts the app's.
 
 `RaskDashboardShell` is the root the pages render through: a host serving a SPA has no component of its
-own for `UseRaskServer<TApp>` to name.
+own for `MapRaskServer<TApp>` to name.
 
 ## What it shows
 

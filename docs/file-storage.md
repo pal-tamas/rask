@@ -60,11 +60,11 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 }
 ```
 
-And map the routes that serve public and temporary links — **after** `UseRask`, because the routes live under
+And map the routes that serve public and temporary links — **after** `MapRask`, because the routes live under
 the path base it sets:
 
 ```csharp
-app.UseRask<App>();
+app.MapRask<App>();
 app.MapRaskStorage();
 ```
 

@@ -11,7 +11,7 @@ using Rask.Server;
 
 namespace Rask.Benchmarks;
 
-// One GET for a routed page, through the whole ASP.NET pipeline and UseRask — the path a first visit, a
+// One GET for a routed page, through the whole ASP.NET pipeline and MapRask — the path a first visit, a
 // crawler and a link preview all take.
 //
 // Nothing else measures it. Every render benchmark starts below the handler, so a change to what the
@@ -42,7 +42,7 @@ public partial class PageRequestBenchmarks
         _app = builder.Build();
         _app.UseRouting();
         _app.UseWebSockets();
-        _app.UseRask<RequestApp>();
+        _app.MapRask<RequestApp>();
         _app.StartAsync().GetAwaiter().GetResult();
 
         _client = _app.GetTestServer().CreateClient();

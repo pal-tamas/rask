@@ -36,7 +36,7 @@ builder.Services.AddSingleton<PushSubscriptionStore>();
 
 …plus `Features/Push/PushSubscriptions.cs`: an in-memory store of subscribed browsers and three endpoints —
 `/_push/key`, `/_push/subscribe`, `/_push/unsubscribe` — mapped by `app.MapPushSubscriptions()` **before**
-`UseRask<App>()`, since its catch-all serves the app for anything unmatched.
+`MapRask<App>()`, since its catch-all serves the app for anything unmatched.
 
 Note what is and isn't gated. Sending needs keys, so `AddRaskWebPush` is behind the config check — an app
 whose keys are missing still starts. The store and its endpoints are always registered, so `/_push/key`

@@ -217,7 +217,7 @@ mistake, the rule notes the ID.
 
 ## Security
 
-- **Order middleware `UseAuthentication()` → `UseAuthorization()` → `UseRask<App>()`.** Rask seeds
+- **Order middleware `UseAuthentication()` → `UseAuthorization()` → `MapRask<App>()`.** Rask seeds
   the session from `HttpContext.User` on the initial GET and the WS upgrade; if auth runs *after*
   Rask the principal is empty and every `[Authorize]` page challenges. This is **RASK024**. Behind a
   reverse proxy, wire `UseForwardedHeaders()` *first* so the origin checks see the public host.
@@ -231,7 +231,7 @@ mistake, the rule notes the ID.
 - **Lean on the built-in URL sanitization.** URL-bearing attributes neutralize dangerous schemes
   (`javascript:`, `vbscript:`) to `about:blank` by default; use `RaskUrl.Trusted(...)` only for URLs
   you control. Treat the **session id as a bearer secret** (HTTPS only, never logged), and set a
-  strict **Content-Security-Policy** as middleware before `UseRask` — Rask needs no
+  strict **Content-Security-Policy** as middleware before `MapRask` — Rask needs no
   `script-src 'unsafe-inline'` (only `style-src 'unsafe-inline'` for `Style:` attributes, plus
   `'wasm-unsafe-eval'` on WASM). Full flows and the [security
   checklist](authentication-hardening.md#security-checklist) live in [authentication](authentication.md).
@@ -288,7 +288,7 @@ mistake, the rule notes the ID.
 | Scoped `DbContext` in a Server app | `IDbContextFactory<T>` + a fresh context per op |
 | Async EF/HTTP calls without the token | Thread `Component.CancellationToken` through |
 | Any auth token in `localStorage` | The `HttpOnly` session cookie the battery already sets |
-| `UseAuthentication()` after `UseRask()` (**RASK024**) | Auth → Authorization → Rask, in that order |
+| `UseAuthentication()` after `MapRask()` (**RASK024**) | Auth → Authorization → Rask, in that order |
 | `Img` without `Alt` (**RASK023**) | Real alt text, or `Alt: ""` for decorative |
 | `for`-loop index captured in a binding lambda | Copy to a per-iteration local, or use `foreach` |
 

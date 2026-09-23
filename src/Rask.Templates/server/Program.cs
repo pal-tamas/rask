@@ -307,13 +307,13 @@ if (!string.IsNullOrWhiteSpace(replicaUrl))
 {
     await app.Services.RestoreSqliteFromLitestreamAsync();
 }
-// Must precede UseRask so HttpContext.User is populated on the GET and the WS upgrade.
+// Must precede MapRask so HttpContext.User is populated on the GET and the WS upgrade.
 app.UseAuthentication();
 app.UseAuthorization();
 
 // rask:end
 // rask:if push pwa
-// Endpoints go here, before UseRask, so they read in one place. Order is not what makes them work:
+// Endpoints go here, before MapRask, so they read in one place. Order is not what makes them work:
 // routing matches on precedence, and any route is more specific than the catch-all.
 app.MapPushSubscriptions();
 
@@ -321,10 +321,10 @@ app.MapPushSubscriptions();
 // To host this app under a sub-path (e.g. behind a reverse proxy mapping
 // /myapp/* → this server), set Rask:Live:PathBase in appsettings.json. Every framework endpoint
 // and emitted URL is scoped under the prefix; user-space routes stay unprefixed.
-app.UseRask<App>();
+app.MapRask<App>();
 
 // rask:if storage
-// The routes behind files.Url(id) and files.Share(id).For(lifetime). After UseRask, which sets
+// The routes behind files.Url(id) and files.Share(id).For(lifetime). After MapRask, which sets
 // the path base they live under.
 app.MapRaskStorage();
 

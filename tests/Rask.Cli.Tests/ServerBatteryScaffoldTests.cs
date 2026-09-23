@@ -243,12 +243,12 @@ public sealed class ServerBatteryScaffoldTests
     {
         var program = Generate("storage")["Program.cs"];
 
-        // After, not before: MapRaskStorage reads the path base UseRask sets, so mapped earlier its routes would
+        // After, not before: MapRaskStorage reads the path base MapRask sets, so mapped earlier its routes would
         // ignore a pathBase the app configures later.
         Assert.True(
-            program.IndexOf("app.UseRask<App>();", StringComparison.Ordinal) <
+            program.IndexOf("app.MapRask<App>();", StringComparison.Ordinal) <
             program.IndexOf("app.MapRaskStorage();", StringComparison.Ordinal),
-            "MapRaskStorage must follow UseRask.");
+            "MapRaskStorage must follow MapRask.");
         Assert.True(
             program.IndexOf("app.MapRaskStorage();", StringComparison.Ordinal) <
             program.IndexOf("app.Run();", StringComparison.Ordinal),
@@ -294,7 +294,7 @@ public sealed class ServerBatteryScaffoldTests
     [Fact]
     public void Push_maps_its_endpoints_before_the_UseRask_catch_all()
     {
-        // Not a correctness rule — routing matches on precedence, so mapping after UseRask would work
+        // Not a correctness rule — routing matches on precedence, so mapping after MapRask would work
         // too (RaskAppTests.An_endpoint_mapped_after_UseRask_still_runs pins that). This pins the
         // scaffold's LAYOUT: endpoints read in one place, above the line that ends the pipeline.
         var files = Generate("push");
@@ -302,8 +302,8 @@ public sealed class ServerBatteryScaffoldTests
 
         Assert.True(
             program.IndexOf("app.MapPushSubscriptions();", StringComparison.Ordinal) <
-            program.IndexOf("app.UseRask<App>();", StringComparison.Ordinal),
-            "Push endpoints must be mapped before UseRask.");
+            program.IndexOf("app.MapRask<App>();", StringComparison.Ordinal),
+            "Push endpoints must be mapped before MapRask.");
 
         Assert.Contains("Features/Push/PushSubscriptions.cs", files.Keys);
 

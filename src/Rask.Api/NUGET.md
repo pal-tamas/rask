@@ -6,7 +6,7 @@ Ordinary ASP.NET Core **API controllers and minimal API endpoints**, hosted prop
 builder.Services.AddRaskApi();
 ...
 app.MapRaskApi();
-app.UseRask<App>();
+app.MapRask<App>();
 ```
 
 Write the endpoint however you normally would — an `[ApiController]` class, or `app.MapGet(...)`. Nothing
@@ -16,7 +16,7 @@ about it is Rask-specific.
 
 Not ordering. Endpoint routing matches on **precedence**, never on registration order, and every route
 you write is more specific than Rask's `/{**path}` catch-all — so your endpoints answer from either side
-of `UseRask`, and always did.
+of `MapRask`, and always did.
 
 What order cannot fix is a request under your API prefix matching **nothing**. Without a guard it
 reaches the catch-all and renders the app, so a mistyped or deleted route answers `200` with a web page,

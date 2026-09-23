@@ -123,7 +123,7 @@ to it. A `RaskApp` already has storage on; a hand-wired host adds the registrati
 ```csharp
 builder.Services.AddRaskStorage<ProductsDbContext>();
 modelBuilder.AddRaskStorage();                                       // then: rask db add AddStorage && rask db update
-app.MapRaskStorage();                                                // after app.UseRask<App>()
+app.MapRaskStorage();                                                // after app.MapRask<App>()
 
 var saved = await Files.Save(file.OpenReadStream, file.Name, file.Size).Public();
 product.SetPhoto(saved.Id);

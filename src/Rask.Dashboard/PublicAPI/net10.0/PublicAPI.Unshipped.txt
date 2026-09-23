@@ -124,7 +124,6 @@ Rask.Dashboard.Pages.LogsPage.Category.set -> void
 Rask.Dashboard.Pages.LogsPage.Dispose() -> void
 Rask.Dashboard.Pages.LogsPage.Level.get -> string?
 Rask.Dashboard.Pages.LogsPage.Level.set -> void
-Rask.Dashboard.Pages.LogsPage.LogsPage(Rask.Dashboard.Logging.DashboardLogBuffer! buffer, Rask.Dashboard.RaskDashboardOptions! options, System.TimeProvider! timeProvider, Rask.Core.Routing.Navigator! navigator, System.IServiceProvider! services) -> void
 Rask.Dashboard.Pages.LogsPage.Page.get -> int?
 Rask.Dashboard.Pages.LogsPage.Page.set -> void
 Rask.Dashboard.Pages.LogsPage.Query.get -> string?
@@ -466,3 +465,4 @@ Rask.Dashboard.Panels.RecurringJobRow.Deconstruct(out string! Name, out string! 
 Rask.Dashboard.Panels.RecurringJobRow.RecurringJobRow(string! Name, string! Schedule, System.DateTime? LastEnqueuedAt) -> void
 Rask.Dashboard.Panels.RecurringJobRow.Schedule.get -> string!
 Rask.Dashboard.Panels.RecurringJobRow.Schedule.init -> void
+Rask.Dashboard.Pages.LogsPage.LogsPage(Rask.Dashboard.Logging.DashboardLogBuffer! buffer, Rask.Dashboard.RaskDashboardOptions! options, System.TimeProvider! timeProvider, Rask.Core.Routing.Navigator! navigator) -> void

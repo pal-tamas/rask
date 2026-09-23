@@ -18,7 +18,7 @@ namespace Rask.Server;
 ///     <para>
 ///         It also closes a gap the GET path alone would leave open. The WebSocket endpoint is mapped once
 ///         per host rather than once per root, so a session RESUMING after a restart was rebuilt with
-///         whichever root the first <c>UseRask</c> captured. A console session would have come back as the
+///         whichever root the first <c>MapRask</c> captured. A console session would have come back as the
 ///         host application, under the console's URL, and only after a restart — so nothing would have
 ///         reported it. Resume now asks this the same question the GET did, using the path recorded in the
 ///         resume record.

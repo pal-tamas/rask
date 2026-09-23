@@ -60,7 +60,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK021](#rask021) | Warning | Root component must not render the page shell |
 | [RASK022](#rask022) | Warning | List item is missing a `Key` |
 | [RASK023](#rask023) | Warning | `Img` is missing `Alt` text |
-| [RASK024](#rask024) | Warning | `UseAuthentication()` must precede `UseRask()` |
+| [RASK024](#rask024) | Warning | `UseAuthentication()` must precede `MapRask()` |
 | [RASK025](#rask025) | Warning | `InputType` conflicts with the bound `Input<T>` value type |
 | [RASK026](#rask026) | Warning | Redundant `StateHasChanged` in a Rask callback |
 | [RASK027](#rask027) | — | *Retired* — both the sync and async handler are set for one event |
@@ -390,23 +390,23 @@ assistive technology skips it (**quick-fix available** — the IDE lightbulb ins
 then fill in for informative images). See [accessibility](accessibility.md).
 
 ## RASK024
-**`UseAuthentication()` must precede `UseRask()`** · Warning
+**`UseAuthentication()` must precede `MapRask()`** · Warning
 
-`app.UseRask<App>()` is wired before `app.UseAuthentication()`. Rask seeds the live session from
+`app.MapRask<App>()` is wired before `app.UseAuthentication()`. Rask seeds the live session from
 `HttpContext.User` during the initial GET render and the WebSocket upgrade — if the authentication
-middleware runs *after* `UseRask`, the principal is empty at that point and every `[Authorize]` page
+middleware runs *after* `MapRask`, the principal is empty at that point and every `[Authorize]` page
 challenges.
 
 ```csharp
-// ✗ app.UseRask<App>();
+// ✗ app.MapRask<App>();
 //   app.UseAuthentication();
 // ✓ app.UseAuthentication();   // populates HttpContext.User on GET + WS upgrade
 //   app.UseAuthorization();
-//   app.UseRask<App>();
+//   app.MapRask<App>();
 ```
 
-**Fix:** call `app.UseAuthentication()` (and `app.UseAuthorization()`) before `app.UseRask()`. The
-warning fires only when both calls are present and `UseAuthentication` is positioned after `UseRask`;
+**Fix:** call `app.UseAuthentication()` (and `app.UseAuthorization()`) before `app.MapRask()`. The
+warning fires only when both calls are present and `UseAuthentication` is positioned after `MapRask`;
 an app with no authentication middleware is left alone. See [authentication](authentication.md).
 
 ## RASK025

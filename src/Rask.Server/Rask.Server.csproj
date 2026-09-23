@@ -44,7 +44,7 @@
       per-connection buffers into the per-session number.
     -->
     <InternalsVisibleTo Include="Rask.Benchmarks"/>
-    <!-- The devtools map their endpoints through IRaskServerDevTools, which UseRask calls. -->
+    <!-- The devtools map their endpoints through IRaskServerDevTools, which MapRask calls. -->
     <InternalsVisibleTo Include="Rask.DevTools"/>
     <InternalsVisibleTo Include="Rask.DevTools.Tests"/>
   </ItemGroup>

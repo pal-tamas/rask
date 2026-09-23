@@ -137,15 +137,15 @@ public sealed class SpaTemplateTests
     {
         var program = Content(Generate(), "/Program.cs");
 
-        // UseRaskSpa ends the pipeline with a fallback to index.html. An endpoint mapped after it is
+        // MapRaskSpa ends the pipeline with a fallback to index.html. An endpoint mapped after it is
         // shadowed by that fallback rather than reached — and the symptom is an API call answered with
         // HTML, which the browser reports as a JSON parse error.
         var map = program.IndexOf("app.MapRaskCqrs();", StringComparison.Ordinal);
-        var spa = program.IndexOf("app.UseRaskSpa();", StringComparison.Ordinal);
+        var spa = program.IndexOf("app.MapRaskSpa();", StringComparison.Ordinal);
 
         Assert.True(map >= 0, "the CQRS endpoints are never mapped.");
         Assert.True(spa >= 0, "the SPA is never served.");
-        Assert.True(map < spa, "MapRaskCqrs must come before UseRaskSpa or the fallback shadows it.");
+        Assert.True(map < spa, "MapRaskCqrs must come before MapRaskSpa or the fallback shadows it.");
     }
 
     [Fact]
@@ -404,13 +404,13 @@ public sealed class SpaTemplateTests
         Assert.Contains("namespace Shop.Features.Push;", store, StringComparison.Ordinal);
         Assert.Contains("MapPushSubscriptions", store, StringComparison.Ordinal);
 
-        // Mapped before UseRaskSpa, which ends the pipeline with a fallback to index.html — an endpoint
+        // Mapped before MapRaskSpa, which ends the pipeline with a fallback to index.html — an endpoint
         // added after it would answer HTML instead of JSON.
         var program = Content(result, "/Program.cs");
         Assert.InRange(
             program.IndexOf("app.MapPushSubscriptions();", StringComparison.Ordinal),
             0,
-            program.IndexOf("app.UseRaskSpa();", StringComparison.Ordinal));
+            program.IndexOf("app.MapRaskSpa();", StringComparison.Ordinal));
     }
 
     [Fact]

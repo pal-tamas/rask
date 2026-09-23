@@ -19,7 +19,7 @@
       2. Probe for node, and say what to install if it isn't there.
       3. `npm ci` — its own target with its own up-to-date check, because it is the expensive one.
       4. `npm run build` — incremental against the client's sources.
-      5. Bake the dist path as assembly metadata so `app.UseRaskSpa()` resolves with no arguments.
+      5. Bake the dist path as assembly metadata so `app.MapRaskSpa()` resolves with no arguments.
       6. On publish, copy the bundle next to the app: a baked absolute path belongs to the machine that
          built it, and inside a `rask deploy` container it names a directory that does not exist.
 
@@ -159,7 +159,7 @@
     this whole pipeline exists to prevent. Half a guarantee reads like a whole one, so it is refused.
 
     Gated on RaskEmitTypeScript, not on a client merely existing, because that is the honest line:
-    UseRaskSpa serves a built bundle with no opinion about what produced it, so turning the contracts
+    MapRaskSpa serves a built bundle with no opinion about what produced it, so turning the contracts
     off leaves this package a static-file host for any front end at all.
   -->
   <Target Name="_RaskSpaRequireTypeScript" BeforeTargets="BeforeBuild"
@@ -365,8 +365,8 @@
 
     Then the bundler lane's steps, with a .NET publish in place of `npm run build`:
       1. `dotnet publish` the client before this project builds.
-      2. Bake its publish/wwwroot as Rask.SpaDistDir, so `app.UseRaskSpa()` resolves with no arguments.
-      3. On publish, copy the bundle into this app's RaskSpaPublishDir, where UseRaskSpa looks first.
+      2. Bake its publish/wwwroot as Rask.SpaDistDir, so `app.MapRaskSpa()` resolves with no arguments.
+      3. On publish, copy the bundle into this app's RaskSpaPublishDir, where MapRaskSpa looks first.
 
     RaskSpaBuild=false, which a dev session sets, skips the publish and bakes the client's build-output
     manifest instead. That is a precondition for WebAssembly hot reload, not an optimisation: a published
@@ -395,7 +395,7 @@
            Text="Rask.Spa.Hosting: a host serves one WebAssembly client, and this project references @(_RaskSpaWasmClient->Count()): @(_RaskSpaWasmClient). Serve each from its own host."/>
     <Error Condition="'@(_RaskSpaWasmClient->Count())' == '1' AND '$(_RaskSpaDir)' != ''"
            Code="RASKSPA007"
-           Text="Rask.Spa.Hosting: this project has two clients, the WebAssembly project @(_RaskSpaWasmClient) and the front end in $(_RaskSpaDir). UseRaskSpa serves one app per host: remove one, or serve it from its own host."/>
+           Text="Rask.Spa.Hosting: this project has two clients, the WebAssembly project @(_RaskSpaWasmClient) and the front end in $(_RaskSpaDir). MapRaskSpa serves one app per host: remove one, or serve it from its own host."/>
 
     <!--
       The client's framework, asked of MSBuild rather than read off the file: the bundle and manifest paths

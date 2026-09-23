@@ -19,7 +19,7 @@
   <PropertyGroup>
     <!--
       Master switch. False skips the install, the build and the node probe entirely — the app still
-      compiles and its API still works, and UseRaskSpa reports that there is nothing to serve.
+      compiles and its API still works, and MapRaskSpa reports that there is nothing to serve.
 
       A dev session turns it off, because the bundler's dev server owns the build then and paying for a
       production bundle on every save would make watch unusable. The repo's own unit gate passes false
@@ -35,7 +35,7 @@
     <RaskSpaBuild Condition="'$(RaskSpaBuild)' == '' AND '$(RaskDevSession)' == 'true'">false</RaskSpaBuild>
     <RaskSpaBuild Condition="'$(RaskSpaBuild)' == ''">true</RaskSpaBuild>
 
-    <!-- Where the built app is copied inside the publish output, and the first place UseRaskSpa looks
+    <!-- Where the built app is copied inside the publish output, and the first place MapRaskSpa looks
          at runtime. Change it only if the host already owns a wwwroot of its own. -->
     <RaskSpaPublishDir Condition="'$(RaskSpaPublishDir)' == ''">wwwroot</RaskSpaPublishDir>
 

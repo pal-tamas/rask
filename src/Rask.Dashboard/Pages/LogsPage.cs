@@ -30,11 +30,8 @@ public sealed partial class LogsPage(
     DashboardLogBuffer buffer,
     RaskDashboardOptions options,
     TimeProvider timeProvider,
-    Navigator navigator,
-    IServiceProvider services) : PollingPanel, IDisposable
+    Navigator navigator) : PollingPanel, IDisposable
 {
-    private readonly ILogs? _store = services.GetService<ILogs>();
-
     private bool _subscribed;
     private LogPage _history = LogPage.Empty(1, 1);
     private IReadOnlyList<string> _storedCategories = [];
@@ -63,7 +60,9 @@ public sealed partial class LogsPage(
     protected override RaskDashboardOptions Options => options;
 
     /// <summary><c>true</c> when a durable store is registered, so History is offered at all.</summary>
-    private bool HasStore => _store is not null;
+    // Logs.IsOn rather than an injected ILogs?: the battery may not be registered, and this page renders
+    // "logging is off" instead of failing. Read per call, because a page outlives any one scope.
+    private static bool HasStore => Logs.IsOn;
 
     private bool IsHistory => HasStore && string.Equals(View, "history", StringComparison.OrdinalIgnoreCase);
 
@@ -106,18 +105,18 @@ public sealed partial class LogsPage(
         }
 
         var query = BuildQuery(Level, Category, Query, Page, options.PageSize);
-        _history = await _store!.SearchAsync(query, cancellationToken).ConfigureAwait(false);
+        _history = await Logs.Search(query, cancellationToken).ConfigureAwait(false);
 
         // A page past the end — a bookmarked ?page= that retention has since trimmed — reads the last page there
         // is, rather than an empty table beside the stored count and a pager that cannot reach it.
         if (_history.Entries.Count == 0 && _history.TotalCount > 0 && _history.Page > _history.PageCount)
         {
             Page = _history.PageCount;
-            _history = await _store
-                .SearchAsync(BuildQuery(Level, Category, Query, Page, options.PageSize), cancellationToken)
+            _history = await Logs
+                .Search(BuildQuery(Level, Category, Query, Page, options.PageSize), cancellationToken)
                 .ConfigureAwait(false);
         }
-        _storedCategories = await _store.CategoriesAsync(cancellationToken).ConfigureAwait(false);
+        _storedCategories = await Logs.Categories(cancellationToken).ConfigureAwait(false);
 
         // Total plus the ids on screen: a new entry changes the total, and paging changes the ids.
         return string.Join('|', [$"history:{_history.TotalCount}", .. _history.Entries.Select(e => e.Id)]);

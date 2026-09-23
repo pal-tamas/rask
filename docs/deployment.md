@@ -370,7 +370,7 @@ the `Upgrade`/`Connection` headers (most do by default; for nginx set `proxy_set
 `GET /_rask/stream/{session}`. nginx needs nothing for it — it honours the `X-Accel-Buffering: no` header Rask
 sends, and the 15-second heartbeat stays inside its default 60-second `proxy_read_timeout` — but a proxy that
 ignores both must not buffer that path, and must not compress `text/event-stream`. Serve over HTTP/2 where you
-can: a tab on the fallback holds one of HTTP/1.1's six connections per origin. To host under a sub-path, pass `app.UseRask<App>(pathBase:
+can: a tab on the fallback holds one of HTTP/1.1's six connections per origin. To host under a sub-path, pass `app.MapRask<App>(pathBase:
 "/myapp")` and route `/myapp/*` to the container.
 
 **Caching in front of the app.** Every page is `Cache-Control: no-store, no-cache, must-revalidate,
@@ -398,7 +398,7 @@ same port and TLS story as the server app above.
 
 **If you are starting today, you want the `wasm-hosted` template instead**
 ([single-page apps](spa.md#a-rask-webassembly-app)): one project whose browser app lives in `Client/`, and
-`dotnet publish` emits its bundle into the server's `wwwroot`, where `UseRaskSpa()` serves it. That path
+`dotnet publish` emits its bundle into the server's `wwwroot`, where `MapRaskSpa()` serves it. That path
 *is* scaffolded, Dockerfile included.
 
 ## Standalone WASM SPA (`--template wasm`)

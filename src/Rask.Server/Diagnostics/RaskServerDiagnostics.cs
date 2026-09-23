@@ -5,7 +5,7 @@ namespace Rask.Server.Diagnostics;
 
 /// <summary>
 ///     Bridges the framework's dependency-free <see cref="RaskDiagnostics" /> seam to the host's
-///     <c>ILogger</c> pipeline. Installed once by <c>UseRask&lt;TApp&gt;()</c>: from then on every
+///     <c>ILogger</c> pipeline. Installed once by <c>MapRask&lt;TApp&gt;()</c>: from then on every
 ///     framework diagnostic — a faulting lifecycle hook, a duplicate sibling key, a malformed WS
 ///     frame, a handler that threw — is logged through an <c>ILogger</c> named for the event's
 ///     <see cref="RaskDiagnosticEvent.Category" /> (e.g. <c>Rask.Lifecycle</c>, <c>Rask.Diff</c>,

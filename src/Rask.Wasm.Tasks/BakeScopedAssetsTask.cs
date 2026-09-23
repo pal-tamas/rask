@@ -17,7 +17,7 @@ namespace Rask.Wasm.Tasks;
 ///         Why this exists: the in-WASM-browser runtime computes per-component asset
 ///         hashes from the component assembly loaded into the .NET-in-Wasm
 ///         runtime. No server process loads that assembly, so without baking nothing can
-///         answer those URLs: WasmAppHost, <c>UseRaskSpa</c> and a CDN are all static-file
+///         answer those URLs: WasmAppHost, <c>MapRaskSpa</c> and a CDN are all static-file
 ///         servers, and 404 on every <c>/_rask/a/{hash}.{ext}</c> unless the files exist.
 ///         This task writes them into a staging dir that the targets register as static web
 ///         assets, so any static-file server works.

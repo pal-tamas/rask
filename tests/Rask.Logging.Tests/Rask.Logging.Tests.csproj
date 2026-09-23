@@ -38,4 +38,9 @@
     <ProjectReference Include="..\..\src\Rask.Logging\Rask.Logging.csproj"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Clock.Fake, so the retention tests move time instead of sleeping through it. -->
+    <ProjectReference Include="..\..\src\Rask.Testing\Rask.Testing.csproj"/>
+  </ItemGroup>
+
 </Project>

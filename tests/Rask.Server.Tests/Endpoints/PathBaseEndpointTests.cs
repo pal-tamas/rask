@@ -8,7 +8,7 @@ using Rask.Server.Tests.Infrastructure;
 namespace Rask.Server.Tests.Endpoints;
 
 /// <summary>
-///     Verifies <c>app.UseRask&lt;TApp&gt;(pathBase: "/appA")</c> scopes every
+///     Verifies <c>app.MapRask&lt;TApp&gt;(pathBase: "/appA")</c> scopes every
 ///     framework-owned endpoint under the prefix and that the same endpoint paths
 ///     are unreachable at origin root. Required so two Rask Server apps can live
 ///     side-by-side behind a reverse proxy without colliding.
@@ -93,7 +93,7 @@ public sealed class PathBaseEndpointTests
     {
         // A component with scoped CSS is rendered; the head must emit <link href="/appA/_rask/a/...">
         // not the legacy "/_rask/a/..." path. End-to-end check that LiveOptions.PathBase
-        // assignment at UseRask time propagates into the head emission on first paint.
+        // assignment at MapRask time propagates into the head emission on first paint.
         ScopedAssetRegistry.RegisterCss(typeof(TestApp), ".test { color: blue; }");
         var hash = ScopedAssetRegistry.GetBundleHash(AssetKind.Css);
         using var host = RaskTestHost.Create<TestApp>(pathBase: "/appA");

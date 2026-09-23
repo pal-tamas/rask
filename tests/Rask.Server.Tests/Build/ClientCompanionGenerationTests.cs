@@ -186,7 +186,7 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
     public void The_browser_app_targets_the_server_halfs_dotnet_version(string server, string bundle)
     {
         // The companion compiles the app's Client/ sources, so it builds them for the .NET version the app
-        // targets — and the development manifest UseRaskSpa serves is looked for under that framework's bin
+        // targets — and the development manifest MapRaskSpa serves is looked for under that framework's bin
         // folder. A literal net10.0-browser compiled a net11.0 app for an older framework than its server.
         // Each framework's project is generated into a folder of its own, which is where Generate looks.
         var csproj = Path.Combine(_dir, "App.csproj");

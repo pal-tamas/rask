@@ -28,13 +28,13 @@ public static class RaskMetaEndpointExtensions
     /// <param name="endpoints">The app's endpoint route builder.</param>
     /// <returns><paramref name="endpoints" />, for chaining.</returns>
     /// <exception cref="InvalidOperationException"><c>AddRaskMeta()</c> was not called.</exception>
-    public static IEndpointRouteBuilder UseRaskMeta(this IEndpointRouteBuilder endpoints)
+    public static IEndpointRouteBuilder MapRaskMeta(this IEndpointRouteBuilder endpoints)
     {
         ArgumentNullException.ThrowIfNull(endpoints);
 
         var forwarder = endpoints.ServiceProvider.GetService<NodeForwarder>()
             ?? throw new InvalidOperationException(
-                "UseRaskMeta() requires AddRaskMeta() on the service collection.");
+                "MapRaskMeta() requires AddRaskMeta() on the service collection.");
 
         // "{*path}" and NOT the handler-only MapFallback overload, which maps "{*path:nonfile}" and so
         // matches nothing whose last segment contains a dot. Every hashed chunk, favicon and

@@ -84,13 +84,13 @@ public sealed class MetaTemplateTests
         var program = File(Generate("sveltekit"), "Program.cs");
 
         var cqrs = program.IndexOf("app.MapRaskCqrs()", StringComparison.Ordinal);
-        var meta = program.IndexOf("app.UseRaskMeta()", StringComparison.Ordinal);
+        var meta = program.IndexOf("app.MapRaskMeta()", StringComparison.Ordinal);
 
         Assert.True(cqrs >= 0 && meta >= 0);
 
-        // UseRaskMeta registers a FALLBACK. An endpoint mapped after it is not unreachable in a way
+        // MapRaskMeta registers a FALLBACK. An endpoint mapped after it is not unreachable in a way
         // anything reports — it is answered with a rendered page, which reads as a front-end bug.
-        Assert.True(cqrs < meta, "MapRaskCqrs must come before UseRaskMeta.");
+        Assert.True(cqrs < meta, "MapRaskCqrs must come before MapRaskMeta.");
     }
 
     [Fact]

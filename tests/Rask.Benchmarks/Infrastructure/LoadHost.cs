@@ -63,7 +63,7 @@ internal sealed class LoadHost : IAsyncDisposable
         var app = builder.Build();
         app.UseRouting();
         app.UseWebSockets();
-        app.UseRask<LoadPage>();
+        app.MapRask<LoadPage>();
         await app.StartAsync();
 
         var address = app.Services.GetRequiredService<IServer>().Features
