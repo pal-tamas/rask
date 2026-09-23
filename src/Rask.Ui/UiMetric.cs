@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// One number in an <see cref="UiMetricRow" />, optionally the control that selects it.
@@ -16,10 +16,10 @@ public sealed partial class UiMetric : Component
     public required string Value { get; set; }
 
     /// <summary>
-    /// <see cref="UiTone.Error" /> for a number someone must act on, <see cref="UiTone.Warning" /> for one
+    /// <see cref="Ui.Tone.Error" /> for a number someone must act on, <see cref="Ui.Tone.Warning" /> for one
     /// that is merely unproven. Anything else reads as neutral.
     /// </summary>
-    public UiTone? Tone { get; set; }
+    public Ui.Tone? Tone { get; set; }
 
     public string? Caption { get; set; }
 
@@ -34,8 +34,8 @@ public sealed partial class UiMetric : Component
     {
         var tone = Tone switch
         {
-            UiTone.Error => "text-error",
-            UiTone.Warning => "text-warning",
+            Ui.Tone.Error => "text-error",
+            Ui.Tone.Warning => "text-warning",
             _ => "text-base-content",
         };
 
@@ -67,7 +67,7 @@ public sealed partial class UiMetric : Component
                 ? "bg-base-200 shadow-[inset_0_-2px_0_0_var(--color-ui-ink)]"
                 : "bg-base-100 hover:bg-base-200"));
 
-        // Only when true — see UiNavTab. A ternary here would ship a meaningless attribute on every
+        // Only when true — see Ui.NavTab. A ternary here would ship a meaningless attribute on every
         // unselected tile.
         if (selected)
         {

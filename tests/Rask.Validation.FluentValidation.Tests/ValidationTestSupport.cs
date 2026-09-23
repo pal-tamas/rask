@@ -1,7 +1,7 @@
 using FluentValidation;
 using Rask.Core.Forms;
 
-namespace Rask.Validation.FluentValidation.Tests;
+namespace Rask.FluentValidationTests;
 
 /// <summary>
 ///     Shared helper for the FluentValidation suite. Points <c>RaskValidators</c> at the supplied

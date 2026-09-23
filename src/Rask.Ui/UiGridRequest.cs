@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// What a <see cref="UiDataGrid{T,TKey}.Source" /> is asked for: one page, ordered one way.

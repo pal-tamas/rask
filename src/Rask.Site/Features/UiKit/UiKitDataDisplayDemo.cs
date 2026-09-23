@@ -26,16 +26,16 @@ public sealed partial class UiKitDataDisplayDemo : Component
             "One section at a time, and the page owns which. That is the difference from a run of "
             + "collapses sharing a name: the browser closes the others without telling anyone which won.",
             Div.Data(Testid("ui-accordion"))[
-                UiAccordion
+                Ui.Accordion
                     .Open(_section)
                     .OnOpen(key => { _section = key; })[
-                    UiAccordionSection.Key("ship").Title("Shipping").Marker(UiMarker.Arrow)[
+                    Ui.AccordionSection.Key("ship").Title("Shipping").Marker(Ui.Marker.Arrow)[
                         P["Ships within two working days, tracked."]
                     ],
-                    UiAccordionSection.Key("pay").Title("Payment").Marker(UiMarker.Arrow)[
+                    Ui.AccordionSection.Key("pay").Title("Payment").Marker(Ui.Marker.Arrow)[
                         P["Card or bank transfer. Invoices on request."]
                     ],
-                    UiAccordionSection.Key("returns").Title("Returns").Marker(UiMarker.Arrow)[
+                    Ui.AccordionSection.Key("returns").Title("Returns").Marker(Ui.Marker.Arrow)[
                         P["Thirty days, no reason needed."]
                     ]
                 ],
@@ -49,9 +49,9 @@ public sealed partial class UiKitDataDisplayDemo : Component
             "The standalone section. Open is nullable here too — unset lets the browser open it on "
             + "focus, set hands the decision to this page.",
             Div.Data(Testid("ui-collapse"))[
-                UiCollapse
+                Ui.Collapse
                     .Title("Advanced settings")
-                    .Marker(UiMarker.Plus)
+                    .Marker(Ui.Marker.Plus)
                     .Open(_advanced)
                     .OnToggle(open => { _advanced = open; })[
                     P["Nothing in here is required."]
@@ -63,9 +63,9 @@ public sealed partial class UiKitDataDisplayDemo : Component
             "Decoration, and only decoration — it says nothing a reader who cannot see it would miss. "
             + "Use it on the one thing a surface is steering towards.",
             Div.Data(Testid("ui-aura")).Class("flex flex-wrap gap-6")[
-                Aura("holo", UiAuraStyle.Holo, "Holo"),
-                Aura("gold", UiAuraStyle.Gold, "Gold"),
-                Aura("rainbow", UiAuraStyle.Rainbow, "Rainbow")
+                Aura("holo", Ui.AuraStyle.Holo, "Holo"),
+                Aura("gold", Ui.AuraStyle.Gold, "Gold"),
+                Aura("rainbow", Ui.AuraStyle.Rainbow, "Rainbow")
             ]),
 
         Section(
@@ -74,7 +74,7 @@ public sealed partial class UiKitDataDisplayDemo : Component
             + "has to make sense with all of them — this rotates a word, it does not rewrite a sentence.",
             P.Class("text-2xl font-semibold tracking-tight").Data(Testid("ui-text-rotate"))[
                 "Ship it ",
-                UiTextRotate.Words(["fast", "typed", "small", "whole"]).Class("text-primary"),
+                Ui.TextRotate.Words(["fast", "typed", "small", "whole"]).Class("text-primary"),
                 "."
             ]),
 
@@ -83,8 +83,8 @@ public sealed partial class UiKitDataDisplayDemo : Component
             "Pointer-only by construction: there is no hover on a touch screen and none from a "
             + "keyboard, so nothing may depend on the tilt.",
             Div.Data(Testid("ui-hover-3d")).Class("max-w-xs")[
-                UiHover3d[
-                    UiCard.Heading("Tilt me")[P["The content is complete without the effect."]]
+                Ui.Hover3d[
+                    Ui.Card.Heading("Tilt me")[P["The content is complete without the effect."]]
                 ]
             ]),
 
@@ -93,7 +93,7 @@ public sealed partial class UiKitDataDisplayDemo : Component
             "Several images in the space of one. The first is what shows at rest — and on a touch "
             + "screen it is the only one anybody sees, so put the one that works alone first.",
             Div.Data(Testid("ui-hover-gallery")).Class("max-w-sm")[
-                UiHoverGallery.Class("h-48 rounded-xl")[
+                Ui.HoverGallery.Class("h-48 rounded-xl")[
                     Swatch("one", "bg-primary"),
                     Swatch("two", "bg-secondary"),
                     Swatch("three", "bg-accent")
@@ -106,29 +106,29 @@ public sealed partial class UiKitDataDisplayDemo : Component
             + "nothing inside it may be a button. A mono badge wraps a long token instead of widening its "
             + "row, a code block can say what it holds, and an empty state gives the answer before the reason.",
             Div.Data(Testid("ui-console-pieces"))[
-                UiGrid[
-                    UiCard
+                Ui.Grid[
+                    Ui.Card
                         .Key("queue")
                         .Href(PageMeta.LinkTo(Routes.UiKitDataGridPage()))
-                        .Icon(UiIconName.Gear)
+                        .Icon(Ui.IconName.Gear)
                         .Heading("Jobs")
-                        .Action(UiStatusDot.Label("2 failed").Tone(UiTone.Error))[
-                        UiMetricRow.Columns(2)[
-                            UiMetric.Key("outstanding").Label("Outstanding").Value("12"),
-                            UiMetric.Key("failed").Label("Failed").Value("2").Tone(UiTone.Error)
+                        .Action(Ui.StatusDot.Label("2 failed").Tone(Ui.Tone.Error))[
+                        Ui.MetricRow.Columns(2)[
+                            Ui.Metric.Key("outstanding").Label("Outstanding").Value("12"),
+                            Ui.Metric.Key("failed").Label("Failed").Value("2").Tone(Ui.Tone.Error)
                                 .Caption("dead after 5 attempts")
                         ]
                     ],
-                    UiCard
+                    Ui.Card
                         .Key("detail")
                         .Heading("A failed job")
-                        .Action(UiBadge.Mono(true)["requestId=0HN8Q2V3R1T0K:00000001"])[
-                        UiCode.Content("System.TimeoutException: The SMTP server did not answer in 30 seconds.")
+                        .Action(Ui.Badge.Mono(true)["requestId=0HN8Q2V3R1T0K:00000001"])[
+                        Ui.Code.Content("System.TimeoutException: The SMTP server did not answer in 30 seconds.")
                             .Label("Last error")
-                            .Tone(UiTone.Error)
+                            .Tone(Ui.Tone.Error)
                     ],
-                    UiCard.Key("empty")[
-                        UiEmpty.Heading("Nothing stored matches")
+                    Ui.Card.Key("empty")[
+                        Ui.Empty.Heading("Nothing stored matches")
                             .Detail("Retention drops entries by age and by count.")
                     ]
                 ]
@@ -140,12 +140,12 @@ public sealed partial class UiKitDataDisplayDemo : Component
             + "grid's columns do, so every lambda knows the row type; lines, areas and bars share one set of axes. "
             + "Hover a month for its values. A screen reader gets a table of every number instead of the drawing.",
             Div.Data(Testid("ui-chart")).Class("grid gap-6 lg:grid-cols-2")[
-                UiChart.Data(Months).Label("Revenue and costs by month").Format("C0").Class("h-64")[c => [
+                Ui.Chart.Data(Months).Label("Revenue and costs by month").Format("C0").Class("h-64")[c => [
                     c.X(m => m.Name),
                     c.Area(m => m.Revenue).Label("Revenue"),
-                    c.Line(m => m.Costs).Label("Costs").Tone(UiTone.Warning)
+                    c.Line(m => m.Costs).Label("Costs").Tone(Ui.Tone.Warning)
                 ]],
-                UiChart.Data(Months).Label("Orders by month").Class("h-64")[c => [
+                Ui.Chart.Data(Months).Label("Orders by month").Class("h-64")[c => [
                     c.X(m => m.Name),
                     c.Bar(m => m.Orders).Label("Orders")
                 ]]
@@ -155,15 +155,15 @@ public sealed partial class UiKitDataDisplayDemo : Component
             "The rest of the category",
             "Static, and covered by unit tests for their class composition.",
             Div.Data(Testid("ui-display-rest")).Class("flex flex-wrap items-center gap-3")[
-                UiBadge.Key("badge").Tone(UiTone.Info)["Beta"],
-                UiKbd.Key("kbd").Text("⌘K").Size(UiSize.Sm),
+                Ui.Badge.Key("badge").Tone(Ui.Tone.Info)["Beta"],
+                Ui.Kbd.Key("kbd").Text("⌘K").Size(Ui.Size.Sm),
                 // What FullText.Snippet returns for a search of "sqlite fast": matches between U+E000 and U+E001.
                 Span.Key("highlight").Data(Testid("ui-highlight"))[
-                    UiHighlight.Text("…SQLite is small, and fast…")
+                    Ui.Highlight.Text("…SQLite is small, and fast…")
                 ],
-                UiStatusDot.Key("status").Label("Healthy").Tone(UiTone.Success),
-                UiCountdown.Key("countdown").Value(42).Label("seconds left"),
-                UiChatBubble.Key("chat").Message("On my way").Author("Ada").When("09:14")
+                Ui.StatusDot.Key("status").Label("Healthy").Tone(Ui.Tone.Success),
+                Ui.Countdown.Key("countdown").Value(42).Label("seconds left"),
+                Ui.ChatBubble.Key("chat").Message("On my way").Author("Ada").When("09:14")
             ])
     ];
 
@@ -171,9 +171,9 @@ public sealed partial class UiKitDataDisplayDemo : Component
 
     private static Dictionary<string, string?> Testid(string value) => new() { ["testid"] = value };
 
-    private static Component Aura(string key, UiAuraStyle style, string label) =>
+    private static Component Aura(string key, Ui.AuraStyle style, string label) =>
         Div.Key(key)[
-            UiAura.Style(style).Size(UiSize.Lg)[
+            Ui.Aura.Style(style).Size(Ui.Size.Lg)[
                 Div.Class("rounded-xl border border-base-300 bg-base-100 px-6 py-4 text-sm font-medium")[
                     label
                 ]

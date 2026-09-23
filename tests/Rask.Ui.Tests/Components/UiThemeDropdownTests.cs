@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     The theme picker behind a trigger is a popover, so it closes on Escape and on a click outside.
@@ -15,7 +15,7 @@ public partial class UiThemeDropdownTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void It_is_a_popover_rather_than_a_disclosure()
     {
-        var html = UiThemeDropdown.ToHtml();
+        var html = Ui.ThemeDropdown.ToHtml();
 
         Assert.DoesNotContain("<details", html, StringComparison.Ordinal);
         Assert.DoesNotContain("<summary", html, StringComparison.Ordinal);
@@ -30,7 +30,7 @@ public partial class UiThemeDropdownTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_radios_are_inside_the_panel()
     {
-        var html = UiThemeDropdown.ToHtml();
+        var html = Ui.ThemeDropdown.ToHtml();
 
         var panel = html.IndexOf("popover=\"auto\"", StringComparison.Ordinal);
         var firstRadio = html.IndexOf("theme-controller", StringComparison.Ordinal);
@@ -42,7 +42,7 @@ public partial class UiThemeDropdownTests : global::Rask.Core.RaskMarkup
     {
         // daisyUI's dropdown-content is revealed on the wrapper's :focus-within, so on a popover it shows the
         // list over the trigger the moment the trigger takes focus — and the click lands on the list.
-        var html = UiThemeDropdown.ToHtml();
+        var html = Ui.ThemeDropdown.ToHtml();
 
         Assert.DoesNotContain("dropdown-content", html, StringComparison.Ordinal);
         Assert.Contains("class=\"menu w-52 flex-nowrap p-0\"", html, StringComparison.Ordinal);
@@ -51,7 +51,7 @@ public partial class UiThemeDropdownTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_panel_scrolls_with_the_list_inset_it_had()
     {
-        var html = UiThemeDropdown.ToHtml();
+        var html = Ui.ThemeDropdown.ToHtml();
 
         Assert.Contains("max-h-96 overflow-y-auto p-2!", html, StringComparison.Ordinal);
     }
@@ -59,15 +59,15 @@ public partial class UiThemeDropdownTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_trigger_keeps_its_label_and_size()
     {
-        Assert.Contains("<span>Theme</span>", UiThemeDropdown.ToHtml(), StringComparison.Ordinal);
-        Assert.Contains("<span>Look</span>", UiThemeDropdown.Trigger("Look").ToHtml(), StringComparison.Ordinal);
-        Assert.Contains("class=\"btn btn-sm\"", UiThemeDropdown.ToHtml(), StringComparison.Ordinal);
+        Assert.Contains("<span>Theme</span>", Ui.ThemeDropdown.ToHtml(), StringComparison.Ordinal);
+        Assert.Contains("<span>Look</span>", Ui.ThemeDropdown.Trigger("Look").ToHtml(), StringComparison.Ordinal);
+        Assert.Contains("class=\"btn btn-sm\"", Ui.ThemeDropdown.ToHtml(), StringComparison.Ordinal);
     }
 
     [Fact]
     public void Aligned_to_the_end_it_opens_back_over_the_page()
     {
         Assert.Contains("position-area:block-end span-inline-start",
-            UiThemeDropdown.Align(UiAlign.End).ToHtml(), StringComparison.Ordinal);
+            Ui.ThemeDropdown.Align(Ui.Align.End).ToHtml(), StringComparison.Ordinal);
     }
 }

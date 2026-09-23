@@ -1,4 +1,4 @@
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     The sidebar's two independent collapses, and the slots that hold their place.
@@ -19,11 +19,11 @@ public partial class UiSidebarRailTests : global::Rask.Core.RaskMarkup
 {
     private static string Sidebar(bool collapsable) =>
         (collapsable
-            ? UiSidebar.Id("nav").Page(Div["page"]).Collapsible(UiBreakpoint.Lg).Collapsable(true)
-            : UiSidebar.Id("nav").Page(Div["page"]).Collapsible(UiBreakpoint.Lg))[
-            UiSidebarHeader[UiBrand.Label("Rask").Href("/")],
-            UiNavList[UiNavItem.Label("Overview").Href("/")],
-            UiSidebarFooter[UiProfile.Name("Ada Lovelace")]
+            ? Ui.Sidebar.Id("nav").Page(Div["page"]).Collapsible(Ui.Breakpoint.Lg).Collapsable(true)
+            : Ui.Sidebar.Id("nav").Page(Div["page"]).Collapsible(Ui.Breakpoint.Lg))[
+            Ui.SidebarHeader[Ui.Brand.Label("Rask").Href("/")],
+            Ui.NavList[Ui.NavItem.Label("Overview").Href("/")],
+            Ui.SidebarFooter[Ui.Profile.Name("Ada Lovelace")]
         ].ToHtml();
 
     [Fact]
@@ -67,7 +67,7 @@ public partial class UiSidebarRailTests : global::Rask.Core.RaskMarkup
     {
         // Two checkboxes, two labels: the toggle opens the drawer on a phone, this narrows the docked sidebar.
         // Aiming this one at the drawer's id would slide the sidebar away instead of narrowing it.
-        var html = UiSidebarCollapse.For("nav").Collapsible(UiBreakpoint.Lg).ToHtml();
+        var html = Ui.SidebarCollapse.For("nav").Collapsible(Ui.Breakpoint.Lg).ToHtml();
 
         Assert.Contains("for=\"nav-rail\"", html, StringComparison.Ordinal);
         Assert.Contains("role=\"button\"", html, StringComparison.Ordinal);
@@ -81,9 +81,9 @@ public partial class UiSidebarRailTests : global::Rask.Core.RaskMarkup
         // They are opposites: the toggle is for a sidebar that slides over the page, this one for a sidebar
         // that has docked. Showing both at once would offer two controls for two different collapses.
         Assert.Contains("lg:hidden",
-            UiSidebarToggle.For("nav").Collapsible(UiBreakpoint.Lg).ToHtml(), StringComparison.Ordinal);
+            Ui.SidebarToggle.For("nav").Collapsible(Ui.Breakpoint.Lg).ToHtml(), StringComparison.Ordinal);
 
-        var collapse = UiSidebarCollapse.For("nav").Collapsible(UiBreakpoint.Lg).ToHtml();
+        var collapse = Ui.SidebarCollapse.For("nav").Collapsible(Ui.Breakpoint.Lg).ToHtml();
         Assert.Contains("hidden", collapse, StringComparison.Ordinal);
         Assert.Contains("lg:inline-flex", collapse, StringComparison.Ordinal);
     }
@@ -92,13 +92,13 @@ public partial class UiSidebarRailTests : global::Rask.Core.RaskMarkup
     public void Collapsed_states_the_rail_and_leaves_it_to_the_checkbox_when_unset()
     {
         Assert.Contains("checked",
-            UiSidebar.Id("nav").Page(Div["page"]).Collapsable(true).Collapsed(true)[Div].ToHtml(),
+            Ui.Sidebar.Id("nav").Page(Div["page"]).Collapsable(true).Collapsed(true)[Div].ToHtml(),
             StringComparison.Ordinal);
 
         // Uncontrolled: nothing is checked, and the reader owns it — which is what lets it work with no runtime
         // at all.
         Assert.DoesNotContain("checked",
-            UiSidebar.Id("nav").Page(Div["page"]).Collapsable(true)[Div].ToHtml(), StringComparison.Ordinal);
+            Ui.Sidebar.Id("nav").Page(Div["page"]).Collapsable(true)[Div].ToHtml(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -109,7 +109,7 @@ public partial class UiSidebarRailTests : global::Rask.Core.RaskMarkup
         // asserted on an attribute, because a static render carries no handler attributes at all.
         bool? heard = null;
         var page = global::Rask.Testing.RaskTest.Render(
-            UiSidebar.Id("nav").Page(Div["page"]).Collapsable(true).OnCollapse(v => heard = v)[Div]);
+            Ui.Sidebar.Id("nav").Page(Div["page"]).Collapsable(true).OnCollapse(v => heard = v)[Div]);
 
         await page.On("#nav-rail").ChangeAsync("true");
 
@@ -119,9 +119,9 @@ public partial class UiSidebarRailTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_footer_holds_its_place_while_the_nav_scrolls()
     {
-        // mt-auto is what pins it without a UiSpacer in front of it, and the hairline is what separates it from
+        // mt-auto is what pins it without a Ui.Spacer in front of it, and the hairline is what separates it from
         // a nav list long enough to run into it.
-        var html = UiSidebarFooter[Div["x"]].ToHtml();
+        var html = Ui.SidebarFooter[Div["x"]].ToHtml();
 
         Assert.Contains("mt-auto", html, StringComparison.Ordinal);
         Assert.Contains("border-t", html, StringComparison.Ordinal);
@@ -130,16 +130,16 @@ public partial class UiSidebarRailTests : global::Rask.Core.RaskMarkup
 
     [Fact]
     public void The_header_does_not_scroll_away_either() =>
-        Assert.Contains("shrink-0", UiSidebarHeader[Div["x"]].ToHtml(), StringComparison.Ordinal);
+        Assert.Contains("shrink-0", Ui.SidebarHeader[Div["x"]].ToHtml(), StringComparison.Ordinal);
 
     [Fact]
     public void Everything_the_rail_takes_away_is_marked_by_whoever_owns_the_words()
     {
         // The rule hides .ui-rail-hide and nothing else, so a component that forgot the mark keeps its words in
         // a 4.5rem rail — which is why this asserts on all four at once rather than one at a time.
-        Assert.Contains("ui-rail-hide", UiNavItem.Label("Overview").Href("/").ToHtml(), StringComparison.Ordinal);
-        Assert.Contains("ui-rail-hide", UiBrand.Label("Rask").Href("/").ToHtml(), StringComparison.Ordinal);
-        Assert.Contains("ui-rail-hide", UiNavGroup.Heading("Data")[Li].ToHtml(), StringComparison.Ordinal);
-        Assert.Contains("ui-rail-hide", UiProfile.Name("Ada Lovelace").ToHtml(), StringComparison.Ordinal);
+        Assert.Contains("ui-rail-hide", Ui.NavItem.Label("Overview").Href("/").ToHtml(), StringComparison.Ordinal);
+        Assert.Contains("ui-rail-hide", Ui.Brand.Label("Rask").Href("/").ToHtml(), StringComparison.Ordinal);
+        Assert.Contains("ui-rail-hide", Ui.NavGroup.Heading("Data")[Li].ToHtml(), StringComparison.Ordinal);
+        Assert.Contains("ui-rail-hide", Ui.Profile.Name("Ada Lovelace").ToHtml(), StringComparison.Ordinal);
     }
 }

@@ -29,6 +29,7 @@ public sealed class PackagePropsTasksTests : IDisposable
         Assert.Equal("MuiButton", island.GetMetadata("IslandName"));
         Assert.Equal("react", island.GetMetadata("Runtime"));
         Assert.Equal("@mui/material/Button", island.GetMetadata("PackageModule"));
+        Assert.Equal("default", island.GetMetadata("PackageExport"));
         Assert.Equal(source, island.GetMetadata("DeclaringFile"));
         Assert.Equal("4", island.GetMetadata("ModuleLine"));
     }
@@ -38,22 +39,26 @@ public sealed class PackagePropsTasksTests : IDisposable
     {
         // A define module often exports nothing at all: the tag is what mounts the element.
         var source = Write("FxSwitch.cs",
-            "public sealed partial class FxSwitch : LitComponent { protected override string Module => \"fixture-lit/fx-switch.js#fx-switch\"; }");
+            "public sealed partial class FxSwitch : LitComponent { protected override string Module => \"fixture-lit/fx-switch.js\"; "
+            + "protected override string Export => \"fx-switch\"; }");
 
         var engine = new RecordingEngine();
         var task = new FindExternalPackageIslandsTask { BuildEngine = engine, Sources = [new TaskItem(source)] };
 
         Assert.True(task.Execute());
         Assert.Empty(engine.Errors);
-        Assert.Equal("fixture-lit/fx-switch.js#fx-switch", Assert.Single(task.PackageIslands).GetMetadata("PackageModule"));
+        var island = Assert.Single(task.PackageIslands);
+        Assert.Equal("fixture-lit/fx-switch.js", island.GetMetadata("PackageModule"));
+        Assert.Equal("fx-switch", island.GetMetadata("PackageExport"));
     }
 
     [Fact]
     public void A_tag_is_no_export_for_any_runtime_but_lit()
     {
-        // `#fx-switch` would be written into a React entry as `import { fx-switch as Component }`.
+        // `fx-switch` would be written into a React entry as `import { fx-switch as Component }`.
         var source = Write("FxSwitch.cs",
-            "public sealed partial class FxSwitch : ReactComponent { protected override string Module => \"fixture-lit/fx-switch.js#fx-switch\"; }");
+            "public sealed partial class FxSwitch : ReactComponent { protected override string Module => \"fixture-lit/fx-switch.js\"; "
+            + "protected override string Export => \"fx-switch\"; }");
 
         var engine = new RecordingEngine();
         var task = new FindExternalPackageIslandsTask { BuildEngine = engine, Sources = [new TaskItem(source)] };
@@ -104,7 +109,8 @@ public sealed class PackagePropsTasksTests : IDisposable
     public void An_export_that_is_not_an_identifier_is_refused_before_it_reaches_generated_javascript()
     {
         var source = Write("MuiButton.cs",
-            "public sealed partial class MuiButton : ReactComponent { protected override string Module => \"pkg#x'};alert(1);//\"; }");
+            "public sealed partial class MuiButton : ReactComponent { protected override string Module => \"pkg\"; "
+            + "protected override string Export => \"x'};alert(1);//\"; }");
 
         var engine = new RecordingEngine();
         var task = new FindExternalPackageIslandsTask { BuildEngine = engine, Sources = [new TaskItem(source)] };
@@ -114,13 +120,82 @@ public sealed class PackagePropsTasksTests : IDisposable
     }
 
     [Fact]
+    public void The_old_hash_spelling_is_refused_with_the_two_overrides_to_write_instead()
+    {
+        var source = Write("ColorPicker.cs",
+            "public sealed partial class ColorPicker : ReactComponent { protected override string Module => \"react-colorful#HexColorPicker\"; }");
+
+        var engine = new RecordingEngine();
+        var task = new FindExternalPackageIslandsTask { BuildEngine = engine, Sources = [new TaskItem(source)] };
+
+        Assert.False(task.Execute());
+        var error = Assert.Single(engine.Errors);
+        Assert.Equal("RASKISLAND005", error.Code);
+        Assert.Contains("protected override string Module => \"react-colorful\";", error.Message, StringComparison.Ordinal);
+        Assert.Contains("protected override string Export => \"HexColorPicker\";", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_package_declaration_joins_the_island_list_once_per_export()
+    {
+        var source = Write("Shop/Mui.cs",
+            "namespace Shop;\npublic sealed partial class Mui : ReactPackage\n{\n"
+            + "    protected override string Module => \"@mui/material\";\n"
+            + "    protected override string[] Exports => [\"Button\", \"Card\"];\n}\n");
+
+        var engine = new RecordingEngine();
+        var task = new FindExternalPackageIslandsTask { BuildEngine = engine, Sources = [new TaskItem(source)] };
+
+        Assert.True(task.Execute());
+        Assert.Empty(engine.Errors);
+        Assert.Equal(
+            [Path.Combine(_root, "Shop", "MuiButton.props.json"), Path.Combine(_root, "Shop", "MuiCard.props.json")],
+            task.PackageIslands.Select(static i => i.ItemSpec));
+        Assert.All(task.PackageIslands, static i => Assert.Equal("@mui/material", i.GetMetadata("PackageModule")));
+        Assert.Equal(["Button", "Card"], task.PackageIslands.Select(static i => i.GetMetadata("PackageExport")));
+        Assert.All(task.PackageIslands, i => Assert.Equal(source, i.GetMetadata("DeclaringFile")));
+    }
+
+    [Fact]
+    public void A_package_declaration_naming_no_package_is_refused_by_name()
+    {
+        var source = Write("Mui.cs",
+            "public sealed partial class Mui : ReactPackage { protected override string Module => \"./mui.tsx\"; "
+            + "protected override string[] Exports => [\"Button\"]; }");
+
+        var engine = new RecordingEngine();
+        var task = new FindExternalPackageIslandsTask { BuildEngine = engine, Sources = [new TaskItem(source)] };
+
+        Assert.False(task.Execute());
+        var error = Assert.Single(engine.Errors);
+        Assert.Equal("RASKISLAND005", error.Code);
+        Assert.Contains("package declaration", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_export_on_an_island_that_names_no_package_is_refused_rather_than_ignored()
+    {
+        var source = Write("Chart.cs",
+            "public sealed partial class Chart : ReactComponent { protected override string Export => \"Chart\"; }");
+
+        var engine = new RecordingEngine();
+        var task = new FindExternalPackageIslandsTask { BuildEngine = engine, Sources = [new TaskItem(source)] };
+
+        Assert.False(task.Execute());
+        var error = Assert.Single(engine.Errors);
+        Assert.Equal("RASKISLAND005", error.Code);
+        Assert.Contains("names no package", error.Message, StringComparison.Ordinal);
+        Assert.Empty(task.PackageIslands);
+    }
+
+    [Fact]
     public void The_request_names_the_typescript_the_project_and_each_island()
     {
         var requestPath = Path.Combine(_root, "props", "request.json");
         var task = new WriteExternalPropsRequestTask
         {
             BuildEngine = new RecordingEngine(),
-            Islands = [Island("MuiButton", "@mui/material#Button")],
+            Islands = [Island("MuiButton", "@mui/material", "Button")],
             TypeScriptPath = "/cache/typescript/lib/typescript.js",
             ProjectDirectory = _root,
             OutputDirectory = Path.Combine(_root, "props"),
@@ -147,7 +222,7 @@ public sealed class PackagePropsTasksTests : IDisposable
         var task = new WriteExternalPropsRequestTask
         {
             BuildEngine = engine,
-            Islands = [Island("SwitchRoot", "bits-ui#Switch.")],
+            Islands = [Island("SwitchRoot", "bits-ui", "Switch.")],
             TypeScriptPath = "/cache/typescript/lib/typescript.js",
             ProjectDirectory = _root,
             OutputDirectory = Path.Combine(_root, "props"),
@@ -285,12 +360,13 @@ public sealed class PackagePropsTasksTests : IDisposable
         }, engine, item.ItemSpec);
     }
 
-    private TaskItem Island(string name, string module)
+    private TaskItem Island(string name, string module, string export = "default")
     {
         var item = new TaskItem(Path.Combine(_root, name + ".props.json"));
         item.SetMetadata("IslandName", name);
         item.SetMetadata("Runtime", "react");
         item.SetMetadata("PackageModule", module);
+        item.SetMetadata("PackageExport", export);
         item.SetMetadata("DeclaringFile", "/src/" + name + ".cs");
         item.SetMetadata("ModuleLine", "4");
         return item;

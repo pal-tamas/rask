@@ -12,7 +12,7 @@ public sealed partial class SkipFactoryCounter : Component
     protected override void OnMount() => _count = Initial;
 
     protected override Component? Render() =>
-        UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("skipfactory-counter").OnClick(() => _count++)[UiIcon.Name(UiIconName.Cursor), $"Clicks: {_count}"];
+        Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Id("skipfactory-counter").OnClick(() => _count++)[Ui.Icon.Name(Ui.IconName.Cursor), $"Clicks: {_count}"];
 }
 
 // The generated factory has NO Initial parameter — the call site stays clean.

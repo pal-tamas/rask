@@ -81,29 +81,29 @@ the **WASM** host.
 ### Gesture bridge — activation-gated APIs on the Server host
 
 `Shareable`'s trick — run the call **inside the click gesture** so the transient user activation survives —
-generalises. **`GestureTrigger`** and its six typed wrappers are headless the same way: they hand your element a
+generalises. **`Trigger.Gesture`** and its six typed wrappers are headless the same way: they hand your element a
 `data-rask-gesture` bundle, and the shared client runs the capability in the gesture. That makes normally-WASM-only,
 activation-gated APIs reachable **declaratively on the Server host** (they're still not injectable there).
 Capabilities that return a value (the eyedropper's hex, the install outcome) post it back to an
 `OnResult` / `OnColor` / `OnOutcome` callback; the two `<video>` triggers target an element via its `ElementRef`.
 
 ```csharp
-FullscreenTrigger(g => Button.Type("button").Data(g)["Full screen"])
-ScreenOrientationTrigger(Orientation: "landscape",
+Trigger.Fullscreen(g => Button.Type("button").Data(g)["Full screen"])
+Trigger.ScreenOrientation(Orientation: "landscape",
     g => Button.Type("button").Data(g)["Lock landscape"])
-EyeDropperTrigger(OnColor: hex => { picked = hex; return Task.CompletedTask; },
+Trigger.EyeDropper(OnColor: hex => { picked = hex; return Task.CompletedTask; },
     g => Button.Type("button").Data(g)["Pick a colour"])
-InstallTrigger(OnOutcome: o => { outcome = o; return Task.CompletedTask; },
+Trigger.Install(OnOutcome: o => { outcome = o; return Task.CompletedTask; },
     g => Button.Type("button").Data(g)["Install app"])
-MediaCaptureTrigger.For(preview).Video(true)
+Trigger.MediaCapture.For(preview).Video(true)
     // Keeps the stream reachable from C# — the only way a Server-hosted app can stop it later.
     .OnStream(id => { camera = id; StateHasChanged(); return Task.CompletedTask; })
     .Template(g => Button.Type("button").Data(g)["Start camera"])
-PictureInPictureTrigger.For(preview).Template(g => Button.Type("button").Data(g)["Pop out video"])
+Trigger.PictureInPicture.For(preview).Template(g => Button.Type("button").Data(g)["Pop out video"])
 ```
 
-All six ship: `FullscreenTrigger`, `ScreenOrientationTrigger`, `EyeDropperTrigger`, `InstallTrigger`,
-`MediaCaptureTrigger`, and `PictureInPictureTrigger`. See the [capability matrix](browser-capabilities.md).
+All six ship: `Trigger.Fullscreen`, `Trigger.ScreenOrientation`, `Trigger.EyeDropper`, `Trigger.Install`,
+`Trigger.MediaCapture`, and `Trigger.PictureInPicture`. See the [capability matrix](browser-capabilities.md).
 
 ## WASM-only APIs — `Rask.Wasm.Browser`
 

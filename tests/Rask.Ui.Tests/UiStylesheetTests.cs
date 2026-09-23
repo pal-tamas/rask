@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace Rask.Ui.Tests;
+namespace Rask.UiTests;
 
 /// <summary>
 ///     The shipped stylesheet. These assert on the COMPILED artifact rather than on the source it was
@@ -72,7 +72,7 @@ public sealed class UiStylesheetTests
         // The kit ships utilities and components, never a reset for an application: an app owns its own
         // document, and a second reset arriving from a library restyles pages that never asked for it. The
         // one reset it does carry is the console frame's, and every rule of it names `.rask-ops` — the class
-        // only UiShell writes — so a document that never renders the frame matches none of it.
+        // only Ui.Shell writes — so a document that never renders the frame matches none of it.
         foreach (var rule in Rules(UiStylesheet.Css))
         {
             var body = rule.Body.Replace(" ", "", StringComparison.Ordinal);

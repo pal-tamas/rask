@@ -3,7 +3,7 @@ namespace Rask.Site.Features;
 // UiSelect<T> — Rask.Core's Select<T> underneath — in both shapes side by side.
 //   • Controlled — Value + OnChange: the parent owns the value in a field; OnChange writes it back and
 //     re-renders this consumer, so the "Picked:" readout updates live (the controlled-OnChange fix).
-//   • Bound — UiSelect.Bind(() => model.X): two-way binds the model property through the ambient EditContext.
+//   • Bound — Ui.Select.Bind(() => model.X): two-way binds the model property through the ambient EditContext.
 // Both readouts refresh on every change with no StateHasChanged.
 public sealed partial class FormControlsSelectDemo : Component
 {
@@ -16,7 +16,7 @@ public sealed partial class FormControlsSelectDemo : Component
     protected override Component? Render() =>
         Div.Class("grid grid-cols-12 gap-4")[
             Div.Class("col-span-12 md:col-span-6")[
-                UiSelect
+                Ui.Select
                     .Value(_controlled)
                     .Options(Frameworks)
                     .Label("Controlled (Value + OnChange)")
@@ -29,7 +29,7 @@ public sealed partial class FormControlsSelectDemo : Component
             ],
             Div.Class("col-span-12 md:col-span-6")[
                 Form.Model(_model)[
-                    UiSelect.Bind(() => _model.Framework).Options(Frameworks).Label("Bound (two-way)")
+                    Ui.Select.Bind(() => _model.Framework).Options(Frameworks).Label("Bound (two-way)")
                         .Id("fc-select-bound").Class("mb-2")
                 ],
                 P.Class("text-sm text-ui-muted mb-0").Id("fc-select-bound-out")[

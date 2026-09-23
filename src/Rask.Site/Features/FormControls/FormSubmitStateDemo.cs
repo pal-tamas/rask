@@ -14,12 +14,12 @@ public sealed partial class FormSubmitStateDemo : Component
         Div.Class("grid grid-cols-12 gap-4")[
             Div.Class("col-span-12 md:col-span-7")[
                 Form.Model(_model).OnValidSubmit(SaveAsync).Id("fss-form")[submitting => [
-                    UiInput.Bind(() => _model.Username).Label("Username")
+                    Ui.Input.Bind(() => _model.Username).Label("Username")
                         .Disabled(submitting)
                         .Id("fss-input").Class("mb-2"),
-                    UiButton
-                        .Tone(UiTone.Primary)
-                        .Type(UiButtonType.Submit)
+                    Ui.Button
+                        .Tone(Ui.Tone.Primary)
+                        .Type(Ui.ButtonType.Submit)
                         .Disabled(submitting)
                         .Id("fss-submit")[submitting ? "Saving…" : "Sign up"]
                 ]]

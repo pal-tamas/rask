@@ -476,7 +476,7 @@ export function applyFrameInvokes(
     }
 
     // The attribute itself is watched too: a dialog that stays mounted while closed (Rask UI's state-driven
-    // UiModal with Open(false)) gains and loses the trap by attribute alone, with no node added or removed —
+    // Ui.Modal with Open(false)) gains and loses the trap by attribute alone, with no node added or removed —
     // and without this its trap would never engage, or never hand focus back.
     const observer = new MutationObserver(function (records) {
         for (let i = 0; i < records.length; i++) {
@@ -811,7 +811,7 @@ export function applyFrameInvokes(
 // data-rask-popover-open="true" | "false" is shown or hidden to match, whenever the attribute changes or the
 // element arrives. Only on a CHANGE: a reader who closes the popover with Escape while the page still says
 // "true" is not fought — the page hears the toggle event and updates, or it does not, and either way the next
-// time it changes its mind is the next time this acts. Rask UI's controlled UiDropdown is built on it.
+// time it changes its mind is the next time this acts. Rask UI's controlled Ui.Dropdown is built on it.
 (function () {
     if (typeof document === "undefined" || typeof MutationObserver !== "function") {
         return;
@@ -859,7 +859,7 @@ export function applyFrameInvokes(
 })();
 
 // ----- Labels that are buttons (label[role="button"]) ---------------------
-// A <label for> is how a checkbox-driven control opens with no runtime — Rask UI's UiSidebarToggle is one — but a
+// A <label for> is how a checkbox-driven control opens with no runtime — Rask UI's Ui.SidebarToggle is one — but a
 // label is not pressable from the keyboard. Given role="button" and a tabindex it is a keyboard stop, and this
 // presses it on Enter and Space the way a real button is pressed, so the control is reachable without a pointer.
 (function () {

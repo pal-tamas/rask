@@ -19,7 +19,7 @@ public sealed partial class BindingAfterBindAsyncDemo : Component
     protected override Component? Render() =>
     [
         Div.Class("mb-3")[
-            UiSelect.Bind(() => _model.Track)
+            Ui.Select.Bind(() => _model.Track)
                 .Options(Tracks)
                 // The placeholder is selected while Track is still null. Without it the <select> would
                 // visually default to "Frontend" while the model holds nothing — and re-picking the
@@ -61,7 +61,7 @@ public sealed partial class BindingAfterBindAsyncDemo : Component
                 .Id("bind-async-track")
         ],
         Div.Class("mb-3")[
-            UiSelect.Bind(() => _model.Language)
+            Ui.Select.Bind(() => _model.Language)
                 .Options([.. _languages.Select(l => ((string?)l, l))])
                 .Placeholder("— pick a track —")
                 .Label(_loading ? "Language (loading…)" : "Language")

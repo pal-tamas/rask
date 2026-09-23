@@ -15,15 +15,15 @@ public sealed partial class CookiesDemo(ICookies cookies) : Component
     private string? _status;
 
     protected override Component? Render() =>
-        UiCard.Class("shadow-sm")[
+        Ui.Card.Class("shadow-sm")[
                 Div.Class("flex items-stretch gap-2 mb-2")[
-                    UiInput.Value(_input).AccessibleLabel("Cookie value")
+                    Ui.Input.Value(_input).AccessibleLabel("Cookie value")
                         .Id("cookie-input")
                         .Placeholder("Cookie value")
                         .OnInput(v => _input = v),
-                    UiButton.Tone(UiTone.Primary).Id("cookie-set").OnClick(Set)["Set"],
-                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("cookie-get").OnClick(Get)["Get"],
-                    UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline).Id("cookie-delete").OnClick(Delete)["Delete"]
+                    Ui.Button.Tone(Ui.Tone.Primary).Id("cookie-set").OnClick(Set)["Set"],
+                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Id("cookie-get").OnClick(Get)["Get"],
+                    Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline).Id("cookie-delete").OnClick(Delete)["Delete"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Value: ", Code.Id("cookie-read-value")[_read ?? "(null)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("cookie-status")[_status ?? "(idle)"]]

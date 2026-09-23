@@ -499,7 +499,7 @@ public sealed class LiveRenderContext : IDisposable
 
     // Wire EditContext's RequestRender hook to the root component's handle so
     // background events inside the context (currently the sticky-dismissal
-    // timer the ValidatingIndicator depends on) can ask the live render to
+    // timer the Validation.Indicator depends on) can ask the live render to
     // re-paint. Idempotent — once attached, re-registering the same context
     // across renders skips. Skipped entirely for contexts created outside a
     // live render (unit tests build their own RenderingHandle and wire it

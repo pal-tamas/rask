@@ -114,7 +114,7 @@ public sealed partial class AvatarPicker(IFiles files) : Component
 
     protected override Component? Render() =>
         Div[
-            UiFileInput.Value("").Label("Avatar").Accept("image/*").OnFiles(OnFilesAsync),
+            Ui.FileInput.Value("").Label("Avatar").Accept("image/*").OnFiles(OnFilesAsync),
             _avatarUrl is null
                 ? (Component)P.Class("text-sm")[_error ?? "No avatar yet."]
                 : Img.Src(_avatarUrl).Alt("Your avatar")

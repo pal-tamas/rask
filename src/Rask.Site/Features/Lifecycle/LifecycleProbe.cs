@@ -56,16 +56,16 @@ public sealed partial class LifecycleProbe : Component
     protected override Component? Render() =>
         [
             Div.Class("flex gap-3 items-center flex-wrap mb-3")[
-                UiBadge.Tone(UiTone.Primary).Variant(UiVariant.Soft).Class("text-base")[$"Render #{++_renderCount}"],
+                Ui.Badge.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Soft).Class("text-base")[$"Render #{++_renderCount}"],
                 // The handler just records the click; Rask re-renders the component that owns the
                 // callback (this probe — the lambda closes over its state) right after it runs, so the
-                // badge repaints with no StateHasChanged (RASK026). Works the same through UiButton,
+                // badge repaints with no StateHasChanged (RASK026). Works the same through Ui.Button,
                 // which forwards the callback down to the native <button>.
-                UiButton.Tone(UiTone.Primary)
-                    .OnClick(() => _clicks++)[UiIcon.Name(UiIconName.Retry), "Trigger re-render"]
+                Ui.Button.Tone(Ui.Tone.Primary)
+                    .OnClick(() => _clicks++)[Ui.Icon.Name(Ui.IconName.Retry), "Trigger re-render"]
             ],
             H3.Class("text-base font-semibold text-ui-muted uppercase text-sm")["Hook log"],
-            UiList.Ordered(true)[
+            Ui.List.Ordered(true)[
                 Row("OnMount", Ran(_onMount)),
                 Row("OnMountAsync (start)", Ran(_onMountAsyncStarted)),
                 Row("OnMountAsync (after 450ms await)", _onMountAsyncSettled ? "resolved" : "awaiting…"),

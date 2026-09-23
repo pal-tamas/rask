@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using Rask.Core.Forms;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A checkbox and the label that says what ticking it means.
@@ -27,9 +27,9 @@ public sealed partial class UiCheckbox : Component, IFormControl<bool>
     /// </summary>
     public new required string Text { get; set; }
 
-    public UiTone? Tone { get; set; }
+    public Ui.Tone? Tone { get; set; }
 
-    public UiSize? Size { get; set; }
+    public Ui.Size? Size { get; set; }
 
     public bool? Disabled { get; set; }
 

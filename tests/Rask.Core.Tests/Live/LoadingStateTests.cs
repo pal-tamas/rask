@@ -83,7 +83,7 @@ public sealed class LoadingStateTests
             return;
         }
 
-        // UiButton.Loading(true) renders data-loading itself; a dispatch ending must not contradict it.
+        // Ui.Button.Loading(true) renders data-loading itself; a dispatch ending must not contradict it.
         Assert.True(root.GetProperty("serverOwned").GetBoolean());
         Assert.True(root.GetProperty("serverMarkKept").GetBoolean());
     }

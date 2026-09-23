@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// One entry in a <see cref="UiMenu" /> or a <see cref="UiDropdown" />.
@@ -21,10 +21,10 @@ public sealed partial class UiMenuItem : Component
 
     public string? Href { get; set; }
 
-    public UiIconName? Icon { get; set; }
+    public Ui.IconName? Icon { get; set; }
 
     /// <summary>An icon at the end of the row.</summary>
-    public UiIconName? IconTrailing { get; set; }
+    public Ui.IconName? IconTrailing { get; set; }
 
     /// <summary>
     ///     A keyboard shortcut shown at the end of the row — <c>"⌘S"</c>. Display only: it teaches the shortcut,
@@ -32,8 +32,8 @@ public sealed partial class UiMenuItem : Component
     /// </summary>
     public string? Kbd { get; set; }
 
-    /// <summary><see cref="UiTone.Error" /> for a destructive item — Flux's <c>variant="danger"</c>.</summary>
-    public UiTone? Tone { get; set; }
+    /// <summary><see cref="Ui.Tone.Error" /> for a destructive item — Flux's <c>variant="danger"</c>.</summary>
+    public Ui.Tone? Tone { get; set; }
 
     /// <summary>Shown but not pickable. The keyboard cursor skips it.</summary>
     public bool? Disabled { get; set; }
@@ -89,7 +89,7 @@ public sealed partial class UiMenuItem : Component
         UiClass.Compose(
             Active == true ? "menu-active" : "",
             level is not null && ordinal == level.Scope.Active ? "menu-focus" : "",
-            Tone == UiTone.Error ? "text-error" : "",
+            Tone == Ui.Tone.Error ? "text-error" : "",
             Disabled == true ? "menu-disabled" : "");
 
     private T Decorate<T>(T element, UiMenuLevel? level, int ordinal)
@@ -121,23 +121,23 @@ public sealed partial class UiMenuItem : Component
         return UiMenuItemMarkup.AsMenuItem(element, level, ordinal, "menuitem", aria, KeepOpen == true, isChecked: false);
     }
 
-    // Shared by every kind of item, and reached from the others as `global::Rask.Ui.UiMenuItem.Row`: inside a
+    // Shared by every kind of item, and reached from the others as `global::Rask.UiMenuItem.Row`: inside a
     // markup host the bare type name is the chain entry, not the type.
 
     /// <summary>The inside of a row: indicator, icon, words, shortcut, trailing icon.</summary>
-    internal static Component Row(UiIconName? icon, string text, string? kbd, UiIconName? trailing, Component? indicator) =>
+    internal static Component Row(Ui.IconName? icon, string text, string? kbd, Ui.IconName? trailing, Component? indicator) =>
         [
             indicator,
-            icon is { } leading ? UiIcon.Name(leading).Class("size-4 shrink-0") : null,
+            icon is { } leading ? Ui.Icon.Name(leading).Class("size-4 shrink-0") : null,
             Span.Class("grow")[text],
             kbd is null ? null : RaskMarkup.Kbd.Class("kbd kbd-xs ui-menu-kbd")[kbd],
-            trailing is { } end ? UiIcon.Name(end).Class("size-4 shrink-0 opacity-60") : null
+            trailing is { } end ? Ui.Icon.Name(end).Class("size-4 shrink-0 opacity-60") : null
         ];
 
     /// <summary>A check or radio row's mark. Always the same width, checked or not, so every row's words line up.</summary>
     internal static Component Indicator(bool on) =>
         Span.Class("inline-flex size-4 shrink-0 items-center justify-center").Aria("hidden", "true")[
-            on ? UiIcon.Name(UiIconName.Check).Class("size-4") : null
+            on ? Ui.Icon.Name(Ui.IconName.Check).Class("size-4") : null
         ];
 }
 

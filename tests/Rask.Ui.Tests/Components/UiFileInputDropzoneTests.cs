@@ -1,7 +1,7 @@
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
-///     Flux UI's drop area: <c>UiFileInput.Dropzone(true)</c>.
+///     Flux UI's drop area: <c>Ui.FileInput.Dropzone(true)</c>.
 /// </summary>
 /// <remarks>
 ///     The whole design is that it is STILL the native input — stretched invisibly over the area, so a click and
@@ -14,7 +14,7 @@ public partial class UiFileInputDropzoneTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_area_is_the_native_input_stretched_over_it()
     {
-        var html = UiFileInput.Value("").Label("Receipts").Dropzone(true).ToHtml();
+        var html = Ui.FileInput.Value("").Label("Receipts").Dropzone(true).ToHtml();
 
         Assert.Contains("data-rask-dropzone", html, StringComparison.Ordinal);
         Assert.Contains("type=\"file\"", html, StringComparison.Ordinal);
@@ -28,7 +28,7 @@ public partial class UiFileInputDropzoneTests : global::Rask.Core.RaskMarkup
     public void The_input_stays_named_by_the_label()
     {
         // The input is what a keyboard and a screen reader land on; the words are drawn beside it, not in it.
-        var html = UiFileInput.Value("").Label("Receipts").Dropzone(true).Heading("Drop receipts here").ToHtml();
+        var html = Ui.FileInput.Value("").Label("Receipts").Dropzone(true).Heading("Drop receipts here").ToHtml();
 
         Assert.Contains("aria-label=\"Receipts\"", html, StringComparison.Ordinal);
         Assert.Contains(">Drop receipts here</p>", html, StringComparison.Ordinal);
@@ -37,12 +37,12 @@ public partial class UiFileInputDropzoneTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_heading_defaults_to_the_label() =>
         Assert.Contains(">Receipts</p>",
-            UiFileInput.Value("").Label("Receipts").Dropzone(true).ToHtml(), StringComparison.Ordinal);
+            Ui.FileInput.Value("").Label("Receipts").Dropzone(true).ToHtml(), StringComparison.Ordinal);
 
     [Fact]
     public void The_smaller_line_describes_the_input_when_there_is_an_id_to_point_at()
     {
-        var html = UiFileInput.Value("").Label("Receipts").Id("receipts").Dropzone(true)
+        var html = Ui.FileInput.Value("").Label("Receipts").Id("receipts").Dropzone(true)
             .Text("PDF or JPG, up to 10 MB").ToHtml();
 
         Assert.Contains("id=\"receipts-text\"", html, StringComparison.Ordinal);
@@ -54,7 +54,7 @@ public partial class UiFileInputDropzoneTests : global::Rask.Core.RaskMarkup
     {
         // #1117: every field has an id now — its own, or one derived from its label — so the line is always
         // written with the id the description points at, never a reference to nothing.
-        var html = UiFileInput.Value("").Label("Receipts").Dropzone(true).Text("PDF only").ToHtml();
+        var html = Ui.FileInput.Value("").Label("Receipts").Dropzone(true).Text("PDF only").ToHtml();
 
         Assert.Contains("<p id=\"f-receipts-text\"", html, StringComparison.Ordinal);
         Assert.Contains("aria-describedby=\"f-receipts-text\"", html, StringComparison.Ordinal);
@@ -64,7 +64,7 @@ public partial class UiFileInputDropzoneTests : global::Rask.Core.RaskMarkup
     public void A_dropzone_draws_no_legend_over_its_own_heading()
     {
         // The heading IS the caption; a legend above it would say "Receipts" twice.
-        var html = UiFileInput.Value("").Label("Receipts").Dropzone(true).Hint("Up to 10 MB").ToHtml();
+        var html = Ui.FileInput.Value("").Label("Receipts").Dropzone(true).Hint("Up to 10 MB").ToHtml();
 
         Assert.DoesNotContain("fieldset-legend", html, StringComparison.Ordinal);
         Assert.Contains("aria-label=\"Receipts\"", html, StringComparison.Ordinal);
@@ -74,7 +74,7 @@ public partial class UiFileInputDropzoneTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_plain_file_input_is_named_by_its_legend_and_described_by_its_hint()
     {
-        var html = UiFileInput.Value("").Label("Receipts").Hint("PDF only").ToHtml();
+        var html = Ui.FileInput.Value("").Label("Receipts").Hint("PDF only").ToHtml();
 
         Assert.Matches("<label [^>]*for=\"f-receipts\"", html);
         Assert.Contains("aria-describedby=\"f-receipts-hint\"", html, StringComparison.Ordinal);
@@ -83,7 +83,7 @@ public partial class UiFileInputDropzoneTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void An_error_marks_both_the_area_and_the_input()
     {
-        var html = UiFileInput.Value("").Label("Receipts").Dropzone(true).Tone(UiTone.Error).ToHtml();
+        var html = Ui.FileInput.Value("").Label("Receipts").Dropzone(true).Tone(Ui.Tone.Error).ToHtml();
 
         Assert.Contains("border-error", html, StringComparison.Ordinal);
         Assert.Contains("aria-invalid=\"true\"", html, StringComparison.Ordinal);
@@ -94,7 +94,7 @@ public partial class UiFileInputDropzoneTests : global::Rask.Core.RaskMarkup
     {
         // A disabled file input already rejects a drop, so disabling the input is the whole of it; the area only
         // stops inviting one.
-        var html = UiFileInput.Value("").Label("Receipts").Dropzone(true).Disabled(true).ToHtml();
+        var html = Ui.FileInput.Value("").Label("Receipts").Dropzone(true).Disabled(true).ToHtml();
 
         Assert.Contains("disabled", html, StringComparison.Ordinal);
         Assert.Contains("cursor-not-allowed", html, StringComparison.Ordinal);
@@ -104,7 +104,7 @@ public partial class UiFileInputDropzoneTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_compact_box_is_unchanged()
     {
-        var html = UiFileInput.Value("").Label("Avatar").ToHtml();
+        var html = Ui.FileInput.Value("").Label("Avatar").ToHtml();
 
         Assert.Contains("file-input validator", html, StringComparison.Ordinal);
         Assert.DoesNotContain("data-rask-dropzone", html, StringComparison.Ordinal);

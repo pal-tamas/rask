@@ -76,15 +76,15 @@ public sealed partial class HttpFetchDemo(HttpClient http, TimeProvider time) : 
     {
         if (_error is not null)
         {
-            return UiAlert.Tone(UiTone.Error).Variant(UiVariant.Soft).Class("mb-0")[Strong["Error: "], _error];
+            return Ui.Alert.Tone(Ui.Tone.Error).Variant(Ui.Variant.Soft).Class("mb-0")[Strong["Error: "], _error];
         }
 
         if (_post is null)
         {
-            return UiLoading.Text("Loading…").Size(UiSize.Sm).Class("text-ui-muted");
+            return Ui.Loading.Text("Loading…").Size(Ui.Size.Sm).Class("text-ui-muted");
         }
 
-        // An <article> rather than UiCard's <div>: this is a self-contained syndicated item, and the
+        // An <article> rather than Ui.Card's <div>: this is a self-contained syndicated item, and the
         // element is the semantics. It takes the KIT's own card class so there is still one vocabulary.
         return Article.Class($"{UiStyles.Card} bg-ui-well")[
             Div.Class("text-sm text-ui-muted uppercase mb-1")[$"Post #{_post.Id}"],

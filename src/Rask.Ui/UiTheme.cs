@@ -1,7 +1,7 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
-/// Turns a <see cref="UiThemeName" /> into the string daisyUI matches on.
+/// Turns a <see cref="Ui.ThemeName" /> into the string daisyUI matches on.
 /// </summary>
 public static class UiTheme
 {
@@ -14,11 +14,11 @@ public static class UiTheme
     /// theme the compiled stylesheet actually defines, so a member added here without the sheet
     /// shipping it fails the build's tests rather than a page.
     /// </remarks>
-    public static string Value(UiThemeName theme) =>
+    public static string Value(Ui.ThemeName theme) =>
         theme.ToString().ToLowerInvariant();
 
     /// <summary>
-    /// The value that means "follow the operating system" — <see cref="UiThemeName.System" />'s.
+    /// The value that means "follow the operating system" — <see cref="Ui.ThemeName.System" />'s.
     /// </summary>
     /// <remarks>
     /// It is NOT a <c>data-theme</c> anything should be stamped with; daisyUI compiles no block for it,
@@ -31,10 +31,10 @@ public static class UiTheme
 
     /// <summary>Every theme the kit ships, in declaration order.</summary>
     /// <remarks>
-    /// <see cref="UiThemeName.System" /> is not among them: it names the absence of a choice rather than
+    /// <see cref="Ui.ThemeName.System" /> is not among them: it names the absence of a choice rather than
     /// a palette, so a caller iterating this list to render one control per theme does not get a control
     /// for a <c>data-theme</c> that does not exist.
     /// </remarks>
-    public static IReadOnlyList<UiThemeName> All { get; } =
-        [.. Enum.GetValues<UiThemeName>().Where(t => t != UiThemeName.System)];
+    public static IReadOnlyList<Ui.ThemeName> All { get; } =
+        [.. Enum.GetValues<Ui.ThemeName>().Where(t => t != Ui.ThemeName.System)];
 }

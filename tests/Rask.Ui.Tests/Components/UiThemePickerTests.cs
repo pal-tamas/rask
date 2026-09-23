@@ -1,4 +1,4 @@
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     The theme picker, and the "System" row that makes every other row reversible.
@@ -13,7 +13,7 @@ public partial class UiThemePickerTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void It_offers_the_system_row_first()
     {
-        var html = UiThemePicker.ToHtml();
+        var html = Ui.ThemePicker.ToHtml();
         var system = html.IndexOf($"value=\"{UiTheme.SystemValue}\"", StringComparison.Ordinal);
         var light = html.IndexOf("value=\"light\"", StringComparison.Ordinal);
 
@@ -29,7 +29,7 @@ public partial class UiThemePickerTests : global::Rask.Core.RaskMarkup
         // nothing matches, so the CSS-only half falls back to the default palette on its own. But the
         // class is also what a host's delegated change listener recognises, so leaving it off would make
         // this the one row that reports nothing when a reader picks it.
-        var row = Row(UiThemePicker.ToHtml(), UiTheme.SystemValue);
+        var row = Row(Ui.ThemePicker.ToHtml(), UiTheme.SystemValue);
 
         Assert.Contains("theme-controller", row, StringComparison.Ordinal);
         Assert.Contains("type=\"radio\"", row, StringComparison.Ordinal);
@@ -39,13 +39,13 @@ public partial class UiThemePickerTests : global::Rask.Core.RaskMarkup
     public void The_system_row_can_be_turned_off() =>
         Assert.DoesNotContain(
             $"value=\"{UiTheme.SystemValue}\"",
-            UiThemePicker.ShowSystem(false).ToHtml(),
+            Ui.ThemePicker.ShowSystem(false).ToHtml(),
             StringComparison.Ordinal);
 
     [Fact]
     public void The_system_row_takes_a_label()
     {
-        var html = UiThemePicker.SystemLabel("Automatic").ToHtml();
+        var html = Ui.ThemePicker.SystemLabel("Automatic").ToHtml();
 
         Assert.Contains("<span>Automatic</span>", html, StringComparison.Ordinal);
         Assert.Contains("aria-label=\"Automatic\"", html, StringComparison.Ordinal);
@@ -54,7 +54,7 @@ public partial class UiThemePickerTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void It_offers_every_palette_the_kit_ships()
     {
-        var html = UiThemePicker.ToHtml();
+        var html = Ui.ThemePicker.ToHtml();
 
         foreach (var theme in UiTheme.All)
         {
@@ -66,7 +66,7 @@ public partial class UiThemePickerTests : global::Rask.Core.RaskMarkup
     public void It_never_offers_system_as_a_palette()
     {
         // UiTheme.All excludes it, so a narrowed list cannot smuggle it back in as a data-theme either.
-        var html = UiThemePicker.Themes(UiTheme.All).ShowSystem(false).ToHtml();
+        var html = Ui.ThemePicker.Themes(UiTheme.All).ShowSystem(false).ToHtml();
 
         Assert.DoesNotContain($"value=\"{UiTheme.SystemValue}\"", html, StringComparison.Ordinal);
     }
@@ -74,7 +74,7 @@ public partial class UiThemePickerTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Narrowing_the_palettes_keeps_the_system_row()
     {
-        var html = UiThemePicker.Themes([UiThemeName.Light, UiThemeName.Dark]).ToHtml();
+        var html = Ui.ThemePicker.Themes([Ui.ThemeName.Light, Ui.ThemeName.Dark]).ToHtml();
 
         Assert.Contains($"value=\"{UiTheme.SystemValue}\"", html, StringComparison.Ordinal);
         Assert.Contains("value=\"dark\"", html, StringComparison.Ordinal);
@@ -85,7 +85,7 @@ public partial class UiThemePickerTests : global::Rask.Core.RaskMarkup
     public void Every_row_is_keyed_by_its_own_value()
     {
         // RASK022 holds every list to identity rather than position, and the value is the identity here.
-        var html = UiThemePicker.ToHtml();
+        var html = Ui.ThemePicker.ToHtml();
 
         Assert.Contains("value=\"light\"", html, StringComparison.Ordinal);
         Assert.Contains("value=\"dark\"", html, StringComparison.Ordinal);

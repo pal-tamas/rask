@@ -91,6 +91,46 @@ public class ExternalGeneratorTests
 
         var diagnostic = Assert.Single(Distinct(run, "RASK059"));
         Assert.Contains("Chart", diagnostic, StringComparison.Ordinal);
+        Assert.Contains("overrides Module", diagnostic, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_computed_export_override_is_reported_as_RASK059_naming_Export()
+    {
+        var run = Run(
+            """
+            namespace App;
+
+            public sealed partial class Picker : Rask.External.ReactComponent
+            {
+                protected override string Module => "react-colorful";
+                protected override string Export => nameof(Picker);
+            }
+            """);
+
+        var diagnostic = Assert.Single(Distinct(run, "RASK059"));
+        Assert.Contains("overrides Export", diagnostic, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    // A prop of the island's own that happens to be named Export is not the package export.
+    [InlineData("public bool? Export { get; set; }")]
+    // The base's default, spelled out.
+    [InlineData("protected override string? Export => null;")]
+    public void An_Export_that_is_not_a_package_export_is_not_RASK059(string member)
+    {
+        var run = Run(
+            $$"""
+            namespace App;
+
+            public sealed partial class Chart : Rask.External.ReactComponent
+            {
+                protected override string Module => "@acme/charts";
+                {{member}}
+            }
+            """);
+
+        Assert.Empty(Distinct(run, "RASK059"));
     }
 
     [Fact]

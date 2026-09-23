@@ -22,21 +22,21 @@ public sealed partial class KeyedListsReorderDemo : Component
     protected override Component? Render() =>
         Div[
             Div.Class("flex gap-2 items-center flex-wrap mb-3")[
-                UiButton
-                    .Tone(_useKeys ? UiTone.Success : null)
-                    .Variant(_useKeys ? null : UiVariant.Outline)
+                Ui.Button
+                    .Tone(_useKeys ? Ui.Tone.Success : null)
+                    .Variant(_useKeys ? null : Ui.Variant.Outline)
                     .Id("kl-toggle-keys")
-                    .OnClick(() => _useKeys = !_useKeys)[UiIcon.Name(UiIconName.Key), _useKeys ? "Keys: ON" : "Keys: OFF"],
+                    .OnClick(() => _useKeys = !_useKeys)[Ui.Icon.Name(Ui.IconName.Key), _useKeys ? "Keys: ON" : "Keys: OFF"],
                 Span.Class("vr mx-1"),
-                UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("kl-rotate").OnClick(Rotate)[UiIcon.Name(UiIconName.ArrowsUpDown), "Rotate"],
-                UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("kl-reverse").OnClick(Reverse)[UiIcon.Name(UiIconName.Retry), "Reverse"],
-                UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("kl-add").OnClick(AddTop)[UiIcon.Name(UiIconName.Plus), "Add to top"],
-                UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline)
+                Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Id("kl-rotate").OnClick(Rotate)[Ui.Icon.Name(Ui.IconName.ArrowsUpDown), "Rotate"],
+                Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Id("kl-reverse").OnClick(Reverse)[Ui.Icon.Name(Ui.IconName.Retry), "Reverse"],
+                Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Id("kl-add").OnClick(AddTop)[Ui.Icon.Name(Ui.IconName.Plus), "Add to top"],
+                Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline)
                     .Id("kl-remove")
                     .Disabled(_items.Count == 0)
-                    .OnClick(RemoveTop)[UiIcon.Name(UiIconName.Minus), "Remove top"]
+                    .OnClick(RemoveTop)[Ui.Icon.Name(Ui.IconName.Minus), "Remove top"]
             ],
-            UiList.Id("kl-list")[BuildRows()]
+            Ui.List.Id("kl-list")[BuildRows()]
         ];
 
     private List<Component> BuildRows()
@@ -59,9 +59,9 @@ public sealed partial class KeyedListsReorderDemo : Component
 
     private static List<Component> Row(Fruit f, int index) =>
     [
-        UiBadge.Tone(UiTone.Neutral).Variant(UiVariant.Soft)[(index + 1).ToString()],
+        Ui.Badge.Tone(Ui.Tone.Neutral).Variant(Ui.Variant.Soft)[(index + 1).ToString()],
         Span.Class("font-semibold").Style("min-width: 7rem;")[f.Name],
-        UiInput.Value<string>(null).AccessibleLabel("type here, then reorder…")
+        Ui.Input.Value<string>(null).AccessibleLabel("type here, then reorder…")
             .Type(InputType.Text)
             .Placeholder("type here, then reorder…").Class("kl-note")
     ];

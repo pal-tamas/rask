@@ -21,21 +21,21 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
     private MediaStreamId? _camera;
 
     protected override Component? Render() =>
-        UiCard.Class("shadow-sm")[
+        Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 items-center flex-wrap mb-3")[
                     // Headless: we render our own buttons; the triggers just supply the gesture attribute.
-                    FullscreenTrigger
+                    Trigger.Fullscreen
                         .Template(g =>
-                        UiButton.Tone(UiTone.Primary).Id("fullscreen-btn").Data(g)["Enter fullscreen"]),
-                    ScreenOrientationTrigger
+                        Ui.Button.Tone(Ui.Tone.Primary).Id("fullscreen-btn").Data(g)["Enter fullscreen"]),
+                    Trigger.ScreenOrientation
                         .Orientation("landscape")
                         .Template(g =>
-                            UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline)
+                            Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
                                 .Id("orientation-btn")
                                 .Data(g)["Lock landscape"]),
-                    InstallTrigger
+                    Trigger.Install
                         .Template(g =>
-                            UiButton.Tone(UiTone.Success).Variant(UiVariant.Outline)
+                            Ui.Button.Tone(Ui.Tone.Success).Variant(Ui.Variant.Outline)
                                 .Id("install-btn")
                                 .Data(g)["Install app"])
                         .OnOutcome(outcome =>
@@ -50,9 +50,9 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                         : Span.Class("text-sm")["install: ", Code.Id("install-outcome")[_install]]
                 ],
                 Div.Class("flex gap-2 items-center flex-wrap mb-2")[
-                    EyeDropperTrigger
+                    Trigger.EyeDropper
                         .Template(g =>
-                            UiButton.Variant(UiVariant.Outline)
+                            Ui.Button.Variant(Ui.Variant.Outline)
                                 .Id("eyedropper-btn")
                                 .Data(g)["Pick a colour"])
                         .OnColor(hex =>
@@ -69,15 +69,15 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                                        + $"border:1px solid #ccc;background:{_color}"),
                             Code.Id("eyedropper-value")[_color]]
                 ],
-                // MediaCaptureTrigger fills this <video> from the camera; PictureInPictureTrigger then pops
+                // Trigger.MediaCapture fills this <video> from the camera; Trigger.PictureInPicture then pops
                 // that same element out — both resolve the element from its ElementRef.
                 Div.Class("flex gap-2 items-center flex-wrap items-center")[
                     // For and Template are the required steps, so they come first: until both are named
                     // the receiver is still a pending-required wrapper and has no optional setters on it.
-                    MediaCaptureTrigger
+                    Trigger.MediaCapture
                         .For(_preview)
                         .Template(g =>
-                            UiButton.Variant(UiVariant.Outline)
+                            Ui.Button.Variant(Ui.Variant.Outline)
                                 .Id("camera-btn")
                                 .Data(g)["Start camera"])
                         .Video(true)
@@ -91,14 +91,14 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                             _camera = id;
                             return Task.CompletedTask;
                         }),
-                    UiButton.Variant(UiVariant.Outline)
+                    Ui.Button.Variant(Ui.Variant.Outline)
                         .Id("camera-stop-btn")
                         .Disabled(_camera is null)
                         .OnClick(StopCameraAsync)["Stop camera"],
-                    PictureInPictureTrigger
+                    Trigger.PictureInPicture
                         .For(_preview)
                         .Template(g =>
-                            UiButton.Variant(UiVariant.Outline)
+                            Ui.Button.Variant(Ui.Variant.Outline)
                                 .Id("pip-btn")
                                 .Data(g)["Pop out video"]),
                     Video

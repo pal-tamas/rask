@@ -68,7 +68,7 @@ public class WasmDiffPathTests() : ResettingTestBase(LiveDiffMode.Forced)
                 $"Click {click}: expected exactly one UpdateText op with value \"{expected}\". "
                 + $"Got {ops.Count} ops: {doc.RootElement.GetRawText()}");
             // The path's first index addresses document.childNodes. For
-            // Fragment[Doctype, Html[...]] there are only 2 top-level frames, so
+            // Fragment[Doctype, Document[...]] there are only 2 top-level frames, so
             // path[0] must be 0 (doctype — but text nodes never live here) or 1
             // (html). The e2e diff log surfaced [6, ...] for the real App, which
             // can't be reached through legitimate frame walking.

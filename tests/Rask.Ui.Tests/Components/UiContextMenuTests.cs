@@ -1,10 +1,10 @@
 using System.Text.RegularExpressions;
 using Rask.Testing;
 
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
-///     A menu opened by a right-click on its target: <c>UiContextMenu.Target(...)[UiMenuItem…]</c>.
+///     A menu opened by a right-click on its target: <c>Ui.ContextMenu.Target(...)[Ui.MenuItem…]</c>.
 /// </summary>
 /// <remarks>
 ///     The opening is the runtime's — it shows the popover at the pointer, which the site's browser suite drives —
@@ -14,10 +14,10 @@ namespace Rask.Ui.Tests.Components;
 public partial class UiContextMenuTests : global::Rask.Core.RaskMarkup
 {
     private static global::Rask.Core.Component Menu() =>
-        UiContextMenu.Target(Div.Class("card")["Invoice 42"])[
-            UiMenuItem.Text("Open"),
-            UiMenuItem.Text("Duplicate").Disabled(true),
-            UiMenuItem.Text("Delete").Tone(UiTone.Error)
+        Ui.ContextMenu.Target(Div.Class("card")["Invoice 42"])[
+            Ui.MenuItem.Text("Open"),
+            Ui.MenuItem.Text("Duplicate").Disabled(true),
+            Ui.MenuItem.Text("Delete").Tone(Ui.Tone.Error)
         ];
 
     [Fact]

@@ -58,7 +58,7 @@ public sealed partial class GuideCards : Component
                     $"{UiStyles.Card} h-full transition-colors hover:border-ui-brand "
                     + "focus-within:border-ui-brand")[
                     Div.Class("flex items-start gap-3")[
-                        UiIcon.Name(g.Icon).Class("mt-0.5 size-5 shrink-0 text-ui-muted"),
+                        Ui.Icon.Name(g.Icon).Class("mt-0.5 size-5 shrink-0 text-ui-muted"),
                         // min-w-0: without it this flex item cannot shrink below the longest
                         // unbreakable word in the title, and the card widens its grid column.
                         Div.Class("min-w-0")[

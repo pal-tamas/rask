@@ -26,6 +26,7 @@ namespace Rask.Core.Components;
 ///     For a <b>code-driven</b> call on the in-process WASM host, inject the matching service
 ///     (<c>IFullscreen</c>, <c>IEyeDropper</c>, …) instead.
 /// </summary>
+[RaskChainGroup(typeof(global::Rask.Trigger))]
 public sealed class GestureTrigger : Component
 {
     /// <summary>The capability to run in the gesture — e.g. <c>"fullscreen.request"</c>, <c>"eyedropper.open"</c>.</summary>
@@ -45,6 +46,7 @@ public sealed class GestureTrigger : Component
 }
 
 /// <summary>Present an element/page fullscreen from a click gesture (works on Server, unlike the imperative <c>IFullscreen</c>).</summary>
+[RaskChainGroup(typeof(global::Rask.Trigger))]
 public sealed class FullscreenTrigger : Component
 {
     /// <summary>Optional element to present fullscreen; when <c>null</c>, the whole page goes fullscreen.</summary>
@@ -58,6 +60,7 @@ public sealed class FullscreenTrigger : Component
 }
 
 /// <summary>Open the eyedropper from a click gesture and receive the picked colour (hex, or <c>null</c> if cancelled).</summary>
+[RaskChainGroup(typeof(global::Rask.Trigger))]
 public sealed class EyeDropperTrigger : Component
 {
     /// <summary>Invoked with the picked colour as <c>#rrggbb</c>, or <c>null</c> when the user cancels.</summary>
@@ -76,6 +79,7 @@ public sealed class EyeDropperTrigger : Component
 ///     fullscreen and on a device that honours it, so pair this with a <see cref="FullscreenTrigger" /> (or
 ///     app-controlled fullscreen); off-fullscreen or on desktop the lock is a silent no-op.
 /// </summary>
+[RaskChainGroup(typeof(global::Rask.Trigger))]
 public sealed class ScreenOrientationTrigger : Component
 {
     /// <summary>The orientation to lock to — e.g. <c>"landscape"</c>, <c>"portrait"</c>, <c>"landscape-primary"</c>.</summary>
@@ -92,6 +96,7 @@ public sealed class ScreenOrientationTrigger : Component
 ///     Put a <c>&lt;video&gt;</c> into picture-in-picture from a click gesture (works on Server, unlike the
 ///     imperative <c>IPictureInPicture</c>). Point <see cref="For" /> at the video's <see cref="ElementRef" />.
 /// </summary>
+[RaskChainGroup(typeof(global::Rask.Trigger))]
 public sealed class PictureInPictureTrigger : Component
 {
     /// <summary>The <c>&lt;video&gt;</c> element to present in the miniplayer.</summary>
@@ -110,6 +115,7 @@ public sealed class PictureInPictureTrigger : Component
 ///     <c>"unavailable"</c> — the last when the app isn't installable (it needs a web manifest + service worker
 ///     over HTTPS; on Server that means <c>AddRaskPwa</c>).
 /// </summary>
+[RaskChainGroup(typeof(global::Rask.Trigger))]
 public sealed class InstallTrigger : Component
 {
     /// <summary>Invoked with the install outcome: <c>"accepted"</c>, <c>"dismissed"</c>, or <c>"unavailable"</c>.</summary>
@@ -129,6 +135,7 @@ public sealed class InstallTrigger : Component
 ///     <see cref="OnResult" /> receives <c>"granted"</c> once the stream starts, or <c>"denied"</c> if the user
 ///     refuses.
 /// </summary>
+[RaskChainGroup(typeof(global::Rask.Trigger))]
 public sealed class MediaCaptureTrigger : Component
 {
     /// <summary>The <c>&lt;video&gt;</c> element the captured stream is attached to.</summary>

@@ -98,7 +98,7 @@ public sealed partial class DashboardIsKitOnlyTests : global::Rask.Core.RaskMark
 
         Assert.True(
             page.Exists(".rask-ops[data-rask-ui][data-theme=\"light\"]"),
-            "UiShell renders the kit's theme scope with no theme named, so daisyUI falls back to "
+            "Ui.Shell renders the kit's theme scope with no theme named, so daisyUI falls back to "
             + "prefers-color-scheme for everything inside it.");
     }
 

@@ -1,4 +1,4 @@
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     The multi-select, in both of its modes.
@@ -20,7 +20,7 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
     public void The_default_is_the_platforms_own_multi_select()
     {
         // It works with no script, renders complete on a prerendered page, and posts under its own name
-        // — the same reasons UiSelect defaults to native.
+        // — the same reasons Ui.Select defaults to native.
         var html = Native(["core"]);
 
         Assert.Contains("<select", html);
@@ -128,7 +128,7 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
     public void Chips_zero_collapses_to_a_count_alone()
     {
         // For a box that must keep one width whatever is picked.
-        var html = UiSelect.Values<string>(["core", "ui"]).Options(Packages).Label("Packages")
+        var html = Ui.Select.Values<string>(["core", "ui"]).Options(Packages).Label("Packages")
             .Native(false).Chips(0).ToHtml();
 
         Assert.Contains("2 selected", html);
@@ -138,7 +138,7 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void An_empty_selection_shows_the_placeholder_and_no_chips()
     {
-        var html = UiSelect.Values<string>([]).Options(Packages).Label("Packages")
+        var html = Ui.Select.Values<string>([]).Options(Packages).Label("Packages")
             .Native(false).Placeholder("Choose packages").ToHtml();
 
         Assert.Contains("Choose packages", html);
@@ -150,7 +150,7 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
     {
         // Unlike the single-select's. A "choose one" row in a list you may choose several from is an
         // answer that contradicts its own question.
-        var html = UiSelect.Values<string>([]).Options(Packages).Label("Packages")
+        var html = Ui.Select.Values<string>([]).Options(Packages).Label("Packages")
             .Placeholder("Choose packages").ToHtml();
 
         Assert.DoesNotContain("<option value=\"\"", html);
@@ -171,14 +171,14 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
     {
         Assert.DoesNotContain("Select all", Custom(["core"]));
         Assert.Contains("Select all",
-            UiSelect.Values<string>(["core"]).Options(Packages).Label("Packages")
+            Ui.Select.Values<string>(["core"]).Options(Packages).Label("Packages")
                 .Native(false).SelectAll(true).ToHtml());
     }
 
     [Fact]
     public void Select_all_becomes_clear_all_once_everything_is_in()
     {
-        var html = UiSelect.Values<string>(["core", "ui", "cli", "blazor", "ext"])
+        var html = Ui.Select.Values<string>(["core", "ui", "cli", "blazor", "ext"])
             .Options(Packages).Label("Packages").Native(false).SelectAll(true).ToHtml();
 
         Assert.Contains("Clear all", html);
@@ -190,7 +190,7 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
     {
         // Everything selectable is already in, so the bulk action has nothing left to add even though
         // one option is unpicked — it must not offer to select a disabled row.
-        var html = UiSelect.Values<string>(["core", "ui", "cli", "ext"])
+        var html = Ui.Select.Values<string>(["core", "ui", "cli", "ext"])
             .Options(Packages).Label("Packages").Native(false).SelectAll(true)
             .OptionDisabled(v => v == "blazor").ToHtml();
 
@@ -200,7 +200,7 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_disabled_option_says_so_and_is_unreachable()
     {
-        var html = UiSelect.Values<string>([]).Options(Packages).Label("Packages")
+        var html = Ui.Select.Values<string>([]).Options(Packages).Label("Packages")
             .Native(false).OptionDisabled(v => v == "blazor").ToHtml();
 
         Assert.Contains("aria-disabled=\"true\"", html);
@@ -218,7 +218,7 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Grouping_puts_headers_in_the_list()
     {
-        var html = UiSelect.Values<string>([]).Options(Packages).Label("Packages")
+        var html = Ui.Select.Values<string>([]).Options(Packages).Label("Packages")
             .Native(false).OptionGroup(v => v is "core" or "ui" ? "Rendering" : "Tooling").ToHtml();
 
         Assert.Contains("menu-title", html);
@@ -233,7 +233,7 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
         // silently drop its field.
         Assert.DoesNotContain("type=\"hidden\"", Custom(["core", "ui"]));
 
-        var html = UiSelect.Values<string>(["core", "ui"]).Options(Packages).Label("Packages")
+        var html = Ui.Select.Values<string>(["core", "ui"]).Options(Packages).Label("Packages")
             .Native(false).Name("packages").ToHtml();
 
         // One per answer, all sharing the name — byte for byte what <select multiple> posts, so a server
@@ -247,7 +247,7 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
     {
         // An <option> holds text and nothing else, so there is nowhere in the platform's control for
         // markup to go — supplying a template is therefore a choice of mode as well.
-        var html = UiSelect.Values<string>(["core"]).Options(Packages).Label("Packages")
+        var html = Ui.Select.Values<string>(["core"]).Options(Packages).Label("Packages")
             .OptionTemplate(v => Span.Class("badge-dot")[v]).ToHtml();
 
         Assert.DoesNotContain("<select", html);
@@ -257,7 +257,7 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_chip_template_draws_the_box_while_the_rows_keep_their_words()
     {
-        var html = UiSelect.Values<string>(["core"]).Options(Packages).Label("Packages")
+        var html = Ui.Select.Values<string>(["core"]).Options(Packages).Label("Packages")
             .Native(false).ChipTemplate(v => Span.Class("chip-mark")[v]).ToHtml();
 
         Assert.Contains("chip-mark", html);
@@ -269,7 +269,7 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
     {
         // #1117: a <label for> over the control that carries the id — the <select multiple>, or the drawn list's
         // <button role="combobox">, which is a labelable element — rather than a second, invisible aria-label
-        // beside the legend. UiSelect names its drawn list the same way.
+        // beside the legend. Ui.Select names its drawn list the same way.
         foreach (var html in new[] { Native(["core"]), Custom(["core"]) })
         {
             Assert.Matches("<label [^>]*for=\"f-packages\"", html);
@@ -281,7 +281,7 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Without_a_visible_label_the_accessible_label_names_it()
     {
-        var html = UiSelect.Values<string>([]).Options(Packages).AccessibleLabel("Packages").ToHtml();
+        var html = Ui.Select.Values<string>([]).Options(Packages).AccessibleLabel("Packages").ToHtml();
 
         Assert.Contains("aria-label=\"Packages\"", html);
         Assert.DoesNotContain("<label", html);
@@ -290,7 +290,7 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_hint_describes_it_and_a_badge_rides_its_label()
     {
-        var html = UiSelect.Values<string>([]).Options(Packages).Label("Packages").Hint("Pick any").Badge("New").ToHtml();
+        var html = Ui.Select.Values<string>([]).Options(Packages).Label("Packages").Hint("Pick any").Badge("New").ToHtml();
 
         Assert.Contains("aria-describedby=\"f-packages-hint\"", html);
         Assert.Contains(">Pick any</p>", html);
@@ -302,11 +302,11 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
     {
         // A field that is visibly red and says nothing is half a message.
         Assert.Contains("aria-invalid=\"true\"",
-            UiSelect.Values<string>([]).Options(Packages).Label("Packages")
-                .Tone(UiTone.Error).ToHtml());
+            Ui.Select.Values<string>([]).Options(Packages).Label("Packages")
+                .Tone(Ui.Tone.Error).ToHtml());
         Assert.Contains("aria-invalid=\"true\"",
-            UiSelect.Values<string>([]).Options(Packages).Label("Packages")
-                .Native(false).Tone(UiTone.Error).ToHtml());
+            Ui.Select.Values<string>([]).Options(Packages).Label("Packages")
+                .Native(false).Tone(Ui.Tone.Error).ToHtml());
     }
 
     [Fact]
@@ -342,7 +342,7 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
         // Not the DOM's single `value`, which for a multi-select is only the FIRST picked option — the
         // reason this control takes the raw values rather than forwarding Bind to Select.
         var html = global::Rask.Testing.RaskTest.Render(
-            UiSelect.Values<string>(["core"]).Options(Packages).Label("Packages")).Html;
+            Ui.Select.Values<string>(["core"]).Options(Packages).Label("Packages")).Html;
 
         Assert.Contains("data-rask-on-change", html);
     }
@@ -360,14 +360,14 @@ public partial class UiMultiSelectTests : global::Rask.Core.RaskMarkup
     }
 
     private static string Native(string[] chosen) =>
-        UiSelect.Values<string>(chosen).Options(Packages).Label("Packages").ToHtml();
+        Ui.Select.Values<string>(chosen).Options(Packages).Label("Packages").ToHtml();
 
     private static string Custom(string[] chosen) =>
-        UiSelect.Values<string>(chosen).Options(Packages).Label("Packages").Native(false).ToHtml();
+        Ui.Select.Values<string>(chosen).Options(Packages).Label("Packages").Native(false).ToHtml();
 
     // Handlers only exist inside a live render, so the attribute assertions above need one.
     private static string Live() =>
         global::Rask.Testing.RaskTest.Render(
-            UiSelect.Values<string>(["core"]).Options(Packages).Label("Packages")
+            Ui.Select.Values<string>(["core"]).Options(Packages).Label("Packages")
                 .Native(false)).Html;
 }

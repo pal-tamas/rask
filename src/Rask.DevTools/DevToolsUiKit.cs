@@ -17,7 +17,7 @@ internal static class DevToolsUiKit
     ///     A kit type, named rather than referenced, so asking never loads an assembly that is not there. A test pins it to
     ///     the real type, so a rename in Rask.Ui fails there rather than turning the devtools off in every app.
     /// </summary>
-    internal const string ProbeTypeName = "Rask.Ui.UiStylesheet, Rask.Ui";
+    internal const string ProbeTypeName = "Rask.UiStylesheet, Rask.Ui";
 
     /// <summary>Whether the kit resolves in this process.</summary>
     internal static bool IsAvailable()

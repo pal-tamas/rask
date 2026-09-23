@@ -3,7 +3,7 @@ namespace Rask.Core.Components;
 // Tagless container: renders its Children with no wrapping element. Internal — authors express
 // multi-root / grouped content with a `[a, b]` collection expression (built here via
 // Component.Create), not by naming Fragment. The constructors serve `new Fragment(children)` call
-// sites inside the framework (ErrorBoundary, ValidationMessage, the collection builder, etc.).
+// sites inside the framework (ErrorBoundary, Validation.Message, the collection builder, etc.).
 /// <summary>
 ///     A tagless container: renders its children with no wrapping element. Internal — express grouped or
 ///     multi-root content with a <c>[a, b]</c> collection expression rather than by naming this.

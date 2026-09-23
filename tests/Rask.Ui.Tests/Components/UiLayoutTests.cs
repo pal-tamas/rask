@@ -1,4 +1,4 @@
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     The Layout category.
@@ -46,14 +46,14 @@ public partial class UiLayoutTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_divider_can_carry_words_or_not()
     {
-        Assert.Contains("or", UiDivider.Text("or").ToHtml());
-        Assert.Contains("divider", UiDivider.ToHtml());
+        Assert.Contains("or", Ui.Divider.Text("or").ToHtml());
+        Assert.Contains("divider", Ui.Divider.ToHtml());
     }
 
     [Fact]
     public void An_indicator_puts_its_badge_over_its_child()
     {
-        var html = UiIndicator.Badge(UiBadge["9"])[UiButton["Inbox"]].ToHtml();
+        var html = Ui.Indicator.Badge(Ui.Badge["9"])[Ui.Button["Inbox"]].ToHtml();
 
         Assert.Contains("indicator", html);
         Assert.Contains("Inbox", html);
@@ -62,29 +62,29 @@ public partial class UiLayoutTests : global::Rask.Core.RaskMarkup
 
     [Fact]
     public void A_join_groups_its_children_into_one_control() =>
-        Assert.Contains("join", UiJoin[UiButton["1"], UiButton["2"]].ToHtml());
+        Assert.Contains("join", Ui.Join[Ui.Button["1"], Ui.Button["2"]].ToHtml());
 
     [Fact]
     public void A_vertical_join_says_so() =>
-        Assert.Contains("join-vertical", UiJoin.Vertical(true)[UiButton["1"]].ToHtml());
+        Assert.Contains("join-vertical", Ui.Join.Vertical(true)[Ui.Button["1"]].ToHtml());
 
     [Fact]
     public void An_avatar_keeps_its_alt_text()
     {
         // A decorative avatar would take an empty alt; this one takes a required one, because an avatar
         // in a list of people is the only thing saying which person the row is about.
-        Assert.Contains("alt=\"Ada\"", UiAvatar.Src("/me.png").Alt("Ada").ToHtml());
+        Assert.Contains("alt=\"Ada\"", Ui.Avatar.Src("/me.png").Alt("Ada").ToHtml());
     }
 
     [Theory]
     [InlineData(null, "w-10")]
-    [InlineData(UiSize.Xs, "w-6")]
-    [InlineData(UiSize.Xl, "w-24")]
-    public void An_avatar_is_sized_on_the_kit_axis(UiSize? size, string expected)
+    [InlineData(Ui.Size.Xs, "w-6")]
+    [InlineData(Ui.Size.Xl, "w-24")]
+    public void An_avatar_is_sized_on_the_kit_axis(Ui.Size? size, string expected)
     {
         // A literal the kit's own sheet is built from, not a class string from the call site that nothing
         // compiled.
-        Assert.Contains(expected, UiAvatar.Src("/me.png").Alt("Ada").Size(size).ToHtml());
+        Assert.Contains(expected, Ui.Avatar.Src("/me.png").Alt("Ada").Size(size).ToHtml());
     }
 
     [Fact]
@@ -93,28 +93,28 @@ public partial class UiLayoutTests : global::Rask.Core.RaskMarkup
         Assert.DoesNotContain("drawer-end", Drawer(open: null));
         Assert.Contains(
             "drawer-end",
-            UiDrawer.Id("nav").Panel(Span["menu"]).Position(UiPosition.Right)[Span["page"]].ToHtml());
+            Ui.Drawer.Id("nav").Panel(Span["menu"]).Position(Ui.Position.Right)[Span["page"]].ToHtml());
     }
 
     [Fact]
     public void A_kbd_is_a_kbd_element() =>
-        Assert.Contains("<kbd", UiKbd.Text("K").ToHtml());
+        Assert.Contains("<kbd", Ui.Kbd.Text("K").ToHtml());
 
     [Fact]
     public void A_hero_and_a_stack_carry_their_base_classes()
     {
-        Assert.Contains("hero", UiHero[Span["x"]].ToHtml());
-        Assert.Contains("stack", UiStack[Span["x"]].ToHtml());
+        Assert.Contains("hero", Ui.Hero[Span["x"]].ToHtml());
+        Assert.Contains("stack", Ui.Stack[Span["x"]].ToHtml());
     }
 
     [Fact]
     public void A_footer_can_run_horizontally() =>
-        Assert.Contains("footer-horizontal", UiFooter.Horizontal(true)[Span["x"]].ToHtml());
+        Assert.Contains("footer-horizontal", Ui.Footer.Horizontal(true)[Span["x"]].ToHtml());
 
     [Fact]
     public void The_shell_carries_the_theme_scope_and_follows_the_OS_by_default()
     {
-        var html = UiShell[Span["x"]].ToHtml();
+        var html = Ui.Shell[Span["x"]].ToHtml();
 
         // Without the attribute nothing inside has a colour at all — daisyUI's palette is confined to it
         // so that referencing this package cannot repaint an app that only wanted a button.
@@ -133,14 +133,14 @@ public partial class UiLayoutTests : global::Rask.Core.RaskMarkup
         // can say so — writing data-theme on an ancestor loses to the rule above, which matches here.
         Assert.Contains(
             "data-theme=\"dark\"",
-            UiShell.Theme(UiThemeName.Dark)[Span["x"]].ToHtml(),
+            Ui.Shell.Theme(Ui.ThemeName.Dark)[Span["x"]].ToHtml(),
             StringComparison.Ordinal);
     }
 
     private static string Drawer(bool? open) =>
-        UiDrawer
+        Ui.Drawer
             .Id("nav")
-            .Panel(UiMenu[UiMenuItem.Text("Home").Href("/")])
+            .Panel(Ui.Menu[Ui.MenuItem.Text("Home").Href("/")])
             .Open(open)
             .CloseLabel("Close navigation")[Span["page"]]
             .ToHtml();

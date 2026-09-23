@@ -1,8 +1,8 @@
 using System.Globalization;
 
-namespace Rask.Ui;
+namespace Rask;
 
-// The keyboard and id maths behind UiSelect's non-native listbox: the option-id scheme that
+// The keyboard and id maths behind Ui.Select's non-native listbox: the option-id scheme that
 // aria-activedescendant points at, and the roving cursor over the flat option list.
 //
 // Separated from the component because it is pure arithmetic with no markup in it, which makes it

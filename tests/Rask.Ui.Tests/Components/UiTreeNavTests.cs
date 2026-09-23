@@ -1,4 +1,4 @@
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     Which nodes a tree shows, in which order, and what each row knows about its place — the arithmetic a tree control

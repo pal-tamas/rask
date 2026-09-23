@@ -74,8 +74,8 @@ public class RuntimeScriptEndpointTests
     public async Task Get_RaskJs_IncludesGestureBridgeHelpers()
     {
         // The six gesture-bridge helpers moved into the shared rask-api.js so the declarative triggers
-        // (FullscreenTrigger / ScreenOrientationTrigger / EyeDropperTrigger / InstallTrigger /
-        // MediaCaptureTrigger / PictureInPictureTrigger) run their activation-gated API inside the click
+        // (Trigger.Fullscreen / Trigger.ScreenOrientation / Trigger.EyeDropper / Trigger.Install /
+        // Trigger.MediaCapture / Trigger.PictureInPicture) run their activation-gated API inside the click
         // gesture on the Server host too — where the imperative service can't be injected.
         using var host = RaskTestHost.Create<TestApp>();
 

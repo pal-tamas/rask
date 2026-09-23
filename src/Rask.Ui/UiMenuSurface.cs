@@ -1,7 +1,7 @@
 using System.Globalization;
 using Rask.Core.Live;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A menu in a popover, with the keyboard cursor: what every menu control in the kit is, whatever opens it.
@@ -89,7 +89,7 @@ public abstract partial class UiMenuSurface : Component
             .Popover("auto")
             .Class("z-1 rounded-box border border-base-300 bg-base-100 p-2 shadow-sm")
             .Attributes(("style", style))
-            // The SOLE writer of the open state, as on UiSelect: the browser opens the popover and closes it on
+            // The SOLE writer of the open state, as on Ui.Select: the browser opens the popover and closes it on
             // Escape, a click outside, a pick and Tab, and this is where C# hears which.
             .OnToggle(OnPanelToggleAsync);
 

@@ -18,6 +18,9 @@ internal sealed record UserProp(string ClrName, string WireName);
 /// <param name="Namespace">Its namespace, or null for the global namespace.</param>
 /// <param name="Runtime">The runtime its base class declares.</param>
 /// <param name="Module">Its constant <c>Module</c> override, or null when it declares none.</param>
+/// <param name="Export">
+///     The package export it mounts — its constant <c>Export</c> override, or <c>default</c> when it declares none.
+/// </param>
 /// <param name="IsPublic">Whether generated types beside it must be public to match it.</param>
 /// <param name="Directories">The normalised directories its declarations live in.</param>
 /// <param name="UserProps">The props declared on the class itself.</param>
@@ -34,6 +37,7 @@ internal sealed record IslandFacts(
     string? Namespace,
     string Runtime,
     string? Module,
+    string Export,
     bool IsPublic,
     EquatableArray<string> Directories,
     EquatableArray<UserProp> UserProps,
@@ -129,7 +133,7 @@ internal sealed record PackageIsland(
     EquatableArray<GeneratedType> Types,
     EquatableArray<PropProblem> Problems);
 
-/// <summary>Reading and splitting a package module specifier.</summary>
+/// <summary>Reading a package module specifier.</summary>
 internal static class PackageSpecifier
 {
     /// <summary>
@@ -157,17 +161,6 @@ internal static class PackageSpecifier
         return true;
     }
 
-    /// <summary>
-    ///     The specifier and the export: <c>"@mui/material#Button"</c> is <c>(@mui/material, Button)</c>, and
-    ///     a specifier without a <c>#</c> names the default export.
-    /// </summary>
-    public static (string Specifier, string Export) Split(string module)
-    {
-        var hash = module.LastIndexOf('#');
-        return hash > 0 && hash < module.Length - 1
-            ? (module.Substring(0, hash), module.Substring(hash + 1))
-            : (module, "default");
-    }
 }
 
 /// <summary>
@@ -232,6 +225,7 @@ internal static class PackageIslandProps
         }
 
         var module = ModuleLiteral.Read(type);
+        var export = ModuleLiteral.ReadExport(type);
 
         var directories = type.DeclaringSyntaxReferences
             .Select(static r => AssetPairing.NormalizeDirectory(r.SyntaxTree.FilePath))
@@ -299,6 +293,7 @@ internal static class PackageIslandProps
             type.ContainingNamespace.IsGlobalNamespace ? null : type.ContainingNamespace.ToDisplayString(),
             runtime,
             module.Failed ? null : module.Value,
+            export.Value ?? "default",
             IsExternallyVisible(type),
             new EquatableArray<string>(directories),
             new EquatableArray<UserProp>(userProps),
@@ -435,20 +430,22 @@ internal static class PackageIslandProps
                 $"the '{snapshot.Runtime}' runtime, but the class is a '{facts.Runtime}' island");
         }
 
-        var (specifier, export) = PackageSpecifier.Split(facts.Module!);
-        if (!string.Equals(snapshot.Module, specifier, StringComparison.Ordinal)
-            || !string.Equals(snapshot.Export, export, StringComparison.Ordinal))
+        if (!string.Equals(snapshot.Module, facts.Module, StringComparison.Ordinal)
+            || !string.Equals(snapshot.Export, facts.Export, StringComparison.Ordinal))
         {
             return Verdict(
                 PackageVerdict.ModuleMismatch,
-                $"'{Describe(snapshot.Module, snapshot.Export)}', but the class names '{facts.Module}'");
+                $"{Describe(snapshot.Module, snapshot.Export)}, but the class names "
+                + Describe(facts.Module!, facts.Export));
         }
 
         return new Resolver(snapshot, facts, takenTypeNames).Run();
     }
 
     private static string Describe(string module, string export) =>
-        string.Equals(export, "default", StringComparison.Ordinal) ? module : module + "#" + export;
+        string.Equals(export, "default", StringComparison.Ordinal)
+            ? $"the default export of '{module}'"
+            : $"'{export}' of '{module}'";
 
     private static PackageIsland Verdict(PackageVerdict verdict, string detail) =>
         new(verdict, detail, default, default, default);
@@ -473,7 +470,7 @@ internal static class PackageIslandProps
     private static bool HasSkipFactory(ISymbol symbol) =>
         symbol.GetAttributes().Any(static a => a.AttributeClass?.ToDisplayString() == SkipFactoryName);
 
-    private static bool IsExternallyVisible(INamedTypeSymbol type)
+    internal static bool IsExternallyVisible(INamedTypeSymbol type)
     {
         for (ISymbol? s = type; s is INamedTypeSymbol t; s = t.ContainingType)
         {

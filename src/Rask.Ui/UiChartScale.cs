@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>The value axis of a chart: its ends, and the round steps between them.</summary>
 /// <remarks>

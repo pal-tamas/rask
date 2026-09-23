@@ -1,9 +1,9 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>A small status pill. It IS the <c>&lt;span&gt;</c>, and what it says is its children.</summary>
 /// <remarks>
 /// <para>
-/// daisyUI's <c>badge</c>, and <see cref="Tone" /> is a <see cref="UiTone" />. Both of those are changes,
+/// daisyUI's <c>badge</c>, and <see cref="Tone" /> is a <see cref="Ui.Tone" />. Both of those are changes,
 /// and the string tone it replaced is worth recording because it failed in two ways at once.
 /// </para>
 /// <para>
@@ -21,19 +21,19 @@ namespace Rask.Ui;
 /// <c>ComponentToneContrastTests</c> covers it.
 /// </para>
 /// <para>
-/// A <see cref="UiElement" />: <c>UiBadge.Tone(UiTone.Success)["Live"]</c>, with <c>Id</c>, <c>Data</c>
+/// A <see cref="UiElement" />: <c>Ui.Badge.Tone(Ui.Tone.Success)["Live"]</c>, with <c>Id</c>, <c>Data</c>
 /// and the rest of the element steps from <see cref="Element" />.
 /// </para>
 /// </remarks>
 public sealed partial class UiBadge : UiElement
 {
     /// <summary>The pill's colour. Omitted, it is the theme's plain badge.</summary>
-    public UiTone? Tone { get; set; }
+    public Ui.Tone? Tone { get; set; }
 
-    /// <summary>How it is filled. <see cref="UiVariant.Soft" /> is the quiet one.</summary>
-    public UiVariant? Variant { get; set; }
+    /// <summary>How it is filled. <see cref="Ui.Variant.Soft" /> is the quiet one.</summary>
+    public Ui.Variant? Variant { get; set; }
 
-    public UiSize? Size { get; set; }
+    public Ui.Size? Size { get; set; }
 
     /// <summary>Sets it in a monospace face and lets it wrap — for a request id, a <c>key=value</c> scope.</summary>
     /// <remarks>

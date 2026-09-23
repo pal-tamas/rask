@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// The surface's frame: a well, and the panel the surface is drawn on.
@@ -29,7 +29,7 @@ public sealed partial class UiShell : Component
     /// laptop is in dark mode, with every class name in the markup correct.
     /// </para>
     /// </remarks>
-    public UiThemeName? Theme { get; set; }
+    public Ui.ThemeName? Theme { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render() =>

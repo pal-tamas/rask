@@ -3,7 +3,7 @@ using FluentValidation.Internal;
 using FluentValidation.Results;
 using Rask.Core.Forms;
 
-namespace Rask.Validation.FluentValidation;
+namespace Rask;
 
 // The FluentValidation adapter. This used to be reachable only as the private Inner of a
 // FluentValidationValidator component the author placed inside the form; the component is gone, the
@@ -141,7 +141,7 @@ public sealed class FluentValidationFieldValidator : IAsyncFieldValidator
         }
 
         // Couldn't resolve — surface as a form-level error on the root so it isn't lost.
-        // ValidationSummary still picks it up; the original path stays in the message.
+        // Validation.Summary still picks it up; the original path stays in the message.
         context.AddValidationMessage(
             new FieldIdentifier(context.Model, string.Empty),
             error.ErrorMessage);

@@ -63,8 +63,7 @@ public sealed class CheckExternalPropsSnapshotsTask : Task
                 continue;
             }
 
-            var package = ExternalPackageSpecifier.PackageName(
-                ExternalPackageSpecifier.Split(island.GetMetadata("PackageModule")).Specifier);
+            var package = ExternalPackageSpecifier.PackageName(island.GetMetadata("PackageModule"));
             var pinned = LockedVersion(lockText, package);
             var taken = SyncExternalPropsSnapshotsTask.VersionOf(File.ReadAllText(island.ItemSpec));
 

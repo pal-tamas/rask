@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// The quieter line under a <see cref="UiHeading" /> — what the section is for, in a sentence.
@@ -9,7 +9,7 @@ namespace Rask.Ui;
 public sealed partial class UiSubheading : Component
 {
     /// <summary>How big it looks.</summary>
-    public UiSize? Size { get; set; }
+    public Ui.Size? Size { get; set; }
 
     public string? Class { get; set; }
 
@@ -17,6 +17,6 @@ public sealed partial class UiSubheading : Component
     protected override Component? Render() =>
         Div.Class(UiClass.Compose(
             "text-base-content/60",
-            UiClassNames.SubheadingSize(Size ?? UiSize.Default),
+            UiClassNames.SubheadingSize(Size ?? Ui.Size.Default),
             Class))[Children ?? []];
 }

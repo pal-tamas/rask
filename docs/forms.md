@@ -145,12 +145,12 @@ When the user clears an input, `BindingHelpers.TrySetTyped` decides what the emp
 
 A value that fails to parse (`"not-a-number"` into an `int`) leaves the model unchanged.
 
-**Controls over a value type bind its nullable too.** `UiCheckbox`, `UiToggle` and `UiRadio` are over `bool`,
-`UiRating` over `int`, `UiRange` over `double` and `UiCalendar` over `DateOnly`, and each also binds the nullable
-form: `UiCheckbox.Bind(() => model.InStock)` compiles whether `InStock` is a `bool` or a `bool?`, which is what a
+**Controls over a value type bind its nullable too.** `Ui.Checkbox`, `Ui.Toggle` and `Ui.Radio` are over `bool`,
+`Ui.Rating` over `int`, `Ui.Range` over `double` and `Ui.Calendar` over `DateOnly`, and each also binds the nullable
+form: `Ui.Checkbox.Bind(() => model.InStock)` compiles whether `InStock` is a `bool` or a `bool?`, which is what a
 [generated form model](data.md#a-create-and-an-edit-form) holds. A `null` draws as the control's empty state
 (unchecked, unrated, no day picked), and a change writes a value. `Value` and `OnChange` stay over the plain type. The
-date controls go one further: `UiCalendar` and `UiDatePicker` bind a `DateOnly`, a collection of days, or a
+date controls go one further: `Ui.Calendar` and `Ui.DatePicker` bind a `DateOnly`, a collection of days, or a
 `UiDateRange`, and the bound type picks the control ([UI kit](ui-kit.md)).
 
 Every BCL [`IParsable<T>`](https://learn.microsoft.com/dotnet/api/system.iparsable-1) type (numbers,
@@ -355,12 +355,12 @@ Two headless components read the context — both take a required `Template:` so
 and both render nothing when there's nothing to show:
 
 ```csharp
-ValidationMessage.For(() => _model.Email).Template(errs => Div.Class("field-error")[errs[0]])
+Validation.Message.For(() => _model.Email).Template(errs => Div.Class("field-error")[errs[0]])
 
-ValidationSummary.Template(entries => Ul[entries.Select(e => Li[Strong[e.Field], ": ", e.Message])])
+Validation.Summary.Template(entries => Ul[entries.Select(e => Li[Strong[e.Field], ": ", e.Message])])
 ```
 
-`ValidationMessage.For` keys a single field; `ValidationSummary` lists every `ValidationEntry`
+`Validation.Message.For` keys a single field; `Validation.Summary` lists every `ValidationEntry`
 (`Field` + `Message`), with form-level messages carrying an empty `Field`.
 
 <!-- demo:validation-summary -->
@@ -378,7 +378,7 @@ take the same two shapes, since they implement the same `IFormControl<T>`.
 
 <!-- demo:form-controls-select -->
 
-**Floating labels.** A labelled kit `UiInput`, `UiTextarea` or native `UiSelect` floats its label by
+**Floating labels.** A labelled kit `Ui.Input`, `Ui.Textarea` or native `Ui.Select` floats its label by
 default. The caption sits in the field until there is content, then rises. It stays the field's real
 `<label>`, linked to the control, and each bound field shows its own validation message under it.
 `Floating(false)` draws the label above the field instead:
@@ -409,7 +409,7 @@ A list that takes more than one answer says so on the listbox itself, with
 and has no way to learn that a second one is allowed — the options look identical either way, so
 the fact that several may be chosen lives nowhere else.
 
-If you build your own control from the core `Input`/`ValidationMessage` primitives (§9), mirror the same
+If you build your own control from the core `Input`/`Validation.Message` primitives (§9), mirror the same
 three attributes so the field stays accessible: `aria-invalid` on the control, `aria-describedby` from
 the control to the message `id`, and `role="alert"` on the message container. See
 [accessibility.md](accessibility.md#form-validation).

@@ -82,7 +82,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
         await Expect(body).ToBeVisibleAsync();
     });
 
-    // TheRotatorShowsEveryWordInTheMarkup moved DOWN to Rask.Ui.Tests.Components.UiTextRotateTests.
+    // TheRotatorShowsEveryWordInTheMarkup moved DOWN to Rask.UiTests.Components.UiTextRotateTests.
     // Its own comment gave the reason: the words are in the DOM "whatever the browser is doing with
     // them", which makes it a claim about rendered markup, and it was paying a published bundle and a
     // Chromium page to read four words out of a string. The unit test asserts more than it did — the

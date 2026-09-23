@@ -9,6 +9,25 @@ them until tagged releases begin.
 
 ### Added
 
+- **Several npm components from one package, reached as `Mui.Button`.** Declare the package once and list what you
+  use from it; each export becomes a package island, with its props generated from the package's TypeScript exactly
+  as a single island's are:
+
+  ```csharp
+  public sealed partial class Mui : ReactPackage
+  {
+      protected override string Module => "@mui/material";
+      protected override string[] Exports => ["Button", "Card"];
+  }
+
+  Mui.Card[ Mui.Button.Variant(MuiButtonVariant.Contained).OnClick(Save)["Save"] ]
+  ```
+
+  Typing `Mui.` lists the package's components, and none of them takes a bare name, so `Button` stays the HTML
+  `<button>`. One class per runtime: `ReactPackage`, `PreactPackage`, `SolidPackage`, `VuePackage`, `SveltePackage`,
+  `AngularPackage`, `LitPackage`. The snapshots sit beside the declaration (`MuiButton.props.json`). The rask.sh
+  islands demo now declares react-colorful this way, with its picker and hex field bound to one colour.
+
 - **`rask new` scaffolds a committed `.vscode/settings.json`.** A component's paired files (`Counter.css`,
   `Counter.ts`, a `.tsx` island, a package island's `.props.json`) nest under `Counter.cs` in the explorer, in every
   template. The templates that compile Tailwind (`server`, `wasm`, `wasm-hosted`) also get class completion inside
@@ -289,6 +308,72 @@ them until tagged releases begin.
   and a collection the entity's own `Configure` already mapped is left exactly as it is.
 
 ### Changed
+
+- **BREAKING: every element is also a member of `Rask.Html`, and the `<html>` element is `Document`.** Components
+  still inherit the tags, so nothing inside a component changes. What is new is that any other class — a test, a
+  helper, a static factory of components — writes them bare too, with the `global using static Rask.Html;` the
+  server, wasm and wasm-hosted templates now carry, and that a tag your own member has hidden is one word away:
+
+  ```csharp
+  // a helper class, not a component
+  static class Empty { public static Component State(string what) => Div.Class("empty")[P[$"No {what} yet"]]; }
+
+  // inside a component with a Footer property of its own
+  Html.Footer["© 2026"]          // was: RaskEntriesRask_Core.Footer[...]
+  ```
+
+  `Html` also carries the markup primitives (`Text`, `Raw`, `Outlet`, `NavLink`, `Router`, …). The `<html>`
+  element, which had `Html` for a name, is now `Document`: `Document.Lang(HtmlLang)[Head[…], Body[…]]` in a
+  hand-written `Shell`.
+
+- **BREAKING: the browser-capability triggers and the validation feedback are grouped — `Trigger.Fullscreen`,
+  `Validation.Message`.** `FullscreenTrigger` → `Trigger.Fullscreen` (likewise `Install`, `PictureInPicture`,
+  `EyeDropper`, `MediaCapture`, `ScreenOrientation`, `Gesture`); `ValidationMessage` → `Validation.Message`,
+  `ValidationSummary` → `Validation.Summary`, `ValidatingIndicator` → `Validation.Indicator`. Both classes are in the
+  `Rask` namespace. To free the name `Rask.Validation`, the FluentValidation adapter's types moved from the namespace
+  `Rask.Validation.FluentValidation` to `Rask` (the package is still `Rask.Validation.FluentValidation`, and its
+  build props import `Rask` for you).
+
+- **BREAKING: the UI kit is reached through one class, `Ui` — `Ui.Button`, `Ui.Tone` — and lives in the `Rask`
+  namespace.** Typing `Ui.` lists every component and every option, and no kit component takes a bare name any
+  more, so it can never shadow an HTML tag (`Button` is the `<button>`, `Ui.Button` the kit's):
+
+  ```csharp
+  // before
+  using Rask.Ui;
+  UiButton.Tone(UiTone.Primary).Size(UiSize.Small)[UiIcon.Name(UiIconName.Check), "Save"]
+  // after
+  using Rask;
+  Ui.Button.Tone(Ui.Tone.Primary).Size(Ui.Size.Small)[Ui.Icon.Name(Ui.IconName.Check), "Save"]
+  ```
+
+  - The 21 option enums moved into `Ui` (`UiTone` → `Ui.Tone`, `UiVariant` → `Ui.Variant`, …). Component TYPES keep
+    their names (`UiButton`, `UiDataGrid<T>`) for fields, parameters and messages.
+  - The namespace `Rask.Ui` is gone: every kit type is in `Rask`, so replace `using Rask.Ui;` with `using Rask;`.
+    The package is still `Rask.Ui`. A bare `Ui` now means the kit from inside any `Rask.*` namespace too, which the
+    old namespace shadowed.
+  - Every `rask new` template carries a `GlobalUsings.cs` with `global using Rask;` (plus `global using static
+    Rask.Html;` in the three that write C# markup) instead of `<Using>` items in the
+    `.csproj`, so the project's global usings are a file you can read and edit.
+  - A component library can group its own entries the same way with `[assembly: RaskChainGroup(typeof(Group))]`.
+
+- **BREAKING: a package island names its component in `Export`, not after a `#` in `Module`.** The two halves of
+  `import { HexColorPicker } from "react-colorful"` are now two overrides:
+
+  ```csharp
+  // before
+  protected override string Module => "react-colorful#HexColorPicker";
+  // after
+  protected override string Module => "react-colorful";
+  protected override string Export => "HexColorPicker";
+  ```
+
+  No `Export` still means the package's default export; a dotted `Export` (`"Switch.Root"`) still reaches a member,
+  and a Lit island still names its tag there. The old spelling is refused at build time (RASKISLAND005) with the two
+  overrides to write instead, and so is an `Export` on an island whose `Module` names no package. A computed
+  `Export` is RASK059, like a computed `Module`. An island that declared a prop of its own named `Export` now hides
+  the base member and needs `new` (CS0108). Committed `*.props.json` snapshots are unchanged — they already
+  kept `module` and `export` apart.
 
 - **BREAKING: `IBroadcast` and `Topic<T>` are removed; a CQRS notification is the topic.** Publish with
   `dispatcher.PublishAsync(new OrderPlaced(…))` instead of `broadcast.PublishAsync(Topics.Orders, …)`, and subscribe with

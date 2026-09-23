@@ -94,7 +94,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK056](#rask056) | Error | External component must be partial |
 | [RASK057](#rask057) | Error | External component prop has no wire encoding |
 | [RASK058](#rask058) | Error | External component name collision |
-| [RASK059](#rask059) | Error | Module override must be a constant string |
+| [RASK059](#rask059) | Error | Module or Export override must be a constant string |
 | [RASK060](#rask060) | Warning | `AddRask` is called twice on the same service collection |
 | [RASK061](#rask061) | Error | Blazor island must be partial |
 | [RASK062](#rask062) | Error | An island cannot render these children |
@@ -331,7 +331,7 @@ attributes. Nothing fails, so this warning is the only signal there is.
 ```csharp
 // ✗ RASK021 — the root builds the document
 protected override Component? Render() =>
-    [Doctype, Html("en")[Head, Body[Router]]];
+    [Doctype, Document.Lang("en")[Head, Body[Router]]];
 
 // ✓ the root renders the body's content
 protected override Component? Render() => Router;
@@ -341,7 +341,7 @@ protected override Component? Render() => Router;
 that own them — `<head>` content to `Head`, `<html lang>` to `HtmlLang`, `<html dir>` to `HtmlDir`, `<body class>` to `BodyClass`,
 and a genuinely custom document to `Shell(head, body)`, which receives the framework's `<head>` and the
 rendered body as parameters. Do **not** add a runtime `<script>`; it's auto-appended to `<body>`.
-`Doctype`/`Html`/`Head`/`Body` stay ordinary tag components for documents you build by hand
+`Doctype`/`Document`/`Head`/`Body` stay ordinary tag components for documents you build by hand
 (`ToHtml()`, an email body) — they have just left the app-authoring path. See
 [the document and the `Head` override](getting-started.md#7-the-document-and-the-head-override).
 
@@ -879,7 +879,9 @@ public sealed partial class BsModal : Component
 }
 ```
 
-None of these needs a `new`. **`RASKSUP001` suppresses CS0108 whenever the hidden member is a builder
+None of these needs a `new`. Inside that component the name is its own member; the element is still one word
+away — **`Html.Footer`**, `Html.Label` — because every tag is also a static member of `Rask.Html`.
+**`RASKSUP001` suppresses CS0108 whenever the hidden member is a builder
 entry** — a member named after the component it builds, declared on the markup surface. There are
 about 170 such names (`Title`, `Label`, `Form`, `Data`, `Filter`, `Marker`, `Address`, `B`…), and a
 framework should not spend a keyword of your source per accidental collision with one of them.
@@ -1206,7 +1208,8 @@ else's file and is left alone.
 **External component must be partial** · Error
 
 A `ReactComponent` or `LitComponent` is completed by a second part of the class: its name, its module
-and its props writer. Without `partial` there is nowhere to put any of it.
+and its props writer. Without `partial` there is nowhere to put any of it. A package declaration
+(`Mui : ReactPackage`) is completed the same way — its components' entries, `Mui.Button`, are generated into it.
 
 ```csharp
 // ✗ RASK056 — nothing can be generated into it
@@ -1259,18 +1262,22 @@ Rename one, or give it an explicit module by overriding `Module`.
 
 ## RASK059
 
-**Module override must be a constant string** · Error
+**Module or Export override must be a constant string** · Error
 
 The bundler needs the module specifier at *build* time, to generate the entry that pairs the component
 with its adapter — long before any of this code runs. So the override has to be a literal the
-generator can read straight out of the syntax.
+generator can read straight out of the syntax. The same holds for a package island's `Export`, which names the
+component the entry imports, and for a package declaration's `Exports`, which must be a list of string literals
+(`=> ["Button", "Card"]`).
 
 ```csharp
 // ✗ RASK059 — the build cannot evaluate this
 protected override string Module => $"./widgets/{Name}.ts";
+protected override string Export => nameof(HexColorPicker);
 
 // ✓
-protected override string Module => "@acme/charts/Chart";
+protected override string Module => "react-colorful";
+protected override string Export => "HexColorPicker";
 ```
 
 Anything computed would leave the browser resolving a name the bundle never built — markup pointing at
@@ -1580,10 +1587,10 @@ wonder where the icons went.
 
 ```csharp
 // ✗ RASK075 — Native(true) says "the platform's control", the template says "markup per row"
-UiSelect.Bind(() => _order.Package)
+Ui.Select.Bind(() => _order.Package)
         .Options(packages)
         .Label("Package")
-        .OptionTemplate(v => Div.Class("flex gap-2")[UiIcon.Name(v.Icon), Span[v.Name]])
+        .OptionTemplate(v => Div.Class("flex gap-2")[Ui.Icon.Name(v.Icon), Span[v.Name]])
         .Native(true)
 ```
 
@@ -1591,10 +1598,10 @@ UiSelect.Bind(() => _order.Package)
 all that is needed — the control draws its own rows and the template renders:
 
 ```csharp
-UiSelect.Bind(() => _order.Package)
+Ui.Select.Bind(() => _order.Package)
         .Options(packages)
         .Label("Package")
-        .OptionTemplate(v => Div.Class("flex gap-2")[UiIcon.Name(v.Icon), Span[v.Name]])
+        .OptionTemplate(v => Div.Class("flex gap-2")[Ui.Icon.Name(v.Icon), Span[v.Name]])
 ```
 
 If the platform's control is what you actually want — it needs no runtime, renders complete on a
@@ -1714,7 +1721,7 @@ battery simply does not wire.
 
 **Grid column with no field token** · Warning
 
-A `UiDataGrid` identifies a column by the **field token** it was opened with. `c.Field(...)` always has
+A `Ui.DataGrid` identifies a column by the **field token** it was opened with. `c.Field(...)` always has
 one; `c.Column()` deliberately has none, which is exactly right for an actions column or one computed
 from the whole row.
 
@@ -1725,7 +1732,7 @@ just looks for a control that was never rendered, which reads as a bug in the gr
 call site.
 
 ```csharp
-UiDataGrid.Data(rows).RowKey(r => r.Id)
+Ui.DataGrid.Data(rows).RowKey(r => r.Id)
     .ColumnChooser(true)[c => [
         c.Field(r => r.Name).Title("Package"),
         c.Column().Title("Actions"),          // ⚠ RASK076 — no token, so the chooser cannot list it
@@ -1791,19 +1798,21 @@ Rask.External when the schema is newer than it reads.
 
 **Props snapshot describes a different component** · Error
 
-A snapshot records the runtime and the module it was extracted for. The class beside it now names another:
+A snapshot records the runtime, the module and the export it was extracted for. The class beside it now names
+another:
 
 ```csharp
 public sealed partial class MuiButton : ReactComponent
 {
-    // ✗ RASK079 — MuiButton.props.json was extracted for "@mui/material/Button"
-    protected override string Module => "@mui/material#Button";
+    // ✗ RASK079 — MuiButton.props.json was extracted for the default export of '@mui/material/Button'
+    protected override string Module => "@mui/material";
+    protected override string Export => "Button";
 }
 ```
 
-`"@mui/material/Button"` and `"@mui/material#Button"` import different exports, and the base class decides
-whose types were read, so the props cannot be assumed to match. Re-extract the snapshot, or put the base class
-and `Module` back to what it was taken from.
+The default export of `@mui/material/Button` and the `Button` export of `@mui/material` are different imports, and
+the base class decides whose types were read, so the props cannot be assumed to match. Re-extract the snapshot, or
+put the base class, `Module` and `Export` back to what it was taken from.
 
 ## RASK080
 

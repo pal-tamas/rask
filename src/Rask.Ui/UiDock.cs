@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A bar of destinations pinned to the bottom of the viewport, for a phone.
@@ -10,7 +10,7 @@ namespace Rask.Ui;
 /// </remarks>
 public sealed partial class UiDock : Component
 {
-    public UiSize? Size { get; set; }
+    public Ui.Size? Size { get; set; }
 
     public string? Class { get; set; }
 

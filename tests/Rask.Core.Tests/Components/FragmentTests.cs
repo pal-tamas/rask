@@ -22,7 +22,7 @@ public partial class FragmentTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Render_MultipleChildren_EmitsConcatenated()
     {
-        Component fragment = [Doctype, Html];
+        Component fragment = [Doctype, Document];
         Assert.Equal("<!DOCTYPE html><html></html>", fragment.ToHtml());
     }
 

@@ -15,15 +15,15 @@ public sealed partial class StorageDemo(IBrowserStorage storage) : Component
     private string? _status;
 
     protected override Component? Render() =>
-        UiCard.Class("shadow-sm")[
+        Ui.Card.Class("shadow-sm")[
                 Div.Class("mb-2 flex gap-2")[
-                    UiInput.Value(_input).AccessibleLabel("Value to persist")
+                    Ui.Input.Value(_input).AccessibleLabel("Value to persist")
                         .Id("storage-input")
                         .Placeholder("Value to persist")
                         .OnInput(v => _input = v),
-                    UiButton.Tone(UiTone.Primary).Id("storage-set").OnClick(Set)["Set"],
-                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("storage-read").OnClick(Read)["Read"],
-                    UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline).Id("storage-remove").OnClick(Remove)["Remove"]
+                    Ui.Button.Tone(Ui.Tone.Primary).Id("storage-set").OnClick(Set)["Set"],
+                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Id("storage-read").OnClick(Read)["Read"],
+                    Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline).Id("storage-remove").OnClick(Remove)["Remove"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Last read: ", Code.Id("storage-read-value")[_read ?? "(null)"]],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("storage-status")[_status ?? "(idle)"]]

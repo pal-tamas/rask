@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>What a <see cref="UiTab" /> shows, inside a <see cref="UiTabGroup" />.</summary>
 /// <remarks>

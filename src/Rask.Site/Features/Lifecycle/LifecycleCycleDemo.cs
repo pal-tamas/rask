@@ -12,14 +12,14 @@ public sealed partial class LifecycleCycleDemo : Component
     protected override Component? Render() =>
         Div[
             Div.Class("flex gap-2 flex-wrap items-center mb-3")[
-                UiButton.Tone(UiTone.Primary)
+                Ui.Button.Tone(Ui.Tone.Primary)
                     .Id("lifecycle-cycle-mount")
                     .Disabled(_cycleMounted)
-                    .OnClick(MountCycle)[UiIcon.Name(UiIconName.Play), "Mount probe"],
-                UiButton.Variant(UiVariant.Outline)
+                    .OnClick(MountCycle)[Ui.Icon.Name(Ui.IconName.Play), "Mount probe"],
+                Ui.Button.Variant(Ui.Variant.Outline)
                     .Id("lifecycle-cycle-unmount")
                     .Disabled(!_cycleMounted)
-                    .OnClick(UnmountCycle)[UiIcon.Name(UiIconName.Stop), "Unmount probe"]
+                    .OnClick(UnmountCycle)[Ui.Icon.Name(Ui.IconName.Stop), "Unmount probe"]
             ],
             _cycleMounted
                 ? LifecycleCycleProbe.Log(AppendCycleLog).InstanceId(_nextCycleId)
@@ -27,7 +27,7 @@ public sealed partial class LifecycleCycleDemo : Component
             H3.Class("text-base font-semibold text-ui-muted uppercase text-sm mt-4")["Log"],
             _cycleLog.Count == 0
                 ? P.Class("text-ui-muted text-sm mb-0")["Empty — mount and unmount the probe."]
-                : UiList
+                : Ui.List
                     .Ordered(true)
                     .Id("lifecycle-cycle-log")[
                     _cycleLog.Select((l, i) => Li

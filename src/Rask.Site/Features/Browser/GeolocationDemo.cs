@@ -10,8 +10,8 @@ public sealed partial class GeolocationDemo(IGeolocation geolocation) : Componen
     private string? _status;
 
     protected override Component? Render() =>
-        UiCard.Class("shadow-sm")[
-                UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Class("mb-2")
+        Ui.Card.Class("shadow-sm")[
+                Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Class("mb-2")
                     .Id("geo-get")
                     .OnClick(Get)["Get current position"],
                 Div.Class("text-sm text-ui-muted")["Position: ", Code.Id("geo-value")[_location ?? "(not requested)"]],

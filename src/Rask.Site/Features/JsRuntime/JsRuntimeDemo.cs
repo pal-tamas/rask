@@ -33,20 +33,20 @@ public sealed partial class JsRuntimeDemo(IJSRuntime js) : Component
     }
 
     protected override Component? Render() =>
-        UiCard.Class("shadow-sm")[
+        Ui.Card.Class("shadow-sm")[
                 Div.Class("mb-3")[
-                    UiInput.Value(_input).Label("sessionStorage value")
+                    Ui.Input.Value(_input).Label("sessionStorage value")
                         .Id("demo-input")
                         .OnInput(v => _input = v)
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center mb-3")[
-                    UiButton.Tone(UiTone.Primary).Id("demo-set").OnClick(SetAsync)[UiIcon.Name(UiIconName.Save), "Set"],
-                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline)
+                    Ui.Button.Tone(Ui.Tone.Primary).Id("demo-set").OnClick(SetAsync)[Ui.Icon.Name(Ui.IconName.Save), "Set"],
+                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
                         .Id("demo-read")
-                        .OnClick(ReadAsync)[UiIcon.Name(UiIconName.Retry), "Read"],
-                    UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline)
+                        .OnClick(ReadAsync)[Ui.Icon.Name(Ui.IconName.Retry), "Read"],
+                    Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline)
                         .Id("demo-remove")
-                        .OnClick(RemoveAsync)[UiIcon.Name(UiIconName.Trash), "Remove"]
+                        .OnClick(RemoveAsync)[Ui.Icon.Name(Ui.IconName.Trash), "Remove"]
                 ],
                 Div.Class("mb-2")[
                     Span.Class("text-ui-muted text-sm uppercase")["Last read"],

@@ -25,27 +25,27 @@ public sealed partial class NestedListIndexerDemo : Component
             rows.Add(Tr.Key(_model.Skus[i].Id)[
                 Td.Class("text-ui-muted text-sm")[$"#{i + 1}"],
                 Td[
-                    UiInput.Bind(() => _model.Skus[i].Code).AccessibleLabel("SKU").ShowValidation(false),
-                    ValidationMessage.Template(FieldError).For(() => _model.Skus[i].Code)
+                    Ui.Input.Bind(() => _model.Skus[i].Code).AccessibleLabel("SKU").ShowValidation(false),
+                    Validation.Message.Template(FieldError).For(() => _model.Skus[i].Code)
                 ],
                 Td.Style("width: 7rem;")[
-                    UiInput.Bind(() => _model.Skus[i].Price).AccessibleLabel("Price").ShowValidation(false),
-                    ValidationMessage.Template(FieldError).For(() => _model.Skus[i].Price)
+                    Ui.Input.Bind(() => _model.Skus[i].Price).AccessibleLabel("Price").ShowValidation(false),
+                    Validation.Message.Template(FieldError).For(() => _model.Skus[i].Price)
                 ],
                 Td.Style("width: 5rem;")[
-                    UiButton
+                    Ui.Button
                         .AccessibleLabel("Move up")
                         .Square(true)
-                        .Variant(UiVariant.Outline)
+                        .Variant(Ui.Variant.Outline)
                         .Class("me-1")
                         .Disabled(i == 0)
-                        .OnClick(() => (_model.Skus[i - 1], _model.Skus[i]) = (_model.Skus[i], _model.Skus[i - 1]))[UiIcon.Name(UiIconName.ArrowUp)],
-                    UiButton
+                        .OnClick(() => (_model.Skus[i - 1], _model.Skus[i]) = (_model.Skus[i], _model.Skus[i - 1]))[Ui.Icon.Name(Ui.IconName.ArrowUp)],
+                    Ui.Button
                         .AccessibleLabel("Remove SKU")
                         .Square(true)
-                        .Tone(UiTone.Error)
-                        .Variant(UiVariant.Outline)
-                        .OnClick(() => _model.Skus.RemoveAt(i))[UiIcon.Name(UiIconName.Close)]
+                        .Tone(Ui.Tone.Error)
+                        .Variant(Ui.Variant.Outline)
+                        .OnClick(() => _model.Skus.RemoveAt(i))[Ui.Icon.Name(Ui.IconName.Close)]
                 ]
             ]);
         }
@@ -54,20 +54,20 @@ public sealed partial class NestedListIndexerDemo : Component
         [
             Form.Model(_model).OnValidSubmit(m => _submission =
                     $"Invoice with {m.Skus.Count} sku line(s) at total {m.Skus.Sum(s => s.Price):F2}").Class("flex flex-col gap-3")[
-                UiTable.Class("align-middle mb-0")[
+                Ui.Table.Class("align-middle mb-0")[
                     Thead[Tr[Th.Style("width: 3rem;")["#"], Th["SKU"], Th["Price"], Th]],
                     Tbody[rows]
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center")[
-                    UiButton.Variant(UiVariant.Outline)
+                    Ui.Button.Variant(Ui.Variant.Outline)
                         .Id("nf-idx-add")
-                        .OnClick(() => _model.Skus.Add(new SkuRow { Code = $"WIDGET-{_seq++}", Price = 1.00m }))[UiIcon.Name(UiIconName.Plus), "Add row"],
-                    UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit).Id("nf-idx-submit")[UiIcon.Name(UiIconName.CheckCircle), "Submit"]
+                        .OnClick(() => _model.Skus.Add(new SkuRow { Code = $"WIDGET-{_seq++}", Price = 1.00m }))[Ui.Icon.Name(Ui.IconName.Plus), "Add row"],
+                    Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit).Id("nf-idx-submit")[Ui.Icon.Name(Ui.IconName.CheckCircle), "Submit"]
                 ]
             ],
             _submission is null
                 ? null
-                : UiAlert.Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0").Id("nf-idx-result")[_submission]
+                : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0").Id("nf-idx-result")[_submission]
         ];
     }
 }

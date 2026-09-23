@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// Body copy, in the kit's type scale and inks.
@@ -11,7 +11,7 @@ namespace Rask.Ui;
 public sealed partial class UiText : Component
 {
     /// <summary>How big it looks.</summary>
-    public UiSize? Size { get; set; }
+    public Ui.Size? Size { get; set; }
 
     /// <summary>Full ink and a heavier weight, for the part of a paragraph that matters.</summary>
     public bool? Strong { get; set; }
@@ -20,7 +20,7 @@ public sealed partial class UiText : Component
     public bool? Subtle { get; set; }
 
     /// <summary>Colours the text.</summary>
-    public UiTone? Tone { get; set; }
+    public Ui.Tone? Tone { get; set; }
 
     /// <summary>A <c>&lt;span&gt;</c> rather than a paragraph.</summary>
     public bool? Inline { get; set; }
@@ -31,7 +31,7 @@ public sealed partial class UiText : Component
     protected override Component? Render()
     {
         var classes = UiClass.Compose(
-            UiClassNames.TextSize(Size ?? UiSize.Default),
+            UiClassNames.TextSize(Size ?? Ui.Size.Default),
             Tone is { } tone
                 ? UiClassNames.TextTone(tone)
                 : Strong == true

@@ -16,34 +16,34 @@ public sealed partial class ValidationFieldsDemo : Component
     [
         Form.Model(_model).OnValidSubmit(m => _submission = $"Registered: {m.Name} <{m.Email}>").Class("flex flex-col gap-3")[
             Div[
-                UiInput.Bind(() => _model.Name).Label("Name").Id("v1-name").ShowValidation(false),
-                ValidationMessage.Template(FieldError).For(() => _model.Name)
+                Ui.Input.Bind(() => _model.Name).Label("Name").Id("v1-name").ShowValidation(false),
+                Validation.Message.Template(FieldError).For(() => _model.Name)
             ],
             Div[
-                UiInput.Bind(() => _model.Email).Label("Email")
+                Ui.Input.Bind(() => _model.Email).Label("Email")
                     .Id("v1-email")
                     .Type(InputType.Email).ShowValidation(false),
-                ValidationMessage.Template(FieldError).For(() => _model.Email)
+                Validation.Message.Template(FieldError).For(() => _model.Email)
             ],
             Div[
-                UiInput.Bind(() => _model.Age).Label("Age").Id("v1-age").ShowValidation(false),
-                ValidationMessage.Template(FieldError).For(() => _model.Age)
+                Ui.Input.Bind(() => _model.Age).Label("Age").Id("v1-age").ShowValidation(false),
+                Validation.Message.Template(FieldError).For(() => _model.Age)
             ],
             Div[
-                UiSelect.Bind(() => _model.Plan)
+                Ui.Select.Bind(() => _model.Plan)
                     .Options(Plans)
                     .Placeholder("— choose —")
                     .Label("Plan")
                     .Id("v1-plan")
                     .ShowValidation(false),
-                ValidationMessage.Template(FieldError).For(() => _model.Plan)
+                Validation.Message.Template(FieldError).For(() => _model.Plan)
             ],
             Div[
-                UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit)[UiIcon.Name(UiIconName.CheckCircle), "Register"]
+                Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit)[Ui.Icon.Name(Ui.IconName.CheckCircle), "Register"]
             ]
         ],
         _submission is null
             ? null
-            : UiAlert.Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle), _submission]
+            : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
     ];
 }

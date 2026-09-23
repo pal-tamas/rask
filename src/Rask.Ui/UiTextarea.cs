@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using Rask.Core.Forms;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A multi-line text field.
@@ -33,7 +33,7 @@ public sealed partial class UiTextarea<T> : UiFormField<T>
     public string? Name { get; set; }
 
     /// <summary>
-    ///     daisyUI defines only <see cref="UiVariant.Ghost" /> for a text control — the borderless form
+    ///     daisyUI defines only <see cref="Ui.Variant.Ghost" /> for a text control — the borderless form
     ///     that shows its edges on focus. The rest draw the default rather than a class that does nothing.
     /// </summary>
 
@@ -41,11 +41,11 @@ public sealed partial class UiTextarea<T> : UiFormField<T>
     ///     Which way the reader may drag the box bigger. Vertically, unless this says otherwise.
     /// </summary>
     /// <remarks>
-    ///     <see cref="UiResize.None" /> is for a box in a layout the extra height would break — a row in a
+    ///     <see cref="Ui.Resize.None" /> is for a box in a layout the extra height would break — a row in a
     ///     table, a cell in a grid. Taking the handle away is a real cost to somebody writing a long answer,
     ///     so it wants a reason; <see cref="AutoSize" /> is usually the better one.
     /// </remarks>
-    public UiResize? Resize { get; set; }
+    public Ui.Resize? Resize { get; set; }
 
     /// <summary>
     ///     Grows the box to fit what is typed, instead of scrolling inside a fixed height.

@@ -88,7 +88,8 @@ public sealed partial class Chart : ReactComponent
 
 public sealed partial class ColorPicker : ReactComponent
 {
-    protected override string Module => "react-colorful#HexColorPicker";   // .Color(…), .OnChange(…)
+    protected override string Module => "react-colorful";
+    protected override string Export => "HexColorPicker";   // .Color(…), .OnChange(…)
 }
 ```
 

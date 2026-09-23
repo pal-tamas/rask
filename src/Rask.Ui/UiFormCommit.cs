@@ -1,6 +1,6 @@
 using Rask.Core.Forms;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// The two halves of <c>IFormControl&lt;T&gt;</c> plumbing that a control drawing its own markup has to

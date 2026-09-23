@@ -19,7 +19,7 @@ public sealed partial class InlineValidateDemo : Component
             return null;
         }
 
-        return UiAlert.Tone(UiTone.Error).Variant(UiVariant.Soft).Class("text-sm mb-0")[Ul.Class("mb-0 ps-3")[
+        return Ui.Alert.Tone(Ui.Tone.Error).Variant(Ui.Variant.Soft).Class("text-sm mb-0")[Ul.Class("mb-0 ps-3")[
                 formOnly.Select((e, i) => Li.Key(i)[e.Message])
             ]];
     }
@@ -32,29 +32,29 @@ public sealed partial class InlineValidateDemo : Component
             .Validate(m =>
                 m.Password == m.Confirm ? Array.Empty<string>() : new[] { "Passwords do not match." })[
             Div[
-                UiInput.Bind(() => _model.Email).Label("Email")
+                Ui.Input.Bind(() => _model.Email).Label("Email")
                     .Id("v4-email")
                     .Type(InputType.Email)
                     .Validate(v =>
                         v.Contains('@')
                             ? Array.Empty<string>()
                             : new[] { "Email looks wrong." }).ShowValidation(false),
-                ValidationMessage.Template(FieldError).For(() => _model.Email)
+                Validation.Message.Template(FieldError).For(() => _model.Email)
             ],
             Div[
-                UiInput.Bind(() => _model.Password).Label("Password").Id("v4-password").Type(InputType.Password)
+                Ui.Input.Bind(() => _model.Password).Label("Password").Id("v4-password").Type(InputType.Password)
             ],
             Div[
-                UiInput.Bind(() => _model.Confirm).Label("Confirm").Id("v4-confirm").Type(InputType.Password)
+                Ui.Input.Bind(() => _model.Confirm).Label("Confirm").Id("v4-confirm").Type(InputType.Password)
             ],
-            ValidationSummary.Template(SummaryAlert),
+            Validation.Summary.Template(SummaryAlert),
             Div[
-                UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit)[UiIcon.Name(UiIconName.CheckCircle), "Sign in"]
+                Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit)[Ui.Icon.Name(Ui.IconName.CheckCircle), "Sign in"]
             ]
         ],
         _submission is null
             ? null
-            : UiAlert.Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle), _submission]
+            : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
     ];
 }
 

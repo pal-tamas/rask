@@ -1,5 +1,5 @@
 using System.Reflection;
-using Rask.Ui;
+using Rask;
 
 namespace Rask.Site.Features;
 
@@ -40,17 +40,17 @@ public sealed record GuideEntry(string Slug, string Title, string Blurb, string 
     /// heading said. One per group is the information that was actually there, and a guide added later
     /// cannot forget to pick one.
     /// </remarks>
-    public UiIconName Icon => Group switch
+    public Ui.IconName Icon => Group switch
     {
-        "Start here" => UiIconName.Rocket,
-        "Tutorial" => UiIconName.Book,
-        "One Person Framework" => UiIconName.Bolt,
-        "Core" => UiIconName.Cube,
-        "Integration" => UiIconName.ArrowsRightLeft,
-        "Advanced" => UiIconName.Sparkles,
-        "Mobile & devices" => UiIconName.Phone,
-        "Contributing & internals" => UiIconName.Terminal,
-        _ => UiIconName.Document,
+        "Start here" => Ui.IconName.Rocket,
+        "Tutorial" => Ui.IconName.Book,
+        "One Person Framework" => Ui.IconName.Bolt,
+        "Core" => Ui.IconName.Cube,
+        "Integration" => Ui.IconName.ArrowsRightLeft,
+        "Advanced" => Ui.IconName.Sparkles,
+        "Mobile & devices" => Ui.IconName.Phone,
+        "Contributing & internals" => Ui.IconName.Terminal,
+        _ => Ui.IconName.Document,
     };
 }
 
@@ -202,7 +202,7 @@ public static class GuideCatalog
             "A .tsx or Lit file as an ordinary Rask component, with props owned by C#.", "One Person Framework")
         {
             SearchTitle = "React, Vue and Svelte components in a C# app",
-            Description = "Use a React, Preact, Solid, Vue, Svelte, Angular or Lit file as an ordinary C# component: props declared in C#, callbacks into C#, hydration and hot reload.",
+            Description = "Use React, Vue, Svelte, Lit or Angular components in a C# app, from your own files or straight from npm, with typed props, callbacks and hot reload.",
         },
         new("blazor-components", "Blazor components",
             "A real Blazor component — MudBlazor, an RCL — hosted in a Rask page, server-rendered.", "One Person Framework")
@@ -509,7 +509,7 @@ public static class GuideCatalog
         new("eye-dropper", "IEyeDropper", "Typed browser API: IEyeDropper.", "Browser API reference", "apis/eye-dropper.md")
         {
             SearchTitle = "EyeDropper API in C# and .NET (IEyeDropper)",
-            Description = "Pick a colour from anywhere on screen in C# with the EyeDropper API. IEyeDropper is WASM-only; on Server, EyeDropperTrigger posts the colour to OnColor.",
+            Description = "Pick a colour from anywhere on screen in C# with the EyeDropper API. IEyeDropper is WASM-only; on Server, Trigger.EyeDropper posts the colour to OnColor.",
         },
         new("file-system-access", "IFileSystemAccess", "Typed browser API: IFileSystemAccess.", "Browser API reference", "apis/file-system-access.md")
         {
@@ -519,7 +519,7 @@ public static class GuideCatalog
         new("fullscreen", "IFullscreen", "Typed browser API: IFullscreen.", "Browser API reference", "apis/fullscreen.md")
         {
             SearchTitle = "Fullscreen API in C# and .NET (IFullscreen)",
-            Description = "Present an element or the whole page fullscreen from C# with the Fullscreen API. IFullscreen is WASM-only; on Server, FullscreenTrigger runs it in a click.",
+            Description = "Present an element or the whole page fullscreen from C# with the Fullscreen API. IFullscreen is WASM-only; on Server, Trigger.Fullscreen runs it in a click.",
         },
         new("gamepad", "IGamepad", "Typed browser API: IGamepad.", "Browser API reference", "apis/gamepad.md")
         {
@@ -549,7 +549,7 @@ public static class GuideCatalog
         new("install-prompt", "IInstallPrompt", "Typed browser API: IInstallPrompt.", "Browser API reference", "apis/install-prompt.md")
         {
             SearchTitle = "PWA Install Prompt (beforeinstallprompt) in C#",
-            Description = "Capture the beforeinstallprompt event and replay the PWA install prompt from C#. IInstallPrompt is WASM-only; on Server, InstallTrigger reports the outcome.",
+            Description = "Capture the beforeinstallprompt event and replay the PWA install prompt from C#. IInstallPrompt is WASM-only; on Server, Trigger.Install reports the outcome.",
         },
         new("intersection-observer", "IIntersectionObserver", "Typed browser API: IIntersectionObserver.", "Browser API reference", "apis/intersection-observer.md")
         {
@@ -559,7 +559,7 @@ public static class GuideCatalog
         new("media-devices", "IMediaDevices", "Typed browser API: IMediaDevices.", "Browser API reference", "apis/media-devices.md")
         {
             SearchTitle = "getUserMedia Camera Capture in C# (IMediaDevices)",
-            Description = "Capture camera, microphone or screen into a video element from C# with getUserMedia. IMediaDevices is WASM-only; on Server, use MediaCaptureTrigger instead.",
+            Description = "Capture camera, microphone or screen into a video element from C# with getUserMedia. IMediaDevices is WASM-only; on Server, use Trigger.MediaCapture instead.",
         },
         new("media-query", "IMediaQuery", "Typed browser API: IMediaQuery.", "Browser API reference", "apis/media-query.md")
         {
@@ -619,7 +619,7 @@ public static class GuideCatalog
         new("picture-in-picture", "IPictureInPicture", "Typed browser API: IPictureInPicture.", "Browser API reference", "apis/picture-in-picture.md")
         {
             SearchTitle = "Picture-in-Picture API in C# (IPictureInPicture)",
-            Description = "Float a video element into a Picture-in-Picture mini-player from C#: IPictureInPicture on WebAssembly, or the PictureInPictureTrigger component on Server.",
+            Description = "Float a video element into a Picture-in-Picture mini-player from C#: IPictureInPicture on WebAssembly, or the Trigger.PictureInPicture component on Server.",
         },
         new("resize-observer", "IResizeObserver", "Typed browser API: IResizeObserver.", "Browser API reference", "apis/resize-observer.md")
         {
@@ -634,7 +634,7 @@ public static class GuideCatalog
         new("screen-orientation", "IScreenOrientation", "Typed browser API: IScreenOrientation.", "Browser API reference", "apis/screen-orientation.md")
         {
             SearchTitle = "Screen Orientation API in C# (IScreenOrientation)",
-            Description = "Read and lock screen orientation from C#: IScreenOrientation on WebAssembly, ScreenOrientationTrigger on Server. The Screen Orientation lock needs fullscreen.",
+            Description = "Read and lock screen orientation from C#: IScreenOrientation on WebAssembly, Trigger.ScreenOrientation on Server. The Screen Orientation lock needs fullscreen.",
         },
         new("serial", "ISerial", "Typed browser API: ISerial.", "Browser API reference", "apis/serial.md")
         {

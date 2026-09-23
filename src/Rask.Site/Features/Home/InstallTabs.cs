@@ -79,7 +79,7 @@ public sealed partial class InstallTabs : Component
     ///     </para>
     /// </remarks>
     private Component Terminal() =>
-        UiMockupCode.Lines(_active == 1 ? WasmLines : ServerLines).Class("term text-left");
+        Ui.MockupCode.Lines(_active == 1 ? WasmLines : ServerLines).Class("term text-left");
 
     private static readonly (string Prefix, string Text)[] ServerLines =
     [

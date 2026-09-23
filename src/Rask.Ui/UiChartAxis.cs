@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// What each row of a <see cref="UiChart{T}" /> is called — built by the chart's <c>X</c>, never written by name.

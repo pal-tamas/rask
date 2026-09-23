@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace Rask.Ui.Tests;
+namespace Rask.UiTests;
 
 /// <summary>
 ///     Every class name the kit writes exists in the stylesheet the kit ships.
@@ -73,7 +73,7 @@ public sealed class UiClassNamesTests
 
     private static List<(string Table, string Name)> AllNames()
     {
-        var type = typeof(UiStylesheet).Assembly.GetType("Rask.Ui.UiClassNames");
+        var type = typeof(UiStylesheet).Assembly.GetType("Rask.UiClassNames");
         Assert.NotNull(type);
 
         var found = new List<(string, string)>();

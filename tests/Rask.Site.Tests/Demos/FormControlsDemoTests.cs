@@ -121,7 +121,7 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
         var page = RaskTest.Render(() => FormSubmitStateDemo, TestServices.Default());
         var html = page.Render();
 
-        // The label is the button's own child text — UiButton shows its children, and an icon would be a
+        // The label is the button's own child text — Ui.Button shows its children, and an icon would be a
         // sibling of it. The contract is unchanged: the idle button says "Sign up" and the submit is still a
         // submit, which is the part that would break silently (a submit button rendered type="button"
         // does nothing at all, on a form that looks finished).

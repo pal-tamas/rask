@@ -150,7 +150,7 @@ public sealed partial class SegmentedControl<TValue> : Component, IFormControl<T
         var children = new List<Component> { Div.Class("action-group")[buttons] };
         if (Bind is not null)
         {
-            children.Add(ValidationMessage(Bind, msgs => Div.Class("field-error block")[msgs[0]]));
+            children.Add(Validation.Message(Bind, msgs => Div.Class("field-error block")[msgs[0]]));
         }
 
         return Div.Class(Class ?? "segmented")[children];
@@ -221,7 +221,7 @@ The helpers are built on the public `Rask.Core.Forms` API you can also use direc
   a bound `ICollection<T>` (what a checkbox group does per toggle).
 - **`BindingHelpers.NotifyAndValidateFieldAsync(ctx, field)`** — commit a change: marks the field
   changed + touched and re-validates (no-op when `ctx` is `null`).
-- **`ValidationMessage(Bind, template)`** — render the field's messages inside your control.
+- **`Validation.Message(Bind, template)`** — render the field's messages inside your control.
 
 ---
 
@@ -253,7 +253,7 @@ class/text is computed from the same model property) updates with no `StateHasCh
 the bind closed over a loop local (`() => item.Field`): the framework records the control's creating component
 as the binding owner (via `RegisterValidator`), so the authoring host re-renders on change. For **controlled**
 mode (`Value`/`OnChange`, no `Bind`) the same guarantee comes from `OnChange` being auto-wrapped
-(`AutoCallback`) to re-render its owner. Reserve in-control feedback (an embedded `ValidationMessage`, chips)
+(`AutoCallback`) to re-render its owner. Reserve in-control feedback (an embedded `Validation.Message`, chips)
 for state the control *itself* owns.
 
 ---
@@ -267,7 +267,7 @@ for state the control *itself* owns.
    `Value` (controlled).
 3. In your change handler: bound → `Setter` (or `SetCollectionMembership`) + `NotifyAndValidateFieldAsync` +
    `InvokeAfterBindAsync`; controlled → `InvokeOnChangeAsync`.
-4. Surface messages with `ValidationMessage(Bind, …)` (bound mode).
+4. Surface messages with `Validation.Message(Bind, …)` (bound mode).
 5. Unit-test both modes (drive the handler, assert the bound model / the emitted `OnChange` value); add an
    E2E if it has a showcase page. Construct via the chain, never `new` (RASK014).
 

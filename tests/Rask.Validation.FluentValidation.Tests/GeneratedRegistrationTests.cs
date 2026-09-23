@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using FluentValidation;
 using Rask.Core.Forms;
 
-namespace Rask.Validation.FluentValidation.Tests;
+namespace Rask.FluentValidationTests;
 
 // Discovery, end to end. Nothing below calls RaskValidators.Register: the validators are declared as
 // ordinary AbstractValidator<T> classes, the generator finds them at compile time and emits the

@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "runtime": "react",
+  "module": "react-colorful",
+  "export": "HexColorInput",
+  "package": {
+    "name": "react-colorful",
+    "version": "5.8.1"
+  },
+  "tag": null,
+  "content": "none",
+  "props": [
+    {
+      "name": "alpha",
+      "required": false,
+      "doc": "Allows `#rgba` and `#rrggbbaa` color formats",
+      "type": {
+        "kind": "boolean"
+      }
+    },
+    {
+      "name": "color",
+      "required": false,
+      "type": {
+        "kind": "string"
+      }
+    },
+    {
+      "name": "onChange",
+      "required": false,
+      "type": {
+        "kind": "callback",
+        "args": [
+          {
+            "name": "newColor",
+            "type": {
+              "kind": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "prefixed",
+      "required": false,
+      "doc": "Enables `#` prefix displaying",
+      "type": {
+        "kind": "boolean"
+      }
+    }
+  ],
+  "skipped": []
+}

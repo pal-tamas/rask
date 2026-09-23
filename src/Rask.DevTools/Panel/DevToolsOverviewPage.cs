@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
+using Rask;
 using Rask.Core;
 using Rask.Core.Routing;
-using Rask.Ui;
 
 namespace Rask.DevTools.Panel;
 
@@ -47,7 +47,7 @@ internal sealed partial class DevToolsOverviewPage(RouteState route, IDevToolsIn
         // so a panel that ever shows a different one mounts a fresh tab instead of re-pointing the old subscription.
         if (inspection.Open(session, token) is not { } feed)
         {
-            return UiAlert["No session to inspect. Open the panel from a page's Rask pill."];
+            return Ui.Alert["No session to inspect. Open the panel from a page's Rask pill."];
         }
 
         Component tab = _tab switch

@@ -48,10 +48,10 @@ import {ignoresFormattingText, isElement, isFormattingText} from "./rask-dom-pat
 import {runtimeOwnsAttr} from "./rask-loading.js";
 
 // An attribute the BROWSER wrote, and a render never will, so a render that does not carry it says nothing
-// about it. `open` on a dialog shown with showModal() — an invoker command, UiModal's popover path — is the
+// about it. `open` on a dialog shown with showModal() — an invoker command, Ui.Modal's popover path — is the
 // platform's: no render writes it, and stripping it closes the dialog from under the reader the first time
 // anything on the page re-renders (a handler the dialog's own toggle ran was enough). A dialog the RENDER
-// opens (Dialog.Open(true), UiModal's state-driven path) is shown non-modally and never matches :modal, so
+// opens (Dialog.Open(true), Ui.Modal's state-driven path) is shown non-modally and never matches :modal, so
 // its `open` stays the render's to add and remove.
 function browserOwnsAttr(el: Element, name: string): boolean {
     return name === "open" && el.tagName === "DIALOG" && el.matches(":modal");

@@ -2,7 +2,7 @@ using System.Text;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A button. It IS the <c>&lt;button&gt;</c> — or, given <see cref="Href" />, the <c>&lt;a&gt;</c>.
@@ -15,11 +15,11 @@ namespace Rask.Ui;
 /// axes and compose, so an outlined error button needs no member of its own.
 /// </para>
 /// <para>
-/// A <see cref="UiElement" />, so what it shows is its CHILDREN — <c>UiButton["Save"]</c>, or
-/// <c>UiButton[UiIcon.Name(UiIconName.Check), "Save"]</c> — and every element step (<c>Id</c>,
+/// A <see cref="UiElement" />, so what it shows is its CHILDREN — <c>Ui.Button["Save"]</c>, or
+/// <c>Ui.Button[Ui.Icon.Name(Ui.IconName.Check), "Save"]</c> — and every element step (<c>Id</c>,
 /// <c>Data</c>, <c>Role</c>, <c>TabIndex</c>, <c>Aria</c>, <c>OnClick</c> and the rest of the events) is
 /// <see cref="Element" />'s, with nothing mirrored here to fall out of step. The kit sizes an icon placed
-/// in a button from its stylesheet, so a bare <c>UiIcon.Name(…)</c> is the right size without a class.
+/// in a button from its stylesheet, so a bare <c>Ui.Icon.Name(…)</c> is the right size without a class.
 /// </para>
 /// <para>
 /// A square or a circle holds one glyph, so its name cannot be visible text. Give it
@@ -30,12 +30,12 @@ namespace Rask.Ui;
 public sealed partial class UiButton : UiElement
 {
     /// <summary>The button's colour. Omitted, it is the theme's plain button.</summary>
-    public UiTone? Tone { get; set; }
+    public Ui.Tone? Tone { get; set; }
 
-    /// <summary>How it is filled. <see cref="UiVariant.Ghost" /> is the quiet action.</summary>
-    public UiVariant? Variant { get; set; }
+    /// <summary>How it is filled. <see cref="Ui.Variant.Ghost" /> is the quiet action.</summary>
+    public Ui.Variant? Variant { get; set; }
 
-    public UiSize? Size { get; set; }
+    public Ui.Size? Size { get; set; }
 
     /// <summary>Fills the width of its container, which is what a button in a phone-width form wants.</summary>
     public bool? Block { get; set; }
@@ -113,16 +113,16 @@ public sealed partial class UiButton : UiElement
     public RouteUrl? Href { get; set; }
 
     /// <summary>
-    ///     What it does when pressed. Defaults to <see cref="UiButtonType.Button" /> — nothing on its own.
+    ///     What it does when pressed. Defaults to <see cref="Ui.ButtonType.Button" /> — nothing on its own.
     /// </summary>
     /// <remarks>
-    ///     Set <see cref="UiButtonType.Submit" /> for a form's submit button. The default matters in both
+    ///     Set <see cref="Ui.ButtonType.Submit" /> for a form's submit button. The default matters in both
     ///     directions and is silent in both: a <c>&lt;button&gt;</c> inside a form submits it unless told
     ///     otherwise, so a toggle that forgot would submit the form around it — and a submit button
     ///     rendered as <c>type="button"</c> does nothing at all when pressed, on a form that looks
     ///     finished. Ignored when <see cref="Href" /> is set; an anchor has no type.
     /// </remarks>
-    public UiButtonType? Type { get; set; }
+    public Ui.ButtonType? Type { get; set; }
 
     /// <summary>Opens <see cref="Href" /> in a new tab, with the <c>rel</c> that makes that safe.</summary>
     /// <remarks>
@@ -279,8 +279,8 @@ public sealed partial class UiButton : UiElement
 
         AppendAttr(sb, "type", Type switch
         {
-            UiButtonType.Submit => "submit",
-            UiButtonType.Reset => "reset",
+            Ui.ButtonType.Submit => "submit",
+            Ui.ButtonType.Reset => "reset",
             _ => "button",
         });
 

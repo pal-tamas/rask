@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Rask.Core.Forms;
 
 
-namespace Rask.Validation.Tests;
+namespace Rask.ValidationTests;
 
 // Coverage for nested model validation through a single top-of-form DataAnnotationsValidator.
 // The reference-based FieldIdentifier scheme means messages for a sub-object property land on
@@ -168,7 +168,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
         ctx.Validate();
 
         // Form-level (empty MemberNames) errors from a sub-object's IValidatableObject attach
-        // to that sub-object's (instance, "") slot — they still surface in ValidationSummary
+        // to that sub-object's (instance, "") slot — they still surface in Validation.Summary
         // (which reads every state) but the owner stays clear.
         Assert.Contains("Country blocked",
             ctx.GetValidationMessages(new FieldIdentifier(p.Address!.Postal!.Country!, string.Empty)));
@@ -261,14 +261,14 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
     public async Task FormPipeline_NestedField_BlurSurfacesMessageInRenderedHtml()
     {
         // End-to-end through the Form factory + Input handler dispatch path, asserting the
-        // [Required] error surfaces in the post-blur HTML via ValidationMessage. This catches
+        // [Required] error surfaces in the post-blur HTML via Validation.Message. This catches
         // the handler/display context split that FormPipeline_NestedField_FiresOnChange
         // misses by reading the EditContext directly instead of going through the renderer.
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
 
         var page = RaskTest.Render(() => Form.Model(p)[
             Input.Bind(() => p.Address!.Street),
-            ValidationMessage.Template(msgs => [.. msgs.Select((m, i) => Div.Class("err").Key(i)[m])])
+            Validation.Message.Template(msgs => [.. msgs.Select((m, i) => Div.Class("err").Key(i)[m])])
                 .For(() => p.Address!.Street)
         ]);
 

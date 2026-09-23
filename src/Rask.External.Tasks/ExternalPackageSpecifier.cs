@@ -3,8 +3,8 @@ using System;
 namespace Rask.External.Tasks;
 
 /// <summary>
-///     Reads a package island's <c>Module</c> specifier on the build side: whether it names a package, which
-///     export, and which package.
+///     Reads a package island's <c>Module</c> and <c>Export</c> on the build side: whether the module names a
+///     package, which package, and whether the export can be written into generated JavaScript.
 /// </summary>
 /// <remarks>
 ///     The same rules as the island generator's <c>PackageSpecifier</c>, restated because this assembly is an
@@ -32,18 +32,6 @@ internal static class ExternalPackageSpecifier
         }
 
         return module.IndexOf("://", StringComparison.Ordinal) < 0 && !(module.Length > 1 && module[1] == ':');
-    }
-
-    /// <summary>
-    ///     The specifier and the export: <c>"@mui/material#Button"</c> is <c>(@mui/material, Button)</c>; a
-    ///     specifier without a <c>#</c> names the default export.
-    /// </summary>
-    public static (string Specifier, string Export) Split(string module)
-    {
-        var hash = module.LastIndexOf('#');
-        return hash > 0 && hash < module.Length - 1
-            ? (module.Substring(0, hash), module.Substring(hash + 1))
-            : (module, "default");
     }
 
     /// <summary>The package a specifier imports from: <c>@mui/material/Button</c> is <c>@mui/material</c>.</summary>
@@ -112,6 +100,39 @@ internal static class ExternalPackageSpecifier
         }
 
         return true;
+    }
+
+    /// <summary>
+    ///     A package declaration's member for an export — <c>Button</c>, <c>Switch.Root</c> is <c>SwitchRoot</c>,
+    ///     <c>sl-switch</c> is <c>SlSwitch</c> — or empty when the export cannot be one.
+    /// </summary>
+    /// <remarks>
+    ///     The same rule as the generator's <c>PackageDeclarations.MemberName</c>, restated because this assembly cannot
+    ///     reference the analyzer; the island's name is the declaration's plus this, and both halves must spell it alike
+    ///     or the snapshot extracted here is not the one the generator reads.
+    /// </remarks>
+    public static string MemberName(string export)
+    {
+        var sb = new System.Text.StringBuilder(export.Length);
+        var upper = true;
+        foreach (var c in export)
+        {
+            if (c is '.' or '-' or '_')
+            {
+                upper = true;
+                continue;
+            }
+
+            if (!char.IsLetterOrDigit(c))
+            {
+                return string.Empty;
+            }
+
+            sb.Append(upper ? char.ToUpperInvariant(c) : c);
+            upper = false;
+        }
+
+        return sb.Length != 0 && char.IsLetter(sb[0]) ? sb.ToString() : string.Empty;
     }
 
     private static bool IsIdentifier(string name)

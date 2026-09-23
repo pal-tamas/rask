@@ -65,8 +65,8 @@ public sealed partial class StoragePage(
 
         if (!storage.IsAvailable)
         {
-            return UiCard[
-                UiEmpty
+            return Ui.Card[
+                Ui.Empty
                     .Heading("Storage isn't registered")
                     .Detail("Call AddRaskStorage<TContext>() and modelBuilder.AddRaskStorage() to see stored files here.")
             ];
@@ -74,14 +74,14 @@ public sealed partial class StoragePage(
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         return [
-            UiHeader.Heading("Storage").Caption(
+            Ui.Header.Heading("Storage").Caption(
                 $"new files go to {_stats.ActiveProvider} · orphans swept every {DashboardParts.Duration(_stats.SweepInterval)}"),
             DashboardError.Message(LoadError),
             DiskNotice(),
-            UiMetricRow.Columns(3)[
-                UiMetric.Key("files").Label("Files").Value(_stats.Files.ToString(CultureInfo.InvariantCulture)),
-                UiMetric.Key("stored").Label("Stored").Value(DashboardParts.Bytes(_stats.Bytes)),
-                UiMetric
+            Ui.MetricRow.Columns(3)[
+                Ui.Metric.Key("files").Label("Files").Value(_stats.Files.ToString(CultureInfo.InvariantCulture)),
+                Ui.Metric.Key("stored").Label("Stored").Value(DashboardParts.Bytes(_stats.Bytes)),
+                Ui.Metric
                     .Key("public")
                     .Label("Public")
                     .Value(_stats.Public.ToString(CultureInfo.InvariantCulture))
@@ -97,8 +97,8 @@ public sealed partial class StoragePage(
     // read the docs to find out.
     private Component? DiskNotice() =>
         _stats.ActiveProvider == StorageProvider.Disk || _stats.ByProvider.Any(p => p.Provider == StorageProvider.Disk)
-            ? UiAlert.Tone(UiTone.Warning)[
-                UiIcon.Name(UiIconName.Warning),
+            ? Ui.Alert.Tone(Ui.Tone.Warning)[
+                Ui.Icon.Name(Ui.IconName.Warning),
                 Span[
                     "Files on disk live on this host only. rask db backup archives them beside the database, but "
                     + "Litestream and snapshots copy the database alone. Use S3 or Azure for uploads you can't afford to lose."
@@ -110,7 +110,7 @@ public sealed partial class StoragePage(
     private Component? ProviderGrid() =>
         _stats.ByProvider.Count <= 1
             ? null
-            : UiDataGrid.Data(_stats.ByProvider).RowKey(p => p.Provider).Label("Stored files by provider")[c => [
+            : Ui.DataGrid.Data(_stats.ByProvider).RowKey(p => p.Provider).Label("Stored files by provider")[c => [
                 c.Field(p => p.Provider).Title("Provider"),
                 c.Field(p => p.Files).Title("Files").Value(p => p.Files.ToString(CultureInfo.InvariantCulture)),
                 c.Field(p => p.Bytes).Title("Stored").Value(p => DashboardParts.Bytes(p.Bytes)),
@@ -129,26 +129,26 @@ public sealed partial class StoragePage(
     // wait until the table has room; the id shows at every width, as it always did under the name, and a phone
     // lists every column as its own line.
     private Component FileGrid(DateTime now) =>
-        UiDataGrid.Data(_rows)
+        Ui.DataGrid.Data(_rows)
             .RowKey(r => r.Id)
             .Label("Stored files, newest first")
             .PageSize(options.PageSize)
             .Page(_page)
             .TotalCount(_total)
             .OnPageChange(GoAsync)
-            .Toolbar(UiSearch
+            .Toolbar(Ui.Search
                 .Placeholder("Search file names")
                 .AccessibleLabel("Search stored files")
                 .Value(Search)
                 .OnSearch(SearchAsync))
-            .Empty(UiEmpty
+            .Empty(Ui.Empty
                 .Heading(Search is { Length: > 0 } ? $"No files matching \"{Search}\"" : "No files stored yet")
                 .Detail("Files appear here as soon as the app saves one."))[c => [
                 c.Field(r => r.Name).Title("Name"),
                 c.Field(r => r.Public).Title("Access").Value(r => r.Public ? "public" : "private"),
-                c.Field(r => r.ContentType).Title("Type").Mono(true).ShowFrom(UiBreakpoint.Md),
+                c.Field(r => r.ContentType).Title("Type").Mono(true).ShowFrom(Ui.Breakpoint.Md),
                 c.Field(r => r.Size).Title("Size").Value(r => DashboardParts.Bytes(r.Size)),
-                c.Field(r => r.Provider).Title("Provider").ShowFrom(UiBreakpoint.Lg),
+                c.Field(r => r.Provider).Title("Provider").ShowFrom(Ui.Breakpoint.Lg),
                 c.Field(r => r.Id).Title("Id").Mono(true).Value(r => r.Id.ToString("N")),
                 c.Field(r => r.CreatedAt).Title("Saved").Cell(r =>
                     Span.Title(r.CreatedAt.ToString("u", CultureInfo.InvariantCulture))[DashboardParts.Ago(r.CreatedAt, now)]),

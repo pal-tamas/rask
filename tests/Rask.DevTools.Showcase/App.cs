@@ -1,6 +1,6 @@
+using Rask;
 using Rask.Core;
 using Rask.Core.Components;
-using Rask.Ui;
 
 namespace Rask.DevTools.Showcase;
 
@@ -15,9 +15,9 @@ public sealed partial class App : Component
     ];
 
     protected override Component? Render() =>
-        UiShell.Theme(UiThemeName.Light)[
-            UiTopBar[UiBrand.Label("Release board").Href("#")],
-            UiMain[
+        Ui.Shell.Theme(Ui.ThemeName.Light)[
+            Ui.TopBar[Ui.Brand.Label("Release board").Href("#")],
+            Ui.Main[
                 Div.Class("grid gap-4 md:grid-cols-2")[
                     TaskBoard.Heading("Ship 1.4").Owner("Ada"),
                     DeployCard.Environment("staging").Region("eu-west").ApiToken("sk_live_do_not_show")
@@ -40,9 +40,9 @@ public sealed partial class TaskBoard : Component
 
     protected override Component? Render() =>
         Context.Provide(new Release(Heading ?? "Tasks"))[
-            UiCard.Heading(Heading ?? "Tasks")[
-                UiList[_tasks.Select((task, i) => TaskRow.Key(task).Done(i == 0).Label(task).Assignee(Owner))],
-                UiButton.Tone(UiTone.Primary).OnClick(() => _tasks.Add($"Follow-up {_tasks.Count - 2}"))["Add task"]
+            Ui.Card.Heading(Heading ?? "Tasks")[
+                Ui.List[_tasks.Select((task, i) => TaskRow.Key(task).Done(i == 0).Label(task).Assignee(Owner))],
+                Ui.Button.Tone(Ui.Tone.Primary).OnClick(() => _tasks.Add($"Follow-up {_tasks.Count - 2}"))["Add task"]
             ]
         ];
 }
@@ -61,9 +61,9 @@ public sealed partial class TaskRow : Component
     protected override Component? Render()
     {
         var release = Context.Get<Release>();
-        return UiListRow
+        return Ui.ListRow
             .Grow(Span[Label ?? string.Empty])
-            .Trailing(UiBadge.Tone(Done ? UiTone.Success : UiTone.Info).Variant(UiVariant.Soft)
+            .Trailing(Ui.Badge.Tone(Done ? Ui.Tone.Success : Ui.Tone.Info).Variant(Ui.Variant.Soft)
                 .Title(release is null ? null : "Part of " + release.Name)[Done ? "done" : Assignee ?? "open"]);
     }
 }
@@ -81,10 +81,10 @@ public sealed partial class DeployCard : Component
     public string? ApiToken { get; set; }
 
     protected override Component? Render() =>
-        UiCard.Heading("Deploy")[
+        Ui.Card.Heading("Deploy")[
             P[$"Target: {Environment} ({Region})"],
             P[ApiToken is null ? "No token configured." : "Token configured."],
-            UiButton.Title("Throws, so the devtools have an error to show").OnClick(Deploy)["Deploy"]
+            Ui.Button.Title("Throws, so the devtools have an error to show").OnClick(Deploy)["Deploy"]
         ];
 
     private void Deploy() =>

@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
-using Rask.Ui;
+using Rask;
 
-namespace Rask.Ui.Tests;
+namespace Rask.UiTests;
 
 /// <summary>
 ///     Every filled component the kit can render labels itself with a pair that has been measured.

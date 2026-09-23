@@ -1,5 +1,5 @@
+using Rask;
 using Rask.Core;
-using Rask.Ui;
 
 namespace Rask.DevTools.Tests;
 
@@ -13,12 +13,12 @@ public sealed partial class DevToolsKitTestApp : Component
     private readonly List<string> _rows = ["one", "two"];
 
     protected override Component? Render() =>
-        UiShell.Theme(UiThemeName.Light)[
-            UiTopBar[UiBrand.Label("Kit").Href("#")],
-            UiMain[
+        Ui.Shell.Theme(Ui.ThemeName.Light)[
+            Ui.TopBar[Ui.Brand.Label("Kit").Href("#")],
+            Ui.Main[
                 DevToolsKitBoard.Heading("Board")[
-                    UiList[_rows.Select(r => DevToolsKitRow.Key(r).Done(r == "one").Label(r))],
-                    UiButton.OnClick(() => _rows.Add("more"))["Add"]
+                    Ui.List[_rows.Select(r => DevToolsKitRow.Key(r).Done(r == "one").Label(r))],
+                    Ui.Button.OnClick(() => _rows.Add("more"))["Add"]
                 ]
             ]
         ];
@@ -29,7 +29,7 @@ public sealed partial class DevToolsKitBoard : Component
 {
     public string? Heading { get; set; }
 
-    protected override Component? Render() => UiCard.Heading(Heading ?? "")[Children ?? []];
+    protected override Component? Render() => Ui.Card.Heading(Heading ?? "")[Children ?? []];
 }
 
 /// <summary>One row of the board.</summary>
@@ -40,5 +40,5 @@ public sealed partial class DevToolsKitRow : Component
     public bool Done { get; set; }
 
     protected override Component? Render() =>
-        UiListRow.Grow(Span[Label ?? ""]).Trailing(UiBadge[Done ? "done" : "open"]);
+        Ui.ListRow.Grow(Span[Label ?? ""]).Trailing(Ui.Badge[Done ? "done" : "open"]);
 }

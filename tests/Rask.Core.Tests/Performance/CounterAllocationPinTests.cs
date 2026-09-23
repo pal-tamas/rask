@@ -63,7 +63,7 @@ public partial class CounterAllocationPinTests : global::Rask.Core.RaskMarkup
     private static Component BuildFullPageShell() =>
         [
             Doctype,
-            Html[
+            Document[
                 Body[
                     Div.Class("counter").Id("counter")[
                         Span.Class("value")["42"],

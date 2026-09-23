@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace Rask.Ui.Tests;
+namespace Rask.UiTests;
 
 /// <summary>
 ///     The daisyUI version the kit actually vendors, and the sentence in <c>ui.css</c> that names it.

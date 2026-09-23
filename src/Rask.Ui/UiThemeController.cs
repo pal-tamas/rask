@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A control that selects a theme.
@@ -28,15 +28,15 @@ public sealed partial class UiThemeController : Component
     public required string Label { get; set; }
 
     /// <summary>The theme this control selects.</summary>
-    public required UiThemeName Theme { get; set; }
+    public required Ui.ThemeName Theme { get; set; }
 
     /// <summary>Whether this is the theme currently showing.</summary>
     public bool? Active { get; set; }
 
-    public UiSize? Size { get; set; }
+    public Ui.Size? Size { get; set; }
 
     /// <summary>Runs when it is chosen, with the theme the reader asked for.</summary>
-    public Callback<UiThemeName>? OnChange { get; set; }
+    public Callback<Ui.ThemeName>? OnChange { get; set; }
 
     public string? Class { get; set; }
 

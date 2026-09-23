@@ -1,4 +1,4 @@
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     The theme control, which reports a choice rather than applying one.
@@ -46,11 +46,11 @@ public partial class UiThemeControllerTests : global::Rask.Core.RaskMarkup
         Assert.Contains("<span>Dark</span>", Control(active: null));
 
     [Theory]
-    [InlineData(UiSize.Xs, "btn-xs")]
-    [InlineData(UiSize.Lg, "btn-lg")]
-    public void It_takes_a_size(UiSize size, string expected) =>
+    [InlineData(Ui.Size.Xs, "btn-xs")]
+    [InlineData(Ui.Size.Lg, "btn-lg")]
+    public void It_takes_a_size(Ui.Size size, string expected) =>
         Assert.Contains(expected,
-            UiThemeController.Label("Dark").Theme(UiThemeName.Dark).Size(size).ToHtml());
+            Ui.ThemeController.Label("Dark").Theme(Ui.ThemeName.Dark).Size(size).ToHtml());
 
     [Fact]
     public void The_theme_is_stated_as_a_name_rather_than_a_string()
@@ -58,12 +58,12 @@ public partial class UiThemeControllerTests : global::Rask.Core.RaskMarkup
         // It used to be `string? Theme`, defaulting to "dark". A misspelled theme is not a compile error
         // and produces no visible failure — daisyUI simply matches nothing — so the closed set is what
         // makes the mistake unrepresentable.
-        foreach (var theme in Enum.GetValues<UiThemeName>())
+        foreach (var theme in Enum.GetValues<Ui.ThemeName>())
         {
-            Assert.Contains("btn", UiThemeController.Label("x").Theme(theme).ToHtml());
+            Assert.Contains("btn", Ui.ThemeController.Label("x").Theme(theme).ToHtml());
         }
     }
 
     private string Control(bool? active) =>
-        UiThemeController.Label("Dark").Theme(UiThemeName.Dark).Active(active).ToHtml();
+        Ui.ThemeController.Label("Dark").Theme(Ui.ThemeName.Dark).Active(active).ToHtml();
 }

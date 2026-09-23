@@ -8,9 +8,9 @@
 - **Shape:** one-shot
 - **Availability:** Web/Server 🟡 · PWA/WASM ✅
 
-Lock needs fullscreen + transient activation, so the imperative `IScreenOrientation` service is WASM-only. On the **Server** host, use the declarative **`ScreenOrientationTrigger`** component (`ScreenOrientationTrigger(Orientation: "landscape", …)`) — its click locks the orientation inside the gesture. The browser's `screen.orientation.lock` only resolves while the page is fullscreen, so pair it with a `FullscreenTrigger` (or app-controlled fullscreen); off-fullscreen or on desktop the lock is a silent no-op.
+Lock needs fullscreen + transient activation, so the imperative `IScreenOrientation` service is WASM-only. On the **Server** host, use the declarative **`Trigger.ScreenOrientation`** component (`Trigger.ScreenOrientation(Orientation: "landscape", …)`) — its click locks the orientation inside the gesture. The browser's `screen.orientation.lock` only resolves while the page is fullscreen, so pair it with a `Trigger.Fullscreen` (or app-controlled fullscreen); off-fullscreen or on desktop the lock is a silent no-op.
 
-> 🟡 On the Server host, reachable declaratively via `ScreenOrientationTrigger` (a click-gesture component), not as an injected service.
+> 🟡 On the Server host, reachable declaratively via `Trigger.ScreenOrientation` (a click-gesture component), not as an injected service.
 
 ## See also
 

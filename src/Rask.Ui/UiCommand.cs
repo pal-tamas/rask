@@ -1,7 +1,7 @@
 using System.Globalization;
 using Rask.Core.Live;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A command palette: a search field that opens a dialog of commands, narrowed as the reader types.
@@ -23,7 +23,7 @@ namespace Rask.Ui;
 /// </para>
 /// <para>
 /// Typing narrows the list in C#, case- and accent-insensitively in the reader's culture, the way
-/// <c>UiSelect.Searchable</c> does; a command that does not match is not rendered at all, so the keyboard never
+/// <c>Ui.Select.Searchable</c> does; a command that does not match is not rendered at all, so the keyboard never
 /// lands on one that is out of sight. Separators are dropped while there is a query, since what they separated has
 /// been filtered.
 /// </para>
@@ -135,7 +135,7 @@ public sealed partial class UiCommand : Component
         [
             trigger[
                 Span.Class("flex min-w-0 items-center gap-2 opacity-70")[
-                    UiIcon.Name(UiIconName.Search).Class("size-4 shrink-0"),
+                    Ui.Icon.Name(Ui.IconName.Search).Class("size-4 shrink-0"),
                     Span.Class("truncate")[Label]
                 ],
                 Shortcut is { } keys ? Keys(keys) : null
@@ -143,7 +143,7 @@ public sealed partial class UiCommand : Component
             dialog[
                 Div.Class("modal-box max-w-lg p-0")[
                     Div.Class("flex items-center gap-2 border-b border-base-300 px-4")[
-                        UiIcon.Name(UiIconName.Search).Class("size-4 shrink-0 opacity-60"),
+                        Ui.Icon.Name(Ui.IconName.Search).Class("size-4 shrink-0 opacity-60"),
                         box
                     ],
                     Ul.Id(ListId)

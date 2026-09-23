@@ -23,7 +23,7 @@ public sealed partial class InlineAsyncValidateDemo : Component
             return null;
         }
 
-        return UiAlert.Tone(UiTone.Error).Variant(UiVariant.Soft).Class("text-sm mb-0")[Ul.Class("mb-0 ps-3")[formOnly.Select((e, i) => Li.Key(i)[e.Message])]];
+        return Ui.Alert.Tone(Ui.Tone.Error).Variant(Ui.Variant.Soft).Class("text-sm mb-0")[Ul.Class("mb-0 ps-3")[formOnly.Select((e, i) => Li.Key(i)[e.Message])]];
     }
 
     private static async ValueTask<IEnumerable<string>> CheckCodeAsync(string code, CancellationToken ct)
@@ -47,17 +47,17 @@ public sealed partial class InlineAsyncValidateDemo : Component
                     ? new[] { "Code is required." }
                     : Array.Empty<string>();
             })[
-            UiInput.Bind(() => _model.Code).Label("Promo code")
+            Ui.Input.Bind(() => _model.Code).Label("Promo code")
                 .Id("v10-code")
                 .Validate(CheckCodeAsync),
-            ValidationSummary.Template(SummaryAlert),
+            Validation.Summary.Template(SummaryAlert),
             Div[
-                UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit)[UiIcon.Name(UiIconName.Gift), "Redeem"]
+                Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit)[Ui.Icon.Name(Ui.IconName.Gift), "Redeem"]
             ]
         ],
         _submission is null
             ? null
-            : UiAlert.Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle), _submission]
+            : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
     ];
 }
 

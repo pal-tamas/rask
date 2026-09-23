@@ -1,6 +1,6 @@
 using Rask.Core.Routing;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A bordered panel with an optional heading, icon and action in its corner — and, given an
@@ -25,14 +25,14 @@ public sealed partial class UiCard : Component
     public Component? Action { get; set; }
 
     /// <summary>Shown before the heading.</summary>
-    public UiIconName? Icon { get; set; }
+    public Ui.IconName? Icon { get; set; }
 
     /// <summary>How tight the card's padding is — daisyUI's own card sizes.</summary>
     /// <remarks>
     ///     The class map for this already existed and nothing reached it: a card could not be made denser
     ///     without a raw class string, which is the one thing a call site drawn with the kit must not need.
     /// </remarks>
-    public UiSize? Size { get; set; }
+    public Ui.Size? Size { get; set; }
 
     /// <summary>Makes the whole card one link.</summary>
     /// <remarks>
@@ -48,10 +48,10 @@ public sealed partial class UiCard : Component
     /// <inheritdoc />
     protected override Component? Render()
     {
-        Component? heading = Heading is null ? null : global::Rask.Ui.UiHeading.Element(HeadingLevel ?? 2)(UiStyles.Heading)[Heading];
+        Component? heading = Heading is null ? null : global::Rask.UiHeading.Element(HeadingLevel ?? 2)(UiStyles.Heading)[Heading];
         Component? title = Icon is { } icon
             ? Div.Class("flex min-w-0 items-center gap-2")[
-                UiIcon.Name(icon).Class("size-5 shrink-0 opacity-60"),
+                Ui.Icon.Name(icon).Class("size-5 shrink-0 opacity-60"),
                 heading
             ]
             : heading;
@@ -68,7 +68,7 @@ public sealed partial class UiCard : Component
             Href is null ? "" : "block no-underline transition-colors hover:bg-base-200",
             Class);
 
-        // A generated route navigates inside the app; a string is an ordinary link, as on UiLink and UiButton (#1070).
+        // A generated route navigates inside the app; a string is an ordinary link, as on Ui.Link and Ui.Button (#1070).
         return Href switch
         {
             null => Div.Class(classes)[header, Children ?? []],

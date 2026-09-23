@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>Marks the subtree inside a <see cref="UiToaster" />, so a toast knows it is one of a stack.</summary>
 /// <remarks>
@@ -17,8 +17,8 @@ internal sealed record UiToastStack;
 /// which is what makes a toast removable by the same render that added it:
 /// </para>
 /// <code>
-/// UiToaster.Position(UiPosition.Top).Align(UiAlign.End)[
-///     _notices.Select(n =&gt; UiToast.Key(n.Id).Message(n.Text).OnDismiss(() =&gt; _notices.Remove(n)))
+/// Ui.Toaster.Position(Ui.Position.Top).Align(Ui.Align.End)[
+///     _notices.Select(n =&gt; Ui.Toast.Key(n.Id).Message(n.Text).OnDismiss(() =&gt; _notices.Remove(n)))
 /// ]
 /// </code>
 /// <para>
@@ -30,10 +30,10 @@ internal sealed record UiToastStack;
 public sealed partial class UiToaster : Component
 {
     /// <summary>Which edge the stack is pinned to. The bottom, unless this says otherwise.</summary>
-    public UiPosition? Position { get; set; }
+    public Ui.Position? Position { get; set; }
 
     /// <summary>Where along that edge. Centred, unless this says otherwise.</summary>
-    public UiAlign? Align { get; set; }
+    public Ui.Align? Align { get; set; }
 
     public string? Class { get; set; }
 

@@ -13,7 +13,7 @@ public sealed class ProjectGeneratorTests
     // the shell (Features/Shared) + welcome page (Features/Home), the entry point, csproj and launch profile.
     private static readonly string[] AlwaysPresent =
     [
-        "App.csproj", "Program.cs", "Features/Shared/App.cs", "Features/Home/HomePage.cs",
+        "App.csproj", "Program.cs", "GlobalUsings.cs", "Features/Shared/App.cs", "Features/Home/HomePage.cs",
         "Features/Shared/ErrorPage.cs",
         "Properties/launchSettings.json", "appsettings.json", "appsettings.Production.json",
         // For the editor, not the build: scoped TypeScript is compiled by tsgo with explicit flags,
@@ -492,7 +492,7 @@ public sealed class ProjectGeneratorTests
 
     private static readonly string[] WasmAlwaysPresent =
     [
-        "App.csproj", "Program.cs", "Features/Shared/App.cs", "Features/Home/HomePage.cs",
+        "App.csproj", "Program.cs", "GlobalUsings.cs", "Features/Shared/App.cs", "Features/Home/HomePage.cs",
         "wwwroot/index.html", "runtimeconfig.template.json",
         // For the editor, not the build — see AlwaysPresent.
         "Styles/app.css",

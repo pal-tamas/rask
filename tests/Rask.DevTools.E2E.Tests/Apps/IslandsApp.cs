@@ -1,8 +1,8 @@
+using Rask;
 using Rask.Blazor;
 using Rask.Blazor.Library.Fixture;
 using Rask.Core;
 using Rask.DevTools.E2E.Tests.Apps.Islands;
-using Rask.Ui;
 
 namespace Rask.DevTools.E2E.Tests.Apps;
 

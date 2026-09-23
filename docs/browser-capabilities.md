@@ -72,10 +72,10 @@ better than a wrapper would. See [TypeScript front ends → Browser APIs](spa.md
 - **Web / Server** is the ASP.NET host (per-session, over WebSocket). The 38 transport-agnostic
   wrappers register there; the activation-gated ones (🟡) can't be injected but are reachable through
   declarative **gesture components** that run the call inside the click gesture. All six ship:
-  [`FullscreenTrigger`](apis/fullscreen.md), [`ScreenOrientationTrigger`](apis/screen-orientation.md),
-  [`EyeDropperTrigger`](apis/eye-dropper.md), [`InstallTrigger`](apis/install-prompt.md),
-  [`MediaCaptureTrigger`](apis/media-devices.md), and [`PictureInPictureTrigger`](apis/picture-in-picture.md)
-  (plus the generic `GestureTrigger`). The last two target a `<video>` via its `ElementRef`.
+  [`Trigger.Fullscreen`](apis/fullscreen.md), [`Trigger.ScreenOrientation`](apis/screen-orientation.md),
+  [`Trigger.EyeDropper`](apis/eye-dropper.md), [`Trigger.Install`](apis/install-prompt.md),
+  [`Trigger.MediaCapture`](apis/media-devices.md), and [`Trigger.PictureInPicture`](apis/picture-in-picture.md)
+  (plus the generic `Trigger.Gesture`). The last two target a `<video>` via its `ElementRef`.
 - **PWA / WASM** is the in-browser WebAssembly host, which registers the full set.
 - **TypeScript front end** is an SPA or a meta framework. On the SPA lane the modules arrive in
   `src/rask/browser/`; on the meta lane they arrive in whichever source directory that framework

@@ -61,7 +61,7 @@ public static partial class DemoRegistry
             // --- Forms guide: validation ---
             ["validation-fields"] = () => CodeSample
                 .Files(["ValidationFieldsDemo.cs"])
-                .Notes("Per-field DataAnnotations attributes with a ValidationMessage under each input — the "
+                .Notes("Per-field DataAnnotations attributes with a Validation.Message under each input — the "
                 + "message appears once the field is touched and clears when it becomes valid.")
                 .Result(ValidationFieldsDemo),
             ["validation-inline"] = () => CodeSample
@@ -72,7 +72,7 @@ public static partial class DemoRegistry
             ["validation-fluent"] = () => CodeSample
                 .Files(["FluentValidationDemo.cs"])
                 .Notes("An AbstractValidator<TModel>, discovered at compile time and run by the form with nothing "
-                + "declared — the RuleFor chains drive the same ValidationMessage/ValidationSummary UI.")
+                + "declared — the RuleFor chains drive the same Validation.Message/Validation.Summary UI.")
                 .Result(FluentValidationDemo),
 
             // --- Browser APIs guide: the typed wrappers over the platform, one live demo each (their
@@ -126,8 +126,8 @@ public static partial class DemoRegistry
                 + "inside the click gesture. That makes normally-WASM-only APIs reachable on every host, the "
                 + "Server included — where the imperative IFullscreen / IEyeDropper / … services can't be "
                 + "injected, because a round-trip would lose the transient user activation. Six typed triggers "
-                + "ship: FullscreenTrigger, ScreenOrientationTrigger, EyeDropperTrigger, InstallTrigger, "
-                + "MediaCaptureTrigger, and PictureInPictureTrigger (the last two target a <video> via its "
+                + "ship: Trigger.Fullscreen, Trigger.ScreenOrientation, Trigger.EyeDropper, Trigger.Install, "
+                + "Trigger.MediaCapture, and Trigger.PictureInPicture (the last two target a <video> via its "
                 + "ElementRef). Capabilities that return a value (the eyedropper's hex, the install outcome) "
                 + "post it back to the OnColor / OnResult / OnOutcome callback.")
                 .Result(GestureBridgeDemo),

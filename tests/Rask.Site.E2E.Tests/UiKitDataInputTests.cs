@@ -166,7 +166,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
 
         await Expect(scope).ToContainTextAsync("Volume: 40");
 
-        // A slider that draws a value and reports nothing is one you can push and cannot read; UiRange
+        // A slider that draws a value and reports nothing is one you can push and cannot read; Ui.Range
         // had no OnChange at all before this.
         await scope.Locator("input[type='range']").FillAsync("75");
         await Expect(scope).ToContainTextAsync("Volume: 75");

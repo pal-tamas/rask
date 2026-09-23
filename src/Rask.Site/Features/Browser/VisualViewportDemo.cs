@@ -9,8 +9,8 @@ public sealed partial class VisualViewportDemo(IVisualViewport viewport) : Compo
     private string? _status;
 
     protected override Component? Render() =>
-        UiCard.Class("shadow-sm")[
-                UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Class("mb-2")
+        Ui.Card.Class("shadow-sm")[
+                Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Class("mb-2")
                     .Id("vv-read")
                     .OnClick(Read)["Read visual viewport"],
                 Div.Class("text-sm text-ui-muted")["Viewport: ", Code.Id("vv-value")[_value ?? "(not requested)"]],

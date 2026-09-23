@@ -104,6 +104,9 @@ dotnet run --project src/Rask.Site
   chain steps taken first (any order); `Bind` vs `Value` are mutually exclusive openings — both live on
   the ENTRY, so taking one leaves the other unreachable; type arguments are inferred from the opening
   step, or stated with `.Of<T>()`, which hands back the state still owing any required steps. See `docs/building-components.md`.
+- **Names:** elements + markup primitives are BARE (inherited by components; `using static Rask.Html` elsewhere;
+  `Html.Footer` when a member hides one; `<html>` is `Document`). Families are GROUPED, never bare — `Ui.Button`/`Ui.Tone`
+  (kit, namespace `Rask`), `Trigger.*`, `Validation.*`, an npm package class (`Mui.Button`) — via `[RaskChainGroup]`.
 - **The chain's receiver IS the component** — one shape, and a step hands back exactly what it was called
   on. `Build<T>`, the mode-carrying `Build<T, TMode>`, `FormBuild<T>` and `GridBuild<T, TKey>` are gone.
   What makes that safe is that every event prop is a `Callback<T>` — a non-invocable STRUCT, so

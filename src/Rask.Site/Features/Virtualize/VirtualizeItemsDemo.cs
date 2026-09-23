@@ -23,7 +23,7 @@ public sealed partial class VirtualizeItemsDemo : Component
                 .Style("height:360px; overflow:auto;")
                 .Data(new Dictionary<string, string?> { ["testid"] = "virtualize-scroller" })
                 .OnScroll(ctx.OnScroll)[
-                UiTable
+                Ui.Table
                     .Class("mb-0")
                     .Style("table-layout:fixed; width:100%; border-collapse:separate; border-spacing:0;")[
                     Thead[

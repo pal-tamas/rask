@@ -1,7 +1,7 @@
 using FluentValidation;
 using Rask.Core.Forms;
 
-namespace Rask.Validation.FluentValidation.Tests;
+namespace Rask.FluentValidationTests;
 
 public class FluentValidationValidatorTests
 {

@@ -1,5 +1,5 @@
+using Rask;
 using Rask.Core.Routing;
-using Rask.Ui;
 
 namespace Rask.Site.Pages;
 
@@ -174,7 +174,7 @@ public sealed partial class HomePage : Component
 
     // ---- hosts & front-end lanes ----
     private static Component LaneCard(
-        UiIconName icon, string tag, string title, string guide, string prev, params Component?[] body) =>
+        Ui.IconName icon, string tag, string title, string guide, string prev, params Component?[] body) =>
         NavLink
             .Href(PageMeta.LinkTo(Rask.Site.Features.Routes.GuidePage(guide)))
             .ActiveClass("")
@@ -182,10 +182,10 @@ public sealed partial class HomePage : Component
                 $"{Card} guide-link group flex flex-col p-6 no-underline transition-colors "
                 + "hover:border-ui-brand/40 hover:bg-ui-well")[
             Div.Class("flex items-center gap-2")[
-                UiIcon.Name(icon).Class("size-5 shrink-0 text-ui-brand-ink"),
+                Ui.Icon.Name(icon).Class("size-5 shrink-0 text-ui-brand-ink"),
                 Span.Class("font-mono text-xs text-ui-muted")[tag],
-                UiIcon
-                    .Name(UiIconName.ChevronRight)
+                Ui.Icon
+                    .Name(Ui.IconName.ChevronRight)
                     .Class("ml-auto size-4 shrink-0 text-ui-muted transition-transform group-hover:translate-x-0.5")
             ],
             H3.Class("mt-2 text-lg font-semibold text-ui-ink")[title],
@@ -200,11 +200,11 @@ public sealed partial class HomePage : Component
                     "Write it once. Ship it where you need it.",
                     "The identical C# component runs unchanged across every host — you choose the runtime per project, not per component."),
                 Div.Class("grid gap-4 md:grid-cols-3")[
-                    LaneCard(UiIconName.Server, "Rask.Server", "Server", "render-modes", "AddRask() · UseRask<TApp>()",
+                    LaneCard(Ui.IconName.Server, "Rask.Server", "Server", "render-modes", "AddRask() · UseRask<TApp>()",
                         "ASP.NET host. State lives on the server; a live diff streams to the browser over a WebSocket. Nothing to compile client-side."),
-                    LaneCard(UiIconName.Globe, "Rask.Wasm", "WebAssembly", "pwa", "WasmHostBuilder.CreateDefault()",
+                    LaneCard(Ui.IconName.Globe, "Rask.Wasm", "WebAssembly", "pwa", "WasmHostBuilder.CreateDefault()",
                         "The same component runs fully client-side on the browser's Mono/WASM runtime via JSImport/JSExport. Ships as an installable, offline PWA."),
-                    LaneCard(UiIconName.Storage, "Rask.Spa.Hosting", "Single-page host", "spa", "AddRaskSpaHost() · UseRaskSpa()",
+                    LaneCard(Ui.IconName.Storage, "Rask.Spa.Hosting", "Single-page host", "spa", "AddRaskSpaHost() · UseRaskSpa()",
                         "Serves a WebAssembly app or a TypeScript bundle from an ASP.NET host, cached by what its build guarantees, with pre-compressed variants.")
                 ]
             ]
@@ -230,13 +230,13 @@ public sealed partial class HomePage : Component
                     "Bring your own front end — or don't.",
                     "Rask is a superset, not a rival: React, Vue, Svelte, Angular and Lit components, a real Blazor component, a TypeScript SPA or a Nuxt or Next.js app all run on it, against the same C# back end over the same typed wire. Pick one per project; islands also compose inside a Rask component tree, so those two mix freely."),
                 Div.Class("grid gap-4 md:grid-cols-2")[
-                    LaneCard(UiIconName.CodeBracket, "Rask.Core", "Rask components", "render-modes", "rask new Shop",
+                    LaneCard(Ui.IconName.CodeBracket, "Rask.Core", "Rask components", "render-modes", "rask new Shop",
                         "C# components server-rendered over a WebSocket, every state change streaming as a minimal diff. Pick ", Code["-t wasm-hosted"], " and the same components publish as a WebAssembly bundle the host serves, out of the same project."),
-                    LaneCard(UiIconName.Puzzle, "Rask.External", "Islands", "islands", "class Chart : ReactComponent",
+                    LaneCard(Ui.IconName.Puzzle, "Rask.External", "Islands", "islands", "class Chart : ReactComponent",
                         "A ", Code[".tsx"], ", ", Code[".vue"], ", ", Code[".svelte"], " or Lit file as an ordinary Rask component — props declared in C#, callbacks re-entering C#, and the live diff leaving the subtree to its own renderer. A real Blazor component too."),
-                    LaneCard(UiIconName.Desktop, "Rask.Spa.Hosting", "TypeScript SPA", "spa", "rask new Shop --template react",
+                    LaneCard(Ui.IconName.Desktop, "Rask.Spa.Hosting", "TypeScript SPA", "spa", "rask new Shop --template react",
                         "A TypeScript single-page app on an ASP.NET host — seven frameworks, with the client's types generated from your C# message records on every build. No Node at runtime."),
-                    LaneCard(UiIconName.Globe, "Rask.Meta.Hosting", "Meta framework", "meta", "rask new Shop --template nuxt",
+                    LaneCard(Ui.IconName.Globe, "Rask.Meta.Hosting", "Meta framework", "meta", "rask new Shop --template nuxt",
                         "Nuxt, Next, SvelteKit, TanStack Start, SolidStart or Analog owning the whole front end, with Rask the backend behind it. One container, one port: Kestrel fronts every request and supervises Node on loopback.")
                 ]
             ]
@@ -260,7 +260,7 @@ public sealed partial class HomePage : Component
     /// would report.
     /// </para>
     /// </remarks>
-    private static Component Feature(UiIconName icon, string title, string guide, params Component?[] desc) =>
+    private static Component Feature(Ui.IconName icon, string title, string guide, params Component?[] desc) =>
         NavLink
             .Href(PageMeta.LinkTo(Rask.Site.Features.Routes.GuidePage(guide)))
             .ActiveClass("")
@@ -268,10 +268,10 @@ public sealed partial class HomePage : Component
                 $"{Card} guide-link group flex flex-col p-5 no-underline transition-colors "
                 + "hover:border-ui-brand/40 hover:bg-ui-well")[
             Div.Class("flex items-center gap-2 text-sm font-semibold text-ui-ink")[
-                UiIcon.Name(icon).Class("size-4 shrink-0 text-ui-brand-ink"),
+                Ui.Icon.Name(icon).Class("size-4 shrink-0 text-ui-brand-ink"),
                 title,
-                UiIcon
-                    .Name(UiIconName.ChevronRight)
+                Ui.Icon
+                    .Name(Ui.IconName.ChevronRight)
                     .Class("ml-auto size-4 shrink-0 text-ui-muted transition-transform group-hover:translate-x-0.5")
             ],
             P.Class("mt-2 text-sm leading-relaxed text-ui-muted")[desc]
@@ -290,17 +290,17 @@ public sealed partial class HomePage : Component
                     "A full framework, generated at compile time.",
                     "Roslyn source generators build each component's chain surface and typed route URLs — trim-safe, reflection-free, and checked by 60+ compile-time diagnostics."),
                 Div.Class("grid gap-4 sm:grid-cols-2 lg:grid-cols-3")[
-                    Feature(UiIconName.Bolt, "Source generators", "building-components", "A chain surface per component — ", Code["Card.Title(…)"], " — that demands what the component can't do without, plus type-safe ", Code["Routes.*"], " URL builders. Rename a route, break the build — never a dead link."),
-                    Feature(UiIconName.PaintBrush, "Scoped CSS & TypeScript", "js-interop", "Drop a sibling ", Code["{Component}.css"], "/", Code[".ts"], ". Auto-scoped, no leaks, no class-name discipline — a mismatch is a build error. Tailwind v4 compiles from ", Code["dotnet build"], ", with no npm and no config file."),
-                    Feature(UiIconName.Clipboard, "Forms & validation", "forms", Code["Form<T>"], " with two-way binding, plus inline, DataAnnotations, FluentValidation, and async validators."),
-                    Feature(UiIconName.Lock, "Auth, on by default", "authentication", "Register, sign in and sign out with no auth code — a cookie session on both Server and WASM, route guards, and the first account to register becomes the admin. Identity, Keycloak, Auth0, OIDC."),
-                    Feature(UiIconName.ArrowsRightLeft, "CQRS", "cqrs", "Source-generated, trim-safe queries, commands, notifications and pipeline behaviors via ", Code["AddRaskCqrs()"], " — standalone, zero reflection."),
-                    Feature(UiIconName.Phone, "PWA & Web Push", "pwa", "Typed manifest, a default service worker, and VAPID/RFC-8291 Web Push with zero external deps. ", Code["--pwa"], " and you're installable."),
-                    Feature(UiIconName.Cube, "50 typed browser APIs", "browser-apis", "Storage, clipboard, geolocation, passkeys, share, sensors, observers, serial/USB/HID/Bluetooth — one awaitable C# layer, identical on Server & WASM."),
-                    Feature(UiIconName.ShieldOk, "Secure by default", "best-practices", "Strings are HTML-encoded, URL attributes are scheme-sanitized (", Code["javascript:"], " → ", Code["about:blank"], "). Safe output is the default, not a flag."),
-                    Feature(UiIconName.Retry, "C# Hot Reload", "getting-started", "Edit ", Code["Render()"], " or scoped css/js under ", Code["dotnet watch"], " and it re-renders live — the closest a compiled framework gets to a no-build loop."),
-                    Feature(UiIconName.Sparkles, "Prerendering", "prerendering", "A WASM app renders every route to real HTML at publish, so a crawler is served the page rather than a spinner. On the server, every page is live, and ", Code["QuiescenceTimeout"], " holds its first response until its data has loaded."),
-                    Feature(UiIconName.Terminal, "One CLI", "cli", Code["rask new"], ", ", Code["rask dev"], ", ", Code["rask db"], ", ", Code["rask deploy"], " — scaffold, run, migrate and ship without leaving the terminal.")
+                    Feature(Ui.IconName.Bolt, "Source generators", "building-components", "A chain surface per component — ", Code["Card.Title(…)"], " — that demands what the component can't do without, plus type-safe ", Code["Routes.*"], " URL builders. Rename a route, break the build — never a dead link."),
+                    Feature(Ui.IconName.PaintBrush, "Scoped CSS & TypeScript", "js-interop", "Drop a sibling ", Code["{Component}.css"], "/", Code[".ts"], ". Auto-scoped, no leaks, no class-name discipline — a mismatch is a build error. Tailwind v4 compiles from ", Code["dotnet build"], ", with no npm and no config file."),
+                    Feature(Ui.IconName.Clipboard, "Forms & validation", "forms", Code["Form<T>"], " with two-way binding, plus inline, DataAnnotations, FluentValidation, and async validators."),
+                    Feature(Ui.IconName.Lock, "Auth, on by default", "authentication", "Register, sign in and sign out with no auth code — a cookie session on both Server and WASM, route guards, and the first account to register becomes the admin. Identity, Keycloak, Auth0, OIDC."),
+                    Feature(Ui.IconName.ArrowsRightLeft, "CQRS", "cqrs", "Source-generated, trim-safe queries, commands, notifications and pipeline behaviors via ", Code["AddRaskCqrs()"], " — standalone, zero reflection."),
+                    Feature(Ui.IconName.Phone, "PWA & Web Push", "pwa", "Typed manifest, a default service worker, and VAPID/RFC-8291 Web Push with zero external deps. ", Code["--pwa"], " and you're installable."),
+                    Feature(Ui.IconName.Cube, "50 typed browser APIs", "browser-apis", "Storage, clipboard, geolocation, passkeys, share, sensors, observers, serial/USB/HID/Bluetooth — one awaitable C# layer, identical on Server & WASM."),
+                    Feature(Ui.IconName.ShieldOk, "Secure by default", "best-practices", "Strings are HTML-encoded, URL attributes are scheme-sanitized (", Code["javascript:"], " → ", Code["about:blank"], "). Safe output is the default, not a flag."),
+                    Feature(Ui.IconName.Retry, "C# Hot Reload", "getting-started", "Edit ", Code["Render()"], " or scoped css/js under ", Code["dotnet watch"], " and it re-renders live — the closest a compiled framework gets to a no-build loop."),
+                    Feature(Ui.IconName.Sparkles, "Prerendering", "prerendering", "A WASM app renders every route to real HTML at publish, so a crawler is served the page rather than a spinner. On the server, every page is live, and ", Code["QuiescenceTimeout"], " holds its first response until its data has loaded."),
+                    Feature(Ui.IconName.Terminal, "One CLI", "cli", Code["rask new"], ", ", Code["rask dev"], ", ", Code["rask db"], ", ", Code["rask deploy"], " — scaffold, run, migrate and ship without leaving the terminal.")
                 ]
             ]
         ];
@@ -323,18 +323,18 @@ public sealed partial class HomePage : Component
                     "One person's whole back end.",
                     "Behind the same C# UI, every stateful pillar rides the app's own SQLite database — no broker, no Redis, no second service to run. They build on the standard .NET pieces — EF Core, hosted services, ILogger, IDistributedCache — so adding one is a package reference, not a new box to operate."),
                 Div.Class("grid gap-4 sm:grid-cols-2 lg:grid-cols-3")[
-                    Feature(UiIconName.Stack, "A feature slice", "cqrs", "A CQRS + EF Core CRUD slice — entity, validation, list/create/edit pages, and tests — written once in the tutorial and repeated per feature. Small enough to type, so nothing is generated you can't read."),
-                    Feature(UiIconName.Clock, "Background jobs", "jobs", "Durable enqueued, delayed, and recurring work on your database, run by a hosted worker — at-least-once, with exponential backoff."),
-                    Feature(UiIconName.Envelope, "Transactional email", "mail", "Email queued on the same database and delivered over SMTP off the request thread; bodies are Rask components."),
-                    Feature(UiIconName.Outbox, "Transactional outbox", "outbox", "Domain events captured in the same transaction as your data and relayed at-least-once — crash-safe, no message broker."),
-                    Feature(UiIconName.Bolt, "Cache & query", "cache", "A database-backed ", Code["IDistributedCache"], ", a typed ", Code["ICache"], " with ", Code["GetOrAddAsync"], ", and ", Code["Rask.Query"], " wrapping the dispatcher with dedup, staleness and invalidation."),
-                    Feature(UiIconName.Database, "Production SQLite", "sqlite", "SQLite as the production database — WAL + busy-timeout pragmas, continuous Litestream backup, scheduled snapshots. Postgres and SQL Server are a package away."),
-                    Feature(UiIconName.Overview, "An operator console", "dashboard", "A dashboard at ", Code["/_rask"], " over every pillar's own table — queue depth, dead letters and the errors behind them, cache contents, a log tail, SQLite pragmas. Fail-closed behind an authorization policy."),
-                    Feature(UiIconName.Archive, "Durable logs", "logging", Code["Rask.Logging"], " keeps the ", Code["ILogger"], " pipeline in a SQLite file of its own, buffered off the request thread, with retention by age and row count — and a searchable view in the console."),
-                    Feature(UiIconName.Rocket, "One-command deploy", "deployment", Code["rask deploy"], " takes a bare VPS to a live HTTPS site — Docker, a non-root deploy user, firewall + SSH hardening, and zero-downtime swaps."),
-                    Feature(UiIconName.Bell, "Web Push", "webpush", "Send Web Push from your backend on your own VAPID keys (RFC 8292/8291) — zero external dependencies."),
-                    Feature(UiIconName.Globe, "WebRTC signaling", "browser-apis", Code["Rask.Signaling"], " hosts the relay that ", Code["IWebRtc"], " connects to, so peer-to-peer works without a third-party service."),
-                    Feature(UiIconName.Storage, "File storage", "file-storage", Code["Rask.Storage"], " keeps uploads on disk, in S3-compatible storage or in Azure Blob, with a row per file on your database — public or expiring links, and the content type sniffed from the bytes rather than taken from the browser.")
+                    Feature(Ui.IconName.Stack, "A feature slice", "cqrs", "A CQRS + EF Core CRUD slice — entity, validation, list/create/edit pages, and tests — written once in the tutorial and repeated per feature. Small enough to type, so nothing is generated you can't read."),
+                    Feature(Ui.IconName.Clock, "Background jobs", "jobs", "Durable enqueued, delayed, and recurring work on your database, run by a hosted worker — at-least-once, with exponential backoff."),
+                    Feature(Ui.IconName.Envelope, "Transactional email", "mail", "Email queued on the same database and delivered over SMTP off the request thread; bodies are Rask components."),
+                    Feature(Ui.IconName.Outbox, "Transactional outbox", "outbox", "Domain events captured in the same transaction as your data and relayed at-least-once — crash-safe, no message broker."),
+                    Feature(Ui.IconName.Bolt, "Cache & query", "cache", "A database-backed ", Code["IDistributedCache"], ", a typed ", Code["ICache"], " with ", Code["GetOrAddAsync"], ", and ", Code["Rask.Query"], " wrapping the dispatcher with dedup, staleness and invalidation."),
+                    Feature(Ui.IconName.Database, "Production SQLite", "sqlite", "SQLite as the production database — WAL + busy-timeout pragmas, continuous Litestream backup, scheduled snapshots. Postgres and SQL Server are a package away."),
+                    Feature(Ui.IconName.Overview, "An operator console", "dashboard", "A dashboard at ", Code["/_rask"], " over every pillar's own table — queue depth, dead letters and the errors behind them, cache contents, a log tail, SQLite pragmas. Fail-closed behind an authorization policy."),
+                    Feature(Ui.IconName.Archive, "Durable logs", "logging", Code["Rask.Logging"], " keeps the ", Code["ILogger"], " pipeline in a SQLite file of its own, buffered off the request thread, with retention by age and row count — and a searchable view in the console."),
+                    Feature(Ui.IconName.Rocket, "One-command deploy", "deployment", Code["rask deploy"], " takes a bare VPS to a live HTTPS site — Docker, a non-root deploy user, firewall + SSH hardening, and zero-downtime swaps."),
+                    Feature(Ui.IconName.Bell, "Web Push", "webpush", "Send Web Push from your backend on your own VAPID keys (RFC 8292/8291) — zero external dependencies."),
+                    Feature(Ui.IconName.Globe, "WebRTC signaling", "browser-apis", Code["Rask.Signaling"], " hosts the relay that ", Code["IWebRtc"], " connects to, so peer-to-peer works without a third-party service."),
+                    Feature(Ui.IconName.Storage, "File storage", "file-storage", Code["Rask.Storage"], " keeps uploads on disk, in S3-compatible storage or in Azure Blob, with a row per file on your database — public or expiring links, and the content type sniffed from the bytes rather than taken from the browser.")
                 ]
             ]
         ];
@@ -368,7 +368,7 @@ public sealed partial class HomePage : Component
                             .Href("https://github.com/pal-tamas/rask")
                             .Target("_blank")
                             .Rel("noopener")[
-                            UiIcon.Name(UiIconName.Star).Class("size-4 shrink-0"), "Star on GitHub"
+                            Ui.Icon.Name(Ui.IconName.Star).Class("size-4 shrink-0"), "Star on GitHub"
                         ]
                     ],
                     // min-h-11 and gap-6 on the links, not just on the row. A 14px line of text is a

@@ -84,7 +84,7 @@ export function beginLoading(el: Element): LoadingTicket {
 
     ticket.show = setTimeout(() => {
         ticket.show = null;
-        // Already marked by the render (`UiButton.Loading(true)`): the mark is the server's, and taking it
+        // Already marked by the render (`Ui.Button.Loading(true)`): the mark is the server's, and taking it
         // off when this dispatch ends would contradict the render until the next one.
         if (ticket.done || stamped.has(el) || el.hasAttribute(LOADING_ATTR)) return;
         stamped.add(el);

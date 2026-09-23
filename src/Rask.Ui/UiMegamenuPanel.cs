@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// One trigger of a <see cref="UiMegamenu" /> and the panel it opens.

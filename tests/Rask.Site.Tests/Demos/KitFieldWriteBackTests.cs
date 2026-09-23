@@ -1,5 +1,5 @@
+using Rask;
 using Rask.Site.Tests.Infrastructure;
-using Rask.Ui;
 
 namespace Rask.Site.Tests.Demos;
 
@@ -31,7 +31,7 @@ public sealed partial class KitFieldWriteBackTests : global::Rask.Core.RaskMarku
     {
         public Model Data { get; set; } = new();
 
-        protected override Component? Render() => UiInput.Bind(() => Data.Name).Label("Name");
+        protected override Component? Render() => Ui.Input.Bind(() => Data.Name).Label("Name");
     }
 
     private sealed partial class RawHost : Component
@@ -46,7 +46,7 @@ public sealed partial class KitFieldWriteBackTests : global::Rask.Core.RaskMarku
         public Model Data { get; set; } = new();
 
         protected override Component? Render() =>
-            Form.Model(Data)[UiInput.Bind(() => Data.Name).Label("Name")];
+            Form.Model(Data)[Ui.Input.Bind(() => Data.Name).Label("Name")];
     }
 
     [Fact]

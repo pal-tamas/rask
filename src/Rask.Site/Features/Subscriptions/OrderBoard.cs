@@ -12,7 +12,7 @@ public sealed partial class OrderBoard : Component
     {
         var orders = QueryClient.Subscribe<OrderPlaced>().Keep(5);
 
-        return UiCard.Class("subscription-board")[
+        return Ui.Card.Class("subscription-board")[
             H3.Class("text-sm font-semibold")[Title],
             orders.Items.Count == 0
                 ? P.Class("text-sm text-ui-muted")["No orders yet."]

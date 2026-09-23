@@ -22,8 +22,8 @@ public sealed partial class NotFoundPage : Component
 {
     /// <inheritdoc />
     protected override Component? Render() =>
-        UiCard[
-            UiEmpty
+        Ui.Card[
+            Ui.Empty
                 .Heading("No such page")
                 .Detail("That URL is not part of the console. Pick a panel from the navigation above.")
         ];

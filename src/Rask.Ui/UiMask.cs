@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// An image cropped to a shape.
@@ -11,7 +11,7 @@ namespace Rask.Ui;
 public sealed partial class UiMask : Component
 {
     /// <summary>The shape it is clipped to.</summary>
-    public required UiMaskShape Shape { get; set; }
+    public required Ui.MaskShape Shape { get; set; }
 
     public string? Class { get; set; }
 

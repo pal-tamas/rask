@@ -1,4 +1,4 @@
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     Typing letters jumps to a node: the buffer, its timeout, and what a repeated letter means.

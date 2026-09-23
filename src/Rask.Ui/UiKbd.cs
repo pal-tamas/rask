@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A key on a keyboard.
@@ -7,7 +7,7 @@ public sealed partial class UiKbd : Component
 {
     public new required string Text { get; set; }
 
-    public UiSize? Size { get; set; }
+    public Ui.Size? Size { get; set; }
 
     public string? Class { get; set; }
 

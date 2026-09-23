@@ -99,7 +99,7 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
         // post-handler frame — must show the "taken" message and must NOT still show the
         // "Checking…" indicator.
         var model = new SignupModel { Username = "" };
-        // Opt out of the ValidatingIndicator sticky window so this test stays
+        // Opt out of the Validation.Indicator sticky window so this test stays
         // a strict assertion on the post-handler frame — sticky is a UI smoothing
         // feature and overlaps the "no indicator after validation" check the test
         // is pinning. Pre-sticky behaviour is preserved when ValidatingStickyMs=0.
@@ -108,8 +108,8 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
 
         var view = new StubComponent(() => Form.Model(model).Context(ctx)[
             Input.Bind(() => model.Username),
-            ValidatingIndicator.Template(() => Span.Class("spinner")["Checking..."]).For(() => model.Username),
-            ValidationMessage.Template(msgs => Div.Class("text-danger")[msgs[0]]).For(() => model.Username)
+            Validation.Indicator.Template(() => Span.Class("spinner")["Checking..."]).For(() => model.Username),
+            Validation.Message.Template(msgs => Div.Class("text-danger")[msgs[0]]).For(() => model.Username)
         ]);
         var handle = new RenderingHandle(view);
         view.RenderHandle = handle;
@@ -182,7 +182,7 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
         Assert.True(ctx.IsValidating(fid));
 
         var html = RaskTest.Render(() => Form.Model(model).Context(ctx)[
-            ValidatingIndicator.Template(() => Span.Class("spinner")["Checking..."]).For(() => model.Username)
+            Validation.Indicator.Template(() => Span.Class("spinner")["Checking..."]).For(() => model.Username)
         ]).Html;
 
         Assert.Contains("<span class=\"spinner\">", html);
@@ -196,7 +196,7 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
         var ctx = new EditContext(model);
 
         var html = RaskTest.Render(() => Form.Model(model).Context(ctx)[
-            ValidatingIndicator.Template(() => Span.Class("spinner")["Checking..."]).For(() => model.Username)
+            Validation.Indicator.Template(() => Span.Class("spinner")["Checking..."]).For(() => model.Username)
         ]).Html;
 
         Assert.DoesNotContain("Checking...", html);
@@ -308,8 +308,8 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
         protected override Component? Render() =>
             Form.Model(_model).Context(_ctx)[
                 Input.Bind(() => _model.Username),
-                ValidatingIndicator.Template(() => Span.Class("spinner")["Checking..."]).For(() => _model.Username),
-                ValidationMessage.Template(msgs => Div.Class("text-danger")[msgs[0]]).For(() => _model.Username)
+                Validation.Indicator.Template(() => Span.Class("spinner")["Checking..."]).For(() => _model.Username),
+                Validation.Message.Template(msgs => Div.Class("text-danger")[msgs[0]]).For(() => _model.Username)
             ];
     }
 }

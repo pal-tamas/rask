@@ -1,10 +1,10 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
-///     The server-drawn chart: <c>UiChart.Data(rows).Label(...)[c =&gt; [c.X(...), c.Line(...)]]</c>.
+///     The server-drawn chart: <c>Ui.Chart.Data(rows).Label(...)[c =&gt; [c.X(...), c.Line(...)]]</c>.
 /// </summary>
 /// <remarks>
 ///     A chart is a picture of numbers, so most of what is worth pinning is that the numbers survive: the scale is
@@ -26,7 +26,7 @@ public partial class UiChartTests : global::Rask.Core.RaskMarkup
         // Keys stripped: a keyed cell carries data-rask-key ahead of its own attributes, which is identity for the diff
         // and noise for these assertions.
         Regex.Replace(
-            UiChart.Data(Sales).Label("Revenue")[c => [c.X(s => s.Month), .. series.Select(f => f(c))]].ToHtml(),
+            Ui.Chart.Data(Sales).Label("Revenue")[c => [c.X(s => s.Month), .. series.Select(f => f(c))]].ToHtml(),
             " data-rask-key=\"[^\"]*\"",
             "");
 
@@ -116,7 +116,7 @@ public partial class UiChartTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_series_without_a_tone_takes_the_next_colour_in_turn()
     {
-        var html = Chart(c => c.Line(s => s.Revenue), c => c.Line(s => s.Cost), c => c.Line(s => s.Orders).Tone(UiTone.Error));
+        var html = Chart(c => c.Line(s => s.Revenue), c => c.Line(s => s.Cost), c => c.Line(s => s.Orders).Tone(Ui.Tone.Error));
 
         Assert.Contains("stroke-primary", html, StringComparison.Ordinal);
         Assert.Contains("stroke-secondary", html, StringComparison.Ordinal);
@@ -143,7 +143,7 @@ public partial class UiChartTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Values_are_written_in_the_format_the_chart_is_given()
     {
-        var html = UiChart.Data(Sales).Label("Revenue").Format("C0")[c => [c.X(s => s.Month), c.Line(s => s.Revenue)]]
+        var html = Ui.Chart.Data(Sales).Label("Revenue").Format("C0")[c => [c.X(s => s.Month), c.Line(s => s.Revenue)]]
             .ToHtml();
 
         Assert.Contains(480.ToString("C0", CultureInfo.CurrentCulture), System.Net.WebUtility.HtmlDecode(html),

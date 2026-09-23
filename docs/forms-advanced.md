@@ -29,7 +29,7 @@ public sealed class AddressModel
 
 ```csharp
 Input.Bind(() => _model.Address.Street),
-ValidationMessage.For(() => _model.Address.Street).Template(errs => Div.Class("err")[errs[0]]),
+Validation.Message.For(() => _model.Address.Street).Template(errs => Div.Class("err")[errs[0]]),
 ```
 
 **Collection binding — `foreach` + per-item capture** (the canonical pattern). Each iteration closes
@@ -68,7 +68,7 @@ the slot (`_model.Items[i] = _model.Items[i] with { Field = newValue }`).
 
 **FluentValidation nesting** uses `SetValidator(...)` and `RuleForEach(...).SetValidator(...)`; Rask
 routes the dotted `error.PropertyName` (`Address.Street`, `Lines[0].Quantity`) back to the runtime
-sub-instance so `ValidationMessage(For: () => _model.Address.Street, …)` reads the right slot.
+sub-instance so `Validation.Message(For: () => _model.Address.Street, …)` reads the right slot.
 
 > **Trimming.** Validating a nested graph reflects over every reachable model type. Whatever
 > preserves the root model's public properties (`[DynamicallyAccessedMembers]`, a routed page, or a
@@ -133,7 +133,7 @@ CheckboxGroup<string>(interests, Value: _interests, OnChange: next => _interests
   fallback `name`, so two on one page are never merged into a single browser radio group.
 - They are **Components** (their own re-render boundary), so a toggle re-renders the control itself; for
   host-side derived UI (a live summary) use **controlled** mode — the auto-wrapped `OnChange` re-renders
-  the host. (In bound mode, feedback lives inside the control via the embedded `ValidationMessage`.)
+  the host. (In bound mode, feedback lives inside the control via the embedded `Validation.Message`.)
 - **Reading validation state in a custom control just works.** If you bake feedback straight into your
   own `Render()` — reading `EditContext.GetValidationMessages(field)` / `GetValidationEntries()` /
   `ShouldShowValidatingIndicator(field)` — the framework detects the read and opts that control out of

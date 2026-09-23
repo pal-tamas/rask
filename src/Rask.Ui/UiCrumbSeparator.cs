@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>The rule between two crumbs.</summary>
 public sealed partial class UiCrumbSeparator : Component

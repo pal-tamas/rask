@@ -32,7 +32,7 @@ namespace Rask.Generators.Tests;
 public class GridColumnTokenAnalyzerTests
 {
     private const string Components = """
-        namespace Rask.Ui
+        namespace Rask
         {
             public sealed partial class UiColumn<T> : Rask.Core.Component
             {

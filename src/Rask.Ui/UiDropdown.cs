@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A button that opens a menu beside it.
@@ -25,7 +25,7 @@ namespace Rask.Ui;
 /// <see cref="UiMenuSurface.OnToggle" /> is how the page hears the reader open or close it.
 /// </para>
 /// <para>
-/// <see cref="UiOpenOn.Hover" /> keeps daisyUI's CSS dropdown, because CSS cannot open a popover: it opens on a
+/// <see cref="Ui.OpenOn.Hover" /> keeps daisyUI's CSS dropdown, because CSS cannot open a popover: it opens on a
 /// pointer and on focus, and has no keyboard cursor.
 /// </para>
 /// </remarks>
@@ -35,16 +35,16 @@ public sealed partial class UiDropdown : UiMenuButton
     public required string Trigger { get; set; }
 
     /// <summary>
-    ///     What opens it. <see cref="UiOpenOn.Hover" /> is daisyUI's CSS dropdown — pointer and focus, no keyboard
+    ///     What opens it. <see cref="Ui.OpenOn.Hover" /> is daisyUI's CSS dropdown — pointer and focus, no keyboard
     ///     cursor — so prefer the default for anything that has to be reachable by keyboard or touch.
     /// </summary>
-    public UiOpenOn? OpenOn { get; set; }
+    public Ui.OpenOn? OpenOn { get; set; }
 
     /// <summary>An icon before the trigger's label.</summary>
-    public UiIconName? Icon { get; set; }
+    public Ui.IconName? Icon { get; set; }
 
     /// <summary>An icon after the trigger's label. A chevron unless this says otherwise.</summary>
-    public UiIconName? IconTrailing { get; set; }
+    public Ui.IconName? IconTrailing { get; set; }
 
     /// <inheritdoc />
     private protected override string PrefixTag => "uidd";
@@ -53,14 +53,14 @@ public sealed partial class UiDropdown : UiMenuButton
     private protected override string TriggerClass => "btn";
 
     /// <inheritdoc />
-    protected override Component? Render() => OpenOn == UiOpenOn.Hover ? HoverDropdown() : MenuButton();
+    protected override Component? Render() => OpenOn == Ui.OpenOn.Hover ? HoverDropdown() : MenuButton();
 
     /// <inheritdoc />
     private protected override Component TriggerContent() =>
     [
-        Icon is { } icon ? UiIcon.Name(icon).Class("size-4 shrink-0") : null,
+        Icon is { } icon ? Ui.Icon.Name(icon).Class("size-4 shrink-0") : null,
         Span[Trigger],
-        UiIcon.Name(IconTrailing ?? UiIconName.ChevronDown).Class("size-4 shrink-0 opacity-60")
+        Ui.Icon.Name(IconTrailing ?? Ui.IconName.ChevronDown).Class("size-4 shrink-0 opacity-60")
     ];
 
     // daisyUI's CSS dropdown, for Hover: it opens on :hover and :focus-within, which a popover cannot.
@@ -72,9 +72,9 @@ public sealed partial class UiDropdown : UiMenuButton
             Class))[
             // tabindex so :focus-within can open it from the keyboard; daisyUI scopes its rules to it.
             Button.Type("button").Class("btn").TabIndex(0).Aria(new Dictionary<string, string?> { ["haspopup"] = "menu" })[
-                Icon is { } icon ? UiIcon.Name(icon).Class("size-4 shrink-0") : null,
+                Icon is { } icon ? Ui.Icon.Name(icon).Class("size-4 shrink-0") : null,
                 Span[Trigger],
-                UiIcon.Name(IconTrailing ?? UiIconName.ChevronDown).Class("size-4 shrink-0 opacity-60")
+                Ui.Icon.Name(IconTrailing ?? Ui.IconName.ChevronDown).Class("size-4 shrink-0 opacity-60")
             ],
             Ul.Class("dropdown-content menu z-1 w-56 rounded-box bg-base-100 p-2 shadow-sm")[Children ?? []]
         ];

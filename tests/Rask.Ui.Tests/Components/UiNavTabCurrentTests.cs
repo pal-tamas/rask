@@ -1,4 +1,4 @@
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     The section tab works out which page it is on, the way the sidebar's item does.
@@ -14,7 +14,7 @@ public partial class UiNavTabCurrentTests : global::Rask.Core.RaskMarkup
     public void Stated_active_marks_the_tab_for_assistive_tech_too()
     {
         // The underline is not a fact a screen reader can see; aria-current is.
-        var html = UiNavTab.Label("Logs").Href("/logs").Active(true).ToHtml();
+        var html = Ui.NavTab.Label("Logs").Href("/logs").Active(true).ToHtml();
 
         Assert.Contains("aria-current=\"page\"", html, StringComparison.Ordinal);
     }
@@ -24,7 +24,7 @@ public partial class UiNavTabCurrentTests : global::Rask.Core.RaskMarkup
     {
         // Not `aria-current="false"`, and no data-inactive either: an attribute on every tab of every page is
         // noise that invites someone to start styling off it.
-        var html = UiNavTab.Label("Logs").Href("/logs").Active(false).ToHtml();
+        var html = Ui.NavTab.Label("Logs").Href("/logs").Active(false).ToHtml();
 
         Assert.DoesNotContain("aria-current", html, StringComparison.Ordinal);
     }
@@ -36,7 +36,7 @@ public partial class UiNavTabCurrentTests : global::Rask.Core.RaskMarkup
         // aria-current. A GENERATED route is what it can do that for — it carries the page type — so that is
         // what this hands it, the way a real call site's Routes.X() would.
         var generated = new global::Rask.Core.Routing.RouteUrl("/logs", null, typeof(UiNavTabCurrentTests));
-        var html = UiNavTab.Label("Logs").Href(generated).ToHtml();
+        var html = Ui.NavTab.Label("Logs").Href(generated).ToHtml();
 
         Assert.Contains("href=\"/logs\"", html, StringComparison.Ordinal);
         Assert.Contains("data-rask-nav", html, StringComparison.Ordinal);
@@ -47,8 +47,8 @@ public partial class UiNavTabCurrentTests : global::Rask.Core.RaskMarkup
     {
         // flux:navbar.item has both, and a tab bar without them cannot show a count — the thing a "Logs" or
         // "Errors" tab most wants to say.
-        var html = UiNavTab.Label("Errors").Href("/errors").Icon(UiIconName.Warning).Badge("12")
-            .BadgeTone(UiTone.Error).ToHtml();
+        var html = Ui.NavTab.Label("Errors").Href("/errors").Icon(Ui.IconName.Warning).Badge("12")
+            .BadgeTone(Ui.Tone.Error).ToHtml();
 
         Assert.Contains("<svg", html, StringComparison.Ordinal);
         Assert.Contains("badge", html, StringComparison.Ordinal);
@@ -61,7 +61,7 @@ public partial class UiNavTabCurrentTests : global::Rask.Core.RaskMarkup
         // #1070: a string is written exactly as given, with no path base added — right for a URL that leaves
         // the app, wrong for one of your own pages. It also has no route to be compared against, so its
         // current state can only be stated.
-        var html = UiNavTab.Label("Docs").Href("https://example.com/docs").ToHtml();
+        var html = Ui.NavTab.Label("Docs").Href("https://example.com/docs").ToHtml();
 
         Assert.Contains("href=\"https://example.com/docs\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("data-rask-nav", html, StringComparison.Ordinal);

@@ -8,9 +8,9 @@
 - **Shape:** one-shot
 - **Availability:** Web/Server 🟡 · PWA/WASM ✅
 
-Needs transient activation, so the imperative `IFullscreen` service is WASM-only. On the **Server** host, use the declarative **`FullscreenTrigger`** component — its click requests fullscreen inside the gesture (the activation survives, unlike a round-tripped service call).
+Needs transient activation, so the imperative `IFullscreen` service is WASM-only. On the **Server** host, use the declarative **`Trigger.Fullscreen`** component — its click requests fullscreen inside the gesture (the activation survives, unlike a round-tripped service call).
 
-> 🟡 On the Server host, reachable declaratively via `FullscreenTrigger` (a click-gesture component), not as an injected service.
+> 🟡 On the Server host, reachable declaratively via `Trigger.Fullscreen` (a click-gesture component), not as an injected service.
 
 ## See also
 

@@ -14,7 +14,7 @@ public sealed partial class UiKitActionsDemo : Component
     private bool _menuOpen;
     private bool _confirming;
     private bool _muted;
-    private UiThemeName _theme = UiThemeName.Light;
+    private Ui.ThemeName _theme = Ui.ThemeName.Light;
     private string _lastAction = "nothing yet";
     private int _saves;
     private string _sort = "name";
@@ -30,16 +30,16 @@ public sealed partial class UiKitActionsDemo : Component
             "Colour, fill and size are three independent axes and compose, so an outlined error button "
             + "needs no member of its own.",
             Div.Data(Testid("ui-button")).Class("flex flex-wrap items-center gap-2")[
-                UiButton.Key("solid").Tone(UiTone.Primary)["Primary"],
-                UiButton.Key("outline").Tone(UiTone.Error).Variant(UiVariant.Outline)["Outline"],
-                UiButton.Key("soft").Tone(UiTone.Success).Variant(UiVariant.Soft)["Soft"],
-                UiButton.Key("dash").Tone(UiTone.Warning).Variant(UiVariant.Dash)["Dash"],
-                UiButton.Key("ghost").Variant(UiVariant.Ghost)["Ghost"],
-                UiButton.Key("link").Variant(UiVariant.Link)["Link"],
-                UiButton.Key("wide").Wide(true)["Wide"],
-                UiButton.Key("circle").AccessibleLabel("Close").Circle(true)[UiIcon.Name(UiIconName.Close)],
-                UiButton.Key("square").AccessibleLabel("Add").Square(true)[UiIcon.Name(UiIconName.Plus)],
-                UiButton.Key("disabled").Disabled(true)["Disabled"]
+                Ui.Button.Key("solid").Tone(Ui.Tone.Primary)["Primary"],
+                Ui.Button.Key("outline").Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline)["Outline"],
+                Ui.Button.Key("soft").Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft)["Soft"],
+                Ui.Button.Key("dash").Tone(Ui.Tone.Warning).Variant(Ui.Variant.Dash)["Dash"],
+                Ui.Button.Key("ghost").Variant(Ui.Variant.Ghost)["Ghost"],
+                Ui.Button.Key("link").Variant(Ui.Variant.Link)["Link"],
+                Ui.Button.Key("wide").Wide(true)["Wide"],
+                Ui.Button.Key("circle").AccessibleLabel("Close").Circle(true)[Ui.Icon.Name(Ui.IconName.Close)],
+                Ui.Button.Key("square").AccessibleLabel("Add").Square(true)[Ui.Icon.Name(Ui.IconName.Plus)],
+                Ui.Button.Key("disabled").Disabled(true)["Disabled"]
             ]),
 
         Section(
@@ -48,16 +48,16 @@ public sealed partial class UiKitActionsDemo : Component
             + "same width, tells a screen reader it is busy, and drops a second press until the first is done. "
             + "Loading(false) opts a stepper out, so its presses queue.",
             Div.Data(Testid("ui-button-loading")).Class("flex flex-wrap items-center gap-3")[
-                UiButton.Key("slow-save").Tone(UiTone.Primary).OnClick(async () =>
+                Ui.Button.Key("slow-save").Tone(Ui.Tone.Primary).OnClick(async () =>
                 {
                     await Task.Delay(1500);
                     _saves++;
                 })["Save"],
-                UiButton.Key("stepper").Loading(false).OnClick(async () =>
+                Ui.Button.Key("stepper").Loading(false).OnClick(async () =>
                 {
                     await Task.Delay(400);
                     _steps++;
-                })[UiIcon.Name(UiIconName.Plus), "Step"],
+                })[Ui.Icon.Name(Ui.IconName.Plus), "Step"],
                 Span.Data(Testid("ui-button-loading-count")).Class("text-sm text-ui-muted")[
                     $"Saved {_saves} time{(_saves == 1 ? "" : "s")} · stepped {_steps}"
                 ]
@@ -68,11 +68,11 @@ public sealed partial class UiKitActionsDemo : Component
             "Given a generated route, a button or a link is an <a> the runtime routes inside the app, so the "
             + "page changes without reloading. A plain string stays an ordinary link, for a URL that leaves.",
             Div.Data(Testid("ui-button-route")).Class("flex flex-wrap items-center gap-3")[
-                UiButton.Key("to-navigation").Tone(UiTone.Primary).Variant(UiVariant.Outline)
+                Ui.Button.Key("to-navigation").Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
                     .Href(PageMeta.LinkTo(Routes.UiKitNavigationPage()))["Navigation components"],
-                UiLink.Key("to-data-display").Href(PageMeta.LinkTo(Routes.UiKitDataDisplayPage()))
+                Ui.Link.Key("to-data-display").Href(PageMeta.LinkTo(Routes.UiKitDataDisplayPage()))
                     .Text("Data display components"),
-                UiButton.Key("to-github").Variant(UiVariant.Ghost)
+                Ui.Button.Key("to-github").Variant(Ui.Variant.Ghost)
                     .Href("https://github.com/pal-tamas/rask").NewTab(true)["GitHub"]
             ]),
 
@@ -83,30 +83,30 @@ public sealed partial class UiKitActionsDemo : Component
             + "Escape and Tab leave. A pointer crossing diagonally into a submenu keeps it open — the safe "
             + "triangle. Open is nullable: unset leaves it to the reader, true and false hand it to this page.",
             Div.Data(Testid("ui-dropdown")).Class("flex flex-wrap items-center gap-2")[
-                UiDropdown
+                Ui.Dropdown
                     .Key("controlled")
                     .Trigger(_menuOpen ? "Close menu" : "Open menu")
-                    .Position(UiPosition.Bottom)
+                    .Position(Ui.Position.Bottom)
                     .Open(_menuOpen)
                     .OnToggle(open => { _menuOpen = open; })[
                     MenuAction("rename", "Rename", "⌘R"),
                     MenuAction("duplicate", "Duplicate", "⌘D"),
-                    MenuAction("delete", "Delete", null, UiTone.Error)
+                    MenuAction("delete", "Delete", null, Ui.Tone.Error)
                 ],
-                UiDropdown.Key("rich").Trigger("View").Icon(UiIconName.Sparkles).Align(UiAlign.End)[
-                    UiMenuGroup.Key("sort-group").Heading("Arrange")[
-                        UiMenuSub.Key("sort").Heading("Sort by")[
-                            UiMenuRadioGroup.Value(_sort)
+                Ui.Dropdown.Key("rich").Trigger("View").Icon(Ui.IconName.Sparkles).Align(Ui.Align.End)[
+                    Ui.MenuGroup.Key("sort-group").Heading("Arrange")[
+                        Ui.MenuSub.Key("sort").Heading("Sort by")[
+                            Ui.MenuRadioGroup.Value(_sort)
                                 .Options([("name", "Name"), ("date", "Date modified"), ("size", "Size")])
                                 .OnChange(sort => { _sort = sort; _lastAction = "sorted by " + sort; })
                         ],
-                        UiMenuItem.Key("refresh").Text("Refresh").Kbd("⌘⇧R")
+                        Ui.MenuItem.Key("refresh").Text("Refresh").Kbd("⌘⇧R")
                             .OnClick(() => { _lastAction = "refreshed"; })
                     ],
-                    UiMenuSeparator.Key("sep"),
-                    UiMenuCheckbox.Key("archived").Value(_showArchived).Text("Show archived")
+                    Ui.MenuSeparator.Key("sep"),
+                    Ui.MenuCheckbox.Key("archived").Value(_showArchived).Text("Show archived")
                         .OnChange(on => { _showArchived = on; _lastAction = on ? "showing archived" : "hiding archived"; }),
-                    UiMenuItem.Key("export").Text("Export").Disabled(true)
+                    Ui.MenuItem.Key("export").Text("Export").Disabled(true)
                 ]
             ]),
 
@@ -117,15 +117,15 @@ public sealed partial class UiKitActionsDemo : Component
             + "and the ContextMenu key or Shift+F10 opens it at the focused element. Nothing in it should be the "
             + "only way to do something: iOS never fires the event.",
             Div.Data(Testid("ui-context-menu"))[
-                UiContextMenu.Target(
+                Ui.ContextMenu.Target(
                     Div.TabIndex(0)
                         .Class("rounded-box border border-dashed border-base-300 p-6 text-center text-sm text-ui-muted")[
                         "Right-click this card"
                     ])[
-                    UiMenuItem.Key("open").Text("Open").OnClick(() => { _lastAction = "opened the card"; }),
-                    UiMenuItem.Key("copy").Text("Copy link").OnClick(() => { _lastAction = "copied the link"; }),
-                    UiMenuSeparator.Key("sep"),
-                    UiMenuItem.Key("delete").Text("Delete").Tone(UiTone.Error)
+                    Ui.MenuItem.Key("open").Text("Open").OnClick(() => { _lastAction = "opened the card"; }),
+                    Ui.MenuItem.Key("copy").Text("Copy link").OnClick(() => { _lastAction = "copied the link"; }),
+                    Ui.MenuSeparator.Key("sep"),
+                    Ui.MenuItem.Key("delete").Text("Delete").Tone(Ui.Tone.Error)
                         .OnClick(() => { _lastAction = "deleted the card"; })
                 ]
             ]),
@@ -137,16 +137,16 @@ public sealed partial class UiKitActionsDemo : Component
             + "and Enter runs the highlighted one — its handler, or its link — and closes the palette. The "
             + "shortcut is a runtime hook that clicks the field, so it opens the same dialog a click does.",
             Div.Data(Testid("ui-command")).Class("max-w-sm")[
-                UiCommand.Label("Search commands").Shortcut("mod+k")[
-                    UiMenuGroup.Heading("Invoices")[
-                        UiMenuItem.Text("New invoice").Icon(UiIconName.Plus)
+                Ui.Command.Label("Search commands").Shortcut("mod+k")[
+                    Ui.MenuGroup.Heading("Invoices")[
+                        Ui.MenuItem.Text("New invoice").Icon(Ui.IconName.Plus)
                             .OnClick(() => { _lastAction = "started a new invoice"; }),
-                        UiMenuItem.Text("Export all").Icon(UiIconName.Download).Disabled(true)
+                        Ui.MenuItem.Text("Export all").Icon(Ui.IconName.Download).Disabled(true)
                     ],
-                    UiMenuSeparator,
-                    UiMenuItem.Text("Copy invoice link").Icon(UiIconName.Clipboard)
+                    Ui.MenuSeparator,
+                    Ui.MenuItem.Text("Copy invoice link").Icon(Ui.IconName.Clipboard)
                         .OnClick(() => { _lastAction = "copied the invoice link"; }),
-                    UiMenuItem.Text("Sign out").Tone(UiTone.Error)
+                    Ui.MenuItem.Text("Sign out").Tone(Ui.Tone.Error)
                         .OnClick(() => { _lastAction = "signed out"; })
                 ]
             ]),
@@ -159,10 +159,10 @@ public sealed partial class UiKitActionsDemo : Component
             + "inside it. Same machinery, no menu semantics — a [popover] the browser lifts, dismisses on "
             + "Escape and on a click outside, placed with the same Position and Align everything else uses.",
             Div.Data(Testid("ui-popover"))[
-                UiPopover.Trigger("Filters").Icon(UiIconName.Gear).Align(UiAlign.Start)
+                Ui.Popover.Trigger("Filters").Icon(Ui.IconName.Gear).Align(Ui.Align.Start)
                     .PanelClass("w-72")[
-                    UiHeading.Key("h").Level(3).Size(UiSize.Sm).Class("mb-2")["Narrow the list"],
-                    UiCheckboxGroup.Values(_filters).Key("f")
+                    Ui.Heading.Key("h").Level(3).Size(Ui.Size.Sm).Class("mb-2")["Narrow the list"],
+                    Ui.CheckboxGroup.Values(_filters).Key("f")
                         .Options([("open", "Open"), ("mine", "Assigned to me"), ("old", "Older than a week")])
                         .Label("Show")
                         .OnChange(v => { _filters = [.. v]; })
@@ -175,7 +175,7 @@ public sealed partial class UiKitActionsDemo : Component
             + "inert page behind, Escape and focus back on the trigger when it closes, none of it implemented here and none of it "
             + "needing a runtime — this one works with scripting off entirely. OnClose only hears that it closed.",
             Div.Data(Testid("ui-modal-popover"))[
-                UiModal
+                Ui.Modal
                     .Title("Keyboard shortcuts")
                     .Id("demo-shortcuts")
                     .Trigger("Show shortcuts")
@@ -194,13 +194,13 @@ public sealed partial class UiKitActionsDemo : Component
             "Position Start or End slides it in from that edge at full height — a filter panel, a detail "
             + "sheet. Dismissible(false) keeps a stray click outside from losing what is being edited.",
             Div.Data(Testid("ui-modal-flyout"))[
-                UiModal
+                Ui.Modal
                     .Title("Filters")
                     .Id("demo-filters")
                     .Trigger("Filters")
-                    .Position(UiModalPosition.End)
+                    .Position(Ui.ModalPosition.End)
                     .Dismissible(false)
-                    .Footer(UiButton.Tone(UiTone.Primary).Command("close").CommandFor("demo-filters")["Apply"])[
+                    .Footer(Ui.Button.Tone(Ui.Tone.Primary).Command("close").CommandFor("demo-filters")["Apply"])[
                     P["Only the close button, Escape, or Apply closes this one."]
                 ]
             ]),
@@ -211,18 +211,18 @@ public sealed partial class UiKitActionsDemo : Component
             + "cannot express: nothing in C# can press a button. OnCancel hears a dismissal — Escape or a "
             + "click outside — apart from a close, so backing out is logged differently from Cancel.",
             Div.Data(Testid("ui-modal"))[
-                UiButton
-                    .Tone(UiTone.Error)
+                Ui.Button
+                    .Tone(Ui.Tone.Error)
                     .OnClick(() => { _confirming = true; })["Delete order"],
                 _confirming
-                    ? UiModal
+                    ? Ui.Modal
                         .Title("Delete order")
                         .OnCancel(() => { _lastAction = "dismissed the dialog"; })
                         .OnClose(() => { _confirming = false; })
                         .Footer(Div.Class("flex flex-wrap gap-2 sm:justify-end")[
-                            UiButton.Key("cancel").Variant(UiVariant.Ghost)
+                            Ui.Button.Key("cancel").Variant(Ui.Variant.Ghost)
                                 .OnClick(() => { _confirming = false; })["Cancel"],
-                            UiButton.Key("confirm").Tone(UiTone.Error)
+                            Ui.Button.Key("confirm").Tone(Ui.Tone.Error)
                                 .OnClick(() =>
                                 {
                                     _confirming = false;
@@ -239,11 +239,11 @@ public sealed partial class UiKitActionsDemo : Component
             "Two faces, one shown at a time. The state is a bool on this component, not a checkbox in "
             + "the DOM, so something else changing the value corrects the face.",
             Div.Data(Testid("ui-swap")).Class("flex items-center gap-3")[
-                UiSwap
+                Ui.Swap
                     .AccessibleLabel(_muted ? "Unmute" : "Mute")
-                    .On(UiIcon.Name(UiIconName.Close).Class("size-5"))
-                    .Off(UiIcon.Name(UiIconName.Check).Class("size-5"))
-                    .Animation(UiSwapAnimation.Rotate)
+                    .On(Ui.Icon.Name(Ui.IconName.Close).Class("size-5"))
+                    .Off(Ui.Icon.Name(Ui.IconName.Check).Class("size-5"))
+                    .Animation(Ui.SwapAnimation.Rotate)
                     .Active(_muted)
                     .OnChange(muted => { _muted = muted; }),
                 Span.Class("text-sm text-ui-muted")[_muted ? "Muted" : "Playing"]
@@ -256,9 +256,9 @@ public sealed partial class UiKitActionsDemo : Component
             + "it on the box below, which re-themes just that subtree.",
             Div.Data(Testid("ui-theme-controller"))[
                 Div.Class("flex flex-wrap items-center gap-2")[
-                    ThemeButton("light", "Light", UiThemeName.Light),
-                    ThemeButton("dark", "Dark", UiThemeName.Dark),
-                    ThemeButton("retro", "Retro", UiThemeName.Retro)
+                    ThemeButton("light", "Light", Ui.ThemeName.Light),
+                    ThemeButton("dark", "Dark", Ui.ThemeName.Dark),
+                    ThemeButton("retro", "Retro", Ui.ThemeName.Retro)
                 ],
                 // The applying half, and the reason the control has no way to do this itself: daisyUI
                 // matches [data-theme=x] on any ANCESTOR, so whoever owns the value writes it above the
@@ -269,8 +269,8 @@ public sealed partial class UiKitActionsDemo : Component
                     .Class("mt-3 rounded-xl border border-base-300 bg-base-100 p-4 text-base-content")[
                     P.Class("text-sm")[$"This box is painted by the {UiTheme.Value(_theme)} theme."],
                     Div.Class("mt-2 flex gap-2")[
-                        UiButton.Key("p").Tone(UiTone.Primary).Size(UiSize.Sm)["Primary"],
-                        UiButton.Key("a").Tone(UiTone.Accent).Size(UiSize.Sm)["Accent"]
+                        Ui.Button.Key("p").Tone(Ui.Tone.Primary).Size(Ui.Size.Sm)["Primary"],
+                        Ui.Button.Key("a").Tone(Ui.Tone.Accent).Size(Ui.Size.Sm)["Accent"]
                     ]
                 ]
             ]),
@@ -286,11 +286,11 @@ public sealed partial class UiKitActionsDemo : Component
             // something either sheet decides. It is also `pointer-events: none` on the container, so a
             // floating FAB intercepts nothing but its own buttons.
             Div.Data(Testid("ui-fab"))[
-                UiFab
+                Ui.Fab
                     .AccessibleLabel("Compose")
-                    .Icon(UiIconName.Plus)[
-                    UiButton.Key("photo").Size(UiSize.Sm)["Photo"],
-                    UiButton.Key("file").Size(UiSize.Sm)["File"]
+                    .Icon(Ui.IconName.Plus)[
+                    Ui.Button.Key("photo").Size(Ui.Size.Sm)["Photo"],
+                    Ui.Button.Key("file").Size(Ui.Size.Sm)["File"]
                 ]
             ]),
 
@@ -300,17 +300,17 @@ public sealed partial class UiKitActionsDemo : Component
 
     private static Dictionary<string, string?> Testid(string value) => new() { ["testid"] = value };
 
-    private Component ThemeButton(string key, string label, UiThemeName theme) =>
-        UiThemeController
+    private Component ThemeButton(string key, string label, Ui.ThemeName theme) =>
+        Ui.ThemeController
             .Key(key)
             .Label(label)
             .Theme(theme)
-            .Size(UiSize.Sm)
+            .Size(Ui.Size.Sm)
             .Active(_theme == theme)
             .OnChange(chosen => { _theme = chosen; });
 
-    private Component MenuAction(string key, string label, string? kbd, UiTone? tone = null) =>
-        UiMenuItem.Key(key).Text(label).Kbd(kbd).Tone(tone).OnClick(() =>
+    private Component MenuAction(string key, string label, string? kbd, Ui.Tone? tone = null) =>
+        Ui.MenuItem.Key(key).Text(label).Kbd(kbd).Tone(tone).OnClick(() =>
         {
             _lastAction = label.ToLowerInvariant();
             _menuOpen = false;

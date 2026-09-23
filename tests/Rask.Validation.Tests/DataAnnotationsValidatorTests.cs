@@ -2,14 +2,14 @@ using System.ComponentModel.DataAnnotations;
 using Rask.Core;
 using Rask.Core.Forms;
 
-namespace Rask.Validation.Tests;
+namespace Rask.ValidationTests;
 
 public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public async Task SubmitFlow_FirstInvalid_ThenFilled_RoutesToOnValidSubmit()
     {
-        // Reproduces the showcase ValidationSummary demo flow as a unit test:
+        // Reproduces the showcase Validation.Summary demo flow as a unit test:
         //   1. Render Form — the validator is registered by the form itself, nothing declared.
         //   2. Submit empty payload — must route to OnInvalidSubmit (which is null here,
         //      so neither typed handler fires; the bridge returns quietly).
@@ -84,7 +84,7 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
     public void Validate_IValidatableObject_FormLevelError_AttachesToEmptyField()
     {
         // Model.Validate returns a ValidationResult with empty MemberNames — should land on
-        // FieldIdentifier(model, "") so ValidationSummary picks it up as a form-level error.
+        // FieldIdentifier(model, "") so Validation.Summary picks it up as a form-level error.
         var m = new BookingModel
         {
             Departure = new DateOnly(2026, 6, 1),

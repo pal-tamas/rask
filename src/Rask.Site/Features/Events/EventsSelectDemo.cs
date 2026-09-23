@@ -9,7 +9,7 @@ public sealed partial class EventsSelectDemo : Component
 
     protected override Component? Render() =>
     [
-        UiSelect.Value(_pick)
+        Ui.Select.Value(_pick)
             .Options(Frameworks)
             .AccessibleLabel("Framework")
             .OnChange(v => _pick = v)

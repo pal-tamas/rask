@@ -3,7 +3,7 @@ using System.Linq.Expressions;
 using Rask.Core.Forms;
 using Rask.Core.Live;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A field with a fixed set of answers.
@@ -48,7 +48,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
     ///     Not the step that pins <typeparamref name="T" /> — the chain's OPENING does that, and for a
     ///     form control the opening is <c>Value</c> or <c>Bind</c>, which fix the type
     ///     and the mode together. So a call site reads
-    ///     <c>UiSelect.Value(x).Options(…).Label(…)</c>, and <c>Label</c>/<c>Options</c> may come in
+    ///     <c>Ui.Select.Value(x).Options(…).Label(…)</c>, and <c>Label</c>/<c>Options</c> may come in
     ///     either order after it.
     /// </remarks>
     public required IReadOnlyList<(T Value, string Text)> Options { get; set; }
@@ -318,7 +318,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
             // Placement, which `dropdown-content` used to supply. `position-area` puts the panel under
             // its anchor and `anchor-size` matches the box's width; an engine that ships neither
             // ignores both and the popover keeps its own default, which is centred — the list still
-            // opens and is still usable, and it is the same trade UiMegamenu already makes.
+            // opens and is still usable, and it is the same trade Ui.Megamenu already makes.
             .Attributes(("style", "position-anchor:--" + Prefix
                                   + ";position-area:block-end span-inline-end"
                                   + ";width:anchor-size(width);margin:0"))
@@ -366,7 +366,7 @@ public sealed partial class UiSelect<T> : UiFormField<T>
                            + "opacity-60 hover:opacity-100")
                     .Aria("label", "Clear " + (Label ?? AccessibleLabel ?? "selection"))
                     .OnClick(() => CommitAsync(acc, ctx, default!))[
-                    UiIcon.Name(UiIconName.Close).Class("size-4")
+                    Ui.Icon.Name(Ui.IconName.Close).Class("size-4")
                 ]
                 : null,
             panel,

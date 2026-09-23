@@ -1,13 +1,13 @@
 using System.Globalization;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A field that shows a range of dates and opens a calendar to pick its two ends.
 /// </summary>
 /// <remarks>
 /// Not written by name: <c>UiDatePicker</c> becomes this control when the model holds a <see cref="UiDateRange" /> —
-/// <c>UiDatePicker.Bind(() =&gt; model.Stay)</c>, or <c>UiDatePicker.Value(new UiDateRange(from, to))</c> for the
+/// <c>Ui.DatePicker.Bind(() =&gt; model.Stay)</c>, or <c>Ui.DatePicker.Value(new UiDateRange(from, to))</c> for the
 /// parent to own. The first click is held and drawn as the start; the second writes the whole range and closes the
 /// popover on the same click, as <see cref="UiCalendarRange" /> does without one.
 /// </remarks>

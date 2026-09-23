@@ -11,6 +11,7 @@ public sealed class ExternalPackageScanTests
     {
         ["MuiButton"] = "react",
         ["Toggle"] = "vue",
+        ["Chart"] = "react",
     };
 
     [Theory]
@@ -28,13 +29,38 @@ public sealed class ExternalPackageScanTests
         Assert.Equal("@mui/material/Button", island.Module);
     }
 
-    [Fact]
-    public void A_named_export_is_kept_whole_for_the_caller_to_split()
+    [Theory]
+    [InlineData("protected override string Export => \"Button\";")]
+    [InlineData("protected override string? Export => \"Button\";")]
+    [InlineData("protected override string Export { get { return \"Button\"; } }")]
+    public void A_named_export_is_read_beside_the_module(string export)
     {
         var island = Assert.Single(Scan(
-            "partial class MuiButton : ReactComponent { protected override string Module => \"@mui/material#Button\"; }"));
+            $"partial class MuiButton : ReactComponent {{ protected override string Module => \"@mui/material\"; {export} }}"));
 
-        Assert.Equal("@mui/material#Button", island.Module);
+        Assert.Equal("@mui/material", island.Module);
+        Assert.Equal("Button", island.Export);
+        Assert.Equal("Button", island.ExportOrDefault);
+    }
+
+    [Fact]
+    public void No_export_is_the_default_export()
+    {
+        var island = Assert.Single(Scan(
+            "partial class MuiButton : ReactComponent { protected override string Module => \"@mui/material/Button\"; }"));
+
+        Assert.Null(island.Export);
+        Assert.Equal("default", island.ExportOrDefault);
+    }
+
+    [Fact]
+    public void An_export_without_a_package_is_still_found_so_the_task_can_refuse_it()
+    {
+        var island = Assert.Single(Scan(
+            "partial class Chart : ReactComponent { protected override string Export => \"Chart\"; }"));
+
+        Assert.False(island.IsPackage);
+        Assert.Equal("Chart", island.Export);
     }
 
     [Fact]
@@ -158,7 +184,7 @@ public sealed class ExternalPackageScanTests
     [Fact]
     public void The_snapshot_sits_beside_the_file_holding_the_override()
     {
-        var island = new ScannedPackageIsland("MuiButton", "react", "@mui/material/Button", "/src/Shop/MuiButton.cs", 3);
+        var island = new ScannedPackageIsland("MuiButton", "react", "@mui/material/Button", null, "/src/Shop/MuiButton.cs", 3);
 
         Assert.Equal(Path.Combine("/src/Shop", "MuiButton.props.json"), island.SnapshotPath);
     }
@@ -186,6 +212,151 @@ public sealed class ExternalPackageScanTests
         }
     }
 
+    [Fact]
+    public void An_export_in_another_part_joins_the_module_and_the_snapshot_stays_beside_the_module()
+    {
+        var root = Directory.CreateTempSubdirectory("rask-package-scan").FullName;
+        try
+        {
+            var a = Path.Combine(root, "MuiButton.cs");
+            var b = Path.Combine(root, "Props", "MuiButton.Props.cs");
+            Directory.CreateDirectory(Path.GetDirectoryName(b)!);
+            File.WriteAllText(a, "public sealed partial class MuiButton : ReactComponent { protected override string Export => \"Button\"; }");
+            File.WriteAllText(b, "partial class MuiButton { protected override string Module => \"@mui/material\"; }");
+
+            var runtimes = new Dictionary<string, string>(StringComparer.Ordinal) { ["MuiButton"] = "react" };
+            var island = Assert.Single(ExternalPackageScan.PackageIslands([a, b], runtimes));
+
+            Assert.Equal("@mui/material", island.Module);
+            Assert.Equal("Button", island.Export);
+            Assert.Equal(b, island.DeclaringFile);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData("protected override string[] Exports => [\"Button\", \"Card\"];")]
+    [InlineData("protected override string[] Exports => new[] { \"Button\", \"Card\" };")]
+    [InlineData("protected override string[] Exports =>\n        [\n            \"Button\",\n            \"Card\",\n        ];")]
+    public void A_package_declaration_is_one_island_per_export_beside_it(string exports)
+    {
+        var islands = ExternalPackageScan.ScanDeclarations(
+            $"namespace Shop;\npublic sealed partial class Mui : ReactPackage\n{{\n    protected override string Module => \"@mui/material\";\n    {exports}\n}}\n",
+            "/src/Shop/Mui.cs").ToList();
+
+        Assert.Equal(["MuiButton", "MuiCard"], islands.Select(static i => i.Name));
+        Assert.All(islands, static i =>
+        {
+            Assert.Equal("react", i.Runtime);
+            Assert.Equal("@mui/material", i.Module);
+            Assert.Equal(Path.Combine("/src/Shop", i.Name + ".props.json"), i.SnapshotPath);
+            Assert.Equal(5, i.Line);
+        });
+        Assert.Equal(["Button", "Card"], islands.Select(static i => i.Export));
+    }
+
+    [Theory]
+    [InlineData("protected override string[] Exports { get; } = [\"Button\"];")]
+    [InlineData("protected override string[] Exports { get => [\"Button\"]; }")]
+    [InlineData("protected override string[] Exports { get; } = new[] { \"Button\" };")]
+    public void Every_exports_form_the_generator_reads_is_read(string exports)
+    {
+        var island = Assert.Single(ExternalPackageScan.ScanDeclarations(
+            $"partial class Mui : ReactPackage {{ protected override string Module => \"@mui/material\"; {exports} }}",
+            "/src/Mui.cs"));
+
+        Assert.Equal("MuiButton", island.Name);
+    }
+
+    [Fact]
+    public void A_global_qualified_base_is_a_declaration()
+    {
+        var island = Assert.Single(ExternalPackageScan.ScanDeclarations(
+            "partial class Mui : global::Rask.External.ReactPackage { protected override string Module => \"@mui/material\"; "
+            + "protected override string[] Exports => [\"Button\"]; }",
+            "/src/Mui.cs"));
+
+        Assert.Equal("react", island.Runtime);
+    }
+
+    [Fact]
+    public void A_declaration_split_across_files_is_read_whole_and_its_snapshots_sit_beside_the_base_list()
+    {
+        var root = Directory.CreateTempSubdirectory("rask-package-scan").FullName;
+        try
+        {
+            var a = Path.Combine(root, "Mui.cs");
+            var b = Path.Combine(root, "Parts", "Mui.Exports.cs");
+            Directory.CreateDirectory(Path.GetDirectoryName(b)!);
+            File.WriteAllText(a, "public sealed partial class Mui : ReactPackage { protected override string Module => \"@mui/material\"; }");
+            File.WriteAllText(b, "partial class Mui { protected override string[] Exports => [\"Button\"]; }");
+
+            var island = Assert.Single(ExternalPackageScan.PackageIslands(
+                [a, b], new Dictionary<string, string>(StringComparer.Ordinal)));
+
+            Assert.Equal("MuiButton", island.Name);
+            Assert.Equal(a, island.DeclaringFile);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void A_declaration_naming_no_package_is_still_returned_so_the_task_can_say_so()
+    {
+        var island = Assert.Single(ExternalPackageScan.ScanDeclarations(
+            "partial class Mui : ReactPackage { protected override string Module => \"./mui.tsx\"; "
+            + "protected override string[] Exports => [\"Button\"]; }",
+            "/src/Mui.cs"));
+
+        Assert.True(island.FromDeclaration);
+        Assert.False(island.IsPackage);
+    }
+
+    [Theory]
+    [InlineData("Svelte", "svelte", "Switch.Root", "BitsSwitchRoot")]
+    [InlineData("Lit", "lit", "sl-switch", "BitsSlSwitch")]
+    [InlineData("Rask.External.Vue", "vue", "Card", "BitsCard")]
+    public void A_declaration_names_its_runtime_and_each_island_after_its_export(
+        string baseName, string runtime, string export, string island)
+    {
+        var scanned = Assert.Single(ExternalPackageScan.ScanDeclarations(
+            $"partial class Bits : {baseName}Package {{ protected override string Module => \"bits\"; "
+            + $"protected override string[] Exports => [\"{export}\"]; }}",
+            "/src/Bits.cs"));
+
+        Assert.Equal(runtime, scanned.Runtime);
+        Assert.Equal(island, scanned.Name);
+    }
+
+    [Theory]
+    [InlineData("protected override string[] Exports => All;")]
+    [InlineData("protected override string[] Exports => [Name, \"Card\"];")]
+    [InlineData("protected override string[] Exports => [\"Car\\\"d\"];")]
+    public void A_computed_exports_list_declares_nothing_and_is_left_to_the_generator(string exports)
+    {
+        Assert.Empty(ExternalPackageScan.ScanDeclarations(
+            $"partial class Mui : ReactPackage {{ protected override string Module => \"@mui/material\"; {exports} }}",
+            "/src/Mui.cs"));
+    }
+
+    // Pinned against the generator's PackageDeclarations.MemberName with the same cases: the island's name is spelled
+    // from it on both sides, and a disagreement would extract a snapshot the generator never reads.
+    [Theory]
+    [InlineData("Button", "Button")]
+    [InlineData("Switch.Root", "SwitchRoot")]
+    [InlineData("sl-switch", "SlSwitch")]
+    [InlineData("x'};alert(1)//", "")]
+    public void An_export_is_named_for_the_call_site(string export, string member)
+    {
+        Assert.Equal(member, ExternalPackageSpecifier.MemberName(export));
+    }
+
     [Theory]
     [InlineData("@mui/material/Button", true)]
     [InlineData("react-colorful", true)]
@@ -199,16 +370,6 @@ public sealed class ExternalPackageScanTests
     public void A_specifier_is_a_package_only_when_it_is_bare(string module, bool bare)
     {
         Assert.Equal(bare, ExternalPackageSpecifier.IsBare(module));
-    }
-
-    [Theory]
-    [InlineData("@mui/material#Button", "@mui/material", "Button")]
-    [InlineData("@mui/material/Button", "@mui/material/Button", "default")]
-    [InlineData("bits-ui#Switch.Root", "bits-ui", "Switch.Root")]
-    [InlineData("pkg#", "pkg#", "default")]
-    public void A_specifier_splits_into_module_and_export(string module, string specifier, string export)
-    {
-        Assert.Equal((specifier, export), ExternalPackageSpecifier.Split(module));
     }
 
     [Theory]

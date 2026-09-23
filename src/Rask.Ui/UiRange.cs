@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Linq.Expressions;
 using Rask.Core.Forms;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A slider.
@@ -28,9 +28,9 @@ public sealed partial class UiRange : Component, IFormControl<double>
 
     public double? Step { get; set; }
 
-    public UiTone? Tone { get; set; }
+    public Ui.Tone? Tone { get; set; }
 
-    public UiSize? Size { get; set; }
+    public Ui.Size? Size { get; set; }
 
     /// <summary>
     ///     Stands the track on end. daisyUI rotates the control, so the low value is at the BOTTOM —

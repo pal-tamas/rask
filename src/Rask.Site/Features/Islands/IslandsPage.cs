@@ -32,16 +32,16 @@ public sealed partial class IslandsPage : Component
             "These are the same files the Server showcase builds — C# owns the props, the generated ",
             "types cross back into the ", Code[".vue"], ", the two ", Code[".tsx"], " and the ",
             Code[".svelte"], ", and the subtree is a diff boundary Rask never patches into. Only the ",
-            "transport differs. The colour picker has no front-end file at all: it is react-colorful ",
-            "from npm, its chain steps generated from the package's own TypeScript into ",
-            Code["ColorPicker.props.json"], "."
+            "transport differs. The colour picker and its hex field have no front-end file at all: they are ",
+            "react-colorful from npm, declared once as ", Code["Colorful.HexColorPicker"], " and ",
+            Code["Colorful.HexColorInput"], ", their chain steps generated from the package's own TypeScript."
         ],
         CodeSample
             .Files([
                 "IslandsDemo.cs",
                 "VueChart.cs", "VueChart.vue",
                 "ReactCounter.cs", "ReactCounter.tsx",
-                "ColorPicker.cs", "ColorPicker.props.json",
+                "Colorful.cs", "ColorfulHexColorPicker.props.json", "ColorfulHexColorInput.props.json",
                 "SvelteMeter.cs", "SvelteMeter.svelte",
                 "SolidSpark.cs", "SolidSpark.tsx",
             ])

@@ -224,10 +224,10 @@ WASM host, inject **`IShare`** (`Rask.Wasm.Browser`) instead.
 
 <!-- demo:browser-share -->
 
-**`GestureTrigger` + six typed triggers** *(`Rask.Core` — all hosts)* — headless gesture bridge: hand *your*
+**`Trigger.Gesture` + six typed triggers** *(`Rask.Core` — all hosts)* — headless gesture bridge: hand *your*
 element the `data-rask-gesture` attribute and its click runs an activation-gated API in the gesture, so it works
-on Server too, where the imperative service can't be injected. Ships `FullscreenTrigger`,
-`ScreenOrientationTrigger`, `EyeDropperTrigger`, `InstallTrigger`, `MediaCaptureTrigger`, and
-`PictureInPictureTrigger`. See [Gesture bridge](browser-apis-sharing.md#gesture-bridge--activation-gated-apis-on-the-server-host).
+on Server too, where the imperative service can't be injected. Ships `Trigger.Fullscreen`,
+`Trigger.ScreenOrientation`, `Trigger.EyeDropper`, `Trigger.Install`, `Trigger.MediaCapture`, and
+`Trigger.PictureInPicture`. See [Gesture bridge](browser-apis-sharing.md#gesture-bridge--activation-gated-apis-on-the-server-host).
 
 <!-- demo:browser-gesture-bridge -->

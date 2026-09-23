@@ -14,17 +14,17 @@ public sealed partial class FileSystemAccessDemo(IFileSystemAccess files) : Comp
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        UiCard.Class("shadow-sm")[
+        Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    UiButton.Tone(UiTone.Primary).Id("fs-open").OnClick(Open)[UiIcon.Name(UiIconName.Folder), "Open file"],
-                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline)
+                    Ui.Button.Tone(Ui.Tone.Primary).Id("fs-open").OnClick(Open)[Ui.Icon.Name(Ui.IconName.Folder), "Open file"],
+                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
                         .Id("fs-save")
                         .Disabled(_handle is null)
-                        .OnClick(Save)[UiIcon.Name(UiIconName.Save), "Save"],
-                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("fs-saveas").OnClick(SaveAs)["Save as…"]
+                        .OnClick(Save)[Ui.Icon.Name(Ui.IconName.Save), "Save"],
+                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Id("fs-saveas").OnClick(SaveAs)["Save as…"]
                 ],
                 Div.Class("mb-2 text-sm text-ui-muted")["File: ", Code.Id("fs-name")[_handle?.Name ?? "(none)"]],
-                UiTextarea
+                Ui.Textarea
                     .Value(_text)
                     .Label("File contents")
                     .Id("fs-text")

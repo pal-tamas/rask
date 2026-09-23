@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A list of rows, styled by the kit. It IS the <c>&lt;ul&gt;</c> — or the <c>&lt;ol&gt;</c>.

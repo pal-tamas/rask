@@ -14,20 +14,20 @@ public sealed partial class FluentValidationDemo : Component
     [
         Form.Model(_model).OnValidSubmit(m => _submission = $"Ordered {m.Quantity} × {m.Product}").Class("flex flex-col gap-3")[
             Div[
-                UiInput.Bind(() => _model.Product).Label("Product").Id("v7-product").ShowValidation(false),
-                ValidationMessage.Template(FieldError).For(() => _model.Product)
+                Ui.Input.Bind(() => _model.Product).Label("Product").Id("v7-product").ShowValidation(false),
+                Validation.Message.Template(FieldError).For(() => _model.Product)
             ],
             Div[
-                UiInput.Bind(() => _model.Quantity).Label("Quantity").Id("v7-quantity").ShowValidation(false),
-                ValidationMessage.Template(FieldError).For(() => _model.Quantity)
+                Ui.Input.Bind(() => _model.Quantity).Label("Quantity").Id("v7-quantity").ShowValidation(false),
+                Validation.Message.Template(FieldError).For(() => _model.Quantity)
             ],
             Div[
-                UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit)[UiIcon.Name(UiIconName.ShoppingBag), "Order"]
+                Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit)[Ui.Icon.Name(Ui.IconName.ShoppingBag), "Order"]
             ]
         ],
         _submission is null
             ? null
-            : UiAlert.Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle), _submission]
+            : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
     ];
 }
 

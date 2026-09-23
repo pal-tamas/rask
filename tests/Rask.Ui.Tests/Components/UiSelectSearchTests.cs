@@ -1,4 +1,4 @@
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     The searchable select — Flux UI's combobox, as a MODE of the select rather than a second control.
@@ -23,7 +23,7 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
     ];
 
     private static string Searchable() =>
-        UiSelect.Value("hu").Options(Countries).Label("Country").Searchable(true).ToHtml();
+        Ui.Select.Value("hu").Options(Countries).Label("Country").Searchable(true).ToHtml();
 
     // The popover has to be OPEN before the search box is in the markup — it lives inside the popover,
     // above the list. The browser owns that state and reports it back through the toggle event.
@@ -50,10 +50,10 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
     public void A_filter_or_an_on_search_implies_it_without_being_asked_twice()
     {
         Assert.DoesNotContain("<select",
-            UiSelect.Value("hu").Options(Countries).Label("Country")
+            Ui.Select.Value("hu").Options(Countries).Label("Country")
                 .Filter((v, text) => v.Contains(text, StringComparison.OrdinalIgnoreCase)).ToHtml());
         Assert.DoesNotContain("<select",
-            UiSelect.Value("hu").Options(Countries).Label("Country").OnSearch(_ => { }).ToHtml());
+            Ui.Select.Value("hu").Options(Countries).Label("Country").OnSearch(_ => { }).ToHtml());
     }
 
     [Fact]
@@ -61,7 +61,7 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
     {
         // Type-ahead is what a short list needs, and the drawn list has it without this.
         Assert.DoesNotContain("Search&#x2026;",
-            UiSelect.Value("hu").Options(Countries).Label("Country").Native(false).ToHtml());
+            Ui.Select.Value("hu").Options(Countries).Label("Country").Native(false).ToHtml());
     }
 
     [Fact]
@@ -75,7 +75,7 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
     public async Task Opening_puts_a_named_search_box_over_the_list()
     {
         var page = await OpenedAsync(
-            UiSelect.Value("hu").Options(Countries).Label("Country").Searchable(true));
+            Ui.Select.Value("hu").Options(Countries).Label("Country").Searchable(true));
 
         // Its own name, its own role, and it points at the list it narrows — aria-activedescendant only
         // announces an option from the element that actually holds focus, which is this one.
@@ -88,7 +88,7 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
     public async Task Typing_narrows_the_list_to_what_matches()
     {
         var page = await OpenedAsync(
-            UiSelect.Value(default(string)).Options(Countries).Label("Country").Searchable(true));
+            Ui.Select.Value(default(string)).Options(Countries).Label("Country").Searchable(true));
 
         await page.On("#" + SearchId(page.Html)).InputAsync("ire");
 
@@ -102,7 +102,7 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
         // Somebody typing "oster" means to find "Österreich"; a reader who cannot type "Ö" on the
         // keyboard in front of them is not a reader to shut out.
         var page = await OpenedAsync(
-            UiSelect.Value(default(string)).Options(Countries).Label("Country").Searchable(true));
+            Ui.Select.Value(default(string)).Options(Countries).Label("Country").Searchable(true));
 
         await page.On("#" + SearchId(page.Html)).InputAsync("oster");
 
@@ -117,7 +117,7 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
         // Searching a country's CODE as well as its name: the control never assumes the shape of the
         // data, so the page says what a match is.
         var page = await OpenedAsync(
-            UiSelect.Value(default(string)).Options(Countries).Label("Country")
+            Ui.Select.Value(default(string)).Options(Countries).Label("Country")
                 .Filter((v, text) => v.Contains(text, StringComparison.OrdinalIgnoreCase)));
 
         await page.On("#" + SearchId(page.Html)).InputAsync("gb");
@@ -130,7 +130,7 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
     public async Task Nothing_matching_says_so_rather_than_showing_an_empty_box()
     {
         var page = await OpenedAsync(
-            UiSelect.Value("hu").Options(Countries).Label("Country").Searchable(true));
+            Ui.Select.Value("hu").Options(Countries).Label("Country").Searchable(true));
 
         await page.On("#" + SearchId(page.Html)).InputAsync("zzz");
 
@@ -141,7 +141,7 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
     public async Task What_it_says_when_empty_is_the_pages_to_choose()
     {
         var page = await OpenedAsync(
-            UiSelect.Value("hu").Options(Countries).Label("Country").Searchable(true)
+            Ui.Select.Value("hu").Options(Countries).Label("Country").Searchable(true)
                 .EmptyText("No country by that name"));
 
         await page.On("#" + SearchId(page.Html)).InputAsync("zzz");
@@ -156,7 +156,7 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
         // twice — and would hide rows the server deliberately returned.
         var typed = new List<string>();
         var page = await OpenedAsync(
-            UiSelect.Value(default(string)).Options(Countries).Label("Country").OnSearch(s => typed.Add(s)));
+            Ui.Select.Value(default(string)).Options(Countries).Label("Country").OnSearch(s => typed.Add(s)));
 
         await page.On("#" + SearchId(page.Html)).InputAsync("ire");
 
@@ -168,7 +168,7 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
     public void While_loading_the_list_says_so_instead_of_saying_nothing_matched()
     {
         // "No results found" over a list that has not arrived is a lie the reader acts on.
-        var html = UiSelect.Value("hu").Options(Countries).Label("Country")
+        var html = Ui.Select.Value("hu").Options(Countries).Label("Country")
             .Searchable(true).Loading(true).ToHtml();
 
         Assert.Contains("Searching&#x2026;", html, StringComparison.Ordinal);
@@ -178,7 +178,7 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void What_it_says_while_loading_is_the_pages_to_choose() =>
         Assert.Contains("Fetching countries&#x2026;",
-            UiSelect.Value("hu").Options(Countries).Label("Country").Searchable(true)
+            Ui.Select.Value("hu").Options(Countries).Label("Country").Searchable(true)
                 .Loading(true).LoadingText("Fetching countries…").ToHtml(),
             StringComparison.Ordinal);
 
@@ -186,15 +186,15 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
     public void Clearing_is_offered_only_when_there_is_something_to_clear()
     {
         Assert.Contains("aria-label=\"Clear Country\"",
-            UiSelect.Value("hu").Options(Countries).Label("Country").Clearable(true).ToHtml(),
+            Ui.Select.Value("hu").Options(Countries).Label("Country").Clearable(true).ToHtml(),
             StringComparison.Ordinal);
 
         // Nothing chosen, nothing to clear — and a disabled field is not one to change.
         Assert.DoesNotContain("aria-label=\"Clear Country\"",
-            UiSelect.Value(default(string)).Options(Countries).Label("Country").Clearable(true).ToHtml(),
+            Ui.Select.Value(default(string)).Options(Countries).Label("Country").Clearable(true).ToHtml(),
             StringComparison.Ordinal);
         Assert.DoesNotContain("aria-label=\"Clear Country\"",
-            UiSelect.Value("hu").Options(Countries).Label("Country").Clearable(true).Disabled(true).ToHtml(),
+            Ui.Select.Value("hu").Options(Countries).Label("Country").Clearable(true).Disabled(true).ToHtml(),
             StringComparison.Ordinal);
     }
 
@@ -206,7 +206,7 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
         (string? Value, string Text)[] countries = [("hu", "Hungary"), ("gb", "United Kingdom")];
         var model = new Trip();
         var page = global::Rask.Testing.RaskTest.Render(
-            UiSelect.Bind(() => model.Country).Options(countries).Label("Country").Clearable(true));
+            Ui.Select.Bind(() => model.Country).Options(countries).Label("Country").Clearable(true));
 
         await page.On("button[aria-label=\"Clear Country\"]").ClickAsync();
 

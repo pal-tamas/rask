@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A list of places to go — a sidebar's navigation, a settings page's sections.
@@ -14,14 +14,14 @@ public sealed partial class UiNavList : Component
     public string? AccessibleLabel { get; set; }
 
     /// <summary>Row density, as on a menu.</summary>
-    public UiSize? Size { get; set; }
+    public Ui.Size? Size { get; set; }
 
     /// <summary>
     ///     Draws the current row as an outlined pill rather than a filled one — Flux UI's <c>outline</c> navlist.
     /// </summary>
     /// <remarks>
     ///     For a navigation that sits on a coloured ground, where a filled current row disappears into it. The only
-    ///     variant daisyUI's menu has a rule for; the other <see cref="UiVariant" /> members would name classes
+    ///     variant daisyUI's menu has a rule for; the other <see cref="Ui.Variant" /> members would name classes
     ///     that do not exist, so this is a flag rather than the shared axis.
     /// </remarks>
     public bool? Outline { get; set; }

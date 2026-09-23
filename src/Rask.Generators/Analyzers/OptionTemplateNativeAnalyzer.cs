@@ -103,7 +103,7 @@ public sealed class OptionTemplateNativeAnalyzer : DiagnosticAnalyzer
     // none of this analyzer's business, and a name match alone would make it so.
     private static bool IsSelect(ITypeSymbol? type) =>
         type is INamedTypeSymbol named
-        && named.ConstructedFrom.ToDisplayString() is "Rask.Ui.UiSelect<T>" or "Rask.Ui.UiMultiSelect<T>";
+        && named.ConstructedFrom.ToDisplayString() is "Rask.UiSelect<T>" or "Rask.UiMultiSelect<T>";
 
     // A literal `true`, and nothing else. Native(false) is agreement, Native(null) is silence, and
     // Native(someFlag) is not knowable here — reporting any of them would be a guess.

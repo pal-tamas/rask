@@ -117,7 +117,7 @@ var edit     = product.ToModel();                                               
 await Product.UpdateAsync(id, edit, p => p.Touch(now), cancellationToken: CancellationToken);   // + values not from the form
 await Product.DeleteAsync(id, db: db, cancellationToken: CancellationToken);                   // join a context you hold
 await dispatcher.SendAsync(new EditProduct { Id = id, Name = name, Version = version }, CancellationToken);
-UiDataGrid.Data(Product.Read.AsQueryable()).RowKey(p => p.Id)[c => [ c.Field(p => p.Name) ]];   // pages in SQL
+Ui.DataGrid.Data(Product.Read.AsQueryable()).RowKey(p => p.Id)[c => [ c.Field(p => p.Name) ]];   // pages in SQL
 
 // Cache an expensive read; invalidate on write:
 var products = await cache.GetOrAddAsync("products", async _ => await LoadAsync(), CancellationToken);

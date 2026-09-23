@@ -1,6 +1,6 @@
 using Rask.Core;
 
-namespace Rask.Ui.Tests;
+namespace Rask.UiTests;
 
 /// <summary>
 ///     A markup host, because the chain's entry for a component only exists inside one — a bare
@@ -8,9 +8,9 @@ namespace Rask.Ui.Tests;
 /// </summary>
 internal sealed partial class Host : Component
 {
-    public required UiIconName IconName { get; set; }
+    public required Ui.IconName IconName { get; set; }
 
     public string? IconClass { get; set; }
 
-    protected override Component? Render() => UiIcon.Name(IconName).Class(IconClass);
+    protected override Component? Render() => Ui.Icon.Name(IconName).Class(IconClass);
 }

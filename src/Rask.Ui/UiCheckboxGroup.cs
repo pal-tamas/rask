@@ -1,6 +1,6 @@
 using Rask.Core.Forms;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A set of choices where any number may be picked, bound as ONE field.
@@ -25,10 +25,10 @@ public sealed partial class UiCheckboxGroup<T> : UiFormField<ICollection<T>>
     public required IReadOnlyList<(T Value, string Text)> Options { get; set; }
 
     /// <summary>How the choices are laid out. A list, unless this says otherwise.</summary>
-    public UiChoiceLayout? Layout { get; set; }
+    public Ui.ChoiceLayout? Layout { get; set; }
 
     /// <summary>A second line under a choice's words, saying what picking it means.</summary>
-    /// <remarks>Drawn only by <see cref="UiChoiceLayout.Cards" />, which is the layout with room for it.</remarks>
+    /// <remarks>Drawn only by <see cref="Ui.ChoiceLayout.Cards" />, which is the layout with room for it.</remarks>
     public Fn<T, string?>? OptionDescription { get; set; }
 
     /// <summary>Marks choices that cannot be picked.</summary>
@@ -43,7 +43,7 @@ public sealed partial class UiCheckboxGroup<T> : UiFormField<ICollection<T>>
     /// <inheritdoc />
     protected override Component Control()
     {
-        var layout = Layout ?? UiChoiceLayout.List;
+        var layout = Layout ?? Ui.ChoiceLayout.List;
         var acc = Bind is { } bind ? ExpressionAccessor.Parse(bind) : null;
         var ctx = acc is null ? null : BindingHelpers.ResolveBindingContext(acc.Target);
         if (acc is not null)
@@ -76,7 +76,7 @@ public sealed partial class UiCheckboxGroup<T> : UiFormField<ICollection<T>>
     }
 
     private Component CheckAllRow(
-        UiChoiceLayout layout,
+        Ui.ChoiceLayout layout,
         List<T> selectable,
         IReadOnlyList<T> picked,
         bool allIn,
@@ -102,8 +102,8 @@ public sealed partial class UiCheckboxGroup<T> : UiFormField<ICollection<T>>
             .OnChange(_ => CommitAsync(allIn ? [] : selectable, acc, ctx));
 
         return RaskMarkup.Label.Key("--all").Class(UiClass.Compose(
-            UiChoice.ChoiceClass(layout == UiChoiceLayout.Cards ? UiChoiceLayout.List : layout),
-            layout == UiChoiceLayout.Cards ? "sm:col-span-2" : ""))[
+            UiChoice.ChoiceClass(layout == Ui.ChoiceLayout.Cards ? Ui.ChoiceLayout.List : layout),
+            layout == Ui.ChoiceLayout.Cards ? "sm:col-span-2" : ""))[
             box,
             Span.Class("text-sm font-medium")[
                 CheckAllLabel ?? (allIn ? "Clear all" : "Select all")
@@ -114,14 +114,14 @@ public sealed partial class UiCheckboxGroup<T> : UiFormField<ICollection<T>>
     private Component Choice(
         (T Value, string Text) option,
         int index,
-        UiChoiceLayout layout,
+        Ui.ChoiceLayout layout,
         IReadOnlyList<T> picked,
         ExpressionAccessor.Accessor? acc,
         EditContext? ctx)
     {
         var off = Disabled == true || OptionDisabled?.Invoke(option.Value) == true;
         var isIn = picked.Contains(option.Value);
-        var description = layout == UiChoiceLayout.Cards ? OptionDescription?.Invoke(option.Value) : null;
+        var description = layout == Ui.ChoiceLayout.Cards ? OptionDescription?.Invoke(option.Value) : null;
 
         var box = Input
             .Of<bool>()

@@ -116,7 +116,7 @@ public partial class PayloadBytesPerUpdate : global::Rask.Core.RaskMarkup
 
         return [
             Doctype,
-            Html[
+            Document[
                 Body[
                     Div.Class("wrap").Id("root")[
                         Div.Class("counter").Id("counter")[
@@ -144,7 +144,7 @@ public partial class PayloadBytesPerUpdate : global::Rask.Core.RaskMarkup
 
         return [
             Doctype,
-            Html[
+            Document[
                 Body[Div.Class("list")[rows]]
             ]
         ];
@@ -170,7 +170,7 @@ public partial class PayloadBytesPerUpdate : global::Rask.Core.RaskMarkup
 
         return [
             Doctype,
-            Html[
+            Document[
                 Body[Div.Class("body")[rows]]
             ]
         ];

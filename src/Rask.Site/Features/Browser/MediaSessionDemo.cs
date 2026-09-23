@@ -54,16 +54,16 @@ public sealed partial class MediaSessionDemo(IMediaSession media) : Component, I
     }
 
     protected override Component? Render() =>
-        UiCard.Class("shadow-sm")[
+        Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-3")[
-                    UiButton.Tone(UiTone.Primary).Id("ms-publish").OnClick(Publish)["Publish metadata"],
-                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline)
+                    Ui.Button.Tone(Ui.Tone.Primary).Id("ms-publish").OnClick(Publish)["Publish metadata"],
+                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
                         .Id("ms-playing")
                         .OnClick(() => SetState(PlaybackState.Playing, "playing"))["Mark playing"],
-                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline)
+                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
                         .Id("ms-paused")
                         .OnClick(() => SetState(PlaybackState.Paused, "paused"))["Mark paused"],
-                    UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline).Id("ms-clear").OnClick(Clear)["Clear"]
+                    Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline).Id("ms-clear").OnClick(Clear)["Clear"]
                 ],
                 P.Class("text-sm text-ui-muted mb-2")[
                     "After publishing, use your keyboard's media keys (or the OS media controls) — the action "

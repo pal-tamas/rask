@@ -1,4 +1,4 @@
-using Rask.Ui;
+using Rask;
 
 namespace Rask.Site.Features.UiKit;
 
@@ -37,13 +37,13 @@ public sealed partial class UiKitTreeDemo : Component
             + "what is selected, and ExpandDepth(1) opens the roots to start with. Click a row, or focus the tree and "
             + "press the arrow keys; typing a letter jumps.",
             Div.Data(Testid("ui-tree-basic")).Class("max-w-sm rounded-xl border border-base-300 bg-base-100 p-2")[
-                UiTree.Roots(Files)
+                Ui.Tree.Roots(Files)
                     .NodeKey(f => f.Id)
                     .Item(f => Span[f.Name])
                     .Label("Files")
                     .ExpandDepth(1)
                     .NodeText(f => f.Name)
-                    .Selection(UiTreeSelection.Single)[f => f.Children]
+                    .Selection(Ui.TreeSelection.Single)[f => f.Children]
             ]),
 
         Section(
@@ -53,13 +53,13 @@ public sealed partial class UiKitTreeDemo : Component
             + "visible below.",
             Div.Data(Testid("ui-tree-controlled")).Class("max-w-sm space-y-2")[
                 Div.Class("rounded-xl border border-base-300 bg-base-100 p-2")[
-                    UiTree.Roots(Files)
+                    Ui.Tree.Roots(Files)
                         .NodeKey(f => f.Id)
                         .Item(f => Span[f.Name])
                         .Label("Files, held by the page")
                         .Expanded(_open)
                         .OnExpandedChange(keys => _open = keys)
-                        .Selection(UiTreeSelection.Multiple)
+                        .Selection(Ui.TreeSelection.Multiple)
                         .Selected(_picked)
                         .OnSelectionChange(keys => _picked = keys)[f => f.Children]
                 ],
@@ -76,7 +76,7 @@ public sealed partial class UiKitTreeDemo : Component
             + "pointer.",
             Div.Data(Testid("ui-tree-virtual")).Class("max-w-sm space-y-2")[
                 Div.Class("rounded-xl border border-base-300 bg-base-100 p-2")[
-                    UiTree.Roots(Many)
+                    Ui.Tree.Roots(Many)
                         .NodeKey(n => n.Id)
                         .Item(n => Span[n.Name])
                         .Label("Generated nodes")

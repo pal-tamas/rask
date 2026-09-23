@@ -1,9 +1,9 @@
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Rask;
 using Rask.Core.Forms;
 using Rask.Cqrs;
-using Rask.Validation.FluentValidation;
 
 namespace Rask;
 

@@ -108,7 +108,7 @@ public sealed partial class TodosPage : Component
                 Span.Class("text-ui-muted text-sm")[
                     $"{_todos.Count} item{(_todos.Count == 1 ? "" : "s")}, {_todos.Count(t => t.Completed)} done"
                 ],
-                UiButton.Tone(UiTone.Primary).OnClick(OpenAdd)[UiIcon.Name(UiIconName.Plus), "New todo"]
+                Ui.Button.Tone(Ui.Tone.Primary).OnClick(OpenAdd)[Ui.Icon.Name(Ui.IconName.Plus), "New todo"]
             ],
             _todos.Count == 0
                 ? Div.Class("text-ui-muted text-sm")["No todos yet — click \"New todo\" to add one."]
@@ -129,19 +129,19 @@ public sealed partial class TodosPage : Component
                         // screen reader announces "button" and nothing else. Bootstrap Icons carried no
                         // name either -- the label is what the icon was always standing in for.
                         // The Aria step is gone because the Label IS the accessible name here: a
-                        // square button holds one glyph, so UiButton writes the label as aria-label
+                        // square button holds one glyph, so Ui.Button writes the label as aria-label
                         // rather than as visible text.
-                        UiButton
+                        Ui.Button
                             .AccessibleLabel($"Edit {item.Title}")
                             .Square(true)
-                            .Variant(UiVariant.Outline)
-                            .OnClick(() => OpenEdit(item))[UiIcon.Name(UiIconName.Pencil)],
-                        UiButton
+                            .Variant(Ui.Variant.Outline)
+                            .OnClick(() => OpenEdit(item))[Ui.Icon.Name(Ui.IconName.Pencil)],
+                        Ui.Button
                             .AccessibleLabel($"Delete {item.Title}")
                             .Square(true)
-                            .Tone(UiTone.Error)
-                            .Variant(UiVariant.Outline)
-                            .OnClick(() => Delete(item))[UiIcon.Name(UiIconName.Trash)]
+                            .Tone(Ui.Tone.Error)
+                            .Variant(Ui.Variant.Outline)
+                            .OnClick(() => Delete(item))[Ui.Icon.Name(Ui.IconName.Trash)]
                     ])
                 ],
             CodeSample
@@ -213,13 +213,13 @@ public sealed partial class TodoFormDialog : Component
                     // parse, where browsers ignore the attribute, so that path still needs a click.
                     // Reliable focus-on-open would need ElementRef + IJSRuntime; this page is a routed
                     // CRUD flow, not a dialog implementation.
-                    UiInput.Bind(() => Model.Title).Label("Title").Id("todo-title").Autofocus(true).ShowValidation(false),
-                    ValidationMessage.Template(FieldError).For(() => Model.Title),
+                    Ui.Input.Bind(() => Model.Title).Label("Title").Id("todo-title").Autofocus(true).ShowValidation(false),
+                    Validation.Message.Template(FieldError).For(() => Model.Title),
                     Div.Class("flex justify-end gap-2")[
-                        UiButton.Variant(UiVariant.Outline).OnClick(OnCancel)["Cancel"],
-                        UiButton
-                            .Tone(UiTone.Primary)
-                            .Type(UiButtonType.Submit)[UiIcon.Name(UiIconName.CheckCircle), IsAdding ? "Add" : "Save"]
+                        Ui.Button.Variant(Ui.Variant.Outline).OnClick(OnCancel)["Cancel"],
+                        Ui.Button
+                            .Tone(Ui.Tone.Primary)
+                            .Type(Ui.ButtonType.Submit)[Ui.Icon.Name(Ui.IconName.CheckCircle), IsAdding ? "Add" : "Save"]
                     ]
                 ]
             ]

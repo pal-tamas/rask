@@ -90,16 +90,16 @@ public sealed class ExternalGenerator : IIncrementalGenerator
 
     private static readonly DiagnosticDescriptor Rask059 = new(
         "RASK059",
-        "Module override must be a constant string",
-        "'{0}' overrides Module with an expression the build cannot read — return a constant string literal",
+        "Module or Export override must be a constant string",
+        "'{0}' overrides {1} with an expression the build cannot read — return a constant string literal",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
         description: "The bundler needs the module specifier at BUILD time, to generate the entry that pairs the "
                      + "component with its adapter — long before any of this code runs. So the override has to be a "
                      + "literal the generator can read out of the syntax: `protected override string Module => "
-                     + "\"@acme/charts/Chart\";`. Anything computed would leave the browser resolving a name the "
-                     + "bundle never built.",
+                     + "\"@acme/charts/Chart\";`, and the same for `Export`, which names the package's component. "
+                     + "Anything computed would leave the browser resolving a name the bundle never built.",
         helpLinkUri: DiagnosticHelp.Link("RASK059"));
 
     private static readonly DiagnosticDescriptor Rask077 = new(
@@ -134,12 +134,12 @@ public sealed class ExternalGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor Rask079 = new(
         "RASK079",
         "Props snapshot describes a different component",
-        "'{0}.props.json' was extracted for {1} — re-extract it, or correct the island's base class or Module",
+        "'{0}.props.json' was extracted for {1} — re-extract it, or correct the island's base class, Module or Export",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
         description: "A snapshot records which runtime and which module it was extracted from. When the class beside it "
-                     + "now names another — the base class changed runtime, or Module points at a different export — "
+                     + "now names another — the base class changed runtime, or Module or Export points at another component — "
                      + "its props describe some other component, so none are generated rather than steps the "
                      + "component does not have.",
         helpLinkUri: DiagnosticHelp.Link("RASK079"));
@@ -208,6 +208,15 @@ public sealed class ExternalGenerator : IIncrementalGenerator
         // lands at namespace level, so its name is allocated across the whole set — exactly as the factory
         // generator allocates it — or one island's enum could take a name another island's step refers to.
         var paired = new List<(IslandFacts Facts, PropsSnapshot Snapshot)>();
+        var declarations = new List<(INamedTypeSymbol Type, PackageDeclaration Read)>();
+        foreach (var candidate in Types(compilation.Assembly.GlobalNamespace))
+        {
+            if (PackageDeclarations.Read(candidate) is { } declaration)
+            {
+                declarations.Add((candidate, declaration));
+            }
+        }
+
         if (snapshots.Count > 0)
         {
             foreach (var candidate in Types(compilation.Assembly.GlobalNamespace))
@@ -216,6 +225,19 @@ public sealed class ExternalGenerator : IIncrementalGenerator
                     && PackageIslandProps.Find(snapshots, facts) is { } snapshot)
                 {
                     paired.Add((facts, snapshot));
+                }
+            }
+
+            foreach (var (type, read) in declarations)
+            {
+                var runtimeBase = PackageDeclarations.RuntimeBase(compilation, read.Runtime);
+                foreach (var export in read.Islands)
+                {
+                    var facts = PackageDeclarations.Facts(type, read, export, runtimeBase);
+                    if (PackageIslandProps.Find(snapshots, facts) is { } snapshot)
+                    {
+                        paired.Add((facts, snapshot));
+                    }
                 }
             }
         }
@@ -271,6 +293,22 @@ public sealed class ExternalGenerator : IIncrementalGenerator
 
             byName[model.Name] = model;
             islands.Add(model);
+        }
+
+        foreach (var (type, read) in declarations)
+        {
+            foreach (var model in DescribeDeclaration(spc, type, read, snapshots, resolved, compilation))
+            {
+                if (byName.TryGetValue(model.Name, out var clash))
+                {
+                    spc.ReportDiagnostic(Diagnostic.Create(
+                        Rask058, model.Location, clash.Fqn, model.Fqn, model.Name));
+                    continue;
+                }
+
+                byName[model.Name] = model;
+                islands.Add(model);
+            }
         }
 
         // Only carried when it is not the app's default -- the client already assumes that one, so
@@ -553,7 +591,14 @@ public sealed class ExternalGenerator : IIncrementalGenerator
         var declaredModule = ModuleLiteral.Read(type);
         if (declaredModule.Failed)
         {
-            spc.ReportDiagnostic(Diagnostic.Create(Rask059, declaredModule.Location ?? location, type.Name));
+            spc.ReportDiagnostic(Diagnostic.Create(Rask059, declaredModule.Location ?? location, type.Name, "Module"));
+            return null;
+        }
+
+        var declaredExport = ModuleLiteral.ReadExport(type);
+        if (declaredExport.Failed)
+        {
+            spc.ReportDiagnostic(Diagnostic.Create(Rask059, declaredExport.Location ?? location, type.Name, "Export"));
             return null;
         }
 
@@ -625,30 +670,108 @@ public sealed class ExternalGenerator : IIncrementalGenerator
                 || property.Type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T));
         }
 
-        if (model.IsPackage)
+        if (model.IsPackage && PackageIslandProps.Facts(type) is { } facts)
         {
-            DescribePackage(spc, type, model, snapshots, resolved, declaredModule.Location ?? location);
+            DescribePackage(spc, type.Name, type.BaseType, facts, model, snapshots, resolved,
+                declaredModule.Location ?? location);
         }
 
         return model;
     }
 
     /// <summary>
-    ///     Pairs a package island with its committed props snapshot, reporting what cannot be generated.
+    ///     The islands a package declaration exports — <c>Mui : ReactPackage</c> with <c>Exports =&gt; ["Button"]</c> is
+    ///     the island <c>MuiButton</c> — each a whole class this generator declares, since none of them is in source.
     /// </summary>
-    private static void DescribePackage(
+    private static IEnumerable<ComponentModel> DescribeDeclaration(
         SourceProductionContext spc,
         INamedTypeSymbol type,
+        PackageDeclaration read,
+        EquatableArray<PropsSnapshot> snapshots,
+        Dictionary<IslandFacts, PackageIsland> resolved,
+        Compilation compilation)
+    {
+        var location = type.Locations.FirstOrDefault(static l => l.IsInSource);
+
+        if (read.Failed is { } failed)
+        {
+            spc.ReportDiagnostic(Diagnostic.Create(Rask059, read.FailedAt ?? location, type.Name, failed));
+            yield break;
+        }
+
+        var isPartial = type.DeclaringSyntaxReferences
+            .Select(static r => r.GetSyntax())
+            .OfType<ClassDeclarationSyntax>()
+            .Any(static c => c.Modifiers.Any(static m => m.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.PartialKeyword)));
+        if (!isPartial)
+        {
+            spc.ReportDiagnostic(Diagnostic.Create(Rask056, location, type.Name));
+            yield break;
+        }
+
+        if (read.Module is not { } module || !PackageSpecifier.IsBare(module)
+            || PackageDeclarations.RuntimeBase(compilation, read.Runtime) is not { } runtimeBase)
+        {
+            yield break;
+        }
+
+        var ns = type.ContainingNamespace.IsGlobalNamespace ? null : type.ContainingNamespace.ToDisplayString();
+        var group = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        var visibility = PackageIslandProps.IsExternallyVisible(type) ? "public" : "internal";
+        var exportsLocation = type.GetMembers("Exports").FirstOrDefault()?.Locations
+            .FirstOrDefault(static l => l.IsInSource) ?? location;
+
+        foreach (var export in read.Islands)
+        {
+            var facts = PackageDeclarations.Facts(type, read, export, runtimeBase);
+            var model = new ComponentModel
+            {
+                Name = export.Name,
+                Fqn = ns is null ? "global::" + export.Name : $"global::{ns}.{export.Name}",
+                Namespace = ns,
+                Module = module,
+                Runtime = read.Runtime,
+                Location = exportsLocation,
+                DeclaresModule = false,
+                IsPackage = true,
+                Export = export.Export,
+                Declaration =
+                    $"/// <summary><c>{Prose(export.Export)}</c> from <c>{Prose(module)}</c>, reached as "
+                    + $"<see cref=\"{type.ToDisplayString()}.{export.Member}\" />.</summary>\n"
+                    + $"[global::Rask.Core.RaskChainGroup(typeof({group}), \"{export.Member}\")]\n"
+                    + $"{visibility} sealed partial class {export.Name} : "
+                    + runtimeBase.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            };
+
+            DescribePackage(spc, export.Name, runtimeBase, facts, model, snapshots, resolved, exportsLocation);
+            yield return model;
+        }
+    }
+
+    // The author's own literal, but still text in a doc comment: one line, XML-escaped, so it cannot end the comment.
+    private static string Prose(string text) => PackageIslandNaming.Escape(PackageIslandNaming.SingleLine(text));
+
+    /// <summary>
+    ///     Pairs a package island with its committed props snapshot, reporting what cannot be generated.
+    /// </summary>
+    /// <param name="spc">Where diagnostics go.</param>
+    /// <param name="name">The island's name, as diagnostics call it.</param>
+    /// <param name="inherited">The first type whose members the island inherits — what a generated prop may hide.</param>
+    /// <param name="facts">The island's facts.</param>
+    /// <param name="model">The model the snapshot's props are added to.</param>
+    /// <param name="snapshots">Every snapshot in the compilation.</param>
+    /// <param name="resolved">Every package island, resolved together.</param>
+    /// <param name="moduleLocation">Where the island names its package.</param>
+    private static void DescribePackage(
+        SourceProductionContext spc,
+        string name,
+        INamedTypeSymbol? inherited,
+        IslandFacts facts,
         ComponentModel model,
         EquatableArray<PropsSnapshot> snapshots,
         Dictionary<IslandFacts, PackageIsland> resolved,
         Location? moduleLocation)
     {
-        if (PackageIslandProps.Facts(type) is not { } facts)
-        {
-            return;
-        }
-
         model.Facts = facts;
 
         if (PackageIslandProps.Find(snapshots, facts) is not { } snapshot)
@@ -657,7 +780,7 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             // missing snapshot — the shape docs/islands.md has always shown for a vendor component.
             if (facts.UserProps.Count == 0)
             {
-                spc.ReportDiagnostic(Diagnostic.Create(Rask077, moduleLocation, type.Name, model.Module));
+                spc.ReportDiagnostic(Diagnostic.Create(Rask077, moduleLocation, name, model.Module));
             }
 
             return;
@@ -674,12 +797,12 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             case PackageVerdict.Unreadable:
                 spc.ReportDiagnostic(Diagnostic.Create(
                     Rask078, SnapshotLocation(snapshot.Path, snapshot.DefectLine, snapshot.DefectColumn),
-                    type.Name, island.VerdictDetail));
+                    name, island.VerdictDetail));
                 return;
 
             case PackageVerdict.RuntimeMismatch:
             case PackageVerdict.ModuleMismatch:
-                spc.ReportDiagnostic(Diagnostic.Create(Rask079, moduleLocation, type.Name, island.VerdictDetail));
+                spc.ReportDiagnostic(Diagnostic.Create(Rask079, moduleLocation, name, island.VerdictDetail));
                 return;
         }
 
@@ -687,7 +810,7 @@ public sealed class ExternalGenerator : IIncrementalGenerator
         {
             spc.ReportDiagnostic(Diagnostic.Create(
                 Rask080, SnapshotLocation(snapshot.Path, problem.Line, problem.Column),
-                type.Name, problem.PropName, problem.Reason));
+                name, problem.PropName, problem.Reason));
         }
 
         model.Package = island;
@@ -698,16 +821,16 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             // fatal here. Rask's own instance members were already renamed away by the resolver; what can
             // still match is a static chain entry inherited from RaskMarkup (Label, Title, Form), which a
             // prop may shadow exactly as Element's own Title does — by saying `new`.
-            if (!prop.DeclaredByUser && InheritsMemberNamed(type, prop.ClrName))
+            if (!prop.DeclaredByUser && InheritsMemberNamed(inherited, prop.ClrName))
             {
                 model.NewNames.Add(prop.ClrName);
             }
         }
     }
 
-    private static bool InheritsMemberNamed(INamedTypeSymbol type, string name)
+    private static bool InheritsMemberNamed(INamedTypeSymbol? inherited, string name)
     {
-        for (var t = type.BaseType; t is not null; t = t.BaseType)
+        for (var t = inherited; t is not null; t = t.BaseType)
         {
             if (t.GetMembers(name).Length > 0)
             {
@@ -911,7 +1034,7 @@ public sealed class ExternalGenerator : IIncrementalGenerator
         }
 
         sb.AppendLine();
-        sb.AppendLine($"partial class {island.Name}");
+        sb.AppendLine(island.Declaration ?? $"partial class {island.Name}");
         sb.AppendLine("{");
 
         // Only what the compiler alone knows. Everything else — the host element, the opaque boundary,
@@ -931,7 +1054,16 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             sb.AppendLine();
         }
 
-        if (!island.DeclaresModule)
+        if (island.Export is { } export)
+        {
+            sb.AppendLine("    /// <summary>The package this component is imported from.</summary>");
+            sb.AppendLine($"    protected override string Module => {Literal(island.Module)};");
+            sb.AppendLine();
+            sb.AppendLine("    /// <summary>The component this island mounts out of that package.</summary>");
+            sb.AppendLine($"    protected override string Export => {Literal(export)};");
+            sb.AppendLine();
+        }
+        else if (!island.DeclaresModule)
         {
             sb.AppendLine("    /// <summary>The front-end file beside this one, paired by filename.</summary>");
             sb.AppendLine($"    protected override string Module => {Literal(island.Module)};");
@@ -1198,6 +1330,15 @@ public sealed class ExternalGenerator : IIncrementalGenerator
 
         /// <summary>Whether <see cref="Module" /> names a package rather than a file beside the class.</summary>
         public bool IsPackage { get; set; }
+
+        /// <summary>
+        ///     The whole class header, for an island exported by a package declaration — which has no declaration in
+        ///     source for this generator to add a partial to. Null for every island the author declared.
+        /// </summary>
+        public string? Declaration { get; set; }
+
+        /// <summary>The export a package declaration's island mounts, written as its <c>Export</c> override.</summary>
+        public string? Export { get; set; }
 
         /// <summary>The package island's facts, when it is one.</summary>
         public IslandFacts? Facts { get; set; }
