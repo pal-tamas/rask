@@ -50,7 +50,7 @@ builder.Services.AddRaskCqrs();
 ```
 
 Inject `IDispatcher` and say which of the three things you are doing: `QueryAsync` asks for data,
-`SendAsync` tells the system to do something, `PublishAsync` announces that something happened. The
+`Send` tells the system to do something, `Publish` announces that something happened. The
 result type is inferred from the message, so you never state it.
 
 ```csharp

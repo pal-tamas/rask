@@ -86,7 +86,7 @@ public class QueryHierarchyTests
         await SettleAsync(detail);
 
         var before = dispatcher.QueryCount;
-        client.Invalidate(QueryKey.Of("orders", "list"), exact: true);
+        client.Invalidate(QueryKey.Of("orders", "list").Only());
         await SettleAsync(list);
         await SettleAsync(detail);
 
@@ -120,7 +120,7 @@ public class QueryHierarchyTests
         await SettleAsync(list);
 
         var before = dispatcher.QueryCount;
-        await client.SendAsync(new ArchiveEverything(1));
+        await client.Send(new ArchiveEverything(1));
         await SettleAsync(list);
 
         Assert.Equal(before + 1, dispatcher.QueryCount);
@@ -138,7 +138,7 @@ public class QueryHierarchyTests
         await SettleAsync(byPrefix);
 
         var before = dispatcher.QueryCount;
-        await client.SendAsync(new SweepingChange(1));
+        await client.Send(new SweepingChange(1));
         await SettleAsync(byType);
         await SettleAsync(byPrefix);
 
@@ -172,7 +172,7 @@ public class QueryHierarchyTests
         await SettleAsync(other);
 
         var before = dispatcher.QueryCount;
-        client.Invalidate(query.Key, exact: true);
+        client.Invalidate(query.Key.Only());
         await SettleAsync(query);
         await SettleAsync(other);
 

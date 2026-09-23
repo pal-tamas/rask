@@ -387,7 +387,7 @@ public class StaticQueryClientTests
 
         // Registered up front, five renders would have queued five copies of this edit.
         dispatcher.Block();
-        var running = page.Ship!.SendAsync(new ShipOrder(7), page.Orders!.Optimistic(c => c + "+"));
+        var running = page.Ship!.Send(new ShipOrder(7)).Optimistically(page.Orders!.Optimistic(c => c + "+")).AsTask();
 
         Assert.Equal("first+", page.Orders.Data);
         dispatcher.Release();
@@ -406,12 +406,12 @@ public class StaticQueryClientTests
 
         // No arguments: a Rask.Data write that refreshes its own queries.
         var plain = QueryClient.Command();
-        await plain.SendAsync(_ => Task.CompletedTask);
+        await plain.Send(_ => Task.CompletedTask);
         Assert.True(plain.IsSuccess);
         Assert.Equal(1, orders.Data);
 
         // A positional string must bind to what it invalidates, never to the compiler-filled caller file.
-        await QueryClient.Command("orders").SendAsync(_ => Task.CompletedTask);
+        await QueryClient.Command("orders").Send(_ => Task.CompletedTask);
         await Settle(orders);
         Assert.Equal(2, orders.Data);
     }

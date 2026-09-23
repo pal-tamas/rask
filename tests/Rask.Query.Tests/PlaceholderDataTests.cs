@@ -110,7 +110,7 @@ public class PlaceholderDataTests
         var (client, dispatcher) = NewClient();
         var keep = new QueryOptions { StaleTime = TimeSpan.FromHours(1) };
 
-        await client.PrefetchAsync(new GetOrders(2), keep);
+        await client.Warm(new GetOrders(2), keep);
         Assert.Equal(1, dispatcher.QueryCountFor<GetOrders>());
 
         using var query = client.Query(new GetOrders(2), keep);
@@ -129,6 +129,6 @@ public class PlaceholderDataTests
 
         // A prefetch is a guess about where the user is going. A wrong guess must not surface as a
         // failure at the navigation that made it.
-        await client.PrefetchAsync(new GetOrders(2), new QueryOptions { Retry = 0 });
+        await client.Warm(new GetOrders(2), new QueryOptions { Retry = 0 });
     }
 }

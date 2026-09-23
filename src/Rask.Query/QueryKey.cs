@@ -95,6 +95,22 @@ public readonly struct QueryKey : IEquatable<QueryKey>
     /// </remarks>
     public static QueryKeyFields Fields(params (string Name, object? Value)[] fields) => new(fields);
 
+    /// <summary>
+    ///     This key and nothing beneath it: <c>QueryClient.Invalidate(QueryKey.Of("orders", id).Only())</c>.
+    /// </summary>
+    /// <remarks>
+    ///     A key matches by prefix, which is the point of an ordered key — <c>["orders"]</c> reaches every
+    ///     list and detail under it. <c>Only</c> says you mean this one entry.
+    ///     <para>
+    ///         The step sits on the KEY rather than on the call because <c>Invalidate</c> returns nothing
+    ///         and acts at once: a trailing step there would have to narrow an invalidation that had
+    ///         already happened, and a builder that only acts when a step is taken would make the bare
+    ///         <c>Invalidate(key);</c> a statement that silently does nothing. A key is data, so it can
+    ///         carry the choice safely.
+    ///     </para>
+    /// </remarks>
+    public QueryMatch Only() => new(this, Exact: true);
+
     /// <summary>The parts, in order.</summary>
     public IReadOnlyList<object?> Parts => _parts ?? [];
 

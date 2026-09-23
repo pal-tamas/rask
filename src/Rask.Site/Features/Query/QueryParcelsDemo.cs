@@ -75,7 +75,7 @@ public sealed partial class QueryParcelsDemo(Navigator nav, RouteState route, Pa
             parcel.Shipped
                 ? Span.Class("query-shipped text-ui-ok-ink")["shipped"]
                 : UiButton.Class("query-ship").Disabled(ship.IsPending)
-                    .OnClick(() => ship.SendAsync(new ShipParcel(parcel.Id)))[ship.IsPending ? "shipping…" : "Ship"],
+                    .OnClick(async () => await ship.Send(new ShipParcel(parcel.Id)))[ship.IsPending ? "shipping…" : "Ship"],
             UiButton.Class("query-pick").OnClick(() => _picked = parcel.Id)["Details"]
         ];
     }

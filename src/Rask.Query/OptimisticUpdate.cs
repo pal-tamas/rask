@@ -48,7 +48,7 @@ internal sealed class OptimisticEdit<TResult>(SessionQueryClient client, QueryKe
         // and inventing a value here would show the user a row the server never confirmed.
         if (had && current is not null)
         {
-            client.SetData(key, update(current));
+            client.Set(key, update(current));
         }
 
         return snapshot;
@@ -61,13 +61,13 @@ internal sealed class OptimisticEdit<TResult>(SessionQueryClient client, QueryKe
         {
             if (Had && Previous is not null)
             {
-                Client.SetData(Key, Previous);
+                Client.Set(Key, Previous);
                 return;
             }
 
             // There was nothing to put back, so make the entry fetch rather than leaving whatever the
             // failed command wrote sitting there looking authoritative.
-            Client.Invalidate(Key, exact: true);
+            Client.Invalidate(Key.Only());
         }
     }
 }

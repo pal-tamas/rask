@@ -28,7 +28,7 @@ internal sealed class CommandCore
         "Design",
         "CA1031:Do not catch general exception types",
         Justification = "Whatever the handler threw belongs on the command as Error, for the component "
-                        + "to render. See the remarks on Command<TCommand>.SendAsync for why it is not rethrown.")]
+                        + "to render. See the remarks on Command<TCommand>.Send for why it is not rethrown.")]
     public async Task<TResult?> RunAsync<TResult>(
         Func<CancellationToken, Task<TResult>> dispatch,
         Action invalidate,
@@ -86,15 +86,15 @@ internal sealed class CommandCore
 ///     private readonly Command&lt;ShipOrder&gt; _ship = q.Command&lt;ShipOrder&gt;();
 ///
 ///     Button.Disabled(_ship.IsPending)
-///           .OnClick(() =&gt; _ship.SendAsync(new ShipOrder(id)))
+///           .OnClick(async () =&gt; await _ship.Send(new ShipOrder(id)))
 ///           [_ship.IsPending ? "Shipping…" : "Ship"]
 ///     </code>
 ///     <para>
-///         <see cref="SendAsync(TCommand, CancellationToken)" /> does <b>not</b> throw. It is called from an event handler, where an
+///         <see cref="Send(TCommand, CancellationToken)" /> does <b>not</b> throw. It is called from an event handler, where an
 ///         exception has nowhere to go and would surface as an unhandled framework error rather than
 ///         as something the screen can show. The failure lands on <see cref="Error" /> and
 ///         <see cref="Status" />, which is where a component can actually render it. Use
-///         <c>IQueryClient.SendAsync</c> when you want the exception.
+///         <c>IQueryClient.Send</c> when you want the exception.
 ///     </para>
 /// </remarks>
 /// <typeparam name="TCommand">The command this dispatches.</typeparam>
@@ -157,24 +157,16 @@ public sealed class Command<TCommand>
     public bool IsError => Status == CommandStatus.Error;
 
 
-    /// <summary>Dispatches the command. Never throws — see the remarks on the type.</summary>
-    /// <param name="command">The command to dispatch.</param>
-    /// <param name="cancellationToken">Cancels the dispatch.</param>
-    public Task SendAsync(TCommand command, CancellationToken cancellationToken = default) =>
-        Send(command, [], cancellationToken);
-
     /// <summary>
-    ///     Dispatches the command with optimistic edits: shown at once, replaced by the refetch on success,
-    ///     put back on failure. Never throws.
+    ///     Dispatches the command. Never throws — see the remarks on the type. Add
+    ///     <c>.Optimistically(…)</c> to show the result before the server answers.
     /// </summary>
     /// <param name="command">The command to dispatch.</param>
-    /// <param name="optimistic">
-    ///     Edits to show before the server answers — <c>orders.Optimistic(list =&gt; …)</c> — undone if it refuses.
-    /// </param>
-    public Task SendAsync(TCommand command, params OptimisticEdit[] optimistic) =>
-        Send(command, optimistic, CancellationToken.None);
+    /// <param name="cancellationToken">Cancels the dispatch.</param>
+    public Dispatching Send(TCommand command, CancellationToken cancellationToken = default) =>
+        new((edits, ct) => Run(command, edits, ct), [], cancellationToken);
 
-    private Task Send(TCommand command, OptimisticEdit[] optimistic, CancellationToken cancellationToken)
+    private Task Run(TCommand command, OptimisticEdit[] optimistic, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(optimistic);
@@ -283,19 +275,10 @@ public sealed class Command<TCommand, TResult>
     /// <param name="command">The command to dispatch.</param>
     /// <param name="cancellationToken">Cancels the dispatch.</param>
     /// <returns>What the command returned, or <c>default</c> if it failed.</returns>
-    public Task<TResult?> SendAsync(TCommand command, CancellationToken cancellationToken = default) =>
-        Send(command, [], cancellationToken);
+    public Dispatching<TResult> Send(TCommand command, CancellationToken cancellationToken = default) =>
+        new((edits, ct) => Run(command, edits, ct), [], cancellationToken);
 
-    /// <summary>Dispatches the command with optimistic edits. Never throws.</summary>
-    /// <param name="command">The command to dispatch.</param>
-    /// <param name="optimistic">
-    ///     Edits to show before the server answers — <c>orders.Optimistic(list =&gt; …)</c> — undone if it refuses.
-    /// </param>
-    /// <returns>What the command returned, or <c>default</c> if it failed.</returns>
-    public Task<TResult?> SendAsync(TCommand command, params OptimisticEdit[] optimistic) =>
-        Send(command, optimistic, CancellationToken.None);
-
-    private Task<TResult?> Send(TCommand command, OptimisticEdit[] optimistic, CancellationToken cancellationToken)
+    private Task<TResult?> Run(TCommand command, OptimisticEdit[] optimistic, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(optimistic);
@@ -336,7 +319,7 @@ public sealed class Command<TCommand, TResult>
 ///     private readonly Command _ship = q.Command(invalidates: "orders");
 ///
 ///     Button.Disabled(_ship.IsPending)
-///           .OnClick(() =&gt; _ship.SendAsync(ct =&gt; api.ShipAsync(id, ct)))
+///           .OnClick(async () =&gt; await _ship.Send(ct =&gt; api.ShipAsync(id, ct)))
 ///           ["Ship"]
 ///     </code>
 ///     <para>
@@ -397,18 +380,10 @@ public sealed class Command
     /// </summary>
     /// <param name="send">The work, given the cancellation token.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
-    public Task SendAsync(Func<CancellationToken, Task> send, CancellationToken cancellationToken = default) =>
-        Send(send, [], cancellationToken);
+    public Dispatching Send(Func<CancellationToken, Task> send, CancellationToken cancellationToken = default) =>
+        new((edits, ct) => Run(send, edits, ct), [], cancellationToken);
 
-    /// <summary>Runs <paramref name="send" /> with optimistic edits. Never throws.</summary>
-    /// <param name="send">The work, given the cancellation token.</param>
-    /// <param name="optimistic">
-    ///     Edits to show before the server answers — <c>orders.Optimistic(list =&gt; …)</c> — undone if it refuses.
-    /// </param>
-    public Task SendAsync(Func<CancellationToken, Task> send, params OptimisticEdit[] optimistic) =>
-        Send(send, optimistic, CancellationToken.None);
-
-    private Task Send(Func<CancellationToken, Task> send, OptimisticEdit[] optimistic, CancellationToken cancellationToken)
+    private Task Run(Func<CancellationToken, Task> send, OptimisticEdit[] optimistic, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(send);
         ArgumentNullException.ThrowIfNull(optimistic);
@@ -431,28 +406,13 @@ public sealed class Command
     /// <param name="send">The work, given the cancellation token.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>What the work returned, or <c>default</c> if it failed.</returns>
-    public Task<TResult?> SendAsync<TResult>(
+    public Dispatching<TResult> Send<TResult>(
         Func<CancellationToken, Task<TResult>> send,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(send);
-        return _core.RunAsync(send, Invalidate, [], cancellationToken);
-    }
-
-    /// <summary>Runs <paramref name="send" /> with optimistic edits and returns what it produced. Never throws.</summary>
-    /// <typeparam name="TResult">What the work returns, inferred from the lambda.</typeparam>
-    /// <param name="send">The work, given the cancellation token.</param>
-    /// <param name="optimistic">
-    ///     Edits to show before the server answers — <c>orders.Optimistic(list =&gt; …)</c> — undone if it refuses.
-    /// </param>
-    /// <returns>What the work returned, or <c>default</c> if it failed.</returns>
-    public Task<TResult?> SendAsync<TResult>(
-        Func<CancellationToken, Task<TResult>> send,
-        params OptimisticEdit[] optimistic)
-    {
-        ArgumentNullException.ThrowIfNull(send);
-        ArgumentNullException.ThrowIfNull(optimistic);
-        return _core.RunAsync(send, Invalidate, optimistic, CancellationToken.None);
+        return new Dispatching<TResult>(
+            (edits, ct) => _core.RunAsync(send, Invalidate, edits, ct), [], cancellationToken);
     }
 
     /// <summary>Returns to <see cref="CommandStatus.Idle" />, clearing any error.</summary>

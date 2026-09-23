@@ -302,7 +302,7 @@ public sealed class Query<TResult> : IDisposable, IRenderSlotHandle
     ///     server never confirmed is never invented — and a failure then makes the entry fetch.
     /// </remarks>
     /// <param name="update">Produces the optimistic result from the current one.</param>
-    /// <returns>The edit, to pass to <c>SendAsync</c>.</returns>
+    /// <returns>The edit, to pass to <c>.Optimistically(…)</c>.</returns>
     public OptimisticEdit Optimistic(Func<TResult, TResult> update)
     {
         ArgumentNullException.ThrowIfNull(update);
@@ -311,7 +311,7 @@ public sealed class Query<TResult> : IDisposable, IRenderSlotHandle
     }
 
     /// <summary>Fetches again regardless of freshness, and paints the result.</summary>
-    public Task RefetchAsync(CancellationToken cancellationToken = default)
+    public Task Reload(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         Resume();
@@ -435,7 +435,7 @@ public sealed class Query<TResult> : IDisposable, IRenderSlotHandle
     /// <summary>The key this query is currently watching.</summary>
     /// <remarks>
     ///     Public so a component can invalidate its own entry without restating how the key is built —
-    ///     <c>client.Invalidate(query.Key, exact: true)</c>.
+    ///     <c>client.Invalidate(query.Key.Only())</c>.
     /// </remarks>
     public QueryKey Key
     {

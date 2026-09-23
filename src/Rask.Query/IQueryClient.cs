@@ -29,7 +29,7 @@ public interface IQueryClient
     ///     <c>Render</c> with the static <see cref="QueryClient" />.
     ///     <para>
     ///         Pass <paramref name="key" /> to put the query into a hierarchy that spans message types, so
-    ///         one <see cref="Invalidate(QueryKey, bool)" /> reaches all of them:
+    ///         one <see cref="Invalidate(QueryMatch)" /> reaches all of them:
     ///     </para>
     ///     <example>
     ///         <code>
@@ -130,7 +130,7 @@ public interface IQueryClient
     /// <param name="message">The query to run.</param>
     /// <param name="options">Freshness and retry; TanStack's defaults when omitted.</param>
     /// <param name="cancellationToken">Cancels the fetch.</param>
-    Task<TResult> FetchAsync<TResult>(
+    Task<TResult> Load<TResult>(
         IQuery<TResult> message,
         QueryOptions? options = null,
         CancellationToken cancellationToken = default);
@@ -147,7 +147,7 @@ public interface IQueryClient
     /// <param name="message">The query to warm.</param>
     /// <param name="options">Freshness and retry; TanStack's defaults when omitted.</param>
     /// <param name="cancellationToken">Cancels the fetch.</param>
-    Task PrefetchAsync<TResult>(
+    Task Warm<TResult>(
         IQuery<TResult> message,
         QueryOptions? options = null,
         CancellationToken cancellationToken = default);
@@ -158,13 +158,13 @@ public interface IQueryClient
     /// </summary>
     /// <param name="command">The command to dispatch.</param>
     /// <param name="cancellationToken">Cancels the dispatch.</param>
-    Task SendAsync(ICommand command, CancellationToken cancellationToken = default);
+    Task Send(ICommand command, CancellationToken cancellationToken = default);
 
     /// <summary>Dispatches a command that returns a value, then invalidates what it declares.</summary>
     /// <typeparam name="TResult">What the command returns.</typeparam>
     /// <param name="command">The command to dispatch.</param>
     /// <param name="cancellationToken">Cancels the dispatch.</param>
-    Task<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default);
+    Task<TResult> Send<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default);
 
     /// <summary>
     ///     A command you can render — whether it is running, whether it failed, and what to disable
@@ -172,7 +172,7 @@ public interface IQueryClient
     /// </summary>
     /// <remarks>
     ///     Hold the result in a field. Unlike
-    ///     <see cref="SendAsync(ICommand, System.Threading.CancellationToken)" />, which is the
+    ///     <see cref="Send(ICommand, System.Threading.CancellationToken)" />, which is the
     ///     await-and-forget form, this one carries state a component can render.
     /// </remarks>
     /// <typeparam name="TCommand">The command to dispatch.</typeparam>
@@ -191,7 +191,7 @@ public interface IQueryClient
     /// </summary>
     /// <remarks>
     ///     A function has nowhere to carry <see cref="InvalidatesAttribute" />, so what it makes out of
-    ///     date is named here. Each key is a prefix, as in <see cref="Invalidate(QueryKey, bool)" />,
+    ///     date is named here. Each key is a prefix, as in <see cref="Invalidate(QueryMatch)" />,
     ///     and a string converts to one: <c>Command(invalidates: "orders")</c>.
     /// </remarks>
     /// <param name="invalidates">The key prefixes to refetch after a send succeeds.</param>
@@ -212,22 +212,18 @@ public interface IQueryClient
     /// <param name="queryType">The query message type to invalidate.</param>
     void Invalidate(Type queryType);
 
-    /// <summary>Marks the named function-form entry, and anything beneath it, stale.</summary>
-    /// <param name="key">The first part of the key given when the query was created.</param>
-    void Invalidate(string key);
-
     /// <summary>
-    ///     Marks every entry whose key <em>starts with</em> <paramref name="key" /> stale.
+    ///     Marks every entry that <paramref name="match" /> reaches stale.
     /// </summary>
     /// <remarks>
     ///     Prefix matching is the point of an ordered key: <c>QueryKey.Of("orders")</c> reaches every list
     ///     and every detail beneath it, which a flat key cannot express. A
     ///     <see cref="QueryKey.Fields" /> part inside the filter is matched as a <em>subset</em>, so
-    ///     <c>Fields(("status", "done"))</c> reaches every page of the done ones.
+    ///     <c>Fields(("status", "done"))</c> reaches every page of the done ones. For one entry alone,
+    ///     <c>QueryKey.Of("orders", id).Only()</c>; a plain name is a one-part key.
     /// </remarks>
-    /// <param name="key">The prefix to match.</param>
-    /// <param name="exact">Match the whole key instead, so only that one entry is affected.</param>
-    void Invalidate(QueryKey key, bool exact = false);
+    /// <param name="match">Which entries to reach — a key (prefix), or one narrowed with <c>Only()</c>.</param>
+    void Invalidate(QueryMatch match);
 
     /// <summary>Marks every entry whose key satisfies <paramref name="predicate" /> stale.</summary>
     /// <remarks>
@@ -247,11 +243,11 @@ public interface IQueryClient
     /// <typeparam name="TResult">What the query returns.</typeparam>
     /// <param name="message">The query whose entry to write.</param>
     /// <param name="data">The result to store.</param>
-    void SetData<TResult>(IQuery<TResult> message, TResult data);
+    void Set<TResult>(IQuery<TResult> message, TResult data);
 
     /// <summary>Writes a result into the entry under <paramref name="key" /> without fetching.</summary>
     /// <typeparam name="TResult">What the query returns.</typeparam>
     /// <param name="key">The entry to write.</param>
     /// <param name="data">The result to store.</param>
-    void SetData<TResult>(QueryKey key, TResult data);
+    void Set<TResult>(QueryKey key, TResult data);
 }

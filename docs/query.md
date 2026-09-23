@@ -159,8 +159,8 @@ renamed type renames the key with it.
 |---|---|
 | `Invalidate<GetOrders>()` | Every entry for that message type. |
 | `Invalidate(QueryKey.Of("orders"))` | Every entry whose key starts with that. |
-| `Invalidate(key, exact: true)` | That one entry. |
-| `Invalidate(query.Key, exact: true)` | This query's own entry, without restating how its key is built. |
+| `Invalidate(key.Only())` | That one entry, and nothing beneath it. |
+| `Invalidate(query.Key.Only())` | This query's own entry, without restating how its key is built. |
 | `Invalidate(key => …)` | Whatever a prefix cannot say. |
 | `InvalidateAll()` | Everything in this session. |
 
@@ -174,7 +174,7 @@ reading the query's own declaration.
 ## Commands
 
 What TanStack calls a *mutation* is a CQRS **command** here, and it is sent with the same verb the
-dispatcher uses, `SendAsync`: the only thing the query client adds is the invalidation afterwards.
+dispatcher uses, `Send`: the only thing the query client adds is the invalidation afterwards.
 
 A command declares what it makes out of date, on itself:
 
@@ -183,7 +183,7 @@ A command declares what it makes out of date, on itself:
 [Invalidates("orders")]                                    // one key prefix
 public sealed record ShipOrder(Guid Id) : ICommand;
 
-await QueryClient.SendAsync(new ShipOrder(id));   // throws if the handler does
+await QueryClient.Send(new ShipOrder(id));   // throws if the handler does
 ```
 
 Several **types** are several prefixes; several **strings** are one path of several parts. The
@@ -203,7 +203,7 @@ For a command you want to *render* — whether it is in flight, whether it faile
 var ship = QueryClient.Command<ShipOrder>();   // in Render: the same command every render
 
 Button.Disabled(ship.IsPending)
-      .OnClick(() => ship.SendAsync(new ShipOrder(id)))
+      .OnClick(async () => await ship.Send(new ShipOrder(id)))
       [ship.IsPending ? "Shipping…" : "Ship"]
 ```
 
@@ -211,9 +211,9 @@ In a loop — a Ship button per row — pass `key: row.Id` so each row keeps its
 it, one call site is one command however many rows it runs for. `Command<ShipOrder> Ship => field ??=
 QueryClient.Command<ShipOrder>()` holds one in a property instead.
 
-`Command<T>.SendAsync` does **not** throw: it runs from an event handler, where an exception has
+`Command<T>.Send` does **not** throw: it runs from an event handler, where an exception has
 nowhere to go, so the failure lands on `Error` and `Status` for the component to render. Use
-`QueryClient.SendAsync` when you want the exception.
+`QueryClient.Send` when you want the exception.
 
 What a command can tell a render:
 
@@ -233,16 +233,16 @@ An edit made at send time, from the query already on screen, so it sees what is 
 var orders = QueryClient.Query(new GetOrders(Page));
 var ship   = QueryClient.Command<ShipOrder>();
 
-.OnClick(() => ship.SendAsync(new ShipOrder(id),
-    orders.Optimistic(list => [.. list.Where(o => o.Id != id)])))
+.OnClick(async () => await ship.Send(new ShipOrder(id))
+    .Optimistically(orders.Optimistic(list => [.. list.Where(o => o.Id != id)])))
 ```
 
 The row disappears at once. On success the command's invalidation refetches and the server's answer
 replaces the guess; on failure every edit is put back, in reverse, and the error lands on `Error`. Pass
-several — `ship.SendAsync(cmd, list.Optimistic(…), count.Optimistic(n => n - 1))` — and all of them are
+several — `.Optimistically(list.Optimistic(…), count.Optimistic(n => n - 1))` — and all of them are
 snapshotted before any is sent, so a failure never leaves half of them applied. An edit is aimed at
 whatever its query shows now, so a function query takes one as readily as a message query, and a function
-command sends one the same way: `save.SendAsync(ct => Person.CreateAsync(…), people.Optimistic(…))`.
+command sends one the same way: `save.Send(ct => Person.CreateAsync(…)).Optimistically(people.Optimistic(…))`.
 Nothing cached means nothing is edited: a row the server never confirmed is never invented.
 
 ### A function
@@ -255,11 +255,11 @@ the work on every send, so the lambda captures what this click is about:
 var save = QueryClient.Command(invalidates: typeof(Person));
 
 Button.Disabled(save.IsPending)
-      .OnClick(() => save.SendAsync(ct => Person.CreateAsync(model, cancellationToken: ct)))
+      .OnClick(async () => await save.Send(ct => Person.CreateAsync(model, cancellationToken: ct)))
       ["Add"]
 ```
 
-`SendAsync(ct => …)` never throws either; `SendAsync<T>` infers `T` from the lambda and returns what it
+`Send(ct => …)` never throws either; `Send<T>` infers `T` from the lambda and returns what it
 produced, or `default` on failure. Each key is a prefix, a string or a type converts to one, and several
 are several prefixes: `Command(invalidates: [typeof(Person), "dashboard"])`.
 

@@ -65,7 +65,7 @@ internal sealed class SessionQueryClient : IQueryClient
             options ?? QueryOptions.Default);
     }
 
-    public async Task<TResult> FetchAsync<TResult>(
+    public async Task<TResult> Load<TResult>(
         IQuery<TResult> message,
         QueryOptions? options = null,
         CancellationToken cancellationToken = default)
@@ -92,7 +92,7 @@ internal sealed class SessionQueryClient : IQueryClient
         return (TResult)entry.Data!;
     }
 
-    public async Task PrefetchAsync<TResult>(
+    public async Task Warm<TResult>(
         IQuery<TResult> message,
         QueryOptions? options = null,
         CancellationToken cancellationToken = default)
@@ -101,7 +101,7 @@ internal sealed class SessionQueryClient : IQueryClient
 
         try
         {
-            await FetchAsync(message, options, cancellationToken).ConfigureAwait(false);
+            await Load(message, options, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -111,14 +111,14 @@ internal sealed class SessionQueryClient : IQueryClient
         }
     }
 
-    public async Task SendAsync(ICommand command, CancellationToken cancellationToken = default)
+    public async Task Send(ICommand command, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(command);
         await _dispatcher.Send(command, cancellationToken).ConfigureAwait(false);
         InvalidateDeclared(command);
     }
 
-    public async Task<TResult> SendAsync<TResult>(
+    public async Task<TResult> Send<TResult>(
         ICommand<TResult> command,
         CancellationToken cancellationToken = default)
     {
@@ -148,17 +148,11 @@ internal sealed class SessionQueryClient : IQueryClient
         Invalidate(MessageKey.ForType(queryType));
     }
 
-    public void Invalidate(string key)
+    public void Invalidate(QueryMatch match)
     {
-        ArgumentException.ThrowIfNullOrEmpty(key);
-        Invalidate(QueryKey.Of(key));
-    }
-
-    public void Invalidate(QueryKey key, bool exact = false)
-    {
-        // Prefix by default, exact on request — TanStack's rule, and the reason a key is ordered at all:
-        // invalidating ["orders"] should reach every list and every detail beneath it.
-        InvalidateWhere(candidate => exact ? candidate == key : candidate.Matches(key));
+        // Prefix by default, one entry when the key said Only() — TanStack's rule, and the reason a key
+        // is ordered at all: invalidating ["orders"] should reach every list and every detail beneath it.
+        InvalidateWhere(match.Reaches);
     }
 
     public void Invalidate(Func<QueryKey, bool> predicate)
@@ -169,13 +163,13 @@ internal sealed class SessionQueryClient : IQueryClient
 
     public void InvalidateAll() => InvalidateWhere(_ => true);
 
-    public void SetData<TResult>(IQuery<TResult> message, TResult data)
+    public void Set<TResult>(IQuery<TResult> message, TResult data)
     {
         ArgumentNullException.ThrowIfNull(message);
-        SetData(MessageKey.For(message), data);
+        Set(MessageKey.For(message), data);
     }
 
-    public void SetData<TResult>(QueryKey key, TResult data) =>
+    public void Set<TResult>(QueryKey key, TResult data) =>
         GetOrAdd(key).Succeeded(data, _time.GetUtcNow());
 
     /// <summary>Dispatches a void command, for a Command that owns the surrounding state.</summary>

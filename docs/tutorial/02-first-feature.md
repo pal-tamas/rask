@@ -124,7 +124,7 @@ public sealed partial class CreateProduct(Navigator navigator) : Component
             UiHeader.Heading("New product").Actions(UiButton.Variant(UiVariant.Ghost).Href(Routes.ProductsPage())["Cancel"]),
             UiCard[
                 save.IsError ? UiAlert.Tone(UiTone.Error)["Something went wrong — please try again."] : null,
-                Form.Model(_model).OnValidSubmit(model => save.SendAsync(async ct =>
+                Form.Model(_model).OnValidSubmit(async model => await save.Send(async ct =>
                 {
                     await Product.CreateAsync(model, cancellationToken: ct);
                     navigator.NavigateTo(Routes.ProductsPage());
@@ -158,7 +158,7 @@ valid one. See [forms](../forms.md) and [validation](../validation.md).
 The save goes through a **command**: `QueryClient.Command()` hands back the same command every render, and
 sending work through it is what the page reads its state from. `IsPending` greys the button while the row is
 written, so a double click can't create two products, and a failure lands on `IsError` instead of escaping the
-click — `SendAsync` never throws, which is why there is no `try` here. A command also refreshes whatever a
+click — `Send` never throws, which is why there is no `try` here. A command also refreshes whatever a
 save made stale: the product count you'll put on the list page updates by itself once `CreateAsync` commits.
 See [queries and commands](../query.md).
 
@@ -226,7 +226,7 @@ public sealed partial class UpdateProduct(Navigator navigator) : Component
                     KeyNotFoundException => UiAlert.Tone(UiTone.Error)["This product has been deleted."],
                     _ => UiAlert.Tone(UiTone.Error)["Something went wrong — please try again."],
                 },
-                Form.Model(_model).OnValidSubmit(model => save.SendAsync(async ct =>
+                Form.Model(_model).OnValidSubmit(async model => await save.Send(async ct =>
                 {
                     await Product.UpdateAsync(Id, model, cancellationToken: ct);
                     navigator.NavigateTo(Routes.ProductsPage());
@@ -292,7 +292,7 @@ public sealed partial class DeleteProduct : Component
             {
                 // A row someone edited or deleted first fails here and lands on delete.Error; refreshing the
                 // list below shows the reader what happened either way.
-                await delete.SendAsync(ct => Product.DeleteAsync(Id, Version, cancellationToken: ct), CancellationToken);
+                await delete.Send(ct => Product.DeleteAsync(Id, Version, cancellationToken: ct), CancellationToken);
 
                 // Invoke() hands back the Task for an async handler and null for a synchronous one, which is
                 // what keeps a sync handler off the async path.

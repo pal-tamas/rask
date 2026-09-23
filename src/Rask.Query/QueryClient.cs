@@ -262,34 +262,34 @@ public static class QueryClient
 
     // ---- one-shot calls, for a handler ---------------------------------------------------------------
 
-    /// <inheritdoc cref="IQueryClient.SendAsync(ICommand, CancellationToken)" />
-    public static Task SendAsync(ICommand command, CancellationToken cancellationToken = default) =>
-        Current().SendAsync(command, cancellationToken);
+    /// <inheritdoc cref="IQueryClient.Send(ICommand, CancellationToken)" />
+    public static Task Send(ICommand command, CancellationToken cancellationToken = default) =>
+        Current().Send(command, cancellationToken);
 
-    /// <inheritdoc cref="IQueryClient.SendAsync{TResult}(ICommand{TResult}, CancellationToken)" />
-    public static Task<TResult> SendAsync<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default) =>
-        Current().SendAsync(command, cancellationToken);
+    /// <inheritdoc cref="IQueryClient.Send{TResult}(ICommand{TResult}, CancellationToken)" />
+    public static Task<TResult> Send<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default) =>
+        Current().Send(command, cancellationToken);
 
-    /// <inheritdoc cref="IQueryClient.FetchAsync{TResult}(IQuery{TResult}, QueryOptions?, CancellationToken)" />
-    public static Task<TResult> FetchAsync<TResult>(
+    /// <inheritdoc cref="IQueryClient.Load{TResult}(IQuery{TResult}, QueryOptions?, CancellationToken)" />
+    public static Task<TResult> Load<TResult>(
         IQuery<TResult> message,
         QueryOptions? options = null,
         CancellationToken cancellationToken = default) =>
-        Current().FetchAsync(message, options, cancellationToken);
+        Current().Load(message, options, cancellationToken);
 
-    /// <inheritdoc cref="IQueryClient.PrefetchAsync{TResult}(IQuery{TResult}, QueryOptions?, CancellationToken)" />
-    public static Task PrefetchAsync<TResult>(
+    /// <inheritdoc cref="IQueryClient.Warm{TResult}(IQuery{TResult}, QueryOptions?, CancellationToken)" />
+    public static Task Warm<TResult>(
         IQuery<TResult> message,
         QueryOptions? options = null,
         CancellationToken cancellationToken = default) =>
-        Current().PrefetchAsync(message, options, cancellationToken);
+        Current().Warm(message, options, cancellationToken);
 
     /// <inheritdoc cref="IQueryClient.Invalidate{TQuery}" />
     /// <typeparam name="T">A query message type, or the type a <c>QueryKey.For&lt;T&gt;</c> key is about.</typeparam>
     public static void Invalidate<T>() => Current().Invalidate<T>();
 
-    /// <inheritdoc cref="IQueryClient.Invalidate(QueryKey, bool)" />
-    public static void Invalidate(QueryKey key, bool exact = false) => Current().Invalidate(key, exact);
+    /// <inheritdoc cref="IQueryClient.Invalidate(QueryMatch)" />
+    public static void Invalidate(QueryMatch match) => Current().Invalidate(match);
 
     /// <inheritdoc cref="IQueryClient.Invalidate(Func{QueryKey, bool})" />
     public static void Invalidate(Func<QueryKey, bool> predicate) => Current().Invalidate(predicate);
@@ -297,11 +297,11 @@ public static class QueryClient
     /// <inheritdoc cref="IQueryClient.InvalidateAll" />
     public static void InvalidateAll() => Current().InvalidateAll();
 
-    /// <inheritdoc cref="IQueryClient.SetData{TResult}(IQuery{TResult}, TResult)" />
-    public static void SetData<TResult>(IQuery<TResult> message, TResult data) => Current().SetData(message, data);
+    /// <inheritdoc cref="IQueryClient.Set{TResult}(IQuery{TResult}, TResult)" />
+    public static void Set<TResult>(IQuery<TResult> message, TResult data) => Current().Set(message, data);
 
-    /// <inheritdoc cref="IQueryClient.SetData{TResult}(QueryKey, TResult)" />
-    public static void SetData<TResult>(QueryKey key, TResult data) => Current().SetData(key, data);
+    /// <inheritdoc cref="IQueryClient.Set{TResult}(QueryKey, TResult)" />
+    public static void Set<TResult>(QueryKey key, TResult data) => Current().Set(key, data);
 
     // ---- plumbing ------------------------------------------------------------------------------------
 
