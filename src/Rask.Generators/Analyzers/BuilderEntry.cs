@@ -316,6 +316,22 @@ internal static class BuilderEntry
             }
         }
 
+        // The assembly-wide form, read the way the generator reads it.
+        foreach (var attribute in component.ContainingAssembly?.GetAttributes() ?? [])
+        {
+            if (string.Equals(attribute.AttributeClass?.ToDisplayString(), ChainGroupFullName, StringComparison.Ordinal)
+                && attribute.ConstructorArguments.Length != 0
+                && attribute.ConstructorArguments[0].Value is INamedTypeSymbol group
+                && SymbolEqualityComparer.Default.Equals(group, member.ContainingType)
+                && string.Equals(
+                    ComponentFactoryGenerator.GroupMemberName(component.Name, group.Name), member.Name,
+                    StringComparison.Ordinal)
+                && !string.Equals(component.Name, member.Name, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 

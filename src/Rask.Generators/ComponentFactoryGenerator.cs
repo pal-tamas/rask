@@ -4962,6 +4962,22 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             }
         }
 
+        // The assembly-wide form: a group for every component whose name carries the group's, so a library of fifty
+        // `Ui*` components states it once. A component whose name does not (a `Card` beside `UiCard`) keeps its bare
+        // entry rather than landing on the group under its whole name.
+        foreach (var attr in symbol.ContainingAssembly.GetAttributes())
+        {
+            if (attr.AttributeClass?.ToDisplayString() == ChainGroupFullName
+                && attr.ConstructorArguments.Length != 0
+                && attr.ConstructorArguments[0].Value is INamedTypeSymbol group
+                && SymbolEqualityComparer.Default.Equals(group.ContainingAssembly, symbol.ContainingAssembly)
+                && GroupMemberName(entryName, group.Name) is var member
+                && !string.Equals(member, entryName, StringComparison.Ordinal))
+            {
+                return GroupOn(group, member);
+            }
+        }
+
         return null;
     }
 

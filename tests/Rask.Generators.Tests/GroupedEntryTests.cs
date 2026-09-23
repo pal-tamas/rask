@@ -145,6 +145,35 @@ public sealed class GroupedEntryTests
         Assert.Empty(Errors(compilation));
     }
 
+    [Fact]
+    public void An_assembly_wide_group_takes_every_component_whose_name_carries_it_and_leaves_the_rest_bare()
+    {
+        var compilation = BuilderGeneratorHarness.Compile(
+            """
+            using Rask.Core;
+
+            [assembly: RaskChainGroup(typeof(Kit.Ui))]
+
+            namespace Kit;
+
+            public static partial class Ui;
+
+            public sealed partial class UiButton : Component
+            {
+                public string? Tone { get; set; }
+            }
+
+            public sealed partial class Card : Component;
+
+            public sealed partial class Page : Component
+            {
+                protected override Component? Render() => Card[ Ui.Button.Tone("a")["Save"] ];
+            }
+            """);
+
+        Assert.Empty(Errors(compilation));
+    }
+
     [Theory]
     [InlineData("var b = Ui.Button.Tone(\"a\"); b.Tone = \"b\";")]
     // A grouped entry names itself at the symbol level, so even the step-less form is caught — which the bare

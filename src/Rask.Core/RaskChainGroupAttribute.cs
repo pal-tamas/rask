@@ -18,9 +18,12 @@ namespace Rask.Core;
 /// <c>Trigger.Fullscreen</c> — or as <paramref name="member" /> says when that does not fit.
 /// </para>
 /// <para>
-/// Inherited, so a library states it once on its base class. It applies only where the group class is declared in
-/// the component's own assembly: the group is re-opened as a <c>partial</c> to add the member, which cannot be done
-/// to another assembly's type — so an app's component deriving from a library's base keeps its own bare entry.
+/// Inherited, so a library states it once on its base class — or once for the whole assembly,
+/// <c>[assembly: RaskChainGroup(typeof(Ui))]</c>, where it takes every component whose name carries the group's
+/// (<c>UiButton</c>, not <c>Card</c>). A class's own attribute wins over the assembly's. It applies only where the
+/// group class is declared in the component's own assembly: the group is re-opened as a <c>partial</c> to add the
+/// member, which cannot be done to another assembly's type — so an app's component deriving from a library's base
+/// keeps its own bare entry.
 /// </para>
 /// <para>
 /// For component libraries; an application's own components are reached by their bare names.
@@ -29,7 +32,7 @@ namespace Rask.Core;
 /// <param name="group">The <c>partial</c> class the entry is added to.</param>
 /// <param name="member">The entry's name in the group, or <c>null</c> to derive it from the component's name.</param>
 [EditorBrowsable(EditorBrowsableState.Never)]
-[AttributeUsage(AttributeTargets.Class, Inherited = true)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Assembly, Inherited = true, AllowMultiple = true)]
 public sealed class RaskChainGroupAttribute(Type group, string? member = null) : Attribute
 {
     /// <summary>The class the entry is added to.</summary>
