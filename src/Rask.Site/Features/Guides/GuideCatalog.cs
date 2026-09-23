@@ -202,7 +202,7 @@ public static class GuideCatalog
             "A .tsx or Lit file as an ordinary Rask component, with props owned by C#.", "One Person Framework")
         {
             SearchTitle = "React, Vue and Svelte components in a C# app",
-            Description = "Use a React, Preact, Solid, Vue, Svelte, Angular or Lit file as an ordinary C# component: props declared in C#, callbacks into C#, hydration and hot reload.",
+            Description = "Use React, Vue, Svelte, Lit or Angular components in a C# app, from your own files or straight from npm, with typed props, callbacks and hot reload.",
         },
         new("blazor-components", "Blazor components",
             "A real Blazor component — MudBlazor, an RCL — hosted in a Rask page, server-rendered.", "One Person Framework")
