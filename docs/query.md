@@ -299,6 +299,22 @@ Three things it deliberately does not do:
   commit, and a rollback tells nobody — a refetch before the commit could read the rows as they were and
   cache that.
 
+## Subscriptions
+
+A query asks; a subscription is told. `QueryClient.Subscribe<T>()` is declared where a query is and read the same way, and
+every notification published afterwards — by a command, a job, another server — lands in it and re-renders the component:
+
+```csharp
+var orders  = QueryClient.Query(new GetOrders(Page));
+var shipped = QueryClient.Subscribe<OrderShipped>();
+
+shipped.Into(orders, (list, e) => [.. list.Select(o => o.Id == e.OrderId ? o with { Status = e.Status } : o)]);
+```
+
+`.Into` patches the query on screen with no round trip. Scoping an event to one record, the watch policy that decides who
+may see it, a stream that is a function, and a WebAssembly front end subscribing on its server are all in
+[subscriptions](subscriptions.md).
+
 ## Try it
 
 Every shape above on one small page. The parcel list is a query declared in `Render` that follows the URL's

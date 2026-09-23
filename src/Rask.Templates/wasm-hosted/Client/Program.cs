@@ -2,6 +2,7 @@ using Company.RaskServer.Client;
 using Rask.Wasm;
 // rask:if cqrs
 using Rask.Cqrs.Client;
+using Rask.Query;
 // rask:end
 // rask:if pwa
 using Rask.Core.Browser;
@@ -20,6 +21,10 @@ var host = WasmHostBuilder.CreateDefault();
 // makes in-process. A client is a PURE client: a handler compiled into the browser is bypassed, and
 // [LocalOnly] is the only way to keep a message here.
 host.Services.AddRaskCqrsClient();
+
+// The same QueryClient a server page uses — Query, Command and Subscribe — over that dispatcher. A subscription
+// opens on the server, so a page here hears what any visitor's command published.
+host.Services.AddRaskQuery();
 // rask:end
 // rask:if pwa
 

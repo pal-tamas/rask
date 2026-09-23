@@ -143,6 +143,24 @@ public sealed class RemoteContract
     public bool AllowAnonymous { get; init; }
 
     /// <summary>
+    ///     True when the notification record itself carries <c>[Authorize]</c> or <c>[AllowAnonymous]</c>, which is what
+    ///     opens an <em>unscoped</em> notification to remote subscribers. A scoped one — marked
+    ///     <see cref="ForAttribute{TScope}" /> — is guarded by its <see cref="IWatchPolicy{TScope}" /> instead, and needs
+    ///     no declaration; an unscoped one that declares nothing stays closed, so no auth event is ever one browser
+    ///     request away.
+    /// </summary>
+    public bool SubscribeDeclared { get; init; }
+
+    /// <summary>The policy the notification record names with <c>[Authorize(Policy = …)]</c>, for subscribers.</summary>
+    public string? SubscribePolicy { get; init; }
+
+    /// <summary>The roles the notification record names with <c>[Authorize(Roles = …)]</c>, for subscribers.</summary>
+    public string? SubscribeRoles { get; init; }
+
+    /// <summary>True when the notification record is marked <c>[AllowAnonymous]</c>: a signed-out visitor may subscribe.</summary>
+    public bool SubscribeAnonymously { get; init; }
+
+    /// <summary>
     ///     Sends this message through the ambient <see cref="IRemoteDispatch" />, returning the
     ///     <c>Task&lt;TResult&gt;</c> the dispatcher expects.
     /// </summary>

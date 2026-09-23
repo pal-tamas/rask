@@ -48,6 +48,19 @@ public static class RemoteEndpointDefaults
     /// </summary>
     public const string UploadSegment = "upload";
 
+    /// <summary>
+    ///     The path segment appended to <see cref="RoutePrefix" /> for a subscription:
+    ///     <c>GET {prefix}/events/{name}?for={key}</c> answers with a <c>text/event-stream</c> of the
+    ///     notification's generated JSON, one event per notification.
+    /// </summary>
+    public const string EventsSegment = "events";
+
+    /// <summary>The query parameter carrying a scoped subscription's key, in its invariant text form.</summary>
+    public const string ScopeQueryParameter = "for";
+
+    /// <summary>The server-sent event that says a subscription has been admitted and is listening.</summary>
+    public const string ReadyEvent = "ready";
+
     /// <summary>The header naming the upload session a chunk belongs to, and that a message spends.</summary>
     public const string UploadHeader = "X-Rask-Upload";
 

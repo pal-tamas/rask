@@ -198,6 +198,56 @@ public interface IQueryClient
     Command Command(params QueryKey[] invalidates);
 
     /// <summary>
+    ///     A live view of every <typeparamref name="TNotification" /> published — starting with the last one, when
+    ///     there is one — for as long as a component reads it. tRPC's <c>useSubscription</c>, over a CQRS notification.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         For a notification marked <see cref="ForAttribute{TScope}" />, pass the key of the thing to watch: only
+    ///         notifications about it arrive, and its <see cref="IWatchPolicy{TScope}" /> must admit the subscriber, or
+    ///         the subscription settles on <see cref="SubscriptionStatus.Error" />.
+    ///     </para>
+    ///     <code>
+    ///     var placed  = client.Subscribe&lt;OrderPlaced&gt;().Keep(20);   // every order, the last 20 of them
+    ///     var shipped = client.Subscribe&lt;OrderShipped&gt;(orderId);   // one order's
+    ///     </code>
+    ///     <para>
+    ///         In a browser app that is a client of a server, the subscription opens on the server, so it hears what
+    ///         every visitor's command publishes.
+    ///     </para>
+    /// </remarks>
+    /// <typeparam name="TNotification">The notification to watch.</typeparam>
+    /// <param name="key">What to watch, for a scoped notification; omitted for one that goes to everyone.</param>
+    Subscription<TNotification> Subscribe<TNotification>(object? key = null)
+        where TNotification : INotification;
+
+    /// <summary>
+    ///     A subscription that follows its key: <paramref name="key" /> runs at every read, and a different key
+    ///     re-points it — for one held in a field and created before a route parameter is bound.
+    /// </summary>
+    /// <remarks>A null key means the input is not there yet: the subscription waits, opening nothing, until it is.</remarks>
+    /// <typeparam name="TNotification">The notification to watch; one marked <see cref="ForAttribute{TScope}" />.</typeparam>
+    /// <param name="key">Reads the key from the component's current state, or null to wait.</param>
+    Subscription<TNotification> Subscribe<TNotification>(Func<object?> key)
+        where TNotification : INotification;
+
+    /// <summary>
+    ///     A live view of a stream that is a function rather than a notification — a price feed, a progress report —
+    ///     reopened with the new input whenever <paramref name="input" /> reads a different one.
+    /// </summary>
+    /// <remarks>
+    ///     The stream is handed the input it was opened for. It runs where the component runs: on the server for a
+    ///     Server-host page, in the browser for a WebAssembly one. A null input waits.
+    /// </remarks>
+    /// <typeparam name="TInput">What the stream is opened for.</typeparam>
+    /// <typeparam name="T">What it yields.</typeparam>
+    /// <param name="input">Reads the component's current state.</param>
+    /// <param name="stream">Opens the stream for one input.</param>
+    Subscription<T> Subscribe<TInput, T>(
+        Func<TInput> input,
+        Func<TInput, CancellationToken, IAsyncEnumerable<T>> stream);
+
+    /// <summary>
     ///     Marks every entry for a query message type stale. Anything rendering one refetches at once;
     ///     anything not rendered refetches when something next observes it.
     /// </summary>

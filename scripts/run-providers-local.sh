@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Provider gate — do Rask's batteries hold on a real client-server database, and does the broadcast backplane carry
-# a publish between two hosts over a real Redis?
+# the provider suites against real database servers.
 #
 # Everything else about the database runs on SQLite. What only a server can prove is the provider half:
 # that the jobs claim's UPDATE re-evaluates its predicate against the row version the winner committed, that

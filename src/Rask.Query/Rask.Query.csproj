@@ -8,7 +8,7 @@
 
     <PackageId>Rask.Query</PackageId>
     <Title>Rask — Server State</Title>
-    <Description>Wraps IDispatcher with a query cache for Rask components: dedup, staleness, background refetch and invalidation, scoped to the live session so one visitor is never served another's data. The C# counterpart of what a React front end gets from TanStack Query, on every .NET host.</Description>
+    <Description>Wraps IDispatcher with a query cache and tRPC-style subscriptions for Rask components: dedup, staleness, background refetch and invalidation, scoped to the live session so one visitor is never served another's data, plus QueryClient.Subscribe — every published CQRS notification re-renders the pages watching it. The C# counterpart of what a React front end gets from TanStack Query, on every .NET host.</Description>
   </PropertyGroup>
 
   <ItemGroup>

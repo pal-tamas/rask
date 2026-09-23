@@ -140,6 +140,125 @@ internal sealed class SessionQueryClient : IQueryClient
         return new Command(this, [.. invalidates]);
     }
 
+    public Subscription<TNotification> Subscribe<TNotification>(object? key = null)
+        where TNotification : INotification =>
+        new(this, NotificationTarget<TNotification>(key));
+
+    public Subscription<TNotification> Subscribe<TNotification>(Func<object?> key)
+        where TNotification : INotification
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        return new Subscription<TNotification>(this, new KeySource<TNotification>(this, key));
+    }
+
+    public Subscription<T> Subscribe<TInput, T>(
+        Func<TInput> input,
+        Func<TInput, CancellationToken, IAsyncEnumerable<T>> stream)
+    {
+        ArgumentNullException.ThrowIfNull(input);
+        ArgumentNullException.ThrowIfNull(stream);
+        return new Subscription<T>(this, new StreamSource<TInput, T>(input, stream));
+    }
+
+    /// <summary>
+    ///     The subscription knobs the app configured in <c>Rask:Cqrs</c>, or their defaults where nothing did.
+    /// </summary>
+    internal CqrsExecutionOptions Subscriptions =>
+        _dispatcher is Dispatcher dispatcher ? dispatcher.Subscriptions : CqrsExecutionOptions.Default;
+
+    /// <summary>What a notification subscription watches: its type and key, through the dispatcher.</summary>
+    internal SubscriptionTarget<TNotification> NotificationTarget<TNotification>(object? key)
+        where TNotification : INotification =>
+        new(new NotificationIdentity(typeof(TNotification), key), (admitted, ct) => Watch<TNotification>(key, admitted, ct));
+
+    /// <summary>What a function subscription watches: one input, handed to the stream it opens.</summary>
+    internal static SubscriptionTarget<T>? StreamTarget<TInput, T>(
+        TInput input,
+        Func<TInput, CancellationToken, IAsyncEnumerable<T>> stream) =>
+        input is null
+            ? null
+            : new SubscriptionTarget<T>(new StreamIdentity(input), (admitted, ct) => Admit(admitted, stream(input, ct), ct));
+
+    // The dispatcher's own Watch knows when the subscription is admitted — after the policy, after the replay. Any
+    // other IDispatcher (a test double) is taken as admitted the moment it is asked.
+    private IAsyncEnumerable<TNotification> Watch<TNotification>(object? key, Action admitted, CancellationToken ct)
+        where TNotification : INotification =>
+        _dispatcher is Dispatcher dispatcher
+            ? Typed<TNotification>(dispatcher.Watch(typeof(TNotification), key, admitted, ct), ct)
+            : Admit(admitted, _dispatcher.SubscribeAsync<TNotification>(key, ct), ct);
+
+    private static async IAsyncEnumerable<TNotification> Typed<TNotification>(
+        IAsyncEnumerable<INotification> source,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct)
+    {
+        await foreach (var notification in source.WithCancellation(ct).ConfigureAwait(false))
+        {
+            yield return (TNotification)notification;
+        }
+    }
+
+    private static async IAsyncEnumerable<T> Admit<T>(
+        Action admitted,
+        IAsyncEnumerable<T> source,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct)
+    {
+        admitted();
+        await foreach (var value in source.WithCancellation(ct).ConfigureAwait(false))
+        {
+            yield return value;
+        }
+    }
+
+    private sealed record NotificationIdentity(Type Type, object? Key);
+
+    private sealed record StreamIdentity(object Input);
+
+    private sealed class KeySource<TNotification>(SessionQueryClient client, Func<object?> key)
+        : SubscriptionSource<TNotification>
+        where TNotification : INotification
+    {
+        private bool _asked;
+        private object? _last;
+
+        public override bool TryAdvance(out SubscriptionTarget<TNotification>? target)
+        {
+            var current = key();
+            if (_asked && Equals(current, _last))
+            {
+                target = null;
+                return false;
+            }
+
+            _asked = true;
+            _last = current;
+            target = current is null ? null : client.NotificationTarget<TNotification>(current);
+            return true;
+        }
+    }
+
+    private sealed class StreamSource<TInput, T>(
+        Func<TInput> input,
+        Func<TInput, CancellationToken, IAsyncEnumerable<T>> stream) : SubscriptionSource<T>
+    {
+        private bool _asked;
+        private TInput _last = default!;
+
+        public override bool TryAdvance(out SubscriptionTarget<T>? target)
+        {
+            var current = input();
+            if (_asked && EqualityComparer<TInput>.Default.Equals(current, _last))
+            {
+                target = null;
+                return false;
+            }
+
+            _asked = true;
+            _last = current;
+            target = StreamTarget(current, stream);
+            return true;
+        }
+    }
+
     public void Invalidate<TQuery>() => Invalidate(typeof(TQuery));
 
     public void Invalidate(Type queryType)

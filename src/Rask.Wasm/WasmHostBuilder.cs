@@ -47,7 +47,6 @@ public sealed class WasmHostBuilder
         // Transient user messages / toasts (a flash-message pattern). Singleton = one queue for the app instance
         // (the whole WASM app is a single session), so a message queued before a NavigateTo survives it.
         Services.AddSingleton<IToaster, Toaster>();
-        Services.AddSingleton<IBroadcast, BroadcastHub>();
 
         // Singleton, unlike the server's scoped registration: the whole WASM app is one visitor, so
         // there is exactly one culture for its lifetime.

@@ -50,15 +50,35 @@ internal enum VsCodeSetup
 /// </remarks>
 internal static class VsCodeAssembly
 {
-    /// <summary>The fragment roots each setup is assembled from, in order; a later one wins a path.</summary>
-    internal static IReadOnlyList<string> FragmentRoots(VsCodeSetup setup) => setup switch
+    /// <summary>The stylesheet a Tailwind template compiles, relative to the project.</summary>
+    internal const string TailwindEntry = "Styles/app.css";
+
+    /// <summary>
+    ///     The fragment roots each setup is assembled from, in order; a later one wins a path. Every setup ends
+    ///     with the editor settings (<c>_vscode-editor</c>), which <c>_vscode-tailwind</c> replaces — together
+    ///     with the extension recommendations — for a template that compiles Tailwind.
+    /// </summary>
+    internal static IReadOnlyList<string> FragmentRoots(VsCodeSetup setup, bool tailwind)
     {
-        VsCodeSetup.None => [],
-        VsCodeSetup.Host => ["_vscode"],
-        VsCodeSetup.WasmHost => ["_vscode", "_vscode-wasmhost"],
-        VsCodeSetup.WasmBrowser => ["_vscode-wasm"],
-        _ => throw new ArgumentOutOfRangeException(nameof(setup), setup, null),
-    };
+        IReadOnlyList<string> debug = setup switch
+        {
+            VsCodeSetup.None => [],
+            VsCodeSetup.Host => ["_vscode"],
+            VsCodeSetup.WasmHost => ["_vscode", "_vscode-wasmhost"],
+            VsCodeSetup.WasmBrowser => ["_vscode-wasm"],
+            _ => throw new ArgumentOutOfRangeException(nameof(setup), setup, null),
+        };
+
+        return debug.Count == 0 ? [] : [.. debug, "_vscode-editor", .. tailwind ? ["_vscode-tailwind"] : Array.Empty<string>()];
+    }
+
+    /// <summary>
+    ///     Whether <paramref name="files" /> compile Tailwind: they carry <see cref="TailwindEntry" /> importing it.
+    ///     Read from what the template actually wrote, so a template that gains or drops Tailwind needs no list here.
+    /// </summary>
+    internal static bool CompilesTailwind(string targetDirectory, IReadOnlyList<ScaffoldFile> files) =>
+        files.Any(f => Path.GetRelativePath(targetDirectory, f.Path).Replace('\\', '/') == TailwindEntry
+                       && f.Content.Contains("@import \"tailwindcss\"", StringComparison.Ordinal));
 
     /// <summary>
     ///     <paramref name="existing" /> plus the <c>.vscode/</c> files for <paramref name="setup" />, named for
@@ -75,7 +95,7 @@ internal static class VsCodeAssembly
         ArgumentNullException.ThrowIfNull(existing);
 
         var fragment = new Dictionary<string, ScaffoldFile>(StringComparer.Ordinal);
-        foreach (var root in FragmentRoots(setup))
+        foreach (var root in FragmentRoots(setup, CompilesTailwind(targetDirectory, existing)))
         {
             foreach (var asset in TemplateAssets.Load(root))
             {

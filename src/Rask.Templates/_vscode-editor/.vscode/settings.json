@@ -1,0 +1,8 @@
+{
+  // A component's paired files — its scoped CSS/TypeScript, a .tsx/Lit island, a package island's props
+  // snapshot — are paired with its .cs by file name, so the explorer nests them under it.
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.patterns": {
+    "*.cs": "${capture}.css, ${capture}.ts, ${capture}.tsx, ${capture}.props.json"
+  }
+}

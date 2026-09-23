@@ -21,3 +21,5 @@ Rask.Cqrs.Server.RaskCqrsServerOptions.UploadSessionLifetime.set -> void
 Rask.Cqrs.Server.RaskCqrsServerServiceCollectionExtensions
 static Rask.Cqrs.Server.RaskCqrsEndpointExtensions.MapRaskCqrs(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints) -> Microsoft.AspNetCore.Builder.IEndpointConventionBuilder!
 static Rask.Cqrs.Server.RaskCqrsServerServiceCollectionExtensions.AddRaskCqrsServer(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Cqrs.Server.RaskCqrsServerOptions!>? configure = null, System.Action<Rask.Cqrs.CqrsOptions!>? configureCqrs = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+Rask.Cqrs.Server.RaskCqrsServerOptions.EventKeepAlive.get -> System.TimeSpan
+Rask.Cqrs.Server.RaskCqrsServerOptions.EventKeepAlive.set -> void

@@ -9,6 +9,36 @@ them until tagged releases begin.
 
 ### Added
 
+- **`rask new` scaffolds a committed `.vscode/settings.json`.** A component's paired files (`Counter.css`,
+  `Counter.ts`, a `.tsx` island, a package island's `.props.json`) nest under `Counter.cs` in the explorer, in every
+  template. The templates that compile Tailwind (`server`, `wasm`, `wasm-hosted`) also get class completion inside
+  `Div.Class("…")` and recommend the Tailwind CSS IntelliSense extension. The scaffolded `.gitignore` re-includes the
+  file. An existing app adds `!/.vscode/settings.json` and copies the file from a fresh scaffold (`docs/cli.md`).
+- **Subscriptions: `QueryClient.Subscribe<T>()`, tRPC-style, over CQRS notifications.** A component subscribes where it
+  queries — `var placed = QueryClient.Subscribe<OrderPlaced>().Keep(20);` in `Render`, or `field ??=
+  QueryClient.Subscribe<OrderShipped>(() => Id)` — and every notification published afterwards re-renders it, whoever
+  published it: a command handler, a job, a Rask.Data domain event after its commit, an outbox relay, another server.
+  `Subscription<T>` reads like a query (`Data`, `IsLoading`, `Error`, `Status` Connecting/Live/Reconnecting/Ended/Error,
+  `Items` with `.Keep(n)`), starts with the last value published for what it watches, reconnects with backoff, closes
+  with the component that read it, and `.Into(query, patch)` edits a query's cache in place — refetched once after a
+  reconnect. `QueryClient.Subscribe(input, (i, ct) => stream)` does the same for any `IAsyncEnumerable<T>`, and
+  `IDispatcher.SubscribeAsync<T>(key?, ct)` is the same subscription outside a component.
+  - **Scoped and authorized.** `record OrderShipped([For<Order>] Guid OrderId, …) : INotification` reaches only
+    `Subscribe<OrderShipped>(id)`, admitted by an `IWatchPolicy<Order>` the generator registers like a handler. No
+    policy means nobody may watch; the `Rask` package defaults every scope to "a signed-in user may watch their own id".
+  - **From WebAssembly.** With `AddRaskCqrsClient()`, a subscription opens on the server:
+    `GET /_rask/cqrs/request/events/{name}?for={key}`, answered with server-sent events by `MapRaskCqrs()`. Closed
+    unless opened — a scoped notification by its policy, an unscoped one only when its record carries `[Authorize]` or
+    `[AllowAnonymous]` — so no auth or domain event is one browser request away.
+  - The wasm-hosted template's client now references Rask.Query and calls `AddRaskQuery()`, so `QueryClient` works in
+    `Client/` pages.
+  - Every number is a setting, read from configuration first and overridable in code: `Rask:Cqrs:ReplayCapacity`,
+    `SubscriptionBuffer`, `SubscriptionReconnectDelay`, `SubscriptionReconnectCeiling`, and
+    `Rask:Cqrs:Server:EventKeepAlive` for the stream's keep-alive.
+  - The rask.sh guide is now **Subscriptions** (`/docs/guides/subscriptions/`, the old `/docs/guides/broadcast/` still
+    answers with its canonical pointing there), with a demo: two boards subscribed to every order and a tracker scoped
+    to one.
+
 - **The Rask.Query guide has a live demo on rask.sh (#1128).** A parcel list on one small page shows every query
   shape the guide describes: a query declared in `Render` that follows the URL's `?page=` with `KeepPreviousData`, a
   dependent query that stays paused until a pick, a function query keyed `QueryKey.For<Parcel>(input)`, and a
@@ -21,13 +51,6 @@ them until tagged releases begin.
   WASM bundle (it needs the `wasm-tools` workload), so it proves the FTS5 build and EF's query rewrite a browser app
   actually ships. Listed in `run-all-gates.sh`.
 
-- **Broadcast across servers: `Rask.Redis` (#1115).** `AddRaskRedisBackplane()` carries `IBroadcast` messages
-  between the instances behind a load balancer over Redis pub/sub, so a publish on one instance re-renders the
-  subscribed pages on every instance. Only a topic declared with a source-generated JSON contract crosses —
-  `new Topic<OrderPlaced>("orders", AppJson.Default.OrderPlaced)` — and every other topic stays in its process, as
-  a live object. The connection string is `Rask:ConnectionStrings:Redis` (or the app's own
-  `IConnectionMultiplexer`), each topic is the channel `rask:broadcast:{name}` (`Rask:Redis:ChannelPrefix`), and an
-  instance drops its own message when Redis hands it back, so no page sees one twice.
 - **Full-text search on PostgreSQL** (#1109). `HasFullTextSearch`, `Search(text)` and `FullText.Highlight`/`Snippet`
   now work through `UseRaskPostgres` as they do on SQLite. The index is a stored generated `tsvector` column with a
   GIN index — no triggers — and a search is `@@ to_tsquery(…)` ranked by `ts_rank_cd`, highlighted by `ts_headline`
@@ -231,6 +254,14 @@ them until tagged releases begin.
   and a collection the entity's own `Configure` already mapped is left exactly as it is.
 
 ### Changed
+
+- **BREAKING: `IBroadcast` and `Topic<T>` are removed; a CQRS notification is the topic.** Publish with
+  `dispatcher.PublishAsync(new OrderPlaced(…))` instead of `broadcast.PublishAsync(Topics.Orders, …)`, and subscribe with
+  `QueryClient.Subscribe<OrderPlaced>()` in `Render` instead of `broadcast.Subscribe(this, Topics.Orders, …)` in
+  `OnMount`. `IDispatcher.PublishAsync` now also reaches every open subscription, and `IDispatcher` gains
+  `SubscribeAsync` (an app's own `IDispatcher` double implements it). A value lands the way a query result does rather
+  than through the session's dispatch queue, so a burst is never dropped by `MaxPendingHandlers`. See
+  [subscriptions](docs/subscriptions.md#coming-from-ibroadcast).
 
 - **The dashboard's log search is served by an index** (#1111). It was `LIKE '%…%'` over every retained row. The
   SQLite log store now keeps an FTS5 table with the `trigram` tokenizer beside the log, kept current by triggers, and

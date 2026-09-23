@@ -35,6 +35,14 @@ public static class CqrsRegistry
     private static volatile IReadOnlyDictionary<Type, NotificationInvoker> _notifications =
         new Dictionary<Type, NotificationInvoker>();
 
+    private static readonly List<(object Key, (Type Type, NotificationScope Scope)[] Items)> _scopeGroups = new();
+
+    private static volatile IReadOnlyDictionary<Type, NotificationScope> _scopes =
+        new Dictionary<Type, NotificationScope>();
+
+    // The modules whose initializer has been forced, so a lookup that misses does it at most once per module.
+    private static readonly ConcurrentDictionary<System.Reflection.Module, bool> _initialized = new();
+
     private static readonly ConcurrentQueue<Action<IServiceCollection, ServiceLifetime>> Registrations = new();
 
     /// <summary>Maps a query/command type to its dispatch invoker.</summary>
@@ -101,6 +109,83 @@ public static class CqrsRegistry
                 RebuildNotifications();
             }
         }
+    }
+
+    /// <summary>
+    ///     Installs <paramref name="registrations" /> as the complete set of scoped notifications — those marked
+    ///     <see cref="ForAttribute{TScope}" /> — owned by <paramref name="groupKey" />, the same per-assembly swap as
+    ///     <see cref="ReplaceRequests" />.
+    /// </summary>
+    public static void ReplaceNotificationScopes(
+        object groupKey,
+        IEnumerable<(Type Type, NotificationScope Scope)> registrations)
+    {
+        ArgumentNullException.ThrowIfNull(groupKey);
+        ArgumentNullException.ThrowIfNull(registrations);
+
+        var items = registrations as (Type Type, NotificationScope Scope)[] ?? registrations.ToArray();
+        lock (_lock)
+        {
+            if (!ReplaceGroup(_scopeGroups, groupKey, items))
+            {
+                return;
+            }
+
+            var map = new Dictionary<Type, NotificationScope>();
+            foreach (var (_, group) in _scopeGroups)
+            {
+                foreach (var (type, scope) in group)
+                {
+                    map[type] = scope;
+                }
+            }
+
+            _scopes = map;
+        }
+    }
+
+    /// <summary>
+    ///     Asks the <see cref="IWatchPolicy{TScope}" /> registered in <paramref name="provider" /> whether its subscriber
+    ///     may watch <paramref name="key" />. No policy is a refusal. Called by generated code.
+    /// </summary>
+    /// <typeparam name="TScope">What the key identifies.</typeparam>
+    /// <param name="provider">The subscriber's scope.</param>
+    /// <param name="key">The key asked for.</param>
+    /// <param name="cancellationToken">Cancels the check.</param>
+    public static Task<bool> CanWatchAsync<TScope>(
+        IServiceProvider provider,
+        object key,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(provider);
+        ArgumentNullException.ThrowIfNull(key);
+        return provider.GetService<IWatchPolicy<TScope>>() is { } policy
+            ? policy.CanWatchAsync(key, cancellationToken)
+            : Task.FromResult(false);
+    }
+
+    /// <summary>What the generator recorded about a scoped notification type, or null for an unscoped one.</summary>
+    /// <remarks>
+    ///     Called on every publish, so a miss must cost a dictionary lookup and nothing else. The scope table is filled
+    ///     by the declaring assembly's module initializer, which the runtime runs on first access to a member of that
+    ///     assembly — and a subscriber that has only named the type (typeof, a generic argument) has not accessed one.
+    ///     So the module constructor is forced ONCE per module, behind a flag: running it per lookup would put the
+    ///     runtime's per-module lock in the publisher's path for every unscoped notification, which always misses.
+    /// </remarks>
+    internal static NotificationScope? FindNotificationScope(Type notificationType)
+    {
+        if (_scopes.TryGetValue(notificationType, out var scope))
+        {
+            return scope;
+        }
+
+        if (!_initialized.TryAdd(notificationType.Module, true))
+        {
+            return null;
+        }
+
+        System.Runtime.CompilerServices.RuntimeHelpers.RunModuleConstructor(notificationType.Module.ModuleHandle);
+        return _scopes.TryGetValue(notificationType, out scope) ? scope : null;
     }
 
     // Caller holds _lock. Returns false when the group's contribution is unchanged, so an unrelated hot
