@@ -71,7 +71,7 @@ public static class RaskStorageServiceCollectionExtensions
         services.TryAddSingleton(sp => CreateBackend(sp, sp.GetRequiredService<StorageOptions>()));
         services.TryAddSingleton(sp => new TemporaryUrlProtector(sp.GetRequiredService<IDataProtectionProvider>()));
         services.TryAddSingleton<StorageRuntime>();
-        services.TryAddSingleton<IFiles, Files<TContext>>();
+        services.TryAddSingleton<IFiles, FileStore<TContext>>();
 
         // In order: the model check names the missing mapping, the startup check validates configuration, and
         // only then does the sweep start. AddHostedService uses TryAddEnumerable, so a repeat call adds none.

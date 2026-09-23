@@ -93,8 +93,11 @@ public sealed class StorageHarness : IAsyncDisposable
     public TestFile Upload(string name, byte[] bytes, string? browserType = null) => _uploads.Add(name, bytes, browserType);
 
     /// <summary>Saves a picked file the way a component does: its opener, its name, and its declared size.</summary>
-    public Task<StoredFile> SaveUploadAsync(TestFile upload, Action<SaveOptions>? configure = null) =>
-        Files.SaveAsync(upload.OpenReadStream, upload.Name, upload.Size, configure);
+    public Task<StoredFile> SaveUploadAsync(TestFile upload, bool isPublic = false)
+    {
+        var saving = Files.Save(upload.OpenReadStream, upload.Name, upload.Size);
+        return (isPublic ? saving.Public() : saving).AsTask();
+    }
 
     public StorageDbContext NewContext() =>
         _provider.GetRequiredService<IDbContextFactory<StorageDbContext>>().CreateDbContext();

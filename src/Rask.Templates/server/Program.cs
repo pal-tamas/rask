@@ -171,7 +171,7 @@ builder.Services.AddRaskCache<AppDbContext>();
 // rask:if storage
 
 // The files your users upload, kept by id: save an upload with IFiles.SaveAsync, keep the returned
-// Id on your entity, and hand the file back with files.Url(id), files.TemporaryUrlAsync(id, lifetime)
+// Id on your entity, and hand the file back with files.Url(id), files.Share(id).For(lifetime)
 // or files.Download(id). The bytes go to ./storage here and to /data/files on the deploy volume —
 // which NO backup covers — until you point them at a bucket: rask deploy --env Rask__Storage__Provider=S3
 // --env Rask__Storage__S3__Bucket=... (and the keys beside it), or Rask__Storage__Provider=Azure. The routes that
@@ -263,7 +263,7 @@ builder.Services.AddRaskPwa(new WebAppManifest
 var app = builder.Build();
 // rask:if cqrs data
 // Point the model surface at the context registered above. This is what lets a model be read
-// from anywhere — Product.Where(…), Product.FindAsync(id) — with no DbContext injected.
+// from anywhere — Product.Where(…), Product.Get(id) — with no DbContext injected.
 Db.Configure(app.Services);
 // rask:end
 // FIRST: rewrite Request.Scheme/RemoteIpAddress from the proxy's headers, so everything below
@@ -324,7 +324,7 @@ app.MapPushSubscriptions();
 app.UseRask<App>();
 
 // rask:if storage
-// The routes behind files.Url(id) and files.TemporaryUrlAsync(id, lifetime). After UseRask, which sets
+// The routes behind files.Url(id) and files.Share(id).For(lifetime). After UseRask, which sets
 // the path base they live under.
 app.MapRaskStorage();
 

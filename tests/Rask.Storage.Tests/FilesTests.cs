@@ -29,7 +29,7 @@ public sealed class FilesTests
 
         // Field by field, not instance by instance: StoredFile is an Entity<Guid> now rather than a record,
         // so Equals is reference equality and the row read back is a different object than the one saved.
-        var stored = await harness.Files.FindAsync(file.Id);
+        var stored = await harness.Files.Get(file.Id);
         Assert.NotNull(stored);
         Assert.Equal(file.Id, stored.Id);
         Assert.Equal(file.Name, stored.Name);
@@ -50,7 +50,7 @@ public sealed class FilesTests
         await using var harness = new StorageHarness();
         using var content = new MemoryStream(Samples.Text);
 
-        var file = await harness.Files.SaveAsync(content, "data.csv", o => o.Public = true);
+        var file = await harness.Files.Save(content, "data.csv").Public();
 
         Assert.Equal("text/csv", file.ContentType);
         Assert.True(file.Public);
@@ -61,7 +61,7 @@ public sealed class FilesTests
     public async Task An_empty_file_is_a_file()
     {
         await using var harness = new StorageHarness();
-        var file = await harness.Files.SaveAsync(new MemoryStream(), "empty.bin");
+        var file = await harness.Files.Save(new MemoryStream(), "empty.bin");
 
         Assert.Equal(0, file.Size);
         Assert.Equal("application/octet-stream", file.ContentType);
@@ -88,7 +88,7 @@ public sealed class FilesTests
         await using var harness = new StorageHarness(o => o.MaxFileSize = 100_000);
 
         var ex = await Assert.ThrowsAsync<FileRejectedException>(() =>
-            harness.Files.SaveAsync(new MemoryStream(Samples.Png(250_000)), "big.png"));
+            harness.Files.Save(new MemoryStream(Samples.Png(250_000)), "big.png").AsTask());
 
         Assert.Equal(FileRejection.TooLarge, ex.Reason);
         Assert.Equal(0, await harness.CountRowsAsync());
@@ -129,15 +129,15 @@ public sealed class FilesTests
         var bytes = Samples.Png(1000);
         var file = await harness.SaveUploadAsync(harness.Upload("a.png", bytes));
 
-        await using (var stream = await harness.Files.OpenReadAsync(file.Id))
+        await using (var stream = await harness.Files.OpenRead(file.Id))
         {
             var copy = new MemoryStream();
             await stream!.CopyToAsync(copy);
             Assert.Equal(bytes, copy.ToArray());
         }
 
-        Assert.Null(await harness.Files.OpenReadAsync(Guid.NewGuid()));
-        Assert.Null(await harness.Files.FindAsync(Guid.NewGuid()));
+        Assert.Null(await harness.Files.OpenRead(Guid.NewGuid()));
+        Assert.Null(await harness.Files.Get(Guid.NewGuid()));
     }
 
     [Fact]
@@ -146,11 +146,11 @@ public sealed class FilesTests
         await using var harness = new StorageHarness();
         var file = await harness.SaveUploadAsync(harness.Upload("a.png", Samples.Png()));
 
-        Assert.True(await harness.Files.DeleteAsync(file.Id));
+        Assert.True(await harness.Files.Delete(file.Id));
 
-        Assert.Null(await harness.Files.FindAsync(file.Id));
+        Assert.Null(await harness.Files.Get(file.Id));
         Assert.Empty(harness.StoredPaths());
-        Assert.False(await harness.Files.DeleteAsync(file.Id));
+        Assert.False(await harness.Files.Delete(file.Id));
     }
 
     [Fact]
@@ -181,13 +181,13 @@ public sealed class FilesTests
         await using var harness = new StorageHarness();
         var file = await harness.SaveUploadAsync(harness.Upload("a.pdf", "%PDF-1.7\n"u8.ToArray()));
 
-        var url = await harness.Files.TemporaryUrlAsync(file.Id, TimeSpan.FromMinutes(5));
+        var url = await harness.Files.Share(file.Id).For(TimeSpan.FromMinutes(5));
 
         Assert.NotNull(url);
         Assert.StartsWith("/_rask/files/", url);
         Assert.True(harness.Runtime.Protector.TryUnprotect(url!["/_rask/files/".Length..], out var id));
         Assert.Equal(file.Id, id);
-        Assert.Null(await harness.Files.TemporaryUrlAsync(Guid.NewGuid(), TimeSpan.FromMinutes(5)));
+        Assert.Null(await harness.Files.Share(Guid.NewGuid()).For(TimeSpan.FromMinutes(5)));
     }
 
     [Theory]
@@ -199,7 +199,7 @@ public sealed class FilesTests
         await using var harness = new StorageHarness();
 
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
-            harness.Files.TemporaryUrlAsync(Guid.NewGuid(), TimeSpan.FromSeconds(seconds)));
+            harness.Files.Share(Guid.NewGuid()).For(TimeSpan.FromSeconds(seconds)));
     }
 
     [Fact]

@@ -40,5 +40,7 @@ public sealed class StorageDbCollectionGuardTests
             "AzureBlobBackendTests",
             "BlobRangeStreamTests",
             // Names StorageDbContext only as AddRaskStorage's type argument; resolves the store, never a context.
-            "ProviderOptionsTests");
+            "ProviderOptionsTests",
+            // The fake stands in for the whole store, so there is no disk, no bucket and no database.
+            "FilesFakeTests");
 }

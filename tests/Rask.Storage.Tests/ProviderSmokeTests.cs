@@ -67,10 +67,10 @@ public sealed class ProviderSmokeTests
     private static async Task RoundTripAsync(StorageHarness harness)
     {
         var bytes = Samples.Png(300_000);
-        var file = await harness.Files.SaveAsync(new MemoryStream(bytes), "smoke  photo.png");
+        var file = await harness.Files.Save(new MemoryStream(bytes), "smoke  photo.png");
 
         // Read back through the store.
-        await using (var stream = await harness.Files.OpenReadAsync(file.Id))
+        await using (var stream = await harness.Files.OpenRead(file.Id))
         {
             var copy = new MemoryStream();
             await stream!.CopyToAsync(copy);
@@ -87,7 +87,7 @@ public sealed class ProviderSmokeTests
         }
 
         // The provider-signed URL, fetched by a client that is not the app, with the safe headers it signed.
-        var url = await harness.Files.TemporaryUrlAsync(file.Id, TimeSpan.FromMinutes(5));
+        var url = await harness.Files.Share(file.Id).For(TimeSpan.FromMinutes(5));
         Assert.NotNull(url);
         Assert.StartsWith("http", url);
         using (var client = new HttpClient())
@@ -107,7 +107,7 @@ public sealed class ProviderSmokeTests
         var keys = await harness.Runtime.Backend.ListAsync("", default).Select(e => e.Key).ToListAsync();
         Assert.Contains(file.Key, keys);
 
-        Assert.True(await harness.Files.DeleteAsync(file.Id));
+        Assert.True(await harness.Files.Delete(file.Id));
         Assert.Null(await harness.Runtime.Backend.OpenReadAsync(file.Key, 0, null, default));
     }
 

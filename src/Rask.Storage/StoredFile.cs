@@ -21,7 +21,7 @@ public sealed class StoredFile : Entity<Guid>
 
     /// <summary>The media type sniffed from the file's bytes — never the one the browser claimed.</summary>
     /// <remarks>
-    /// Serve a file through <see cref="IFiles.Url"/>, <see cref="IFiles.TemporaryUrlAsync"/> or
+    /// Serve a file through <see cref="IFiles.Url"/>, <c>Files.Share(id).For(…)</c> or
     /// <see cref="IFiles.Download"/>: they send HTML, SVG and XML as downloads. Passing this type to
     /// <c>Results.File</c> yourself does not, and an uploaded page would then run on your origin.
     /// </remarks>

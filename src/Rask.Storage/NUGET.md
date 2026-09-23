@@ -10,18 +10,18 @@ builder.Services.AddRaskStorage<AppDbContext>();
 ```
 
 ```csharp
-public sealed class SetCover(IFiles files)
+public sealed class SetCover
 {
     public async Task Handle(Post post, RaskFile upload)
     {
-        var file = await files.SaveAsync(upload.OpenReadStream, upload.Name, upload.Size, o => o.Public = true, Current.Cancellation);
+        var file = await Files.Save(upload.OpenReadStream, upload.Name, upload.Size).Public();
         post.CoverId = file.Id;
     }
 }
 
-Img.Src(files.Url(post.CoverId));                                    // a public file
-await files.TemporaryUrlAsync(invoice.FileId, TimeSpan.FromMinutes(5)); // a private one, expiring
-app.MapGet("/invoices/{id}", (Guid id, IFiles files) => files.Download(id)); // behind your own check
+Img.Src(Files.Url(post.CoverId));                                    // a public file
+await Files.Share(invoice.FileId).For(5.Minutes);                    // a private one, expiring
+app.MapGet("/invoices/{id}", (Guid id) => Files.Download(id));       // behind your own check
 ```
 
 - **Content types are sniffed from the bytes**, never taken from the browser. Only images, audio and video

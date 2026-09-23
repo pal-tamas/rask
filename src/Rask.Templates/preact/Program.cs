@@ -140,7 +140,7 @@ builder.Services.AddRaskCache<AppDbContext>();
 // rask:if storage
 
 // The files your users upload, kept by id: save an upload with IFiles.SaveAsync, keep the returned
-// Id on your entity, and hand the file back with files.Url(id), files.TemporaryUrlAsync(id, lifetime)
+// Id on your entity, and hand the file back with files.Url(id), files.Share(id).For(lifetime)
 // or files.Download(id). The bytes go to ./storage here and to /data/files on the deploy volume —
 // which NO backup covers — until you point them at a bucket: rask deploy --env Rask__Storage__Provider=S3
 // --env Rask__Storage__S3__Bucket=... (and the keys beside it), or Rask__Storage__Provider=Azure. The routes that
@@ -233,7 +233,7 @@ app.MapPushSubscriptions();
 
 // rask:end
 // rask:if storage
-// The routes behind files.Url(id) and files.TemporaryUrlAsync(id, lifetime). Before UseRaskSpa for
+// The routes behind files.Url(id) and files.Share(id).For(lifetime). Before UseRaskSpa for
 // the same reason MapRaskAuth is: its fallback to index.html would otherwise answer them.
 app.MapRaskStorage();
 

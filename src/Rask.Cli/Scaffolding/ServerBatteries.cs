@@ -60,7 +60,7 @@ internal sealed record ServerBatteries
     /// <summary>A database-backed cache (<c>ICache</c> + <c>IDistributedCache</c>).</summary>
     public bool Cache { get; init; }
 
-    /// <summary>File storage for uploads (<c>IFiles</c>), with a <c>StoredFile</c> row per file on the app's database.</summary>
+    /// <summary>File storage for uploads (<c>Files.Save</c>), with a <c>StoredFile</c> row per file on the app's database.</summary>
     public bool Storage { get; init; }
 
     /// <summary>A transactional outbox for durable domain-event delivery.</summary>

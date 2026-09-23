@@ -117,7 +117,7 @@ await Cache.Forget("products");                                      // when the
 
 ## Keep an uploaded file
 
-Save the `RaskFile` from the picker's handler with `IFiles`, keep the returned id on your entity, and link
+Save the `RaskFile` from the picker's handler with `Files.Save`, keep the returned id on your entity, and link
 to it. A `RaskApp` already has storage on; a hand-wired host adds the registration, the table and the routes.
 
 ```csharp
@@ -125,9 +125,9 @@ builder.Services.AddRaskStorage<ProductsDbContext>();
 modelBuilder.AddRaskStorage();                                       // then: rask db add AddStorage && rask db update
 app.MapRaskStorage();                                                // after app.UseRask<App>()
 
-var saved = await files.SaveAsync(file.OpenReadStream, file.Name, file.Size, o => o.Public = true, CancellationToken);
+var saved = await Files.Save(file.OpenReadStream, file.Name, file.Size).Public();
 product.SetPhoto(saved.Id);
-Img.Src(files.Url(saved.Id)).Alt(product.Name)                       // no I/O — safe inside Render
+Img.Src(Files.Url(saved.Id)).Alt(product.Name)                       // no I/O — safe inside Render
 ```
 
 Files on the default disk provider are archived by `rask db backup` beside the database, but not by Litestream

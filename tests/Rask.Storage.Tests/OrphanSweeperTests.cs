@@ -9,7 +9,7 @@ public sealed class OrphanSweeperTests
     public async Task Bytes_with_no_row_are_removed_once_past_the_grace_period()
     {
         await using var harness = new StorageHarness();
-        var kept = await harness.Files.SaveAsync(new MemoryStream(Samples.Png()), "kept.png");
+        var kept = await harness.Files.Save(new MemoryStream(Samples.Png()), "kept.png");
         var orphan = WriteOrphan(harness, Guid.NewGuid());
         harness.Clock.Advance(TimeSpan.FromHours(25));
 
@@ -24,7 +24,7 @@ public sealed class OrphanSweeperTests
     public async Task A_young_orphan_is_kept()
     {
         await using var harness = new StorageHarness();
-        await harness.Files.SaveAsync(new MemoryStream(Samples.Png()), "kept.png");
+        await harness.Files.Save(new MemoryStream(Samples.Png()), "kept.png");
         var orphan = WriteOrphan(harness, Guid.NewGuid());
         harness.Clock.Advance(TimeSpan.FromHours(1));
 
@@ -80,7 +80,7 @@ public sealed class OrphanSweeperTests
     public async Task A_mass_deletion_trips_the_breaker_and_deletes_nothing()
     {
         await using var harness = new StorageHarness();
-        await harness.Files.SaveAsync(new MemoryStream(Samples.Png()), "kept.png");
+        await harness.Files.Save(new MemoryStream(Samples.Png()), "kept.png");
         var orphans = Enumerable.Range(0, OrphanSweeper<StorageDbContext>.BreakerFloor + 1)
             .Select(_ => WriteOrphan(harness, Guid.NewGuid()))
             .ToList();
@@ -113,7 +113,7 @@ public sealed class OrphanSweeperTests
     public async Task The_sweep_stays_under_its_prefix()
     {
         await using var harness = new StorageHarness(o => o.Prefix = "app");
-        await harness.Files.SaveAsync(new MemoryStream(Samples.Png()), "kept.png");
+        await harness.Files.Save(new MemoryStream(Samples.Png()), "kept.png");
         var outside = Path.Combine(harness.Root, KeyLayout.KeyOf("", Guid.NewGuid(), isPublic: false));
         Directory.CreateDirectory(Path.GetDirectoryName(outside)!);
         await File.WriteAllBytesAsync(outside, [1]);
@@ -132,8 +132,8 @@ public sealed class OrphanSweeperTests
     {
         // #1077: a database restored without its files. The row is the app's; the sweep only says so.
         await using var harness = new StorageHarness();
-        var kept = await harness.Files.SaveAsync(new MemoryStream(Samples.Png()), "kept.png");
-        var lost = await harness.Files.SaveAsync(new MemoryStream(Samples.Png()), "lost.png");
+        var kept = await harness.Files.Save(new MemoryStream(Samples.Png()), "kept.png");
+        var lost = await harness.Files.Save(new MemoryStream(Samples.Png()), "lost.png");
         File.Delete(Path.Combine(harness.Root, lost.Key));
         harness.Clock.Advance(TimeSpan.FromHours(25));
 
@@ -152,7 +152,7 @@ public sealed class OrphanSweeperTests
     {
         // A delete removes the bytes and then the row; the check must not catch it in between.
         await using var harness = new StorageHarness();
-        var lost = await harness.Files.SaveAsync(new MemoryStream(Samples.Png()), "lost.png");
+        var lost = await harness.Files.Save(new MemoryStream(Samples.Png()), "lost.png");
         File.Delete(Path.Combine(harness.Root, lost.Key));
 
         var found = await harness.Sweeper.FindMissingAsync(default);

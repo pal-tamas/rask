@@ -18,13 +18,7 @@ Rask.Storage.FileRejection
 Rask.Storage.FileRejection.TooLarge = 0 -> Rask.Storage.FileRejection
 Rask.Storage.FileRejection.TypeNotAllowed = 1 -> Rask.Storage.FileRejection
 Rask.Storage.IFiles
-Rask.Storage.IFiles.DeleteAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 Rask.Storage.IFiles.Download(System.Guid id) -> Microsoft.AspNetCore.Http.IResult!
-Rask.Storage.IFiles.FindAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Storage.StoredFile?>!
-Rask.Storage.IFiles.OpenReadAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.IO.Stream?>!
-Rask.Storage.IFiles.SaveAsync(System.Func<long, System.Threading.CancellationToken, System.IO.Stream!>! openRead, string! name, long size, System.Action<Rask.Storage.SaveOptions!>? configure = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Storage.StoredFile!>!
-Rask.Storage.IFiles.SaveAsync(System.IO.Stream! content, string! name, System.Action<Rask.Storage.SaveOptions!>? configure = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Storage.StoredFile!>!
-Rask.Storage.IFiles.TemporaryUrlAsync(System.Guid id, System.TimeSpan lifetime, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string?>!
 Rask.Storage.IFiles.Url(System.Guid id) -> string!
 Rask.Storage.RaskStorageEndpointExtensions
 Rask.Storage.RaskStorageServiceCollectionExtensions
@@ -44,10 +38,6 @@ Rask.Storage.S3StorageOptions.SessionToken.get -> string?
 Rask.Storage.S3StorageOptions.SessionToken.set -> void
 Rask.Storage.S3StorageOptions.UsePathStyle.get -> bool
 Rask.Storage.S3StorageOptions.UsePathStyle.set -> void
-Rask.Storage.SaveOptions
-Rask.Storage.SaveOptions.Public.get -> bool
-Rask.Storage.SaveOptions.Public.set -> void
-Rask.Storage.SaveOptions.SaveOptions() -> void
 Rask.Storage.StorageModelBuilderExtensions
 Rask.Storage.StorageOptions
 Rask.Storage.StorageOptions.AllowedTypes.get -> System.Collections.Generic.IList<string!>!
@@ -111,3 +101,92 @@ static Rask.Storage.RaskStorageServiceCollectionExtensions.AddRaskStorage<TConte
 static Rask.Storage.StorageModelBuilderExtensions.AddRaskStorage(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
 static Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!).Read.get -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
 static Rask.Storage.StoredFileReadAccess.get_Read() -> Rask.Data.ModelQuery<Rask.Storage.StoredFileRead!>!
+Rask.Batteries.Counting<T>
+Rask.Batteries.Counting<T>.Count.get -> int
+Rask.Batteries.Counting<T>.Counting() -> void
+Rask.Batteries.Counting<T>.Counting(System.Collections.Generic.IReadOnlyList<T>! all, string! noun, string! verb, System.Func<T, string!>! describe, string? whenNoneAtAll = null) -> void
+Rask.Batteries.Counting<T>.Exactly(int times) -> void
+Rask.Batteries.Counting<T>.None() -> void
+Rask.Batteries.Counting<T>.Once() -> void
+Rask.Batteries.Counting<T>.Single() -> T
+Rask.Batteries.Counting<T>.Twice() -> void
+Rask.Batteries.Counting<T>.Where(System.Func<T, bool>! predicate, string! said) -> Rask.Batteries.Counting<T>
+Rask.Batteries.CountingException
+Rask.Batteries.CountingException.CountingException(string! message) -> void
+Rask.Storage.Files
+Rask.Storage.FilesExtensions
+Rask.Storage.FilesExtensions.extension(Rask.Storage.IFiles!)
+Rask.Storage.FilesExtensions.extension(Rask.Storage.IFiles!).Save(System.Func<long, System.Threading.CancellationToken, System.IO.Stream!>! openRead, string! name, long size, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Storage.Saving
+Rask.Storage.FilesExtensions.extension(Rask.Storage.IFiles!).Save(System.IO.Stream! content, string! name, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Storage.Saving
+Rask.Storage.FilesExtensions.extension(Rask.Storage.IFiles!).Share(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Storage.Sharing
+Rask.Storage.FilesFake
+Rask.Storage.FilesFake.Add(System.Func<long, System.Threading.CancellationToken, System.IO.Stream!>! openRead, string! name, long size, bool isPublic, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Storage.StoredFile!>!
+Rask.Storage.FilesFake.Add(System.IO.Stream! content, string! name, bool isPublic, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Storage.StoredFile!>!
+Rask.Storage.FilesFake.Bytes(System.Guid id) -> byte[]?
+Rask.Storage.FilesFake.Clear() -> void
+Rask.Storage.FilesFake.Delete(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Rask.Storage.FilesFake.Deleted() -> Rask.Batteries.Counting<System.Guid>
+Rask.Storage.FilesFake.Deleted(System.Guid id) -> Rask.Batteries.Counting<System.Guid>
+Rask.Storage.FilesFake.Dispose() -> void
+Rask.Storage.FilesFake.Download(System.Guid id) -> Microsoft.AspNetCore.Http.IResult!
+Rask.Storage.FilesFake.Get(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Storage.StoredFile?>!
+Rask.Storage.FilesFake.OpenRead(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.IO.Stream?>!
+Rask.Storage.FilesFake.Saved() -> Rask.Batteries.Counting<Rask.Storage.SavedFile!>
+Rask.Storage.FilesFake.SharedUrl(System.Guid id, System.TimeSpan lifetime, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string?>!
+Rask.Storage.FilesFake.Url(System.Guid id) -> string!
+Rask.Storage.FilesFakes
+Rask.Storage.FilesFakes.extension(Rask.Storage.Files!)
+Rask.Storage.IFiles.Add(System.Func<long, System.Threading.CancellationToken, System.IO.Stream!>! openRead, string! name, long size, bool isPublic, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Storage.StoredFile!>!
+Rask.Storage.IFiles.Add(System.IO.Stream! content, string! name, bool isPublic, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Storage.StoredFile!>!
+Rask.Storage.IFiles.Delete(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Rask.Storage.IFiles.Get(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Storage.StoredFile?>!
+Rask.Storage.IFiles.OpenRead(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.IO.Stream?>!
+Rask.Storage.IFiles.SharedUrl(System.Guid id, System.TimeSpan lifetime, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string?>!
+Rask.Storage.SavedFile
+Rask.Storage.SavedFile.<Clone>$() -> Rask.Storage.SavedFile!
+Rask.Storage.SavedFile.Deconstruct(out System.Guid Id, out string! Name, out long Size, out bool IsPublic) -> void
+Rask.Storage.SavedFile.Equals(Rask.Storage.SavedFile? other) -> bool
+Rask.Storage.SavedFile.Id.get -> System.Guid
+Rask.Storage.SavedFile.Id.init -> void
+Rask.Storage.SavedFile.IsPublic.get -> bool
+Rask.Storage.SavedFile.IsPublic.init -> void
+Rask.Storage.SavedFile.Name.get -> string!
+Rask.Storage.SavedFile.Name.init -> void
+Rask.Storage.SavedFile.SavedFile(System.Guid Id, string! Name, long Size, bool IsPublic) -> void
+Rask.Storage.SavedFile.Size.get -> long
+Rask.Storage.SavedFile.Size.init -> void
+Rask.Storage.SavedFileCounting
+Rask.Storage.SavedFileCounting.extension(Rask.Batteries.Counting<Rask.Storage.SavedFile!>)
+Rask.Storage.SavedFileCounting.extension(Rask.Batteries.Counting<Rask.Storage.SavedFile!>).Named(string! name) -> Rask.Batteries.Counting<Rask.Storage.SavedFile!>
+Rask.Storage.SavedFileCounting.extension(Rask.Batteries.Counting<Rask.Storage.SavedFile!>).Private() -> Rask.Batteries.Counting<Rask.Storage.SavedFile!>
+Rask.Storage.SavedFileCounting.extension(Rask.Batteries.Counting<Rask.Storage.SavedFile!>).Public() -> Rask.Batteries.Counting<Rask.Storage.SavedFile!>
+Rask.Storage.Saving
+Rask.Storage.Saving.AsTask() -> System.Threading.Tasks.Task<Rask.Storage.StoredFile!>!
+Rask.Storage.Saving.ConfigureAwait(bool continueOnCapturedContext) -> System.Runtime.CompilerServices.ConfiguredTaskAwaitable<Rask.Storage.StoredFile!>
+Rask.Storage.Saving.GetAwaiter() -> System.Runtime.CompilerServices.TaskAwaiter<Rask.Storage.StoredFile!>
+Rask.Storage.Saving.Public() -> Rask.Storage.Saving
+Rask.Storage.Saving.Saving() -> void
+Rask.Storage.Sharing
+Rask.Storage.Sharing.For(System.TimeSpan lifetime) -> System.Threading.Tasks.Task<string?>!
+Rask.Storage.Sharing.Sharing() -> void
+override Rask.Storage.SavedFile.Equals(object? obj) -> bool
+override Rask.Storage.SavedFile.GetHashCode() -> int
+override Rask.Storage.SavedFile.ToString() -> string!
+static Rask.Storage.Files.Delete(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+static Rask.Storage.Files.Download(System.Guid id) -> Microsoft.AspNetCore.Http.IResult!
+static Rask.Storage.Files.Get(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Storage.StoredFile?>!
+static Rask.Storage.Files.OpenRead(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.IO.Stream?>!
+static Rask.Storage.Files.Save(System.Func<long, System.Threading.CancellationToken, System.IO.Stream!>! openRead, string! name, long size, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Storage.Saving
+static Rask.Storage.Files.Save(System.IO.Stream! content, string! name, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Storage.Saving
+static Rask.Storage.Files.Share(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Storage.Sharing
+static Rask.Storage.Files.Url(System.Guid id) -> string!
+static Rask.Storage.FilesExtensions.Save(this Rask.Storage.IFiles! files, System.Func<long, System.Threading.CancellationToken, System.IO.Stream!>! openRead, string! name, long size, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Storage.Saving
+static Rask.Storage.FilesExtensions.Save(this Rask.Storage.IFiles! files, System.IO.Stream! content, string! name, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Storage.Saving
+static Rask.Storage.FilesExtensions.Share(this Rask.Storage.IFiles! files, System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Storage.Sharing
+static Rask.Storage.FilesFakes.Fake() -> Rask.Storage.FilesFake!
+static Rask.Storage.FilesFakes.extension(Rask.Storage.Files!).Fake() -> Rask.Storage.FilesFake!
+static Rask.Storage.SavedFile.operator !=(Rask.Storage.SavedFile? left, Rask.Storage.SavedFile? right) -> bool
+static Rask.Storage.SavedFile.operator ==(Rask.Storage.SavedFile? left, Rask.Storage.SavedFile? right) -> bool
+static Rask.Storage.SavedFileCounting.Named(this Rask.Batteries.Counting<Rask.Storage.SavedFile!> saved, string! name) -> Rask.Batteries.Counting<Rask.Storage.SavedFile!>
+static Rask.Storage.SavedFileCounting.Private(this Rask.Batteries.Counting<Rask.Storage.SavedFile!> saved) -> Rask.Batteries.Counting<Rask.Storage.SavedFile!>
+static Rask.Storage.SavedFileCounting.Public(this Rask.Batteries.Counting<Rask.Storage.SavedFile!> saved) -> Rask.Batteries.Counting<Rask.Storage.SavedFile!>

@@ -36,7 +36,7 @@ public sealed class PostsController(AppDb db) : ControllerBase
 {
     [HttpGet("{id:int}")]
     public async Task<ActionResult<Post>> Get(int id) =>
-        await db.Posts.FindAsync(id) is { } post ? post : NotFound();
+        await db.Posts.Get(id) is { } post ? post : NotFound();
 }
 ```
 
@@ -221,7 +221,7 @@ Read from the `MapGet`/`MapPost`/… invocations themselves, with no attribute a
 app.MapEndpoints(e =>
 {
     e.MapGet("/api/widgets/{id:int}", async (int id, AppDb db) =>
-        await db.Widgets.FindAsync(id) is { } w ? TypedResults.Ok(w) : Results.NotFound());
+        await db.Widgets.Get(id) is { } w ? TypedResults.Ok(w) : Results.NotFound());
 
     e.MapPost("/api/widgets", (Widget body, AppDb db) => db.Add(body));
 });

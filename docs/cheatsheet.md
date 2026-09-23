@@ -124,8 +124,8 @@ var products = await Cache.Remember("products", LoadProducts).For(10.Minutes);
 await Cache.Forget("products");
 
 // Keep an upload, then link to it — Url does no I/O, so it is safe inside Render:
-var saved = await files.SaveAsync(file.OpenReadStream, file.Name, file.Size, o => o.Public = true, CancellationToken);   // IFiles, ctor-injected
-Img.Src(files.Url(saved.Id)).Alt(product.Name)
+var saved = await Files.Save(file.OpenReadStream, file.Name, file.Size).Public();   // nothing injected
+Img.Src(Files.Url(saved.Id)).Alt(product.Name)
 
 // Enqueue work off the request thread — returns as soon as the row is written:
 await jobs.Enqueue(new SendOrderReceipt(order.Id), CancellationToken);

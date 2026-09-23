@@ -89,7 +89,7 @@ public sealed class RaskAppOptions
 
     /// <summary>
     /// Uploaded files: bytes on disk or in an S3-compatible or Azure bucket, with a <c>StoredFile</c> row per file on
-    /// the app's own database, handed back as public URLs, temporary URLs or downloads. See <c>IFiles</c>.
+    /// the app's own database, handed back as public URLs, links that expire, or downloads. See <c>Files</c>.
     /// </summary>
     /// <remarks>
     /// Where the bytes go is configuration — <c>Rask__Storage__Provider</c> and the keys beside it — so moving from the

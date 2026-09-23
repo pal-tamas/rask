@@ -122,6 +122,7 @@ Assert.Equal(7, job.Job.Number);
 | `Mail.Fake()` | `Sent()` | `To`, `WithSubject`, `Saying`, `In`, `At` |
 | `Jobs.Fake()` | `Enqueued<TJob>()` | `In`, `At`, `Matching` |
 | `Cache.Fake()` | `Loaded(key)`, `Read(key)`, `Forgotten(key)` | — |
+| `Files.Fake()` | `Saved()`, `Deleted(id)` | `Named`, `Public`, `Private` |
 
 `Cache.Fake()` is not only a recorder: it really stores, with real expiry read from `Clock.Now`, so the code
 under test behaves as it would in production and `Clock.Fake` proves staleness without sleeping.

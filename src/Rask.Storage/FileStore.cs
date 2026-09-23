@@ -1,0 +1,300 @@
+using System.Buffers;
+using System.Security.Cryptography;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Rask.Data;
+using Rask.Storage.Backends;
+using Rask.Storage.Serving;
+using Rask.Storage.Upload;
+
+namespace Rask.Storage;
+
+/// <summary><see cref="IFiles"/> over the application's <typeparamref name="TContext"/> and the configured store.</summary>
+internal sealed class FileStore<TContext>(IDbContextFactory<TContext> contextFactory, StorageRuntime runtime) : IFiles
+    where TContext : DbContext
+{
+    /// <summary>The same ceiling on every provider, so a link's lifetime never depends on where the bytes are.</summary>
+    internal static readonly TimeSpan MaxTemporaryUrlLifetime = TimeSpan.FromDays(7);
+
+    private const int CopyBufferSize = 81920;
+
+    public Task<StoredFile> Add(
+        Func<long, CancellationToken, Stream> openRead, string name, long size, bool isPublic, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(openRead);
+        ArgumentNullException.ThrowIfNull(name);
+
+        // Refused before a byte is read. The copy below enforces the limit too, because a declared size is only a claim.
+        var limit = runtime.Options.MaxFileSize;
+        if (size > limit)
+        {
+            throw FileRejectedException.TooLarge(size, limit);
+        }
+
+        return SaveOpenedAsync(openRead, name, isPublic, limit, cancellationToken);
+    }
+
+    public async Task<StoredFile> Add(Stream content, string name, bool isPublic, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(content);
+        ArgumentNullException.ThrowIfNull(name);
+
+        return await SaveCoreAsync(content, name, isPublic, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<StoredFile?> Get(Guid id, CancellationToken cancellationToken = default)
+    {
+        var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using (db.ConfigureAwait(false))
+        {
+            // Scoped to the tenant in flight, so one tenant cannot reach another's file even holding its
+            // id. Null matches the files that belong to nobody, which is what the host's own saves produce.
+            var tenant = Current.Tenant;
+
+            return await db.Set<StoredFile>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(f => f.Id == id && f.TenantId == tenant, cancellationToken)
+                .ConfigureAwait(false);
+        }
+    }
+
+    public async Task<Stream?> OpenRead(Guid id, CancellationToken cancellationToken = default)
+    {
+        var file = await Get(id, cancellationToken).ConfigureAwait(false);
+        if (file is null)
+        {
+            return null;
+        }
+
+        EnsureActiveProvider(file);
+        var stream = await runtime.Backend.OpenReadAsync(file.Key, 0, null, cancellationToken).ConfigureAwait(false);
+        if (stream is null)
+        {
+            runtime.Logger.LogError("Stored file {FileId} has a row but no bytes in {Provider}.", file.Id, file.Provider);
+        }
+
+        return stream;
+    }
+
+    public async Task<bool> Delete(Guid id, CancellationToken cancellationToken = default)
+    {
+        var file = await Get(id, cancellationToken).ConfigureAwait(false);
+        if (file is null)
+        {
+            return false;
+        }
+
+        // The row first. Bytes without a row are an orphan the sweep removes; a row without bytes is a broken link.
+        var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using (db.ConfigureAwait(false))
+        {
+            // Scoped like the read: deleting another tenant's file has to be as impossible as reading it.
+            var tenant = Current.Tenant;
+
+            var removed = await db.Set<StoredFile>()
+                .Where(f => f.Id == id && f.TenantId == tenant)
+                .ExecuteDeleteAsync(cancellationToken)
+                .ConfigureAwait(false);
+            if (removed == 0)
+            {
+                return false;
+            }
+        }
+
+        if (file.Provider != runtime.Backend.Provider)
+        {
+            runtime.Logger.LogWarning(
+                "Deleted stored file {FileId}; its bytes are in {SavedProvider}, which is no longer configured, and were left there.",
+                file.Id, file.Provider);
+            return true;
+        }
+
+        try
+        {
+            await runtime.Backend.DeleteAsync(file.Key, cancellationToken).ConfigureAwait(false);
+        }
+#pragma warning disable CA1031 // The row is gone, so the file is deleted as far as the app can see; the sweep removes the bytes.
+        catch (Exception ex) when (ex is not OperationCanceledException)
+#pragma warning restore CA1031
+        {
+            runtime.Logger.LogWarning(ex,
+                "Deleted stored file {FileId} but could not remove its bytes; the orphan sweep will.", file.Id);
+        }
+
+        return true;
+    }
+
+    public string Url(Guid id) =>
+        runtime.Options.PublicBaseUrl is { } baseUrl
+            ? baseUrl + KeyLayout.KeyOf(runtime.Options.Prefix, id, isPublic: true)
+            : string.Concat(RaskPathBase.Current, RaskStorageEndpointExtensions.RoutePrefix, "public/", id.ToString("N"));
+
+    public async Task<string?> SharedUrl(Guid id, TimeSpan lifetime, CancellationToken cancellationToken = default)
+    {
+        if (lifetime <= TimeSpan.Zero || lifetime > MaxTemporaryUrlLifetime)
+        {
+            throw new ArgumentOutOfRangeException(nameof(lifetime), lifetime,
+                "A temporary URL lasts more than zero and at most 7 days, like files.Share(id).For(TimeSpan.FromMinutes(5)).");
+        }
+
+        var file = await Get(id, cancellationToken).ConfigureAwait(false);
+        if (file is null)
+        {
+            return null;
+        }
+
+        EnsureActiveProvider(file);
+
+        var contentType = ContentTypePolicy.ServedType(file.ContentType);
+        var disposition = StoredFileHeaders.Disposition(file.ContentType, file.Name);
+        if (runtime.Backend.TryPresign(file.Key, lifetime, contentType, disposition, out var signed))
+        {
+            return signed;
+        }
+
+        return string.Concat(RaskPathBase.Current, RaskStorageEndpointExtensions.RoutePrefix,
+            runtime.Protector.Protect(file.Id, lifetime));
+    }
+
+    public IResult Download(Guid id) => new StoredFileResult(id, StoredFileAccess.Download);
+
+    private async Task<StoredFile> SaveOpenedAsync(Func<long, CancellationToken, Stream> openRead, string name,
+        bool isPublic, long limit, CancellationToken cancellationToken)
+    {
+        // The limit handed to the opener is the storage limit: an upload's own default (512 KB for RaskFile) would
+        // otherwise refuse anything larger, however high MaxFileSize is set.
+        var content = openRead(limit, cancellationToken);
+        await using (content.ConfigureAwait(false))
+        {
+            return await SaveCoreAsync(content, name, isPublic, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task<StoredFile> SaveCoreAsync(Stream content, string name, bool isPublic,
+        CancellationToken cancellationToken)
+    {
+        var options = runtime.Options;
+        var backend = runtime.Backend;
+        var id = Guid.NewGuid();
+        var key = KeyLayout.KeyOf(options.Prefix, id, isPublic);
+        var fileName = SafeFileName.Clean(name);
+
+        var buffer = ArrayPool<byte>.Shared.Rent(CopyBufferSize);
+        var spool = backend.CreateSpoolPath();
+        try
+        {
+            // Sniffed and checked against AllowedTypes before anything is written anywhere.
+            var read = await content
+                .ReadAtLeastAsync(buffer.AsMemory(0, ContentSniffer.HeadLength), ContentSniffer.HeadLength,
+                    throwOnEndOfStream: false, cancellationToken)
+                .ConfigureAwait(false);
+            var contentType = ContentTypePolicy.Refine(ContentSniffer.Sniff(buffer.AsSpan(0, read)), fileName);
+            if (!ContentTypePolicy.IsAllowed(contentType, options.AllowedTypes))
+            {
+                throw FileRejectedException.TypeNotAllowed(contentType);
+            }
+
+            using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+            long size = 0;
+            var spoolStream = OpenSpool(spool);
+            await using (spoolStream.ConfigureAwait(false))
+            {
+                while (read > 0)
+                {
+                    size += read;
+                    if (size > options.MaxFileSize)
+                    {
+                        throw FileRejectedException.TooLarge(size, options.MaxFileSize);
+                    }
+
+                    hash.AppendData(buffer, 0, read);
+                    await spoolStream.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+                    read = await content.ReadAsync(buffer.AsMemory(0, CopyBufferSize), cancellationToken).ConfigureAwait(false);
+                }
+
+                await spoolStream.FlushAsync(cancellationToken).ConfigureAwait(false);
+
+                // For the disk store the spool file BECOMES the stored file, so it reaches the disk before the rename:
+                // a power cut must not leave a row pointing at an empty file. A remote store's spool is uploaded and
+                // deleted moments later, and syncing it would only block a thread.
+                if (backend.Provider == StorageProvider.Disk)
+                {
+                    spoolStream.Flush(flushToDisk: true);
+                }
+            }
+
+            var headers = new BlobHeaders(
+                ContentTypePolicy.ServedType(contentType),
+                StoredFileHeaders.Disposition(contentType, fileName),
+                isPublic ? StoredFileHeaders.PublicCacheControl : StoredFileHeaders.PrivateCacheControl);
+            await backend.PutFileAsync(key, spool, size, headers, cancellationToken).ConfigureAwait(false);
+
+            var stored = StoredFile.For(
+                id,
+                fileName,
+                contentType,
+                size,
+                Convert.ToHexStringLower(hash.GetHashAndReset()),
+                backend.Provider,
+                key,
+                isPublic,
+                runtime.Time.GetUtcNow().UtcDateTime);
+
+            var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+            await using (db.ConfigureAwait(false))
+            {
+                db.Set<StoredFile>().Add(stored);
+                await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            return stored;
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+            TryDelete(spool);
+        }
+    }
+
+    private void EnsureActiveProvider(StoredFile file)
+    {
+        if (file.Provider != runtime.Backend.Provider)
+        {
+            throw new InvalidOperationException(
+                $"Stored file {file.Id} was saved to {file.Provider}, but storage is configured for {runtime.Backend.Provider}. "
+                + $"Changing Rask__Storage__Provider does not move existing files: copy them across, or set it back to {file.Provider}.");
+        }
+    }
+
+    private static FileStream OpenSpool(string path)
+    {
+        var options = new FileStreamOptions
+        {
+            Mode = FileMode.CreateNew,
+            Access = FileAccess.Write,
+            Share = FileShare.None,
+            Options = FileOptions.Asynchronous,
+            BufferSize = 0,
+        };
+
+        if (!OperatingSystem.IsWindows())
+        {
+            options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead;
+        }
+
+        return new FileStream(path, options);
+    }
+
+    private static void TryDelete(string path)
+    {
+        try
+        {
+            File.Delete(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Left for DeleteStaleSpoolAsync.
+        }
+    }
+}

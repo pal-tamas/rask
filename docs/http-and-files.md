@@ -59,15 +59,15 @@ Server, via JS chunked reads on WASM. The same component code runs unchanged on 
 
 Because a `RaskFile` stops being readable when its handler returns, a file you mean to keep has to be written
 somewhere before then. That is what [file storage](file-storage.md) is for, and in a `RaskApp` it is already
-on — inject `IFiles` and save from the handler, then keep the id on your own entity:
+on — save from the handler with nothing injected, then keep the id on your own entity:
 
 ```csharp
 var file = picked[0];
-var saved = await files.SaveAsync(file.OpenReadStream, file.Name, file.Size, cancellationToken: CancellationToken);
+var saved = await Files.Save(file.OpenReadStream, file.Name, file.Size);
 order.AttachReceipt(saved.Id);
 ```
 
-`SaveAsync` writes the bytes to disk, an S3-compatible bucket or Azure Blob, records a row whose content type
+`Files.Save` writes the bytes to disk, an S3-compatible bucket or Azure Blob, records a row whose content type
 is sniffed from the bytes rather than taken from the browser, and refuses a file over the size limit or of a
 type you haven't allowed. The file comes back later as a public URL, a temporary URL, or a download behind
 your own authorization check. It runs on the server: a WebAssembly page uploads there first.

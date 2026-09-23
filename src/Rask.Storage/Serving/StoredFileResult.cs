@@ -72,7 +72,7 @@ internal sealed class StoredFileResult(Guid id, StoredFileAccess access) : IResu
         var files = services.GetRequiredService<IFiles>();
         var cancellationToken = httpContext.RequestAborted;
 
-        var file = await files.FindAsync(id, cancellationToken).ConfigureAwait(false);
+        var file = await files.Get(id, cancellationToken).ConfigureAwait(false);
         if (file is null || (access == StoredFileAccess.Public && !file.Public))
         {
             await StoredFileHeaders.NotFoundAsync(httpContext).ConfigureAwait(false);

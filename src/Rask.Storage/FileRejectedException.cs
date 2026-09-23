@@ -13,7 +13,7 @@ public enum FileRejection
 }
 
 /// <summary>
-/// A file <see cref="IFiles.SaveAsync(Func{long, CancellationToken, Stream}, string, long, Action{SaveOptions}?, CancellationToken)"/>
+/// A file <c>Files.Save</c>
 /// refused. Nothing was stored. The message is safe to log; it never repeats the uploaded file name.
 /// </summary>
 public sealed class FileRejectedException : InvalidOperationException

@@ -19,7 +19,7 @@ public sealed class FileEndpointTests
     {
         await using var host = await FileHost.StartAsync();
         var bytes = Samples.Png(2048);
-        var file = await host.Files.SaveAsync(new MemoryStream(bytes), "photo.png", o => o.Public = true);
+        var file = await host.Files.Save(new MemoryStream(bytes), "photo.png").Public();
 
         using var response = await host.Client.GetAsync(host.Files.Url(file.Id));
 
@@ -39,7 +39,7 @@ public sealed class FileEndpointTests
     public async Task A_private_file_is_not_on_the_public_route()
     {
         await using var host = await FileHost.StartAsync();
-        var file = await host.Files.SaveAsync(new MemoryStream(Samples.Png()), "private.png");
+        var file = await host.Files.Save(new MemoryStream(Samples.Png()), "private.png");
 
         using var response = await host.Client.GetAsync(host.Files.Url(file.Id));
 
@@ -51,9 +51,9 @@ public sealed class FileEndpointTests
     public async Task A_temporary_url_serves_a_private_file_privately()
     {
         await using var host = await FileHost.StartAsync();
-        var file = await host.Files.SaveAsync(new MemoryStream(Samples.Png()), "private.png");
+        var file = await host.Files.Save(new MemoryStream(Samples.Png()), "private.png");
 
-        using var response = await host.Client.GetAsync(await host.Files.TemporaryUrlAsync(file.Id, TimeSpan.FromMinutes(5)));
+        using var response = await host.Client.GetAsync(await host.Files.Share(file.Id).For(TimeSpan.FromMinutes(5)));
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.True(response.Headers.CacheControl is { Private: true, NoStore: true });
@@ -63,16 +63,17 @@ public sealed class FileEndpointTests
     public async Task Tampered_unknown_and_deleted_all_answer_the_same_404()
     {
         await using var host = await FileHost.StartAsync();
-        var file = await host.Files.SaveAsync(new MemoryStream(Samples.Png()), "a.png");
-        var url = (await host.Files.TemporaryUrlAsync(file.Id, TimeSpan.FromMinutes(5)))!;
+        var file = await host.Files.Save(new MemoryStream(Samples.Png()), "a.png");
+        var url = (await host.Files.Share(file.Id).For(TimeSpan.FromMinutes(5)))!;
         var tampered = url[..^3] + (url[^3] == 'A' ? "B" : "A") + url[^2..];
-        var unknown = await host.Files.TemporaryUrlAsync(
-            (await host.Files.SaveAsync(new MemoryStream(Samples.Png()), "b.png")).Id, TimeSpan.FromMinutes(5));
+        var unknown = await host.Files
+            .Share((await host.Files.Save(new MemoryStream(Samples.Png()), "b.png")).Id)
+            .For(TimeSpan.FromMinutes(5));
 
         using var bad = await host.Client.GetAsync(tampered);
         using var garbage = await host.Client.GetAsync("/_rask/files/not-a-token");
         using var tooLong = await host.Client.GetAsync("/_rask/files/" + new string('A', 300));
-        await host.Files.DeleteAsync(file.Id);
+        await host.Files.Delete(file.Id);
         using var deleted = await host.Client.GetAsync(url);
 
         foreach (var response in new[] { bad, garbage, tooLong, deleted })
@@ -88,7 +89,7 @@ public sealed class FileEndpointTests
     public async Task Html_downloads_as_an_opaque_attachment()
     {
         await using var host = await FileHost.StartAsync();
-        var file = await host.Files.SaveAsync(new MemoryStream(Samples.Html), "page.png", o => o.Public = true);
+        var file = await host.Files.Save(new MemoryStream(Samples.Html), "page.png").Public();
 
         using var response = await host.Client.GetAsync(host.Files.Url(file.Id));
 
@@ -102,7 +103,7 @@ public sealed class FileEndpointTests
     {
         await using var host = await FileHost.StartAsync();
         var bytes = Samples.Png(1000);
-        var file = await host.Files.SaveAsync(new MemoryStream(bytes), "a.png", o => o.Public = true);
+        var file = await host.Files.Save(new MemoryStream(bytes), "a.png").Public();
         var url = host.Files.Url(file.Id);
 
         using var range = new HttpRequestMessage(HttpMethod.Get, url);
@@ -126,7 +127,7 @@ public sealed class FileEndpointTests
     public async Task Download_serves_any_file_from_the_apps_own_endpoint()
     {
         await using var host = await FileHost.StartAsync();
-        var file = await host.Files.SaveAsync(new MemoryStream("%PDF-1.7\n"u8.ToArray()), "invoice.pdf");
+        var file = await host.Files.Save(new MemoryStream("%PDF-1.7\n"u8.ToArray()), "invoice.pdf");
 
         using var response = await host.Client.GetAsync($"/download/{file.Id}");
         using var missing = await host.Client.GetAsync($"/download/{Guid.NewGuid()}");
@@ -141,7 +142,7 @@ public sealed class FileEndpointTests
     public async Task A_file_route_wins_over_a_catch_all_under_the_same_prefix()
     {
         await using var host = await FileHost.StartAsync(app => app.MapGet("/_rask/{**path}", () => "dashboard"));
-        var file = await host.Files.SaveAsync(new MemoryStream(Samples.Png()), "a.png", o => o.Public = true);
+        var file = await host.Files.Save(new MemoryStream(Samples.Png()), "a.png").Public();
 
         using var response = await host.Client.GetAsync(host.Files.Url(file.Id));
 

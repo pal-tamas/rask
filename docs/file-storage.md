@@ -5,7 +5,7 @@
 
 `Rask.Storage` keeps the files your users upload. A saved file is two things: its bytes in a store — a
 directory, an S3-compatible bucket or an Azure Blob container — and a **`StoredFile`** row on the app's own
-database that says what the bytes are. You inject **`IFiles`**, save the `RaskFile` a file picker hands you,
+database that says what the bytes are. You call **`Files.Save`**, handing it the `RaskFile` a file picker gives you,
 keep the returned id on your own entity, and later hand the file back as a public URL, a temporary URL, or a
 download behind your own authorization check. No cloud SDK is referenced: S3 requests are signed in-process
 with SigV4, Azure requests with Shared Key or a service SAS.
@@ -80,10 +80,11 @@ temporary links would otherwise 404 with nothing to say why.
 ## Saving an upload
 
 A file picker hands its handler a list of `RaskFile`s ([uploading files](http-and-files.md#uploading-files)).
-Pass one's opener, name and size to `SaveAsync`:
+Pass one's opener, name and size to `Files.Save` — nothing is injected, because it reaches the store of the
+work it runs in:
 
 ```csharp
-public sealed partial class AvatarPicker(IFiles files) : Component
+public sealed partial class AvatarPicker : Component
 {
     private string? _avatarUrl;
     private string? _error;
@@ -98,9 +99,8 @@ public sealed partial class AvatarPicker(IFiles files) : Component
         try
         {
             var file = picked[0];
-            var saved = await files.SaveAsync(file.OpenReadStream, file.Name, file.Size,
-                o => o.Public = true, CancellationToken);
-            _avatarUrl = files.Url(saved.Id);
+            var saved = await Files.Save(file.OpenReadStream, file.Name, file.Size).Public();
+            _avatarUrl = Files.Url(saved.Id);
             _error = null;
         }
         catch (FileRejectedException e)
@@ -126,11 +126,11 @@ Three things about that handler are load-bearing:
 
 - **Save before the handler returns.** A `RaskFile` is only readable while its handler is on the stack, so
   the `await` belongs inside it.
-- **Pass the opener, don't call it.** `file.OpenReadStream` goes in as a method group, and `SaveAsync` calls
+- **Pass the opener, don't call it.** `file.OpenReadStream` goes in as a method group, and `Save` calls
   it with the storage size limit. Calling `OpenReadStream()` yourself gets its 512 KB default cap, which is
   not the limit you configured.
 - **`Accept` is a hint to the dialog, not a check.** The browser's filter and the browser's claimed type are
-  both the client's word. What is enforced is what `SaveAsync` sniffs from the bytes — see
+  both the client's word. What is enforced is what `Save` sniffs from the bytes — see
   [what is accepted](#what-is-accepted-and-how-it-is-served).
 
 Bytes that don't come from a picker — a generated report, a file fetched from elsewhere — take the stream
@@ -138,23 +138,23 @@ overload. The stream is read to its end and not disposed:
 
 ```csharp
 await using var pdf = await invoices.RenderPdfAsync(invoiceId, ct);
-var saved = await files.SaveAsync(pdf, "invoice.pdf", cancellationToken: ct);
+var saved = await Files.Save(pdf, "invoice.pdf");
 ```
 
 ### Keeping the id
 
 The returned `StoredFile` carries `Id`, the display `Name` (reduced to a safe leaf), the sniffed
 `ContentType`, `Size`, the `Sha256` of the bytes, the `Provider` and object `Key`, `Public` and `CreatedAt`
-(UTC). Keep the `Id` on your own entity; every other `IFiles` method is addressed by it.
+(UTC). Keep the `Id` on your own entity; every other call is addressed by it.
 
 **The row is committed on its own `DbContext`, not inside a transaction your handler has open.** The bytes
 are written first and the row second, so a save that fails half way leaves bytes with no row (the
-[sweep](#the-orphan-sweep) removes them) and never a row with no bytes. But once `SaveAsync` returns, the
+[sweep](#the-orphan-sweep) removes them) and never a row with no bytes. But once the save returns, the
 file exists regardless of what your code does next — if the entity that was meant to refer to it then fails
 to save, deleting the file is yours to do:
 
 ```csharp
-var saved = await files.SaveAsync(upload.OpenReadStream, upload.Name, upload.Size, cancellationToken: ct);
+var saved = await Files.Save(upload.OpenReadStream, upload.Name, upload.Size);
 try
 {
     order.AttachReceipt(saved.Id);
@@ -162,7 +162,7 @@ try
 }
 catch
 {
-    await files.DeleteAsync(saved.Id, CancellationToken.None);
+    await Files.Delete(saved.Id, CancellationToken.None);
     throw;
 }
 ```
@@ -180,9 +180,9 @@ has limits of its own that apply first, and raising one without the other just m
 
 | | Works for | Reaches |
 | --- | --- | --- |
-| `files.Url(id)` | files saved with `o.Public = true` | anyone with the link, for as long as the file exists |
-| `await files.TemporaryUrlAsync(id, lifetime)` | any file | anyone with the link, until it expires |
-| `files.Download(id)` | any file | whoever your own endpoint lets through |
+| `Files.Url(id)` | files saved with `.Public()` | anyone with the link, for as long as the file exists |
+| `await Files.Share(id).For(15.Minutes)` | any file | anyone with the link, until it expires |
+| `Files.Download(id)` | any file | whoever your own endpoint lets through |
 
 ### Public URLs
 
@@ -208,7 +208,7 @@ than the app's own.
 ### Temporary URLs
 
 ```csharp
-var link = await files.TemporaryUrlAsync(invoice.PdfId, TimeSpan.FromMinutes(15), CancellationToken);
+var link = await Files.Share(invoice.PdfId).For(15.Minutes);
 ```
 
 Any file, public or not. The lifetime must be greater than zero and at most seven days; the result is `null`
@@ -235,9 +235,9 @@ the response to `Download`:
 
 ```csharp
 app.MapEndpoints(e => e.MapGet("/invoices/{id:guid}/pdf",
-    async (Guid id, ClaimsPrincipal user, Invoices invoices, IFiles files) =>
+    async (Guid id, ClaimsPrincipal user, Invoices invoices) =>
         await invoices.PdfFileIdForAsync(user, id) is Guid fileId
-            ? files.Download(fileId)
+            ? Files.Download(fileId)
             : Results.NotFound()));
 ```
 
@@ -402,14 +402,14 @@ Requests are signed with Shared Key, or carry the configured SAS.
 ### Changing provider
 
 Changing `Rask__Storage__Provider` does **not** move existing files. Each row records the provider its bytes were
-written to, so a file is never looked for in the wrong store: an `IFiles` call for a row from the old provider
+written to, so a file is never looked for in the wrong store: a call for a row from the old provider
 throws, naming both providers, and the file routes answer `404`. There is no migration tool — pick the
 production store before the first upload you intend to keep.
 
 ## Deleting
 
 ```csharp
-var deleted = await files.DeleteAsync(fileId, ct);   // false when there was no such file
+var deleted = await Files.Delete(fileId);   // false when there was no such file
 ```
 
 The row goes first, then the bytes. Once the row is gone nothing will serve the file, and app-signed
@@ -482,7 +482,7 @@ files are on disk it says so, because that is the one state in which no backup c
   can chain your own conventions onto them, such as a rate limit:
   `app.MapRaskStorage().RequireRateLimiting("files")`.
 - **Private files go through your code.** Use `Download` from an endpoint that has already checked the user,
-  or a short-lived `TemporaryUrlAsync`. Remember that a provider-signed link can't be withdrawn early, and that
+  or a short-lived `Share(id).For(…)`. Remember that a provider-signed link can't be withdrawn early, and that
   `PublicBaseUrl` exposes every key the bucket serves.
 - **Failures say little to strangers.** Every "no" from the file routes is the same `404`, and
   `FileRejectedException`'s message never repeats the uploaded name.
