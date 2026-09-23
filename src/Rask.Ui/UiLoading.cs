@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// Work in progress, with no idea how much is left.
@@ -13,9 +13,9 @@ public sealed partial class UiLoading : Component
     public new required string Text { get; set; }
 
     /// <summary>What it looks like while it spins. Cosmetic; every shape says the same thing.</summary>
-    public UiLoadingShape? Shape { get; set; }
+    public Ui.LoadingShape? Shape { get; set; }
 
-    public UiSize? Size { get; set; }
+    public Ui.Size? Size { get; set; }
 
     public string? Class { get; set; }
 
@@ -25,7 +25,7 @@ public sealed partial class UiLoading : Component
             Span
                 .Class(UiClass.Compose(
                     "loading",
-                    UiClassNames.LoadingShape(Shape ?? UiLoadingShape.Spinner),
+                    UiClassNames.LoadingShape(Shape ?? Ui.LoadingShape.Spinner),
                     Size is { } size ? UiClassNames.LoadingSize(size) : ""))
                 .Attributes(("aria-hidden", "true")),
             Span[Text]

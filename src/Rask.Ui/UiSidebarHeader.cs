@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// The part of a <see cref="UiSidebar" /> that stays at the top while the navigation below it scrolls.

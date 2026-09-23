@@ -22,5 +22,5 @@ namespace Rask.Dashboard;
 internal static class DashboardTheme
 {
     /// <summary>daisyUI's <c>light</c>.</summary>
-    public const UiThemeName Name = UiThemeName.Light;
+    public const Ui.ThemeName Name = Ui.ThemeName.Light;
 }

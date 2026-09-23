@@ -56,7 +56,7 @@ public sealed partial class DragDropKanbanDemo : Component
                     .OnDragEnd(ctx.DragEnd)
                     .Data(new Dictionary<string, string?> { ["testid"] = $"card-{card.Id}" })[
                     Div.Class("p-2 flex items-center gap-2")[
-                        UiIcon.Name(UiIconName.Grip).Class("text-ui-muted"),
+                        Ui.Icon.Name(Ui.IconName.Grip).Class("text-ui-muted"),
                         Span[card.Title]
                     ]
                 ]);
@@ -77,7 +77,7 @@ public sealed partial class DragDropKanbanDemo : Component
                 Div.Class("dd-column h-full")[
                     Div.Class("dd-column-header flex justify-between items-center")[
                         Span.Class("font-semibold")[_columnLabels[zone]],
-                        UiBadge.Tone(UiTone.Neutral).Variant(UiVariant.Soft)[cards.Count.ToString()]
+                        Ui.Badge.Tone(Ui.Tone.Neutral).Variant(Ui.Variant.Soft)[cards.Count.ToString()]
                     ],
                     Div
                         .Class(bodyCls)

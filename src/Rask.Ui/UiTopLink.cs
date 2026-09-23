@@ -1,6 +1,6 @@
 using Rask.Core.Routing;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>A link out of the console, in the top bar's trailing edge.</summary>
 public sealed partial class UiTopLink : Component

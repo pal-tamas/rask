@@ -28,13 +28,13 @@ public sealed partial class SignalingDemo(ISignaling signaling) : Component, IAs
     private int _sent;
 
     protected override Component? Render() =>
-        UiCard.Class("shadow-sm")[
+        Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 mb-2")[
-                    UiButton.Tone(UiTone.Primary)
+                    Ui.Button.Tone(Ui.Tone.Primary)
                         .Id("signal-join")
                         .Disabled(_joining)
                         .OnClick(JoinAsync)["Join the room twice"],
-                    UiButton.Tone(UiTone.Secondary)
+                    Ui.Button.Tone(Ui.Tone.Secondary)
                         .Id("signal-send")
                         .Disabled(_secondId is null)
                         .OnClick(SendAsync)["Relay a payload"]

@@ -1,4 +1,4 @@
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     The select, in both of its modes.
@@ -92,7 +92,7 @@ public partial class UiSelectTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void With_nothing_selected_the_box_shows_the_placeholder() =>
         Assert.Contains("Choose",
-            UiSelect.Value<string>(null).Options(Countries).Label("Country").Placeholder("Choose…")
+            Ui.Select.Value<string>(null).Options(Countries).Label("Country").Placeholder("Choose…")
                 .Native(false).ToHtml());
 
     [Fact]
@@ -100,7 +100,7 @@ public partial class UiSelectTests : global::Rask.Core.RaskMarkup
     {
         // menu-disabled goes on the <li>, unlike menu-active and menu-focus which go on the child —
         // an asymmetry in daisyUI's own rules rather than a choice here.
-        var html = UiSelect.Value<string>(null).Options(Countries).Label("Country").Native(false)
+        var html = Ui.Select.Value<string>(null).Options(Countries).Label("Country").Native(false)
             .OptionDisabled(v => v == "gb").ToHtml();
 
         Assert.Contains("aria-disabled=\"true\"", html);
@@ -117,7 +117,7 @@ public partial class UiSelectTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Groups_render_headers()
     {
-        var html = UiSelect.Value<string>(null).Options(Countries).Label("Country").Native(false)
+        var html = Ui.Select.Value<string>(null).Options(Countries).Label("Country").Native(false)
             .OptionGroup(v => v == "hu" ? "Europe" : "Isles").ToHtml();
 
         Assert.Contains("menu-title", html);
@@ -132,14 +132,14 @@ public partial class UiSelectTests : global::Rask.Core.RaskMarkup
         // silently drop its field.
         Assert.DoesNotContain("type=\"hidden\"", Custom("gb"));
         Assert.Contains("type=\"hidden\"",
-            UiSelect.Value("gb").Options(Countries).Label("Country").Native(false).Name("country")
+            Ui.Select.Value("gb").Options(Countries).Label("Country").Native(false).Name("country")
                 .ToHtml());
     }
 
     [Fact]
     public void The_native_mode_ignores_Name_because_a_select_posts_itself() =>
         Assert.DoesNotContain("type=\"hidden\"",
-            UiSelect.Value("gb").Options(Countries).Label("Country").Name("country").ToHtml());
+            Ui.Select.Value("gb").Options(Countries).Label("Country").Name("country").ToHtml());
 
     [Fact]
     public void Both_modes_are_named_by_their_visible_label()
@@ -169,19 +169,19 @@ public partial class UiSelectTests : global::Rask.Core.RaskMarkup
         // Label was copied into aria-label unconditionally, so a select with no label rendered a VALUELESS
         // aria-label and ignored AccessibleLabel entirely.
         Assert.Contains("aria-label=\"Country\"",
-            UiSelect.Value("gb").Options(Countries).AccessibleLabel("Country").ToHtml());
+            Ui.Select.Value("gb").Options(Countries).AccessibleLabel("Country").ToHtml());
         Assert.Contains("aria-label=\"Country\"",
-            UiSelect.Value("gb").Options(Countries).AccessibleLabel("Country").Native(false).ToHtml());
-        Assert.DoesNotContain("aria-label=", UiSelect.Value("gb").Options(Countries).ToHtml());
+            Ui.Select.Value("gb").Options(Countries).AccessibleLabel("Country").Native(false).ToHtml());
+        Assert.DoesNotContain("aria-label=", Ui.Select.Value("gb").Options(Countries).ToHtml());
     }
 
     [Fact]
     public void An_errored_control_says_so_in_both_modes()
     {
         Assert.Contains("aria-invalid=\"true\"",
-            UiSelect.Value("gb").Options(Countries).Label("Country").Tone(UiTone.Error).ToHtml());
+            Ui.Select.Value("gb").Options(Countries).Label("Country").Tone(Ui.Tone.Error).ToHtml());
         Assert.Contains("aria-invalid=\"true\"",
-            UiSelect.Value("gb").Options(Countries).Label("Country").Tone(UiTone.Error).Native(false)
+            Ui.Select.Value("gb").Options(Countries).Label("Country").Tone(Ui.Tone.Error).Native(false)
                 .ToHtml());
     }
 
@@ -190,7 +190,7 @@ public partial class UiSelectTests : global::Rask.Core.RaskMarkup
     {
         // A placeholder that can be chosen is an answer, and one chosen by accident is a bug report
         // about a form that saved nothing.
-        var html = UiSelect.Value<string>(null).Options(Countries).Label("Country")
+        var html = Ui.Select.Value<string>(null).Options(Countries).Label("Country")
             .Placeholder("Choose…").ToHtml();
 
         Assert.Contains("disabled", html);
@@ -203,7 +203,7 @@ public partial class UiSelectTests : global::Rask.Core.RaskMarkup
         // An <option>'s content model is text, so there is nowhere in the platform's control for markup
         // to go — supplying a template is therefore a choice of mode as well as of markup. Writing
         // Native(true) beside one is the contradiction, and RASK075 reports it at the call site.
-        var html = UiSelect.Value("gb").Options(Countries).Label("Country")
+        var html = Ui.Select.Value("gb").Options(Countries).Label("Country")
             .OptionTemplate(v => Span.Class("flag-mark")[v]).ToHtml();
 
         Assert.DoesNotContain("<select", html);
@@ -216,20 +216,20 @@ public partial class UiSelectTests : global::Rask.Core.RaskMarkup
     {
         // The template draws the LIST. The box is one line of text with no room for markup, so it goes
         // on showing the Text from Options — which is why Text stays worth supplying alongside one.
-        var html = UiSelect.Value("gb").Options(Countries).Label("Country")
+        var html = Ui.Select.Value("gb").Options(Countries).Label("Country")
             .OptionTemplate(v => Span.Class("flag-mark")[v]).ToHtml();
 
         Assert.Contains("United Kingdom", html);
     }
 
     private static string Native(bool? native) =>
-        UiSelect.Value("gb").Options(Countries).Label("Country").Native(native).ToHtml();
+        Ui.Select.Value("gb").Options(Countries).Label("Country").Native(native).ToHtml();
 
     private static string Custom(string? value) =>
-        UiSelect.Value(value).Options(Countries).Label("Country").Native(false).ToHtml();
+        Ui.Select.Value(value).Options(Countries).Label("Country").Native(false).ToHtml();
 
     // Handlers only exist inside a live render, so the attribute assertions above need one.
     private static string Live(string _) =>
         global::Rask.Testing.RaskTest.Render(
-            UiSelect.Value("gb").Options(Countries).Label("Country").Native(false)).Html;
+            Ui.Select.Value("gb").Options(Countries).Label("Country").Native(false)).Html;
 }

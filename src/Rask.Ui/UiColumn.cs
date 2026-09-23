@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// One column of a <see cref="UiDataGrid{T,TKey}" />: what it is titled, how each cell renders, and whether it
@@ -9,7 +9,7 @@ namespace Rask.Ui;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Built from inside the grid's column factory — <c>UiDataGrid.Data(rows)[c =&gt; [ c.Field(p =&gt; p.Name)
+/// Built from inside the grid's column factory — <c>Ui.DataGrid.Data(rows)[c =&gt; [ c.Field(p =&gt; p.Name)
 /// … ]]</c> — because that is what fixes the row type. A column written as a flat child of the grid has
 /// nothing to infer its lambda's parameter from and does not compile; see the grid's column indexer.
 /// </para>
@@ -203,10 +203,10 @@ public sealed partial class UiColumn<T> : Component
     /// <remarks>
     ///     For a secondary fact on a table with more columns than a tablet has room for. It hides the header,
     ///     the cells and the footer cell in TABLE mode only: below <c>sm</c> the stacked layout lists every
-    ///     column as its own labelled line and has the room for all of them. <see cref="UiBreakpoint.Sm" /> is
+    ///     column as its own labelled line and has the room for all of them. <see cref="Ui.Breakpoint.Sm" /> is
     ///     therefore no change at all — the table itself starts there.
     /// </remarks>
-    public UiBreakpoint? ShowFrom { get; set; }
+    public Ui.Breakpoint? ShowFrom { get; set; }
 
     /// <summary>Sets the cells in a monospace face — for ids, keys, hashes and paths.</summary>
     /// <remarks>The header stays in the body face: a column's title is a word, not a value.</remarks>

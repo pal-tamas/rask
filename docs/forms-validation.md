@@ -198,7 +198,7 @@ check is in flight:
 ValidatingIndicator.For(() => _model.Username).Template(() => Span.Class("spinner")["Checking…"])
 ```
 
-A bound `Rask.Ui` field (`UiInput`, `UiTextarea`, `UiSelect`) renders this for you, as a small spinner
+A bound `Rask.Ui` field (`Ui.Input`, `Ui.Textarea`, `Ui.Select`) renders this for you, as a small spinner
 with an announced "Checking…" under the control, next to its own validation message. Place a
 `ValidatingIndicator` yourself beside a raw `Input`, or when a kit field opts out with
 `ShowValidating(false)`.

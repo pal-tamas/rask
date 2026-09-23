@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// One step in a <see cref="UiSteps" />.
@@ -11,7 +11,7 @@ public sealed partial class UiStep : Component
 {
     public new required string Text { get; set; }
 
-    public UiTone? Tone { get; set; }
+    public Ui.Tone? Tone { get; set; }
 
     public string? Class { get; set; }
 

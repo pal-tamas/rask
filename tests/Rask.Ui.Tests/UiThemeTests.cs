@@ -1,13 +1,13 @@
-using Rask.Ui;
+using Rask;
 
-namespace Rask.Ui.Tests;
+namespace Rask.UiTests;
 
 /// <summary>
 /// The typed theme names and the stylesheet agree.
 /// </summary>
 /// <remarks>
 /// <para>
-/// <see cref="UiThemeName" /> exists so that naming a theme is checked by the compiler rather than
+/// <see cref="Ui.ThemeName" /> exists so that naming a theme is checked by the compiler rather than
 /// spelled into a string — but the enum and the compiled sheet are produced by two different things
 /// (a C# file and daisyUI's <c>themes:</c> option), so nothing but this keeps them in step.
 /// </para>
@@ -32,7 +32,7 @@ public sealed class UiThemeTests
 
         Assert.True(
             missing.Length == 0,
-            "these are named by UiThemeName but not defined in the compiled sheet, so selecting one "
+            "these are named by Ui.ThemeName but not defined in the compiled sheet, so selecting one "
             + "changes nothing: " + string.Join(", ", missing));
     }
 
@@ -51,7 +51,7 @@ public sealed class UiThemeTests
 
         Assert.True(
             unreachable.Length == 0,
-            "the stylesheet ships these themes with no UiThemeName member, so nothing can select them "
+            "the stylesheet ships these themes with no Ui.ThemeName member, so nothing can select them "
             + "in typed code: " + string.Join(", ", unreachable));
     }
 
@@ -59,14 +59,14 @@ public sealed class UiThemeTests
     public void TheValueIsWhatDaisyUiMatchesOn()
     {
         // Lowercased member name, mechanically — the mapping is not a table that can drift.
-        Assert.Equal("light", UiTheme.Value(UiThemeName.Light));
-        Assert.Equal("cupcake", UiTheme.Value(UiThemeName.Cupcake));
-        Assert.Equal("caramellatte", UiTheme.Value(UiThemeName.Caramellatte));
-        Assert.Equal(UiTheme.SystemValue, UiTheme.Value(UiThemeName.System));
+        Assert.Equal("light", UiTheme.Value(Ui.ThemeName.Light));
+        Assert.Equal("cupcake", UiTheme.Value(Ui.ThemeName.Cupcake));
+        Assert.Equal("caramellatte", UiTheme.Value(Ui.ThemeName.Caramellatte));
+        Assert.Equal(UiTheme.SystemValue, UiTheme.Value(Ui.ThemeName.System));
     }
 
     /// <summary>
-    ///     <see cref="UiThemeName.System" /> is not a palette, and the two tests above would be wrong
+    ///     <see cref="Ui.ThemeName.System" /> is not a palette, and the two tests above would be wrong
     ///     about it in opposite directions if it were treated as one.
     /// </summary>
     /// <remarks>
@@ -81,7 +81,7 @@ public sealed class UiThemeTests
     [Fact]
     public void System_IsTheAbsenceOfAChoiceRatherThanAPalette()
     {
-        Assert.DoesNotContain(UiThemeName.System, UiTheme.All);
+        Assert.DoesNotContain(Ui.ThemeName.System, UiTheme.All);
 
         Assert.DoesNotContain(
             $"[data-theme={UiTheme.SystemValue}]",
@@ -89,6 +89,6 @@ public sealed class UiThemeTests
             StringComparison.Ordinal);
 
         // And it is still a member, so a caller can name it in typed code.
-        Assert.Contains(UiThemeName.System, Enum.GetValues<UiThemeName>());
+        Assert.Contains(Ui.ThemeName.System, Enum.GetValues<Ui.ThemeName>());
     }
 }

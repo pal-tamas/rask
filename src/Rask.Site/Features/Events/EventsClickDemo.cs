@@ -5,5 +5,5 @@ public sealed partial class EventsClickDemo : Component
     private int _clicks;
 
     protected override Component? Render() =>
-        UiButton.Tone(UiTone.Primary).OnClick(() => _clicks++)[UiIcon.Name(UiIconName.Cursor), $"Clicks: {_clicks}"];
+        Ui.Button.Tone(Ui.Tone.Primary).OnClick(() => _clicks++)[Ui.Icon.Name(Ui.IconName.Cursor), $"Clicks: {_clicks}"];
 }

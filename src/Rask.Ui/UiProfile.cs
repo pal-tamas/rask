@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// The account row at the foot of a <see cref="UiSidebar" />: who is signed in, and the menu of what they can
@@ -49,7 +49,7 @@ public sealed partial class UiProfile : UiMenuButton
     private protected override string RootClass => "relative block w-full";
 
     /// <inheritdoc />
-    private protected override UiPosition DefaultPosition => UiPosition.Top;
+    private protected override Ui.Position DefaultPosition => Ui.Position.Top;
 
     /// <inheritdoc />
     protected override Component? Render() => Children is null ? Row(button: false) : MenuButton();
@@ -59,7 +59,7 @@ public sealed partial class UiProfile : UiMenuButton
 
     // `title` on the row: in the rail only the avatar is left, and the name moves into the tooltip — and, for the
     // dropdown trigger, into the button's accessible name, which a name computed from content takes from a
-    // descendant's title once its text is hidden. See UiNavItem for why not a CSS tooltip.
+    // descendant's title once its text is hidden. See Ui.NavItem for why not a CSS tooltip.
     private Component Row(bool button) =>
         Div.Class(UiClass.Compose(
             "flex min-w-0 items-center gap-2",
@@ -72,7 +72,7 @@ public sealed partial class UiProfile : UiMenuButton
                 Caption is { } caption ? Span.Class("truncate text-xs opacity-60")[caption] : null
             ],
             button && Chevron != false
-                ? UiIcon.Name(UiIconName.ChevronDown).Class("ui-rail-hide size-4 shrink-0 opacity-60")
+                ? Ui.Icon.Name(Ui.IconName.ChevronDown).Class("ui-rail-hide size-4 shrink-0 opacity-60")
                 : null
         ];
 
@@ -96,7 +96,7 @@ public sealed partial class UiProfile : UiMenuButton
                 Div.Class(UiClass.Compose("size-8 bg-neutral text-neutral-content", shape))[
                     // Hidden, for the same reason: the name is right there, and "TP" read aloud before it is
                     // noise.
-                    Span.Class("text-xs font-medium").Aria("hidden", "true")[global::Rask.Ui.UiAvatar.Initials(Name)]
+                    Span.Class("text-xs font-medium").Aria("hidden", "true")[global::Rask.UiAvatar.Initials(Name)]
                 ]
             ];
     }

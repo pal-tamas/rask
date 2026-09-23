@@ -3,7 +3,7 @@ using Rask.Core.Forms;
 
 namespace Rask.Site.Features;
 
-// A self-contained file-picker demo. UiFileInput's OnFiles wires the picker to a typed handler; RaskFile carries the metadata while the handler is on the stack. The mutating
+// A self-contained file-picker demo. Ui.FileInput's OnFiles wires the picker to a typed handler; RaskFile carries the metadata while the handler is on the stack. The mutating
 // handler lives in this component so its field updates re-render the right tree.
 public sealed partial class UploadDemo : Component
 {
@@ -29,7 +29,7 @@ public sealed partial class UploadDemo : Component
 
     protected override Component? Render() =>
         Div[
-            UiFileInput.Value("")
+            Ui.FileInput.Value("")
                 .Label("File")
                 .Id("upload-input")
                 .Class("mb-3")

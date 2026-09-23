@@ -1,6 +1,6 @@
 using Rask.Core.Routing;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// One place in a <see cref="UiNavList" />: a link with an icon, a label and, optionally, a badge.
@@ -25,13 +25,13 @@ public sealed partial class UiNavItem : Component
     /// <summary>Where it goes. A generated route navigates inside the app; a string is an ordinary link.</summary>
     public required RouteUrl Href { get; set; }
 
-    public UiIconName? Icon { get; set; }
+    public Ui.IconName? Icon { get; set; }
 
     /// <summary>A count or a word at the end of the row — "12", "New".</summary>
     public string? Badge { get; set; }
 
     /// <summary>The badge's colour.</summary>
-    public UiTone? BadgeTone { get; set; }
+    public Ui.Tone? BadgeTone { get; set; }
 
     /// <summary>Whether this is the page being shown. Unset, it is worked out from the route.</summary>
     public bool? Current { get; set; }
@@ -52,7 +52,7 @@ public sealed partial class UiNavItem : Component
     {
         Component[] content =
         [
-            Icon is { } icon ? UiIcon.Name(icon).Class("size-4 shrink-0") : null!,
+            Icon is { } icon ? Ui.Icon.Name(icon).Class("size-4 shrink-0") : null!,
             // ui-rail-hide: the words go when a collapsable sidebar is narrowed to its rail, and the icon stays.
             // Marked here rather than guessed by a CSS rule, which could not tell a label from content. The
             // link's `title` (below) is what the rail shows instead, and what names the link once the words are

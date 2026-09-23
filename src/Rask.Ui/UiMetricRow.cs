@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// The row of headline numbers at the top of a page.

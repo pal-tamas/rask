@@ -25,17 +25,17 @@ public sealed partial class PwaDemo(INotifications notifications, IWebPush push,
 
     protected override Component? Render() =>
     [
-        UiCard.Class("shadow-sm mb-3")[
-                H6.Class("font-bold")[UiIcon.Name(UiIconName.Bell).Class("me-2"), "Local notification (INotifications)"],
+        Ui.Card.Class("shadow-sm mb-3")[
+                H6.Class("font-bold")[Ui.Icon.Name(Ui.IconName.Bell).Class("me-2"), "Local notification (INotifications)"],
                 P.Class("text-sm text-ui-muted")[
                     "Requests permission, then shows a notification straight from C# — no server."
                 ],
-                UiButton.Tone(UiTone.Primary).Class("mb-2").Id("pwa-notify").OnClick(ShowNotification)["Show a notification"],
+                Ui.Button.Tone(Ui.Tone.Primary).Class("mb-2").Id("pwa-notify").OnClick(ShowNotification)["Show a notification"],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("pwa-notify-status")[_notifyStatus ?? "(idle)"]]
             ],
 
-        UiCard.Class("shadow-sm mb-3")[
-                H6.Class("font-bold")[UiIcon.Name(UiIconName.Signal).Class("me-2"), "Web Push (IWebPush)"],
+        Ui.Card.Class("shadow-sm mb-3")[
+                H6.Class("font-bold")[Ui.Icon.Name(Ui.IconName.Signal).Class("me-2"), "Web Push (IWebPush)"],
                 P.Class("text-sm text-ui-muted")[
                     "Subscribes with a demo VAPID key and registers with this app's ", Code["Rask.WebPush"],
                     " backend, then sends a real push that the service worker shows even when the tab is ",
@@ -43,8 +43,8 @@ public sealed partial class PwaDemo(INotifications notifications, IWebPush push,
                     ") for the full loop — see ", Code["docs/pwa.md"], "."
                 ],
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("pwa-push").OnClick(EnablePush)["Enable push (subscribe)"],
-                    UiButton.Tone(UiTone.Primary)
+                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Id("pwa-push").OnClick(EnablePush)["Enable push (subscribe)"],
+                    Ui.Button.Tone(Ui.Tone.Primary)
                         .Id("pwa-push-send")
                         .Disabled(!_subscribed)
                         .OnClick(SendTestPush)["Send a test push"]
@@ -52,15 +52,15 @@ public sealed partial class PwaDemo(INotifications notifications, IWebPush push,
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("pwa-push-status")[_pushStatus ?? "(idle)"]]
             ],
 
-        UiCard.Class("shadow-sm")[
-                H6.Class("font-bold")[UiIcon.Name(UiIconName.Overview).Class("me-2"), "App badge (IBadge)"],
+        Ui.Card.Class("shadow-sm")[
+                H6.Class("font-bold")[Ui.Icon.Name(Ui.IconName.Overview).Class("me-2"), "App badge (IBadge)"],
                 P.Class("text-sm text-ui-muted")[
                     "Sets a count on the installed app's icon — install the PWA first, then watch the icon. ",
                     "A silent no-op in a normal browser tab."
                 ],
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("pwa-badge-inc").OnClick(BumpBadge)["Increment badge"],
-                    UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline).Id("pwa-badge-clear").OnClick(ClearBadge)["Clear badge"]
+                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Id("pwa-badge-inc").OnClick(BumpBadge)["Increment badge"],
+                    Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline).Id("pwa-badge-clear").OnClick(ClearBadge)["Clear badge"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("pwa-badge-status")[_badgeStatus ?? "(idle)"]]
             ]

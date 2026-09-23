@@ -1,6 +1,6 @@
+using Rask;
 using Rask.Core.Components;
 using Rask.Core.Routing;
-using Rask.Ui;
 
 namespace Rask.Site;
 
@@ -23,12 +23,12 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     // sidebar entry stays highlighted for any URL under that prefix (e.g. switching
     // /realtime/BTC ↔ /realtime/ETH keeps "Live ticker" active). Null means
     // exact-match only.
-    private static readonly (string Path, string Label, UiIconName Icon, string Group, string? MatchPrefix)[] Links =
+    private static readonly (string Path, string Label, Ui.IconName Icon, string Group, string? MatchPrefix)[] Links =
     [
         // Paths are type-safe, generator-emitted route URLs (Features.Routes.*) — RouteUrl converts
         // implicitly to the string Path slot, so a renamed/removed [Route] is a compile error here, not a
         // dead link. MatchPrefix stays a bare string (it is a URL prefix, not a whole route).
-        (Features.Routes.TodosPage(), "Todos", UiIconName.CheckCircle, "Apps", null)
+        (Features.Routes.TodosPage(), "Todos", Ui.IconName.CheckCircle, "Apps", null)
         // Many example pages are now folded into their guides as inline live demos: HttpClient+DI /
         // upload / download → HTTP & files (docs/http-and-files.md); typed browser-API wrappers → Browser
         // APIs (docs/browser-apis.md); Events + Toast messages → Composition (docs/composition.md); the
@@ -84,9 +84,9 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
         // touch target.
         SiteHeader
             .FullBleed(true)
-            .Leading(UiSidebarToggle
+            .Leading(Ui.SidebarToggle
                 .For(SidebarId)
-                .Collapsible(UiBreakpoint.Md)
+                .Collapsible(Ui.Breakpoint.Md)
                 .AccessibleLabel("Toggle navigation")
                 .Class("hamburger-btn size-11")),
         // The kit's sidebar: docked from md up, a drawer below it. The open state is the drawer's checkbox, mirrored
@@ -97,13 +97,13 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
         // does not scroll — the filter is pinned, the list below it scrolls — as wide as the old 280px column from md
         // up, and clearing the bar and the notch while it slides over the page below md. The widths are `!` because
         // the kit's panel carries its own default width and two width utilities would be settled by sheet order.
-        UiSidebar
+        Ui.Sidebar
             .Id(SidebarId)
             .Page(Main.Class(
                 "grow min-w-0 px-3 py-4 pb-[calc(2rem_+_env(safe-area-inset-bottom))] md:px-5 page-main")[
                 Div.Class("mx-auto max-w-[1280px] page-main-inner")[Outlet]
             ])
-            .Collapsible(UiBreakpoint.Md)
+            .Collapsible(Ui.Breakpoint.Md)
             .Open(_drawerOpen)
             .OnToggle(open => { _drawerOpen = open; })
             .AccessibleLabel("Guides and examples")
@@ -121,10 +121,10 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     // position:sticky child because sticky-in-flexbox is unreliable in Safari (the filter would scroll
     // away with the list), and this keeps it rock-solid across browsers with a clean hairline divider.
     private Component SidebarBody() => [
-        // UiSidebarHeader is the kit's own word for "holds its place while the list below scrolls", which is
+        // Ui.SidebarHeader is the kit's own word for "holds its place while the list below scrolls", which is
         // exactly what this is. It brings the shrink-0; the rest is this sidebar's own look.
-        UiSidebarHeader.Class("side-nav-search mb-1 block border-b border-ui-line bg-ui-well pb-2")[
-            UiInput.Value(_filter).AccessibleLabel("Filter guides & examples…")
+        Ui.SidebarHeader.Class("side-nav-search mb-1 block border-b border-ui-line bg-ui-well pb-2")[
+            Ui.Input.Value(_filter).AccessibleLabel("Filter guides & examples…")
                 .OnInput(v => _filter = v ?? "")
                 .Placeholder("Filter guides & examples…").Class("side-nav-filter rounded-lg")
         ],
@@ -137,7 +137,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     // default via OpenGuideGroups), followed by the interactive Examples (the framework/core showcase
     // plus any host-contributed entries, e.g. the WASM PWA examples) and the Bootstrap-component
     // showcase — both demoted below the guides and collapsed until visited.
-    private IEnumerable<(string Section, IEnumerable<(string Path, string Label, UiIconName Icon, string Group, string? MatchPrefix)> Links)> Sections()
+    private IEnumerable<(string Section, IEnumerable<(string Path, string Label, Ui.IconName Icon, string Group, string? MatchPrefix)> Links)> Sections()
     {
         yield return ("Guides", GuidesNav());
         yield return ("Examples",
@@ -145,9 +145,9 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
     }
 
     // The Guides section mirrors the GuideCatalog (docs/*.md rendered on-site), led by the index.
-    private static IEnumerable<(string Path, string Label, UiIconName Icon, string Group, string? MatchPrefix)> GuidesNav()
+    private static IEnumerable<(string Path, string Label, Ui.IconName Icon, string Group, string? MatchPrefix)> GuidesNav()
     {
-        yield return (Features.Routes.GuidesIndexPage(), "All guides", UiIconName.Book, "Overview", null);
+        yield return (Features.Routes.GuidesIndexPage(), "All guides", Ui.IconName.Book, "Overview", null);
         foreach (var g in Features.GuideCatalog.All)
         {
             yield return (Features.Routes.GuidePage(g.Slug), g.Title, g.Icon, g.Group, null);
@@ -197,7 +197,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
 
     private Component GroupBlock(
         string key, string group, bool open,
-        IReadOnlyList<(string Path, string Label, UiIconName Icon, string Group, string? MatchPrefix)> items) =>
+        IReadOnlyList<(string Path, string Label, Ui.IconName Icon, string Group, string? MatchPrefix)> items) =>
         // daisyUI's menu, and a real <ul>/<li> tree rather than a stack of divs: that shape is what the
         // component styles, and it is also what tells a screen reader how many entries a group has and
         // which one it is on.
@@ -212,7 +212,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                 .Type("button")
                 .Class(open ? "nav-group-toggle open menu-dropdown-toggle menu-dropdown-show" : "nav-group-toggle menu-dropdown-toggle")
                 .OnClick(() => ToggleGroup(key))[
-                UiIcon.Name(open ? UiIconName.ChevronDown : UiIconName.ChevronRight).Class("nav-group-chevron size-3.5"),
+                Ui.Icon.Name(open ? Ui.IconName.ChevronDown : Ui.IconName.ChevronRight).Class("nav-group-chevron size-3.5"),
                 Span.Class("nav-group-label")[group]
             ],
             // menu-dropdown-show belongs on the SUBMENU, not only on the toggle. daisyUI hides the
@@ -229,7 +229,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                         // The kit's nav item: a NavLink underneath, so the current page is worked out from the
                         // route and says so with menu-active AND aria-current="page" — the attribute the browser
                         // suite now selects the current link by, where it used to rely on a class.
-                        var item = UiNavItem
+                        var item = Ui.NavItem
                             .Key(i.Path)
                             .Label(i.Label)
                             // The slashed URL the host serves: a bare href is a 301 for every crawler (#1057).
@@ -289,11 +289,11 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
 
     // Groups consecutive links by their Group label, preserving the array order (the sidebar shows
     // groups in the order their first item appears, exactly as the flat list was authored).
-    private static IEnumerable<(string Group, List<(string Path, string Label, UiIconName Icon, string Group, string? MatchPrefix)> Items)>
-        GroupConsecutive(IEnumerable<(string Path, string Label, UiIconName Icon, string Group, string? MatchPrefix)> links)
+    private static IEnumerable<(string Group, List<(string Path, string Label, Ui.IconName Icon, string Group, string? MatchPrefix)> Items)>
+        GroupConsecutive(IEnumerable<(string Path, string Label, Ui.IconName Icon, string Group, string? MatchPrefix)> links)
     {
         string? current = null;
-        List<(string Path, string Label, UiIconName Icon, string Group, string? MatchPrefix)>? bucket = null;
+        List<(string Path, string Label, Ui.IconName Icon, string Group, string? MatchPrefix)>? bucket = null;
 
         foreach (var link in links)
         {

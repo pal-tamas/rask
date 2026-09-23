@@ -1,5 +1,5 @@
 using System.Reflection;
-using Rask.Ui;
+using Rask;
 
 namespace Rask.Site.Features;
 
@@ -40,17 +40,17 @@ public sealed record GuideEntry(string Slug, string Title, string Blurb, string 
     /// heading said. One per group is the information that was actually there, and a guide added later
     /// cannot forget to pick one.
     /// </remarks>
-    public UiIconName Icon => Group switch
+    public Ui.IconName Icon => Group switch
     {
-        "Start here" => UiIconName.Rocket,
-        "Tutorial" => UiIconName.Book,
-        "One Person Framework" => UiIconName.Bolt,
-        "Core" => UiIconName.Cube,
-        "Integration" => UiIconName.ArrowsRightLeft,
-        "Advanced" => UiIconName.Sparkles,
-        "Mobile & devices" => UiIconName.Phone,
-        "Contributing & internals" => UiIconName.Terminal,
-        _ => UiIconName.Document,
+        "Start here" => Ui.IconName.Rocket,
+        "Tutorial" => Ui.IconName.Book,
+        "One Person Framework" => Ui.IconName.Bolt,
+        "Core" => Ui.IconName.Cube,
+        "Integration" => Ui.IconName.ArrowsRightLeft,
+        "Advanced" => Ui.IconName.Sparkles,
+        "Mobile & devices" => Ui.IconName.Phone,
+        "Contributing & internals" => Ui.IconName.Terminal,
+        _ => Ui.IconName.Document,
     };
 }
 

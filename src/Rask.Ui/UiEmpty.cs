@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>What a panel shows when there is nothing in it — and, where it helps, why.</summary>
 /// <remarks>

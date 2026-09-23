@@ -19,8 +19,8 @@ public sealed partial class SubscriptionDemo(IDispatcher dispatcher) : Component
     protected override Component? Render() =>
         Div.Id("subscription-demo").Class("flex flex-col gap-3")[
             Div.Class("flex gap-2 flex-wrap")[
-                UiButton.Tone(UiTone.Primary).Id("subscription-place").OnClick(PlaceOrderAsync)["Place an order"],
-                UiButton.Id("subscription-ship").Disabled(_placed == 0).OnClick(ShipOrderAsync)["Ship it"]
+                Ui.Button.Tone(Ui.Tone.Primary).Id("subscription-place").OnClick(PlaceOrderAsync)["Place an order"],
+                Ui.Button.Id("subscription-ship").Disabled(_placed == 0).OnClick(ShipOrderAsync)["Ship it"]
             ],
             P.Id("subscription-tracked").Class("mb-0")[Tracking()],
             Div.Class("grid gap-3 sm:grid-cols-2")[

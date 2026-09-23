@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// Applies the reader's theme before the first paint, remembers it, and follows the operating system
@@ -12,7 +12,7 @@ namespace Rask.Ui;
 /// pair is complete:
 /// </para>
 /// <code>
-/// protected override Component? HeadAssets => [Title["…"], UiThemeScript];
+/// protected override Component? HeadAssets => [Title["…"], Ui.ThemeScript];
 /// </code>
 /// <para>
 /// WITH NO SAVED CHOICE IT WRITES NO <c>data-theme</c> AT ALL, and that absence is the feature rather
@@ -64,7 +64,7 @@ public sealed partial class UiThemeScript : Component
     /// treated as no choice, so a theme removed from the picker also stops being restorable by anyone who
     /// had already chosen it.
     /// </remarks>
-    public IReadOnlyList<UiThemeName>? Themes { get; set; }
+    public IReadOnlyList<Ui.ThemeName>? Themes { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render() =>
@@ -78,10 +78,10 @@ public sealed partial class UiThemeScript : Component
     /// drift from the stylesheet: a theme added to the kit is restorable the day it ships, and one removed
     /// stops being stamped.
     /// </remarks>
-    internal static string Js(string storageKey, IReadOnlyList<UiThemeName> themes)
+    internal static string Js(string storageKey, IReadOnlyList<Ui.ThemeName> themes)
     {
         var key = Escape(storageKey);
-        var names = string.Join(' ', themes.Where(t => t != UiThemeName.System).Select(UiTheme.Value));
+        var names = string.Join(' ', themes.Where(t => t != Ui.ThemeName.System).Select(UiTheme.Value));
 
         return
             "(function(){var d=document.documentElement,K='" + key + "',S='" + UiTheme.SystemValue + "'," +

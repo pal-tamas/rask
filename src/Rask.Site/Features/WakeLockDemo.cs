@@ -14,10 +14,10 @@ public sealed partial class WakeLockDemo(IWakeLock wakeLock) : Component, IAsync
     private string? _status;
 
     protected override Component? Render() =>
-        UiCard.Class("shadow-sm")[
+        Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    UiButton
-                        .Tone(_sentinel is null ? UiTone.Primary : UiTone.Error)
+                    Ui.Button
+                        .Tone(_sentinel is null ? Ui.Tone.Primary : Ui.Tone.Error)
                         .Id("wakelock-toggle")
                         .OnClick(Toggle)[_sentinel is null ? "Keep screen awake" : "Release"]
                 ],

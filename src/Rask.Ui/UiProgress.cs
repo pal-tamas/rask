@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// Work in progress, with a known amount left.
@@ -16,7 +16,7 @@ public sealed partial class UiProgress : Component
 
     public double? Max { get; set; }
 
-    public UiTone? Tone { get; set; }
+    public Ui.Tone? Tone { get; set; }
 
     public string? Class { get; set; }
 

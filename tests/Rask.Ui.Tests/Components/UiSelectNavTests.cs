@@ -1,4 +1,4 @@
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     The roving-cursor arithmetic behind the non-native listbox.

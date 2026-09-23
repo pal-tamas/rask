@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using Rask.Core.Forms;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// What every form control in the kit has in common: an optional visible label, an optional hint, the
@@ -112,7 +112,7 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
     ///     site's.
     ///     </para>
     ///     <para>
-    ///     Pair it with <c>Tone(UiTone.Error)</c>: the tone is what marks the control invalid, and the
+    ///     Pair it with <c>Tone(Ui.Tone.Error)</c>: the tone is what marks the control invalid, and the
     ///     invalid state is what reveals the message.
     ///     </para>
     /// </remarks>
@@ -144,13 +144,13 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
     public string? Badge { get; set; }
 
     /// <summary>
-    ///     The control's colour. <see cref="UiTone.Error" /> also marks it invalid to assistive tech.
+    ///     The control's colour. <see cref="Ui.Tone.Error" /> also marks it invalid to assistive tech.
     /// </summary>
-    public UiTone? Tone { get; set; }
+    public Ui.Tone? Tone { get; set; }
 
-    public UiSize? Size { get; set; }
+    public Ui.Size? Size { get; set; }
 
-    public UiVariant? Variant { get; set; }
+    public Ui.Variant? Variant { get; set; }
 
     public bool? Disabled { get; set; }
 
@@ -239,7 +239,7 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
         }
 
         var boundMessages = HasBoundMessages();
-        if (Tone == UiTone.Error || boundMessages)
+        if (Tone == Ui.Tone.Error || boundMessages)
         {
             aria["invalid"] = "true";
         }
@@ -278,7 +278,7 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
         }
 
         // The controlled message is `visibility: hidden` until the tone marks the control invalid.
-        if (Error is not null && Tone == UiTone.Error)
+        if (Error is not null && Tone == Ui.Tone.Error)
         {
             (ids ??= []).Add(ErrorId);
         }
@@ -344,7 +344,7 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
         ShowValidating == false || Bind is not { } bind
             ? null
             : ValidatingIndicator
-                .Template(() => UiLoading.Text("Checking…").Size(UiSize.Xs).Class("label"))
+                .Template(() => Ui.Loading.Text("Checking…").Size(Ui.Size.Xs).Class("label"))
                 .For(bind);
 
     /// <summary>
@@ -385,7 +385,7 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
         var floats = Label is not null && FloatsLabel;
 
         // RaskMarkup.Label, qualified: this type has a Label PROPERTY, which shadows the <label> chain entry
-        // of the same name — the "Color Color" problem. UiCheckbox avoids it by calling its own property
+        // of the same name — the "Color Color" problem. Ui.Checkbox avoids it by calling its own property
         // Text; a form field's label should be called Label, so the entry is reached through the base that
         // declares it instead.
         //

@@ -9,8 +9,8 @@ public sealed partial class ScreenInfoDemo(IScreenInfo screen) : Component
     private string? _status;
 
     protected override Component? Render() =>
-        UiCard.Class("shadow-sm")[
-                UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Class("mb-2")
+        Ui.Card.Class("shadow-sm")[
+                Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Class("mb-2")
                     .Id("screen-read")
                     .OnClick(Read)["Read screen info"],
                 Div.Class("text-sm text-ui-muted")["Display: ", Code.Id("screen-value")[_value ?? "(not requested)"]],

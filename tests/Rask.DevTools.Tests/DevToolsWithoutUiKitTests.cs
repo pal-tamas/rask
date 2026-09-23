@@ -42,7 +42,7 @@ public sealed class DevToolsWithoutUiKitTests
     [Fact]
     public void The_kit_probe_names_the_kit_the_panel_is_drawn_with()
     {
-        var kit = typeof(Rask.Ui.UiStylesheet);
+        var kit = typeof(Rask.UiStylesheet);
 
         Assert.Equal(DevToolsUiKit.ProbeTypeName, kit.FullName + ", " + kit.Assembly.GetName().Name);
         Assert.True(DevToolsUiKit.IsAvailable());

@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A search field: a leading icon, and the filter it drives.
@@ -20,7 +20,7 @@ public sealed partial class UiSearch : Component
 
     public string? Value { get; set; }
 
-    public UiSize? Size { get; set; }
+    public Ui.Size? Size { get; set; }
 
     public Callback<string>? OnSearch { get; set; }
 
@@ -50,7 +50,7 @@ public sealed partial class UiSearch : Component
                 "input w-full sm:w-72",
                 Size is { } size ? UiClassNames.InputSize(size) : "",
                 Class))[
-            UiIcon.Name(UiIconName.Search).Class("size-4 shrink-0 opacity-60"),
+            Ui.Icon.Name(Ui.IconName.Search).Class("size-4 shrink-0 opacity-60"),
             input
         ];
     }

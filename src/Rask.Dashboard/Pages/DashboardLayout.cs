@@ -53,7 +53,7 @@ public sealed partial class DashboardLayout(
         // Raw, because CSS is not HTML: encoding it would break every selector containing > or &.
         // ONE sheet, the kit's. The console used to compile a second one for the utilities its pages wrote,
         // because Tailwind scans the project it runs in and neither build could see the other's markup; the
-        // pages write no classes now, and the frame's reset travels in the kit's sheet keyed to UiShell.
+        // pages write no classes now, and the frame's reset travels in the kit's sheet keyed to Ui.Shell.
         // INLINED here, unlike the apps, and deliberately. The console is mounted into somebody else's host at
         // /_rask: that host references Rask.Dashboard, not Rask.Ui, so it never gets the build target that
         // writes the sheet into wwwroot, and a <link> would point at a file nothing produced.
@@ -86,16 +86,16 @@ public sealed partial class DashboardLayout(
         // rather than left to default: the default is "follow prefers-color-scheme", which would repaint this
         // subtree dark. RaskDashboardShell pins the same theme on <html>; DashboardTheme is the one place the
         // two agree.
-        UiShell.Theme(DashboardTheme.Name)[
-            UiTopBar.Trailing(UiTopLink.Label("Docs").Href("https://rask.sh/docs/"))[
+        Ui.Shell.Theme(DashboardTheme.Name)[
+            Ui.TopBar.Trailing(Ui.TopLink.Label("Docs").Href("https://rask.sh/docs/"))[
                 // The wordmark and the destination are the console's, not the kit's — the kit is shared
                 // with the site and the docs now, and each says its own name.
-                UiBrand.Label("Ops").Href(Routes.OverviewPage()),
+                Ui.Brand.Label("Ops").Href(Routes.OverviewPage()),
                 QueueSeparator(),
                 QueueSwitcher()
             ],
-            UiNav[NavTabs()],
-            UiMain[
+            Ui.Nav[NavTabs()],
+            Ui.Main[
                 UnsecuredWarning(),
                 Outlet
             ]
@@ -126,13 +126,13 @@ public sealed partial class DashboardLayout(
     // Named Tab, not NavTab: a private method named after a chain entry would shadow the entry it needs to
     // call, and the entry is a member of this markup host rather than a type it can qualify.
     private Component Tab(RouteUrl url, string label, bool exact, string? prefix = null) =>
-        UiNavTab
+        Ui.NavTab
             .Label(label)
             .Href(url)
             .Active(IsActive(prefix ?? url.Path, exact));
 
     private Component? QueueSeparator() =>
-        CurrentQueue() is null ? null : UiCrumbSeparator;
+        CurrentQueue() is null ? null : Ui.CrumbSeparator;
 
     private Component? QueueSwitcher()
     {
@@ -143,7 +143,7 @@ public sealed partial class DashboardLayout(
             return null;
         }
 
-        return UiCrumbSwitcher
+        return Ui.CrumbSwitcher
             .Label("Switch queue")
             .Value(current.Slug)
             .Choices([.. Available.Select(q => (q.Slug, q.Title))])
@@ -189,8 +189,8 @@ public sealed partial class DashboardLayout(
     // only while it applies: an app that defined the policy has real access control and gets no banner.
     private Component? UnsecuredWarning() =>
         security.IsUnsecured
-            ? UiAlert.Tone(UiTone.Warning)[
-                UiIcon.Name(UiIconName.ShieldWarning),
+            ? Ui.Alert.Tone(Ui.Tone.Warning)[
+                Ui.Icon.Name(Ui.IconName.ShieldWarning),
                 Span[
                     "Unsecured — anyone who can reach this URL can read job payloads, stored emails and logs. Define the ",
                     Code[RaskDashboardPolicies.Access],

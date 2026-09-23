@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A round action pinned to the corner of the viewport, with more actions behind it.
@@ -25,7 +25,7 @@ public sealed partial class UiFab : Component
     public required string AccessibleLabel { get; set; }
 
     /// <summary>The icon on the closed button.</summary>
-    public UiIconName? Icon { get; set; }
+    public Ui.IconName? Icon { get; set; }
 
     /// <summary>
     ///     The one action the button itself becomes once open, drawn over the trigger. Omit it and the
@@ -51,7 +51,7 @@ public sealed partial class UiFab : Component
                 .Role("button")
                 .Class("btn btn-lg btn-circle")
                 .Aria(new Dictionary<string, string?> { ["label"] = AccessibleLabel })[
-                Icon is { } icon ? UiIcon.Name(icon).Class("size-5 shrink-0") : null
+                Icon is { } icon ? Ui.Icon.Name(icon).Class("size-5 shrink-0") : null
             ],
             Close is null ? null : Div.Class("fab-close")[Close],
             MainAction is null ? null : Div.Class("fab-main-action")[MainAction],

@@ -1,4 +1,4 @@
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     The panel, the composition of its class attribute, and the linked form of it.
@@ -7,13 +7,13 @@ public partial class UiCardTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void It_writes_the_kit_panel_classes() =>
-        Assert.Contains(UiStyles.Card, UiCard[Span["body"]].ToHtml(), StringComparison.Ordinal);
+        Assert.Contains(UiStyles.Card, Ui.Card[Span["body"]].ToHtml(), StringComparison.Ordinal);
 
     [Fact]
     public void An_own_class_is_appended() =>
         Assert.Contains(
             UiStyles.Card + " w-full",
-            UiCard.Class("w-full")[Span["body"]].ToHtml(),
+            Ui.Card.Class("w-full")[Span["body"]].ToHtml(),
             StringComparison.Ordinal);
 
     [Fact]
@@ -23,19 +23,19 @@ public partial class UiCardTests : global::Rask.Core.RaskMarkup
         // left `class="… sm:p-5 "` on every card the kit has ever drawn. Harmless to a browser and
         // invisible on a page, but it is a byte of difference in markup two lanes are meant to match
         // exactly, and it shows up in every snapshot and every class-contract assertion.
-        var html = UiCard[Span["body"]].ToHtml();
+        var html = Ui.Card[Span["body"]].ToHtml();
 
         Assert.DoesNotContain(" \"", html, StringComparison.Ordinal);
     }
 
     [Fact]
     public void The_header_is_omitted_when_there_is_nothing_to_put_in_it() =>
-        Assert.DoesNotContain("mb-4 flex", UiCard[Span["body"]].ToHtml(), StringComparison.Ordinal);
+        Assert.DoesNotContain("mb-4 flex", Ui.Card[Span["body"]].ToHtml(), StringComparison.Ordinal);
 
     [Fact]
     public void A_heading_renders_in_the_header()
     {
-        var html = UiCard.Heading("Orders")[Span["body"]].ToHtml();
+        var html = Ui.Card.Heading("Orders")[Span["body"]].ToHtml();
 
         Assert.Contains("<h2", html, StringComparison.Ordinal);
         Assert.Contains("Orders", html, StringComparison.Ordinal);
@@ -44,9 +44,9 @@ public partial class UiCardTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_card_does_not_space_its_body()
     {
-        // Every demo result on the site sits in a UiCard. Spacing the body would restyle all of them at once,
+        // Every demo result on the site sits in a Ui.Card. Spacing the body would restyle all of them at once,
         // so the card leaves its children's rhythm to them; only the header carries a margin.
-        var html = UiCard.Heading("Orders")[Span["one"], Span["two"]].ToHtml();
+        var html = Ui.Card.Heading("Orders")[Span["one"], Span["two"]].ToHtml();
 
         Assert.DoesNotContain("space-y-", html, StringComparison.Ordinal);
         Assert.Contains("mb-4 flex", html, StringComparison.Ordinal);
@@ -55,7 +55,7 @@ public partial class UiCardTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void An_icon_sits_before_the_heading()
     {
-        var html = UiCard.Heading("Jobs").Icon(UiIconName.Gear)[Span["body"]].ToHtml();
+        var html = Ui.Card.Heading("Jobs").Icon(Ui.IconName.Gear)[Span["body"]].ToHtml();
 
         var icon = html.IndexOf("size-5 shrink-0 opacity-60", StringComparison.Ordinal);
         Assert.True(icon >= 0, "the icon was not rendered");
@@ -67,7 +67,7 @@ public partial class UiCardTests : global::Rask.Core.RaskMarkup
     {
         // One link, not a link beside a card: the whole panel is the target, so it is one tab stop and one
         // announcement, and "open in new tab" works anywhere on it.
-        var html = UiCard.Href("/_rask/queues/jobs").Heading("Jobs")[Span["body"]].ToHtml();
+        var html = Ui.Card.Href("/_rask/queues/jobs").Heading("Jobs")[Span["body"]].ToHtml();
 
         Assert.StartsWith("<a ", html, StringComparison.Ordinal);
         Assert.EndsWith("</a>", html, StringComparison.Ordinal);
@@ -77,5 +77,5 @@ public partial class UiCardTests : global::Rask.Core.RaskMarkup
 
     [Fact]
     public void A_card_without_an_href_is_not_a_link() =>
-        Assert.DoesNotContain("<a ", UiCard.Heading("Jobs")[Span["body"]].ToHtml(), StringComparison.Ordinal);
+        Assert.DoesNotContain("<a ", Ui.Card.Heading("Jobs")[Span["body"]].ToHtml(), StringComparison.Ordinal);
 }

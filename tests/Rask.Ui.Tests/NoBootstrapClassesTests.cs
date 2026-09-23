@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace Rask.Ui.Tests;
+namespace Rask.UiTests;
 
 /// <summary>
 ///     `Rask.Bootstrap` is gone and styling is Tailwind, compiled from each project's own source. A

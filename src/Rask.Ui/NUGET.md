@@ -55,21 +55,21 @@ protected override Component Shell(Component head, Component body) =>
 ```csharp
 protected override Component? Render() =>
 [
-    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Size(UiSize.Lg)["Save"],
+    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Size(Ui.Size.Lg)["Save"],
 
-    UiModal.Title("Delete order").Id("confirm").Trigger("Delete")[
+    Ui.Modal.Title("Delete order").Id("confirm").Trigger("Delete")[
         P["This cannot be undone."]
     ],
 
     // Every data-input control is an IFormControl<T>: Value opens the controlled chain and Bind the
     // bound one, and the opening step fixes the value type and the mode together.
-    UiInput.Value(_email).Label("Email").Type(InputType.Email)
-           .Tone(_email.Contains('@') ? null : UiTone.Error)
+    Ui.Input.Value(_email).Label("Email").Type(InputType.Email)
+           .Tone(_email.Contains('@') ? null : Ui.Tone.Error)
            .OnChange(value => _email = value),
 
-    UiAccordion.Open(_section).OnOpen(key => _section = key)[
-        UiAccordionSection.Key("ship").Title("Shipping")[P["Two working days."]],
-        UiAccordionSection.Key("pay").Title("Payment")[P["Card or transfer."]]
+    Ui.Accordion.Open(_section).OnOpen(key => _section = key)[
+        Ui.AccordionSection.Key("ship").Title("Shipping")[P["Two working days."]],
+        Ui.AccordionSection.Key("pay").Title("Payment")[P["Card or transfer."]]
     ],
 ];
 ```
@@ -82,15 +82,15 @@ and a reset arriving from a library restyles pages that never asked for it.
 
 | | |
 | --- | --- |
-| Actions | `UiButton` `UiDropdown` `UiModal` `UiSwap` `UiThemeController` `UiFab` |
-| Data display | `UiAccordion` `UiCollapse` `UiAvatar` `UiAura` `UiBadge` `UiCard` `UiCarousel` `UiChatBubble` `UiCountdown` `UiDiff` `UiEmpty` `UiHover3d` `UiHoverGallery` `UiKbd` `UiList` `UiStat` `UiStatusDot` `UiTable` `UiDataGrid` `UiTree` `UiTextRotate` `UiTimeline` |
-| Navigation | `UiBreadcrumbs` `UiDock` `UiLink` `UiMegamenu` `UiMenu` `UiNavbar` `UiPagination` `UiSteps` `UiTabs` |
-| Feedback | `UiAlert` `UiLoading` `UiProgress` `UiRadialProgress` `UiSkeleton` `UiToast` `UiTooltip` |
-| Data input | `UiInput` `UiTextarea` `UiSelect` `UiMultiSelect` `UiFileInput` `UiCheckbox` `UiToggle` `UiRadio` `UiRange` `UiRating` `UiFieldset` `UiValidator` `UiLabel` `UiOtp` `UiFilter` `UiCalendar` |
-| Layout | `UiDivider` `UiDrawer` `UiFooter` `UiHero` `UiIndicator` `UiJoin` `UiStack` `UiMask` |
-| Mockup | `UiMockupBrowser` `UiMockupCode` `UiMockupPhone` `UiMockupWindow` |
-| Chrome | `UiShell` `UiTopBar` `UiBrand` `UiNav` `UiNavTab` `UiCrumbSwitcher` `UiTopLink` `UiMain` `UiHeader` `UiMetricRow` `UiDetailList` `UiCode` `UiSearch` |
-| Support | `UiIcon` / `UiIconName`, `UiTheme` / `UiThemeName`, `UiBreakpoint`, `UiStyles`, `UiStylesheet` |
+| Actions | `Ui.Button` `Ui.Dropdown` `Ui.Modal` `Ui.Swap` `Ui.ThemeController` `Ui.Fab` |
+| Data display | `Ui.Accordion` `Ui.Collapse` `Ui.Avatar` `Ui.Aura` `Ui.Badge` `Ui.Card` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kbd` `Ui.List` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.DataGrid` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` |
+| Navigation | `Ui.Breadcrumbs` `Ui.Dock` `Ui.Link` `Ui.Megamenu` `Ui.Menu` `Ui.Navbar` `Ui.Pagination` `Ui.Steps` `Ui.Tabs` |
+| Feedback | `Ui.Alert` `Ui.Loading` `Ui.Progress` `Ui.RadialProgress` `Ui.Skeleton` `Ui.Toast` `Ui.Tooltip` |
+| Data input | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.MultiSelect` `Ui.FileInput` `Ui.Checkbox` `Ui.Toggle` `Ui.Radio` `Ui.Range` `Ui.Rating` `Ui.Fieldset` `Ui.Validator` `Ui.Label` `Ui.Otp` `Ui.Filter` `Ui.Calendar` |
+| Layout | `Ui.Divider` `Ui.Drawer` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
+| Mockup | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
+| Chrome | `Ui.Shell` `Ui.TopBar` `Ui.Brand` `Ui.Nav` `Ui.NavTab` `Ui.CrumbSwitcher` `Ui.TopLink` `Ui.Main` `Ui.Header` `Ui.MetricRow` `Ui.DetailList` `Ui.Code` `Ui.Search` |
+| Support | `Ui.Icon` / `Ui.IconName`, `UiTheme` / `Ui.ThemeName`, `Ui.Breakpoint`, `UiStyles`, `UiStylesheet` |
 
 Requires .NET 10. Runs on both the ASP.NET host and browser-WebAssembly.
 

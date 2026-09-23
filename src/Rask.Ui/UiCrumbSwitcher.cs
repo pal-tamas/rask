@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A breadcrumb level you can actually switch: a native select wearing the crumb's clothes.
@@ -28,7 +28,7 @@ public sealed partial class UiCrumbSwitcher : Component
 
     public Callback<string>? OnSelect { get; set; }
 
-    public UiIconName? Icon { get; set; }
+    public Ui.IconName? Icon { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render()
@@ -60,11 +60,11 @@ public sealed partial class UiCrumbSwitcher : Component
 
         return Div.Class("relative flex min-w-0 max-w-[9rem] items-center sm:max-w-[16rem]")[
             Icon is { } icon
-                ? UiIcon.Name(icon).Class("pointer-events-none absolute left-2 size-4 shrink-0 opacity-60")
+                ? Ui.Icon.Name(icon).Class("pointer-events-none absolute left-2 size-4 shrink-0 opacity-60")
                 : null,
             select[options],
-            UiIcon
-                .Name(UiIconName.ChevronUpDown)
+            Ui.Icon
+                .Name(Ui.IconName.ChevronUpDown)
                 .Class("pointer-events-none absolute right-2 size-4 shrink-0 opacity-60")
         ];
     }

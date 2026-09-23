@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace Rask.Ui.Tests;
+namespace Rask.UiTests;
 
 /// <summary>
 ///     How <c>Rask.Ui.targets</c> finds the kit's compiled stylesheet, and why it must not guess.

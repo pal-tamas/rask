@@ -51,7 +51,7 @@ public sealed partial class SystemPage(
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         return [
-            UiHeader.Heading("System"),
+            Ui.Header.Heading("System"),
             DashboardError.Message(LoadError),
             DatabaseCard(),
             BackupCards(now),
@@ -70,14 +70,14 @@ public sealed partial class SystemPage(
         // A leader list rather than four tiles. These are four short scalars an operator reads once to
         // confirm the deployment is configured the way they think — a headline number's worth of weight
         // each was three times the space and none of the extra meaning.
-        return UiCard.Heading("Database")[
-            UiDetailList[
-                UiDetailRow
+        return Ui.Card.Heading("Database")[
+            Ui.DetailList[
+                Ui.DetailRow
                     .Key("size")
                     .Label("Size")
                     .Value(db.SizeBytes is { } size ? DashboardParts.Bytes(size) : "—")
                     .Mono(true),
-                UiDetailRow
+                Ui.DetailRow
                     .Key("journal")
                     .Label("Journal mode")
                     .Value(db.JournalMode?.ToUpperInvariant() ?? "n/a")
@@ -85,15 +85,15 @@ public sealed partial class SystemPage(
                     // WAL is the mode every Rask deployment expects; anything else is worth noticing.
                     .Tone(db.JournalMode is not null
                           && !db.JournalMode.Equals("wal", StringComparison.OrdinalIgnoreCase)
-                        ? UiTone.Warning
+                        ? Ui.Tone.Warning
                         : null),
-                UiDetailRow
+                Ui.DetailRow
                     .Key("fks")
                     .Label("Foreign keys")
                     .Value(db.ForeignKeys switch { true => "on", false => "off", null => "n/a" })
                     .Mono(true)
-                    .Tone(db.ForeignKeys is false ? UiTone.Warning : null),
-                UiDetailRow
+                    .Tone(db.ForeignKeys is false ? Ui.Tone.Warning : null),
+                Ui.DetailRow
                     .Key("provider")
                     .Label("Provider")
                     .Value(ShortProvider(db.Provider))
@@ -118,8 +118,8 @@ public sealed partial class SystemPage(
         var stats = BackupStats(now).ToList();
 
         return [
-            stats.Count == 0 ? null : UiCard.Key("backup").Heading("Backup")[UiGrid[stats]],
-            UiCard.Key("snapshots").Heading("Snapshots")[SnapshotList(now)]
+            stats.Count == 0 ? null : Ui.Card.Key("backup").Heading("Backup")[Ui.Grid[stats]],
+            Ui.Card.Key("snapshots").Heading("Snapshots")[SnapshotList(now)]
         ];
     }
 
@@ -127,30 +127,30 @@ public sealed partial class SystemPage(
     {
         if (_replication is { } r)
         {
-            yield return UiStat
+            yield return Ui.Stat
                 .Key("replication")
                 .Value(r.IsReplicating ? "running" : "stopped")
                 .Label("Continuous replication")
-                .Tone(r.IsReplicating ? null : UiTone.Error)
+                .Tone(r.IsReplicating ? null : Ui.Tone.Error)
                 .Caption(r.LastStartedAt is { } started
                     ? $"since {DashboardParts.Ago(started.UtcDateTime, now)}"
                     : "never started")
-                .Icon(UiIconName.Retry);
+                .Icon(Ui.IconName.Retry);
 
-            yield return UiStat
+            yield return Ui.Stat
                 .Key("restarts")
                 .Value(r.RestartCount.ToString())
                 .Label("Restarts")
-                .Tone(r.RestartCount > 0 ? UiTone.Warning : null)
+                .Tone(r.RestartCount > 0 ? Ui.Tone.Warning : null)
                 .Caption(r.LastError ?? "no failures recorded")
-                .Icon(UiIconName.Warning);
+                .Icon(Ui.IconName.Warning);
         }
 
         // Restorability is its own fact: "the replicator is running" says nothing about whether what it
         // wrote can be read back.
         if (_verification is { } v)
         {
-            yield return UiStat
+            yield return Ui.Stat
                 .Key("verification")
                 .Value(v.Level == BackupVerificationLevel.Verified
                     ? "restorable"
@@ -161,22 +161,22 @@ public sealed partial class SystemPage(
                 .Tone(v.Level switch
                 {
                     BackupVerificationLevel.Verified => null,
-                    BackupVerificationLevel.Broken => UiTone.Error,
-                    _ => UiTone.Warning,
+                    BackupVerificationLevel.Broken => Ui.Tone.Error,
+                    _ => Ui.Tone.Warning,
                 })
                 .Caption(v.LastVerifiedAt is { } verified
                     ? $"verified {DashboardParts.Ago(verified.UtcDateTime, now)}"
                     : v.LastError ?? "never verified")
                 .Icon(v.Level == BackupVerificationLevel.Broken
-                    ? UiIconName.ShieldWarning
-                    : UiIconName.ShieldOk);
+                    ? Ui.IconName.ShieldWarning
+                    : Ui.IconName.ShieldOk);
         }
     }
 
     private Component SnapshotList(DateTime now) =>
         _snapshots.Count == 0
-            ? UiEmpty.Heading("No snapshots stored")
-            : UiDataGrid.Data(_snapshots.Take(10).ToList()).RowKey(s => s.Name).Label("Newest snapshots")[c => [
+            ? Ui.Empty.Heading("No snapshots stored")
+            : Ui.DataGrid.Data(_snapshots.Take(10).ToList()).RowKey(s => s.Name).Label("Newest snapshots")[c => [
                 c.Field(s => s.Name).Title("Snapshot").Mono(true),
                 c.Field(s => s.SizeBytes).Title("Size").Value(s => DashboardParts.Bytes(s.SizeBytes)),
                 c.Field(s => s.CreatedAt).Title("Taken").Cell(s =>
@@ -190,15 +190,15 @@ public sealed partial class SystemPage(
             return null;
         }
 
-        return UiCard.Heading("Recurring jobs")[
-            UiDataGrid.Data(_recurring).RowKey(r => r.Name).Label("Recurring jobs")[c => [
+        return Ui.Card.Heading("Recurring jobs")[
+            Ui.DataGrid.Data(_recurring).RowKey(r => r.Name).Label("Recurring jobs")[c => [
                 c.Field(r => r.Name).Title("Name").Mono(true),
                 c.Field(r => r.Interval).Title("Every").Value(r => DashboardParts.Duration(r.Interval)),
                 c.Field(r => r.LastEnqueuedAt).Title("Last enqueued").Cell(r =>
                     r.LastEnqueuedAt is { } last
                         ? Span.Title(last.ToString("u"))[DashboardParts.Ago(last, now)]
                         // Declared but never fired: either the app just started, or this one is stuck.
-                        : UiBadge["never"]),
+                        : Ui.Badge["never"]),
             ]]
         ];
     }

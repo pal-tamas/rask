@@ -104,10 +104,10 @@ for everything else.
 ## Form validation
 
 A Rask UI field wires its label, hint, error and validation state to assistive tech on its own — you add
-nothing. `UiInput`, `UiTextarea` and `UiSelect` (both modes) render:
+nothing. `Ui.Input`, `Ui.Textarea` and `Ui.Select` (both modes) render:
 
 - `aria-invalid="true"` when the field is invalid — a bound field whose form holds a message for it, or a
-  controlled field given `Tone(UiTone.Error)` — so the failed state is exposed programmatically, not only
+  controlled field given `Tone(Ui.Tone.Error)` — so the failed state is exposed programmatically, not only
   as a red border;
 - `aria-describedby` naming what is **visible** under the control, error first: the bound field's own
   validation message, then a controlled `Error` (only while the tone reveals it — a hidden message named
@@ -119,7 +119,7 @@ nothing. `UiInput`, `UiTextarea` and `UiSelect` (both modes) render:
   label's text.
 
 ```csharp
-UiInput.Bind(() => model.Email).Label("Email").Badge("Required").Hint("We never share it.")
+Ui.Input.Bind(() => model.Email).Label("Email").Badge("Required").Hint("We never share it.")
 // valid   → <input id="f-email" aria-required="true" aria-describedby="f-email-hint" …>
 // invalid → <input id="f-email" aria-required="true" aria-invalid="true"
 //                  aria-describedby="f-email-validation f-email-hint" …>
@@ -145,9 +145,9 @@ it on open (its `[autofocus]` element, else the element itself), `Tab`/`Shift+Ta
 closes. If the trap (or a descendant) carries `data-rask-dismiss`, `Escape` closes it by triggering that
 element's click handler — no per-keystroke server round-trip. The trap follows the attribute as well as the
 element: adding or removing `data-rask-focus-trap` on an element that stays mounted engages or releases it,
-which is how Rask UI's state-driven `UiModal` hands focus back when `Open(false)` closes it in place.
+which is how Rask UI's state-driven `Ui.Modal` hands focus back when `Open(false)` closes it in place.
 
-Rask UI's declarative `UiModal` needs none of this: it opens with `command="show-modal"`, so the browser's own
+Rask UI's declarative `Ui.Modal` needs none of this: it opens with `command="show-modal"`, so the browser's own
 modal dialog makes the page inert, closes on Escape and returns focus to the trigger. While any kit dialog is
 open, the kit's stylesheet also stops the page behind it from scrolling.
 
@@ -158,7 +158,7 @@ which keeps `Escape` inert). Build your own overlay the same way — add `data-r
 
 A menu that must escape an `overflow: hidden/auto` ancestor uses the platform's own answer instead:
 a `[popover]`, which the browser lifts into the top layer, dismisses on Escape and on a click outside,
-and gives a real `::backdrop`. `UiSelect` with `Native: false`, `UiMegamenu` and `UiModal` are all
+and gives a real `::backdrop`. `Ui.Select` with `Native: false`, `Ui.Megamenu` and `Ui.Modal` are all
 built that way. C# hears the browser's own dismissal through `OnToggle`, which is what lets a control
 keep `aria-expanded` truthful rather than drifting the moment Escape is pressed.
 
@@ -167,7 +167,7 @@ calls `preventDefault`, so without it ArrowDown would scroll the document behind
 would submit the surrounding form. It keys off `aria-expanded` on the closest `[role=combobox]`, and
 deliberately leaves Escape alone, since Escape's default *is* the dismissal.
 
-`UiTree` has the same shape and its own rule: one focusable `[role=tree]` with the cursor named by
+`Ui.Tree` has the same shape and its own rule: one focusable `[role=tree]` with the cursor named by
 `aria-activedescendant`, the arrows, Home/End, Page keys and Space contained while it has focus (Enter
 left alone — a focused non-form element has no default for it). Because the cursor is an attribute
 rather than the focus, the runtime also scrolls the named row back into view when it moves out of sight,
@@ -182,10 +182,10 @@ rather than scrolling the page, and Enter or Space press the row the cursor name
 or checkbox runs exactly as a pointer would run it. ArrowDown or ArrowUp on a closed `aria-haspopup="menu"`
 button opens it; a pick closes the popover the menu sits in unless the row or the menu carries
 `data-rask-keep-open`; Tab out of an open menu closes it. Escape is the browser's, and hands focus back to the
-trigger. Rask UI's `UiDropdown` builds on this, with `menuitem`, `menuitemcheckbox` and `menuitemradio` rows. `UiContextMenu` is the
+trigger. Rask UI's `Ui.Dropdown` builds on this, with `menuitem`, `menuitemcheckbox` and `menuitemradio` rows. `Ui.ContextMenu` is the
 same menu opened by a right-click: the runtime shows its popover at the pointer (`data-rask-contextmenu`), the
 ContextMenu key and Shift+F10 open it at the focused element, and focus goes back where it was when it closes —
-so give its target something focusable, or a keyboard user has no way in. `UiCommand`, the command palette,
+so give its target something focusable, or a keyboard user has no way in. `Ui.Command`, the command palette,
 is the combobox pattern instead: focus stays in its search box, the commands are the `option`s of the `listbox` it
 controls, the highlighted one is `aria-activedescendant` and says `aria-selected="true"`, and Enter presses it.
 
@@ -200,14 +200,14 @@ until the first handler's render has landed. It is deliberately **not** `disable
 the reader just pressed moves keyboard focus to the document body, so the next Tab starts from the top of
 the page. The mark comes off when the dispatch finishes, when the connection drops, or after a 30 s
 backstop. Opt a control — or a container of them — out with `data-rask-loading="off"`
-(`UiButton.Loading(false)`), and opt a non-button element in with `data-rask-loading`. See
+(`Ui.Button.Loading(false)`), and opt a non-button element in with `data-rask-loading`. See
 [ui-kit.md](ui-kit.md#buttons-that-wait).
 
 ## Navigation
 
 A `NavLink` to the page being shown writes `aria-current="page"` beside its active class — what a screen reader
 announces as "current page", where a class says nothing. An empty `ActiveClass` opts out of both, and an
-`aria-current` the call site sets wins. Rask UI's `UiNavItem` is built on it.
+`aria-current` the call site sets wins. Rask UI's `Ui.NavItem` is built on it.
 
 Client-side (SPA) route changes on the Server live runtime are handled accessibly without any wiring:
 
@@ -225,7 +225,7 @@ host today; the WASM navigation path is a follow-up.)
 ## What's not covered yet
 
 This is the framework primitive layer. Higher-level affordances — skip links, ARIA `tablist`/`tab`
-keyboard widgets (the roving cursor in `UiSelect`'s drawn listbox), and automated axe-core scans in the sample
+keyboard widgets (the roving cursor in `Ui.Select`'s drawn listbox), and automated axe-core scans in the sample
 E2E suite — are tracked as follow-up work. Today you build those from the `Aria`/`Role`/`TabIndex`
 primitives above (plus the focus trap) and standard semantic HTML (`Nav`, `Main`, `Aside`, `Label(For:)`,
 `Th(Scope:)`, …).

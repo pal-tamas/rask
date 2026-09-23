@@ -1,6 +1,6 @@
+using Rask;
 using Rask.Core;
 using Rask.Core.Components;
-using Rask.Ui;
 
 namespace Rask.DevTools.E2E.Tests.Apps;
 
@@ -19,8 +19,8 @@ public sealed partial class BoardApp : Component
     ];
 
     protected override Component? Render() =>
-        UiShell.Theme(UiThemeName.Light)[
-            UiMain[
+        Ui.Shell.Theme(Ui.ThemeName.Light)[
+            Ui.Main[
                 Board.Heading("Ship 1.4"),
                 DeployCard.Environment("staging").ApiToken("sk_live_do_not_show")
             ]

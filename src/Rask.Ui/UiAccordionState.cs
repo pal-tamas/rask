@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>What an accordion tells its sections. Not a call site's concern.</summary>
 /// <param name="Open">The key of the open section.</param>

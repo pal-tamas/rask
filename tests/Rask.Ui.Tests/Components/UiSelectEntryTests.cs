@@ -1,4 +1,4 @@
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     One name for both selects: <c>UiSelect</c> over a value, and over a collection of them.
@@ -51,7 +51,7 @@ public partial class UiSelectEntryTests : global::Rask.Core.RaskMarkup
     public void A_value_member_opens_the_single_select()
     {
         var model = new Model();
-        var html = UiSelect.Bind(() => model.Country).Options(Options).Label("Country").ToHtml();
+        var html = Ui.Select.Bind(() => model.Country).Options(Options).Label("Country").ToHtml();
 
         Assert.Contains("<select", html, StringComparison.Ordinal);
         Assert.False(IsMultiple(html));
@@ -62,13 +62,13 @@ public partial class UiSelectEntryTests : global::Rask.Core.RaskMarkup
     {
         var model = new Model();
 
-        Assert.True(IsMultiple(UiSelect.Bind(() => model.Tags).Options(Options).Label("Tags").Native(false).ToHtml()));
-        Assert.True(IsMultiple(UiSelect.Bind(() => model.Picks).Options(Options).Label("Picks").Native(false).ToHtml()));
-        Assert.True(IsMultiple(UiSelect.Bind(() => model.Roles).Options(Options).Label("Roles").Native(false).ToHtml()));
-        Assert.True(IsMultiple(UiSelect.Bind(() => model.Flags).Options(Options).Label("Flags").Native(false).ToHtml()));
-        Assert.True(IsMultiple(UiSelect.Bind(() => model.Marks).Options(Options).Label("Marks").Native(false).ToHtml()));
-        Assert.True(IsMultiple(UiSelect.Bind(() => model.Watched).Options(Options).Label("Watched").Native(false).ToHtml()));
-        Assert.True(IsMultiple(UiSelect.Bind(() => model.Codes).Options(Options).Label("Codes").Native(false).ToHtml()));
+        Assert.True(IsMultiple(Ui.Select.Bind(() => model.Tags).Options(Options).Label("Tags").Native(false).ToHtml()));
+        Assert.True(IsMultiple(Ui.Select.Bind(() => model.Picks).Options(Options).Label("Picks").Native(false).ToHtml()));
+        Assert.True(IsMultiple(Ui.Select.Bind(() => model.Roles).Options(Options).Label("Roles").Native(false).ToHtml()));
+        Assert.True(IsMultiple(Ui.Select.Bind(() => model.Flags).Options(Options).Label("Flags").Native(false).ToHtml()));
+        Assert.True(IsMultiple(Ui.Select.Bind(() => model.Marks).Options(Options).Label("Marks").Native(false).ToHtml()));
+        Assert.True(IsMultiple(Ui.Select.Bind(() => model.Watched).Options(Options).Label("Watched").Native(false).ToHtml()));
+        Assert.True(IsMultiple(Ui.Select.Bind(() => model.Codes).Options(Options).Label("Codes").Native(false).ToHtml()));
     }
 
     [Fact]
@@ -79,9 +79,9 @@ public partial class UiSelectEntryTests : global::Rask.Core.RaskMarkup
         // ambiguity, and any tie-break that settled `null` would settle it for the single select too.
         // So the controlled collection opening carries its own name and takes the interface alone.
         Assert.True(IsMultiple(
-            UiSelect.Values<string>(["core"]).Options(Options).Label("Packages").Native(false).ToHtml()));
+            Ui.Select.Values<string>(["core"]).Options(Options).Label("Packages").Native(false).ToHtml()));
         Assert.False(IsMultiple(
-            UiSelect.Value("core").Options(Options).Label("Package").Native(false).ToHtml()));
+            Ui.Select.Value("core").Options(Options).Label("Package").Native(false).ToHtml()));
     }
 
     [Fact]
@@ -91,7 +91,7 @@ public partial class UiSelectEntryTests : global::Rask.Core.RaskMarkup
         // so the property it reads and writes is still the model's List<string>.
         var model = new Model();
         var page = global::Rask.Testing.RaskTest.Render(
-            UiSelect.Bind(() => model.Tags).Options(Options).Label("Tags").Native(false));
+            Ui.Select.Bind(() => model.Tags).Options(Options).Label("Tags").Native(false));
 
         var option = System.Text.RegularExpressions.Regex.Match(
             page.Html, "<button id=\"([^\"]+)\"[^>]*role=\"option\"[^>]*>(?:(?!</button>).)*Rask\\.Ui",

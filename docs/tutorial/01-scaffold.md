@@ -96,8 +96,8 @@ The `server` template is deliberately small — a handful of files, no example p
   whole app shares.
 - **`Features/Home/HomePage.cs`** — the `/` welcome page, its own feature slice. Edit or replace it.
 - **The [Rask.Ui](../ui-kit.md) kit** — referenced by the project, imported everywhere by a
-  `<Using Include="Rask.Ui"/>` in the csproj, and its stylesheet linked first in `App.cs`. Every page in this
-  tutorial is built from its components — `UiInput`, `UiButton`, `UiCard`, `UiDataGrid` — rather than from
+  `<Using Include="Rask"/>` in the csproj, and its stylesheet linked first in `App.cs`. Every page in this
+  tutorial is built from its components — `Ui.Input`, `Ui.Button`, `Ui.Card`, `Ui.DataGrid` — rather than from
   raw tags and class strings.
 - **No `Features/Auth/` folder** — and nothing missing. The sign-in, registration and sign-out pages ship
   inside `Rask.Auth`, already routed. You replace any of them by declaring your own page at the same

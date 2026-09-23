@@ -1,12 +1,12 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A heading: how big it looks, and what level it is, decided separately.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Flux UI's heading. <see cref="Size" /> is the visual scale — the default for most headings, <see cref="UiSize.Lg" />
-/// for a card or a dialog, <see cref="UiSize.Xl" /> for a page's hero, rarely. <see cref="Level" /> is the outline a
+/// Flux UI's heading. <see cref="Size" /> is the visual scale — the default for most headings, <see cref="Ui.Size.Lg" />
+/// for a card or a dialog, <see cref="Ui.Size.Xl" /> for a page's hero, rarely. <see cref="Level" /> is the outline a
 /// screen reader navigates by: <c>&lt;h1&gt;</c> through <c>&lt;h6&gt;</c>. They are two properties because the two go
 /// wrong in opposite directions: a card title that must look small is still the second level of the page, and a
 /// big number on a dashboard is not a heading at all.
@@ -22,7 +22,7 @@ public sealed partial class UiHeading : Component
     public int? Level { get; set; }
 
     /// <summary>How big it looks.</summary>
-    public UiSize? Size { get; set; }
+    public Ui.Size? Size { get; set; }
 
     /// <summary>Draws it in the theme's primary colour.</summary>
     public bool? Accent { get; set; }
@@ -34,7 +34,7 @@ public sealed partial class UiHeading : Component
     {
         var classes = UiClass.Compose(
             "text-base-content",
-            SizeClasses(Size ?? UiSize.Default),
+            SizeClasses(Size ?? Ui.Size.Default),
             Accent == true ? "text-primary" : "",
             Class);
 
@@ -43,12 +43,12 @@ public sealed partial class UiHeading : Component
 
     // Flux's scale: the default for most headings, Lg for a card or a dialog, Xl for a page's hero. A size and a
     // weight each, so kept here rather than in UiClassNames, whose tables hold one class per entry.
-    private static string SizeClasses(UiSize size) => size switch
+    private static string SizeClasses(Ui.Size size) => size switch
     {
-        UiSize.Xs => "text-xs font-medium",
-        UiSize.Sm => "text-sm font-medium",
-        UiSize.Lg => "text-base font-semibold",
-        UiSize.Xl => "text-2xl font-semibold",
+        Ui.Size.Xs => "text-xs font-medium",
+        Ui.Size.Sm => "text-sm font-medium",
+        Ui.Size.Lg => "text-base font-semibold",
+        Ui.Size.Xl => "text-2xl font-semibold",
         _ => "text-sm font-semibold",
     };
 

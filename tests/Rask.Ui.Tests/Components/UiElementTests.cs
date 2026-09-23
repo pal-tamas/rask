@@ -1,6 +1,6 @@
 using Rask.Core;
 
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     A kit element that derives an accessible name from a prop — the shape an icon-only button has.

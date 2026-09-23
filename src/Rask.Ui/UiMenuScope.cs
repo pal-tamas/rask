@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>One entry a dropdown's keyboard cursor can land on, in render order.</summary>
 /// <param name="Ordinal">Its position among every entry in the dropdown, submenus included.</param>
@@ -65,7 +65,7 @@ internal sealed class UiMenuScope(
 
     /// <summary>
     ///     Whether an entry with <paramref name="text" /> is filtered out by the query: case- and accent-insensitive,
-    ///     in the reader's culture, as <c>UiSelect.Searchable</c> matches.
+    ///     in the reader's culture, as <c>Ui.Select.Searchable</c> matches.
     /// </summary>
     internal bool Hides(string text) =>
         Filtering

@@ -182,7 +182,7 @@ public sealed class GridColumnTokenAnalyzer : DiagnosticAnalyzer
     // `Column` is none of this analyzer's business.
     private static bool IsGrid(ITypeSymbol? type) =>
         type is INamedTypeSymbol named
-        && named.ConstructedFrom.ToDisplayString() is "Rask.Ui.UiDataGrid<T, TKey>";
+        && named.ConstructedFrom.ToDisplayString() is "Rask.UiDataGrid<T, TKey>";
 
     // A literal `false` or `null`. Anything else -- a variable, an expression, or nothing at all -- is
     // not knowable here, and silence would be a guess in the other direction.

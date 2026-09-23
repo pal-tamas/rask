@@ -17,11 +17,11 @@ public sealed partial class NestedSubObjectDemo : Component
         Form.Model(_model).OnValidSubmit(m => _submission =
                 $"Checked out as {m.Name} to {m.Address.Street}, {m.Address.City} ({m.Address.Country}).").Class("flex flex-col gap-3")[
             Div[
-                UiInput.Bind(() => _model.Name).Label("Name").Id("nf-name").ShowValidation(false),
+                Ui.Input.Bind(() => _model.Name).Label("Name").Id("nf-name").ShowValidation(false),
                 ValidationMessage.Template(FieldError).For(() => _model.Name)
             ],
             Div[
-                UiInput.Bind(() => _model.Email).Label("Email")
+                Ui.Input.Bind(() => _model.Email).Label("Email")
                     .Id("nf-email")
                     .Type(InputType.Email).ShowValidation(false),
                 ValidationMessage.Template(FieldError).For(() => _model.Email)
@@ -30,17 +30,17 @@ public sealed partial class NestedSubObjectDemo : Component
                 Legend.Class("text-base font-semibold")["Shipping address"],
                 Div.Class("flex flex-col gap-3")[
                     Div[
-                        UiInput.Bind(() => _model.Address.Street).Label("Street")
+                        Ui.Input.Bind(() => _model.Address.Street).Label("Street")
                             .Id("nf-street").ShowValidation(false),
                         ValidationMessage.Template(FieldError).For(() => _model.Address.Street)
                     ],
                     Div[
-                        UiInput.Bind(() => _model.Address.City).Label("City")
+                        Ui.Input.Bind(() => _model.Address.City).Label("City")
                             .Id("nf-city").ShowValidation(false),
                         ValidationMessage.Template(FieldError).For(() => _model.Address.City)
                     ],
                     Div[
-                        UiInput.Bind(() => _model.Address.Country).Label("Country (ISO)")
+                        Ui.Input.Bind(() => _model.Address.Country).Label("Country (ISO)")
                             .Id("nf-country")
                             .MaxLength(2).ShowValidation(false),
                         ValidationMessage.Template(FieldError).For(() => _model.Address.Country)
@@ -48,12 +48,12 @@ public sealed partial class NestedSubObjectDemo : Component
                 ]
             ],
             Div[
-                UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit).Id("nf-submit")[UiIcon.Name(UiIconName.CheckCircle), "Place order"]
+                Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit).Id("nf-submit")[Ui.Icon.Name(Ui.IconName.CheckCircle), "Place order"]
             ]
         ],
         _submission is null
             ? null
-            : UiAlert.Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0").Id("nf-result")[UiIcon.Name(UiIconName.CheckCircle), _submission]
+            : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0").Id("nf-result")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
     ];
 }
 

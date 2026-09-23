@@ -23,20 +23,20 @@ public sealed partial class NestedListForeachDemo : Component
             var captured = item; // foreach already captures per-iteration but make it loud.
             rows.Add(Tr.Key(captured.Id)[
                 Td[
-                    UiInput.Bind(() => captured.Description).AccessibleLabel("Description").ShowValidation(false),
+                    Ui.Input.Bind(() => captured.Description).AccessibleLabel("Description").ShowValidation(false),
                     ValidationMessage.Template(FieldError).For(() => captured.Description)
                 ],
                 Td.Style("width: 6rem;")[
-                    UiInput.Bind(() => captured.Quantity).AccessibleLabel("Quantity").ShowValidation(false),
+                    Ui.Input.Bind(() => captured.Quantity).AccessibleLabel("Quantity").ShowValidation(false),
                     ValidationMessage.Template(FieldError).For(() => captured.Quantity)
                 ],
                 Td.Style("width: 3rem;")[
-                    UiButton
+                    Ui.Button
                         .AccessibleLabel("Remove item")
                         .Square(true)
-                        .Tone(UiTone.Error)
-                        .Variant(UiVariant.Outline)
-                        .OnClick(() => _model.Items.Remove(captured))[UiIcon.Name(UiIconName.Close)]
+                        .Tone(Ui.Tone.Error)
+                        .Variant(Ui.Variant.Outline)
+                        .OnClick(() => _model.Items.Remove(captured))[Ui.Icon.Name(Ui.IconName.Close)]
                 ]
             ]);
         }
@@ -44,21 +44,21 @@ public sealed partial class NestedListForeachDemo : Component
         return
         [
             Form.Model(_model).OnValidSubmit(m => _submission = $"Submitted {m.Items.Count} line item(s).").Class("flex flex-col gap-3")[
-                UiTable.Class("align-middle mb-0")[
+                Ui.Table.Class("align-middle mb-0")[
                     Thead[Tr[Th["Description"], Th["Quantity"], Th]],
                     Tbody[rows]
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center")[
-                    UiButton.Variant(UiVariant.Outline)
+                    Ui.Button.Variant(Ui.Variant.Outline)
                         .Id("nf-list-add")
                         .OnClick(() =>
-                            _model.Items.Add(new LineItem { Description = $"New item #{_seq++}", Quantity = 1 }))[UiIcon.Name(UiIconName.Plus), "Add row"],
-                    UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit).Id("nf-list-submit")[UiIcon.Name(UiIconName.CheckCircle), "Submit"]
+                            _model.Items.Add(new LineItem { Description = $"New item #{_seq++}", Quantity = 1 }))[Ui.Icon.Name(Ui.IconName.Plus), "Add row"],
+                    Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit).Id("nf-list-submit")[Ui.Icon.Name(Ui.IconName.CheckCircle), "Submit"]
                 ]
             ],
             _submission is null
                 ? null
-                : UiAlert.Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0").Id("nf-list-result")[_submission]
+                : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0").Id("nf-list-result")[_submission]
         ];
     }
 }

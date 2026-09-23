@@ -79,7 +79,7 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                     _submission = $"Charged ${total.ToString("F2", CultureInfo.InvariantCulture)} to {m.CustomerName}")
                 .Class("flex flex-col gap-3")[
                 Div[
-                    UiInput.Bind(() => _model.CustomerName).Label("Customer name")
+                    Ui.Input.Bind(() => _model.CustomerName).Label("Customer name")
                         .Id("v-nlive-name")
                         .Validate(v =>
                             string.IsNullOrWhiteSpace(v)
@@ -87,7 +87,7 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                                 : Array.Empty<string>()).ShowValidation(false),
                     ValidationMessage.Template(FieldError).For(() => _model.CustomerName)
                 ],
-                UiInput.Bind(() => _model.Address.PostalCode)
+                Ui.Input.Bind(() => _model.Address.PostalCode)
                     .Label("Postal code")
                     .Hint("Try 12345, 99999, or any 5-digit code.")
                     .Id("v-nlive-postal")
@@ -96,18 +96,18 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                     Div.Class("font-semibold text-sm mb-2")["Items"],
                     Div.Class("grid grid-cols-12 gap-4 mb-2 items-center")[
                         Div.Class("col-span-6")[
-                            UiInput.Bind(() => _model.Items[0].Name)
+                            Ui.Input.Bind(() => _model.Items[0].Name)
                                 .AccessibleLabel("Item 1 name")
                                 .Id("v-nlive-item0-name")
                         ],
                         Div.Class("col-span-3")[
-                            UiInput.Bind(() => _model.Items[0].Quantity)
+                            Ui.Input.Bind(() => _model.Items[0].Quantity)
                                 .AccessibleLabel("Item 1 quantity")
                                 .Id("v-nlive-item0-qty")
                                 .Min("0")
                         ],
                         Div.Class("col-span-3")[
-                            UiInput.Bind(() => _model.Items[0].UnitPrice)
+                            Ui.Input.Bind(() => _model.Items[0].UnitPrice)
                                 .AccessibleLabel("Item 1 unit price")
                                 .Id("v-nlive-item0-price")
                                 .Step("0.01")
@@ -115,18 +115,18 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                     ],
                     Div.Class("grid grid-cols-12 gap-4 items-center")[
                         Div.Class("col-span-6")[
-                            UiInput.Bind(() => _model.Items[1].Name)
+                            Ui.Input.Bind(() => _model.Items[1].Name)
                                 .AccessibleLabel("Item 2 name")
                                 .Id("v-nlive-item1-name")
                         ],
                         Div.Class("col-span-3")[
-                            UiInput.Bind(() => _model.Items[1].Quantity)
+                            Ui.Input.Bind(() => _model.Items[1].Quantity)
                                 .AccessibleLabel("Item 2 quantity")
                                 .Id("v-nlive-item1-qty")
                                 .Min("0")
                         ],
                         Div.Class("col-span-3")[
-                            UiInput.Bind(() => _model.Items[1].UnitPrice)
+                            Ui.Input.Bind(() => _model.Items[1].UnitPrice)
                                 .AccessibleLabel("Item 2 unit price")
                                 .Id("v-nlive-item1-price")
                                 .Step("0.01")
@@ -134,7 +134,7 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                     ]
                 ],
                 Div[
-                    UiInput.Bind(() => _model.DiscountCode)
+                    Ui.Input.Bind(() => _model.DiscountCode)
                         .Label("Promo code")
                         .Hint("Try SAVE10 or SAVE25.")
                         .Id("v-nlive-promo")
@@ -161,12 +161,12 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                     ]
                 ],
                 Div[
-                    UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit)[UiIcon.Name(UiIconName.CreditCard), "Pay"]
+                    Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit)[Ui.Icon.Name(Ui.IconName.CreditCard), "Pay"]
                 ]
             ],
             _submission is null
                 ? null
-                : UiAlert.Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0").Id("v-nlive-submission")[UiIcon.Name(UiIconName.CheckCircle), _submission]
+                : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0").Id("v-nlive-submission")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
         ];
     }
 }

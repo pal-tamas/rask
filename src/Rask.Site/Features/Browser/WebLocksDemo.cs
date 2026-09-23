@@ -16,13 +16,13 @@ public sealed partial class WebLocksDemo(IWebLocks locks) : Component
     private IReadOnlyList<LockInfo> _snapshot = [];
 
     protected override Component? Render() =>
-        UiCard.Class("shadow-sm")[
+        Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    UiButton.Tone(UiTone.Primary).Id("locks-hold").OnClick(Hold)["Hold exclusive for 2s"],
-                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline)
+                    Ui.Button.Tone(Ui.Tone.Primary).Id("locks-hold").OnClick(Hold)["Hold exclusive for 2s"],
+                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
                         .Id("locks-try")
                         .OnClick(TryHold)["Try (no wait)"],
-                    UiButton.Variant(UiVariant.Outline)
+                    Ui.Button.Variant(Ui.Variant.Outline)
                         .Id("locks-query")
                         .OnClick(Query)["Query held locks"]
                 ],

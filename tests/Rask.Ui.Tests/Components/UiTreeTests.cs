@@ -1,4 +1,4 @@
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     What a tree renders: one focusable element, the ARIA a reader needs, and the two shapes — nested lists, or a
@@ -15,7 +15,7 @@ public partial class UiTreeTests : global::Rask.Core.RaskMarkup
     ];
 
     private static UiTree<Node, string> Tree() =>
-        (UiTree<Node, string>)UiTree.Roots(Files)
+        (UiTree<Node, string>)Ui.Tree.Roots(Files)
             .NodeKey(n => n.Id)
             .Item(n => Span[n.Name])
             .Label("Files")[n => n.Kids];
@@ -72,7 +72,7 @@ public partial class UiTreeTests : global::Rask.Core.RaskMarkup
     public void Nothing_is_selectable_until_a_mode_is_named()
     {
         Assert.DoesNotContain("aria-selected", Tree().ToHtml(), StringComparison.Ordinal);
-        Assert.Contains("aria-selected", Tree().Selection(UiTreeSelection.Single).ToHtml(), StringComparison.Ordinal);
+        Assert.Contains("aria-selected", Tree().Selection(Ui.TreeSelection.Single).ToHtml(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -85,11 +85,11 @@ public partial class UiTreeTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Multiple_says_so_on_the_tree()
     {
-        var html = Tree().Selection(UiTreeSelection.Multiple).ToHtml();
+        var html = Tree().Selection(Ui.TreeSelection.Multiple).ToHtml();
 
         Assert.Contains("aria-multiselectable=\"true\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain(
-            "aria-multiselectable", Tree().Selection(UiTreeSelection.Single).ToHtml(), StringComparison.Ordinal);
+            "aria-multiselectable", Tree().Selection(Ui.TreeSelection.Single).ToHtml(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -114,7 +114,7 @@ public partial class UiTreeTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Without_a_children_selector_the_roots_are_the_whole_tree()
     {
-        var html = ((UiTree<Node, string>)UiTree.Roots(Files)
+        var html = ((UiTree<Node, string>)Ui.Tree.Roots(Files)
                 .NodeKey(n => n.Id)
                 .Item(n => Span[n.Name])
                 .Label("Files"))

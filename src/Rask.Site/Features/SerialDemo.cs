@@ -19,29 +19,29 @@ public sealed partial class SerialDemo(ISerial serial) : Component, IAsyncDispos
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        UiCard.Class("shadow-sm")[
+        Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    UiInput.Value(_baudRate.ToString()).Label("Baud")
+                    Ui.Input.Value(_baudRate.ToString()).Label("Baud")
                         .Id("serial-baud")
                         .Type(InputType.Number)
                         .Disabled(_port is not null)
                         .OnInput(v => int.TryParse(v, out _baudRate)),
-                    UiButton.Tone(UiTone.Primary)
+                    Ui.Button.Tone(Ui.Tone.Primary)
                         .Id("serial-connect")
                         .Disabled(_port is not null)
-                        .OnClick(Connect)[UiIcon.Name(UiIconName.Cube), "Connect"],
-                    UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline)
+                        .OnClick(Connect)[Ui.Icon.Name(Ui.IconName.Cube), "Connect"],
+                    Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline)
                         .Id("serial-disconnect")
                         .Disabled(_port is null)
                         .OnClick(Disconnect)["Disconnect"]
                 ],
                 Div.Class("flex items-stretch gap-2 mb-2")[
-                    UiInput.Value(_outgoing).AccessibleLabel("Line to send")
+                    Ui.Input.Value(_outgoing).AccessibleLabel("Line to send")
                         .Id("serial-outgoing")
                         .Placeholder("Line to send")
                         .Disabled(_port is null)
                         .OnInput(v => _outgoing = v),
-                    UiButton.Tone(UiTone.Primary)
+                    Ui.Button.Tone(Ui.Tone.Primary)
                         .Id("serial-send")
                         .Disabled(_port is null)
                         .OnClick(Send)["Send"]

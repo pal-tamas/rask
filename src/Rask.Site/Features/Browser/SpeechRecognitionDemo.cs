@@ -19,13 +19,13 @@ public sealed partial class SpeechRecognitionDemo(ISpeechRecognition recognition
     private bool Listening => _session is not null;
 
     protected override Component? Render() =>
-        UiCard.Class("shadow-sm")[
+        Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    UiButton.Tone(UiTone.Primary)
+                    Ui.Button.Tone(Ui.Tone.Primary)
                         .Id("speech-recognize-start")
                         .Disabled(Listening)
                         .OnClick(Start)["Start listening"],
-                    UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline)
+                    Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline)
                         .Id("speech-recognize-stop")
                         .Disabled(!Listening)
                         .OnClick(Stop)["Stop"]

@@ -19,15 +19,15 @@ public sealed partial class OriginPrivateFileSystemDemo(
     private string? _status;
 
     protected override Component? Render() =>
-        UiCard.Class("shadow-sm")[
+        Ui.Card.Class("shadow-sm")[
                 Div.Class("flex flex-wrap gap-2 mb-2")[
-                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline)
+                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
                         .Id("opfs-write")
                         .OnClick(Write)["Write at 4096"],
-                    UiButton.Variant(UiVariant.Outline)
+                    Ui.Button.Variant(Ui.Variant.Outline)
                         .Id("opfs-read")
                         .OnClick(Read)["Read back"],
-                    UiButton.Variant(UiVariant.Outline)
+                    Ui.Button.Variant(Ui.Variant.Outline)
                         .Id("opfs-persist")
                         .OnClick(Persist)["Request persistence"]
                 ],

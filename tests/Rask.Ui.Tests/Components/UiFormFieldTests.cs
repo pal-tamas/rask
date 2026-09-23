@@ -1,4 +1,4 @@
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     The field shape every kit control shares: an optional visible label, an optional hint, and the
@@ -33,7 +33,7 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
         // of its own message — which rendered, carried the right text, and stayed hidden for the life of the
         // page. Floating(false) asks for the legend; a floating label wraps on purpose and the kit's
         // stylesheet reveals its message instead.
-        var html = UiInput.Value("").Label("Username").Floating(false).ToHtml();
+        var html = Ui.Input.Value("").Label("Username").Floating(false).ToHtml();
 
         Assert.Contains("for=\"f-username\"", html, StringComparison.Ordinal);
         Assert.Contains("id=\"f-username\"", html, StringComparison.Ordinal);
@@ -54,7 +54,7 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
 
         Assert.Contains(
             "id=\"f-name\"",
-            UiInput.Bind(() => model.Name).Label("Full name").ToHtml(),
+            Ui.Input.Bind(() => model.Name).Label("Full name").ToHtml(),
             StringComparison.Ordinal);
     }
 
@@ -64,7 +64,7 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
         // A search box whose placeholder is its whole affordance, a control in a table cell, a field
         // labelled by a column header. All real — and this is also what makes the base safe to add: a call
         // site that had no label renders exactly what it rendered before, with no wrapper around it.
-        var html = UiInput.Value("").ToHtml();
+        var html = Ui.Input.Value("").ToHtml();
 
         Assert.StartsWith("<input", html, StringComparison.Ordinal);
         Assert.DoesNotContain("<label", html, StringComparison.Ordinal);
@@ -74,7 +74,7 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void An_unlabelled_control_is_named_by_AccessibleLabel()
     {
-        var html = UiInput.Value("").AccessibleLabel("Search").ToHtml();
+        var html = Ui.Input.Value("").AccessibleLabel("Search").ToHtml();
 
         Assert.Contains("aria-label=\"Search\"", html, StringComparison.Ordinal);
     }
@@ -84,7 +84,7 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
     {
         // Two names on one control is worse than one, because the name a screen reader reads is then not
         // the text on the screen.
-        var html = UiInput.Value("").Label("Username").AccessibleLabel("Search").ToHtml();
+        var html = Ui.Input.Value("").Label("Username").AccessibleLabel("Search").ToHtml();
 
         Assert.Contains("Username", html, StringComparison.Ordinal);
         Assert.DoesNotContain("aria-label=", html, StringComparison.Ordinal);
@@ -95,7 +95,7 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
     {
         // A label's text becomes the control's accessible name, so a name that recites the hint every time
         // is worse for a screen reader than one that does not.
-        var html = UiInput.Value("").Label("Password").Hint("At least 12 characters").ToHtml();
+        var html = Ui.Input.Value("").Label("Password").Hint("At least 12 characters").ToHtml();
 
         var close = html.IndexOf("</label>", StringComparison.Ordinal);
         var hint = html.IndexOf("At least 12 characters", StringComparison.Ordinal);
@@ -109,7 +109,7 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
     {
         // aria-invalid is what makes daisyUI reveal a following message, and what a screen reader needs —
         // a field that is visibly red and says nothing is half a message.
-        var html = UiInput.Value("").Label("Email").Tone(UiTone.Error).ToHtml();
+        var html = Ui.Input.Value("").Label("Email").Tone(Ui.Tone.Error).ToHtml();
 
         Assert.Contains("aria-invalid=\"true\"", html, StringComparison.Ordinal);
     }
@@ -119,7 +119,7 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
     {
         // Omitted rather than nulled: a valueless aria-invalid reads as "true", which would mark every
         // field in the kit invalid.
-        Assert.DoesNotContain("aria-invalid", UiInput.Value("").Label("Email").ToHtml(), StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-invalid", Ui.Input.Value("").Label("Email").ToHtml(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -127,7 +127,7 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
     {
         // Tone, Size and Variant moved onto UiFormField, so this is really asking whether the chain still
         // offers a base class's properties as steps. If it did not, none of the above would compile.
-        var html = UiInput.Value("").Label("Email").Size(UiSize.Sm).Variant(UiVariant.Ghost).ToHtml();
+        var html = Ui.Input.Value("").Label("Email").Size(Ui.Size.Sm).Variant(Ui.Variant.Ghost).ToHtml();
 
         Assert.Contains("input-sm", html, StringComparison.Ordinal);
         Assert.Contains("input-ghost", html, StringComparison.Ordinal);
@@ -140,7 +140,7 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
         // different colours. ValidationMessage renders nothing until the field has messages, so what this
         // asserts is that the field ASKED for one.
         var model = new Model();
-        var html = UiInput.Bind(() => model.Name).Label("Name").ToHtml();
+        var html = Ui.Input.Bind(() => model.Name).Label("Name").ToHtml();
 
         Assert.Contains("<label", html, StringComparison.Ordinal);
         Assert.Contains("Name", html, StringComparison.Ordinal);
@@ -152,19 +152,19 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
         // For a form that shows its errors in one summary, so the same error is not said twice.
         var model = new Model();
 
-        Assert.NotNull(UiInput.Bind(() => model.Name).Label("Name").ShowValidation(false).ToHtml());
+        Assert.NotNull(Ui.Input.Bind(() => model.Name).Label("Name").ShowValidation(false).ToHtml());
     }
 
     [Fact]
     public void A_select_gets_the_same_field_shape()
     {
-        // The base is shared, so this is really asking whether UiSelect reaches it — a control that
+        // The base is shared, so this is really asking whether Ui.Select reaches it — a control that
         // declared its own Label and kept it would pass every other test in this file while rendering the
         // old markup.
         // Options FIRST: it is a required prop, so the chain stays "pending" — and the optional steps
         // are not offered — until every required one is taken. Floating(false) because the sibling shape is
         // the legend's; the floating one is UiFloatingFieldTests'.
-        var html = UiSelect
+        var html = Ui.Select
             .Value("hu")
             .Options([("hu", "Hungary"), ("gb", "United Kingdom")])
             .Label("Country")
@@ -186,7 +186,7 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
     public void An_unlabelled_select_is_still_the_bare_control() =>
         Assert.DoesNotContain(
             "<label",
-            UiSelect.Value("hu").Options([("hu", "Hungary")]).ToHtml(),
+            Ui.Select.Value("hu").Options([("hu", "Hungary")]).ToHtml(),
             StringComparison.Ordinal);
     [Fact]
     public void The_id_reaches_the_control_itself()
@@ -196,24 +196,24 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
         // fails somewhere else entirely. Id was exactly that for one commit.
         Assert.Contains(
             "id=\"email\"",
-            UiInput.Value("").Label("Email").Id("email").ToHtml(),
+            Ui.Input.Value("").Label("Email").Id("email").ToHtml(),
             StringComparison.Ordinal);
 
         Assert.Contains(
             "id=\"country\"",
-            UiSelect.Value("hu").Options([("hu", "Hungary")]).Label("Country").Id("country").ToHtml(),
+            Ui.Select.Value("hu").Options([("hu", "Hungary")]).Label("Country").Id("country").ToHtml(),
             StringComparison.Ordinal);
 
         // The two controls that are not UiFormFields and draw their own markup had no Id at all, which
         // left a browser test that clicks a checkbox or picks a file nothing to select on.
         Assert.Contains(
             "id=\"agree\"",
-            UiCheckbox.Value(false).Text("Agree").Id("agree").ToHtml(),
+            Ui.Checkbox.Value(false).Text("Agree").Id("agree").ToHtml(),
             StringComparison.Ordinal);
 
         Assert.Contains(
             "id=\"avatar\"",
-            UiFileInput.Value("").Label("Avatar").Id("avatar").ToHtml(),
+            Ui.FileInput.Value("").Label("Avatar").Id("avatar").ToHtml(),
             StringComparison.Ordinal);
     }
 
@@ -226,17 +226,17 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
 
         Assert.Contains(
             "id=\"name\"",
-            UiInput.Bind(() => model.Name).Label("Name").Id("name").ToHtml(),
+            Ui.Input.Bind(() => model.Name).Label("Name").Id("name").ToHtml(),
             StringComparison.Ordinal);
     }
     [Fact]
     public void A_textarea_is_a_field_too_and_renders_its_id()
     {
         // Added after the showcase's controlled textarea lost its change handler in a migration — not
-        // because the handler was dropped, but because UiTextarea never rendered the Id the test selected
+        // because the handler was dropped, but because Ui.Textarea never rendered the Id the test selected
         // on, so the assertion could not find the element to look at. Every control in the family needs
         // the same two things wired, and "I fixed input and select" is how the third one is missed.
-        var html = UiTextarea.Value("").Label("Notes").Id("notes").Rows(3).ToHtml();
+        var html = Ui.Textarea.Value("").Label("Notes").Id("notes").Rows(3).ToHtml();
 
         Assert.Contains("id=\"notes\"", html, StringComparison.Ordinal);
         Assert.Contains("<label", html, StringComparison.Ordinal);
@@ -259,7 +259,7 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
     {
         // Next to the control on screen is not next to it for a screen reader: without describedby the hint
         // is a paragraph somewhere later in the page, reached after the reader has left the field.
-        var html = UiInput.Value("").Label("Password").Hint("At least 12 characters").ToHtml();
+        var html = Ui.Input.Value("").Label("Password").Hint("At least 12 characters").ToHtml();
 
         Assert.Contains("id=\"f-password-hint\"", html, StringComparison.Ordinal);
         Assert.Contains("aria-describedby=\"f-password-hint\"", html, StringComparison.Ordinal);
@@ -269,7 +269,7 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
     public void A_field_with_nothing_to_describe_it_has_no_describedby() =>
         Assert.DoesNotContain(
             "aria-describedby",
-            UiInput.Value("").Label("Email").ToHtml(),
+            Ui.Input.Value("").Label("Email").ToHtml(),
             StringComparison.Ordinal);
 
     [Fact]
@@ -277,12 +277,12 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
     {
         // daisyUI keeps a validator-hint `visibility: hidden` until the control is invalid, and hidden text
         // named by describedby is still read aloud — a reader would hear about a mistake they had not made.
-        var hidden = UiInput.Value("").Label("Email").Error("Not an address").ToHtml();
+        var hidden = Ui.Input.Value("").Label("Email").Error("Not an address").ToHtml();
         Assert.Contains("id=\"f-email-error\"", hidden, StringComparison.Ordinal);
         Assert.DoesNotContain("aria-describedby", hidden, StringComparison.Ordinal);
 
-        var shown = UiInput.Value("").Label("Email").Error("Not an address").Hint("Work address")
-            .Tone(UiTone.Error).ToHtml();
+        var shown = Ui.Input.Value("").Label("Email").Error("Not an address").Hint("Work address")
+            .Tone(Ui.Tone.Error).ToHtml();
 
         // Error first, then the hint: the thing that is wrong before the thing that is always true.
         Assert.Contains("aria-describedby=\"f-email-error f-email-hint\"", shown, StringComparison.Ordinal);
@@ -297,7 +297,7 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
         var field = new global::Rask.Core.Forms.FieldIdentifier(model, nameof(SignUp.Nickname));
 
         var page = global::Rask.Testing.RaskTest.Render(() => Form.Model(model).Context(ctx)[
-            UiInput.Bind(() => model.Nickname).Label("Nickname").Hint("Shown to others")
+            Ui.Input.Bind(() => model.Nickname).Label("Nickname").Hint("Shown to others")
         ]);
 
         // Valid: described by the hint alone, and not invalid.
@@ -327,7 +327,7 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
         ctx.AddValidationMessage(new global::Rask.Core.Forms.FieldIdentifier(model, nameof(SignUp.Nickname)), "Taken");
 
         var html = global::Rask.Testing.RaskTest.Render(() => Form.Model(model).Context(ctx)[
-            UiInput.Bind(() => model.Nickname).Label("Nickname").ShowValidation(false)
+            Ui.Input.Bind(() => model.Nickname).Label("Nickname").ShowValidation(false)
         ]).Html;
 
         Assert.Contains("aria-invalid=\"true\"", html, StringComparison.Ordinal);
@@ -341,13 +341,13 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
 
         Assert.Contains(
             "aria-required=\"true\"",
-            UiInput.Bind(() => model.Email).Label("Email").ToHtml(),
+            Ui.Input.Bind(() => model.Email).Label("Email").ToHtml(),
             StringComparison.Ordinal);
 
         // Nothing is guessed for a member without [Required] — a FluentValidation rule is invisible here.
         Assert.DoesNotContain(
             "aria-required",
-            UiInput.Bind(() => model.Nickname).Label("Nickname").ToHtml(),
+            Ui.Input.Bind(() => model.Nickname).Label("Nickname").ToHtml(),
             StringComparison.Ordinal);
     }
 
@@ -358,8 +358,8 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
         // "Email" rather than "Email Required" on every visit.
         foreach (var html in new[]
                  {
-                     UiInput.Value("").Label("Email").Badge("Required").Floating(false).ToHtml(),
-                     UiInput.Value("").Label("Email").Badge("Required").ToHtml(),
+                     Ui.Input.Value("").Label("Email").Badge("Required").Floating(false).ToHtml(),
+                     Ui.Input.Value("").Label("Email").Badge("Required").ToHtml(),
                  })
         {
             var badge = html.IndexOf("Required", StringComparison.Ordinal);
@@ -375,6 +375,6 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
     public void A_badge_without_a_label_renders_nothing() =>
         Assert.DoesNotContain(
             "Required",
-            UiInput.Value("").Badge("Required").ToHtml(),
+            Ui.Input.Value("").Badge("Required").ToHtml(),
             StringComparison.Ordinal);
 }

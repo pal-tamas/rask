@@ -1,6 +1,6 @@
 using Rask.Core.Live;
 using Rask.Core.Routing;
-using Rask.Ui;
+using Rask;
 
 namespace Company.RaskServer.Features.Shared;
 

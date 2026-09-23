@@ -1,8 +1,8 @@
 using System.Diagnostics;
 using System.Globalization;
+using Rask;
 using Rask.Core;
 using Rask.DevTools.Probe;
-using Rask.Ui;
 
 namespace Rask.DevTools.Panel;
 
@@ -59,7 +59,7 @@ internal sealed partial class DevToolsWireTab : Component
         var events = Feed.WireSnapshot();
         if (events.Length == 0)
         {
-            return UiAlert["No traffic yet. Use the page, and every frame it exchanges with the app is listed here."];
+            return Ui.Alert["No traffic yet. Use the page, and every frame it exchanges with the app is listed here."];
         }
 
         int sent = 0, received = 0;
@@ -87,18 +87,18 @@ internal sealed partial class DevToolsWireTab : Component
         }
 
         return Div.Class("flex flex-col gap-3")[
-            UiMetricRow[
-                UiMetric.Label("Frames sent").Value(Count(sent)),
-                UiMetric.Label("Frames received").Value(Count(received)),
-                UiMetric.Label("Bytes sent").Value(Size(bytesSent)),
-                UiMetric.Label("Bytes received").Value(Size(bytesReceived))
+            Ui.MetricRow[
+                Ui.Metric.Label("Frames sent").Value(Count(sent)),
+                Ui.Metric.Label("Frames received").Value(Count(received)),
+                Ui.Metric.Label("Bytes sent").Value(Size(bytesSent)),
+                Ui.Metric.Label("Bytes received").Value(Size(bytesReceived))
             ],
             P.Class("text-xs opacity-60")[
                 shown == events.Length
                     ? $"{Count(events.Length)} frames, newest first."
                     : $"The newest {Count(shown)} of {Count(events.Length)} frames."
             ],
-            UiTable.Scroll(true)[
+            Ui.Table.Scroll(true)[
                 Thead[Tr[Th["#"], Th["Direction"], Th["Type"], Th["Size"], Th["Diff"], Th["Gap"]]],
                 Tbody[rows]
             ]
@@ -110,7 +110,7 @@ internal sealed partial class DevToolsWireTab : Component
     private static Component Row(DevToolsWireEvent e, DevToolsWireEvent? previous) =>
         Tr.Key(e.Sequence)[
             Td.Class("tabular-nums opacity-60")[e.Sequence.ToString(CultureInfo.InvariantCulture)],
-            Td[e.Direction == DevToolsWireDirection.Out ? UiBadge.Tone(UiTone.Info)["sent"] : UiBadge["received"]],
+            Td[e.Direction == DevToolsWireDirection.Out ? Ui.Badge.Tone(Ui.Tone.Info)["sent"] : Ui.Badge["received"]],
             Td.Class("font-mono")[e.Kind],
             Td.Class("tabular-nums whitespace-nowrap")[Size(e.Bytes)],
             Td.Class("tabular-nums whitespace-nowrap")[e.DiffOps is { } ops ? Count(ops) + (ops == 1 ? " op" : " ops") : ""],

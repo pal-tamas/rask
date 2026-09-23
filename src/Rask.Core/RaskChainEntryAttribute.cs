@@ -8,7 +8,7 @@ namespace Rask.Core;
 /// A chain normally starts at an entry named after the component, and two components cannot share one name
 /// (RASK040). Sometimes they should: a select over one value and a select over a collection of them are the same
 /// control to the person writing the page, and the model already says which it is — so
-/// <c>UiSelect.Bind(() =&gt; model.Country)</c> and <c>UiSelect.Bind(() =&gt; model.Tags)</c> both read as "a select",
+/// <c>Ui.Select.Bind(() =&gt; model.Country)</c> and <c>Ui.Select.Bind(() =&gt; model.Tags)</c> both read as "a select",
 /// while the C# type each binds keeps them apart.
 /// </para>
 /// <para>

@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using Rask.Core.Forms;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A file picker.
@@ -115,20 +115,20 @@ public sealed partial class UiFileInput : UiFormField<string>
 
         // The input is the WHOLE area, transparent and on top: a click anywhere is a click on it, and a file
         // dropped anywhere is dropped on it, which every engine already turns into a chosen file and a change
-        // event. `validator` stays so a following UiValidator still reads its aria-invalid.
+        // event. `validator` stays so a following Ui.Validator still reads its aria-invalid.
         return Div
             .Data(new Dictionary<string, string?> { ["rask-dropzone"] = null })
             .Class(UiClass.Compose(
                 "relative flex flex-col items-center justify-center gap-1 rounded-box border-2 border-dashed "
                 + "bg-base-100 px-6 py-8 text-center transition-colors",
-                Tone == UiTone.Error ? "border-error" : "border-base-300",
+                Tone == Ui.Tone.Error ? "border-error" : "border-base-300",
                 Disabled == true
                     ? "opacity-60"
                     : "hover:bg-base-200 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 "
                       + "has-[:focus-visible]:outline-primary data-[dragging]:border-primary "
                       + "data-[dragging]:bg-primary/5",
                 Class))[
-            UiIcon.Name(UiIconName.Upload).Class("mb-1 size-8 text-ui-muted"),
+            Ui.Icon.Name(Ui.IconName.Upload).Class("mb-1 size-8 text-ui-muted"),
             P.Class("text-sm font-medium")[Heading ?? Label ?? AccessibleLabel, BadgeFor()],
             Text is null
                 ? null

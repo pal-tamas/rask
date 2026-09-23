@@ -40,8 +40,8 @@ public sealed class ShowcaseLayoutTests
         Assert.DoesNotContain("navbar-end", html);
         Assert.Contains("btn btn-ghost btn-square", html);
 
-        // The sidebar is the kit's UiSidebar: in the flow from md up and a drawer below it, with the hamburger a
-        // UiSidebarToggle for its checkbox. It was a Bootstrap responsive offcanvas, then a hand-rolled aside.
+        // The sidebar is the kit's Ui.Sidebar: in the flow from md up and a drawer below it, with the hamburger a
+        // Ui.SidebarToggle for its checkbox. It was a Bootstrap responsive offcanvas, then a hand-rolled aside.
         Assert.Contains("side-nav", html);
         Assert.Contains("md:drawer-open", html);
         Assert.Contains("for=\"docs-sidebar\"", html);

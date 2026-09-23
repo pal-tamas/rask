@@ -13,9 +13,9 @@ public sealed partial class EyeDropperDemo(IEyeDropper eyeDropper) : Component
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        UiCard.Class("shadow-sm")[
+        Ui.Card.Class("shadow-sm")[
                 Div.Class("flex items-center gap-3 mb-2")[
-                    UiButton.Tone(UiTone.Primary).Id("eyedropper-pick").OnClick(Pick)[UiIcon.Name(UiIconName.EyeDropper), "Pick a color"],
+                    Ui.Button.Tone(Ui.Tone.Primary).Id("eyedropper-pick").OnClick(Pick)[Ui.Icon.Name(Ui.IconName.EyeDropper), "Pick a color"],
                     _hex is null
                         ? (Component)Span.Class("text-ui-muted text-sm")["No color picked yet"]
                         : Div.Class("flex items-center gap-2")[

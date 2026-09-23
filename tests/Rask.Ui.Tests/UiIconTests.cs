@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 using Rask.Core;
 using Rask.Testing;
 
-namespace Rask.Ui.Tests;
+namespace Rask.UiTests;
 
 /// <summary>
 ///     The icon's class composition. These exist because an inline SVG, unlike the text glyph the
@@ -16,7 +16,7 @@ public sealed class UiIconTests
     [Fact]
     public void An_icon_with_no_call_site_classes_carries_its_own_sizing()
     {
-        Assert.Contains("size-5", ClassOf(UiIconName.Check, null));
+        Assert.Contains("size-5", ClassOf(Ui.IconName.Check, null));
     }
 
     [Theory]
@@ -28,7 +28,7 @@ public sealed class UiIconTests
     {
         // The regression this pins: Class used to REPLACE the default, so every caller that passed only a
         // margin — over a hundred of them across the showcase — silently shipped a zero-sized icon.
-        var classes = ClassOf(UiIconName.Check, extra);
+        var classes = ClassOf(Ui.IconName.Check, extra);
 
         Assert.Contains("size-5", classes);
         Assert.Contains(extra, classes);
@@ -43,7 +43,7 @@ public sealed class UiIconTests
     {
         // Two size utilities on one element are resolved by stylesheet order, not by attribute order, so
         // keeping both would make the rendered size depend on how the sheet happened to be generated.
-        var classes = ClassOf(UiIconName.Check, extra);
+        var classes = ClassOf(Ui.IconName.Check, extra);
 
         Assert.DoesNotContain("size-5", classes);
         Assert.Equal(extra, classes);
@@ -54,16 +54,16 @@ public sealed class UiIconTests
     {
         // A name with no shape is a silently blank icon, and the set is large enough that adding a member
         // and forgetting its path data is an easy miss.
-        foreach (var name in Enum.GetValues<UiIconName>())
+        foreach (var name in Enum.GetValues<Ui.IconName>())
         {
             Assert.True(Html(name, null).Contains("<path", StringComparison.Ordinal), $"{name} renders no path.");
         }
     }
 
-    private static string Html(UiIconName name, string? cls) =>
+    private static string Html(Ui.IconName name, string? cls) =>
         RaskTest.Render(new Host { IconName = name, IconClass = cls }).Html;
 
-    private static string ClassOf(UiIconName name, string? cls) =>
+    private static string ClassOf(Ui.IconName name, string? cls) =>
         Regex.Match(Html(name, cls), "class=\"([^\"]*)\"").Groups[1].Value;
 
 }

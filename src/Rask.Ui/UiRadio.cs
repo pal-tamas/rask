@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using Rask.Core.Forms;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// One option of a set where exactly one may be chosen.
@@ -29,9 +29,9 @@ public sealed partial class UiRadio : Component, IFormControl<bool>
     /// <summary>The name that makes a set of these mutually exclusive.</summary>
     public required string Group { get; set; }
 
-    public UiTone? Tone { get; set; }
+    public Ui.Tone? Tone { get; set; }
 
-    public UiSize? Size { get; set; }
+    public Ui.Size? Size { get; set; }
 
     public bool? Disabled { get; set; }
 

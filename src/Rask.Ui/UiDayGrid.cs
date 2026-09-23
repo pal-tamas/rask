@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// The month grid every calendar in the kit draws: the header with its two month steps, the weekday row, and a
@@ -59,11 +59,11 @@ internal abstract partial class UiDayGrid : global::Rask.Core.RaskMarkup
             .Aria(new Dictionary<string, string?> { ["label"] = view.Label })
             .Class(UiClass.Compose("calendar rounded-box border border-base-300 bg-base-100 p-3", view.Class))[
             Div.Class("mb-2 flex items-center justify-between gap-2")[
-                MonthStep(view, "prev", first.AddMonths(-1), "Previous month", UiIconName.ArrowLeft),
+                MonthStep(view, "prev", first.AddMonths(-1), "Previous month", Ui.IconName.ArrowLeft),
                 Div.Class("text-sm font-semibold")[
                     first.ToString("MMMM yyyy", CultureInfo.CurrentCulture)
                 ],
-                MonthStep(view, "next", first.AddMonths(1), "Next month", UiIconName.ArrowRight)
+                MonthStep(view, "next", first.AddMonths(1), "Next month", Ui.IconName.ArrowRight)
             ],
             Table.Class("calendar-month w-full")[
                 Thead[
@@ -95,7 +95,7 @@ internal abstract partial class UiDayGrid : global::Rask.Core.RaskMarkup
     }
 
     private static global::Rask.Core.Component MonthStep(
-        View view, object key, DateOnly target, string label, UiIconName icon)
+        View view, object key, DateOnly target, string label, Ui.IconName icon)
     {
         var button = Button
             .Key(key)
@@ -108,7 +108,7 @@ internal abstract partial class UiDayGrid : global::Rask.Core.RaskMarkup
             button = button.OnClick(() => onMonth(target));
         }
 
-        return button[UiIcon.Name(icon).Class("size-4 shrink-0")];
+        return button[Ui.Icon.Name(icon).Class("size-4 shrink-0")];
     }
 
     private static global::Rask.Core.Component DayButton(View view, DateOnly date)
@@ -139,7 +139,7 @@ internal abstract partial class UiDayGrid : global::Rask.Core.RaskMarkup
             if (view.Closes(date) is { } panel)
             {
                 // The browser closes the picker's popover on the same click that picks the day, as a chosen option
-                // closes UiSelect's list — no runtime, and the C# handler still runs.
+                // closes Ui.Select's list — no runtime, and the C# handler still runs.
                 button = button.Attributes(("popovertarget", panel), ("popovertargetaction", "hide"));
             }
         }
@@ -204,14 +204,14 @@ internal abstract partial class UiDayGrid : global::Rask.Core.RaskMarkup
                 .Aria(aria)
                 .Attributes(("popovertarget", panelId), ("style", "anchor-name:--" + picker.Prefix))[
                 Span.Class(picker.Text is null ? "truncate opacity-60" : "truncate")[picker.Text ?? picker.Placeholder],
-                UiIcon.Name(UiIconName.Calendar).Class("size-4 shrink-0 opacity-60")
+                Ui.Icon.Name(Ui.IconName.Calendar).Class("size-4 shrink-0 opacity-60")
             ],
             panel[grid]
         ];
     }
 
     /// <summary>The field-shaped box a picker's button is drawn as, in the input's tone, size and variant.</summary>
-    internal static string BoxClass(UiTone? tone, UiSize? size, UiVariant? variant) =>
+    internal static string BoxClass(Ui.Tone? tone, Ui.Size? size, Ui.Variant? variant) =>
         UiClass.Compose(
             "input validator w-full cursor-pointer",
             tone is { } t ? UiClassNames.InputTone(t) : "",

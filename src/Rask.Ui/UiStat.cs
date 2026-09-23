@@ -1,6 +1,6 @@
 using Rask.Core.Routing;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>One number, with what it counts and where to go for the detail behind it.</summary>
 public sealed partial class UiStat : Component
@@ -12,12 +12,12 @@ public sealed partial class UiStat : Component
     // NULLABLE, not defaulted. A property with an initialiser is excluded from the chain altogether, and
     // one that is non-nullable without an initialiser becomes a REQUIRED step (RASK001) — so an optional
     // step is spelled by making the property nullable, and only that.
-    public UiIconName? Icon { get; set; }
+    public Ui.IconName? Icon { get; set; }
 
     public string? Caption { get; set; }
 
     /// <summary>
-    ///     <see cref="UiTone.Error" /> for a number an operator must act on, <see cref="UiTone.Warning" /> for
+    ///     <see cref="Ui.Tone.Error" /> for a number an operator must act on, <see cref="Ui.Tone.Warning" /> for
     ///     one that is merely unproven. Every other tone reads as neutral.
     /// </summary>
     /// <remarks>
@@ -27,12 +27,12 @@ public sealed partial class UiStat : Component
     ///     has to look different from "this is broken".
     ///     </para>
     ///     <para>
-    ///     A <see cref="UiTone" />, like every other tone in the kit. It was a string matched against
+    ///     A <see cref="Ui.Tone" />, like every other tone in the kit. It was a string matched against
     ///     <c>"danger"</c> and <c>"warn"</c> — the names nothing else here uses — so the natural
     ///     <c>"error"</c> compiled and rendered a neutral tile without a word.
     ///     </para>
     /// </remarks>
-    public UiTone? Tone { get; set; }
+    public Ui.Tone? Tone { get; set; }
 
     public RouteUrl? Href { get; set; }
 
@@ -41,8 +41,8 @@ public sealed partial class UiStat : Component
     {
         var tone = Tone switch
         {
-            UiTone.Error => "text-error",
-            UiTone.Warning => "text-warning",
+            Ui.Tone.Error => "text-error",
+            Ui.Tone.Warning => "text-warning",
             _ => null,
         };
 
@@ -52,14 +52,14 @@ public sealed partial class UiStat : Component
                 Div.Class(tone is null ? UiStyles.Value : $"{UiStyles.Value} {tone}")[Value],
                 Caption is null ? null : Div.Class(UiStyles.Caption)[Caption]
             ],
-            UiIcon.Name(Icon ?? UiIconName.Overview)
+            Ui.Icon.Name(Icon ?? Ui.IconName.Overview)
                 .Class($"size-5 shrink-0 {tone ?? "opacity-60"}")
         ];
 
         // A tile that leads somewhere is a link, so it is reachable by keyboard and says where it goes —
         // rather than a div with a click handler, which is neither.
         // A generated route navigates inside the app; a string is an ordinary link, so an external status page gets
-        // neither the deploy's path base nor the in-app interception (#1070). The rule UiLink and UiButton follow.
+        // neither the deploy's path base nor the in-app interception (#1070). The rule Ui.Link and Ui.Button follow.
         const string linked = $"{UiStyles.Card} block no-underline transition-colors hover:bg-base-200";
         return Href switch
         {

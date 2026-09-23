@@ -1,10 +1,10 @@
 # Tree
 
-`UiTree` shows a hierarchy a reader can open, walk with the keyboard and select from: a file tree, a
+`Ui.Tree` shows a hierarchy a reader can open, walk with the keyboard and select from: a file tree, a
 navigation sidebar, an org chart, the component tree in Rask's own [devtools](devtools.md).
 
 ```csharp
-UiTree.Roots(_files)
+Ui.Tree.Roots(_files)
     .NodeKey(f => f.Path)
     .Item(f => Span[f.Name])
     .Label("Files")[f => f.Children]
@@ -30,13 +30,13 @@ By default the tree remembers what is open and what is selected. Pass the state 
 the page holds that axis instead:
 
 ```csharp
-UiTree.Roots(_nodes)
+Ui.Tree.Roots(_nodes)
     .NodeKey(n => n.Id)
     .Item(n => Span[n.Name])
     .Label("Report")
     .Expanded(_open)                       // the page holds expansion
     .OnExpandedChange(keys => _open = keys)
-    .Selection(UiTreeSelection.Multiple)   // and the tree holds the selection
+    .Selection(Ui.TreeSelection.Multiple)   // and the tree holds the selection
     [n => n.Children]
 ```
 
@@ -50,10 +50,10 @@ open, and `ExpandDepth` is ignored there.
 
 ## Selection
 
-`Selection(UiTreeSelection.None | Single | Multiple)`. `None` is a tree for reading and opening;
+`Selection(Ui.TreeSelection.None | Single | Multiple)`. `None` is a tree for reading and opening;
 `Single` replaces the selection with the node the reader picks; `Multiple` toggles it. Passing
 `Selected` or `OnSelectionChange` without naming a mode means `Single`, because a tree handed a
-selection it ignores is a silent no-op — `Selection(UiTreeSelection.None)` still turns it off.
+selection it ignores is a silent no-op — `Selection(Ui.TreeSelection.None)` still turns it off.
 
 Keys reach the callback as a list of `TKey`, the whole selection each time:
 
@@ -70,7 +70,7 @@ leaves the cursor where the reader put it.
 ## The keyboard
 
 The tree is one focusable element. A cursor moves inside it, and `aria-activedescendant` tells a
-screen reader which row the cursor is on — the shape [`UiSelect`](ui-kit.md) uses for its listbox, and
+screen reader which row the cursor is on — the shape [`Ui.Select`](ui-kit.md) uses for its listbox, and
 the reason this kit still ships no JavaScript.
 
 | Key | What it does |
@@ -104,7 +104,7 @@ Set `ItemSize` — one row's height in pixels — and the tree renders a virtual
 only the rows on screen reach the DOM, and the levels travel in `aria-level` rather than in nesting.
 
 ```csharp
-UiTree.Roots(_components)
+Ui.Tree.Roots(_components)
     .NodeKey(c => c.Id)
     .Item(c => Span[c.Name])
     .Label("Component tree")

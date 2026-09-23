@@ -13,7 +13,7 @@ public sealed partial class UiKitTreePage : Component
     protected override Component? HeadAssets =>
         PageMeta.For(
             "A C# tree view: keyboard and virtualization — Rask",
-            "UiTree in C#: expand and collapse, single or multiple selection, a keyboard with type-ahead, hover, "
+            "Ui.Tree in C#: expand and collapse, single or multiple selection, a keyboard with type-ahead, hover, "
             + "and virtualization.",
             Routes.UiKitTreePage());
 

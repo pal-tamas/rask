@@ -1585,10 +1585,10 @@ wonder where the icons went.
 
 ```csharp
 // ✗ RASK075 — Native(true) says "the platform's control", the template says "markup per row"
-UiSelect.Bind(() => _order.Package)
+Ui.Select.Bind(() => _order.Package)
         .Options(packages)
         .Label("Package")
-        .OptionTemplate(v => Div.Class("flex gap-2")[UiIcon.Name(v.Icon), Span[v.Name]])
+        .OptionTemplate(v => Div.Class("flex gap-2")[Ui.Icon.Name(v.Icon), Span[v.Name]])
         .Native(true)
 ```
 
@@ -1596,10 +1596,10 @@ UiSelect.Bind(() => _order.Package)
 all that is needed — the control draws its own rows and the template renders:
 
 ```csharp
-UiSelect.Bind(() => _order.Package)
+Ui.Select.Bind(() => _order.Package)
         .Options(packages)
         .Label("Package")
-        .OptionTemplate(v => Div.Class("flex gap-2")[UiIcon.Name(v.Icon), Span[v.Name]])
+        .OptionTemplate(v => Div.Class("flex gap-2")[Ui.Icon.Name(v.Icon), Span[v.Name]])
 ```
 
 If the platform's control is what you actually want — it needs no runtime, renders complete on a
@@ -1719,7 +1719,7 @@ battery simply does not wire.
 
 **Grid column with no field token** · Warning
 
-A `UiDataGrid` identifies a column by the **field token** it was opened with. `c.Field(...)` always has
+A `Ui.DataGrid` identifies a column by the **field token** it was opened with. `c.Field(...)` always has
 one; `c.Column()` deliberately has none, which is exactly right for an actions column or one computed
 from the whole row.
 
@@ -1730,7 +1730,7 @@ just looks for a control that was never rendered, which reads as a bug in the gr
 call site.
 
 ```csharp
-UiDataGrid.Data(rows).RowKey(r => r.Id)
+Ui.DataGrid.Data(rows).RowKey(r => r.Id)
     .ColumnChooser(true)[c => [
         c.Field(r => r.Name).Title("Package"),
         c.Column().Title("Actions"),          // ⚠ RASK076 — no token, so the chooser cannot list it

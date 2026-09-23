@@ -349,7 +349,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 // component's `Build<T>`, a form control's mode-carrying `Build<T, TMode>`, a form's
                 // `FormBuild<T>` and a grid's `GridBuild<T, TKey>`. The ones carrying an argument are
                 // written over an OPEN one, so `Input.Bind(…).Class("x")` keeps the mode it was in and
-                // `UiDataGrid.Data(…).RowKey(…).Class("x")` keeps its key — and the next step still knows
+                // `Ui.DataGrid.Data(…).RowKey(…).Class("x")` keeps its key — and the next step still knows
                 // it. A form control or a grid that could not say `.Class(…)` would be no trade at all.
                 //
                 // The GRID shape takes only the COMPONENT-owned half, and that is a measurement rather
@@ -1643,7 +1643,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             ]);
 
             // A control over a non-nullable value type binds a nullable property too: every property of a
-            // generated form model is nullable, so `UiCheckbox.Bind(() => model.InStock)` over a `bool?` has
+            // generated form model is nullable, so `Ui.Checkbox.Bind(() => model.InStock)` over a `bool?` has
             // to open the chain as surely as over a `bool`. A second overload rather than a wider parameter,
             // so a `bool` property still takes the exact one (C# prefers the identity return conversion) and
             // the controlled half, Value and OnChange, keeps its plain `bool`. A null reads as the control's
@@ -1960,7 +1960,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         //
         // The entry is NAMED after one of them, and that one owns the seed's explicit type opening:
         // `Of<T>()` takes no argument, so every joined component would emit the SAME signature and only
-        // one can survive. Whichever survived would then decide what `UiSelect.Of<string>()` builds —
+        // one can survive. Whichever survived would then decide what `Ui.Select.Of<string>()` builds —
         // silently, since the chain that follows is identical. So put the namesake first, however the
         // candidates happened to be sorted, and let it be the one `primary` means.
         group = [.. group.OrderBy(static x =>
@@ -2200,7 +2200,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     // read properly: a form control's openings are its MODE pins, `Bind` and `Value`, so a required step
     // of its own is never one and never gets to pin the type. `UiInput<T>` requires a `Label` — which
     // says nothing about T — so without this a controlled call site with no starting value has no way in
-    // at all, and `UiInput.Value("")` is a value invented to satisfy the compiler rather than the field.
+    // at all, and `Ui.Input.Value("")` is a value invented to satisfy the compiler rather than the field.
     private static void EmitExplicitTypeOpening(
         StringBuilder sb, Candidate c, string pad, string assemblyName, string runtimePrefix,
         List<EntryInference> required, bool carriesKey)
@@ -2216,7 +2216,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         //
         // With required steps outstanding it hands back the STATE that still owes them rather than the
         // component, so stating the type argument never skips them. That is what lets a component whose
-        // type no step can pin be built at all: UiDataGrid's rows can arrive through `Source`, whose
+        // type no step can pin be built at all: Ui.DataGrid's rows can arrive through `Source`, whose
         // carrier infers nothing (see IsFuncLikeDelegate), and withholding `Of` outright left that grid
         // with no way in once RowKey became required.
         var pending = required.Count != 0;
@@ -2423,7 +2423,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             // declares `T? Value`, where `?` over an unconstrained T is a nullability annotation, so
             // `IFormControl<bool>` has a plain non-nullable `bool Value` and RASK001's rule reads it as
             // required. Left in the required set it is unsatisfiable in BOUND mode, which withdraws
-            // Value on purpose: `UiCheckbox.Bind(() => m.Agreed).Text("…")` would sit forever in a
+            // Value on purpose: `Ui.Checkbox.Bind(() => m.Agreed).Text("…")` would sit forever in a
             // pending state waiting for a step its own mode does not offer, and the only symptom is
             // that the chain has no ToHtml. Controlled mode loses nothing — opening on `Value(…)` is
             // how the value arrives there, and it is still the only way in.
@@ -2523,7 +2523,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     // more overloads only turn one silent mistake into an ambiguity error. Nor does overload priority
     // rescue it: whatever wins `null` wins it for the single-valued control too. So the collection's
     // controlled opening is named **Values**, takes the interface alone, and collides with nothing —
-    // `UiSelect.Values(["core", "ui"])` beside `UiSelect.Value("core")`, and `Bind` shared by both.
+    // `Ui.Select.Values(["core", "ui"])` beside `Ui.Select.Value("core")`, and `Bind` shared by both.
     private static List<List<EntryInference>> WithCollectionShapes(
         Candidate c, List<List<EntryInference>> openings)
     {
@@ -3127,7 +3127,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     // This is the whole rule for when a delegate may pin. `Func<TItem, TValue>` cannot OPEN a chain:
     // the lambda's parameter has no type and its body cannot be bound, which is the BsSelect trap the
     // greedy loop below carries a note about. The same property as a LATER pin, with TItem fixed by the
-    // step before it, infers TValue perfectly well — which is what `UiDataGrid.Data(rows).RowKey(r =>
+    // step before it, infers TValue perfectly well — which is what `Ui.DataGrid.Data(rows).RowKey(r =>
     // r.Id)` needs, and what kept a REQUIRED delegate step from being able to pin anything at all.
     // A delegate whose inputs are all concrete — `Fn<UiGridRequest, Task<UiGridPage<T>>>` — opens one
     // perfectly well, so the test is the inputs rather than the delegate-ness.
@@ -4963,7 +4963,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         }
 
         // The assembly-wide form: a group for every component whose name carries the group's, so a library of fifty
-        // `Ui*` components states it once. A component whose name does not (a `Card` beside `UiCard`) keeps its bare
+        // `Ui*` components states it once. A component whose name does not (a `Card` beside `Ui.Card`) keeps its bare
         // entry rather than landing on the group under its whole name.
         foreach (var attr in symbol.ContainingAssembly.GetAttributes())
         {
@@ -5993,7 +5993,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         string TypeName,
         // The NAME the chain is reached by, which is the type's own unless [RaskChainEntry] joins it to
         // another component's entry — two controls that are one control to the page writing them, told
-        // apart by the types their openings take (UiSelect over a value, and over a collection of them).
+        // apart by the types their openings take (Ui.Select over a value, and over a collection of them).
         string EntryName,
         string FullyQualifiedName,
         string TypeParameters,
@@ -6051,7 +6051,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         // because the snapshot itself is an additional file the syntax transform cannot read. See
         // WithPackageProps, which adds the steps once snapshots and candidates are both in hand.
         global::Rask.Generators.External.PackageIslands.IslandFacts? Package = null,
-        // Where the entry lives when it is not on the markup surface — `Ui.Button` rather than `UiButton`. See
+        // Where the entry lives when it is not on the markup surface — `Ui.Button` rather than `Ui.Button`. See
         // RaskChainGroupAttribute; null for every component reached by its bare name.
         ChainGroup? Group = null);
 

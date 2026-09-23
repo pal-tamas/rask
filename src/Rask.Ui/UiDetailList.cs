@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>The key-and-value list a detail sheet is made of.</summary>
 public sealed partial class UiDetailList : Component

@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using Rask.Testing;
 
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     The dropdown's keyboard cursor, its submenus and its checkable items, driven through the real handlers.
@@ -22,15 +22,15 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
     private static global::Rask.Core.Component Menu(View? view = null, List<string>? log = null)
     {
         view ??= new View();
-        return UiDropdown.Trigger("Actions")[
-            UiMenuItem.Key("edit").Text("Edit").OnClick(() => log?.Add("edit")),
-            UiMenuItem.Key("dup").Text("Duplicate").Disabled(true),
-            UiMenuSub.Key("sort").Heading("Sort by")[
-                UiMenuRadioGroup.Bind(() => view.Sort).Key("sort-group").Options([("name", "Name"), ("date", "Date")])
+        return Ui.Dropdown.Trigger("Actions")[
+            Ui.MenuItem.Key("edit").Text("Edit").OnClick(() => log?.Add("edit")),
+            Ui.MenuItem.Key("dup").Text("Duplicate").Disabled(true),
+            Ui.MenuSub.Key("sort").Heading("Sort by")[
+                Ui.MenuRadioGroup.Bind(() => view.Sort).Key("sort-group").Options([("name", "Name"), ("date", "Date")])
             ],
-            UiMenuSeparator.Key("sep"),
-            UiMenuCheckbox.Bind(() => view.ShowArchived).Key("archived").Text("Show archived"),
-            UiMenuItem.Key("delete").Text("Delete").Tone(UiTone.Error)
+            Ui.MenuSeparator.Key("sep"),
+            Ui.MenuCheckbox.Bind(() => view.ShowArchived).Key("archived").Text("Show archived"),
+            Ui.MenuItem.Key("delete").Text("Delete").Tone(Ui.Tone.Error)
         ];
     }
 
@@ -165,25 +165,25 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
         private string _sort = "name";
 
         protected override global::Rask.Core.Component? Render() =>
-            UiDropdown.Key("dd").Trigger("View")[
-                UiMenuCheckbox.Key("on").Value(_on).Text("Show archived").OnChange(v => { _on = v; }),
-                UiMenuRadioGroup.Value(_sort).Options([("name", "Name"), ("date", "Date")])
+            Ui.Dropdown.Key("dd").Trigger("View")[
+                Ui.MenuCheckbox.Key("on").Value(_on).Text("Show archived").OnChange(v => { _on = v; }),
+                Ui.MenuRadioGroup.Value(_sort).Options([("name", "Name"), ("date", "Date")])
                     .OnChange(v => { _sort = v; })
             ];
     }
 
     // The same host with every step written BEFORE Key, and the generic radio group keyed too (#1118). Steps ahead
     // of Key used to land on the instance the key then discarded, so the checkbox kept the value from the render
-    // its key was first claimed on; and `UiMenuRadioGroup.Key(…)` did not compile (CS0315) at all.
+    // its key was first claimed on; and `Ui.MenuRadioGroup.Key(…)` did not compile (CS0315) at all.
     private sealed partial class KeyLastHost : global::Rask.Core.Component
     {
         private bool _on;
         private string _sort = "name";
 
         protected override global::Rask.Core.Component? Render() =>
-            UiDropdown.Trigger("View").Key("dd")[
-                UiMenuCheckbox.Value(_on).Text("Show archived").OnChange(v => { _on = v; }).Key("on"),
-                UiMenuRadioGroup.Key("sort").Value(_sort).Options([("name", "Name"), ("date", "Date")])
+            Ui.Dropdown.Trigger("View").Key("dd")[
+                Ui.MenuCheckbox.Value(_on).Text("Show archived").OnChange(v => { _on = v; }).Key("on"),
+                Ui.MenuRadioGroup.Key("sort").Value(_sort).Options([("name", "Name"), ("date", "Date")])
                     .OnChange(v => { _sort = v; })
             ];
     }
@@ -262,8 +262,8 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
     public async Task A_controlled_dropdown_hears_only_the_changes_it_did_not_make()
     {
         var heard = new List<bool>();
-        var page = RaskTest.Render(UiDropdown.Trigger("Actions").Open(false).OnToggle(open => heard.Add(open))[
-            UiMenuItem.Key("a").Text("A")
+        var page = RaskTest.Render(Ui.Dropdown.Trigger("Actions").Open(false).OnToggle(open => heard.Add(open))[
+            Ui.MenuItem.Key("a").Text("A")
         ]);
 
         // The reader opened it: the page is told.

@@ -227,7 +227,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Using Include="Rask.Ui"/>
+    <Using Include="Rask"/>
   </ItemGroup>
 
 </Project>

@@ -241,7 +241,7 @@
 
         It fails as CS0103 on a name that is plainly right there — the referenced assembly IS on the
         companion's list, so the error points at the source rather than at the missing using, and reads
-        like the app is broken. The showcase hit exactly this on Rask.Ui: sixty errors on UiIconName in
+        like the app is broken. The showcase hit exactly this on Rask.Ui: sixty errors on Ui.IconName in
         files that compile perfectly for the browser.
 
         Static and Alias are carried too. An app that writes `using static` or an alias in its csproj is

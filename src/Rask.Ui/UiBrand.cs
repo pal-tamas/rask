@@ -1,6 +1,6 @@
 using Rask.Core.Routing;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>The surface's mark and name. Goes home.</summary>
 /// <remarks>
@@ -17,7 +17,7 @@ public sealed partial class UiBrand : Component
     public required RouteUrl Href { get; set; }
 
     /// <summary>The mark itself. The overview glyph unless said otherwise, or <see cref="Logo" /> instead.</summary>
-    public UiIconName? Icon { get; set; }
+    public Ui.IconName? Icon { get; set; }
 
     /// <summary>
     ///     A real logo, as the URL of an image, in place of <see cref="Icon" />.
@@ -41,7 +41,7 @@ public sealed partial class UiBrand : Component
         [
             Logo is { Length: > 0 } logo
                 ? Img.Src(logo).Alt("").Class("size-5 shrink-0 object-contain")
-                : UiIcon.Name(Icon ?? UiIconName.Overview).Class("size-5 shrink-0"),
+                : Ui.Icon.Name(Icon ?? Ui.IconName.Overview).Class("size-5 shrink-0"),
             // The wordmark is the first thing to go: on a phone the crumb beside it says where you are,
             // which is the part someone actually needs. ui-rail-hide takes it for the same reason when a
             // collapsable sidebar is narrowed to its rail.
@@ -50,7 +50,7 @@ public sealed partial class UiBrand : Component
 
         // A generated route navigates inside the app; a string is an ordinary link — the path base is not added to
         // it, so a brand pointing at "#" or at another site stays exactly that (#1070).
-        // `title` for the rail and the phone, where the wordmark is hidden: see UiNavItem for why not a CSS tooltip.
+        // `title` for the rail and the phone, where the wordmark is hidden: see Ui.NavItem for why not a CSS tooltip.
         return Href.PageType is null
             ? A.Href(Href.ToString()).Class(classes).Title(Label)[content]
             : NavLink.Href(Href).Class(classes).Title(Label)[content];

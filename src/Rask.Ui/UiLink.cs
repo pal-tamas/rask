@@ -1,6 +1,6 @@
 using Rask.Core.Routing;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A link, in the theme's colours.
@@ -28,7 +28,7 @@ public sealed partial class UiLink : Component
     /// </summary>
     public required RouteUrl Href { get; set; }
 
-    public UiTone? Tone { get; set; }
+    public Ui.Tone? Tone { get; set; }
 
     /// <summary>Underlines on hover. Default true.</summary>
     public bool? Underline { get; set; }
@@ -77,8 +77,8 @@ public sealed partial class UiLink : Component
 
         return anchor.Target("_blank").Rel("noopener noreferrer")[
             Text,
-            // UiIcon is aria-hidden throughout, so the mark is decoration and the words below carry the meaning.
-            UiIcon.Name(UiIconName.ExternalLink).Class("size-3.5 shrink-0"),
+            // Ui.Icon is aria-hidden throughout, so the mark is decoration and the words below carry the meaning.
+            Ui.Icon.Name(Ui.IconName.ExternalLink).Class("size-3.5 shrink-0"),
             Span.Class("sr-only")[" (opens in a new tab)"]
         ];
     }

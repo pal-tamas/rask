@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>A page heading with its caption and an optional row of controls.</summary>
 /// <remarks>
@@ -20,13 +20,13 @@ public sealed partial class UiHeader : Component
     public Component? Actions { get; set; }
 
     /// <summary>Shown before the heading, so a queue page is recognisable at a glance.</summary>
-    public UiIconName? Icon { get; set; }
+    public Ui.IconName? Icon { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render() =>
         Div.Class("flex flex-wrap items-center gap-x-3 gap-y-2")[
-            Icon is { } icon ? UiIcon.Name(icon).Class("size-5 shrink-0 opacity-60") : null,
-            global::Rask.Ui.UiHeading.Element(HeadingLevel ?? 1)(UiStyles.Heading)[Heading],
+            Icon is { } icon ? Ui.Icon.Name(icon).Class("size-5 shrink-0 opacity-60") : null,
+            global::Rask.UiHeading.Element(HeadingLevel ?? 1)(UiStyles.Heading)[Heading],
             Caption is null ? null : Span.Class("text-xs opacity-60")[Caption],
             // Full width on its own line below sm, so a row of actions never squeezes the heading to
             // nothing; trailing-aligned beside it from sm up.

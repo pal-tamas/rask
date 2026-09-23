@@ -148,8 +148,8 @@ public sealed partial class LogsPage(
     {
         if (!options.CaptureLogs && !HasStore)
         {
-            return UiCard[
-                UiEmpty
+            return Ui.Card[
+                Ui.Empty
                     .Heading("Log capture is off")
                     .Detail("Set CaptureLogs = true on RaskDashboardOptions to keep a tail of recent entries, or add "
                     + "Rask.Logging to keep them across restarts.")
@@ -158,7 +158,7 @@ public sealed partial class LogsPage(
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         return [
-            UiHeader.Heading("Logs").Caption(Caption()).Actions(HasStore ? ModeTabs() : null),
+            Ui.Header.Heading("Logs").Caption(Caption()).Actions(HasStore ? ModeTabs() : null),
             DashboardError.Message(LoadError),
             IsHistory ? HistoryBody(now) : LiveBody(now),
             DashboardParked.Parked(IsParked).Resume(ResumeAsync),
@@ -175,13 +175,13 @@ public sealed partial class LogsPage(
         : $"at most {options.LogBufferSize} entries, {options.LogMinimumLevel} and above, in memory only";
 
     private Component ModeTabs() =>
-        UiTabs[
+        Ui.Tabs[
             ModeTab(null, "Live"),
             ModeTab("history", "History")
         ];
 
     private Component ModeTab(string? view, string label) =>
-        UiTab
+        Ui.Tab
             .Key(label)
             .Label(label)
             .Href(Routes.LogsPage(View: view, Level: Level, Category: Category))
@@ -191,7 +191,7 @@ public sealed partial class LogsPage(
     // what three filters at 360px need: side by side, each is too narrow to show the value it is set to.
     private Component Filters() =>
         [
-            UiTabs[
+            Ui.Tabs[
                 LevelPill(null, "All"),
                 LevelPill(LogLevel.Information, "Info+"),
                 LevelPill(LogLevel.Warning, "Warning+"),
@@ -202,7 +202,7 @@ public sealed partial class LogsPage(
         ];
 
     private Component LevelPill(LogLevel? level, string label) =>
-        UiTab
+        Ui.Tab
             .Key(label)
             .Label(label)
             .Href(Link(level: level?.ToString(), category: Category))
@@ -221,7 +221,7 @@ public sealed partial class LogsPage(
 
         IReadOnlyList<(string Value, string Text)> choices = [("", "All categories"), .. categories.Select(c => (c, c))];
 
-        return UiSelect
+        return Ui.Select
             .Value(Category ?? "")
             .Options(choices)
             .Label("Category")
@@ -236,7 +236,7 @@ public sealed partial class LogsPage(
     }
 
     private Component SearchBox() =>
-        UiSearch
+        Ui.Search
             .Placeholder("Search message or exception")
             .AccessibleLabel("Search stored log entries")
             .Value(Query)
@@ -274,7 +274,7 @@ public sealed partial class LogsPage(
         LogGrid(
             [.. buffer.Snapshot(MinimumLevel, Category).Select(ToRow)],
             now,
-            UiEmpty
+            Ui.Empty
                 .Heading("Nothing captured yet")
                 .Detail("Entries appear here as the application logs them — subject to the app's own "
                 + "Logging:LogLevel configuration, which filters before the dashboard sees them."),
@@ -286,7 +286,7 @@ public sealed partial class LogsPage(
             now,
             IsLoading
                 ? DashboardLoading
-                : UiEmpty
+                : Ui.Empty
                     .Heading("Nothing stored matches")
                     .Detail("Either nothing has been logged into the store yet, or no entry matches this filter. "
                     + "Retention drops entries by age and by count."),
@@ -299,7 +299,7 @@ public sealed partial class LogsPage(
     // one, and the conversion happens here, once.
     private Component LogGrid(IReadOnlyList<LogRow> rows, DateTime now, Component empty, bool paged)
     {
-        var grid = UiDataGrid.Data(rows)
+        var grid = Ui.DataGrid.Data(rows)
             .RowKey(r => r.Key)
             .Label(paged ? "Stored log entries" : "Recent log entries")
             .Toolbar(Filters())
@@ -334,7 +334,7 @@ public sealed partial class LogsPage(
     private static Component MessageCell(LogRow row) =>
         Div[
             Div[row.Message],
-            row.Exception is { } ex ? UiCode.Content(ex) : null,
+            row.Exception is { } ex ? Ui.Code.Content(ex) : null,
             ScopeChips(row.Scopes)
         ];
 
@@ -357,17 +357,17 @@ public sealed partial class LogsPage(
             : Div[
                 scopes.SelectMany(s => new Component[]
                 {
-                    UiBadge.Key(s.Key).Mono(true)[$"{s.Key}={s.Value}"],
+                    Ui.Badge.Key(s.Key).Mono(true)[$"{s.Key}={s.Value}"],
                     " ",
                 })
             ];
 
-    private static Component LevelBadge(LogLevel level) => UiBadge
+    private static Component LevelBadge(LogLevel level) => Ui.Badge
         .Tone(level switch
         {
-            LogLevel.Critical or LogLevel.Error => UiTone.Error,
-            LogLevel.Warning => UiTone.Warning,
-            LogLevel.Information => UiTone.Info,
+            LogLevel.Critical or LogLevel.Error => Ui.Tone.Error,
+            LogLevel.Warning => Ui.Tone.Warning,
+            LogLevel.Information => Ui.Tone.Info,
             _ => null,
         })[level.ToString()];
 

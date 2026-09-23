@@ -145,12 +145,12 @@ When the user clears an input, `BindingHelpers.TrySetTyped` decides what the emp
 
 A value that fails to parse (`"not-a-number"` into an `int`) leaves the model unchanged.
 
-**Controls over a value type bind its nullable too.** `UiCheckbox`, `UiToggle` and `UiRadio` are over `bool`,
-`UiRating` over `int`, `UiRange` over `double` and `UiCalendar` over `DateOnly`, and each also binds the nullable
-form: `UiCheckbox.Bind(() => model.InStock)` compiles whether `InStock` is a `bool` or a `bool?`, which is what a
+**Controls over a value type bind its nullable too.** `Ui.Checkbox`, `Ui.Toggle` and `Ui.Radio` are over `bool`,
+`Ui.Rating` over `int`, `Ui.Range` over `double` and `Ui.Calendar` over `DateOnly`, and each also binds the nullable
+form: `Ui.Checkbox.Bind(() => model.InStock)` compiles whether `InStock` is a `bool` or a `bool?`, which is what a
 [generated form model](data.md#a-create-and-an-edit-form) holds. A `null` draws as the control's empty state
 (unchecked, unrated, no day picked), and a change writes a value. `Value` and `OnChange` stay over the plain type. The
-date controls go one further: `UiCalendar` and `UiDatePicker` bind a `DateOnly`, a collection of days, or a
+date controls go one further: `Ui.Calendar` and `Ui.DatePicker` bind a `DateOnly`, a collection of days, or a
 `UiDateRange`, and the bound type picks the control ([UI kit](ui-kit.md)).
 
 Every BCL [`IParsable<T>`](https://learn.microsoft.com/dotnet/api/system.iparsable-1) type (numbers,
@@ -378,7 +378,7 @@ take the same two shapes, since they implement the same `IFormControl<T>`.
 
 <!-- demo:form-controls-select -->
 
-**Floating labels.** A labelled kit `UiInput`, `UiTextarea` or native `UiSelect` floats its label by
+**Floating labels.** A labelled kit `Ui.Input`, `Ui.Textarea` or native `Ui.Select` floats its label by
 default. The caption sits in the field until there is content, then rises. It stays the field's real
 `<label>`, linked to the control, and each bound field shows its own validation message under it.
 `Floating(false)` draws the label above the field instead:

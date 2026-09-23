@@ -1,4 +1,4 @@
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     The account row — a plain row, or the button that opens the account menu.
@@ -14,7 +14,7 @@ public partial class UiProfileTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Without_children_it_is_a_row_and_not_a_button()
     {
-        var html = UiProfile.Name("Ada Lovelace").ToHtml();
+        var html = Ui.Profile.Name("Ada Lovelace").ToHtml();
 
         Assert.DoesNotContain("<button", html, StringComparison.Ordinal);
         Assert.DoesNotContain("popovertarget", html, StringComparison.Ordinal);
@@ -24,7 +24,7 @@ public partial class UiProfileTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void With_children_the_row_is_the_menu_button()
     {
-        var html = UiProfile.Name("Ada Lovelace")[UiMenuItem.Text("Sign out")].ToHtml();
+        var html = Ui.Profile.Name("Ada Lovelace")[Ui.MenuItem.Text("Sign out")].ToHtml();
 
         Assert.Contains("aria-haspopup=\"menu\"", html, StringComparison.Ordinal);
         Assert.Contains("aria-expanded=\"false\"", html, StringComparison.Ordinal);
@@ -38,8 +38,8 @@ public partial class UiProfileTests : global::Rask.Core.RaskMarkup
         // Both draw a menu, and aria-activedescendant names the rows by id — two controls generating the same
         // ids would aim one menu's cursor at the other's rows.
         var html = Div[
-            UiProfile.Name("Ada Lovelace")[UiMenuItem.Text("Sign out")],
-            UiDropdown.Trigger("Actions")[UiMenuItem.Text("Archive")]
+            Ui.Profile.Name("Ada Lovelace")[Ui.MenuItem.Text("Sign out")],
+            Ui.Dropdown.Trigger("Actions")[Ui.MenuItem.Text("Archive")]
         ].ToHtml();
 
         Assert.Contains("uipr-", html, StringComparison.Ordinal);
@@ -51,16 +51,16 @@ public partial class UiProfileTests : global::Rask.Core.RaskMarkup
     {
         // A menu below the account row would open off the bottom of the screen, which is where the row lives.
         Assert.Contains("position-area:block-start",
-            UiProfile.Name("Ada Lovelace")[UiMenuItem.Text("Sign out")].ToHtml(), StringComparison.Ordinal);
+            Ui.Profile.Name("Ada Lovelace")[Ui.MenuItem.Text("Sign out")].ToHtml(), StringComparison.Ordinal);
         Assert.Contains("position-area:block-end",
-            UiProfile.Name("Ada Lovelace").Position(UiPosition.Bottom)[UiMenuItem.Text("Sign out")].ToHtml(),
+            Ui.Profile.Name("Ada Lovelace").Position(Ui.Position.Bottom)[Ui.MenuItem.Text("Sign out")].ToHtml(),
             StringComparison.Ordinal);
     }
 
     [Fact]
     public void A_picture_is_drawn_when_there_is_one()
     {
-        var html = UiProfile.Name("Ada Lovelace").Avatar("/me.png").ToHtml();
+        var html = Ui.Profile.Name("Ada Lovelace").Avatar("/me.png").ToHtml();
 
         Assert.Contains("src=\"/me.png\"", html, StringComparison.Ordinal);
         // Decorative: the name is beside it, so announcing the picture too is noise. An EMPTY alt says that; a
@@ -71,7 +71,7 @@ public partial class UiProfileTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Without_a_picture_it_draws_the_monogram_and_hides_it_from_assistive_tech()
     {
-        var html = UiProfile.Name("Ada Lovelace").ToHtml();
+        var html = Ui.Profile.Name("Ada Lovelace").ToHtml();
 
         Assert.DoesNotContain("<img", html, StringComparison.Ordinal);
         Assert.Contains("avatar-placeholder", html, StringComparison.Ordinal);
@@ -85,18 +85,18 @@ public partial class UiProfileTests : global::Rask.Core.RaskMarkup
     [InlineData("ada lovelace king", "AL")]
     [InlineData("   ", "?")]
     public void The_monogram_is_the_first_letter_of_the_first_two_words(string name, string expected) =>
-        Assert.Equal(expected, global::Rask.Ui.UiAvatar.Initials(name));
+        Assert.Equal(expected, global::Rask.UiAvatar.Initials(name));
 
     [Fact]
     public void The_caption_is_a_second_line_rather_than_part_of_the_name() =>
         Assert.Contains("tamas@example.com",
-            UiProfile.Name("Ada Lovelace").Caption("tamas@example.com").ToHtml(), StringComparison.Ordinal);
+            Ui.Profile.Name("Ada Lovelace").Caption("tamas@example.com").ToHtml(), StringComparison.Ordinal);
 
     [Fact]
     public void The_words_are_marked_so_a_narrowed_sidebar_can_take_them_away()
     {
-        // ui-rail-hide is what UiSidebar.Collapsable's rules key off. Marked by the component that owns the
+        // ui-rail-hide is what Ui.Sidebar.Collapsable's rules key off. Marked by the component that owns the
         // words, because a CSS rule cannot tell a label from content.
-        Assert.Contains("ui-rail-hide", UiProfile.Name("Ada Lovelace").ToHtml(), StringComparison.Ordinal);
+        Assert.Contains("ui-rail-hide", Ui.Profile.Name("Ada Lovelace").ToHtml(), StringComparison.Ordinal);
     }
 }

@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A filled dot and what it means — the quietest way to say a state.
@@ -12,9 +12,9 @@ public sealed partial class UiStatusDot : Component
     public required string Label { get; set; }
 
     /// <summary>The dot's colour. Omitted, it reads as idle.</summary>
-    public UiTone? Tone { get; set; }
+    public Ui.Tone? Tone { get; set; }
 
-    public UiSize? Size { get; set; }
+    public Ui.Size? Size { get; set; }
 
     /// <summary>Pulses, for a state that is still moving.</summary>
     public bool? Animated { get; set; }

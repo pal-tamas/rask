@@ -60,7 +60,7 @@ public sealed partial class IslandsDemo : Component
 
     protected override Component? Render() =>
     [
-        UiCard.Class("shadow-sm mb-3")[
+        Ui.Card.Class("shadow-sm mb-3")[
                 H6.Class("font-bold")["A Vue island calling back into C#, in WebAssembly"],
                 P.Class("text-sm text-ui-muted")[
                     "The same ", Code["VueChart.vue"], " the Server showcase builds. Clicking a bar ",
@@ -79,7 +79,7 @@ public sealed partial class IslandsDemo : Component
                 ]
             ],
 
-        UiCard.Class("shadow-sm mb-3")[
+        Ui.Card.Class("shadow-sm mb-3")[
                 H6.Class("font-bold")["React and Svelte keeping their own state"],
                 P.Class("text-sm text-ui-muted")[
                     "Both hold state C# never sees. Raising the reading re-renders this component, and ",
@@ -100,8 +100,8 @@ public sealed partial class IslandsDemo : Component
                 ],
 
                 Div.Class("flex gap-2 mt-3")[
-                    UiButton.Tone(UiTone.Primary).Id("island-raise").OnClick(Raise)["Raise the reading"],
-                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("island-reset").OnClick(Reset)["Reset"]
+                    Ui.Button.Tone(Ui.Tone.Primary).Id("island-raise").OnClick(Raise)["Raise the reading"],
+                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Id("island-reset").OnClick(Reset)["Reset"]
                 ],
 
                 P.Class("text-sm mt-3 mb-0")[
@@ -113,7 +113,7 @@ public sealed partial class IslandsDemo : Component
                 ]
             ],
 
-        UiCard.Class("shadow-sm mb-3")[
+        Ui.Card.Class("shadow-sm mb-3")[
                 H6.Class("font-bold")["A Lit island, beside this app's own scoped TypeScript"],
                 P.Class("text-sm text-ui-muted")[
                     Code["LitBadge.ts"], " imports nothing at all — a custom element needs no ",
@@ -131,7 +131,7 @@ public sealed partial class IslandsDemo : Component
                 ]
             ],
 
-        UiCard.Class("shadow-sm mb-3")[
+        Ui.Card.Class("shadow-sm mb-3")[
                 H6.Class("font-bold")["A Solid island, from the same file the Server showcase builds"],
                 P.Class("text-sm text-ui-muted")[
                     "Byte-identical to ", Code["SolidSpark.tsx"], " on the Server host. Its hover count ",

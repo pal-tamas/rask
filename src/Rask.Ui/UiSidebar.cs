@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// An application sidebar beside the page: docked from a breakpoint up, sliding over the page below it.
@@ -29,10 +29,10 @@ public sealed partial class UiSidebar : Component
     ///     The width below which the sidebar slides over the page instead of sitting beside it. Unset, it is always
     ///     beside it.
     /// </summary>
-    public UiBreakpoint? Collapsible { get; set; }
+    public Ui.Breakpoint? Collapsible { get; set; }
 
-    /// <summary>Which edge the sidebar is on: <see cref="UiPosition.Left" /> by default, or <see cref="UiPosition.Right" />.</summary>
-    public UiPosition? Position { get; set; }
+    /// <summary>Which edge the sidebar is on: <see cref="Ui.Position.Left" /> by default, or <see cref="Ui.Position.Right" />.</summary>
+    public Ui.Position? Position { get; set; }
 
     /// <summary>Whether the sidebar is slid in, while it is collapsed. Unset leaves the state to the checkbox alone.</summary>
     public bool? Open { get; set; }
@@ -79,11 +79,11 @@ public sealed partial class UiSidebar : Component
     // than in UiClassNames, which holds only complete Tailwind class names the shipped sheet defines. The
     // rail's rules are the kit's own CSS, keyed by this attribute, because no Tailwind variant can say "while
     // this drawer is open in the flow".
-    private static string RailFrom(UiBreakpoint value) => value switch
+    private static string RailFrom(Ui.Breakpoint value) => value switch
     {
-        UiBreakpoint.Sm => "sm",
-        UiBreakpoint.Md => "md",
-        UiBreakpoint.Xl => "xl",
+        Ui.Breakpoint.Sm => "sm",
+        Ui.Breakpoint.Md => "md",
+        Ui.Breakpoint.Xl => "xl",
         _ => "lg",
     };
 
@@ -118,7 +118,7 @@ public sealed partial class UiSidebar : Component
             // The rail applies only where the sidebar is DOCKED, and a Tailwind variant cannot say "while the
             // drawer is open in the flow" — so the breakpoint travels as a value the kit's own media queries key
             // off.
-            root = root.Data("ui-rail", RailFrom(Collapsible ?? UiBreakpoint.Lg));
+            root = root.Data("ui-rail", RailFrom(Collapsible ?? Ui.Breakpoint.Lg));
         }
 
         return root[

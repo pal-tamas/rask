@@ -76,7 +76,7 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
 
         var scope = Page.Locator("[data-testid='ui-toast']");
 
-        // Scoped to the toast's own section, not the page. UiAlert renders role="status" for any tone
+        // Scoped to the toast's own section, not the page. Ui.Alert renders role="status" for any tone
         // that is not an error — which is right, an outcome should be announced politely rather than
         // interrupting — and this page has an alert reading "Saved." as well, so a page-wide locator
         // matched two elements and went on matching the alert after the toast was dismissed.

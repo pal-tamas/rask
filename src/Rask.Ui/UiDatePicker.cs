@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A field that shows a date and opens a calendar to pick one.

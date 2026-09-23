@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A message in a conversation.
@@ -20,7 +20,7 @@ public sealed partial class UiChatBubble : Component
     /// <summary>Puts it on the trailing side, as the reader's own message.</summary>
     public bool? Mine { get; set; }
 
-    public UiTone? Tone { get; set; }
+    public Ui.Tone? Tone { get; set; }
 
     public string? Class { get; set; }
 
@@ -40,16 +40,16 @@ public sealed partial class UiChatBubble : Component
 
     // A literal per tone, like every other class the kit writes: daisyUI emits a component's CSS only
     // where the scanner can see the whole name.
-    private static string ToneClass(UiTone tone) => tone switch
+    private static string ToneClass(Ui.Tone tone) => tone switch
     {
-        UiTone.Primary => "chat-bubble-primary",
-        UiTone.Secondary => "chat-bubble-secondary",
-        UiTone.Accent => "chat-bubble-accent",
-        UiTone.Info => "chat-bubble-info",
-        UiTone.Success => "chat-bubble-success",
-        UiTone.Warning => "chat-bubble-warning",
-        UiTone.Error => "chat-bubble-error",
-        UiTone.Neutral => "chat-bubble-neutral",
+        Ui.Tone.Primary => "chat-bubble-primary",
+        Ui.Tone.Secondary => "chat-bubble-secondary",
+        Ui.Tone.Accent => "chat-bubble-accent",
+        Ui.Tone.Info => "chat-bubble-info",
+        Ui.Tone.Success => "chat-bubble-success",
+        Ui.Tone.Warning => "chat-bubble-warning",
+        Ui.Tone.Error => "chat-bubble-error",
+        Ui.Tone.Neutral => "chat-bubble-neutral",
         _ => "",
     };
 }

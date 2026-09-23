@@ -78,7 +78,7 @@ public sealed partial class ProductsPage(CatalogCache catalog) : Component
     private async Task LoadAsync() => _items = await catalog.GetAsync(CancellationToken);
 
     // … and in Render(), the grid takes the list, and a delete reloads it:
-    //     UiDataGrid.Data(_items).RowKey(p => p.Id) …
+    //     Ui.DataGrid.Data(_items).RowKey(p => p.Id) …
     //     DeleteProduct.Id(p.Id).Version(p.Version).OnDeleted(LoadAsync)
 }
 ```

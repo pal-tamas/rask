@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using Rask.Core.Forms;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A month, with a range of days to pick: a first click for the start and a second for the end.
@@ -9,8 +9,8 @@ namespace Rask.Ui;
 /// <remarks>
 /// <para>
 /// Not written by name: it is reached through <c>UiCalendar</c>, which becomes this control when the model holds a
-/// <see cref="UiDateRange" /> — <c>UiCalendar.Bind(() =&gt; model.Stay)</c>, or
-/// <c>UiCalendar.Value(new UiDateRange(from, to))</c> for the parent to own.
+/// <see cref="UiDateRange" /> — <c>Ui.Calendar.Bind(() =&gt; model.Stay)</c>, or
+/// <c>Ui.Calendar.Value(new UiDateRange(from, to))</c> for the parent to own.
 /// </para>
 /// <para>
 /// The first click is held HERE, drawn as the start, and the model does not change; the second click writes the

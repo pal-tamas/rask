@@ -40,9 +40,9 @@ public partial class App : Component
         // The theme, applied before the first paint and remembered — a kit component now, not a script
         // this app maintains. It writes NO data-theme when the reader has chosen nothing, which is what
         // makes the page follow their operating system: daisyUI paints [data-rask-ui]:not([data-theme])
-        // from prefers-color-scheme, in CSS, with nothing running. See UiThemeScript for why it carries
+        // from prefers-color-scheme, in CSS, with nothing running. See Ui.ThemeScript for why it carries
         // no C# event handlers (handler ids are positional, and moving them breaks the islands silently).
-        UiThemeScript,
+        Ui.ThemeScript,
         // Brand favicon (the purple bolt). Served from the app's own origin; PathBase keeps
         // it correct under a reverse-proxy prefix (Server) or sub-path deploy (WASM).
         Link.Rel("icon").Type("image/svg+xml").Href(LiveOptions.PathBase + "/icon.svg"),

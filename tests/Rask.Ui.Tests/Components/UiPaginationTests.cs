@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     The pager, in both of its forms: buttons that report a choice, and links to where each page lives.
@@ -10,7 +10,7 @@ public partial class UiPaginationTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Pages_are_buttons_when_the_choice_is_reported()
     {
-        var html = UiPagination.Pages(3).Current(2).OnSelect(_ => { }).ToHtml();
+        var html = Ui.Pagination.Pages(3).Current(2).OnSelect(_ => { }).ToHtml();
 
         Assert.Equal(3, Count(html, "<button"));
         Assert.DoesNotContain("<a ", html, StringComparison.Ordinal);
@@ -19,7 +19,7 @@ public partial class UiPaginationTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Pages_are_links_when_each_page_has_an_address()
     {
-        var html = UiPagination.Pages(3).Current(2).Href(page => $"/logs?page={page}").ToHtml();
+        var html = Ui.Pagination.Pages(3).Current(2).Href(page => $"/logs?page={page}").ToHtml();
 
         Assert.Contains("href=\"/logs?page=1\"", html, StringComparison.Ordinal);
         Assert.Contains("href=\"/logs?page=3\"", html, StringComparison.Ordinal);
@@ -29,7 +29,7 @@ public partial class UiPaginationTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_current_page_is_not_a_link_and_says_it_is_the_current_one()
     {
-        var html = UiPagination.Pages(3).Current(2).Href(page => $"/logs?page={page}").ToHtml();
+        var html = Ui.Pagination.Pages(3).Current(2).Href(page => $"/logs?page={page}").ToHtml();
 
         Assert.DoesNotContain("href=\"/logs?page=2\"", html, StringComparison.Ordinal);
         Assert.Equal(1, Count(html, "aria-current=\"page\""));
@@ -41,7 +41,7 @@ public partial class UiPaginationTests : global::Rask.Core.RaskMarkup
     {
         // NavLink adds `active` when its URL matches the current one, and a first page with no ?page= in it
         // would match every page of the same path. The pager says which page is current itself.
-        var html = UiPagination.Pages(3).Current(3).Href(page => page == 1 ? "/logs" : $"/logs?page={page}").ToHtml();
+        var html = Ui.Pagination.Pages(3).Current(3).Href(page => page == 1 ? "/logs" : $"/logs?page={page}").ToHtml();
 
         Assert.DoesNotContain(" active", html, StringComparison.Ordinal);
     }
@@ -51,7 +51,7 @@ public partial class UiPaginationTests : global::Rask.Core.RaskMarkup
     {
         // The client cancels the default action of a click it dispatches, so a page that was both would stop
         // navigating the moment a handler was attached to it.
-        var html = UiPagination.Pages(3).Current(1).OnSelect(_ => { }).Href(page => $"/logs?page={page}").ToHtml();
+        var html = Ui.Pagination.Pages(3).Current(1).OnSelect(_ => { }).Href(page => $"/logs?page={page}").ToHtml();
 
         Assert.DoesNotContain("<button", html, StringComparison.Ordinal);
         Assert.Equal(2, Count(html, "<a "));
@@ -62,7 +62,7 @@ public partial class UiPaginationTests : global::Rask.Core.RaskMarkup
     {
         // A join is one unbreakable row. Forty numbered buttons in it made the console's log history wider than a
         // phone; the window keeps the first, the last and the neighbours of the current page.
-        var html = UiPagination.Pages(20).Current(10).OnSelect(_ => { }).ToHtml();
+        var html = Ui.Pagination.Pages(20).Current(10).OnSelect(_ => { }).ToHtml();
 
         Assert.Equal(7, Count(html, "join-item btn"));
         // The encoder writes the ellipsis as a character reference, so that is what is counted.
@@ -84,7 +84,7 @@ public partial class UiPaginationTests : global::Rask.Core.RaskMarkup
     [InlineData(20, "1 … 17 18 19 20")]
     public void The_window_slides_against_either_end(int current, string expected)
     {
-        var html = UiPagination.Pages(20).Current(current).OnSelect(_ => { }).ToHtml();
+        var html = Ui.Pagination.Pages(20).Current(current).OnSelect(_ => { }).ToHtml();
         var drawn = Regex.Matches(html, ">([0-9]+|&#x2026;|…)<")
             .Select(m => m.Groups[1].Value == "&#x2026;" ? "…" : m.Groups[1].Value);
 
@@ -94,7 +94,7 @@ public partial class UiPaginationTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Seven_pages_or_fewer_draw_every_page()
     {
-        var html = UiPagination.Pages(7).Current(4).OnSelect(_ => { }).ToHtml();
+        var html = Ui.Pagination.Pages(7).Current(4).OnSelect(_ => { }).ToHtml();
 
         Assert.Equal(7, Count(html, "join-item btn"));
         Assert.DoesNotContain("&#x2026;", html, StringComparison.Ordinal);

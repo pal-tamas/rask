@@ -18,26 +18,26 @@ public sealed partial class IndexedDbDemo(IIndexedDb indexedDb) : Component
     private async Task<IKeyValueStore> StoreAsync() => _store ??= await indexedDb.OpenStoreAsync("rask-demo");
 
     protected override Component? Render() =>
-        UiCard.Class("shadow-sm")[
+        Ui.Card.Class("shadow-sm")[
                 Div.Class("grid grid-cols-12 gap-4 mb-2")[
                     Div.Class("col-span-12 sm:col-span-4")[
-                        UiInput
+                        Ui.Input
                             .Value(_key)
                             .Label("Key")
                             .Id("idb-key")
                             .OnInput(v => _key = v)],
                     Div.Class("col-span-12 sm:col-span-8")[
-                        UiInput
+                        Ui.Input
                             .Value(_value)
                             .Label("Value")
                             .Id("idb-value")
                             .OnInput(v => _value = v)]
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    UiButton.Tone(UiTone.Primary).Id("idb-set").OnClick(Set)["Set"],
-                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("idb-get").OnClick(Get)["Get"],
-                    UiButton.Variant(UiVariant.Outline).Id("idb-keys").OnClick(Keys)["List keys"],
-                    UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline).Id("idb-clear").OnClick(Clear)["Clear"]
+                    Ui.Button.Tone(Ui.Tone.Primary).Id("idb-set").OnClick(Set)["Set"],
+                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Id("idb-get").OnClick(Get)["Get"],
+                    Ui.Button.Variant(Ui.Variant.Outline).Id("idb-keys").OnClick(Keys)["List keys"],
+                    Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline).Id("idb-clear").OnClick(Clear)["Clear"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Read: ", Code.Id("idb-read")[_read ?? "(none)"]],
                 Div.Class("text-sm text-ui-muted")["Keys: ", Code.Id("idb-keys-value")[_keys ?? "(none)"]],

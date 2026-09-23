@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 using Rask.Core;
 using Rask.Testing;
 
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     A selection the page makes — a search result, a picker — takes the tree's cursor with it, which is what scrolls the
@@ -85,7 +85,7 @@ public sealed partial class TreeSelectionHost : Component
             _selected = ["docs/tree.md"];
         })["deep"],
         Button.Id("noop").OnClick(() => _renders++)[$"render {_renders}"],
-        UiTree.Roots(Files)
+        Ui.Tree.Roots(Files)
             .NodeKey(n => n.Id)
             .Item(n => Span[n.Name])
             .Label("Files")

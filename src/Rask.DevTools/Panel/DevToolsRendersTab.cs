@@ -1,8 +1,8 @@
 using System.Diagnostics;
 using System.Globalization;
+using Rask;
 using Rask.Core;
 using Rask.DevTools.Probe;
-using Rask.Ui;
 
 namespace Rask.DevTools.Panel;
 
@@ -78,29 +78,29 @@ internal sealed partial class DevToolsRendersTab : Component
 
         return Div.Class("flex flex-col gap-3")[
             Div.Class("flex flex-wrap items-center justify-between gap-2")[
-                UiJoin[
+                Ui.Join[
                     ViewButton("By component", byCommit: false),
                     ViewButton("By commit", byCommit: true)
                 ],
                 Div.Class("flex flex-wrap items-center gap-3")[
-                    UiToggle.Value(Flash ?? false).Text("Flash on the page").Size(UiSize.Sm).OnChange(OnFlashChange),
+                    Ui.Toggle.Value(Flash ?? false).Text("Flash on the page").Size(Ui.Size.Sm).OnChange(OnFlashChange),
                     Flash == true
                         ? Span.Class("flex items-center gap-3 text-xs")[
                             Swatch(RenderColour, "rendered"),
                             Swatch(DomColour, "changed in the DOM")
                         ]
                         : null,
-                    UiButton.Size(UiSize.Sm).Title("Forget the renders counted so far").OnClick(Feed.ClearCommits)["Clear"]
+                    Ui.Button.Size(Ui.Size.Sm).Title("Forget the renders counted so far").OnClick(Feed.ClearCommits)["Clear"]
                 ]
             ],
             commits.Length == 0
-                ? UiAlert["No renders yet. Use the page, and every component that renders is counted here, with why."]
+                ? Ui.Alert["No renders yet. Use the page, and every component that renders is counted here, with why."]
                 : Div.Class("flex flex-col gap-3")[
-                    UiMetricRow[
-                        UiMetric.Label("Commits").Value(Count(commits.Length)),
-                        UiMetric.Label("Renders").Value(Count(renders)),
-                        UiMetric.Label("Components").Value(Count(stats.Count)),
-                        UiMetric.Label("Render time").Value(Milliseconds(ticks))
+                    Ui.MetricRow[
+                        Ui.Metric.Label("Commits").Value(Count(commits.Length)),
+                        Ui.Metric.Label("Renders").Value(Count(renders)),
+                        Ui.Metric.Label("Components").Value(Count(stats.Count)),
+                        Ui.Metric.Label("Render time").Value(Milliseconds(ticks))
                     ],
                     _byCommit ? CommitTable(commits) : ComponentTable(stats)
                 ]
@@ -110,8 +110,8 @@ internal sealed partial class DevToolsRendersTab : Component
     private void OnFeedChanged() => _gate?.Notify();
 
     private Component ViewButton(string label, bool byCommit) =>
-        UiButton
-            .Size(UiSize.Sm)
+        Ui.Button
+            .Size(Ui.Size.Sm)
             // daisyUI's own markers, written whole: a composed class name is invisible to the kit's Tailwind scan.
             .Class(_byCommit == byCommit ? "join-item btn-active" : "join-item")
             .Aria(new Dictionary<string, string?> { ["pressed"] = _byCommit == byCommit ? "true" : "false" })
@@ -186,7 +186,7 @@ internal sealed partial class DevToolsRendersTab : Component
                     ? "Most renders first. Time is each component's own Render(), not its children's."
                     : $"The {Count(shown)} components with the most renders, of {Count(stats.Count)}."
             ],
-            UiTable.Scroll(true)[
+            Ui.Table.Scroll(true)[
                 Thead[Tr[Th["Component"], Th["Renders"], Th["Why"], Th["Time"], Th["Last commit"]]],
                 Tbody[rows]
             ]
@@ -224,7 +224,7 @@ internal sealed partial class DevToolsRendersTab : Component
                     ? "Newest first. Rendered counts the components that ran Render(), of all the render walked."
                     : $"The newest {Count(shown)} of {Count(commits.Length)} commits."
             ],
-            UiTable.Scroll(true)[
+            Ui.Table.Scroll(true)[
                 Thead[Tr[Th["#"], Th["Rendered"], Th["Components"], Th["Time"], Th["Gap"]]],
                 Tbody[rows]
             ]
@@ -284,7 +284,7 @@ internal sealed partial class DevToolsRendersTab : Component
     private static Component Name(string type, string? key) =>
         key is null
             ? Span.Class("font-mono")[type]
-            : Span.Class("whitespace-nowrap")[Span.Class("font-mono")[type], " ", UiBadge.Size(UiSize.Sm).Mono(true)[key]];
+            : Span.Class("whitespace-nowrap")[Span.Class("font-mono")[type], " ", Ui.Badge.Size(Ui.Size.Sm).Mono(true)[key]];
 
     private static Component Reasons(int[] counts)
     {
@@ -301,10 +301,10 @@ internal sealed partial class DevToolsRendersTab : Component
     }
 
     private static Component ReasonBadge(DevToolsRenderReason reason, int? count) =>
-        UiBadge
+        Ui.Badge
             .Key((int)reason)
-            .Size(UiSize.Sm)
-            .Tone(reason == DevToolsRenderReason.Mount ? UiTone.Info : null)
+            .Size(Ui.Size.Sm)
+            .Tone(reason == DevToolsRenderReason.Mount ? Ui.Tone.Info : null)
             .Title(Explain(reason))[count is { } n and > 1 ? $"{DevToolsNames.Label(reason)} ×{n}" : DevToolsNames.Label(reason)];
 
     private static string Explain(DevToolsRenderReason reason) => reason switch

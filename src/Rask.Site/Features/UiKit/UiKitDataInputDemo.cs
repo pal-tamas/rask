@@ -57,14 +57,14 @@ public sealed partial class UiKitDataInputDemo : Component
                 // Label, Type and the rest follow it. Of<T>() is the opening for a field with no value
                 // to start from.
                 // The message is the FIELD's, not a sibling placed after it. It used to be a detached
-                // UiValidator at the end of this grid, which worked only because the input was a bare
+                // Ui.Validator at the end of this grid, which worked only because the input was a bare
                 // element: daisyUI reveals the hint with `.validator ~ .validator-hint`, so a field that
                 // grew a label and a wrapper stopped being its sibling and the message silently vanished.
                 // The badge sits inside the label and is hidden from assistive tech; the hint and, once it
                 // shows, the error are tied to the input by aria-describedby, error first.
-                UiInput.Value(_email).Key("email").Label("Email").Badge("Required").Type(InputType.Email)
+                Ui.Input.Value(_email).Key("email").Label("Email").Badge("Required").Type(InputType.Email)
                     .Hint("For example, you@example.com.")
-                    .Tone(_email.Length > 0 && !_email.Contains('@') ? UiTone.Error : (UiTone?)null)
+                    .Tone(_email.Length > 0 && !_email.Contains('@') ? Ui.Tone.Error : (Ui.Tone?)null)
                     .Error(_email.Length > 0 && !_email.Contains('@')
                         ? "That does not look like an email address."
                         : null)
@@ -72,23 +72,23 @@ public sealed partial class UiKitDataInputDemo : Component
                 // Anything inside the box — an icon, a shortcut, a clear button — makes the box a container
                 // around the input, and the label keeps its place above the field: a floating caption rises
                 // through exactly the room the icon now occupies.
-                UiInput.Value(_search).Key("search").Label("Search")
-                    .Icon(UiIconName.Search).Kbd("⌘K").Clearable(true)
+                Ui.Input.Value(_search).Key("search").Label("Search")
+                    .Icon(Ui.IconName.Search).Kbd("⌘K").Clearable(true)
                     .Placeholder("Find a package")
                     .OnInput(v => _search = v ?? ""),
                 // AutoSize is CSS — `field-sizing: content` — so the box grows as you type with no runtime at
                 // all, and where an engine has not shipped it the box keeps its Rows and scrolls.
-                UiTextarea.Value(_notes).Key("notes").Label("Notes").Badge("Optional").Rows(2)
+                Ui.Textarea.Value(_notes).Key("notes").Label("Notes").Badge("Optional").Rows(2)
                     .AutoSize(true)
-                    .Resize(UiResize.None)
+                    .Resize(Ui.Resize.None)
                     .Hint("Anything else? The box grows as you type.")
                     .OnChange(v => { _notes = v; }),
-                UiSelect.Key("country").Value(_country)
+                Ui.Select.Key("country").Value(_country)
                     .Options([("hu", "Hungary"), ("gb", "United Kingdom")])
                     .Label("Country")
                     .Placeholder("Choose…")
                     .OnChange(v => { _country = v; }),
-                UiFileInput.Value("").Key("avatar").Label("Avatar").Size(UiSize.Sm)
+                Ui.FileInput.Value("").Key("avatar").Label("Avatar").Size(Ui.Size.Sm)
             ]),
 
         Section(
@@ -98,7 +98,7 @@ public sealed partial class UiKitDataInputDemo : Component
             + "overflow:hidden ancestor, which the box below is. The drawn list needs the runtime.",
             Div.Data(Testid("ui-select")).Class("grid gap-3 sm:grid-cols-2")[
                 Div.Class("h-24 overflow-hidden rounded-xl border border-base-300 p-3")[
-                    UiSelect.Key("fw").Value(_framework)
+                    Ui.Select.Key("fw").Value(_framework)
                         .Options([
                             ("core", "Rask.Core"), ("ui", "Rask.Ui"), ("cli", "Rask.Cli"),
                             ("blazor", "Rask.Blazor"), ("ext", "Rask.External")
@@ -123,7 +123,7 @@ public sealed partial class UiKitDataInputDemo : Component
             + "what a match is when the words shown are not the whole answer; this one searches the "
             + "country CODE as well. Clearable puts the field back to nothing chosen.",
             Div.Data(Testid("ui-select-search")).Class("grid gap-3 sm:grid-cols-2")[
-                UiSelect.Key("home").Value(_home)
+                Ui.Select.Key("home").Value(_home)
                     .Options(Countries)
                     .Label("Country")
                     .Placeholder("Search countries")
@@ -142,12 +142,12 @@ public sealed partial class UiKitDataInputDemo : Component
         Section(
             "Multi-select — several answers, one field",
             "The same name, for a field that holds a collection: bind a List, array or HashSet and "
-            + "UiSelect is a multi-select — the model says so, not a flag. Native is a real "
+            + "Ui.Select is a multi-select — the model says so, not a flag. Native is a real "
             + "multi-select: no script, and it posts on its own. The drawn one shows the answers as "
             + "chips you can remove one at a time, keeps the list open while you pick, and adds the "
             + "search box and select-all a long list needs.",
             Div.Data(Testid("ui-multiselect")).Class("grid gap-3 sm:grid-cols-2")[
-                UiSelect.Key("pkgs").Values(_packages)
+                Ui.Select.Key("pkgs").Values(_packages)
                     .Options([
                         ("core", "Rask.Core"), ("ui", "Rask.Ui"), ("cli", "Rask.Cli"),
                         ("blazor", "Rask.Blazor"), ("ext", "Rask.External")
@@ -176,10 +176,10 @@ public sealed partial class UiKitDataInputDemo : Component
             + "is the one thing a choice must not be, because the grouping, the arrow keys, the space bar "
             + "and the form post all come from the input being there.",
             Div.Data(Testid("ui-choice-lists")).Class("grid gap-5 lg:grid-cols-2")[
-                UiRadioGroup.Value(_plan).Key("plan")
+                Ui.RadioGroup.Value(_plan).Key("plan")
                     .Options([("free", "Free"), ("pro", "Pro"), ("team", "Team")])
                     .Label("Plan")
-                    .Layout(UiChoiceLayout.Cards)
+                    .Layout(Ui.ChoiceLayout.Cards)
                     .OptionDescription(v => v switch
                     {
                         "pro" => "Everything, billed monthly.",
@@ -188,15 +188,15 @@ public sealed partial class UiKitDataInputDemo : Component
                     })
                     .OnChange(v => { _plan = v; }),
                 Div.Class("flex flex-col gap-5")[
-                    UiRadioGroup.Value(_density).Key("density")
+                    Ui.RadioGroup.Value(_density).Key("density")
                         .Options([("cosy", "Cosy"), ("compact", "Compact")])
                         .Label("Density")
-                        .Layout(UiChoiceLayout.Segmented)
+                        .Layout(Ui.ChoiceLayout.Segmented)
                         .OnChange(v => { _density = v; }),
-                    UiCheckboxGroup.Values(_topics).Key("topics")
+                    Ui.CheckboxGroup.Values(_topics).Key("topics")
                         .Options([("news", "News"), ("releases", "Releases"), ("jobs", "Jobs")])
                         .Label("Email me about")
-                        .Layout(UiChoiceLayout.Pills)
+                        .Layout(Ui.ChoiceLayout.Pills)
                         .CheckAll(true)
                         .OnChange(v => { _topics = [.. v]; }),
                     P.Class("text-sm text-ui-muted").Data(Testid("ui-choice-state"))[
@@ -214,10 +214,10 @@ public sealed partial class UiKitDataInputDemo : Component
             + "it above the field instead. A caption inside the frame, for a unit or a currency, is only "
             + "decoration, so that field is named separately.",
             Div.Data(Testid("ui-labels")).Class("grid gap-3 sm:grid-cols-2")[
-                UiInput.Of<string>().Key("float").Label("Company"),
-                UiInput.Of<string>().Key("legend").Label("Company number").Floating(false),
-                UiLabel.Key("price").Text("€").Trailing("per month")[
-                    UiInput.Of<string>().AccessibleLabel("Price per month").Placeholder("29")
+                Ui.Input.Of<string>().Key("float").Label("Company"),
+                Ui.Input.Of<string>().Key("legend").Label("Company number").Floating(false),
+                Ui.Label.Key("price").Text("€").Trailing("per month")[
+                    Ui.Input.Of<string>().AccessibleLabel("Price per month").Placeholder("29")
                 ]
             ]),
 
@@ -226,15 +226,15 @@ public sealed partial class UiKitDataInputDemo : Component
             "The words are part of the hit target: on a phone a 16px box on its own is the difference "
             + "between a control and a dare.",
             Div.Data(Testid("ui-choices")).Class("flex flex-wrap items-center gap-4")[
-                UiCheckbox.Value(_remember).Key("remember").Text("Remember me").Tone(UiTone.Primary)
+                Ui.Checkbox.Value(_remember).Key("remember").Text("Remember me").Tone(Ui.Tone.Primary)
                     .OnChange(v => { _remember = v; }),
-                UiToggle.Value(_alerts).Key("alerts").Text("Email alerts").Tone(UiTone.Success)
+                Ui.Toggle.Value(_alerts).Key("alerts").Text("Email alerts").Tone(Ui.Tone.Success)
                     .OnChange(v => { _alerts = v; }),
                 // A radio binds its OWN checked state, so it only ever reports true — choosing one
                 // fires nothing on the option it deselected. The group's value belongs to the group.
-                UiRadio.Value(_shipping == "standard").Key("std").Text("Standard").Group("shipping")
+                Ui.Radio.Value(_shipping == "standard").Key("std").Text("Standard").Group("shipping")
                     .OnChange(_ => { _shipping = "standard"; }),
-                UiRadio.Value(_shipping == "express").Key("exp").Text("Express").Group("shipping")
+                Ui.Radio.Value(_shipping == "express").Key("exp").Text("Express").Group("shipping")
                     .OnChange(_ => { _shipping = "express"; })
             ]),
 
@@ -243,12 +243,12 @@ public sealed partial class UiKitDataInputDemo : Component
             "A range can stand on end, and daisyUI puts the low value at the bottom — which is what a "
             + "volume wants and what a rank does not.",
             Div.Data(Testid("ui-range")).Class("grid max-w-sm gap-4")[
-                UiRange.Value(_volume).Key("vol").Label("Volume").Min(0).Max(100).Step(5)
-                    .Tone(UiTone.Accent).OnChange(v => { _volume = v; }),
+                Ui.Range.Value(_volume).Key("vol").Label("Volume").Min(0).Max(100).Step(5)
+                    .Tone(Ui.Tone.Accent).OnChange(v => { _volume = v; }),
                 Span.Class("text-sm text-ui-muted")[
                     $"Volume: {_volume.ToString("0", System.Globalization.CultureInfo.InvariantCulture)}"
                 ],
-                UiRating.Value(_stars).Key("stars").Group("score").Label("Rate this").Max(5)
+                Ui.Rating.Value(_stars).Key("stars").Group("score").Label("Rate this").Max(5)
                     .OnChange(v => { _stars = v; })
             ]),
 
@@ -257,9 +257,9 @@ public sealed partial class UiKitDataInputDemo : Component
             "One input drawn as several. Per-digit boxes need script to move focus, defeat the "
             + "browser's SMS autofill, and drop a pasted code entirely into the first box.",
             Div.Data(Testid("ui-otp")).Class("space-y-2")[
-                UiOtp.Key("otp").Value(_code).Length(6).Label("Verification code").Joined(true)
+                Ui.Otp.Key("otp").Value(_code).Length(6).Label("Verification code").Joined(true)
                     .Hint("Six digits, sent to your phone.")
-                    .Tone(UiTone.Primary).OnChange(v => { _code = v; }),
+                    .Tone(Ui.Tone.Primary).OnChange(v => { _code = v; }),
                 P.Class("text-sm text-ui-muted").Data(Testid("ui-otp-state"))[
                     _code.Length == 6 ? "Code complete." : $"{_code.Length} of 6 entered."
                 ]
@@ -270,7 +270,7 @@ public sealed partial class UiKitDataInputDemo : Component
             "Radios rather than buttons: daisyUI hides the unpicked options and shows the reset in "
             + "their place, in CSS, and the group gives a keyboard its arrow keys for free.",
             Div.Data(Testid("ui-filter")).Class("space-y-2")[
-                UiFilter.Value(_tag).Key("tags").Group("demo-tags")
+                Ui.Filter.Value(_tag).Key("tags").Group("demo-tags")
                     .Options([("bug", "bug"), ("feature", "feature"), ("docs", "docs")])
                     .ResetLabel("All").OnChange(tag => { _tag = tag; }),
                 P.Class("text-sm text-ui-muted").Data(Testid("ui-filter-state"))[
@@ -285,7 +285,7 @@ public sealed partial class UiKitDataInputDemo : Component
             Div.Data(Testid("ui-calendar")).Class("space-y-2")[
                 // Month and OnMonth are the VIEW, not the value: paging through months changes nothing
                 // a form would submit, which is why they are not part of the binding.
-                UiCalendar
+                Ui.Calendar
                     .Value(_date ?? default)
                     .Label("Delivery date")
                     .Month(_month)
@@ -301,13 +301,13 @@ public sealed partial class UiKitDataInputDemo : Component
 
         Section(
             "Several days, a range, and a picker",
-            "The same entries. Bind a collection of days and UiCalendar picks several; bind a UiDateRange and it "
+            "The same entries. Bind a collection of days and Ui.Calendar picks several; bind a UiDateRange and it "
             + "picks a range — the first click is held and drawn, the second writes the whole range, so the model "
-            + "never holds half of one. UiDatePicker is the field-shaped button that opens the grid in a popover: "
+            + "never holds half of one. Ui.DatePicker is the field-shaped button that opens the grid in a popover: "
             + "a single day closes it on the pick, several days keep it open, a range closes on its second click.",
             Div.Data(Testid("ui-dates")).Class("grid gap-4 md:grid-cols-2")[
                 Div.Class("space-y-2")[
-                    UiCalendar.Value(_stay).Label("Stay").Class("max-w-xs")
+                    Ui.Calendar.Value(_stay).Label("Stay").Class("max-w-xs")
                         .OnChange(r => { _stay = r; }),
                     P.Class("text-sm text-ui-muted").Data(Testid("ui-dates-stay"))[
                         _stay == default
@@ -316,11 +316,11 @@ public sealed partial class UiKitDataInputDemo : Component
                     ]
                 ],
                 Div.Class("space-y-3")[
-                    UiDatePicker.Value(_arrival).Label("Arrival")
+                    Ui.DatePicker.Value(_arrival).Label("Arrival")
                         .OnChange(d => { _arrival = d; }),
-                    UiDatePicker.Values(_daysOff).Label("Days off")
+                    Ui.DatePicker.Values(_daysOff).Label("Days off")
                         .OnChange(days => { _daysOff = [.. days]; }),
-                    UiDatePicker.Value(_stay).Label("Stay, as a field")
+                    Ui.DatePicker.Value(_stay).Label("Stay, as a field")
                         .OnChange(r => { _stay = r; }),
                     P.Class("text-sm text-ui-muted").Data(Testid("ui-dates-picked"))[
                         _arrival == default ? "No arrival chosen." : $"Arrival: {Iso(_arrival)}",
@@ -335,7 +335,7 @@ public sealed partial class UiKitDataInputDemo : Component
             + "picker and a file dropped anywhere lands in the input, which the browser already does with no "
             + "script. The runtime only marks the area while a file is dragged over it.",
             Div.Data(Testid("ui-dropzone")).Class("max-w-md space-y-2")[
-                UiFileInput.Value("").Key("receipts").Label("Receipts").Id("demo-receipts")
+                Ui.FileInput.Value("").Key("receipts").Label("Receipts").Id("demo-receipts")
                     .Dropzone(true)
                     .Heading("Drop receipts here, or click to choose")
                     .Text("PDF or JPG, several at once")
@@ -359,14 +359,14 @@ public sealed partial class UiKitDataInputDemo : Component
             Div.Data(Testid("ui-bound")).Class("space-y-3")[
                 Form.Model(_signup)[
                     Div.Class("grid gap-3 sm:grid-cols-2")[
-                        UiInput.Bind(() => _signup.Email).Label("Email").Type(InputType.Email)
+                        Ui.Input.Bind(() => _signup.Email).Label("Email").Type(InputType.Email)
                             .Hint("For example, you@example.com."),
                         // T is the model's, so this is a number field with nothing said here.
-                        UiInput.Bind(() => _signup.Seats).Label("Seats")
+                        Ui.Input.Bind(() => _signup.Seats).Label("Seats")
                     ],
                     Div.Class("mt-3 flex flex-wrap items-center gap-4")[
-                        UiCheckbox.Bind(() => _signup.Agreed).Text("I agree to the terms"),
-                        UiRating.Bind(() => _signup.Score).Group("bound-score").Label("Rate this").Max(5)
+                        Ui.Checkbox.Bind(() => _signup.Agreed).Text("I agree to the terms"),
+                        Ui.Rating.Bind(() => _signup.Score).Group("bound-score").Label("Rate this").Max(5)
                     ]
                 ],
                 P.Class("text-sm text-ui-muted").Data(Testid("ui-bound-state"))[
@@ -380,11 +380,11 @@ public sealed partial class UiKitDataInputDemo : Component
             "Mask",
             "A closed set of shapes. Whatever is masked has to survive losing its corners.",
             Div.Data(Testid("ui-mask")).Class("flex flex-wrap gap-3")[
-                Masked("circle", UiMaskShape.Circle),
-                Masked("squircle", UiMaskShape.Squircle),
-                Masked("hexagon", UiMaskShape.Hexagon),
-                Masked("star", UiMaskShape.Star2),
-                Masked("heart", UiMaskShape.Heart)
+                Masked("circle", Ui.MaskShape.Circle),
+                Masked("squircle", Ui.MaskShape.Squircle),
+                Masked("hexagon", Ui.MaskShape.Hexagon),
+                Masked("star", Ui.MaskShape.Star2),
+                Masked("heart", Ui.MaskShape.Heart)
             ])
     ];
 
@@ -393,10 +393,10 @@ public sealed partial class UiKitDataInputDemo : Component
     private static string Iso(DateOnly date) =>
         date.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
 
-    private static Component Masked(string key, UiMaskShape shape) =>
-        UiMask.Key(key).Shape(shape).Class("size-14 bg-primary");
+    private static Component Masked(string key, Ui.MaskShape shape) =>
+        Ui.Mask.Key(key).Shape(shape).Class("size-14 bg-primary");
 
-    // Controlled mode hands over a fresh collection every time — see UiMultiSelect's OnChange. The
+    // Controlled mode hands over a fresh collection every time — see Ui.MultiSelect's OnChange. The
     // demo holds one list and refills it, which is what a model with a get-only collection does too.
     private void Choose(ICollection<string> picked)
     {

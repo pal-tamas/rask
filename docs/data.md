@@ -56,7 +56,7 @@ which is everything a screen needs:
 ```csharp
 var cheap = await Product.Read.Where(p => p.PriceAmount < 10).OrderBy(p => p.Name).ToListAsync();
 var anvil = await Product.Read.Where(p => p.Id == id).FirstOrDefaultAsync();
-var grid  = Product.Read.OrderBy(p => p.Name).AsQueryable();   // for UiDataGrid, sorted and paged in SQL
+var grid  = Product.Read.OrderBy(p => p.Name).AsQueryable();   // for Ui.DataGrid, sorted and paged in SQL
 ```
 
 Note `p.PriceAmount`: the read face is **primitives**, so the `Money Price` value object arrives as the two
@@ -409,7 +409,7 @@ public sealed partial class ProductsPage : Component
     private readonly IQueryable<ProductRead> _products = Product.Read.Where(p => p.PriceAmount > 0).AsQueryable();
 
     protected override Component Render() =>
-        UiDataGrid.Data(_products).RowKey(p => p.Id).PageSize(25)[c => [
+        Ui.DataGrid.Data(_products).RowKey(p => p.Id).PageSize(25)[c => [
             c.Field(p => p.Name).Title("Product").Sortable(true),
             c.Field(p => p.PriceAmount).Title("Price").Sortable(true),
         ]];
@@ -558,9 +558,9 @@ public sealed partial class NewProductPage(Navigator nav) : Component
 
     protected override Component Render() =>
         Form.Model(_product).OnValidSubmit(CreateAsync)[submitting => [
-            UiInput.Bind(() => _product.Name).Label("Name"),
-            UiInput.Bind(() => _product.Price!.Amount).Label("Price"),
-            UiButton.Type(UiButtonType.Submit).Disabled(submitting)["Create"],
+            Ui.Input.Bind(() => _product.Name).Label("Name"),
+            Ui.Input.Bind(() => _product.Price!.Amount).Label("Price"),
+            Ui.Button.Type(Ui.ButtonType.Submit).Disabled(submitting)["Create"],
         ]];
 
     private async Task CreateAsync(ProductModel product)
@@ -588,11 +588,11 @@ public sealed partial class EditProductPage(Navigator nav) : Component
     protected override Component? Render() =>
         _product is null ? P["Loading…"] :
         Form.Model(_product).OnValidSubmit(SaveAsync)[
-            _conflict is null ? null : UiAlert.Tone(UiTone.Warning)[_conflict],
-            UiInput.Bind(() => _product.Name).Label("Name"),
-            UiInput.Bind(() => _product.Price!.Amount).Label("Price"),
-            UiTextarea.Bind(() => _product.Notes).Label("Notes"),
-            UiButton.Type(UiButtonType.Submit)["Save"],
+            _conflict is null ? null : Ui.Alert.Tone(Ui.Tone.Warning)[_conflict],
+            Ui.Input.Bind(() => _product.Name).Label("Name"),
+            Ui.Input.Bind(() => _product.Price!.Amount).Label("Price"),
+            Ui.Textarea.Bind(() => _product.Notes).Label("Notes"),
+            Ui.Button.Type(Ui.ButtonType.Submit)["Save"],
         ];
 
     private async Task SaveAsync(ProductModel edit)
@@ -1601,14 +1601,14 @@ Then search from the model type, a context, or a grid:
 ```csharp
 await Product.Read.Search(query).Where(p => p.Active).Take(20).ToListAsync();
 await db.Set<Product>().Search(query).CountAsync();
-UiDataGrid.Data(Product.Read.Search(query).AsQueryable())
+Ui.DataGrid.Data(Product.Read.Search(query).AsQueryable())
 ```
 
 `Search(text)` keeps every row containing all of the typed words — any order, any case, diacritics
 ignored, the last word as a prefix — **best match first**, and keeps composing; a later `OrderBy`
 replaces the rank order. The text is always words, never query syntax, so nothing a user types can break
 the query. Blank text filters nothing. `FullText.Highlight(p.Name)` and `FullText.Snippet(p.Description)`
-inside a `Select` return the matched terms marked, rendered safely by `UiHighlight.Text(...)`.
+inside a `Select` return the matched terms marked, rendered safely by `Ui.Highlight.Text(...)`.
 
 The index lives in the database and triggers keep it current, so raw SQL and other processes are searchable
 too. Adding the declaration to an existing table is its own migration, which fills the index from the rows

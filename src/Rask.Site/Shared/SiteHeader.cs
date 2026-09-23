@@ -1,6 +1,6 @@
+using Rask;
 using Rask.Core;
 using Rask.Core.Routing;
-using Rask.Ui;
 
 namespace Rask.Site;
 
@@ -94,7 +94,7 @@ internal sealed partial class SiteHeader : Component
                 Nav.Class("flex shrink-0 items-center gap-1 text-sm sm:gap-2")[
                     NavItem("Docs", Features.Routes.GuidesIndexPage(), hideOnPhone: true),
                     ExternalNavItem("GitHub", SiteIdentity.Repository),
-                    UiThemeDropdown.Align(UiAlign.End)
+                    Ui.ThemeDropdown.Align(Ui.Align.End)
                 ]
             ]
         ];
@@ -131,6 +131,6 @@ internal sealed partial class SiteHeader : Component
             .Target("_blank")
             .Rel("noopener")[
             label,
-            UiIcon.Name(UiIconName.ExternalLink).Class("size-3.5 shrink-0 opacity-60")
+            Ui.Icon.Name(Ui.IconName.ExternalLink).Class("size-3.5 shrink-0 opacity-60")
         ];
 }

@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A line, area or bar chart of rows, drawn as SVG on the server.
@@ -9,7 +9,7 @@ namespace Rask.Ui;
 /// <para>
 /// Flux UI's <c>chart</c>, and like <see cref="UiDataGrid{T,TKey}" /> the series arrive through a factory whose
 /// parameter is the chart — which is what gives each lambda its row type:
-/// <c>UiChart.Data(sales).Label("Revenue")[c =&gt; [c.X(s =&gt; s.Month), c.Line(s =&gt; s.Revenue)]]</c>. Mix
+/// <c>Ui.Chart.Data(sales).Label("Revenue")[c =&gt; [c.X(s =&gt; s.Month), c.Line(s =&gt; s.Revenue)]]</c>. Mix
 /// <see cref="Line(Func{T,double})" />, <see cref="Area(Func{T,double})" /> and <see cref="Bar(Func{T,double})" />
 /// series on one set of axes; each takes <c>Label</c> and <c>Tone</c>, and a series with no tone takes the next
 /// colour in turn.
@@ -33,9 +33,9 @@ public sealed partial class UiChart<T> : Component
     private const double Width = 1000;
     private const double Height = 300;
 
-    private static readonly UiTone[] Palette =
+    private static readonly Ui.Tone[] Palette =
     [
-        UiTone.Primary, UiTone.Secondary, UiTone.Accent, UiTone.Info, UiTone.Success, UiTone.Warning, UiTone.Error,
+        Ui.Tone.Primary, Ui.Tone.Secondary, Ui.Tone.Accent, Ui.Tone.Info, Ui.Tone.Success, Ui.Tone.Warning, Ui.Tone.Error,
     ];
 
     // What each series and the axis read from a row, keyed by the component the factory handed back. Refilled on every
@@ -91,51 +91,51 @@ public sealed partial class UiChart<T> : Component
     /// <summary>What each row is called along the bottom axis, and in its tooltip and table row.</summary>
     public UiChartAxis X(Func<T, object?> label)
     {
-        var axis = UiChartAxis;
+        var axis = Ui.ChartAxis;
         _axis = label;
         _axisComponent = axis;
         return axis;
     }
 
     /// <summary>A line through each row's value.</summary>
-    public UiChartSeries Line(Func<T, double> value) => Series(UiChartKind.Line, value);
+    public UiChartSeries Line(Func<T, double> value) => Series(Ui.ChartKind.Line, value);
 
     /// <inheritdoc cref="Line(Func{T,double})" />
-    public UiChartSeries Line(Func<T, decimal> value) => Series(UiChartKind.Line, r => (double)value(r));
+    public UiChartSeries Line(Func<T, decimal> value) => Series(Ui.ChartKind.Line, r => (double)value(r));
 
     /// <inheritdoc cref="Line(Func{T,double})" />
-    public UiChartSeries Line(Func<T, int> value) => Series(UiChartKind.Line, r => value(r));
+    public UiChartSeries Line(Func<T, int> value) => Series(Ui.ChartKind.Line, r => value(r));
 
     /// <inheritdoc cref="Line(Func{T,double})" />
-    public UiChartSeries Line(Func<T, long> value) => Series(UiChartKind.Line, r => value(r));
+    public UiChartSeries Line(Func<T, long> value) => Series(Ui.ChartKind.Line, r => value(r));
 
     /// <summary>A line through each row's value, with the area under it filled.</summary>
-    public UiChartSeries Area(Func<T, double> value) => Series(UiChartKind.Area, value);
+    public UiChartSeries Area(Func<T, double> value) => Series(Ui.ChartKind.Area, value);
 
     /// <inheritdoc cref="Area(Func{T,double})" />
-    public UiChartSeries Area(Func<T, decimal> value) => Series(UiChartKind.Area, r => (double)value(r));
+    public UiChartSeries Area(Func<T, decimal> value) => Series(Ui.ChartKind.Area, r => (double)value(r));
 
     /// <inheritdoc cref="Area(Func{T,double})" />
-    public UiChartSeries Area(Func<T, int> value) => Series(UiChartKind.Area, r => value(r));
+    public UiChartSeries Area(Func<T, int> value) => Series(Ui.ChartKind.Area, r => value(r));
 
     /// <inheritdoc cref="Area(Func{T,double})" />
-    public UiChartSeries Area(Func<T, long> value) => Series(UiChartKind.Area, r => value(r));
+    public UiChartSeries Area(Func<T, long> value) => Series(Ui.ChartKind.Area, r => value(r));
 
     /// <summary>A bar for each row's value. Several bar series stand side by side.</summary>
-    public UiChartSeries Bar(Func<T, double> value) => Series(UiChartKind.Bar, value);
+    public UiChartSeries Bar(Func<T, double> value) => Series(Ui.ChartKind.Bar, value);
 
     /// <inheritdoc cref="Bar(Func{T,double})" />
-    public UiChartSeries Bar(Func<T, decimal> value) => Series(UiChartKind.Bar, r => (double)value(r));
+    public UiChartSeries Bar(Func<T, decimal> value) => Series(Ui.ChartKind.Bar, r => (double)value(r));
 
     /// <inheritdoc cref="Bar(Func{T,double})" />
-    public UiChartSeries Bar(Func<T, int> value) => Series(UiChartKind.Bar, r => value(r));
+    public UiChartSeries Bar(Func<T, int> value) => Series(Ui.ChartKind.Bar, r => value(r));
 
     /// <inheritdoc cref="Bar(Func{T,double})" />
-    public UiChartSeries Bar(Func<T, long> value) => Series(UiChartKind.Bar, r => value(r));
+    public UiChartSeries Bar(Func<T, long> value) => Series(Ui.ChartKind.Bar, r => value(r));
 
-    private UiChartSeries Series(UiChartKind kind, Func<T, double> value)
+    private UiChartSeries Series(Ui.ChartKind kind, Func<T, double> value)
     {
-        var series = UiChartSeries.Kind(kind);
+        var series = Ui.ChartSeries.Kind(kind);
         _values[series] = value;
         return series;
     }
@@ -196,7 +196,7 @@ public sealed partial class UiChart<T> : Component
             else if (child is UiChartSeries s && _values.TryGetValue(s, out var value))
             {
                 series.Add(new Resolved(
-                    s.Kind ?? UiChartKind.Line,
+                    s.Kind ?? Ui.ChartKind.Line,
                     value,
                     s.Tone ?? Palette[series.Count % Palette.Length],
                     s.Label ?? "Series " + (series.Count + 1).ToString(CultureInfo.CurrentCulture)));
@@ -239,7 +239,7 @@ public sealed partial class UiChart<T> : Component
         double Mid(int i) => (i + 0.5) * band;
         var baseline = Y(Math.Clamp(0, scale.Min, scale.Max));
 
-        var bars = series.Where(s => s.Kind == UiChartKind.Bar).ToList();
+        var bars = series.Where(s => s.Kind == Ui.ChartKind.Bar).ToList();
         var barWidth = bars.Count == 0 ? 0 : band * 0.7 / bars.Count;
 
         return Svg
@@ -256,7 +256,7 @@ public sealed partial class UiChart<T> : Component
             series.Select((s, index) =>
             {
                 var points = values[index];
-                if (s.Kind == UiChartKind.Bar)
+                if (s.Kind == Ui.ChartKind.Bar)
                 {
                     var slot = bars.IndexOf(s);
                     return (Component)G.Key(index).Class(UiClassNames.ChartFill(s.Tone))[
@@ -281,7 +281,7 @@ public sealed partial class UiChart<T> : Component
                     (i == 0 ? "M" : "L") + Coord(Mid(i)) + " " + Coord(Y(v))));
 
                 return G.Key(index)[
-                    s.Kind == UiChartKind.Area
+                    s.Kind == Ui.ChartKind.Area
                         ? SvgPath
                             .D(line + "L" + Coord(Mid(points.Length - 1)) + " " + Coord(baseline)
                                + "L" + Coord(Mid(0)) + " " + Coord(baseline) + "Z")
@@ -349,5 +349,5 @@ public sealed partial class UiChart<T> : Component
             ]
         ];
 
-    private sealed record Resolved(UiChartKind Kind, Func<T, double> Value, UiTone Tone, string Label);
+    private sealed record Resolved(Ui.ChartKind Kind, Func<T, double> Value, Ui.Tone Tone, string Label);
 }

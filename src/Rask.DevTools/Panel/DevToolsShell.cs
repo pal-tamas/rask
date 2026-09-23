@@ -1,6 +1,6 @@
+using Rask;
 using Rask.Core;
 using Rask.Core.Components;
-using Rask.Ui;
 
 namespace Rask.DevTools.Panel;
 

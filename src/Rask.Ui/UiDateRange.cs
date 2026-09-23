@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A stretch of days, first to last, both included — what <see cref="UiCalendarRange" /> and

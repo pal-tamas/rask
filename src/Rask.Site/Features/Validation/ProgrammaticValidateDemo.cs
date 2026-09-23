@@ -22,15 +22,15 @@ public sealed partial class ProgrammaticValidateDemo : Component
         Form.Model(_model).OnValidSubmit(m => _submission = $"Saved task: {m.Title}").Context(_ctx).Class("flex flex-col gap-3")[
             // The kit field shows "Checking…" while SlowTitleValidator runs, whether a keystroke or the
             // button below started it; IsValidatingAny is what holds Save back until it settles.
-            UiInput.Bind(() => _model.Title).Label("Title").Id("v6-title"),
+            Ui.Input.Bind(() => _model.Title).Label("Title").Id("v6-title"),
             Div.Class("flex gap-2 flex-wrap items-center")[
-                UiButton.Variant(UiVariant.Outline).Id("v6-validate-now").OnClick(ValidateNowAsync)[UiIcon.Name(UiIconName.Search), "Validate now"],
-                UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit).Id("v6-submit").Disabled(_ctx.IsValidatingAny)[UiIcon.Name(UiIconName.CheckCircle), "Save"]
+                Ui.Button.Variant(Ui.Variant.Outline).Id("v6-validate-now").OnClick(ValidateNowAsync)[Ui.Icon.Name(Ui.IconName.Search), "Validate now"],
+                Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit).Id("v6-submit").Disabled(_ctx.IsValidatingAny)[Ui.Icon.Name(Ui.IconName.CheckCircle), "Save"]
             ]
         ],
         _submission is null
             ? null
-            : UiAlert.Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle), _submission]
+            : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
     ];
 }
 

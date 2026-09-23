@@ -44,9 +44,9 @@ public sealed partial class MasterDetailDemo : Component
     {
         var orders = SortOrders(_orders, _orderSort);
 
-        return UiCard.Class("shadow-sm !p-0")[
+        return Ui.Card.Class("shadow-sm !p-0")[
             Div.Class("overflow-x-auto")[
-                UiTable.Id("md-orders").Class("[&_tbody_tr:hover]:bg-ui-well align-middle mb-0")[
+                Ui.Table.Id("md-orders").Class("[&_tbody_tr:hover]:bg-ui-well align-middle mb-0")[
                     Thead.Class("bg-ui-well")[
                         Tr[_orderColumns.Select(c =>
                             c.Sortable
@@ -68,17 +68,17 @@ public sealed partial class MasterDetailDemo : Component
 
             rows.Add(Tr.Key(order.Id).Class("md-row")[
                 Td.Style("width:44px;")[
-                    UiButton
+                    Ui.Button
                         .AccessibleLabel(open ? $"Collapse order {order.Id}" : $"Expand order {order.Id}")
                         .Square(true)
-                        .Variant(UiVariant.Link)
+                        .Variant(Ui.Variant.Link)
                         .Class("p-0 no-underline")
                         .Data(new Dictionary<string, string?> { ["testid"] = $"expander-{order.Id}" })
-                        .OnClick(() => Toggle(order.Id))[UiIcon.Name(open ? UiIconName.ChevronDown : UiIconName.ChevronRight)]
+                        .OnClick(() => Toggle(order.Id))[Ui.Icon.Name(open ? Ui.IconName.ChevronDown : Ui.IconName.ChevronRight)]
                 ],
                 Td.Class("font-semibold")[order.Customer],
                 Td.Class("text-ui-muted text-sm")[order.Placed.ToString("yyyy-MM-dd")],
-                Td[UiBadge.Tone(StatusTone(order.Status)).Variant(UiVariant.Soft)[order.Status]],
+                Td[Ui.Badge.Tone(StatusTone(order.Status)).Variant(Ui.Variant.Soft)[order.Status]],
                 Td.Class("text-ui-muted")[order.Items.Count],
                 Td.Style("text-align:right; font-variant-numeric:tabular-nums;")[
                     "$" + order.Total.ToString("N2", CultureInfo.InvariantCulture)
@@ -107,7 +107,7 @@ public sealed partial class MasterDetailDemo : Component
         var sort = _itemSort.GetValueOrDefault(order.Id, ("", true));
         var items = SortItems(order.Items, sort);
 
-        return UiTable.Class("[&_tbody_tr:nth-child(odd)]:bg-ui-well align-middle mb-0 bg-white")[
+        return Ui.Table.Class("[&_tbody_tr:nth-child(odd)]:bg-ui-well align-middle mb-0 bg-white")[
             Thead[
                 Tr[_itemColumns.Select(c =>
                     SortHeader(c.Id, c.Header, sort, col => ToggleItemSort(order.Id, col)))]
@@ -206,26 +206,26 @@ public sealed partial class MasterDetailDemo : Component
     {
         var sorted = sort.Col == columnId;
         var icon = sorted
-            ? sort.Asc ? UiIconName.ChevronUp : UiIconName.ChevronDown
-            : UiIconName.ArrowsUpDown;
+            ? sort.Asc ? Ui.IconName.ChevronUp : Ui.IconName.ChevronDown
+            : Ui.IconName.ArrowsUpDown;
 
         return Th.Scope("col").Key(columnId)[
-            UiButton
-                .Variant(UiVariant.Link)
+            Ui.Button
+                .Variant(Ui.Variant.Link)
                 .Class("p-0 no-underline text-ui-ink font-semibold" + (sorted ? "" : " [&_svg]:opacity-50"))
-                .OnClick(() => toggle(columnId))[UiIcon.Name(icon), header]
+                .OnClick(() => toggle(columnId))[Ui.Icon.Name(icon), header]
         ];
     }
 
-    // A TONE, not a class. The call site says what the status MEANS and UiBadge decides how a tone looks,
+    // A TONE, not a class. The call site says what the status MEANS and Ui.Badge decides how a tone looks,
     // which is the whole point of the kit owning the vocabulary.
-    private static UiTone StatusTone(string status) => status switch
+    private static Ui.Tone StatusTone(string status) => status switch
     {
-        "Shipped" => UiTone.Success,
-        "Processing" => UiTone.Primary,
-        "Pending" => UiTone.Warning,
-        "Cancelled" => UiTone.Error,
-        _ => UiTone.Neutral
+        "Shipped" => Ui.Tone.Success,
+        "Processing" => Ui.Tone.Primary,
+        "Pending" => Ui.Tone.Warning,
+        "Cancelled" => Ui.Tone.Error,
+        _ => Ui.Tone.Neutral
     };
 
     private static Order[] BuildOrders()

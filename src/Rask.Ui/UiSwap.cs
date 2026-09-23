@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// Two pieces of content, one shown at a time.
@@ -38,7 +38,7 @@ public sealed partial class UiSwap : Component
     /// <summary>Which face is showing.</summary>
     public bool? Active { get; set; }
 
-    public UiSwapAnimation? Animation { get; set; }
+    public Ui.SwapAnimation? Animation { get; set; }
 
     /// <summary>Runs when it is pressed, with the state the reader is asking for.</summary>
     public Callback<bool>? OnChange { get; set; }

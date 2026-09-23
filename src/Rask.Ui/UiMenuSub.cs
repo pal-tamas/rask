@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A nested menu: a row that opens more rows beside it.
@@ -21,14 +21,14 @@ public sealed partial class UiMenuSub : Component
     /// <summary>The row's words.</summary>
     public required string Heading { get; set; }
 
-    public UiIconName? Icon { get; set; }
+    public Ui.IconName? Icon { get; set; }
 
     /// <summary>Shown but not openable. The keyboard cursor skips it.</summary>
     public bool? Disabled { get; set; }
 
     public string? Class { get; set; }
 
-    // Registration happens in Render; see UiMenuItem.
+    // Registration happens in Render; see Ui.MenuItem.
     /// <inheritdoc />
     protected override bool BypassRenderCache => true;
 
@@ -40,7 +40,7 @@ public sealed partial class UiMenuSub : Component
             return Li.Class(Class)[
                 Details[
                     Summary[
-                        Icon is { } icon ? UiIcon.Name(icon).Class("size-4 shrink-0") : null,
+                        Icon is { } icon ? Ui.Icon.Name(icon).Class("size-4 shrink-0") : null,
                         Heading
                     ],
                     Ul[Children ?? []]
@@ -82,7 +82,7 @@ public sealed partial class UiMenuSub : Component
         }
 
         return li[
-            trigger[global::Rask.Ui.UiMenuItem.Row(Icon, Heading, kbd: null, UiIconName.ChevronRight, indicator: null)],
+            trigger[global::Rask.UiMenuItem.Row(Icon, Heading, kbd: null, Ui.IconName.ChevronRight, indicator: null)],
             Ul
                 .Id(subMenuId)
                 .Role("menu")

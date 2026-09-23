@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A page with a panel that slides in beside it.
@@ -38,10 +38,10 @@ public sealed partial class UiDrawer : Component
     public required Component Panel { get; set; }
 
     /// <summary>
-    ///     Which edge the panel slides in from: <see cref="UiPosition.Left" /> by default, or
-    ///     <see cref="UiPosition.Right" />. Top and bottom have no daisyUI form and draw the default.
+    ///     Which edge the panel slides in from: <see cref="Ui.Position.Left" /> by default, or
+    ///     <see cref="Ui.Position.Right" />. Top and bottom have no daisyUI form and draw the default.
     /// </summary>
-    public UiPosition? Position { get; set; }
+    public Ui.Position? Position { get; set; }
 
     /// <summary>Whether the panel is showing. Unset leaves the state to the checkbox alone.</summary>
     public bool? Open { get; set; }

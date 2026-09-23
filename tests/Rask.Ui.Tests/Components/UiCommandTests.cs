@@ -1,10 +1,10 @@
 using System.Text.RegularExpressions;
 using Rask.Testing;
 
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
-///     The command palette: <c>UiCommand.Label(...).Shortcut("mod+k")[UiMenuItem…]</c>.
+///     The command palette: <c>Ui.Command.Label(...).Shortcut("mod+k")[Ui.MenuItem…]</c>.
 /// </summary>
 /// <remarks>
 ///     The dialog opening, the shortcut and Enter pressing a command are the platform's and the runtime's, and the
@@ -14,12 +14,12 @@ namespace Rask.Ui.Tests.Components;
 public partial class UiCommandTests : global::Rask.Core.RaskMarkup
 {
     private static global::Rask.Core.Component Palette() =>
-        UiCommand.Label("Search commands").Shortcut("mod+k")[
-            UiMenuItem.Text("New invoice").Icon(UiIconName.Plus),
-            UiMenuItem.Text("Archive").Disabled(true),
-            UiMenuSeparator,
-            UiMenuItem.Text("Réglages"),
-            UiMenuItem.Text("Sign out").Tone(UiTone.Error)
+        Ui.Command.Label("Search commands").Shortcut("mod+k")[
+            Ui.MenuItem.Text("New invoice").Icon(Ui.IconName.Plus),
+            Ui.MenuItem.Text("Archive").Disabled(true),
+            Ui.MenuSeparator,
+            Ui.MenuItem.Text("Réglages"),
+            Ui.MenuItem.Text("Sign out").Tone(Ui.Tone.Error)
         ];
 
     private static Task TypeAsync(RenderedComponent page, string text) =>
@@ -134,7 +134,7 @@ public partial class UiCommandTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_menu_item_outside_a_palette_is_unchanged()
     {
-        var html = UiDropdown.Trigger("Actions")[UiMenuItem.Text("Archive")].ToHtml();
+        var html = Ui.Dropdown.Trigger("Actions")[Ui.MenuItem.Text("Archive")].ToHtml();
 
         Assert.Contains("role=\"menuitem\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("aria-selected", html, StringComparison.Ordinal);

@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using Rask.Core.Routing;
 
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     The button's class composition, its two tags, and its icon-only form.
@@ -14,48 +14,48 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void A_plain_button_carries_the_base_class_and_shows_its_children() =>
-        Assert.Equal("<button class=\"btn\" type=\"button\">Save</button>", UiButton["Save"].ToHtml());
+        Assert.Equal("<button class=\"btn\" type=\"button\">Save</button>", Ui.Button["Save"].ToHtml());
 
     [Theory]
-    [InlineData(UiTone.Neutral, "btn-neutral")]
-    [InlineData(UiTone.Primary, "btn-primary")]
-    [InlineData(UiTone.Secondary, "btn-secondary")]
-    [InlineData(UiTone.Accent, "btn-accent")]
-    [InlineData(UiTone.Info, "btn-info")]
-    [InlineData(UiTone.Success, "btn-success")]
-    [InlineData(UiTone.Warning, "btn-warning")]
-    [InlineData(UiTone.Error, "btn-error")]
-    public void Every_tone_writes_its_own_class(UiTone tone, string expected) =>
-        Assert.Contains(expected, UiButton.Tone(tone)["Save"].ToHtml());
+    [InlineData(Ui.Tone.Neutral, "btn-neutral")]
+    [InlineData(Ui.Tone.Primary, "btn-primary")]
+    [InlineData(Ui.Tone.Secondary, "btn-secondary")]
+    [InlineData(Ui.Tone.Accent, "btn-accent")]
+    [InlineData(Ui.Tone.Info, "btn-info")]
+    [InlineData(Ui.Tone.Success, "btn-success")]
+    [InlineData(Ui.Tone.Warning, "btn-warning")]
+    [InlineData(Ui.Tone.Error, "btn-error")]
+    public void Every_tone_writes_its_own_class(Ui.Tone tone, string expected) =>
+        Assert.Contains(expected, Ui.Button.Tone(tone)["Save"].ToHtml());
 
     [Theory]
-    [InlineData(UiVariant.Outline, "btn-outline")]
-    [InlineData(UiVariant.Soft, "btn-soft")]
-    [InlineData(UiVariant.Dash, "btn-dash")]
-    [InlineData(UiVariant.Ghost, "btn-ghost")]
-    [InlineData(UiVariant.Link, "btn-link")]
-    public void Every_variant_writes_its_own_class(UiVariant variant, string expected) =>
-        Assert.Contains(expected, UiButton.Variant(variant)["Save"].ToHtml());
+    [InlineData(Ui.Variant.Outline, "btn-outline")]
+    [InlineData(Ui.Variant.Soft, "btn-soft")]
+    [InlineData(Ui.Variant.Dash, "btn-dash")]
+    [InlineData(Ui.Variant.Ghost, "btn-ghost")]
+    [InlineData(Ui.Variant.Link, "btn-link")]
+    public void Every_variant_writes_its_own_class(Ui.Variant variant, string expected) =>
+        Assert.Contains(expected, Ui.Button.Variant(variant)["Save"].ToHtml());
 
     [Fact]
     public void Solid_is_the_absence_of_a_variant_class_rather_than_one_of_its_own() =>
-        Assert.DoesNotContain("btn-solid", UiButton.Variant(UiVariant.Solid)["Save"].ToHtml());
+        Assert.DoesNotContain("btn-solid", Ui.Button.Variant(Ui.Variant.Solid)["Save"].ToHtml());
 
     [Theory]
-    [InlineData(UiSize.Xs, "btn-xs")]
-    [InlineData(UiSize.Sm, "btn-sm")]
-    [InlineData(UiSize.Md, "btn-md")]
-    [InlineData(UiSize.Lg, "btn-lg")]
-    [InlineData(UiSize.Xl, "btn-xl")]
-    public void Every_size_writes_its_own_class(UiSize size, string expected) =>
-        Assert.Contains(expected, UiButton.Size(size)["Save"].ToHtml());
+    [InlineData(Ui.Size.Xs, "btn-xs")]
+    [InlineData(Ui.Size.Sm, "btn-sm")]
+    [InlineData(Ui.Size.Md, "btn-md")]
+    [InlineData(Ui.Size.Lg, "btn-lg")]
+    [InlineData(Ui.Size.Xl, "btn-xl")]
+    public void Every_size_writes_its_own_class(Ui.Size size, string expected) =>
+        Assert.Contains(expected, Ui.Button.Size(size)["Save"].ToHtml());
 
     [Fact]
     public void Colour_fill_and_size_compose_rather_than_replacing_each_other()
     {
         // The three axes are independent, which is what lets an outlined error button exist without the
         // kit enumerating every pairing as a member of its own.
-        var html = UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline).Size(UiSize.Lg)["Delete"].ToHtml();
+        var html = Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline).Size(Ui.Size.Lg)["Delete"].ToHtml();
 
         Assert.Contains("btn-error", html);
         Assert.Contains("btn-outline", html);
@@ -64,19 +64,19 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
 
     [Fact]
     public void Block_fills_its_container() =>
-        Assert.Contains("btn-block", UiButton.Block(true)["Save"].ToHtml());
+        Assert.Contains("btn-block", Ui.Button.Block(true)["Save"].ToHtml());
 
     [Fact]
     public void Wide_is_not_block() =>
-        Assert.DoesNotContain("btn-block", UiButton.Wide(true)["Save"].ToHtml());
+        Assert.DoesNotContain("btn-block", Ui.Button.Wide(true)["Save"].ToHtml());
 
     [Fact]
     public void Wide_writes_its_own_class() =>
-        Assert.Contains("btn-wide", UiButton.Wide(true)["Save"].ToHtml());
+        Assert.Contains("btn-wide", Ui.Button.Wide(true)["Save"].ToHtml());
 
     [Fact]
     public void Active_draws_it_as_pressed() =>
-        Assert.Contains("btn-active", UiButton.Active(true)["Filter"].ToHtml());
+        Assert.Contains("btn-active", Ui.Button.Active(true)["Filter"].ToHtml());
 
     [Fact]
     public void A_disabled_button_is_disabled_by_ATTRIBUTE_not_by_class()
@@ -84,7 +84,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
         // daisyUI has a `btn-disabled` class, and it styles without disabling: a button carrying only
         // that class still takes a click and still reaches its handler. The attribute is the one that
         // makes the browser refuse the interaction, which is what "disabled" has to mean.
-        var html = UiButton.Disabled(true)["Save"].ToHtml();
+        var html = Ui.Button.Disabled(true)["Save"].ToHtml();
 
         Assert.Contains(" disabled", html);
         Assert.DoesNotContain("btn-disabled", html);
@@ -98,8 +98,8 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
         // A square holds one glyph, so its name cannot be visible text. It still has to be SOMEWHERE: a
         // button whose only content is a decorative icon is announced as "button", with no clue what it does.
         var html = shape == "btn-square"
-            ? UiButton.AccessibleLabel("Close").Square(true)[UiIcon.Name(UiIconName.Close)].ToHtml()
-            : UiButton.AccessibleLabel("Close").Circle(true)[UiIcon.Name(UiIconName.Close)].ToHtml();
+            ? Ui.Button.AccessibleLabel("Close").Square(true)[Ui.Icon.Name(Ui.IconName.Close)].ToHtml()
+            : Ui.Button.AccessibleLabel("Close").Circle(true)[Ui.Icon.Name(Ui.IconName.Close)].ToHtml();
 
         Assert.Contains(shape, html);
         Assert.Contains("aria-label=\"Close\"", html);
@@ -108,7 +108,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void An_aria_label_the_call_site_wrote_wins_over_the_accessible_label_and_is_written_once()
     {
-        var html = UiButton.AccessibleLabel("Close").Aria(("label", "Close the dialog"))[UiIcon.Name(UiIconName.Close)]
+        var html = Ui.Button.AccessibleLabel("Close").Aria(("label", "Close the dialog"))[Ui.Icon.Name(Ui.IconName.Close)]
             .ToHtml();
 
         Assert.Contains("aria-label=\"Close the dialog\"", html);
@@ -118,7 +118,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void An_accessible_label_keeps_the_call_sites_other_aria()
     {
-        var html = UiButton.AccessibleLabel("Menu").Aria(("expanded", "false"))[UiIcon.Name(UiIconName.Menu)].ToHtml();
+        var html = Ui.Button.AccessibleLabel("Menu").Aria(("expanded", "false"))[Ui.Icon.Name(Ui.IconName.Menu)].ToHtml();
 
         Assert.Contains("aria-label=\"Menu\"", html);
         Assert.Contains("aria-expanded=\"false\"", html);
@@ -126,12 +126,12 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
 
     [Fact]
     public void An_ordinary_button_needs_no_aria_label() =>
-        Assert.DoesNotContain("aria-label", UiButton["Save"].ToHtml());
+        Assert.DoesNotContain("aria-label", Ui.Button["Save"].ToHtml());
 
     [Fact]
     public void An_icon_and_a_label_are_children_in_the_order_given()
     {
-        var html = UiButton[UiIcon.Name(UiIconName.Check), "Save"].ToHtml();
+        var html = Ui.Button[Ui.Icon.Name(Ui.IconName.Check), "Save"].ToHtml();
 
         Assert.True(html.IndexOf("<svg", StringComparison.Ordinal) < html.IndexOf("Save</button>", StringComparison.Ordinal));
     }
@@ -140,7 +140,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     public void The_kit_stylesheet_sizes_an_icon_nobody_sized_by_the_button_it_sits_in()
     {
         // The icon is a child now, so the kit does not build it and cannot hand it `size-4` as the Icon
-        // prop did. The compiled sheet has to carry the rule, keyed to UiIcon's DEFAULT pair so an icon a
+        // prop did. The compiled sheet has to carry the rule, keyed to Ui.Icon's DEFAULT pair so an icon a
         // call site sized on purpose is left alone.
         Assert.Matches(new Regex(@"\.btn\s*>\s*svg\.size-5\.shrink-0\s*\{[^}]*width:\s*1rem"), UiStylesheet.Css);
         Assert.Matches(new Regex(@"\.badge\s*>\s*svg\.size-5\.shrink-0\s*\{[^}]*width:\s*1em"), UiStylesheet.Css);
@@ -148,20 +148,20 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
 
     [Fact]
     public void Call_site_classes_are_added_to_the_kit_class_rather_than_replacing_it() =>
-        Assert.Contains("class=\"btn mt-2\"", UiButton.Class("mt-2")["Save"].ToHtml());
+        Assert.Contains("class=\"btn mt-2\"", Ui.Button.Class("mt-2")["Save"].ToHtml());
 
     [Fact]
     public void Every_element_step_reaches_the_button_in_the_documented_order()
     {
-        // None of these is declared on UiButton — they are Element's, which is the point of deriving from
+        // None of these is declared on Ui.Button — they are Element's, which is the point of deriving from
         // it rather than mirroring a hand-picked few. Tag-specific attributes follow the universal ones.
-        var html = UiButton
+        var html = Ui.Button
             .Id("save")
             .Data("testid", "save")
             .Role("switch")
             .TabIndex(0)
             .AccessibleLabel("Save the draft")
-            .Type(UiButtonType.Submit)["Save"]
+            .Type(Ui.ButtonType.Submit)["Save"]
             .ToHtml();
 
         Assert.Equal(
@@ -173,7 +173,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Command_and_command_for_make_it_an_invoker()
     {
-        var html = UiButton.Command("show-modal").CommandFor("confirm")["Delete"].ToHtml();
+        var html = Ui.Button.Command("show-modal").CommandFor("confirm")["Delete"].ToHtml();
 
         Assert.Contains("command=\"show-modal\"", html, StringComparison.Ordinal);
         Assert.Contains("commandfor=\"confirm\"", html, StringComparison.Ordinal);
@@ -184,7 +184,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     {
         // A link that looks like a button is an ordinary thing to want, and the alternative was a class
         // string in the application — the parallel vocabulary the kit exists to remove.
-        var html = UiButton.Href("/docs")["Read the guide"].ToHtml();
+        var html = Ui.Button.Href("/docs")["Read the guide"].ToHtml();
 
         Assert.Equal("<a class=\"btn\" href=\"/docs\">Read the guide</a>", html);
     }
@@ -194,7 +194,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     {
         // The href is written by the kit now rather than by Core's A, so the sanitiser has to come with it:
         // a javascript: URL that reaches a kit button from data would otherwise run on click.
-        var html = UiButton.Href("javascript:alert(1)")["Go"].ToHtml();
+        var html = Ui.Button.Href("javascript:alert(1)")["Go"].ToHtml();
 
         Assert.DoesNotContain("javascript:", html, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(A.Href("javascript:alert(1)").ToHtml().Replace("<a ", "", StringComparison.Ordinal)
@@ -207,11 +207,11 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     {
         // The whole reason this is one component rather than two: the tone, fill and size axes are
         // identical either way, so a sibling component would duplicate all of them to change one tag.
-        var html = UiButton
+        var html = Ui.Button
             .Href("/install")
-            .Tone(UiTone.Primary)
-            .Variant(UiVariant.Outline)
-            .Size(UiSize.Sm)[UiIcon.Name(UiIconName.Download), "Install"]
+            .Tone(Ui.Tone.Primary)
+            .Variant(Ui.Variant.Outline)
+            .Size(Ui.Size.Sm)[Ui.Icon.Name(Ui.IconName.Download), "Install"]
             .ToHtml();
 
         Assert.StartsWith("<a class=\"btn btn-primary btn-outline btn-sm\"", html, StringComparison.Ordinal);
@@ -223,7 +223,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     {
         // There is no disabled state for a link in HTML. Faking one leaves it focusable and followable by
         // keyboard, which is worse than not offering it — a disabled link is a link you do not render.
-        var html = UiButton.Href("/x").Disabled(true).Type(UiButtonType.Submit).Command("close")["Go"].ToHtml();
+        var html = Ui.Button.Href("/x").Disabled(true).Type(Ui.ButtonType.Submit).Command("close")["Go"].ToHtml();
 
         Assert.DoesNotContain("disabled", html, StringComparison.Ordinal);
         Assert.DoesNotContain("type=", html, StringComparison.Ordinal);
@@ -235,7 +235,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     {
         // noopener is the attribute with no visible effect, so it is the one a caller forgets — a new tab
         // opened without it can reach back through window.opener.
-        var html = UiButton.Href("https://example.test").NewTab(true)["Docs"].ToHtml();
+        var html = Ui.Button.Href("https://example.test").NewTab(true)["Docs"].ToHtml();
 
         Assert.Contains("target=\"_blank\"", html, StringComparison.Ordinal);
         Assert.Contains("rel=\"noopener\"", html, StringComparison.Ordinal);
@@ -243,7 +243,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
 
     [Fact]
     public void New_tab_without_an_href_changes_nothing() =>
-        Assert.DoesNotContain("target", UiButton.NewTab(true)["Save"].ToHtml(), StringComparison.Ordinal);
+        Assert.DoesNotContain("target", Ui.Button.NewTab(true)["Save"].ToHtml(), StringComparison.Ordinal);
 
     [Fact]
     public void A_generated_route_navigates_inside_the_app()
@@ -251,7 +251,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
         // A route carries its page type, which is what makes the URL this app's to route: the runtime
         // intercepts a[data-rask-nav], where a bare anchor would boot the whole app again to reach a page it
         // already has.
-        var html = UiButton.Href(new RouteUrl("/orders", null, typeof(UiButtonTests)))["Orders"].ToHtml();
+        var html = Ui.Button.Href(new RouteUrl("/orders", null, typeof(UiButtonTests)))["Orders"].ToHtml();
 
         Assert.Equal("<a class=\"btn\" href=\"/orders\" data-rask-nav>Orders</a>", html);
     }
@@ -260,7 +260,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     public void A_string_stays_an_ordinary_link_even_to_an_in_app_path() =>
         // A string names no page, so it is followed by the browser: the right thing for a URL that leaves the
         // app, and the reason a page of this app should be reached through its route.
-        Assert.DoesNotContain("data-rask-nav", UiButton.Href("/orders")["Orders"].ToHtml(), StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-nav", Ui.Button.Href("/orders")["Orders"].ToHtml(), StringComparison.Ordinal);
 
     [Fact]
     public void A_null_string_destination_leaves_it_a_button() =>
@@ -268,12 +268,12 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
         // not as a missing Href. It must still render the button it did when Href was a string.
         Assert.Equal(
             "<button class=\"btn\" type=\"button\">Save</button>",
-            UiButton.Href((string)null!)["Save"].ToHtml());
+            Ui.Button.Href((string)null!)["Save"].ToHtml());
 
     [Fact]
     public void A_generated_route_in_a_new_tab_is_not_intercepted()
     {
-        var html = UiButton.Href(new RouteUrl("/orders", null, typeof(UiButtonTests))).NewTab(true)["Orders"].ToHtml();
+        var html = Ui.Button.Href(new RouteUrl("/orders", null, typeof(UiButtonTests))).NewTab(true)["Orders"].ToHtml();
 
         // The runtime would skip a target anyway; writing no data-rask-nav keeps the markup saying so.
         Assert.Contains("target=\"_blank\"", html, StringComparison.Ordinal);
@@ -284,7 +284,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     public void Loading_is_automatic_by_default_and_writes_nothing_of_its_own()
     {
         // Unset is the runtime's to decide per press, so the render says nothing either way.
-        var html = UiButton["Save"].ToHtml();
+        var html = Ui.Button["Save"].ToHtml();
 
         Assert.DoesNotContain("data-loading", html, StringComparison.Ordinal);
         Assert.DoesNotContain("data-rask-loading", html, StringComparison.Ordinal);
@@ -296,7 +296,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     {
         // The same data-loading the runtime writes, so one stylesheet rule draws both; aria-busy for what is
         // announced. data-* stays in its slot ahead of role and aria-*, and the call site's data survives.
-        var html = UiButton.Id("save").Data("testid", "save").AccessibleLabel("Save").Loading(true)["Save"].ToHtml();
+        var html = Ui.Button.Id("save").Data("testid", "save").AccessibleLabel("Save").Loading(true)["Save"].ToHtml();
 
         Assert.Equal(
             "<button id=\"save\" class=\"btn\" data-testid=\"save\" data-loading aria-label=\"Save\" aria-busy=\"true\" "
@@ -308,13 +308,13 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     public void Loading_false_opts_the_button_out_of_the_runtimes_mark() =>
         Assert.Contains(
             "data-rask-loading=\"off\"",
-            UiButton.Loading(false)["+"].ToHtml(),
+            Ui.Button.Loading(false)["+"].ToHtml(),
             StringComparison.Ordinal);
 
     [Fact]
     public void A_link_waits_on_nothing()
     {
-        var html = UiButton.Href("/orders").Loading(true)["Orders"].ToHtml();
+        var html = Ui.Button.Href("/orders").Loading(true)["Orders"].ToHtml();
 
         Assert.DoesNotContain("data-loading", html, StringComparison.Ordinal);
         Assert.DoesNotContain("aria-busy", html, StringComparison.Ordinal);
@@ -326,7 +326,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
         // The resolved bag stands in for the walk and is put back afterwards: rendering twice must not
         // accumulate, and the property a caller set must still read as what they set.
         var own = new Dictionary<string, string?> { ["testid"] = "save" };
-        var button = UiButton.Data(own).Loading(true)["Save"];
+        var button = Ui.Button.Data(own).Loading(true)["Save"];
 
         var first = button.ToHtml();
         var second = button.ToHtml();
@@ -340,6 +340,6 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     public void An_icon_only_anchor_still_has_an_accessible_name() =>
         Assert.Contains(
             "aria-label=\"Settings\"",
-            UiButton.Href("/settings").AccessibleLabel("Settings").Square(true)[UiIcon.Name(UiIconName.Gear)].ToHtml(),
+            Ui.Button.Href("/settings").AccessibleLabel("Settings").Square(true)[Ui.Icon.Name(Ui.IconName.Gear)].ToHtml(),
             StringComparison.Ordinal);
 }

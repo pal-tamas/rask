@@ -1,4 +1,4 @@
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     The rotating word list.
@@ -24,7 +24,7 @@ public partial class UiTextRotateTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Every_word_is_in_the_markup_not_just_the_visible_one()
     {
-        var html = UiTextRotate.Words(["fast", "typed", "small", "whole"]).ToHtml();
+        var html = Ui.TextRotate.Words(["fast", "typed", "small", "whole"]).ToHtml();
 
         Assert.Contains("fast", html, StringComparison.Ordinal);
         Assert.Contains("typed", html, StringComparison.Ordinal);
@@ -38,7 +38,7 @@ public partial class UiTextRotateTests : global::Rask.Core.RaskMarkup
         // Order is the reading order for anyone who sees the list rather than the animation, and the
         // animation's own sequence besides. Asserted by position so a re-render that reshuffles the
         // list is a failure rather than a still-green "all four are present".
-        var html = UiTextRotate.Words(["fast", "typed", "small", "whole"]).ToHtml();
+        var html = Ui.TextRotate.Words(["fast", "typed", "small", "whole"]).ToHtml();
 
         var fast = html.IndexOf("fast", StringComparison.Ordinal);
         var typed = html.IndexOf("typed", StringComparison.Ordinal);
@@ -55,7 +55,7 @@ public partial class UiTextRotateTests : global::Rask.Core.RaskMarkup
         // Flattening the inner <span> away leaves the words unanimated: daisyUI's selector is `> *`,
         // and it counts THAT element's children to choose the animation. A refactor that "simplifies"
         // one span out of the tree is the failure this pins.
-        var html = UiTextRotate.Words(["one", "two"]).ToHtml();
+        var html = Ui.TextRotate.Words(["one", "two"]).ToHtml();
 
         Assert.Contains("text-rotate", html, StringComparison.Ordinal);
         Assert.Contains("<span><span", html.Replace(" ", string.Empty), StringComparison.Ordinal);
@@ -64,7 +64,7 @@ public partial class UiTextRotateTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_caller_supplied_class_joins_the_kit_class_rather_than_replacing_it()
     {
-        var html = UiTextRotate.Words(["one"]).Class("text-4xl").ToHtml();
+        var html = Ui.TextRotate.Words(["one"]).Class("text-4xl").ToHtml();
 
         Assert.Contains("text-rotate", html, StringComparison.Ordinal);
         Assert.Contains("text-4xl", html, StringComparison.Ordinal);

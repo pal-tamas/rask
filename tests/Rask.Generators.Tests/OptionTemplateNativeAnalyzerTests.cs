@@ -32,7 +32,7 @@ namespace Rask.Generators.Tests;
 public class OptionTemplateNativeAnalyzerTests
 {
     private const string Components = """
-        namespace Rask.Ui
+        namespace Rask
         {
             public sealed partial class UiSelect<T> : Rask.Core.Component, Rask.Core.Forms.IFormControl<T>
             {

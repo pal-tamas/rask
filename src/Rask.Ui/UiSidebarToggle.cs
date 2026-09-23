@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// The button that slides a collapsed <see cref="UiSidebar" /> in and out — the hamburger in a phone's top bar.
@@ -20,7 +20,7 @@ public sealed partial class UiSidebarToggle : Component
     public required string For { get; set; }
 
     /// <summary>The width from which the sidebar is docked, so the toggle is hidden. Shown at every width if unset.</summary>
-    public UiBreakpoint? Collapsible { get; set; }
+    public Ui.Breakpoint? Collapsible { get; set; }
 
     /// <summary>What a screen reader announces. "Toggle sidebar" unless this says otherwise.</summary>
     public string? AccessibleLabel { get; set; }
@@ -38,6 +38,6 @@ public sealed partial class UiSidebarToggle : Component
             .Role("button")
             .TabIndex(0)
             .Aria("label", AccessibleLabel ?? "Toggle sidebar")[
-            UiIcon.Name(UiIconName.Menu).Class("size-5 shrink-0")
+            Ui.Icon.Name(Ui.IconName.Menu).Class("size-5 shrink-0")
         ];
 }

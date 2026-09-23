@@ -225,13 +225,13 @@ var hits = await Post.Read.Search(query)
     .ToListAsync();
 
 // in markup
-UiHighlight.Text(hit.Excerpt)
+Ui.Highlight.Text(hit.Excerpt)
 ```
 
 `Highlight` returns the whole value and `Snippet` the best passage of up to `words` words, with each
 match between `FullText.MatchStart` and `FullText.MatchEnd` (two private-use characters) rather than
 HTML — the text is whatever a row holds, and rendering it as markup would let anyone who can write a
-row inject script. `UiHighlight` encodes the text and wraps each match in `<mark>`.
+row inject script. `Ui.Highlight` encodes the text and wraps each match in `<mark>`.
 
 | Option | Effect |
 | --- | --- |
@@ -278,7 +278,7 @@ none. Called after `UseRaskSqlite`, it keeps that call's choices, `STRICT` table
 **On PostgreSQL** the same `HasFullTextSearch`, `Search(text)`, `FullText.Highlight` and `Snippet` work through
 `UseRaskPostgres`: the index is a stored generated `tsvector` column with a GIN index — no triggers, the database keeps
 it current — and a search is `@@ to_tsquery(…)` ranked by `ts_rank_cd`, with the highlights from `ts_headline` in the
-same markers `UiHighlight` reads. `English` maps to PostgreSQL's `english` configuration; `Unicode` to `rask_unicode`,
+same markers `Ui.Highlight` reads. `English` maps to PostgreSQL's `english` configuration; `Unicode` to `rask_unicode`,
 `simple` with `unaccent` in front of it, which the first migration that needs it creates (it runs
 `CREATE EXTENSION IF NOT EXISTS unaccent`, so the migrating role needs that right once). Two differences worth
 knowing: a snippet on PostgreSQL has no `…` at its cut ends, and its word count must be a constant.

@@ -65,11 +65,11 @@ Input.Value<string>(null).Placeholder("Anything")
 
 ## Two things to settle
 
-A few components need more than one fact before they exist. `UiSelect` binds a value *and* offers
+A few components need more than one fact before they exist. `Ui.Select` binds a value *and* offers
 options:
 
 ```csharp
-UiSelect.Bind(() => _m.Country)                       // T — what the model holds, and the mode
+Ui.Select.Bind(() => _m.Country)                       // T — what the model holds, and the mode
         .Options([("hu", "Hungary"), ("gb", "UK")])   // the values and the words shown
         .Label("Country")
 ```

@@ -1,6 +1,6 @@
 using Rask.Core.Routing;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>One section tab in a <see cref="UiNav" /> bar.</summary>
 /// <remarks>
@@ -25,13 +25,13 @@ public sealed partial class UiNavTab : Component
     public bool? Active { get; set; }
 
     /// <summary>An icon before the label.</summary>
-    public UiIconName? Icon { get; set; }
+    public Ui.IconName? Icon { get; set; }
 
     /// <summary>A count or a word after the label — "12", "New".</summary>
     public string? Badge { get; set; }
 
     /// <summary>The badge's colour.</summary>
-    public UiTone? BadgeTone { get; set; }
+    public Ui.Tone? BadgeTone { get; set; }
 
     /// <summary>The path compared with the page being shown, when it is not <see cref="Href" />.</summary>
     public RouteUrl? Match { get; set; }
@@ -59,7 +59,7 @@ public sealed partial class UiNavTab : Component
     {
         Component[] content =
         [
-            Icon is { } icon ? UiIcon.Name(icon).Class("size-4 shrink-0") : null!,
+            Icon is { } icon ? Ui.Icon.Name(icon).Class("size-4 shrink-0") : null!,
             Span[Label],
             Badge is { } badge
                 ? Span.Class(UiClass.Compose(

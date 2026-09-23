@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// Picks any of the kit's themes, with no JavaScript.
@@ -37,7 +37,7 @@ public sealed partial class UiThemePicker : Component
     /// carries all of them either way, because they are compiled together. Listing a handful here is
     /// for surfaces where thirty-five radio buttons would be the wrong thing to show a reader.
     /// </remarks>
-    public IReadOnlyList<UiThemeName>? Themes { get; set; }
+    public IReadOnlyList<Ui.ThemeName>? Themes { get; set; }
 
     /// <summary>
     /// Whether to offer "follow the operating system" as the first entry. On by default.

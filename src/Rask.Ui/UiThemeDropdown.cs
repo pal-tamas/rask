@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// <see cref="UiThemePicker" /> behind a trigger, for a bar with no room for thirty-five radios.
@@ -25,23 +25,23 @@ public sealed partial class UiThemeDropdown : Component
     public string Trigger { get; set; } = "Theme";
 
     /// <summary>Which side of the trigger the list opens on.</summary>
-    public UiPosition? Position { get; set; }
+    public Ui.Position? Position { get; set; }
 
     /// <summary>
-    ///     Where along that side the list sits. <see cref="UiAlign.End" /> for a trigger at the end of a bar,
+    ///     Where along that side the list sits. <see cref="Ui.Align.End" /> for a trigger at the end of a bar,
     ///     so the list opens back over the page instead of off its edge.
     /// </summary>
     /// <remarks>
     ///     This used to be a free-form string of daisyUI class names, which is the one shape the kit's class
     ///     rule forbids: a misspelt class compiles, and styles nothing.
     /// </remarks>
-    public UiAlign? Align { get; set; }
+    public Ui.Align? Align { get; set; }
 
     /// <summary>The radio group's name, passed through to the picker.</summary>
     public string GroupName { get; set; } = "rask-ui-theme";
 
     /// <summary>The themes to offer. Defaults to every theme the kit ships.</summary>
-    public IReadOnlyList<UiThemeName>? Themes { get; set; }
+    public IReadOnlyList<Ui.ThemeName>? Themes { get; set; }
 
     /// <inheritdoc cref="UiThemePicker.ShowSystem" />
     public bool ShowSystem { get; set; } = true;
@@ -59,10 +59,10 @@ public sealed partial class UiThemeDropdown : Component
             Align is { } align ? UiClassNames.DropdownAlign(align) : "",
             Class))[
             Summary.Class("btn btn-sm")[
-                UiIcon.Name(UiIconName.Sparkles).Class("size-4 shrink-0"),
+                Ui.Icon.Name(Ui.IconName.Sparkles).Class("size-4 shrink-0"),
                 Span[Trigger]
             ],
-            UiThemePicker
+            Ui.ThemePicker
                 .GroupName(GroupName)
                 .Themes(Themes)
                 .ShowSystem(ShowSystem)

@@ -10,7 +10,7 @@ public sealed partial class CrossFieldSummaryDemo : Component
     private static Component? SummaryAlert(IReadOnlyList<ValidationEntry> entries) =>
         entries.Count == 0
             ? null
-            : UiAlert.Tone(UiTone.Error).Variant(UiVariant.Soft).Class("text-sm mb-0")[Ul.Class("mb-0 ps-3")[
+            : Ui.Alert.Tone(Ui.Tone.Error).Variant(Ui.Variant.Soft).Class("text-sm mb-0")[Ul.Class("mb-0 ps-3")[
                     entries.Select((e, i) => Li.Key(i)[
                         e.Field.Length == 0
                             ? e.Message
@@ -29,18 +29,18 @@ public sealed partial class CrossFieldSummaryDemo : Component
                     : new[] { "Return date must be after departure." })[
             ValidationSummary.Template(SummaryAlert),
             Div[
-                UiInput.Bind(() => _model.Depart).Label("Departure").Id("v5-depart")
+                Ui.Input.Bind(() => _model.Depart).Label("Departure").Id("v5-depart")
             ],
             Div[
-                UiInput.Bind(() => _model.Return).Label("Return").Id("v5-return")
+                Ui.Input.Bind(() => _model.Return).Label("Return").Id("v5-return")
             ],
             Div[
-                UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit)[UiIcon.Name(UiIconName.PaperAirplane), "Book"]
+                Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit)[Ui.Icon.Name(Ui.IconName.PaperAirplane), "Book"]
             ]
         ],
         _submission is null
             ? null
-            : UiAlert.Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle), _submission]
+            : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
     ];
 }
 

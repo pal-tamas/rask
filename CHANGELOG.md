@@ -269,6 +269,28 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: the UI kit is reached through one class, `Ui` — `Ui.Button`, `Ui.Tone` — and lives in the `Rask`
+  namespace.** Typing `Ui.` lists every component and every option, and no kit component takes a bare name any
+  more, so it can never shadow an HTML tag (`Button` is the `<button>`, `Ui.Button` the kit's):
+
+  ```csharp
+  // before
+  using Rask.Ui;
+  UiButton.Tone(UiTone.Primary).Size(UiSize.Small)[UiIcon.Name(UiIconName.Check), "Save"]
+  // after
+  using Rask;
+  Ui.Button.Tone(Ui.Tone.Primary).Size(Ui.Size.Small)[Ui.Icon.Name(Ui.IconName.Check), "Save"]
+  ```
+
+  - The 21 option enums moved into `Ui` (`UiTone` → `Ui.Tone`, `UiVariant` → `Ui.Variant`, …). Component TYPES keep
+    their names (`UiButton`, `UiDataGrid<T>`) for fields, parameters and messages.
+  - The namespace `Rask.Ui` is gone: every kit type is in `Rask`, so replace `using Rask.Ui;` with `using Rask;`.
+    The package is still `Rask.Ui`. A bare `Ui` now means the kit from inside any `Rask.*` namespace too, which the
+    old namespace shadowed.
+  - Every `rask new` template carries a `GlobalUsings.cs` with `global using Rask;` instead of `<Using>` items in the
+    `.csproj`, so the project's global usings are a file you can read and edit.
+  - A component library can group its own entries the same way with `[assembly: RaskChainGroup(typeof(Group))]`.
+
 - **BREAKING: a package island names its component in `Export`, not after a `#` in `Module`.** The two halves of
   `import { HexColorPicker } from "react-colorful"` are now two overrides:
 

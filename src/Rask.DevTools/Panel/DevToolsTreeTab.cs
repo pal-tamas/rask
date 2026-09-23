@@ -2,10 +2,10 @@ using System.Buffers;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using Rask;
 using Rask.Core;
 using Rask.Core.Diagnostics.DevTools;
 using Rask.DevTools.Probe;
-using Rask.Ui;
 
 namespace Rask.DevTools.Panel;
 
@@ -94,7 +94,7 @@ internal sealed partial class DevToolsTreeTab : Component
     {
         if (Feed.TreeSnapshot() is not { } snapshot)
         {
-            return UiAlert["No tree yet. It arrives with the page's first render."];
+            return Ui.Alert["No tree yet. It arrives with the page's first render."];
         }
 
         var root = View(snapshot);
@@ -109,14 +109,14 @@ internal sealed partial class DevToolsTreeTab : Component
             Div.Class("flex flex-wrap items-center justify-between gap-2")[
                 P.Class("text-xs opacity-60")[$"{Count(root)} components, as of the page's last render."],
                 Div.Class("flex items-center gap-3")[
-                    UiButton
-                        .Size(UiSize.Sm)
+                    Ui.Button
+                        .Size(Ui.Size.Sm)
                         // daisyUI's own marker, written whole: a composed class name is invisible to the kit's Tailwind scan.
                         .Class(_picking ? "btn-active" : null)
                         .Title(_picking ? "Click something on the page, or press Esc" : "Pick something on the page")
                         .Aria(new Dictionary<string, string?> { ["pressed"] = _picking ? "true" : "false" })
-                        .OnClick(() => _picking = !_picking)[UiIcon.Name(UiIconName.Cursor), "Pick"],
-                    UiToggle.Value(_showTags).Text("Show HTML tags").Size(UiSize.Sm).OnChange(v => _showTags = v)
+                        .OnClick(() => _picking = !_picking)[Ui.Icon.Name(Ui.IconName.Cursor), "Pick"],
+                    Ui.Toggle.Value(_showTags).Text("Show HTML tags").Size(Ui.Size.Sm).OnChange(v => _showTags = v)
                 ]
             ],
             // Where the panel's script finds what to tell the page, and where it reports a pick back; neither is seen.
@@ -138,12 +138,12 @@ internal sealed partial class DevToolsTreeTab : Component
     }
 
     private Component TreeView(DevToolsComponentNode root) =>
-            UiTree.Roots([root])
+            Ui.Tree.Roots([root])
                 .NodeKey(n => n.Id)
                 .Item(Row)
                 .Label("Component tree")
                 .NodeText(n => n.Type)
-                .Selection(UiTreeSelection.Single)
+                .Selection(Ui.TreeSelection.Single)
                 // Both held here, so a pick can open the picked node's ancestors and select it in one render — which is
                 // also what moves the tree's cursor to it, and so scrolls it into view.
                 .Expanded([.. _expanded])
@@ -178,8 +178,8 @@ internal sealed partial class DevToolsTreeTab : Component
         return Div.Class("flex flex-col gap-2").Data(new Dictionary<string, string?> { ["rask-devtools-details"] = "" })[
             Div.Class("flex flex-wrap items-center gap-2")[
                 Span.Class("font-mono font-semibold")[node.Type],
-                node.Badge is { } badge ? UiBadge.Size(UiSize.Sm).Tone(UiTone.Info).Variant(UiVariant.Soft)[badge] : null,
-                node.Key is { Length: > 0 } key ? UiBadge.Size(UiSize.Sm).Variant(UiVariant.Soft)["key " + key] : null
+                node.Badge is { } badge ? Ui.Badge.Size(Ui.Size.Sm).Tone(Ui.Tone.Info).Variant(Ui.Variant.Soft)[badge] : null,
+                node.Key is { Length: > 0 } key ? Ui.Badge.Size(Ui.Size.Sm).Variant(Ui.Variant.Soft)["key " + key] : null
             ],
             node.Badge is "Blazor" or null
                 ? null
@@ -188,7 +188,7 @@ internal sealed partial class DevToolsTreeTab : Component
                 ],
             node.Props.Count == 0
                 ? P.Class("text-xs opacity-60")["No props."]
-                : UiTable.Scroll(true)[
+                : Ui.Table.Scroll(true)[
                     Thead[Tr[Th["Prop"], Th["Type"], Th["Value"]]],
                     Tbody[node.Props.Select(PropRow).ToArray()]
                 ],
@@ -215,13 +215,13 @@ internal sealed partial class DevToolsTreeTab : Component
         return Div.Class("flex flex-col gap-2").Data(new Dictionary<string, string?> { ["rask-devtools-context"] = "" })[
             node.Provides.Count == 0
                 ? null
-                : UiTable.Scroll(true).Data(new Dictionary<string, string?> { ["rask-devtools-provides"] = "" })[
+                : Ui.Table.Scroll(true).Data(new Dictionary<string, string?> { ["rask-devtools-provides"] = "" })[
                     Thead[Tr[Th["Provides"], Th["Name"], Th["Value"]]],
                     Tbody[node.Provides.Select(ProvidedRow).ToArray()]
                 ],
             node.Reads.Count == 0
                 ? null
-                : UiTable.Scroll(true).Data(new Dictionary<string, string?> { ["rask-devtools-reads"] = "" })[
+                : Ui.Table.Scroll(true).Data(new Dictionary<string, string?> { ["rask-devtools-reads"] = "" })[
                     Thead[Tr[Th["Reads"], Th["Name"], Th["From"]]],
                     Tbody[node.Reads.Select(read => ReadRow(read, open)).ToArray()]
                 ]
@@ -247,7 +247,7 @@ internal sealed partial class DevToolsTreeTab : Component
                 !read.Found
                     ? Span.Class("text-xs opacity-60")["none in scope"]
                     : read.ProviderId is { } provider && open is not null
-                        ? UiButton.Size(UiSize.Xs).Variant(UiVariant.Link).Title("Select the component that provided it")
+                        ? Ui.Button.Size(Ui.Size.Xs).Variant(Ui.Variant.Link).Title("Select the component that provided it")
                             .OnClick(() => open(provider))[read.ProviderType ?? "?"]
                         : Span.Class("font-mono")[read.ProviderType ?? "a provider"]
             ]
@@ -477,10 +477,10 @@ internal sealed partial class DevToolsTreeTab : Component
         Span.Class("flex items-center gap-2 truncate").Data(Place(node))[
             Span.Class("truncate")[node.Type],
             node.Badge is { } badge
-                ? UiBadge.Size(UiSize.Xs).Tone(UiTone.Info).Variant(UiVariant.Soft)[badge]
+                ? Ui.Badge.Size(Ui.Size.Xs).Tone(Ui.Tone.Info).Variant(Ui.Variant.Soft)[badge]
                 : Span,
             node.Key is { Length: > 0 } key
-                ? UiBadge.Size(UiSize.Xs).Variant(UiVariant.Soft)[key]
+                ? Ui.Badge.Size(Ui.Size.Xs).Variant(Ui.Variant.Soft)[key]
                 : Span,
             // What the component was given, on the row itself: a tree whose rows say only their type names makes a
             // developer click every one of them to find the value they came for.

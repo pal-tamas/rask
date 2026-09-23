@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// The control that narrows a docked <see cref="UiSidebar" /> to a rail of icons, and widens it again.
@@ -21,7 +21,7 @@ public sealed partial class UiSidebarCollapse : Component
     public required string For { get; set; }
 
     /// <summary>The width from which the sidebar is docked, so the control appears. Shown at every width if unset.</summary>
-    public UiBreakpoint? Collapsible { get; set; }
+    public Ui.Breakpoint? Collapsible { get; set; }
 
     /// <summary>What a screen reader announces. "Collapse sidebar" unless this says otherwise.</summary>
     public string? AccessibleLabel { get; set; }
@@ -40,6 +40,6 @@ public sealed partial class UiSidebarCollapse : Component
             .Role("button")
             .TabIndex(0)
             .Aria("label", AccessibleLabel ?? "Collapse sidebar")[
-            UiIcon.Name(UiIconName.ChevronRight).Class("ui-rail-flip size-4 shrink-0")
+            Ui.Icon.Name(Ui.IconName.ChevronRight).Class("ui-rail-flip size-4 shrink-0")
         ];
 }

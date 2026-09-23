@@ -165,7 +165,7 @@ public sealed class ModelQuery<TEntity>
 
     /// <summary>
     ///     This query as a standard <see cref="IQueryable{T}" /> that holds no context, for a component that
-    ///     composes its own LINQ — <c>UiDataGrid.Data(Product.Where(p =&gt; p.Active).AsQueryable())</c>.
+    ///     composes its own LINQ — <c>Ui.DataGrid.Data(Product.Where(p =&gt; p.Active).AsQueryable())</c>.
     /// </summary>
     /// <remarks>
     ///     <para>

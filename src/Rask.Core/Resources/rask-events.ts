@@ -122,7 +122,7 @@ function raskToggle(ev: Event): EventPayload {
 //
 // selfOnly: the event describes the element it fired ON, so it is delivered only to that element's own
 // handler and never to an ancestor's. Capture-phase delegation otherwise hands an ancestor every descendant's
-// event: a <details> toggling inside a popover dialog reached the dialog's OnToggle (which UiModal reads as
+// event: a <details> toggling inside a popover dialog reached the dialog's OnToggle (which Ui.Modal reads as
 // "closed"), and a file input's picker `cancel` — which bubbles — reached an enclosing dialog's OnCancel.
 var raskDomEvents: [string, (e: Event) => EventPayload, boolean, boolean?][] = [
     ["dblclick", raskMouse, false], ["mousedown", raskMouse, false], ["mouseup", raskMouse, false],
