@@ -10,29 +10,32 @@ them until tagged releases begin.
 ### Added
 
 - **Subscriptions: `QueryClient.Subscribe<T>()`, tRPC-style, over CQRS notifications.** A component subscribes where it
-  queries — `var placed = QueryClient.Subscribe<OrderPlaced>().Keep(20);` in `Render`, or `field ??=
-  QueryClient.Subscribe<OrderShipped>(() => Id)` — and every notification published afterwards re-renders it, whoever
-  published it: a command handler, a job, a Rask.Data domain event after its commit, an outbox relay, another server.
+  queries — `var placed = QueryClient.Subscribe<OrderPlaced>().Keep(20);` in `Render`, or
+  `QueryClient.Subscribe(new WatchOrder(Id))` — and every notification published afterwards re-renders it, whoever
+  published it: a command handler, a job, a Rask.Data domain event after its commit, an outbox relay.
   `Subscription<T>` reads like a query (`Data`, `IsLoading`, `Error`, `Status` Connecting/Live/Reconnecting/Ended/Error,
   `Items` with `.Keep(n)`), starts with the last value published for what it watches, reconnects with backoff, closes
   with the component that read it, and `.Into(query, patch)` edits a query's cache in place — refetched once after a
   reconnect. `QueryClient.Subscribe(input, (i, ct) => stream)` does the same for any `IAsyncEnumerable<T>`, and
-  `IDispatcher.SubscribeAsync<T>(key?, ct)` is the same subscription outside a component.
-  - **Scoped and authorized.** `record OrderShipped([For<Order>] Guid OrderId, …) : INotification` reaches only
-    `Subscribe<OrderShipped>(id)`, admitted by an `IWatchPolicy<Order>` the generator registers like a handler. No
-    policy means nobody may watch; the `Rask` package defaults every scope to "a signed-in user may watch their own id".
+  `IDispatcher.SubscribeAsync` is the same subscription outside a component.
+  - **`ISubscription<T>`: the fourth message shape.** The event stays plain; what to watch is its own record —
+    `record WatchOrder(Guid OrderId) : ISubscription<OrderShipped> { public bool Matches(OrderShipped e) => …; }` —
+    so a subscription is typed, compared structurally and free to ask for anything `Matches` can decide, not just an
+    id. Who may open it is an `IWatchPolicy<WatchOrder>`, asked once at the open, in the subscriber's own scope, and
+    registered by the generator like a handler. **No policy means nobody may open it**, in process and remotely alike.
   - **From WebAssembly.** With `AddRaskCqrsClient()`, a subscription opens on the server:
-    `GET /_rask/cqrs/request/events/{name}?for={key}`, answered with server-sent events by `MapRaskCqrs()`. Closed
-    unless opened — a scoped notification by its policy, an unscoped one only when its record carries `[Authorize]` or
-    `[AllowAnonymous]` — so no auth or domain event is one browser request away.
+    `GET /_rask/cqrs/request/events/{name}?m={json}` — the record travels exactly as a query's message does — answered
+    with server-sent events by `MapRaskCqrs()`. Closed unless opened: a subscription record by its policy, a
+    notification watched by type only when its record carries `[Authorize]` or `[AllowAnonymous]`, so no auth or domain
+    event is one browser request away.
   - The wasm-hosted template's client now references Rask.Query and calls `AddRaskQuery()`, so `QueryClient` works in
     `Client/` pages.
   - Every number is a setting, read from configuration first and overridable in code: `Rask:Cqrs:ReplayCapacity`,
     `SubscriptionBuffer`, `SubscriptionReconnectDelay`, `SubscriptionReconnectCeiling`, and
     `Rask:Cqrs:Server:EventKeepAlive` for the stream's keep-alive.
   - The rask.sh guide is now **Subscriptions** (`/docs/guides/subscriptions/`, the old `/docs/guides/broadcast/` still
-    answers with its canonical pointing there), with a demo: two boards subscribed to every order and a tracker scoped
-    to one.
+    answers with its canonical pointing there), with a demo: two boards subscribed to every order and a tracker
+    watching one through a `WatchOrder` record.
 
 - **The Rask.Query guide has a live demo on rask.sh (#1128).** A parcel list on one small page shows every query
   shape the guide describes: a query declared in `Render` that follows the URL's `?page=` with `KeepPreviousData`, a

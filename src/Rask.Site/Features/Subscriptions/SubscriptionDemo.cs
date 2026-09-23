@@ -12,9 +12,10 @@ public sealed partial class SubscriptionDemo(IDispatcher dispatcher) : Component
 
     private int _placed;
 
-    // Scoped to one order, and following it: the lambda runs at every read, and returns null — waiting — until an order
+    // One order's events, and following it: the lambda runs at every read, and returns null — waiting — until an order
     // has been placed.
-    private Subscription<OrderShipped> Shipped => field ??= QueryClient.Subscribe<OrderShipped>(() => _placed > 0 ? _placed : null);
+    private Subscription<OrderShipped> Shipped =>
+        field ??= QueryClient.Subscribe<OrderShipped>(() => _placed > 0 ? new WatchOrder(_placed) : null);
 
     protected override Component? Render() =>
         Div.Id("subscription-demo").Class("flex flex-col gap-3")[

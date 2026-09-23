@@ -30,18 +30,20 @@ internal sealed class RemoteDispatch(
 
     public async IAsyncEnumerable<INotification> Subscribe(
         RemoteContract contract,
-        object? key,
+        object? subscription,
         Action? connected,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(contract);
 
+        // The subscription record travels exactly as a query's message does: its generated JSON, url-encoded.
         var path = Rask.Core.Live.LiveOptions.PathBase + options.RoutePrefix + "/" + RemoteEndpointDefaults.EventsSegment
                    + "/" + Uri.EscapeDataString(contract.Name)
-                   + (key is null
+                   + (subscription is null
                        ? string.Empty
-                       : "?" + RemoteEndpointDefaults.ScopeQueryParameter + "="
-                         + Uri.EscapeDataString(NotificationScope.FormatKey(key)));
+                       : "?" + RemoteEndpointDefaults.MessageQueryParameter + "="
+                         + Uri.EscapeDataString(
+                             Encoding.UTF8.GetString(NotificationWire.EncodeMessage(contract, subscription))));
 
         using var request = new HttpRequestMessage(HttpMethod.Get, path);
         request.Headers.TryAddWithoutValidation(RemoteEndpointDefaults.RequestHeader, RemoteEndpointDefaults.RequestHeaderValue);
@@ -81,7 +83,7 @@ internal sealed class RemoteDispatch(
             }
             else if (data.Length > 0)
             {
-                yield return NotificationWire.Decode(contract, Encoding.UTF8.GetBytes(data.ToString()));
+                yield return NotificationWire.DecodeEvent(contract, Encoding.UTF8.GetBytes(data.ToString()));
             }
 
             name = null;

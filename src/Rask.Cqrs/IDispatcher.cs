@@ -28,7 +28,7 @@ public interface IDispatcher
     /// <summary>
     /// Publishes a notification to every <see cref="INotificationHandler{TNotification}"/> registered for
     /// its <b>concrete runtime type</b>, using the strategy configured on <see cref="CqrsOptions"/>, and to
-    /// every open subscription for it — <see cref="SubscribeAsync{TNotification}"/>, or a component's
+    /// every open subscription for it — <c>SubscribeAsync</c>, or a component's
     /// <c>QueryClient.Subscribe</c>. Handlers declared against a base type are not invoked, and a
     /// notification with neither handlers nor subscribers goes nowhere.
     /// </summary>
@@ -41,12 +41,31 @@ public interface IDispatcher
     /// </summary>
     /// <remarks>
     /// <para>
-    /// For a notification marked <see cref="ForAttribute{TScope}"/>, pass the key of the thing to watch: only
-    /// notifications about it arrive, and the <see cref="IWatchPolicy{TScope}"/> is asked first — a refusal
-    /// throws <see cref="UnauthorizedAccessException"/> before anything is delivered.
+    /// This form watches the type itself, so it hears every one published. To watch the events about one thing
+    /// — this order, this user's export — pass an <see cref="ISubscription{TNotification}"/> record instead.
     /// </para>
     /// <code>
-    /// await foreach (var shipped in dispatcher.SubscribeAsync&lt;OrderShipped&gt;(orderId, ct))
+    /// await foreach (var placed in dispatcher.SubscribeAsync&lt;OrderPlaced&gt;(ct))
+    ///     Console.WriteLine(placed.Number);
+    /// </code>
+    /// </remarks>
+    /// <typeparam name="TNotification">The notification to watch.</typeparam>
+    /// <param name="cancellationToken">Ends the subscription.</param>
+    IAsyncEnumerable<TNotification> SubscribeAsync<TNotification>(CancellationToken cancellationToken = default)
+        where TNotification : INotification;
+
+    /// <summary>
+    /// The <typeparamref name="TNotification"/>s <paramref name="subscription"/> asks for — starting with the
+    /// last matching one, when there is one — until <paramref name="cancellationToken"/> is cancelled.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The record says which notifications are its own, and an <see cref="IWatchPolicy{TSubscription}"/> says who
+    /// may open it — asked once, before anything is delivered; a refusal throws
+    /// <see cref="UnauthorizedAccessException"/>, and with no policy registered nobody may.
+    /// </para>
+    /// <code>
+    /// await foreach (var shipped in dispatcher.SubscribeAsync(new WatchOrder(orderId), ct))
     ///     Console.WriteLine(shipped.Status);
     /// </code>
     /// <para>
@@ -55,11 +74,11 @@ public interface IDispatcher
     /// A component renders one through <c>QueryClient.Subscribe</c> instead.
     /// </para>
     /// </remarks>
-    /// <typeparam name="TNotification">The notification to watch.</typeparam>
-    /// <param name="key">What to watch, for a scoped notification; null for one that goes to everyone.</param>
+    /// <typeparam name="TNotification">The notification the subscription carries.</typeparam>
+    /// <param name="subscription">What to watch.</param>
     /// <param name="cancellationToken">Ends the subscription.</param>
     IAsyncEnumerable<TNotification> SubscribeAsync<TNotification>(
-        object? key = null,
+        ISubscription<TNotification> subscription,
         CancellationToken cancellationToken = default)
         where TNotification : INotification;
 }

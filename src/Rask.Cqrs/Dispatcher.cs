@@ -60,12 +60,29 @@ internal sealed class Dispatcher(IServiceProvider provider) : IDispatcher
         return invoker is null ? Task.CompletedTask : invoker(provider, notification, cancellationToken);
     }
 
+    // Iterators rather than wrappers around one: [EnumeratorCancellation] is what carries a token handed to
+    // GetAsyncEnumerator into the watch, and a plain method returning the inner iterator would drop it — leaving a
+    // subscription nobody can end.
     public async IAsyncEnumerable<TNotification> SubscribeAsync<TNotification>(
-        object? key = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
         where TNotification : INotification
     {
-        await foreach (var notification in Watch(typeof(TNotification), key, connected: null, cancellationToken)
+        await foreach (var notification in
+                       Watch(typeof(TNotification), subscription: null, connected: null, cancellationToken)
+                           .ConfigureAwait(false))
+        {
+            yield return (TNotification)notification;
+        }
+    }
+
+    public async IAsyncEnumerable<TNotification> SubscribeAsync<TNotification>(
+        ISubscription<TNotification> subscription,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        where TNotification : INotification
+    {
+        ArgumentNullException.ThrowIfNull(subscription);
+        await foreach (var notification in
+                       Watch(typeof(TNotification), subscription, connected: null, cancellationToken)
                            .ConfigureAwait(false))
         {
             yield return (TNotification)notification;
@@ -73,23 +90,24 @@ internal sealed class Dispatcher(IServiceProvider provider) : IDispatcher
     }
 
     /// <summary>
-    ///     The notifications of <paramref name="type" /> for <paramref name="key" />, from the server when this is a
-    ///     client of one, else from this container's feed — admitted by the scope's policy first, and starting with the
-    ///     last one published. <paramref name="connected" /> runs once the subscription is open.
+    ///     The notifications <paramref name="subscription" /> asked for — or every one of
+    ///     <paramref name="notificationType" /> when it is null — from the server when this is a client of one, else from
+    ///     this container's feed. The watch policy admits it first, and it starts with the most recent one published.
+    ///     <paramref name="connected" /> runs once the subscription is open.
     /// </summary>
     internal async IAsyncEnumerable<INotification> Watch(
-        Type type,
-        object? key,
+        Type notificationType,
+        object? subscription,
         Action? connected,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var scope = CqrsRegistry.FindNotificationScope(type);
-        CheckKey(type, scope, key);
+        var registration = subscription is null ? null : Registration(subscription.GetType());
+        var type = registration?.NotificationType ?? notificationType;
 
-        if (Remote is { } remote && NotificationWire.ContractFor(type) is { } contract)
+        if (Remote is { } remote && ContractFor(subscription, type) is { } contract)
         {
             // The server admits or refuses it, with the signed-in user's policy; the browser's opinion is worth nothing.
-            await foreach (var notification in remote.Subscribe(contract, key, connected, cancellationToken)
+            await foreach (var notification in remote.Subscribe(contract, subscription, connected, cancellationToken)
                                .ConfigureAwait(false))
             {
                 yield return notification;
@@ -98,11 +116,12 @@ internal sealed class Dispatcher(IServiceProvider provider) : IDispatcher
             yield break;
         }
 
-        if (scope is not null && !await scope.CanWatch(provider, key!, cancellationToken).ConfigureAwait(false))
+        if (subscription is not null && registration is not null
+            && !await registration.CanWatch(provider, subscription, cancellationToken).ConfigureAwait(false))
         {
+            var name = subscription.GetType().Name;
             throw new UnauthorizedAccessException(
-                $"Not allowed to watch {type.Name} for {scope.Scope.Name} '{key}'. An IWatchPolicy<{scope.Scope.Name}> "
-                + "decides who may; with none registered, nobody may.");
+                $"Not allowed to open {name}. An IWatchPolicy<{name}> decides who may; with none registered, nobody may.");
         }
 
         var feed = Feed ?? throw new InvalidOperationException("Subscribing needs AddRaskCqrs() at startup.");
@@ -112,7 +131,11 @@ internal sealed class Dispatcher(IServiceProvider provider) : IDispatcher
             SingleReader = true,
         });
 
-        using var listening = feed.Listen(type, key, notification => channel.Writer.TryWrite(notification));
+        var matches = subscription is null || registration is null
+            ? null
+            : new Func<INotification, bool>(notification => registration.Matches(subscription, notification));
+
+        using var listening = feed.Listen(type, matches, notification => channel.Writer.TryWrite(notification));
 
         // The replay first, then "connected": whoever renders on connected already holds the latest value, so a
         // page's first paint shows it rather than an empty live state.
@@ -128,6 +151,18 @@ internal sealed class Dispatcher(IServiceProvider provider) : IDispatcher
             yield return notification;
         }
     }
+
+    // What this subscription crosses the wire as: its own contract when it is a record, else the notification's.
+    private static RemoteContract? ContractFor(object? subscription, Type notificationType) =>
+        subscription is null
+            ? NotificationWire.ContractFor(notificationType)
+            : NotificationWire.SubscriptionContractFor(subscription.GetType());
+
+    private static SubscriptionRegistration Registration(Type subscriptionType) =>
+        CqrsRegistry.FindSubscription(subscriptionType)
+        ?? throw new InvalidOperationException(
+            $"{subscriptionType.Name} is not registered as a subscription. The Rask.Cqrs generator records every "
+            + "ISubscription<T> in the assembly that declares it — check that assembly references Rask.Cqrs.");
 
     private NotificationFeed? Feed => _feed ??= provider.GetService<NotificationFeed>();
 
@@ -150,34 +185,4 @@ internal sealed class Dispatcher(IServiceProvider provider) : IDispatcher
     }
 
     private bool TravelsToServer(Type type) => Remote is not null && NotificationWire.ContractFor(type) is not null;
-
-    private static void CheckKey(Type type, NotificationScope? scope, object? key)
-    {
-        if (scope is null)
-        {
-            if (key is not null)
-            {
-                throw new ArgumentException(
-                    $"{type.Name} goes to every subscriber, so there is no key to watch. To scope it, mark the property "
-                    + "that says what it is about with [For<T>].",
-                    nameof(key));
-            }
-
-            return;
-        }
-
-        if (key is null)
-        {
-            throw new ArgumentException(
-                $"{type.Name} is about one {scope.Scope.Name}; say which: SubscribeAsync<{type.Name}>(key).",
-                nameof(key));
-        }
-
-        if (!scope.KeyType.IsInstanceOfType(key))
-        {
-            throw new ArgumentException(
-                $"{type.Name} is keyed by {scope.KeyType.Name}, not {key.GetType().Name}.",
-                nameof(key));
-        }
-    }
 }

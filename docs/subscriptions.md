@@ -54,7 +54,7 @@ That is all. There is no subscription to dispose, no `OnMount` and no `StateHasC
   every open subscription, so adding a screen never changes what the server does.
 
 Try it: the buttons publish, and the two boards — which know nothing about the buttons or each other — each receive every
-order. The line above them is scoped to one order and hears only its shipment.
+order. The line above them watches one order and hears only its shipment.
 
 <!-- demo:subscription-orders -->
 
@@ -63,15 +63,17 @@ order. The line above them is scoped to one order and hears only its shipment.
 In the same three places as a [query](query.md#a-query), with the same rules:
 
 ```csharp
-// in Render — the same call is the same subscription every render, re-pointed when the key changes
-var shipped = QueryClient.Subscribe<OrderShipped>(Id);
+// in Render — the same call is the same subscription every render, re-pointed when what it watches changes
+var shipped = QueryClient.Subscribe(new WatchOrder(Id));
 
 // in a property or the constructor, from a lambda — re-run at every read; null waits
-Subscription<OrderShipped> Shipped => field ??= QueryClient.Subscribe<OrderShipped>(() => Selected);
+Subscription<OrderShipped> Shipped =>
+    field ??= QueryClient.Subscribe<OrderShipped>(() => Selected is { } id ? new WatchOrder(id) : null);
 ```
 
-A lambda that returns `null` means the key is not there yet: nothing is opened, and `IsLoading` is false, until it returns
-one. A render that stops asking for a subscription sets it aside, and its next read opens it again.
+A lambda that returns `null` means the input is not there yet: nothing is opened, and `IsLoading` is false, until it
+returns a record. A render that stops asking for a subscription sets it aside, and its next read opens it again. Two
+records that are equal are the same subscription, so building one per render costs nothing.
 
 ## What a component reads
 
@@ -84,7 +86,7 @@ one. A render that stops asking for a subscription sets it aside, and its next r
 | `Error` | Why it is not live: the refusal, or what dropped the connection it is reopening. |
 
 ```csharp
-var shipped = QueryClient.Subscribe<OrderShipped>(Id);
+var shipped = QueryClient.Subscribe(new WatchOrder(Id));
 
 return shipped.IsLoading ? Spinner()
      : Div[Badge[shipped.Data?.Status ?? order.Data?.Status], shipped.IsReconnecting ? Small["reconnecting…"] : null];
@@ -95,42 +97,47 @@ server render that value is in `Data` before the first paint.
 
 ## An event about one thing
 
-Most events are about one record: this order shipped, this user's export is ready. Mark the property that says which, and
-the event reaches only the subscribers watching that one:
+Most events are about one record: this order shipped, this user's export is ready. The event stays plain; what to watch
+is its own record — a **subscription**, the fourth message shape beside a query, a command and a notification:
 
 ```csharp
-public sealed record OrderShipped([For<Order>] Guid OrderId, string Status) : INotification;
+public sealed record OrderShipped(Guid OrderId, string Status) : INotification;
 
-var shipped = QueryClient.Subscribe<OrderShipped>(Id);   // only this order's
+public sealed record WatchOrder(Guid OrderId) : ISubscription<OrderShipped>
+{
+    public bool Matches(OrderShipped e) => e.OrderId == OrderId;
+}
+
+var shipped = QueryClient.Subscribe(new WatchOrder(Id));   // only this order's
 ```
 
-`Order` is what the key identifies — usually the aggregate — and a **watch policy** for it decides who may watch:
+`Matches` says which notifications are its own. It runs for each published notification of the type, on the publisher's
+thread, so it reads the notification and nothing else: no database, no service, no `await`. Anything it can ask —
+"orders over £100", "either of these two rooms" — is a subscription, not just an id.
+
+Who may open it is a **watch policy**, and *that* is where the database goes:
 
 ```csharp
-public sealed class WatchingOrders : IWatchPolicy<Order>
+public sealed class WatchingOrders : IWatchPolicy<WatchOrder>
 {
-    public async Task<bool> CanWatchAsync(object key, CancellationToken ct) =>
-        (await Order.Find((Guid)key)).CustomerId == Current.UserId || Current.Principal?.IsInRole("Admin") == true;
+    public async Task<bool> CanWatchAsync(WatchOrder watch, CancellationToken ct) =>
+        (await Order.Find(watch.OrderId)).CustomerId == Current.UserId || Current.Principal?.IsInRole("Admin") == true;
 }
 ```
 
-Write it anywhere in the project; the generator registers it, like a handler. It runs in the subscriber's own scope, so
-`Current.UserId` is the person asking. One policy covers every event about orders.
+Write it anywhere in the project; the generator registers it, like a handler. It is asked **once**, when the subscription
+opens, in the subscriber's own scope — so `Current.UserId` is the person asking and a scoped `DbContext` is the one a
+handler would get. One class may implement several policies where the rule is the same.
 
-**It fails closed.** A scope with no policy lets nobody watch it, so a forgotten policy never shows one customer another's
-order. The subscription settles on `Error` with an `UnauthorizedAccessException` before anything arrives.
+**It fails closed.** A subscription with no policy lets nobody open it, so a forgotten policy never shows one customer
+another's order. The subscription settles on `Error` with an `UnauthorizedAccessException` before anything arrives — in
+this process and from a browser alike.
 
-**Your own id needs no policy.** In a Rask app, every scope's default allows a signed-in user to watch the key that is their
-own user id — the job reporting progress to the user who started it, a notification bell:
+A subscription record is a message like any other: it is compared structurally, and it crosses the wire as its generated
+JSON, so it carries whatever its properties carry.
 
-```csharp
-public sealed record ExportProgress([For<User>] Guid UserId, int Percent, string? Url) : INotification;
-
-var progress = QueryClient.Subscribe<ExportProgress>(Current.RequiredUserId);
-```
-
-The key is compared with `Equals`, and crosses the wire as its invariant string: a `Guid`, a number, a `string`, an enum,
-or any id that implements `IParsable<T>`.
+**Watching a type.** An event that is about nothing in particular — every order placed, on an admin board — needs no
+record at all: `QueryClient.Subscribe<OrderPlaced>()` watches the type itself.
 
 ## Patching a query on screen
 
@@ -176,9 +183,11 @@ Everything that publishes a notification reaches subscribers, because they are t
 service, a test:
 
 ```csharp
-await foreach (var shipped in dispatcher.SubscribeAsync<OrderShipped>(orderId, ct))
+await foreach (var shipped in dispatcher.SubscribeAsync(new WatchOrder(orderId), ct))
     logger.LogInformation("{Order} is {Status}", shipped.OrderId, shipped.Status);
 ```
+
+`dispatcher.SubscribeAsync<OrderPlaced>(ct)` is the same thing for an event watched by type.
 
 It starts with the last one published, asks the policy first, and ends when the token is cancelled.
 
@@ -189,16 +198,17 @@ In a [wasm-hosted](getting-started.md) app the page runs in the browser, and the
 same origin and cookie as every other message. So a browser page hears what any visitor's command published, and an
 event the page itself publishes travels to the server and comes back once, like everyone else's.
 
-The server's `MapRaskCqrs()` serves it at `GET /_rask/cqrs/request/events/{name}?for={key}` — under the same prefix as the
-messages, so the same CSRF header, the same authentication and any rate limit you attach to the group apply. Who may
-subscribe from outside is decided on the server, and **closed unless opened**:
+The server's `MapRaskCqrs()` serves it at `GET /_rask/cqrs/request/events/{name}?m={json}` — under the same prefix as the
+messages, and the subscription record travels in `?m=` exactly as a query's message does, so the same CSRF header, the
+same authentication and any rate limit you attach to the group apply. Who may subscribe from outside is decided on the
+server, and **closed unless opened**:
 
-| The notification | A remote subscriber |
+| What is asked for | A remote subscriber |
 |---|---|
-| is scoped with `[For<T>]` | may subscribe when its `IWatchPolicy<T>` allows the key; authenticated by default |
-| carries `[Authorize]` / `[Authorize(Roles = "admin")]` itself | may subscribe when signed in / in the role |
-| carries `[AllowAnonymous]` itself | may subscribe signed out |
-| declares nothing | may not — `404`, the same as a name that does not exist |
+| an `ISubscription<T>` record | may open it when its `IWatchPolicy<T>` says so; authenticated by default |
+| a notification carrying `[Authorize]` / `[Authorize(Roles = "admin")]` itself | may watch the type when signed in / in the role |
+| a notification carrying `[AllowAnonymous]` itself | may watch the type signed out |
+| a notification that declares nothing | may not — `404`, the same as a name that does not exist |
 
 The last row is deliberate: an app's auth events and domain events are notifications too, and none of them should be one
 browser request away. A handler's `[Authorize]` still decides who may *publish* a notification from the browser; the
@@ -208,24 +218,24 @@ require, so it only opens the notification; name a role or a policy to mean more
 
 **Admitted once, at the open.** The policy runs when the stream opens, so a stream already running keeps delivering until
 it drops — signing out elsewhere does not cut it mid-flight, and the next reconnect is refused. Where a revocation must
-take effect immediately, scope the event to something the policy re-reads, or publish a change the page reacts to.
+take effect immediately, publish a change the page reacts to.
 
 A reverse proxy that buffers responses would hold every event back, so the stream is sent with `X-Accel-Buffering: no`
 (nginx) and response buffering off. A comment every fifteen seconds keeps a quiet stream open through idle timeouts.
 
 ## How values are delivered
 
-- **Latest first.** A new subscription gets the last notification published for what it watches, then every one after.
-  Only a type somebody has subscribed to is remembered, so a domain event nobody watches is never held, and at most 4,096
-  are, oldest out first.
+- **Latest first.** A new subscription gets the most recent notification it matches, then every one after. Only a type
+  somebody has subscribed to is remembered, so a domain event nobody watches is never held, and at most 4,096 are kept
+  across the whole feed, oldest out first — so a subscription opened long after a quiet event may find nothing to replay.
 - **In order.** Values arrive in the order they were published, and a replay racing a new publish never lands after it.
 - **Never holding the publisher up.** `PublishAsync` hands the notification over and returns; it does not wait for any page
   to render.
 - **Bounded behind a slow reader.** A subscriber more than 256 values behind loses the oldest of them. A subscription shows
   the latest state, so the middle of a burst costs nothing on screen.
 - **Reconnecting by itself.** A dropped connection is reopened with backoff, from half a second up to thirty; `IsLive` is
-  false meanwhile and `Data` keeps the last value. A refusal — a policy saying no, a key the server rejects — is final, and
-  is not retried.
+  false meanwhile and `Data` keeps the last value. A refusal — a policy saying no, a record the server rejects — is final,
+  and is not retried.
 
 Every number above is a setting, read from `Rask:Cqrs` first and overridable in code: `ReplayCapacity` (4096),
 `SubscriptionBuffer` (256), `SubscriptionReconnectDelay` (`00:00:00.500`) and `SubscriptionReconnectCeiling` (`00:00:30`);

@@ -20,13 +20,17 @@ public sealed record PublicNotice(string Text) : INotification;
 /// <summary>Declares nothing, so nothing outside the server may subscribe to it.</summary>
 public sealed record Undeclared(string Text) : INotification;
 
-public sealed class Room;
+public sealed record RoomMessage(int Room, string Text) : INotification;
 
-/// <summary>Scoped: reaches only the subscribers watching its room, each admitted by the policy below.</summary>
-public sealed record RoomMessage([For<Room>] int Room, string Text) : INotification;
+/// <summary>One room's messages, asked for by the record and admitted by the policy below.</summary>
+public sealed record WatchRoom(int Room) : ISubscription<RoomMessage>
+{
+    public bool Matches(RoomMessage message) => message.Room == Room;
+}
 
 /// <summary>Room 1 is open; every other room is closed.</summary>
-public sealed class RoomPolicy : IWatchPolicy<Room>
+public sealed class RoomPolicy : IWatchPolicy<WatchRoom>
 {
-    public Task<bool> CanWatchAsync(object key, CancellationToken cancellationToken) => Task.FromResult(key is 1);
+    public Task<bool> CanWatchAsync(WatchRoom subscription, CancellationToken cancellationToken) =>
+        Task.FromResult(subscription.Room == 1);
 }

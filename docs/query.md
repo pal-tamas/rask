@@ -311,9 +311,9 @@ var shipped = QueryClient.Subscribe<OrderShipped>();
 shipped.Into(orders, (list, e) => [.. list.Select(o => o.Id == e.OrderId ? o with { Status = e.Status } : o)]);
 ```
 
-`.Into` patches the query on screen with no round trip. Scoping an event to one record, the watch policy that decides who
-may see it, a stream that is a function, and a WebAssembly front end subscribing on its server are all in
-[subscriptions](subscriptions.md).
+`.Into` patches the query on screen with no round trip. Watching the events about one record with an `ISubscription<T>`,
+the watch policy that decides who may open it, a stream that is a function, and a WebAssembly front end subscribing on
+its server are all in [subscriptions](subscriptions.md).
 
 ## Try it
 

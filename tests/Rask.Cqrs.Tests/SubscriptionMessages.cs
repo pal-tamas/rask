@@ -1,46 +1,52 @@
 namespace Rask.Cqrs.Tests;
 
-// ---- Unscoped: every subscriber gets every one ----
+// ---- Watched by type: every subscriber gets every one ----
 public sealed record Chimed(int Number) : INotification;
 
 public sealed record Whistled(int Number) : INotification;
 
-// ---- Scoped to a Door, which a policy guards ----
-public sealed class Door;
-
+// ---- Watched through a record, which a policy guards ----
 public enum Colour
 {
     Red,
     Green,
 }
 
-public sealed record DoorOpened([For<Door>] Guid DoorId) : INotification;
+public sealed record DoorOpened(Guid DoorId, string Note = "") : INotification;
 
-public sealed record DoorTagged([For<Door>] string Tag) : INotification;
+public sealed record DoorPainted(Colour Colour) : INotification;
 
-public sealed record DoorPainted([For<Door>] Colour Colour) : INotification;
-
-// The attribute on a property rather than a positional parameter.
-public sealed class DoorKnocked : INotification
+public sealed record WatchDoor(Guid DoorId) : ISubscription<DoorOpened>
 {
-    [For<Door>]
-    public long DoorNumber { get; init; }
+    public bool Matches(DoorOpened opened) => opened.DoorId == DoorId;
 }
 
-/// <summary>The keys the door policy lets through, set per test.</summary>
+// A subscription that filters on something other than an id, and by more than equality.
+public sealed record WatchPaint(Colour Colour) : ISubscription<DoorPainted>
+{
+    public bool Matches(DoorPainted painted) => painted.Colour == Colour;
+}
+
+/// <summary>The doors the policy lets through, set per test.</summary>
 public sealed class Keyholder
 {
-    public HashSet<object> Allowed { get; } = [];
+    public HashSet<Guid> Allowed { get; } = [];
 }
 
-// Registered by the generator, like a handler.
-public sealed class DoorPolicy(Keyholder keys) : IWatchPolicy<Door>
+// Registered by the generator, like a handler. One class may admit several subscriptions.
+public sealed class DoorPolicy(Keyholder keys) : IWatchPolicy<WatchDoor>, IWatchPolicy<WatchPaint>
 {
-    public Task<bool> CanWatchAsync(object key, CancellationToken cancellationToken) =>
-        Task.FromResult(keys.Allowed.Contains(key));
+    public Task<bool> CanWatchAsync(WatchDoor subscription, CancellationToken cancellationToken) =>
+        Task.FromResult(keys.Allowed.Contains(subscription.DoorId));
+
+    public Task<bool> CanWatchAsync(WatchPaint subscription, CancellationToken cancellationToken) =>
+        Task.FromResult(true);
 }
 
-// ---- Scoped to a Vault, which nothing guards — so nobody may watch it ----
-public sealed class Vault;
+// ---- A subscription nothing guards — so nobody may open it ----
+public sealed record VaultOpened(int VaultId) : INotification;
 
-public sealed record VaultOpened([For<Vault>] int VaultId) : INotification;
+public sealed record WatchVault(int VaultId) : ISubscription<VaultOpened>
+{
+    public bool Matches(VaultOpened opened) => opened.VaultId == VaultId;
+}

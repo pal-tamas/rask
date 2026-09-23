@@ -35,10 +35,10 @@ public static class CqrsRegistry
     private static volatile IReadOnlyDictionary<Type, NotificationInvoker> _notifications =
         new Dictionary<Type, NotificationInvoker>();
 
-    private static readonly List<(object Key, (Type Type, NotificationScope Scope)[] Items)> _scopeGroups = new();
+    private static readonly List<(object Key, (Type Type, SubscriptionRegistration Registration)[] Items)> _subscriptionGroups = new();
 
-    private static volatile IReadOnlyDictionary<Type, NotificationScope> _scopes =
-        new Dictionary<Type, NotificationScope>();
+    private static volatile IReadOnlyDictionary<Type, SubscriptionRegistration> _subscriptions =
+        new Dictionary<Type, SubscriptionRegistration>();
 
     // The modules whose initializer has been forced, so a lookup that misses does it at most once per module.
     private static readonly ConcurrentDictionary<System.Reflection.Module, bool> _initialized = new();
@@ -112,80 +112,76 @@ public static class CqrsRegistry
     }
 
     /// <summary>
-    ///     Installs <paramref name="registrations" /> as the complete set of scoped notifications — those marked
-    ///     <see cref="ForAttribute{TScope}" /> — owned by <paramref name="groupKey" />, the same per-assembly swap as
-    ///     <see cref="ReplaceRequests" />.
+    ///     Installs <paramref name="registrations" /> as the complete set of <see cref="ISubscription{TNotification}" />
+    ///     records owned by <paramref name="groupKey" />, the same per-assembly swap as <see cref="ReplaceRequests" />.
     /// </summary>
-    public static void ReplaceNotificationScopes(
+    public static void ReplaceSubscriptions(
         object groupKey,
-        IEnumerable<(Type Type, NotificationScope Scope)> registrations)
+        IEnumerable<(Type Type, SubscriptionRegistration Registration)> registrations)
     {
         ArgumentNullException.ThrowIfNull(groupKey);
         ArgumentNullException.ThrowIfNull(registrations);
 
-        var items = registrations as (Type Type, NotificationScope Scope)[] ?? registrations.ToArray();
+        var items = registrations as (Type Type, SubscriptionRegistration Registration)[] ?? registrations.ToArray();
         lock (_lock)
         {
-            if (!ReplaceGroup(_scopeGroups, groupKey, items))
+            if (!ReplaceGroup(_subscriptionGroups, groupKey, items))
             {
                 return;
             }
 
-            var map = new Dictionary<Type, NotificationScope>();
-            foreach (var (_, group) in _scopeGroups)
+            var map = new Dictionary<Type, SubscriptionRegistration>();
+            foreach (var (_, group) in _subscriptionGroups)
             {
-                foreach (var (type, scope) in group)
+                foreach (var (type, registration) in group)
                 {
-                    map[type] = scope;
+                    map[type] = registration;
                 }
             }
 
-            _scopes = map;
+            _subscriptions = map;
         }
     }
 
     /// <summary>
-    ///     Asks the <see cref="IWatchPolicy{TScope}" /> registered in <paramref name="provider" /> whether its subscriber
-    ///     may watch <paramref name="key" />. No policy is a refusal. Called by generated code.
+    ///     Asks the <see cref="IWatchPolicy{TSubscription}" /> registered in <paramref name="provider" /> whether its
+    ///     subscriber may open <paramref name="subscription" />. No policy is a refusal. Called by generated code.
     /// </summary>
-    /// <typeparam name="TScope">What the key identifies.</typeparam>
+    /// <typeparam name="TSubscription">The subscription record being opened.</typeparam>
     /// <param name="provider">The subscriber's scope.</param>
-    /// <param name="key">The key asked for.</param>
+    /// <param name="subscription">What is being asked for.</param>
     /// <param name="cancellationToken">Cancels the check.</param>
-    public static Task<bool> CanWatchAsync<TScope>(
+    public static Task<bool> CanWatchAsync<TSubscription>(
         IServiceProvider provider,
-        object key,
+        TSubscription subscription,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(provider);
-        ArgumentNullException.ThrowIfNull(key);
-        return provider.GetService<IWatchPolicy<TScope>>() is { } policy
-            ? policy.CanWatchAsync(key, cancellationToken)
+        return provider.GetService<IWatchPolicy<TSubscription>>() is { } policy
+            ? policy.CanWatchAsync(subscription, cancellationToken)
             : Task.FromResult(false);
     }
 
-    /// <summary>What the generator recorded about a scoped notification type, or null for an unscoped one.</summary>
+    /// <summary>What the generator recorded about a subscription record, or null when it declared none.</summary>
     /// <remarks>
-    ///     Called on every publish, so a miss must cost a dictionary lookup and nothing else. The scope table is filled
-    ///     by the declaring assembly's module initializer, which the runtime runs on first access to a member of that
-    ///     assembly — and a subscriber that has only named the type (typeof, a generic argument) has not accessed one.
-    ///     So the module constructor is forced ONCE per module, behind a flag: running it per lookup would put the
-    ///     runtime's per-module lock in the publisher's path for every unscoped notification, which always misses.
+    ///     The table is filled by the declaring assembly's module initializer, which the runtime runs on first access to
+    ///     a member of that assembly — and a caller that has only named the type has not accessed one. So the module
+    ///     constructor is forced once per module, behind a flag, rather than on every miss.
     /// </remarks>
-    internal static NotificationScope? FindNotificationScope(Type notificationType)
+    internal static SubscriptionRegistration? FindSubscription(Type subscriptionType)
     {
-        if (_scopes.TryGetValue(notificationType, out var scope))
+        if (_subscriptions.TryGetValue(subscriptionType, out var registration))
         {
-            return scope;
+            return registration;
         }
 
-        if (!_initialized.TryAdd(notificationType.Module, true))
+        if (!_initialized.TryAdd(subscriptionType.Module, true))
         {
             return null;
         }
 
-        System.Runtime.CompilerServices.RuntimeHelpers.RunModuleConstructor(notificationType.Module.ModuleHandle);
-        return _scopes.TryGetValue(notificationType, out scope) ? scope : null;
+        System.Runtime.CompilerServices.RuntimeHelpers.RunModuleConstructor(subscriptionType.Module.ModuleHandle);
+        return _subscriptions.TryGetValue(subscriptionType, out registration) ? registration : null;
     }
 
     // Caller holds _lock. Returns false when the group's contribution is unchanged, so an unrelated hot

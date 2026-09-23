@@ -175,8 +175,19 @@ internal sealed class CountingDispatcher : IDispatcher
         return Task.CompletedTask;
     }
 
-    public async IAsyncEnumerable<TNotification> SubscribeAsync<TNotification>(
-        object? key = null,
+    public IAsyncEnumerable<TNotification> SubscribeAsync<TNotification>(
+        CancellationToken cancellationToken = default)
+        where TNotification : INotification =>
+        Watch<TNotification>(null, cancellationToken);
+
+    public IAsyncEnumerable<TNotification> SubscribeAsync<TNotification>(
+        ISubscription<TNotification> subscription,
+        CancellationToken cancellationToken = default)
+        where TNotification : INotification =>
+        Watch(subscription, cancellationToken);
+
+    private async IAsyncEnumerable<TNotification> Watch<TNotification>(
+        ISubscription<TNotification>? subscription,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
         where TNotification : INotification
     {
@@ -191,7 +202,11 @@ internal sealed class CountingDispatcher : IDispatcher
         {
             await foreach (var notification in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
-                yield return (TNotification)notification;
+                var typed = (TNotification)notification;
+                if (subscription is null || subscription.Matches(typed))
+                {
+                    yield return typed;
+                }
             }
         }
         finally

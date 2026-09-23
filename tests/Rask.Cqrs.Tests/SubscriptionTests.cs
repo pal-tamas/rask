@@ -77,13 +77,13 @@ public sealed class SubscriptionTests
     }
 
     [Fact]
-    public async Task A_scoped_notification_reaches_only_the_subscribers_watching_its_key()
+    public async Task A_subscription_reaches_only_the_notifications_it_matches()
     {
         var mine = Guid.NewGuid();
         var yours = Guid.NewGuid();
         await using var services = Build(allowed: [mine, yours]);
         var dispatcher = services.GetRequiredService<IDispatcher>();
-        await using var watching = await ListenAsync(dispatcher.SubscribeAsync<DoorOpened>(mine));
+        await using var watching = await ListenAsync(dispatcher.SubscribeAsync(new WatchDoor(mine)));
 
         await dispatcher.PublishAsync(new DoorOpened(yours));
         await dispatcher.PublishAsync(new DoorOpened(mine));
@@ -92,59 +92,70 @@ public sealed class SubscriptionTests
     }
 
     [Fact]
-    public async Task A_scoped_subscription_starts_with_the_last_notification_for_its_own_key()
+    public async Task A_subscription_starts_with_the_last_notification_it_matches()
     {
         var mine = Guid.NewGuid();
         var yours = Guid.NewGuid();
         await using var services = Build(allowed: [mine, yours]);
         var dispatcher = services.GetRequiredService<IDispatcher>();
-        await using (await ListenAsync(dispatcher.SubscribeAsync<DoorOpened>(mine)))
+        await using (await ListenAsync(dispatcher.SubscribeAsync(new WatchDoor(mine))))
         {
             await dispatcher.PublishAsync(new DoorOpened(mine));
             await dispatcher.PublishAsync(new DoorOpened(yours));
         }
 
-        await using var late = await ListenAsync(dispatcher.SubscribeAsync<DoorOpened>(mine));
+        await using var late = await ListenAsync(dispatcher.SubscribeAsync(new WatchDoor(mine)));
 
         Assert.Equal(new DoorOpened(mine), await late.NextAsync());
     }
 
     [Fact]
-    public async Task The_policy_refuses_a_key_it_does_not_allow()
+    public async Task A_subscription_may_match_on_whatever_it_likes()
+    {
+        await using var services = Build();
+        var dispatcher = services.GetRequiredService<IDispatcher>();
+        await using var green = await ListenAsync(dispatcher.SubscribeAsync(new WatchPaint(Colour.Green)));
+
+        await dispatcher.PublishAsync(new DoorPainted(Colour.Red));
+        await dispatcher.PublishAsync(new DoorPainted(Colour.Green));
+
+        Assert.Equal(new DoorPainted(Colour.Green), await green.NextAsync());
+    }
+
+    [Fact]
+    public async Task The_policy_refuses_a_subscription_it_does_not_allow()
     {
         await using var services = Build(allowed: [Guid.NewGuid()]);
         var dispatcher = services.GetRequiredService<IDispatcher>();
 
-        var refused = dispatcher.SubscribeAsync<DoorOpened>(Guid.NewGuid()).GetAsyncEnumerator();
+        var refused = dispatcher.SubscribeAsync(new WatchDoor(Guid.NewGuid())).GetAsyncEnumerator();
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => refused.MoveNextAsync().AsTask());
     }
 
     [Fact]
-    public async Task A_scope_with_no_policy_lets_nobody_watch()
+    public async Task A_subscription_with_no_policy_lets_nobody_open_it()
     {
         await using var services = Build();
         var dispatcher = services.GetRequiredService<IDispatcher>();
 
-        var refused = dispatcher.SubscribeAsync<VaultOpened>(7).GetAsyncEnumerator();
+        var refused = dispatcher.SubscribeAsync(new WatchVault(7)).GetAsyncEnumerator();
 
         var error = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => refused.MoveNextAsync().AsTask());
-        Assert.Contains("IWatchPolicy<Vault>", error.Message, StringComparison.Ordinal);
+        Assert.Contains("IWatchPolicy<WatchVault>", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task A_scoped_notification_needs_a_key_of_its_own_type_and_an_unscoped_one_takes_none()
+    public async Task Watching_a_type_hears_every_one_of_them_whatever_the_records_ask_for()
     {
-        await using var services = Build();
+        var mine = Guid.NewGuid();
+        await using var services = Build(allowed: [mine]);
         var dispatcher = services.GetRequiredService<IDispatcher>();
+        await using var all = await ListenAsync(dispatcher.SubscribeAsync<DoorOpened>());
 
-        var missing = dispatcher.SubscribeAsync<DoorOpened>().GetAsyncEnumerator();
-        var wrongType = dispatcher.SubscribeAsync<DoorOpened>("not a guid").GetAsyncEnumerator();
-        var unexpected = dispatcher.SubscribeAsync<Chimed>(1).GetAsyncEnumerator();
+        await dispatcher.PublishAsync(new DoorOpened(Guid.NewGuid()));
 
-        await Assert.ThrowsAsync<ArgumentException>(() => missing.MoveNextAsync().AsTask());
-        await Assert.ThrowsAsync<ArgumentException>(() => wrongType.MoveNextAsync().AsTask());
-        await Assert.ThrowsAsync<ArgumentException>(() => unexpected.MoveNextAsync().AsTask());
+        Assert.NotNull(await all.NextAsync());
     }
 
     [Fact]
@@ -161,20 +172,20 @@ public sealed class SubscriptionTests
     }
 
     [Fact]
-    public async Task The_replay_store_forgets_the_oldest_key_past_its_capacity()
+    public async Task The_replay_store_forgets_the_oldest_notification_past_its_capacity()
     {
-        var keys = Enumerable.Range(0, 5).Select(_ => Guid.NewGuid()).ToArray();
-        await using var services = Build(allowed: [keys[0]], capacity: 4);
+        var doors = Enumerable.Range(0, 5).Select(_ => Guid.NewGuid()).ToArray();
+        await using var services = Build(allowed: [.. doors], capacity: 4);
         var dispatcher = services.GetRequiredService<IDispatcher>();
-        await using (await ListenAsync(dispatcher.SubscribeAsync<DoorOpened>(keys[0])))
+        await using (await ListenAsync(dispatcher.SubscribeAsync(new WatchDoor(doors[0]))))
         {
-            foreach (var key in keys)
+            foreach (var door in doors)
             {
-                await dispatcher.PublishAsync(new DoorOpened(key));
+                await dispatcher.PublishAsync(new DoorOpened(door));
             }
         }
 
-        await using var late = await ListenAsync(dispatcher.SubscribeAsync<DoorOpened>(keys[0]));
+        await using var late = await ListenAsync(dispatcher.SubscribeAsync(new WatchDoor(doors[0])));
 
         Assert.False(late.HasNext);
     }
@@ -186,27 +197,21 @@ public sealed class SubscriptionTests
 
         using var scope = services.CreateScope();
 
-        Assert.IsType<DoorPolicy>(scope.ServiceProvider.GetService<IWatchPolicy<Door>>());
+        Assert.IsType<DoorPolicy>(scope.ServiceProvider.GetService<IWatchPolicy<WatchDoor>>());
+        Assert.IsType<DoorPolicy>(scope.ServiceProvider.GetService<IWatchPolicy<WatchPaint>>());
     }
 
     [Fact]
-    public void The_generator_records_how_each_key_is_read_and_crosses_the_wire()
+    public void The_generator_records_what_each_subscription_carries_and_how_it_matches()
     {
         var door = Guid.NewGuid();
 
-        var opened = CqrsRegistry.FindNotificationScope(typeof(DoorOpened))!;
-        var tagged = CqrsRegistry.FindNotificationScope(typeof(DoorTagged))!;
-        var painted = CqrsRegistry.FindNotificationScope(typeof(DoorPainted))!;
-        var knocked = CqrsRegistry.FindNotificationScope(typeof(DoorKnocked))!;
+        var watch = CqrsRegistry.FindSubscription(typeof(WatchDoor))!;
 
-        Assert.Equal(typeof(Door), opened.Scope);
-        Assert.Equal(door, opened.KeyOf(new DoorOpened(door)));
-        Assert.Equal(door, opened.ParseKey!(door.ToString()));
-        Assert.Equal("front", tagged.ParseKey!("front"));
-        Assert.Equal(Colour.Green, painted.ParseKey!("Green"));
-        Assert.Equal(12L, knocked.KeyOf(new DoorKnocked { DoorNumber = 12 }));
-        Assert.Equal(12L, knocked.ParseKey!("12"));
-        Assert.Null(CqrsRegistry.FindNotificationScope(typeof(Chimed)));
+        Assert.Equal(typeof(DoorOpened), watch.NotificationType);
+        Assert.True(watch.Matches(new WatchDoor(door), new DoorOpened(door)));
+        Assert.False(watch.Matches(new WatchDoor(door), new DoorOpened(Guid.NewGuid())));
+        Assert.Null(CqrsRegistry.FindSubscription(typeof(Chimed)));
     }
 
     [Fact]
@@ -244,7 +249,7 @@ public sealed class SubscriptionTests
         Assert.Contains("SubscriptionReconnectCeiling", error.Message, StringComparison.Ordinal);
     }
 
-    private static ServiceProvider Build(Recorder? recorder = null, object[]? allowed = null, int? capacity = null)
+    private static ServiceProvider Build(Recorder? recorder = null, Guid[]? allowed = null, int? capacity = null)
     {
         var keys = new Keyholder();
         foreach (var key in allowed ?? [])

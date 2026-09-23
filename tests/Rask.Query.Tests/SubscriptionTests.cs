@@ -8,6 +8,11 @@ namespace Rask.Query.Tests;
 
 public sealed record OrderPlaced(int Number) : INotification;
 
+public sealed record WatchOrder(int Number) : ISubscription<OrderPlaced>
+{
+    public bool Matches(OrderPlaced placed) => placed.Number == Number;
+}
+
 public sealed record PriceTicked(decimal Price) : INotification;
 
 /// <summary>
@@ -79,7 +84,7 @@ public sealed class SubscriptionTests
     }
 
     [Fact]
-    public async Task A_lambda_subscription_waits_for_its_key_then_follows_it()
+    public async Task A_lambda_subscription_waits_for_its_record_then_follows_it()
     {
         var (services, dispatcher) = Session();
         FollowingCard? card = null;
@@ -314,7 +319,9 @@ public sealed class SubscriptionTests
     {
         public int? Selected { get; set; }
 
-        public Subscription<OrderPlaced> Orders => field ??= QueryClient.Subscribe<OrderPlaced>(() => Selected);
+        public Subscription<OrderPlaced> Orders =>
+            field ??= QueryClient.Subscribe<OrderPlaced>(
+                () => Selected is { } number ? new WatchOrder(number) : null);
 
         protected override Component? Render()
         {

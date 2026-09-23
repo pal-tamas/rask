@@ -161,8 +161,6 @@ static Rask.Query.QueryOptions.operator !=(Rask.Query.QueryOptions? left, Rask.Q
 static Rask.Query.QueryOptions.operator ==(Rask.Query.QueryOptions? left, Rask.Query.QueryOptions? right) -> bool
 static Rask.Query.RaskQueryServiceCollectionExtensions.AddRaskQuery(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 Rask.Query.IQueryClient.Subscribe<TInput, T>(System.Func<TInput>! input, System.Func<TInput, System.Threading.CancellationToken, System.Collections.Generic.IAsyncEnumerable<T>!>! stream) -> Rask.Query.Subscription<T>!
-Rask.Query.IQueryClient.Subscribe<TNotification>(System.Func<object?>! key) -> Rask.Query.Subscription<TNotification>!
-Rask.Query.IQueryClient.Subscribe<TNotification>(object? key = null) -> Rask.Query.Subscription<TNotification>!
 Rask.Query.Subscription<T>
 Rask.Query.Subscription<T>.Data.get -> T?
 Rask.Query.Subscription<T>.Dispose() -> void
@@ -184,5 +182,9 @@ Rask.Query.SubscriptionStatus.Live = 1 -> Rask.Query.SubscriptionStatus
 Rask.Query.SubscriptionStatus.Reconnecting = 2 -> Rask.Query.SubscriptionStatus
 static Rask.Query.QueryClient.Subscribe<TInput, T>(System.Func<TInput>! input, System.Func<TInput, System.Threading.CancellationToken, System.Collections.Generic.IAsyncEnumerable<T>!>! stream) -> Rask.Query.Subscription<T>!
 static Rask.Query.QueryClient.Subscribe<TInput, T>(TInput input, System.Func<TInput, System.Threading.CancellationToken, System.Collections.Generic.IAsyncEnumerable<T>!>! stream, string! callerFile = "", int callerLine = 0) -> Rask.Query.Subscription<T>!
-static Rask.Query.QueryClient.Subscribe<TNotification>(System.Func<object?>! key) -> Rask.Query.Subscription<TNotification>!
-static Rask.Query.QueryClient.Subscribe<TNotification>(object? key = null, string! callerFile = "", int callerLine = 0) -> Rask.Query.Subscription<TNotification>!
+Rask.Query.IQueryClient.Subscribe<TNotification>() -> Rask.Query.Subscription<TNotification>!
+Rask.Query.IQueryClient.Subscribe<TNotification>(Rask.Cqrs.ISubscription<TNotification>! subscription) -> Rask.Query.Subscription<TNotification>!
+Rask.Query.IQueryClient.Subscribe<TNotification>(System.Func<Rask.Cqrs.ISubscription<TNotification>?>! subscription) -> Rask.Query.Subscription<TNotification>!
+static Rask.Query.QueryClient.Subscribe<TNotification>(Rask.Cqrs.ISubscription<TNotification>! subscription, string! callerFile = "", int callerLine = 0) -> Rask.Query.Subscription<TNotification>!
+static Rask.Query.QueryClient.Subscribe<TNotification>(System.Func<Rask.Cqrs.ISubscription<TNotification>?>! subscription) -> Rask.Query.Subscription<TNotification>!
+static Rask.Query.QueryClient.Subscribe<TNotification>(string! callerFile = "", int callerLine = 0) -> Rask.Query.Subscription<TNotification>!

@@ -97,11 +97,11 @@ A notification is also what a screen subscribes to. `PublishAsync` runs its hand
 subscription — a component's `QueryClient.Subscribe<T>()`, or `SubscribeAsync` anywhere else:
 
 ```csharp
-await foreach (var incremented in dispatcher.SubscribeAsync<CounterIncremented>(cancellationToken: ct))
+await foreach (var incremented in dispatcher.SubscribeAsync<CounterIncremented>(ct))
     Console.WriteLine(incremented.Value);
 ```
 
-A notification marked `[For<T>]` reaches only the subscribers watching its key, each admitted by an `IWatchPolicy<T>`.
+An `ISubscription<T>` record says which notifications one page wants, admitted by its own `IWatchPolicy<T>`.
 See [subscriptions](subscriptions.md).
 
 ## Pipeline behaviors (decorators)
