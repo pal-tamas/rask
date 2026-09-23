@@ -233,6 +233,37 @@ A library that exports namespaces of parts is reached with a dot: `Export => "Sw
 the `Switch` export. Both must be constant strings ([RASK059](diagnostics.md#rask059)) — the build reads them before
 anything compiles.
 
+### Several components from one package
+
+Most libraries are used for more than one component. Declare the package once and list what you use from it:
+
+```csharp
+// Features/Shop/Mui.cs — no .tsx anywhere
+public sealed partial class Mui : ReactPackage
+{
+    protected override string Module => "@mui/material";
+    protected override string[] Exports => ["Button", "Card", "TextField"];
+}
+```
+
+```csharp
+Mui.Card[
+    Mui.TextField.Label("Name").OnChange(v => _name = v),
+    Mui.Button.Variant(MuiButtonVariant.Contained).OnClick(Save)["Save"],
+    Button["a plain <button>"]
+]
+```
+
+Each export is a package island of its own — the class `MuiButton`, its props from `MuiButton.props.json` beside
+`Mui.cs` — reached through the declaration: typing `Mui.` lists everything the package gives you. Nothing it exports
+takes a bare name, so `Button` stays the HTML `<button>`. Every runtime has its package class: `ReactPackage`,
+`PreactPackage`, `SolidPackage`, `VuePackage`, `SveltePackage`, `AngularPackage` and `LitPackage`.
+
+A dotted export reaches a member (`"Switch.Root"` is `Bits.SwitchRoot`), and a Lit package names tags
+(`"sl-switch"` is `Shoelace.SlSwitch`). The declaration must be `partial` ([RASK056](diagnostics.md#rask056)), and
+`Module` and `Exports` must be constants — a collection expression of string literals
+([RASK059](diagnostics.md#rask059)) — because the build reads both before anything compiles.
+
 ### The snapshot is committed
 
 The props are read from `MuiButton.props.json`, beside the class. It is committed like a lockfile: a fresh

@@ -28,9 +28,11 @@ namespace Rask.Site.Features.Islands;
 ///         inside the other — is refused by the build rather than mis-compiled.
 ///     </para>
 ///     <para>
-///         <see cref="ColorPicker" /> is a React component straight from npm, with no <c>.tsx</c> of its own, and it is
-///         a CHILD of <see cref="ReactCounter" />: it travels inside the counter's props and React renders both in one
-///         tree, so it has no host element of its own and its callback still reaches C#.
+///         <see cref="Colorful" /> is react-colorful straight from npm, with no <c>.tsx</c> of its own: two of its
+///         components, a picker and a hex field bound to one colour, reached as <c>Colorful.HexColorPicker</c> and
+///         <c>Colorful.HexColorInput</c>. Both are CHILDREN of <see cref="ReactCounter" />: they travel inside the
+///         counter's props and React renders all three in one tree, so neither has a host element of its own and their
+///         callbacks still reach C#.
 ///     </para>
 /// </remarks>
 public sealed partial class IslandsDemo : Component
@@ -82,14 +84,15 @@ public sealed partial class IslandsDemo : Component
                 P.Class("text-sm text-ui-muted")[
                     "Both hold state C# never sees. Raising the reading re-renders this component, and ",
                     "the counters below have to survive it — a remount would reset them, and nothing ",
-                    "else on the page would look any different. Inside the React counter is a colour ",
-                    "picker straight from npm, nested as a child island: no ", Code[".tsx"], " of its own, ",
-                    "its steps generated from the package's TypeScript."
+                    "else on the page would look any different. Inside the React counter are a colour ",
+                    "picker and its hex field straight from npm, nested as child islands: no ", Code[".tsx"],
+                    " of their own, their steps generated from the package's TypeScript."
                 ],
 
                 ReactCounter.Caption("Clicks since mount").Step(_step).OnTotalChanged(TotalChanged)[
                     "Pick a colour: ",
-                    ColorPicker.Color(_color).OnChange(ColorChanged)
+                    Colorful.HexColorPicker.Color(_color).OnChange(ColorChanged),
+                    Colorful.HexColorInput.Color(_color).Prefixed(true).OnChange(ColorChanged)
                 ],
 
                 Div.Class("mt-3")[

@@ -41,9 +41,9 @@ public sealed class WasmIslandsExampleTests(WasmExampleAppFixture app, Playwrigh
         // number — which is how Solid arrived: #958 added it to this page and this count stayed at
         // three, so the suite went red on main and named the omission.
         //
-        // Still five with six islands on the page: the ColorPicker is a CHILD of the React counter. Its
-        // component travels inside the counter's props and React renders both in one tree, so it has no
-        // <rask-external> of its own — a sixth host here would mean children had stopped nesting.
+        // Still five with seven islands on the page: react-colorful's picker and hex field are CHILDREN of the React
+        // counter. Their components travel inside the counter's props and React renders all three in one tree, so
+        // neither has a <rask-external> of its own — a sixth host here would mean children had stopped nesting.
         await Expect(Page.Locator("rask-external[data-rask-opaque]")).ToHaveCountAsync(5);
 
         // Mounted, not merely rendered: these nodes exist only because an adapter created them, which
@@ -159,9 +159,10 @@ public sealed class WasmIslandsExampleTests(WasmExampleAppFixture app, Playwrigh
     ///     later C# change reaches it as a prop update rather than a remount.
     /// </summary>
     /// <remarks>
-    ///     The picker has no <c>.tsx</c>: its chain steps were generated from react-colorful's own declarations, and it
-    ///     is a CHILD island, so its callback travels inside the parent's props and still has to reach C# through this
-    ///     tab's runtime. The node probe is what "not a remount" means here — React reconciles the same component at the
+    ///     The picker and the hex field have no <c>.tsx</c>: both are exports of one package declaration,
+    ///     <c>Colorful</c>, their chain steps generated from react-colorful's own declarations. They are CHILD islands,
+    ///     so their callbacks travel inside the parent's props and still have to reach C# through this tab's runtime —
+    ///     and they are bound to one colour, so either one moving shows in the other. The node probe is what "not a remount" means here — React reconciles the same component at the
     ///     same position, so the DOM node C# re-rendered around is the one that was there before.
     /// </remarks>
     [Fact]
@@ -180,11 +181,18 @@ public sealed class WasmIslandsExampleTests(WasmExampleAppFixture app, Playwrigh
         await Page.Keyboard.PressAsync("ArrowRight");
         await Expect(Page.Locator("#island-color")).Not.ToHaveTextAsync("#c026d3");
 
+        // The second export of the same declaration: typing a colour into the hex field reaches C#, and C# hands it
+        // back to the picker's sibling as a prop.
+        var field = Page.Locator("[data-testid=react-children] input");
+        await field.FillAsync("#123456");
+        await Expect(Page.Locator("#island-color")).ToHaveTextAsync("#123456");
+
         // Mark the live node, then change the colour from C#.
         await picker.EvaluateAsync("node => { node.dataset.raskProbe = 'kept'; }");
         await Page.Locator("#island-reset").ClickAsync();
 
         await Expect(Page.Locator("#island-color")).ToHaveTextAsync("#c026d3");
+        await Expect(field).ToHaveValueAsync("#c026d3");
         await Expect(picker).ToHaveAttributeAsync("data-rask-probe", "kept");
     });
 }

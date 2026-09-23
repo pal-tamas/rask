@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -93,6 +94,17 @@ internal static class ExternalPackageScan
     // `string?` as well as `string`: the base declares Export nullable, and an override may repeat either.
     private static readonly Regex ExportOverride = Override("Export");
 
+    // A package declaration: `class Mui : ReactPackage` (or a qualified `Rask.External.ReactPackage`). The base class
+    // is what makes it one, so unlike an island's part, the part that declares it must carry the base list.
+    private static readonly Regex PackageDeclaration = new(
+        @"\bclass\s+(?<name>[A-Za-z_]\w*)\s*(?:\([^()]*\))?\s*:\s*(?:[\w.]+\.)?"
+        + @"(?<runtime>React|Preact|Solid|Vue|Svelte|Angular|Lit)Package\b",
+        RegexOptions.CultureInvariant);
+
+    private static readonly Regex ExportsOverride = new(
+        @"\boverride\s+string\s*\[\s*\]\s+Exports\b",
+        RegexOptions.CultureInvariant);
+
     private static Regex Override(string property) => new(
         @"\boverride\s+string\??\s+" + property + @"\b",
         RegexOptions.CultureInvariant);
@@ -130,7 +142,7 @@ internal static class ExternalPackageScan
                 continue;
             }
 
-            foreach (var island in Scan(text, path, runtimes))
+            foreach (var island in Scan(text, path, runtimes).Concat(ScanDeclarations(text, path)))
             {
                 // A partial class spelled across files: the part that overrides Module is the one that counts — it is
                 // where the snapshot goes — and an Export written in another part joins it.
@@ -151,6 +163,145 @@ internal static class ExternalPackageScan
         var result = new List<ScannedPackageIsland>(found.Values);
         result.Sort(static (a, b) => string.CompareOrdinal(a.Name, b.Name));
         return result;
+    }
+
+    /// <summary>
+    ///     The islands the package declarations in one file export — <c>Mui : ReactPackage</c> with
+    ///     <c>Exports =&gt; ["Button"]</c> is the island <c>MuiButton</c>, its snapshot beside the declaration. Exposed
+    ///     for tests.
+    /// </summary>
+    internal static IEnumerable<ScannedPackageIsland> ScanDeclarations(string text, string path)
+    {
+        if (text.IndexOf("Package", StringComparison.Ordinal) < 0)
+        {
+            yield break;
+        }
+
+        var structure = Blank(text);
+        foreach (Match declaration in PackageDeclaration.Matches(structure))
+        {
+            var open = structure.IndexOfAny(['{', ';'], declaration.Index + declaration.Length);
+            if (open < 0 || structure[open] != '{')
+            {
+                continue;
+            }
+
+            var close = MatchingBrace(structure, open);
+            if (close < 0
+                || FindOverride(ModuleOverride, text, structure, open + 1, close) is not { } module
+                || !ExternalPackageSpecifier.IsBare(module.Value)
+                || FindExports(text, structure, open + 1, close) is not { } exports)
+            {
+                continue;
+            }
+
+            var name = declaration.Groups["name"].Value;
+            var runtime = declaration.Groups["runtime"].Value.ToLowerInvariant();
+            var line = LineOf(text, exports.Position);
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var export in exports.Values)
+            {
+                var member = ExternalPackageSpecifier.MemberName(export);
+                if (member.Length != 0 && seen.Add(member))
+                {
+                    yield return new ScannedPackageIsland(name + member, runtime, module.Value, export, path, line);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    ///     The string literals an <c>Exports</c> override at the top level of a class body returns — a collection
+    ///     expression, <c>=&gt; ["Button", "Card"];</c>, or the same list as <c>new[] { … }</c> — or null when it is
+    ///     anything else. Plain literals only: an export name has nothing in it to escape.
+    /// </summary>
+    private static (List<string> Values, int Position)? FindExports(string text, string structure, int start, int end)
+    {
+        var body = structure.Substring(start, end - start);
+        foreach (Match match in ExportsOverride.Matches(body))
+        {
+            var at = start + match.Index;
+            if (Depth(structure, start, at) != 0)
+            {
+                continue;
+            }
+
+            var cursor = SkipSpace(structure, at + match.Length);
+            if (!Starts(structure, cursor, "=>"))
+            {
+                continue;
+            }
+
+            cursor = SkipSpace(structure, cursor + 2);
+            char closer;
+            if (Starts(structure, cursor, "["))
+            {
+                closer = ']';
+            }
+            else if (Starts(structure, cursor, "new"))
+            {
+                cursor = structure.IndexOf('{', cursor);
+                closer = '}';
+                if (cursor < 0)
+                {
+                    continue;
+                }
+            }
+            else
+            {
+                continue;
+            }
+
+            var stop = structure.IndexOf(closer, cursor + 1);
+            if (stop < 0 || !FollowedBySemicolon(structure, stop + 1))
+            {
+                continue;
+            }
+
+            var values = new List<string>();
+            var i = cursor + 1;
+            var valid = true;
+            while (valid)
+            {
+                i = SkipSpace(structure, i);
+                if (i >= stop)
+                {
+                    break;
+                }
+
+                if (structure[i] != '"')
+                {
+                    valid = false;
+                    break;
+                }
+
+                var closing = structure.IndexOf('"', i + 1);
+                var value = closing < 0 || closing > stop ? null : text.Substring(i + 1, closing - i - 1);
+                if (value is null || value.IndexOf('\\') >= 0)
+                {
+                    valid = false;
+                    break;
+                }
+
+                values.Add(value);
+                i = SkipSpace(structure, closing + 1);
+                if (i < stop && structure[i] == ',')
+                {
+                    i++;
+                }
+                else if (i < stop)
+                {
+                    valid = false;
+                }
+            }
+
+            if (valid)
+            {
+                return (values, at);
+            }
+        }
+
+        return null;
     }
 
     /// <summary>The package islands one file declares. Exposed for tests.</summary>

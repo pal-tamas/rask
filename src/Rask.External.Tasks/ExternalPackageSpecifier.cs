@@ -102,6 +102,39 @@ internal static class ExternalPackageSpecifier
         return true;
     }
 
+    /// <summary>
+    ///     A package declaration's member for an export — <c>Button</c>, <c>Switch.Root</c> is <c>SwitchRoot</c>,
+    ///     <c>sl-switch</c> is <c>SlSwitch</c> — or empty when the export cannot be one.
+    /// </summary>
+    /// <remarks>
+    ///     The same rule as the generator's <c>PackageDeclarations.MemberName</c>, restated because this assembly cannot
+    ///     reference the analyzer; the island's name is the declaration's plus this, and both halves must spell it alike
+    ///     or the snapshot extracted here is not the one the generator reads.
+    /// </remarks>
+    public static string MemberName(string export)
+    {
+        var sb = new System.Text.StringBuilder(export.Length);
+        var upper = true;
+        foreach (var c in export)
+        {
+            if (c is '.' or '-' or '_')
+            {
+                upper = true;
+                continue;
+            }
+
+            if (!char.IsLetterOrDigit(c))
+            {
+                return string.Empty;
+            }
+
+            sb.Append(upper ? char.ToUpperInvariant(c) : c);
+            upper = false;
+        }
+
+        return sb.Length != 0 && char.IsLetter(sb[0]) ? sb.ToString() : string.Empty;
+    }
+
     private static bool IsIdentifier(string name)
     {
         if (name.Length == 0 || !(char.IsLetter(name[0]) || name[0] is '_' or '$'))

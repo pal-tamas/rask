@@ -238,6 +238,66 @@ public sealed class ExternalPackageScanTests
     }
 
     [Theory]
+    [InlineData("protected override string[] Exports => [\"Button\", \"Card\"];")]
+    [InlineData("protected override string[] Exports => new[] { \"Button\", \"Card\" };")]
+    [InlineData("protected override string[] Exports =>\n        [\n            \"Button\",\n            \"Card\",\n        ];")]
+    public void A_package_declaration_is_one_island_per_export_beside_it(string exports)
+    {
+        var islands = ExternalPackageScan.ScanDeclarations(
+            $"namespace Shop;\npublic sealed partial class Mui : ReactPackage\n{{\n    protected override string Module => \"@mui/material\";\n    {exports}\n}}\n",
+            "/src/Shop/Mui.cs").ToList();
+
+        Assert.Equal(["MuiButton", "MuiCard"], islands.Select(static i => i.Name));
+        Assert.All(islands, static i =>
+        {
+            Assert.Equal("react", i.Runtime);
+            Assert.Equal("@mui/material", i.Module);
+            Assert.Equal(Path.Combine("/src/Shop", i.Name + ".props.json"), i.SnapshotPath);
+            Assert.Equal(5, i.Line);
+        });
+        Assert.Equal(["Button", "Card"], islands.Select(static i => i.Export));
+    }
+
+    [Theory]
+    [InlineData("Svelte", "svelte", "Switch.Root", "BitsSwitchRoot")]
+    [InlineData("Lit", "lit", "sl-switch", "BitsSlSwitch")]
+    [InlineData("Rask.External.Vue", "vue", "Card", "BitsCard")]
+    public void A_declaration_names_its_runtime_and_each_island_after_its_export(
+        string baseName, string runtime, string export, string island)
+    {
+        var scanned = Assert.Single(ExternalPackageScan.ScanDeclarations(
+            $"partial class Bits : {baseName}Package {{ protected override string Module => \"bits\"; "
+            + $"protected override string[] Exports => [\"{export}\"]; }}",
+            "/src/Bits.cs"));
+
+        Assert.Equal(runtime, scanned.Runtime);
+        Assert.Equal(island, scanned.Name);
+    }
+
+    [Theory]
+    [InlineData("protected override string[] Exports => All;")]
+    [InlineData("protected override string[] Exports => [Name, \"Card\"];")]
+    [InlineData("protected override string[] Exports => [\"Car\\\"d\"];")]
+    public void A_computed_exports_list_declares_nothing_and_is_left_to_the_generator(string exports)
+    {
+        Assert.Empty(ExternalPackageScan.ScanDeclarations(
+            $"partial class Mui : ReactPackage {{ protected override string Module => \"@mui/material\"; {exports} }}",
+            "/src/Mui.cs"));
+    }
+
+    // Pinned against the generator's PackageDeclarations.MemberName with the same cases: the island's name is spelled
+    // from it on both sides, and a disagreement would extract a snapshot the generator never reads.
+    [Theory]
+    [InlineData("Button", "Button")]
+    [InlineData("Switch.Root", "SwitchRoot")]
+    [InlineData("sl-switch", "SlSwitch")]
+    [InlineData("x'};alert(1)//", "")]
+    public void An_export_is_named_for_the_call_site(string export, string member)
+    {
+        Assert.Equal(member, ExternalPackageSpecifier.MemberName(export));
+    }
+
+    [Theory]
     [InlineData("@mui/material/Button", true)]
     [InlineData("react-colorful", true)]
     [InlineData("./Chart.tsx", false)]

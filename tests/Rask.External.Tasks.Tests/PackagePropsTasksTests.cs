@@ -136,6 +136,27 @@ public sealed class PackagePropsTasksTests : IDisposable
     }
 
     [Fact]
+    public void A_package_declaration_joins_the_island_list_once_per_export()
+    {
+        var source = Write("Shop/Mui.cs",
+            "namespace Shop;\npublic sealed partial class Mui : ReactPackage\n{\n"
+            + "    protected override string Module => \"@mui/material\";\n"
+            + "    protected override string[] Exports => [\"Button\", \"Card\"];\n}\n");
+
+        var engine = new RecordingEngine();
+        var task = new FindExternalPackageIslandsTask { BuildEngine = engine, Sources = [new TaskItem(source)] };
+
+        Assert.True(task.Execute());
+        Assert.Empty(engine.Errors);
+        Assert.Equal(
+            [Path.Combine(_root, "Shop", "MuiButton.props.json"), Path.Combine(_root, "Shop", "MuiCard.props.json")],
+            task.PackageIslands.Select(static i => i.ItemSpec));
+        Assert.All(task.PackageIslands, static i => Assert.Equal("@mui/material", i.GetMetadata("PackageModule")));
+        Assert.Equal(["Button", "Card"], task.PackageIslands.Select(static i => i.GetMetadata("PackageExport")));
+        Assert.All(task.PackageIslands, i => Assert.Equal(source, i.GetMetadata("DeclaringFile")));
+    }
+
+    [Fact]
     public void An_export_on_an_island_that_names_no_package_is_refused_rather_than_ignored()
     {
         var source = Write("Chart.cs",

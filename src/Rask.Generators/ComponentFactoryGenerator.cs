@@ -142,9 +142,8 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             .CreateSyntaxProvider(
                 static (node, _) => node is ClassDeclarationSyntax c && c.BaseList is { Types.Count: > 0 } &&
                                     !c.Modifiers.Any(m => m.IsKind(SyntaxKind.AbstractKeyword)),
-                static (ctx, _) => GetCandidate(ctx))
-            .Where(static c => c is not null)
-            .Select(static (c, _) => c!);
+                static (ctx, _) => GetCandidates(ctx))
+            .SelectMany(static (c, _) => c);
 
         // A package island's props come from its committed snapshot — an additional file the syntax transform
         // above cannot read — so they are merged in after collection. See WithPackageProps.
@@ -4725,6 +4724,101 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         string Parameters,
         string Arguments);
 
+    /// <summary>
+    ///     The candidates one class declaration contributes: itself, or — for a package declaration
+    ///     (<c>Mui : ReactPackage</c>) — one island per export, none of which is in source.
+    /// </summary>
+    private static EquatableArray<Candidate> GetCandidates(GeneratorSyntaxContext ctx)
+    {
+        if (ctx.Node is ClassDeclarationSyntax classDecl
+            && ctx.SemanticModel.GetDeclaredSymbol(classDecl) is INamedTypeSymbol symbol
+            && global::Rask.Generators.External.PackageIslands.PackageDeclarations.Read(symbol) is { } declaration)
+        {
+            return PackageCandidates(symbol, classDecl, declaration, ctx.SemanticModel.Compilation);
+        }
+
+        return GetCandidate(ctx) is { } candidate
+            ? new EquatableArray<Candidate>(new[] { candidate })
+            : default;
+    }
+
+    /// <summary>
+    ///     A package declaration's islands as candidates: each is the runtime's base class — the same inherited surface
+    ///     a declared <c>sealed partial class MuiButton : ReactComponent</c> would have — named for its export, with its
+    ///     props from the snapshot (<c>WithPackageProps</c>)
+    ///     and its entry on the declaration: <c>Mui.Button</c>.
+    /// </summary>
+    /// <remarks>
+    ///     Synthesized rather than read, because the island class is written by <c>ExternalGenerator</c> and no
+    ///     generator sees another's output. Both expand the declaration through <c>PackageDeclarations</c>, which is what
+    ///     keeps the class and its chain describing one component.
+    /// </remarks>
+    private static EquatableArray<Candidate> PackageCandidates(
+        INamedTypeSymbol declaration,
+        ClassDeclarationSyntax classDecl,
+        global::Rask.Generators.External.PackageIslands.PackageDeclaration read,
+        Compilation compilation)
+    {
+        if (read.Failed is not null
+            || read.Module is not { } module
+            || !global::Rask.Generators.External.PackageIslands.PackageSpecifier.IsBare(module)
+            || global::Rask.Generators.External.PackageIslands.PackageDeclarations.RuntimeBase(compilation, read.Runtime)
+                is not { } runtimeBase)
+        {
+            return default;
+        }
+
+        var ns = declaration.ContainingNamespace.IsGlobalNamespace
+            ? string.Empty
+            : declaration.ContainingNamespace.ToDisplayString();
+        var properties = GetFactoryProperties(runtimeBase, false, compilation);
+        var lifecycle = OverridesLifecycleHook(runtimeBase);
+        var isPublic = IsExternallyVisible(declaration);
+        var inherited = ReachableMemberNames(runtimeBase);
+
+        var result = new List<Candidate>();
+        foreach (var island in read.Islands)
+        {
+            var memberNames = new SortedSet<string>(inherited, StringComparer.Ordinal) { island.Name };
+            result.Add(new Candidate(
+                ns,
+                island.Name,
+                island.Name,
+                ns.Length == 0 ? "global::" + island.Name : $"global::{ns}.{island.Name}",
+                string.Empty,
+                default,
+                string.Empty,
+                HasParameterlessCtor: true,
+                HasDIConstructor: false,
+                isPublic,
+                GenericFactory: null,
+                FormControl: null,
+                SubmitAware: false,
+                ColumnHost: false,
+                new EquatableArray<PropInfo>(properties),
+                default,
+                IsPartial: true,
+                IsNested: false,
+                IsElement: false,
+                lifecycle,
+                classDecl.Identifier.GetLocation().SourceTree?.FilePath ?? string.Empty,
+                classDecl.Identifier.Span.Start,
+                classDecl.Identifier.Span.Length,
+                $"<c>{EscapeXml(island.Export)}</c> from <c>{EscapeXml(module)}</c>.",
+                new EquatableArray<string>(memberNames.ToArray()),
+                default,
+                true,
+                global::Rask.Generators.External.PackageIslands.PackageDeclarations.Facts(
+                    declaration, read, island, runtimeBase),
+                GroupOn(declaration, island.Member)));
+        }
+
+        return new EquatableArray<Candidate>(result.ToArray());
+    }
+
+    private static string EscapeXml(string text) =>
+        text.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
+
     private static Candidate? GetCandidate(GeneratorSyntaxContext ctx)
     {
         if (ctx.Node is not ClassDeclarationSyntax classDecl)
@@ -4864,26 +4958,32 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                     ? named
                     : GroupMemberName(entryName, group.Name);
 
-                var headers = new List<string>();
-                var partial = true;
-                for (var g = group; g is not null; g = g.ContainingType)
-                {
-                    headers.Add($"{AccessibilityKeyword(g)}{(g.IsStatic ? "static " : string.Empty)}partial class {g.Name}");
-                    partial &= g.DeclaringSyntaxReferences.Any(static r =>
-                        r.GetSyntax() is TypeDeclarationSyntax decl && decl.Modifiers.Any(SyntaxKind.PartialKeyword));
-                }
-
-                headers.Reverse();
-                return new ChainGroup(
-                    group.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                    group.ContainingNamespace.IsGlobalNamespace ? string.Empty : group.ContainingNamespace.ToDisplayString(),
-                    new EquatableArray<string>(headers.ToArray()),
-                    member,
-                    partial);
+                return GroupOn(group, member);
             }
         }
 
         return null;
+    }
+
+    /// <summary>The entry <paramref name="member" /> on <paramref name="group" />, as the partial that re-opens it.</summary>
+    private static ChainGroup GroupOn(INamedTypeSymbol group, string member)
+    {
+        var headers = new List<string>();
+        var partial = true;
+        for (var g = group; g is not null; g = g.ContainingType)
+        {
+            headers.Add($"{AccessibilityKeyword(g)}{(g.IsStatic ? "static " : string.Empty)}partial class {g.Name}");
+            partial &= g.DeclaringSyntaxReferences.Any(static r =>
+                r.GetSyntax() is TypeDeclarationSyntax decl && decl.Modifiers.Any(SyntaxKind.PartialKeyword));
+        }
+
+        headers.Reverse();
+        return new ChainGroup(
+            group.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            group.ContainingNamespace.IsGlobalNamespace ? string.Empty : group.ContainingNamespace.ToDisplayString(),
+            new EquatableArray<string>(headers.ToArray()),
+            member,
+            partial);
     }
 
     /// <summary>

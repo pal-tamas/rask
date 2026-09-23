@@ -1206,7 +1206,8 @@ else's file and is left alone.
 **External component must be partial** · Error
 
 A `ReactComponent` or `LitComponent` is completed by a second part of the class: its name, its module
-and its props writer. Without `partial` there is nowhere to put any of it.
+and its props writer. Without `partial` there is nowhere to put any of it. A package declaration
+(`Mui : ReactPackage`) is completed the same way — its components' entries, `Mui.Button`, are generated into it.
 
 ```csharp
 // ✗ RASK056 — nothing can be generated into it
@@ -1264,7 +1265,8 @@ Rename one, or give it an explicit module by overriding `Module`.
 The bundler needs the module specifier at *build* time, to generate the entry that pairs the component
 with its adapter — long before any of this code runs. So the override has to be a literal the
 generator can read straight out of the syntax. The same holds for a package island's `Export`, which names the
-component the entry imports.
+component the entry imports, and for a package declaration's `Exports`, which must be a list of string literals
+(`=> ["Button", "Card"]`).
 
 ```csharp
 // ✗ RASK059 — the build cannot evaluate this

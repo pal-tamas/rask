@@ -9,6 +9,25 @@ them until tagged releases begin.
 
 ### Added
 
+- **Several npm components from one package, reached as `Mui.Button`.** Declare the package once and list what you
+  use from it; each export becomes a package island, with its props generated from the package's TypeScript exactly
+  as a single island's are:
+
+  ```csharp
+  public sealed partial class Mui : ReactPackage
+  {
+      protected override string Module => "@mui/material";
+      protected override string[] Exports => ["Button", "Card"];
+  }
+
+  Mui.Card[ Mui.Button.Variant(MuiButtonVariant.Contained).OnClick(Save)["Save"] ]
+  ```
+
+  Typing `Mui.` lists the package's components, and none of them takes a bare name, so `Button` stays the HTML
+  `<button>`. One class per runtime: `ReactPackage`, `PreactPackage`, `SolidPackage`, `VuePackage`, `SveltePackage`,
+  `AngularPackage`, `LitPackage`. The snapshots sit beside the declaration (`MuiButton.props.json`). The rask.sh
+  islands demo now declares react-colorful this way, with its picker and hex field bound to one colour.
+
 - **Subscriptions: `QueryClient.Subscribe<T>()`, tRPC-style, over CQRS notifications.** A component subscribes where it
   queries — `var placed = QueryClient.Subscribe<OrderPlaced>().Keep(20);` in `Render`, or `field ??=
   QueryClient.Subscribe<OrderShipped>(() => Id)` — and every notification published afterwards re-renders it, whoever

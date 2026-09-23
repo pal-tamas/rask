@@ -470,7 +470,7 @@ internal static class PackageIslandProps
     private static bool HasSkipFactory(ISymbol symbol) =>
         symbol.GetAttributes().Any(static a => a.AttributeClass?.ToDisplayString() == SkipFactoryName);
 
-    private static bool IsExternallyVisible(INamedTypeSymbol type)
+    internal static bool IsExternallyVisible(INamedTypeSymbol type)
     {
         for (ISymbol? s = type; s is INamedTypeSymbol t; s = t.ContainingType)
         {
