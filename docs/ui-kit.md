@@ -171,6 +171,10 @@ a palette: it means the absence of a choice, so selecting it **removes** `data-t
 `prefers-color-scheme` decide again. Turn it off with `.ShowSystem(false)`, rename it with
 `.SystemLabel("Automatic")`.
 
+`UiThemeDropdown` puts the picker in a `UiPopover`, so it closes on Escape, on a click outside and on its
+trigger. It stays open while a theme is picked — the page restyles on each pick, so the arrow keys preview the
+palettes one after another.
+
 Never stamp `data-theme="system"`. daisyUI compiles no block for it, so it matches nothing and leaves
 every `--color-base-*` undefined on the element your document inherits from — a fully laid-out page
 with no colour in it, and nothing reports why.

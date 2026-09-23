@@ -21,10 +21,10 @@ namespace Rask.Site;
 ///         sidebar's hamburger, which has to be in the bar because that is where a thumb reaches for it.
 ///     </para>
 ///     <para>
-///         <b>No C# event handlers live here.</b> The theme picker is the kit's CSS-only one and the
-///         hamburger is a label for the sidebar's checkbox, both deliberately: handler ids are
-///         positional, so a handler in the chrome of every page shifts every id after it and silently
-///         breaks the islands page. <c>App.ThemeInitJs</c> remembers the theme instead.
+///         The theme picker is the kit's <see cref="UiThemeDropdown" />, a popover so it closes on Escape
+///         and on a click outside; its panel reports its toggle through one C# handler. The hamburger is a
+///         label for the sidebar's checkbox. <c>App.ThemeInitJs</c> remembers the theme — the radios are
+///         CSS-only, so no handler runs when one is picked.
 ///     </para>
 /// </remarks>
 internal sealed partial class SiteHeader : Component
