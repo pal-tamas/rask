@@ -24,12 +24,12 @@ public sealed record Unhandled : IQuery<int>;
 [AllowAnonymous]
 public sealed class GetPublicStatsHandler : IQueryHandler<GetPublicStats, int>
 {
-    public Task<int> HandleAsync(GetPublicStats query, CancellationToken cancellationToken) => Task.FromResult(7);
+    public Task<int> Handle(GetPublicStats query) => Task.FromResult(7);
 }
 
 public sealed class GetSecretHandler : IQueryHandler<GetSecret, string>
 {
-    public Task<string> HandleAsync(GetSecret query, CancellationToken cancellationToken) =>
+    public Task<string> Handle(GetSecret query) =>
         Task.FromResult($"secret-{query.Id}");
 }
 
@@ -37,7 +37,7 @@ public sealed class DeleteThingHandler : ICommandHandler<DeleteThing>
 {
     public static int Deleted { get; set; }
 
-    public Task HandleAsync(DeleteThing command, CancellationToken cancellationToken)
+    public Task Handle(DeleteThing command)
     {
         Deleted = command.Id;
         return Task.CompletedTask;
@@ -47,33 +47,33 @@ public sealed class DeleteThingHandler : ICommandHandler<DeleteThing>
 [Authorize(Roles = "admin")]
 public sealed class AdminPurgeHandler : ICommandHandler<AdminPurge>
 {
-    public Task HandleAsync(AdminPurge command, CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task Handle(AdminPurge command) => Task.CompletedTask;
 }
 
 [Authorize(Policy = "members")]
 public sealed class MembersOnlyHandler : ICommandHandler<MembersOnly>
 {
-    public Task HandleAsync(MembersOnly command, CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task Handle(MembersOnly command) => Task.CompletedTask;
 }
 
 public sealed class ExplodesHandler : IQueryHandler<Explodes, int>
 {
-    public Task<int> HandleAsync(Explodes query, CancellationToken cancellationToken) =>
+    public Task<int> Handle(Explodes query) =>
         throw new InvalidOperationException("connection string is Server=db;Password=hunter2");
 }
 
 public sealed class UploadedHandler : ICommandHandler<Uploaded, string>
 {
-    public async Task<string> HandleAsync(Uploaded command, CancellationToken cancellationToken)
+    public async Task<string> Handle(Uploaded command)
     {
-        using var reader = new StreamReader(command.File.OpenReadStream(command.File.Size, cancellationToken));
-        return $"{command.Note}:{await reader.ReadToEndAsync(cancellationToken)}";
+        using var reader = new StreamReader(command.File.OpenReadStream(command.File.Size, Current.Cancellation));
+        return $"{command.Note}:{await reader.ReadToEndAsync(Current.Cancellation)}";
     }
 }
 
 public sealed class ExportHandler : IQueryHandler<Export, FileDownload>
 {
-    public Task<FileDownload> HandleAsync(Export query, CancellationToken cancellationToken) =>
+    public Task<FileDownload> Handle(Export query) =>
         Task.FromResult(FileDownload.FromBytes("../../etc/passwd", "text/csv", "id,name\n1,a"u8.ToArray()));
 }
 
@@ -95,7 +95,7 @@ public sealed record UploadMany(
 
 public sealed class UploadManyHandler : ICommandHandler<UploadMany, string>
 {
-    public async Task<string> HandleAsync(UploadMany command, CancellationToken cancellationToken)
+    public async Task<string> Handle(UploadMany command)
     {
         RaskFile[] files =
         [
@@ -106,8 +106,8 @@ public sealed class UploadManyHandler : ICommandHandler<UploadMany, string>
         var contents = new List<string>(files.Length);
         foreach (var file in files)
         {
-            using var reader = new StreamReader(file.OpenReadStream(file.Size, cancellationToken));
-            contents.Add(await reader.ReadToEndAsync(cancellationToken));
+            using var reader = new StreamReader(file.OpenReadStream(file.Size, Current.Cancellation));
+            contents.Add(await reader.ReadToEndAsync(Current.Cancellation));
         }
 
         return string.Join(",", contents);

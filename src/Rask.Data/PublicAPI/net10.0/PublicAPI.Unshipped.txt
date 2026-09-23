@@ -268,12 +268,19 @@ static Rask.Data.Tenant.Use(System.Guid tenant) -> System.IDisposable!
 static Rask.Data.TestDatabase.StartAsync(System.Action<Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!>! configure, System.TimeProvider? timeProvider = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.TestDatabase!>!
 Rask.Data.JsonIndexBuilderExtensions
 static Rask.Data.JsonIndexBuilderExtensions.HasJsonIndex<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! builder, System.Linq.Expressions.Expression<System.Func<TEntity!, object?>!>! path) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>!
-Rask.Data.Current
 Rask.Data.IPrincipalSource
 Rask.Data.IPrincipalSource.Current.get -> System.Security.Claims.ClaimsPrincipal?
-static Rask.Data.Current.Principal.get -> System.Security.Claims.ClaimsPrincipal?
-static Rask.Data.Current.UserId.get -> System.Guid?
-static Rask.Data.Current.RequiredUserId.get -> System.Guid
-static Rask.Data.Current.Tenant.get -> System.Guid?
-static Rask.Data.Current.RequiredTenant.get -> System.Guid
-static Rask.Data.Current.UseUser(System.Guid? userId) -> System.IDisposable!
+Rask.Data.CurrentUser
+Rask.Data.CurrentUser.extension(Rask.Current!)
+static Rask.Data.CurrentUser.UseUser(System.Guid? userId) -> System.IDisposable!
+static Rask.Data.CurrentUser.extension(Rask.Current!).Principal.get -> System.Security.Claims.ClaimsPrincipal?
+static Rask.Data.CurrentUser.extension(Rask.Current!).RequiredTenant.get -> System.Guid
+static Rask.Data.CurrentUser.extension(Rask.Current!).RequiredUserId.get -> System.Guid
+static Rask.Data.CurrentUser.extension(Rask.Current!).Tenant.get -> System.Guid?
+static Rask.Data.CurrentUser.extension(Rask.Current!).UseUser(System.Guid? userId) -> System.IDisposable!
+static Rask.Data.CurrentUser.extension(Rask.Current!).UserId.get -> System.Guid?
+static Rask.Data.CurrentUser.get_Principal() -> System.Security.Claims.ClaimsPrincipal?
+static Rask.Data.CurrentUser.get_RequiredTenant() -> System.Guid
+static Rask.Data.CurrentUser.get_RequiredUserId() -> System.Guid
+static Rask.Data.CurrentUser.get_Tenant() -> System.Guid?
+static Rask.Data.CurrentUser.get_UserId() -> System.Guid?

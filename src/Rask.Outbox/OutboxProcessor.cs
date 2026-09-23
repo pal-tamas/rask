@@ -246,7 +246,7 @@ public sealed class OutboxProcessor<TContext>(
                     // tenant of its own — the drain sees every tenant's rows precisely so it can do this.
                     using var tenant = message.TenantId is { } owner ? Tenant.Use(owner) : null;
 
-                    await dispatcher.PublishAsync(notification, graceToken).ConfigureAwait(false);
+                    await dispatcher.Publish(notification, graceToken).ConfigureAwait(false);
                     message.Published(timeProvider.GetUtcNow().UtcDateTime);
                     message.Release();
                     metrics.Processed(message.Type, timeProvider.GetElapsedTime(startedAt).TotalMilliseconds);

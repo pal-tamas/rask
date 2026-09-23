@@ -23,7 +23,7 @@ namespace Rask.Cqrs.Generators;
 ///         Contracts are collected from the compilation itself and from any referenced assembly that
 ///         references Rask.Cqrs — in a hosted app, that is the shared contracts library both halves
 ///         compile against. Messages marked <c>[LocalOnly]</c>, directly or through an interface they
-///         implement, are excluded: that is how <c>IBackgroundJob</c> and <c>IOutboxEvent</c> keep whole families
+///         implement, are excluded: that is how <c>IJob</c> and <c>IOutboxEvent</c> keep whole families
 ///         of always-in-process messages out of the wire vocabulary.
 ///     </para>
 /// </remarks>
@@ -545,13 +545,13 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
             var local = contract.Kind switch
             {
                 RemoteKind.Query =>
-                    $"(object)await Dispatcher(provider).QueryAsync((global::Rask.Cqrs.IQuery<{contract.ResultFqn}>)message, cancellationToken)",
+                    $"(object)await Dispatcher(provider).Query((global::Rask.Cqrs.IQuery<{contract.ResultFqn}>)message, cancellationToken)",
                 RemoteKind.ResultCommand =>
-                    $"(object)await Dispatcher(provider).SendAsync((global::Rask.Cqrs.ICommand<{contract.ResultFqn}>)message, cancellationToken)",
+                    $"(object)await Dispatcher(provider).Send((global::Rask.Cqrs.ICommand<{contract.ResultFqn}>)message, cancellationToken)",
                 RemoteKind.VoidCommand =>
-                    "await Dispatcher(provider).SendAsync((global::Rask.Cqrs.ICommand)message, cancellationToken); return null",
+                    "await Dispatcher(provider).Send((global::Rask.Cqrs.ICommand)message, cancellationToken); return null",
                 _ =>
-                    $"await Dispatcher(provider).PublishAsync(({contract.Message.Fqn})message, cancellationToken); return null",
+                    $"await Dispatcher(provider).Publish(({contract.Message.Fqn})message, cancellationToken); return null",
             };
 
             // Emitted only where a handler actually exists, so the endpoint can tell "I cannot serve this"

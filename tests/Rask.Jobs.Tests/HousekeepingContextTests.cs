@@ -30,7 +30,7 @@ public sealed class HousekeepingContextTests
         // The application's own call, on the application's own factory — the SQL a developer turned
         // Information on to read. It has to still be here, or the assertion below proves nothing: a sink
         // that never receives an EF command log is green whatever the batteries do.
-        await h.Queue.EnqueueAsync(new RecordJob("quiet"));
+        await h.Queue.Enqueue(new RecordJob("quiet"));
         Assert.Contains(h.Logs, l => l.StartsWith(Executed, StringComparison.Ordinal));
 
         h.Logs.Clear();

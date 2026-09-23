@@ -54,21 +54,21 @@ public sealed record SaboteurEvent : IOutboxEvent;
 
 public sealed class SaboteurEventHandler(IDbContextFactory<OutboxDbContext> factory) : INotificationHandler<SaboteurEvent>
 {
-    public async Task HandleAsync(SaboteurEvent notification, CancellationToken cancellationToken)
+    public async Task Handle(SaboteurEvent notification)
     {
-        await using var db = await factory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using var db = await factory.CreateDbContextAsync(Current.Cancellation).ConfigureAwait(false);
         var doomed = await db.Set<OutboxMessage>()
             .Where(m => m.ProcessedAt == null)
             .OrderByDescending(m => m.Id)
             .Select(m => m.Id)
-            .FirstOrDefaultAsync(cancellationToken)
+            .FirstOrDefaultAsync(Current.Cancellation)
             .ConfigureAwait(false);
 
         if (doomed != 0)
         {
             await db.Set<OutboxMessage>()
                 .Where(m => m.Id == doomed)
-                .ExecuteDeleteAsync(cancellationToken)
+                .ExecuteDeleteAsync(Current.Cancellation)
                 .ConfigureAwait(false);
         }
     }
@@ -90,7 +90,7 @@ public sealed class Recorder
 
 public sealed class OrderPlacedHandler(Recorder recorder) : INotificationHandler<OrderPlaced>
 {
-    public Task HandleAsync(OrderPlaced notification, CancellationToken cancellationToken)
+    public Task Handle(OrderPlaced notification)
     {
         recorder.Add(notification);
         return Task.CompletedTask;

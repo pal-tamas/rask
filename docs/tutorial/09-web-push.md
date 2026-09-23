@@ -112,7 +112,7 @@ more handler hanging off that event:
 public sealed class OrderShippedHandler(IWebPush sender, PushSubscriptionStore store)
     : INotificationHandler<OrderShipped>
 {
-    public async Task HandleAsync(OrderShipped notification, CancellationToken cancellationToken)
+    public async Task Handle(OrderShipped notification)
     {
         var message = WebPushMessage.Text(
             "Your order shipped",
@@ -121,7 +121,7 @@ public sealed class OrderShippedHandler(IWebPush sender, PushSubscriptionStore s
 
         foreach (var subscription in store.All)
         {
-            var result = await sender.SendAsync(subscription, message, cancellationToken);
+            var result = await sender.SendAsync(subscription, message, Current.Cancellation);
 
             // A subscription that has expired (404/410) will never work again — drop it rather than
             // retrying forever. `ShouldDelete` and `ShouldRetry` map the status to the action, so the

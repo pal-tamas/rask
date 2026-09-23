@@ -411,7 +411,7 @@ public sealed record GetOrder(Guid Id) : IQuery<Order>;
 
 public sealed class GetOrderHandler : IQueryHandler<GetOrder, Order>
 {
-    public Task<Order> HandleAsync(GetOrder query, CancellationToken cancellationToken) => /* … */;
+    public Task<Order> Handle(GetOrder query) => /* … */;
 }
 ```
 

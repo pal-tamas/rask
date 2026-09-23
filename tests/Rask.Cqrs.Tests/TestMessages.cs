@@ -17,7 +17,7 @@ public sealed record Add(int A, int B) : IQuery<int>;
 
 public sealed class AddHandler : IQueryHandler<Add, int>
 {
-    public Task<int> HandleAsync(Add query, CancellationToken cancellationToken) =>
+    public Task<int> Handle(Add query) =>
         Task.FromResult(query.A + query.B);
 }
 
@@ -26,7 +26,7 @@ public sealed record Poke(string Name) : ICommand;
 
 public sealed class PokeHandler(Recorder recorder) : ICommandHandler<Poke>
 {
-    public Task HandleAsync(Poke command, CancellationToken cancellationToken)
+    public Task Handle(Poke command)
     {
         recorder.Add($"poke:{command.Name}");
         return Task.CompletedTask;
@@ -38,7 +38,7 @@ public sealed record CreateThing(string Name) : ICommand<int>;
 
 public sealed class CreateThingHandler : ICommandHandler<CreateThing, int>
 {
-    public Task<int> HandleAsync(CreateThing command, CancellationToken cancellationToken) =>
+    public Task<int> Handle(CreateThing command) =>
         Task.FromResult(command.Name.Length);
 }
 
@@ -47,7 +47,7 @@ public sealed record Pinged(string Message) : INotification;
 
 public sealed class PingedHandlerA(Recorder recorder) : INotificationHandler<Pinged>
 {
-    public Task HandleAsync(Pinged notification, CancellationToken cancellationToken)
+    public Task Handle(Pinged notification)
     {
         recorder.Add($"A:{notification.Message}");
         return Task.CompletedTask;
@@ -56,7 +56,7 @@ public sealed class PingedHandlerA(Recorder recorder) : INotificationHandler<Pin
 
 public sealed class PingedHandlerB(Recorder recorder) : INotificationHandler<Pinged>
 {
-    public Task HandleAsync(Pinged notification, CancellationToken cancellationToken)
+    public Task Handle(Pinged notification)
     {
         recorder.Add($"B:{notification.Message}");
         return Task.CompletedTask;
@@ -69,7 +69,7 @@ public sealed record Unheard : INotification;
 // ---- An open-generic behavior that records entry/exit around every request ----
 public sealed class TracingBehavior<TRequest, TResult>(Recorder recorder) : IPipelineBehavior<TRequest, TResult>
 {
-    public async Task<TResult> HandleAsync(TRequest request, RequestHandlerDelegate<TResult> next, CancellationToken cancellationToken)
+    public async Task<TResult> Handle(TRequest request, RequestHandlerDelegate<TResult> next)
     {
         recorder.Add($"trace-in:{typeof(TRequest).Name}");
         var result = await next();
@@ -81,7 +81,7 @@ public sealed class TracingBehavior<TRequest, TResult>(Recorder recorder) : IPip
 // ---- A second behavior to prove ordering ----
 public sealed class SecondBehavior<TRequest, TResult>(Recorder recorder) : IPipelineBehavior<TRequest, TResult>
 {
-    public async Task<TResult> HandleAsync(TRequest request, RequestHandlerDelegate<TResult> next, CancellationToken cancellationToken)
+    public async Task<TResult> Handle(TRequest request, RequestHandlerDelegate<TResult> next)
     {
         recorder.Add("second-in");
         var result = await next();
@@ -93,7 +93,7 @@ public sealed class SecondBehavior<TRequest, TResult>(Recorder recorder) : IPipe
 // ---- A short-circuiting closed behavior for Add: returns 999 without calling next ----
 public sealed class ShortCircuitAdd(Recorder recorder) : IPipelineBehavior<Add, int>
 {
-    public Task<int> HandleAsync(Add request, RequestHandlerDelegate<int> next, CancellationToken cancellationToken)
+    public Task<int> Handle(Add request, RequestHandlerDelegate<int> next)
     {
         recorder.Add("short-circuit");
         return Task.FromResult(999);
@@ -110,7 +110,7 @@ public sealed record Grumble(string Tag) : INotification;
 
 public sealed class GrumbleOk(Recorder recorder) : INotificationHandler<Grumble>
 {
-    public Task HandleAsync(Grumble notification, CancellationToken cancellationToken)
+    public Task Handle(Grumble notification)
     {
         recorder.Add($"ok:{notification.Tag}");
         return Task.CompletedTask;
@@ -119,7 +119,7 @@ public sealed class GrumbleOk(Recorder recorder) : INotificationHandler<Grumble>
 
 public sealed class GrumbleBoomOne(Recorder recorder) : INotificationHandler<Grumble>
 {
-    public async Task HandleAsync(Grumble notification, CancellationToken cancellationToken)
+    public async Task Handle(Grumble notification)
     {
         recorder.Add($"boom1:{notification.Tag}");
         await Task.Yield();
@@ -129,7 +129,7 @@ public sealed class GrumbleBoomOne(Recorder recorder) : INotificationHandler<Gru
 
 public sealed class GrumbleBoomTwo(Recorder recorder) : INotificationHandler<Grumble>
 {
-    public async Task HandleAsync(Grumble notification, CancellationToken cancellationToken)
+    public async Task Handle(Grumble notification)
     {
         recorder.Add($"boom2:{notification.Tag}");
         await Task.Yield();

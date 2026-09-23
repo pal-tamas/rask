@@ -26,7 +26,7 @@ public sealed class QueueDetailSheetTests
             configure: o => o.Actions = RaskDashboardActions.Safe | RaskDashboardActions.Destructive);
 
         var now = h.Clock.GetUtcNow().UtcDateTime;
-        var max = h.Get<JobOptions>().MaxAttempts;
+        var max = h.Get<JobsOptions>().MaxAttempts;
         await SeedDeadLetterAsync(h, now, max);
 
         var page = await RenderQueueAsync(h);
@@ -57,7 +57,7 @@ public sealed class QueueDetailSheetTests
             configure: o => o.Actions = RaskDashboardActions.Safe | RaskDashboardActions.Destructive);
 
         var now = h.Clock.GetUtcNow().UtcDateTime;
-        var max = h.Get<JobOptions>().MaxAttempts;
+        var max = h.Get<JobsOptions>().MaxAttempts;
         await SeedDeadLetterAsync(h, now, max);
 
         var page = await RenderQueueAsync(h);

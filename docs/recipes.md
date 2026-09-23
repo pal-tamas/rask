@@ -74,17 +74,17 @@ replace any of them by declaring your own page at the same route.
 
 ## Run work off the request thread
 
-Write a job record and handler, add one registration + its table, then enqueue. `EnqueueAsync` returns as
+Write a job record and handler, add one registration + its table, then enqueue. The enqueue returns as
 soon as the row is written, so the request finishes immediately; a background processor runs it
 at-least-once.
 
 ```csharp
-public sealed record SendOrderReceipt(Guid OrderId) : IBackgroundJob;
+public sealed record SendOrderReceipt(Guid OrderId) : IJob;
 ```
 ```csharp
 builder.Services.AddRaskJobs<ProductsDbContext>(o => { /* … */ });   // needs AddRaskCqrs()
 modelBuilder.AddRaskJobs();                                          // then: rask db add AddJobs && rask db update
-await jobs.EnqueueAsync(new SendOrderReceipt(order.Id), CancellationToken);
+await Jobs.Enqueue(new SendOrderReceipt(order.Id));                  // or: .In(24.Hours)
 ```
 
 → Reference: [background jobs](jobs.md) · Learn it: [Tutorial Ch 4](tutorial/04-background-jobs.md)

@@ -105,7 +105,7 @@ public sealed class JobMetrics : IDisposable
     /// <summary>
     ///     Records a job that shutdown cancelled after its grace period. Deliberately not a
     ///     <see cref="Failed" />: the job did not fail, it was interrupted, and it re-runs on restart with
-    ///     its attempt count untouched. A nonzero rate means <c>JobOptions.ShutdownGracePeriod</c> is
+    ///     its attempt count untouched. A nonzero rate means <c>JobsOptions.ShutdownGracePeriod</c> is
     ///     shorter than the work — and, since an interrupted job re-runs from the top, that any
     ///     non-idempotent handler is repeating its side effects.
     /// </summary>

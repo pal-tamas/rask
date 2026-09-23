@@ -142,7 +142,7 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
     // The request/result types are checked too because they are emitted alongside the handler, as
     // typeof(...) operands and generic arguments. That check is defensive rather than a known break:
     // C# already rejects a handler that exposes a less-accessible request through its public
-    // HandleAsync (CS0051), so in practice an unnameable request comes with an unnameable handler.
+    // Handle (CS0051), so in practice an unnameable request comes with an unnameable handler.
     //
     // Each reason comes back with what to do about it. RASK029 is a *Warning* announcing a guaranteed
     // production failure — the handler is skipped, so dispatching its request throws — and a warning you
@@ -396,19 +396,19 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         if (model.Kind == HandlerKind.CommandVoid)
         {
             sb.Append("        global::Rask.Cqrs.RequestHandlerDelegate<").Append(result)
-                .AppendLine("> next = async () => { await handler.HandleAsync(typed, ct).ConfigureAwait(false); return default; };");
+                .AppendLine("> next = async () => { await handler.Handle(typed).ConfigureAwait(false); return default; };");
         }
         else
         {
             sb.Append("        global::Rask.Cqrs.RequestHandlerDelegate<").Append(result)
-                .AppendLine("> next = () => handler.HandleAsync(typed, ct);");
+                .AppendLine("> next = () => handler.Handle(typed);");
         }
 
         sb.AppendLine("        for (int i = behaviors.Length - 1; i >= 0; i--)");
         sb.AppendLine("        {");
         sb.AppendLine("            var behavior = behaviors[i];");
         sb.AppendLine("            var prev = next;");
-        sb.AppendLine("            next = () => behavior.HandleAsync(typed, prev, ct);");
+        sb.AppendLine("            next = () => behavior.Handle(typed, prev);");
         sb.AppendLine("        }");
         sb.AppendLine();
         sb.AppendLine("        return next();");

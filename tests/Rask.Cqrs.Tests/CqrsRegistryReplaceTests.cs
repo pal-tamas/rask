@@ -48,16 +48,16 @@ public sealed class CqrsRegistryReplaceTests
         var key = new object();
         CqrsRegistry.ReplaceRequests(key, [(typeof(Kept), Records(log, "kept")), (typeof(Removed), Records(log, "removed"))]);
 
-        await Dispatcher().SendAsync(new Removed(1));
+        await Dispatcher().Send(new Removed(1));
 
         Assert.Equal(["removed"], log);
 
         CqrsRegistry.ReplaceRequests(key, [(typeof(Kept), Records(log, "kept"))]);
 
-        await Dispatcher().SendAsync(new Kept(1));
+        await Dispatcher().Send(new Kept(1));
 
         Assert.Equal(["removed", "kept"], log);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => Dispatcher().SendAsync(new Removed(1)));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Dispatcher().Send(new Removed(1)));
     }
 
     [Fact]
@@ -69,13 +69,13 @@ public sealed class CqrsRegistryReplaceTests
         var key = new object();
         CqrsRegistry.ReplaceNotifications(key, [(typeof(Noticed), Notes(log, "noticed"))]);
 
-        await Dispatcher().PublishAsync(new Noticed(1));
+        await Dispatcher().Publish(new Noticed(1));
 
         Assert.Equal(["noticed"], log);
 
         CqrsRegistry.ReplaceNotifications(key, []);
 
-        await Dispatcher().PublishAsync(new Noticed(1));
+        await Dispatcher().Publish(new Noticed(1));
 
         Assert.Equal(["noticed"], log); // no second entry: the deleted handler is gone
     }
@@ -93,11 +93,11 @@ public sealed class CqrsRegistryReplaceTests
 
         CqrsRegistry.ReplaceRequests(mine, []);
 
-        await Dispatcher().SendAsync(new OtherGroupKept(1));
+        await Dispatcher().Send(new OtherGroupKept(1));
 
         Assert.Equal(["theirs"], log);
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => Dispatcher().SendAsync(new OtherGroupRemoved(1)));
+            () => Dispatcher().Send(new OtherGroupRemoved(1)));
     }
 
     [Fact]
@@ -108,7 +108,7 @@ public sealed class CqrsRegistryReplaceTests
         CqrsRegistry.ReplaceRequests(key, []);
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => Dispatcher().SendAsync(new Orphaned(1)));
+            () => Dispatcher().Send(new Orphaned(1)));
 
         Assert.Contains(nameof(Orphaned), exception.Message, StringComparison.Ordinal);
     }

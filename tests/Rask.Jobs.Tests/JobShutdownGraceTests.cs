@@ -15,7 +15,7 @@ public sealed class JobShutdownGraceTests
     public async Task An_in_flight_job_finishes_within_the_grace()
     {
         await using var h = new JobsHarness(o => o.ShutdownGracePeriod = TimeSpan.FromSeconds(5));
-        await h.Queue.EnqueueAsync(new GateJob());
+        await h.Queue.Enqueue(new GateJob());
         await h.Processor.StartAsync(CancellationToken.None);
         await h.Gate.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
 
@@ -39,8 +39,8 @@ public sealed class JobShutdownGraceTests
         // The grace covers the job already running — it must not turn into "drain the whole batch",
         // which would make shutdown take one grace period per remaining job.
         await using var h = new JobsHarness(o => o.ShutdownGracePeriod = TimeSpan.FromSeconds(5));
-        await h.Queue.EnqueueAsync(new GateJob());
-        await h.Queue.EnqueueAsync(new RecordJob("second"));
+        await h.Queue.Enqueue(new GateJob());
+        await h.Queue.Enqueue(new RecordJob("second"));
         await h.Processor.StartAsync(CancellationToken.None);
         await h.Gate.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
 
@@ -63,7 +63,7 @@ public sealed class JobShutdownGraceTests
         // counting a redeploy as an attempt would let deploy cadence alone march never-failing work to its
         // dead letter. The row must stay exactly as eligible as it was.
         await using var h = new JobsHarness(o => o.ShutdownGracePeriod = TimeSpan.FromMilliseconds(50));
-        await h.Queue.EnqueueAsync(new GateJob());
+        await h.Queue.Enqueue(new GateJob());
         var runAtBefore = (await h.SingleJobAsync()).RunAt;
         await h.Processor.StartAsync(CancellationToken.None);
         await h.Gate.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
@@ -89,7 +89,7 @@ public sealed class JobShutdownGraceTests
     {
         // The documented opt-out, and the pre-existing behaviour.
         await using var h = new JobsHarness(o => o.ShutdownGracePeriod = TimeSpan.Zero);
-        await h.Queue.EnqueueAsync(new GateJob());
+        await h.Queue.Enqueue(new GateJob());
         await h.Processor.StartAsync(CancellationToken.None);
         await h.Gate.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
 
@@ -105,14 +105,14 @@ public sealed class JobShutdownGraceTests
     public void The_grace_defaults_to_five_seconds()
     {
         // Sized to fit the deploy ladder: `docker stop -t 20` ⊃ HostOptions.ShutdownTimeout 15s ⊃ this.
-        Assert.Equal(TimeSpan.FromSeconds(5), new JobOptions().ShutdownGracePeriod);
+        Assert.Equal(TimeSpan.FromSeconds(5), new JobsOptions().ShutdownGracePeriod);
     }
 
     [Fact]
     public void A_negative_grace_is_rejected_at_registration()
     {
         Assert.Throws<ArgumentOutOfRangeException>(
-            new JobOptions { ShutdownGracePeriod = TimeSpan.FromSeconds(-1) }.Validate);
+            new JobsOptions { ShutdownGracePeriod = TimeSpan.FromSeconds(-1) }.Validate);
     }
 
     [Fact]
@@ -121,7 +121,7 @@ public sealed class JobShutdownGraceTests
         // CancellationTokenSource.CancelAfter throws above int.MaxValue ms — and it would throw from the
         // shutdown path, the worst place to find out.
         Assert.Throws<ArgumentOutOfRangeException>(
-            new JobOptions { ShutdownGracePeriod = TimeSpan.FromDays(30) }.Validate);
+            new JobsOptions { ShutdownGracePeriod = TimeSpan.FromDays(30) }.Validate);
     }
 
     [Fact]
@@ -131,7 +131,7 @@ public sealed class JobShutdownGraceTests
         // OperationCanceledException stays an ordinary failure — the grace deadline is only ever armed by
         // the host token firing, so a real grace expiry always satisfies the filter anyway.
         await using var h = new JobsHarness();
-        await h.Queue.EnqueueAsync(new SelfCancellingJob());
+        await h.Queue.Enqueue(new SelfCancellingJob());
 
         await h.Processor.StartAsync(CancellationToken.None);
         try

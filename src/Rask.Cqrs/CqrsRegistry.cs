@@ -6,7 +6,7 @@ namespace Rask.Cqrs;
 /// <summary>
 /// The reflection-free dispatch table. Populated at module load by the code the Rask.Cqrs source
 /// generator emits (a <c>[ModuleInitializer]</c> per assembly that contains handlers), then read by
-/// <see cref="Dispatcher"/> at dispatch time and by <c>AddRaskCqrs</c> at registration time. Every
+/// <see cref="LocalDispatcher"/> at dispatch time and by <c>AddRaskCqrs</c> at registration time. Every
 /// entry is a compile-time closed-generic delegate, so no runtime reflection or assembly scanning
 /// occurs. This type is public only so generated code can call into it; you do not use it directly.
 /// </summary>

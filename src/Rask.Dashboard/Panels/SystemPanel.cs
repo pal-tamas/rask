@@ -86,9 +86,9 @@ public sealed record BackupSnapshotInfo(string Name, long SizeBytes, DateTime Cr
 
 /// <summary>A recurring job's schedule joined to when it actually last fired.</summary>
 /// <param name="Name">The durable name.</param>
-/// <param name="Interval">How often it should run.</param>
+/// <param name="Schedule">When it should run, as an operator reads it: "every 1h", "daily at 03:00".</param>
 /// <param name="LastEnqueuedAt">When it was last enqueued, or <c>null</c> if it never has been.</param>
-public sealed record RecurringJobRow(string Name, TimeSpan Interval, DateTime? LastEnqueuedAt);
+public sealed record RecurringJobRow(string Name, string Schedule, DateTime? LastEnqueuedAt);
 
 /// <summary>How the database is configured, as far as the dashboard can see from the open connection.</summary>
 /// <param name="Provider">The EF provider name.</param>
@@ -127,7 +127,7 @@ internal sealed class SystemPanel<TContext>(
     IServiceProvider services) : ISystemPanelReader
     where TContext : DbContext
 {
-    private readonly JobOptions? _jobOptions = services.GetService<JobOptions>();
+    private readonly JobsOptions? _jobOptions = services.GetService<JobsOptions>();
     private readonly IDashboardBackupProbe? _backup = services.GetService<IDashboardBackupProbe>();
 
     public bool HasBackupProbe => _backup is not null;
@@ -167,7 +167,7 @@ internal sealed class SystemPanel<TContext>(
 
     /// <summary>
     /// The registered recurring schedule joined to its durable state. Reads the schedule from
-    /// <see cref="JobOptions.RecurringJobs"/>, so it shows what the app declares even for a job that has
+    /// <see cref="JobsOptions.RecurringJobs"/>, so it shows what the app declares even for a job that has
     /// never run yet — a table-only view would silently omit exactly the one that is failing to fire.
     /// </summary>
     public async Task<IReadOnlyList<RecurringJobRow>> RecurringJobsAsync(CancellationToken cancellationToken)
@@ -190,7 +190,7 @@ internal sealed class SystemPanel<TContext>(
             .ConfigureAwait(false);
 
         return [.. _jobOptions.RecurringJobs.Select(r =>
-            new RecurringJobRow(r.Name, r.Interval, state.GetValueOrDefault(r.Name)))];
+            new RecurringJobRow(r.Name, r.Schedule?.ToString() ?? "", state.GetValueOrDefault(r.Name)))];
     }
 
     public Task<BackupReplicationInfo?> ReplicationAsync(CancellationToken cancellationToken) =>

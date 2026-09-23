@@ -5,7 +5,7 @@ using Rask.Data;
 namespace Rask.Jobs;
 
 /// <summary>
-/// A persisted background job awaiting (or having completed) execution. Written by <see cref="IJob"/>
+/// A persisted background job awaiting (or having completed) execution. Written by <see cref="IJobs"/>
 /// and drained by the <see cref="JobProcessor{TContext}"/>.
 /// </summary>
 /// <remarks>
@@ -58,11 +58,11 @@ public sealed class Job : Entity<long>
     public DateTime? ClaimedUntil { get; private set; }
 
     /// <summary>
-    /// The user the job was enqueued for — <see cref="Current.UserId"/> at the time — or <c>null</c> when it
+    /// The user the job was enqueued for — <c>Current.UserId</c> at the time — or <c>null</c> when it
     /// was enqueued for nobody.
     /// </summary>
     /// <remarks>
-    /// The runner re-enters it with <see cref="Current.UseUser"/> before invoking the handler, so a handler
+    /// The runner re-enters it with <c>Current.UseUser</c> before invoking the handler, so a handler
     /// reads <c>Current.UserId</c> exactly as the page that enqueued it would have. Recorded, like the tenant,
     /// because the work runs later, on another thread, with nobody signed in.
     /// </remarks>

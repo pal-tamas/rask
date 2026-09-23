@@ -10,7 +10,7 @@ public sealed class JobOptionsTests
     [InlineData(100, 3600)]  // capped at MaxRetryDelay (1h)
     public void RetryDelay_is_exponential_and_capped(int attempts, double expectedSeconds)
     {
-        var options = new JobOptions
+        var options = new JobsOptions
         {
             BaseRetryDelay = TimeSpan.FromSeconds(10),
             MaxRetryDelay = TimeSpan.FromHours(1),
@@ -20,30 +20,30 @@ public sealed class JobOptionsTests
     }
 
     [Fact]
-    public void AddRecurring_rejects_a_non_positive_interval()
+    public void A_recurring_interval_of_zero_is_refused()
     {
-        var options = new JobOptions();
+        var options = new JobsOptions();
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            options.AddRecurring<TickJob>("tick", TimeSpan.Zero, () => new TickJob()));
+            options.Run(() => new TickJob()).Named("tick").Every(TimeSpan.Zero));
     }
 
     [Fact]
-    public void AddRecurring_rejects_a_duplicate_name()
+    public void Two_schedules_under_one_name_are_refused()
     {
-        var options = new JobOptions();
-        options.AddRecurring<TickJob>("tick", TimeSpan.FromHours(1), () => new TickJob());
+        var options = new JobsOptions();
+        options.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1));
 
         Assert.Throws<ArgumentException>(() =>
-            options.AddRecurring<TickJob>("tick", TimeSpan.FromHours(2), () => new TickJob()));
+            options.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(2)));
     }
 
     [Fact]
     public void RecurringJobs_exposes_the_registered_schedule()
     {
-        var options = new JobOptions();
-        options.AddRecurring<TickJob>("tick", TimeSpan.FromMinutes(5), () => new TickJob());
-        options.AddRecurring<RecordJob>("digest", TimeSpan.FromHours(24), () => new RecordJob("digest"));
+        var options = new JobsOptions();
+        options.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromMinutes(5));
+        options.Run(() => new RecordJob("digest")).Named("digest").Every(TimeSpan.FromHours(24));
 
         // The schedule an operator surface reads: registration order, durable name, cadence.
         Assert.Collection(
@@ -51,12 +51,12 @@ public sealed class JobOptionsTests
             r =>
             {
                 Assert.Equal("tick", r.Name);
-                Assert.Equal(TimeSpan.FromMinutes(5), r.Interval);
+                Assert.Equal("every 5m", r.Schedule?.ToString());
             },
             r =>
             {
                 Assert.Equal("digest", r.Name);
-                Assert.Equal(TimeSpan.FromHours(24), r.Interval);
+                Assert.Equal("every 1d", r.Schedule?.ToString());
             });
         // The factory is reachable, so a caller can enqueue an off-schedule run of a recurring job.
         Assert.IsType<TickJob>(options.RecurringJobs[0].Factory());
@@ -65,28 +65,28 @@ public sealed class JobOptionsTests
     [Fact]
     public void RecurringJobs_is_empty_when_nothing_is_registered()
     {
-        Assert.Empty(new JobOptions().RecurringJobs);
+        Assert.Empty(new JobsOptions().RecurringJobs);
     }
 
     [Fact]
     public void Validate_rejects_a_non_positive_poll_interval()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new JobOptions { PollInterval = TimeSpan.Zero }.Validate());
+        Assert.Throws<ArgumentOutOfRangeException>(() => new JobsOptions { PollInterval = TimeSpan.Zero }.Validate());
     }
 
     [Fact]
     public void Validate_rejects_a_max_retry_delay_below_the_base()
     {
-        var options = new JobOptions { BaseRetryDelay = TimeSpan.FromMinutes(5), MaxRetryDelay = TimeSpan.FromMinutes(1) };
+        var options = new JobsOptions { BaseRetryDelay = TimeSpan.FromMinutes(5), MaxRetryDelay = TimeSpan.FromMinutes(1) };
 
         Assert.Throws<ArgumentOutOfRangeException>(options.Validate);
     }
 }
 
-// A nested IBackgroundJob: its Type.FullName uses '+', which must still match the generator's dotted registration.
+// A nested IJob: its Type.FullName uses '+', which must still match the generator's dotted registration.
 public sealed class Outer
 {
-    public sealed record NestedJob(int N) : IBackgroundJob;
+    public sealed record NestedJob(int N) : IJob;
 }
 
 public sealed class JobSerializerRegistryTests
@@ -94,7 +94,7 @@ public sealed class JobSerializerRegistryTests
     [Fact]
     public void Serialize_then_deserialize_round_trips_a_job()
     {
-        // The Rask.Jobs source generator registered this assembly's IBackgroundJob types at module load.
+        // The Rask.Jobs source generator registered this assembly's IJob types at module load.
         var (type, payload) = JobSerializerRegistry.Serialize(new RecordJob("payload"));
 
         var back = JobSerializerRegistry.Deserialize(type, payload);

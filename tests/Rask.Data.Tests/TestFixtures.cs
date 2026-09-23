@@ -66,7 +66,7 @@ public sealed class EventRecorder
 
 public sealed class WidgetCreatedHandler(EventRecorder recorder) : INotificationHandler<WidgetCreated>
 {
-    public Task HandleAsync(WidgetCreated notification, CancellationToken cancellationToken)
+    public Task Handle(WidgetCreated notification)
     {
         recorder.Add(notification);
         return Task.CompletedTask;
@@ -75,7 +75,7 @@ public sealed class WidgetCreatedHandler(EventRecorder recorder) : INotification
 
 public sealed class WidgetRenamedHandler(EventRecorder recorder) : INotificationHandler<WidgetRenamed>
 {
-    public Task HandleAsync(WidgetRenamed notification, CancellationToken cancellationToken)
+    public Task Handle(WidgetRenamed notification)
     {
         recorder.Add(notification);
         return Task.CompletedTask;
@@ -84,7 +84,7 @@ public sealed class WidgetRenamedHandler(EventRecorder recorder) : INotification
 
 public sealed class WidgetDeletedHandler(EventRecorder recorder) : INotificationHandler<WidgetDeleted>
 {
-    public Task HandleAsync(WidgetDeleted notification, CancellationToken cancellationToken)
+    public Task Handle(WidgetDeleted notification)
     {
         recorder.Add(notification);
         return Task.CompletedTask;

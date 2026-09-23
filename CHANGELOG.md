@@ -235,6 +235,9 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING — a handler is handed the message, and asks for cancellation when it needs it.** Every `ICommandHandler`, `IQueryHandler`, `INotificationHandler`, pipeline behaviour and request validator is now `Handle(message)` — the trailing `CancellationToken` parameter is gone from the 119 handlers in the framework, the templates and the docs. The token did not disappear: `Current.Cancellation` is the cancellation of the work in progress, so `await http.GetFromJsonAsync<Stock>(job.Url, Current.Cancellation)` reads the same token the parameter carried, and a handler that never cancels anything no longer carries an argument it ignores. Callers are unchanged and still override it: `IDispatcher.Query`/`Send`/`Publish` keep a trailing `CancellationToken cancellationToken = default`, and an explicit token wins over the ambient one. Renamed with them: `QueryAsync` → `Query`, `SendAsync` → `Send`, `PublishAsync` → `Publish`, `ValidateAsync` → `Validate`. `Dispatcher.Query(…)`/`Send(…)`/`Publish(…)` now also work with nothing injected, from a handler, a render, a request or a job.
+- **BREAKING — background work reads like a sentence, with nothing injected.** `await Jobs.Enqueue(new SendWelcome(user.Id))` runs a job as soon as the processor polls; `.In(24.Hours)` and `.At(monthEnd)` are trailing steps, replacing the two `ScheduleAsync` overloads. An injected `IJobs` words the same sentence for a hosted service or a timer. The two interfaces swap names to say what they are: the queue is `IJobs` (was `IJob`) and a unit of work is `IJob` (was `IBackgroundJob`); `JobOptions` is `JobsOptions` and `JobQueue<T>` is hidden.
+- **BREAKING — a recurring job says when it runs, on the calendar.** `o.Run<PurgeStaleCarts>().Every(1.Hour)`, `o.Run<NightlyBackup>().Daily.At(3, 00)`, `o.Run<WeeklyDigest>().Weekly.On(DayOfWeek.Monday).At(9, 00)`, `o.Run<CloseBooks>().Monthly.On(1).At(6, 00)` replace `AddRecurring<T>(name, every, factory)`. A calendar time is read in `o.TimeZone` — UTC by default, so a deploy cannot move a schedule, and `Rask:Jobs:TimeZone` takes an IANA id such as `Europe/Budapest` for an app whose 3am has to be a customer's 3am. It follows daylight saving, and `.Monthly.On(31)` runs on a short month's last day rather than skipping February. The durable name is the job's type name, `.Named("purge-carts")` overrides it, and two schedules for one job need one. A `Run<T>()` left without a cadence fails the host's start instead of silently never running. `JobsOptions.RecurringJobs` now reports a `Schedule` an operator can read ("every 1h", "daily at 03:00") in place of a bare `Interval`, and the dashboard's Recurring jobs card shows it.
 - **BREAKING — `RenderedComponent` is `Page`** (`Page<T>` for `Test.Render(component)`).
 - **BREAKING — `RaskTest` is `Test`.** `Test.Render(…)`, `Test.RenderDocument(…)`: the namespace already says Rask.
 - **BREAKING — five lifecycle hooks, one per moment.** `OnMount()`, `OnUpdated()`, `OnFirstRendered()`, `OnRendered()`, `OnUnmount()`, each `protected virtual Task`, replace the eight synchronous/asynchronous twins: `OnMount`+`OnMountAsync` → `OnMount`, `OnPropsChanged`+`OnPropsChangedAsync` → `OnUpdated`, `OnUnmount`+`OnUnmountAsync` → `OnUnmount`, and `OnRendered(bool)`/`OnRenderedAsync(bool)` → `OnFirstRendered()` for the first-render branch plus `OnRendered()` for every render (the first included, after `OnFirstRendered`). What used to go in the synchronous twin goes above the first `await`, which still runs before the first render; a body with nothing to await is written `async` all the same. Code that runs inside a lifecycle hook and passes no token is now cancelled with its component, as a handler already was.
@@ -8302,7 +8305,7 @@ them until tagged releases begin.
   | Was | Is |
   |---|---|
   | `IMailQueue` | `IMail` |
-  | `IJobQueue` | `IJob` — and the job marker `IJob` became `IBackgroundJob` |
+  | `IJobQueue` | `IJobs` — and the job marker `IJobs` became `IJob` |
   | `ILogStore` / `.QueryAsync` | `ILogs` / `.SearchAsync` |
   | `IRaskSqliteConnectionFactory` | `ISqlite` |
   | `.ExecuteInImmediateTransactionAsync` | `.InImmediateTransactionAsync` |
@@ -8324,9 +8327,9 @@ them until tagged releases begin.
   something, `PublishAsync` to announce that something happened. `SendAsync` was already this
   codebase's word for it — `IRemoteDispatch.SendAsync` predates the change and is untouched.
 
-  **Jobs took the largest change and not the obvious one.** Naming the queue `IJob` meant the message
-  marker had to move, because `IJob` was already what your records implement. So a job is now
-  `record SendReceipt(Guid Id) : IBackgroundJob`, enqueued through `IJob`.
+  **Jobs took the largest change and not the obvious one.** Naming the queue `IJobs` meant the message
+  marker had to move, because `IJobs` was already what your records implement. So a job is now
+  `record SendReceipt(Guid Id) : IJob`, enqueued through `IJobs`.
 
 - **BREAKING: two `Query` overloads instead of four, and one SQLite options delegate instead of two.**
   `IQueryClient` had four members called `Query<TResult>`, told apart only by parameter shape; the
@@ -11835,7 +11838,7 @@ them until tagged releases begin.
     compilation that references one of the two transport packages, so an app using `Rask.Cqrs`
     in-process is unconstrained.
   - **`[LocalOnly]`** keeps a message off the wire entirely, and on an *interface* covers a whole family:
-    `IJob` and `IOutboxEvent` both derive from `ICommand`, so without it every job payload and outbox
+    `IJobs` and `IOutboxEvent` both derive from `ICommand`, so without it every job payload and outbox
     event would become an internet-reachable endpoint. It is also how a **client** keeps a message
     in-process — "a pure client" is literal, so a handler sitting in the client project is otherwise
     bypassed and the server answers 404 for a name it has no handler for.
@@ -15951,7 +15954,7 @@ them until tagged releases begin.
 - **`ISqliteSnapshotStore.ListAsync`** — enumerate stored snapshots (name, size, timestamp), newest first and
   scoped to the store's search pattern, so what you can see is what retention manages. A default interface
   implementation returns an empty list, so existing custom stores keep compiling.
-- **`JobOptions.RecurringJobs`** — the registered recurring schedule (name, interval, factory) is now public.
+- **`JobsOptions.RecurringJobs`** — the registered recurring schedule (name, interval, factory) is now public.
   Pair an entry with the `RecurringJobState` row of the same name to see when it last fired, or call its
   factory to enqueue an off-schedule run.
 
@@ -16013,7 +16016,7 @@ them until tagged releases begin.
 - **`ISqliteSnapshotStore.ListAsync`** — enumerate stored snapshots (name, size, timestamp), newest first and
   scoped to the store's search pattern, so what you can see is what retention manages. A default interface
   implementation returns an empty list, so existing custom stores keep compiling.
-- **`JobOptions.RecurringJobs`** — the registered recurring schedule (name, interval, factory) is now public.
+- **`JobsOptions.RecurringJobs`** — the registered recurring schedule (name, interval, factory) is now public.
   Pair an entry with the `RecurringJobState` row of the same name to see when it last fired, or call its
   factory to enqueue an off-schedule run.
 
@@ -16755,11 +16758,11 @@ them until tagged releases begin.
 - **`Rask.Jobs` — durable background jobs on the app's own database.** The roadmap's #1 DB-backed pillar:
   enqueue a unit of work and a hosted `JobProcessor` runs it off the request thread — **at-least-once**, with
   exponential-backoff retries up to `MaxAttempts` (then a dead letter kept for inspection). A job is a
-  `Rask.Cqrs` command (`record SendWelcomeEmail(Guid Id) : IJob`) handled by an ordinary
-  `ICommandHandler<TJob>`; inject `IJobQueue` and `EnqueueAsync(job)` or `ScheduleAsync(job, delay)`. Supports
-  durable **interval-recurring** jobs (`o.AddRecurring<T>("name", every, () => new T())`, tracked so a restart
+  `Rask.Cqrs` command (`record SendWelcomeEmail(Guid Id) : IJobs`) handled by an ordinary
+  `ICommandHandler<TJob>`; inject `IJobQueue` and `Enqueue(job)` or `ScheduleAsync(job, delay)`. Supports
+  durable **interval-recurring** jobs (`o.Run(() => new T()).Named("name").Every(every)`, tracked so a restart
   never double-runs them) and a retention purge of completed jobs. Rides the existing SQLite database (no
-  broker, no Redis) with a single hosted poller per app, and a source generator registers each `IJob` type for
+  broker, no Redis) with a single hosted poller per app, and a source generator registers each `IJobs` type for
   reflection-free rehydration. Wire with `services.AddRaskJobs<AppDbContext>()` + `modelBuilder.AddRaskJobs()`,
   then `rask db add AddJobs`. Scaffold one with **`rask generate job <Name>`** (alias `g j`). Complements
   `Rask.Outbox` (transaction-derived events) — jobs are work you explicitly schedule. Documented in `docs/jobs.md`.

@@ -79,7 +79,7 @@ public sealed class RaskAppOptions
     public Battery Validation { get; } = new();
 
     /// <summary>Durable background jobs on the app's own database.</summary>
-    public Battery<JobOptions> Jobs { get; } = new();
+    public Battery<JobsOptions> Jobs { get; } = new();
 
     /// <summary>Transactional email queued on the app's own database.</summary>
     public Battery<MailOptions> Mail { get; } = new();

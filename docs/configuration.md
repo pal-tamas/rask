@@ -142,7 +142,7 @@ A few things to know:
 | `Rask:Cache` | `CacheOptions` | `Rask.Cache` | See [cache](cache.md). |
 | `Rask:ConnectionStrings:Redis` | — | `Rask.Redis` | The Redis server the broadcast backplane publishes through, unless the app registers its own `IConnectionMultiplexer`. |
 | `Rask:Redis` | `RedisOptions` | `Rask.Redis` | `ChannelPrefix`. Read by `AddRaskRedisBackplane()`. See [broadcast across servers](broadcast.md#across-servers). |
-| `Rask:Jobs` | `JobOptions` | `Rask.Jobs` | `AddRecurring` is code-only. See [jobs](jobs.md). |
+| `Rask:Jobs` | `JobsOptions` | `Rask.Jobs` | Schedules (`Run<T>()`) are code-only; `TimeZone` takes an IANA id. See [jobs](jobs.md). |
 | `Rask:ConnectionStrings:Logs` | — | `Rask.Logging` | The log store's own file. |
 | `Rask:Logging` | `RaskLoggingOptions` | `Rask.Logging` | `ExcludedCategories` is appended to. See [logging](logging.md). |
 | `Rask:Mail` | `MailOptions` | `Rask.Mail` | Any `Rask:Mail:Smtp` key turns SMTP delivery on; put `Rask__Mail__Smtp__Password` in the environment. See [mail](mail.md). |
@@ -165,7 +165,7 @@ Configuration carries values. Anything that is behaviour stays on the callback:
 
 - Delegates: `RaskSignalingOptions.AuthorizeRoom`, `SpaHostingOptions.ExcludeFromFallback` and
   `SpaHostingOptions.OnPrepareResponse`.
-- Builder methods: `JobOptions.AddRecurring` (a schedule is code), `CqrsOptions.AddBehavior` and
+- Builder methods: `JobsOptions.Run<T>()` (a schedule is code), `CqrsOptions.AddBehavior` and
   `CqrsOptions.AddOpenBehavior`.
 - A `MetaHostingOptions.Framework` preset for a framework Rask has no name for.
 - Removing an entry a list starts with.

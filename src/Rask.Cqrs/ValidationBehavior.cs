@@ -33,8 +33,7 @@ public sealed class ValidationBehavior<TRequest, TResult> : IPipelineBehavior<TR
     }
 
     /// <inheritdoc />
-    public async Task<TResult> HandleAsync(
-        TRequest request, RequestHandlerDelegate<TResult> next, CancellationToken cancellationToken)
+    public async Task<TResult> Handle(TRequest request, RequestHandlerDelegate<TResult> next)
     {
         ArgumentNullException.ThrowIfNull(next);
 
@@ -45,7 +44,7 @@ public sealed class ValidationBehavior<TRequest, TResult> : IPipelineBehavior<TR
         // being typed into, and a request is not being typed into.
         foreach (var validator in _validators)
         {
-            var found = await validator.ValidateAsync(request, cancellationToken).ConfigureAwait(false);
+            var found = await validator.Validate(request).ConfigureAwait(false);
             if (found is null || found.Count == 0)
             {
                 continue;

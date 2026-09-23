@@ -17,7 +17,7 @@ public sealed class JobMetricsTests
         await using var h = new JobsHarness();
         using var collector = new MetricCollector(h.Get<JobMetrics>());
 
-        await h.Queue.EnqueueAsync(new RecordJob("metered"));
+        await h.Queue.Enqueue(new RecordJob("metered"));
         await h.RunUntilAsync(() => collector.Sum("rask.jobs.processed") >= 1);
 
         Assert.Equal(1, collector.Sum("rask.jobs.processed"));
@@ -39,7 +39,7 @@ public sealed class JobMetricsTests
         });
         using var collector = new MetricCollector(h.Get<JobMetrics>());
 
-        await h.Queue.EnqueueAsync(new FailingJob());
+        await h.Queue.Enqueue(new FailingJob());
         await h.RunUntilAsync(() => collector.Sum("rask.jobs.deadlettered") >= 1);
 
         // Every attempt is a failure; only the attempt that exhausts MaxAttempts is a dead letter. Counting
@@ -84,8 +84,8 @@ public sealed class JobMetricsTests
             o.MaxRetryDelay = TimeSpan.Zero;
         });
         using var collector = new MetricCollector(h.Get<JobMetrics>());
-        await h.Queue.EnqueueAsync(new FailingJob());                          // becomes a dead letter
-        await h.Queue.ScheduleAsync(new RecordJob("later"), TimeSpan.FromHours(1));   // stays pending
+        await h.Queue.Enqueue(new FailingJob());                          // becomes a dead letter
+        await h.Queue.Enqueue(new RecordJob("later")).In(TimeSpan.FromHours(1));   // stays pending
 
         await h.RunUntilAsync(() =>
         {

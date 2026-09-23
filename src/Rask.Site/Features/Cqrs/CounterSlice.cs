@@ -36,7 +36,7 @@ public sealed record GetCounterState : IQuery<CounterState>;
 
 public sealed class GetCounterStateHandler(CqrsCounterStore store) : IQueryHandler<GetCounterState, CounterState>
 {
-    public Task<CounterState> HandleAsync(GetCounterState query, CancellationToken cancellationToken) =>
+    public Task<CounterState> Handle(GetCounterState query) =>
         Task.FromResult(new CounterState(store.Count, store.Log));
 }
 
@@ -46,10 +46,10 @@ public sealed record IncrementCounter(int By) : ICommand<int>;
 public sealed class IncrementCounterHandler(CqrsCounterStore store, IDispatcher dispatcher)
     : ICommandHandler<IncrementCounter, int>
 {
-    public async Task<int> HandleAsync(IncrementCounter command, CancellationToken cancellationToken)
+    public async Task<int> Handle(IncrementCounter command)
     {
         var value = store.IncrementBy(command.By);
-        await dispatcher.PublishAsync(new CounterIncremented(value), cancellationToken);
+        await dispatcher.Publish(new CounterIncremented(value), Current.Cancellation);
         return value;
     }
 }
@@ -59,7 +59,7 @@ public sealed record CounterIncremented(int Value) : INotification;
 
 public sealed class CounterIncrementedHandler(CqrsCounterStore store) : INotificationHandler<CounterIncremented>
 {
-    public Task HandleAsync(CounterIncremented notification, CancellationToken cancellationToken)
+    public Task Handle(CounterIncremented notification)
     {
         store.Note($"🔔 count is now {notification.Value}");
         return Task.CompletedTask;
@@ -72,7 +72,7 @@ public sealed class CounterIncrementedHandler(CqrsCounterStore store) : INotific
 public sealed class DispatchLogBehavior<TRequest, TResult>(CqrsCounterStore store)
     : IPipelineBehavior<TRequest, TResult>
 {
-    public Task<TResult> HandleAsync(TRequest request, RequestHandlerDelegate<TResult> next, CancellationToken cancellationToken)
+    public Task<TResult> Handle(TRequest request, RequestHandlerDelegate<TResult> next)
     {
         store.Note($"⚙ dispatch {typeof(TRequest).Name}");
         return next();

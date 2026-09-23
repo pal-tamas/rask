@@ -42,8 +42,8 @@ public static class CqrsServiceCollectionExtensions
 
         // The dispatcher is transient so it captures whatever provider resolves it (the per-session
         // scope on Server, the root scope on WASM); it holds no per-session state.
-        services.TryAddTransient<Dispatcher>();
-        services.TryAddTransient<IDispatcher>(static sp => sp.GetRequiredService<Dispatcher>());
+        services.TryAddTransient<LocalDispatcher>();
+        services.TryAddTransient<IDispatcher>(static sp => sp.GetRequiredService<LocalDispatcher>());
 
         services.TryAddSingleton(new CqrsExecutionOptions
         {

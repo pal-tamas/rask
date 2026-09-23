@@ -24,7 +24,7 @@ public sealed class ThingArchivedReactor : INotificationHandler<ThingArchived>
 
     public static IReadOnlyCollection<int> Seen => Recorded;
 
-    public Task HandleAsync(ThingArchived notification, CancellationToken cancellationToken)
+    public Task Handle(ThingArchived notification)
     {
         Recorded.Add(notification.Id);
         return Task.CompletedTask;
@@ -41,6 +41,6 @@ public sealed class IncrementLocalCounterHandler : ICommandHandler<IncrementLoca
 {
     private static int _total;
 
-    public Task<int> HandleAsync(IncrementLocalCounter command, CancellationToken cancellationToken) =>
+    public Task<int> Handle(IncrementLocalCounter command) =>
         Task.FromResult(Interlocked.Add(ref _total, command.By));
 }

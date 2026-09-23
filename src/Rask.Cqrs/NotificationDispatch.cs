@@ -30,7 +30,7 @@ public static class NotificationDispatch
 
         if (options.PublishStrategy == NotificationPublishStrategy.WhenAll)
         {
-            await Task.WhenAll(handlers.Select(h => h.HandleAsync(notification, cancellationToken))).ConfigureAwait(false);
+            await Task.WhenAll(handlers.Select(h => h.Handle(notification))).ConfigureAwait(false);
             return;
         }
 
@@ -39,7 +39,7 @@ public static class NotificationDispatch
         {
             try
             {
-                await handler.HandleAsync(notification, cancellationToken).ConfigureAwait(false);
+                await handler.Handle(notification).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

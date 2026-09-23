@@ -7,7 +7,7 @@ namespace Rask.Data;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         The seam behind <see cref="Current.Principal" />, <see cref="Current.UserId" /> and the tenant a
+///         The seam behind <c>Current.Principal</c>, <c>Current.UserId</c> and the tenant a
 ///         signed-in user belongs to. Rask.Data declares what it needs and knows nothing about sessions or
 ///         sign-in, because it does not reference <c>Rask.Core</c> — a package that did would stop working on
 ///         the front-end lanes.
@@ -18,7 +18,7 @@ namespace Rask.Data;
 ///         <see cref="Db.UseScope" /> exists.
 ///     </para>
 ///     <para>
-///         An explicit <see cref="Tenant.Use" /> or <see cref="Current.UseUser" /> always wins over this: a
+///         An explicit <see cref="Tenant.Use" /> or <c>Current.UseUser</c> always wins over this: a
 ///         background job runs for the tenant and user its row recorded, not for whoever happened to enqueue it.
 ///     </para>
 /// </remarks>

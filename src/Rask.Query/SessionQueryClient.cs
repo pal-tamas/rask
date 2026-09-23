@@ -114,7 +114,7 @@ internal sealed class SessionQueryClient : IQueryClient
     public async Task SendAsync(ICommand command, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(command);
-        await _dispatcher.SendAsync(command, cancellationToken).ConfigureAwait(false);
+        await _dispatcher.Send(command, cancellationToken).ConfigureAwait(false);
         InvalidateDeclared(command);
     }
 
@@ -123,7 +123,7 @@ internal sealed class SessionQueryClient : IQueryClient
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(command);
-        var result = await _dispatcher.SendAsync(command, cancellationToken).ConfigureAwait(false);
+        var result = await _dispatcher.Send(command, cancellationToken).ConfigureAwait(false);
         InvalidateDeclared(command);
         return result;
     }
@@ -180,13 +180,13 @@ internal sealed class SessionQueryClient : IQueryClient
 
     /// <summary>Dispatches a void command, for a Command that owns the surrounding state.</summary>
     internal Task DispatchCommandAsync(ICommand command, CancellationToken cancellationToken) =>
-        _dispatcher.SendAsync(command, cancellationToken);
+        _dispatcher.Send(command, cancellationToken);
 
     /// <summary>Dispatches a value-returning command, for a Command that owns the surrounding state.</summary>
     internal Task<TResult> DispatchCommandAsync<TResult>(
         ICommand<TResult> command,
         CancellationToken cancellationToken) =>
-        _dispatcher.SendAsync(command, cancellationToken);
+        _dispatcher.Send(command, cancellationToken);
 
     /// <summary>
     ///     The cached result for a message, when there is one. Used to snapshot before an optimistic
@@ -211,7 +211,7 @@ internal sealed class SessionQueryClient : IQueryClient
 
     /// <summary>Wraps a message as a fetch, so the entry stores the boxed result uniformly.</summary>
     internal Func<CancellationToken, Task<object?>> DispatchFetch<TResult>(IQuery<TResult> message) =>
-        async ct => await _dispatcher.QueryAsync(message, ct).ConfigureAwait(false);
+        async ct => await _dispatcher.Query(message, ct).ConfigureAwait(false);
 
     internal QueryEntry Attach(QueryKey key, Action listener, TimeSpan gcTime)
     {

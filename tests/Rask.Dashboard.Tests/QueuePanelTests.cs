@@ -15,7 +15,7 @@ public sealed class QueuePanelTests
     {
         await using var h = new DashboardHarness(Batteries.Jobs);
         var now = h.Clock.GetUtcNow().UtcDateTime;
-        var max = h.Get<JobOptions>().MaxAttempts;
+        var max = h.Get<JobsOptions>().MaxAttempts;
 
         await SeedJobsAsync(h,
             Job(runAt: now.AddMinutes(-1)),                       // due
@@ -38,7 +38,7 @@ public sealed class QueuePanelTests
     {
         await using var h = new DashboardHarness(Batteries.Jobs);
         var now = h.Clock.GetUtcNow().UtcDateTime;
-        var max = h.Get<JobOptions>().MaxAttempts;
+        var max = h.Get<JobsOptions>().MaxAttempts;
 
         // One attempt short is still a retry, not a dead letter — the boundary the processors use.
         await SeedJobsAsync(h,
@@ -56,7 +56,7 @@ public sealed class QueuePanelTests
     {
         await using var h = new DashboardHarness(Batteries.Jobs);
         var now = h.Clock.GetUtcNow().UtcDateTime;
-        var max = h.Get<JobOptions>().MaxAttempts;
+        var max = h.Get<JobsOptions>().MaxAttempts;
 
         await SeedJobsAsync(h,
             Job(runAt: now, attempts: max, error: "boom"),

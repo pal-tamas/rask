@@ -8,7 +8,7 @@ namespace Rask.Data;
 
 /// <summary>
 /// Publishes each entity's <see cref="IHasDomainEvents.DomainEvents"/> in-process <b>after</b> the change
-/// commits, through <c>Rask.Cqrs</c>' <see cref="IDispatcher.PublishAsync{TNotification}"/>. Events are
+/// commits, through <c>Rask.Cqrs</c>' <see cref="IDispatcher.Publish{TNotification}"/>. Events are
 /// resolved by their runtime type, so a stored <see cref="INotificationHandler{TNotification}"/> reacts with
 /// no extra wiring. Handlers run in a fresh DI scope. Stands down automatically when a transactional
 /// outbox owns delivery — see <see cref="RaskDataOptions.DispatchDomainEventsInProcess"/>.
@@ -143,7 +143,7 @@ public sealed class DomainEventInterceptor : SaveChangesInterceptor
         {
             // PublishAsync resolves handlers by the event's concrete runtime type, so the INotification
             // static type here is fine.
-            await dispatcher.PublishAsync(domainEvent, cancellationToken).ConfigureAwait(false);
+            await dispatcher.Publish(domainEvent, cancellationToken).ConfigureAwait(false);
         }
     }
 

@@ -6,7 +6,7 @@ using Microsoft.Extensions.Options;
 
 namespace Rask.Jobs.Tests;
 
-// JobOptions come from Rask:Jobs first and the AddRaskJobs callback second. The recurring schedule is the one
+// JobsOptions come from Rask:Jobs first and the AddRaskJobs callback second. The recurring schedule is the one
 // member appsettings cannot express — the binding generator reports that, and Rask.Jobs.csproj suppresses it —
 // so these tests are what notice if some other property silently stops binding.
 public sealed class RaskJobsOptionsBindingTests
@@ -21,6 +21,7 @@ public sealed class RaskJobsOptionsBindingTests
         ["Rask:Jobs:MaxRetryDelay"] = "00:30:00",
         ["Rask:Jobs:RetentionPeriod"] = "2.00:00:00",
         ["Rask:Jobs:ShutdownGracePeriod"] = "00:00:03",
+        ["Rask:Jobs:TimeZone"] = "Europe/Budapest",
     };
 
     [Fact]
@@ -28,7 +29,7 @@ public sealed class RaskJobsOptionsBindingTests
     {
         using var provider = Provider(EverySetting);
 
-        var options = provider.GetRequiredService<JobOptions>();
+        var options = provider.GetRequiredService<JobsOptions>();
 
         Assert.Equal(TimeSpan.FromSeconds(7), options.PollInterval);
         Assert.Equal(42, options.BatchSize);
@@ -38,6 +39,18 @@ public sealed class RaskJobsOptionsBindingTests
         Assert.Equal(TimeSpan.FromMinutes(30), options.MaxRetryDelay);
         Assert.Equal(TimeSpan.FromDays(2), options.RetentionPeriod);
         Assert.Equal(TimeSpan.FromSeconds(3), options.ShutdownGracePeriod);
+        Assert.Equal(TimeZoneInfo.FindSystemTimeZoneById("Europe/Budapest"), options.TimeZone);
+    }
+
+    [Fact]
+    public void A_time_zone_this_machine_does_not_have_fails_the_boot_naming_the_key()
+    {
+        // The options plumbing wraps it, so what an operator sees is the message, not the type.
+        var error = Assert.Throws<OptionsValidationException>(() =>
+            Provider(new Dictionary<string, string?> { ["Rask:Jobs:TimeZone"] = "Mars/Olympus_Mons" })
+                .GetRequiredService<JobsOptions>());
+
+        Assert.Contains("Rask:Jobs:TimeZone", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -45,7 +58,7 @@ public sealed class RaskJobsOptionsBindingTests
     {
         // A property the generator cannot bind is skipped without failing the build, so a new one has to be
         // added to EverySetting (and asserted above) before this passes.
-        var settable = typeof(JobOptions).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+        var settable = typeof(JobsOptions).GetProperties(BindingFlags.Public | BindingFlags.Instance)
             .Where(p => p.SetMethod is { IsPublic: true })
             .Select(p => p.Name)
             .Order(StringComparer.Ordinal);
@@ -63,7 +76,7 @@ public sealed class RaskJobsOptionsBindingTests
             new() { ["Rask:Jobs:MaxAttempts"] = "9", ["Rask:Jobs:BatchSize"] = "42" },
             o => o.MaxAttempts = 3);
 
-        var options = provider.GetRequiredService<JobOptions>();
+        var options = provider.GetRequiredService<JobsOptions>();
 
         Assert.Equal(3, options.MaxAttempts);
         Assert.Equal(42, options.BatchSize);
@@ -74,9 +87,9 @@ public sealed class RaskJobsOptionsBindingTests
     {
         using var provider = Provider(
             new() { ["Rask:Jobs:MaxAttempts"] = "9" },
-            o => o.AddRecurring<TickJob>("tick", TimeSpan.FromHours(1), () => new TickJob()));
+            o => o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)));
 
-        var options = provider.GetRequiredService<JobOptions>();
+        var options = provider.GetRequiredService<JobsOptions>();
 
         Assert.Single(options.RecurringJobs);
         Assert.Equal(9, options.MaxAttempts);
@@ -87,7 +100,7 @@ public sealed class RaskJobsOptionsBindingTests
     {
         using var provider = Provider(new() { ["Rask:Jobs:BatchSize"] = "0" });
 
-        var ex = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<JobOptions>());
+        var ex = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<JobsOptions>());
         Assert.Contains("Rask:Jobs", ex.Message, StringComparison.Ordinal);
     }
 
@@ -96,7 +109,7 @@ public sealed class RaskJobsOptionsBindingTests
     {
         using var provider = Provider(new() { ["Jobs:MaxAttempts"] = "9" });
 
-        Assert.Equal(25, provider.GetRequiredService<JobOptions>().MaxAttempts);
+        Assert.Equal(25, provider.GetRequiredService<JobsOptions>().MaxAttempts);
     }
 
     [Fact]
@@ -106,10 +119,10 @@ public sealed class RaskJobsOptionsBindingTests
         services.AddRaskJobs<NoDb>();
         using var provider = services.BuildServiceProvider();
 
-        Assert.Equal(25, provider.GetRequiredService<JobOptions>().MaxAttempts);
+        Assert.Equal(25, provider.GetRequiredService<JobsOptions>().MaxAttempts);
     }
 
-    private static ServiceProvider Provider(Dictionary<string, string?> settings, Action<JobOptions>? configure = null)
+    private static ServiceProvider Provider(Dictionary<string, string?> settings, Action<JobsOptions>? configure = null)
     {
         var services = new ServiceCollection();
         services.AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection(settings).Build());
@@ -117,6 +130,6 @@ public sealed class RaskJobsOptionsBindingTests
         return services.BuildServiceProvider();
     }
 
-    // Only a type argument: resolving JobOptions never builds a context.
+    // Only a type argument: resolving JobsOptions never builds a context.
     private sealed class NoDb(DbContextOptions<NoDb> options) : DbContext(options);
 }

@@ -6,8 +6,8 @@ namespace Rask.Cqrs;
 public interface IQueryHandler<in TQuery, TResult>
     where TQuery : IQuery<TResult>
 {
-    /// <summary>Executes the query.</summary>
-    Task<TResult> HandleAsync(TQuery query, CancellationToken cancellationToken);
+    /// <summary>Executes the query. Cancelled with the work that sent it — read <c>Current.Cancellation</c> to pass on.</summary>
+    Task<TResult> Handle(TQuery query);
 }
 
 /// <summary>Handles a single void <see cref="ICommand"/> type.</summary>
@@ -15,8 +15,8 @@ public interface IQueryHandler<in TQuery, TResult>
 public interface ICommandHandler<in TCommand>
     where TCommand : ICommand
 {
-    /// <summary>Executes the command.</summary>
-    Task HandleAsync(TCommand command, CancellationToken cancellationToken);
+    /// <summary>Executes the command. Cancelled with the work that sent it — read <c>Current.Cancellation</c> to pass on.</summary>
+    Task Handle(TCommand command);
 }
 
 /// <summary>Handles a single <see cref="ICommand{TResult}"/> type that returns a value.</summary>
@@ -25,8 +25,8 @@ public interface ICommandHandler<in TCommand>
 public interface ICommandHandler<in TCommand, TResult>
     where TCommand : ICommand<TResult>
 {
-    /// <summary>Executes the command and returns its result.</summary>
-    Task<TResult> HandleAsync(TCommand command, CancellationToken cancellationToken);
+    /// <summary>Executes the command and returns its result. Cancelled with the work that sent it.</summary>
+    Task<TResult> Handle(TCommand command);
 }
 
 /// <summary>
@@ -37,6 +37,6 @@ public interface ICommandHandler<in TCommand, TResult>
 public interface INotificationHandler<in TNotification>
     where TNotification : INotification
 {
-    /// <summary>Reacts to the published notification.</summary>
-    Task HandleAsync(TNotification notification, CancellationToken cancellationToken);
+    /// <summary>Reacts to the published notification. Cancelled with the work that published it.</summary>
+    Task Handle(TNotification notification);
 }

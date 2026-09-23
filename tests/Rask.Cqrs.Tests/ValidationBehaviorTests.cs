@@ -24,7 +24,7 @@ public sealed class ValidationBehaviorTests
     {
         await using var sp = Build(validators: new Rejects());
 
-        var result = await sp.GetRequiredService<IDispatcher>().QueryAsync(new Add(2, 3));
+        var result = await sp.GetRequiredService<IDispatcher>().Query(new Add(2, 3));
 
         Assert.Equal(5, result);
     }
@@ -35,7 +35,7 @@ public sealed class ValidationBehaviorTests
         await using var sp = Build(validators: new Rejects(when: -1));
 
         var ex = await Assert.ThrowsAsync<RaskValidationException>(
-            () => sp.GetRequiredService<IDispatcher>().QueryAsync(new Add(-1, 3)));
+            () => sp.GetRequiredService<IDispatcher>().Query(new Add(-1, 3)));
 
         Assert.Equal(["A must not be negative."], ex.Errors["A"]);
     }
@@ -48,7 +48,7 @@ public sealed class ValidationBehaviorTests
         await using var sp = Build(validators: [new Rejects(when: -1), new AlsoRejects()]);
 
         var ex = await Assert.ThrowsAsync<RaskValidationException>(
-            () => sp.GetRequiredService<IDispatcher>().QueryAsync(new Add(-1, 3)));
+            () => sp.GetRequiredService<IDispatcher>().Query(new Add(-1, 3)));
 
         Assert.Equal(["A must not be negative."], ex.Errors["A"]);
         Assert.Equal(["B is suspicious."], ex.Errors["B"]);
@@ -60,7 +60,7 @@ public sealed class ValidationBehaviorTests
         await using var sp = Build(validators: new RejectsWholeRequest());
 
         var ex = await Assert.ThrowsAsync<RaskValidationException>(
-            () => sp.GetRequiredService<IDispatcher>().QueryAsync(new Add(1, 1)));
+            () => sp.GetRequiredService<IDispatcher>().Query(new Add(1, 1)));
 
         Assert.Equal(["The request as a whole is wrong."], ex.Errors[string.Empty]);
     }
@@ -70,7 +70,7 @@ public sealed class ValidationBehaviorTests
     {
         await using var sp = Build(o => o.ValidateRequests = false, new Rejects(when: -1));
 
-        var result = await sp.GetRequiredService<IDispatcher>().QueryAsync(new Add(-1, 3));
+        var result = await sp.GetRequiredService<IDispatcher>().Query(new Add(-1, 3));
 
         Assert.Equal(2, result);
     }
@@ -80,13 +80,12 @@ public sealed class ValidationBehaviorTests
     {
         await using var sp = Build();
 
-        Assert.Equal(5, await sp.GetRequiredService<IDispatcher>().QueryAsync(new Add(2, 3)));
+        Assert.Equal(5, await sp.GetRequiredService<IDispatcher>().Query(new Add(2, 3)));
     }
 
     private sealed class Rejects(int when = int.MinValue) : IRequestValidator<Add>
     {
-        public ValueTask<IReadOnlyList<RequestValidationError>> ValidateAsync(
-            Add request, CancellationToken cancellationToken) =>
+        public ValueTask<IReadOnlyList<RequestValidationError>> Validate(Add request) =>
             ValueTask.FromResult<IReadOnlyList<RequestValidationError>>(
                 request.A == when
                     ? [new RequestValidationError("A", "A must not be negative.")]
@@ -95,8 +94,7 @@ public sealed class ValidationBehaviorTests
 
     private sealed class AlsoRejects : IRequestValidator<Add>
     {
-        public async ValueTask<IReadOnlyList<RequestValidationError>> ValidateAsync(
-            Add request, CancellationToken cancellationToken)
+        public async ValueTask<IReadOnlyList<RequestValidationError>> Validate(Add request)
         {
             // Async by construction is the point: a rule that asks a database is the common case.
             await Task.Yield();
@@ -106,8 +104,7 @@ public sealed class ValidationBehaviorTests
 
     private sealed class RejectsWholeRequest : IRequestValidator<Add>
     {
-        public ValueTask<IReadOnlyList<RequestValidationError>> ValidateAsync(
-            Add request, CancellationToken cancellationToken) =>
+        public ValueTask<IReadOnlyList<RequestValidationError>> Validate(Add request) =>
             ValueTask.FromResult<IReadOnlyList<RequestValidationError>>(
                 [new RequestValidationError(string.Empty, "The request as a whole is wrong.")]);
     }

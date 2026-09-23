@@ -147,10 +147,10 @@ if (!string.IsNullOrWhiteSpace(replicaUrl))
 builder.Services.AddRaskAuth<AppDbContext>();
 // rask:if jobs
 
-// Durable background jobs on the app's own database — no broker, no Redis. Enqueue with IJob;
+// Durable background jobs on the app's own database — no broker, no Redis. Enqueue with IJobs;
 // a hosted worker polls, runs each job through its Rask.Cqrs handler, and retries with backoff.
 // Schedule recurring work here — a schedule is code, not configuration:
-//   builder.Services.AddRaskJobs<AppDbContext>(o => o.AddRecurring<PurgeJob>("purge", TimeSpan.FromHours(1), () => new()));
+//   builder.Services.AddRaskJobs<AppDbContext>(o => o.Run<PurgeJob>().Every(1.Hour));
 builder.Services.AddRaskJobs<AppDbContext>();
 // rask:end
 // rask:if mail

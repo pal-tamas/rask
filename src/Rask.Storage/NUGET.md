@@ -12,9 +12,9 @@ builder.Services.AddRaskStorage<AppDbContext>();
 ```csharp
 public sealed class SetCover(IFiles files)
 {
-    public async Task HandleAsync(Post post, RaskFile upload, CancellationToken ct)
+    public async Task Handle(Post post, RaskFile upload)
     {
-        var file = await files.SaveAsync(upload.OpenReadStream, upload.Name, upload.Size, o => o.Public = true, ct);
+        var file = await files.SaveAsync(upload.OpenReadStream, upload.Name, upload.Size, o => o.Public = true, Current.Cancellation);
         post.CoverId = file.Id;
     }
 }

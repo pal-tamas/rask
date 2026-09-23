@@ -11,28 +11,28 @@ namespace Rask.Jobs.Tests;
 // the runtime metadata name rather than a C# display string. See KeywordNamespaceJob.cs for the shape that
 // used to dead-letter, and Outer.NestedJob below for the '+'-vs-'.' case.
 
-public sealed record RecordJob(string Value) : IBackgroundJob;
+public sealed record RecordJob(string Value) : IJob;
 
-public sealed record FailingJob : IBackgroundJob;
+public sealed record FailingJob : IJob;
 
-public sealed record TickJob : IBackgroundJob;
+public sealed record TickJob : IJob;
 
 /// <summary>
 /// A job whose handler deletes the highest-numbered still-pending job row — i.e. one that is sitting in the
 /// very batch currently being drained. Stands in for anything that writes to the jobs table underneath the
 /// processor: a manual SQL fix, an ops dashboard's "delete", a cleanup script.
 /// </summary>
-public sealed record SaboteurJob : IBackgroundJob;
+public sealed record SaboteurJob : IJob;
 
 /// <summary>A job whose handler parks until the test releases it — the lever for the shutdown-grace tests.</summary>
-public sealed record GateJob : IBackgroundJob;
+public sealed record GateJob : IJob;
 
 /// <summary>
 /// A job whose handler throws <see cref="OperationCanceledException"/> from its <em>own</em> reasoning, with
 /// no shutdown in progress. Pins the catch-filter: only a cancellation that coincides with the host stopping
 /// is an interruption; this one is an ordinary failure and must count an attempt.
 /// </summary>
-public sealed record SelfCancellingJob : IBackgroundJob;
+public sealed record SelfCancellingJob : IJob;
 
 /// <summary>Latches for driving a handler across a shutdown: entered → (test acts) → released → completed.</summary>
 public sealed class Gate
@@ -44,19 +44,19 @@ public sealed class Gate
 
 public sealed class GateJobHandler(Gate gate) : ICommandHandler<GateJob>
 {
-    public async Task HandleAsync(GateJob command, CancellationToken cancellationToken)
+    public async Task Handle(GateJob command)
     {
         gate.Entered.TrySetResult();
         // Observes the token, so a grace expiry actually cancels it — a handler that ignored its token
         // could not be cancelled at all and would prove nothing about the grace period.
-        await gate.Release.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await gate.Release.Task.WaitAsync(Current.Cancellation).ConfigureAwait(false);
         gate.Completed.TrySetResult();
     }
 }
 
 public sealed class SelfCancellingJobHandler : ICommandHandler<SelfCancellingJob>
 {
-    public Task HandleAsync(SelfCancellingJob command, CancellationToken cancellationToken) =>
+    public Task Handle(SelfCancellingJob command) =>
         throw new OperationCanceledException("the handler gave up on its own");
 }
 
@@ -83,7 +83,7 @@ public sealed class Recorder
 
 public sealed class RecordJobHandler(Recorder recorder) : ICommandHandler<RecordJob>
 {
-    public Task HandleAsync(RecordJob command, CancellationToken cancellationToken)
+    public Task Handle(RecordJob command)
     {
         recorder.Add(command.Value);
         return Task.CompletedTask;
@@ -91,11 +91,11 @@ public sealed class RecordJobHandler(Recorder recorder) : ICommandHandler<Record
 }
 
 /// <summary>Records who the handler ran for, as <c>Current.UserId</c> sees it.</summary>
-public sealed record WhoAmIJob(string Tag) : IBackgroundJob;
+public sealed record WhoAmIJob(string Tag) : IJob;
 
 public sealed class WhoAmIJobHandler(Recorder recorder) : ICommandHandler<WhoAmIJob>
 {
-    public Task HandleAsync(WhoAmIJob command, CancellationToken cancellationToken)
+    public Task Handle(WhoAmIJob command)
     {
         recorder.Add($"{command.Tag}:{Current.UserId?.ToString() ?? "nobody"}");
         return Task.CompletedTask;
@@ -104,13 +104,13 @@ public sealed class WhoAmIJobHandler(Recorder recorder) : ICommandHandler<WhoAmI
 
 public sealed class FailingJobHandler : ICommandHandler<FailingJob>
 {
-    public Task HandleAsync(FailingJob command, CancellationToken cancellationToken) =>
+    public Task Handle(FailingJob command) =>
         throw new InvalidOperationException("boom");
 }
 
 public sealed class TickJobHandler(Recorder recorder) : ICommandHandler<TickJob>
 {
-    public Task HandleAsync(TickJob command, CancellationToken cancellationToken)
+    public Task Handle(TickJob command)
     {
         recorder.Tick();
         return Task.CompletedTask;
@@ -119,19 +119,19 @@ public sealed class TickJobHandler(Recorder recorder) : ICommandHandler<TickJob>
 
 public sealed class SaboteurJobHandler(IDbContextFactory<JobsDbContext> factory) : ICommandHandler<SaboteurJob>
 {
-    public async Task HandleAsync(SaboteurJob command, CancellationToken cancellationToken)
+    public async Task Handle(SaboteurJob command)
     {
-        await using var db = await factory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using var db = await factory.CreateDbContextAsync(Current.Cancellation).ConfigureAwait(false);
         var doomed = await db.Set<Job>()
             .Where(j => j.ProcessedAt == null)
             .OrderByDescending(j => j.Id)
             .Select(j => j.Id)
-            .FirstOrDefaultAsync(cancellationToken)
+            .FirstOrDefaultAsync(Current.Cancellation)
             .ConfigureAwait(false);
 
         if (doomed != 0)
         {
-            await db.Set<Job>().Where(j => j.Id == doomed).ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
+            await db.Set<Job>().Where(j => j.Id == doomed).ExecuteDeleteAsync(Current.Cancellation).ConfigureAwait(false);
         }
     }
 }
@@ -158,7 +158,7 @@ public sealed class JobsHarness : IAsyncDisposable
     private readonly ServiceProvider _provider;
     private readonly bool _ownsDb;
 
-    public JobsHarness(Action<JobOptions>? configure = null, DateTimeOffset? start = null, string? dbPath = null)
+    public JobsHarness(Action<JobsOptions>? configure = null, DateTimeOffset? start = null, string? dbPath = null)
     {
         _ownsDb = dbPath is null;
         DbPath = dbPath ?? Path.Combine(Path.GetTempPath(), $"rask-jobs-test-{Guid.NewGuid():N}.db");
@@ -194,7 +194,7 @@ public sealed class JobsHarness : IAsyncDisposable
     /// <summary>Latches for <see cref="GateJob"/>, so a test can hold a handler open across a shutdown.</summary>
     public Gate Gate { get; } = new();
 
-    public IJob Queue => _provider.GetRequiredService<IJob>();
+    public IJobs Queue => _provider.GetRequiredService<IJobs>();
 
     /// <summary>Resolves a service from the harness's container.</summary>
     public T Get<T>() where T : notnull => _provider.GetRequiredService<T>();

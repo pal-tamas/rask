@@ -49,9 +49,9 @@ public sealed record GetParcelPage(int Page) : IQuery<ParcelPage>;
 
 public sealed class GetParcelPageHandler(ParcelStore store) : IQueryHandler<GetParcelPage, ParcelPage>
 {
-    public async Task<ParcelPage> HandleAsync(GetParcelPage query, CancellationToken cancellationToken)
+    public async Task<ParcelPage> Handle(GetParcelPage query)
     {
-        await Task.Delay(500, cancellationToken);
+        await Task.Delay(500, Current.Cancellation);
         return new ParcelPage(query.Page, store.Pages, store.Page(query.Page));
     }
 }
@@ -60,9 +60,9 @@ public sealed record GetParcel(int Id) : IQuery<Parcel?>;
 
 public sealed class GetParcelHandler(ParcelStore store) : IQueryHandler<GetParcel, Parcel?>
 {
-    public async Task<Parcel?> HandleAsync(GetParcel query, CancellationToken cancellationToken)
+    public async Task<Parcel?> Handle(GetParcel query)
     {
-        await Task.Delay(300, cancellationToken);
+        await Task.Delay(300, Current.Cancellation);
         return store.Find(query.Id);
     }
 }
@@ -73,9 +73,9 @@ public sealed record ShipParcel(int Id) : ICommand;
 
 public sealed class ShipParcelHandler(ParcelStore store) : ICommandHandler<ShipParcel>
 {
-    public async Task HandleAsync(ShipParcel command, CancellationToken cancellationToken)
+    public async Task Handle(ShipParcel command)
     {
-        await Task.Delay(600, cancellationToken);
+        await Task.Delay(600, Current.Cancellation);
         store.Ship(command.Id);
     }
 }

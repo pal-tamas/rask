@@ -108,7 +108,7 @@ Drop it into `ProductsPage`'s actions column (with `using Shop.Features.Orders;`
 PlaceOrder.ProductId(p.Id).Price(p.Price)
 ```
 
-**Receipts follow sales now.** Take chapter 4's `EnqueueAsync` back out of `CreateOrder` — the handler in
+**Receipts follow sales now.** Take chapter 4's enqueue back out of `CreateOrder` — the handler in
 section 3 queues the receipt from the event instead, durably.
 
 ## 2. One line, and nothing to remember
@@ -156,13 +156,13 @@ using Shop.Features.Shared;
 
 namespace Shop.Features.Orders;
 
-public sealed class OrderPlacedHandler(IJob jobs, ILogger<OrderPlacedHandler> logger)
+public sealed class OrderPlacedHandler(ILogger<OrderPlacedHandler> logger)
     : INotificationHandler<OrderPlaced>
 {
-    public async Task HandleAsync(OrderPlaced notification, CancellationToken cancellationToken)
+    public async Task Handle(OrderPlaced notification)
     {
         logger.LogInformation("Order {Id} placed", notification.Id);
-        await jobs.EnqueueAsync(new SendOrderReceipt(notification.Id), cancellationToken);
+        await Jobs.Enqueue(new SendOrderReceipt(notification.Id));
     }
 }
 ```

@@ -23,7 +23,7 @@ public sealed record GetUser(int Id) : IQuery<User>;
 
 public sealed class GetUserHandler(AppDb db) : IQueryHandler<GetUser, User>
 {
-    public Task<User> HandleAsync(GetUser q, CancellationToken ct) => db.Users.FindAsync(q.Id, ct);
+    public Task<User> Handle(GetUser q) => db.Users.FindAsync(q.Id, Current.Cancellation);
 }
 ```
 

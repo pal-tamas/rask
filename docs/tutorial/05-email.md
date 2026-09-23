@@ -84,9 +84,9 @@ using Shop.Features.Orders;   // for Order
 
 public sealed class SendOrderReceiptHandler(IMail mail) : ICommandHandler<SendOrderReceipt>
 {
-    public async Task HandleAsync(SendOrderReceipt job, CancellationToken ct)
+    public async Task Handle(SendOrderReceipt job)
     {
-        var order = await Order.Read.Where(o => o.Id == job.OrderId).FirstOrDefaultAsync(ct);
+        var order = await Order.Read.Where(o => o.Id == job.OrderId).FirstOrDefaultAsync(Current.Cancellation);
         if (order is null) return;
 
         // Hard-coded recipient for now — Order has no customer-email field yet; add one and use it here.
@@ -94,7 +94,7 @@ public sealed class SendOrderReceiptHandler(IMail mail) : ICommandHandler<SendOr
             Email.To("customer@example.com")
                  .Subject($"Your order {order.Id}")
                  .Body(OrderReceipt.OrderId(order.Id).Total(order.Total)),
-            ct);
+            Current.Cancellation);
     }
 }
 ```

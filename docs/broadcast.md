@@ -28,14 +28,14 @@ Publish from anywhere that can inject `IBroadcast` — an event handler, a CQRS 
 public sealed class PlaceOrderHandler(IBroadcast broadcast, IDbContextFactory<AppDbContext> contexts)
     : ICommandHandler<PlaceOrder, Guid>
 {
-    public async Task<Guid> HandleAsync(PlaceOrder command, CancellationToken ct)
+    public async Task<Guid> Handle(PlaceOrder command)
     {
-        await using var db = await contexts.CreateDbContextAsync(ct);
+        await using var db = await contexts.CreateDbContextAsync(Current.Cancellation);
         var order = Order.Create(command.Customer, command.Total);
         db.Add(order);
-        await db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(Current.Cancellation);
 
-        await broadcast.PublishAsync(Topics.Orders, new OrderPlaced(order.Id, order.Customer, order.Total), ct);
+        await broadcast.PublishAsync(Topics.Orders, new OrderPlaced(order.Id, order.Customer, order.Total), Current.Cancellation);
         return order.Id;
     }
 }

@@ -16,7 +16,7 @@ public sealed class NotificationCompositionTests
         var handler = new CountingHandler();
         var dispatcher = Dispatcher(handler);
 
-        await dispatcher.PublishAsync(new ThingArchived(4242));
+        await dispatcher.Publish(new ThingArchived(4242));
 
         Assert.Contains(4242, ThingArchivedReactor.Seen);
         Assert.Equal(1, handler.Requests);
@@ -34,7 +34,7 @@ public sealed class NotificationCompositionTests
         var handler = new CountingHandler();
         var dispatcher = Dispatcher(handler);
 
-        await dispatcher.PublishAsync(new ThingArchived(99));
+        await dispatcher.Publish(new ThingArchived(99));
 
         Assert.Equal(1, handler.Requests);
     }
@@ -48,7 +48,7 @@ public sealed class NotificationCompositionTests
         var handler = new CountingHandler();
         var dispatcher = Dispatcher(handler);
 
-        var total = await dispatcher.SendAsync(new IncrementLocalCounter(5));
+        var total = await dispatcher.Send(new IncrementLocalCounter(5));
 
         Assert.True(total >= 5, "the local handler did not run");
         Assert.Equal(0, handler.Requests);

@@ -8,7 +8,7 @@
 
     <PackageId>Rask.Jobs</PackageId>
     <Title>Rask.Jobs — durable background jobs on your database</Title>
-    <Description>Durable background jobs for a Rask app, stored in its own database — no broker, no Redis. Enqueue a job (an `IJob`, dispatched to its Rask.Cqrs `ICommandHandler`) and a background `JobProcessor` polls the table and runs it — at-least-once, with exponential-backoff retries. Supports delayed (run-at) jobs and durable interval-recurring jobs. A source generator registers each job type for reflection-free lookup. Server-side; pairs with Rask.Cqrs and EF Core.</Description>
+    <Description>Durable background jobs for a Rask app, stored in its own database — no broker, no Redis. Enqueue a job (an `IJobs`, dispatched to its Rask.Cqrs `ICommandHandler`) and a background `JobProcessor` polls the table and runs it — at-least-once, with exponential-backoff retries. Supports delayed (run-at) jobs and durable interval-recurring jobs. A source generator registers each job type for reflection-free lookup. Server-side; pairs with Rask.Cqrs and EF Core.</Description>
     <!-- Override the framework default tags (web/component/wasm) — a standalone server-side job queue. -->
     <PackageTags>background-jobs jobs queue scheduler recurring retry entity-framework-core efcore background-service sqlite dotnet net10 net11</PackageTags>
   </PropertyGroup>
@@ -31,11 +31,11 @@
   </ItemGroup>
 
   <!--
-    JobOptions binds Rask:Jobs. The configuration binding source generator writes that bind at compile time,
+    JobsOptions binds Rask:Jobs. The configuration binding source generator writes that bind at compile time,
     so no reflection binder runs; the SDK leaves it off unless a project asks.
 
-    SYSLIB1100/1101 are the generator saying it skips JobOptions' recurring schedule — a list of job
-    factories, which appsettings cannot express and AddRecurring alone fills. Suppressed here because the
+    SYSLIB1100/1101 are the generator saying it skips JobsOptions' recurring schedule — a list of job
+    factories, which appsettings cannot express and Run<TJob>() alone fills. Suppressed here because the
     generator's diagnostics do not honour #pragma, and this project makes exactly one Bind call, so nothing
     else can hide behind it. RaskJobsOptionsBindingTests pins that every settable property still binds.
   -->

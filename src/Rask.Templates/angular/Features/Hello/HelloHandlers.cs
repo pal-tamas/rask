@@ -15,12 +15,12 @@ public sealed class VisitCounter
 
 public sealed class GetGreetingHandler(VisitCounter counter) : IQueryHandler<GetGreeting, Greeting>
 {
-    public Task<Greeting> HandleAsync(GetGreeting query, CancellationToken cancellationToken) =>
+    public Task<Greeting> Handle(GetGreeting query) =>
         Task.FromResult(new Greeting($"Hello, {query.Name}!", DateTimeOffset.UtcNow, counter.Visits));
 }
 
 public sealed class RecordVisitHandler(VisitCounter counter) : ICommandHandler<RecordVisit, int>
 {
-    public Task<int> HandleAsync(RecordVisit command, CancellationToken cancellationToken) =>
+    public Task<int> Handle(RecordVisit command) =>
         Task.FromResult(counter.Record());
 }

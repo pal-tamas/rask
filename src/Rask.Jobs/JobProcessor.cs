@@ -11,8 +11,8 @@ namespace Rask.Jobs;
 /// Polls the <see cref="Job"/> table on a schedule and runs each due job by dispatching it through
 /// <c>Rask.Cqrs</c>' <see cref="IDispatcher"/> to its <see cref="ICommandHandler{TCommand}"/>. At-least-once:
 /// a job runs at least once and, on failure, is retried with exponential backoff up to
-/// <see cref="JobOptions.MaxAttempts"/> (after which it is left as a dead letter). Also enqueues due
-/// interval-recurring jobs and purges completed jobs past <see cref="JobOptions.RetentionPeriod"/>. A failing
+/// <see cref="JobsOptions.MaxAttempts"/> (after which it is left as a dead letter). Also enqueues due
+/// interval-recurring jobs and purges completed jobs past <see cref="JobsOptions.RetentionPeriod"/>. A failing
 /// job never crashes the app. Each processor <b>leases</b> the batch it claims, so several instances is
 /// safe; see <c>docs/scaling.md</c> for what a lease does and does not guarantee.
 /// </summary>
@@ -20,7 +20,7 @@ namespace Rask.Jobs;
 public sealed class JobProcessor<TContext>(
     IDbContextFactory<TContext> contextFactory,
     IServiceScopeFactory scopeFactory,
-    JobOptions options,
+    JobsOptions options,
     TimeProvider timeProvider,
     JobMetrics metrics,
     ILogger<JobProcessor<TContext>> logger) : BackgroundService
@@ -240,7 +240,7 @@ public sealed class JobProcessor<TContext>(
                     // for whatever user happened to be ambient on the processor's own flow.
                     using var user = Current.UseUser(job.UserId);
 
-                    await dispatcher.SendAsync(command, graceToken).ConfigureAwait(false);
+                    await dispatcher.Send(command, graceToken).ConfigureAwait(false);
                     job.Completed(timeProvider.GetUtcNow().UtcDateTime);
                     job.Release();
                     metrics.Processed(job.Type, timeProvider.GetElapsedTime(startedAt).TotalMilliseconds);
@@ -300,7 +300,7 @@ public sealed class JobProcessor<TContext>(
                 // cause is a longer LeaseDuration. This warning is how you find out you need one.
                 logger.LogWarning(
                     "Job {Id} lost its lease mid-run on instance {Instance}; another instance owns it now. "
-                    + "Increase JobOptions.LeaseDuration past the time this job takes.",
+                    + "Increase JobsOptions.LeaseDuration past the time this job takes.",
                     job.Id,
                     _instanceId);
 
@@ -323,7 +323,7 @@ public sealed class JobProcessor<TContext>(
     /// <inheritdoc/>
     /// <remarks>
     /// Hands back whatever this instance still holds. Without it a rolling deploy parks up to
-    /// <see cref="JobOptions.BatchSize"/> jobs for a whole <see cref="JobOptions.LeaseDuration"/> — they are
+    /// <see cref="JobsOptions.BatchSize"/> jobs for a whole <see cref="JobsOptions.LeaseDuration"/> — they are
     /// not lost, but "deployed and the queue went quiet for five minutes" is not what anyone expects.
     /// Best-effort by design: the lease expiring is the backstop, so a failure here costs latency, not work.
     /// </remarks>
@@ -391,12 +391,7 @@ public sealed class JobProcessor<TContext>(
                 continue;
             }
 
-            // Anchor the next run to the schedule (last + interval), not the (late) poll time, so cadence
-            // doesn't drift by a poll interval each cycle. If we fell more than one interval behind (e.g. the
-            // app was down), reset to now so we don't burst a run of catch-up jobs.
-            var next = state?.LastEnqueuedAt is { } prev && now - prev < definition.Interval * 2
-                ? prev + definition.Interval
-                : now;
+            var (dueBefore, next) = definition.Schedule!.Tick(state?.LastEnqueuedAt, now, options.TimeZone);
 
             // Claim the tick with a compare-and-swap on *due-ness*, so exactly one instance enqueues it.
             // Without this, two instances both read the same state, both see it due, and both enqueue —
@@ -406,7 +401,6 @@ public sealed class JobProcessor<TContext>(
             // The predicate must be `<= dueBefore`, never `== theValueWeRead`: EF renders equality as
             // `LastEnqueuedAt = @p`, which is never true when the column is NULL, so the very first tick of
             // every recurring job would deadlock forever. This form is null-safe by construction.
-            var dueBefore = now - definition.Interval;
             var won = await db.Set<RecurringJobState>()
                 .Where(s => s.Name == definition.Name && (s.LastEnqueuedAt == null || s.LastEnqueuedAt <= dueBefore))
                 .ExecuteUpdateAsync(s => s.SetProperty(x => x.LastEnqueuedAt, next), cancellationToken)

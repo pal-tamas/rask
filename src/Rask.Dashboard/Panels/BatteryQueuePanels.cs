@@ -16,7 +16,7 @@ internal sealed class JobsQueuePanel<TContext>(
     : QueuePanelBase<TContext, Job>(contextFactory, timeProvider)
     where TContext : DbContext
 {
-    private readonly JobOptions? _options = services.GetService<JobOptions>();
+    private readonly JobsOptions? _options = services.GetService<JobsOptions>();
 
     public override string Slug => "jobs";
 

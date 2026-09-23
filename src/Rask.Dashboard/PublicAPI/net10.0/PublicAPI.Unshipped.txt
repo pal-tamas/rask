@@ -317,15 +317,11 @@ Rask.Dashboard.Panels.QueueRow.Type.get -> string!
 Rask.Dashboard.Panels.QueueRow.Type.init -> void
 Rask.Dashboard.Panels.RecurringJobRow
 Rask.Dashboard.Panels.RecurringJobRow.<Clone>$() -> Rask.Dashboard.Panels.RecurringJobRow!
-Rask.Dashboard.Panels.RecurringJobRow.Deconstruct(out string! Name, out System.TimeSpan Interval, out System.DateTime? LastEnqueuedAt) -> void
 Rask.Dashboard.Panels.RecurringJobRow.Equals(Rask.Dashboard.Panels.RecurringJobRow? other) -> bool
-Rask.Dashboard.Panels.RecurringJobRow.Interval.get -> System.TimeSpan
-Rask.Dashboard.Panels.RecurringJobRow.Interval.init -> void
 Rask.Dashboard.Panels.RecurringJobRow.LastEnqueuedAt.get -> System.DateTime?
 Rask.Dashboard.Panels.RecurringJobRow.LastEnqueuedAt.init -> void
 Rask.Dashboard.Panels.RecurringJobRow.Name.get -> string!
 Rask.Dashboard.Panels.RecurringJobRow.Name.init -> void
-Rask.Dashboard.Panels.RecurringJobRow.RecurringJobRow(string! Name, System.TimeSpan Interval, System.DateTime? LastEnqueuedAt) -> void
 Rask.Dashboard.RaskDashboardActions
 Rask.Dashboard.RaskDashboardActions.All = Rask.Dashboard.RaskDashboardActions.Safe | Rask.Dashboard.RaskDashboardActions.Destructive -> Rask.Dashboard.RaskDashboardActions
 Rask.Dashboard.RaskDashboardActions.Destructive = 2 -> Rask.Dashboard.RaskDashboardActions
@@ -466,3 +462,7 @@ static RaskBuilderSettersRask_Dashboard.__RaskCopyWritten_Rask_Dashboard_Pages_L
 static RaskBuilderSettersRask_Dashboard.__RaskCopyWritten_Rask_Dashboard_Pages_QueuePage(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Dashboard.__RaskCopyWritten_Rask_Dashboard_Pages_StoragePage(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 override Rask.Dashboard.Pages.PollingPanel.OnMount() -> System.Threading.Tasks.Task!
+Rask.Dashboard.Panels.RecurringJobRow.Deconstruct(out string! Name, out string! Schedule, out System.DateTime? LastEnqueuedAt) -> void
+Rask.Dashboard.Panels.RecurringJobRow.RecurringJobRow(string! Name, string! Schedule, System.DateTime? LastEnqueuedAt) -> void
+Rask.Dashboard.Panels.RecurringJobRow.Schedule.get -> string!
+Rask.Dashboard.Panels.RecurringJobRow.Schedule.init -> void

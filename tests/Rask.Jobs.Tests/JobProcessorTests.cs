@@ -9,7 +9,7 @@ public sealed class JobProcessorTests
     public async Task Enqueue_runs_the_handler_and_marks_the_job_processed()
     {
         await using var h = new JobsHarness();
-        await h.Queue.EnqueueAsync(new RecordJob("hello"));
+        await h.Queue.Enqueue(new RecordJob("hello"));
 
         await h.Processor.StartAsync(CancellationToken.None);
         try
@@ -33,7 +33,7 @@ public sealed class JobProcessorTests
     public async Task A_job_in_a_keyword_namespace_is_delivered_not_dead_lettered()
     {
         await using var h = new JobsHarness();
-        await h.Queue.EnqueueAsync(new @event.KeywordJob("kw"));
+        await h.Queue.Enqueue(new @event.KeywordJob("kw"));
 
         await h.Processor.StartAsync(CancellationToken.None);
         try
@@ -64,7 +64,7 @@ public sealed class JobProcessorTests
     public async Task A_scheduled_job_does_not_run_before_its_run_at()
     {
         await using var h = new JobsHarness();
-        await h.Queue.ScheduleAsync(new RecordJob("later"), TimeSpan.FromHours(1));
+        await h.Queue.Enqueue(new RecordJob("later")).In(TimeSpan.FromHours(1));
 
         await h.Processor.StartAsync(CancellationToken.None);
         try
@@ -89,7 +89,7 @@ public sealed class JobProcessorTests
             o.MaxAttempts = 3;
             o.BaseRetryDelay = TimeSpan.FromMinutes(1);
         });
-        await h.Queue.EnqueueAsync(new FailingJob());
+        await h.Queue.Enqueue(new FailingJob());
 
         await h.Processor.StartAsync(CancellationToken.None);
         try
@@ -125,7 +125,7 @@ public sealed class JobProcessorTests
     public async Task A_recurring_job_enqueues_once_per_interval()
     {
         await using var h = new JobsHarness(o =>
-            o.AddRecurring<TickJob>("tick", TimeSpan.FromHours(1), () => new TickJob()));
+            o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)));
 
         await h.Processor.StartAsync(CancellationToken.None);
         try
@@ -147,7 +147,7 @@ public sealed class JobProcessorTests
     public async Task A_restart_within_the_interval_does_not_re_enqueue_a_recurring_job()
     {
         await using var first = new JobsHarness(o =>
-            o.AddRecurring<TickJob>("tick", TimeSpan.FromHours(1), () => new TickJob()));
+            o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)));
 
         await first.Processor.StartAsync(CancellationToken.None);
         await first.WaitUntilAsync(() => Task.FromResult(first.Recorder.Ticks >= 1));
@@ -155,7 +155,7 @@ public sealed class JobProcessorTests
 
         // "Restart": a fresh processor over the SAME database at the same (still-within-interval) time.
         await using var restarted = new JobsHarness(
-            o => o.AddRecurring<TickJob>("tick", TimeSpan.FromHours(1), () => new TickJob()),
+            o => o.Run(() => new TickJob()).Named("tick").Every(TimeSpan.FromHours(1)),
             start: first.Clock.GetUtcNow(),
             dbPath: first.DbPath);
 
@@ -176,7 +176,7 @@ public sealed class JobProcessorTests
     public async Task Completed_jobs_are_purged_after_the_retention_period()
     {
         await using var h = new JobsHarness(o => o.RetentionPeriod = TimeSpan.FromHours(2));
-        await h.Queue.EnqueueAsync(new RecordJob("done"));
+        await h.Queue.Enqueue(new RecordJob("done"));
 
         await h.Processor.StartAsync(CancellationToken.None);
         try

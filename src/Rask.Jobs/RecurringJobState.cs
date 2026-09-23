@@ -22,7 +22,7 @@ public sealed class RecurringJobState : Entity<Guid>
     {
     }
 
-    /// <summary>The recurring job's registered name (see <see cref="JobOptions.AddRecurring{TJob}"/>).</summary>
+    /// <summary>The recurring job's registered name (see <see cref="RecurringJob.Name"/>).</summary>
     public string Name { get; private set; } = "";
 
     /// <summary>When this recurring job was last enqueued (UTC), or <c>null</c> if it never has been.</summary>

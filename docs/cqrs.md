@@ -33,7 +33,7 @@ public sealed record GetCounterState : IQuery<CounterState>;
 public sealed class GetCounterStateHandler(CqrsCounterStore store)
     : IQueryHandler<GetCounterState, CounterState>
 {
-    public Task<CounterState> HandleAsync(GetCounterState query, CancellationToken ct) =>
+    public Task<CounterState> Handle(GetCounterState query) =>
         Task.FromResult(new CounterState(store.Count, store.Log));
 }
 ```
@@ -81,10 +81,10 @@ order, so don't depend on it, and publishing a notification that has no handlers
 public sealed class IncrementCounterHandler(CqrsCounterStore store, IDispatcher dispatcher)
     : ICommandHandler<IncrementCounter, int>
 {
-    public async Task<int> HandleAsync(IncrementCounter command, CancellationToken ct)
+    public async Task<int> Handle(IncrementCounter command)
     {
         var value = store.IncrementBy(command.By);
-        await dispatcher.PublishAsync(new CounterIncremented(value), ct);
+        await dispatcher.PublishAsync(new CounterIncremented(value), Current.Cancellation);
         return value;
     }
 }
@@ -104,7 +104,7 @@ so one behavior shape covers everything.
 public sealed class DispatchLogBehavior<TRequest, TResult>(CqrsCounterStore store)
     : IPipelineBehavior<TRequest, TResult>
 {
-    public Task<TResult> HandleAsync(TRequest request, RequestHandlerDelegate<TResult> next, CancellationToken ct)
+    public Task<TResult> Handle(TRequest request, RequestHandlerDelegate<TResult> next)
     {
         store.Note($"⚙ dispatch {typeof(TRequest).Name}");
         return next();
@@ -237,7 +237,7 @@ Failure to *arrive* is the one thing remote dispatch adds to the in-process call
 ### `[LocalOnly]`
 
 Keeps a message off the wire entirely, and on an **interface** covers a whole family. This matters more
-than it looks: `IBackgroundJob` and `IOutboxEvent` both derive from `ICommand`, so without it every job payload and
+than it looks: `IJob` and `IOutboxEvent` both derive from `ICommand`, so without it every job payload and
 outbox event in the app would become an internet-reachable endpoint.
 
 It is also **how a client keeps a message in-process.** "A client is a pure client" is not a figure of
@@ -274,9 +274,9 @@ The handler receives a `RaskFile` too, and reads it exactly as it would in-proce
 ```csharp
 public sealed class AttachReceiptHandler : ICommandHandler<AttachReceipt>
 {
-    public async Task HandleAsync(AttachReceipt command, CancellationToken cancellationToken)
+    public async Task Handle(AttachReceipt command)
     {
-        await using var stream = command.File.OpenReadStream(command.File.Size, cancellationToken);
+        await using var stream = command.File.OpenReadStream(command.File.Size, Current.Cancellation);
         // ...
     }
 }

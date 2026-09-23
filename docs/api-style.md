@@ -186,7 +186,7 @@ What the rules above settled, so a new package has one place to look rather than
 | Idea | Noun | Verbs |
 |---|---|---|
 | Transactional email | `IMail` | `SendAsync`, `ScheduleAsync` |
-| Background work | `IJobs` | `EnqueueAsync`, `ScheduleAsync` |
+| Background work | `IJobs` | `Enqueue(job)`, `.In(24.Hours)`, `.At(moment)` |
 | Cache | `Cache` (static) / `ICache` | `Remember`, `Set`, `Get`, `Forget`; `.For`, `.Sliding`, `.Until` |
 | Mediator | `IDispatcher` | `QueryAsync`, `SendAsync`, `PublishAsync` |
 | Cached reads | `QueryClient` (static) / `IQueryClient` | `Query`, `SendAsync`, `Command`, `Invalidate` |

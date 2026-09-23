@@ -17,7 +17,7 @@ public sealed class DispatcherTests
     {
         await using var sp = Build();
 
-        var result = await sp.GetRequiredService<IDispatcher>().QueryAsync(new Add(2, 3));
+        var result = await sp.GetRequiredService<IDispatcher>().Query(new Add(2, 3));
 
         Assert.Equal(5, result);
     }
@@ -28,7 +28,7 @@ public sealed class DispatcherTests
         var recorder = new Recorder();
         await using var sp = Build(recorder: recorder);
 
-        await sp.GetRequiredService<IDispatcher>().SendAsync(new Poke("hi"));
+        await sp.GetRequiredService<IDispatcher>().Send(new Poke("hi"));
 
         Assert.Equal(new[] { "poke:hi" }, recorder.Entries);
     }
@@ -38,7 +38,7 @@ public sealed class DispatcherTests
     {
         await using var sp = Build();
 
-        var length = await sp.GetRequiredService<IDispatcher>().SendAsync(new CreateThing("abcd"));
+        var length = await sp.GetRequiredService<IDispatcher>().Send(new CreateThing("abcd"));
 
         Assert.Equal(4, length);
     }
@@ -50,10 +50,10 @@ public sealed class DispatcherTests
         await using var sp = Build(recorder: recorder);
         var dispatcher = sp.GetRequiredService<IDispatcher>();
 
-        Assert.Equal(7, await dispatcher.QueryAsync(new Add(3, 4)));
+        Assert.Equal(7, await dispatcher.Query(new Add(3, 4)));
 
-        await dispatcher.SendAsync(new Poke("x"));
-        await dispatcher.PublishAsync(new Pinged("p"));
+        await dispatcher.Send(new Poke("x"));
+        await dispatcher.Publish(new Pinged("p"));
 
         Assert.Contains("poke:x", recorder.Entries);
         Assert.Contains("A:p", recorder.Entries);
@@ -66,7 +66,7 @@ public sealed class DispatcherTests
         var recorder = new Recorder();
         await using var sp = Build(recorder: recorder);
 
-        await sp.GetRequiredService<IDispatcher>().PublishAsync(new Pinged("go"));
+        await sp.GetRequiredService<IDispatcher>().Publish(new Pinged("go"));
 
         Assert.Equal(new[] { "A:go", "B:go" }, recorder.Entries);
     }
@@ -75,7 +75,7 @@ public sealed class DispatcherTests
     public async Task Publish_with_no_handlers_is_a_noop()
     {
         await using var sp = Build();
-        await sp.GetRequiredService<IDispatcher>().PublishAsync(new Unheard());
+        await sp.GetRequiredService<IDispatcher>().Publish(new Unheard());
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public sealed class DispatcherTests
         await using var sp = Build();
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => sp.GetRequiredService<IDispatcher>().QueryAsync(new Orphan()));
+            () => sp.GetRequiredService<IDispatcher>().Query(new Orphan()));
         Assert.Contains("No handler is registered", ex.Message);
         Assert.Contains("Orphan", ex.Message);
     }
@@ -95,7 +95,7 @@ public sealed class DispatcherTests
         var recorder = new Recorder();
         await using var sp = Build(o => o.AddOpenBehavior(typeof(TracingBehavior<,>)), recorder);
 
-        await sp.GetRequiredService<IDispatcher>().QueryAsync(new Add(1, 1));
+        await sp.GetRequiredService<IDispatcher>().Query(new Add(1, 1));
 
         Assert.Equal(new[] { "trace-in:Add", "trace-out:Add" }, recorder.Entries);
     }
@@ -110,7 +110,7 @@ public sealed class DispatcherTests
             o.AddOpenBehavior(typeof(SecondBehavior<,>));
         }, recorder);
 
-        await sp.GetRequiredService<IDispatcher>().QueryAsync(new Add(1, 1));
+        await sp.GetRequiredService<IDispatcher>().Query(new Add(1, 1));
 
         Assert.Equal(
             new[] { "trace-in:Add", "second-in", "second-out", "trace-out:Add" },
@@ -123,7 +123,7 @@ public sealed class DispatcherTests
         var recorder = new Recorder();
         await using var sp = Build(o => o.AddBehavior<Add, int, ShortCircuitAdd>(), recorder);
 
-        var result = await sp.GetRequiredService<IDispatcher>().QueryAsync(new Add(2, 2));
+        var result = await sp.GetRequiredService<IDispatcher>().Query(new Add(2, 2));
 
         Assert.Equal(999, result);
         Assert.Equal(new[] { "short-circuit" }, recorder.Entries);
@@ -135,7 +135,7 @@ public sealed class DispatcherTests
         var recorder = new Recorder();
         await using var sp = Build(o => o.NotificationPublishStrategy = NotificationPublishStrategy.WhenAll, recorder);
 
-        await sp.GetRequiredService<IDispatcher>().PublishAsync(new Pinged("w"));
+        await sp.GetRequiredService<IDispatcher>().Publish(new Pinged("w"));
 
         Assert.Equal(2, recorder.Entries.Count);
         Assert.Contains("A:w", recorder.Entries);
@@ -161,7 +161,7 @@ public sealed class DispatcherTests
         services.AddRaskCqrs(o => o.AddOpenBehavior(typeof(TracingBehavior<,>)));
         await using var sp = services.BuildServiceProvider();
 
-        await sp.GetRequiredService<IDispatcher>().QueryAsync(new Add(1, 1));
+        await sp.GetRequiredService<IDispatcher>().Query(new Add(1, 1));
 
         // The behavior wrapped the handler exactly once, not twice.
         Assert.Equal(new[] { "trace-in:Add", "trace-out:Add" }, recorder.Entries);
@@ -175,7 +175,7 @@ public sealed class DispatcherTests
         await using var sp = Build(recorder: recorder);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => sp.GetRequiredService<IDispatcher>().PublishAsync(new Grumble("x")));
+            () => sp.GetRequiredService<IDispatcher>().Publish(new Grumble("x")));
 
         Assert.StartsWith("boom-", ex.Message); // the handler's own exception, rethrown as-is
         // Halted: the run stopped at the first failure, so not every handler recorded.
@@ -191,7 +191,7 @@ public sealed class DispatcherTests
         await using var sp = Build(o => o.StopOnFirstNotificationException = false, recorder);
 
         var ex = await Assert.ThrowsAsync<AggregateException>(
-            () => sp.GetRequiredService<IDispatcher>().PublishAsync(new Grumble("x")));
+            () => sp.GetRequiredService<IDispatcher>().Publish(new Grumble("x")));
 
         Assert.Equal(2, ex.InnerExceptions.Count); // both throwing handlers surfaced
         Assert.Equal(3, recorder.Entries.Count);   // every handler ran despite the earlier failure
@@ -204,7 +204,7 @@ public sealed class DispatcherTests
         await using var sp = Build(o => o.NotificationPublishStrategy = NotificationPublishStrategy.WhenAll, recorder);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => sp.GetRequiredService<IDispatcher>().PublishAsync(new Grumble("x")));
+            () => sp.GetRequiredService<IDispatcher>().Publish(new Grumble("x")));
 
         Assert.Equal(3, recorder.Entries.Count); // all handlers were started before any faulted
     }

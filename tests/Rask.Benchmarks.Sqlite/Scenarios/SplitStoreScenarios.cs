@@ -23,7 +23,7 @@ namespace Rask.Benchmarks.Sqlite.Scenarios;
 internal enum ChurnLevel
 {
     /// <summary>
-    /// The shipped defaults on a quiet app: <c>JobOptions.PollInterval</c> 5s, <c>CacheOptions.PurgeInterval</c>
+    /// The shipped defaults on a quiet app: <c>JobsOptions.PollInterval</c> 5s, <c>CacheOptions.PurgeInterval</c>
     /// 5min. The control arm — at this cadence the purge does not fire at all inside a 15s measurement, which
     /// is precisely why a quiet app has nothing to gain from splitting.
     /// </summary>
@@ -69,7 +69,7 @@ internal sealed class SplitStoreScenario : LoadScenario
     /// <summary>Expiry buckets the seed is spread across — one bucket's worth falls due per second.</summary>
     private const int ExpiryBuckets = 20;
 
-    /// <summary>Rows a poll claims at once. <c>JobOptions.BatchSize</c>'s default, which is the point.</summary>
+    /// <summary>Rows a poll claims at once. <c>JobsOptions.BatchSize</c>'s default, which is the point.</summary>
     private const int ClaimBatch = 100;
 
     private const string CacheSchema =

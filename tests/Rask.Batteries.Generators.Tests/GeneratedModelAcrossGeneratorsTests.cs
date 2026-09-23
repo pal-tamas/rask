@@ -185,8 +185,7 @@ public class GeneratedModelAcrossGeneratorsTests
 
                     public sealed class GetProductHandler : IQueryHandler<GetProduct, ProductModel>
                     {
-                        public System.Threading.Tasks.Task<ProductModel> HandleAsync(
-                            GetProduct query, System.Threading.CancellationToken cancellationToken) =>
+                        public System.Threading.Tasks.Task<ProductModel> Handle(GetProduct query) =>
                             throw new NotSupportedException();
                     }
                 }

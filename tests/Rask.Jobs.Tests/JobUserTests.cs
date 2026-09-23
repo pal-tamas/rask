@@ -18,9 +18,9 @@ public sealed class JobUserTests
 
         using (Current.UseUser(alice))
         {
-            await h.Queue.EnqueueAsync(new WhoAmIJob("alice"));
+            await h.Queue.Enqueue(new WhoAmIJob("alice"));
         }
-        await h.Queue.EnqueueAsync(new WhoAmIJob("anon"));
+        await h.Queue.Enqueue(new WhoAmIJob("anon"));
 
         // Started under somebody else, to prove the processor does not leak its own flow's user into a job
         // that recorded nobody.

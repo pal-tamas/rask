@@ -26,23 +26,28 @@ work, and the worker dispatches to it.
 ## Use
 
 ```csharp
-public sealed record SendWelcomeEmail(string Email, string Name) : IBackgroundJob;
+public sealed record SendWelcomeEmail(string Email, string Name) : IJob;
 
 public sealed class SendWelcomeEmailHandler(IMail mail) : ICommandHandler<SendWelcomeEmail>
 {
-    public Task HandleAsync(SendWelcomeEmail job, CancellationToken ct) =>
-        mail.SendAsync(Email.To(job.Email).Subject("Welcome").Body(new WelcomeEmail(job.Name)), ct);
+    public Task Handle(SendWelcomeEmail job) =>
+        mail.SendAsync(Email.To(job.Email).Subject("Welcome").Body(new WelcomeEmail(job.Name)), Current.Cancellation);
 }
 
 // Program.cs
 builder.Services.AddRaskCqrs();
 builder.Services.AddRaskJobs<AppDbContext>(o =>
-    o.AddRecurring<PurgeStaleCarts>("purge-carts", every: TimeSpan.FromHours(1), () => new PurgeStaleCarts()));
+{
+    o.Run<PurgeStaleCarts>().Every(1.Hour);
+    o.Run<NightlyBackup>().Daily.At(3, 00);
+    o.Run<WeeklyDigest>().Weekly.On(DayOfWeek.Monday).At(9, 00);
+    o.Run<CloseBooks>().Monthly.On(1).At(6, 00);
+});
 
 builder.Services.AddDbContextFactory<AppDbContext>(o => o.UseSqlite("Data Source=app.db"));
 ```
 
-A schedule is code, so `AddRecurring` stays in the callback. The plain values live in `Rask:Jobs`, which the
+A schedule is code, so `Run<TJob>()` stays in the callback. The plain values live in `Rask:Jobs`, which the
 callback runs after:
 
 ```jsonc
@@ -51,7 +56,8 @@ callback runs after:
   "Rask": {
     "Jobs": {
       "PollInterval": "00:00:05",
-      "MaxAttempts": 25
+      "MaxAttempts": 25,
+      "TimeZone": "Europe/Budapest"   // what ".Daily.At(3, 00)" means; UTC unless you say otherwise
     }
   }
 }
@@ -66,16 +72,18 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 ```
 
 Add a migration for the new tables before running — `rask db add AddJobs && rask db update`
-(or `dotnet ef migrations add AddJobs` directly). Then enqueue from anywhere `IJob` is injected:
+(or `dotnet ef migrations add AddJobs` directly). Then enqueue from anywhere — a handler, a render, a
+request, another job — with nothing injected:
 
 ```csharp
-await jobs.EnqueueAsync(new SendWelcomeEmail(user.Email, user.Name));      // run asap
-await jobs.ScheduleAsync(new SendReminder(order.Id), delay: TimeSpan.FromHours(24));  // run later
+await Jobs.Enqueue(new SendWelcomeEmail(user.Email, user.Name));   // as soon as the processor polls
+await Jobs.Enqueue(new SendReminder(order.Id)).In(24.Hours);       // tomorrow
+await Jobs.Enqueue(new CloseBooks()).At(monthEnd);                 // at a moment you name
 ```
 
 ## How it works
 
-- **`IJob`** — writes one `Job` row (type name + JSON payload + `RunAt`) through your
+- **`IJobs`** — writes one `Job` row (type name + JSON payload + `RunAt`) through your
   `IDbContextFactory<TContext>`.
 - **`JobProcessor<TContext>`** — a hosted `BackgroundService` that polls on `PollInterval` for **due** jobs
   (`RunAt <= now`, oldest first), dispatches each through `IDispatcher` to its `ICommandHandler`, and stamps
@@ -86,18 +94,23 @@ await jobs.ScheduleAsync(new SendReminder(order.Id), delay: TimeSpan.FromHours(2
   Each job's outcome is saved on its own, so a row edited or deleted underneath the drain costs that one row
   rather than re-running everything the batch had already executed. Completed jobs are purged after
   `RetentionPeriod` (default 7 days; `TimeSpan.Zero` keeps them).
-- **Recurring** — `AddRecurring<T>(name, every, factory)` enqueues a fresh job on each interval, tracked
-  durably in `RecurringJobState`, so a restart never double-runs it (and runs a single catch-up if the app was
-  down past the due time). Read the registered schedule back from `JobOptions.RecurringJobs` — join it to the
-  `RecurringJobState` row of the same name to show when each one last fired, or call an entry's `Factory()`
-  and enqueue the result to run one off-schedule.
-- **The `Rask.Jobs` source generator** registers every `IBackgroundJob` type (name → CLR type) at module load, so the
+- **Recurring** — `o.Run<T>()` plus a cadence (`.Every(1.Hour)`, `.Daily.At(3, 00)`,
+  `.Weekly.On(DayOfWeek.Monday).At(9, 00)`, `.Monthly.On(1).At(6, 00)`) enqueues a fresh job on each tick,
+  tracked durably in `RecurringJobState` under the job's type name — `.Named("purge-carts")` overrides that,
+  and two schedules for one job need it. A restart never double-runs a tick, and an interval job that fell
+  more than one interval behind restarts from now rather than bursting catch-up runs. A calendar time is read
+  in `o.TimeZone` (UTC by default, so a deploy cannot move it), follows daylight saving, and
+  `.Monthly.On(31)` runs on a short month's last day. Read the registered schedule back from
+  `JobsOptions.RecurringJobs` — join it to the `RecurringJobState` row of the same name to show when each one
+  last fired, or call an entry's `Factory()` and enqueue the result to run one off-schedule. A `Run<T>()` left
+  without a cadence fails the host's start rather than silently never running.
+- **The `Rask.Jobs` source generator** registers every `IJob` type (name → CLR type) at module load, so the
   processor rehydrates a stored job with no runtime `Type.GetType` or assembly scanning.
 
 ## Shutdown
 
 On `SIGTERM` — a redeploy, a container recycle, `Ctrl+C` — the processor stops picking up **new** jobs
-immediately, but the job already inside your handler gets `JobOptions.ShutdownGracePeriod` (default 5s) to
+immediately, but the job already inside your handler gets `JobsOptions.ShutdownGracePeriod` (default 5s) to
 finish rather than being cancelled mid-call. A job halfway through a `SaveChangesAsync` completes instead of
 being torn in two.
 
@@ -141,13 +154,13 @@ for hosted services, so a longer grace silently does not happen. `TimeSpan.Zero`
   job is rehydrated without reflection. Skipped shapes: generic (or nested inside a generic), `file`-local,
   and `private`/`protected` at any level of its containing chain. Each is reported at build time as
   [RASK035](diagnostics.md#rask035), so a job that could never be dispatched fails the build instead of
-  dead-lettering in production. An abstract base carrying `IBackgroundJob` is skipped silently; its concrete
+  dead-lettering in production. An abstract base carrying `IJob` is skipped silently; its concrete
   derivatives register as usual. Nesting inside a plain `static class` is fine, and the usual way to group
   a feature's jobs.
 - **Running more than one instance is safe.** Each processor *leases* the batch it claims, so a job goes to
   exactly one instance. See [running more than one instance](scaling.md#running-more-than-one-instance) for
   what the lease does and does not guarantee. On SQLite you will still usually run one instance for the
-  unrelated reason that it is single-writer; because `EnqueueAsync` writes while the processor may also be
+  unrelated reason that it is single-writer; because an enqueue writes while the processor may also be
   writing, use [`UseRaskSqlite`](sqlite.md) (WAL + a `busy_timeout`) on your context so a concurrent enqueue
   waits for the write lock instead of failing with `SQLITE_BUSY`.
 - **`Attempts` counts attempts *started*, not failures.** The claim increments it, so a job that takes the

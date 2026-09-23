@@ -18,11 +18,11 @@ public sealed class OutboxGate
 
 public sealed class GatedEventHandler(OutboxGate gate) : INotificationHandler<GatedEvent>
 {
-    public async Task HandleAsync(GatedEvent notification, CancellationToken cancellationToken)
+    public async Task Handle(GatedEvent notification)
     {
         gate.Entered.TrySetResult();
         // Observes the token, so a grace expiry actually cancels it.
-        await gate.Release.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await gate.Release.Task.WaitAsync(Current.Cancellation).ConfigureAwait(false);
         gate.Completed.TrySetResult();
     }
 }

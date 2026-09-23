@@ -12,7 +12,7 @@ namespace Rask.Data;
 ///     </para>
 ///     <para>
 ///         This type holds the SCOPES — <see cref="Use" />, <see cref="Across" />, <see cref="None" />. Which
-///         tenant is in flight is read from <see cref="Rask.Data.Current.Tenant" />, beside the current user.
+///         tenant is in flight is read from <c>Current.Tenant</c>, beside the current user.
 ///     </para>
 ///     <para>
 ///         <b>A tenant-scoped read with no tenant set THROWS.</b> Returning nothing would be safe against
@@ -39,7 +39,7 @@ public static class Tenant
     public static bool IsAcrossTenants => Ambient.Value.Across;
 
     /// <summary>The tenant an explicit <see cref="Use" /> scope set, ignoring the principal.</summary>
-    /// <remarks>The tenant in flight from every source is <see cref="Rask.Data.Current.Tenant" />.</remarks>
+    /// <remarks>The tenant in flight from every source is <c>Current.Tenant</c>.</remarks>
     internal static Guid? Explicit => Ambient.Value.Tenant;
 
     /// <summary>
@@ -84,7 +84,7 @@ public static class Tenant
     /// <exception cref="InvalidOperationException">
     ///     Nothing says which tenant: no scope is open and the principal carries no tenant.
     /// </exception>
-    public static Guid? Resolve() => Ambient.Value.Across ? null : Rask.Data.Current.RequiredTenant;
+    public static Guid? Resolve() => Ambient.Value.Across ? null : Current.RequiredTenant;
 
     private readonly record struct State(Guid? Tenant, bool Across);
 
@@ -117,7 +117,7 @@ public static class Tenant
 ///     <para>
 ///         Implement it on the application's context — <c>: DbContext, ITenantScoped</c> — and pass the
 ///         context to <c>modelBuilder.ApplyRaskConventions(this)</c>. Nothing needs writing: the default
-///         implementation reads <see cref="Current.Tenant" />.
+///         implementation reads <c>Current.Tenant</c>.
 ///     </para>
 ///     <para>
 ///         <b>Why the filter goes through an instance member rather than reading the ambient directly.</b>

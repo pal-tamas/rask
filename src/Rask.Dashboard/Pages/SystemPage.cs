@@ -193,7 +193,7 @@ public sealed partial class SystemPage(
         return UiCard.Heading("Recurring jobs")[
             UiDataGrid.Data(_recurring).RowKey(r => r.Name).Label("Recurring jobs")[c => [
                 c.Field(r => r.Name).Title("Name").Mono(true),
-                c.Field(r => r.Interval).Title("Every").Value(r => DashboardParts.Duration(r.Interval)),
+                c.Field(r => r.Schedule).Title("Schedule"),
                 c.Field(r => r.LastEnqueuedAt).Title("Last enqueued").Cell(r =>
                     r.LastEnqueuedAt is { } last
                         ? Span.Title(last.ToString("u"))[DashboardParts.Ago(last, now)]

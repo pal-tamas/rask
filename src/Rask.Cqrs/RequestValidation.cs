@@ -27,10 +27,8 @@ public interface IRequestValidator<in TRequest>
 {
     /// <summary>Checks the request.</summary>
     /// <param name="request">The request about to be handled.</param>
-    /// <param name="cancellationToken">Cancels the check.</param>
     /// <returns>Every failure found; empty when the request is valid.</returns>
-    ValueTask<IReadOnlyList<RequestValidationError>> ValidateAsync(
-        TRequest request, CancellationToken cancellationToken);
+    ValueTask<IReadOnlyList<RequestValidationError>> Validate(TRequest request);
 }
 
 // The non-generic shape, for the one caller that cannot use the generic one.
@@ -50,10 +48,8 @@ public interface IRemoteRequestValidator
 {
     /// <summary>Checks a request about to leave for the server.</summary>
     /// <param name="request">The query or command being sent.</param>
-    /// <param name="cancellationToken">Cancels the check.</param>
     /// <returns>Every failure found; empty when the request is valid.</returns>
-    ValueTask<IReadOnlyList<RequestValidationError>> ValidateAsync(
-        object request, CancellationToken cancellationToken);
+    ValueTask<IReadOnlyList<RequestValidationError>> Validate(object request);
 }
 
 // Thrown rather than returned. A behavior short-circuits by not calling next(), but it still has to

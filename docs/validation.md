@@ -69,9 +69,8 @@ construction:
 ```csharp
 public sealed class NoDuplicateOrders(IOrderStore store) : IRequestValidator<PlaceOrder>
 {
-    public async ValueTask<IReadOnlyList<RequestValidationError>> ValidateAsync(
-        PlaceOrder request, CancellationToken ct) =>
-        await store.ExistsAsync(request.Reference, ct)
+    public async ValueTask<IReadOnlyList<RequestValidationError>> Validate(PlaceOrder request) =>
+        await store.ExistsAsync(request.Reference, Current.Cancellation)
             ? [new RequestValidationError(nameof(PlaceOrder.Reference), "That reference is already used.")]
             : [];
 }
@@ -144,7 +143,7 @@ public sealed class NewOrderValidator : AbstractValidator<NewOrder>
 {
     public NewOrderValidator(IOrderStore store) =>
         RuleFor(o => o.Reference)
-            .MustAsync(async (reference, ct) => !await store.ExistsAsync(reference!, ct))
+            .MustAsync(async (reference, Current.Cancellation) => !await store.ExistsAsync(reference!, Current.Cancellation))
             .WithMessage("That reference is already used.");
 }
 ```

@@ -63,7 +63,7 @@ public sealed class Ledger
 
 public sealed class GetGreetingHandler : IQueryHandler<GetGreeting, Greeting>
 {
-    public Task<Greeting> HandleAsync(GetGreeting query, CancellationToken cancellationToken)
+    public Task<Greeting> Handle(GetGreeting query)
     {
         var text = query.Formal ? $"Good day, {query.Name}." : $"hi {query.Name}";
         return Task.FromResult(new Greeting(text, text.Length, query.Formal));
@@ -72,19 +72,19 @@ public sealed class GetGreetingHandler : IQueryHandler<GetGreeting, Greeting>
 
 public sealed class CountCharactersHandler : IQueryHandler<CountCharacters, int>
 {
-    public Task<int> HandleAsync(CountCharacters query, CancellationToken cancellationToken) =>
+    public Task<int> Handle(CountCharacters query) =>
         Task.FromResult(query.Padding.Length);
 }
 
 public sealed class BumpHandler(Ledger ledger) : ICommandHandler<Bump, int>
 {
-    public Task<int> HandleAsync(Bump command, CancellationToken cancellationToken) =>
+    public Task<int> Handle(Bump command) =>
         Task.FromResult(ledger.Add(command.By));
 }
 
 public sealed class TouchHandler(Ledger ledger) : ICommandHandler<Touch>
 {
-    public Task HandleAsync(Touch command, CancellationToken cancellationToken)
+    public Task Handle(Touch command)
     {
         ledger.Note($"touched:{command.Note}");
         return Task.CompletedTask;
@@ -93,7 +93,7 @@ public sealed class TouchHandler(Ledger ledger) : ICommandHandler<Touch>
 
 public sealed class AnnounceHandler(Ledger ledger) : INotificationHandler<Announce>
 {
-    public Task HandleAsync(Announce notification, CancellationToken cancellationToken)
+    public Task Handle(Announce notification)
     {
         ledger.Note($"announced:{notification.Text}");
         return Task.CompletedTask;
@@ -102,33 +102,33 @@ public sealed class AnnounceHandler(Ledger ledger) : INotificationHandler<Announ
 
 public sealed class AttachHandler : ICommandHandler<Attach, string>
 {
-    public async Task<string> HandleAsync(Attach command, CancellationToken cancellationToken)
+    public async Task<string> Handle(Attach command)
     {
         using var reader = new StreamReader(
-            command.File.OpenReadStream(long.MaxValue, cancellationToken));
+            command.File.OpenReadStream(long.MaxValue, Current.Cancellation));
 
         // Name and content type as well as the bytes: a file that arrives with the right content under
         // the wrong name is the failure a handler cannot see and a user can.
         return $"{command.Note}|{command.File.Name}|{command.File.ContentType}|"
-               + await reader.ReadToEndAsync(cancellationToken);
+               + await reader.ReadToEndAsync(Current.Cancellation);
     }
 }
 
 public sealed class AttachTwoHandler : ICommandHandler<AttachTwo, string>
 {
-    public async Task<string> HandleAsync(AttachTwo command, CancellationToken cancellationToken)
+    public async Task<string> Handle(AttachTwo command)
     {
-        using var first = new StreamReader(command.First.OpenReadStream(long.MaxValue, cancellationToken));
-        using var second = new StreamReader(command.Second.OpenReadStream(long.MaxValue, cancellationToken));
+        using var first = new StreamReader(command.First.OpenReadStream(long.MaxValue, Current.Cancellation));
+        using var second = new StreamReader(command.Second.OpenReadStream(long.MaxValue, Current.Cancellation));
 
-        return $"{command.First.Name}={await first.ReadToEndAsync(cancellationToken)};"
-               + $"{command.Second.Name}={await second.ReadToEndAsync(cancellationToken)}";
+        return $"{command.First.Name}={await first.ReadToEndAsync(Current.Cancellation)};"
+               + $"{command.Second.Name}={await second.ReadToEndAsync(Current.Cancellation)}";
     }
 }
 
 public sealed class ExportHandler : IQueryHandler<Export, FileDownload>
 {
-    public Task<FileDownload> HandleAsync(Export query, CancellationToken cancellationToken) =>
+    public Task<FileDownload> Handle(Export query) =>
         Task.FromResult(FileDownload.FromBytes(
             $"orders-{query.Year}.csv",
             "text/csv",
@@ -137,7 +137,7 @@ public sealed class ExportHandler : IQueryHandler<Export, FileDownload>
 
 public sealed class ExplodesHandler : IQueryHandler<Explodes, int>
 {
-    public Task<int> HandleAsync(Explodes query, CancellationToken cancellationToken) =>
+    public Task<int> Handle(Explodes query) =>
         throw new InvalidOperationException("Server=db;Password=hunter2");
 }
 
@@ -146,7 +146,7 @@ public sealed class ExplodesHandler : IQueryHandler<Explodes, int>
 [Authorize(Roles = "admin")]
 public sealed class PurgeHandler(Ledger ledger) : ICommandHandler<Purge>
 {
-    public Task HandleAsync(Purge command, CancellationToken cancellationToken)
+    public Task Handle(Purge command)
     {
         ledger.Note("purged");
         return Task.CompletedTask;

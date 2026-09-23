@@ -14,7 +14,7 @@ public sealed class QueueActionTests
     {
         await using var h = new DashboardHarness(Batteries.Jobs);
         var now = h.Clock.GetUtcNow().UtcDateTime;
-        var max = h.Get<JobOptions>().MaxAttempts;
+        var max = h.Get<JobsOptions>().MaxAttempts;
         var id = await SeedAsync(h, Job(runAt: now.AddHours(-1), attempts: max, error: "boom"));
 
         var affected = await h.Queue("jobs").RetryAsync(id, CancellationToken.None);
@@ -32,7 +32,7 @@ public sealed class QueueActionTests
     {
         await using var h = new DashboardHarness(Batteries.Jobs);
         var now = h.Clock.GetUtcNow().UtcDateTime;
-        var max = h.Get<JobOptions>().MaxAttempts;
+        var max = h.Get<JobsOptions>().MaxAttempts;
 
         // Due and not yet exhausted: exactly what the drain query selects. The guard is the inverse of
         // that query, so this row is invisible to retry — which is why the action needs no coordination
@@ -51,7 +51,7 @@ public sealed class QueueActionTests
     {
         await using var h = new DashboardHarness(Batteries.Jobs);
         var now = h.Clock.GetUtcNow().UtcDateTime;
-        var max = h.Get<JobOptions>().MaxAttempts;
+        var max = h.Get<JobsOptions>().MaxAttempts;
 
         // Attempts is high but it finished — re-running it would duplicate a side effect that already
         // happened, so ProcessedAt IS NULL is part of the guard rather than just Attempts >= max.
@@ -66,7 +66,7 @@ public sealed class QueueActionTests
     {
         await using var h = new DashboardHarness(Batteries.Jobs);
         var now = h.Clock.GetUtcNow().UtcDateTime;
-        var max = h.Get<JobOptions>().MaxAttempts;
+        var max = h.Get<JobsOptions>().MaxAttempts;
 
         await SeedAsync(h,
             Job(runAt: now, attempts: max),          // dead
@@ -87,7 +87,7 @@ public sealed class QueueActionTests
     {
         await using var h = new DashboardHarness(Batteries.Jobs);
         var now = h.Clock.GetUtcNow().UtcDateTime;
-        var max = h.Get<JobOptions>().MaxAttempts;
+        var max = h.Get<JobsOptions>().MaxAttempts;
 
         await SeedAsync(h,
             Job(runAt: now, processedAt: now.AddDays(-10)),   // old and done → goes

@@ -78,7 +78,7 @@ await mail.SendAsync(Email
     .Subject("Welcome")
     .Body(WelcomeEmail.Name(user.Name)));                      // the chain, not new (RASK014)
 
-await mail.ScheduleAsync(reminder, delay: TimeSpan.FromHours(24));  // send later
+await mail.Enqueue(reminder).In(delay: TimeSpan.FromHours(24));  // send later
 ```
 
 ### Zero-config in development

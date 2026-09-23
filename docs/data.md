@@ -1042,17 +1042,17 @@ public sealed record CancelOrder(Guid Id, int Version) : ICommand;
 public sealed class CancelOrderHandler(IDbContextFactory<RaskAppDbContext> contexts, TimeProvider clock)
     : ICommandHandler<CancelOrder>
 {
-    public async Task HandleAsync(CancelOrder command, CancellationToken ct)
+    public async Task Handle(CancelOrder command)
     {
-        await using var db = await contexts.CreateDbContextAsync(ct);
+        await using var db = await contexts.CreateDbContextAsync(Current.Cancellation);
 
-        var order = await db.Set<Order>().FindAsync([command.Id], ct)
+        var order = await db.Set<Order>().FindAsync([command.Id], Current.Cancellation)
                     ?? throw new KeyNotFoundException($"There is no order {command.Id}.");
 
         db.Entry(order).Property(o => o.Version).OriginalValue = command.Version;   // see Optimistic concurrency
         order.Cancel(clock.GetUtcNow().UtcDateTime);                                 // the decision, and its event
 
-        await db.SaveChangesAsync(ct);                                               // stamped, versioned, published
+        await db.SaveChangesAsync(Current.Cancellation);                                               // stamped, versioned, published
     }
 }
 ```
@@ -1064,17 +1064,17 @@ Work that has to land together — placing an order and reserving its stock — 
 public sealed class PlaceOrderHandler(IDbContextFactory<RaskAppDbContext> contexts)
     : ICommandHandler<PlaceOrder, Guid>
 {
-    public async Task<Guid> HandleAsync(PlaceOrder command, CancellationToken ct)
+    public async Task<Guid> Handle(PlaceOrder command)
     {
-        await using var db = await contexts.CreateDbContextAsync(ct);
+        await using var db = await contexts.CreateDbContextAsync(Current.Cancellation);
 
-        var stock = await db.Set<StockItem>().FirstAsync(s => s.Sku == command.Sku, ct);
+        var stock = await db.Set<StockItem>().FirstAsync(s => s.Sku == command.Sku, Current.Cancellation);
         stock.Reserve(command.Quantity);
 
         var order = Order.Place(command.Sku, command.Quantity);
         db.Add(order);
 
-        await db.SaveChangesAsync(ct);   // both rows in one transaction, or neither
+        await db.SaveChangesAsync(Current.Cancellation);   // both rows in one transaction, or neither
         return order.Id;
     }
 }

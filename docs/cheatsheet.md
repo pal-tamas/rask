@@ -128,7 +128,7 @@ var saved = await files.SaveAsync(file.OpenReadStream, file.Name, file.Size, o =
 Img.Src(files.Url(saved.Id)).Alt(product.Name)
 
 // Enqueue work off the request thread — returns as soon as the row is written:
-await jobs.EnqueueAsync(new SendOrderReceipt(order.Id), CancellationToken);
+await jobs.Enqueue(new SendOrderReceipt(order.Id), CancellationToken);
 ```
 
 ---

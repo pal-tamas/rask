@@ -4,11 +4,11 @@ using Microsoft.Extensions.Hosting;
 
 namespace Rask.Providers.E2E.Tests;
 
-public sealed record ProbeJob(string Value) : IBackgroundJob;
+public sealed record ProbeJob(string Value) : IJob;
 
 public sealed class ProbeJobHandler : ICommandHandler<ProbeJob>
 {
-    public Task HandleAsync(ProbeJob command, CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task Handle(ProbeJob command) => Task.CompletedTask;
 }
 
 public sealed class ClaimDbContext(DbContextOptions<ClaimDbContext> options) : DbContext(options)

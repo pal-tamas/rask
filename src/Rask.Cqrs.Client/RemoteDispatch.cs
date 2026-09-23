@@ -89,7 +89,7 @@ internal sealed class RemoteDispatch(
         // server and every in-process publish accept, which is a worse failure than not checking.
         if (validator is not null && contract.Kind != RemoteMessageKind.Notification)
         {
-            var errors = await validator.ValidateAsync(message, cancellationToken).ConfigureAwait(false);
+            var errors = await validator.Validate(message).ConfigureAwait(false);
             if (errors is { Count: > 0 })
             {
                 throw new RaskValidationException(errors);

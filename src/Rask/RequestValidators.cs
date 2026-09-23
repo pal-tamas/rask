@@ -37,8 +37,7 @@ public sealed class DataAnnotationsRequestValidator<TRequest> : IRequestValidato
     }
 
     /// <inheritdoc />
-    public ValueTask<IReadOnlyList<RequestValidationError>> ValidateAsync(
-        TRequest request, CancellationToken cancellationToken)
+    public ValueTask<IReadOnlyList<RequestValidationError>> Validate(TRequest request)
     {
         // One switch means one switch. On the server c.Validation.Off() also clears
         // CqrsOptions.ValidateRequests, so this is redundant there; on WebAssembly there is no options
@@ -84,8 +83,7 @@ public sealed class FluentValidationRequestValidator<TRequest> : IRequestValidat
     }
 
     /// <inheritdoc />
-    public async ValueTask<IReadOnlyList<RequestValidationError>> ValidateAsync(
-        TRequest request, CancellationToken cancellationToken)
+    public async ValueTask<IReadOnlyList<RequestValidationError>> Validate(TRequest request)
     {
         if (request is null || !RaskValidation.AutoValidate
             || RaskValidators.Find(typeof(TRequest)) is not { } factory)
@@ -99,7 +97,7 @@ public sealed class FluentValidationRequestValidator<TRequest> : IRequestValidat
         }
 
         var result = await validator
-            .ValidateAsync(new ValidationContext<object>(request), cancellationToken)
+            .ValidateAsync(new ValidationContext<object>(request), Ambient.CancellationToken)
             .ConfigureAwait(false);
 
         if (result.IsValid)
@@ -144,8 +142,7 @@ public sealed class RaskRemoteRequestValidator : IRemoteRequestValidator
     }
 
     /// <inheritdoc />
-    public async ValueTask<IReadOnlyList<RequestValidationError>> ValidateAsync(
-        object request, CancellationToken cancellationToken)
+    public async ValueTask<IReadOnlyList<RequestValidationError>> Validate(object request)
     {
         if (request is null || !RaskValidation.AutoValidate)
         {
@@ -166,7 +163,7 @@ public sealed class RaskRemoteRequestValidator : IRemoteRequestValidator
             && factory(services) is IValidator validator)
         {
             var result = await validator
-                .ValidateAsync(new ValidationContext<object>(request), cancellationToken)
+                .ValidateAsync(new ValidationContext<object>(request), Ambient.CancellationToken)
                 .ConfigureAwait(false);
 
             foreach (var failure in result.Errors)

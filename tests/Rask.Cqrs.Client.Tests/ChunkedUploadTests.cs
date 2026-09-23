@@ -21,7 +21,7 @@ public sealed class ChunkedUploadTests
         var handler = new RecordingHandler();
         var file = new PickedFile("small.txt", "text/plain", new byte[64]);
 
-        await Dispatcher(handler).SendAsync(new AttachToThing(1, file));
+        await Dispatcher(handler).Send(new AttachToThing(1, file));
 
         Assert.Single(handler.Requests);
         Assert.Contains("multipart/form-data", handler.Requests[0].ContentType, StringComparison.Ordinal);
@@ -37,7 +37,7 @@ public sealed class ChunkedUploadTests
         {
             o.ChunkedUploadThreshold = 1024;
             o.UploadChunkSize = 4096;
-        }).SendAsync(new AttachToThing(1, file));
+        }).Send(new AttachToThing(1, file));
 
         // 10 KB in 4 KB chunks is 3 requests, then the message: the last chunk is deliberately short, so
         // an off-by-one in the offset arithmetic cannot hide behind round numbers.
@@ -72,7 +72,7 @@ public sealed class ChunkedUploadTests
         {
             o.ChunkedUploadThreshold = 1024;
             o.UploadChunkSize = 4096;
-        }).SendAsync(new AttachToThing(1, file));
+        }).Send(new AttachToThing(1, file));
 
         Assert.Equal("mes%20notes.txt", handler.Requests[0].FileName);
     }
@@ -92,7 +92,7 @@ public sealed class ChunkedUploadTests
         });
 
         var error = await Assert.ThrowsAsync<RemoteDispatchException>(
-            () => dispatcher.SendAsync(new AttachToThing(1, file)));
+            () => dispatcher.Send(new AttachToThing(1, file)));
 
         Assert.Equal(403, error.StatusCode);
         Assert.Single(handler.Requests);
@@ -119,7 +119,7 @@ public sealed class ChunkedUploadTests
         {
             o.ChunkedUploadThreshold = 1024;
             o.UploadChunkSize = 1024;
-        }).SendAsync(new AttachToThing(1, file));
+        }).Send(new AttachToThing(1, file));
 
         var offsets = handler.Requests
             .Where(r => r.Offset is not null)
@@ -149,7 +149,7 @@ public sealed class ChunkedUploadTests
         });
 
         var error = await Assert.ThrowsAsync<RemoteDispatchException>(
-            () => dispatcher.SendAsync(new AttachToThing(1, file)));
+            () => dispatcher.Send(new AttachToThing(1, file)));
 
         Assert.Equal(409, error.StatusCode);
     }

@@ -415,3 +415,5 @@ static Rask.Ambient.FallbackToken.set -> void
 Rask.Clock
 static Rask.Clock.Now.get -> System.DateTimeOffset
 static Rask.Clock.TimeProvider.get -> System.TimeProvider!
+Rask.Current
+static Rask.Current.Cancellation.get -> System.Threading.CancellationToken

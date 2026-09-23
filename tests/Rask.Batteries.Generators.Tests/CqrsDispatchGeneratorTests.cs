@@ -16,7 +16,7 @@ public sealed class CqrsDispatchGeneratorTests
             public sealed record GetValue(int Id) : IQuery<string>;
             public sealed class GetValueHandler : IQueryHandler<GetValue, string>
             {
-                public Task<string> HandleAsync(GetValue query, CancellationToken ct) => Task.FromResult("v");
+                public Task<string> Handle(GetValue query) => Task.FromResult("v");
             }
             """);
 
@@ -36,7 +36,7 @@ public sealed class CqrsDispatchGeneratorTests
             public sealed record DoIt : ICommand;
             public sealed class DoItHandler : ICommandHandler<DoIt>
             {
-                public Task HandleAsync(DoIt command, CancellationToken ct) => Task.CompletedTask;
+                public Task Handle(DoIt command) => Task.CompletedTask;
             }
             """);
 
@@ -53,11 +53,11 @@ public sealed class CqrsDispatchGeneratorTests
             public sealed record Ping : INotification;
             public sealed class PingA : INotificationHandler<Ping>
             {
-                public Task HandleAsync(Ping n, CancellationToken ct) => Task.CompletedTask;
+                public Task Handle(Ping n) => Task.CompletedTask;
             }
             public sealed class PingB : INotificationHandler<Ping>
             {
-                public Task HandleAsync(Ping n, CancellationToken ct) => Task.CompletedTask;
+                public Task Handle(Ping n) => Task.CompletedTask;
             }
             """);
 
@@ -75,11 +75,11 @@ public sealed class CqrsDispatchGeneratorTests
             public sealed record GetValue : IQuery<int>;
             public sealed class HandlerOne : IQueryHandler<GetValue, int>
             {
-                public Task<int> HandleAsync(GetValue query, CancellationToken ct) => Task.FromResult(1);
+                public Task<int> Handle(GetValue query) => Task.FromResult(1);
             }
             public sealed class HandlerTwo : IQueryHandler<GetValue, int>
             {
-                public Task<int> HandleAsync(GetValue query, CancellationToken ct) => Task.FromResult(2);
+                public Task<int> Handle(GetValue query) => Task.FromResult(2);
             }
             """);
 
@@ -94,7 +94,7 @@ public sealed class CqrsDispatchGeneratorTests
             public sealed class PrivateHandler : IQueryHandler<GetValue, int>
             {
                 private PrivateHandler() { }
-                public Task<int> HandleAsync(GetValue query, CancellationToken ct) => Task.FromResult(1);
+                public Task<int> Handle(GetValue query) => Task.FromResult(1);
             }
             """);
 
@@ -116,7 +116,7 @@ public sealed class CqrsDispatchGeneratorTests
             public sealed class PrivateHandler : IQueryHandler<GetValue, int>
             {
                 {{body}}
-                public Task<int> HandleAsync(GetValue query, CancellationToken ct) => Task.FromResult(1);
+                public Task<int> Handle(GetValue query) => Task.FromResult(1);
             }
             """);
 
@@ -135,7 +135,7 @@ public sealed class CqrsDispatchGeneratorTests
             {
                 private sealed class Action : IQueryHandler<GetValue, string>
                 {
-                    public Task<string> HandleAsync(GetValue query, CancellationToken ct) => Task.FromResult("v");
+                    public Task<string> Handle(GetValue query) => Task.FromResult("v");
                 }
             }
             """);
@@ -152,7 +152,7 @@ public sealed class CqrsDispatchGeneratorTests
             public sealed record GetValue(int Id) : IQuery<string>;
             public sealed record GetValueHandler : IQueryHandler<GetValue, string>
             {
-                public Task<string> HandleAsync(GetValue query, CancellationToken ct) => Task.FromResult("v");
+                public Task<string> Handle(GetValue query) => Task.FromResult("v");
             }
             """);
 
@@ -169,7 +169,7 @@ public sealed class CqrsDispatchGeneratorTests
             public sealed record GetValue : IQuery<int>;
             public partial class SplitHandler : IQueryHandler<GetValue, int>
             {
-                public Task<int> HandleAsync(GetValue query, CancellationToken ct) => Task.FromResult(1);
+                public Task<int> Handle(GetValue query) => Task.FromResult(1);
             }
             public partial class SplitHandler : System.IDisposable
             {
@@ -203,7 +203,7 @@ public sealed class CqrsDispatchGeneratorTests
             {
                 private sealed class Action : IQueryHandler<GetValue, string>
                 {
-                    public Task<string> HandleAsync(GetValue query, CancellationToken ct) => Task.FromResult("v");
+                    public Task<string> Handle(GetValue query) => Task.FromResult("v");
                 }
             }
             """);
@@ -221,7 +221,7 @@ public sealed class CqrsDispatchGeneratorTests
             public sealed record GetValue : IQuery<string>;
             file sealed class Action : IQueryHandler<GetValue, string>
             {
-                public Task<string> HandleAsync(GetValue query, CancellationToken ct) => Task.FromResult("v");
+                public Task<string> Handle(GetValue query) => Task.FromResult("v");
             }
             """);
 
@@ -238,7 +238,7 @@ public sealed class CqrsDispatchGeneratorTests
             public sealed record Page<T>(int Number) : IQuery<string>;
             public sealed class PageHandler : IQueryHandler<Page<int>, string>
             {
-                public Task<string> HandleAsync(Page<int> query, CancellationToken ct) => Task.FromResult("v");
+                public Task<string> Handle(Page<int> query) => Task.FromResult("v");
             }
             """);
 

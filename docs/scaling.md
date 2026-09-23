@@ -178,7 +178,7 @@ side effect matters. When an overrun does happen you get a warning naming the op
 
 ```
 Job 41 lost its lease mid-run on instance …; another instance owns it now.
-Increase JobOptions.LeaseDuration past the time this job takes.
+Increase JobsOptions.LeaseDuration past the time this job takes.
 ```
 
 ### `Attempts` counts attempts started

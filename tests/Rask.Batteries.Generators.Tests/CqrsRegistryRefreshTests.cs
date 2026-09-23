@@ -25,13 +25,13 @@ public class CqrsRegistryRefreshTests
         public sealed record Ping : ICommand;
         public sealed class PingHandler : ICommandHandler<Ping>
         {
-            public Task HandleAsync(Ping command, CancellationToken ct) => Task.CompletedTask;
+            public Task Handle(Ping command) => Task.CompletedTask;
         }
 
         public sealed record Pinged : INotification;
         public sealed class PingedHandler : INotificationHandler<Pinged>
         {
-            public Task HandleAsync(Pinged notification, CancellationToken ct) => Task.CompletedTask;
+            public Task Handle(Pinged notification) => Task.CompletedTask;
         }
         """;
 
