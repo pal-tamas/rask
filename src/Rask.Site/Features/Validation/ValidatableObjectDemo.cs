@@ -30,18 +30,18 @@ public sealed partial class ValidatableObjectDemo : Component
     protected override Component? Render() =>
     [
         Form.Model(_model).OnValidSubmit(m => _submission = $"Booked: {m.Name} {m.Departure:yyyy-MM-dd} → {m.Arrival:yyyy-MM-dd}").Class("flex flex-col gap-3")[
-            ValidationSummary.Template(SummaryAlert),
+            Validation.Summary.Template(SummaryAlert),
             Div[
                 Ui.Input.Bind(() => _model.Name).Label("Name").Id("v11-name").ShowValidation(false),
-                ValidationMessage.Template(FieldError).For(() => _model.Name)
+                Validation.Message.Template(FieldError).For(() => _model.Name)
             ],
             Div[
                 Ui.Input.Bind(() => _model.Departure).Label("Departure").Id("v11-departure").ShowValidation(false),
-                ValidationMessage.Template(FieldError).For(() => _model.Departure)
+                Validation.Message.Template(FieldError).For(() => _model.Departure)
             ],
             Div[
                 Ui.Input.Bind(() => _model.Arrival).Label("Arrival").Id("v11-arrival").ShowValidation(false),
-                ValidationMessage.Template(FieldError).For(() => _model.Arrival)
+                Validation.Message.Template(FieldError).For(() => _model.Arrival)
             ],
             Div[
                 Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit)[Ui.Icon.Name(Ui.IconName.Calendar), "Book"]

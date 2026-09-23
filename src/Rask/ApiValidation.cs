@@ -9,8 +9,8 @@ using Microsoft.AspNetCore.Http.Metadata;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.DependencyInjection;
+using Rask;
 using Rask.Core.Forms;
-using Rask.Validation.FluentValidation;
 
 namespace Rask;
 

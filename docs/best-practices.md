@@ -280,7 +280,7 @@ mistake, the rule notes the ID.
 | `new Counter()` outside Core (**RASK014**) | Name it and chain: `Counter`, `Counter.Value(3)` |
 | Service as a settable property → required step (**RASK002**) | Inject via the constructor |
 | `Head()[Title()[...]]` (**RASK019**) | Override `protected override Component? Head` |
-| Root renders `Doctype`/`Html`/`Head`/`Body` (**RASK021**) | Return the body's content; `Head`/`HtmlLang`/`BodyClass`/`Shell` |
+| Root renders `Doctype`/`Document`/`Head`/`Body` (**RASK021**) | Return the body's content; `Head`/`HtmlLang`/`BodyClass`/`Shell` |
 | User input through `Raw(...)` (XSS) | Use a plain string / `Text` (encodes by default) |
 | `StateHasChanged()` inside an awaited handler/hook | Redundant — the `await` re-renders for you |
 | `StateHasChanged()` in `OnUnmount` | No-op by design — only tear down subscriptions |

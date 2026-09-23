@@ -24,11 +24,11 @@ public sealed partial class NestedListForeachDemo : Component
             rows.Add(Tr.Key(captured.Id)[
                 Td[
                     Ui.Input.Bind(() => captured.Description).AccessibleLabel("Description").ShowValidation(false),
-                    ValidationMessage.Template(FieldError).For(() => captured.Description)
+                    Validation.Message.Template(FieldError).For(() => captured.Description)
                 ],
                 Td.Style("width: 6rem;")[
                     Ui.Input.Bind(() => captured.Quantity).AccessibleLabel("Quantity").ShowValidation(false),
-                    ValidationMessage.Template(FieldError).For(() => captured.Quantity)
+                    Validation.Message.Template(FieldError).For(() => captured.Quantity)
                 ],
                 Td.Style("width: 3rem;")[
                     Ui.Button

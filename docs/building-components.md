@@ -115,6 +115,34 @@ The chain's receiver is `Build<TComponent>` rather than the component, so `.OnPi
 setter and not to invoking the property — which is what a delegate-typed property on the receiver would
 have meant (CS1593). Call one back the way you call any delegate: `OnPick?.Invoke()`.
 
+## Where the names come from
+
+Every name you chain from is reached one of three ways, and each reads the same wherever you write it:
+
+```csharp
+using Rask;                        // every template's GlobalUsings.cs
+using static Rask.Html;            // …and this, so the tags are bare in any class
+
+Div.Class("panel")[                          // an element: bare
+    Ui.Button.Tone(Ui.Tone.Primary)["Save"], // the UI kit: through `Ui`
+    Trigger.Fullscreen.Target(_video)["⛶"],  // a browser capability: through `Trigger`
+    Validation.Message.For(() => m.Email),   // form feedback: through `Validation`
+    Mui.Button["From npm"]                   // an npm package you declared: through its class
+]
+```
+
+- **Elements and markup primitives are bare** — `Div`, `Span`, `Text`, `Raw`, `Outlet`. A component
+  inherits them; any other class (a test, a helper, a static factory) gets them from
+  `global using static Rask.Html;`. The `<html>` element is `Document`, because `Html` is that class.
+- **A family is reached through its group**, so typing the group lists it and nothing in it can shadow an
+  element: `Ui.` (the [kit](ui-kit.md)), `Trigger.` (the browser-capability wrappers), `Validation.` (a
+  form's feedback), and the class of an [npm package you declared](islands.md#several-components-from-one-package).
+- **When a member of your own takes an element's name** — a `Footer` property, a `Label` — the member wins
+  inside that component, and `Html.Footer` still reaches the element.
+- **Outside a component, don't also import `Rask.Core.Components`.** That namespace holds the element TYPES, so
+  beside `using static Rask.Html` a bare `P[…]` names both the type and the member (CS0229). Name a type in a
+  signature with `Rask.Core.Components.P`, or write `Html.P` in that file. The templates never import it.
+
 ## Your own components
 
 Nothing above is special to the framework's components. A component you write gets the same surface:

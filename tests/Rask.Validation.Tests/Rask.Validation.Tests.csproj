@@ -29,7 +29,7 @@
     <Using Include="Rask.Core.Components"/>
     <Using Include="Rask.Core.Forms"/>
     <Using Include="Rask.Testing"/>
-    <Using Include="Rask.Validation.Tests.ValidationTestSupport" Static="true"/>
+    <Using Include="Rask.ValidationTests.ValidationTestSupport" Static="true"/>
   </ItemGroup>
 
   <ItemGroup>

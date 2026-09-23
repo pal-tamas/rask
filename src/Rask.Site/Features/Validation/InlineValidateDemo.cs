@@ -39,7 +39,7 @@ public sealed partial class InlineValidateDemo : Component
                         v.Contains('@')
                             ? Array.Empty<string>()
                             : new[] { "Email looks wrong." }).ShowValidation(false),
-                ValidationMessage.Template(FieldError).For(() => _model.Email)
+                Validation.Message.Template(FieldError).For(() => _model.Email)
             ],
             Div[
                 Ui.Input.Bind(() => _model.Password).Label("Password").Id("v4-password").Type(InputType.Password)
@@ -47,7 +47,7 @@ public sealed partial class InlineValidateDemo : Component
             Div[
                 Ui.Input.Bind(() => _model.Confirm).Label("Confirm").Id("v4-confirm").Type(InputType.Password)
             ],
-            ValidationSummary.Template(SummaryAlert),
+            Validation.Summary.Template(SummaryAlert),
             Div[
                 Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit)[Ui.Icon.Name(Ui.IconName.CheckCircle), "Sign in"]
             ]

@@ -143,6 +143,7 @@ public sealed class ChainAssignedAfterwardsAnalyzer : DiagnosticAnalyzer
     // actually about, because that is where the two answers disagree.
     private static bool IsEntry(ISymbol property) =>
         property.ContainingType?.Name.StartsWith("RaskEntries", System.StringComparison.Ordinal) == true
+        || property.ContainingType?.ToDisplayString() == "Rask.Html"
         || (property is IPropertySymbol { Type: INamedTypeSymbol component }
             && BuilderEntry.IsGroupedEntry(property, component));
 

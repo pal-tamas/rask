@@ -328,7 +328,7 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
     protected Component? ValidationFor() =>
         ShowValidation == false || Bind is not { } bind
             ? null
-            : ValidationMessage
+            : Validation.Message
                 .Template(messages => P.Id(ValidationId).Class("label text-ui-danger-ink")[messages[0]])
                 .For(bind);
 
@@ -343,7 +343,7 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>
     protected Component? ValidatingFor() =>
         ShowValidating == false || Bind is not { } bind
             ? null
-            : ValidatingIndicator
+            : Validation.Indicator
                 .Template(() => Ui.Loading.Text("Checking…").Size(Ui.Size.Xs).Class("label"))
                 .For(bind);
 

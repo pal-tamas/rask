@@ -7,6 +7,7 @@ namespace Rask.Core.Components;
 ///     Renders the validation errors recorded for one bound field — the message half of a form, where
 ///     <c>Input.Bind</c> is the binding half. Renders nothing while the field is valid.
 /// </summary>
+[RaskChainGroup(typeof(global::Rask.Validation))]
 public sealed partial class ValidationMessage : Component
 {
     /// <summary>
@@ -56,6 +57,7 @@ public sealed partial class ValidationMessage : Component
 ///     Renders the validation errors recorded for one bound field — the message half of a form, where
 ///     <c>Input.Bind</c> is the binding half. Renders nothing while the field is valid.
 /// </summary>
+[RaskChainGroup(typeof(global::Rask.Validation))]
 public sealed partial class ValidationSummary : Component
 {
     // Headless: caller owns the markup. Invoked only when the form has at least one
@@ -92,6 +94,7 @@ public sealed partial class ValidationSummary : Component
 ///     Renders the validation errors recorded for one bound field — the message half of a form, where
 ///     <c>Input.Bind</c> is the binding half. Renders nothing while the field is valid.
 /// </summary>
+[RaskChainGroup(typeof(global::Rask.Validation), "Indicator")]
 public sealed partial class ValidatingIndicator : Component
 {
     // After EditContext.IsValidating(field) flips back to false, keep the

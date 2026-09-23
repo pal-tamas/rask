@@ -8,9 +8,9 @@
 - **Shape:** one-shot
 - **Availability:** Web/Server 🟡 · PWA/WASM ✅
 
-Needs transient activation + a boot-captured event, so the imperative `IInstallPrompt` service is WASM-only. On the **Server** host, use the declarative **`InstallTrigger`** component — its click shows the browser's install prompt inside the gesture and posts the outcome (`"accepted"` / `"dismissed"` / `"unavailable"`) to `OnOutcome`. The app must be installable (a web manifest + service worker over HTTPS — on Server that means `AddRaskPwa`), otherwise the outcome is `"unavailable"`.
+Needs transient activation + a boot-captured event, so the imperative `IInstallPrompt` service is WASM-only. On the **Server** host, use the declarative **`Trigger.Install`** component — its click shows the browser's install prompt inside the gesture and posts the outcome (`"accepted"` / `"dismissed"` / `"unavailable"`) to `OnOutcome`. The app must be installable (a web manifest + service worker over HTTPS — on Server that means `AddRaskPwa`), otherwise the outcome is `"unavailable"`.
 
-> 🟡 On the Server host, reachable declaratively via `InstallTrigger` (a click-gesture component), not as an injected service.
+> 🟡 On the Server host, reachable declaratively via `Trigger.Install` (a click-gesture component), not as an injected service.
 
 ## See also
 

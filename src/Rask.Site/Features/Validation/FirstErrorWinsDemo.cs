@@ -24,7 +24,7 @@ public sealed partial class FirstErrorWinsDemo : Component
                         string.IsNullOrWhiteSpace(v)
                             ? new[] { "Code is required." }
                             : Array.Empty<string>()).ShowValidation(false),
-                ValidationMessage.Template(FieldError).For(() => _model.Code)
+                Validation.Message.Template(FieldError).For(() => _model.Code)
             ],
             Div[
                 Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit)[Ui.Icon.Name(Ui.IconName.Unlock), "Activate"]

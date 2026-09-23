@@ -28,9 +28,9 @@
   <ItemGroup>
     <Using Include="Xunit"/>
     <Using Include="Rask.Core.Components"/>
-    <Using Include="Rask.Validation.FluentValidation"/>
+    <Using Include="Rask"/>
     <Using Include="Rask.Testing"/>
-    <Using Include="Rask.Validation.FluentValidation.Tests.ValidationTestSupport" Static="true"/>
+    <Using Include="Rask.FluentValidationTests.ValidationTestSupport" Static="true"/>
   </ItemGroup>
 
   <ItemGroup>

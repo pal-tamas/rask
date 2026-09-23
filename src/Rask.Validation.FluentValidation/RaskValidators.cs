@@ -2,7 +2,7 @@ using System.Runtime.CompilerServices;
 using FluentValidation;
 using Rask.Core.Forms;
 
-namespace Rask.Validation.FluentValidation;
+namespace Rask;
 
 // Where the generator puts what it found.
 //

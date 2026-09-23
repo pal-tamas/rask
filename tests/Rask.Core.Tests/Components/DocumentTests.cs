@@ -1,9 +1,9 @@
 namespace Rask.Core.Tests.Components;
 
-public partial class HtmlTests : global::Rask.Core.RaskMarkup
+public partial class DocumentTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Render_NullProps_ReturnsOpenAndCloseTags() => Assert.Equal("<html></html>", Html.ToHtml());
+    public void Render_NullProps_ReturnsOpenAndCloseTags() => Assert.Equal("<html></html>", Document.ToHtml());
 
     [Fact]
     public void Render_AllPropsSet_EmitsExpectedAttributes()
@@ -13,7 +13,7 @@ public partial class HtmlTests : global::Rask.Core.RaskMarkup
             // own, so they emit with the plain globals — before data-* — leaving xmlns as the only
             // html-specific attribute after it.
             "<html id=\"i\" class=\"c\" style=\"s\" lang=\"en\" dir=\"ltr\" data-k=\"v\" xmlns=\"http://www.w3.org/1999/xhtml\"></html>",
-            Html
+            Document
                 .Lang("en")
                 .Dir("ltr")
                 .Xmlns("http://www.w3.org/1999/xhtml")
@@ -25,5 +25,5 @@ public partial class HtmlTests : global::Rask.Core.RaskMarkup
 
     [Fact]
     public void Render_StringChild_EncodesText() =>
-        Assert.Equal("<html>&lt;x&gt;</html>", Html["<x>"].ToHtml());
+        Assert.Equal("<html>&lt;x&gt;</html>", Document["<x>"].ToHtml());
 }

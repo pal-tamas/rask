@@ -24,11 +24,11 @@ public sealed partial class NestedFluentValidationDemo : Component
             rows.Add(Tr.Key(captured.Id)[
                 Td[
                     Ui.Input.Bind(() => captured.Sku).AccessibleLabel("SKU").ShowValidation(false),
-                    ValidationMessage.Template(FieldError).For(() => captured.Sku)
+                    Validation.Message.Template(FieldError).For(() => captured.Sku)
                 ],
                 Td.Style("width: 6rem;")[
                     Ui.Input.Bind(() => captured.Quantity).AccessibleLabel("Quantity").ShowValidation(false),
-                    ValidationMessage.Template(FieldError).For(() => captured.Quantity)
+                    Validation.Message.Template(FieldError).For(() => captured.Quantity)
                 ],
                 Td.Style("width: 3rem;")[
                     Ui.Button
@@ -46,18 +46,18 @@ public sealed partial class NestedFluentValidationDemo : Component
             Form.Model(_model).OnValidSubmit(m => _submission = $"Order routed: {m.CustomerName} → {m.Address.Street}, {m.Lines.Count} line(s)").Class("flex flex-col gap-3")[
                 Div[
                     Ui.Input.Bind(() => _model.CustomerName).Label("Customer").Id("nf-fv-name").ShowValidation(false),
-                    ValidationMessage.Template(FieldError).For(() => _model.CustomerName)
+                    Validation.Message.Template(FieldError).For(() => _model.CustomerName)
                 ],
                 Fieldset.Class("border rounded p-3")[
                     Legend.Class("text-base font-semibold")["Address"],
                     Div.Class("flex flex-col gap-2")[
                         Div[
                             Ui.Input.Bind(() => _model.Address.Street).Label("Street").ShowValidation(false),
-                            ValidationMessage.Template(FieldError).For(() => _model.Address.Street)
+                            Validation.Message.Template(FieldError).For(() => _model.Address.Street)
                         ],
                         Div[
                             Ui.Input.Bind(() => _model.Address.City).Label("City").ShowValidation(false),
-                            ValidationMessage.Template(FieldError).For(() => _model.Address.City)
+                            Validation.Message.Template(FieldError).For(() => _model.Address.City)
                         ]
                     ]
                 ],

@@ -85,7 +85,7 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                             string.IsNullOrWhiteSpace(v)
                                 ? new[] { "Name is required." }
                                 : Array.Empty<string>()).ShowValidation(false),
-                    ValidationMessage.Template(FieldError).For(() => _model.CustomerName)
+                    Validation.Message.Template(FieldError).For(() => _model.CustomerName)
                 ],
                 Ui.Input.Bind(() => _model.Address.PostalCode)
                     .Label("Postal code")

@@ -297,7 +297,7 @@ internal static partial class PayloadBytesReport
 
         return [
             Doctype,
-            Html[
+            Document[
                 Body[
                     Div.Class("wrap").Id("root")[
                         Div.Class("counter").Id("counter")[Span.Class("value")[counter.ToString()]],
@@ -323,7 +323,7 @@ internal static partial class PayloadBytesReport
 
         return [
             Doctype,
-            Html[Body[Div.Class("list")[rows]]]
+            Document[Body[Div.Class("list")[rows]]]
         ];
     }
 
@@ -349,7 +349,7 @@ internal static partial class PayloadBytesReport
 
         return [
             Doctype,
-            Html[
+            Document[
                 Body[
                     Nav.Class("sidebar")[nav],
                     Main.Class("content")[
@@ -382,7 +382,7 @@ internal static partial class PayloadBytesReport
 
         return [
             Doctype,
-            Html[
+            Document[
                 Body[Div.Class("body")[rows]]
             ]
         ];

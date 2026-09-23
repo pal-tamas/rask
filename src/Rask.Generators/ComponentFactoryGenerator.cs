@@ -1512,7 +1512,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         // The body is assigned here rather than forwarded to the dictionary overload. Every component's
         // setters are extension methods on Build<…> in one static class, so a forwarding `Data(__b, …)`
         // is resolved against ALL of them and binds to whichever component's overload wins — it picked
-        // Build<FullscreenTrigger> for an EyeDropperTrigger. Assigning the property directly has no name
+        // Build<FullscreenTrigger> for an Trigger.EyeDropper. Assigning the property directly has no name
         // to resolve.
         // The prefix these entries render under, which is the whole point of the overload: `.Aria("label",
         // "Close")` is aria-label, not an attribute called "label". Naming it in the doc is what tells a
@@ -1813,11 +1813,28 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         shared.Append("public static class ").AppendLine(EntryHostName(host.AssemblyName));
         shared.AppendLine("{");
 
+        // …and a third time, as Rask.Html: the same entries under a name an author writes, so
+        // `global using static Rask.Html;` makes them bare outside a component, and `Html.Footer` reaches
+        // the element where a member of that name hides it. The same loop again, so it cannot drift.
+        var html = new StringBuilder();
+        EmitGeneratedFileHeader(html);
+        html.AppendLine();
+        html.AppendLine("namespace Rask;");
+        html.AppendLine();
+        html.AppendLine("public static partial class Html");
+        html.AppendLine("{");
+
         var entries = EntryCandidates(spc, candidates, taken);
         var seeded = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (var c in entries)
         {
+            // A grouped entry — Trigger.Fullscreen — is a member of its group only (EmitGroupedEntries).
+            if (c.Group is not null)
+            {
+                continue;
+            }
+
             // The entry hands back a SEED whenever the chain has something to demand first — a type
             // argument to pin, or a required property. One property per component NAME.
             if (NeedsSeed(c))
@@ -1832,10 +1849,14 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                     .Append(SeedFqn(c)).Append(' ').Append(EscapeIdentifier(c.EntryName))
                     .AppendLine(" = default;");
 
-                EmitEntryDoc(shared, c);
-                shared.Append(c.IsPublic ? "    public static " : "    internal static ")
-                    .Append(SeedFqn(c)).Append(' ').Append(EscapeIdentifier(c.EntryName))
-                    .AppendLine(" => default;");
+                foreach (var host2 in new[] { shared, html })
+                {
+                    EmitEntryDoc(host2, c);
+                    host2.Append(c.IsPublic ? "    public static " : "    internal static ")
+                        .Append(SeedFqn(c)).Append(' ').Append(EscapeIdentifier(c.EntryName))
+                        .AppendLine(" => default;");
+                }
+
                 continue;
             }
 
@@ -1853,17 +1874,24 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             EmitResetArguments(sb, c, host.AssemblyName);
             sb.AppendLine(");");
 
-            EmitEntryDoc(shared, c);
-            shared.Append(c.IsPublic ? "    public static " : "    internal static ")
-                .Append(c.FullyQualifiedName).Append(' ')
-                .Append(EscapeIdentifier(c.TypeName)).Append(" => ").Append(runtime).Append(EntryMethod(c))
-                .Append(c.FullyQualifiedName).Append(">(");
-            EmitResetArguments(shared, c, host.AssemblyName);
-            shared.AppendLine(");");
+            foreach (var host2 in new[] { shared, html })
+            {
+                EmitEntryDoc(host2, c);
+                host2.Append(c.IsPublic ? "    public static " : "    internal static ")
+                    .Append(c.FullyQualifiedName).Append(' ')
+                    .Append(EscapeIdentifier(c.TypeName)).Append(" => ").Append(runtime).Append(EntryMethod(c))
+                    .Append(c.FullyQualifiedName).Append(">(");
+                EmitResetArguments(host2, c, host.AssemblyName);
+                host2.AppendLine(");");
+            }
         }
 
         sb.AppendLine("}");
         spc.AddSource("RaskBuilderEntries.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+
+        html.AppendLine("}");
+        spc.AddSource("RaskHtml.g.cs", SourceText.From(html.ToString(), Encoding.UTF8));
+        EmitGroupedEntries(spc, entries, host.AssemblyName);
 
         shared.AppendLine("}");
         EmitSeeds(shared, entries, host.AssemblyName, runtime);
@@ -2702,8 +2730,8 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     // A `required` RAW DELEGATE used to block as well, and that one was not about construction either:
     // the prop was invocable, so a same-named setter could never be reached and the component would have
     // been constructible and permanently incomplete. The chain's `Build<TComponent>` receiver removed
-    // that, so ValidationMessage, ValidationSummary, ValidatingIndicator, ToastOutlet, Shareable, the
-    // GestureTrigger family and BsSelect's OptionValue simply have entries.
+    // that, so Validation.Message, Validation.Summary, Validation.Indicator, ToastOutlet, Shareable, the
+    // Trigger.Gesture family and BsSelect's OptionValue simply have entries.
     //
     // …and a name Component already declares (`Head`) still blocks too, which would be CS0102.
     private static bool CanHaveEntry(Candidate c, HashSet<string> taken) =>

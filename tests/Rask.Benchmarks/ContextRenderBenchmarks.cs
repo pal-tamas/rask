@@ -37,7 +37,7 @@ public partial class ContextRenderBenchmarks : global::Rask.Core.RaskMarkup
 
         return [
             Doctype,
-            Html[
+            Document[
                 Body[
                     Context.Provide(new BenchTheme("dark"))[
                         Context.Provide(42, Name: "page-size")[

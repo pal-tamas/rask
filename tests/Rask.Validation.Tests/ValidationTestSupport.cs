@@ -1,6 +1,6 @@
 using Rask.Core.Forms;
 
-namespace Rask.Validation.Tests;
+namespace Rask.ValidationTests;
 
 /// <summary>
 ///     Shared helper for the built-in validation suite. Renders a real <c>Form</c> over

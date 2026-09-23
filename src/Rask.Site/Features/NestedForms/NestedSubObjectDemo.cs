@@ -18,13 +18,13 @@ public sealed partial class NestedSubObjectDemo : Component
                 $"Checked out as {m.Name} to {m.Address.Street}, {m.Address.City} ({m.Address.Country}).").Class("flex flex-col gap-3")[
             Div[
                 Ui.Input.Bind(() => _model.Name).Label("Name").Id("nf-name").ShowValidation(false),
-                ValidationMessage.Template(FieldError).For(() => _model.Name)
+                Validation.Message.Template(FieldError).For(() => _model.Name)
             ],
             Div[
                 Ui.Input.Bind(() => _model.Email).Label("Email")
                     .Id("nf-email")
                     .Type(InputType.Email).ShowValidation(false),
-                ValidationMessage.Template(FieldError).For(() => _model.Email)
+                Validation.Message.Template(FieldError).For(() => _model.Email)
             ],
             Fieldset.Class("border rounded p-3 mt-2")[
                 Legend.Class("text-base font-semibold")["Shipping address"],
@@ -32,18 +32,18 @@ public sealed partial class NestedSubObjectDemo : Component
                     Div[
                         Ui.Input.Bind(() => _model.Address.Street).Label("Street")
                             .Id("nf-street").ShowValidation(false),
-                        ValidationMessage.Template(FieldError).For(() => _model.Address.Street)
+                        Validation.Message.Template(FieldError).For(() => _model.Address.Street)
                     ],
                     Div[
                         Ui.Input.Bind(() => _model.Address.City).Label("City")
                             .Id("nf-city").ShowValidation(false),
-                        ValidationMessage.Template(FieldError).For(() => _model.Address.City)
+                        Validation.Message.Template(FieldError).For(() => _model.Address.City)
                     ],
                     Div[
                         Ui.Input.Bind(() => _model.Address.Country).Label("Country (ISO)")
                             .Id("nf-country")
                             .MaxLength(2).ShowValidation(false),
-                        ValidationMessage.Template(FieldError).For(() => _model.Address.Country)
+                        Validation.Message.Template(FieldError).For(() => _model.Address.Country)
                     ]
                 ]
             ],

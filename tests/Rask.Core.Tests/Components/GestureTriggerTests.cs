@@ -4,7 +4,7 @@ using Rask.Core.Components;
 
 namespace Rask.Core.Tests.Components;
 
-// GestureTrigger (and the typed FullscreenTrigger / EyeDropperTrigger) are headless like Shareable: they
+// Trigger.Gesture (and the typed Trigger.Fullscreen / Trigger.EyeDropper) are headless like Shareable: they
 // render whatever the Template returns and hand it the data-rask-gesture bundle. The shared client runs the
 // capability inside the click gesture — so activation-gated APIs work even on the Server transport — and
 // posts any result back through GestureResultInterop. No IJSRuntime, no host-specific registration.
@@ -16,7 +16,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
         // Fire-and-forget (no result) → rid is null. Attribute order: data-* before tag-specific (type).
         Assert.Equal(
             "<button data-rask-gesture=\"{&quot;cap&quot;:&quot;fullscreen.request&quot;,&quot;rid&quot;:null}\" type=\"button\">Full screen</button>",
-            FullscreenTrigger.Template(g => Button.Type("button").Data(g)["Full screen"]).ToHtml());
+            Trigger.Fullscreen.Template(g => Button.Type("button").Data(g)["Full screen"]).ToHtml());
     }
 
     [Fact]
@@ -24,13 +24,13 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
     {
         Assert.Equal(
             "<a data-rask-gesture=\"{&quot;cap&quot;:&quot;pip.request&quot;,&quot;rid&quot;:null}\" href=\"#\">PiP</a>",
-            GestureTrigger.Capability("pip.request").Template(g => A.Href("#").Data(g)["PiP"]).ToHtml());
+            Trigger.Gesture.Capability("pip.request").Template(g => A.Href("#").Data(g)["PiP"]).ToHtml());
     }
 
     [Fact]
     public void EyeDropperTrigger_WithCallback_StampsCapAndANumericResultId()
     {
-        var html = EyeDropperTrigger
+        var html = Trigger.EyeDropper
             .Template(g => Button.Type("button").Data(g)["Pick"])
             .OnColor(_ => Task.CompletedTask).ToHtml();
 
@@ -41,7 +41,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
     public async Task GestureResultInterop_RoutesTheResultToTheTriggersCallback_ThenIsOneShot()
     {
         string? received = null;
-        var html = EyeDropperTrigger
+        var html = Trigger.EyeDropper
             .Template(g => Button.Type("button").Data(g)["Pick"])
             .OnColor(value => { received = value; return Task.CompletedTask; }).ToHtml();
         var rid = int.Parse(Regex.Match(html, @"rid&quot;:(\d+)").Groups[1].Value);
@@ -62,7 +62,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
         Assert.Equal(
             "<button data-rask-gesture=\"{&quot;cap&quot;:&quot;orientation.lock&quot;,&quot;rid&quot;:null,"
             + "&quot;arg&quot;:&quot;landscape&quot;}\" type=\"button\">Rotate</button>",
-            ScreenOrientationTrigger
+            Trigger.ScreenOrientation
                 .Orientation("landscape")
                 .Template(g => Button.Type("button").Data(g)["Rotate"]).ToHtml());
     }
@@ -74,7 +74,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
         Assert.Equal(
             "<button data-rask-gesture=\"{&quot;cap&quot;:&quot;pip.request&quot;,&quot;rid&quot;:null,"
             + $"&quot;el&quot;:&quot;{video.Id}&quot;}}\" type=\"button\">Pop out</button>",
-            PictureInPictureTrigger
+            Trigger.PictureInPicture
                 .For(video)
                 .Template(g => Button.Type("button").Data(g)["Pop out"]).ToHtml());
     }
@@ -86,14 +86,14 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
         Assert.Equal(
             "<button data-rask-gesture=\"{&quot;cap&quot;:&quot;fullscreen.request&quot;,&quot;rid&quot;:null,"
             + $"&quot;el&quot;:&quot;{box.Id}&quot;}}\" type=\"button\">Full screen</button>",
-            FullscreenTrigger.Template(g => Button.Type("button").Data(g)["Full screen"]).For(box).ToHtml());
+            Trigger.Fullscreen.Template(g => Button.Type("button").Data(g)["Full screen"]).For(box).ToHtml());
     }
 
     [Fact]
     public void MediaCaptureTrigger_StampsMediaStartCapWithTargetRefAndConstraintsArg()
     {
         var preview = ElementRef.New();
-        var html = MediaCaptureTrigger
+        var html = Trigger.MediaCapture
             .For(preview)
             .Template(g => Button.Type("button").Data(g)["Start camera"])
             .Video(true)
@@ -111,7 +111,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
     public async Task InstallTrigger_StampsInstallPromptCap_AndRoutesTheOutcomeToOnOutcome()
     {
         string? outcome = null;
-        var html = InstallTrigger
+        var html = Trigger.Install
             .Template(g => Button.Type("button").Data(g)["Install"])
             .OnOutcome(value => { outcome = value; return Task.CompletedTask; }).ToHtml();
 
@@ -129,7 +129,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
         // its original vocabulary — the id is an addition, not a replacement.
         MediaStreamId? stream = null;
         string? result = null;
-        var html = MediaCaptureTrigger
+        var html = Trigger.MediaCapture
             .For(ElementRef.New())
             .Template(g => Button.Type("button").Data(g)["Start camera"])
             .OnStream(id => { stream = id; return Task.CompletedTask; })
@@ -147,7 +147,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
     {
         var streamed = false;
         string? result = null;
-        var html = MediaCaptureTrigger
+        var html = Trigger.MediaCapture
             .For(ElementRef.New())
             .Template(g => Button.Type("button").Data(g)["Start camera"])
             .OnStream(_ => { streamed = true; return Task.CompletedTask; })
@@ -165,7 +165,7 @@ public partial class GestureTriggerTests : global::Rask.Core.RaskMarkup
     {
         // No callback means no result to route, so no id should be registered — otherwise every render
         // leaks an entry into the process-wide gesture registry for nobody to consume.
-        var html = MediaCaptureTrigger
+        var html = Trigger.MediaCapture
             .For(ElementRef.New())
             .Template(g => Button.Type("button").Data(g)["Start camera"]).ToHtml();
 

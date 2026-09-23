@@ -69,7 +69,7 @@ public sealed class ValidatorRegistryGenerator : IIncrementalGenerator
         // without the Rask integration is a thing an app may legitimately do (a server-side validator
         // it drives itself), and generating registration code against a package that is not there
         // would break that app's build for a feature it never asked for.
-        if (compilation.GetTypeByMetadataName("Rask.Validation.FluentValidation.RaskValidators") is null)
+        if (compilation.GetTypeByMetadataName("Rask.RaskValidators") is null)
         {
             return;
         }
@@ -169,7 +169,7 @@ public sealed class ValidatorRegistryGenerator : IIncrementalGenerator
         sb.AppendLine("    internal static void Init() => RefreshAll();");
         sb.AppendLine();
         sb.AppendLine("    internal static void RefreshAll() =>");
-        sb.AppendLine("        global::Rask.Validation.FluentValidation.RaskValidators.Replace(");
+        sb.AppendLine("        global::Rask.RaskValidators.Replace(");
         sb.AppendLine("            typeof(__RaskValidatorRegistry),");
         sb.AppendLine("            new (global::System.Type, global::System.Func<global::System.IServiceProvider?, object>)[]");
         sb.AppendLine("            {");
@@ -179,7 +179,7 @@ public sealed class ValidatorRegistryGenerator : IIncrementalGenerator
             sb.Append("                (typeof(").Append(modelFqn).Append("), static __sp => new ")
                 .Append(Fqn(validator)).Append('(');
             sb.Append(string.Join(", ", ctor!.Parameters.Select(static p =>
-                "global::Rask.Validation.FluentValidation.RaskValidators.Service<"
+                "global::Rask.RaskValidators.Service<"
                 + p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + ">(__sp)")));
             sb.AppendLine(")),");
         }

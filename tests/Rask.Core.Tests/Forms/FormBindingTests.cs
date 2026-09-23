@@ -89,7 +89,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         // Drives Form<TModel>'s async Validate overload: the lambda binds to
         // Func<TModel, CancellationToken, ValueTask<IEnumerable<string>>> with no cast,
         // and the async messages attach to FieldIdentifier(Model, "") — exactly where
-        // ValidationSummary / form-scoped readers look.
+        // Validation.Summary / form-scoped readers look.
         var p = new Person { Name = "Ada", Age = 30 };
         EditContext? captured = null;
 

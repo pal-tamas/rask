@@ -151,14 +151,14 @@ NavLink.Href(Routes.UserPage(42))["View user"]
 Form.Model(_model).OnValidSubmit(m => Save(m))[
     // no validator declared -- the attributes on _model are enforced by the Form itself
     Input.Bind(() => _model.Name),              // input type inferred from the CLR type
-    ValidationMessage.For(() => _model.Name).Template(errs => Div.Class("field-error")[errs[0]]),
+    Validation.Message.For(() => _model.Name).Template(errs => Div.Class("field-error")[errs[0]]),
     Button.Type("submit")["Sign up"]
 ]
 ```
 
 `Input`/`Select`/`Textarea` infer their type from the bound property (`string` →
-text, `bool` → checkbox, `int` → number, `DateOnly` → date). `ValidationMessage` and
-`ValidationSummary` are headless — you chain a `.Template(…)` lambda for the markup. See
+text, `bool` → checkbox, `int` → number, `DateOnly` → date). `Validation.Message` and
+`Validation.Summary` are headless — you chain a `.Template(…)` lambda for the markup. See
 [forms](forms.md) for nested models, collections, and async validation.
 
 ### Scoped CSS

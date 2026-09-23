@@ -98,7 +98,7 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
 
     /// <summary>
     ///     Cross-field validation for the form as a whole. Messages attach to the model rather than to a
-    ///     field, so they surface in ValidationSummary and any field-less ValidationMessage.
+    ///     field, so they surface in Validation.Summary and any field-less Validation.Message.
     /// </summary>
     public Validator<TModel>? Validate { get; set; }
 

@@ -355,12 +355,12 @@ Two headless components read the context — both take a required `Template:` so
 and both render nothing when there's nothing to show:
 
 ```csharp
-ValidationMessage.For(() => _model.Email).Template(errs => Div.Class("field-error")[errs[0]])
+Validation.Message.For(() => _model.Email).Template(errs => Div.Class("field-error")[errs[0]])
 
-ValidationSummary.Template(entries => Ul[entries.Select(e => Li[Strong[e.Field], ": ", e.Message])])
+Validation.Summary.Template(entries => Ul[entries.Select(e => Li[Strong[e.Field], ": ", e.Message])])
 ```
 
-`ValidationMessage.For` keys a single field; `ValidationSummary` lists every `ValidationEntry`
+`Validation.Message.For` keys a single field; `Validation.Summary` lists every `ValidationEntry`
 (`Field` + `Message`), with form-level messages carrying an empty `Field`.
 
 <!-- demo:validation-summary -->
@@ -409,7 +409,7 @@ A list that takes more than one answer says so on the listbox itself, with
 and has no way to learn that a second one is allowed — the options look identical either way, so
 the fact that several may be chosen lives nowhere else.
 
-If you build your own control from the core `Input`/`ValidationMessage` primitives (§9), mirror the same
+If you build your own control from the core `Input`/`Validation.Message` primitives (§9), mirror the same
 three attributes so the field stays accessible: `aria-invalid` on the control, `aria-describedby` from
 the control to the message `id`, and `role="alert"` on the message container. See
 [accessibility.md](accessibility.md#form-validation).

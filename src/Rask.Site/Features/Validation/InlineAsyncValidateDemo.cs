@@ -50,7 +50,7 @@ public sealed partial class InlineAsyncValidateDemo : Component
             Ui.Input.Bind(() => _model.Code).Label("Promo code")
                 .Id("v10-code")
                 .Validate(CheckCodeAsync),
-            ValidationSummary.Template(SummaryAlert),
+            Validation.Summary.Template(SummaryAlert),
             Div[
                 Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit)[Ui.Icon.Name(Ui.IconName.Gift), "Redeem"]
             ]

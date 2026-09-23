@@ -57,7 +57,7 @@ public sealed partial class UiFileInput : UiFormField<string>
     public bool? Dropzone { get; set; }
 
     /// <summary>
-    ///     The line the drop area leads with. Defaults to <see cref="Label" />, which is also the input's
+    ///     The line the drop area leads with. Defaults to <see cref="UiFormField{T}.Label" />, which is also the input's
     ///     accessible name — so a heading that says what to drop keeps both halves of the message.
     /// </summary>
     public string? Heading { get; set; }

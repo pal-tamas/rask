@@ -291,7 +291,7 @@ public static partial class RaskEndpointExtensions
         // activation, a live document/handle, or the installed-PWA instance the WebSocket round-trip loses,
         // so they are provided only by the WASM host (IShare and the rest of the WASM-only set — see
         // RaskWasmBrowserApis). Server can still reach the
-        // activation-gated APIs declaratively via GestureTrigger — see docs/browser-capabilities.md.
+        // activation-gated APIs declaratively via Trigger.Gesture — see docs/browser-capabilities.md.
         services.AddCoreBrowserApis(ServiceLifetime.Scoped);
         services.AddScoped<AuthSignIn>();
         services.AddScoped<IAuthSignIn>(sp => sp.GetRequiredService<AuthSignIn>());

@@ -265,7 +265,7 @@ internal static partial class VsBlazorPayloadBytesReport
 
             return [
                 Doctype,
-                Html[
+                Document[
                     Body[leaf]]];
         }
 

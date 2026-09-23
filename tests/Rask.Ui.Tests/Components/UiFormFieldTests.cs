@@ -137,7 +137,7 @@ public partial class UiFormFieldTests : global::Rask.Core.RaskMarkup
     public void A_bound_field_renders_its_own_validation_message()
     {
         // The showcase wrote this template once per control, and the copies had already drifted to two
-        // different colours. ValidationMessage renders nothing until the field has messages, so what this
+        // different colours. Validation.Message renders nothing until the field has messages, so what this
         // asserts is that the field ASKED for one.
         var model = new Model();
         var html = Ui.Input.Bind(() => model.Name).Label("Name").ToHtml();

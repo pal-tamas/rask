@@ -17,17 +17,17 @@ public sealed partial class ValidationFieldsDemo : Component
         Form.Model(_model).OnValidSubmit(m => _submission = $"Registered: {m.Name} <{m.Email}>").Class("flex flex-col gap-3")[
             Div[
                 Ui.Input.Bind(() => _model.Name).Label("Name").Id("v1-name").ShowValidation(false),
-                ValidationMessage.Template(FieldError).For(() => _model.Name)
+                Validation.Message.Template(FieldError).For(() => _model.Name)
             ],
             Div[
                 Ui.Input.Bind(() => _model.Email).Label("Email")
                     .Id("v1-email")
                     .Type(InputType.Email).ShowValidation(false),
-                ValidationMessage.Template(FieldError).For(() => _model.Email)
+                Validation.Message.Template(FieldError).For(() => _model.Email)
             ],
             Div[
                 Ui.Input.Bind(() => _model.Age).Label("Age").Id("v1-age").ShowValidation(false),
-                ValidationMessage.Template(FieldError).For(() => _model.Age)
+                Validation.Message.Template(FieldError).For(() => _model.Age)
             ],
             Div[
                 Ui.Select.Bind(() => _model.Plan)
@@ -36,7 +36,7 @@ public sealed partial class ValidationFieldsDemo : Component
                     .Label("Plan")
                     .Id("v1-plan")
                     .ShowValidation(false),
-                ValidationMessage.Template(FieldError).For(() => _model.Plan)
+                Validation.Message.Template(FieldError).For(() => _model.Plan)
             ],
             Div[
                 Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit)[Ui.Icon.Name(Ui.IconName.CheckCircle), "Register"]

@@ -24,6 +24,8 @@ internal static class BuilderEntry
 
     private const string RaskMarkupFullName = "Rask.Core.RaskMarkup";
 
+    private const string HtmlFullName = "Rask.Html";
+
     private const string RaskMarkupAttributeFullName = "Rask.Core.RaskMarkupAttribute";
 
     private const string SkipFactoryFullName = "Rask.Core.SkipFactoryAttribute";
@@ -84,6 +86,12 @@ internal static class BuilderEntry
         // in the base chain says this is a host. The attribute is the only trace, and it is a direct one —
         // read off this type, never inherited, exactly as the generator reads it.
         if (type is INamedTypeSymbol named && HasMarkupAttribute(named))
+        {
+            return true;
+        }
+
+        // Rask.Html carries the framework's entries again, for `using static` and the qualified `Html.Div`.
+        if (string.Equals(type?.ToDisplayString(), HtmlFullName, StringComparison.Ordinal))
         {
             return true;
         }

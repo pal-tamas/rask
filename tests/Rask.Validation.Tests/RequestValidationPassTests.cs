@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Rask.Core.Forms;
 
-namespace Rask.Validation.Tests;
+namespace Rask.ValidationTests;
 
 // The static pass, used by the CQRS request validators. It has no EditContext behind it, so it does
 // NOT get the dedup that AddValidationMessage gives the form path — which is exactly why the two bugs

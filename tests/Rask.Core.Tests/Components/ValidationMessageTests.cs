@@ -11,7 +11,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
     public void OutsideEditContext_RendersNothing()
     {
         var p = new Person();
-        var html = ValidationMessage.Template(msgs => Div.Class("validation-message")[msgs[0]]).For(() => p.Name).ToHtml();
+        var html = Validation.Message.Template(msgs => Div.Class("validation-message")[msgs[0]]).For(() => p.Name).ToHtml();
         Assert.Equal("", html);
     }
 
@@ -20,7 +20,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
     {
         var p = new Person { Name = "Ada" };
         var view = new StubComponent(() => Form.Model(p)[
-            ValidationMessage.Template(msgs => Div.Class("validation-message")[msgs[0]]).For(() => p.Name)
+            Validation.Message.Template(msgs => Div.Class("validation-message")[msgs[0]]).For(() => p.Name)
         ]);
         var html = view.RenderAsLiveRoot();
         Assert.DoesNotContain("validation-message", html);
@@ -34,7 +34,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         ctx.AddValidationMessage(new FieldIdentifier(p, nameof(Person.Name)), "Name is required");
 
         var view = new StubComponent(() => Form.Model(p).Context(ctx)[
-            ValidationMessage.Template(msgs => Div.Class("validation-message")[msgs[0]]).For(() => p.Name)
+            Validation.Message.Template(msgs => Div.Class("validation-message")[msgs[0]]).For(() => p.Name)
         ]);
         var html = view.RenderAsLiveRoot();
 
@@ -45,7 +45,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void ValidationMessage_MessageAddedAfterFirstRender_RepaintsOnReRender_ViaAutoLatch()
     {
-        // ValidationMessage carries no manual BypassRenderCache override anymore. Its first render
+        // Validation.Message carries no manual BypassRenderCache override anymore. Its first render
         // reads EditContext.GetValidationMessages (no messages yet) and populates the render cache with
         // the empty result; that read auto-latches the component as a cache opt-out (EditContext
         // .MarkReader -> Component._readsAmbientState). So when a message is added out-of-band and the
@@ -56,7 +56,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         var field = new FieldIdentifier(p, nameof(Person.Name));
 
         var view = new StubComponent(() => Form.Model(p).Context(ctx)[
-            ValidationMessage.Template(msgs => Div.Class("validation-message")[msgs[0]]).For(() => p.Name)
+            Validation.Message.Template(msgs => Div.Class("validation-message")[msgs[0]]).For(() => p.Name)
         ]);
 
         var first = view.RenderAsLiveRoot();
@@ -72,7 +72,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void ValidationSummary_MessageAddedAfterFirstRender_RepaintsOnReRender_ViaAutoLatch()
     {
-        // Same auto-latch guarantee for the GetValidationEntries read path (ValidationSummary). It
+        // Same auto-latch guarantee for the GetValidationEntries read path (Validation.Summary). It
         // must start non-empty so the first render caches a non-null <ul> (a null/empty render is never
         // cached and would repaint regardless, proving nothing): render one message, add a second
         // out-of-band, and require the stale one-item cache to be replaced by the two-item summary.
@@ -83,7 +83,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         ctx.AddValidationMessage(name, "Name is required");
 
         var view = new StubComponent(() => Form.Model(p).Context(ctx)[
-            ValidationSummary
+            Validation.Summary
                 .Template(entries =>
                 Ul.Class("validation-summary")[
                     entries.Select((e, i) => Li.Key(i)[e.Message])
@@ -109,7 +109,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         ctx.AddValidationMessage(new FieldIdentifier(p, nameof(Person.Name)), "Name is required");
 
         var view = new StubComponent(() => Form.Model(p).Context(ctx)[
-            ValidationSummary
+            Validation.Summary
                 .Template(entries =>
                 Ul.Class("validation-summary")[
                     entries.Select((e, i) => Li.Key(i)[e.Message])
@@ -131,7 +131,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         ctx.AddValidator(new GatedValidator(gate.Task));
 
         var view = new StubComponent(() => Form.Model(p).Context(ctx)[
-            ValidatingIndicator.Template(() => Div.Class("validating-indicator")["Checking..."])
+            Validation.Indicator.Template(() => Div.Class("validating-indicator")["Checking..."])
                 .For(() => p.Name)
         ]);
 
@@ -166,7 +166,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         ctx.AddValidator(new GatedValidator(gate.Task));
 
         var view = new StubComponent(() => Form.Model(p).Context(ctx)[
-            ValidatingIndicator.Template(() => Div.Class("validating-indicator")["Checking..."])
+            Validation.Indicator.Template(() => Div.Class("validating-indicator")["Checking..."])
                 .For(() => p.Name)
         ]);
 
@@ -198,7 +198,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         ctx.AddValidator(new GatedValidator(gate.Task));
 
         var view = new StubComponent(() => Form.Model(p).Context(ctx)[
-            ValidatingIndicator.Template(() => Div.Class("validating-indicator")["Checking..."])
+            Validation.Indicator.Template(() => Div.Class("validating-indicator")["Checking..."])
                 .For(() => p.Name)
         ]);
 
@@ -225,7 +225,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         ctx.AddValidator(new GatedValidator(gate.Task));
 
         var view = new StubComponent(() => Form.Model(p).Context(ctx)[
-            ValidatingIndicator.Template(() => Div.Class("validating-indicator")["Checking..."])
+            Validation.Indicator.Template(() => Div.Class("validating-indicator")["Checking..."])
                 .For(() => p.Name)
         ]);
 

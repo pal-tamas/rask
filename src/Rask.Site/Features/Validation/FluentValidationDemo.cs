@@ -15,11 +15,11 @@ public sealed partial class FluentValidationDemo : Component
         Form.Model(_model).OnValidSubmit(m => _submission = $"Ordered {m.Quantity} × {m.Product}").Class("flex flex-col gap-3")[
             Div[
                 Ui.Input.Bind(() => _model.Product).Label("Product").Id("v7-product").ShowValidation(false),
-                ValidationMessage.Template(FieldError).For(() => _model.Product)
+                Validation.Message.Template(FieldError).For(() => _model.Product)
             ],
             Div[
                 Ui.Input.Bind(() => _model.Quantity).Label("Quantity").Id("v7-quantity").ShowValidation(false),
-                ValidationMessage.Template(FieldError).For(() => _model.Quantity)
+                Validation.Message.Template(FieldError).For(() => _model.Quantity)
             ],
             Div[
                 Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit)[Ui.Icon.Name(Ui.IconName.ShoppingBag), "Order"]

@@ -24,7 +24,7 @@ public sealed partial class ValidationSummaryDemo : Component
     protected override Component? Render() =>
     [
         Form.Model(_model).OnValidSubmit(m => _submission = $"Registered: {m.Name} <{m.Email}>").Class("flex flex-col gap-3")[
-            ValidationSummary.Template(SummaryAlert),
+            Validation.Summary.Template(SummaryAlert),
             // ShowValidation(false) on every field: the errors belong to the summary above, which is what this
             // demo is showing, and a field that also said its own would say each one twice.
             Div[

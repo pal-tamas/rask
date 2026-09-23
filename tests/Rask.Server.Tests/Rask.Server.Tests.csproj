@@ -30,6 +30,7 @@
     <Using Include="Xunit"/>
     <Using Include="Rask.Testing"/>
     <Using Include="Rask.TestSupport"/>
+    <Using Include="Rask"/>
   </ItemGroup>
 
   <ItemGroup>

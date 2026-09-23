@@ -74,7 +74,7 @@ public partial class LiveRenderRoundTripBenchmarks : global::Rask.Core.RaskMarku
 
         return [
             Doctype,
-            Html[
+            Document[
                 Body[
                     Div.Class("wrap").Id("root")[
                         Div.Class("header")[Span["Live Bench"]],
@@ -94,7 +94,7 @@ public partial class LiveRenderRoundTripBenchmarks : global::Rask.Core.RaskMarku
         Component current = DeepNode.Depth(50);
         return [
             Doctype,
-            Html[Body[Div.Class("deep")[current]]]
+            Document[Body[Div.Class("deep")[current]]]
         ];
     }
 
@@ -128,7 +128,7 @@ public partial class LiveRenderRoundTripBenchmarks : global::Rask.Core.RaskMarku
 
         return [
             Doctype,
-            Html[Body[Div.Class("list")[rows]]]
+            Document[Body[Div.Class("list")[rows]]]
         ];
     }
 }

@@ -24,15 +24,15 @@ public sealed partial class CustomAttributeDemo : Component
         Form.Model(_model).OnValidSubmit(m => _submission = $"Welcome, {m.Username}!").Class("flex flex-col gap-3")[
             Div[
                 Ui.Input.Bind(() => _model.Username).Label("Username").Id("v12-username").ShowValidation(false),
-                ValidationMessage.Template(FieldError).For(() => _model.Username)
+                Validation.Message.Template(FieldError).For(() => _model.Username)
             ],
             Div[
                 Ui.Input.Bind(() => _model.Password).Label("Password").Id("v12-password").Type(InputType.Password).ShowValidation(false),
-                ValidationMessage.Template(FieldError).For(() => _model.Password)
+                Validation.Message.Template(FieldError).For(() => _model.Password)
             ],
             Div[
                 Ui.Input.Bind(() => _model.ConfirmPassword).Label("Confirm password").Id("v12-confirm").Type(InputType.Password).ShowValidation(false),
-                ValidationMessage.Template(FieldError).For(() => _model.ConfirmPassword)
+                Validation.Message.Template(FieldError).For(() => _model.ConfirmPassword)
             ],
             Div[
                 Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit)[Ui.Icon.Name(Ui.IconName.ShieldOk), "Create account"]

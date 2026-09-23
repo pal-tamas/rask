@@ -3,7 +3,7 @@ using FluentValidation.Results;
 using Rask.Core.Forms;
 
 
-namespace Rask.Validation.FluentValidation.Tests;
+namespace Rask.FluentValidationTests;
 
 // FluentValidation walks nested rules itself via .SetValidator(...) and RuleForEach(...). These
 // tests prove our routing layer translates the dotted PropertyName paths back to the right
@@ -108,7 +108,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
     public async Task ValidateAsync_FormLevelError_AttachesToRootEmptyField()
     {
         // RuleFor on the model itself (no property selector) — FV emits with PropertyName="".
-        // We route empty paths to (root, "") so ValidationSummary picks them up.
+        // We route empty paths to (root, "") so Validation.Summary picks them up.
         var p = new Person { Name = "BLOCKED" };
         var ctx = RegisterValidator(p, new PersonValidator());
 
@@ -123,7 +123,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
     {
         // Hand-craft an error whose property path can't resolve (no Items[7]). The router
         // must NOT crash and must NOT silently drop the message — it lands on the root's
-        // form-level slot so it surfaces in ValidationSummary.
+        // form-level slot so it surfaces in Validation.Summary.
         var p = new Person { Items = new List<LineItem> { new() { Name = "alpha" } } };
         var ctx = RegisterValidator(p, new StaleIndexValidator());
 

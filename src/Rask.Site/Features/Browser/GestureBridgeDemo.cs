@@ -24,16 +24,16 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
         Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 items-center flex-wrap mb-3")[
                     // Headless: we render our own buttons; the triggers just supply the gesture attribute.
-                    FullscreenTrigger
+                    Trigger.Fullscreen
                         .Template(g =>
                         Ui.Button.Tone(Ui.Tone.Primary).Id("fullscreen-btn").Data(g)["Enter fullscreen"]),
-                    ScreenOrientationTrigger
+                    Trigger.ScreenOrientation
                         .Orientation("landscape")
                         .Template(g =>
                             Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
                                 .Id("orientation-btn")
                                 .Data(g)["Lock landscape"]),
-                    InstallTrigger
+                    Trigger.Install
                         .Template(g =>
                             Ui.Button.Tone(Ui.Tone.Success).Variant(Ui.Variant.Outline)
                                 .Id("install-btn")
@@ -50,7 +50,7 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                         : Span.Class("text-sm")["install: ", Code.Id("install-outcome")[_install]]
                 ],
                 Div.Class("flex gap-2 items-center flex-wrap mb-2")[
-                    EyeDropperTrigger
+                    Trigger.EyeDropper
                         .Template(g =>
                             Ui.Button.Variant(Ui.Variant.Outline)
                                 .Id("eyedropper-btn")
@@ -69,12 +69,12 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                                        + $"border:1px solid #ccc;background:{_color}"),
                             Code.Id("eyedropper-value")[_color]]
                 ],
-                // MediaCaptureTrigger fills this <video> from the camera; PictureInPictureTrigger then pops
+                // Trigger.MediaCapture fills this <video> from the camera; Trigger.PictureInPicture then pops
                 // that same element out — both resolve the element from its ElementRef.
                 Div.Class("flex gap-2 items-center flex-wrap items-center")[
                     // For and Template are the required steps, so they come first: until both are named
                     // the receiver is still a pending-required wrapper and has no optional setters on it.
-                    MediaCaptureTrigger
+                    Trigger.MediaCapture
                         .For(_preview)
                         .Template(g =>
                             Ui.Button.Variant(Ui.Variant.Outline)
@@ -95,7 +95,7 @@ public sealed partial class GestureBridgeDemo(IMediaStreams streams) : Component
                         .Id("camera-stop-btn")
                         .Disabled(_camera is null)
                         .OnClick(StopCameraAsync)["Stop camera"],
-                    PictureInPictureTrigger
+                    Trigger.PictureInPicture
                         .For(_preview)
                         .Template(g =>
                             Ui.Button.Variant(Ui.Variant.Outline)

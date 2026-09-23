@@ -269,6 +269,31 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: every element is also a member of `Rask.Html`, and the `<html>` element is `Document`.** Components
+  still inherit the tags, so nothing inside a component changes. What is new is that any other class — a test, a
+  helper, a static factory of components — writes them bare too, with the `global using static Rask.Html;` every
+  template now carries, and that a tag your own member has hidden is one word away:
+
+  ```csharp
+  // a helper class, not a component
+  static class Empty { public static Component State(string what) => Div.Class("empty")[P[$"No {what} yet"]]; }
+
+  // inside a component with a Footer property of its own
+  Html.Footer["© 2026"]          // was: RaskEntriesRask_Core.Footer[...]
+  ```
+
+  `Html` also carries the markup primitives (`Text`, `Raw`, `Outlet`, `NavLink`, `Router`, …). The `<html>`
+  element, which had `Html` for a name, is now `Document`: `Document.Lang(HtmlLang)[Head[…], Body[…]]` in a
+  hand-written `Shell`.
+
+- **BREAKING: the browser-capability triggers and the validation feedback are grouped — `Trigger.Fullscreen`,
+  `Validation.Message`.** `FullscreenTrigger` → `Trigger.Fullscreen` (likewise `Install`, `PictureInPicture`,
+  `EyeDropper`, `MediaCapture`, `ScreenOrientation`, `Gesture`); `ValidationMessage` → `Validation.Message`,
+  `ValidationSummary` → `Validation.Summary`, `ValidatingIndicator` → `Validation.Indicator`. Both classes are in the
+  `Rask` namespace. To free the name `Rask.Validation`, the FluentValidation adapter's types moved from the namespace
+  `Rask.Validation.FluentValidation` to `Rask` (the package is still `Rask.Validation.FluentValidation`, and its
+  build props import `Rask` for you).
+
 - **BREAKING: the UI kit is reached through one class, `Ui` — `Ui.Button`, `Ui.Tone` — and lives in the `Rask`
   namespace.** Typing `Ui.` lists every component and every option, and no kit component takes a bare name any
   more, so it can never shadow an HTML tag (`Button` is the `<button>`, `Ui.Button` the kit's):

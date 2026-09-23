@@ -27,7 +27,7 @@ public sealed partial class CrossFieldSummaryDemo : Component
                 m.Return > m.Depart
                     ? Array.Empty<string>()
                     : new[] { "Return date must be after departure." })[
-            ValidationSummary.Template(SummaryAlert),
+            Validation.Summary.Template(SummaryAlert),
             Div[
                 Ui.Input.Bind(() => _model.Depart).Label("Departure").Id("v5-depart")
             ],

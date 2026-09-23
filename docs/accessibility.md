@@ -132,7 +132,7 @@ member's name or the label text. That id also anchors the `<label for>` associat
 the same bound field more than once on a page** (a repeated form, a list of rows), give each field an
 explicit unique `Id` so every `for` and `aria-describedby` resolves to the right element.
 
-Building your own control from the core `Input`/`ValidationMessage` primitives? Mirror the same
+Building your own control from the core `Input`/`Validation.Message` primitives? Mirror the same
 attributes: `.Aria(new Dictionary<string, string?> { ["invalid"] = "true", ["describedby"] = errorId })`
 on the control, and give the message element that id. See [forms-validation.md](forms-validation.md).
 
