@@ -24,7 +24,8 @@ host.Services.AddRaskBrowserSqlite("notes", o =>
     o.RequestPersistentStorage = false;
 });
 
-// Rask.Data over it: the interceptors, and NotesDb named as the context Note.CreateAsync writes through.
+// Rask.Data over it: the interceptors, NotesDb named as the context Note.CreateAsync writes through, and — in the
+// browser — a save that refreshes the Rask.Query queries about what it wrote.
 host.Services.AddRaskData<NotesDb>();
 host.Services.AddDbContextFactory<NotesDb>((sp, o) => o
     .UseSqlite(BrowserSqlite.ConnectionString("notes"))
@@ -36,10 +37,9 @@ host.Services.AddDbContextFactory<RaskReadDbContext>(o => o
     .UseSqlite(BrowserSqlite.ConnectionString("notes"))
     .UseRaskFullTextSearch());
 
-// The query cache, and the one line that makes a write refresh it.
+// The query cache the save refreshes.
 host.Services.AddRaskCqrs();
 host.Services.AddRaskQuery();
-host.Services.AddScoped<IDataChanges, QueryDataChanges>();
 
 // Registration order is start order: the schema is built after the browser database is restored.
 host.Services.AddSingleton<NotesReady>();

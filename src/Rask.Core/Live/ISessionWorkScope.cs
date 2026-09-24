@@ -14,10 +14,11 @@ namespace Rask.Core.Live;
 ///     </para>
 ///     <para>
 ///         It is an <b>optional</b> service, resolved once per session and held, so a host that registers
-///         nothing pays nothing on the render path. Rask.Data's tenant filter is the implementation that
-///         exists today: it is registered by the meta package, which is the only assembly that can see both
-///         the web host and the data layer — <c>Rask.Server</c> does not reference <c>Rask.Data</c>, and it
-///         should not have to.
+///         nothing pays nothing on the render path. Both hosts enter it. Rask.Data is the implementation
+///         that exists today — its tenant filter, and the save that refreshes the page's queries: on a server
+///         the meta package registers it, the one assembly that sees both the web host and the data layer
+///         (<c>Rask.Server</c> does not reference <c>Rask.Data</c>, and should not have to); in the browser
+///         Rask.Data's own browser build does, from <c>AddRaskData&lt;TContext&gt;()</c>.
 ///     </para>
 /// </remarks>
 [EditorBrowsable(EditorBrowsableState.Never)]

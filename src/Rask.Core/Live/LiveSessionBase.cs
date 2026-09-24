@@ -115,12 +115,18 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
     // can unsubscribe on dispose, and so the render walk never pays a service resolution.
     private readonly Globalization.IRaskCulture? _culture;
 
+    // Entered around this session's work so ambient state follows its flow — the tenant of the signed-in
+    // user, and the session's IDataChanges. Optional and held per session: the render path resolves nothing,
+    // and a host that registers none pays one null check.
+    private readonly ISessionWorkScope? _workScope;
+
     protected LiveSessionBase(Component view, IServiceProvider services, LiveDiffMode diffMode)
     {
         View = view;
         Services = services;
         DiffMode = diffMode;
         view.RenderHandle = this;
+        _workScope = services.GetService<ISessionWorkScope>();
 
         // Only when an app actually configured cultures — otherwise this costs nothing and the whole
         // subsystem stays inert (see RaskCulture.IsEnabled).
@@ -251,6 +257,18 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost
     internal bool LastRenderMounted(Type pageType) =>
         View.MountedTypeInLastRender(pageType);
     public IServiceProvider Services { get; }
+
+    /// <summary>
+    ///     Makes this session's services ambient for the duration of the returned scope.
+    /// </summary>
+    /// <remarks>
+    ///     Every path that runs work for this session brackets itself with this, on both hosts: the render
+    ///     entry points and the handler dispatch. Miss one and anything reading ambient session state is wrong
+    ///     on that path alone; wrap something that outlives the work and it bleeds into the next session, which
+    ///     for a tenant filter means reading somebody else's rows. Nesting is fine — a dispatch renders, so
+    ///     this is entered inside itself, and each disposal restores exactly what it replaced.
+    /// </remarks>
+    internal IDisposable? EnterWorkScope() => _workScope?.Enter(Services);
 
     // Pending IJSRuntime calls, drained into each frame's jsInvokes and dispatched client-side after
     // applyDiff (post-commit ordering). Shared queue type so both hosts order interop identically.

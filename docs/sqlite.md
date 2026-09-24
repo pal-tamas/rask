@@ -851,7 +851,8 @@ builder.Services.AddDbContextFactory<AppDbContext>(o => o.UseSqlite(BrowserSqlit
 ```
 
 Everything above that line — including [`AddRaskJobs<AppDbContext>()`](jobs.md) — is then the same code you
-would write on a server. That includes [full-text search](full-text-search.md#in-the-browser): add
+would write on a server. So is [`AddRaskData<AppDbContext>()`](data.md#wiring-when-rask-is-not-hosting): with `AddRaskQuery()`
+beside it, a save refreshes the page's queries about what it wrote, exactly as in a server session. That includes [full-text search](full-text-search.md#in-the-browser): add
 `.UseRaskFullTextSearch()` after the `UseSqlite`, and `Search(text)` runs on FTS5 in the tab.
 
 Three limits, stated plainly because each one is a silent failure rather than an error:

@@ -34,9 +34,9 @@ scripts/run-data-demo-e2e-local.sh                            # publish + Playwr
   ([#1132](https://github.com/pal-tamas/rask/issues/1132)), so they need nothing — the recipe in
   [docs/sqlite.md](../../docs/sqlite.md#sqlite-in-the-browser-wasm).
 
-## Wiring a Rask server host does for you
+## Wiring
 
-Rask.Data has no browser wiring yet (#1132), so `Program.cs` and `App.cs` spell out what a Rask server host would:
-`AddRaskData<NotesDb>()` plus the two context factories, `Db.Configure(services)` once the container exists (in
-`NotesDatabase`), an `IDataChanges` that invalidates the Rask.Query queries about what a save wrote
-(`QueryDataChanges`), and `Db.UseScope(services)` around the write so the save can find it.
+`Program.cs` registers `AddRaskData<NotesDb>()` plus the two context factories, and `AddRaskQuery()`. Rask.Data's
+browser build does the rest, as a Rask server host does: it points `Db` at `NotesDb` before the first render, and a
+save inside the page's work refreshes the `QueryKey.For<Note>` queries — `App.cs` calls `Note.CreateAsync(note)`
+and nothing else ([#1137](https://github.com/pal-tamas/rask/issues/1137)).

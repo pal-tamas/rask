@@ -9,6 +9,8 @@
 
   <ItemGroup>
     <Compile Include="..\Shared.DbCollection\DbCollectionGuard.cs" Link="DbCollectionGuard.cs"/>
+    <Compile Include="..\..\src\Rask.Data\Browser\BrowserData.cs" Link="Browser\BrowserData.cs"/>
+    <Compile Include="..\..\src\Rask.Data\Browser\QueryDataChanges.cs" Link="Browser\QueryDataChanges.cs"/>
   </ItemGroup>
 
   <ItemGroup>
@@ -39,6 +41,10 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Data\Rask.Data.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cqrs\Rask.Cqrs.csproj"/>
+    <!-- Rask.Data's browser wiring (src/Rask.Data/Browser) compiles only into its browser build, and this project
+         builds for the server one, so BrowserDataTests links those files in and supplies what they reference. -->
+    <ProjectReference Include="..\..\src\Rask.Query\Rask.Query.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>

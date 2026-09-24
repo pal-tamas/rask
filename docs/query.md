@@ -280,6 +280,9 @@ var people = QueryClient.Query(QueryKey.For<Person>("active"), ct => Person.Read
 .OnClick(() => Person.CreateAsync(model))   // the list above refetches — nothing else to write
 ```
 
+The same holds in a WebAssembly app with no Rask server behind it: `AddRaskData<AppDbContext>()` beside
+`AddRaskQuery()` wires it, from Rask.Data's own browser build — there is nothing else to register.
+
 It reaches exactly what `QueryClient.Invalidate<Person>()` reaches: a key built with `QueryKey.For<Person>`,
 and anything a command names with `[Invalidates(typeof(Person))]`. A child entity counts as its aggregate —
 adding an `OrderLine` refreshes `Order` queries. What it cannot reach is a message query such as

@@ -1,0 +1,290 @@
+#nullable enable
+Rask.Data.Aggregate<TId>
+Rask.Data.Aggregate<TId>.Aggregate() -> void
+Rask.Data.Aggregate<TId>.ClearDomainEvents() -> void
+Rask.Data.Aggregate<TId>.DeletedAt.get -> System.DateTime?
+Rask.Data.Aggregate<TId>.DomainEvents.get -> System.Collections.Generic.IReadOnlyList<Rask.Cqrs.INotification!>!
+Rask.Data.Aggregate<TId>.Raise(Rask.Cqrs.INotification! domainEvent) -> void
+Rask.Data.Aggregate<TId>.Version.get -> int
+Rask.Data.AmbientContextBinding
+Rask.Data.AmbientContextBinding.ContextType.get -> System.Type!
+Rask.Data.AmbientContextBinding.CreateContext() -> Microsoft.EntityFrameworkCore.DbContext!
+Rask.Data.AuditingInterceptor
+Rask.Data.AuditingInterceptor.AuditingInterceptor(System.TimeProvider! timeProvider) -> void
+Rask.Data.Broadcasts
+Rask.Data.Broadcasts.Never = 0 -> Rask.Data.Broadcasts
+Rask.Data.Broadcasts.OnCommit = 1 -> Rask.Data.Broadcasts
+Rask.Data.BulkInsertExtensions
+Rask.Data.BulkInsertOptions
+Rask.Data.BulkInsertOptions.BatchSize.get -> int
+Rask.Data.BulkInsertOptions.BatchSize.set -> void
+Rask.Data.BulkInsertOptions.BulkInsertOptions() -> void
+Rask.Data.BulkInsertOptions.SingleTransaction.get -> bool
+Rask.Data.BulkInsertOptions.SingleTransaction.set -> void
+Rask.Data.BulkInsertOptions.SkipChangeTracking.get -> bool
+Rask.Data.BulkInsertOptions.SkipChangeTracking.set -> void
+Rask.Data.Columns
+Rask.Data.Concurrency
+Rask.Data.Concurrency.None = 0 -> Rask.Data.Concurrency
+Rask.Data.Concurrency.Version = 1 -> Rask.Data.Concurrency
+Rask.Data.ConventionRegistry
+Rask.Data.Db
+Rask.Data.Deletion
+Rask.Data.Deletion.Hard = 0 -> Rask.Data.Deletion
+Rask.Data.Deletion.None = 2 -> Rask.Data.Deletion
+Rask.Data.Deletion.Soft = 1 -> Rask.Data.Deletion
+Rask.Data.DomainEventInterceptor
+Rask.Data.DomainEventInterceptor.DomainEventInterceptor(Microsoft.Extensions.DependencyInjection.IServiceScopeFactory! scopeFactory, Rask.Data.RaskDataOptions! options, System.Collections.Generic.IEnumerable<Rask.Data.IDomainEventDeliveryOwner!>! deliveryOwners) -> void
+Rask.Data.Entity<TId>
+Rask.Data.Entity<TId>.CreatedAt.get -> System.DateTime
+Rask.Data.Entity<TId>.Entity() -> void
+Rask.Data.Entity<TId>.Id.get -> TId
+Rask.Data.Entity<TId>.Id.set -> void
+Rask.Data.Entity<TId>.RecordTenant(System.Guid? tenant) -> void
+Rask.Data.Entity<TId>.Stamp(System.DateTime at) -> void
+Rask.Data.Entity<TId>.TenantId.get -> System.Guid?
+Rask.Data.Entity<TId>.UpdatedAt.get -> System.DateTime
+Rask.Data.FullText
+Rask.Data.FullTextQueryableExtensions
+Rask.Data.FullTextSearchBuilderExtensions
+Rask.Data.FullTextTokenizer
+Rask.Data.FullTextTokenizer.English = 1 -> Rask.Data.FullTextTokenizer
+Rask.Data.FullTextTokenizer.Unicode = 0 -> Rask.Data.FullTextTokenizer
+Rask.Data.GeneratedModelWrites
+Rask.Data.GeneratedReadQuery
+Rask.Data.IAggregate
+Rask.Data.IDataChanges
+Rask.Data.IDataChanges.Saved(System.Collections.Generic.IReadOnlyCollection<System.Type!>! entityTypes) -> void
+Rask.Data.IDomainEventDeliveryOwner
+Rask.Data.IDomainEventDeliveryOwner.Name.get -> string!
+Rask.Data.IEntity
+Rask.Data.IHasDomainEvents
+Rask.Data.IHasDomainEvents.ClearDomainEvents() -> void
+Rask.Data.IHasDomainEvents.DomainEvents.get -> System.Collections.Generic.IReadOnlyList<Rask.Cqrs.INotification!>!
+Rask.Data.IPrincipalSource
+Rask.Data.IPrincipalSource.Current.get -> System.Security.Claims.ClaimsPrincipal?
+Rask.Data.IReadModel
+Rask.Data.ITenantScoped
+Rask.Data.ITenantScoped.CurrentTenant.get -> System.Guid?
+Rask.Data.JsonIndexBuilderExtensions
+Rask.Data.ModelBuilderExtensions
+Rask.Data.ModelQuery<TEntity>
+Rask.Data.ModelQuery<TEntity>.AnyAsync(System.Linq.Expressions.Expression<System.Func<TEntity!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Rask.Data.ModelQuery<TEntity>.AnyAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Rask.Data.ModelQuery<TEntity>.AsAsyncEnumerable(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<TEntity!>!
+Rask.Data.ModelQuery<TEntity>.AsQueryable() -> System.Linq.IQueryable<TEntity!>!
+Rask.Data.ModelQuery<TEntity>.AsSplitQuery() -> Rask.Data.ModelQuery<TEntity!>!
+Rask.Data.ModelQuery<TEntity>.CountAsync(System.Linq.Expressions.Expression<System.Func<TEntity!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+Rask.Data.ModelQuery<TEntity>.CountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+Rask.Data.ModelQuery<TEntity>.FirstOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<TEntity!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
+Rask.Data.ModelQuery<TEntity>.FirstOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
+Rask.Data.ModelQuery<TEntity>.IgnoreQueryFilters() -> Rask.Data.ModelQuery<TEntity!>!
+Rask.Data.ModelQuery<TEntity>.Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<TEntity!>!
+Rask.Data.ModelQuery<TEntity>.Include<TProperty>(System.Linq.Expressions.Expression<System.Func<TEntity!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<TEntity!>!
+Rask.Data.ModelQuery<TEntity>.LongCountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+Rask.Data.ModelQuery<TEntity>.OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<TEntity!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<TEntity!>!
+Rask.Data.ModelQuery<TEntity>.OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<TEntity!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<TEntity!>!
+Rask.Data.ModelQuery<TEntity>.QueryAsync<TResult>(System.Func<System.Linq.IQueryable<TEntity!>!, System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
+Rask.Data.ModelQuery<TEntity>.Search(string? text) -> Rask.Data.ModelQuery<TEntity!>!
+Rask.Data.ModelQuery<TEntity>.Select<TResult>(System.Linq.Expressions.Expression<System.Func<TEntity!, TResult>!>! selector) -> Rask.Data.Projection<TEntity!, TResult>!
+Rask.Data.ModelQuery<TEntity>.SingleOrDefaultAsync(System.Linq.Expressions.Expression<System.Func<TEntity!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
+Rask.Data.ModelQuery<TEntity>.SingleOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
+Rask.Data.ModelQuery<TEntity>.Skip(int count) -> Rask.Data.ModelQuery<TEntity!>!
+Rask.Data.ModelQuery<TEntity>.Take(int count) -> Rask.Data.ModelQuery<TEntity!>!
+Rask.Data.ModelQuery<TEntity>.ThenBy<TKey>(System.Linq.Expressions.Expression<System.Func<TEntity!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<TEntity!>!
+Rask.Data.ModelQuery<TEntity>.ThenByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<TEntity!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<TEntity!>!
+Rask.Data.ModelQuery<TEntity>.ToArrayAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity![]!>!
+Rask.Data.ModelQuery<TEntity>.ToListAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.List<TEntity!>!>!
+Rask.Data.ModelQuery<TEntity>.Where(System.Linq.Expressions.Expression<System.Func<TEntity!, bool>!>! predicate) -> Rask.Data.ModelQuery<TEntity!>!
+Rask.Data.ModelRegistry
+Rask.Data.ModelSet
+Rask.Data.ModelSet.extension<TEntity>(TEntity!)
+Rask.Data.ModelWrites
+Rask.Data.ModelWrites.All = Rask.Data.ModelWrites.Create | Rask.Data.ModelWrites.Update -> Rask.Data.ModelWrites
+Rask.Data.ModelWrites.Create = 1 -> Rask.Data.ModelWrites
+Rask.Data.ModelWrites.None = 0 -> Rask.Data.ModelWrites
+Rask.Data.ModelWrites.Update = 2 -> Rask.Data.ModelWrites
+Rask.Data.Projection<TEntity, TResult>
+Rask.Data.Projection<TEntity, TResult>.AnyAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Rask.Data.Projection<TEntity, TResult>.CountAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+Rask.Data.Projection<TEntity, TResult>.FirstOrDefaultAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult?>!
+Rask.Data.Projection<TEntity, TResult>.ToArrayAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult[]!>!
+Rask.Data.Projection<TEntity, TResult>.ToListAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.List<TResult>!>!
+Rask.Data.RangeExclusionBuilderExtensions
+Rask.Data.RangeExclusionSpec
+Rask.Data.RangeExclusionSpec.<Clone>$() -> Rask.Data.RangeExclusionSpec!
+Rask.Data.RangeExclusionSpec.Deconstruct(out string! Lo, out string! Hi, out System.Collections.Generic.IReadOnlyList<string!>! PartitionBy, out bool IgnoreSoftDeleted) -> void
+Rask.Data.RangeExclusionSpec.Equals(Rask.Data.RangeExclusionSpec? other) -> bool
+Rask.Data.RangeExclusionSpec.Hi.get -> string!
+Rask.Data.RangeExclusionSpec.Hi.init -> void
+Rask.Data.RangeExclusionSpec.IgnoreSoftDeleted.get -> bool
+Rask.Data.RangeExclusionSpec.IgnoreSoftDeleted.init -> void
+Rask.Data.RangeExclusionSpec.Lo.get -> string!
+Rask.Data.RangeExclusionSpec.Lo.init -> void
+Rask.Data.RangeExclusionSpec.PartitionBy.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Rask.Data.RangeExclusionSpec.PartitionBy.init -> void
+Rask.Data.RangeExclusionSpec.RangeExclusionSpec(string! Lo, string! Hi, System.Collections.Generic.IReadOnlyList<string!>! PartitionBy, bool IgnoreSoftDeleted = false) -> void
+Rask.Data.RangeExclusionSpec.Serialize() -> string!
+Rask.Data.RangeOverlapException
+Rask.Data.RangeOverlapException.RangeOverlapException() -> void
+Rask.Data.RangeOverlapException.RangeOverlapException(string! message) -> void
+Rask.Data.RangeOverlapException.RangeOverlapException(string! message, System.Exception? innerException) -> void
+Rask.Data.RangeOverlapException.Table.get -> string!
+Rask.Data.RaskDataOptions
+Rask.Data.RaskDataOptions.DispatchDomainEventsInProcess.get -> bool?
+Rask.Data.RaskDataOptions.DispatchDomainEventsInProcess.set -> void
+Rask.Data.RaskDataOptions.RaskDataOptions() -> void
+Rask.Data.RaskDataServiceCollectionExtensions
+Rask.Data.RaskDbContext
+Rask.Data.RaskDbContext.CurrentTenant.get -> System.Guid?
+Rask.Data.RaskDbContext.RaskDbContext(Microsoft.EntityFrameworkCore.DbContextOptions! options) -> void
+Rask.Data.RaskDbContext.RaskDbContext(Microsoft.EntityFrameworkCore.DbContextOptions<Rask.Data.RaskDbContext!>! options) -> void
+Rask.Data.RaskReadDbContext
+Rask.Data.RaskReadDbContext.RaskReadDbContext(Microsoft.EntityFrameworkCore.DbContextOptions! options) -> void
+Rask.Data.RaskReadDbContext.RaskReadDbContext(Microsoft.EntityFrameworkCore.DbContextOptions<Rask.Data.RaskReadDbContext!>! options) -> void
+Rask.Data.ReadChildMapping
+Rask.Data.ReadChildMapping.ChildReadType.get -> System.Type!
+Rask.Data.ReadChildMapping.ChildWriteType.get -> System.Type!
+Rask.Data.ReadChildMapping.Collection.get -> string!
+Rask.Data.ReadChildMapping.Inverse.get -> string!
+Rask.Data.ReadChildMapping.ReadChildMapping(string! collection, System.Type! childReadType, System.Type! childWriteType, string! inverse) -> void
+Rask.Data.ReadColumnMapping
+Rask.Data.ReadColumnMapping.ColumnName.get -> string!
+Rask.Data.ReadColumnMapping.Member.get -> string!
+Rask.Data.ReadColumnMapping.Path.get -> string!
+Rask.Data.ReadColumnMapping.ReadColumnMapping(string! member, string! path, string! columnName) -> void
+Rask.Data.ReadDb
+Rask.Data.ReadEntityMapping
+Rask.Data.ReadEntityMapping.Children.get -> System.Collections.Generic.IReadOnlyList<Rask.Data.ReadChildMapping!>!
+Rask.Data.ReadEntityMapping.Columns.get -> System.Collections.Generic.IReadOnlyList<Rask.Data.ReadColumnMapping!>!
+Rask.Data.ReadEntityMapping.IsRoot.get -> bool
+Rask.Data.ReadEntityMapping.ReadEntityMapping(System.Type! readType, System.Type! writeType, bool isRoot, string! tableName, System.Collections.Generic.IReadOnlyList<Rask.Data.ReadColumnMapping!>! columns, System.Collections.Generic.IReadOnlyList<Rask.Data.ReadReferenceMapping!>! references, System.Collections.Generic.IReadOnlyList<Rask.Data.ReadChildMapping!>! children, System.Collections.Generic.IReadOnlyList<Rask.Data.ReadValueCollectionMapping!>! valueCollections) -> void
+Rask.Data.ReadEntityMapping.ReadType.get -> System.Type!
+Rask.Data.ReadEntityMapping.References.get -> System.Collections.Generic.IReadOnlyList<Rask.Data.ReadReferenceMapping!>!
+Rask.Data.ReadEntityMapping.TableName.get -> string!
+Rask.Data.ReadEntityMapping.ValueCollections.get -> System.Collections.Generic.IReadOnlyList<Rask.Data.ReadValueCollectionMapping!>!
+Rask.Data.ReadEntityMapping.WriteType.get -> System.Type!
+Rask.Data.ReadModelRegistry
+Rask.Data.ReadReferenceMapping
+Rask.Data.ReadReferenceMapping.ForeignKey.get -> string!
+Rask.Data.ReadReferenceMapping.Navigation.get -> string!
+Rask.Data.ReadReferenceMapping.ReadReferenceMapping(string! navigation, System.Type! targetReadType, string! foreignKey) -> void
+Rask.Data.ReadReferenceMapping.TargetReadType.get -> System.Type!
+Rask.Data.ReadValueCollectionMapping
+Rask.Data.ReadValueCollectionMapping.Member.get -> string!
+Rask.Data.ReadValueCollectionMapping.ReadValueCollectionMapping(string! member, System.Type? valueObject) -> void
+Rask.Data.ReadValueCollectionMapping.ValueObject.get -> System.Type?
+Rask.Data.SoftDeleteInterceptor
+Rask.Data.SoftDeleteInterceptor.SoftDeleteInterceptor(System.TimeProvider! timeProvider) -> void
+Rask.Data.Tenancy
+Rask.Data.Tenancy.PerTenant = 1 -> Rask.Data.Tenancy
+Rask.Data.Tenancy.Shared = 0 -> Rask.Data.Tenancy
+Rask.Data.Tenant
+Rask.Data.TestDatabase
+Rask.Data.TestDatabase.Context.get -> Rask.Data.RaskDbContext!
+Rask.Data.TestDatabase.DisposeAsync() -> System.Threading.Tasks.ValueTask
+Rask.Data.TestDatabase.LoadAsync<TEntity>(object! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
+Rask.Data.TestDatabase.LoadAsync<TEntity>(object?[]! keyValues, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
+Rask.Data.TestDatabase.OpenRead() -> Rask.Data.RaskReadDbContext!
+Rask.Data.Timestamps
+Rask.Data.Timestamps.All = Rask.Data.Timestamps.Created | Rask.Data.Timestamps.Updated -> Rask.Data.Timestamps
+Rask.Data.Timestamps.Created = 1 -> Rask.Data.Timestamps
+Rask.Data.Timestamps.None = 0 -> Rask.Data.Timestamps
+Rask.Data.Timestamps.Updated = 2 -> Rask.Data.Timestamps
+const Rask.Data.Columns.CreatedAt = "CreatedAt" -> string!
+const Rask.Data.Columns.DeletedAt = "DeletedAt" -> string!
+const Rask.Data.Columns.TenantId = "TenantId" -> string!
+const Rask.Data.Columns.TenantKey = "TenantKey" -> string!
+const Rask.Data.Columns.UpdatedAt = "UpdatedAt" -> string!
+const Rask.Data.Columns.Version = "Version" -> string!
+const Rask.Data.FullText.MatchEnd = '' -> char
+const Rask.Data.FullText.MatchStart = '' -> char
+const Rask.Data.RangeExclusionSpec.AnnotationName = "Rask:RangeExclusion" -> string!
+const Rask.Data.Tenant.ClaimType = "rask:tenant" -> string!
+override Rask.Data.AuditingInterceptor.SavingChanges(Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData! eventData, Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result) -> Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>
+override Rask.Data.AuditingInterceptor.SavingChangesAsync(Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData! eventData, Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>>
+override Rask.Data.DomainEventInterceptor.SaveChangesFailed(Microsoft.EntityFrameworkCore.Diagnostics.DbContextErrorEventData! eventData) -> void
+override Rask.Data.DomainEventInterceptor.SaveChangesFailedAsync(Microsoft.EntityFrameworkCore.Diagnostics.DbContextErrorEventData! eventData, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+override Rask.Data.DomainEventInterceptor.SavedChanges(Microsoft.EntityFrameworkCore.Diagnostics.SaveChangesCompletedEventData! eventData, int result) -> int
+override Rask.Data.DomainEventInterceptor.SavedChangesAsync(Microsoft.EntityFrameworkCore.Diagnostics.SaveChangesCompletedEventData! eventData, int result, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<int>
+override Rask.Data.DomainEventInterceptor.SavingChanges(Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData! eventData, Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result) -> Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>
+override Rask.Data.DomainEventInterceptor.SavingChangesAsync(Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData! eventData, Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>>
+override Rask.Data.RangeExclusionSpec.Equals(object? obj) -> bool
+override Rask.Data.RangeExclusionSpec.GetHashCode() -> int
+override Rask.Data.RangeExclusionSpec.ToString() -> string!
+override Rask.Data.RaskDbContext.ConfigureConventions(Microsoft.EntityFrameworkCore.ModelConfigurationBuilder! configurationBuilder) -> void
+override Rask.Data.RaskDbContext.OnConfiguring(Microsoft.EntityFrameworkCore.DbContextOptionsBuilder! optionsBuilder) -> void
+override Rask.Data.RaskDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> void
+override Rask.Data.RaskReadDbContext.ConfigureConventions(Microsoft.EntityFrameworkCore.ModelConfigurationBuilder! configurationBuilder) -> void
+override Rask.Data.RaskReadDbContext.OnConfiguring(Microsoft.EntityFrameworkCore.DbContextOptionsBuilder! optionsBuilder) -> void
+override Rask.Data.RaskReadDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> void
+override Rask.Data.SoftDeleteInterceptor.SavingChanges(Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData! eventData, Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result) -> Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>
+override Rask.Data.SoftDeleteInterceptor.SavingChangesAsync(Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData! eventData, Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>>
+static Rask.Data.BulkInsertExtensions.BulkInsertAsync<TEntity>(this Microsoft.EntityFrameworkCore.DbContext! context, System.Collections.Generic.IEnumerable<TEntity!>! entities, System.Action<Rask.Data.BulkInsertOptions!>? configure = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.BulkInsertExtensions.BulkInsertAsync<TEntity>(this Microsoft.EntityFrameworkCore.DbSet<TEntity!>! set, System.Collections.Generic.IEnumerable<TEntity!>! entities, System.Action<Rask.Data.BulkInsertOptions!>? configure = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.ConventionRegistry.Declare(System.Type! entity, Rask.Data.Broadcasts broadcasts) -> void
+static Rask.Data.ConventionRegistry.Declare(System.Type! entity, Rask.Data.Concurrency checks) -> void
+static Rask.Data.ConventionRegistry.Declare(System.Type! entity, Rask.Data.Deletion deletes) -> void
+static Rask.Data.ConventionRegistry.Declare(System.Type! entity, Rask.Data.Tenancy scope) -> void
+static Rask.Data.ConventionRegistry.Declare(System.Type! entity, Rask.Data.Timestamps stamps) -> void
+static Rask.Data.ConventionRegistry.DeclareCollection(System.Type! entity, string! property, string? field, System.Type? element) -> void
+static Rask.Data.Db.Configure(System.Func<Microsoft.EntityFrameworkCore.DbContext!>! createContext) -> void
+static Rask.Data.Db.Configure(System.IServiceProvider! services) -> void
+static Rask.Data.Db.Configure<TContext>(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! factory) -> void
+static Rask.Data.Db.IsConfigured.get -> bool
+static Rask.Data.Db.Reset() -> void
+static Rask.Data.Db.UseScope(System.IServiceProvider! scope) -> System.IDisposable!
+static Rask.Data.FullText.Highlight(string? property) -> string?
+static Rask.Data.FullText.Snippet(string? property, int words = 12) -> string?
+static Rask.Data.FullTextQueryableExtensions.Search<TEntity>(this System.Linq.IQueryable<TEntity>! source, string? text) -> System.Linq.IQueryable<TEntity>!
+static Rask.Data.FullTextSearchBuilderExtensions.HasFullTextSearch<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! builder, System.Linq.Expressions.Expression<System.Func<TEntity!, object?>!>! properties, Rask.Data.FullTextTokenizer tokenizer = Rask.Data.FullTextTokenizer.Unicode) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>!
+static Rask.Data.GeneratedModelWrites.CreateAsync<TEntity>(TEntity! entity, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity!>!
+static Rask.Data.GeneratedModelWrites.DeleteAsync<TEntity>(object! key, int? version, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+static Rask.Data.GeneratedModelWrites.ModelSourceAsync<TEntity>(object! key, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
+static Rask.Data.GeneratedModelWrites.UpdateAsync<TEntity>(object! key, int? version, System.Action<TEntity!>! apply, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity!>!
+static Rask.Data.GeneratedReadQuery.Of<TRead>() -> Rask.Data.ModelQuery<TRead!>!
+static Rask.Data.JsonIndexBuilderExtensions.HasJsonIndex<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! builder, System.Linq.Expressions.Expression<System.Func<TEntity!, object?>!>! path) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>!
+static Rask.Data.ModelBuilderExtensions.ApplyRaskConventions(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
+static Rask.Data.ModelBuilderExtensions.ApplyRaskConventions(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder, Microsoft.EntityFrameworkCore.DbContext! context) -> Microsoft.EntityFrameworkCore.ModelBuilder!
+static Rask.Data.ModelRegistry.Apply(Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
+static Rask.Data.ModelRegistry.Apply(Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder, Microsoft.EntityFrameworkCore.DbContext? context) -> Microsoft.EntityFrameworkCore.ModelBuilder!
+static Rask.Data.ModelRegistry.ApplyConventions(Microsoft.EntityFrameworkCore.ModelConfigurationBuilder! configurationBuilder) -> Microsoft.EntityFrameworkCore.ModelConfigurationBuilder!
+static Rask.Data.ModelRegistry.IsEmpty.get -> bool
+static Rask.Data.ModelRegistry.Replace(System.Type! group, System.Action<Microsoft.EntityFrameworkCore.ModelBuilder!>! mapEntities, System.Action<Microsoft.EntityFrameworkCore.ModelBuilder!>! applyConfigurations, System.Action<Microsoft.EntityFrameworkCore.ModelConfigurationBuilder!>! configureConventions) -> void
+static Rask.Data.ModelSet.CreateAsync<TEntity>(TEntity! entity, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity!>!
+static Rask.Data.ModelSet.extension<TEntity>(TEntity!).CreateAsync(TEntity! entity, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity!>!
+static Rask.Data.RangeExclusionBuilderExtensions.HasNonOverlappingRange<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! builder, System.Linq.Expressions.Expression<System.Func<TEntity!, object?>!>! lo, System.Linq.Expressions.Expression<System.Func<TEntity!, object?>!>! hi, System.Linq.Expressions.Expression<System.Func<TEntity!, object?>!>? partitionBy = null, bool? ignoreSoftDeleted = null) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>!
+static Rask.Data.RangeExclusionSpec.TryParse(object? value, out Rask.Data.RangeExclusionSpec! spec) -> bool
+static Rask.Data.RangeExclusionSpec.operator !=(Rask.Data.RangeExclusionSpec? left, Rask.Data.RangeExclusionSpec? right) -> bool
+static Rask.Data.RangeExclusionSpec.operator ==(Rask.Data.RangeExclusionSpec? left, Rask.Data.RangeExclusionSpec? right) -> bool
+static Rask.Data.RangeOverlapException.ForTable(string! table, System.Exception? innerException = null) -> Rask.Data.RangeOverlapException!
+static Rask.Data.RaskDataServiceCollectionExtensions.AddRaskData(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Data.RaskDataOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Rask.Data.RaskDataServiceCollectionExtensions.AddRaskData<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Data.RaskDataOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Rask.Data.ReadDb.Configure(System.Func<Rask.Data.RaskReadDbContext!>! createContext) -> void
+static Rask.Data.ReadDb.Configure(System.IServiceProvider! services) -> void
+static Rask.Data.ReadDb.IsConfigured.get -> bool
+static Rask.Data.ReadDb.Reset() -> void
+static Rask.Data.ReadModelRegistry.Apply(Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder, Microsoft.EntityFrameworkCore.Metadata.IModel? writeModel) -> Microsoft.EntityFrameworkCore.ModelBuilder!
+static Rask.Data.ReadModelRegistry.Apply(Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder, Microsoft.EntityFrameworkCore.Metadata.IModel? writeModel, Microsoft.EntityFrameworkCore.DbContext? context) -> Microsoft.EntityFrameworkCore.ModelBuilder!
+static Rask.Data.ReadModelRegistry.IsEmpty.get -> bool
+static Rask.Data.ReadModelRegistry.Replace(System.Type! group, System.Collections.Generic.IReadOnlyList<Rask.Data.ReadEntityMapping!>! entities) -> void
+static Rask.Data.Tenant.Across() -> System.IDisposable!
+static Rask.Data.Tenant.IsAcrossTenants.get -> bool
+static Rask.Data.Tenant.None() -> System.IDisposable!
+static Rask.Data.Tenant.Resolve() -> System.Guid?
+static Rask.Data.Tenant.Use(System.Guid tenant) -> System.IDisposable!
+static Rask.Data.TestDatabase.StartAsync(System.Action<Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!>! configure, System.TimeProvider? timeProvider = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.TestDatabase!>!
+Rask.Data.CurrentUser
+Rask.Data.CurrentUser.extension(Rask.Current!)
+static Rask.Data.CurrentUser.UseUser(System.Guid? userId) -> System.IDisposable!
+static Rask.Data.CurrentUser.extension(Rask.Current!).Principal.get -> System.Security.Claims.ClaimsPrincipal?
+static Rask.Data.CurrentUser.extension(Rask.Current!).RequiredTenant.get -> System.Guid
+static Rask.Data.CurrentUser.extension(Rask.Current!).RequiredUserId.get -> System.Guid
+static Rask.Data.CurrentUser.extension(Rask.Current!).Tenant.get -> System.Guid?
+static Rask.Data.CurrentUser.extension(Rask.Current!).UseUser(System.Guid? userId) -> System.IDisposable!
+static Rask.Data.CurrentUser.extension(Rask.Current!).UserId.get -> System.Guid?
+static Rask.Data.CurrentUser.get_Principal() -> System.Security.Claims.ClaimsPrincipal?
+static Rask.Data.CurrentUser.get_RequiredTenant() -> System.Guid
+static Rask.Data.CurrentUser.get_RequiredUserId() -> System.Guid
+static Rask.Data.CurrentUser.get_Tenant() -> System.Guid?
+static Rask.Data.CurrentUser.get_UserId() -> System.Guid?

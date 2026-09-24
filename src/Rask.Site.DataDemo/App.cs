@@ -14,7 +14,7 @@ namespace Rask.Site.DataDemo;
 ///     Nothing here loads data by hand. Both lists are <c>Rask.Query</c> queries keyed <c>QueryKey.For&lt;Note&gt;</c>,
 ///     so the save — which reports that it wrote a <see cref="Note" /> — refetches them, and the search follows the box.
 /// </remarks>
-public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownership, IServiceProvider services) : Component
+public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownership) : Component
 {
     // No Tailwind build here: the kit's sheet carries the components, and these few rules lay the page out.
     private const string Layout = """
@@ -148,12 +148,8 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
     {
         try
         {
-            // The ambient scope a Rask server host opens around a session's work: it is how the save finds this
-            // app's IDataChanges, which refreshes the two queries above.
-            using (Db.UseScope(services))
-            {
-                await Note.CreateAsync(note, cancellationToken: CancellationToken);
-            }
+            // Refreshes the two queries above: the save reports that it wrote a Note.
+            await Note.CreateAsync(note, cancellationToken: CancellationToken);
 
             _saveError = null;
             _draft = new();

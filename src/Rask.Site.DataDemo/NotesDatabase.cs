@@ -25,22 +25,16 @@ public sealed class NotesReady
 }
 
 /// <summary>
-///     Points Rask.Data at the database, then builds the schema and seeds it on the first visit. Registered after
-///     <c>AddRaskBrowserSqlite</c>, so a returning visitor's database has been restored from IndexedDB before this
-///     looks at it.
+///     Builds the schema and seeds it on the first visit. Registered after <c>AddRaskBrowserSqlite</c>, so a
+///     returning visitor's database has been restored from IndexedDB before this looks at it.
 /// </summary>
-public sealed class NotesDatabase(IServiceProvider services, IDbContextFactory<NotesDb> contexts, NotesReady ready)
-    : IHostedService
+public sealed class NotesDatabase(IDbContextFactory<NotesDb> contexts, NotesReady ready) : IHostedService
 {
     /// <inheritdoc />
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         try
         {
-            // What a Rask server host does for an app after building its container: both halves — the aggregates'
-            // writes and the read faces — now open their contexts from the registrations in Program.cs.
-            Db.Configure(services);
-
             await using var db = await contexts.CreateDbContextAsync(cancellationToken);
 
             // A database restored from IndexedDB already has it all.

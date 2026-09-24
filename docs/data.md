@@ -1348,6 +1348,22 @@ app.Use(async (context, next) =>
 Outside any scope — a hosted service's loop, a test — say who the work is for with `Current.UseUser(id)` and
 `Tenant.Use(id)`, or clear the tenant with `Tenant.None()`.
 
+**In a WebAssembly app none of this is yours to write.** Rask.Data's browser build does it from
+`AddRaskData<AppDbContext>()`: it points the model surface at the context before the first render, and the browser
+host makes the page's services ambient around its renders and handlers, so a save refreshes the page's
+[Rask.Query](query.md#writes-refresh-queries-by-themselves) queries about what it wrote:
+
+```csharp
+host.Services.AddRaskData<AppDbContext>();
+host.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
+    .UseSqlite(BrowserSqlite.ConnectionString("app"))
+    .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
+host.Services.AddRaskCqrs();
+host.Services.AddRaskQuery();
+
+.OnSubmit(note => Note.CreateAsync(note))   // the QueryKey.For<Note> list refetches
+```
+
 ## What the interceptors do
 
 - **`AuditingInterceptor`** — stamps `CreatedAt`/`UpdatedAt` (UTC, from an injectable `TimeProvider`) and

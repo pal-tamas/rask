@@ -51,6 +51,9 @@ public sealed class NotesJourneyTests(PlaywrightFixture playwright, DataDemoHost
         await page.ClickAsync("#search");
         await page.Keyboard.PressAsync("ControlOrMeta+A");
         await page.Keyboard.TypeAsync("walk");
+        // The search follows the box, so "w" and "wa" had results of their own: wait for the last word's before
+        // reading the marks, or a strict locator can land on an earlier result list.
+        await Expect(page.Locator("#results-heading")).ToHaveTextAsync("1 match for “walk”", Text);
         await Expect(hit.Locator(".note-body mark")).ToHaveTextAsync("walkers", Text);
 
         // The database is written to IndexedDB every two seconds; wait out one tick, then reload.

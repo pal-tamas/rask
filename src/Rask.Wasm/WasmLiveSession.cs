@@ -118,6 +118,9 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
             return;
         }
 
+        // The app's services made ambient for exactly this work, as the server session does — how a Rask.Data
+        // save inside it finds the IDataChanges that refreshes this page's queries.
+        using var work = EnterWorkScope();
         await _lock.WaitAsync().ConfigureAwait(false);
         InHandlerScope = true;
         try
@@ -183,6 +186,7 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
 
     public async Task<byte[]> InitialRenderAsync()
     {
+        using var work = EnterWorkScope();
         await _lock.WaitAsync().ConfigureAwait(false);
         InHandlerScope = true;
         try
@@ -257,6 +261,7 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
             return Array.Empty<byte>();
         }
 
+        using var work = EnterWorkScope();
         await _lock.WaitAsync().ConfigureAwait(false);
         InHandlerScope = true;
         try
@@ -333,6 +338,7 @@ internal sealed class WasmLiveSession : LiveSessionBase, IDisposable
                 ? navPath + navQueryString
                 : navPath + "?" + navQueryString;
 
+        using var work = EnterWorkScope();
         await _lock.WaitAsync().ConfigureAwait(false);
         InHandlerScope = true;
         try

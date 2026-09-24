@@ -114,7 +114,8 @@
     against the showcase's 3.28 MB for everything. Rask.Data and Rask.SQLite.EntityFrameworkCore are
     themselves trim-safe (#1132); EF Core is the cost. Putting them in this group would make every WASM
     app root EF, paid by every visitor on first load, including apps with no database at all. A
-    local-first app references them itself and roots EF knowingly (docs/sqlite.md has the recipe).
+    local-first app references them itself and roots EF knowingly (docs/sqlite.md has the recipe), and
+    Rask.Data's own browser build wires what the server half does here — a save refreshes the page's queries.
 
     What is here is source-generated and reflection-free, so the bundle stays trimmed.
 
@@ -154,13 +155,15 @@
     <Compile Remove="SessionDataScope.cs"/>
     <Compile Remove="ClaimsPrincipalSource.cs"/>
     <Compile Remove="OwnUserWatchPolicy.cs"/>
-    <Compile Remove="QueryDataChanges.cs"/>
     <!-- Endpoint and MVC filters: ASP.NET hosting types, so the server half only. -->
     <Compile Remove="ApiValidation.cs"/>
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == '' ">
     <Compile Remove="Browser\**\*.cs"/>
+    <!-- The one IDataChanges that refreshes a session's queries, shared with Rask.Data's browser build, whose
+         server build does not reference Rask.Query. -->
+    <Compile Include="..\Rask.Data\Browser\QueryDataChanges.cs" Link="QueryDataChanges.cs"/>
   </ItemGroup>
 
 </Project>

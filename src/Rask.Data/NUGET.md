@@ -89,6 +89,10 @@ var app = builder.Build();
 Db.Configure(app.Services);
 ```
 
+In a WebAssembly app `AddRaskData<AppDbContext>()` is the whole of it: the package's browser build points the model
+surface at the context itself, and — with `AddRaskQuery()` — a save refreshes the page's Rask.Query queries about
+what it wrote, as it does in a Rask server session.
+
 A class that does **not** derive from `Entity<TId>` stays an ordinary EF Core entity: write your own context
 and configurations and use them exactly as before. Registering an `IDbContextFactory<YourContext>` is
 the whole of opting out at the app level.

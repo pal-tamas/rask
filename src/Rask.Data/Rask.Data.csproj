@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>$(RaskNetTargets)</TargetFrameworks>
+    <TargetFrameworks>$(RaskNetTargets);$(RaskBrowserTargets)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
@@ -48,6 +48,20 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Rask.Cqrs\Rask.Cqrs.csproj"/>
+  </ItemGroup>
+
+  <!--
+    THE BROWSER FACE: AddRaskData in a WebAssembly app also wires what a Rask server host would — a save
+    refreshes the page's Rask.Query queries about what it wrote (Browser/). Rask.Core is PrivateAssets="all"
+    as in Rask.Query: it is not a package, and a browser app already carries it inside Rask.Wasm.
+  -->
+  <ItemGroup Condition=" '$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == 'browser' ">
+    <ProjectReference Include="..\Rask.Query\Rask.Query.csproj"/>
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == '' ">
+    <Compile Remove="Browser\**\*.cs"/>
   </ItemGroup>
 
   <ItemGroup>

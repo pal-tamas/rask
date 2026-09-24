@@ -10,7 +10,7 @@ using Microsoft.Extensions.Options;
 namespace Rask.Data;
 
 /// <summary>Registers Rask.Data's EF Core interceptors into an <see cref="IServiceCollection"/>.</summary>
-public static class RaskDataServiceCollectionExtensions
+public static partial class RaskDataServiceCollectionExtensions
 {
     /// <summary>
     /// Registers the auditing, soft-delete, and domain-event interceptors as
@@ -57,8 +57,13 @@ public static class RaskDataServiceCollectionExtensions
             services.AddSingleton<ISaveChangesInterceptor, DataChangesInterceptor>();
         }
 
+        AddBrowserWiring(services);
+
         return services;
     }
+
+    // Rask.Data's browser build fills this in (Browser/BrowserData.cs); on a server the Rask host wires the same.
+    static partial void AddBrowserWiring(IServiceCollection services);
 
     /// <summary>
     ///     Registers the interceptors as <see cref="AddRaskData" /> does, and binds
