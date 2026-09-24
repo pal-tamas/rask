@@ -37,8 +37,13 @@ public sealed class SiteExampleTests
             //
             // The headline is in the HTML the server sent. It is asserted with no timeout extension
             // because waiting would defeat the point: if this needs to wait, it was not prerendered.
-            await Expect(page.Locator("h1")).ToContainTextAsync("Ship a whole product");
+            await Expect(page.Locator("h1")).ToContainTextAsync("The whole stack");
             await Expect(page.Locator("h1")).ToContainTextAsync("C#");
+
+            // The hero's code is one feature back to front, and its first file — the aggregate that is
+            // the table — is in the prerendered document, both tabs with it.
+            await Expect(page.Locator(".hero-grid pre")).ToContainTextAsync("class Product : Aggregate<Guid>");
+            await Expect(page.Locator(".hero-code-tab")).ToHaveCountAsync(2);
 
             // The four front-end lanes are part of the prerendered document rather than something the
             // bundle fills in later. This is the section a visitor reads to work out which lane they
@@ -48,15 +53,22 @@ public sealed class SiteExampleTests
             await Expect(page.Locator("#front-ends a")).ToHaveCountAsync(4);
             await Expect(page.Locator("#front-ends")).ToContainTextAsync("Meta framework");
 
-            // The batteries lead: they sit directly under the hero, where a byte table against Blazor
-            // used to be, and the front-end section says what Rask is to the frameworks it hosts.
+            // The whole stack leads: the back end sits directly under the hero, the C# frontend follows
+            // it, and only then the front-end lanes — which say what Rask is to the frameworks it hosts.
             // Prerendered as well, so again no timeout extension.
-            await Expect(page.Locator("#batteries")).ToHaveCountAsync(1);
+            await Expect(page.Locator("#whole-stack")).ToHaveCountAsync(1);
+            await Expect(page.Locator("#frontend")).ToHaveCountAsync(1);
             Assert.True(
                 await page.EvaluateAsync<bool>(
-                    "() => !!(document.getElementById('batteries').compareDocumentPosition("
+                    "() => !!(document.getElementById('whole-stack').compareDocumentPosition("
+                    + "document.getElementById('frontend')) & Node.DOCUMENT_POSITION_FOLLOWING)"
+                    + " && !!(document.getElementById('frontend').compareDocumentPosition("
                     + "document.getElementById('front-ends')) & Node.DOCUMENT_POSITION_FOLLOWING)"),
-                "the batteries section does not come before the front ends.");
+                "the sections are not in whole-stack → frontend → front-ends order.");
+            // The back end is the real one: its data, realtime and deploy cards are in the first paint.
+            await Expect(page.Locator("#whole-stack a.guide-link[href='/docs/guides/data/']")).ToHaveCountAsync(1);
+            await Expect(page.Locator("#whole-stack a.guide-link[href='/docs/guides/subscriptions/']")).ToHaveCountAsync(1);
+            await Expect(page.Locator("#whole-stack a.guide-link[href='/docs/guides/deployment/']")).ToHaveCountAsync(1);
             await Expect(page.Locator("#front-ends")).ToContainTextAsync("superset");
             await Expect(page.GetByText("Rask vs Blazor")).ToHaveCountAsync(0);
 
@@ -88,13 +100,19 @@ public sealed class SiteExampleTests
             await Expect(page.Locator("html[data-rask-prerendered]")).ToHaveCountAsync(0);
 
             // The live counter is a real stateful Rask component: each click ships a diff and re-renders.
-            var count = page.Locator(".count");
+            // It leads the Frontend section now, beside its own source.
+            var count = page.Locator("#frontend .count");
             await Expect(count).ToHaveTextAsync("0");
-            var button = page.Locator("button.count-btn");
+            var button = page.Locator("#frontend button.count-btn");
             await button.ClickAsync();
             await button.ClickAsync();
             await button.ClickAsync();
             await Expect(count).ToHaveTextAsync("3");
+
+            // The hero's file tabs are Rask state too: the second shows the page that queries the aggregate.
+            await page.Locator(".hero-code-tab", new PageLocatorOptions { HasTextString = "ProductsPage.cs" }).ClickAsync();
+            await Expect(page.Locator(".hero-grid pre")).ToContainTextAsync("QueryClient.Query(");
+            await Expect(page.Locator(".hero-grid pre")).Not.ToContainTextAsync("Aggregate<Guid>");
 
             // The install tabs are Rask state too — switching re-renders the selected terminal.
             // Both terminals must lead with the one-line installer: the tabs pick a TEMPLATE, not an
@@ -138,7 +156,7 @@ public sealed class SiteExampleTests
             await Expect(page.Locator(".install-foot").First)
                 .ToContainTextAsync("irm https://rask.sh/rask.ps1 | iex");
 
-            // The hero leads with the headline and the component's own source, where a 500-line generated
+            // The hero leads with the headline and a feature's own source, where a 500-line generated
             // SVG animation used to be. One <h1>, inside the hero grid.
             await Expect(page.Locator(".hero-grid h1")).ToHaveCountAsync(1);
 
@@ -215,7 +233,7 @@ public sealed class SiteExampleTests
     // The front door, and the docs — the reflow was reported on both, and it would be: every
     // prerendered page is taken over by the same morph, so any page-shaped assumption here is one
     // page's luck. The docs page is also the one a reader lands on most often from outside.
-    [InlineData("/index.html", "Ship a whole product")]
+    [InlineData("/index.html", "The whole stack")]
     [InlineData("/docs/index.html", "Guides")]
     // A guide, because its chrome — the "On this page" rail beside the article — is SCOPED CSS, which the
     // two pages above do not use. The prerender companion did not carry an app's scoped stylesheets, so
@@ -289,10 +307,15 @@ public sealed class SiteExampleTests
     }
 
     /// <summary>
-    ///     The hero's Counter.cs window fits its code at every two-column width, in the web font AND in the
-    ///     fallback a cold load paints first — so there is nothing in it to scroll.
+    ///     The landing page's code windows — the hero's Product.cs and the Frontend section's Counter.cs — fit
+    ///     their code at every two-column width, in the web font AND in the fallback a cold load paints
+    ///     first — so there is nothing in them to scroll.
     /// </summary>
     /// <remarks>
+    ///     <para>
+    ///         The Counter.cs window was the hero until the page led with the whole stack; it moved to the
+    ///         Frontend section on the same 34rem track, and the hero's own sample keeps its lines inside it.
+    ///     </para>
     ///     <para>
     ///         Reported as "the counter example still flickers and shows the scrollbar later in Safari",
     ///         after <see cref="Hydration_does_not_reflow_the_page" /> was already green. It was never the morph:
@@ -314,7 +337,7 @@ public sealed class SiteExampleTests
     [InlineData(1920, false)]
     [InlineData(1024, true)]
     [InlineData(1280, true)]
-    public async Task Counter_sample_fits_its_window_without_scrolling(int width, bool fallbackFont)
+    public async Task Code_samples_fit_their_windows_without_scrolling(int width, bool fallbackFont)
     {
         var context = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions
         {
@@ -330,17 +353,21 @@ public sealed class SiteExampleTests
             }
 
             await page.GotoAsync("/index.html");
-            await Expect(page.Locator(".hero-grid pre")).ToContainTextAsync("class Counter");
+            await Expect(page.Locator(".hero-grid pre")).ToContainTextAsync("class Product");
+            await Expect(page.Locator("#frontend pre")).ToContainTextAsync("class Counter");
             await page.EvaluateAsync("() => document.fonts.ready");
 
-            var fit = await page.Locator(".hero-grid pre").EvaluateAsync<string>(
-                @"pre => [pre.scrollWidth - pre.clientWidth, pre.clientWidth,
-                          getComputedStyle(pre).fontFamily.split(',')[0],
-                          [...document.fonts].filter(f => f.status === 'loaded').map(f => f.family).join('|')].join(' ')");
+            foreach (var (name, selector) in new[] { ("Product.cs", ".hero-grid pre"), ("Counter.cs", "#frontend pre") })
+            {
+                var fit = await page.Locator(selector).EvaluateAsync<string>(
+                    @"pre => [pre.scrollWidth - pre.clientWidth, pre.clientWidth,
+                              getComputedStyle(pre).fontFamily.split(',')[0],
+                              [...document.fonts].filter(f => f.status === 'loaded').map(f => f.family).join('|')].join(' ')");
 
-            Assert.True(fit.StartsWith("0 ", StringComparison.Ordinal),
-                $"the Counter.cs <pre> scrolls horizontally at {width}px (fallback font: {fallbackFont}): "
-                + $"overflow, clientWidth, family, loaded faces = {fit}");
+                Assert.True(fit.StartsWith("0 ", StringComparison.Ordinal),
+                    $"the {name} <pre> scrolls horizontally at {width}px (fallback font: {fallbackFont}): "
+                    + $"overflow, clientWidth, family, loaded faces = {fit}");
+            }
 
             // The trade the wider code track makes must not cost the headline its two designed lines
             // where the row has its full 1100px.
@@ -432,7 +459,7 @@ public sealed class SiteExampleTests
             Assert.Null(await page.Locator("html").GetAttributeAsync("data-theme"));
             Assert.Null(await page.EvaluateAsync<string?>("() => localStorage.getItem('rask-theme')"));
 
-            await page.Locator("details.dropdown > summary").First.ClickAsync();
+            await page.Locator(ThemeTrigger).First.ClickAsync();
             await page.Locator("input.theme-controller[value='dracula']").First.CheckAsync();
 
             await Expect(page.Locator("html")).ToHaveAttributeAsync("data-theme", "dracula");
@@ -451,10 +478,68 @@ public sealed class SiteExampleTests
             // back to a dracula page would find the list claiming nothing was chosen.
             await Expect(page.Locator("input.theme-controller[value='dracula']")).ToBeCheckedAsync();
 
-            // And the picker adds NO handlers to the page — the property the islands depend on. Any
-            // C# handler in this chrome shifts every handler id after it, and an island holds the id it
-            // read from the prerendered markup. (h28 -> h63 with 35 buttons; h28 -> h29 with one.)
-            Assert.Equal(0, await page.Locator("details.dropdown [data-rask-on-click]").CountAsync());
+            // Picking runs no C# — the radios are CSS-only and the boot script remembers the choice — so
+            // thirty-five of them add no handlers. (h28 -> h63 when they were buttons.)
+            Assert.Equal(0, await page.Locator("input.theme-controller[data-rask-on-click]").CountAsync());
+            Assert.Equal(0, await page.Locator("input.theme-controller[data-rask-on-change]").CountAsync());
+        }
+        finally
+        {
+            await context.CloseAsync();
+        }
+    }
+
+    /// <summary>The header's theme trigger: the popover invoker that names the theme list.</summary>
+    private const string ThemeTrigger = "header button[popovertarget]:has-text('Theme')";
+
+    /// <summary>
+    ///     The theme list closes like everything else that floats: on Escape, on a click outside, and on
+    ///     its own trigger — and it stays open while a theme is picked, so the palettes can be compared.
+    /// </summary>
+    /// <remarks>
+    ///     It was a <c>&lt;details&gt;</c>, which closes on its summary and nothing else. Driven with the
+    ///     MOUSE: a popover's keyboard path has passed before while a click never opened it at all.
+    /// </remarks>
+    [Fact]
+    public async Task The_theme_list_closes_on_escape_and_on_a_click_outside()
+    {
+        var context = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions { BaseURL = _app.BaseUrl });
+        var page = await context.NewPageAsync();
+        try
+        {
+            await page.GotoAsync("/index.html");
+            await Expect(page.Locator("body[data-rask-root='wasm']"))
+                .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 60_000 });
+
+            var trigger = page.Locator(ThemeTrigger).First;
+            var dracula = page.Locator("input.theme-controller[value='dracula']").First;
+            await Expect(dracula).ToBeHiddenAsync();
+
+            // Opens on a click, and stays open while a theme is picked.
+            await trigger.ClickAsync();
+            await Expect(dracula).ToBeVisibleAsync();
+            await dracula.CheckAsync();
+            await Expect(page.Locator("html")).ToHaveAttributeAsync("data-theme", "dracula");
+            await Expect(dracula).ToBeVisibleAsync();
+
+            // Escape closes it and gives focus back to the trigger.
+            await page.Keyboard.PressAsync("Escape");
+            await Expect(dracula).ToBeHiddenAsync();
+            await Expect(trigger).ToBeFocusedAsync();
+            await Expect(trigger).ToHaveAttributeAsync("aria-expanded", "false");
+
+            // A click outside closes it.
+            await trigger.ClickAsync();
+            await Expect(dracula).ToBeVisibleAsync();
+            await Expect(trigger).ToHaveAttributeAsync("aria-expanded", "true");
+            await page.Locator("h1").First.ClickAsync();
+            await Expect(dracula).ToBeHiddenAsync();
+
+            // And so does its own trigger.
+            await trigger.ClickAsync();
+            await Expect(dracula).ToBeVisibleAsync();
+            await trigger.ClickAsync();
+            await Expect(dracula).ToBeHiddenAsync();
         }
         finally
         {
