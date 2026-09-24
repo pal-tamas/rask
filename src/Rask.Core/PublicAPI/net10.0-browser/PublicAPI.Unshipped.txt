@@ -3191,8 +3191,6 @@ Rask.Core.Forms.ValidationEntry.Message.get -> string!
 Rask.Core.Forms.ValidationEntry.Message.init -> void
 Rask.Core.Forms.ValidationEntry.ValidationEntry() -> void
 Rask.Core.Forms.ValidationEntry.ValidationEntry(string! Field, string! Message) -> void
-Rask.Core.GenerateForwarderFactoryAttribute
-Rask.Core.GenerateForwarderFactoryAttribute.GenerateForwarderFactoryAttribute() -> void
 Rask.Core.Globalization.CookieCulturePersistence
 Rask.Core.Globalization.CookieCulturePersistence.CookieCulturePersistence(Rask.Core.Browser.ICookies! cookies, Rask.Core.Globalization.RaskCultureOptions! options) -> void
 Rask.Core.Globalization.CookieCulturePersistence.SaveAsync(string! culture, string! uiCulture, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
@@ -4411,8 +4409,6 @@ static Rask.Core.Components.Context.Has<T>(string? name = null) -> bool
 static Rask.Core.Components.Context.Provide<TValue>(TValue Value, string? Name = null, object? Key = null) -> Rask.Core.Components.Context!
 static Rask.Core.Components.Context.Required<T>(string? name = null) -> T
 static Rask.Core.Components.GestureResultInterop.Result(int id, string? value) -> System.Threading.Tasks.Task!
-static Rask.Core.Components.ValidatingIndicator.Bound<TProp>(System.Linq.Expressions.Expression<System.Func<TProp>!>! For, System.Func<Rask.Core.Component!>! Template) -> Rask.Core.Components.ValidatingIndicator!
-static Rask.Core.Components.ValidationMessage.Bound<TProp>(System.Linq.Expressions.Expression<System.Func<TProp>!>! For, System.Func<System.Collections.Generic.IReadOnlyList<string!>!, Rask.Core.Component!>! Template) -> Rask.Core.Components.ValidationMessage!
 static Rask.Core.Components.Virtualize.Items<T>(System.Func<Rask.Core.Virtualization.VirtualizationContext<T>!, Rask.Core.Component!>! Render, System.Collections.Generic.IEnumerable<T>? Items = null, System.Func<Rask.Core.Virtualization.ItemsProviderRequest!, System.Threading.Tasks.ValueTask<Rask.Core.Virtualization.ItemsProviderResult<T>!>>? ItemsProvider = null, int ItemSize = 32, int OverscanCount = 3, int InitialClientHeight = 400, int InitialTotalCount = 0) -> Rask.Core.Components.VirtualizeModel!
 static Rask.Core.Diagnostics.DevTools.DescribedProp.operator !=(Rask.Core.Diagnostics.DevTools.DescribedProp left, Rask.Core.Diagnostics.DevTools.DescribedProp right) -> bool
 static Rask.Core.Diagnostics.DevTools.DescribedProp.operator ==(Rask.Core.Diagnostics.DevTools.DescribedProp left, Rask.Core.Diagnostics.DevTools.DescribedProp right) -> bool

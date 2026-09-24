@@ -28,12 +28,6 @@ public sealed partial class ValidationMessage : Component
     // the render-cache opt-out (see EditContext.MarkReader / Component._readsAmbientState), so a message
     // added by a later (e.g. post-await) render is always observed instead of served stale from cache.
 
-    [GenerateForwarderFactory]
-    public static ValidationMessage Bound<TProp>(
-        Expression<Func<TProp>> For,
-        Func<IReadOnlyList<string>, Component> Template) =>
-        new() { For = For, Template = Template };
-
     protected override Component? Render()
     {
         var ctx = EditContextScope.Current;
@@ -121,12 +115,6 @@ public sealed partial class ValidatingIndicator : Component
 
     // Reads EditContext.ShouldShowValidatingIndicator(field) in Render() — auto-latches the cache
     // opt-out; see ValidationMessage for the rationale.
-
-    [GenerateForwarderFactory]
-    public static ValidatingIndicator Bound<TProp>(
-        Expression<Func<TProp>> For,
-        Func<Component> Template) =>
-        new() { For = For, Template = Template };
 
     protected override Component? Render()
     {

@@ -21,7 +21,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     private const string ElementFullName = "Rask.Core.Element";
     private const string SkipFactoryFullName = "Rask.Core.SkipFactoryAttribute";
     private const string FactoryGenericFullName = "Rask.Core.FactoryGenericAttribute";
-    private const string GenerateForwarderFactoryFullName = "Rask.Core.GenerateForwarderFactoryAttribute";
     private const string ChainEntryFullName = "Rask.Core.RaskChainEntryAttribute";
     private const string ChainGroupFullName = "Rask.Core.RaskChainGroupAttribute";
     private const string FormControlOpenFullName = "Rask.Core.Forms.IFormControl<T>";
@@ -4827,7 +4826,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 GenericFactory: null,
                 FormControl: null,
                 new EquatableArray<PropInfo>(properties),
-                default,
                 IsPartial: true,
                 IsNested: false,
                 IsElement: false,
@@ -4925,7 +4923,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             }
         }
 
-        var forwarders = GetForwarderInfos(symbol, ctx.SemanticModel.Compilation);
         return new Candidate(
             ns,
             symbol.Name,
@@ -4940,7 +4937,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             genericFactory,
             formControl,
             new EquatableArray<PropInfo>(properties),
-            new EquatableArray<ForwarderInfo>(forwarders),
             classDecl.Modifiers.Any(SyntaxKind.PartialKeyword),
             symbol.ContainingType is not null,
             InheritsFromElement(symbol),
@@ -5079,97 +5075,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         }
 
         return null;
-    }
-
-    private static List<ForwarderInfo> GetForwarderInfos(INamedTypeSymbol symbol, Compilation compilation)
-    {
-        var result = new List<ForwarderInfo>();
-        foreach (var member in symbol.GetMembers())
-        {
-            if (member is not IMethodSymbol method)
-            {
-                continue;
-            }
-
-            if (!method.IsStatic || method.DeclaredAccessibility != Accessibility.Public)
-            {
-                continue;
-            }
-
-            var hasAttr = false;
-            foreach (var attr in method.GetAttributes())
-            {
-                if (attr.AttributeClass?.ToDisplayString() == GenerateForwarderFactoryFullName)
-                {
-                    hasAttr = true;
-                    break;
-                }
-            }
-
-            if (!hasAttr)
-            {
-                continue;
-            }
-
-            var typeParams = method.TypeParameters.Length > 0
-                ? "<" + string.Join(", ", method.TypeParameters.Select(tp => tp.Name)) + ">"
-                : string.Empty;
-            var constraints = BuildConstraintsClause(method.TypeParameters);
-
-            var parameters = new List<ForwarderParamInfo>();
-            foreach (var p in method.Parameters)
-            {
-                var typeFqn = TypeName(p.Type, FullyQualifiedNullable, compilation);
-                var defaultLiteral = string.Empty;
-                if (p.HasExplicitDefaultValue)
-                {
-                    defaultLiteral = TryGetDefaultLiteralFromSyntax(p) ?? FormatDefaultLiteral(p.ExplicitDefaultValue);
-                }
-
-                parameters.Add(new ForwarderParamInfo(typeFqn, p.Name, defaultLiteral, p.IsParams));
-            }
-
-            result.Add(new ForwarderInfo(
-                method.Name,
-                typeParams,
-                constraints,
-                new EquatableArray<ForwarderParamInfo>(parameters)));
-        }
-
-        return result;
-    }
-
-    private static string? TryGetDefaultLiteralFromSyntax(IParameterSymbol p)
-    {
-        if (p.DeclaringSyntaxReferences.Length == 0)
-        {
-            return null;
-        }
-
-        if (p.DeclaringSyntaxReferences[0].GetSyntax() is not ParameterSyntax syntax)
-        {
-            return null;
-        }
-
-        var value = syntax.Default?.Value;
-        return value?.ToString();
-    }
-
-    private static string FormatDefaultLiteral(object? value)
-    {
-        if (value is null)
-        {
-            return "null";
-        }
-
-        return value switch
-        {
-            bool b => b ? "true" : "false",
-            string s => "\"" + s.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"",
-            char c => "'" + c + "'",
-            IFormattable f => f.ToString(null, CultureInfo.InvariantCulture),
-            _ => value.ToString() ?? "default"
-        };
     }
 
     private static GenericFactoryConfig? ParseGenericFactoryConfig(AttributeData attr)
@@ -6018,7 +5923,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         GenericFactoryConfig? GenericFactory,
         FormControlInfo? FormControl,
         EquatableArray<PropInfo> Properties,
-        EquatableArray<ForwarderInfo> Forwarders,
         bool IsPartial,
         bool IsNested,
         // Drives which shared reset the builder entry hands to Entry<T>: an Element gets the whole
@@ -6092,17 +5996,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         EquatableArray<string> TypedDelegateProperties,
         string Constraint);
 
-    private readonly record struct ForwarderInfo(
-        string MethodName,
-        string TypeParameters,
-        string TypeParameterConstraints,
-        EquatableArray<ForwarderParamInfo> Parameters);
-
-    private readonly record struct ForwarderParamInfo(
-        string TypeFqn,
-        string Name,
-        string DefaultLiteral,
-        bool IsParams);
 
 
     /// <summary>
