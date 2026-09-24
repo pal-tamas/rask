@@ -35,11 +35,16 @@ public static class RangeExclusionBuilderExtensions
     /// </param>
     /// <param name="ignoreSoftDeleted">
     /// Excludes soft-deleted rows, so a deleted row frees its slot. Defaults to <see langword="true"/> when
-    /// <typeparamref name="TEntity"/> is <see cref="Aggregate{TId}"/>, and is ignored when it is not.
+    /// <typeparamref name="TEntity"/> declares <c>public const Deletion Deletes = Deletion.Soft;</c>, and to
+    /// <see langword="false"/> otherwise — a hard-deleted row has already freed its slot, and there is no
+    /// <c>DeletedAt</c> column to filter on.
     /// </param>
     /// <returns>The same builder, for chaining.</returns>
     /// <exception cref="ArgumentNullException">A required argument is <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentException">An expression does not name plain properties of the entity.</exception>
+    /// <exception cref="ArgumentException">
+    /// An expression does not name plain properties of the entity, or <paramref name="ignoreSoftDeleted"/> is
+    /// <see langword="true"/> for an entity that does not soft delete.
+    /// </exception>
     public static EntityTypeBuilder<TEntity> HasNonOverlappingRange<TEntity>(
         this EntityTypeBuilder<TEntity> builder,
         Expression<Func<TEntity, object?>> lo,
@@ -52,7 +57,19 @@ public static class RangeExclusionBuilderExtensions
         ArgumentNullException.ThrowIfNull(lo);
         ArgumentNullException.ThrowIfNull(hi);
 
-        var softDeletable = typeof(IAggregate).IsAssignableFrom(typeof(TEntity));
+        // The same source ApplyRaskConventions maps DeletedAt from — being an aggregate no longer means having
+        // the column, since soft delete is opt-in (#1131). The registry is filled by the generated module
+        // initializer, so it is complete before any OnModelCreating runs.
+        var softDeletable = ConventionRegistry.DeletesFor(typeof(TEntity)) == Deletion.Soft;
+
+        if (ignoreSoftDeleted == true && !softDeletable)
+        {
+            throw new ArgumentException(
+                $"'{typeof(TEntity).Name}' does not soft delete, so it has no DeletedAt column for a " +
+                "non-overlapping range to ignore. Declare 'public const Deletion Deletes = Deletion.Soft;' on it, " +
+                "or drop 'ignoreSoftDeleted: true' — a hard-deleted row has already freed its slot.",
+                nameof(ignoreSoftDeleted));
+        }
 
         var spec = new RangeExclusionSpec(
             PropertyExpressions.Single(lo, nameof(lo)),

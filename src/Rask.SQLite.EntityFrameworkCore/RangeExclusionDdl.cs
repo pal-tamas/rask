@@ -129,7 +129,18 @@ internal static class RangeExclusionDdl
 
         var keyColumns = key.Properties.Select(property => Column(entityType, property.Name, store)).ToArray();
 
-        // Only a soft-deletable entity has the column; the builder already refuses the flag otherwise.
+        // Only an entity that declares Deletes = Deletion.Soft has the column. The builder refuses the flag
+        // otherwise, but an annotation written by an older build (or by hand in a migration) can still carry it,
+        // so say what is wrong rather than fail on an unmapped column (#1131).
+        if (spec.IgnoreSoftDeleted && entityType.FindProperty(Columns.DeletedAt) is null)
+        {
+            throw new InvalidOperationException(
+                $"'{entityType.DisplayName()}' declares a non-overlapping range that ignores soft-deleted rows, " +
+                "but it does not soft delete, so it has no DeletedAt column. Declare " +
+                "'public const Deletion Deletes = Deletion.Soft;' on it, or re-create the migration so the rule " +
+                "no longer asks for it.");
+        }
+
         var deletedAt = spec.IgnoreSoftDeleted
             ? Column(entityType, Columns.DeletedAt, store)
             : null;

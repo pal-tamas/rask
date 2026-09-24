@@ -589,6 +589,14 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **`HasNonOverlappingRange` works on a hard-delete aggregate** (#1131). Since soft delete became opt-in, an
+  aggregate that says nothing has no `DeletedAt` column, but the rule still decided "soft-deletable" from being an
+  aggregate, so its triggers named the ignored column and the schema — and every migration — failed with
+  `'Booking' declares a non-overlapping range over 'DeletedAt', which is not a mapped property`. The rule now asks
+  the same question `ApplyRaskConventions` does (`Deletes = Deletion.Soft`), so a hard-delete aggregate gets the
+  triggers without a `DeletedAt` clause. `ignoreSoftDeleted: true` on an entity that does not soft delete now
+  throws `ArgumentException` instead of being dropped silently. An existing hard-delete aggregate's rule flips,
+  so its next migration rebuilds the range index and triggers — such an app could not migrate before.
 - **`UiThemeDropdown` closes on Escape and on a click outside.** It was a `<details>`, which closes on its own
   summary and nothing else, so the theme list on rask.sh stayed open until the reader found the button again. It
   is now a `UiPopover` around the `UiThemePicker`: Escape, a click outside and the trigger close it, and focus
