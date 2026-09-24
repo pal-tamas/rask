@@ -45,7 +45,7 @@ Div.Class("panel")[
 > ```
 >
 > `Key` is available before a component's *required* steps too, generic ones included
-> (`UiSelect.Key(id).Value(v)`), so a row can say which item it is first. An element is re-specified
+> (`Ui.Select.Key(id).Value(v)`), so a row can say which item it is first. An element is re-specified
 > in full every render, so its instance carries nothing and `Div.Class("line").Key(i)` never claims one.
 
 A `[...]` collection expression renders its items with **no wrapping element** — use it for a list

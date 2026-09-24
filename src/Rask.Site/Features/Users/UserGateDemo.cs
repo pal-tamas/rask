@@ -20,14 +20,14 @@ public sealed partial class UserGateDemo : Component
                     P["Signed in as ", Strong[_auth.Current.Identity!.Name ?? "?"]],
                     // Role-gated: only an admin sees this panel.
                     _auth.Current.IsInRole("admin")
-                        ? UiAlert.Tone(UiTone.Warning).Variant(UiVariant.Soft).Class("py-2")["🔑 Admin-only panel"]
+                        ? Ui.Alert.Tone(Ui.Tone.Warning).Variant(Ui.Variant.Soft).Class("py-2")["🔑 Admin-only panel"]
                         : null,
-                    UiButton.Variant(UiVariant.Outline).OnClick(_auth.SignOut)["Sign out"]]
+                    Ui.Button.Variant(Ui.Variant.Outline).OnClick(_auth.SignOut)["Sign out"]]
                 : [
                     P.Class("text-ui-muted")["You are signed out."],
                     Div.Class("flex gap-2 flex-wrap items-center")[
-                        UiButton.Tone(UiTone.Primary).OnClick(() => _auth.SignIn("alice", "user"))["Sign in as user"],
-                        UiButton.Tone(UiTone.Warning)
+                        Ui.Button.Tone(Ui.Tone.Primary).OnClick(() => _auth.SignIn("alice", "user"))["Sign in as user"],
+                        Ui.Button.Tone(Ui.Tone.Warning)
                             .OnClick(() => _auth.SignIn("rootadmin", "admin"))["Sign in as admin"]
                     ]]
         ];

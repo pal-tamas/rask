@@ -19,15 +19,15 @@ public sealed partial class AsyncValidationDemo : Component
     [
         Form.Model(_model).OnSubmit(m => _submission = $"Signed up: {m.Username}").Context(_ctx).Class("flex flex-col gap-3")[
             // A bound kit field shows "Checking…" while the async validator is out, then the message it
-            // records — no ValidatingIndicator or ValidationMessage to place beside it.
-            UiInput.Bind(() => _model.Username).Label("Username").Id("v3-username"),
+            // records — no Validation.Indicator or Validation.Message to place beside it.
+            Ui.Input.Bind(() => _model.Username).Label("Username").Id("v3-username"),
             Div[
-                UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit)[UiIcon.Name(UiIconName.CheckCircle), "Sign up"]
+                Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit)[Ui.Icon.Name(Ui.IconName.CheckCircle), "Sign up"]
             ]
         ],
         _submission is null
             ? null
-            : UiAlert.Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle), _submission]
+            : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
     ];
 }
 

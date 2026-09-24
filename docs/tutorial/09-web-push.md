@@ -85,12 +85,12 @@ From a page, ask for permission and subscribe. `IWebPush` (in `Rask.Core.Browser
 public sealed partial class EnablePushButton(IWebPush push, HttpClient http) : Component
 {
     protected override Component? Render() =>
-        UiButton.OnClick(SubscribeAsync)["Notify me about my orders"];
+        Ui.Button.OnClick(Subscribe)["Notify me about my orders"];
 
-    private async Task SubscribeAsync()
+    private async Task Subscribe()
     {
         var key = await http.GetFromJsonAsync<PushKey>("/_push/key");
-        var subscription = await push.SubscribeAsync(key!.PublicKey);
+        var subscription = await push.Subscribe(key!.PublicKey);
         await http.PostAsJsonAsync("/_push/subscribe", subscription);
     }
 

@@ -136,3 +136,21 @@ public sealed class GrumbleBoomTwo(Recorder recorder) : INotificationHandler<Gru
         throw new InvalidOperationException("boom-2");
     }
 }
+
+// ---- The token a dispatch is given, as the handler sees it. A handler takes no token: it reads
+// Current.Cancellation, so this is the only way to observe what the dispatch actually opened. ----
+public sealed record WhatCanCancelMe : IQuery<CancellationToken>;
+
+public sealed class WhatCanCancelMeHandler : IQueryHandler<WhatCanCancelMe, CancellationToken>
+{
+    public Task<CancellationToken> Handle(WhatCanCancelMe query) =>
+        Task.FromResult(Current.Cancellation);
+}
+
+public sealed record ParkUntilCancelled : ICommand;
+
+public sealed class ParkUntilCancelledHandler : ICommandHandler<ParkUntilCancelled>
+{
+    public Task Handle(ParkUntilCancelled command) =>
+        Task.Delay(Timeout.Infinite, Current.Cancellation);
+}

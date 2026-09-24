@@ -32,6 +32,22 @@
   </ItemGroup>
 
   <!--
+    The notification feed and the remote-subscription seam are internal: the packages that plug into them (the query
+    cache, the two transport halves) are Rask's own, and none of it is anything an app should call instead of
+    IDispatcher.
+  -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Query"/>
+    <InternalsVisibleTo Include="Rask.Cqrs.Server"/>
+    <InternalsVisibleTo Include="Rask.Cqrs.Client"/>
+    <InternalsVisibleTo Include="Rask.Cqrs.Tests"/>
+    <InternalsVisibleTo Include="Rask.Query.Tests"/>
+    <InternalsVisibleTo Include="Rask.Cqrs.Client.Tests"/>
+    <InternalsVisibleTo Include="Rask.Cqrs.Transport.Tests"/>
+    <InternalsVisibleTo Include="Rask.Providers.E2E.Tests"/>
+  </ItemGroup>
+
+  <!--
     The JSON primitives the generated codecs call, and the two file carriers. They live in their own
     package because Rask.Api generates codecs against the same primitives: duplicating them would put
     two of each type on the path of an app using both, and having Rask.Api depend on this package

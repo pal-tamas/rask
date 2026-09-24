@@ -23,7 +23,7 @@ public sealed partial class ElementsGroupingDemo : Component
             Div.Class("col-span-12")[
                 P.Class("font-semibold mb-1")["Description"],
                 Dl.Class("mb-0")[
-                    Dt["Rask"], Dd.Class("mb-1")["A C# UI framework."],
+                    Dt["Rask"], Dd.Class("mb-1")["A full-stack C# web framework."],
                     Dt["Tag"], Dd.Class("mb-0")["A generated factory method."]
                 ]
             ]

@@ -207,7 +207,7 @@ public sealed class LogsPageTests
         // this resolves them exactly as the router would.
         var page = ActivatorUtilities.CreateInstance<LogsPage>(harness.Services);
         configure?.Invoke(page);
-        return Test.Render(page, harness.Services).Html;
+        return Page.Render(page, harness.Services).Html;
     }
 
     // History reads the store on PollingPanel's asynchronous mount, so the first render is the placeholder
@@ -217,7 +217,7 @@ public sealed class LogsPageTests
         var page = ActivatorUtilities.CreateInstance<LogsPage>(harness.Services);
         page.View = "history";
         configure?.Invoke(page);
-        return Test.Render(page, harness.Services).WaitForAsync("stored entries");
+        return Page.Render(page, harness.Services).WaitForAsync("stored entries");
     }
 
     /// <summary>A real log store on a temp file, plus a dashboard harness wired to it.</summary>

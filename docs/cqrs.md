@@ -75,7 +75,8 @@ A command handler can publish an `INotification`; every registered `INotificatio
 `Sequential` (default) or `WhenAll` fan-out via `CqrsOptions.NotificationPublishStrategy`. Handlers are
 matched by the notification's **concrete runtime type** (a handler declared against a base type is not
 invoked for a derived one — see Limitations), their run order is deterministic but not the declaration
-order, so don't depend on it, and publishing a notification that has no handlers is a no-op.
+order, so don't depend on it, and a notification with no handlers reaches only its subscribers
+([below](#subscribing)).
 
 ```csharp
 public sealed class IncrementCounterHandler(CqrsCounterStore store, IDispatcher dispatcher)
@@ -89,6 +90,19 @@ public sealed class IncrementCounterHandler(CqrsCounterStore store, IDispatcher 
     }
 }
 ```
+
+### Subscribing
+
+A notification is also what a screen subscribes to. `PublishAsync` runs its handlers and hands it to every open
+subscription — a component's `QueryClient.Subscribe<T>()`, or `Subscribe` anywhere else:
+
+```csharp
+await foreach (var incremented in dispatcher.Subscribe<CounterIncremented>(ct))
+    Console.WriteLine(incremented.Value);
+```
+
+An `ISubscription<T>` record says which notifications one page wants, admitted by its own `IWatchPolicy<T>`.
+See [subscriptions](subscriptions.md).
 
 ## Pipeline behaviors (decorators)
 
@@ -219,6 +233,10 @@ Because the name is a route segment, logs, metrics and rate-limit partitions get
 `MapRaskCqrs()` returns the endpoint group, so `.RequireRateLimiting(...)`, CORS or output caching is a
 one-line addition.
 
+A third route under the same prefix, `GET /_rask/cqrs/request/events/{name}`, serves a browser's
+[subscriptions](subscriptions.md#in-a-webassembly-front-end) as server-sent events — the same group, so the same header,
+authentication and rate limit.
+
 ### It fails closed
 
 - **Authenticated by default.** `[AllowAnonymous]` on the handler is the only way past;
@@ -230,6 +248,12 @@ one-line addition.
 - **Handler exceptions become RFC 9457 `problem+json`** with no exception text unless you opt in
   (`IncludeExceptionDetail`): an exception message is written for an operator, not a browser, and
   routinely names tables, paths and credentials.
+
+**A handler knows who is calling without being told.** In a Rask app with its data layer on, a remote
+request's handler runs with the caller's principal ambient, as a live session's in-process dispatch does:
+[`Current.UserId`](data.md#the-current-user--current) is the caller, and a [tenant-scoped](multi-tenancy.md)
+read filters to the caller's tenant. A command therefore does not carry a user id the client could forge — the
+handler reads it. A job's handler gets the user and tenant it was enqueued for, the same way.
 
 Failure to *arrive* is the one thing remote dispatch adds to the in-process call, and it is a
 `RemoteDispatchException` — a null `StatusCode` means the request never reached the server.

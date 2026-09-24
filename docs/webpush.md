@@ -79,7 +79,7 @@ builder.Services.AddRaskWebPush();
 wins.
 
 **3. Subscribe on the client** with the **same public key**, and store what it posts up. Hand
-`keys.PublicKey` to the browser's [`IWebPush.SubscribeAsync`](pwa.md#push-notifications-iwebpush); the client
+`keys.PublicKey` to the browser's [`IWebPush.Subscribe`](pwa.md#push-notifications-iwebpush); the client
 POSTs three fields — `Endpoint`, `P256dh`, `Auth` — which you persist as a `PushSubscription`.
 
 **4. Send** a notification, and act on the result:
@@ -103,7 +103,7 @@ public sealed class Notifier(IWebPush sender, ISubscriptionStore store)
 ## How it works
 
 - **`VapidKeys`** — a base64url P-256 key pair. `PublicKey` is exactly the `applicationServerKey` the browser
-  passes to `pushManager.subscribe`, so the **same** string goes to the client's `IWebPush.SubscribeAsync`;
+  passes to `pushManager.subscribe`, so the **same** string goes to the client's `IWebPush.Subscribe`;
   `PrivateKey` stays secret on the server. `VapidKeys.Generate()` mints a fresh pair.
 - **`PushSubscription(Endpoint, P256dh, Auth)`** — the server-side mirror of the browser's subscription: the
   push-service URL plus the client's ECDH public key and auth secret used to encrypt the payload. It's the

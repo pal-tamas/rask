@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using Rask.Testing;
 
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     The dropdown's keyboard cursor, its submenus and its checkable items, driven through the real handlers.
@@ -22,15 +22,15 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
     private static global::Rask.Core.Component Menu(View? view = null, List<string>? log = null)
     {
         view ??= new View();
-        return UiDropdown.Trigger("Actions")[
-            UiMenuItem.Key("edit").Text("Edit").OnClick(() => log?.Add("edit")),
-            UiMenuItem.Key("dup").Text("Duplicate").Disabled(true),
-            UiMenuSub.Key("sort").Heading("Sort by")[
-                UiMenuRadioGroup.Bind(() => view.Sort).Key("sort-group").Options([("name", "Name"), ("date", "Date")])
+        return Ui.Dropdown.Trigger("Actions")[
+            Ui.MenuItem.Key("edit").Text("Edit").OnClick(() => log?.Add("edit")),
+            Ui.MenuItem.Key("dup").Text("Duplicate").Disabled(true),
+            Ui.MenuSub.Key("sort").Heading("Sort by")[
+                Ui.MenuRadioGroup.Bind(() => view.Sort).Key("sort-group").Options([("name", "Name"), ("date", "Date")])
             ],
-            UiMenuSeparator.Key("sep"),
-            UiMenuCheckbox.Bind(() => view.ShowArchived).Key("archived").Text("Show archived"),
-            UiMenuItem.Key("delete").Text("Delete").Tone(UiTone.Error)
+            Ui.MenuSeparator.Key("sep"),
+            Ui.MenuCheckbox.Bind(() => view.ShowArchived).Key("archived").Text("Show archived"),
+            Ui.MenuItem.Key("delete").Text("Delete").Tone(Ui.Tone.Error)
         ];
     }
 
@@ -58,7 +58,7 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Opening_puts_the_cursor_on_the_first_item_and_the_trigger_says_it_is_open()
     {
-        var page = Test.Render(Menu());
+        var page = Page.Render(Menu());
         Assert.Equal("", Cursor(page.Html));
 
         await OpenAsync(page);
@@ -70,7 +70,7 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task The_arrows_skip_what_is_disabled_and_wrap_at_the_ends()
     {
-        var page = Test.Render(Menu());
+        var page = Page.Render(Menu());
         await OpenAsync(page);
 
         await KeyAsync(page, "ArrowDown");
@@ -94,7 +94,7 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Right_opens_a_submenu_and_walks_into_it_and_left_comes_back()
     {
-        var page = Test.Render(Menu());
+        var page = Page.Render(Menu());
         await OpenAsync(page);
         await KeyAsync(page, "ArrowDown");
         Assert.Equal("Sort by", Cursor(page.Html));
@@ -117,7 +117,7 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Typing_a_letter_jumps_to_the_next_item_starting_with_it()
     {
-        var page = Test.Render(Menu());
+        var page = Page.Render(Menu());
         await OpenAsync(page);
 
         await KeyAsync(page, "d");
@@ -125,7 +125,7 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
         Assert.Equal("Delete", Cursor(page.Html));
 
         // A fresh press on another menu: letters typed together build a prefix, so this is its own open.
-        var other = Test.Render(Menu());
+        var other = Page.Render(Menu());
         await OpenAsync(other);
         await KeyAsync(other, "s");
         Assert.Equal("Sort by", Cursor(other.Html));
@@ -134,7 +134,7 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_modified_key_is_left_to_the_browser()
     {
-        var page = Test.Render(Menu());
+        var page = Page.Render(Menu());
         await OpenAsync(page);
 
         await page.On("[role=\"menu\"][autofocus]").RaiseAsync("keydown", "{\"key\":\"ArrowDown\",\"ctrlKey\":true}");
@@ -146,7 +146,7 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
     public async Task Checkable_items_write_back_to_the_model()
     {
         var view = new View();
-        var page = Test.Render(Menu(view));
+        var page = Page.Render(Menu(view));
         await OpenAsync(page);
 
         await page.On("[role=\"menuitemcheckbox\"]").ClickAsync();
@@ -165,25 +165,25 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
         private string _sort = "name";
 
         protected override global::Rask.Core.Component? Render() =>
-            UiDropdown.Key("dd").Trigger("View")[
-                UiMenuCheckbox.Key("on").Value(_on).Text("Show archived").OnChange(v => { _on = v; }),
-                UiMenuRadioGroup.Value(_sort).Options([("name", "Name"), ("date", "Date")])
+            Ui.Dropdown.Key("dd").Trigger("View")[
+                Ui.MenuCheckbox.Key("on").Value(_on).Text("Show archived").OnChange(v => { _on = v; }),
+                Ui.MenuRadioGroup.Value(_sort).Options([("name", "Name"), ("date", "Date")])
                     .OnChange(v => { _sort = v; })
             ];
     }
 
     // The same host with every step written BEFORE Key, and the generic radio group keyed too (#1118). Steps ahead
     // of Key used to land on the instance the key then discarded, so the checkbox kept the value from the render
-    // its key was first claimed on; and `UiMenuRadioGroup.Key(…)` did not compile (CS0315) at all.
+    // its key was first claimed on; and `Ui.MenuRadioGroup.Key(…)` did not compile (CS0315) at all.
     private sealed partial class KeyLastHost : global::Rask.Core.Component
     {
         private bool _on;
         private string _sort = "name";
 
         protected override global::Rask.Core.Component? Render() =>
-            UiDropdown.Trigger("View").Key("dd")[
-                UiMenuCheckbox.Value(_on).Text("Show archived").OnChange(v => { _on = v; }).Key("on"),
-                UiMenuRadioGroup.Key("sort").Value(_sort).Options([("name", "Name"), ("date", "Date")])
+            Ui.Dropdown.Trigger("View").Key("dd")[
+                Ui.MenuCheckbox.Value(_on).Text("Show archived").OnChange(v => { _on = v; }).Key("on"),
+                Ui.MenuRadioGroup.Key("sort").Value(_sort).Options([("name", "Name"), ("date", "Date")])
                     .OnChange(v => { _sort = v; })
             ];
     }
@@ -191,7 +191,7 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Steps_written_before_Key_still_reach_the_item_the_key_keeps()
     {
-        var page = Test.Render(new KeyLastHost());
+        var page = Page.Render(new KeyLastHost());
         await OpenAsync(page);
 
         await page.On("[role=\"menuitemcheckbox\"]").ClickAsync();
@@ -215,7 +215,7 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
     {
         // Value + OnChange: the PARENT owns the state, re-renders, and hands the dropdown new items. The redraw is
         // the proof the new value reached the rows inside the popover.
-        var page = Test.Render(new ControlledHost());
+        var page = Page.Render(new ControlledHost());
         await OpenAsync(page);
 
         await page.On("[role=\"menuitemcheckbox\"]").ClickAsync();
@@ -233,7 +233,7 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Closing_resets_the_cursor_and_the_open_submenus()
     {
-        var page = Test.Render(Menu());
+        var page = Page.Render(Menu());
         await OpenAsync(page);
         await KeyAsync(page, "ArrowDown");
         await KeyAsync(page, "ArrowRight");
@@ -249,7 +249,7 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
     public async Task A_tap_on_a_submenu_row_opens_it()
     {
         // No hover on a touch screen: the row's own click is the way in.
-        var page = Test.Render(Menu());
+        var page = Page.Render(Menu());
         await OpenAsync(page);
 
         await page.On("[aria-haspopup=\"menu\"][role=\"menuitem\"]").ClickAsync();
@@ -262,8 +262,8 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
     public async Task A_controlled_dropdown_hears_only_the_changes_it_did_not_make()
     {
         var heard = new List<bool>();
-        var page = Test.Render(UiDropdown.Trigger("Actions").Open(false).OnToggle(open => heard.Add(open))[
-            UiMenuItem.Key("a").Text("A")
+        var page = Page.Render(Ui.Dropdown.Trigger("Actions").Open(false).OnToggle(open => heard.Add(open))[
+            Ui.MenuItem.Key("a").Text("A")
         ]);
 
         // The reader opened it: the page is told.
@@ -276,7 +276,7 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
     {
         // Items register as they render; a cached item would drop out of the cursor's list.
         var log = new List<string>();
-        var page = Test.Render(Menu(log: log));
+        var page = Page.Render(Menu(log: log));
         await OpenAsync(page);
         page.Render();
         page.Render();

@@ -5,8 +5,8 @@ public sealed partial class PropsAriaDemo : Component
     // Role and TabIndex are typed; Aria is a dictionary that expands to aria-* exactly like Data
     // expands to data-* — so the whole ARIA vocabulary is reachable without a property per attribute.
     protected override Component? Render() =>
-        UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline)
+        Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
             .Role("switch")
             .TabIndex(0)
-            .Aria(new Dictionary<string, string?> { ["label"] = "Toggle dark mode", ["pressed"] = "false" })[UiIcon.Name(UiIconName.Moon), "Theme"];
+            .Aria(new Dictionary<string, string?> { ["label"] = "Toggle dark mode", ["pressed"] = "false" })[Ui.Icon.Name(Ui.IconName.Moon), "Theme"];
 }

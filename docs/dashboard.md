@@ -266,20 +266,20 @@ at all, for a reason that applies to any library: Tailwind emits a utility only 
 name in the source it scans, and the kit's sheet is compiled from the kit's source — so a `.Class("mt-4")`
 written in `Rask.Dashboard` would render as nothing. `DashboardIsKitOnlyTests` fails on any `.Class(…)`,
 `.Style(…)` or `UiStyles.` in the package. Where a page needs something the kit cannot draw, the kit grows
-a typed step instead: that is where `UiDataGrid`'s `ShowFrom`, `RowTone` and `PageHref`, `UiCard.Href`
-and `UiEmpty` came from.
+a typed step instead: that is where `Ui.DataGrid`'s `ShowFrom`, `RowTone` and `PageHref`, `Ui.Card.Href`
+and `Ui.Empty` came from.
 
 The console owns its whole document, so it needs a page reset the way any application does. That travels
-in the kit's sheet as well, keyed to the class `UiShell` writes (`.rask-ops`), so an application that links
+in the kit's sheet as well, keyed to the class `Ui.Shell` writes (`.rask-ops`), so an application that links
 the kit is untouched by it.
 
 **It is pinned to daisyUI's `light` theme, and that is not configurable.** The theme scope goes on
-`<html>` with an explicit `data-theme`, and `UiShell` names the same theme, so the console ignores both the
+`<html>` with an explicit `data-theme`, and `Ui.Shell` names the same theme, so the console ignores both the
 host application's theme and the reader's `prefers-color-scheme`. An operator surface is a set of contrast
 ratios checked against one ground; letting it follow the OS would move every one of them silently.
 
 It is not a hypothetical, either — it is what the console did before this was enforced. Its own
-palette was a fixed light one while `UiShell` painted with daisyUI's, so on a machine set to dark mode
+palette was a fixed light one while `Ui.Shell` painted with daisyUI's, so on a machine set to dark mode
 the chrome and the cards went dark and every label on them stayed near-black: the queue titles on the
 overview measured **1.09:1**, with every class name in the markup correct and the whole unit suite
 green.

@@ -271,9 +271,6 @@ public static partial class RaskEndpointExtensions
         // message queued before a client-side NavigateTo survives the navigation and shows once on arrival.
         services.AddScoped<IToaster, Toaster>();
 
-        // One hub for the process, not per session: a broadcast crosses sessions (#1061).
-        services.TryAddSingleton<IBroadcast, BroadcastHub>();
-
         // Scoped: a DI scope on the server IS a live session, and so a visitor. Registered even when
         // the app configured nothing, because IRaskCulture is a host contract; without a configured
         // culture this is inert. Negotiating one from the request arrives in a later change.
@@ -294,7 +291,7 @@ public static partial class RaskEndpointExtensions
         // activation, a live document/handle, or the installed-PWA instance the WebSocket round-trip loses,
         // so they are provided only by the WASM host (IShare and the rest of the WASM-only set — see
         // RaskWasmBrowserApis). Server can still reach the
-        // activation-gated APIs declaratively via GestureTrigger — see docs/browser-capabilities.md.
+        // activation-gated APIs declaratively via Trigger.Gesture — see docs/browser-capabilities.md.
         services.AddCoreBrowserApis(ServiceLifetime.Scoped);
         services.AddScoped<AuthSignIn>();
         services.AddScoped<IAuthSignIn>(sp => sp.GetRequiredService<AuthSignIn>());
@@ -1986,78 +1983,6 @@ public static partial class RaskEndpointExtensions
             ct);
 
     /// <summary>
-    ///     Queues work that did not come from the browser — a broadcast — on <paramref name="session" />'s handler chain,
-    ///     where it runs exactly as an event handler does (#1061).
-    /// </summary>
-    /// <remarks>
-    ///     Counted against <see cref="RaskServerLimits.MaxPendingHandlers" /> like any queued dispatch. Over the limit the
-    ///     delivery is dropped for this session and the socket is left alone: the backlog is not the client's doing, and
-    ///     closing it would punish the visitor for the publisher's rate.
-    /// </remarks>
-    internal static Task EnqueueDelivery(LiveSession session, Func<Task> work)
-    {
-        if (session.IsDisposed)
-        {
-            return Task.CompletedTask;
-        }
-
-        var services = session.Services;
-        var limits = services.GetService<RaskServerLimits>();
-        var store = services.GetService<LiveSessionStore>();
-
-        var pending = session.IncrementPendingHandlers();
-        store?.HandlerQueued();
-        if (limits is { MaxPendingHandlers: > 0 } && pending > limits.MaxPendingHandlers)
-        {
-            session.DecrementPendingHandlers();
-            store?.HandlerDequeued();
-            RaskDiagnostics.Report(
-                RaskLogLevel.Warning, "Rask.Broadcast",
-                $"Session {session.Id} has {limits.MaxPendingHandlers} dispatches queued, its limit; a broadcast was not delivered to it.");
-            return Task.CompletedTask;
-        }
-
-        session.EnqueueOnHandlerChain(previous => ChainDeliveryAsync(previous, session, store, work));
-        return Task.CompletedTask;
-    }
-
-    private static async Task ChainDeliveryAsync(Task previous, LiveSession session, LiveSessionStore? store, Func<Task> work)
-    {
-        try
-        {
-            try
-            {
-                await previous.ConfigureAwait(false);
-            }
-            catch
-            {
-                // Observed where it ran; the chain is for ordering only.
-            }
-
-            // No socket token: a session reconnecting still applies the message, and shows it on its catch-up render.
-            await RunInSessionAsync(
-                    session,
-                    "rask.broadcast.deliver",
-                    null,
-                    async _ =>
-                    {
-                        await work().ConfigureAwait(false);
-                        session.RequestCatchUpIfDetached();
-                        return true;
-                    },
-                    metrics: null,
-                    TimeSpan.Zero,
-                    CancellationToken.None)
-                .ConfigureAwait(false);
-        }
-        finally
-        {
-            session.DecrementPendingHandlers();
-            store?.HandlerDequeued();
-        }
-    }
-
-    /// <summary>
     ///     The body every dispatch into a session shares: take the session's lock, hold the handler scope so state changes
     ///     coalesce into one render, re-check the route's authorization, run <paramref name="invoke" />, and render with
     ///     whatever navigation or sign-in it asked for.
@@ -2087,7 +2012,7 @@ public static partial class RaskEndpointExtensions
 
         session.InHandlerScope = true;
 
-        // The one gate every handler and every broadcast delivery passes through, under the session lock —
+        // The one gate every handler passes through, under the session lock —
         // so the session's services are ambient for exactly the work, and released when it ends.
         using var work = session.EnterWorkScope();
         using var activity = RaskActivity.Source.StartActivity(activityName);

@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// What a <see cref="UiDataGrid{T,TKey}.Source" /> hands back: the rows of one page, and how many rows stand

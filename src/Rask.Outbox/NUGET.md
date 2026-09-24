@@ -38,5 +38,9 @@ same transaction; the processor drains and publishes them just after commit. Any
 `INotificationHandler<OrderPlaced>` reacts — the same handler works whether events are delivered in-process
 (Rask.Data) or via the outbox.
 
+In a multi-tenant app each message records the tenant the change was saved in, and the processor re-enters it
+before publishing, so a handler reading a tenant-scoped table sees that tenant. `OutboxMessage.Read` queries
+the table with no context of your own.
+
 **Server-side.** The processor is a hosted `BackgroundService` and the store is your EF Core database
 (SQLite by default). Part of the [Rask](https://github.com/pal-tamas/rask) framework. MIT licensed.

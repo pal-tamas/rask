@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// The sort a reader asked for, reported by <see cref="UiDataGrid{T,TKey}.OnSortChange" />.

@@ -12,7 +12,7 @@ public sealed partial class FormControlsTextareaDemo : Component
     protected override Component? Render() =>
         Div.Class("grid grid-cols-12 gap-4")[
             Div.Class("col-span-12 md:col-span-6")[
-                UiTextarea.Value(_controlled).Label("Controlled (Value + OnChange)")
+                Ui.Textarea.Value(_controlled).Label("Controlled (Value + OnChange)")
                     .OnChange(v => _controlled = v)
                     .Rows(3)
                     .Hint("Type, then leave the field — OnChange fires on commit.")
@@ -23,7 +23,7 @@ public sealed partial class FormControlsTextareaDemo : Component
             ],
             Div.Class("col-span-12 md:col-span-6")[
                 Form.Model(_model)[
-                    UiTextarea.Bind(() => _model.Bio).Label("Bound (two-way)")
+                    Ui.Textarea.Bind(() => _model.Bio).Label("Bound (two-way)")
                         .Rows(3)
                         .Id("fc-textarea-bound").Class("mb-2")
                 ],

@@ -1,6 +1,6 @@
 using Rask.Core;
 
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     Tabs over panels in one page — the form for a view that has no URL of its own.
@@ -21,19 +21,19 @@ public partial class UiTabGroupTests : global::Rask.Core.RaskMarkup
 {
     private static Component Group(string? selected = null, Callback<string>? onSelect = null)
     {
-        var group = selected is null ? UiTabGroup : UiTabGroup.Selected(selected);
+        var group = selected is null ? Ui.TabGroup : Ui.TabGroup.Selected(selected);
         if (onSelect is { } cb)
         {
             group = group.OnSelect(cb);
         }
 
         return group[
-            UiTabs[
-                UiTab.Key("d").Label("Details").Name("details"),
-                UiTab.Key("h").Label("History").Name("history")
+            Ui.Tabs[
+                Ui.Tab.Key("d").Label("Details").Name("details"),
+                Ui.Tab.Key("h").Label("History").Name("history")
             ],
-            UiTabPanel.Key("pd").Name("details")["The details."],
-            UiTabPanel.Key("ph").Name("history")["The history."]
+            Ui.TabPanel.Key("pd").Name("details")["The details."],
+            Ui.TabPanel.Key("ph").Name("history")["The history."]
         ];
     }
 
@@ -53,7 +53,7 @@ public partial class UiTabGroupTests : global::Rask.Core.RaskMarkup
     public void A_tab_with_an_href_is_still_a_link()
     {
         // The default, and the one to reach for: a URL is bookmarkable and answers the back button.
-        var html = UiTabs[UiTab.Label("All").Href("/orders")].ToHtml();
+        var html = Ui.Tabs[Ui.Tab.Label("All").Href("/orders")].ToHtml();
 
         Assert.Contains("href=\"/orders\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("<button", html, StringComparison.Ordinal);
@@ -141,7 +141,7 @@ public partial class UiTabGroupTests : global::Rask.Core.RaskMarkup
     public async Task Clicking_a_tab_reports_the_name_it_showed()
     {
         string? heard = null;
-        var page = global::Rask.Testing.Test.Render(Group(onSelect: new Callback<string>(n => heard = n)));
+        var page = global::Rask.Testing.Page.Render(Group(onSelect: new Callback<string>(n => heard = n)));
 
         await page.On("[role=\"tab\"][aria-selected=\"false\"]").ClickAsync();
 
@@ -152,7 +152,7 @@ public partial class UiTabGroupTests : global::Rask.Core.RaskMarkup
     public async Task An_uncontrolled_group_keeps_track_itself()
     {
         // A page that does not care which tab is up should not have to hold a field for it.
-        var page = global::Rask.Testing.Test.Render(Group());
+        var page = global::Rask.Testing.Page.Render(Group());
 
         await page.On("[role=\"tab\"][aria-selected=\"false\"]").ClickAsync();
 
@@ -166,7 +166,7 @@ public partial class UiTabGroupTests : global::Rask.Core.RaskMarkup
     {
         // Automatic activation, which is the common tabs pattern and what Flux does. Home and End jump.
         string? heard = null;
-        var page = global::Rask.Testing.Test.Render(Group(onSelect: new Callback<string>(n => heard = n)));
+        var page = global::Rask.Testing.Page.Render(Group(onSelect: new Callback<string>(n => heard = n)));
 
         await page.On("[role=\"tablist\"]").RaiseAsync("keydown", "{\"key\":\"ArrowRight\"}");
         Assert.Equal("history", heard);
@@ -179,7 +179,7 @@ public partial class UiTabGroupTests : global::Rask.Core.RaskMarkup
     public async Task The_arrows_wrap_because_a_tab_row_is_a_ring()
     {
         string? heard = null;
-        var page = global::Rask.Testing.Test.Render(Group(onSelect: new Callback<string>(n => heard = n)));
+        var page = global::Rask.Testing.Page.Render(Group(onSelect: new Callback<string>(n => heard = n)));
 
         // Left from the first tab lands on the last, rather than stopping dead.
         await page.On("[role=\"tablist\"]").RaiseAsync("keydown", "{\"key\":\"ArrowLeft\"}");
@@ -191,7 +191,7 @@ public partial class UiTabGroupTests : global::Rask.Core.RaskMarkup
     public void A_panel_outside_a_group_is_its_own_content()
     {
         // Lifted out of a group during a refactor it should show what it holds, not vanish.
-        Assert.Contains("Orphan", UiTabPanel.Name("x")["Orphan"].ToHtml(), StringComparison.Ordinal);
+        Assert.Contains("Orphan", Ui.TabPanel.Name("x")["Orphan"].ToHtml(), StringComparison.Ordinal);
     }
 
     private static int Occurrences(string haystack, string needle)

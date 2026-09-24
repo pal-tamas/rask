@@ -28,9 +28,12 @@ own ("blazor", "react"). Map every new page to one:
 | inspect a running C# web app, component tree / render counts / interaction timing / errors / network devtools for .NET | `devtools` |
 | Web Push from ASP.NET Core, VAPID | `webpush` |
 | PWA in C#, browser API (Geolocation, WebUSB, …) in C# | `pwa`, `apis/*` |
-| .NET One Person Framework | `one-person-framework`, `/` |
+| full-stack .NET web framework, C# full-stack framework, one C# codebase for UI + data + auth + jobs + deploy | `/`, `getting-started` |
+| multi-tenant .NET app, tenant isolation EF Core | `multi-tenancy` |
+| full-text search EF Core, SQLite FTS5 / PostgreSQL tsvector / in the browser | `full-text-search` |
+| .NET One Person Framework (the philosophy guide) | `one-person-framework` |
 | live server pages when a proxy blocks WebSockets, SSE fallback | `render-modes` |
-| push updates to every open page across servers, Redis backplane for real-time .NET pages | `broadcast` (#across-servers) |
+| real-time subscriptions in C# / tRPC-style subscriptions in .NET, push events to open pages, Redis backplane | `subscriptions` (#across-servers) |
 
 ## What is enforced (and where)
 

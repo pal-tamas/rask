@@ -23,7 +23,7 @@ public partial class NavLinkTests : global::Rask.Core.RaskMarkup
     [InlineData("/docs", "/docs/users/42")]
     [InlineData("/docs/", "/docs/users/42")]
     [InlineData("docs", "/docs/users/42")]
-    public void The_href_carries_the_deploy_path_base(string pathBase, string expected)
+    public void Href_carries_the_deploy_path_base(string pathBase, string expected)
     {
         var prior = LiveOptions.PathBase;
         try
@@ -41,7 +41,7 @@ public partial class NavLinkTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Unset_props_render_only_the_open_and_close_tags_with_the_nav_marker() =>
+    public void Unset_props_render_the_open_and_close_tags_with_the_nav_attribute() =>
         Assert.Equal("<a data-rask-nav></a>", NavLink.ToHtml());
 
     [Fact]
@@ -59,11 +59,11 @@ public partial class NavLinkTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_string_child_is_encoded_as_text() =>
+    public void A_text_child_is_html_encoded() =>
         Assert.Equal("<a data-rask-nav>&lt;x&gt;</a>", NavLink["<x>"].ToHtml());
 
     [Fact]
-    public void A_RouteUrl_href_renders_the_full_url_with_its_query() => Assert.Equal(
+    public void A_route_url_renders_in_full_with_its_query() => Assert.Equal(
         "<a href=\"/users?id=7\" data-rask-nav></a>", NavLink.Href(new RouteUrl("/users", "?id=7")).ToHtml());
 
     private static IDisposable BeginRoute(string path, string? rawQuery = null)
@@ -92,14 +92,13 @@ public partial class NavLinkTests : global::Rask.Core.RaskMarkup
     public void A_matching_path_appends_the_active_class()
     {
         using var _ = BeginRoute("/dashboard");
-
         Assert.Equal(
             "<a class=\"menu-link active\" aria-current=\"page\" href=\"/dashboard\" data-rask-nav></a>",
             NavLink.Href("/dashboard").Class("menu-link").ToHtml());
     }
 
     [Fact]
-    public void A_matching_path_tells_assistive_tech_it_is_the_current_page()
+    public void A_matching_path_tells_assistive_technology_it_is_the_current_page()
     {
         // A class is invisible to a screen reader; aria-current="page" is what it announces. An empty ActiveClass opts
         // out of the active state altogether, and an aria-current the call site set wins.
@@ -114,70 +113,62 @@ public partial class NavLinkTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_different_path_does_not_append_the_active_class()
+    public void A_different_path_appends_nothing()
     {
         using var _ = BeginRoute("/other");
-
         Assert.Equal(
             "<a class=\"menu-link\" href=\"/dashboard\" data-rask-nav></a>",
             NavLink.Href("/dashboard").Class("menu-link").ToHtml());
     }
 
     [Fact]
-    public void A_matching_path_with_no_user_class_emits_active_alone()
+    public void A_matching_path_with_no_class_of_its_own_emits_the_active_class_alone()
     {
         using var _ = BeginRoute("/dashboard");
-
         Assert.Equal(
             "<a class=\"active\" aria-current=\"page\" href=\"/dashboard\" data-rask-nav></a>",
             NavLink.Href("/dashboard").ToHtml());
     }
 
     [Fact]
-    public void A_trailing_slash_still_counts_as_active()
+    public void A_trailing_slash_still_matches_the_same_route()
     {
         using var _ = BeginRoute("/dashboard/");
-
         Assert.Contains("class=\"active\"", NavLink.Href("/dashboard").ToHtml());
     }
 
     [Fact]
-    public void A_path_in_another_case_still_counts_as_active()
+    public void A_path_that_differs_only_in_case_is_still_active()
     {
         using var _ = BeginRoute("/Dashboard");
-
         Assert.Contains("class=\"active\"", NavLink.Href("/dashboard").ToHtml());
     }
 
     [Fact]
-    public void An_exact_match_whose_query_is_a_subset_is_active()
+    public void An_exact_match_is_active_when_the_query_is_a_subset()
     {
         using var _ = BeginRoute("/dashboard", "?tab=billing&extra=1");
-
         Assert.Contains("class=\"active\"", NavLink.Href(new RouteUrl("/dashboard", "?tab=billing")).ToHtml());
     }
 
     [Fact]
-    public void An_exact_match_missing_the_query_is_not_active()
+    public void An_exact_match_is_not_active_when_the_query_is_missing()
     {
         using var _ = BeginRoute("/dashboard", "?tab=other");
-
         Assert.DoesNotContain("active", NavLink.Href(new RouteUrl("/dashboard", "?tab=billing")).ToHtml());
     }
 
     [Fact]
-    public void A_prefix_match_respects_segment_boundaries_so_dash_is_not_dashboard()
+    public void A_prefix_match_stops_at_a_segment_boundary()
     {
         using var _ = BeginRoute("/dashboard");
-
         Assert.DoesNotContain("active", NavLink.Href("/dash").ActiveMatch(NavLinkMatch.Prefix).ToHtml());
     }
 
     [Fact]
-    public void A_prefix_match_on_a_nested_path_is_active()
+    public void A_prefix_match_is_active_on_a_nested_path()
     {
         using var _ = BeginRoute("/dashboard/settings");
-
         Assert.Contains("class=\"active\"", NavLink.Href("/dashboard").ActiveMatch(NavLinkMatch.Prefix).ToHtml());
     }
 
@@ -185,43 +176,39 @@ public partial class NavLinkTests : global::Rask.Core.RaskMarkup
     public void A_prefix_match_ignores_the_query()
     {
         using var _ = BeginRoute("/dashboard", "?tab=other");
-
         Assert.Contains("class=\"active\"",
             NavLink.Href(new RouteUrl("/dashboard", "?tab=billing")).ActiveMatch(NavLinkMatch.Prefix).ToHtml());
     }
 
     [Fact]
-    public void A_custom_active_class_is_used()
+    public void A_custom_active_class_is_the_one_applied()
     {
         using var _ = BeginRoute("/dashboard");
-
         Assert.Contains("class=\"nav-pill is-current\"",
             NavLink.Href("/dashboard").Class("nav-pill").ActiveClass("is-current").ToHtml());
     }
 
     [Fact]
-    public void Match_overrides_the_href_for_the_active_check_across_a_section()
+    public void An_explicit_match_decides_the_active_state_across_a_whole_section()
     {
         // On a sibling sub-route (/realtime/ETH), a link to /realtime/BTC still lights up because
         // Match points the active comparison at the section root with Prefix matching.
         using var _ = BeginRoute("/realtime/ETH");
-
         Assert.Equal(
             "<a class=\"active\" aria-current=\"page\" href=\"/realtime/BTC\" data-rask-nav></a>",
             NavLink.Href("/realtime/BTC").Match("/realtime").ActiveMatch(NavLinkMatch.Prefix).ToHtml());
     }
 
     [Fact]
-    public void Match_outside_its_section_is_not_active()
+    public void An_explicit_match_is_not_active_outside_its_section()
     {
         using var _ = BeginRoute("/other");
-
         Assert.DoesNotContain("active",
             NavLink.Href("/realtime/BTC").Match("/realtime").ActiveMatch(NavLinkMatch.Prefix).ToHtml());
     }
 
     [Fact]
-    public void Without_a_live_render_context_there_is_no_active_class()
+    public void Outside_a_live_render_context_nothing_is_active()
     {
         Assert.Equal(
             "<a class=\"menu-link\" href=\"/dashboard\" data-rask-nav></a>",
@@ -229,7 +216,7 @@ public partial class NavLinkTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_live_context_without_route_state_gives_no_active_class()
+    public void With_no_route_state_registered_nothing_is_active()
     {
         var services = RenderHarness.EmptyServices();
         using var _ = LiveRenderContext.Begin(new StubComponent(Span), services);

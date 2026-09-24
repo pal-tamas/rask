@@ -12,171 +12,53 @@ and when to reach for end-to-end (E2E) tests instead.
 
 ## 0. The `Rask.Testing` package (start here)
 
-Reference **`Rask.Testing`** from your test project and drive your app the way a person does — no browser,
-server or WebSocket:
+Reference **`Rask.Testing`** from your test project and you can render a component, invoke its handlers,
+and assert on the re-rendered HTML through a small public API — no browser, server, or WebSocket:
 
 ```csharp
 using Rask.Testing;
 
-[Fact]
-public async Task Saving_a_new_product_returns_to_the_list()
+public sealed partial class Counter : Component
 {
-    var page = Test.Visit("/products/new");
+    private int _count;
+    protected override Component? Render() =>
+        Button.Type("button").OnClick(() => _count++)[$"Count: {_count}"];
+}
 
-    await page.Type("Tea").Into("Name");
-    await page.Check("In stock");
-    await page.Pick("Green").From("Colour");
-    await page.Click("Save");
+[Fact]
+public async Task Clicking_increments()
+{
+    var page = Page.Render(new Counter());     // renders + wires event handlers
+    Assert.Contains("Count: 0", page.Html);
 
-    page.Shows("Tea");
-    page.IsAt("/products");
+    await page.ClickAsync();                        // dispatch the click handler, then re-render
+    Assert.Contains("Count: 1", page.Html);
 }
 ```
 
-Every element is found by **what a person sees**, never by a selector — so a test reads as the steps it proves and
-survives a markup change nobody would notice:
-
-- **`Test.Visit("/url", services?)`** — opens the app at that URL through the real router: the page registered for
-  it renders with its route and query values bound, and a click that navigates moves on to the next page.
-- **`await page.Type("Tea").Into("Name")`** — the field whose `<label>` says "Name" (then its placeholder, then its
-  `aria-label`). Raises `input` and `change`, as typing does.
-- **`await page.Pick("Green").From("Colour")`** · **`await page.Check("In stock")`** · **`await page.Uncheck(…)`** —
-  a select's option by its visible text; a checkbox by its label.
-- **`await page.Click("Save")`** — the button or link whose text (or `aria-label`) is "Save". A submit button
-  submits its form with the fields' current values; a link moves to its page. Two matches ask you which:
-  `page.Click("Delete").In("Tea")` picks the one in the row, section or form named "Tea".
-- **`page.Shows("Product saved")`** · **`page.DoesNotShow("Loading…")`** — **wait** up to `page.Patience` (5 s) for
-  async work to land, so a page that loads in `OnMount` needs nothing extra. `.In("Products")` narrows the check.
-- **`page.IsAt("/products")`** — where the app navigated to.
-
-A lookup that finds nothing, or more than one thing, fails with a `PageException` that names what it did find:
-
-```
-No field is labelled "Title". The fields on the page are: name, stock, colour, Search.
-Clicking "Delete" found 2: … Say which with .In("…") — e.g. page.Click("Delete").In("Tea")
-Expected the page to show "Product saved" within 5s. It shows:
-  Loading…
-```
-
-### Freezing time
-
-`Clock.Now` is the app's time, and `3.Days.Ago`, cache expiry, audit stamps and job schedules all read it. A test
-freezes it with one line and moves it by hand:
-
-```csharp
-[Fact]
-public async Task A_cached_price_is_loaded_again_after_ten_minutes()
-{
-    using var clock = Clock.Fake(at: new DateTimeOffset(2026, 9, 21, 9, 0, 0, TimeSpan.Zero));
-    await Cache.Remember("price", LoadPrice).For(10.Minutes);
-
-    clock.Advance(11.Minutes);
-
-    Assert.Equal(2, loads);
-}
-```
-
-The fake belongs to the test's own flow, so tests running in parallel never see each other's time; disposing it
-puts real time back.
-
-### Standing in for a battery
-
-`Mail.Send`, `Jobs.Enqueue` and `Cache.Remember` reach the battery of the work they run in, so a test stands in
-front of one with a single line — and then asks what happened in the same English the code was written in:
-
-```csharp
-[Fact]
-public async Task Registering_sends_a_welcome_email_and_queues_the_follow_up()
-{
-    using var mail = Mail.Fake();
-    using var jobs = Jobs.Fake();
-
-    var page = Test.Visit("/register");
-    await page.Type("ann@x.io").Into("Email");
-    await page.Click("Create account");
-
-    mail.Sent().To("ann@x.io").WithSubject("Welcome").Once();
-    jobs.Enqueued<SendOnboardingTips>().In(24.Hours).Once();
-}
-```
-
-Each step narrows and the count asserts — `Once()`, `Twice()`, `Exactly(n)`, `None()`. A failure names what
-actually happened, because that is the half you need:
-
-```
-Expected one email to "ann@x.io"; 2 were sent. All 2 sent: to "bo@x.io" — "Welcome"; to "cy@x.io" — "Receipt".
-```
-
-For anything the steps do not cover, `Single()` hands back the one that matched:
-
-```csharp
-var sent = mail.Sent().To("ann@x.io").Single();
-Assert.Contains("unsubscribe", sent.Html, StringComparison.Ordinal);
-
-var job = jobs.Enqueued<ChaseInvoice>().Single();
-Assert.Equal(7, job.Job.Number);
-```
-
-| Fake | Asks about | Narrowed by |
-|---|---|---|
-| `Mail.Fake()` | `Sent()` | `To`, `WithSubject`, `Saying`, `In`, `At` |
-| `Jobs.Fake()` | `Enqueued<TJob>()` | `In`, `At`, `Matching` |
-| `Cache.Fake()` | `Loaded(key)`, `Read(key)`, `Forgotten(key)` | — |
-| `Files.Fake()` | `Saved()`, `Deleted(id)` | `Named`, `Public`, `Private` |
-
-`Cache.Fake()` is not only a recorder: it really stores, with real expiry read from `Clock.Now`, so the code
-under test behaves as it would in production and `Clock.Fake` proves staleness without sleeping.
-
-```csharp
-using var clock = Clock.Fake(at: monday9am);
-using var cache = Cache.Fake();
-
-await Cache.Remember("products", LoadProducts).For(10.Minutes);
-clock.Advance(11.Minutes);
-await Cache.Remember("products", LoadProducts).For(10.Minutes);
-
-cache.Loaded("products").Twice();   // the second call went back to the database
-```
-
-A recorded job is **never run** — the fake asserts the work was *asked for*, and the handler has its own test.
-
-Each fake belongs to the test's own flow, so tests running in parallel never see each other's mail, jobs or
-keys, and disposing it puts the real battery back. It stands in front of the static; a class that takes
-`IMail`, `IJobs` or `ICache` in its **constructor** is handed whatever the container holds, so register the
-fake there too when the code under test injects it:
-
-```csharp
-services.AddSingleton<IMail>(mail);
-```
-
-### One component, and precise control
-
-`Test.Render` renders a single component instead of a URL, and the same verbs drive it. Underneath them sit
-lower-level calls for the cases the verbs don't reach — an event with a hand-made payload, a handler by id:
-
-- **`Test.Render(component, services?)`** → a `Page`. Pass an `IServiceProvider` when the
+- **`Page.Render(component, services?)`** → a `RenderedComponent`. Pass an `IServiceProvider` when the
   component constructor-injects framework services or your own registrations.
-- **`Test.Render(factory, services?)`** — renders the component the factory returns, re-running the
+- **`Page.Render(factory, services?)`** — renders the component the factory returns, re-running the
   factory on **every** render so the tree is rebuilt from your current state. Reach for this whenever a
   re-render should see changed props; the `component` overload renders one fixed instance, so a tree you
   build at the call site keeps the values it was built with:
 
   ```csharp
   var model = new OrderModel();
-  var page = Test.Render(() => Form.Model(model)[Input.Bind(() => model.Name)]);
+  var page = Page.Render(() => Form.Model(model)[Input.Bind(() => model.Name)]);
 
   await page.InputAsync("{\"value\":\"Ada\"}");   // the next render rebuilds the form from `model`
   ```
 
   Returning `null` renders nothing, and drives the component it stops returning through its unmount path.
-- **`Test.RenderDocument(app, services?)`** — renders the component the way a host does, with the
+- **`Page.RenderDocument(app, services?)`** — renders the component the way a host does, with the
   whole document composed around it, so you can assert on the **page**: the doctype, `<html lang>`, the
   `<head>` every mounted component contributed to, `<body class>`. Reach for it only when the page is
   what you're asserting about — `Render` adds no markup of its own, which is what keeps an assertion
   about a component from quietly becoming an assertion about a page.
 
   ```csharp
-  var page = Test.RenderDocument(new App, services);
+  var page = Page.RenderDocument(new App(), services);
   Assert.StartsWith("<!DOCTYPE html>", page.Html);
   Assert.Contains("<html lang=\"en\">", page.Html);
   Assert.Contains(">My app</title>", page.Html);   // head tags carry a dedupe key attribute
@@ -189,11 +71,11 @@ lower-level calls for the cases the verbs don't reach — an event with a hand-m
   markup yet when `Render` returns.
 
   ```csharp
-  var page = Test.Render(new OrdersPage(store), services);
+  var page = Page.Render(new OrdersPage(store), services);
   await page.WaitForAsync("2 orders");        // rather than a fixed delay
   ```
 
-  Both overloads of `Render` fire `OnMount`, start `OnMount`, and fire `OnRendered` — the component
+  Both overloads of `Render` fire `OnMount` and, once it has rendered, `OnFirstRendered` and `OnRendered` — the component
   renders through the handle, so state it sets after an await reaches the markup on the next render.
 - **`.ClickAsync(json?)` / `.InputAsync(json?)` / `.ChangeAsync(json?)` / `.SubmitAsync(json?)`** — dispatch
   the **first** element wired to that event (optionally with a JSON event payload, e.g.
@@ -211,14 +93,17 @@ lower-level calls for the cases the verbs don't reach — an event with a hand-m
   one of several same-event elements — a grid's sort headers, a list's row buttons:
 
   ```csharp
-  var grid = Test.Render(() => BsDataGrid<Row>(Data: rows, Columns: columns));
+  var grid = Page.Render(() => Ui.DataGrid.Data(rows).RowKey(r => r.Id)[c => [
+      c.Field(r => r.Name).Sortable(true),
+      c.Field(r => r.Total).Sortable(true),
+  ]]);
 
   await grid.InvokeAsync(grid.HandlerIds("click")[1]);   // click the second sortable header
   ```
 
   Re-read the list after every render, for the same reason a single id can't be cached.
 - **`Markup.Attr(html, name)`** / **`Markup.Attrs(html, name)`** — the same lookups over any HTML string you
-  hold, rather than over a `Page` (e.g. markup lifted out of a live payload).
+  hold, rather than over a `RenderedComponent` (e.g. markup lifted out of a live payload).
 
 ### Components that call JavaScript
 
@@ -230,7 +115,7 @@ var js = new TestJSRuntime();
 js.SetResponse("raskApi.clipboard.read", "hello");
 var services = new ServiceCollection().AddSingleton<IJSRuntime>(js).BuildServiceProvider();
 
-var page = Test.Render(new Copier(), services);
+var page = Page.Render(new Copier(), services);
 await page.ClickAsync();
 
 Assert.Equal(["hello"], js.ArgsFor("raskApi.clipboard.write"));
@@ -248,7 +133,7 @@ that host half. `TestFileBackend` is it — stage the bytes, register it, pick t
 var files = new TestFileBackend();
 var picked = files.Add("notes.txt", "hello world", "text/plain");
 
-var page = Test.Render(new UploadPage(), TestServiceProvider.With<IBrowserFileBackend>(files));
+var page = Page.Render(new UploadPage(), TestServiceProvider.With<IBrowserFileBackend>(files));
 await page.On("#picker").FilesAsync(picked);
 
 Assert.Equal("notes.txt", page.TextOf("[data-testid=name]"));
@@ -276,7 +161,7 @@ slot, so a component holding a `RaskFile` past the handler is holding something 
 
 ### Handing a component its services
 
-`Test.Render` takes any `IServiceProvider`, and `Rask.Testing` depends on no DI container. `TestServiceProvider`
+`Page.Render` takes any `IServiceProvider`, and `Rask.Testing` depends on no DI container. `TestServiceProvider`
 is the one-liner for the common case of one or two services:
 
 ```csharp
@@ -295,7 +180,7 @@ Validation state (messages, `IsModified`, `IsValidating`) never reaches the mark
 
 ```csharp
 EditContext? ctx = null;
-var page = Test.Render(() => Form.Model(model)[
+var page = Page.Render(() => Form.Model(model)[
     Input.Bind(() => model.Name),
     Test.EditContextProbe(c => ctx = c)
 ]);
@@ -315,7 +200,50 @@ The rest of this guide covers `Rask`'s own in-repo test helpers (`Rask.TestSuppo
 
 ---
 
-## 1. The test stack
+## 1. Driving the app the way a person does
+
+`Page.Render` gives you one component and its handler ids. For a test about a **feature** — fill this in,
+press that, see what it says — open the app at a URL instead. `Page.Visit` goes through the real router,
+so the page registered for that URL renders with its route and query parameters bound, and a click that
+navigates moves to the next page:
+
+```csharp
+[Fact]
+public async Task Saving_a_product_shows_it_in_the_catalogue()
+{
+    var page = Page.Visit("/products/new", services);
+
+    await page.Type("Tea").Into("Name");
+    await page.Pick("Green").From("Category");
+    await page.Check("In stock");
+    await page.Click("Save");
+
+    page.Shows("Product saved");
+    page.IsAt("/products");
+}
+```
+
+Nothing here names a handler id, a selector or a `data-testid`. A field is found by the text beside it —
+its label, then its placeholder, then its `aria-label` — which is the same thing a person looks for, and
+the reason a test written this way fails when the *screen* breaks rather than when the markup is
+rearranged.
+
+- **`page.Type(text).Into(field)`** / **`page.Pick(option).From(field)`** — type into an input, choose an
+  option of a select by its visible text.
+- **`page.Check(label)`** / **`page.Uncheck(label)`** — tick or clear a checkbox.
+- **`await page.Click(text)`** — press the button or link with that text. `await page.Click("Delete").In("Tea")`
+  narrows to one row, section or form when several say the same word.
+- **`page.Shows(text)`** — asserts the text is on screen, **waiting** for work still in flight (up to
+  `page.Patience`, 5 s) rather than failing on a race. `page.Shows("Saved").In("Toasts")` narrows it.
+  **`page.DoesNotShow(text)`** waits for it to go if it is still there.
+- **`page.IsAt(path)`** — asserts where the app navigated to.
+
+The handler-id API in section 0 is still there underneath, and the two mix freely: reach for
+`page.HandlerId`/`InvokeAsync` when what you are testing genuinely is the wiring.
+
+---
+
+## 2. The test stack
 
 Tests run on **xUnit**. The `Rask.TestSupport` project (`tests/Rask.TestSupport/`) builds on
 `Rask.Testing` and adds only what the shipped package deliberately doesn't have — helpers that call
@@ -363,19 +291,19 @@ Assert.Equal("<button data-rask-on-click=\"h0\">x</button>", view.RenderAsLiveRo
 
 ---
 
-## 2. Unit-testing HTML output
+## 3. Unit-testing HTML output
 
-The per-tag convention (`tests/Rask.Core.Tests/Components/{Tag}Tests.cs`) pairs an `Unset_props_render_only_the_open_and_close_tags`
-case with a `Setting_every_prop_emits_the_expected_attributes` case that asserts the **exact attribute order**: `id`, `class`,
+The per-tag convention (`tests/Rask.Core.Tests/Components/{Tag}Tests.cs`) pairs a `Render_NullProps_…`
+case with a `Render_AllPropsSet_…` case that asserts the **exact attribute order**: `id`, `class`,
 `style`, `data-*`, then the tag-specific attributes. Tests pin this with full-string equality.
 
 ```csharp
 [Fact]
-public void Unset_props_render_only_the_open_and_close_tags() =>
+public void Render_NullProps_ReturnsEmptyButtonTags() =>
     Assert.Equal("<button></button>", Button.ToHtml());
 
 [Fact]
-public void Setting_every_prop_emits_base_then_derived_attributes_in_order() =>
+public void Render_AllPropsSet_EmitsBaseThenDerivedAttributesInOrder() =>
     Assert.Equal(
         "<button id=\"go\" class=\"btn\" style=\"color:red\" data-test-id=\"primary\" type=\"submit\" disabled name=\"action\" value=\"save\"></button>",
         Button
@@ -401,7 +329,7 @@ Useful patterns from the suite:
 
 ---
 
-## 3. Driving event handlers
+## 4. Driving event handlers
 
 Event handlers are registered against the live context at render time and surface as
 `data-rask-on-*` attributes whose value is a handler id. To drive one in a test:
@@ -441,46 +369,33 @@ shape these examples use — makes no claim, so it dispatches on the id alone as
 
 ---
 
-## 4. Forms and validation
+## 5. Forms and validation
 
 Form tests follow the same render-then-invoke loop. Mirror the browser's input→change ordering when
 testing per-keystroke vs blur behaviour:
 
 ```csharp
 [Fact]
-public async Task An_invalid_model_reaches_OnInvalidSubmit_and_not_OnSubmit()
+public async Task Submit_InvalidModel_CallsOnInvalidSubmit_NotOnValidSubmit()
 {
     var p = new Person { Name = "", Age = 0 };
-    var submitted = 0; var refused = 0;
+    var validCalled = 0; var invalidCalled = 0;
 
     var view = new StubComponent(() => Form.Model(p)
-        .OnSubmit(_ => submitted++)
-        .OnInvalidSubmit(_ => refused++)
-        .Validate(m => string.IsNullOrEmpty(m.Name) ? new[] { "Name required" } : [])[
-            Input.Bind(() => p.Name), Input.Bind(() => p.Age)
-        ]);
+        .OnSubmit(_ => validCalled++)
+        .OnInvalidSubmit(_ => invalidCalled++)
+        .Validate(m => string.IsNullOrEmpty(m.Name) ? ["Name required"] : [])[
+        Input.Bind(() => p.Name), Input.Bind(() => p.Age)
+    ]);
     var html = view.RenderAsLiveRoot();
 
     var submitId = Markup.Attr(html, "data-rask-on-submit");
     using var doc = JsonDocument.Parse("{\"form\":{\"Name\":\"\",\"Age\":\"0\"}}");
     await view.TryInvokeHandlerAsync(submitId!, doc.RootElement);
 
-    Assert.Equal(0, submitted);
-    Assert.Equal(1, refused);
+    Assert.Equal(0, validCalled);
+    Assert.Equal(1, invalidCalled);
 }
-```
-
-A submit that **throws** is not a fault to catch in the test: the form holds it on `f.Error` for the
-page to render, so assert on that instead.
-
-```csharp
-var seen = new List<Exception?>();
-
-var view = new StubComponent(() => Form.Model(p)
-    .OnSubmit(_ => throw new InvalidOperationException("boom"))[f => { seen.Add(f.Error); return []; }]);
-// … render, invoke the submit handler, render again …
-
-Assert.Equal("boom", seen[^1]!.Message);
 ```
 
 For validation state, capture the form's `EditContext` with `ContextCapture` and assert on its
@@ -518,16 +433,16 @@ it needs, then asserted on the resulting HTML:
 
 ```csharp
 var routeState = new RouteState { Path = "/" };
-var html = new App.RenderAsLiveRoot(TestServiceProvider.Default(routeState: routeState));
+var html = new App().RenderAsLiveRoot(TestServiceProvider.Default(routeState: routeState));
 Assert.Contains("Hello, world!", html);
 ```
 
 That renders the root exactly as written — its body content, with no document around it. When the
 assertion is about the *page* (the doctype, `<html lang>`, what landed in `<head>`), render the root
-through `Test.RenderDocument` instead, which composes the document the way a host does:
+through `Page.RenderDocument` instead, which composes the document the way a host does:
 
 ```csharp
-var html = Test.RenderDocument(new App, TestServiceProvider.Default(routeState: routeState)).Html;
+var html = Page.RenderDocument(new App(), TestServiceProvider.Default(routeState: routeState)).Html;
 Assert.StartsWith("<!DOCTYPE html>", html);
 ```
 
@@ -535,7 +450,7 @@ Assert.StartsWith("<!DOCTYPE html>", html);
 
 ---
 
-## 5. Build & test commands
+## 6. Build & test commands
 
 ```bash
 dotnet build
@@ -547,7 +462,7 @@ dotnet test --filter FullyQualifiedName~ButtonTests           # one class
 
 ---
 
-## 6. When to reach for E2E
+## 7. When to reach for E2E
 
 Prefer a unit test. The Playwright E2E suite (`tests/Rask.Site.E2E.Tests/`) is heavy — it spins
 up a real host and a browser — so reserve it for paths a unit test genuinely can't reach:

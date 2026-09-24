@@ -5,8 +5,8 @@ using Rask.Site.Features;
 namespace Rask.Site;
 
 // The guides index rendered as grouped cards (one card per GuideCatalog entry, grouped by category in
-// GroupOrder). Rendered by the Guides index (GuidesIndexPage), which is the site root "/" — the
-// guides-first showcase leads with these cards.
+// GroupOrder). Rendered by the Guides index (GuidesIndexPage) at "/docs" — the guides-first showcase
+// leads with these cards; the site root "/" is the landing page (HomePage).
 //
 // A component, not a static helper: it returns markup and nothing else, and only a component can reach
 // the builder surface (entries are inherited members, so a static class sees none of them). It renders a
@@ -58,7 +58,7 @@ public sealed partial class GuideCards : Component
                     $"{UiStyles.Card} h-full transition-colors hover:border-ui-brand "
                     + "focus-within:border-ui-brand")[
                     Div.Class("flex items-start gap-3")[
-                        UiIcon.Name(g.Icon).Class("mt-0.5 size-5 shrink-0 text-ui-muted"),
+                        Ui.Icon.Name(g.Icon).Class("mt-0.5 size-5 shrink-0 text-ui-muted"),
                         // min-w-0: without it this flex item cannot shrink below the longest
                         // unbreakable word in the title, and the card widens its grid column.
                         Div.Class("min-w-0")[

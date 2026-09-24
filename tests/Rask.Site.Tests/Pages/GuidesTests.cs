@@ -151,7 +151,7 @@ public sealed partial class GuidesTests : global::Rask.Core.RaskMarkup
     public void A_guide_page_for_a_known_slug_renders_the_guide_chrome_with_a_markdown_body()
     {
         // GuidePage delegates to GuideChrome (a DI-ctor component), so it renders through a live context.
-        var html = Test.Render(new GuidePage { Slug = "routing" }, TestServices.Default()).Html;
+        var html = Page.Render(new GuidePage { Slug = "routing" }, TestServices.Default()).Html;
 
         Assert.Contains("markdown-body", html);
         Assert.Contains("All guides", html); // the back link
@@ -161,7 +161,7 @@ public sealed partial class GuidesTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_guide_page_for_an_unknown_slug_renders_not_found()
     {
-        var html = Test.Render(new GuidePage { Slug = "nope" }, TestServices.Default()).Html;
+        var html = Page.Render(new GuidePage { Slug = "nope" }, TestServices.Default()).Html;
 
         Assert.Contains("No guide found", html);
         Assert.DoesNotContain("markdown-body", html);
@@ -174,7 +174,7 @@ public sealed partial class GuidesTests : global::Rask.Core.RaskMarkup
 
         foreach (var group in GuideCatalog.GroupOrder)
         {
-            // Group headings are Text-encoded (e.g. "Mobile & devices" → "Mobile &amp; devices").
+            // Group headings are Text-encoded (e.g. "Browser & devices" → "Browser &amp; devices").
             Assert.Contains($">{HtmlEncoder.Default.Encode(group)}<", html);
         }
 

@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>The grid the overview lays its tiles on.</summary>
 public sealed partial class UiGrid : Component

@@ -12,6 +12,14 @@ internal sealed class SessionQueryClient : IQueryClient
     private readonly Lock _gate = new();
     private readonly TimeProvider _time;
 
+    // Which entity name, as a DataChanged carries it, invalidates which key prefixes. A prefix rather than the
+    // entity itself because the two kinds of live query are keyed differently: a query keyed by the thing it reads
+    // (QueryKey.For<Order>) is reached by typeof(Order), while a message query is keyed by ITSELF, so a write to
+    // Order has to invalidate typeof(GetOrders). One listener for the whole session serves both.
+    private readonly Dictionary<string, HashSet<Type>> _live = new(StringComparer.Ordinal);
+    private CancellationTokenSource? _listening;
+    private DateTimeOffset _listeningSince;
+
     public SessionQueryClient(IDispatcher dispatcher, TimeProvider? time = null)
     {
         _dispatcher = dispatcher;
@@ -24,6 +32,7 @@ internal sealed class SessionQueryClient : IQueryClient
         QueryKey? key = null)
     {
         ArgumentNullException.ThrowIfNull(message);
+        WatchDeclared(message);
 
         // No key given means the message IS the key, compared structurally — which is what lets two
         // components asking the same thing share one entry and one request.
@@ -47,6 +56,7 @@ internal sealed class SessionQueryClient : IQueryClient
     {
         ArgumentNullException.ThrowIfNull(input);
         ArgumentNullException.ThrowIfNull(fetch);
+        WatchKeyed(prefix);
         return new Query<TResult>(
             this,
             new InputSource<TInput, TResult>(prefix, input, fetch),
@@ -59,6 +69,7 @@ internal sealed class SessionQueryClient : IQueryClient
         QueryOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(fetch);
+        WatchKeyed(key);
         return new Query<TResult>(
             this,
             new QueryTarget(key, async ct => await fetch(ct).ConfigureAwait(false), IsPaused: false),
@@ -138,6 +149,262 @@ internal sealed class SessionQueryClient : IQueryClient
     {
         ArgumentNullException.ThrowIfNull(invalidates);
         return new Command(this, [.. invalidates]);
+    }
+
+    public Subscription<TNotification> Subscribe<TNotification>()
+        where TNotification : INotification =>
+        new(this, NotificationTarget<TNotification>(null));
+
+    public Subscription<TNotification> Subscribe<TNotification>(ISubscription<TNotification> subscription)
+        where TNotification : INotification
+    {
+        ArgumentNullException.ThrowIfNull(subscription);
+        return new Subscription<TNotification>(this, NotificationTarget<TNotification>(subscription));
+    }
+
+    public Subscription<TNotification> Subscribe<TNotification>(Func<ISubscription<TNotification>?> subscription)
+        where TNotification : INotification
+    {
+        ArgumentNullException.ThrowIfNull(subscription);
+        return new Subscription<TNotification>(this, new RecordSource<TNotification>(this, subscription));
+    }
+
+    public Subscription<T> Subscribe<TInput, T>(
+        Func<TInput> input,
+        Func<TInput, CancellationToken, IAsyncEnumerable<T>> stream)
+    {
+        ArgumentNullException.ThrowIfNull(input);
+        ArgumentNullException.ThrowIfNull(stream);
+        return new Subscription<T>(this, new StreamSource<TInput, T>(input, stream));
+    }
+
+    /// <summary>
+    ///     The subscription knobs the app configured in <c>Rask:Cqrs</c>, or their defaults where nothing did.
+    /// </summary>
+    internal CqrsExecutionOptions Subscriptions =>
+        _dispatcher is LocalDispatcher dispatcher ? dispatcher.Subscriptions : CqrsExecutionOptions.Default;
+
+    /// <summary>What a notification subscription watches: its type and its record, through the dispatcher.</summary>
+    internal SubscriptionTarget<TNotification> NotificationTarget<TNotification>(object? subscription)
+        where TNotification : INotification =>
+        new(new NotificationIdentity(typeof(TNotification), subscription),
+            (admitted, ct) => Watch<TNotification>(subscription, admitted, ct));
+
+    /// <summary>What a function subscription watches: one input, handed to the stream it opens.</summary>
+    internal static SubscriptionTarget<T>? StreamTarget<TInput, T>(
+        TInput input,
+        Func<TInput, CancellationToken, IAsyncEnumerable<T>> stream) =>
+        input is null
+            ? null
+            : new SubscriptionTarget<T>(new StreamIdentity(input), (admitted, ct) => Admit(admitted, stream(input, ct), ct));
+
+    // The dispatcher's own Watch knows when the subscription is admitted — after the policy, after the replay. Any
+    // other IDispatcher (a test double) is taken as admitted the moment it is asked.
+    private IAsyncEnumerable<TNotification> Watch<TNotification>(
+        object? subscription,
+        Action admitted,
+        CancellationToken ct)
+        where TNotification : INotification =>
+        _dispatcher is LocalDispatcher dispatcher
+            ? Typed<TNotification>(dispatcher.Watch(typeof(TNotification), subscription, admitted, ct), ct)
+            : Admit(
+                admitted,
+                subscription is ISubscription<TNotification> record
+                    ? _dispatcher.Subscribe(record, ct)
+                    : _dispatcher.Subscribe<TNotification>(ct),
+                ct);
+
+    private static async IAsyncEnumerable<TNotification> Typed<TNotification>(
+        IAsyncEnumerable<INotification> source,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct)
+    {
+        await foreach (var notification in source.WithCancellation(ct).ConfigureAwait(false))
+        {
+            yield return (TNotification)notification;
+        }
+    }
+
+    private static async IAsyncEnumerable<T> Admit<T>(
+        Action admitted,
+        IAsyncEnumerable<T> source,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct)
+    {
+        admitted();
+        await foreach (var value in source.WithCancellation(ct).ConfigureAwait(false))
+        {
+            yield return value;
+        }
+    }
+
+    private sealed record NotificationIdentity(Type Type, object? Subscription);
+
+    private sealed record StreamIdentity(object Input);
+
+    private sealed class RecordSource<TNotification>(
+        SessionQueryClient client,
+        Func<ISubscription<TNotification>?> subscription) : SubscriptionSource<TNotification>
+        where TNotification : INotification
+    {
+        private bool _asked;
+        private ISubscription<TNotification>? _last;
+
+        public override bool TryAdvance(out SubscriptionTarget<TNotification>? target)
+        {
+            var current = subscription();
+            if (_asked && Equals(current, _last))
+            {
+                target = null;
+                return false;
+            }
+
+            _asked = true;
+            _last = current;
+            target = current is null ? null : client.NotificationTarget<TNotification>(current);
+            return true;
+        }
+    }
+
+    private sealed class StreamSource<TInput, T>(
+        Func<TInput> input,
+        Func<TInput, CancellationToken, IAsyncEnumerable<T>> stream) : SubscriptionSource<T>
+    {
+        private bool _asked;
+        private TInput _last = default!;
+
+        public override bool TryAdvance(out SubscriptionTarget<T>? target)
+        {
+            var current = input();
+            if (_asked && EqualityComparer<TInput>.Default.Equals(current, _last))
+            {
+                target = null;
+                return false;
+            }
+
+            _asked = true;
+            _last = current;
+            target = StreamTarget(current, stream);
+            return true;
+        }
+    }
+
+    /// <summary>
+    ///     Reads <see cref="LiveAttribute" /> off a query message, so a query that declared what it reads refetches
+    ///     when anything in the process writes one.
+    /// </summary>
+    /// <remarks>
+    ///     Attribute metadata on a type the app already references, not member reflection, so the trimmer keeps it —
+    ///     the same reason <see cref="InvalidateDeclared" /> is safe on a trimmed WASM publish.
+    /// </remarks>
+    internal void WatchDeclared(object message)
+    {
+        // Plural: the attribute allows multiples, so a query that reads two tables names both.
+        foreach (var declaration in message.GetType().GetCustomAttributes<LiveAttribute>())
+        {
+            foreach (var entity in declaration.Entities)
+            {
+                // The message type, not the entity: this query's key starts with GetOrders, and invalidating
+                // typeof(Order) would sail straight past it.
+                Watch(entity, message.GetType());
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Watches the entity a key names, for a query keyed by the thing it reads rather than by a message —
+    ///     <c>QueryKey.For&lt;Order&gt;(…)</c>, a Rask.Data read face. Nothing is published unless that entity
+    ///     declared <c>Broadcast = Broadcasts.OnCommit</c>, so this costs an unwatched table nothing.
+    /// </summary>
+    internal void WatchKeyed(QueryKey key)
+    {
+        if (key.Parts is [Type entity, ..])
+        {
+            // The key already starts with the entity, so invalidating it by prefix reaches every For<Order>(…)
+            // query at once — every page, every filter.
+            Watch(entity, entity);
+        }
+    }
+
+    /// <summary>
+    ///     Refetches everything keyed under <paramref name="invalidates" /> when anything in the process writes an
+    ///     <paramref name="entity" />, not just this session. Naming the same pair twice does nothing.
+    /// </summary>
+    /// <remarks>
+    ///     The listener is the session's, opened once and shared, however many queries declared what they read.
+    ///     It is never closed, because the session's scope going away is what ends it.
+    /// </remarks>
+    /// <param name="entity">The entity whose saves matter.</param>
+    /// <param name="invalidates">The key prefix to refetch when one is written.</param>
+    internal void Watch(Type entity, Type invalidates)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+        ArgumentNullException.ThrowIfNull(invalidates);
+
+        bool start;
+        lock (_gate)
+        {
+            var name = entity.FullName ?? entity.Name;
+            if (!_live.TryGetValue(name, out var prefixes))
+            {
+                _live[name] = prefixes = [];
+            }
+
+            prefixes.Add(invalidates);
+
+            start = _listening is null;
+            if (start)
+            {
+                _listening = new CancellationTokenSource();
+                _listeningSince = _time.GetUtcNow();
+            }
+        }
+
+        if (start)
+        {
+            _ = ListenForChanges(_listening!.Token);
+        }
+    }
+
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "A session's live refresh must never take the session down with it; a stale screen is "
+                        + "what a failure here costs, and the next fetch clears it.")]
+    private async Task ListenForChanges(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await foreach (var changed in _dispatcher
+                .Subscribe<DataChanged>(cancellationToken)
+                .ConfigureAwait(false))
+            {
+                // A subscription starts with the last value published. That change happened before this listener
+                // existed, so the fetch that brought the page up already reflects it — acting on it would cost
+                // every page a second request for nothing.
+                if (changed.At <= _listeningSince)
+                {
+                    continue;
+                }
+
+                Type[] prefixes;
+                lock (_gate)
+                {
+                    prefixes = _live.TryGetValue(changed.Entity, out var watched) ? [.. watched] : [];
+                }
+
+                foreach (var prefix in prefixes)
+                {
+                    Invalidate(prefix);
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // The session ended.
+        }
+        catch (Exception)
+        {
+            // See the justification above.
+        }
     }
 
     public void Invalidate<TQuery>() => Invalidate(typeof(TQuery));

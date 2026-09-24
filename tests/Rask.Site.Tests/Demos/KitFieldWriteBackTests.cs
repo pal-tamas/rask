@@ -1,5 +1,5 @@
+using Rask;
 using Rask.Site.Tests.Infrastructure;
-using Rask.Ui;
 
 namespace Rask.Site.Tests.Demos;
 
@@ -31,7 +31,7 @@ public sealed partial class KitFieldWriteBackTests : global::Rask.Core.RaskMarku
     {
         public Model Data { get; set; } = new();
 
-        protected override Component? Render() => UiInput.Bind(() => Data.Name).Label("Name");
+        protected override Component? Render() => Ui.Input.Bind(() => Data.Name).Label("Name");
     }
 
     private sealed partial class RawHost : Component
@@ -46,7 +46,7 @@ public sealed partial class KitFieldWriteBackTests : global::Rask.Core.RaskMarku
         public Model Data { get; set; } = new();
 
         protected override Component? Render() =>
-            Form.Model(Data)[UiInput.Bind(() => Data.Name).Label("Name")];
+            Form.Model(Data)[Ui.Input.Bind(() => Data.Name).Label("Name")];
     }
 
     [Fact]
@@ -55,7 +55,7 @@ public sealed partial class KitFieldWriteBackTests : global::Rask.Core.RaskMarku
         // The control the kit forwards to, in the same host and the same harness. This is the guard on the
         // two tests below meaning anything: if it fails, the harness is wrong rather than the kit.
         var host = new RawHost();
-        var page = Test.Render(host, TestServices.Default());
+        var page = Page.Render(host, TestServices.Default());
 
         var id = Handler(page.Render(), "data-rask-on-input");
         await page.InvokeAsync(id, "{\"value\":\"hopper\"}");
@@ -67,7 +67,7 @@ public sealed partial class KitFieldWriteBackTests : global::Rask.Core.RaskMarku
     public async Task Outside_a_form_a_bound_field_writes_back()
     {
         var host = new BareHost();
-        var page = Test.Render(host, TestServices.Default());
+        var page = Page.Render(host, TestServices.Default());
 
         var id = Handler(page.Render(), "data-rask-on-input");
         await page.InvokeAsync(id, "{\"value\":\"ada\"}");
@@ -79,7 +79,7 @@ public sealed partial class KitFieldWriteBackTests : global::Rask.Core.RaskMarku
     public async Task Inside_a_form_a_bound_field_writes_back()
     {
         var host = new FormHost();
-        var page = Test.Render(host, TestServices.Default());
+        var page = Page.Render(host, TestServices.Default());
 
         var id = Handler(page.Render(), "data-rask-on-input");
         await page.InvokeAsync(id, "{\"value\":\"grace\"}");

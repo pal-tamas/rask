@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>The console's content column, inside the frame.</summary>
 /// <remarks>

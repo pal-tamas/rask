@@ -17,6 +17,12 @@ public enum RemoteMessageKind
 
     /// <summary>An <see cref="INotification" /> — travels as a POST and is accepted, not answered.</summary>
     Notification,
+
+    /// <summary>
+    ///     An <see cref="ISubscription{TNotification}" /> — travels as a GET to the event stream and is answered with
+    ///     every notification it matches, for as long as it stays open.
+    /// </summary>
+    Subscription,
 }
 
 /// <summary>
@@ -141,6 +147,24 @@ public sealed class RemoteContract
     ///     endpoint's authenticated-by-default rule.
     /// </summary>
     public bool AllowAnonymous { get; init; }
+
+    /// <summary>
+    ///     True when the record itself carries <c>[Authorize]</c> or <c>[AllowAnonymous]</c>, which is what opens a
+    ///     notification subscribed to <em>by type</em> to remote subscribers. An <see cref="ISubscription{TNotification}" />
+    ///     record is guarded by its <see cref="IWatchPolicy{TSubscription}" /> instead and needs no declaration; a
+    ///     notification that declares nothing stays closed to bare subscribers, so no auth event is ever one browser
+    ///     request away.
+    /// </summary>
+    public bool SubscribeDeclared { get; init; }
+
+    /// <summary>The policy the record names with <c>[Authorize(Policy = …)]</c>, for subscribers.</summary>
+    public string? SubscribePolicy { get; init; }
+
+    /// <summary>The roles the record names with <c>[Authorize(Roles = …)]</c>, for subscribers.</summary>
+    public string? SubscribeRoles { get; init; }
+
+    /// <summary>True when the record is marked <c>[AllowAnonymous]</c>: a signed-out visitor may subscribe.</summary>
+    public bool SubscribeAnonymously { get; init; }
 
     /// <summary>
     ///     Sends this message through the ambient <see cref="IRemoteDispatch" />, returning the

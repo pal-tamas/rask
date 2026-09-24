@@ -28,11 +28,11 @@ public partial class IframeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_string_child_is_encoded_as_text() =>
+    public void A_text_child_is_html_encoded() =>
         Assert.Equal("<iframe>&lt;x&gt;</iframe>", Iframe["<x>"].ToHtml());
 
     [Fact]
-    public void Fetch_priority_emits_after_the_other_iframe_attributes() =>
+    public void Fetch_priority_comes_after_the_other_iframe_attributes() =>
         Assert.Equal("<iframe src=\"/a\" loading=\"lazy\" fetchpriority=\"low\"></iframe>",
             Iframe.Src("/a").Loading("lazy").FetchPriority("low").ToHtml());
 }

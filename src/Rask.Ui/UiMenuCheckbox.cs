@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using Rask.Core.Forms;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A menu item that is on or off — "Show archived", "Word wrap".
@@ -21,7 +21,7 @@ public sealed partial class UiMenuCheckbox : Component, IFormControl<bool>
 {
     public new required string Text { get; set; }
 
-    public UiIconName? Icon { get; set; }
+    public Ui.IconName? Icon { get; set; }
 
     /// <summary>A keyboard shortcut shown at the end of the row.</summary>
     public string? Kbd { get; set; }
@@ -48,7 +48,7 @@ public sealed partial class UiMenuCheckbox : Component, IFormControl<bool>
     /// <inheritdoc cref="IFormControl{T}.AfterBind" />
     public Callback<bool>? AfterBind { get; set; }
 
-    // Registration happens in Render; see UiMenuItem.
+    // Registration happens in Render; see Ui.MenuItem.
     /// <inheritdoc />
     protected override bool BypassRenderCache => true;
 
@@ -78,7 +78,7 @@ public sealed partial class UiMenuCheckbox : Component, IFormControl<bool>
         button = UiMenuItemMarkup.AsMenuItem(button, level, ordinal, "menuitemcheckbox", aria, KeepOpen != false, current);
 
         return Li.Role(level is null ? null : "none").Class(Class)[
-            button[global::Rask.Ui.UiMenuItem.Row(Icon, Text, Kbd, trailing: null, global::Rask.Ui.UiMenuItem.Indicator(current))]
+            button[global::Rask.UiMenuItem.Row(Icon, Text, Kbd, trailing: null, global::Rask.UiMenuItem.Indicator(current))]
         ];
     }
 }

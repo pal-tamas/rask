@@ -10,27 +10,27 @@ namespace Rask.Core.Tests.Components;
 public partial class ComponentChildrenTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void A_nested_component_child_is_wrapped_not_flattened()
+    public void Nested_component_child_is_wrapped_not_flattened()
     {
         // If `this[IEnumerable<Component?>]` won the overload, this would collapse to "<div>hi</div>".
         Assert.Equal("<div><span>hi</span></div>", Div[Span["hi"]].ToHtml());
     }
 
     [Fact]
-    public void Mixed_literals_convert_to_text_through_the_component_operators()
+    public void Heterogeneous_literals_convert_to_text_via_component_operators()
     {
         // string / int / bool literals flow in through the implicit converters now on Component.
         Assert.Equal("<div>a42True<span>x</span></div>", Div["a", 42, true, Span["x"]].ToHtml());
     }
 
     [Fact]
-    public void A_null_child_renders_nothing()
+    public void Null_child_renders_nothing()
     {
         Assert.Equal("<div>ab</div>", Div["a", null, "b"].ToHtml());
     }
 
     [Fact]
-    public void A_collection_expression_child_groups_without_a_wrapping_tag()
+    public void Collection_expression_child_groups_without_wrapping_tag()
     {
         // A nested `[...]` in the indexer builds a tagless container (Fragment) via Component.Create.
         Assert.Equal("<div><span>a</span><span>b</span></div>",
@@ -38,20 +38,20 @@ public partial class ComponentChildrenTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_Render_returning_a_collection_expression_emits_all_its_roots()
+    public void Render_returning_collection_expression_emits_all_roots()
     {
         Assert.Equal("<!DOCTYPE html><html></html>", new MultiRoot().ToHtml());
     }
 
     [Fact]
-    public void A_Render_returning_null_emits_nothing()
+    public void Render_returning_null_emits_nothing()
     {
         Assert.Equal("", new RendersNothing().ToHtml());
     }
 
     private sealed class MultiRoot : Component
     {
-        protected override Component? Render() => [Doctype, Html];
+        protected override Component? Render() => [Doctype, Document];
     }
 
     private sealed class RendersNothing : Component

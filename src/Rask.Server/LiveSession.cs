@@ -406,8 +406,8 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     private readonly object _handlerChainGate = new();
 
     /// <summary>
-    ///     Appends to <see cref="LastHandlerTask" /> atomically. The receive loop and a broadcast delivery both extend
-    ///     the chain from different threads; a read-then-write by each could drop one link, and with it the ordering
+    ///     Appends to <see cref="LastHandlerTask" /> atomically. Whatever extends the chain from another thread than the
+    ///     receive loop would otherwise race it: a read-then-write by each could drop one link, and with it the ordering
     ///     and the shutdown drain's wait on that dispatch.
     /// </summary>
     internal void EnqueueOnHandlerChain(Func<Task, Task> link)
@@ -423,16 +423,6 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
     /// <summary>Drops a render requested in scope, for a dispatch that has handed the browser to another page.</summary>
     internal void DiscardPendingRender() => _pendingRenderInScope = false;
 
-    /// <summary>When no connection is open, asks the next attach for a catch-up render of state changed meanwhile.</summary>
-    internal void RequestCatchUpIfDetached()
-    {
-        if (Volatile.Read(ref _transport) is not { IsOpen: true })
-        {
-            _renderRequestedWhileDetached = true;
-        }
-    }
-
-    protected override Task DeliverCoreAsync(Func<Task> work) => RaskEndpointExtensions.EnqueueDelivery(this, work);
 
     /// <summary>
     ///     Hands this session's pooled arrays back to <see cref="ArrayPool{T}" />.

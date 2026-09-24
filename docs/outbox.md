@@ -57,9 +57,10 @@ A callback — `AddRaskOutbox<AppDbContext>(o => …)` — runs after the sectio
 ```csharp
 protected override void OnModelCreating(ModelBuilder modelBuilder)
 {
+    base.OnModelCreating(modelBuilder);
     modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
-    modelBuilder.ApplyRaskConventions();
-    modelBuilder.AddRaskOutbox();   // maps the OutboxMessage table
+    modelBuilder.AddRaskOutbox();              // maps the OutboxMessage table
+    modelBuilder.ApplyRaskConventions(this);   // last: it walks every table mapped above
 }
 ```
 
@@ -85,6 +86,13 @@ Add a migration for the new table before running — `rask db add AddOutbox && r
   re-publishing everything the batch had already delivered.
 - **The `Rask.Outbox` source generator** registers every `IOutboxEvent` type (name → CLR type) at module
   load, so the processor rehydrates a stored message with no runtime `Type.GetType` or assembly scanning.
+- **The tenant travels with the event.** In an app with [multi-tenancy](multi-tenancy.md), each row records
+  the tenant in flight when the change was saved, and the processor re-enters it before publishing — so a
+  handler that reads a tenant-scoped table sees the same tenant the change was made in, though no one is
+  signed in on the processor's thread. An event raised by the host itself, or inside `Tenant.Across()`,
+  records none. The table is not partitioned by a filter, because one processor drains every tenant's events.
+- **`OutboxMessage` has a read face**, like every Rask.Data entity, so the queue can be queried with no
+  context of your own: `OutboxMessage.Read.Where(m => m.ProcessedAt == null).CountAsync()`.
 
 ## Shutdown
 

@@ -20,27 +20,6 @@ public interface IRenderHandle
     internal Task RenderInScopeAsync() => Task.CompletedTask;
 
     /// <summary>
-    ///     Runs <paramref name="work" /> inside this session the way an event handler runs — in order with its events, with
-    ///     the state it changes rendered once at the end — for work that did not come from the browser: a broadcast
-    ///     (#1061). Returns once the work is queued, not once it has run.
-    /// </summary>
-    /// <remarks>
-    ///     The default is for handles with no dispatch queue of their own (the unit-test render handle): run it, then
-    ///     render. Each host's session replaces it with its queue.
-    /// </remarks>
-    internal Task DeliverAsync(Func<Task> work)
-    {
-        _ = RunThenRenderAsync(this, work);
-        return Task.CompletedTask;
-
-        static async Task RunThenRenderAsync(IRenderHandle handle, Func<Task> work)
-        {
-            await work().ConfigureAwait(false);
-            await handle.RequestRenderAsync().ConfigureAwait(false);
-        }
-    }
-
-    /// <summary>
     ///     Records a development fault to paint <em>over</em> the app, reported by
     ///     <c>RootErrorBoundary</c> during the render walk that follows it.
     /// </summary>

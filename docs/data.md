@@ -56,7 +56,7 @@ which is everything a screen needs:
 ```csharp
 var cheap = await Product.Read.Where(p => p.PriceAmount < 10).OrderBy(p => p.Name).ToListAsync();
 var anvil = await Product.Read.Where(p => p.Id == id).FirstOrDefaultAsync();
-var grid  = Product.Read.OrderBy(p => p.Name).AsQueryable();   // for UiDataGrid, sorted and paged in SQL
+var grid  = Product.Read.OrderBy(p => p.Name).AsQueryable();   // for Ui.DataGrid, sorted and paged in SQL
 ```
 
 Note `p.PriceAmount`: the read face is **primitives**, so the `Money Price` value object arrives as the two
@@ -103,7 +103,7 @@ framework writes them:
 | `DeletedAt` | `Aggregate<TId>` | **Only when the aggregate asks.** A delete removes the row unless it declares [`Deletes = Deletion.Soft`](#choosing-what-a-table-carries). |
 
 ```csharp
-var recent = await Product.OrderByDescending(p => p.CreatedAt).Take(10).ToListAsync();
+var recent = await Product.Read.OrderByDescending(p => p.CreatedAt).Take(10).ToListAsync();
 ```
 
 `Aggregate<TId>` also carries the domain-events buffer: `Raise(…)` inside a method, and the events are
@@ -277,6 +277,11 @@ filter over *any* element of the collection is a scan. If that filter is hot on 
 `Dictionary`, a collection of some framework type — is left alone for the entity's own `Configure` to map, and
 so is any collection that `Configure` already mapped.
 
+Here is a whole model running — a `Note` aggregate, read through `Note.Read`, written with `Note.CreateAsync`, and
+searched with `Note.Read.Search`, in a SQLite database that lives in this browser tab and survives a reload:
+
+<!-- demo:data-notes -->
+
 ## Reading: the read face
 
 An aggregate is not a query surface. Querying goes through its generated **read face** — `Product.Read`,
@@ -409,7 +414,7 @@ public sealed partial class ProductsPage : Component
     private readonly IQueryable<ProductRead> _products = Product.Read.Where(p => p.PriceAmount > 0).AsQueryable();
 
     protected override Component Render() =>
-        UiDataGrid.Data(_products).RowKey(p => p.Id).PageSize(25)[c => [
+        Ui.DataGrid.Data(_products).RowKey(p => p.Id).PageSize(25)[c => [
             c.Field(p => p.Name).Title("Product").Sortable(true),
             c.Field(p => p.PriceAmount).Title("Price").Sortable(true),
         ]];
@@ -558,9 +563,9 @@ public sealed partial class NewProductPage(Navigator nav) : Component
 
     protected override Component Render() =>
         Form.Model(_product).OnSubmit(CreateAsync)[submitting => [
-            UiInput.Bind(() => _product.Name).Label("Name"),
-            UiInput.Bind(() => _product.Price!.Amount).Label("Price"),
-            UiButton.Type(UiButtonType.Submit).Disabled(submitting)["Create"],
+            Ui.Input.Bind(() => _product.Name).Label("Name"),
+            Ui.Input.Bind(() => _product.Price!.Amount).Label("Price"),
+            Ui.Button.Type(Ui.ButtonType.Submit).Disabled(submitting)["Create"],
         ]];
 
     private async Task CreateAsync(ProductModel product)
@@ -588,11 +593,11 @@ public sealed partial class EditProductPage(Navigator nav) : Component
     protected override Component? Render() =>
         _product is null ? P["Loading…"] :
         Form.Model(_product).OnSubmit(SaveAsync)[
-            _conflict is null ? null : UiAlert.Tone(UiTone.Warning)[_conflict],
-            UiInput.Bind(() => _product.Name).Label("Name"),
-            UiInput.Bind(() => _product.Price!.Amount).Label("Price"),
-            UiTextarea.Bind(() => _product.Notes).Label("Notes"),
-            UiButton.Type(UiButtonType.Submit)["Save"],
+            _conflict is null ? null : Ui.Alert.Tone(Ui.Tone.Warning)[_conflict],
+            Ui.Input.Bind(() => _product.Name).Label("Name"),
+            Ui.Input.Bind(() => _product.Price!.Amount).Label("Price"),
+            Ui.Textarea.Bind(() => _product.Notes).Label("Notes"),
+            Ui.Button.Type(Ui.ButtonType.Submit)["Save"],
         ];
 
     private async Task SaveAsync(ProductModel edit)
@@ -626,7 +631,8 @@ default, so an entity that says nothing is unchanged.
 | `Stamps` | `Timestamps` | `All` | `CreatedAt` and `UpdatedAt` |
 | `Deletes` | `Deletion` | `Hard` | whether `DeleteAsync` removes the row, stamps `DeletedAt`, or [is not generated at all](#behaviour-rich-aggregates) (`None`) |
 | `Checks` | `Concurrency` | `Version` | the optimistic-concurrency token |
-| `Scope` | `Tenancy` | `Shared` | whether the table is partitioned by tenant — see [Multi-tenancy](#multi-tenancy) |
+| `Scope` | `Tenancy` | `Shared` | whether the table is partitioned by tenant — see [Multi-tenancy](multi-tenancy.md) |
+| `Broadcast` | `Broadcasts` | `Never` | whether a save is announced to the whole process — see [Announcing a save](#announcing-a-save) |
 
 ```csharp
 public sealed class Order : Aggregate<Guid>
@@ -645,6 +651,36 @@ public sealed class Reading : Aggregate<Guid>
     public const Concurrency Checks = Concurrency.None;    // and nothing edits one twice
 }
 ```
+
+### Announcing a save
+
+A save already refreshes the screen of the session that made it — that is `IDataChanges`, and it costs nothing and
+needs no declaration. What it deliberately does not do is reach anyone else's screen, because another session's cache
+is not this save's to touch.
+
+`Broadcast` is that other half:
+
+```csharp
+public sealed class Order : Aggregate<Guid>
+{
+    public const Broadcasts Broadcast = Broadcasts.OnCommit;
+}
+```
+
+The save is now announced to the whole process once it commits, and every query that reads orders refetches — a
+read face keyed `QueryKey.For<Order>(…)`, or a message query carrying `[Live(typeof(Order))]`. Nothing is said in the
+component; see [live queries](query.md#staying-fresh). Nothing is published unless a page is listening, and the
+page's own query decides who may see the refresh.
+
+Three things worth knowing:
+
+- **After the commit, never on a rollback** — the same rule the interceptors already follow.
+- **It needs no session.** A background job's write announces itself; `IDataChanges` could not, having no session's
+  cache to invalidate. That is the gap this closes.
+- **It is off by default**, so nothing is published for a table no page is watching.
+
+Like every subscription in Rask today, it reaches the process it was published in. Behind a load balancer, a page on
+the other server catches up on its next refetch.
 
 **Why a `const` and not an attribute.** C# refuses a non-constant initializer, so the value is always there to
 be read at compile time — the generator can never quietly fail to find it and emit the whole surface anyway.
@@ -857,7 +893,7 @@ public sealed class Product : Aggregate<Guid>
 | `Current.UserId` | the signed-in user's id (`Guid?`), or `null` when the work is for nobody |
 | `Current.RequiredUserId` | the same, or an `InvalidOperationException` when there is none |
 | `Current.Principal` | the session's or request's `ClaimsPrincipal` — roles, email, any claim |
-| `Current.Tenant` / `Current.RequiredTenant` | the tenant in flight — see [Multi-tenancy](#multi-tenancy) |
+| `Current.Tenant` / `Current.RequiredTenant` | the tenant in flight — see [Multi-tenancy](multi-tenancy.md) |
 | `Current.UseUser(id)` | a scope that runs the work for `id` — a test, or a tool acting for a user |
 
 **Where it is set.** For a live session's work (rendering, event handlers), for every HTTP request (a minimal API,
@@ -877,138 +913,26 @@ Inside a component, inject `IUserProvider` as before — it also raises `Changed
 
 ## Multi-tenancy
 
-One `const` partitions a table by tenant. Opt-in, so a table that says nothing is one table for everybody,
-exactly as it is today:
+One `const` partitions a table by tenant. Opt-in, so a table that says nothing is one table for everybody:
 
 ```csharp
 public sealed class Invoice : Aggregate<Guid>
 {
     public const Tenancy Scope = Tenancy.PerTenant;
-
-    public string Reference { get; private set; } = "";
 }
+
+var invoices = await Invoice.Read.OrderByDescending(i => i.CreatedAt).Take(20).ToListAsync();   // this tenant's
 ```
 
 That gives the table a `TenantId` column, a query filter no read can compose away, and a `TenantId` prefix on
-every index it has. A child entity takes its root's answer and carries the column itself, because a child's
-read face is queryable on its own and would otherwise return every tenant's rows.
+every index. The tenant is the signed-in user's — it rides on the principal as the `rask:tenant` claim — so the
+read above filters with nothing passed to it; `Tenant.Use(id)` and `Tenant.Across()` say otherwise explicitly.
+A tenant-scoped read with no tenant **throws** rather than return nothing, `IgnoreQueryFilters()` never
+crosses tenants, and a create stamps the tenant while an update refuses to move a row between tenants. The
+context calls `modelBuilder.ApplyRaskConventions(this)`, which `rask new` writes.
 
-### Where the tenant comes from
-
-**The signed-in user's.** The tenant is an outcome of authentication rather than an input to routing: signing
-in finds the user, and the user says which tenant they belong to. It travels on the `ClaimsPrincipal` as the
-`rask:tenant` claim, and the data layer reads it back — which is what lets a page do this with nothing passed
-to it:
-
-```csharp
-var invoices = await Invoice.Read.OrderByDescending(i => i.CreatedAt).Take(20).ToListAsync();
-```
-
-A restored session carries it too, so a reconnect comes back in the same tenant.
-
-`Current.Tenant` says which tenant that is, from anywhere: an explicit `Tenant.Use` scope first, then the
-signed-in user's claim, and `null` inside `Tenant.Across()`.
-
-### Saying which tenant explicitly
-
-```csharp
-using (Tenant.Use(acmeId))          // work as this tenant
-{
-    await Invoice.CreateAsync(model);
-}
-
-using (Tenant.Across())             // deliberately span tenants — an admin tool, a migration
-{
-    var total = await Invoice.Read.CountAsync();
-}
-```
-
-An explicit scope always beats the principal, which is what a background job relies on.
-
-### A read with no tenant throws
-
-```csharp
-await Invoice.Read.ToListAsync();   // InvalidOperationException, when nothing says which tenant
-```
-
-Deliberately, and it is the decision most worth understanding. Returning *nothing* would be safe against
-leaks and **indistinguishable from an empty database** — the failure that costs the most time to find.
-Returning *everything* would be the leak itself. So it refuses, and says how to say which tenant.
-
-### `IgnoreQueryFilters()` does not cross tenants
-
-```csharp
-await Invoice.Read.IgnoreQueryFilters().ToListAsync();   // includes soft-deleted; SAME tenant
-```
-
-It means "include soft-deleted rows" and leaves the tenant filter exactly where it is, so an existing call
-never quietly becomes a cross-tenant read the day an aggregate declares `Scope`. Crossing tenants is
-`Tenant.Across()` — one thing, greppable, that a reviewer can find.
-
-### Indexes are prefixed for you
-
-`HasIndex(p => p.Sku).IsUnique()` on a partitioned table would otherwise mean "no two tenants may ever use
-the same SKU", and the symptom is one tenant unable to create a row because a different tenant already has
-it, with nothing in the code saying so. Rask puts `TenantId` at the front of every index on a tenant-scoped
-entity, so uniqueness means *within this tenant* and the filtered query can use the index.
-
-### Writes stamp it, and it never moves
-
-A create records the tenant in flight — the signed-in user's, with no `Tenant.Use` needed; an update that would
-move a row to another tenant is refused. The
-column is never on the generated form model, so a post cannot set it.
-
-### Accounts and background work carry a tenant without being partitioned
-
-Two tables carry a tenant as **data** rather than as a partition, and both for a reason:
-
-- **Accounts.** An administrator belongs to no tenant. A partitioned table is stamped from the ambient tenant
-  and refused without one, so a `PerTenant` accounts table could not have an admin inserted into it at all.
-  `Rask.Auth` maps the tenant itself, and an address is unique *within* a tenant — so the same person can
-  hold an account at two companies.
-- **Queues.** An outbox message, a job and a queued mail each record the tenant they were enqueued for, and
-  the runner re-enters it before publishing, handling or sending. A job records the user too, so its handler
-  reads `Current.UserId` exactly as the page that enqueued it would have. They must not be filtered: one runner
-  drains everybody's work, and a filter would hide other tenants' rows from it. A row enqueued by the host
-  itself, or inside `Tenant.Across()`, records no tenant, which is an ordinary answer rather than an error.
-
-### What it needs from the host
-
-The context passes itself to the conventions, and says it can answer which tenant:
-
-```csharp
-public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
-    : RaskDbContext(options)
-{
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        base.OnModelCreating(modelBuilder);
-        modelBuilder.ApplyRaskConventions(this);   // `this`, so the filter can read the tenant
-    }
-}
-```
-
-`rask new` writes that. The argument is not decoration: a query filter is compiled into EF Core's **cached**
-model, so reading the tenant through a `static` is evaluated once and inlined into the SQL as a literal —
-the first tenant to run a query would pin that value for every tenant after it. Reaching it through the
-context makes EF lift it to a real parameter and re-bind it per query.
-
-The auditing interceptors must be registered, as they already must be for `CreatedAt`. Without them nothing
-stamps `TenantId`, every insert stores null, and the rows are invisible to every tenant — an empty result
-rather than an error.
-
-### On each provider
-
-| | SQLite | PostgreSQL | SQL Server |
-|---|---|---|---|
-| tenant filter | ✅ | ✅ | ✅ |
-| account uniqueness per tenant | ✅ | ✅ | ✅ |
-
-The accounts index is over a column that folds a null tenant to `Guid.Empty`, not over the nullable tenant
-itself, because **NULL in a unique index is not portable**: SQLite and PostgreSQL treat two NULLs as
-distinct — so any number of administrators could share one address — while SQL Server treats them as equal,
-so only one could. Same schema, three behaviours, and the kind that passes every test on the default
-provider. Folding the null away makes one ordinary index that behaves identically everywhere.
+Where the tenant comes from, administrators, what it means for jobs, mail, the outbox, the cache, file storage
+and accounts, and how each provider behaves: **[Multi-tenancy](multi-tenancy.md)**.
 
 ## Writing: plain EF Core
 
@@ -1042,17 +966,17 @@ public sealed record CancelOrder(Guid Id, int Version) : ICommand;
 public sealed class CancelOrderHandler(IDbContextFactory<RaskAppDbContext> contexts, TimeProvider clock)
     : ICommandHandler<CancelOrder>
 {
-    public async Task Handle(CancelOrder command)
+    public async Task HandleAsync(CancelOrder command, CancellationToken ct)
     {
-        await using var db = await contexts.CreateDbContextAsync(Current.Cancellation);
+        await using var db = await contexts.CreateDbContextAsync(ct);
 
-        var order = await db.Set<Order>().FindAsync([command.Id], Current.Cancellation)
+        var order = await db.Set<Order>().FindAsync([command.Id], ct)
                     ?? throw new KeyNotFoundException($"There is no order {command.Id}.");
 
         db.Entry(order).Property(o => o.Version).OriginalValue = command.Version;   // see Optimistic concurrency
         order.Cancel(clock.GetUtcNow().UtcDateTime);                                 // the decision, and its event
 
-        await db.SaveChangesAsync(Current.Cancellation);                                               // stamped, versioned, published
+        await db.SaveChangesAsync(ct);                                               // stamped, versioned, published
     }
 }
 ```
@@ -1064,17 +988,17 @@ Work that has to land together — placing an order and reserving its stock — 
 public sealed class PlaceOrderHandler(IDbContextFactory<RaskAppDbContext> contexts)
     : ICommandHandler<PlaceOrder, Guid>
 {
-    public async Task<Guid> Handle(PlaceOrder command)
+    public async Task<Guid> HandleAsync(PlaceOrder command, CancellationToken ct)
     {
-        await using var db = await contexts.CreateDbContextAsync(Current.Cancellation);
+        await using var db = await contexts.CreateDbContextAsync(ct);
 
-        var stock = await db.Set<StockItem>().FirstAsync(s => s.Sku == command.Sku, Current.Cancellation);
+        var stock = await db.Set<StockItem>().FirstAsync(s => s.Sku == command.Sku, ct);
         stock.Reserve(command.Quantity);
 
         var order = Order.Place(command.Sku, command.Quantity);
         db.Add(order);
 
-        await db.SaveChangesAsync(Current.Cancellation);   // both rows in one transaction, or neither
+        await db.SaveChangesAsync(ct);   // both rows in one transaction, or neither
         return order.Id;
     }
 }
@@ -1349,9 +1273,11 @@ derive from it is an ordinary EF Core entity: write your own `DbContext`, your o
 
 Registering an `IDbContextFactory<YourContext>` is the whole of opting out at the app level. Rask binds
 the model surface and every database-backed battery to the context you registered, and
-`RaskAppDbContext` is never constructed. Call `modelBuilder.ApplyRaskConventions()` from its
-`OnModelCreating` to keep the soft-delete filters and concurrency tokens, or
-`ModelRegistry.Apply(modelBuilder)` to keep every declared entity mapped as well.
+`RaskAppDbContext` is never constructed. Call `modelBuilder.ApplyRaskConventions(this)` from its
+`OnModelCreating` to keep the query filters (soft delete where an aggregate opts in, and the
+[tenant](multi-tenancy.md)) and the concurrency tokens, or `ModelRegistry.Apply(modelBuilder)` to keep every
+declared entity mapped as well. A context with a tenant-scoped table implements `ITenantScoped`, as
+`RaskDbContext` does; the parameterless `ApplyRaskConventions()` is for one without.
 
 ## Wiring, when Rask is not hosting
 
@@ -1381,7 +1307,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : RaskD
     {
         base.OnModelCreating(modelBuilder);  // every Entity<TId> you declared
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
-        modelBuilder.ApplyRaskConventions(); // query filters + concurrency tokens — always last
+        modelBuilder.ApplyRaskConventions(this); // query filters + concurrency tokens — always last
     }
 }
 ```
@@ -1392,15 +1318,43 @@ cannot change the base type — it is already someone else's — call `ModelRegi
 place of `base.OnModelCreating`, and `ModelRegistry.ApplyConventions(configurationBuilder)` from an
 overridden `ConfigureConventions`.
 
+**Who is signed in, and what a save should refresh.** A Rask host also registers two scoped seams, and a host
+of your own registers what it needs of them:
+
+| Seam | What it answers | Without it |
+|---|---|---|
+| `IPrincipalSource` | `Current` — the principal of the session or request, and through it `Current.UserId` and the tenant a [tenant-scoped](multi-tenancy.md) read filters by | `Current.UserId` is `null`, and a tenant-scoped read throws unless a `Tenant.Use` scope says which tenant |
+| `IDataChanges` | told which entity types a save wrote, once it commits — a Rask host refreshes the session's [Rask.Query](query.md) queries about them | nothing is told, which is the right answer where no screen is waiting |
+
+Both are **scoped**, because the principal is, and a read is a static call that runs outside any DI scope — so
+open `Db.UseScope(scope)` around each request's work, after authentication, and every read and write inside
+it resolves them from that scope:
+
+```csharp
+builder.Services.AddScoped<IPrincipalSource, HttpPrincipalSource>();   // yours: returns HttpContext.User
+
+app.UseAuthentication();
+app.Use(async (context, next) =>
+{
+    using (Db.UseScope(context.RequestServices))
+    {
+        await next(context);
+    }
+});
+```
+
+Outside any scope — a hosted service's loop, a test — say who the work is for with `Current.UseUser(id)` and
+`Tenant.Use(id)`, or clear the tenant with `Tenant.None()`.
+
 ## What the interceptors do
 
 - **`AuditingInterceptor`** — stamps `CreatedAt`/`UpdatedAt` (UTC, from an injectable `TimeProvider`) and
   increments each aggregate's `Version` on update, so the stored token changes (SQLite has no rowversion).
-- **`SoftDeleteInterceptor`** — rewrites a `Deleted` aggregate to `Modified` + sets `DeletedAt`.
-  Your handler just calls `db.Remove(entity)`; to restore, load with `IgnoreQueryFilters()` and clear
-  `DeletedAt`.
+- **`SoftDeleteInterceptor`** — for an aggregate that declares `Deletes = Deletion.Soft`, rewrites a `Deleted`
+  entry to `Modified` + sets `DeletedAt`. Your handler just calls `db.Remove(entity)`; to restore, load with
+  `IgnoreQueryFilters()` and clear `DeletedAt`. Every other entity's delete removes the row.
 - **`DomainEventInterceptor`** — after the change commits, publishes each entity's `DomainEvents`
-  through `IDispatcher.Publish` (in a fresh scope) and clears them. Any
+  through `IDispatcher.PublishAsync` (in a fresh scope) and clears them. Any
   `INotificationHandler<T>` registered by `AddRaskCqrs()` reacts automatically.
 
   It **stands down on its own** when something else owns delivery — [`Rask.Outbox`](outbox.md) claims it by
@@ -1563,7 +1517,7 @@ constraint keeping `lo < hi`; it assumes well-formed ranges and says nothing abo
 | Option | Effect |
 | --- | --- |
 | `partitionBy` | Scopes the rule: `x => x.RoomId`, or `x => new { x.Sku, x.Region }`. Omit for table-wide. |
-| `ignoreSoftDeleted` | Lets a soft-deleted row free its slot. Defaults to on for aggregates, ignored otherwise. |
+| `ignoreSoftDeleted` | Lets a soft-deleted row free its slot. Applies only to an aggregate that declares `Deletes = Deletion.Soft`, where it defaults to on; a hard-deleted row has already freed its slot. |
 
 Three things worth knowing:
 
@@ -1596,25 +1550,28 @@ the migration creates a real full-text index:
 modelBuilder.Entity<Product>().HasFullTextSearch(p => new { p.Name, p.Description });
 ```
 
-Then search from the model type, a context, or a grid:
+Then search from the read face, a context, or a grid:
 
 ```csharp
 await Product.Read.Search(query).Where(p => p.Active).Take(20).ToListAsync();
 await db.Set<Product>().Search(query).CountAsync();
-UiDataGrid.Data(Product.Read.Search(query).AsQueryable())
+Ui.DataGrid.Data(Product.Read.Search(query).AsQueryable())
 ```
 
 `Search(text)` keeps every row containing all of the typed words — any order, any case, diacritics
 ignored, the last word as a prefix — **best match first**, and keeps composing; a later `OrderBy`
 replaces the rank order. The text is always words, never query syntax, so nothing a user types can break
-the query. Blank text filters nothing. `FullText.Highlight(p.Name)` and `FullText.Snippet(p.Description)`
-inside a `Select` return the matched terms marked, rendered safely by `UiHighlight.Text(...)`.
+the query. `FullText.Highlight(p.Name)` and `FullText.Snippet(p.Description)` inside a `Select` return the
+matched terms marked, rendered safely by `Ui.Highlight.Text(...)`.
 
-The index lives in the database and triggers keep it current, so raw SQL and other processes are searchable
-too. Adding the declaration to an existing table is its own migration, which fills the index from the rows
-already there. Requires `UseRaskSqlite(...)`; on any other provider `AddRaskData<TContext>` **refuses to
-boot** rather than letting the first search fail. How it works, the tokenizers and the costs are in
-[Rask.SQLite — Full-text search](sqlite.md#full-text-search--fts5-through-ef-core).
+It runs on **SQLite** (`UseRaskSqlite`, or a plain `UseSqlite` plus `UseRaskFullTextSearch()`), **in the
+browser** on the same FTS5 index, and on **PostgreSQL** (`UseRaskPostgres`, a generated `tsvector` column with a
+GIN index). The database keeps the index current, so raw SQL and other processes are searchable too. On SQL
+Server `AddRaskData<TContext>` **refuses to boot** rather than letting the first search fail. How it works on
+each, the tokenizers and the costs: **[Full-text search](full-text-search.md)**.
+
+A filter on a value inside a JSON column gets an index the same way — `HasJsonIndex(o => o.Meta.Status)`, on
+SQLite: see [Rask.SQLite](sqlite.md#indexing-a-value-inside-a-json-column).
 
 ## Choosing the database
 
@@ -1697,14 +1654,18 @@ query, and reach code that opens the `DbConnection` itself. Behind PgBouncer in 
 to its `ignore_startup_parameters`, or set the timeouts to `TimeSpan.Zero` and configure them on the role.
 
 Everything in this guide works unchanged: the interceptors, the ambient `Db`, bulk insert (which spells its
-SQL through the provider), and the jobs, mail, outbox and cache batteries, whose leased claim is proven
-against a real server. Two things change:
+SQL through the provider), [multi-tenancy](multi-tenancy.md), and the jobs, mail, outbox and cache batteries,
+whose leased claim is proven against a real server. [Full-text search](full-text-search.md#postgresql) works
+too — the same `HasFullTextSearch` and `Search(text)`, on a stored generated `tsvector` column with a GIN index
+that PostgreSQL keeps current itself, with no triggers. Three things change:
 
 - **Retrying refuses a transaction you open yourself** outside the execution strategy. Wrap a hand-written
   `BeginTransaction` in `context.Database.CreateExecutionStrategy().ExecuteAsync(...)`, or set
   `Rask:Postgres:Retry:Enabled` to `false`.
 - **The file-shaped batteries do not apply.** Litestream and snapshots replicate or copy a SQLite file, and
   there is no file — back up with your provider's snapshots or `pg_dump`.
+- **`HasJsonIndex` and non-overlapping ranges are SQLite-only for now.** A context that declares either on
+  PostgreSQL is refused at boot rather than left to scan or to allow overlaps silently.
 
 ## SQL Server
 
@@ -1728,7 +1689,9 @@ SqlClient resets them on every pooled open. Retrying (`Retry`) is SQL Server's o
 `Rask:SqlServer` in `appsettings.json` (`"LockTimeout": "00:00:03"`, `"Retry": { "MaxCount": 3 }`); a callback —
 `UseRaskSqlServer(sp, s => …)` — runs after the section and wins.
 
-Everything in this guide works unchanged, with the same three things to know as on PostgreSQL:
+Everything in this guide works unchanged except full-text search, `HasJsonIndex` and non-overlapping ranges,
+which a context on SQL Server cannot declare — it is refused at boot, naming the declaration. Three things to
+know, as on PostgreSQL:
 
 - **Retrying refuses a transaction you open yourself** outside the execution strategy — wrap it in
   `context.Database.CreateExecutionStrategy().ExecuteAsync(...)`, or set `Rask:SqlServer:Retry:Enabled` to `false`.

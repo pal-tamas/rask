@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A line between two parts of a page, optionally with a word on it — Flux UI's separator.
@@ -20,7 +20,7 @@ public sealed partial class UiDivider : Component
     /// <summary>The word on the line — "or", "then". Omitted, it is a plain rule.</summary>
     public new string? Text { get; set; }
 
-    public UiTone? Tone { get; set; }
+    public Ui.Tone? Tone { get; set; }
 
     /// <summary>Runs down instead of across. daisyUI's <c>divider-horizontal</c>.</summary>
     public bool? Vertical { get; set; }
@@ -29,10 +29,10 @@ public sealed partial class UiDivider : Component
     public bool? Subtle { get; set; }
 
     /// <summary>
-    ///     Moves the word to one end: <see cref="UiAlign.Start" /> or <see cref="UiAlign.End" />. Centred unless this
+    ///     Moves the word to one end: <see cref="Ui.Align.Start" /> or <see cref="Ui.Align.End" />. Centred unless this
     ///     says otherwise.
     /// </summary>
-    public UiAlign? Align { get; set; }
+    public Ui.Align? Align { get; set; }
 
     public string? Class { get; set; }
 

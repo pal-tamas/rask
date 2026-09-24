@@ -24,12 +24,12 @@ public partial class StructuralQueryTests : global::Rask.Core.RaskMarkup
             ];
     }
 
-    private static Page<Card> Page() => Test.Render(new Card());
+    private static Page<Card> Rendered() => Page.Render(new Card());
 
     [Fact]
     public void Find_hands_back_the_element_not_just_an_attribute()
     {
-        var badge = Page().Find("#items li.selected .pill");
+        var badge = Rendered().Find("#items li.selected .pill");
 
         Assert.Equal("span", badge.Tag);
         Assert.Equal("7", badge.TextContent);
@@ -39,7 +39,7 @@ public partial class StructuralQueryTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void FindAll_is_in_document_order()
     {
-        var badges = Page().FindAll(".pill");
+        var badges = Rendered().FindAll(".pill");
 
         Assert.Equal(["3", "7"], badges.Select(b => b.TextContent));
     }
@@ -49,7 +49,7 @@ public partial class StructuralQueryTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Find_refuses_to_pick_between_several_matches()
     {
-        var error = Assert.Throws<InvalidOperationException>(() => Page().Find("li"));
+        var error = Assert.Throws<InvalidOperationException>(() => Rendered().Find("li"));
 
         Assert.Contains("2 elements match", error.Message, StringComparison.Ordinal);
         Assert.Contains("FindAll", error.Message, StringComparison.Ordinal);
@@ -58,7 +58,7 @@ public partial class StructuralQueryTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Find_says_which_part_of_the_selector_failed()
     {
-        var error = Assert.Throws<InvalidOperationException>(() => Page().Find("#items .missing"));
+        var error = Assert.Throws<InvalidOperationException>(() => Rendered().Find("#items .missing"));
 
         // The near-miss is the useful half: "#items matches 1, so the rest is what fails" points at the
         // typo, where "no element matches" only says you were wrong somewhere.
@@ -71,13 +71,13 @@ public partial class StructuralQueryTests : global::Rask.Core.RaskMarkup
     {
         // The <li> is a <span> plus a text node; TextOf reads the whole subtree, which is what an
         // assertion about "the row says 7 shipped" actually means.
-        Assert.Equal("7 shipped", Page().TextOf("#items li.selected"));
+        Assert.Equal("7 shipped", Rendered().TextOf("#items li.selected"));
     }
 
     [Fact]
     public void TextOf_collapses_whitespace_to_what_a_reader_sees()
     {
-        var page = Test.Render(new Spaced());
+        var page = Page.Render(new Spaced());
 
         Assert.Equal("Total 42 items", page.TextOf("#t"));
     }
@@ -91,13 +91,13 @@ public partial class StructuralQueryTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void TestId_finds_the_stable_hook()
     {
-        Assert.Equal("Refresh", Page().TestId("refresh").TextContent);
+        Assert.Equal("Refresh", Rendered().TestId("refresh").TextContent);
     }
 
     [Fact]
     public void Path_names_the_element_so_a_failure_is_findable()
     {
-        Assert.Equal("div.panel.shadow-sm > ul#items > li.item.selected", Page().Find("li.selected").Path());
+        Assert.Equal("div.panel.shadow-sm > ul#items > li.item.selected", Rendered().Find("li.selected").Path());
     }
 
     [Theory]
@@ -108,7 +108,7 @@ public partial class StructuralQueryTests : global::Rask.Core.RaskMarkup
     {
         // The whole justification for a subset instead of a partial implementation: a selector that
         // silently matched nothing because ':nth-child' was ignored would turn a green test into a lie.
-        var error = Assert.Throws<ArgumentException>(() => Page().FindAll(selector));
+        var error = Assert.Throws<ArgumentException>(() => Rendered().FindAll(selector));
 
         Assert.Contains(expected, error.Message, StringComparison.Ordinal);
         Assert.Contains("does not support", error.Message, StringComparison.Ordinal);
@@ -117,7 +117,7 @@ public partial class StructuralQueryTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Attributes_are_decoded_not_as_the_serializer_wrote_them()
     {
-        var page = Test.Render(new Quoted());
+        var page = Page.Render(new Quoted());
 
         Assert.Equal("a \"quoted\" & <angled> title", page.Find("#t").Attribute("title"));
         Assert.Equal("3 < 5 & 5 > 3", page.TextOf("#t"));

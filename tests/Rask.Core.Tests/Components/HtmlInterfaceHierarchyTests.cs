@@ -28,7 +28,7 @@ public partial class HtmlInterfaceHierarchyTests : global::Rask.Core.RaskMarkup
     [InlineData(typeof(Thead), typeof(HtmlTableSectionElement))]
     [InlineData(typeof(Tbody), typeof(HtmlTableSectionElement))]
     [InlineData(typeof(Tfoot), typeof(HtmlTableSectionElement))]
-    public void Each_tag_derives_from_its_DOM_interface_base(Type tag, Type domInterfaceBase)
+    public void Tag_derives_from_dom_interface_base(Type tag, Type domInterfaceBase)
     {
         Assert.True(domInterfaceBase.IsAbstract, $"{domInterfaceBase.Name} should be abstract");
         Assert.True(domInterfaceBase.IsAssignableFrom(tag),
@@ -38,7 +38,7 @@ public partial class HtmlInterfaceHierarchyTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Audio_is_a_media_element_with_no_attributes_of_its_own() =>
+    public void Audio_is_media_element_with_no_body_of_its_own() =>
         // Audio carries no attributes of its own — they live entirely on the shared base.
         Assert.IsAssignableFrom<HtmlMediaElement>(Audio);
 }

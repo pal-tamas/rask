@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// One titled section of a <see cref="UiAccordion" />.
@@ -14,7 +14,7 @@ public sealed partial class UiAccordionSection : Component
     public required string Title { get; set; }
 
     /// <summary>Draws the arrow or plus marker.</summary>
-    public UiMarker? Marker { get; set; }
+    public Ui.Marker? Marker { get; set; }
 
     public string? Class { get; set; }
 
@@ -26,8 +26,8 @@ public sealed partial class UiAccordionSection : Component
         // reader needs names the two components they typed.
         var state = Context.Get<UiAccordionState>()
             ?? throw new InvalidOperationException(
-                $"UiAccordionSection \"{Title}\" is not inside a UiAccordion. Put it in one: "
-                + "UiAccordion.Open(key).OnOpen(k => …)[ UiAccordionSection.Key(\"a\").Title(\"…\")[ … ] ].");
+                $"Ui.AccordionSection \"{Title}\" is not inside a Ui.Accordion. Put it in one: "
+                + "Ui.Accordion.Open(key).OnOpen(k => …)[ Ui.AccordionSection.Key(\"a\").Title(\"…\")[ … ] ].");
 
         var key = Key as string;
         var open = key is not null && state.Open == key;
@@ -45,7 +45,7 @@ public sealed partial class UiAccordionSection : Component
         return Div.Class(UiClass.Compose(
             "collapse join-item border border-base-300 bg-base-100",
             Marker is { } marker ? UiClassNames.Marker(marker) : "",
-            // Both, for the same reason UiDropdown writes dropdown-close: `collapse` opens on
+            // Both, for the same reason Ui.Dropdown writes dropdown-close: `collapse` opens on
             // :focus-within too, so omitting collapse-open is not the same as being closed.
             open ? "collapse-open" : "collapse-close",
             Class))[

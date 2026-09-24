@@ -11,6 +11,9 @@ Rask.Data.AmbientContextBinding.ContextType.get -> System.Type!
 Rask.Data.AmbientContextBinding.CreateContext() -> Microsoft.EntityFrameworkCore.DbContext!
 Rask.Data.AuditingInterceptor
 Rask.Data.AuditingInterceptor.AuditingInterceptor(System.TimeProvider! timeProvider) -> void
+Rask.Data.Broadcasts
+Rask.Data.Broadcasts.Never = 0 -> Rask.Data.Broadcasts
+Rask.Data.Broadcasts.OnCommit = 1 -> Rask.Data.Broadcasts
 Rask.Data.BulkInsertExtensions
 Rask.Data.BulkInsertOptions
 Rask.Data.BulkInsertOptions.BatchSize.get -> int
@@ -58,9 +61,12 @@ Rask.Data.IEntity
 Rask.Data.IHasDomainEvents
 Rask.Data.IHasDomainEvents.ClearDomainEvents() -> void
 Rask.Data.IHasDomainEvents.DomainEvents.get -> System.Collections.Generic.IReadOnlyList<Rask.Cqrs.INotification!>!
+Rask.Data.IPrincipalSource
+Rask.Data.IPrincipalSource.Current.get -> System.Security.Claims.ClaimsPrincipal?
 Rask.Data.IReadModel
 Rask.Data.ITenantScoped
 Rask.Data.ITenantScoped.CurrentTenant.get -> System.Guid?
+Rask.Data.JsonIndexBuilderExtensions
 Rask.Data.ModelBuilderExtensions
 Rask.Data.ModelQuery<TEntity>
 Rask.Data.ModelQuery<TEntity>.AnyAsync(System.Linq.Expressions.Expression<System.Func<TEntity!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
@@ -216,6 +222,7 @@ override Rask.Data.SoftDeleteInterceptor.SavingChanges(Microsoft.EntityFramework
 override Rask.Data.SoftDeleteInterceptor.SavingChangesAsync(Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData! eventData, Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>>
 static Rask.Data.BulkInsertExtensions.BulkInsertAsync<TEntity>(this Microsoft.EntityFrameworkCore.DbContext! context, System.Collections.Generic.IEnumerable<TEntity!>! entities, System.Action<Rask.Data.BulkInsertOptions!>? configure = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
 static Rask.Data.BulkInsertExtensions.BulkInsertAsync<TEntity>(this Microsoft.EntityFrameworkCore.DbSet<TEntity!>! set, System.Collections.Generic.IEnumerable<TEntity!>! entities, System.Action<Rask.Data.BulkInsertOptions!>? configure = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+static Rask.Data.ConventionRegistry.Declare(System.Type! entity, Rask.Data.Broadcasts broadcasts) -> void
 static Rask.Data.ConventionRegistry.Declare(System.Type! entity, Rask.Data.Concurrency checks) -> void
 static Rask.Data.ConventionRegistry.Declare(System.Type! entity, Rask.Data.Deletion deletes) -> void
 static Rask.Data.ConventionRegistry.Declare(System.Type! entity, Rask.Data.Tenancy scope) -> void
@@ -236,6 +243,7 @@ static Rask.Data.GeneratedModelWrites.DeleteAsync<TEntity>(object! key, int? ver
 static Rask.Data.GeneratedModelWrites.ModelSourceAsync<TEntity>(object! key, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
 static Rask.Data.GeneratedModelWrites.UpdateAsync<TEntity>(object! key, int? version, System.Action<TEntity!>! apply, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity!>!
 static Rask.Data.GeneratedReadQuery.Of<TRead>() -> Rask.Data.ModelQuery<TRead!>!
+static Rask.Data.JsonIndexBuilderExtensions.HasJsonIndex<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! builder, System.Linq.Expressions.Expression<System.Func<TEntity!, object?>!>! path) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>!
 static Rask.Data.ModelBuilderExtensions.ApplyRaskConventions(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
 static Rask.Data.ModelBuilderExtensions.ApplyRaskConventions(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder, Microsoft.EntityFrameworkCore.DbContext! context) -> Microsoft.EntityFrameworkCore.ModelBuilder!
 static Rask.Data.ModelRegistry.Apply(Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
@@ -266,10 +274,6 @@ static Rask.Data.Tenant.None() -> System.IDisposable!
 static Rask.Data.Tenant.Resolve() -> System.Guid?
 static Rask.Data.Tenant.Use(System.Guid tenant) -> System.IDisposable!
 static Rask.Data.TestDatabase.StartAsync(System.Action<Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!>! configure, System.TimeProvider? timeProvider = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.TestDatabase!>!
-Rask.Data.JsonIndexBuilderExtensions
-static Rask.Data.JsonIndexBuilderExtensions.HasJsonIndex<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! builder, System.Linq.Expressions.Expression<System.Func<TEntity!, object?>!>! path) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>!
-Rask.Data.IPrincipalSource
-Rask.Data.IPrincipalSource.Current.get -> System.Security.Claims.ClaimsPrincipal?
 Rask.Data.CurrentUser
 Rask.Data.CurrentUser.extension(Rask.Current!)
 static Rask.Data.CurrentUser.UseUser(System.Guid? userId) -> System.IDisposable!

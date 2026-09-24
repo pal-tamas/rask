@@ -39,8 +39,8 @@ public sealed class RootShellAnalyzer : DiagnosticAnalyzer
 
     // Shell factory names the framework now owns, in canonical document order. Matched by the invoked
     // method's simple name — these are the generated factory names the user writes (Doctype(),
-    // Html(...), Head(), Body()).
-    private static readonly string[] _shellFactories = { "Doctype", "Html", "Head", "Body" };
+    // Document(...), Head(), Body()).
+    private static readonly string[] _shellFactories = { "Doctype", "Document", "Head", "Body" };
 
     private static readonly DiagnosticDescriptor Rask021 = new(
         "RASK021",
@@ -103,8 +103,8 @@ public sealed class RootShellAnalyzer : DiagnosticAnalyzer
         var produced = new HashSet<string>(StringComparer.Ordinal);
         foreach (var node in renderBody.DescendantNodes())
         {
-            // The factory spelling: `Html("en")`, `Head()`. The chain writes the same shell without ever
-            // invoking anything — `Html[ … ]` is an element access, and `Doctype` on its own is a bare
+            // The factory spelling: `Document("en")`, `Head()`. The chain writes the same shell without ever
+            // invoking anything — `Document[ … ]` is an element access, and `Doctype` on its own is a bare
             // identifier — so a scan over invocations alone saw none of it.
             var name = node switch
             {
@@ -163,7 +163,7 @@ public sealed class RootShellAnalyzer : DiagnosticAnalyzer
     ///     (RS1030) and this root's <c>Render()</c> generally lives in a different syntax tree from the entry
     ///     point being analysed. <c>Doctype</c> is safe to match on the name alone: nothing else is plausibly
     ///     called that, and the other three are still caught by the element-access arm, which is how a chain
-    ///     writes them (<c>Html[ … ]</c>).
+    ///     writes them (<c>Document[ … ]</c>).
     /// </remarks>
     private static bool IsBareDoctype(IdentifierNameSyntax id) =>
         string.Equals(id.Identifier.ValueText, "Doctype", StringComparison.Ordinal)
@@ -177,7 +177,7 @@ public sealed class RootShellAnalyzer : DiagnosticAnalyzer
         };
 
     // Simple name of an invoked or indexed expression: `Doctype()` → "Doctype",
-    // `Generated.Html(...)` → "Html", `Html[ … ]` → "Html", `Foo<T>()` → "Foo".
+    // `Generated.Document(...)` → "Document", `Document[ … ]` → "Document", `Foo<T>()` → "Foo".
     private static string? InvokedSimpleName(ExpressionSyntax expression) => expression switch
     {
         IdentifierNameSyntax id => id.Identifier.ValueText,

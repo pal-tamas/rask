@@ -28,9 +28,11 @@ namespace Rask.Site.Features.Islands;
 ///         inside the other — is refused by the build rather than mis-compiled.
 ///     </para>
 ///     <para>
-///         <see cref="ColorPicker" /> is a React component straight from npm, with no <c>.tsx</c> of its own, and it is
-///         a CHILD of <see cref="ReactCounter" />: it travels inside the counter's props and React renders both in one
-///         tree, so it has no host element of its own and its callback still reaches C#.
+///         <see cref="Colorful" /> is react-colorful straight from npm, with no <c>.tsx</c> of its own: two of its
+///         components, a picker and a hex field bound to one colour, reached as <c>Colorful.HexColorPicker</c> and
+///         <c>Colorful.HexColorInput</c>. Both are CHILDREN of <see cref="ReactCounter" />: they travel inside the
+///         counter's props and React renders all three in one tree, so neither has a host element of its own and their
+///         callbacks still reach C#.
 ///     </para>
 /// </remarks>
 public sealed partial class IslandsDemo : Component
@@ -58,7 +60,7 @@ public sealed partial class IslandsDemo : Component
 
     protected override Component? Render() =>
     [
-        UiCard.Class("shadow-sm mb-3")[
+        Ui.Card.Class("shadow-sm mb-3")[
                 H6.Class("font-bold")["A Vue island calling back into C#, in WebAssembly"],
                 P.Class("text-sm text-ui-muted")[
                     "The same ", Code["VueChart.vue"], " the Server showcase builds. Clicking a bar ",
@@ -77,19 +79,20 @@ public sealed partial class IslandsDemo : Component
                 ]
             ],
 
-        UiCard.Class("shadow-sm mb-3")[
+        Ui.Card.Class("shadow-sm mb-3")[
                 H6.Class("font-bold")["React and Svelte keeping their own state"],
                 P.Class("text-sm text-ui-muted")[
                     "Both hold state C# never sees. Raising the reading re-renders this component, and ",
                     "the counters below have to survive it — a remount would reset them, and nothing ",
-                    "else on the page would look any different. Inside the React counter is a colour ",
-                    "picker straight from npm, nested as a child island: no ", Code[".tsx"], " of its own, ",
-                    "its steps generated from the package's TypeScript."
+                    "else on the page would look any different. Inside the React counter are a colour ",
+                    "picker and its hex field straight from npm, nested as child islands: no ", Code[".tsx"],
+                    " of their own, their steps generated from the package's TypeScript."
                 ],
 
                 ReactCounter.Caption("Clicks since mount").Step(_step).OnTotalChanged(TotalChanged)[
                     "Pick a colour: ",
-                    ColorPicker.Color(_color).OnChange(ColorChanged)
+                    Colorful.HexColorPicker.Color(_color).OnChange(ColorChanged),
+                    Colorful.HexColorInput.Color(_color).Prefixed(true).OnChange(ColorChanged)
                 ],
 
                 Div.Class("mt-3")[
@@ -97,8 +100,8 @@ public sealed partial class IslandsDemo : Component
                 ],
 
                 Div.Class("flex gap-2 mt-3")[
-                    UiButton.Tone(UiTone.Primary).Id("island-raise").OnClick(Raise)["Raise the reading"],
-                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("island-reset").OnClick(Reset)["Reset"]
+                    Ui.Button.Tone(Ui.Tone.Primary).Id("island-raise").OnClick(Raise)["Raise the reading"],
+                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Id("island-reset").OnClick(Reset)["Reset"]
                 ],
 
                 P.Class("text-sm mt-3 mb-0")[
@@ -110,7 +113,7 @@ public sealed partial class IslandsDemo : Component
                 ]
             ],
 
-        UiCard.Class("shadow-sm mb-3")[
+        Ui.Card.Class("shadow-sm mb-3")[
                 H6.Class("font-bold")["A Lit island, beside this app's own scoped TypeScript"],
                 P.Class("text-sm text-ui-muted")[
                     Code["LitBadge.ts"], " imports nothing at all — a custom element needs no ",
@@ -128,7 +131,7 @@ public sealed partial class IslandsDemo : Component
                 ]
             ],
 
-        UiCard.Class("shadow-sm mb-3")[
+        Ui.Card.Class("shadow-sm mb-3")[
                 H6.Class("font-bold")["A Solid island, from the same file the Server showcase builds"],
                 P.Class("text-sm text-ui-muted")[
                     "Byte-identical to ", Code["SolidSpark.tsx"], " on the Server host. Its hover count ",

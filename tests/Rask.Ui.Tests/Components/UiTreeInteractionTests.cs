@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
 using Rask.Testing;
 
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     The tree's keyboard, its clicks and its two axes, driven through the real handlers.
@@ -23,7 +23,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
     ];
 
     private static UiTree<Node, string> Tree() =>
-        (UiTree<Node, string>)UiTree.Roots(Files)
+        (UiTree<Node, string>)Ui.Tree.Roots(Files)
             .NodeKey(n => n.Id)
             .Item(n => Span[n.Name])
             .Label("Files")[n => n.Kids];
@@ -47,7 +47,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task The_arrows_move_the_cursor_and_stop_at_the_ends()
     {
-        var page = Test.Render(Tree());
+        var page = Page.Render(Tree());
         Assert.Equal("src", Cursor(page.Html));
 
         await KeyAsync(page, "ArrowDown");
@@ -71,7 +71,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Right_opens_a_node_and_then_walks_into_it()
     {
-        var page = Test.Render(Tree());
+        var page = Page.Render(Tree());
 
         await KeyAsync(page, "ArrowRight");
         Assert.Contains("app.cs", page.Html, StringComparison.Ordinal);
@@ -85,7 +85,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Left_closes_a_node_and_then_climbs_to_its_parent()
     {
-        var page = Test.Render(Tree().ExpandDepth(1));
+        var page = Page.Render(Tree().ExpandDepth(1));
         await KeyAsync(page, "ArrowDown");
         Assert.Equal("app.cs", Cursor(page.Html));
 
@@ -99,7 +99,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Star_opens_every_sibling_that_has_children()
     {
-        var page = Test.Render(Tree());
+        var page = Page.Render(Tree());
 
         await KeyAsync(page, "*");
 
@@ -110,7 +110,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_modified_key_belongs_to_the_browser()
     {
-        var page = Test.Render(Tree());
+        var page = Page.Render(Tree());
 
         await page.On("[role=\"tree\"]").RaiseAsync("keydown", "{\"key\":\"ArrowDown\",\"ctrlKey\":true}");
 
@@ -121,7 +121,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
     public async Task Enter_selects_one_node_at_a_time()
     {
         var picked = new List<IReadOnlyList<string>>();
-        var page = Test.Render(Tree().Selection(UiTreeSelection.Single).OnSelectionChange(picked.Add));
+        var page = Page.Render(Tree().Selection(Ui.TreeSelection.Single).OnSelectionChange(picked.Add));
 
         await KeyAsync(page, "Enter");
         await KeyAsync(page, "ArrowDown");
@@ -135,7 +135,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
     public async Task Space_toggles_when_more_than_one_may_be_selected()
     {
         var picked = new List<IReadOnlyList<string>>();
-        var page = Test.Render(Tree().Selection(UiTreeSelection.Multiple).OnSelectionChange(picked.Add));
+        var page = Page.Render(Tree().Selection(Ui.TreeSelection.Multiple).OnSelectionChange(picked.Add));
 
         await KeyAsync(page, " ");
         await KeyAsync(page, "ArrowDown");
@@ -151,7 +151,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task With_nothing_selectable_Enter_opens_the_node_instead()
     {
-        var page = Test.Render(Tree());
+        var page = Page.Render(Tree());
 
         await KeyAsync(page, "Enter");
 
@@ -162,7 +162,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Typing_jumps_to_the_next_node_that_starts_with_it()
     {
-        var page = Test.Render(Tree().NodeText(n => n.Name));
+        var page = Page.Render(Tree().NodeText(n => n.Name));
 
         await KeyAsync(page, "R");
 
@@ -172,7 +172,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Without_NodeText_typing_does_nothing()
     {
-        var page = Test.Render(Tree());
+        var page = Page.Render(Tree());
 
         await KeyAsync(page, "R");
 
@@ -182,7 +182,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Clicking_a_row_moves_the_cursor_and_selects_it()
     {
-        var page = Test.Render(Tree().Selection(UiTreeSelection.Single));
+        var page = Page.Render(Tree().Selection(Ui.TreeSelection.Single));
 
         await page.On(".ui-tree-row:has-text(\"README.md\")").ClickAsync();
 
@@ -194,7 +194,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
     public async Task Clicking_the_twisty_only_opens_the_node()
     {
         var picked = new List<IReadOnlyList<string>>();
-        var page = Test.Render(Tree().Selection(UiTreeSelection.Single).OnSelectionChange(picked.Add));
+        var page = Page.Render(Tree().Selection(Ui.TreeSelection.Single).OnSelectionChange(picked.Add));
 
         // Every row has a twisty, so it is addressed by position: the first one belongs to the first root.
         await page.InvokeAsync(page.FindAll(".ui-tree-toggle")[0].Attributes["data-rask-on-click"]!);
@@ -206,7 +206,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_tree_that_holds_its_own_expansion_keeps_it_across_renders()
     {
-        var page = Test.Render(Tree());
+        var page = Page.Render(Tree());
 
         await KeyAsync(page, "ArrowRight");
         await KeyAsync(page, "ArrowDown");
@@ -218,7 +218,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
     public async Task A_controlled_tree_reports_and_waits_to_be_told()
     {
         var reported = new List<IReadOnlyList<string>>();
-        var page = Test.Render(Tree().Expanded([]).OnExpandedChange(reported.Add));
+        var page = Page.Render(Tree().Expanded([]).OnExpandedChange(reported.Add));
 
         await KeyAsync(page, "ArrowRight");
 
@@ -231,7 +231,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
     public async Task Hovering_reports_the_node_and_leaving_reports_nothing()
     {
         var hovered = new List<string?>();
-        var page = Test.Render(Tree().OnHover(n => hovered.Add(n?.Name)));
+        var page = Page.Render(Tree().OnHover(n => hovered.Add(n?.Name)));
 
         await page.On(".ui-tree-row:has-text(\"docs\")").RaiseAsync("pointerenter", "{\"pointerType\":\"mouse\"}");
         await page.On(".ui-tree-row:has-text(\"docs\")").RaiseAsync("pointerenter", "{\"pointerType\":\"mouse\"}");
@@ -245,7 +245,7 @@ public partial class UiTreeInteractionTests : global::Rask.Core.RaskMarkup
     public async Task A_touch_is_not_a_hover()
     {
         var hovered = new List<string?>();
-        var page = Test.Render(Tree().OnHover(n => hovered.Add(n?.Name)));
+        var page = Page.Render(Tree().OnHover(n => hovered.Add(n?.Name)));
 
         await page.On(".ui-tree-row:has-text(\"docs\")").RaiseAsync("pointerenter", "{\"pointerType\":\"touch\"}");
 

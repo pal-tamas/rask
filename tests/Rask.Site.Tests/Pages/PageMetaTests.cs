@@ -455,7 +455,7 @@ public sealed class PageMetaTests
     {
         var sp = TestServices.Default(routeState: TestRouteState.At(path));
 
-        // The prerender engine itself, not Test.RenderDocument: these pages load on an async mount,
+        // The prerender engine itself, not Page.RenderDocument: these pages load on an async mount,
         // and a single synchronous render returns the placeholder — or the error page, for one that
         // awaits. Going through RenderDocumentAsync means this asserts on the same bytes the publish
         // writes, which is the only version of the page that a crawler ever sees.

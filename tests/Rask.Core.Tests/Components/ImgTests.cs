@@ -5,7 +5,7 @@ namespace Rask.Core.Tests.Components;
 public partial class ImgTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Unset_props_render_only_the_self_closing_tag() => Assert.Equal("<img />", Img.ToHtml());
+    public void Unset_props_render_a_self_closing_tag() => Assert.Equal("<img />", Img.ToHtml());
 
     [Fact]
     public void Setting_every_prop_emits_the_expected_attributes()
@@ -32,7 +32,7 @@ public partial class ImgTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Fetch_priority_emits_after_the_other_img_attributes() =>
+    public void Fetch_priority_comes_after_the_other_image_attributes() =>
         // `high` on the LCP image is the one use with a measurable story: the browser discovers it at
         // the same moment either way, this just moves it ahead in the queue.
         Assert.Equal("<img src=\"/hero.png\" alt=\"Hero\" fetchpriority=\"high\" />",

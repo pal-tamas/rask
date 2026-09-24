@@ -21,7 +21,7 @@ public partial class MarkupTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void HandlerIds_lists_every_wired_element()
     {
-        var page = Test.Render(new Trio());
+        var page = Page.Render(new Trio());
 
         Assert.Equal(3, page.HandlerIds("click").Count);
         Assert.Equal(page.HandlerId("click"), page.HandlerIds("click")[0]);
@@ -34,7 +34,7 @@ public partial class MarkupTests : global::Rask.Core.RaskMarkup
         // The contract that matters: index N in the list drives the Nth wired element in the markup, not
         // merely *some* element. Without it the list would be unusable for targeting.
         var trio = new Trio();
-        var page = Test.Render(trio);
+        var page = Page.Render(trio);
 
         await page.InvokeAsync(page.HandlerIds("click")[1]);
 
@@ -48,7 +48,7 @@ public partial class MarkupTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void HandlerIds_is_empty_when_nothing_is_wired()
     {
-        var page = Test.Render(Div["nothing to click"]);
+        var page = Page.Render(Div["nothing to click"]);
 
         Assert.Empty(page.HandlerIds("click"));
     }
@@ -65,7 +65,7 @@ public partial class MarkupTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Attrs_lists_every_value_and_respects_attribute_boundaries()
     {
-        var page = Test.Render(new TwoLabelled());
+        var page = Page.Render(new TwoLabelled());
 
         Assert.Equal(["Close", "Open"], page.Attrs("aria-label"));
 

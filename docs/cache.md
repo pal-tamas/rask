@@ -93,6 +93,26 @@ it with `builder.Services.AddSession()` and `AddRaskCache` provides the store.
   `PurgeInterval` (default 5 minutes). Reads already evict lazily; the sweep is the backstop for entries that
   are simply never read again.
 
+`CacheEntry` is a Rask.Data entity with a read face, so the table can be looked at like any other —
+`CacheEntry.Read.OrderBy(e => e.Key).ToListAsync()` — without a context of your own.
+
+## One cache, isolated per tenant
+
+In an app with [multi-tenancy](multi-tenancy.md), each tenant gets its own value under the same key. With a
+tenant in flight — the signed-in user's, or a `Tenant.Use` scope — the stored key is prefixed with that tenant, so
+one tenant can neither read nor remove another's entry, whatever name it asks for. With no tenant in flight
+the key is stored as given, which is what keeps anonymous requests working: ASP.NET's session and output
+caching write through `IDistributedCache` with nobody signed in.
+
+It is isolated by the **key** rather than by a query filter, the way the rest of tenancy works, for two
+reasons. The purger has to sweep every tenant's expired rows, and a filter would hide them from it, so the
+table would only grow. And a tenant-partitioned table refuses a row with no tenant, so an anonymous page with
+output caching would fail the moment tenancy was switched on. Scoping the key also makes the isolation exact:
+a tenant cannot form another tenant's key, so there is nothing to get wrong in code written by hand.
+
+The scoping lives in the database-backed store. An `ICache` over [Redis](#if-you-already-run-redis) or another
+`IDistributedCache` stores the key as given, so put the tenant into it yourself there.
+
 ## Trim / AOT
 
 Values are stored as JSON. An untrimmed app serializes them with reflection and needs nothing. A trimmed or

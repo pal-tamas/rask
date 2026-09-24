@@ -107,6 +107,9 @@ dotnet run --project src/Rask.Site
   chain steps taken first (any order); `Bind` vs `Value` are mutually exclusive openings — both live on
   the ENTRY, so taking one leaves the other unreachable; type arguments are inferred from the opening
   step, or stated with `.Of<T>()`, which hands back the state still owing any required steps. See `docs/building-components.md`.
+- **Names:** elements + markup primitives are BARE (inherited by components; `using static Rask.Html` elsewhere;
+  `Html.Footer` when a member hides one; `<html>` is `Document`). Families are GROUPED, never bare — `Ui.Button`/`Ui.Tone`
+  (kit, namespace `Rask`), `Trigger.*`, `Validation.*`, an npm package class (`Mui.Button`) — via `[RaskChainGroup]`.
 - **The chain's receiver IS the component** — one shape, and a step hands back exactly what it was called
   on. `Build<T>`, the mode-carrying `Build<T, TMode>`, `FormBuild<T>` and `GridBuild<T, TKey>` are gone.
   What makes that safe is that every event prop is a `Callback<T>` — a non-invocable STRUCT, so
@@ -122,7 +125,7 @@ dotnet run --project src/Rask.Site
 - **Factory params** (generated per public prop): nullable→optional(null); non-nullable no-initializer→**required**
   (RASK001); initializer/`[SkipFactory]`/`Children`→excluded. Inject framework services via the **ctor**, not
   settable non-nullable props (those become required params; `required`+DI ctor→RASK002).
-- **`Key`** — reconciliation identity (last factory `Key:` param), enables trusted structural diff; not a reactive prop.
+- **`Key`** — reconciliation identity, a chain step that can go ANYWHERE in the chain (generic components too; #1118, RASK046 retired); enables trusted structural diff; not a reactive prop.
 - **One `Callback`/`Callback<T>` property per event**, taking either handler shape (sync or async) at the
   call site — a plain `Func<…>` still types a template or a selector. It is a STRUCT, which is what keeps
   the setter reachable now the component is the receiver (above). Auto-wrapped to re-render the owning parent.
@@ -131,7 +134,7 @@ dotnet run --project src/Rask.Site
 
 ## Subsystems → read `docs/`
 Routing/lifecycle (`docs/routing.md`, `docs/lifecycle.md`), scoped CSS/TypeScript + typed browser APIs
-(`docs/js-interop.md`, `docs/browser-apis.md` — the 50-wrapper map), forms +
+(`docs/js-interop.md`, `docs/browser-apis.md` — the 53-wrapper map), forms +
 validation (`docs/forms.md`), auth (`docs/authentication.md`), context/callbacks (`docs/composition.md`),
 diagnostics RASK001–093, RASK027/030/032/034/042/046/047/048–050/054/081 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
 started / migration / testing / architecture (`docs/`). Trimming: `src/Rask.Site` must

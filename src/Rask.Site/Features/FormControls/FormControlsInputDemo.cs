@@ -12,7 +12,7 @@ public sealed partial class FormControlsInputDemo : Component
     protected override Component? Render() =>
         Div.Class("grid grid-cols-12 gap-4")[
             Div.Class("col-span-12 md:col-span-6")[
-                UiInput.Value(_controlled).Label("Controlled (Value + OnChange)")
+                Ui.Input.Value(_controlled).Label("Controlled (Value + OnChange)")
                     .OnChange(v => _controlled = v)
                     .Hint("Type, then leave the field — OnChange fires on commit.")
                     .Id("fc-input-controlled").Class("mb-2"),
@@ -22,7 +22,7 @@ public sealed partial class FormControlsInputDemo : Component
             ],
             Div.Class("col-span-12 md:col-span-6")[
                 Form.Model(_model)[
-                    UiInput.Bind(() => _model.Text).Label("Bound (two-way)")
+                    Ui.Input.Bind(() => _model.Text).Label("Bound (two-way)")
                         .Id("fc-input-bound").Class("mb-2")
                 ],
                 P.Class("text-sm text-ui-muted mb-0").Id("fc-input-bound-out")[

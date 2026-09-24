@@ -33,7 +33,7 @@ public sealed partial class PictureInPictureDemo(IPictureInPicture pip, IJSRunti
     }
 
     protected override Component? Render() =>
-        UiCard.Class("shadow-sm")[
+        Ui.Card.Class("shadow-sm")[
                 Video
                     .Ref(_video)
                     .Width(320)
@@ -43,8 +43,8 @@ public sealed partial class PictureInPictureDemo(IPictureInPicture pip, IJSRunti
                     .Controls(true)
                     .Class("rounded border mb-2 bg-slate-900"),
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    UiButton.Tone(UiTone.Primary).Id("pip-enter").OnClick(Enter)["Open miniplayer"],
-                    UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline).Id("pip-exit").OnClick(Exit)["Exit"]
+                    Ui.Button.Tone(Ui.Tone.Primary).Id("pip-enter").OnClick(Enter)["Open miniplayer"],
+                    Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline).Id("pip-exit").OnClick(Exit)["Exit"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("pip-status")[_status]]
             ];

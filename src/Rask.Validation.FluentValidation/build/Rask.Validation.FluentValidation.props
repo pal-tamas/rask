@@ -1,5 +1,5 @@
 <Project>
   <ItemGroup>
-    <Using Include="Rask.Validation.FluentValidation"/>
+    <Using Include="Rask"/>
   </ItemGroup>
 </Project>

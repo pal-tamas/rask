@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using Rask.Core.Forms;
 
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     The multi-select binds the collection your model already declares, and writes back into the shape
@@ -32,7 +32,7 @@ public partial class UiMultiSelectBindingTests : global::Rask.Core.RaskMarkup
     {
         // The assertion that matters: the MODEL, not a separate Value, is what the markup draws.
         var model = new Bag { Tags = ["core", "cli"] };
-        var html = UiSelect.Bind(() => model.Tags).Options(Packages).Label("Packages")
+        var html = Ui.Select.Bind(() => model.Tags).Options(Packages).Label("Packages")
             .Native(false).ToHtml();
 
         Assert.Contains("Rask.Core", html);
@@ -47,7 +47,7 @@ public partial class UiMultiSelectBindingTests : global::Rask.Core.RaskMarkup
         // documented AOT reason. This control maps the picked values through its own option list
         // instead, so an int — or an enum, or a Guid — binds exactly as well.
         var model = new Bag { Ids = [2] };
-        var html = UiSelect.Bind(() => model.Ids).Options(Numbers).Label("Numbers")
+        var html = Ui.Select.Bind(() => model.Ids).Options(Numbers).Label("Numbers")
             .Native(false).ToHtml();
 
         Assert.Contains("aria-selected=\"true\"", html);
@@ -151,8 +151,8 @@ public partial class UiMultiSelectBindingTests : global::Rask.Core.RaskMarkup
         // rebuilding the commit from only the visible answers would delete it as a side effect of
         // touching a different one.
         var model = new Bag { Tags = ["core", "legacy"] };
-        var page = global::Rask.Testing.Test.Render(
-            UiSelect.Bind(() => model.Tags).Options(Packages).Label("Packages").Native(false));
+        var page = global::Rask.Testing.Page.Render(
+            Ui.Select.Bind(() => model.Tags).Options(Packages).Label("Packages").Native(false));
 
         await page.On("[role=\"option\"]:has-text(\"Rask.Ui\")").ClickAsync();
 
@@ -165,8 +165,8 @@ public partial class UiMultiSelectBindingTests : global::Rask.Core.RaskMarkup
         // The same rule from the other end: emptying what the box shows is not a licence to empty what
         // it does not. The control never adds or removes a value it cannot draw.
         var model = new Bag { Tags = ["core", "legacy"] };
-        var page = global::Rask.Testing.Test.Render(
-            UiSelect.Bind(() => model.Tags).Options(Packages).Label("Packages").Native(false));
+        var page = global::Rask.Testing.Page.Render(
+            Ui.Select.Bind(() => model.Tags).Options(Packages).Label("Packages").Native(false));
 
         await page.On("[aria-label=\"Remove Rask.Core\"]").ClickAsync();
 
@@ -178,7 +178,7 @@ public partial class UiMultiSelectBindingTests : global::Rask.Core.RaskMarkup
     {
         // Carried, but never shown: it has no option to mark and no words to put in a chip.
         var model = new Bag { Tags = ["core", "legacy"] };
-        var html = UiSelect.Bind(() => model.Tags).Options(Packages).Label("Packages")
+        var html = Ui.Select.Bind(() => model.Tags).Options(Packages).Label("Packages")
             .Native(false).ToHtml();
 
         Assert.DoesNotContain("legacy", html);
@@ -192,7 +192,7 @@ public partial class UiMultiSelectBindingTests : global::Rask.Core.RaskMarkup
         // leaving it out of the hidden inputs would drop on submit exactly what the commit path takes
         // care to keep. The same loss, arriving by the other road.
         var model = new Bag { Tags = ["core", "legacy"] };
-        var html = UiSelect.Bind(() => model.Tags).Options(Packages).Label("Packages")
+        var html = Ui.Select.Bind(() => model.Tags).Options(Packages).Label("Packages")
             .Native(false).Name("tags").ToHtml();
 
         Assert.Equal(2, Occurrences(html, "type=\"hidden\""));

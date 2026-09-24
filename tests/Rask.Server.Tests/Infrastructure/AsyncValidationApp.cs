@@ -31,9 +31,9 @@ public sealed partial class AsyncValidationApp : Component
     [
         Form.Model(_model).Context(_ctx)[
             Input.Bind(() => _model.Username),
-            ValidatingIndicator.Template(() => Span.Class("spinner")["Checking..."])
+            Validation.Indicator.Template(() => Span.Class("spinner")["Checking..."])
                 .For(() => _model.Username),
-            ValidationMessage.Template(msgs => Div.Class("text-danger")[msgs[0]])
+            Validation.Message.Template(msgs => Div.Class("text-danger")[msgs[0]])
                 .For(() => _model.Username)
         ]
     ];

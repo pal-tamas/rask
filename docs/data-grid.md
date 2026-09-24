@@ -1,11 +1,11 @@
-# The data grid (`UiDataGrid`)
+# The data grid (`Ui.DataGrid`)
 
 A table over a typed row sequence — sortable headers, paging, selection, expandable detail rows,
 grouping, a column chooser, and a card layout on a phone. It lives in [the UI kit](ui-kit.md), so
 `dotnet add package Rask.Ui` is the whole installation.
 
 ```csharp
-UiDataGrid.Data(_products).RowKey(p => p.Id)[c => [
+Ui.DataGrid.Data(_products).RowKey(p => p.Id)[c => [
     c.Field(p => p.Name).Title("Product").Sortable(true),
     c.Field(p => p.Price).Title("Price").Class("text-right"),
 ]]
@@ -18,11 +18,11 @@ the grid follows from that one fact, so it is worth being precise about why.
 
 A column names a member of the row type — `c.Field(p => p.Name)`. C# infers a method's type arguments
 from **its own arguments**, never from the target type of the indexer the call sits in. Written as a
-flat child, `UiColumn.Field(p => p.Name)` has nothing at all to tell it what `p` is, and the call fails
+flat child, `Ui.Column.Field(p => p.Name)` has nothing at all to tell it what `p` is, and the call fails
 with CS0411. Handing the grid to a lambda fixes the row type before a single column is written:
 
 ```csharp
-UiDataGrid.Data(_products).RowKey(p => p.Id)[c => [   // c is UiDataGrid<Product, int>
+Ui.DataGrid.Data(_products).RowKey(p => p.Id)[c => [   // c is UiDataGrid<Product, int>
     c.Field(p => p.Name),                             // so p is a Product
 ]]
 ```
@@ -49,7 +49,7 @@ Decided by what the grid is given, and the three modes are reached by three diff
 **In memory.** A list. Right for a set small enough to hold, and it asks nothing of the caller.
 
 ```csharp
-UiDataGrid.Data(_products).RowKey(p => p.Id)[c => [ … ]]
+Ui.DataGrid.Data(_products).RowKey(p => p.Id)[c => [ … ]]
 ```
 
 **In the store.** An `IQueryable<T>`, handed to the *same* `Data` step. The grid translates the sort
@@ -58,12 +58,12 @@ arbitrarily large. One step rather than two, because an `IQueryable<T>` **is** a
 second name for the same slot is a second thing to get wrong.
 
 ```csharp
-UiDataGrid.Data(db.Products).RowKey(p => p.Id).PageSize(25)[c => [
+Ui.DataGrid.Data(db.Products).RowKey(p => p.Id).PageSize(25)[c => [
     c.Field(p => p.Name).Title("Product").Sortable(true),
 ]]
 ```
 
-A [`Rask.Data`](data.md) read face hands one over with no context held open. `UiDataGrid.Data(Product.Read.AsQueryable())`
+A [`Rask.Data`](data.md) read face hands one over with no context held open. `Ui.DataGrid.Data(Product.Read.AsQueryable())`
 opens a context for each execution and disposes it, so the queryable can live in a page's field — see
 [handing a query to a component](data.md#handing-a-query-to-a-component-asqueryable).
 
@@ -75,7 +75,7 @@ This mode enumerates **synchronously**, which is why the third exists.
 total.
 
 ```csharp
-UiDataGrid.Of<Product, int>().RowKey(p => p.Id).PageSize(25).Source(async request =>
+Ui.DataGrid.Of<Product, int>().RowKey(p => p.Id).PageSize(25).Source(async request =>
 {
     var page = await _api.GetProductsAsync(request.Sort, request.Descending, request.Page, request.PageSize);
     return new UiGridPage<Product>(page.Rows, page.Total);
@@ -100,14 +100,14 @@ called — the page arrives back as `Page`, read from the query string:
 ```csharp
 [QueryParam("page")] public int? UrlPage { get; set; }   // counted from one in the address
 
-UiDataGrid.Data(_rows).RowKey(r => r.Id)
+Ui.DataGrid.Data(_rows).RowKey(r => r.Id)
     .PageSize(25).TotalCount(_total).Page((UrlPage ?? 1) - 1)
     .PageHref(page => Routes.LogsPage(Page: page + 1))    // the grid's page, counted from zero
     [c => [ … ]]
 ```
 
 `PageHref` counts from zero like `Page`, whatever the address counts from. The page you are on is not a
-link: it says `aria-current="page"` instead. `UiPagination.Href` does the same for a pager on its own.
+link: it says `aria-current="page"` instead. `Ui.Pagination.Href` does the same for a pager on its own.
 
 ## Controlled and uncontrolled, one axis at a time
 
@@ -116,7 +116,7 @@ redraws through the live diff. Name the state **and** its change callback and th
 page instead — while every other axis carries on holding its own.
 
 ```csharp
-UiDataGrid.Data(_page).RowKey(p => p.Id)
+Ui.DataGrid.Data(_page).RowKey(p => p.Id)
     .Sort(_sort).SortDescending(_desc).OnSortChange(s => { _sort = s.Field; _desc = s.Descending; })
     .TotalCount(_total).Page(_page).OnPageChange(async p => await LoadAsync(p))
     [c => [ … ]]
@@ -124,12 +124,14 @@ UiDataGrid.Data(_page).RowKey(p => p.Id)
 
 | Axis | State | Callback |
 | --- | --- | --- |
-| Sort | `Sort`, `SortDescending` | `OnSortChange` / `OnSortChangeAsync` |
-| Page | `Page` | `OnPageChange` / `OnPageChangeAsync` |
-| Selection | `Selected` | `OnSelectionChange` / `OnSelectionChangeAsync` |
-| Grouping | `Grouped` | `OnGroupedChange` / `OnGroupedChangeAsync` |
-| Hidden columns | `HiddenColumns` | `OnHiddenColumnsChange` / `…Async` |
-| Column order | `ColumnOrder` | `OnColumnOrderChange` / `…Async` |
+| Sort | `Sort`, `SortDescending` | `OnSortChange` |
+| Page | `Page` | `OnPageChange` |
+| Selection | `Selected` | `OnSelectionChange` |
+| Grouping | `Grouped` | `OnGroupedChange` |
+| Hidden columns | `HiddenColumns` | `OnHiddenColumnsChange` |
+| Column order | `ColumnOrder` | `OnColumnOrderChange` |
+
+Each callback is one property taking a synchronous or an asynchronous handler — there is no `…Async` twin.
 
 A sortable header cycles **ascending → descending → off**. The third state is not decoration: it is the
 only way back to the order the source itself chose.
@@ -137,7 +139,7 @@ only way back to the order the source itself chose.
 ## Selection is typed, and only offered once a row can be named
 
 ```csharp
-UiDataGrid.Data(_products)
+Ui.DataGrid.Data(_products)
     .RowKey(p => p.Id)                       // the grid is UiDataGrid<Product, int>
     .Selected(_selected)                     // IReadOnlyList<int>
     .OnSelectionChange(keys => _selected = keys)
@@ -182,11 +184,11 @@ phone wants genuinely different content, not merely the same cells stacked.
 holds a secondary column back until the table is wide enough:
 
 ```csharp
-c.Field(r => r.Attempts).Title("Attempts").ShowFrom(UiBreakpoint.Md)
+c.Field(r => r.Attempts).Title("Attempts").ShowFrom(Ui.Breakpoint.Md)
 ```
 
 It hides the header, the cells and the footer cell in **table mode only** — below `sm` the stacked lines
-still list the column, because one line per fact has room for every one. `UiBreakpoint.Sm` is therefore
+still list the column, because one line per fact has room for every one. `Ui.Breakpoint.Sm` is therefore
 no change at all: the table starts there. The class it writes (`sm:max-md:hidden`) is a variant, for the
 same cross-sheet reason as above.
 
@@ -212,9 +214,9 @@ wrapper of your own:
 
 ```csharp
 .Toolbar([
-    UiTabs[ … ],
-    UiSelect.Value(_category).Options(_categories).Label("Category").OnChange(FilterAsync),
-    UiSearch.Placeholder("Search").AccessibleLabel("Search entries").OnSearch(SearchAsync),
+    Ui.Tabs[ … ],
+    Ui.Select.Value(_category).Options(_categories).Label("Category").OnChange(FilterAsync),
+    Ui.Search.Placeholder("Search").AccessibleLabel("Search entries").OnSearch(SearchAsync),
 ])
 ```
 
@@ -222,7 +224,7 @@ For a search box over a model with a [full-text index](data.md#full-text-search)
 itself — it still counts, sorts and pages in the database, and a column sort replaces best-match order:
 
 ```csharp
-UiDataGrid.Data(Entry.Read.Search(_query).AsQueryable())
+Ui.DataGrid.Data(Entry.Read.Search(_query).AsQueryable())
 ```
 
 ## Cells, clicks, and the rule behind them
@@ -231,7 +233,7 @@ UiDataGrid.Data(Entry.Read.Search(_query).AsQueryable())
 every row, not merely the page. `Mono(true)` sets a column's cells in a monospace face — ids, keys,
 hashes, paths — and leaves its title in the body face.
 
-`RowTone(r => …)` tints one row from the row, with a `UiTone`: `r.Attempts >= max ? UiTone.Error : null`
+`RowTone(r => …)` tints one row from the row, with a `Ui.Tone`: `r.Attempts >= max ? Ui.Tone.Error : null`
 marks a dead letter. It is a typed tone rather than a class for a reason that matters to a library: a
 class written in *your* assembly is one the kit's compiled stylesheet never saw, so it would render as no
 tint at all. `RowClass` is still there for an app whose own Tailwind build can see what it writes.

@@ -9,14 +9,116 @@ them until tagged releases begin.
 
 ### Added
 
-- **Every value of a small enum is a step of its own.** `UiButton.Primary.Outline.Sm["Cancel"]`, `UiAlert.Error["…"]`, `UiBadge.Success["Paid"]` — generated per member, so a style reads as a word rather than as an argument. The enum setter stays for a value the source does not know: `UiButton.Tone(order.IsUrgent ? UiTone.Error : UiTone.Neutral)`. Four kinds of enum deliberately get no steps, each because the step would read as a claim about the component rather than one of its properties: one with more than 8 members (`UiIconName` has 78, and `UiButton.ChevronRight` says the button *is* a chevron), one a component holds twice (an `Icon` and a `TrailingIcon` have no answer to which `.Search` sets — so neither gets steps), a `[Flags]` enum (`.Top.Bottom` would read as two steps that each replace the other), and any of the BCL's (`UiDatePicker.Sunday` says the picker is Sunday, not that its week starts there). A member whose name the component already uses is skipped, and the rest of its enum is unaffected.
+- **Every value of a small enum is a step of its own.** `Ui.Button.Primary.Outline.Sm["Cancel"]`, `Ui.Alert.Error["…"]`, `Ui.Badge.Success["Paid"]` — generated per member, so a style reads as a word rather than as an argument. The enum setter stays for a value the source does not know: `Ui.Button.Tone(order.IsUrgent ? Ui.Tone.Error : Ui.Tone.Neutral)`. Four kinds of enum deliberately get no steps, each because the step would read as a claim about the component rather than one of its properties: one with more than 8 members (`Ui.IconName` has 78, and `Ui.Button.ChevronRight` says the button *is* a chevron), one a component holds twice (an `Icon` and a `TrailingIcon` have no answer to which `.Search` sets — so neither gets steps), a `[Flags]` enum (`.Top.Bottom` would read as two steps that each replace the other), and any of the BCL's (`Ui.DatePicker.Sunday` says the picker is Sunday, not that its week starts there). A member whose name the component already uses is skipped, and the rest of its enum is unaffected.
 - **A form carries its own failure, so a save needs no `try`.** The children function is handed the submit's state rather than a bare bool: `Form.Model(m).OnSubmit(Save)[f => [ … f.Submitting … f.Error … ]]`. `f.Error` is what the last submit threw — the exception itself, so the page decides what to say about which — cleared as the next submit starts rather than as one ends, so a retry never shows the previous attempt's message beside its own spinner. The form catches it **and still reports it**, so the development error overlay still appears and the log still has the stack trace; a cancelled submit is not reported, because the work was called off rather than failed.
 - **Every battery answers "are you even here?" the same way.** `Logs.IsOn`, `Mail.IsOn`, `Jobs.IsOn`, `Cache.IsOn` and `Files.IsOn` let an operator surface render "off" instead of failing — which is what `Rask.Dashboard` does for a battery an app declined. Hidden from completion, because an app should not branch on it: a call with nothing registered throws and names the registration that fixes it. `Logs.Fake()` completes the set of battery fakes, with `logs.Stored().AtLeast(LogLevel.Error).Saying("refused").Once()`.
 - **[RASK093](docs/diagnostics.md#rask093) catches a call that was never awaited, and so never happened.** Rask's timing steps do nothing until the `await` — `Mail.Send(email);` with no `await` sends no mail, queues no job, writes no file, and says nothing at all. Inside an `async` method the compiler already refuses that (CS4014); this covers the half it leaves open, a method that is not async, where the line compiles clean. The shape that bites hardest is an event handler: every event prop takes an `Action` or a `Func<Task>`, so `Button.OnClick(() => Mail.Send(email))` binds to `Action`, discards the send and looks exactly like the line that works — no compiler warning of any kind. It fires on any dropped awaitable — Rask's builders, a `Task`, a `ValueTask`, one of your own — across all three shapes: a statement, an expression body returning void, and a lambda bound to a void delegate. Two quick-fixes, because there are two honest intentions: *await it* (a `void` method becomes `async Task`, never `async void`), or *discard it* — `_ = Task.Run(…)`, the way C# writes down that unwatched work was a choice.
 - **A test stands in for a battery in one line, and asks in English.** `using var mail = Mail.Fake();`, `using var jobs = Jobs.Fake();`, `using var cache = Cache.Fake();` take the place of the real battery for that test's flow alone — parallel tests never see each other's mail, jobs or keys — and the questions read as sentences that end in a count: `mail.Sent().To("ann@x.io").WithSubject("Welcome").Once()`, `jobs.Enqueued<ChaseInvoice>().In(24.Hours).Once()`, `cache.Loaded("products").Twice()`. `Once`/`Twice`/`Exactly(n)`/`None` assert, and a failure names what actually happened ("Expected one email to \"ann@x.io\"; 2 were sent. All 2 sent: to \"bo@x.io\" — \"Welcome\"; …"); `Single()` hands back the one that matched, for the body text or job property the steps do not cover. `Cache.Fake()` really stores, with real expiry read from `Clock.Now`, so `Clock.Fake` plus `Advance` proves a value is reloaded when it goes stale instead of sleeping through it. A recorded job is never dispatched: the fake asserts the work was asked for, and the handler has its own test.
 - **`Clock.Now`, and one line to freeze it in a test.** `Clock.Now` is the app's time — the same clock `3.Days.Ago`, cache expiry, audit stamps and job schedules read, because the batteries now register it as their `TimeProvider` (one you register yourself still wins). In a test, `using var clock = Clock.Fake(at: monday9am);` freezes all of it for that test alone and `clock.Advance(2.Hours)` moves it on.
-- **Tests drive the app the way a person does.** `var page = Test.Visit("/products/new");` opens a URL through the real router; `await page.Type("Tea").Into("Name")`, `await page.Pick("Green").From("Colour")`, `await page.Check("In stock")` and `await page.Click("Save")` find fields by their label (then placeholder, then aria-label) and buttons and links by their text — `.In("Tea")` picks one of several; `page.Shows("Saved")` and `page.DoesNotShow("Loading…")` wait up to `page.Patience` (5 s) for async work; `page.IsAt("/products")` checks where a click navigated. A lookup that finds nothing or too much throws a `PageException` naming what it did find.
+- **Tests drive the app the way a person does.** `var page = Page.Visit("/products/new");` opens a URL through the real router; `await page.Type("Tea").Into("Name")`, `await page.Pick("Green").From("Colour")`, `await page.Check("In stock")` and `await page.Click("Save")` find fields by their label (then placeholder, then aria-label) and buttons and links by their text — `.In("Tea")` picks one of several; `page.Shows("Saved")` and `page.DoesNotShow("Loading…")` wait up to `page.Patience` (5 s) for async work; `page.IsAt("/products")` checks where a click navigated. A lookup that finds nothing or too much throws a `PageException` naming what it did find.
 - **Durations and sizes read the way they are said** — `3.Seconds`, `1.5.Hours`, `2.Weeks`, `50.Megabytes`, `3.Days.Ago`, `2.Hours.FromNow`, in every app with nothing to import. A duration is a plain `TimeSpan` and a size a plain `long` (binary: `1.Kilobyte` is 1024 bytes), so each goes wherever the .NET type already does — `Task.Delay(3.Seconds)`, `o.MaxFileSize = 50.Megabytes`. `Ago`/`FromNow` read the app's clock, so a test that freezes time freezes them too. New warning [RASK092](docs/diagnostics.md#rask092) points out `2.Hour` and `1.Hours`, and its quick-fix writes the form that matches the count.
+- **Two new guides: [Multi-tenancy](docs/multi-tenancy.md) and [Full-text search](docs/full-text-search.md).**
+  Multi-tenancy gathers the tenant const, how the tenant comes from the principal, `Current`, an administrator
+  switching tenant, and what tenancy means for the cache, stored files, jobs, mail, the outbox and sign-in. Full-text
+  search covers SQLite (`UseRaskSqlite`, or a plain `UseSqlite` plus `UseRaskFullTextSearch()`), PostgreSQL (a stored
+  `tsvector` column with a GIN index) and the browser in one place. Both are in the Data group on rask.sh and in
+  `llms.txt`.
+- **Every shipped package has its own NuGet readme.** Rask.Server, Rask.Wasm, Rask.Query, Rask.Blazor, Rask.DevTools,
+  Rask.External, Rask.Meta.Hosting, Rask.Spa.Hosting, Rask.Cqrs.Client, Rask.Cqrs.Server and
+  Rask.Validation.FluentValidation fell back to the generic root readme on nuget.org.
+- **rask.sh shows the full stack: a notes app with its database in the browser tab, at `/demos/data/`.** A
+  `Note : Aggregate<Guid>` in SQLite through EF Core, saved with `Note.CreateAsync(model)` from a kit form, listed by
+  a `Rask.Query` query that refreshes itself on the save, searched with `Note.Read.Search(text)` and
+  `FullText.Highlight`/`Snippet`, and kept across reloads by `Rask.SQLite.Browser`. It is its own small WASM app
+  (`src/Rask.Site.DataDemo`, published by `pages.yml` beside the site), so the site's bundle and its zero IL warnings
+  are unchanged; guides frame it lazily through the `data-notes` demo key. Trimmed with EF Core rooted; the Rask.Data
+  and Rask.SQLite trim warnings it suppresses are #1132. Driven in Chromium by `scripts/run-data-demo-e2e-local.sh`,
+  listed in `run-all-gates.sh`.
+
+- **Several npm components from one package, reached as `Mui.Button`.** Declare the package once and list what you
+  use from it; each export becomes a package island, with its props generated from the package's TypeScript exactly
+  as a single island's are:
+
+  ```csharp
+  public sealed partial class Mui : ReactPackage
+  {
+      protected override string Module => "@mui/material";
+      protected override string[] Exports => ["Button", "Card"];
+  }
+
+  Mui.Card[ Mui.Button.Variant(MuiButtonVariant.Contained).OnClick(Save)["Save"] ]
+  ```
+
+  Typing `Mui.` lists the package's components, and none of them takes a bare name, so `Button` stays the HTML
+  `<button>`. One class per runtime: `ReactPackage`, `PreactPackage`, `SolidPackage`, `VuePackage`, `SveltePackage`,
+  `AngularPackage`, `LitPackage`. The snapshots sit beside the declaration (`MuiButton.props.json`). The rask.sh
+  islands demo now declares react-colorful this way, with its picker and hex field bound to one colour.
+
+- **`rask new` scaffolds a committed `.vscode/settings.json`.** A component's paired files (`Counter.css`,
+  `Counter.ts`, a `.tsx` island, a package island's `.props.json`) nest under `Counter.cs` in the explorer, in every
+  template. The templates that compile Tailwind (`server`, `wasm`, `wasm-hosted`) also get class completion inside
+  `Div.Class("…")` and recommend the Tailwind CSS IntelliSense extension. The scaffolded `.gitignore` re-includes the
+  file. An existing app adds `!/.vscode/settings.json` and copies the file from a fresh scaffold (`docs/cli.md`).
+- **A live query refreshes itself: `[Live(typeof(Order))]`.** A save already refreshes the screen of the session that
+  made it, free and with no call. Being live is for everyone else's writes — another visitor's command, a background
+  job — and it is declared where the query is, never at the call site:
+  ```csharp
+  [Live(typeof(Order))]
+  public sealed record GetOrders(int Page) : IQuery<IReadOnlyList<OrderRead>>;
+
+  var orders = QueryClient.Query(new GetOrders(Page));   // Render is untouched
+  ```
+  The read-side mirror of `[Invalidates]`, and declared for the same reason: a message query is keyed by itself, so a
+  write cannot know which message types read the table. **A query keyed by the thing it reads needs no attribute** —
+  `QueryKey.For<Order>(…)`, a Rask.Data read face, is live the moment the model opts in. Authorization comes free and
+  stays closed: the query already decided who may read it, so a refresh of it is admitted by the same rule. One
+  listener serves every live query in a session, and the change a subscription replays when it opens is ignored, so a
+  page costs no second fetch.
+- **An entity announces its own saves: `public const Broadcasts Broadcast = Broadcasts.OnCommit;`.** The fifth const
+  beside `Writes`/`Stamps`/`Deletes`/`Checks`, and the publishing half of `Live()` — a table saying it has changed,
+  with no callback to register. Announcing happens after the commit, never on a rollback, and needs no session, so a
+  background job's write reaches open pages; `IDataChanges` could not, being the saving session's own. Off by default,
+  so nothing is published for a table no page watches.
+- **`Notify.Send(…)` publishes a notification with nothing injected.** `IDispatcher` is transient and reaches handlers
+  through the provider that built it, so publishing from a singleton meant opening a scope by hand. One line to
+  announce something happened:
+  ```csharp
+  public sealed class ReportWorker : BackgroundService
+  {
+      protected override Task ExecuteAsync(CancellationToken stoppingToken) =>
+          Notify.Send(new ReportReady(reportId), stoppingToken);
+  }
+  ```
+  It is the same publish — subscribers first, then the handlers — and injecting `IDispatcher` where one is to hand
+  stays right. It uses the scope `Notify.UseScope` bound, else one of its own, disposed once the handlers finish.
+- **Subscriptions: `QueryClient.Subscribe<T>()`, tRPC-style, over CQRS notifications.** A component subscribes where it
+  queries — `var placed = QueryClient.Subscribe<OrderPlaced>().Keep(20);` in `Render`, or
+  `QueryClient.Subscribe(new WatchOrder(Id))` — and every notification published afterwards re-renders it, whoever
+  published it: a command handler, a job, a Rask.Data domain event after its commit, an outbox relay.
+  `Subscription<T>` reads like a query (`Data`, `IsLoading`, `Error`, `Status` Connecting/Live/Reconnecting/Ended/Error,
+  `Items` with `.Keep(n)`), starts with the last value published for what it watches, reconnects with backoff, closes
+  with the component that read it, and `.Into(query, patch)` edits a query's cache in place — refetched once after a
+  reconnect. `QueryClient.Subscribe(input, (i, ct) => stream)` does the same for any `IAsyncEnumerable<T>`, and
+  `IDispatcher.SubscribeAsync` is the same subscription outside a component.
+  - **`ISubscription<T>`: the fourth message shape.** The event stays plain; what to watch is its own record —
+    `record WatchOrder(Guid OrderId) : ISubscription<OrderShipped> { public bool Matches(OrderShipped e) => …; }` —
+    so a subscription is typed, compared structurally and free to ask for anything `Matches` can decide, not just an
+    id. Who may open it is an `IWatchPolicy<WatchOrder>`, asked once at the open, in the subscriber's own scope, and
+    registered by the generator like a handler. **No policy means nobody may open it**, in process and remotely alike.
+  - **From WebAssembly.** With `AddRaskCqrsClient()`, a subscription opens on the server:
+    `GET /_rask/cqrs/request/events/{name}?m={json}` — the record travels exactly as a query's message does — answered
+    with server-sent events by `MapRaskCqrs()`. Closed unless opened: a subscription record by its policy, a
+    notification watched by type only when its record carries `[Authorize]` or `[AllowAnonymous]`, so no auth or domain
+    event is one browser request away.
+  - The wasm-hosted template's client now references Rask.Query and calls `AddRaskQuery()`, so `QueryClient` works in
+    `Client/` pages.
+  - Every number is a setting, read from configuration first and overridable in code: `Rask:Cqrs:ReplayCapacity`,
+    `SubscriptionBuffer`, `SubscriptionReconnectDelay`, `SubscriptionReconnectCeiling`, and
+    `Rask:Cqrs:Server:EventKeepAlive` for the stream's keep-alive.
+  - The rask.sh guide is now **Subscriptions** (`/docs/guides/subscriptions/`, the old `/docs/guides/broadcast/` still
+    answers with its canonical pointing there), with a demo: two boards subscribed to every order and a tracker
+    watching one through a `WatchOrder` record.
+
 - **The Rask.Query guide has a live demo on rask.sh (#1128).** A parcel list on one small page shows every query
   shape the guide describes: a query declared in `Render` that follows the URL's `?page=` with `KeepPreviousData`, a
   dependent query that stays paused until a pick, a function query keyed `QueryKey.For<Parcel>(input)`, and a
@@ -29,13 +131,6 @@ them until tagged releases begin.
   WASM bundle (it needs the `wasm-tools` workload), so it proves the FTS5 build and EF's query rewrite a browser app
   actually ships. Listed in `run-all-gates.sh`.
 
-- **Broadcast across servers: `Rask.Redis` (#1115).** `AddRaskRedisBackplane()` carries `IBroadcast` messages
-  between the instances behind a load balancer over Redis pub/sub, so a publish on one instance re-renders the
-  subscribed pages on every instance. Only a topic declared with a source-generated JSON contract crosses —
-  `new Topic<OrderPlaced>("orders", AppJson.Default.OrderPlaced)` — and every other topic stays in its process, as
-  a live object. The connection string is `Rask:ConnectionStrings:Redis` (or the app's own
-  `IConnectionMultiplexer`), each topic is the channel `rask:broadcast:{name}` (`Rask:Redis:ChannelPrefix`), and an
-  instance drops its own message when Redis hands it back, so no page sees one twice.
 - **Full-text search on PostgreSQL** (#1109). `HasFullTextSearch`, `Search(text)` and `FullText.Highlight`/`Snippet`
   now work through `UseRaskPostgres` as they do on SQLite. The index is a stored generated `tsvector` column with a
   GIN index — no triggers — and a search is `@@ to_tsquery(…)` ranked by `ts_rank_cd`, highlighted by `ts_headline`
@@ -240,6 +335,7 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING — a page comes from `Page`.** `Test.Render` and `Test.RenderDocument` are `Page.Render` and `Page.RenderDocument`, beside `Page.Visit`: all three hand back a `Page`, so all three are named constructors on it — `var page = Page.Visit("/products/new")` and `var page = Page.Render(() => Counter)` read the same way round. `Test` keeps what is about the test rather than about the page: `Test.Fake.Mail()`, `Test.Fake.Clock(at)`, `Test.EditContextProbe`. (`Component.Render(x)` was measured and rejected: a static extension member is reachable through every derived type, so every component in the app would grow a `Render(other)` static, and `Render` is already the method each one overrides.)
 - **BREAKING — a form's submit callbacks say which is which.** `OnValidSubmit` is now `OnSubmit` — the one almost every form writes gets the shortest name — and the low-level raw-values hook that runs either way is `OnAnySubmit`. `OnInvalidSubmit` is unchanged. The two could not keep one name: both are `Callback<T>` setters, so an untyped `m => …` would have been ambiguous between the model and the raw `FormData`.
 - **BREAKING — `UseRask` is `MapRask`.** `app.MapRask<App>()`, `app.MapRaskSpa()`, `app.MapRaskMeta()` and `app.MapRaskServer<T>()` map endpoints, which is what `Map` means in ASP.NET and what .NET's own `MapRazorComponents<App>()` is called. **The EF provider family keeps `Use`** — `UseRaskSqlite`, `UseRaskPostgres`, `UseRaskSqlServer`, `UseRaskFullTextSearch`, `UseRaskDatabase` — because there it mirrors EF Core's `UseSqlite`/`UseNpgsql`, and a reader relies on that analogy. `AddRaskServer`/`MapRaskServer` stay beside `MapRaskSpa`: an app that serves its UI with one host and mounts the dashboard on another says at the call site which line is which.
 - **BREAKING — the durable log reads like the other batteries.** `Logs.Search(query)`, `Logs.Categories()`, `Logs.Count()` and `Logs.Clear()` reach the store with nothing injected, and retention is steps: `await Logs.Trim().OlderThan(30.Days).KeepingNewest(100_000)`, replacing `PurgeAsync(retention, maxRows)` and its two magic zeros. Each step refuses a value that would empty the store, because `Logs.Clear()` is how you say that on purpose. Renamed with them: `AppendAsync` → `Append` (hidden — only the background writer calls it), `SearchAsync` → `Search`, `CategoriesAsync` → `Categories`, `CountAsync` → `Count`, `ClearAsync` → `Clear`. `Rask.Logging` takes a reference to the dependency-free `Rask.Wire` to get there, which also puts its timestamps on Rask's clock, so `Clock.Fake` moves them in a test. The dashboard's Logs page now reads the static too, and injects nothing.
@@ -249,11 +345,98 @@ them until tagged releases begin.
 - **BREAKING — a handler is handed the message, and asks for cancellation when it needs it.** Every `ICommandHandler`, `IQueryHandler`, `INotificationHandler`, pipeline behaviour and request validator is now `Handle(message)` — the trailing `CancellationToken` parameter is gone from the 119 handlers in the framework, the templates and the docs. The token did not disappear: `Current.Cancellation` is the cancellation of the work in progress, so `await http.GetFromJsonAsync<Stock>(job.Url, Current.Cancellation)` reads the same token the parameter carried, and a handler that never cancels anything no longer carries an argument it ignores. Callers are unchanged and still override it: `IDispatcher.Query`/`Send`/`Publish` keep a trailing `CancellationToken cancellationToken = default`, and an explicit token wins over the ambient one. Renamed with them: `QueryAsync` → `Query`, `SendAsync` → `Send`, `PublishAsync` → `Publish`, `ValidateAsync` → `Validate`. `Dispatcher.Query(…)`/`Send(…)`/`Publish(…)` now also work with nothing injected, from a handler, a render, a request or a job.
 - **BREAKING — background work reads like a sentence, with nothing injected.** `await Jobs.Enqueue(new SendWelcome(user.Id))` runs a job as soon as the processor polls; `.In(24.Hours)` and `.At(monthEnd)` are trailing steps, replacing the two `ScheduleAsync` overloads. An injected `IJobs` words the same sentence for a hosted service or a timer. The two interfaces swap names to say what they are: the queue is `IJobs` (was `IJob`) and a unit of work is `IJob` (was `IBackgroundJob`); `JobOptions` is `JobsOptions` and `JobQueue<T>` is hidden.
 - **BREAKING — a recurring job says when it runs, on the calendar.** `o.Run<PurgeStaleCarts>().Every(1.Hour)`, `o.Run<NightlyBackup>().Daily.At(3, 00)`, `o.Run<WeeklyDigest>().Weekly.On(DayOfWeek.Monday).At(9, 00)`, `o.Run<CloseBooks>().Monthly.On(1).At(6, 00)` replace `AddRecurring<T>(name, every, factory)`. A calendar time is read in `o.TimeZone` — UTC by default, so a deploy cannot move a schedule, and `Rask:Jobs:TimeZone` takes an IANA id such as `Europe/Budapest` for an app whose 3am has to be a customer's 3am. It follows daylight saving, and `.Monthly.On(31)` runs on a short month's last day rather than skipping February. The durable name is the job's type name, `.Named("purge-carts")` overrides it, and two schedules for one job need one. A `Run<T>()` left without a cadence fails the host's start instead of silently never running. `JobsOptions.RecurringJobs` now reports a `Schedule` an operator can read ("every 1h", "daily at 03:00") in place of a bare `Interval`, and the dashboard's Recurring jobs card shows it.
-- **BREAKING — `RenderedComponent` is `Page`** (`Page<T>` for `Test.Render(component)`).
-- **BREAKING — `RaskTest` is `Test`.** `Test.Render(…)`, `Test.RenderDocument(…)`: the namespace already says Rask.
+- **BREAKING — `RenderedComponent` is `Page`** (`Page<T>` for `Page.Render(component)`).
+- **BREAKING — `RaskTest` is `Test`.** `Page.Render(…)`, `Page.RenderDocument(…)`: the namespace already says Rask.
 - **BREAKING — five lifecycle hooks, one per moment.** `OnMount()`, `OnUpdated()`, `OnFirstRendered()`, `OnRendered()`, `OnUnmount()`, each `protected virtual Task`, replace the eight synchronous/asynchronous twins: `OnMount`+`OnMountAsync` → `OnMount`, `OnPropsChanged`+`OnPropsChangedAsync` → `OnUpdated`, `OnUnmount`+`OnUnmountAsync` → `OnUnmount`, and `OnRendered(bool)`/`OnRenderedAsync(bool)` → `OnFirstRendered()` for the first-render branch plus `OnRendered()` for every render (the first included, after `OnFirstRendered`). What used to go in the synchronous twin goes above the first `await`, which still runs before the first render; a body with nothing to await is written `async` all the same. Code that runs inside a lifecycle hook and passes no token is now cancelled with its component, as a handler already was.
 - **A component the app built itself joins the lifecycle on its own.** An instance built at runtime — a plugin, a type chosen by name — placed straight in the tree (`Div[page]`) is adopted by the render walk and gets `OnMount`/`OnUnmount` and a handle to re-render through; several instances of one type under one parent each keep theirs. The `Mount` wrapper component that did this by hand is removed.
 - **BREAKING — the cache reads the way you say it, with nothing injected.** `await Cache.Remember("products", LoadProducts).For(10.Minutes)`, `await Cache.Set("banner", text).Until(midnight)`, `await Cache.Get<string>("banner")`, `await Cache.Forget("products")` — from a handler, a render, a request or a job; each call is cancelled with the work it runs in. Lifetimes are steps: `.For(…)`, `.Sliding(…)`, `.Until(…)`. An injected `ICache` reads the same (`cache.Remember(…).For(…)`) for a hosted service or a timer. A trimmed or AOT app registers its `JsonSerializerContext` once — `AddRaskCache<AppDbContext>(o => o.Json = AppJson.Default)` — instead of passing a `JsonTypeInfo<T>` at every call; the external-store `AddRaskCache()` takes the same `configure`. Renamed: `GetOrAddAsync` → `Remember`, `SetAsync` → `Set`, `GetAsync` → `Get`, `RemoveAsync` → `Forget`; `DistributedCacheEntryOptions` → the lifetime steps; the `JsonTypeInfo<T>` overloads → `CacheOptions.Json`; the public `Cache` implementation class is now the static entry point.
+- **rask.sh, the README, the NuGet readmes and `llms.txt` present Rask as the full-stack .NET web framework, for a
+  team of one or fifty.** The landing page leads with the whole stack (data and queries, auth, jobs, email, outbox,
+  cache, files, realtime subscriptions, multi-tenancy, full-text search, the `/_rask` console, `rask new`/`db`/
+  `deploy`), with the hero showing an aggregate and the page that queries it; the UI follows. The docs sidebar is
+  grouped by domain (Data, Auth, Backend services, Realtime, Frontend, Deploy & operate, …) instead of "One Person
+  Framework" and "Integration". The One Person Framework is now the philosophy guide rather than the headline, the
+  package tag `one-person-framework` is replaced by full-stack tags, and the social card is redrawn.
+- **The docs match the code again.** Reads go through the read face (`Product.Read.Where(...)`; there is no
+  `FindAsync`); soft delete is described as opt-in everywhere; `ApplyRaskConventions(this)`; full-text search is no
+  longer called SQLite-only; tenancy is documented in every battery; examples no longer use factory calls, the removed
+  `Build<T>` receiver, the gone `Bs*` components or `On…Async` callbacks that do not exist; samples take required chain
+  steps before optional ones (`Validation.Message.Template(...).For(...)`); the diagnostics range is RASK001–091.
+
+- **BREAKING: every element is also a member of `Rask.Html`, and the `<html>` element is `Document`.** Components
+  still inherit the tags, so nothing inside a component changes. What is new is that any other class — a test, a
+  helper, a static factory of components — writes them bare too, with the `global using static Rask.Html;` the
+  server, wasm and wasm-hosted templates now carry, and that a tag your own member has hidden is one word away:
+
+  ```csharp
+  // a helper class, not a component
+  static class Empty { public static Component State(string what) => Div.Class("empty")[P[$"No {what} yet"]]; }
+
+  // inside a component with a Footer property of its own
+  Html.Footer["© 2026"]          // was: RaskEntriesRask_Core.Footer[...]
+  ```
+
+  `Html` also carries the markup primitives (`Text`, `Raw`, `Outlet`, `NavLink`, `Router`, …). The `<html>`
+  element, which had `Html` for a name, is now `Document`: `Document.Lang(HtmlLang)[Head[…], Body[…]]` in a
+  hand-written `Shell`.
+
+- **BREAKING: the browser-capability triggers and the validation feedback are grouped — `Trigger.Fullscreen`,
+  `Validation.Message`.** `FullscreenTrigger` → `Trigger.Fullscreen` (likewise `Install`, `PictureInPicture`,
+  `EyeDropper`, `MediaCapture`, `ScreenOrientation`, `Gesture`); `ValidationMessage` → `Validation.Message`,
+  `ValidationSummary` → `Validation.Summary`, `ValidatingIndicator` → `Validation.Indicator`. Both classes are in the
+  `Rask` namespace. To free the name `Rask.Validation`, the FluentValidation adapter's types moved from the namespace
+  `Rask.Validation.FluentValidation` to `Rask` (the package is still `Rask.Validation.FluentValidation`, and its
+  build props import `Rask` for you).
+
+- **BREAKING: the UI kit is reached through one class, `Ui` — `Ui.Button`, `Ui.Tone` — and lives in the `Rask`
+  namespace.** Typing `Ui.` lists every component and every option, and no kit component takes a bare name any
+  more, so it can never shadow an HTML tag (`Button` is the `<button>`, `Ui.Button` the kit's):
+
+  ```csharp
+  // before
+  using Rask.Ui;
+  UiButton.Tone(UiTone.Primary).Size(UiSize.Small)[UiIcon.Name(UiIconName.Check), "Save"]
+  // after
+  using Rask;
+  Ui.Button.Tone(Ui.Tone.Primary).Size(Ui.Size.Small)[Ui.Icon.Name(Ui.IconName.Check), "Save"]
+  ```
+
+  - The 21 option enums moved into `Ui` (`UiTone` → `Ui.Tone`, `UiVariant` → `Ui.Variant`, …). Component TYPES keep
+    their names (`UiButton`, `UiDataGrid<T>`) for fields, parameters and messages.
+  - The namespace `Rask.Ui` is gone: every kit type is in `Rask`, so replace `using Rask.Ui;` with `using Rask;`.
+    The package is still `Rask.Ui`. A bare `Ui` now means the kit from inside any `Rask.*` namespace too, which the
+    old namespace shadowed.
+  - Every `rask new` template carries a `GlobalUsings.cs` with `global using Rask;` (plus `global using static
+    Rask.Html;` in the three that write C# markup) instead of `<Using>` items in the
+    `.csproj`, so the project's global usings are a file you can read and edit.
+  - A component library can group its own entries the same way with `[assembly: RaskChainGroup(typeof(Group))]`.
+
+- **BREAKING: a package island names its component in `Export`, not after a `#` in `Module`.** The two halves of
+  `import { HexColorPicker } from "react-colorful"` are now two overrides:
+
+  ```csharp
+  // before
+  protected override string Module => "react-colorful#HexColorPicker";
+  // after
+  protected override string Module => "react-colorful";
+  protected override string Export => "HexColorPicker";
+  ```
+
+  No `Export` still means the package's default export; a dotted `Export` (`"Switch.Root"`) still reaches a member,
+  and a Lit island still names its tag there. The old spelling is refused at build time (RASKISLAND005) with the two
+  overrides to write instead, and so is an `Export` on an island whose `Module` names no package. A computed
+  `Export` is RASK059, like a computed `Module`. An island that declared a prop of its own named `Export` now hides
+  the base member and needs `new` (CS0108). Committed `*.props.json` snapshots are unchanged — they already
+  kept `module` and `export` apart.
+
+- **BREAKING: `IBroadcast` and `Topic<T>` are removed; a CQRS notification is the topic.** Publish with
+  `dispatcher.PublishAsync(new OrderPlaced(…))` instead of `broadcast.PublishAsync(Topics.Orders, …)`, and subscribe with
+  `QueryClient.Subscribe<OrderPlaced>()` in `Render` instead of `broadcast.Subscribe(this, Topics.Orders, …)` in
+  `OnMount`. `IDispatcher.PublishAsync` now also reaches every open subscription, and `IDispatcher` gains
+  `SubscribeAsync` (an app's own `IDispatcher` double implements it). A value lands the way a query result does rather
+  than through the session's dispatch queue, so a burst is never dropped by `MaxPendingHandlers`. See
+  [subscriptions](docs/subscriptions.md#coming-from-ibroadcast).
+
 - **The dashboard's log search is served by an index** (#1111). It was `LIKE '%…%'` over every retained row. The
   SQLite log store now keeps an FTS5 table with the `trigram` tokenizer beside the log, kept current by triggers, and
   a search of three or more characters is a case-insensitive substring match looked up in it; a shorter one is the
@@ -430,6 +613,12 @@ them until tagged releases begin.
 ### Fixed
 
 - Error messages and diagnostics no longer name code that does not exist: RASK009/010 and `Route.To<T>()` say "add `[Route("/…")]`" instead of "derive from Page", RASK019/021 name the real `HeadAssets` override, a missing context value points at `Context.Provide<T>(value)[ … ]`, and the `DragDrop`, `VirtualizeModel`, `Navigator` and `Outlet` messages show the chain (`DragDrop.Body(ctx => Div[ … ])`) instead of the retired factory calls.
+- **`UiThemeDropdown` closes on Escape and on a click outside.** It was a `<details>`, which closes on its own
+  summary and nothing else, so the theme list on rask.sh stayed open until the reader found the button again. It
+  is now a `UiPopover` around the `UiThemePicker`: Escape, a click outside and the trigger close it, and focus
+  goes back to the trigger. It stays open while a theme is picked, so the arrow keys still preview the palettes
+  one after another. The call site is unchanged (`UiThemeDropdown.Align(UiAlign.End)`), and so are `Trigger`,
+  `Position`, `Align`, `Themes`, `ShowSystem` and `SystemLabel`.
 - **WebAssembly apps get the `Rask` package's batteries (#1130).** The browser half of `Rask` wires `AddRaskCqrs`,
   request validation and `AddRaskQuery` from a `[ModuleInitializer]`, but a module initializer runs when its
   assembly is loaded, and nothing in an app loaded `Rask.dll` — so in every published WASM app the batteries silently
@@ -473,6 +662,13 @@ them until tagged releases begin.
   carries an executable (`Rask.Cli`) can take hours to appear. The gate now reads the push log: a package
   nuget.org accepted is waited for up to three hours (v0.23.0 needed 2h17m), and one it refused fails at once. Re-running a release
   also gets past an existing GitHub release instead of failing on it.
+- **A cancellation handed to a dispatch reaches the handler again.** A handler takes no token now — it reads
+  `Current.Cancellation` — but `IDispatcher.Send(command, token)` still took one, carried it a single frame
+  into the generated invoker and dropped it before the handler ever looked. Everything compiled, and the
+  job processor's `ShutdownGracePeriod` cancelled nothing: a redeploy left an in-flight handler running to
+  the end of the host's own timeout. The dispatch now opens the token it is given as the work in progress's,
+  keeping an outer scope when it is given none, so `Send(cmd)` inside a request or a job still cancels with
+  it.
 
 ## [0.23.0] - 2026-09-18
 

@@ -12,14 +12,7 @@ using Rask.Core.Live;
 
 namespace Rask.Testing;
 
-/// <summary>
-///     Entry point for unit-testing Rask components. <see cref="Render{T}(T, IServiceProvider)" />
-///     renders a component to HTML with its live event handlers wired, and returns a
-///     <see cref="Page" /> you can query and drive (invoke handlers, re-render) — no browser,
-///     server, or WebSocket involved. Pass a factory (<see cref="Render(Func{Component}, IServiceProvider)" />)
-///     instead when a re-render should rebuild the tree from your current state.
-/// </summary>
-public static partial class Test
+public partial class Page
 {
     /// <summary>
     ///     Renders <paramref name="component" /> as a live root and returns a handle to the result. The
@@ -46,7 +39,7 @@ public static partial class Test
     ///     to the result. The factory runs on <b>every</b> render, so the tree is rebuilt from your current
     ///     state each time — use this (rather than the <see cref="Render{T}(T, IServiceProvider)" />
     ///     overload, which renders one fixed instance) whenever a re-render should see changed props:
-    ///     <c>Test.Render(() => Form(model)[Input.Bind(() => model.Name)])</c>. Returning <c>null</c> renders
+    ///     <c>Page.Render(() => Form(model)[Input.Bind(() => model.Name)])</c>. Returning <c>null</c> renders
     ///     nothing — for a child built by its generated factory, that also drives it through its unmount path.
     /// </summary>
     /// <param name="factory">Builds the component under test; invoked once per render.</param>
@@ -66,7 +59,7 @@ public static partial class Test
     ///     doctype, <c>&lt;html lang&gt;</c>, the <c>&lt;head&gt;</c> every mounted component contributed
     ///     to, and the <c>&lt;body&gt;</c> the app rendered into.
     ///     <code>
-    ///     var page = Test.RenderDocument(App, services);
+    ///     var page = Page.RenderDocument(App, services);
     ///     Assert.Contains("&gt;My app&lt;/title&gt;", page.Html);   // the head block keys its tags, so match the body
     ///     </code>
     ///     <see cref="Render{T}(T, IServiceProvider)" /> is the one to use for everything else — it adds no
@@ -86,27 +79,6 @@ public static partial class Test
         // app's Shell / HtmlLang / BodyClass and catches anything the subtree throws. Going through it
         // rather than reimplementing the composition is the point — a test asserts what a browser gets.
         return new Page<T>(new RootErrorBoundary(app), app, services ?? EmptyServices);
-    }
-
-    /// <summary>
-    ///     A zero-markup component that hands <paramref name="capture" /> the <see cref="EditContext" /> the
-    ///     surrounding form is using, so a test can assert validation state (<c>GetValidationMessages</c>,
-    ///     <c>IsValidating</c>, <c>IsModified</c>) that never reaches the markup. Place it <b>inside</b> the
-    ///     form's children — the context is ambient only within that subtree:
-    ///     <code>
-    ///     EditContext? ctx = null;
-    ///     var page = Test.Render(() => Form(model)[
-    ///         Input.Bind(() => model.Name),
-    ///         Test.EditContextProbe(c => ctx = c)
-    ///     ]);
-    ///     </code>
-    ///     The callback runs on every render, so <paramref name="capture" /> sees the current context.
-    /// </summary>
-    /// <param name="capture">Receives the ambient context during each render.</param>
-    public static Component EditContextProbe(Action<EditContext> capture)
-    {
-        ArgumentNullException.ThrowIfNull(capture);
-        return new EditContextProbe(capture);
     }
 
     private static readonly IServiceProvider EmptyServices = new EmptyServiceProvider();
@@ -144,5 +116,34 @@ public static partial class Test
             ctx.NotifyParameters(child, propsChanged: false);
             return child;
         }
+    }
+}
+
+/// <summary>
+///     What a test brings that is about the test rather than about the page: the batteries' fakes
+///     (<c>Test.Fake.Mail()</c>, <c>Test.Fake.Clock(at)</c>), the route helpers, and the probe below. A
+///     page itself comes from <see cref="Page.Visit" /> or <see cref="Page.Render(Func{Component}, IServiceProvider)" />.
+/// </summary>
+public static partial class Test
+{
+    /// <summary>
+    ///     A zero-markup component that hands <paramref name="capture" /> the <see cref="EditContext" /> the
+    ///     surrounding form is using, so a test can assert validation state (<c>GetValidationMessages</c>,
+    ///     <c>IsValidating</c>, <c>IsModified</c>) that never reaches the markup. Place it <b>inside</b> the
+    ///     form's children — the context is ambient only within that subtree:
+    ///     <code>
+    ///     EditContext? ctx = null;
+    ///     var page = Page.Render(() => Form.Model(model)[
+    ///         Input.Bind(() => model.Name),
+    ///         Test.EditContextProbe(c => ctx = c)
+    ///     ]);
+    ///     </code>
+    ///     The callback runs on every render, so <paramref name="capture" /> sees the current context.
+    /// </summary>
+    /// <param name="capture">Receives the ambient context during each render.</param>
+    public static Component EditContextProbe(Action<EditContext> capture)
+    {
+        ArgumentNullException.ThrowIfNull(capture);
+        return new EditContextProbe(capture);
     }
 }

@@ -64,7 +64,7 @@ internal static class DevToolsNames
 {
     private static readonly ConditionalWeakTable<Type, string> Names = new();
 
-    /// <summary><c>UiTree&lt;Node, string&gt;</c> rather than <c>UiTree`2</c>, and no namespace.</summary>
+    /// <summary><c>Ui.Tree&lt;Node, string&gt;</c> rather than <c>Ui.Tree`2</c>, and no namespace.</summary>
     internal static string Of(Type type) => Names.GetValue(type, Build);
 
     private static string Build(Type type)

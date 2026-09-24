@@ -9,7 +9,7 @@ namespace Rask.Testing;
 /// <summary>
 ///     A rendered component under test. <see cref="Html" /> is the current markup; invoke a handler
 ///     (<see cref="InvokeAsync(string, string?)" />, <see cref="ClickAsync(string?)" />) to simulate an event, which dispatches it
-///     and re-renders, or call <see cref="Render" /> to re-render after mutating external state.
+///     and re-renders, or call <see cref="Render()" /> to re-render after mutating external state.
 /// </summary>
 public partial class Page : IRenderHandle
 {
@@ -74,10 +74,10 @@ public partial class Page : IRenderHandle
     /// <summary>
     ///     Re-renders until <paramref name="predicate" /> accepts the markup, then returns it — the way to
     ///     test a component that loads asynchronously. <c>OnMount</c> completes on a thread-pool
-    ///     continuation, so the markup it produces is not there when <see cref="Render" /> returns; this
+    ///     continuation, so the markup it produces is not there when <see cref="Render()" /> returns; this
     ///     waits for it instead of guessing with a fixed delay.
     ///     <code>
-    ///     var page = Test.Render(new OrdersPage(store), services);
+    ///     var page = Page.Render(new OrdersPage(store), services);
     ///     await page.WaitForAsync(html => !html.Contains("Reading…"));
     ///     </code>
     /// </summary>
@@ -500,7 +500,7 @@ public sealed class Page<T> : Page
 
     /// <summary>
     ///     The component under test — the very object passed to
-    ///     <see cref="Test.Render{T}(T, IServiceProvider)" />, for the lifetime of this handle. The
+    ///     <see cref="Page.Render{T}(T, IServiceProvider)" />, for the lifetime of this handle. The
     ///     forwarding test root renders it directly rather than reconciling it, so this never becomes a
     ///     different instance behind your back.
     /// </summary>

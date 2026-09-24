@@ -98,7 +98,8 @@ builder.Services.AddRaskCqrs();
 builder.Services.AddRaskQuery();
 // rask:if data
 // The app's database, on its own disk — no external server. AddRaskData registers the
-// auditing/soft-delete/concurrency/domain-event interceptors; UseRaskSqlite is a drop-in for
+// auditing/concurrency/domain-event interceptors, and soft delete for an aggregate that opts in;
+// UseRaskSqlite is a drop-in for
 // UseSqlite that also applies the production pragmas (WAL, busy_timeout, foreign_keys), and reads
 // its connection string from Rask:ConnectionStrings:App — a local app.db in appsettings.json, which
 // `rask deploy` points at a mounted volume so the DB survives redeploys.
@@ -110,7 +111,7 @@ builder.Services.AddRaskQuery();
 //
 // rask:end
 // rask:if data
-// The generic overload is what names the context to the model surface, so `Product.Where(…)`
+// The generic overload is what names the context to the model surface, so `Product.Read.Where(…)`
 // knows which one to open. The non-generic
 // AddRaskData() registers only the interceptors, and Db.Configure below then has nothing to bind.
 builder.Services.AddRaskData<AppDbContext>();
@@ -151,6 +152,7 @@ builder.Services.AddRaskAuth<AppDbContext>();
 // a hosted worker polls, runs each job through its Rask.Cqrs handler, and retries with backoff.
 // Schedule recurring work here — a schedule is code, not configuration:
 //   builder.Services.AddRaskJobs<AppDbContext>(o => o.Run<PurgeJob>().Every(1.Hour));
+//   builder.Services.AddRaskJobs<AppDbContext>(o => o.Run<Backup>().Daily.At(3, 00));
 builder.Services.AddRaskJobs<AppDbContext>();
 // rask:end
 // rask:if mail
@@ -164,14 +166,14 @@ builder.Services.AddRaskMail<AppDbContext>();
 // rask:if cache
 
 // A cache on the app's own database: the standard IDistributedCache (so ASP.NET session/output
-// caching just works) plus a typed ICache — Cache.Remember(key, load).For(10.Minutes) — with absolute/sliding expiry. A
+// caching just works) plus Cache.Remember(key, load).For(10.Minutes), sliding and absolute. A
 // background purger sweeps expired rows.
 builder.Services.AddRaskCache<AppDbContext>();
 // rask:end
 // rask:if storage
 
 // The files your users upload, kept by id: save an upload with IFiles.SaveAsync, keep the returned
-// Id on your entity, and hand the file back with files.Url(id), files.Share(id).For(lifetime)
+// Id on your entity, and hand the file back with Files.Url(id), await Files.Share(id).For(5.Minutes)
 // or files.Download(id). The bytes go to ./storage here and to /data/files on the deploy volume —
 // which NO backup covers — until you point them at a bucket: rask deploy --env Rask__Storage__Provider=S3
 // --env Rask__Storage__S3__Bucket=... (and the keys beside it), or Rask__Storage__Provider=Azure. The routes that
@@ -263,7 +265,7 @@ builder.Services.AddRaskPwa(new WebAppManifest
 var app = builder.Build();
 // rask:if cqrs data
 // Point the model surface at the context registered above. This is what lets a model be read
-// from anywhere — Product.Where(…), Product.Get(id) — with no DbContext injected.
+// from anywhere — Product.Read.Where(…), Product.CreateAsync(model) — with no DbContext injected.
 Db.Configure(app.Services);
 // rask:end
 // FIRST: rewrite Request.Scheme/RemoteIpAddress from the proxy's headers, so everything below
@@ -324,7 +326,7 @@ app.MapPushSubscriptions();
 app.MapRask<App>();
 
 // rask:if storage
-// The routes behind files.Url(id) and files.Share(id).For(lifetime). After MapRask, which sets
+// The routes behind Files.Url(id) and Files.Share(id).For(...). After MapRask, which sets
 // the path base they live under.
 app.MapRaskStorage();
 

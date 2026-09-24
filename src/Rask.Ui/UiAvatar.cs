@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A person or a thing, as a picture — or as the initials of its name when there is no picture.
@@ -31,11 +31,11 @@ public sealed partial class UiAvatar : Component
 
     /// <summary>How big the frame is. Defaults to a 2.5rem frame.</summary>
     /// <remarks>
-    ///     The same <see cref="UiSize" /> every other component takes. It used to be a Tailwind class string,
+    ///     The same <see cref="Ui.Size" /> every other component takes. It used to be a Tailwind class string,
     ///     which is invisible to the kit's own stylesheet build: a width nobody else on the page wrote was
     ///     never compiled, and the avatar silently kept its default size.
     /// </remarks>
-    public UiSize? Size { get; set; }
+    public Ui.Size? Size { get; set; }
 
     /// <summary>Rounds it fully. daisyUI's own examples use <c>rounded-full</c> on the frame.</summary>
     public bool? Round { get; set; }
@@ -46,7 +46,7 @@ public sealed partial class UiAvatar : Component
     protected override Component? Render()
     {
         var frame = UiClass.Compose(
-            UiClassNames.AvatarSize(Size ?? UiSize.Default),
+            UiClassNames.AvatarSize(Size ?? Ui.Size.Default),
             Round == false ? "rounded" : "rounded-full");
 
         if (Src is { Length: > 0 } src)

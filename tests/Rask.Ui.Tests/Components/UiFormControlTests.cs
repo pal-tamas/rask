@@ -1,4 +1,4 @@
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     The twelve form controls, at daisyUI class parity.
@@ -6,35 +6,35 @@ namespace Rask.Ui.Tests.Components;
 public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
 {
     [Theory]
-    [InlineData(UiTone.Primary, "input-primary")]
-    [InlineData(UiTone.Error, "input-error")]
-    public void An_input_takes_a_tone(UiTone tone, string expected) =>
-        Assert.Contains(expected, UiInput.Of<string>().Label("Email").Tone(tone).ToHtml());
+    [InlineData(Ui.Tone.Primary, "input-primary")]
+    [InlineData(Ui.Tone.Error, "input-error")]
+    public void An_input_takes_a_tone(Ui.Tone tone, string expected) =>
+        Assert.Contains(expected, Ui.Input.Of<string>().Label("Email").Tone(tone).ToHtml());
 
     [Fact]
     public void An_input_takes_the_ghost_variant() =>
-        Assert.Contains("input-ghost", UiInput.Of<string>().Label("Email").Variant(UiVariant.Ghost).ToHtml());
+        Assert.Contains("input-ghost", Ui.Input.Of<string>().Label("Email").Variant(Ui.Variant.Ghost).ToHtml());
 
     [Fact]
     public void A_textarea_takes_the_ghost_variant_too()
     {
         // It could not before this: the table existed in UiClassNames with nothing calling it.
-        Assert.Contains("textarea-ghost", UiTextarea.Of<string>().Label("Notes").Variant(UiVariant.Ghost).ToHtml());
+        Assert.Contains("textarea-ghost", Ui.Textarea.Of<string>().Label("Notes").Variant(Ui.Variant.Ghost).ToHtml());
     }
 
     [Fact]
     public void A_file_input_takes_the_ghost_variant_too() =>
-        Assert.Contains("file-input-ghost", UiFileInput.Value("").Label("Avatar").Variant(UiVariant.Ghost).ToHtml());
+        Assert.Contains("file-input-ghost", Ui.FileInput.Value("").Label("Avatar").Variant(Ui.Variant.Ghost).ToHtml());
 
     [Theory]
-    [InlineData(UiVariant.Outline)]
-    [InlineData(UiVariant.Soft)]
-    [InlineData(UiVariant.Dash)]
-    public void A_variant_daisyUI_has_no_text_control_class_for_writes_nothing(UiVariant variant)
+    [InlineData(Ui.Variant.Outline)]
+    [InlineData(Ui.Variant.Soft)]
+    [InlineData(Ui.Variant.Dash)]
+    public void A_variant_daisyUI_has_no_text_control_class_for_writes_nothing(Ui.Variant variant)
     {
         // Better than inventing `input-outline`: the class would be in the markup, absent from the
         // sheet, and do nothing — which reads exactly like a working call site.
-        var html = UiInput.Of<string>().Label("Email").Variant(variant).ToHtml();
+        var html = Ui.Input.Of<string>().Label("Email").Variant(variant).ToHtml();
 
         Assert.DoesNotContain("input-outline", html);
         Assert.DoesNotContain("input-soft", html);
@@ -42,36 +42,36 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
     }
 
     [Theory]
-    [InlineData(UiSize.Xs, "input-xs")]
-    [InlineData(UiSize.Xl, "input-xl")]
-    public void An_input_takes_every_size(UiSize size, string expected) =>
-        Assert.Contains(expected, UiInput.Of<string>().Label("Email").Size(size).ToHtml());
+    [InlineData(Ui.Size.Xs, "input-xs")]
+    [InlineData(Ui.Size.Xl, "input-xl")]
+    public void An_input_takes_every_size(Ui.Size size, string expected) =>
+        Assert.Contains(expected, Ui.Input.Of<string>().Label("Email").Size(size).ToHtml());
 
     [Theory]
-    [InlineData(UiTone.Primary, "checkbox-primary")]
-    [InlineData(UiTone.Success, "checkbox-success")]
-    public void A_checkbox_takes_a_tone(UiTone tone, string expected) =>
-        Assert.Contains(expected, UiCheckbox.Value(false).Text("Remember me").Tone(tone).ToHtml());
+    [InlineData(Ui.Tone.Primary, "checkbox-primary")]
+    [InlineData(Ui.Tone.Success, "checkbox-success")]
+    public void A_checkbox_takes_a_tone(Ui.Tone tone, string expected) =>
+        Assert.Contains(expected, Ui.Checkbox.Value(false).Text("Remember me").Tone(tone).ToHtml());
 
     [Theory]
-    [InlineData(UiTone.Primary, "toggle-primary")]
-    [InlineData(UiTone.Warning, "toggle-warning")]
-    public void A_toggle_takes_a_tone(UiTone tone, string expected) =>
-        Assert.Contains(expected, UiToggle.Value(false).Text("Email alerts").Tone(tone).ToHtml());
+    [InlineData(Ui.Tone.Primary, "toggle-primary")]
+    [InlineData(Ui.Tone.Warning, "toggle-warning")]
+    public void A_toggle_takes_a_tone(Ui.Tone tone, string expected) =>
+        Assert.Contains(expected, Ui.Toggle.Value(false).Text("Email alerts").Tone(tone).ToHtml());
 
     [Theory]
-    [InlineData(UiTone.Accent, "radio-accent")]
-    [InlineData(UiTone.Info, "radio-info")]
-    public void A_radio_takes_a_tone(UiTone tone, string expected) =>
-        Assert.Contains(expected, UiRadio.Value(false).Text("Standard").Group("shipping").Tone(tone).ToHtml());
+    [InlineData(Ui.Tone.Accent, "radio-accent")]
+    [InlineData(Ui.Tone.Info, "radio-info")]
+    public void A_radio_takes_a_tone(Ui.Tone tone, string expected) =>
+        Assert.Contains(expected, Ui.Radio.Value(false).Text("Standard").Group("shipping").Tone(tone).ToHtml());
 
     [Fact]
     public void A_range_can_stand_on_end() =>
-        Assert.Contains("range-vertical", UiRange.Value(0d).Label("Volume").Vertical(true).ToHtml());
+        Assert.Contains("range-vertical", Ui.Range.Value(0d).Label("Volume").Vertical(true).ToHtml());
 
     [Fact]
     public void A_horizontal_range_writes_no_direction_class() =>
-        Assert.DoesNotContain("range-vertical", UiRange.Value(0d).Label("Volume").ToHtml());
+        Assert.DoesNotContain("range-vertical", Ui.Range.Value(0d).Label("Volume").ToHtml());
 
     [Theory]
     [InlineData("checkbox")]
@@ -86,9 +86,9 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
         // reach the markup as `checked`.
         var html = kind switch
         {
-            "checkbox" => UiCheckbox.Value(true).Text("Remember").ToHtml(),
-            "toggle" => UiToggle.Value(true).Text("Alerts").ToHtml(),
-            _ => UiRadio.Value(true).Text("Standard").Group("shipping").ToHtml(),
+            "checkbox" => Ui.Checkbox.Value(true).Text("Remember").ToHtml(),
+            "toggle" => Ui.Toggle.Value(true).Text("Alerts").ToHtml(),
+            _ => Ui.Radio.Value(true).Text("Standard").Group("shipping").ToHtml(),
         };
 
         Assert.Contains("checked", html);
@@ -102,9 +102,9 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
     {
         var html = kind switch
         {
-            "checkbox" => UiCheckbox.Value(false).Text("Remember").ToHtml(),
-            "toggle" => UiToggle.Value(false).Text("Alerts").ToHtml(),
-            _ => UiRadio.Value(false).Text("Standard").Group("shipping").ToHtml(),
+            "checkbox" => Ui.Checkbox.Value(false).Text("Remember").ToHtml(),
+            "toggle" => Ui.Toggle.Value(false).Text("Alerts").ToHtml(),
+            _ => Ui.Radio.Value(false).Text("Standard").Group("shipping").ToHtml(),
         };
 
         Assert.DoesNotContain("checked", html);
@@ -133,7 +133,7 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
         // control wrote the class, so the hint was `visibility: hidden` forever — a component with a
         // REQUIRED message that could not be read. `.validator` alone is inert: it only sets a colour
         // variable under :user-valid/:user-invalid, so an untouched field looks exactly as before.
-        Assert.Contains("validator", Control(kind, UiTone.Neutral));
+        Assert.Contains("validator", Control(kind, Ui.Tone.Neutral));
     }
 
     [Theory]
@@ -146,21 +146,21 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
         // Also what makes daisyUI reveal the hint from the KIT's own tone rather than only from the
         // browser's native validity. A field that is visibly red and announces nothing is half a
         // message.
-        Assert.Contains("aria-invalid=\"true\"", Control(kind, UiTone.Error));
+        Assert.Contains("aria-invalid=\"true\"", Control(kind, Ui.Tone.Error));
     }
 
     [Theory]
     [InlineData("input")]
     [InlineData("select")]
     public void A_control_with_no_error_does_not_claim_one(string kind) =>
-        Assert.DoesNotContain("aria-invalid", Control(kind, UiTone.Neutral));
+        Assert.DoesNotContain("aria-invalid", Control(kind, Ui.Tone.Neutral));
 
     [Fact]
     public void The_hint_keeps_its_space_whether_or_not_it_is_showing()
     {
         // daisyUI hides it with `visibility`, not `display`, so a form does not jump as the reader
         // types. That is the reason the hint is rendered rather than conditionally omitted.
-        Assert.Contains("validator-hint", UiValidator.Message("Enter a valid email").ToHtml());
+        Assert.Contains("validator-hint", Ui.Validator.Message("Enter a valid email").ToHtml());
     }
 
     [Fact]
@@ -168,28 +168,28 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
     {
         // On a phone a 16px box on its own is the difference between a control and a dare, so the label
         // has to be part of what you can press.
-        var html = UiCheckbox.Value(false).Text("Remember me").ToHtml();
+        var html = Ui.Checkbox.Value(false).Text("Remember me").ToHtml();
 
         Assert.StartsWith("<label", html, StringComparison.Ordinal);
         Assert.Contains("Remember me", html);
     }
 
     [Theory]
-    [InlineData(UiMaskShape.Circle, "mask-circle")]
-    [InlineData(UiMaskShape.Squircle, "mask-squircle")]
-    [InlineData(UiMaskShape.Star2, "mask-star-2")]
-    [InlineData(UiMaskShape.Hexagon2, "mask-hexagon-2")]
-    [InlineData(UiMaskShape.Triangle4, "mask-triangle-4")]
-    [InlineData(UiMaskShape.Half1, "mask-half-1")]
-    public void Every_mask_shape_writes_its_own_class(UiMaskShape shape, string expected) =>
-        Assert.Contains(expected, UiMask.Shape(shape)[Span["x"]].ToHtml());
+    [InlineData(Ui.MaskShape.Circle, "mask-circle")]
+    [InlineData(Ui.MaskShape.Squircle, "mask-squircle")]
+    [InlineData(Ui.MaskShape.Star2, "mask-star-2")]
+    [InlineData(Ui.MaskShape.Hexagon2, "mask-hexagon-2")]
+    [InlineData(Ui.MaskShape.Triangle4, "mask-triangle-4")]
+    [InlineData(Ui.MaskShape.Half1, "mask-half-1")]
+    public void Every_mask_shape_writes_its_own_class(Ui.MaskShape shape, string expected) =>
+        Assert.Contains(expected, Ui.Mask.Shape(shape)[Span["x"]].ToHtml());
 
     [Fact]
     public void A_label_is_decoration_and_says_so_by_not_naming_anything()
     {
         // A <label> element names a control; this one styles text beside one. The control keeps its own
         // required name, which is why nothing here is aria-anything.
-        var html = UiLabel.Text("Price").Trailing("EUR")[Span["field"]].ToHtml();
+        var html = Ui.Label.Text("Price").Trailing("EUR")[Span["field"]].ToHtml();
 
         Assert.Contains("class=\"label\"", html);
         Assert.Contains("Price", html);
@@ -243,19 +243,19 @@ public partial class UiFormControlTests : global::Rask.Core.RaskMarkup
         return count;
     }
 
-    private static string Control(string kind, UiTone tone) => kind switch
+    private static string Control(string kind, Ui.Tone tone) => kind switch
     {
-        "input" => UiInput.Of<string>().Label("Email").Tone(tone).ToHtml(),
-        "textarea" => UiTextarea.Of<string>().Label("Notes").Tone(tone).ToHtml(),
+        "input" => Ui.Input.Of<string>().Label("Email").Tone(tone).ToHtml(),
+        "textarea" => Ui.Textarea.Of<string>().Label("Notes").Tone(tone).ToHtml(),
         // Value opens it: for a form control the opening step fixes both the type argument and the
         // MODE (controlled here, bound if it opened on Bind), so Label and Options follow it.
-        "select" => UiSelect.Value<string>(null).Options([("hu", "Hungary")]).Label("Country")
+        "select" => Ui.Select.Value<string>(null).Options([("hu", "Hungary")]).Label("Country")
             .Tone(tone).ToHtml(),
-        _ => UiFileInput.Value("").Label("Avatar").Tone(tone).ToHtml(),
+        _ => Ui.FileInput.Value("").Label("Avatar").Tone(tone).ToHtml(),
     };
 
     private static string Filter(string? selected) =>
-        UiFilter.Value(selected).Group("tags")
+        Ui.Filter.Value(selected).Group("tags")
             .Options([("bug", "bug"), ("feature", "feature"), ("docs", "docs")])
             .ToHtml();
 }

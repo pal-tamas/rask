@@ -20,7 +20,7 @@ public class QuiescenceScopeStaleThreadTests
         // #1108. QuiescentRender.RunAsync calls Begin on a pool thread and then awaits: the runtime
         // restores the thread's ExecutionContext when the async method yields, so the AsyncLocal is
         // gone from that thread — but a thread slot stayed behind, pointing at a render that was still
-        // waiting. A scope-less synchronous render landing there (Test.Render in a parallel test
+        // waiting. A scope-less synchronous render landing there (Page.Render in a parallel test
         // class) then tracked its hooks into the stranger, whose wave loop kept finding new work until
         // the 16-wave cap served it "did not settle" in half a second.
         QuiescenceScope? stranger = null;

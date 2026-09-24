@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 ///     Typing letters jumps to the next node whose text starts with them — the WAI-ARIA type-ahead, as a value.

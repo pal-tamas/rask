@@ -7,7 +7,7 @@ namespace Rask.Core.Tests.Components;
 public partial class ErrorBoundaryTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Without_an_error_the_boundary_renders_its_children()
+    public void With_no_error_it_renders_its_children()
     {
         var boundary = ErrorBoundary;
         boundary.SetProps(new Component[] { Span[Text.Value("ok")] }, null);
@@ -16,7 +16,7 @@ public partial class ErrorBoundaryTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_throwing_descendant_render_shows_the_fallback()
+    public void A_descendant_that_throws_renders_the_fallback_instead()
     {
         var boundary = ErrorBoundary;
         boundary.SetProps(
@@ -27,7 +27,7 @@ public partial class ErrorBoundaryTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_throwing_descendant_render_rewinds_its_partial_output()
+    public void A_descendant_that_throws_has_its_partial_output_rewound()
     {
         // The throwing child emits its opening <div> before the inner throw fires. The
         // boundary's rewind must remove that partial output so nothing leaks into the
@@ -38,13 +38,12 @@ public partial class ErrorBoundaryTests : global::Rask.Core.RaskMarkup
             (ex, _) => Span[Text.Value("fb")]);
 
         var html = boundary.ToHtml();
-
         Assert.Equal("<span>fb</span>", html);
         Assert.DoesNotContain("<div", html);
     }
 
     [Fact]
-    public void Without_a_fallback_the_default_error_page_is_used()
+    public void With_no_fallback_given_it_uses_the_default_error_page()
     {
         var boundary = ErrorBoundary;
         boundary.SetProps(
@@ -52,20 +51,20 @@ public partial class ErrorBoundaryTests : global::Rask.Core.RaskMarkup
             null);
 
         var html = boundary.ToHtml();
-
         Assert.Contains("rask-error-boundary", html);
         Assert.Contains("Something went wrong", html);
         Assert.Contains("dflt", html);
     }
 
     [Fact]
-    public void Of_nested_boundaries_the_inner_one_catches_first()
+    public void Of_two_nested_boundaries_the_inner_one_catches_first()
     {
         var outerCaught = false;
         var inner = ErrorBoundary;
         inner.SetProps(
             new Component[] { new ThrowingRender("inner") },
             (ex, _) => Span[Text.Value("INNER:" + ex.Message)]);
+
         var outer = ErrorBoundary;
         outer.SetProps(
             new Component[] { inner },
@@ -76,18 +75,18 @@ public partial class ErrorBoundaryTests : global::Rask.Core.RaskMarkup
             });
 
         var html = outer.ToHtml();
-
         Assert.Equal("<span>INNER:inner</span>", html);
         Assert.False(outerCaught, "outer fallback should not run when inner catches");
     }
 
     [Fact]
-    public void The_outer_boundary_catches_when_the_inner_fallback_throws()
+    public void The_outer_boundary_catches_when_the_inner_fallback_itself_throws()
     {
         var inner = ErrorBoundary;
         inner.SetProps(
             new Component[] { new ThrowingRender("first") },
             (_, _) => throw new InvalidOperationException("fallback-broke"));
+
         var outer = ErrorBoundary;
         outer.SetProps(
             new Component[] { inner },
@@ -97,7 +96,7 @@ public partial class ErrorBoundaryTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Recover_clears_the_error_and_the_next_render_shows_the_children()
+    public void Recover_clears_error_and_next_render_shows_children()
     {
         var boundary = ErrorBoundary;
         boundary.SetProps(
@@ -106,7 +105,6 @@ public partial class ErrorBoundaryTests : global::Rask.Core.RaskMarkup
 
         // First render: boundary trips on the throw, emits fallback.
         var trippedHtml = boundary.ToHtml();
-
         Assert.Contains("retry:", trippedHtml);
 
         // Now simulate "fix the cause" then call Recover.
@@ -119,7 +117,7 @@ public partial class ErrorBoundaryTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Descendants_are_stamped_with_their_boundary_during_serialization()
+    public void Descendant_boundary_stamped_during_serialization()
     {
         // The default branch of HtmlSerializer stamps Component.Boundary on descendants
         // so async lifecycle / event-handler catch sites can find the right boundary.
@@ -138,7 +136,7 @@ public partial class ErrorBoundaryTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_boundary_stamped_on_the_first_walk_is_not_overwritten()
+    public void Descendant_stamped_at_first_traversal_does_not_overwrite()
     {
         // Second-render must not clobber a boundary already assigned during the first
         // walk — that would lose the link when nested boundaries swap fallbacks.
@@ -146,7 +144,6 @@ public partial class ErrorBoundaryTests : global::Rask.Core.RaskMarkup
         var probe = new BoundaryProbe();
         var first = ErrorBoundary;
         first.SetProps(new Component[] { probe }, null);
-
         using (LiveRenderContext.Begin(first, sp))
         {
             _ = first.ToHtml();

@@ -258,7 +258,7 @@ Rask.Dashboard.Panels.IQueueActions.RetryAllAsync(System.Threading.CancellationT
 Rask.Dashboard.Panels.IQueueActions.RetryAsync(long id, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<int>!
 Rask.Dashboard.Panels.IQueuePanel
 Rask.Dashboard.Panels.IQueuePanel.CountsAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Rask.Dashboard.Panels.QueueCounts>!
-Rask.Dashboard.Panels.IQueuePanel.Icon.get -> Rask.Ui.UiIconName
+Rask.Dashboard.Panels.IQueuePanel.Icon.get -> Rask.Ui.IconName
 Rask.Dashboard.Panels.IQueuePanel.IsAvailable.get -> bool
 Rask.Dashboard.Panels.IQueuePanel.MaxAttempts.get -> int
 Rask.Dashboard.Panels.IQueuePanel.PageAsync(Rask.Dashboard.Panels.QueueFilter filter, int skip, int take, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<(System.Collections.Generic.IReadOnlyList<Rask.Dashboard.Panels.QueueRow!>! Rows, int Total)>!

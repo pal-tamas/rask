@@ -42,10 +42,10 @@ public sealed partial class WebAuthnDemo(IWebAuthn webAuthn) : Component
     }
 
     protected override Component? Render() =>
-        UiCard.Class("shadow-sm")[
+        Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    UiButton.Tone(UiTone.Primary).Id("webauthn-create").OnClick(Create)[UiIcon.Name(UiIconName.FingerPrint), "Create passkey"],
-                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline)
+                    Ui.Button.Tone(Ui.Tone.Primary).Id("webauthn-create").OnClick(Create)[Ui.Icon.Name(Ui.IconName.FingerPrint), "Create passkey"],
+                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
                         .Id("webauthn-auth")
                         .Disabled(_credentialId is null)
                         .OnClick(Authenticate)["Authenticate"]

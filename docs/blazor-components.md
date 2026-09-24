@@ -90,7 +90,7 @@ builder.Services.AddRaskBlazor();
 ```csharp
 Div.Class("grid")[
     H1["Watchlist"],
-    Quote.Symbol("RASK").Price(12.5m).Tone("up"),
+    Quote.Symbol("RASK").Price(12.5m).Tone("up")
 ]
 ```
 

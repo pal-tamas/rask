@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A vertical list of links.
@@ -9,7 +9,7 @@ namespace Rask.Ui;
 /// </remarks>
 public sealed partial class UiMenu : Component
 {
-    public UiSize? Size { get; set; }
+    public Ui.Size? Size { get; set; }
 
     /// <summary>Lays the items out in a row. daisyUI's <c>menu-horizontal</c>.</summary>
     public bool? Horizontal { get; set; }

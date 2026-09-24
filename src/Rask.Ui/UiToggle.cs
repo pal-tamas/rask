@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using Rask.Core.Forms;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A switch. The same input as <see cref="UiCheckbox" />, drawn as a toggle.
@@ -25,9 +25,9 @@ public sealed partial class UiToggle : Component, IFormControl<bool>
     /// </summary>
     public new required string Text { get; set; }
 
-    public UiTone? Tone { get; set; }
+    public Ui.Tone? Tone { get; set; }
 
-    public UiSize? Size { get; set; }
+    public Ui.Size? Size { get; set; }
 
     public bool? Disabled { get; set; }
 

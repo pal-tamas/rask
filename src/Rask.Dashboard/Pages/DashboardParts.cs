@@ -54,7 +54,7 @@ internal static class DashboardParts
 internal sealed partial class DashboardLoading : Component
 {
     /// <inheritdoc />
-    protected override Component? Render() => UiLoading.Text("Reading…");
+    protected override Component? Render() => Ui.Loading.Text("Reading…");
 }
 
 /// <summary>
@@ -70,8 +70,8 @@ internal sealed partial class DashboardError : Component
     protected override Component? Render() =>
         Message is null
             ? null
-            : UiAlert.Tone(UiTone.Error)[
-                UiIcon.Name(UiIconName.Warning),
+            : Ui.Alert.Tone(Ui.Tone.Error)[
+                Ui.Icon.Name(Ui.IconName.Warning),
                 Span["Couldn't read: ", Message]
             ];
 }
@@ -89,9 +89,9 @@ internal sealed partial class DashboardParked : Component
     /// <inheritdoc />
     protected override Component? Render() =>
         Parked
-            ? UiAlert[
+            ? Ui.Alert[
                 Span["Live updates paused to keep the database free."],
-                UiButton.Size(UiSize.Sm).OnClick(ResumeAsync)["Resume"]
+                Ui.Button.Size(Ui.Size.Sm).OnClick(ResumeAsync)["Resume"]
             ]
             : null;
 

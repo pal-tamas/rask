@@ -152,9 +152,9 @@ static Rask.Testing.JSCall.operator ==(Rask.Testing.JSCall left, Rask.Testing.JS
 static Rask.Testing.Markup.Attr(string! html, string! name) -> string?
 static Rask.Testing.Markup.Attrs(string! html, string! name) -> System.Collections.Generic.IReadOnlyList<string!>!
 static Rask.Testing.Test.EditContextProbe(System.Action<Rask.Core.Forms.EditContext!>! capture) -> Rask.Core.Component!
-static Rask.Testing.Test.Render(System.Func<Rask.Core.Component?>! factory, System.IServiceProvider? services = null) -> Rask.Testing.Page!
-static Rask.Testing.Test.Render<T>(T! component, System.IServiceProvider? services = null) -> Rask.Testing.Page<T!>!
-static Rask.Testing.Test.RenderDocument<T>(T! app, System.IServiceProvider? services = null) -> Rask.Testing.Page<T!>!
+static Rask.Testing.Page.Render(System.Func<Rask.Core.Component?>! factory, System.IServiceProvider? services = null) -> Rask.Testing.Page!
+static Rask.Testing.Page.Render<T>(T! component, System.IServiceProvider? services = null) -> Rask.Testing.Page<T!>!
+static Rask.Testing.Page.RenderDocument<T>(T! app, System.IServiceProvider? services = null) -> Rask.Testing.Page<T!>!
 static Rask.Testing.StagedDownload.operator !=(Rask.Testing.StagedDownload? left, Rask.Testing.StagedDownload? right) -> bool
 static Rask.Testing.StagedDownload.operator ==(Rask.Testing.StagedDownload? left, Rask.Testing.StagedDownload? right) -> bool
 static Rask.Testing.TestFileBackend.PayloadFor(params Rask.Testing.TestFile![]! files) -> string!
@@ -191,7 +191,7 @@ Rask.Testing.Page.Typing.Into(string! field) -> System.Threading.Tasks.Task!
 Rask.Testing.Page.Typing.Typing() -> void
 Rask.Testing.Page.Typing.Typing(Rask.Testing.Page! page, string! text) -> void
 Rask.Testing.Page.Uncheck(string! label) -> System.Threading.Tasks.Task!
-static Rask.Testing.Test.Visit(string! url, System.IServiceProvider? services = null) -> Rask.Testing.Page!
+static Rask.Testing.Page.Visit(string! url, System.IServiceProvider? services = null) -> Rask.Testing.Page!
 Rask.Testing.ClockFakes
 Rask.Testing.ClockFakes.extension(Rask.Clock!)
 Rask.Testing.FakeClock

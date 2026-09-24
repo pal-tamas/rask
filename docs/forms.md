@@ -89,8 +89,8 @@ checkbox's `checked`) from the model and installs its own `oninput`/`onchange` w
 effect on
 each bound write? That is what `AfterBind` is for.
 
-The generated factories carry the same split — `Input(() => m.Name, OnInput: …)` has no such
-parameter — so neither surface can express a mode it will not honour.
+The openings themselves stay exclusive: `Input.Bind(…)` and `Input.Value(…)` both live on the chain's
+entry, so once you have taken one the other is not there to take.
 
 Beyond the constraint/affordance attributes shared with plain HTML (`Min`/`Max`/`Step`/`Pattern`/
 `MaxLength`/`MinLength`/`Multiple`/`Accept`/`List`/`Autocomplete`/`Autofocus`), the core `Input` also
@@ -103,18 +103,18 @@ input), and `Dirname`. A control of your own forwards them the same way (see
 > renders `<input type="number" step="any">`. Without it HTML's default is `step="1"`, so the browser's own
 > constraint validation rejects `42.50` and **refuses to fire submit** — silently, with nothing thrown and
 > no validation message, which reads as the form being broken. Integral types keep the implicit whole-number
-> constraint. An explicit `Step:` always wins, and is worth setting for money (`Step: "0.01"` makes the
+> constraint. An explicit `.Step(…)` always wins, and is worth setting for money (`.Step("0.01")` makes the
 > spinner step by cents).
 
 ### File inputs
 
 `InputType.File` turns an `<input>` into a file picker. Instead of binding a value, hand it an
-`OnFiles` (or `OnFilesAsync`) callback that receives the selected `RaskFile`s (`Name`/`Size`/
+`OnFiles` callback (a synchronous or an asynchronous handler) that receives the selected `RaskFile`s (`Name`/`Size`/
 `ContentType`/`OpenReadStream()`), and constrain the picker with `Accept`, `Multiple`, and `Capture`:
 
 ```csharp
-Input<string>().Type(InputType.File).Accept("image/*").Multiple(true)
-     .FilesAsync(async files => { foreach (var f in files) await Save(f); })
+Input.Of<string>().Type(InputType.File).Accept("image/*").Multiple(true)
+     .OnFiles(async files => { foreach (var f in files) await Save(f); })
 ```
 
 Uploading the bytes (streaming to a server endpoint, size limits, progress) is covered end-to-end in
@@ -145,12 +145,12 @@ When the user clears an input, `BindingHelpers.TrySetTyped` decides what the emp
 
 A value that fails to parse (`"not-a-number"` into an `int`) leaves the model unchanged.
 
-**Controls over a value type bind its nullable too.** `UiCheckbox`, `UiToggle` and `UiRadio` are over `bool`,
-`UiRating` over `int`, `UiRange` over `double` and `UiCalendar` over `DateOnly`, and each also binds the nullable
-form: `UiCheckbox.Bind(() => model.InStock)` compiles whether `InStock` is a `bool` or a `bool?`, which is what a
+**Controls over a value type bind its nullable too.** `Ui.Checkbox`, `Ui.Toggle` and `Ui.Radio` are over `bool`,
+`Ui.Rating` over `int`, `Ui.Range` over `double` and `Ui.Calendar` over `DateOnly`, and each also binds the nullable
+form: `Ui.Checkbox.Bind(() => model.InStock)` compiles whether `InStock` is a `bool` or a `bool?`, which is what a
 [generated form model](data.md#a-create-and-an-edit-form) holds. A `null` draws as the control's empty state
 (unchecked, unrated, no day picked), and a change writes a value. `Value` and `OnChange` stay over the plain type. The
-date controls go one further: `UiCalendar` and `UiDatePicker` bind a `DateOnly`, a collection of days, or a
+date controls go one further: `Ui.Calendar` and `Ui.DatePicker` bind a `DateOnly`, a collection of days, or a
 `UiDateRange`, and the bound type picks the control ([UI kit](ui-kit.md)).
 
 Every BCL [`IParsable<T>`](https://learn.microsoft.com/dotnet/api/system.iparsable-1) type (numbers,
@@ -264,52 +264,28 @@ Form.Model(_model).OnSubmit(m => Console.WriteLine(m.Username))[
 Submit runs the full validator pipeline (`ValidateAsync`), marks every registered field touched,
 then routes:
 
-- valid → `OnSubmit` (or, if unset, `OnAnySubmit` / `OnSubmitAsync` with the raw `FormData`),
+- valid → `OnSubmit` (or, if unset, `OnAnySubmit` with the raw `FormData`),
 - invalid → `OnInvalidSubmit`.
 
-`OnSubmit` / `OnInvalidSubmit` accept `Action<TModel>` or `Func<TModel, Task>` — the generic
-overload narrows the delegate so you pass a bare lambda with no cast.
+`OnSubmit` / `OnInvalidSubmit` are one `Callback<TModel>` each, so either takes a synchronous
+(`Action<TModel>`) or an asynchronous (`Func<TModel, Task>`) handler — a bare lambda or a method group,
+no cast, no `…Async` twin.
 
 ### Children that follow the submit
 
 Children are normally a fixed list. Give the form a **function** instead and it is called on every
-render with how the submit is going, so the markup can say so without the page tracking it:
+render with whether a submit is in flight, so the markup can say so without the page tracking it:
 
 ```csharp
-Form.Model(_model).OnSubmit(SaveAsync)[f => [
-    UiInput.Bind(() => _model.Username).Label("Username").Disabled(f.Submitting),
-
-    f.Error is not null ? UiAlert.Error["Something went wrong — please try again."] : null,
-
-    UiButton.Submit.Primary.Disabled(f.Submitting)[f.Submitting ? "Saving…" : "Sign up"]
+Form.Model(_model).OnSubmit(SaveAsync)[submitting => [
+    Input.Bind(() => _model.Username).Disabled(submitting),
+    Button.Type("submit").Disabled(submitting)[submitting ? "Saving…" : "Sign up"]
 ]]
 ```
 
-`f.Submitting` is true from the moment the submit handler starts until it returns, and the form
-re-renders on both edges. Only an `async` handler can be observed in that state: a synchronous one
-returns before there is a frame to paint.
-
-**`f.Error` is what the last submit threw**, or `null` when it succeeded. The form catches it so a
-failed save is something the page renders rather than something that takes the handler down — which
-means a save needs no `try`:
-
-```csharp
-private async Task SaveAsync(SignUpModel model) => await Account.Register(model);
-```
-
-It is the exception itself, so the page decides what to say about which:
-
-```csharp
-f.Error is KeyNotFoundException
-    ? UiAlert.Error["That product has been deleted."]
-    : f.Error is not null ? UiAlert.Error["Something went wrong."] : null
-```
-
-Catching it costs you nothing in diagnosis: the failure is still reported, so the development error
-overlay still appears and the log still has the stack trace. A cancelled submit is not reported —
-the work was called off, usually because the component went away. `f.Error` is cleared as the next
-submit starts, not as one ends, so a retry never shows the previous attempt's message beside its own
-spinner.
+The flag is true from the moment the submit handler starts until it returns — including when it
+throws — and the form re-renders on both edges. Only an `async` handler can be observed in that
+state: a synchronous one returns before there is a frame to paint.
 
 <!-- demo:form-submit-state -->
 
@@ -320,7 +296,7 @@ Form.Model(_model)[Input.Bind(() => _model.Username), Button.Type("submit")["Sig
 ```
 
 Only a form offers the function form. It is an indexer declared on `Form` itself, so
-`Div[f => …]` does not compile — there is no submit state behind a `<div>` to report. It used
+`Div[submitting => …]` does not compile — there is no submit state behind a `<div>` to report. It used
 to need a chain type of its own (`FormBuild<T>`) purely because an indexer cannot be constrained;
 declaring it on the component scopes it exactly as well and costs no type parameter. See
 [`ISubmitAware`](../src/Rask.Core/Forms/ISubmitAware.cs).
@@ -376,16 +352,16 @@ lost a race rather than overwriting the other one. See
 
 ### Rendering messages
 
-Two headless components read the context — both take a required `Template:` so you own the markup,
+Two headless components read the context — both take a required `Template` step, written first, so you own the markup,
 and both render nothing when there's nothing to show:
 
 ```csharp
-ValidationMessage.For(() => _model.Email).Template(errs => Div.Class("field-error")[errs[0]])
+Validation.Message.Template(errs => Div.Class("field-error")[errs[0]]).For(() => _model.Email)
 
-ValidationSummary.Template(entries => Ul[entries.Select(e => Li[Strong[e.Field], ": ", e.Message])])
+Validation.Summary.Template(entries => Ul[entries.Select(e => Li[Strong[e.Field], ": ", e.Message])])
 ```
 
-`ValidationMessage.For` keys a single field; `ValidationSummary` lists every `ValidationEntry`
+`Validation.Message.For` keys a single field; `Validation.Summary` lists every `ValidationEntry`
 (`Field` + `Message`), with form-level messages carrying an empty `Field`.
 
 <!-- demo:validation-summary -->
@@ -393,7 +369,7 @@ ValidationSummary.Template(entries => Ul[entries.Select(e => Li[Strong[e.Field],
 ### Controls at a glance
 
 Every input works in two shapes — **controlled** (`Value` + `OnChange`, the parent owns the value) and
-**bound** (`Bind: () => model.X`, two-way). A derived readout rendered *outside* the control updates
+**bound** (`.Bind(() => model.X)`, two-way). A derived readout rendered *outside* the control updates
 live either way. The matrix below covers text, textarea and select; the [UI kit](ui-kit.md)'s controls
 take the same two shapes, since they implement the same `IFormControl<T>`.
 
@@ -403,7 +379,7 @@ take the same two shapes, since they implement the same `IFormControl<T>`.
 
 <!-- demo:form-controls-select -->
 
-**Floating labels.** A labelled kit `UiInput`, `UiTextarea` or native `UiSelect` floats its label by
+**Floating labels.** A labelled kit `Ui.Input`, `Ui.Textarea` or native `Ui.Select` floats its label by
 default. The caption sits in the field until there is content, then rises. It stays the field's real
 `<label>`, linked to the control, and each bound field shows its own validation message under it.
 `Floating(false)` draws the label above the field instead:
@@ -414,13 +390,12 @@ default. The caption sits in the field until there is content, then rises. It st
 
 A control of your own (see [building form controls](building-form-controls.md)),
 and the [UI kit](ui-kit.md)'s controls) expose validation to assistive tech automatically — no extra props.
-When a bound field has messages, the control renders `aria-invalid="true"`, an `aria-describedby` that
-points at the error message's `id` (and the help-text `id` when `HelpText:` is set), and the
-`.invalid-feedback` as a `role="alert"` live region so screen readers announce the error the moment it
-appears, associated with the field rather than detached from it. Valid fields with `HelpText:` still get
-`aria-describedby` to the help text.
+When a bound field has messages, the control renders `aria-invalid="true"` and an `aria-describedby` that
+points at the error message's `id` (and the hint's `id` when `.Hint(…)` is set), so a screen reader reads
+the error with the field rather than detached from it. Valid fields with a `Hint` still get
+`aria-describedby` to the hint.
 
-A combobox control — [`UiSelect<T>`](ui-kit.md) with `Native: false`, over one answer or many — carries `role="combobox"`,
+A combobox control — [`Ui.Select`](ui-kit.md) with `.Native(false)`, over one answer or many — carries `role="combobox"`,
 which is not a labelable element, so its name is given directly (`aria-label`, or `aria-labelledby`
 pointing at a visible label) rather than through a `<label for>` that would bind to nothing. Alongside
 it goes the popup contract: `aria-haspopup="listbox"`, `aria-expanded`, `aria-controls` naming the
@@ -434,7 +409,7 @@ A list that takes more than one answer says so on the listbox itself, with
 and has no way to learn that a second one is allowed — the options look identical either way, so
 the fact that several may be chosen lives nowhere else.
 
-If you build your own control from the core `Input`/`ValidationMessage` primitives (§9), mirror the same
+If you build your own control from the core `Input`/`Validation.Message` primitives (§9), mirror the same
 three attributes so the field stays accessible: `aria-invalid` on the control, `aria-describedby` from
 the control to the message `id`, and `role="alert"` on the message container. See
 [accessibility.md](accessibility.md#form-validation).

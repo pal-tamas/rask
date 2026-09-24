@@ -1,6 +1,6 @@
 using Rask.Core.Forms;
 
-namespace Rask.Validation.Tests;
+namespace Rask.ValidationTests;
 
 /// <summary>
 ///     Shared helper for the built-in validation suite. Renders a real <c>Form</c> over
@@ -33,7 +33,7 @@ internal static partial class ValidationTestSupport
         where T : class
     {
         EditContext? ctx = null;
-        Test.Render(() => Form.Model(model)[
+        Page.Render(() => Form.Model(model)[
             Test.EditContextProbe(c => ctx = c)
         ], services);
 
@@ -50,7 +50,7 @@ internal static partial class ValidationTestSupport
         where T : class
     {
         EditContext? ctx = null;
-        Test.Render(() => Form.Model(model).AutoValidate(false)[
+        Page.Render(() => Form.Model(model).AutoValidate(false)[
             Test.EditContextProbe(c => ctx = c)
         ], services);
 

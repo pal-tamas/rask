@@ -2,7 +2,7 @@ using System.Globalization;
 using Rask.Core.Live;
 using Rask.Core.Virtualization;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 ///     A hierarchy a reader can open, walk with the keyboard and select from.
@@ -11,7 +11,7 @@ namespace Rask.Ui;
 ///     <para>
 ///         Data-driven, so it holds a large tree: the nodes are the app's own objects, and the tree asks for a node's
 ///         children through the indexer —
-///         <c>UiTree.Roots(files).NodeKey(f =&gt; f.Path).Item(f =&gt; Span[f.Name]).Label("Files")[f =&gt; f.Children]</c>.
+///         <c>Ui.Tree.Roots(files).NodeKey(f =&gt; f.Path).Item(f =&gt; Span[f.Name]).Label("Files")[f =&gt; f.Children]</c>.
 ///         The indexer rather than a property, because the chain reserves the name <c>Children</c> for a component's own
 ///         markup content, and a tree's children are a function of a node rather than a list written at the call site.
 ///     </para>
@@ -94,9 +94,9 @@ public sealed partial class UiTree<T, TKey> : Component
     /// </remarks>
     public int? ExpandDepth { get; set; }
 
-    /// <summary>What a reader may select. Unset means <see cref="UiTreeSelection.Single" /> once a selection is
-    /// involved, and <see cref="UiTreeSelection.None" /> otherwise.</summary>
-    public UiTreeSelection? Selection { get; set; }
+    /// <summary>What a reader may select. Unset means <see cref="Ui.TreeSelection.Single" /> once a selection is
+    /// involved, and <see cref="Ui.TreeSelection.None" /> otherwise.</summary>
+    public Ui.TreeSelection? Selection { get; set; }
 
     /// <summary>The selected keys, when the page holds this axis.</summary>
     public IReadOnlyList<TKey>? Selected { get; set; }
@@ -117,7 +117,7 @@ public sealed partial class UiTree<T, TKey> : Component
     public Callback<T?>? OnHover { get; set; }
 
     /// <summary>The row density, as on a menu.</summary>
-    public UiSize? Size { get; set; }
+    public Ui.Size? Size { get; set; }
 
     /// <summary>Extra classes for the tree element.</summary>
     public string? Class { get; set; }
@@ -130,7 +130,7 @@ public sealed partial class UiTree<T, TKey> : Component
     protected override bool BypassRenderCache => true;
 
     /// <summary>
-    ///     A node's children: <c>UiTree.Roots(files).NodeKey(…).Item(…).Label("Files")[f =&gt; f.Children]</c>.
+    ///     A node's children: <c>Ui.Tree.Roots(files).NodeKey(…).Item(…).Label("Files")[f =&gt; f.Children]</c>.
     /// </summary>
     /// <remarks>
     ///     Stored, not called, like the grid's columns: it runs inside the render walk, for the nodes that are on screen,
@@ -149,8 +149,8 @@ public sealed partial class UiTree<T, TKey> : Component
         }
     }
 
-    private UiTreeSelection Mode =>
-        Selection ?? (Selected is not null || OnSelectionChange is not null ? UiTreeSelection.Single : UiTreeSelection.None);
+    private Ui.TreeSelection Mode =>
+        Selection ?? (Selected is not null || OnSelectionChange is not null ? Ui.TreeSelection.Single : Ui.TreeSelection.None);
 
     private string Prefix => "uitree-" + _instance.ToString(CultureInfo.InvariantCulture);
 
@@ -313,7 +313,7 @@ public sealed partial class UiTree<T, TKey> : Component
         var box = Span.Class("ui-tree-toggle").Aria(new Dictionary<string, string?> { ["hidden"] = "true" });
         return row.HasChildren
             ? box.OnClick(() => ToggleAsync(row))[
-                UiIcon.Name(row.IsExpanded ? UiIconName.ChevronDown : UiIconName.ChevronRight)
+                Ui.Icon.Name(row.IsExpanded ? Ui.IconName.ChevronDown : Ui.IconName.ChevronRight)
                     .Class("size-3 shrink-0 opacity-60")
             ]
             : box;
@@ -327,7 +327,7 @@ public sealed partial class UiTree<T, TKey> : Component
             aria["activedescendant"] = RowId(rows[cursor].Key);
         }
 
-        if (Mode == UiTreeSelection.Multiple)
+        if (Mode == Ui.TreeSelection.Multiple)
         {
             aria["multiselectable"] = "true";
         }
@@ -345,7 +345,7 @@ public sealed partial class UiTree<T, TKey> : Component
             aria["expanded"] = row.IsExpanded ? "true" : "false";
         }
 
-        if (Mode != UiTreeSelection.None)
+        if (Mode != Ui.TreeSelection.None)
         {
             aria["selected"] = IsSelected(row.Key) ? "true" : "false";
         }
@@ -454,8 +454,8 @@ public sealed partial class UiTree<T, TKey> : Component
     // Enter and Space differ in one place only: with nothing selectable, Enter is the second way to open a branch.
     private Task ActivateAsync(UiTreeRow<T, TKey> row, bool enter) => Mode switch
     {
-        UiTreeSelection.Single => CommitSelectionAsync([row.Key]),
-        UiTreeSelection.Multiple => ToggleSelectionAsync(row.Key),
+        Ui.TreeSelection.Single => CommitSelectionAsync([row.Key]),
+        Ui.TreeSelection.Multiple => ToggleSelectionAsync(row.Key),
         _ => enter && row.HasChildren ? SetExpandedAsync([row.Key], !row.IsExpanded) : Task.CompletedTask,
     };
 
@@ -517,7 +517,7 @@ public sealed partial class UiTree<T, TKey> : Component
     }
 
     private bool IsSelected(TKey key) =>
-        Mode != UiTreeSelection.None && (Selected is { } controlled ? controlled.Contains(key) : _selected.Contains(key));
+        Mode != Ui.TreeSelection.None && (Selected is { } controlled ? controlled.Contains(key) : _selected.Contains(key));
 
     private Task ToggleSelectionAsync(TKey key)
     {
@@ -536,7 +536,7 @@ public sealed partial class UiTree<T, TKey> : Component
     // render. A selection the reader made, handed straight back by the page, leaves the cursor where the reader put it.
     private void FollowSelection(List<UiTreeRow<T, TKey>> rows)
     {
-        if (Selected is not { } selected || Mode == UiTreeSelection.None)
+        if (Selected is not { } selected || Mode == Ui.TreeSelection.None)
         {
             _selectionSeen = null;
             return;

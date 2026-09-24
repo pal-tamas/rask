@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using Rask.Testing;
 
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     Several days, a range, and the pickers — all reached through the <c>UiCalendar</c> and <c>UiDatePicker</c>
@@ -29,7 +29,7 @@ public partial class UiDateModesTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Several_days_open_on_Values_and_mark_each_one()
     {
-        var html = UiCalendar.Values([Mar(3), Mar(9)]).Label("Days off").Month(March).ToHtml();
+        var html = Ui.Calendar.Values([Mar(3), Mar(9)]).Label("Days off").Month(March).ToHtml();
 
         Assert.Equal(2, Pressed(html));
     }
@@ -38,8 +38,8 @@ public partial class UiDateModesTests : global::Rask.Core.RaskMarkup
     public async Task A_click_adds_a_day_and_a_second_click_takes_it_back_out_in_date_order()
     {
         ICollection<DateOnly>? reported = null;
-        var page = Test.Render(() =>
-            UiCalendar.Values([Mar(20)]).Label("Days off").Month(March).OnChange(v => { reported = v; }));
+        var page = Page.Render(() =>
+            Ui.Calendar.Values([Mar(20)]).Label("Days off").Month(March).OnChange(v => { reported = v; }));
 
         await page.On(DaySelector(5)).ClickAsync();
         Assert.Equal([Mar(5), Mar(20)], reported);
@@ -52,7 +52,7 @@ public partial class UiDateModesTests : global::Rask.Core.RaskMarkup
     public async Task Binding_a_list_of_days_is_the_several_days_control_and_writes_the_list_back()
     {
         var model = new Holiday();
-        var page = Test.Render(() => UiCalendar.Bind(() => model.DaysOff).Label("Days off").Month(March));
+        var page = Page.Render(() => Ui.Calendar.Bind(() => model.DaysOff).Label("Days off").Month(March));
 
         await page.On(DaySelector(12)).ClickAsync();
         await page.On(DaySelector(2)).ClickAsync();
@@ -65,7 +65,7 @@ public partial class UiDateModesTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_range_marks_its_ends_as_chosen_and_tints_the_days_between()
     {
-        var html = UiCalendar.Value(new UiDateRange(Mar(10), Mar(13))).Label("Stay").Month(March).ToHtml();
+        var html = Ui.Calendar.Value(new UiDateRange(Mar(10), Mar(13))).Label("Stay").Month(March).ToHtml();
 
         Assert.Equal(2, Pressed(html));
         Assert.Equal(2, Regex.Matches(html, "btn-square bg-base-200").Count);
@@ -76,8 +76,8 @@ public partial class UiDateModesTests : global::Rask.Core.RaskMarkup
     {
         var calls = 0;
         UiDateRange reported = default;
-        var page = Test.Render(() =>
-            UiCalendar.Value(default(UiDateRange)).Label("Stay").Month(March)
+        var page = Page.Render(() =>
+            Ui.Calendar.Value(default(UiDateRange)).Label("Stay").Month(March)
                 .OnChange(r => { calls++; reported = r; }));
 
         // The later day first: the range still comes out start-to-end.
@@ -95,7 +95,7 @@ public partial class UiDateModesTests : global::Rask.Core.RaskMarkup
     public async Task A_bound_model_never_holds_half_a_range()
     {
         var model = new Holiday();
-        var page = Test.Render(() => UiCalendar.Bind(() => model.Stay).Label("Stay").Month(March));
+        var page = Page.Render(() => Ui.Calendar.Bind(() => model.Stay).Label("Stay").Month(March));
 
         await page.On(DaySelector(4)).ClickAsync();
         Assert.Equal(default, model.Stay);
@@ -122,7 +122,7 @@ public partial class UiDateModesTests : global::Rask.Core.RaskMarkup
     public async Task A_calendar_left_to_itself_pages_between_months()
     {
         // Before, the month steps did nothing without an OnMonth — the arrows were drawn and went nowhere.
-        var page = Test.Render(() => UiCalendar.Value(Mar(14)).Label("Delivery date"));
+        var page = Page.Render(() => Ui.Calendar.Value(Mar(14)).Label("Delivery date"));
         Assert.Contains(March.ToString("MMMM yyyy", CultureInfo.CurrentCulture), page.Html, StringComparison.Ordinal);
 
         await page.On("button[aria-label=\"Next month\"]").ClickAsync();
@@ -136,7 +136,7 @@ public partial class UiDateModesTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_picker_is_a_field_shaped_button_that_opens_a_dialog()
     {
-        var html = UiDatePicker.Value(default(DateOnly)).Label("Delivery date").ToHtml();
+        var html = Ui.DatePicker.Value(default(DateOnly)).Label("Delivery date").ToHtml();
 
         Assert.Contains("aria-haspopup=\"dialog\"", html, StringComparison.Ordinal);
         Assert.Contains("aria-expanded=\"false\"", html, StringComparison.Ordinal);
@@ -151,12 +151,12 @@ public partial class UiDateModesTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_picker_shows_the_chosen_day_in_the_readers_short_format() =>
         Assert.Contains(Mar(14).ToString("d", CultureInfo.CurrentCulture),
-            UiDatePicker.Value(Mar(14)).Label("Delivery date").ToHtml(), StringComparison.Ordinal);
+            Ui.DatePicker.Value(Mar(14)).Label("Delivery date").ToHtml(), StringComparison.Ordinal);
 
     [Fact]
     public void A_single_pick_closes_the_popover_on_the_same_click()
     {
-        var html = UiDatePicker.Value(Mar(14)).Label("Delivery date").ToHtml();
+        var html = Ui.DatePicker.Value(Mar(14)).Label("Delivery date").ToHtml();
 
         // Every selectable day closes it; the month steps do not.
         Assert.Equal(31, Regex.Matches(html, "popovertargetaction=\"hide\"").Count);
@@ -166,7 +166,7 @@ public partial class UiDateModesTests : global::Rask.Core.RaskMarkup
     public async Task A_pick_in_the_picker_is_committed()
     {
         var model = new Holiday();
-        var page = Test.Render(() => UiDatePicker.Bind(() => model.Arrival).Label("Arrival"));
+        var page = Page.Render(() => Ui.DatePicker.Bind(() => model.Arrival).Label("Arrival"));
         await page.On("[popover]").RaiseAsync("toggle", "{\"oldState\":\"closed\",\"newState\":\"open\"}");
 
         var month = new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1);
@@ -178,7 +178,7 @@ public partial class UiDateModesTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Several_days_keep_the_popover_open_and_summarise_a_long_choice()
     {
-        var html = UiDatePicker.Values([Mar(1), Mar(2), Mar(3), Mar(4), Mar(5)]).Label("Days off").ToHtml();
+        var html = Ui.DatePicker.Values([Mar(1), Mar(2), Mar(3), Mar(4), Mar(5)]).Label("Days off").ToHtml();
 
         Assert.DoesNotContain("popovertargetaction", html, StringComparison.Ordinal);
         Assert.Contains(", +3", System.Net.WebUtility.HtmlDecode(html), StringComparison.Ordinal);
@@ -188,8 +188,8 @@ public partial class UiDateModesTests : global::Rask.Core.RaskMarkup
     public async Task A_range_picker_closes_only_on_the_click_that_gives_the_range_its_end()
     {
         UiDateRange reported = default;
-        var page = Test.Render(() =>
-            UiDatePicker.Value(new UiDateRange(Mar(2), Mar(4))).Label("Stay").OnChange(r => { reported = r; }));
+        var page = Page.Render(() =>
+            Ui.DatePicker.Value(new UiDateRange(Mar(2), Mar(4))).Label("Stay").OnChange(r => { reported = r; }));
         await page.On("[popover]").RaiseAsync("toggle", "{\"oldState\":\"closed\",\"newState\":\"open\"}");
 
         Assert.DoesNotContain("popovertargetaction", page.Html, StringComparison.Ordinal);
@@ -208,7 +208,7 @@ public partial class UiDateModesTests : global::Rask.Core.RaskMarkup
     {
         // The loop a page actually runs: the pick reaches OnChange, the parent stores it, re-renders, and the field
         // has to show it — not the placeholder it started with.
-        var page = Test.Render(new PickerHost());
+        var page = Page.Render(new PickerHost());
         await page.On("[popover]").RaiseAsync("toggle", "{\"oldState\":\"closed\",\"newState\":\"open\"}");
 
         var month = new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1);
@@ -223,7 +223,7 @@ public partial class UiDateModesTests : global::Rask.Core.RaskMarkup
         private DateOnly _arrival;
 
         protected override global::Rask.Core.Component? Render() =>
-            UiDatePicker.Value(_arrival).Label("Arrival").OnChange(d => { _arrival = d; });
+            Ui.DatePicker.Value(_arrival).Label("Arrival").OnChange(d => { _arrival = d; });
     }
 
     private sealed class Holiday

@@ -17,7 +17,7 @@ public partial class EditContextDisposalTests : global::Rask.Core.RaskMarkup
         var ctx = new EditContext(model);
         var show = true;
 
-        var page = Test.Render(() => show
+        var page = Page.Render(() => show
             ? Form.Model(model).Context(ctx)[Input.Bind(() => model.Name)]
             : Div[Text.Value("gone")]);
 
@@ -34,7 +34,7 @@ public partial class EditContextDisposalTests : global::Rask.Core.RaskMarkup
     {
         var model = new Model { Name = "ada" };
         var ctx = new EditContext(model);
-        var page = Test.Render(() => Form.Model(model).Context(ctx)[Input.Bind(() => model.Name)]);
+        var page = Page.Render(() => Form.Model(model).Context(ctx)[Input.Bind(() => model.Name)]);
 
         page.Render();
 

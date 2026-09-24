@@ -35,7 +35,7 @@ public class GeneratedModelReferenceTests
         {
             public abstract class AbstractValidator<T> { }
         }
-        namespace Rask.Validation.FluentValidation
+        namespace Rask
         {
             public static class RaskValidators { }
         }

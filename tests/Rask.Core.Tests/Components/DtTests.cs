@@ -14,6 +14,6 @@ public partial class DtTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_string_child_is_encoded_as_text() =>
+    public void A_text_child_is_html_encoded() =>
         Assert.Equal("<dt>&lt;x&gt;</dt>", Dt["<x>"].ToHtml());
 }

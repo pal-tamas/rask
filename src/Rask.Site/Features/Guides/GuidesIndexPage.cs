@@ -1,6 +1,6 @@
+using Rask;
 using Rask.Core.Components;
 using Rask.Core.Routing;
-using Rask.Ui;
 
 namespace Rask.Site.Features;
 
@@ -25,9 +25,9 @@ public sealed partial class GuidesIndexPage : Component
     [
         PageHeader
             .Title("Guides")
-            .Lead("Narrative documentation for the framework — the same guides that ship in the repo's docs/ "
-                  + "folder, rendered here. Each guide embeds runnable demos inline and reads like a proper "
-                  + "narrative guide, with a Chapters index, an on-this-page rail, and prev/next navigation."),
+            .Lead("Everything Rask covers, end to end: data and CQRS, auth, background jobs, email, cache, "
+                  + "realtime, multi-tenancy, search and deploy — then the UI, from C# components to islands "
+                  + "and SPAs. The same guides ship in the repo's docs/ folder; here they carry runnable demos."),
         Install(),
         Div[GuideCards]
     ];
@@ -52,7 +52,7 @@ public sealed partial class GuidesIndexPage : Component
     private static Component Install() =>
         Div.Class("install-block mb-6 rounded-xl border border-ui-line bg-ui-panel p-4 sm:p-5")[
             Div.Class("flex items-center gap-2")[
-                UiIcon.Name(UiIconName.Terminal).Class("size-5 shrink-0 text-ui-brand-ink"),
+                Ui.Icon.Name(Ui.IconName.Terminal).Class("size-5 shrink-0 text-ui-brand-ink"),
                 H2.Class("text-base font-semibold tracking-tight text-ui-ink sm:text-lg")["Start a project"]
             ],
             P.Class("mt-1 text-sm text-ui-muted")[

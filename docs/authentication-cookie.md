@@ -80,6 +80,11 @@ public sealed class LoginModel
 }
 ```
 
+**The claims are what the data layer reads.** [`Current.UserId`](data.md#the-current-user--current) comes from
+the `ClaimTypes.NameIdentifier` claim, as a `Guid`, and in an app with [multi-tenancy](multi-tenancy.md) the
+tenant a read filters by comes from the `Tenant.ClaimType` (`rask:tenant`) claim. A hand-wired store that
+signs in a principal without them gets a `null` user and, on a tenant-scoped table, a read that throws.
+
 **A protected page** redirects to `/login?returnUrl=/secure` for anonymous users (handled by the route
 guard). Gate the *content* with the `Authorize` component; the `Authorized` slot is a delegate handed
 the freshly-authenticated principal, so the greeting reads the name inline — no child component, no

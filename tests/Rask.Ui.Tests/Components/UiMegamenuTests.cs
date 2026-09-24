@@ -1,4 +1,4 @@
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     The megamenu, which the browser opens.
@@ -44,17 +44,17 @@ public partial class UiMegamenuTests : global::Rask.Core.RaskMarkup
     }
 
     [Theory]
-    [InlineData(UiSize.Xs, "megamenu-xs")]
-    [InlineData(UiSize.Lg, "megamenu-lg")]
-    public void Every_size_writes_its_own_class(UiSize size, string expected) =>
-        Assert.Contains(expected, UiMegamenu.Size(size)[Panel()].ToHtml());
+    [InlineData(Ui.Size.Xs, "megamenu-xs")]
+    [InlineData(Ui.Size.Lg, "megamenu-lg")]
+    public void Every_size_writes_its_own_class(Ui.Size size, string expected) =>
+        Assert.Contains(expected, Ui.Megamenu.Size(size)[Panel()].ToHtml());
 
     [Fact]
     public void Full_wide_and_vertical_are_each_opt_in()
     {
-        Assert.Contains("megamenu-full", UiMegamenu.Full(true)[Panel()].ToHtml());
-        Assert.Contains("megamenu-wide", UiMegamenu.Wide(true)[Panel()].ToHtml());
-        Assert.Contains("megamenu-vertical", UiMegamenu.Vertical(true)[Panel()].ToHtml());
+        Assert.Contains("megamenu-full", Ui.Megamenu.Full(true)[Panel()].ToHtml());
+        Assert.Contains("megamenu-wide", Ui.Megamenu.Wide(true)[Panel()].ToHtml());
+        Assert.Contains("megamenu-vertical", Ui.Megamenu.Vertical(true)[Panel()].ToHtml());
         Assert.DoesNotContain("megamenu-full", Menu());
     }
 
@@ -67,11 +67,11 @@ public partial class UiMegamenuTests : global::Rask.Core.RaskMarkup
     }
 
     private UiMegamenuPanel Panel() =>
-        UiMegamenuPanel.Trigger("Products").Id("products");
+        Ui.MegamenuPanel.Trigger("Products").Id("products");
 
     private string Menu() =>
-        UiMegamenu[
-            UiMegamenuPanel.Key("p").Trigger("Products").Id("products")[P["Everything we sell."]],
-            UiMegamenuPanel.Key("c").Trigger("Company").Id("company")[P["Who we are."]]
+        Ui.Megamenu[
+            Ui.MegamenuPanel.Key("p").Trigger("Products").Id("products")[P["Everything we sell."]],
+            Ui.MegamenuPanel.Key("c").Trigger("Company").Id("company")[P["Who we are."]]
         ].ToHtml();
 }

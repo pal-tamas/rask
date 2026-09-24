@@ -8,9 +8,17 @@
 
     <PackageId>Rask.Cqrs.Client</PackageId>
     <Title>Rask.Cqrs.Client — Remote Dispatch for Browser Clients</Title>
-    <Description>The client half of Rask.Cqrs remote dispatch. Register it and a message with no local handler is sent to the server through the same `IDispatcher` call — queries as GET, commands as POST, files as multipart — with no HttpClient at the call site. Reflection-free: the wire codecs are source-generated, so it publishes clean under the WASM/AOT trimmer.</Description>
+    <Description>The client half of Rask.Cqrs remote dispatch. Register it and a message with no local handler is sent to the server through the same `IDispatcher` call — queries as GET, commands as POST, files as multipart, subscriptions as server-sent events — with no HttpClient at the call site. Reflection-free: the wire codecs are source-generated, so it publishes clean under the WASM/AOT trimmer.</Description>
     <PackageTags>cqrs mediator rpc remote-dispatch wasm blazor source-generator reflection-free aot trimming</PackageTags>
   </PropertyGroup>
+
+  <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
+       overview that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Remove="NUGET.md" />
+    <None Include="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Rask.Cqrs\Rask.Cqrs.csproj"/>

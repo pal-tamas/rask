@@ -23,24 +23,24 @@ public sealed partial class CustomAttributeDemo : Component
     [
         Form.Model(_model).OnSubmit(m => _submission = $"Welcome, {m.Username}!").Class("flex flex-col gap-3")[
             Div[
-                UiInput.Bind(() => _model.Username).Label("Username").Id("v12-username").ShowValidation(false),
-                ValidationMessage.Template(FieldError).For(() => _model.Username)
+                Ui.Input.Bind(() => _model.Username).Label("Username").Id("v12-username").ShowValidation(false),
+                Validation.Message.Template(FieldError).For(() => _model.Username)
             ],
             Div[
-                UiInput.Bind(() => _model.Password).Label("Password").Id("v12-password").Type(InputType.Password).ShowValidation(false),
-                ValidationMessage.Template(FieldError).For(() => _model.Password)
+                Ui.Input.Bind(() => _model.Password).Label("Password").Id("v12-password").Type(InputType.Password).ShowValidation(false),
+                Validation.Message.Template(FieldError).For(() => _model.Password)
             ],
             Div[
-                UiInput.Bind(() => _model.ConfirmPassword).Label("Confirm password").Id("v12-confirm").Type(InputType.Password).ShowValidation(false),
-                ValidationMessage.Template(FieldError).For(() => _model.ConfirmPassword)
+                Ui.Input.Bind(() => _model.ConfirmPassword).Label("Confirm password").Id("v12-confirm").Type(InputType.Password).ShowValidation(false),
+                Validation.Message.Template(FieldError).For(() => _model.ConfirmPassword)
             ],
             Div[
-                UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit)[UiIcon.Name(UiIconName.ShieldOk), "Create account"]
+                Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit)[Ui.Icon.Name(Ui.IconName.ShieldOk), "Create account"]
             ]
         ],
         _submission is null
             ? null
-            : UiAlert.Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle), _submission]
+            : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
     ];
 }
 

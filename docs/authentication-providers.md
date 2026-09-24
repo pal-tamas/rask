@@ -117,7 +117,7 @@ app.MapPost("/logout", (HttpContext ctx) =>
         [CookieAuthenticationDefaults.AuthenticationScheme, OpenIdConnectDefaults.AuthenticationScheme]));
 ```
 
-A "Sign in" link (`A(Href: "/login?returnUrl=/secure")`) sends the user through Keycloak; on return the
+A "Sign in" link (`A.Href("/login?returnUrl=/secure")`) sends the user through Keycloak; on return the
 cookie is set and the next Rask GET/WS sees the authenticated `User`. Route `[Authorize]` pages now
 challenge straight to Keycloak via `ChallengePath`.
 

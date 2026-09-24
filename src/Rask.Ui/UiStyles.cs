@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// The kit's class-name vocabulary, for markup a component does not cover.

@@ -55,13 +55,13 @@ public sealed partial class InstallPromptDemo(IInstallPrompt install) : Componen
     }
 
     protected override Component? Render() =>
-        UiCard.Class("shadow-sm")[
+        Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    UiButton.Tone(UiTone.Primary)
+                    Ui.Button.Tone(Ui.Tone.Primary)
                         .Id("install-button")
                         .Disabled(!_canInstall)
-                        .OnClick(Install)[UiIcon.Name(UiIconName.Download), "Install app"],
-                    UiButton.Variant(UiVariant.Outline)
+                        .OnClick(Install)[Ui.Icon.Name(Ui.IconName.Download), "Install app"],
+                    Ui.Button.Variant(Ui.Variant.Outline)
                         .Id("install-refresh")
                         .OnClick(RefreshAsync)["Re-check"]
                 ],

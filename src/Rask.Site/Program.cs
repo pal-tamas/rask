@@ -29,7 +29,7 @@ host.UsePwa(new WebAppManifest
 {
     Name = "Rask WASM Showcase",
     ShortName = "Rask",
-    Description = "The Rask component framework showcase, running entirely in the browser as a WASM PWA.",
+    Description = "The docs and live demos of Rask, the full-stack .NET web framework — running entirely in the browser as a WASM PWA.",
     // The same colour App's head declares. The page's tag wins in the browser either way; this is what an
     // installed app's window is tinted with, and two brand colours for one site is a mistake, not a choice.
     ThemeColor = "#7c3aed",
@@ -61,19 +61,19 @@ host.Services.AddSingleton<Rask.Core.Live.IPrerenderPaths, Rask.Site.Features.Gu
 // whole body was a heading, a paragraph and one CodeSample — a list a reader had to read in full to
 // find that twelve of them teach the same idea. PwaPage still answers all thirteen old URLs (repeated
 // [Route]), so nothing that was linked or bookmarked 404s.
-host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.PwaPage(), "PWA & device APIs", UiIconName.Phone, "PWA"));
+host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Routes.PwaPage(), "PWA & device APIs", Ui.IconName.Phone, "PWA"));
 // The islands showcase: the same .vue/.tsx/.svelte the Server host builds, mounted client-side.
-host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Islands.Routes.IslandsPage(), "Islands", UiIconName.Overview, "Islands"));
+host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.Islands.Routes.IslandsPage(), "Islands", Ui.IconName.Overview, "Islands"));
 // The UI kit, one page per daisyUI category. The guide at /guides/ui-kit is the prose; these are the
 // components themselves, live, which is the half a paragraph cannot do.
-host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitActionsPage(), "Actions", UiIconName.Check, "UI kit"));
-host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitDataDisplayPage(), "Data display", UiIconName.Overview, "UI kit"));
-host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitDataGridPage(), "Data grid", UiIconName.Stack, "UI kit"));
-host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitNavigationPage(), "Navigation", UiIconName.Menu, "UI kit"));
-host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitTreePage(), "Tree", UiIconName.Folder, "UI kit"));
-host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitFeedbackPage(), "Feedback", UiIconName.Warning, "UI kit"));
-host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitDataInputPage(), "Data input", UiIconName.Pencil, "UI kit"));
-host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitLayoutPage(), "Layout & mockups", UiIconName.Desktop, "UI kit"));
+host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitActionsPage(), "Actions", Ui.IconName.Check, "UI kit"));
+host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitDataDisplayPage(), "Data display", Ui.IconName.Overview, "UI kit"));
+host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitDataGridPage(), "Data grid", Ui.IconName.Stack, "UI kit"));
+host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitNavigationPage(), "Navigation", Ui.IconName.Menu, "UI kit"));
+host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitTreePage(), "Tree", Ui.IconName.Folder, "UI kit"));
+host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitFeedbackPage(), "Feedback", Ui.IconName.Warning, "UI kit"));
+host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitDataInputPage(), "Data input", Ui.IconName.Pencil, "UI kit"));
+host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Features.UiKit.Routes.UiKitLayoutPage(), "Layout & mockups", Ui.IconName.Desktop, "UI kit"));
 // The docs' plain-text face for AI assistants: /llms.txt, /llms-full.txt and a .md twin beside every guide.
 // Only the prerender publish sets this variable, and it is the one run with a publish directory to write
 // into — a browser boot never takes this branch.

@@ -8,9 +8,9 @@
 - **Shape:** one-shot
 - **Availability:** Web/Server 🟡 · PWA/WASM ✅
 
-Needs transient activation, so the imperative `IPictureInPicture` service is WASM-only. On the **Server** host, use the declarative **`PictureInPictureTrigger`** component — point its `For:` at the `<video>`'s `ElementRef` and its click opens the mini-player inside the gesture.
+Needs transient activation, so the imperative `IPictureInPicture` service is WASM-only. On the **Server** host, use the declarative **`Trigger.PictureInPicture`** component — point its `For:` at the `<video>`'s `ElementRef` and its click opens the mini-player inside the gesture.
 
-> 🟡 On the Server host, reachable declaratively via `PictureInPictureTrigger` (a click-gesture component), not as an injected service.
+> 🟡 On the Server host, reachable declaratively via `Trigger.PictureInPicture` (a click-gesture component), not as an injected service.
 
 ## See also
 

@@ -2,14 +2,14 @@ using System.ComponentModel.DataAnnotations;
 using Rask.Core;
 using Rask.Core.Forms;
 
-namespace Rask.Validation.Tests;
+namespace Rask.ValidationTests;
 
 public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public async Task A_form_submitted_invalid_then_filled_in_reaches_OnSubmit()
     {
-        // Reproduces the showcase ValidationSummary demo flow as a unit test:
+        // Reproduces the showcase Validation.Summary demo flow as a unit test:
         //   1. Render Form — the validator is registered by the form itself, nothing declared.
         //   2. Submit empty payload — must route to OnInvalidSubmit (which is null here,
         //      so neither typed handler fires; the bridge returns quietly).
@@ -19,7 +19,7 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
         //   4. Submit a valid payload via the new handler — must reach OnSubmit.
         var p = new Person { Name = "", Age = 0 };
         Person? captured = null;
-        var page = Test.Render(() => Form.Model(p).OnSubmit((Action<Person>)(m => captured = m))[
+        var page = Page.Render(() => Form.Model(p).OnSubmit((Action<Person>)(m => captured = m))[
             Input.Bind(() => p.Name),
             Input.Bind(() => p.Age)
         ]);
@@ -86,7 +86,7 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
     public void A_form_level_IValidatableObject_error_attaches_to_the_empty_field()
     {
         // Model.Validate returns a ValidationResult with empty MemberNames — should land on
-        // FieldIdentifier(model, "") so ValidationSummary picks it up as a form-level error.
+        // FieldIdentifier(model, "") so Validation.Summary picks it up as a form-level error.
         var m = new BookingModel
         {
             Departure = new DateOnly(2026, 6, 1),
@@ -193,10 +193,10 @@ public partial class DataAnnotationsValidatorTests : global::Rask.Core.RaskMarku
         // AddValidator dedups by runtime type. Two renders sharing one context is the cheapest way to
         // hold that: if the dedup ever stops working, "Name is required" appears twice rather than once
         // — and it would appear once per re-render in a real app, which is every keystroke.
-        Test.Render(() => Form.Model(p).Context(ctx)[
+        Page.Render(() => Form.Model(p).Context(ctx)[
             Test.EditContextProbe(_ => { })
         ]);
-        Test.Render(() => Form.Model(p).Context(ctx)[
+        Page.Render(() => Form.Model(p).Context(ctx)[
             Test.EditContextProbe(_ => { })
         ]);
 

@@ -28,11 +28,11 @@ public class InputTypeExtensionsTests
     [InlineData(InputType.Submit, "submit")]
     [InlineData(InputType.Reset, "reset")]
     [InlineData(InputType.Image, "image")]
-    public void Every_member_maps_to_its_html_token(InputType type, string expected) =>
+    public void To_html_maps_every_member_to_its_html_token(InputType type, string expected) =>
         Assert.Equal(expected, type.ToHtml());
 
     [Fact]
-    public void No_member_but_Text_falls_back_to_the_text_token()
+    public void To_html_covers_every_enum_member_without_falling_back_to_text()
     {
         // Only InputType.Text is allowed to yield "text"; any other member doing so means it slipped through
         // the switch to the default arm (i.e. someone added an enum value but forgot to map it).

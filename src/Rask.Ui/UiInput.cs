@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using Rask.Core.Forms;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A text field.
@@ -16,8 +16,8 @@ namespace Rask.Ui;
 /// <para>
 /// A form control: <c>.Bind(() =&gt; model.Email)</c> two-way binds and drives the surrounding
 /// <c>Form</c>'s validation, or <c>Value</c> with <c>OnChange</c> lets the parent own it. The opening step
-/// fixes both the type argument and the mode, so a call site reads <c>UiInput.Bind(…).Label(…)</c> or
-/// <c>UiInput.Value(…).Label(…)</c>.
+/// fixes both the type argument and the mode, so a call site reads <c>Ui.Input.Bind(…).Label(…)</c> or
+/// <c>Ui.Input.Value(…).Label(…)</c>.
 /// </para>
 /// <para>
 /// <typeparamref name="T" /> is whatever the field holds — a <c>string</c>, an <c>int</c>, a
@@ -53,10 +53,10 @@ public sealed partial class UiInput<T> : UiFormField<T>
     ///     daisyUI's icon input puts the icon INSIDE the box, which is the same room a floating caption rises
     ///     through — so a field with an icon keeps its label above it as a legend. See <see cref="Floating" />.
     /// </remarks>
-    public UiIconName? Icon { get; set; }
+    public Ui.IconName? Icon { get; set; }
 
     /// <summary>An icon inside the box, after what is typed.</summary>
-    public UiIconName? IconTrailing { get; set; }
+    public Ui.IconName? IconTrailing { get; set; }
 
     /// <summary>A shortcut shown at the end of the box — <c>"⌘K"</c> on a search field.</summary>
     /// <remarks>Decoration: it says which key focuses the field, and the page is what binds that key.</remarks>
@@ -148,7 +148,7 @@ public sealed partial class UiInput<T> : UiFormField<T>
     // second name is what produced "Email Email" the last time this happened.
     private Component Boxed(Component field) =>
         Div.Class(BoxClass())[
-            Icon is { } icon ? UiIcon.Name(icon).Class("size-4 shrink-0 opacity-60") : null,
+            Icon is { } icon ? Ui.Icon.Name(icon).Class("size-4 shrink-0 opacity-60") : null,
             field,
             Kbd is { } kbd ? Span.Class("kbd kbd-sm shrink-0")[kbd] : null,
             Clearable == true && !string.IsNullOrEmpty(Current()?.ToString()) && Disabled != true
@@ -157,10 +157,10 @@ public sealed partial class UiInput<T> : UiFormField<T>
                     .Class("shrink-0 opacity-60 hover:opacity-100")
                     .Aria("label", "Clear " + (Label ?? AccessibleLabel ?? "field"))
                     .OnClick(ClearAsync)[
-                    UiIcon.Name(UiIconName.Close).Class("size-4")
+                    Ui.Icon.Name(Ui.IconName.Close).Class("size-4")
                 ]
                 : null,
-            IconTrailing is { } trailing ? UiIcon.Name(trailing).Class("size-4 shrink-0 opacity-60") : null
+            IconTrailing is { } trailing ? Ui.Icon.Name(trailing).Class("size-4 shrink-0 opacity-60") : null
         ];
 
     // What the field is showing, which in BOUND mode is the model's, not Value — that one is null there, and

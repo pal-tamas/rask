@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// The result of an action just taken, and the way to acknowledge it.
@@ -13,7 +13,7 @@ namespace Rask.Ui;
 /// </para>
 /// <para>
 /// <c>role="status"</c> rather than <c>alert</c>: this is the outcome of something the operator just did, so
-/// it should be announced politely rather than interrupting. An <see cref="UiTone.Error" /> toast is the
+/// it should be announced politely rather than interrupting. An <see cref="Ui.Tone.Error" /> toast is the
 /// exception and says <c>alert</c>, because a failure the reader is about to act on cannot wait for a pause.
 /// </para>
 /// <para>
@@ -31,8 +31,8 @@ public sealed partial class UiToast : Component
     /// <summary>A stronger first line above the message — what happened, with the message saying more.</summary>
     public string? Heading { get; set; }
 
-    /// <summary><see cref="UiTone.Error" /> when the action failed. Anything else reads as done.</summary>
-    public UiTone? Tone { get; set; }
+    /// <summary><see cref="Ui.Tone.Error" /> when the action failed. Anything else reads as done.</summary>
+    public Ui.Tone? Tone { get; set; }
 
     /// <summary>Runs when the reader acknowledges it. Without one the toast has no dismiss button.</summary>
     public Callback? OnDismiss { get; set; }
@@ -66,10 +66,10 @@ public sealed partial class UiToast : Component
 
     /// <summary>Which corner it sits in, when it is not inside a <see cref="UiToaster" />.</summary>
     /// <remarks>Ignored inside a toaster, which places the whole stack and lets each toast fill its width.</remarks>
-    public UiPosition? Position { get; set; }
+    public Ui.Position? Position { get; set; }
 
     /// <inheritdoc cref="Position" />
-    public UiAlign? Align { get; set; }
+    public Ui.Align? Align { get; set; }
 
     public string? Class { get; set; }
 
@@ -81,7 +81,7 @@ public sealed partial class UiToast : Component
         var toast = Div
             // A failure is the one outcome worth interrupting for: the reader is usually about to act on the
             // thing that just failed.
-            .Role(Tone == UiTone.Error ? "alert" : "status")
+            .Role(Tone == Ui.Tone.Error ? "alert" : "status")
             .Class(UiClass.Compose(
                 "flex items-center gap-3 rounded-xl bg-ui-ink px-4 py-3 text-sm text-ui-bg shadow-lg",
                 stacked ? "w-full" : "fixed z-40 mx-auto max-w-lg " + UiClassNames.ToastCorner(Position, Align),
@@ -101,9 +101,9 @@ public sealed partial class UiToast : Component
             // the near-black toast, where the light-ground text colours invert the problem they solve —
             // ui-danger on this ground is the low-contrast one. The icon shape (Warning vs Check) is what
             // actually carries the outcome; the colour only reinforces it.
-            UiIcon
-                .Name(Tone == UiTone.Error ? UiIconName.Warning : UiIconName.Check)
-                .Class($"size-5 shrink-0 {(Tone == UiTone.Error ? "text-warning" : "text-success")}"),
+            Ui.Icon
+                .Name(Tone == Ui.Tone.Error ? Ui.IconName.Warning : Ui.IconName.Check)
+                .Class($"size-5 shrink-0 {(Tone == Ui.Tone.Error ? "text-warning" : "text-success")}"),
             Heading is { Length: > 0 } heading
                 ? Div.Class("flex min-w-0 grow flex-col gap-0.5")[
                     Span.Class("font-medium")[heading],

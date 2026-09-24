@@ -45,7 +45,7 @@
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj" PrivateAssets="all"/>
 
     <!-- Emits this assembly's own Generated.* factories, so a consuming app can open a chain on
-         UiButton, UiMetric and the rest exactly as it does on a tag. -->
+         Ui.Button, Ui.Metric and the rest exactly as it does on a tag. -->
     <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>

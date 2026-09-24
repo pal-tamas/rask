@@ -39,12 +39,12 @@ public sealed partial class DragDropSortableDemo : Component
                 .OnDrop(ctx.Drop("list", index))
                 .OnDragEnd(ctx.DragEnd)
                 .Data(new Dictionary<string, string?> { ["testid"] = $"fruit-{index}" })[
-                UiIcon.Name(UiIconName.Grip).Class("text-ui-muted"),
+                Ui.Icon.Name(Ui.IconName.Grip).Class("text-ui-muted"),
                 Span.Class("font-semibold")[fruit]
             ]);
         }
 
-        return UiList.Class("dd-list").Id("dd-fruit-list")[rows];
+        return Ui.List.Class("dd-list").Id("dd-fruit-list")[rows];
     }
 
     // Direction-aware: dragging down lands after the target, dragging up lands before it.

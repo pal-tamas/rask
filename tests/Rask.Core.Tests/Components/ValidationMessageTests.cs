@@ -11,9 +11,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
     public void Outside_an_EditContext_a_validation_message_renders_nothing()
     {
         var p = new Person();
-
-        var html = ValidationMessage.Template(msgs => Div.Class("validation-message")[msgs[0]]).For(() => p.Name).ToHtml();
-
+        var html = Validation.Message.Template(msgs => Div.Class("validation-message")[msgs[0]]).For(() => p.Name).ToHtml();
         Assert.Equal("", html);
     }
 
@@ -22,11 +20,9 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
     {
         var p = new Person { Name = "Ada" };
         var view = new StubComponent(() => Form.Model(p)[
-            ValidationMessage.Template(msgs => Div.Class("validation-message")[msgs[0]]).For(() => p.Name)
+            Validation.Message.Template(msgs => Div.Class("validation-message")[msgs[0]]).For(() => p.Name)
         ]);
-
         var html = view.RenderAsLiveRoot();
-
         Assert.DoesNotContain("validation-message", html);
     }
 
@@ -38,9 +34,8 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         ctx.AddValidationMessage(new FieldIdentifier(p, nameof(Person.Name)), "Name is required");
 
         var view = new StubComponent(() => Form.Model(p).Context(ctx)[
-            ValidationMessage.Template(msgs => Div.Class("validation-message")[msgs[0]]).For(() => p.Name)
+            Validation.Message.Template(msgs => Div.Class("validation-message")[msgs[0]]).For(() => p.Name)
         ]);
-
         var html = view.RenderAsLiveRoot();
 
         Assert.Contains("class=\"validation-message\"", html);
@@ -50,7 +45,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_message_added_after_the_first_render_repaints_the_ValidationMessage_via_the_auto_latch()
     {
-        // ValidationMessage carries no manual BypassRenderCache override anymore. Its first render
+        // Validation.Message carries no manual BypassRenderCache override anymore. Its first render
         // reads EditContext.GetValidationMessages (no messages yet) and populates the render cache with
         // the empty result; that read auto-latches the component as a cache opt-out (EditContext
         // .MarkReader -> Component._readsAmbientState). So when a message is added out-of-band and the
@@ -61,17 +56,15 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         var field = new FieldIdentifier(p, nameof(Person.Name));
 
         var view = new StubComponent(() => Form.Model(p).Context(ctx)[
-            ValidationMessage.Template(msgs => Div.Class("validation-message")[msgs[0]]).For(() => p.Name)
+            Validation.Message.Template(msgs => Div.Class("validation-message")[msgs[0]]).For(() => p.Name)
         ]);
 
         var first = view.RenderAsLiveRoot();
-
         Assert.DoesNotContain("validation-message", first);
 
         ctx.AddValidationMessage(field, "Name is required");
 
         var second = view.RenderAsLiveRoot();
-
         Assert.Contains("class=\"validation-message\"", second);
         Assert.Contains("Name is required", second);
     }
@@ -79,7 +72,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_message_added_after_the_first_render_repaints_the_ValidationSummary_via_the_auto_latch()
     {
-        // Same auto-latch guarantee for the GetValidationEntries read path (ValidationSummary). It
+        // Same auto-latch guarantee for the GetValidationEntries read path (Validation.Summary). It
         // must start non-empty so the first render caches a non-null <ul> (a null/empty render is never
         // cached and would repaint regardless, proving nothing): render one message, add a second
         // out-of-band, and require the stale one-item cache to be replaced by the two-item summary.
@@ -90,7 +83,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         ctx.AddValidationMessage(name, "Name is required");
 
         var view = new StubComponent(() => Form.Model(p).Context(ctx)[
-            ValidationSummary
+            Validation.Summary
                 .Template(entries =>
                 Ul.Class("validation-summary")[
                     entries.Select((e, i) => Li.Key(i)[e.Message])
@@ -98,14 +91,12 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         ]);
 
         var first = view.RenderAsLiveRoot();
-
         Assert.Contains("Name is required", first);
         Assert.DoesNotContain("Email is required", first);
 
         ctx.AddValidationMessage(email, "Email is required");
 
         var second = view.RenderAsLiveRoot();
-
         Assert.Contains("Name is required", second);
         Assert.Contains("Email is required", second);
     }
@@ -118,13 +109,12 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         ctx.AddValidationMessage(new FieldIdentifier(p, nameof(Person.Name)), "Name is required");
 
         var view = new StubComponent(() => Form.Model(p).Context(ctx)[
-            ValidationSummary
+            Validation.Summary
                 .Template(entries =>
                 Ul.Class("validation-summary")[
                     entries.Select((e, i) => Li.Key(i)[e.Message])
                 ])
         ]);
-
         var html = view.RenderAsLiveRoot();
 
         Assert.Contains("<ul class=\"validation-summary\">", html);
@@ -141,7 +131,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         ctx.AddValidator(new GatedValidator(gate.Task));
 
         var view = new StubComponent(() => Form.Model(p).Context(ctx)[
-            ValidatingIndicator.Template(() => Div.Class("validating-indicator")["Checking..."])
+            Validation.Indicator.Template(() => Div.Class("validating-indicator")["Checking..."])
                 .For(() => p.Name)
         ]);
 
@@ -176,13 +166,12 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         ctx.AddValidator(new GatedValidator(gate.Task));
 
         var view = new StubComponent(() => Form.Model(p).Context(ctx)[
-            ValidatingIndicator.Template(() => Div.Class("validating-indicator")["Checking..."])
+            Validation.Indicator.Template(() => Div.Class("validating-indicator")["Checking..."])
                 .For(() => p.Name)
         ]);
 
         var task = ctx.ValidateFieldAsync(fid);
         var validatingHtml = view.RenderAsLiveRoot();
-
         Assert.Contains("validating-indicator", validatingHtml);
 
         // Complete the validator so PendingCount drops to 0. The indicator
@@ -191,13 +180,11 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         // false right away.
         gate.SetResult();
         await task;
-
         Assert.False(ctx.IsValidating(fid));
         Assert.True(ctx.ShouldShowValidatingIndicator(fid),
             "Sticky window should keep ShouldShowValidatingIndicator true.");
 
         var stickyHtml = view.RenderAsLiveRoot();
-
         Assert.Contains("validating-indicator", stickyHtml);
     }
 
@@ -211,7 +198,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         ctx.AddValidator(new GatedValidator(gate.Task));
 
         var view = new StubComponent(() => Form.Model(p).Context(ctx)[
-            ValidatingIndicator.Template(() => Div.Class("validating-indicator")["Checking..."])
+            Validation.Indicator.Template(() => Div.Class("validating-indicator")["Checking..."])
                 .For(() => p.Name)
         ]);
 
@@ -223,7 +210,6 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         view.RenderAsLiveRoot(); // sticky window starts
         await Task.Delay(80); // > 30ms sticky window
         var finalHtml = view.RenderAsLiveRoot();
-
         Assert.DoesNotContain("validating-indicator", finalHtml);
     }
 
@@ -239,7 +225,7 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         ctx.AddValidator(new GatedValidator(gate.Task));
 
         var view = new StubComponent(() => Form.Model(p).Context(ctx)[
-            ValidatingIndicator.Template(() => Div.Class("validating-indicator")["Checking..."])
+            Validation.Indicator.Template(() => Div.Class("validating-indicator")["Checking..."])
                 .For(() => p.Name)
         ]);
 
@@ -249,7 +235,6 @@ public partial class ValidationMessageTests : global::Rask.Core.RaskMarkup
         await task;
 
         var html = view.RenderAsLiveRoot();
-
         Assert.DoesNotContain("validating-indicator", html);
     }
 

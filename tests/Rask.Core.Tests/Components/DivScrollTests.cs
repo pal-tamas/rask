@@ -14,23 +14,21 @@ public partial class DivScrollTests : global::Rask.Core.RaskMarkup
         JsonDocument.Parse("{\"scrollTop\":120,\"clientHeight\":300,\"scrollHeight\":2000}").RootElement;
 
     [Fact]
-    public void A_scroll_handler_outside_a_live_context_is_not_emitted() =>
+    public void Scroll_outside_live_context_not_emitted() =>
         Assert.Equal("<div></div>", Div.OnScroll(_ => { }).ToHtml());
 
     [Fact]
-    public void Sync_and_async_scroll_handlers_both_emit_the_attribute()
+    public void Scroll_sync_and_async_both_emit_the_attribute()
     {
         var sync = new StubComponent(() => Div.OnScroll(_ => { }));
-
         Assert.Equal("<div data-rask-on-scroll=\"h0\"></div>", sync.RenderAsLiveRoot());
 
         var async = new StubComponent(() => Div.OnScroll(_ => Task.CompletedTask));
-
         Assert.Equal("<div data-rask-on-scroll=\"h0\"></div>", async.RenderAsLiveRoot());
     }
 
     [Fact]
-    public async Task A_sync_scroll_handler_receives_the_parsed_ScrollEvent()
+    public async Task Scroll_sync_handler_receives_parsed_scroll_event()
     {
         ScrollEvent? seen = null;
         var view = new StubComponent(() => Div.OnScroll(e => seen = e));
@@ -45,7 +43,7 @@ public partial class DivScrollTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task An_async_scroll_handler_is_awaited()
+    public async Task Scroll_async_handler_is_awaited()
     {
         ScrollEvent? seen = null;
         var view = new StubComponent(() => Div

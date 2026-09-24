@@ -52,7 +52,7 @@ public class StaticQueryClientTests
     {
         var (services, dispatcher) = Session();
         var page = new OrdersPage();
-        var rendered = Test.Render(page, services);
+        var rendered = Page.Render(page, services);
         var first = page.Seen!;
         await Settle(first);
 
@@ -98,7 +98,7 @@ public class StaticQueryClientTests
     {
         var (services, _) = Session();
         var page = new RowsPage();
-        var rendered = Test.Render(page, services);
+        var rendered = Page.Render(page, services);
         var queries = page.Seen.ToArray();
         var ships = page.Ships.ToArray();
 
@@ -136,7 +136,7 @@ public class StaticQueryClientTests
     {
         var (services, dispatcher) = Session();
         var page = new TogglePage();
-        var rendered = Test.Render(page, services);
+        var rendered = Page.Render(page, services);
         var shown = page.Seen!;
         await Settle(shown);
 
@@ -174,7 +174,7 @@ public class StaticQueryClientTests
 
         // The constructor's call lands in the parent's render slots, and the parent's next render does not
         // repeat it (the child is reused, not rebuilt). The child's query must not die for that.
-        var rendered = Test.Render(() => card ??= new OrdersCard(), services);
+        var rendered = Page.Render(() => card ??= new OrdersCard(), services);
         await Settle(card!.Orders);
         rendered.Render();
         rendered.Render();
@@ -214,7 +214,7 @@ public class StaticQueryClientTests
 
         // Constructed inside the render, the way a routed page is, so the session is reachable.
         FieldPage? page = null;
-        var rendered = Test.Render(() => page ??= new FieldPage(), services);
+        var rendered = Page.Render(() => page ??= new FieldPage(), services);
         await Settle(page!.Orders);
         Assert.Equal(new GetOrders(1), page.Orders.Key.Parts[1]);
 
@@ -378,7 +378,7 @@ public class StaticQueryClientTests
     {
         var (services, dispatcher) = Session();
         var page = new ShipPage();
-        var rendered = Test.Render(page, services);
+        var rendered = Page.Render(page, services);
         await Settle(page.Orders!);
         for (var i = 0; i < 5; i++)
         {

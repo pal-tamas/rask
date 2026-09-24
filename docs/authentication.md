@@ -134,6 +134,7 @@ choice between, not a layering.
 - [Passkeys](#passkeys)
 - [Concepts](#concepts)
 - [The first account is the administrator](#the-first-account-is-the-administrator)
+- [Accounts and tenants](#accounts-and-tenants)
 - [Confirming an address, and resetting a password](#confirming-an-address-and-resetting-a-password)
 - [Configuration](#configuration)
 - [Declarative gating — the `Authorize` component](#declarative-gating)
@@ -161,14 +162,17 @@ public sealed class User : Authenticatable
 }
 ```
 
-`Authenticatable` carries what a sign-in needs: `Email` (stored trimmed and lower-cased, unique),
+`Authenticatable` carries what a sign-in needs: `Email` (stored trimmed and lower-cased, unique — within a tenant,
+when the app [has tenants](#accounts-and-tenants)),
 `EmailConfirmedAt`, `PasswordChangedAt`, `Roles`, and the password hash — which is `internal`, so nothing that
 serializes a `User`'s public properties can ever carry it. Add the columns your app needs, then
 `rask db add AddUserColumns && rask db update`.
 
 **It is an [aggregate](data.md) like any other.** `Authenticatable` derives from `Aggregate<Guid>`, so a `User`
 has the reads, the writes, a generated `UserModel` for a profile form (never with the credentials on it), a
-`Version`, soft delete and domain events:
+`Version` and domain events. It does **not** soft-delete: soft delete is [opt-in](data.md#choosing-what-a-table-carries),
+and a deleted account has to free its address for the person to sign up again, so deleting a user removes the row.
+`Session` is the one Rask.Auth table that opts in (below):
 
 ```csharp
 var me = users.Current.UserId() is { } id
@@ -197,7 +201,9 @@ would rather be explicit can be: `AddRaskAuth<AppDbContext, User>()` and `modelB
 **Each signed-in device is a row.** Signing in starts a `Session` (the user, the address and browser it came from,
 when it was last seen, when it expires, whether it is remembered) and the cookie carries only that session's id,
 sealed. Every request loads the session and rebuilds the user's claims from it, so a role granted or removed shows
-up without signing in again. Signing out ends the row.
+up without signing in again. Signing out ends the row — `Session` declares `Deletes = Deletion.Soft`, so an ended
+session is stamped rather than removed, and the device list can still say "signed out yesterday". A sweep removes
+the rows of sessions that ended or expired more than a day ago, once an hour and when the host starts.
 
 ```csharp
 var devices = await Session.Read.Where(s => s.UserId == me)
@@ -310,7 +316,7 @@ A TypeScript front end has the same three calls — `addPasskey`, `signInWithPas
 | Injecting `IUserProvider` | Inject it via the constructor and read `.Current` — the never-null `ClaimsPrincipal` for the active render scope. Gate in `Render()` on `provider.Current.Identity?.IsAuthenticated` / `provider.Current.IsInRole(...)`. |
 | `Current` (Rask.Data) | The signed-in user with nothing injected — `Current.UserId` / `RequiredUserId` / `Principal` — for code with no constructor to inject into, like a `Product.Create(…)` factory. Set for a live session, every HTTP request and a background job (which runs for the user who enqueued it). See [data.md](data.md#the-current-user--current). |
 | `Authorize` component | Headless declarative gate with `Authorized` / `NotAuthorized` / `Authorizing` slots (see below). |
-| `ClaimsPrincipal.UserId()` / `SessionId()` | The signed-in user's id (for `User.FindAsync`) and the session's id (to mark "this device"). |
+| `ClaimsPrincipal.UserId()` / `SessionId()` | The signed-in user's id (to load the row: `User.Read.Where(u => u.Id == id)`) and the session's id (to mark "this device"). |
 | `IAuthSignIn` | Event-handler-only `SignInAsync(principal, returnUrl, persistent)` / `SignOutAsync(returnUrl)`. Server drives the cookie handshake; WASM signs out via `/auth/logout`. |
 | `[Authorize]` / `[AllowAnonymous]` | Route-level gating evaluated by `RouteAuthorizationGuard` → redirect to the auth scheme's `LoginPath` (401) or `AccessDeniedPath` (403). |
 
@@ -344,6 +350,26 @@ predictable rather than reading it from the log, set `Rask:Auth:FirstRunToken` (
 session-bound ticket → the browser `POST`s it to `/_rask/auth/redeem` → the endpoint calls
 `HttpContext.SignInAsync` (sets the cookie) → the WS reconnects and re-seeds `SessionUserProvider` from the
 now-authenticated `HttpContext.User`. You never touch this directly — just call `SignInAsync`.
+
+## Accounts and tenants
+
+In an app with [multi-tenancy](multi-tenancy.md), the tenant is an outcome of signing in: the user row says
+which tenant it belongs to, sign-in puts that on the principal as the `rask:tenant` claim, and every
+tenant-scoped read filters by it with nothing passed. A restored session carries the claim too, so a
+reconnect comes back in the same tenant.
+
+The accounts table carries a tenant without being partitioned by one, because an administrator belongs to no
+tenant and a partitioned table refuses a row without one. That shapes three rules:
+
+- **An address is unique within a tenant**, not across all of them, so the same person can hold an account at
+  two companies. With no tenants in play every account has none and the address is simply unique. The index
+  folds a missing tenant to one value, so it means the same on SQLite, PostgreSQL and SQL Server.
+- **Sign-in refuses an address two tenants hold.** Sign-in has to find the user before it can know their
+  tenant, so the lookup spans tenants — and with the address in two of them there is no right answer to guess.
+  It is refused, logged as an error for the operator to resolve, and answered as ordinary invalid credentials,
+  so the response says nothing about which addresses exist.
+- **An administrator carries no tenant claim**, so a tenant-scoped read throws until they say which tenant
+  they are acting in (`Tenant.Use(id)`). Reading across every tenant is a deliberate `Tenant.Across()`.
 
 ---
 

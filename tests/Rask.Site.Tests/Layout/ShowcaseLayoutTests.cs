@@ -17,7 +17,7 @@ public sealed class ShowcaseLayoutTests
     {
         var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.GuidesIndexPage() };
 
-        var html = Test.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
+        var html = Page.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
         // app-navbar and app-brand are hooks the E2E selects on; neither styles anything any more.
         //
@@ -41,8 +41,8 @@ public sealed class ShowcaseLayoutTests
         Assert.DoesNotContain("navbar-end", html);
         Assert.Contains("btn btn-ghost btn-square", html);
 
-        // The sidebar is the kit's UiSidebar: in the flow from md up and a drawer below it, with the hamburger a
-        // UiSidebarToggle for its checkbox. It was a Bootstrap responsive offcanvas, then a hand-rolled aside.
+        // The sidebar is the kit's Ui.Sidebar: in the flow from md up and a drawer below it, with the hamburger a
+        // Ui.SidebarToggle for its checkbox. It was a Bootstrap responsive offcanvas, then a hand-rolled aside.
         Assert.Contains("side-nav", html);
         Assert.Contains("md:drawer-open", html);
         Assert.Contains("for=\"docs-sidebar\"", html);
@@ -53,12 +53,13 @@ public sealed class ShowcaseLayoutTests
     {
         var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.GuidesIndexPage() };
 
-        var html = Test.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
+        var html = Page.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
         // Each group renders a collapsible toggle whose label is the group name. Guides-first, so the
-        // guide category groups lead (Overview + Core + Bootstrap + …); the surviving Examples group is Apps.
+        // guide category groups lead (Overview + the domain groups — Data, Frontend, …); the surviving Examples group is Apps.
         Assert.Contains(">Overview<", html);
-        Assert.Contains(">Core<", html);
+        Assert.Contains(">Data<", html);
+        Assert.Contains(">Frontend<", html);
         Assert.Contains(">Apps<", html);
         // The top-level sections are present, guides-first: Guides leads, then the demoted Examples.
         Assert.Contains(">Guides<", html);
@@ -78,7 +79,7 @@ public sealed class ShowcaseLayoutTests
         // dumped at once. The five guide groups (Overview + the four categories) are open.
         var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.GuidesIndexPage() };
 
-        var html = Test.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
+        var html = Page.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
         // A closed group renders NO items element now, where BsCollapse rendered one with .collapse and
         // hid it — so "expanded" is the presence of the container and "collapsed" is its absence. The
@@ -97,7 +98,7 @@ public sealed class ShowcaseLayoutTests
     {
         var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.GuidesIndexPage() };
 
-        var html = Test.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
+        var html = Page.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
         // The kit's nav item says it is the current page to assistive tech, not only with a class.
         Assert.Matches("class=\"side-nav-link menu-active\"[^>]*aria-current=\"page\"", html);
@@ -184,7 +185,7 @@ public sealed class ShowcaseLayoutTests
         var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.GuidesIndexPage() };
         var services = TestServices.Default(routeState: routeState);
         // One handle across frames: the same App/layout instance re-renders after the path change.
-        var page = Test.Render(new global::Rask.Site.App(), services);
+        var page = Page.Render(new global::Rask.Site.App(), services);
 
         // The "Apps" accordion (Examples section, holding Todos) is collapsed at "/" — only the guide
         // groups auto-open (OpenGuideGroups). Its toggle carries the "open" class only when expanded.

@@ -14,7 +14,7 @@ public sealed class KeyedListsPageTests
     [Fact]
     public void The_demo_renders_seeded_rows_keyed_by_default()
     {
-        var html = Test.Render(new KeyedListsReorderDemo(), TestServices.Default()).Html;
+        var html = Page.Render(new KeyedListsReorderDemo(), TestServices.Default()).Html;
 
         Assert.Contains("Apple", html);
         Assert.Contains("Elderberry", html);

@@ -15,9 +15,9 @@ public sealed class BoomPageTests
     {
         var sp = TestServices.Default();
 
-        Assert.Contains("boom-handler-host", Test.Render(new BoomHandlerDemo(), sp).Html);
-        Assert.Contains("boom-render-host", Test.Render(new BoomRenderDemo(), sp).Html);
-        Assert.Contains("boom-nested-host", Test.Render(new BoomNestedDemo(), sp).Html);
+        Assert.Contains("boom-handler-host", Page.Render(new BoomHandlerDemo(), sp).Html);
+        Assert.Contains("boom-render-host", Page.Render(new BoomRenderDemo(), sp).Html);
+        Assert.Contains("boom-nested-host", Page.Render(new BoomNestedDemo(), sp).Html);
     }
 
     [Fact]

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -12,14 +13,19 @@ internal sealed class ScannedPackageIsland
 {
     /// <param name="name">The class's simple name.</param>
     /// <param name="runtime">The runtime its base chain reaches.</param>
-    /// <param name="module">The constant its <c>Module</c> override returns.</param>
+    /// <param name="module">The constant its <c>Module</c> override returns, or empty when it declares none.</param>
+    /// <param name="export">The constant its <c>Export</c> override returns, or null when it declares none.</param>
     /// <param name="declaringFile">The file holding the override — the snapshot is written beside it.</param>
     /// <param name="line">The 1-based line of the override, for diagnostics.</param>
-    public ScannedPackageIsland(string name, string runtime, string module, string declaringFile, int line)
+    /// <param name="fromDeclaration">Whether a package declaration (<c>Mui : ReactPackage</c>) exported it.</param>
+    public ScannedPackageIsland(string name, string runtime, string module, string? export, string declaringFile,
+        int line, bool fromDeclaration = false)
     {
+        FromDeclaration = fromDeclaration;
         Name = name;
         Runtime = runtime;
         Module = module;
+        Export = export;
         DeclaringFile = declaringFile;
         Line = line;
     }
@@ -27,11 +33,23 @@ internal sealed class ScannedPackageIsland
     /// <summary>The class's simple name.</summary>
     public string Name { get; }
 
+    /// <summary>Whether a package declaration exported it, rather than a class of its own naming a Module.</summary>
+    public bool FromDeclaration { get; }
+
     /// <summary>The runtime its base chain reaches.</summary>
     public string Runtime { get; }
 
     /// <summary>The constant its <c>Module</c> override returns.</summary>
     public string Module { get; }
+
+    /// <summary>The constant its <c>Export</c> override returns, or null for the package's default export.</summary>
+    public string? Export { get; }
+
+    /// <summary>Whether <see cref="Module" /> names a package; when it does not, the class only declared an Export.</summary>
+    public bool IsPackage => ExternalPackageSpecifier.IsBare(Module);
+
+    /// <summary>The export the island mounts: its <see cref="Export" />, or <c>default</c>.</summary>
+    public string ExportOrDefault => Export ?? "default";
 
     /// <summary>The file holding the override.</summary>
     public string DeclaringFile { get; }
@@ -76,8 +94,24 @@ internal static class ExternalPackageScan
         @"\bclass\s+(?<name>[A-Za-z_]\w*)",
         RegexOptions.CultureInvariant);
 
-    private static readonly Regex ModuleOverride = new(
-        @"\boverride\s+string\s+Module\b",
+    private static readonly Regex ModuleOverride = Override("Module");
+
+    // `string?` as well as `string`: the base declares Export nullable, and an override may repeat either.
+    private static readonly Regex ExportOverride = Override("Export");
+
+    // A package declaration: `class Mui : ReactPackage` (or a qualified `Rask.External.ReactPackage`). The base class
+    // is what makes it one, so unlike an island's part, the part that declares it must carry the base list.
+    private static readonly Regex PackageDeclaration = new(
+        @"\bclass\s+(?<name>[A-Za-z_]\w*)\s*(?:\([^()]*\))?\s*:\s*(?:global::)?(?:[\w.]+\.)?"
+        + @"(?<runtime>React|Preact|Solid|Vue|Svelte|Angular|Lit)Package\b",
+        RegexOptions.CultureInvariant);
+
+    private static readonly Regex ExportsOverride = new(
+        @"\boverride\s+string\s*\[\s*\]\s+Exports\b",
+        RegexOptions.CultureInvariant);
+
+    private static Regex Override(string property) => new(
+        @"\boverride\s+string\??\s+" + property + @"\b",
         RegexOptions.CultureInvariant);
 
     /// <summary>
@@ -89,6 +123,7 @@ internal static class ExternalPackageScan
         IReadOnlyDictionary<string, string> runtimes)
     {
         var found = new Dictionary<string, ScannedPackageIsland>(StringComparer.Ordinal);
+        var files = new List<(string Path, string Text)>();
 
         foreach (var path in sources)
         {
@@ -107,17 +142,32 @@ internal static class ExternalPackageScan
                 continue;
             }
 
-            if (text.IndexOf("Module", StringComparison.Ordinal) < 0)
+            if (text.IndexOf("Module", StringComparison.Ordinal) < 0
+                && text.IndexOf("Export", StringComparison.Ordinal) < 0
+                && text.IndexOf("Package", StringComparison.Ordinal) < 0)
             {
                 continue;
             }
 
-            foreach (var island in Scan(text, path, runtimes))
+            files.Add((path, text));
+        }
+
+        var scanned = files.SelectMany(f => Scan(f.Text, f.Path, runtimes)).Concat(ScanDeclarations(files));
+        foreach (var island in scanned)
+        {
             {
-                // A partial class spelled across files: the part that overrides Module is the one that counts.
-                if (!found.ContainsKey(island.Name))
+                // A partial class spelled across files: the part that overrides Module is the one that counts — it is
+                // where the snapshot goes — and an Export written in another part joins it.
+                if (!found.TryGetValue(island.Name, out var seen))
                 {
                     found[island.Name] = island;
+                }
+                else if (seen.Module.Length == 0 || seen.Export is null)
+                {
+                    var owner = seen.Module.Length != 0 ? seen : island;
+                    found[island.Name] = new ScannedPackageIsland(
+                        island.Name, island.Runtime, owner.Module, seen.Export ?? island.Export, owner.DeclaringFile,
+                        owner.Line, owner.FromDeclaration);
                 }
             }
         }
@@ -125,6 +175,238 @@ internal static class ExternalPackageScan
         var result = new List<ScannedPackageIsland>(found.Values);
         result.Sort(static (a, b) => string.CompareOrdinal(a.Name, b.Name));
         return result;
+    }
+
+    /// <summary>
+    ///     The islands the package declarations in one file export — <c>Mui : ReactPackage</c> with
+    ///     <c>Exports =&gt; ["Button"]</c> is the island <c>MuiButton</c>, its snapshot beside the declaration. Exposed
+    ///     for tests.
+    /// </summary>
+    internal static IEnumerable<ScannedPackageIsland> ScanDeclarations(string text, string path) =>
+        ScanDeclarations([(path, text)]);
+
+    /// <summary>
+    ///     The islands every package declaration exports, reading the declaration the way the generator does: the
+    ///     part with the base list names the runtime and is where the snapshots go, and <c>Module</c> and
+    ///     <c>Exports</c> may sit in any part of the class, in any file.
+    /// </summary>
+    /// <remarks>
+    ///     A declaration whose <c>Module</c> is not a package still yields its islands, flagged, so the task can say
+    ///     so — skipping it would leave <c>Mui.Button</c> failing to compile with nothing naming why.
+    /// </remarks>
+    private static IEnumerable<ScannedPackageIsland> ScanDeclarations(IReadOnlyList<(string Path, string Text)> files)
+    {
+        var declarations = new Dictionary<string, (string Runtime, string Path, int Line)>(StringComparer.Ordinal);
+        var structures = new List<(string Path, string Text, string Structure)>(files.Count);
+        foreach (var (path, text) in files)
+        {
+            var structure = Blank(text);
+            structures.Add((path, text, structure));
+            foreach (Match declaration in PackageDeclaration.Matches(structure))
+            {
+                var name = declaration.Groups["name"].Value;
+                if (!declarations.ContainsKey(name))
+                {
+                    declarations[name] = (declaration.Groups["runtime"].Value.ToLowerInvariant(), path,
+                        LineOf(text, declaration.Index));
+                }
+            }
+        }
+
+        if (declarations.Count == 0)
+        {
+            yield break;
+        }
+
+        var modules = new Dictionary<string, string>(StringComparer.Ordinal);
+        var exports = new Dictionary<string, (List<string> Values, string Path, int Line)>(StringComparer.Ordinal);
+        foreach (var (path, text, structure) in structures)
+        {
+            foreach (Match part in Declaration.Matches(structure))
+            {
+                var name = part.Groups["name"].Value;
+                if (!declarations.ContainsKey(name))
+                {
+                    continue;
+                }
+
+                var open = structure.IndexOfAny(['{', ';'], part.Index + part.Length);
+                if (open < 0 || structure[open] != '{' || MatchingBrace(structure, open) is var close && close < 0)
+                {
+                    continue;
+                }
+
+                if (!modules.ContainsKey(name)
+                    && FindOverride(ModuleOverride, text, structure, open + 1, close) is { } module)
+                {
+                    modules[name] = module.Value;
+                }
+
+                if (!exports.ContainsKey(name) && FindExports(text, structure, open + 1, close) is { } list)
+                {
+                    exports[name] = (list.Values, path, LineOf(text, list.Position));
+                }
+            }
+        }
+
+        foreach (var pair in declarations)
+        {
+            if (!modules.TryGetValue(pair.Key, out var module) || !exports.TryGetValue(pair.Key, out var list))
+            {
+                continue;
+            }
+
+            // Diagnostics point at the Exports line when it sits beside the declaration, else at the declaration.
+            var line = string.Equals(list.Path, pair.Value.Path, StringComparison.Ordinal) ? list.Line : pair.Value.Line;
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var export in list.Values)
+            {
+                var member = ExternalPackageSpecifier.MemberName(export);
+                if (member.Length != 0 && seen.Add(member))
+                {
+                    yield return new ScannedPackageIsland(
+                        pair.Key + member, pair.Value.Runtime, module, export, pair.Value.Path, line,
+                        fromDeclaration: true);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    ///     The string literals an <c>Exports</c> override at the top level of a class body returns — a collection
+    ///     expression or the same list as <c>new[] { … }</c>, written <c>=&gt; […];</c>, <c>{ get =&gt; […]; }</c> or
+    ///     <c>{ get; } = […];</c>, the forms the generator reads — or null when it is anything else. Plain literals
+    ///     only: an export name has nothing in it to escape.
+    /// </summary>
+    private static (List<string> Values, int Position)? FindExports(string text, string structure, int start, int end)
+    {
+        var body = structure.Substring(start, end - start);
+        foreach (Match match in ExportsOverride.Matches(body))
+        {
+            var at = start + match.Index;
+            if (Depth(structure, start, at) != 0)
+            {
+                continue;
+            }
+
+            var cursor = ListStart(structure, SkipSpace(structure, at + match.Length));
+            if (cursor < 0)
+            {
+                continue;
+            }
+
+            char closer;
+            if (Starts(structure, cursor, "["))
+            {
+                closer = ']';
+            }
+            else if (Starts(structure, cursor, "new"))
+            {
+                cursor = structure.IndexOf('{', cursor);
+                closer = '}';
+                if (cursor < 0)
+                {
+                    continue;
+                }
+            }
+            else
+            {
+                continue;
+            }
+
+            var stop = structure.IndexOf(closer, cursor + 1);
+            if (stop < 0 || !FollowedBySemicolon(structure, stop + 1))
+            {
+                continue;
+            }
+
+            var values = new List<string>();
+            var i = cursor + 1;
+            var valid = true;
+            while (valid)
+            {
+                i = SkipSpace(structure, i);
+                if (i >= stop)
+                {
+                    break;
+                }
+
+                if (structure[i] != '"')
+                {
+                    valid = false;
+                    break;
+                }
+
+                var closing = structure.IndexOf('"', i + 1);
+                var value = closing < 0 || closing > stop ? null : text.Substring(i + 1, closing - i - 1);
+                if (value is null || value.IndexOf('\\') >= 0)
+                {
+                    valid = false;
+                    break;
+                }
+
+                values.Add(value);
+                i = SkipSpace(structure, closing + 1);
+                if (i < stop && structure[i] == ',')
+                {
+                    i++;
+                }
+                else if (i < stop)
+                {
+                    valid = false;
+                }
+            }
+
+            if (valid)
+            {
+                return (values, at);
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    ///     Where the list an <c>Exports</c> property returns starts, after <c>=&gt;</c>, <c>{ get =&gt;</c> or
+    ///     <c>{ get; } =</c>, or -1.
+    /// </summary>
+    private static int ListStart(string structure, int cursor)
+    {
+        if (Starts(structure, cursor, "=>"))
+        {
+            return SkipSpace(structure, cursor + 2);
+        }
+
+        if (!Starts(structure, cursor, "{"))
+        {
+            return -1;
+        }
+
+        var inner = SkipSpace(structure, cursor + 1);
+        if (!Starts(structure, inner, "get"))
+        {
+            return -1;
+        }
+
+        var afterGet = SkipSpace(structure, inner + 3);
+        if (Starts(structure, afterGet, "=>"))
+        {
+            return SkipSpace(structure, afterGet + 2);
+        }
+
+        if (!Starts(structure, afterGet, ";"))
+        {
+            return -1;
+        }
+
+        var closing = SkipSpace(structure, afterGet + 1);
+        if (!Starts(structure, closing, "}"))
+        {
+            return -1;
+        }
+
+        var equals = SkipSpace(structure, closing + 1);
+        return Starts(structure, equals, "=") ? SkipSpace(structure, equals + 1) : -1;
     }
 
     /// <summary>The package islands one file declares. Exposed for tests.</summary>
@@ -157,23 +439,29 @@ internal static class ExternalPackageScan
                 continue;
             }
 
-            if (FindOverride(text, structure, open + 1, close) is { } module
-                && ExternalPackageSpecifier.IsBare(module.Value))
+            var module = FindOverride(ModuleOverride, text, structure, open + 1, close);
+            var export = FindOverride(ExportOverride, text, structure, open + 1, close);
+
+            // An Export with no package Module is returned too, so the task can say that it names nothing.
+            if ((module is { } m && ExternalPackageSpecifier.IsBare(m.Value)) || export is not null)
             {
-                yield return new ScannedPackageIsland(name, runtime, module.Value, path, LineOf(text, module.Position));
+                var at = module?.Position ?? export!.Value.Position;
+                yield return new ScannedPackageIsland(
+                    name, runtime, module?.Value ?? string.Empty, export?.Value, path, LineOf(text, at));
             }
         }
     }
 
     /// <summary>
-    ///     The constant a <c>Module</c> override at the top level of a class body returns, in any of the four
-    ///     forms the island generator reads: <c>=&gt; "…";</c>, <c>{ get =&gt; "…"; }</c>,
+    ///     The constant a <c>Module</c> or <c>Export</c> override at the top level of a class body returns, in
+    ///     any of the four forms the island generator reads: <c>=&gt; "…";</c>, <c>{ get =&gt; "…"; }</c>,
     ///     <c>{ get { return "…"; } }</c>, and <c>{ get; } = "…";</c>.
     /// </summary>
-    private static (string Value, int Position)? FindOverride(string text, string structure, int start, int end)
+    private static (string Value, int Position)? FindOverride(
+        Regex property, string text, string structure, int start, int end)
     {
         var body = structure.Substring(start, end - start);
-        foreach (Match match in ModuleOverride.Matches(body))
+        foreach (Match match in property.Matches(body))
         {
             var at = start + match.Index;
 

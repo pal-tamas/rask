@@ -23,20 +23,20 @@ public sealed partial class NestedFluentValidationDemo : Component
             var captured = line;
             rows.Add(Tr.Key(captured.Id)[
                 Td[
-                    UiInput.Bind(() => captured.Sku).AccessibleLabel("SKU").ShowValidation(false),
-                    ValidationMessage.Template(FieldError).For(() => captured.Sku)
+                    Ui.Input.Bind(() => captured.Sku).AccessibleLabel("SKU").ShowValidation(false),
+                    Validation.Message.Template(FieldError).For(() => captured.Sku)
                 ],
                 Td.Style("width: 6rem;")[
-                    UiInput.Bind(() => captured.Quantity).AccessibleLabel("Quantity").ShowValidation(false),
-                    ValidationMessage.Template(FieldError).For(() => captured.Quantity)
+                    Ui.Input.Bind(() => captured.Quantity).AccessibleLabel("Quantity").ShowValidation(false),
+                    Validation.Message.Template(FieldError).For(() => captured.Quantity)
                 ],
                 Td.Style("width: 3rem;")[
-                    UiButton
+                    Ui.Button
                         .AccessibleLabel("Remove line")
                         .Square(true)
-                        .Tone(UiTone.Error)
-                        .Variant(UiVariant.Outline)
-                        .OnClick(() => _model.Lines.Remove(captured))[UiIcon.Name(UiIconName.Close)]
+                        .Tone(Ui.Tone.Error)
+                        .Variant(Ui.Variant.Outline)
+                        .OnClick(() => _model.Lines.Remove(captured))[Ui.Icon.Name(Ui.IconName.Close)]
                 ]
             ]);
         }
@@ -45,36 +45,36 @@ public sealed partial class NestedFluentValidationDemo : Component
         [
             Form.Model(_model).OnSubmit(m => _submission = $"Order routed: {m.CustomerName} → {m.Address.Street}, {m.Lines.Count} line(s)").Class("flex flex-col gap-3")[
                 Div[
-                    UiInput.Bind(() => _model.CustomerName).Label("Customer").Id("nf-fv-name").ShowValidation(false),
-                    ValidationMessage.Template(FieldError).For(() => _model.CustomerName)
+                    Ui.Input.Bind(() => _model.CustomerName).Label("Customer").Id("nf-fv-name").ShowValidation(false),
+                    Validation.Message.Template(FieldError).For(() => _model.CustomerName)
                 ],
                 Fieldset.Class("border rounded p-3")[
                     Legend.Class("text-base font-semibold")["Address"],
                     Div.Class("flex flex-col gap-2")[
                         Div[
-                            UiInput.Bind(() => _model.Address.Street).Label("Street").ShowValidation(false),
-                            ValidationMessage.Template(FieldError).For(() => _model.Address.Street)
+                            Ui.Input.Bind(() => _model.Address.Street).Label("Street").ShowValidation(false),
+                            Validation.Message.Template(FieldError).For(() => _model.Address.Street)
                         ],
                         Div[
-                            UiInput.Bind(() => _model.Address.City).Label("City").ShowValidation(false),
-                            ValidationMessage.Template(FieldError).For(() => _model.Address.City)
+                            Ui.Input.Bind(() => _model.Address.City).Label("City").ShowValidation(false),
+                            Validation.Message.Template(FieldError).For(() => _model.Address.City)
                         ]
                     ]
                 ],
-                UiTable.Class("align-middle mb-0 mt-2")[
+                Ui.Table.Class("align-middle mb-0 mt-2")[
                     Thead[Tr[Th["SKU"], Th["Qty"], Th]],
                     Tbody[rows]
                 ],
                 Div.Class("flex gap-2 flex-wrap items-center")[
-                    UiButton.Variant(UiVariant.Outline)
+                    Ui.Button.Variant(Ui.Variant.Outline)
                         .Id("nf-fv-add")
-                        .OnClick(() => _model.Lines.Add(new NestedOrderLine { Sku = $"BOX-{_seq++}", Quantity = 1 }))[UiIcon.Name(UiIconName.Plus), "Add line"],
-                    UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit).Id("nf-fv-submit")[UiIcon.Name(UiIconName.CheckCircle), "Place"]
+                        .OnClick(() => _model.Lines.Add(new NestedOrderLine { Sku = $"BOX-{_seq++}", Quantity = 1 }))[Ui.Icon.Name(Ui.IconName.Plus), "Add line"],
+                    Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit).Id("nf-fv-submit")[Ui.Icon.Name(Ui.IconName.CheckCircle), "Place"]
                 ]
             ],
             _submission is null
                 ? null
-                : UiAlert.Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0").Id("nf-fv-result")[_submission]
+                : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0").Id("nf-fv-result")[_submission]
         ];
     }
 }

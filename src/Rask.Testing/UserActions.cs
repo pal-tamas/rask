@@ -66,12 +66,12 @@ public partial class Page
             $"Expected the page not to show \"{text}\", but after {Seconds(Patience)} it still does:\n  {VisibleText(Root)}");
     }
 
-    /// <summary>Checks that the app navigated to <paramref name="path" /> — for a page opened with <c>Test.Visit</c>.</summary>
+    /// <summary>Checks that the app navigated to <paramref name="path" /> — for a page opened with <c>Page.Visit</c>.</summary>
     public void IsAt(string path)
     {
         ArgumentNullException.ThrowIfNull(path);
         var state = _services.GetService(typeof(RouteState)) as RouteState
-            ?? throw new PageException("IsAt needs a routed page. Open it with Test.Visit(\"/…\") rather than Test.Render.");
+            ?? throw new PageException("IsAt needs a routed page. Open it with Page.Visit(\"/…\") rather than Page.Render.");
 
         var at = state.Path + (state.Query.Count == 0 ? "" : "?" + string.Join('&', state.Query.Select(q => $"{q.Key}={q.Value}")));
         if (!string.Equals(Trim(at), Trim(path), StringComparison.Ordinal) && !string.Equals(Trim(state.Path), Trim(path), StringComparison.Ordinal))

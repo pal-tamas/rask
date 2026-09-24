@@ -246,7 +246,10 @@ public class PackageIslandGeneratorTests
     [Fact]
     public void A_named_export_matches_its_snapshot()
     {
-        var island = IslandSource.Replace("\"@mui/material/Button\"", "\"@mui/material#Button\"", StringComparison.Ordinal);
+        var island = IslandSource.Replace(
+            "\"@mui/material/Button\";",
+            "\"@mui/material\";\n    protected override string Export => \"Button\";",
+            StringComparison.Ordinal);
         var snapshot = Snapshot
             .Replace("\"@mui/material/Button\"", "\"@mui/material\"", StringComparison.Ordinal)
             .Replace("\"export\": \"default\"", "\"export\": \"Button\"", StringComparison.Ordinal);
@@ -268,7 +271,8 @@ public class PackageIslandGeneratorTests
 
             public sealed partial class MuiButton : Rask.External.VueComponent
             {
-                protected override string Module => "fixture-vue#Parts.Toggle";
+                protected override string Module => "fixture-vue";
+                protected override string Export => "Parts.Toggle";
             }
             """;
 
@@ -325,7 +329,8 @@ public class PackageIslandGeneratorTests
 
             public sealed partial class MuiButton : Rask.External.LitComponent
             {
-                protected override string Module => "fixture-lit/fx-switch.js#fx-switch";
+                protected override string Module => "fixture-lit/fx-switch.js";
+                protected override string Export => "fx-switch";
             }
             """;
 
@@ -376,7 +381,8 @@ public class PackageIslandGeneratorTests
 
             public sealed partial class MuiButton : Rask.External.AngularComponent
             {
-                protected override string Module => "fixture-angular#FxSlider";
+                protected override string Module => "fixture-angular";
+                protected override string Export => "FxSlider";
             }
             """;
 

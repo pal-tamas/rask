@@ -7,7 +7,7 @@ using Rask.Core.Routing;
 
 namespace Rask.Testing;
 
-public static partial class Test
+public partial class Page
 {
     /// <summary>
     ///     Opens the app at <paramref name="url" />, through the real router: the page registered for that URL
@@ -16,7 +16,7 @@ public static partial class Test
     /// </summary>
     /// <remarks>
     ///     <code>
-    ///     var page = Test.Visit("/products/new");
+    ///     var page = Page.Visit("/products/new");
     ///
     ///     await page.Type("Tea").Into("Name");
     ///     await page.Click("Save");
@@ -33,7 +33,7 @@ public static partial class Test
         var routed = new RoutedServices(route, TestRoute.NavigatorFor(route), services);
         // Routes = null resolves to the app's registered route table, which the chain entry does for an app.
         var router = new Router(route) { Routes = null };
-        return Render(() => router, routed);
+        return Page.Render(() => router, routed);
     }
 
     // The page's own route and navigator first, then whatever the test brought.

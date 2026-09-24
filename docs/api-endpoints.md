@@ -189,6 +189,13 @@ per-message metadata, so `Rask.Cqrs.Server` reads `[Authorize]` off the handler 
 enforces it imperatively. An API controller *is* its own endpoint, so ASP.NET's own authorization
 applies and Rask stays out of the way.
 
+**The caller is also ambient.** In a Rask app with its data layer on, every HTTP request — a controller, a
+minimal API endpoint, a CQRS endpoint — runs with its signed-in user reachable from
+[`Current`](data.md#the-current-user--current): `Current.UserId` is the caller's id, and a
+[tenant-scoped](multi-tenancy.md) read filters to the caller's tenant with nothing passed to it. It is set after
+authentication, from `HttpContext.User`, so an action and the static factory it calls agree on who is asking —
+the factory has no `User` property to read. `ControllerBase.User` is still there, and says the same.
+
 ### Failures
 
 A call that does not succeed throws `ApiException`. `StatusCode` is `null` when the request never

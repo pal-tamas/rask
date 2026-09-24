@@ -108,7 +108,7 @@ public partial class HeadAssetRenderTests : global::Rask.Core.RaskMarkup
     // position, cutting an opening tag in half and losing its attributes.
     //
     // Rendered without an enclosing shell, which is the case that broke: recording is first-wins, so a
-    // page with its own <head> was safe by accident while every Test.Render was not.
+    // page with its own <head> was safe by accident while every Page.Render was not.
     // Asserts on the RAW sentinel throughout: the serialized shell that ToHtml() hands back is rendered as
     // text, so the page legitimately contains an HTML-ENCODED copy (&lt;!--__rask_head_assets__--&gt;) —
     // that is the demo showing its own output, not a leak.
@@ -160,7 +160,7 @@ public partial class HeadAssetRenderTests : global::Rask.Core.RaskMarkup
         protected override Component? Render() =>
         [
             Doctype,
-            Html.Lang("en")[
+            Document.Lang("en")[
                 // Head() is framework-managed: the serializer auto-inserts the
                 // head-asset sentinel inside, so contributions splice in without
                 // any explicit placeholder.
@@ -186,7 +186,7 @@ public partial class HeadAssetRenderTests : global::Rask.Core.RaskMarkup
         protected override Component? Render() =>
         [
             Doctype,
-            Html.Lang("en")[
+            Document.Lang("en")[
                 // Head() is framework-managed: the serializer auto-inserts the
                 // head-asset sentinel inside, so contributions splice in without
                 // any explicit placeholder.
@@ -208,7 +208,7 @@ public partial class HeadAssetRenderTests : global::Rask.Core.RaskMarkup
     {
         protected override Component? Render() =>
         [
-            Pre[Code[Html.Lang("en")[Head[Title["Inner"]], Body[P["hi"]]].ToHtml()]],
+            Pre[Code[Document.Lang("en")[Head[Title["Inner"]], Body[P["hi"]]].ToHtml()]],
             Span.Class("marker")["after"]
         ];
     }

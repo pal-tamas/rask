@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A hint shown on hover or focus.
@@ -15,13 +15,13 @@ public sealed partial class UiTooltip : Component
     public required string Tip { get; set; }
 
     /// <summary>Which side of the thing it points at.</summary>
-    public UiPosition? Position { get; set; }
+    public Ui.Position? Position { get; set; }
 
     /// <summary>Where along that side it sits.</summary>
-    public UiAlign? Align { get; set; }
+    public Ui.Align? Align { get; set; }
 
-    /// <summary>Anything but <see cref="UiTone.Neutral" />, which daisyUI does not define for a tooltip.</summary>
-    public UiTone? Tone { get; set; }
+    /// <summary>Anything but <see cref="Ui.Tone.Neutral" />, which daisyUI does not define for a tooltip.</summary>
+    public Ui.Tone? Tone { get; set; }
 
     /// <summary>
     ///     Shows it without waiting for a hover. For walking someone through a screen — and the only way

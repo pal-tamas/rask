@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// One series of a <see cref="UiChart{T}" /> — built by the chart's <c>Line</c>, <c>Area</c> or <c>Bar</c>, never
@@ -16,10 +16,10 @@ public sealed partial class UiChartSeries : Component
     public string? Label { get; set; }
 
     /// <summary>Its colour. The next in turn — primary, secondary, accent, … — unless this says otherwise.</summary>
-    public UiTone? Tone { get; set; }
+    public Ui.Tone? Tone { get; set; }
 
     /// <summary>How it is drawn. Set by the chart's <c>Line</c>, <c>Area</c> or <c>Bar</c>.</summary>
-    public UiChartKind? Kind { get; set; }
+    public Ui.ChartKind? Kind { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render() => null;

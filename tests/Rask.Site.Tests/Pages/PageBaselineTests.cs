@@ -28,7 +28,7 @@ public sealed class PageBaselineTests
 
         // RenderDocument, not Render: the <title> assertion below is about the <head>, which exists only
         // when the document is composed around the app the way a host composes it.
-        var html = Test.RenderDocument(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
+        var html = Page.RenderDocument(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
         Assert.NotNull(pageType);
         // <title> now carries data-rask-key="tag:title" so the morph reconciles it by
@@ -62,7 +62,7 @@ public sealed class PageBaselineTests
     {
         var routeState = new RouteState { Path = "/__no_such_route" };
 
-        var html = Test.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
+        var html = Page.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
         Assert.Contains("Page not found", html);
     }

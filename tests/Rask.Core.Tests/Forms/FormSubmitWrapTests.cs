@@ -69,7 +69,7 @@ public class FormSubmitWrapTests
 {
     private static async Task<string> SubmitAsync(WrapAncestor ancestor)
     {
-        var page = Test.Render(ancestor);
+        var page = Page.Render(ancestor);
         Assert.Contains("<span>idle</span>", page.Html, StringComparison.Ordinal);
 
         await page.On("form").SubmitAsync("{\"form\":{\"Name\":\"Ada\"}}");

@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using Rask.Core.Forms;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A month, with any number of days to pick.
@@ -9,8 +9,8 @@ namespace Rask.Ui;
 /// <remarks>
 /// <para>
 /// Not written by name: it is reached through <c>UiCalendar</c>, which becomes this control when the model says it
-/// holds several days — <c>UiCalendar.Bind(() =&gt; model.DaysOff)</c> over a <c>List&lt;DateOnly&gt;</c>,
-/// <c>HashSet&lt;DateOnly&gt;</c> or any other collection, or <c>UiCalendar.Values([...])</c> for the parent to
+/// holds several days — <c>Ui.Calendar.Bind(() =&gt; model.DaysOff)</c> over a <c>List&lt;DateOnly&gt;</c>,
+/// <c>HashSet&lt;DateOnly&gt;</c> or any other collection, or <c>Ui.Calendar.Values([...])</c> for the parent to
 /// own. The controlled opening is <c>Values</c> rather than <c>Value</c> for the reason it is on <c>UiSelect</c>: a
 /// collection expression and a bare <c>null</c> fit every collection shape, and the single day's opening, equally.
 /// </para>

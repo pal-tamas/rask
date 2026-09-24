@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using FluentValidation;
 using Rask.Core.Forms;
 
-namespace Rask.Validation.FluentValidation.Tests;
+namespace Rask.FluentValidationTests;
 
 // Discovery, end to end. Nothing below calls RaskValidators.Register: the validators are declared as
 // ordinary AbstractValidator<T> classes, the generator finds them at compile time and emits the
@@ -71,7 +71,7 @@ public partial class GeneratedRegistrationTests : global::Rask.Core.RaskMarkup
         // The validator is only BUILT when validation runs, not when the form registers it. Building at
         // registration meant this render threw InvalidOperationException out of Render() — from generated
         // code the author never wrote — purely because a DI-constructed validator for this model exists
-        // somewhere in the assembly. Test.Render with no provider is a supported shape.
+        // somewhere in the assembly. Page.Render with no provider is a supported shape.
         var m = new NeedsServiceModel { Name = "" };
 
         var ctx = Render(m);
@@ -107,7 +107,7 @@ public partial class GeneratedRegistrationTests : global::Rask.Core.RaskMarkup
     private EditContext Render<T>(T model) where T : class
     {
         EditContext? ctx = null;
-        Test.Render(() => Form.Model(model)[
+        Page.Render(() => Form.Model(model)[
             Test.EditContextProbe(c => ctx = c)
         ]);
 

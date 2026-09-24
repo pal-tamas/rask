@@ -16,7 +16,7 @@ public sealed partial class MediaDevicesDemo(IMediaDevices media) : Component, I
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        UiCard.Class("shadow-sm")[
+        Ui.Card.Class("shadow-sm")[
                 Video
                     .Ref(_video)
                     .Width(320)
@@ -25,9 +25,9 @@ public sealed partial class MediaDevicesDemo(IMediaDevices media) : Component, I
                     .PlaysInline(true)
                     .Class("rounded border mb-2 bg-slate-900 block"),
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    UiButton.Tone(UiTone.Primary).Id("media-start").OnClick(StartCamera)[UiIcon.Name(UiIconName.VideoCamera), "Start camera"],
-                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("media-screen").OnClick(ShareScreen)[UiIcon.Name(UiIconName.Desktop), "Share screen"],
-                    UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline)
+                    Ui.Button.Tone(Ui.Tone.Primary).Id("media-start").OnClick(StartCamera)[Ui.Icon.Name(Ui.IconName.VideoCamera), "Start camera"],
+                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Id("media-screen").OnClick(ShareScreen)[Ui.Icon.Name(Ui.IconName.Desktop), "Share screen"],
+                    Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline)
                         .Id("media-stop")
                         .Disabled(_stream is null)
                         .OnClick(Stop)["Stop"]

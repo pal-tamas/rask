@@ -53,7 +53,8 @@ public sealed class WriteExternalPropsRequestTask : Task
         foreach (var item in Islands)
         {
             var name = item.GetMetadata("IslandName");
-            var (specifier, export) = ExternalPackageSpecifier.Split(item.GetMetadata("PackageModule"));
+            var specifier = item.GetMetadata("PackageModule");
+            var export = ExportOf(item);
 
             if (!ExternalPackageSpecifier.IsValidExport(export, item.GetMetadata("Runtime")))
             {
@@ -64,7 +65,7 @@ public sealed class WriteExternalPropsRequestTask : Task
                     file: item.GetMetadata("DeclaringFile"), lineNumber: LineOf(item), columnNumber: 0,
                     endLineNumber: 0, endColumnNumber: 0,
                     message: $"Rask.External: '{name}' names the export '{export}', which is not an identifier — "
-                             + "write the export's exact name after the '#'.");
+                             + "return the export's exact name from Export.");
                 continue;
             }
 
@@ -89,6 +90,9 @@ public sealed class WriteExternalPropsRequestTask : Task
         File.WriteAllText(RequestPath, sb.ToString(), new UTF8Encoding(false));
         return true;
     }
+
+    private static string ExportOf(ITaskItem item) =>
+        item.GetMetadata("PackageExport") is { Length: > 0 } export ? export : "default";
 
     private static int LineOf(ITaskItem item) =>
         int.TryParse(item.GetMetadata("ModuleLine"), out var line) ? line : 0;

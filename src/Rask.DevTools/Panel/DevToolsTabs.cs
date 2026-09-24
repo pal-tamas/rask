@@ -1,7 +1,7 @@
 using System.Globalization;
+using Rask;
 using Rask.Core;
 using Rask.DevTools.Probe;
-using Rask.Ui;
 
 namespace Rask.DevTools.Panel;
 
@@ -126,16 +126,16 @@ internal sealed partial class DevToolsTabs : Component
         key == DevToolsTabIds.ShowErrorsKey && OnSelect is { } select ? select.Invoke(Errors) ?? Task.CompletedTask : Task.CompletedTask;
 
     private Component TabButton(string id, string label, int count) =>
-        UiButton
+        Ui.Button
             .Key(id)
-            .Size(UiSize.Sm)
+            .Size(Ui.Size.Sm)
             .Role("tab")
             // daisyUI's own marker, written whole: a composed class name is invisible to the kit's Tailwind scan.
             .Class(Current == id ? "btn-active" : null)
             .Aria(new Dictionary<string, string?> { ["selected"] = Current == id ? "true" : "false" })
             .OnClick(() => OnSelect?.Invoke(id) ?? Task.CompletedTask)[
                 label,
-                count > 0 ? UiBadge.Size(UiSize.Xs).Tone(UiTone.Error)[count.ToString(CultureInfo.InvariantCulture)] : null
+                count > 0 ? Ui.Badge.Size(Ui.Size.Xs).Tone(Ui.Tone.Error)[count.ToString(CultureInfo.InvariantCulture)] : null
             ];
 
     // Only errors: a warning is listed, but does not call for attention.

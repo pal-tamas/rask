@@ -1,4 +1,4 @@
-using Rask.Ui;
+using Rask;
 
 namespace Rask.Site;
 
@@ -22,7 +22,7 @@ public sealed partial class LiveCounter : Component
             Div.Class("flex items-center gap-2 border-b border-ui-line bg-ui-well px-4 py-2.5")[
                 // The kit's status dot, unchanged from the console — where it reports whether a queue is
                 // healthy. Here it reports that this component is the running one.
-                UiStatusDot.Label("running · /counter").Tone(UiTone.Success)
+                Ui.StatusDot.Label("running · /counter").Tone(Ui.Tone.Success)
             ],
             Div.Class("flex flex-col items-center gap-3 px-6 py-8")[
                 // A <p>, not an <h3>. It is a field label inside a demo card, and the page's only other

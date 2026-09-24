@@ -12,7 +12,7 @@ namespace Rask.Core.Tests.Components;
 public partial class ElementKeyboardTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Key_handlers_outside_a_live_context_are_not_emitted() =>
+    public void Key_handlers_outside_live_context_not_emitted() =>
         // No LiveRenderContext (plain ToHtml): handlers can't register, so nothing is emitted.
         Assert.Equal(
             "<div></div>",
@@ -21,28 +21,26 @@ public partial class ElementKeyboardTests : global::Rask.Core.RaskMarkup
                 .OnKeyUp(_ => { }).ToHtml());
 
     [Fact]
-    public void Only_the_set_key_handlers_are_emitted()
+    public void Key_handlers_only_non_null_emitted()
     {
         var view = new StubComponent(() => Div.OnKeyDown(_ => { }));
-
         Assert.Equal("<div data-rask-on-keydown=\"h0\"></div>", view.RenderAsLiveRoot());
     }
 
     [Fact]
-    public void Async_key_handlers_emit_too()
+    public void Key_handlers_async_siblings_emit()
     {
         // Setting only the async variant still registers the handler and emits the attribute.
         var view = new StubComponent(() => Div
             .OnKeyDown(_ => Task.CompletedTask)
             .OnKeyUp(_ => Task.CompletedTask));
-
         Assert.Equal(
             "<div data-rask-on-keydown=\"h0\" data-rask-on-keyup=\"h1\"></div>",
             view.RenderAsLiveRoot());
     }
 
     [Fact]
-    public void Key_handlers_emit_after_the_drag_hooks_and_before_the_accessibility_attributes()
+    public void Key_handlers_emit_after_drag_hooks_before_accessibility_attrs()
     {
         var view = new StubComponent(() => Div
             .Id("d")
@@ -65,19 +63,18 @@ public partial class ElementKeyboardTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Unset_key_handlers_leave_no_footprint()
+    public void Unset_key_handlers_add_no_footprint()
     {
         // Hoisted into the lazy LiveState: a plain element keeps the key handlers null and never
         // forces a LiveState allocation just by leaving them unset (the allocation-pin tests guard
         // the per-render cost; this asserts the property contract directly).
         var div = Div;
-
         Assert.Null(div.OnKeyDown);
         Assert.Null(div.OnKeyUp);
     }
 
     [Fact]
-    public async Task A_typed_keydown_handler_receives_the_parsed_key_code_modifiers_and_repeat()
+    public async Task Key_down_typed_handler_receives_parsed_key_code_modifiers_and_repeat()
     {
         KeyboardEventArgs? seen = null;
         var view = new StubComponent(() => Div.OnKeyDown(e => seen = e));
@@ -98,7 +95,7 @@ public partial class ElementKeyboardTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task An_async_typed_keyup_handler_is_awaited()
+    public async Task Key_up_async_typed_handler_is_awaited()
     {
         string? seenKey = null;
         var view = new StubComponent(() => Div
@@ -116,7 +113,7 @@ public partial class ElementKeyboardTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task An_async_typed_keydown_handler_is_awaited()
+    public async Task Key_down_async_typed_handler_is_awaited()
     {
         KeyboardEventArgs? seen = null;
         var view = new StubComponent(() => Div
@@ -135,7 +132,7 @@ public partial class ElementKeyboardTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Missing_keydown_payload_fields_default_to_empty_and_false()
+    public async Task Key_down_missing_payload_fields_default_to_empty_and_false()
     {
         KeyboardEventArgs? seen = null;
         var view = new StubComponent(() => Div.OnKeyDown(e => seen = e));

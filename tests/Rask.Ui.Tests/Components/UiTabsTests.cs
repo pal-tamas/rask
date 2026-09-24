@@ -1,4 +1,4 @@
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     The tab row, which stayed links.
@@ -14,7 +14,7 @@ public partial class UiTabsTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_row_is_daisyUIs_tabs_and_says_what_it_is()
     {
-        var html = UiTabs[Tab("Live", active: true)].ToHtml();
+        var html = Ui.Tabs[Tab("Live", active: true)].ToHtml();
 
         Assert.Contains("class=\"tabs", html);
         Assert.Contains("role=\"tablist\"", html);
@@ -24,7 +24,7 @@ public partial class UiTabsTests : global::Rask.Core.RaskMarkup
     public void Each_tab_is_a_real_link()
     {
         // The property being tested is that it is an anchor with an href — not a button, not a div.
-        var html = UiTabs[Tab("Live", active: true)].ToHtml();
+        var html = Ui.Tabs[Tab("Live", active: true)].ToHtml();
 
         Assert.Contains("<a", html);
         Assert.Contains("href=\"/logs\"", html);
@@ -49,32 +49,32 @@ public partial class UiTabsTests : global::Rask.Core.RaskMarkup
     }
 
     [Theory]
-    [InlineData(UiTabStyle.Box, "tabs-box")]
-    [InlineData(UiTabStyle.Border, "tabs-border")]
-    [InlineData(UiTabStyle.Lift, "tabs-lift")]
-    public void Every_style_writes_its_own_class(UiTabStyle style, string expected) =>
-        Assert.Contains(expected, UiTabs.Style(style)[Tab("Live", active: true)].ToHtml());
+    [InlineData(Ui.TabStyle.Box, "tabs-box")]
+    [InlineData(Ui.TabStyle.Border, "tabs-border")]
+    [InlineData(Ui.TabStyle.Lift, "tabs-lift")]
+    public void Every_style_writes_its_own_class(Ui.TabStyle style, string expected) =>
+        Assert.Contains(expected, Ui.Tabs.Style(style)[Tab("Live", active: true)].ToHtml());
 
     [Theory]
-    [InlineData(UiSize.Xs, "tabs-xs")]
-    [InlineData(UiSize.Xl, "tabs-xl")]
-    public void Every_size_writes_its_own_class(UiSize size, string expected) =>
-        Assert.Contains(expected, UiTabs.Size(size)[Tab("Live", active: true)].ToHtml());
+    [InlineData(Ui.Size.Xs, "tabs-xs")]
+    [InlineData(Ui.Size.Xl, "tabs-xl")]
+    public void Every_size_writes_its_own_class(Ui.Size size, string expected) =>
+        Assert.Contains(expected, Ui.Tabs.Size(size)[Tab("Live", active: true)].ToHtml());
 
     [Theory]
-    [InlineData(UiPosition.Top, "tabs-top")]
-    [InlineData(UiPosition.Bottom, "tabs-bottom")]
-    public void The_two_positions_a_tab_row_has_write_their_class(UiPosition position, string expected) =>
-        Assert.Contains(expected, UiTabs.Position(position)[Tab("Live", active: true)].ToHtml());
+    [InlineData(Ui.Position.Top, "tabs-top")]
+    [InlineData(Ui.Position.Bottom, "tabs-bottom")]
+    public void The_two_positions_a_tab_row_has_write_their_class(Ui.Position position, string expected) =>
+        Assert.Contains(expected, Ui.Tabs.Position(position)[Tab("Live", active: true)].ToHtml());
 
     [Theory]
-    [InlineData(UiPosition.Left)]
-    [InlineData(UiPosition.Right)]
-    public void A_position_a_tab_row_has_no_class_for_writes_nothing(UiPosition position)
+    [InlineData(Ui.Position.Left)]
+    [InlineData(Ui.Position.Right)]
+    public void A_position_a_tab_row_has_no_class_for_writes_nothing(Ui.Position position)
     {
         // Better than inventing `tabs-left`: a class daisyUI never defined is in the markup, absent
         // from the sheet, and does nothing — which reads as a working call site.
-        var html = UiTabs.Position(position)[Tab("Live", active: true)].ToHtml();
+        var html = Ui.Tabs.Position(position)[Tab("Live", active: true)].ToHtml();
 
         Assert.DoesNotContain("tabs-left", html);
         Assert.DoesNotContain("tabs-right", html);
@@ -85,7 +85,7 @@ public partial class UiTabsTests : global::Rask.Core.RaskMarkup
     {
         // We style, you space. The phone bleed (`-mx-3 px-3`) this row used to carry pushed it out of any
         // card it sat in; where a row sits is the page's to say.
-        var html = UiTabs[Tab("Live", active: true)].ToHtml();
+        var html = Ui.Tabs[Tab("Live", active: true)].ToHtml();
         var classes = html[(html.IndexOf("class=\"", StringComparison.Ordinal) + 7)..];
         classes = classes[..classes.IndexOf('"')];
 
@@ -111,7 +111,7 @@ public partial class UiTabsTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_disabled_tab_is_drawn_as_unavailable() =>
         Assert.Contains("tab-disabled",
-            UiTab.Label("Live").Href("/logs").Disabled(true).ToHtml());
+            Ui.Tab.Label("Live").Href("/logs").Disabled(true).ToHtml());
 
     [Fact]
     public void A_tab_keeps_a_touch_sized_target_on_a_phone()
@@ -123,5 +123,5 @@ public partial class UiTabsTests : global::Rask.Core.RaskMarkup
 
     private UiTab Tab(
         string label, bool active, string? count = null, bool? alarm = null) =>
-        UiTab.Label(label).Href("/logs").Active(active).Count(count).Alarm(alarm);
+        Ui.Tab.Label(label).Href("/logs").Active(active).Count(count).Alarm(alarm);
 }

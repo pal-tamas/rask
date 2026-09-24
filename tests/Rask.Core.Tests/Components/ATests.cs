@@ -28,25 +28,23 @@ public partial class ATests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_string_child_is_encoded_as_text() => Assert.Equal("<a>&lt;x&gt;</a>", A["<x>"].ToHtml());
+    public void A_text_child_is_html_encoded() => Assert.Equal("<a>&lt;x&gt;</a>", A["<x>"].ToHtml());
 
     [Fact]
-    public void OnClick_outside_a_live_context_emits_no_handler_attribute() =>
+    public void A_click_handler_outside_a_live_context_emits_no_handler_attribute() =>
         Assert.Equal("<a></a>", A.OnClick(() => { }).ToHtml());
 
     [Fact]
-    public void OnClick_inside_a_live_context_emits_the_click_handler_id()
+    public void A_click_handler_inside_a_live_context_emits_its_handler_attribute()
     {
         var view = new StubComponent(() => A.OnClick(() => { })["go"]);
-
         Assert.Equal("<a data-rask-on-click=\"h0\">go</a>", view.RenderAsLiveRoot());
     }
 
     [Fact]
-    public void An_async_OnClick_inside_a_live_context_emits_the_click_handler_id()
+    public void An_async_click_handler_inside_a_live_context_emits_its_handler_attribute()
     {
         var view = new StubComponent(() => A.OnClick(async () => { await Task.Yield(); })["go"]);
-
         Assert.Equal("<a data-rask-on-click=\"h0\">go</a>", view.RenderAsLiveRoot());
     }
 }

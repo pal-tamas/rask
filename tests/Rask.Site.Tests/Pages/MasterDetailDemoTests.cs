@@ -33,5 +33,5 @@ public sealed class MasterDetailDemoTests
     }
 
     private static string Render() =>
-        Test.Render(new MasterDetailDemo(), TestServices.Default()).Html;
+        Page.Render(new MasterDetailDemo(), TestServices.Default()).Html;
 }

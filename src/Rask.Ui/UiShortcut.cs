@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// How a shortcut such as <c>"mod+k"</c> is written for a reader: <c>⌘K</c> on a Mac, <c>Ctrl K</c> elsewhere.

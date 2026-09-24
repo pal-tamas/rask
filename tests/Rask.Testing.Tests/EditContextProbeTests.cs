@@ -17,7 +17,7 @@ public partial class EditContextProbeTests : global::Rask.Core.RaskMarkup
         EditContext? captured = null;
         var model = new Model();
 
-        Test.Render(() => Form.Model(model)[
+        Page.Render(() => Form.Model(model)[
             Input.Bind(() => model.Name),
             Test.EditContextProbe(c => captured = c)
         ]);
@@ -30,8 +30,8 @@ public partial class EditContextProbeTests : global::Rask.Core.RaskMarkup
     {
         var model = new Model();
 
-        var page = Test.Render(() => Form.Model(model)[Test.EditContextProbe(_ => { })]);
-        var withoutProbe = Test.Render(() => Form.Model(model));
+        var page = Page.Render(() => Form.Model(model)[Test.EditContextProbe(_ => { })]);
+        var withoutProbe = Page.Render(() => Form.Model(model));
 
         Assert.Equal(withoutProbe.Html, page.Html);
     }
@@ -42,7 +42,7 @@ public partial class EditContextProbeTests : global::Rask.Core.RaskMarkup
         EditContext? captured = null;
         var model = new Model();
 
-        var page = Test.Render(() => Form.Model(model)[
+        var page = Page.Render(() => Form.Model(model)[
             Input.Bind(() => model.Name),
             Test.EditContextProbe(c => captured = c)
         ]);
@@ -61,7 +61,7 @@ public partial class EditContextProbeTests : global::Rask.Core.RaskMarkup
     {
         var captured = false;
 
-        Test.Render(() => Div[Test.EditContextProbe(_ => captured = true)]);
+        Page.Render(() => Div[Test.EditContextProbe(_ => captured = true)]);
 
         // There is no ambient context to hand over — placing the probe outside the form is a test bug, and
         // it stays silent rather than inventing a context.

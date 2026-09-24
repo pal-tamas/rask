@@ -3,7 +3,7 @@ using System.Linq.Expressions;
 using Rask.Core.Forms;
 using Rask.Core.Live;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A field with a fixed set of answers, where more than one may be chosen.
@@ -30,8 +30,8 @@ namespace Rask.Ui;
 /// <c>ICollection&lt;T&gt;</c>, so the chain has nothing to infer from.
 /// </para>
 /// </remarks>
-// One name at the call site: `UiSelect.Bind(() => model.Country)` is this control's single-valued twin and
-// `UiSelect.Bind(() => model.Tags)` is this one. The model already says which it is — a value or a collection
+// One name at the call site: `Ui.Select.Bind(() => model.Country)` is this control's single-valued twin and
+// `Ui.Select.Bind(() => model.Tags)` is this one. The model already says which it is — a value or a collection
 // of them — so the page never chooses between two component names, and the openings are told apart by type.
 [RaskChainEntry("UiSelect")]
 public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
@@ -40,7 +40,7 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
     // entirely and leaves the count on its own.
     private const int DefaultChips = 3;
 
-    // Per-instance, so two id-less controls on one page cannot collide on option ids — see UiSelect.
+    // Per-instance, so two id-less controls on one page cannot collide on option ids — see Ui.Select.
     private static int _instances;
 
     private readonly int _instance = Interlocked.Increment(ref _instances);
@@ -168,7 +168,7 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
     /// <inheritdoc />
     protected override Component Control() => DrawsOwnList ? Custom() : NativeSelect();
 
-    // The platform's control. Unlike UiSelect's native path this does NOT forward Bind to Select<T>:
+    // The platform's control. Unlike Ui.Select's native path this does NOT forward Bind to Select<T>:
     // Select's own multi-select binding runs through BindingHelpers.IsBindableSelectionType, whose
     // element type is closed to `string` for an AOT reason it documents. Taking the raw picked values
     // through OnSelect and mapping them back through this control's own Options costs one dictionary-free
@@ -197,7 +197,7 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
 
     // The drawn list: a [popover] listbox under a box that holds the chosen answers as chips.
     //
-    // The box is a <div role="combobox"> wrapping a <button>, where UiSelect's box IS the button. That is
+    // The box is a <div role="combobox"> wrapping a <button>, where Ui.Select's box IS the button. That is
     // not a style choice — a chip's remove control is a button, and a <button> may not contain a
     // <button>: interactive content is excluded from its content model. Nesting them is what the deleted
     // BsMultiSelect did with a real <input> inside its option rows, and it is invalid markup either way.
@@ -296,7 +296,7 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
                         .Class("cursor-pointer opacity-70 hover:opacity-100")
                         .Aria(new Dictionary<string, string?> { ["label"] = "Remove " + TextOf(value) })
                         .OnClick(() => CommitAsync(acc, ctx, chosen, Without(chosen.Shown, value)))[
-                        UiIcon.Name(UiIconName.Close).Class("size-3")
+                        Ui.Icon.Name(Ui.IconName.Close).Class("size-3")
                     ]
             ];
         }
@@ -309,12 +309,12 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
                 .Aria(new Dictionary<string, string?> { ["label"] = "Clear all" })
                 // Clears the answers this control drew, and only those.
                 .OnClick(() => CommitAsync(acc, ctx, chosen, []))[
-                UiIcon.Name(UiIconName.Close).Class("size-4")
+                Ui.Icon.Name(Ui.IconName.Close).Class("size-4")
             ];
         }
     }
 
-    // The popover panel. Identical in mechanism to UiSelect's — the panel is a wrapper around the list
+    // The popover panel. Identical in mechanism to Ui.Select's — the panel is a wrapper around the list
     // rather than the list itself, because an author rule setting `display` beats the UA's
     // `[popover]:not(:popover-open) { display: none }` and would leave a closed list on screen. daisyUI's
     // `menu` is such a class, so it stays on the inner <ul>.
@@ -479,7 +479,7 @@ public sealed partial class UiMultiSelect<T> : UiFormField<ICollection<T>>
             .Class(UiClass.Compose(
                 // The single-select's vocabulary, unchanged: menu-active is a CHOSEN option, menu-focus is
                 // where the keyboard cursor sits. Several rows are active here where at most one ever was,
-                // which is the one thing this list asks a reader to hold that UiSelect's does not.
+                // which is the one thing this list asks a reader to hold that Ui.Select's does not.
                 selected ? "menu-active" : "",
                 cursor == row.FlatIndex ? "menu-focus" : ""))
             .Disabled(off)

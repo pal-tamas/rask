@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A menu that opens where the reader right-clicks, over whatever <see cref="Target" /> is.

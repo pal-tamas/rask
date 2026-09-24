@@ -13,7 +13,7 @@ public sealed class NotFoundPageTests
     {
         var routeState = new RouteState { Path = "/__unknown" };
 
-        var html = Test.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
+        var html = Page.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
         Assert.Contains("Page not found", html);
         Assert.Contains("/__unknown", html);

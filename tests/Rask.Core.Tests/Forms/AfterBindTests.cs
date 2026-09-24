@@ -19,7 +19,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         var m = new TextModel { Name = "" };
         var observed = new List<string>();
 
-        var page = Test.Render(() => Form.Model(m)[
+        var page = Page.Render(() => Form.Model(m)[
             Input.Bind(() => m.Name).AfterBind(v => observed.Add(v))
         ]);
 
@@ -36,7 +36,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         var m = new NumberModel();
         int? captured = null;
 
-        var page = Test.Render(() => Form.Model(m)[
+        var page = Page.Render(() => Form.Model(m)[
             Input.Bind(() => m.Age).AfterBind(v => captured = v)
         ]);
 
@@ -52,7 +52,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         var m = new NumberModel { Age = 7 };
         var fired = false;
 
-        var page = Test.Render(() => Form.Model(m)[
+        var page = Page.Render(() => Form.Model(m)[
             Input.Bind(() => m.Age).AfterBind(_ => fired = true)
         ]);
 
@@ -71,7 +71,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         var gate = new TaskCompletionSource();
         var order = new List<string>();
 
-        var page = Test.Render(() => Form.Model(m)[
+        var page = Page.Render(() => Form.Model(m)[
             Input.Bind(() => m.Age)
                 .Validate(_ =>
                 {
@@ -113,7 +113,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         var order = new List<string>();
         EditContext? captured = null;
 
-        var page = Test.Render(() => Form.Model(m)[
+        var page = Page.Render(() => Form.Model(m)[
             Input.Bind(() => m.Age)
                 .Validate(_ =>
                 {
@@ -144,7 +144,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         var m = new TextModel { Name = "" };
         var order = new List<string>();
 
-        var page = Test.Render(() => Form.Model(m)[
+        var page = Page.Render(() => Form.Model(m)[
             Input.Bind(() => m.Name)
                 .AfterBind(async _ =>
                 {
@@ -164,7 +164,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         var m = new ColorModel { Favorite = Color.Red };
         Color? captured = null;
 
-        var page = Test.Render(() => Form.Model(m)[
+        var page = Page.Render(() => Form.Model(m)[
             Select.Bind(() => m.Favorite).AfterBind(v => captured = v)[
                 Option.Value(nameof(Color.Red))["Red"],
                 Option.Value(nameof(Color.Blue))["Blue"]
@@ -184,7 +184,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         var m = new RegionModel();
         List<string>? cities = null;
 
-        var page = Test.Render(() => Form.Model(m)[
+        var page = Page.Render(() => Form.Model(m)[
             Select.Bind(() => m.Country).AfterBind(async c =>
             {
                 await Task.Yield();
@@ -208,7 +208,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         var m = new TextModel { Name = "" };
         string? captured = null;
 
-        var page = Test.Render(() => Form.Model(m)[
+        var page = Page.Render(() => Form.Model(m)[
             Textarea.Bind(() => m.Name).AfterBind(v => captured = v)
         ]);
 
@@ -224,7 +224,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         var m = new FlagModel { Enabled = false };
         bool? captured = null;
 
-        var page = Test.Render(() => Form.Model(m)[
+        var page = Page.Render(() => Form.Model(m)[
             Input.Bind(() => m.Enabled).AfterBind(v => captured = v)
         ]);
         var changeId = page.HandlerId("change");
@@ -247,7 +247,7 @@ public partial class AfterBindTests : global::Rask.Core.RaskMarkup
         var m = new TextModel { Name = "x" };
         var fires = 0;
 
-        var page = Test.Render(() => Form.Model(m)[
+        var page = Page.Render(() => Form.Model(m)[
             Input.Bind(() => m.Name).AfterBind(_ => fires++)
         ]);
 

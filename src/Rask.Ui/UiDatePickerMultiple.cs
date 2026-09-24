@@ -1,13 +1,13 @@
 using System.Globalization;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A field that shows several dates and opens a calendar to add or remove them.
 /// </summary>
 /// <remarks>
 /// Not written by name: <c>UiDatePicker</c> becomes this control when the model holds a collection of days —
-/// <c>UiDatePicker.Bind(() =&gt; model.DaysOff)</c>, or <c>UiDatePicker.Values([...])</c> for the parent to own.
+/// <c>Ui.DatePicker.Bind(() =&gt; model.DaysOff)</c>, or <c>Ui.DatePicker.Values([...])</c> for the parent to own.
 /// The popover stays OPEN on a pick, because choosing four days should not mean opening it four times; Escape or a
 /// click outside closes it.
 /// </remarks>

@@ -41,7 +41,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="Rask.Ui"/>
+    <Using Include="Rask"/>
     <Using Include="Xunit"/>
     <Using Include="Rask.Testing"/>
     <!-- WaitFor lives in the shared helper library now, so every suite polls the same way (#769). -->

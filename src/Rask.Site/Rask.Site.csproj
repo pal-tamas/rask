@@ -226,8 +226,4 @@
     <RaskUiWriteStylesheet>true</RaskUiWriteStylesheet>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Using Include="Rask.Ui"/>
-  </ItemGroup>
-
 </Project>

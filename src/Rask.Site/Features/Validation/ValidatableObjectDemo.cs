@@ -24,32 +24,32 @@ public sealed partial class ValidatableObjectDemo : Component
             return null;
         }
 
-        return UiAlert.Tone(UiTone.Error).Variant(UiVariant.Soft).Class("text-sm mb-0")[Ul.Class("mb-0 ps-3")[formOnly.Select((e, i) => Li.Key(i)[e.Message])]];
+        return Ui.Alert.Tone(Ui.Tone.Error).Variant(Ui.Variant.Soft).Class("text-sm mb-0")[Ul.Class("mb-0 ps-3")[formOnly.Select((e, i) => Li.Key(i)[e.Message])]];
     }
 
     protected override Component? Render() =>
     [
         Form.Model(_model).OnSubmit(m => _submission = $"Booked: {m.Name} {m.Departure:yyyy-MM-dd} → {m.Arrival:yyyy-MM-dd}").Class("flex flex-col gap-3")[
-            ValidationSummary.Template(SummaryAlert),
+            Validation.Summary.Template(SummaryAlert),
             Div[
-                UiInput.Bind(() => _model.Name).Label("Name").Id("v11-name").ShowValidation(false),
-                ValidationMessage.Template(FieldError).For(() => _model.Name)
+                Ui.Input.Bind(() => _model.Name).Label("Name").Id("v11-name").ShowValidation(false),
+                Validation.Message.Template(FieldError).For(() => _model.Name)
             ],
             Div[
-                UiInput.Bind(() => _model.Departure).Label("Departure").Id("v11-departure").ShowValidation(false),
-                ValidationMessage.Template(FieldError).For(() => _model.Departure)
+                Ui.Input.Bind(() => _model.Departure).Label("Departure").Id("v11-departure").ShowValidation(false),
+                Validation.Message.Template(FieldError).For(() => _model.Departure)
             ],
             Div[
-                UiInput.Bind(() => _model.Arrival).Label("Arrival").Id("v11-arrival").ShowValidation(false),
-                ValidationMessage.Template(FieldError).For(() => _model.Arrival)
+                Ui.Input.Bind(() => _model.Arrival).Label("Arrival").Id("v11-arrival").ShowValidation(false),
+                Validation.Message.Template(FieldError).For(() => _model.Arrival)
             ],
             Div[
-                UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit)[UiIcon.Name(UiIconName.Calendar), "Book"]
+                Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit)[Ui.Icon.Name(Ui.IconName.Calendar), "Book"]
             ]
         ],
         _submission is null
             ? null
-            : UiAlert.Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle), _submission]
+            : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
     ];
 }
 

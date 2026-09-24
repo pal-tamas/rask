@@ -39,5 +39,5 @@ public interface IRemoteDispatch
     /// <param name="contract">The notification's wire contract.</param>
     /// <param name="notification">The notification instance.</param>
     /// <param name="cancellationToken">Cancels the call, aborting the request in flight.</param>
-    Task PublishAsync(RemoteContract contract, object notification, CancellationToken cancellationToken);
+    Task Publish(RemoteContract contract, object notification, CancellationToken cancellationToken);
 }

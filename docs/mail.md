@@ -4,7 +4,7 @@
 
 `Rask.Mail` sends **transactional email off the request thread**, queued in the app's own database — no message
 broker, no Redis. Compose an email whose body is a **Rask component rendered to HTML**, call
-`Mail.Send`, and a hosted worker delivers it later over SMTP, **at-least-once**, with exponential-backoff
+`SendAsync`, and a hosted worker delivers it later over SMTP, **at-least-once**, with exponential-backoff
 retries. It also sends **delayed** email and works with **zero configuration** in development.
 
 > Included in the [`Rask`](../README.md) package — nothing to install. It is **on**; an app that does without it says so:
@@ -70,17 +70,15 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 > lines above, then leaves you with the SMTP config and the migration.
 
 Add a migration for the new table before running — `rask db add AddMail && rask db update`
-(or `dotnet ef migrations add AddMail` directly). Then send from anywhere — a handler, a render, a request,
-a job — with nothing injected:
+(or `dotnet ef migrations add AddMail` directly). Then send from anywhere `IMail` is injected:
 
 ```csharp
-await Mail.Send(Email
+await mail.Send(Email
     .To(user.Email, user.Name)
     .Subject("Welcome")
-    .Body(WelcomeEmail.Name(user.Name)));   // the chain, not new (RASK014)
+    .Body(WelcomeEmail.Name(user.Name)));                      // the chain, not new (RASK014)
 
-await Mail.Send(reminder).In(24.Hours);     // send later
-await Mail.Send(digest).At(mondayMorning);  // or at a moment you name
+await Mail.Send(reminder).In(24.Hours);                            // send later
 ```
 
 ### Zero-config in development
@@ -109,6 +107,11 @@ so `Rask__Mail__Smtp__Host` in the environment is enough to start. Nothing else 
   backoff** (`BaseRetryDelay × 2^(attempts-1)`, capped at `MaxRetryDelay`), retrying until `MaxAttempts` — after
   which the message is left as a **dead letter** for inspection. A failing send never crashes the app. Sent
   messages are purged after `RetentionPeriod` (default 7 days; `TimeSpan.Zero` keeps them).
+- **The tenant travels with the message.** In an app with [multi-tenancy](multi-tenancy.md), each row records
+  the tenant in flight when it was queued, and the processor re-enters it before sending — so anything the
+  send reads is scoped as the page that queued it was. A message queued by the host itself records none.
+- **`QueuedMail` has a read face**, like every Rask.Data entity: `QueuedMail.Read.Where(m => m.ProcessedAt ==
+  null).CountAsync()` is the queue's depth, with no context of your own.
 - **`IMailSender`** — the delivery seam. `AddRaskMail` picks `MailKitSender` (SMTP) when `Smtp` is set,
   else `PickupDirectoryMailSender`, else `LogMailSender`. Register your own `IMailSender` **before**
   `AddRaskMail` to send through a provider API instead.
@@ -145,11 +148,11 @@ letter. `ShutdownGracePeriod` cannot exceed `HostOptions.ShutdownTimeout`; `Time
 - **Running more than one instance is safe.** Each processor *leases* the batch it claims, so an email is
   sent by exactly one instance. See [running more than one instance](scaling.md#running-more-than-one-instance)
   — in particular, the lease bounds but does not eliminate a duplicate send. On SQLite you will still usually
-  run one instance for the unrelated reason that it is single-writer; because a send writes while the
+  run one instance for the unrelated reason that it is single-writer; because `SendAsync` writes while the
   processor may also be writing, use [`UseRaskSqlite`](sqlite.md) (WAL + a `busy_timeout`) on your context so a
   concurrent send waits for the write lock instead of failing with `SQLITE_BUSY`.
 - **`Attempts` counts attempts *started*, not failures.** The claim increments it, so a send that takes the
   process down with it still counts toward `MaxAttempts`. An email delivered first time shows `Attempts = 1`.
 - **Mail vs. jobs.** `Rask.Mail` is a self-contained queue — you don't need [`Rask.Jobs`](jobs.md). If you
   already run jobs and want email as one step of a larger job, send it inline from the job's handler via a
-  custom `IMailSender`; otherwise `Mail.Send` is all you need.
+  custom `IMailSender`; otherwise `SendAsync` is all you need.

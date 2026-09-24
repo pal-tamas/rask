@@ -42,11 +42,14 @@ public static partial class LlmsText
     private const string OptionalGroup = "Contributing & internals";
 
     private const string Overview =
-        "Rask is a C# component framework for ASP.NET Core and WebAssembly. Pages and components are plain "
-        + "C# classes written as a markup chain (`Div.Class(\"panel\")[Span[\"hi\"]]`), server-rendered and kept "
-        + "live over a WebSocket, or run in the browser on WebAssembly. Around the UI it ships the rest of a "
-        + "product: the `rask` CLI (new, dev, db, deploy), EF Core data, CQRS, authentication, and background "
-        + "jobs, email, cache and an outbox on the app's own SQLite database. Install the CLI with "
+        "Rask is the full-stack .NET web framework, built on ASP.NET Core and EF Core, for a team of one or "
+        + "fifty. One C# codebase carries the whole product: EF Core data with aggregates, source-generated "
+        + "CQRS and a cached query layer, authentication, background jobs, email, an outbox, cache, file "
+        + "storage, realtime subscriptions, multi-tenancy and full-text search, on SQLite by default or "
+        + "PostgreSQL / SQL Server. The `rask` CLI scaffolds, migrates and deploys it (`rask new`, `rask db`, "
+        + "`rask deploy`), and the `/_rask` console shows it running. The UI is plain C# classes written as a "
+        + "markup chain (`Div.Class(\"panel\")[Span[\"hi\"]]`), server-rendered and kept live over a "
+        + "WebSocket, or run in the browser on WebAssembly. Install the CLI with "
         + "`curl -sSL https://rask.sh/rask.sh | sh`.";
 
     private static string Root => PageMeta.Origin + LiveOptions.PathBase;

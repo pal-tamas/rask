@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Rask.Core.Forms;
 
 
-namespace Rask.Validation.Tests;
+namespace Rask.ValidationTests;
 
 // Coverage for nested model validation through a single top-of-form DataAnnotationsValidator.
 // The reference-based FieldIdentifier scheme means messages for a sub-object property land on
@@ -242,7 +242,7 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
         // keystroke ValidateField call would land in an empty context, producing no message.
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
         EditContext? captured = null;
-        var page = Test.Render(() => Form.Model(p)[
+        var page = Page.Render(() => Form.Model(p)[
             Input.Bind(() => p.Address!.Street),
             Test.EditContextProbe(ctx => captured = ctx)
         ]);
@@ -262,13 +262,13 @@ public partial class NestedValidationTests : global::Rask.Core.RaskMarkup
     public async Task A_blur_on_a_nested_field_in_a_form_surfaces_the_message_in_the_rendered_html()
     {
         // End-to-end through the Form factory + Input handler dispatch path, asserting the
-        // [Required] error surfaces in the post-blur HTML via ValidationMessage. This catches
+        // [Required] error surfaces in the post-blur HTML via Validation.Message. This catches
         // the handler/display context split that A_change_on_a_nested_field_in_a_form_fires_its_validation
         // misses by reading the EditContext directly instead of going through the renderer.
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
-        var page = Test.Render(() => Form.Model(p)[
+        var page = Page.Render(() => Form.Model(p)[
             Input.Bind(() => p.Address!.Street),
-            ValidationMessage.Template(msgs => [.. msgs.Select((m, i) => Div.Class("err").Key(i)[m])])
+            Validation.Message.Template(msgs => [.. msgs.Select((m, i) => Div.Class("err").Key(i)[m])])
                 .For(() => p.Address!.Street)
         ]);
         var initial = page.Html;

@@ -25,7 +25,7 @@ public sealed partial class FormSubmitStateDemoTests : global::Rask.Core.RaskMar
     [Fact]
     public async Task Typing_into_the_bound_field_reaches_the_model()
     {
-        var page = Test.Render(() => FormSubmitStateDemo, TestServices.Default());
+        var page = Page.Render(() => FormSubmitStateDemo, TestServices.Default());
         var html = page.Render();
 
         // The field renders, is labelled, and is the one the browser suite selects on.
@@ -47,7 +47,7 @@ public sealed partial class FormSubmitStateDemoTests : global::Rask.Core.RaskMar
         // to the demo, not the Form, so it repaints only because OnSubmit's callback re-renders its
         // owner after the slow save returns — on a pool thread, while nothing stops a render running. That
         // is the shape the lost StateHasChanged of #1067 broke, so it is asserted here without a browser.
-        var page = Test.Render(() => FormSubmitStateDemo, TestServices.Default());
+        var page = Page.Render(() => FormSubmitStateDemo, TestServices.Default());
         var html = page.Render();
         Assert.Contains("(nothing yet)", html, StringComparison.Ordinal);
 

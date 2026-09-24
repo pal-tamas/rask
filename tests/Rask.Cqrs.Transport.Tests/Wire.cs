@@ -71,6 +71,12 @@ internal sealed class Wire : IAsyncDisposable
 
     public Ledger Ledger => _host.Services.GetRequiredService<Ledger>();
 
+    /// <summary>The server's own dispatcher — what a handler or a job there publishes through.</summary>
+    public IDispatcher Server => _host.Services.GetRequiredService<IDispatcher>();
+
+    /// <summary>The client half's subscription side: what a browser dispatcher opens a remote subscription with.</summary>
+    public IRemoteSubscriptions Subscriptions => (IRemoteSubscriptions)Transport;
+
     /// <summary>
     ///     Boots the pair.
     /// </summary>
@@ -162,8 +168,8 @@ internal sealed class Wire : IAsyncDisposable
     }
 
     /// <summary>The notification shape: no invoker is generated, so a transport publishes directly.</summary>
-    public Task PublishAsync(object notification, CancellationToken cancellationToken = default) =>
-        Transport.PublishAsync(Contract(notification), notification, cancellationToken);
+    public Task Publish(object notification, CancellationToken cancellationToken = default) =>
+        Transport.Publish(Contract(notification), notification, cancellationToken);
 
     public static RemoteContract Contract(object message)
     {

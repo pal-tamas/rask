@@ -116,7 +116,7 @@ public sealed class GuideChromeTests
         var sp = TestServices.Default();
         var js = sp.GetRequiredService<IJSRuntime>();
 
-        var html = Test.Render(new GuideChrome(js) { Slug = "routing" }, sp).Html;
+        var html = Page.Render(new GuideChrome(js) { Slug = "routing" }, sp).Html;
 
         // Chrome scaffolding.
         Assert.Contains("guide-chapters", html);
@@ -144,7 +144,7 @@ public sealed class GuideChromeTests
         var sp = TestServices.Default();
         var js = sp.GetRequiredService<IJSRuntime>();
 
-        var html = Test.Render(new GuideChrome(js) { Slug = "forms" }, sp).Html;
+        var html = Page.Render(new GuideChrome(js) { Slug = "forms" }, sp).Html;
 
         // Every marker resolved and mounted — no leftover comment, no unknown-demo warning.
         Assert.DoesNotContain("<!-- demo:", html);
@@ -162,7 +162,7 @@ public sealed class GuideChromeTests
         var js = sp.GetRequiredService<IJSRuntime>();
 
         // The validation sections (and their demos) moved to the forms-validation sub-page in the split.
-        var html = Test.Render(new GuideChrome(js) { Slug = "forms-validation" }, sp).Html;
+        var html = Page.Render(new GuideChrome(js) { Slug = "forms-validation" }, sp).Html;
 
         Assert.DoesNotContain("<!-- demo:", html);
         Assert.DoesNotContain("Unknown demo", html);
@@ -177,7 +177,7 @@ public sealed class GuideChromeTests
         var sp = TestServices.Default();
         var js = sp.GetRequiredService<IJSRuntime>();
 
-        var html = Test.Render(new GuideChrome(js) { Slug = "no-such-guide" }, sp).Html;
+        var html = Page.Render(new GuideChrome(js) { Slug = "no-such-guide" }, sp).Html;
 
         Assert.Contains("No guide found", html);
     }

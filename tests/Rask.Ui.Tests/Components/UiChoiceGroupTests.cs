@@ -1,4 +1,4 @@
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     A list of choices as ONE field — radios for one answer, checkboxes for several.
@@ -32,7 +32,7 @@ public partial class UiChoiceGroupTests : global::Rask.Core.RaskMarkup
     public void A_radio_group_binds_the_groups_value_rather_than_one_option()
     {
         var model = new Account { Plan = "pro" };
-        var html = UiRadioGroup.Bind(() => model.Plan).Options(Plans).Label("Plan").ToHtml();
+        var html = Ui.RadioGroup.Bind(() => model.Plan).Options(Plans).Label("Plan").ToHtml();
 
         Assert.Contains("role=\"radiogroup\"", html, StringComparison.Ordinal);
         Assert.Equal(3, Occurrences(html, "type=\"radio\""));
@@ -44,22 +44,22 @@ public partial class UiChoiceGroupTests : global::Rask.Core.RaskMarkup
     {
         // Exclusivity is the browser's, not this component's. Without a shared name every option would be
         // independently checkable and the group would silently stop being a group.
-        var html = UiRadioGroup.Value("free").Options(Plans).Label("Plan").Name("plan").ToHtml();
+        var html = Ui.RadioGroup.Value("free").Options(Plans).Label("Plan").Name("plan").ToHtml();
 
         Assert.Equal(3, Occurrences(html, "name=\"plan\""));
     }
 
     [Theory]
-    [InlineData(UiChoiceLayout.List)]
-    [InlineData(UiChoiceLayout.Cards)]
-    [InlineData(UiChoiceLayout.Pills)]
-    [InlineData(UiChoiceLayout.Buttons)]
-    [InlineData(UiChoiceLayout.Segmented)]
-    public void Every_layout_keeps_a_real_input(UiChoiceLayout layout)
+    [InlineData(Ui.ChoiceLayout.List)]
+    [InlineData(Ui.ChoiceLayout.Cards)]
+    [InlineData(Ui.ChoiceLayout.Pills)]
+    [InlineData(Ui.ChoiceLayout.Buttons)]
+    [InlineData(Ui.ChoiceLayout.Segmented)]
+    public void Every_layout_keeps_a_real_input(Ui.ChoiceLayout layout)
     {
         // The whole point. A layout that swapped the input for a <button> would look identical and lose the
         // keyboard, the grouping and the form post — and nothing would report it.
-        var html = UiRadioGroup.Value("free").Options(Plans).Label("Plan").Layout(layout).ToHtml();
+        var html = Ui.RadioGroup.Value("free").Options(Plans).Label("Plan").Layout(layout).ToHtml();
 
         Assert.Equal(3, Occurrences(html, "type=\"radio\""));
         Assert.DoesNotContain("<button", html, StringComparison.Ordinal);
@@ -70,7 +70,7 @@ public partial class UiChoiceGroupTests : global::Rask.Core.RaskMarkup
     {
         // sr-only, never `hidden` or `display: none`: those take the input out of the accessibility tree and
         // the tab order too, which would leave a pill nobody can reach by keyboard.
-        var html = UiRadioGroup.Value("free").Options(Plans).Label("Plan").Layout(UiChoiceLayout.Pills).ToHtml();
+        var html = Ui.RadioGroup.Value("free").Options(Plans).Label("Plan").Layout(Ui.ChoiceLayout.Pills).ToHtml();
 
         Assert.Contains("sr-only", html, StringComparison.Ordinal);
         Assert.DoesNotContain("hidden", html, StringComparison.Ordinal);
@@ -80,13 +80,13 @@ public partial class UiChoiceGroupTests : global::Rask.Core.RaskMarkup
     public void A_description_is_drawn_where_there_is_room_for_it()
     {
         Assert.Contains("Everything, billed monthly",
-            UiRadioGroup.Value("free").Options(Plans).Label("Plan").Layout(UiChoiceLayout.Cards)
+            Ui.RadioGroup.Value("free").Options(Plans).Label("Plan").Layout(Ui.ChoiceLayout.Cards)
                 .OptionDescription(v => v == "pro" ? "Everything, billed monthly" : null).ToHtml(),
             StringComparison.Ordinal);
 
         // A list row has one line; a description there would be a second line the layout never designed for.
         Assert.DoesNotContain("Everything, billed monthly",
-            UiRadioGroup.Value("free").Options(Plans).Label("Plan")
+            Ui.RadioGroup.Value("free").Options(Plans).Label("Plan")
                 .OptionDescription(v => v == "pro" ? "Everything, billed monthly" : null).ToHtml(),
             StringComparison.Ordinal);
     }
@@ -95,8 +95,8 @@ public partial class UiChoiceGroupTests : global::Rask.Core.RaskMarkup
     public async Task Picking_a_radio_writes_the_groups_value()
     {
         var model = new Account();
-        var page = global::Rask.Testing.Test.Render(
-            UiRadioGroup.Bind(() => model.Plan).Options(Plans).Label("Plan"));
+        var page = global::Rask.Testing.Page.Render(
+            Ui.RadioGroup.Bind(() => model.Plan).Options(Plans).Label("Plan"));
 
         await page.On("#f-plan-0").ChangeAsync("true");
 
@@ -107,7 +107,7 @@ public partial class UiChoiceGroupTests : global::Rask.Core.RaskMarkup
     public void A_checkbox_group_binds_the_collection_the_model_declares()
     {
         var model = new Account { Topics = ["news", "releases"] };
-        var html = UiCheckboxGroup.Bind(() => model.Topics)
+        var html = Ui.CheckboxGroup.Bind(() => model.Topics)
             .Options([("news", "News"), ("releases", "Releases"), ("jobs", "Jobs")])
             .Label("Topics").ToHtml();
 
@@ -121,7 +121,7 @@ public partial class UiChoiceGroupTests : global::Rask.Core.RaskMarkup
     {
         // "All" checked over two of three is a lie somebody acts on. aria-checked="mixed" is the only way to
         // say it, since there is no `indeterminate` attribute — only the DOM property.
-        var html = UiCheckboxGroup.Values<string>(["news"])
+        var html = Ui.CheckboxGroup.Values<string>(["news"])
             .Options([("news", "News"), ("releases", "Releases")])
             .Label("Topics").CheckAll(true).ToHtml();
 
@@ -131,7 +131,7 @@ public partial class UiChoiceGroupTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Check_all_becomes_clear_all_once_everything_is_in()
     {
-        var html = UiCheckboxGroup.Values<string>(["news", "releases"])
+        var html = Ui.CheckboxGroup.Values<string>(["news", "releases"])
             .Options([("news", "News"), ("releases", "Releases")])
             .Label("Topics").CheckAll(true).ToHtml();
 
@@ -144,7 +144,7 @@ public partial class UiChoiceGroupTests : global::Rask.Core.RaskMarkup
     {
         // Everything selectable is already in, so the bulk action has nothing left to add even though one
         // choice is unpicked — it must not offer to pick a disabled row.
-        var html = UiCheckboxGroup.Values<string>(["news"])
+        var html = Ui.CheckboxGroup.Values<string>(["news"])
             .Options([("news", "News"), ("releases", "Releases")])
             .Label("Topics").CheckAll(true).OptionDisabled(v => v == "releases").ToHtml();
 
@@ -155,8 +155,8 @@ public partial class UiChoiceGroupTests : global::Rask.Core.RaskMarkup
     public async Task Picking_a_checkbox_adds_to_the_models_own_collection()
     {
         var model = new Account { Topics = [] };
-        var page = global::Rask.Testing.Test.Render(
-            UiCheckboxGroup.Bind(() => model.Topics)
+        var page = global::Rask.Testing.Page.Render(
+            Ui.CheckboxGroup.Bind(() => model.Topics)
                 .Options([("news", "News"), ("releases", "Releases")])
                 .Label("Topics"));
 
@@ -170,7 +170,7 @@ public partial class UiChoiceGroupTests : global::Rask.Core.RaskMarkup
     {
         // Each choice has its own words; the GROUP's question — "Plan" — has nowhere else to live, and a
         // reader who arrives at "Free / Pro / Team" with no heading has to guess what is being asked.
-        var html = UiRadioGroup.Value("free").Options(Plans).Label("Plan").ToHtml();
+        var html = Ui.RadioGroup.Value("free").Options(Plans).Label("Plan").ToHtml();
 
         Assert.Contains("aria-labelledby=", html, StringComparison.Ordinal);
     }

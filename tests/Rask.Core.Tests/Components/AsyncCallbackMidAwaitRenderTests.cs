@@ -21,13 +21,12 @@ namespace Rask.Core.Tests.Components;
 public partial class AsyncCallbackMidAwaitRenderTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public async Task An_async_callbacks_mid_await_state_renders_without_StateHasChanged()
+    public async Task State_set_mid_await_is_rendered_without_StateHasChanged()
     {
         var host = new Host();
         host.RenderHandle = new RenderingHandle(host);
 
         var html = host.RenderAsLiveRoot(RenderHarness.EmptyServices());
-
         Assert.Contains("state: idle", html, StringComparison.Ordinal);
 
         // Fire the child's button; the consumer's callback sets "busy" and then awaits the gate.
@@ -38,7 +37,6 @@ public partial class AsyncCallbackMidAwaitRenderTests : global::Rask.Core.RaskMa
         // Suspended inside the await. This is the whole point: the consumer never called StateHasChanged,
         // yet its intermediate state must already be on screen.
         await host.Consumer.Started.Task;
-
         Assert.Contains("state: busy", host.LastHtml, StringComparison.Ordinal);
 
         host.Consumer.Release.SetResult();

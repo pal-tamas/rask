@@ -41,18 +41,18 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDa
 
         if (_queues.Count == 0)
         {
-            return UiCard[
-                UiEmpty
+            return Ui.Card[
+                Ui.Empty
                     .Heading("No batteries registered")
                     .Detail("Add Rask.Jobs, Rask.Outbox, Rask.Mail or Rask.Cache and map their tables to see them here.")
             ];
         }
 
         return [
-            UiHeader.Heading("Overview").Caption(StateLine()),
+            Ui.Header.Heading("Overview").Caption(StateLine()),
             DashboardError.Message(LoadError),
             FailureBanner(),
-            UiGrid[_queues.Select(q => QueueCard(q.Panel, q.Counts))],
+            Ui.Grid[_queues.Select(q => QueueCard(q.Panel, q.Counts))],
             DashboardParked.Parked(IsParked).Resume(ResumeAsync),
         ];
     }
@@ -68,8 +68,8 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDa
         }
 
         var worst = _queues.Where(q => q.Counts.Failed > 0).OrderByDescending(q => q.Counts.Failed).ToList();
-        return UiAlert.Tone(UiTone.Error)[
-            UiIcon.Name(UiIconName.Warning),
+        return Ui.Alert.Tone(Ui.Tone.Error)[
+            Ui.Icon.Name(Ui.IconName.Warning),
             Span[
                 $"{failed} dead letter{(failed == 1 ? "" : "s")} — ",
                 string.Join(", ", worst.Select(q => $"{q.Counts.Failed} in {q.Panel.Title.ToLowerInvariant()}")),
@@ -104,25 +104,25 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, RaskDa
     {
         var failing = counts.Failed > 0;
 
-        return UiCard
+        return Ui.Card
             .Key(panel.Slug)
             .Href(Routes.QueuePage(panel.Slug))
             .Icon(panel.Icon)
             .Heading(panel.Title)
-            .Action(UiStatusDot
+            .Action(Ui.StatusDot
                 .Label(failing ? $"{counts.Failed} failed" : "healthy")
-                .Tone(failing ? UiTone.Error : UiTone.Success))[
-            UiMetricRow.Columns(2)[
-                UiMetric
+                .Tone(failing ? Ui.Tone.Error : Ui.Tone.Success))[
+            Ui.MetricRow.Columns(2)[
+                Ui.Metric
                     .Key("outstanding")
                     .Label("Outstanding")
                     .Value(counts.Outstanding.ToString())
                     .Caption(counts.Delayed > 0 ? $"{counts.Delayed} waiting on a retry" : "nothing waiting"),
-                UiMetric
+                Ui.Metric
                     .Key("failed")
                     .Label("Failed")
                     .Value(counts.Failed.ToString())
-                    .Tone(failing ? UiTone.Error : null)
+                    .Tone(failing ? Ui.Tone.Error : null)
                     .Caption($"dead after {panel.MaxAttempts} attempts")
             ]
         ];

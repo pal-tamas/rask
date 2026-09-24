@@ -32,8 +32,9 @@ public sealed partial class GuideChrome : Component
 
     protected override async Task OnFirstRendered()
     {
-        // Wire the scroll-spy once the guide body is in the DOM. Guarded because the guide can render a
-        // not-found state (no headings) and because JS may be unavailable on a torn-down transport.
+        // Wire the scroll-spy once the guide body is in the DOM. The first-render guard IS this hook
+        // now, rather than a bool the every-render one had to test. Still guarded below because the
+        // guide can render a not-found state (no headings) and JS may be gone on a torn-down transport.
         try
         {
             await _js.InvokeVoidAsync("Rask.GuideChrome.spy", _root);
@@ -84,7 +85,7 @@ public sealed partial class GuideChrome : Component
             return
             [
                 BackLink(),
-                UiAlert.Tone(UiTone.Warning).Variant(UiVariant.Soft)[$"No guide found for “{Slug}”."]
+                Ui.Alert.Tone(Ui.Tone.Warning).Variant(Ui.Variant.Soft)[$"No guide found for “{Slug}”."]
             ];
         }
 
@@ -111,19 +112,19 @@ public sealed partial class GuideChrome : Component
             .Href(PageMeta.LinkTo(Features.Routes.GuidesIndexPage()))
             .ActiveClass("")
             .Class("inline-flex items-center mb-3 no-underline text-sm guide-backlink")[
-            UiIcon.Name(UiIconName.ArrowLeft).Class("me-1"), "All guides"
+            Ui.Icon.Name(Ui.IconName.ArrowLeft).Class("me-1"), "All guides"
         ];
 
     private Component Banner() =>
         Div.Class("guide-banner")[
-            UiIcon.Name(UiIconName.Info).Class("me-2"),
-            Span[$"You're reading the Rask v{RaskVersion.Current} guides.", LastUpdated()],
+            Ui.Icon.Name(Ui.IconName.Info).Class("me-2"),
+            Span[$"You're reading the Rask v{RaskVersion.Current} guides.", Updated()],
             A
                 .Href($"https://github.com/pal-tamas/rask/blob/main/docs/{Features.GuideCatalog.SourcePath(Slug)}")
                 .Target("_blank")
                 .Rel("noopener")
                 .Class("guide-banner-src")[
-                UiIcon.Name(UiIconName.CodeBracket).Class("me-1"), "View source"
+                Ui.Icon.Name(Ui.IconName.CodeBracket).Class("me-1"), "View source"
             ]
         ];
 
@@ -131,7 +132,7 @@ public sealed partial class GuideChrome : Component
     // dateModified and the sitemap's <lastmod> carry. A machine-readable date with no visible one beside it is
     // the combination search engines are told to distrust, and a reader deciding whether a page is stale
     // wants the answer too. Nothing at all when the build could not ask git: no date beats an invented one.
-    private Component? LastUpdated() =>
+    private Component? Updated() =>
         GuideHistory.LastModified(Slug) is { } date
             ?
             [
@@ -227,7 +228,7 @@ public sealed partial class GuideChrome : Component
                     .Href(PageMeta.LinkTo(Features.Routes.GuidePage(prev.Slug)))
                     .ActiveClass("")
                     .Class("guide-prevnext-link guide-prevnext-prev")[
-                    UiIcon.Name(UiIconName.ArrowLeft).Class("me-2"),
+                    Ui.Icon.Name(Ui.IconName.ArrowLeft).Class("me-2"),
                     Span.Class("guide-prevnext-body")[
                         Span.Class("guide-prevnext-label")["Previous"],
                         Span.Class("guide-prevnext-title")[prev.Title]
@@ -243,7 +244,7 @@ public sealed partial class GuideChrome : Component
                         Span.Class("guide-prevnext-label")["Next"],
                         Span.Class("guide-prevnext-title")[next.Title]
                     ],
-                    UiIcon.Name(UiIconName.ArrowRight).Class("ms-2")
+                    Ui.Icon.Name(Ui.IconName.ArrowRight).Class("ms-2")
                 ]
         ];
     }

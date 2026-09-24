@@ -19,7 +19,7 @@ namespace Rask.Core.Forms;
 /// </remarks>
 public sealed class EditContext : IDisposable
 {
-    // Default sticky window for the ValidatingIndicator. After PendingCount
+    // Default sticky window for the Validation.Indicator. After PendingCount
     // drops to 0, the field stays "validating" for this many milliseconds —
     // smooths over very-short async checks (100-400ms validators) that would
     // otherwise leave a DOM footprint too brief for screen-readers and for
@@ -143,7 +143,7 @@ public sealed class EditContext : IDisposable
     ///     Optional fire-and-forget render-request callback wired by the
     ///     framework (LiveRenderContext) when this context is attached to a
     ///     live render. Currently invoked by the sticky-dismissal timer so the
-    ///     UI re-renders to drop the ValidatingIndicator when the sticky tail
+    ///     UI re-renders to drop the Validation.Indicator when the sticky tail
     ///     expires — without this hook the indicator would only disappear on
     ///     the next unrelated render. Null on unit-test contexts; sticky still
     ///     functions correctly there (IsValidating + sticky-tail observation),
@@ -876,7 +876,7 @@ public sealed class EditContext : IDisposable
     }
 
     // Stamps the sticky deadline and schedules a one-shot dismissal render so the
-    // ValidatingIndicator gets removed promptly when the sticky tail expires
+    // Validation.Indicator gets removed promptly when the sticky tail expires
     // (without this timer the IsValidating(field) flip from true to false would
     // only land on the next unrelated render). The render is requested via
     // <see cref="ValidationStateChanged" /> — LiveRenderContext wires that event

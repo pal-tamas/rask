@@ -1,4 +1,4 @@
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     The accordion, and the section that refuses to render outside one.
@@ -51,9 +51,9 @@ public partial class UiAccordionTests : global::Rask.Core.RaskMarkup
         Assert.Equal(2, Occurrences(Accordion(open: null), "<button"));
 
     [Theory]
-    [InlineData(UiMarker.Arrow, "collapse-arrow")]
-    [InlineData(UiMarker.Plus, "collapse-plus")]
-    public void Every_marker_writes_its_own_class(UiMarker marker, string expected) =>
+    [InlineData(Ui.Marker.Arrow, "collapse-arrow")]
+    [InlineData(Ui.Marker.Plus, "collapse-plus")]
+    public void Every_marker_writes_its_own_class(Ui.Marker marker, string expected) =>
         Assert.Contains(expected, Marked(marker));
 
     [Fact]
@@ -63,8 +63,8 @@ public partial class UiAccordionTests : global::Rask.Core.RaskMarkup
         // message a reader needs names what they actually wrote.
         var error = Assert.Throws<InvalidOperationException>(() => Orphan().ToHtml());
 
-        Assert.Contains("UiAccordionSection", error.Message);
-        Assert.Contains("UiAccordion", error.Message);
+        Assert.Contains("Ui.AccordionSection", error.Message);
+        Assert.Contains("Ui.Accordion", error.Message);
         Assert.Contains("Shipping", error.Message);
     }
 
@@ -92,16 +92,16 @@ public partial class UiAccordionTests : global::Rask.Core.RaskMarkup
     }
 
     private string Accordion(string? open) =>
-        UiAccordion.Open(open)[
-            UiAccordionSection.Key("ship").Title("Shipping")[P["Ships in two days."]],
-            UiAccordionSection.Key("pay").Title("Payment")[P["Card or transfer."]]
+        Ui.Accordion.Open(open)[
+            Ui.AccordionSection.Key("ship").Title("Shipping")[P["Ships in two days."]],
+            Ui.AccordionSection.Key("pay").Title("Payment")[P["Card or transfer."]]
         ].ToHtml();
 
-    private string Marked(UiMarker marker) =>
-        UiAccordion.Open("ship")[
-            UiAccordionSection.Key("ship").Title("Shipping").Marker(marker)[P["…"]]
+    private string Marked(Ui.Marker marker) =>
+        Ui.Accordion.Open("ship")[
+            Ui.AccordionSection.Key("ship").Title("Shipping").Marker(marker)[P["…"]]
         ].ToHtml();
 
     private global::Rask.Core.Component Orphan() =>
-        UiAccordionSection.Key("ship").Title("Shipping")[P["…"]];
+        Ui.AccordionSection.Key("ship").Title("Shipping")[P["…"]];
 }

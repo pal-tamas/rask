@@ -98,7 +98,7 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
     modelBuilder.AddRaskMail();
     modelBuilder.AddRaskCache();
     modelBuilder.AddRaskAuth();
-    modelBuilder.ApplyRaskConventions();      // always last
+    modelBuilder.ApplyRaskConventions(this);  // always last
 }
 ```
 
@@ -136,6 +136,10 @@ job row is written — the customer's request finishes immediately, and the work
 Need it *later*? `Jobs.Enqueue(job).In(24.Hours)`, or `.At(aMoment)`. Need it *repeatedly*? Register a
 recurring job in the same `AddRaskJobs` options: `o.Run<PurgeStaleCarts>().Every(1.Hour)`, or on the calendar
 with `o.Run<NightlyBackup>().Daily.At(3, 00)`.
+
+The job row also records who placed the order, and the worker runs the handler as that user — so a handler
+that needs to know whose order it is reads `Current.UserId`, exactly as the page could have, though nobody is
+signed in on the worker's thread ([more](../jobs.md#the-user-and-tenant-a-job-runs-for)).
 
 > **Two writes, not one.** The order and the job are saved separately, so a crash between them keeps the
 > order and loses its receipt. For a receipt that is a real gap, and [Chapter 7](07-outbox-events.md)

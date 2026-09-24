@@ -1,7 +1,7 @@
 using System.Globalization;
+using Rask;
 using Rask.Core;
 using Rask.DevTools.Probe;
-using Rask.Ui;
 
 namespace Rask.DevTools.Panel;
 
@@ -85,15 +85,15 @@ internal sealed partial class DevToolsErrorsTab : Component
 
         return Div.Class("flex flex-col gap-3")[
             Div.Class("flex flex-wrap items-center justify-between gap-2")[
-                UiJoin[
+                Ui.Join[
                     FilterButton(All, "All"),
                     FilterButton(Page, "This page"),
                     FilterButton(App, "App-wide")
                 ],
-                UiButton.Size(UiSize.Sm).Title("Forget the errors listed").OnClick(Clear)["Clear"]
+                Ui.Button.Size(Ui.Size.Sm).Title("Forget the errors listed").OnClick(Clear)["Clear"]
             ],
             errors.Count == 0
-                ? UiAlert.Tone(UiTone.Success)[
+                ? Ui.Alert.Tone(Ui.Tone.Success)[
                     _filter == App
                         ? "Nothing reported outside a page's work."
                         : "No errors. A component that throws, and anything the framework warns about, is listed here."
@@ -120,8 +120,8 @@ internal sealed partial class DevToolsErrorsTab : Component
     }
 
     private Component FilterButton(string id, string label) =>
-        UiButton
-            .Size(UiSize.Sm)
+        Ui.Button
+            .Size(Ui.Size.Sm)
             // daisyUI's own markers, written whole: a composed class name is invisible to the kit's Tailwind scan.
             .Class(_filter == id ? "join-item btn-active" : "join-item")
             .Aria(new Dictionary<string, string?> { ["pressed"] = _filter == id ? "true" : "false" })
@@ -141,14 +141,14 @@ internal sealed partial class DevToolsErrorsTab : Component
         (error.AppWide ? "app-" : "page-") + error.Sequence.ToString(CultureInfo.InvariantCulture);
 
     private Component Row(DevToolsError error) =>
-        UiCard.Key(RowKey(error))
+        Ui.Card.Key(RowKey(error))
             .Class("card-border card-sm")[
                 Div.Class("card-body gap-1")[
                     Div.Class("flex flex-wrap items-center gap-2")[
-                        UiBadge.Size(UiSize.Sm).Tone(error.IsWarning ? UiTone.Warning : UiTone.Error)[KindLabel(error)],
+                        Ui.Badge.Size(Ui.Size.Sm).Tone(error.IsWarning ? Ui.Tone.Warning : Ui.Tone.Error)[KindLabel(error)],
                         Span.Class("font-mono font-semibold")[error.Title],
-                        error.Count > 1 ? UiBadge.Size(UiSize.Sm)["×" + error.Count.ToString(CultureInfo.InvariantCulture)] : null,
-                        error.AppWide ? UiBadge.Size(UiSize.Sm)["app-wide"] : null,
+                        error.Count > 1 ? Ui.Badge.Size(Ui.Size.Sm)["×" + error.Count.ToString(CultureInfo.InvariantCulture)] : null,
+                        error.AppWide ? Ui.Badge.Size(Ui.Size.Sm)["app-wide"] : null,
                         CaughtLabel(error) is { } caught ? Span.Class("text-xs opacity-60")[caught] : null,
                         Span.Class("text-xs opacity-60 tabular-nums")[error.At.ToString("HH:mm:ss", CultureInfo.InvariantCulture)]
                     ],
@@ -158,11 +158,11 @@ internal sealed partial class DevToolsErrorsTab : Component
                         : Div.Class("flex flex-wrap items-center gap-2 text-xs")[
                             Span.Class("font-mono opacity-80")[string.Join(" › ", error.Path)],
                             error.ComponentId is { } id && OnShowInTree is { } show
-                                ? UiButton.Size(UiSize.Xs).OnClick(() => show.Invoke(id) ?? Task.CompletedTask)["Show in tree"]
+                                ? Ui.Button.Size(Ui.Size.Xs).OnClick(() => show.Invoke(id) ?? Task.CompletedTask)["Show in tree"]
                                 : null
                         ],
                     error.Detail is { } detail
-                        ? UiCollapse.Title("Stack")[Pre.Class("text-xs whitespace-pre-wrap break-all")[detail]]
+                        ? Ui.Collapse.Title("Stack")[Pre.Class("text-xs whitespace-pre-wrap break-all")[detail]]
                         : null,
                     error.LikelyFrameworkBug && ReportEnvironment is { } environment
                         ? Report(error, environment)
@@ -178,7 +178,7 @@ internal sealed partial class DevToolsErrorsTab : Component
         {
             return Div.Class("flex flex-wrap items-center gap-2 text-xs")[
                 Span.Class("opacity-60")["This looks like a bug in Rask itself."],
-                UiButton.Size(UiSize.Xs).OnClick(() => _reporting = key)["Report framework bug"]
+                Ui.Button.Size(Ui.Size.Xs).OnClick(() => _reporting = key)["Report framework bug"]
             ];
         }
 
@@ -193,15 +193,15 @@ internal sealed partial class DevToolsErrorsTab : Component
                 "Check what it says and add what you can. Nothing leaves this machine until you submit the issue on GitHub; "
                 + "the exception's message, props, data and file paths are not in it."
             ],
-            UiInput.Value(draft.Title).Label("Title").OnInput(v => _drafts[key] = (v, _drafts[key].Body)),
-            UiTextarea.Value(draft.Body).Label("Issue").Rows(12).Class("font-mono text-xs")
+            Ui.Input.Value(draft.Title).Label("Title").OnInput(v => _drafts[key] = (v, _drafts[key].Body)),
+            Ui.Textarea.Value(draft.Body).Label("Issue").Rows(12).Class("font-mono text-xs")
                 .OnInput(v => _drafts[key] = (_drafts[key].Title, v)),
             Div.Class("flex flex-wrap items-center gap-2")[
                 A.Class("btn btn-primary btn-sm")
                     .Href(DevToolsBugReport.IssueUrl(draft.Title, draft.Body))
                     .Target("_blank")
                     .Rel("noopener noreferrer")["Open the issue on GitHub"],
-                UiButton.Size(UiSize.Sm).OnClick(() => _reporting = null)["Cancel"]
+                Ui.Button.Size(Ui.Size.Sm).OnClick(() => _reporting = null)["Cancel"]
             ]
         ];
     }

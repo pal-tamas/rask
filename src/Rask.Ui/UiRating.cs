@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Linq.Expressions;
 using Rask.Core.Forms;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A rating, as stars.
@@ -31,7 +31,7 @@ public sealed partial class UiRating : Component, IFormControl<int>
 
     public int? Max { get; set; }
 
-    public UiSize? Size { get; set; }
+    public Ui.Size? Size { get; set; }
 
     public string? Class { get; set; }
 

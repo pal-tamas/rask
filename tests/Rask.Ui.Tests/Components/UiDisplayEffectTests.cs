@@ -1,4 +1,4 @@
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     The three decorative data-display components, and the sheet check they need that
@@ -14,7 +14,7 @@ public partial class UiDisplayEffectTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void The_tilt_wraps_its_children() =>
-        Assert.Contains("class=\"hover-3d\"", UiHover3d[Span["card"]].ToHtml());
+        Assert.Contains("class=\"hover-3d\"", Ui.Hover3d[Span["card"]].ToHtml());
 
     [Fact]
     public void The_tilt_is_defined_in_the_shipped_sheet() =>
@@ -25,7 +25,7 @@ public partial class UiDisplayEffectTests : global::Rask.Core.RaskMarkup
     {
         // A run of images with no individual caption is what <figure> is for, and daisyUI has a rule
         // specifically for the figure case.
-        var html = UiHoverGallery[Span["a"], Span["b"]].ToHtml();
+        var html = Ui.HoverGallery[Span["a"], Span["b"]].ToHtml();
 
         Assert.StartsWith("<figure", html, StringComparison.Ordinal);
         Assert.Contains("hover-gallery", html);
@@ -40,7 +40,7 @@ public partial class UiDisplayEffectTests : global::Rask.Core.RaskMarkup
     {
         // daisyUI counts the children of `> *` to choose the animation, so flattening the extra span
         // away leaves the words stacked and still.
-        var html = UiTextRotate.Words(["fast", "typed", "small"]).ToHtml();
+        var html = Ui.TextRotate.Words(["fast", "typed", "small"]).ToHtml();
 
         // The nesting is what matters, not the exact bytes: daisyUI animates `.text-rotate > *` and
         // counts THAT element's children, so there must be a wrapper between the class and the words.
@@ -58,7 +58,7 @@ public partial class UiDisplayEffectTests : global::Rask.Core.RaskMarkup
     {
         // The animation is CSS, so a reader who never sees it still reads the list — which is also why
         // the surrounding phrase has to make sense with every word in it.
-        var html = UiTextRotate.Words(["fast", "typed", "small"]).ToHtml();
+        var html = Ui.TextRotate.Words(["fast", "typed", "small"]).ToHtml();
 
         Assert.Contains("fast", html);
         Assert.Contains("typed", html);
@@ -75,6 +75,6 @@ public partial class UiDisplayEffectTests : global::Rask.Core.RaskMarkup
         // There is no Interval property on purpose: daisyUI reads the cycle from --tw-duration, which a
         // `duration-*` utility sets, and turning a TimeSpan into a class name at run time would produce
         // a name Tailwind never scanned and the sheet never defined.
-        Assert.Contains("duration-[3s]", UiTextRotate.Words(["a", "b"]).Class("duration-[3s]").ToHtml());
+        Assert.Contains("duration-[3s]", Ui.TextRotate.Words(["a", "b"]).Class("duration-[3s]").ToHtml());
     }
 }

@@ -1,7 +1,7 @@
 using FluentValidation;
 using Rask.Core.Forms;
 
-namespace Rask.Validation.FluentValidation.Tests;
+namespace Rask.FluentValidationTests;
 
 /// <summary>
 ///     Shared helper for the FluentValidation suite. Points <c>RaskValidators</c> at the supplied
@@ -34,7 +34,7 @@ internal static partial class ValidationTestSupport
         RaskValidators.Register(typeof(T), _ => validator);
 
         EditContext? ctx = null;
-        Test.Render(() => Form.Model(model)[
+        Page.Render(() => Form.Model(model)[
             Test.EditContextProbe(c => ctx = c)
         ]);
 

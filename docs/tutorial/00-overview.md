@@ -2,8 +2,9 @@
 
 This is the hands-on companion to [Getting started](../getting-started.md). Where that guide teaches you
 the UI (components, state, routing), this tutorial takes you the rest of the way — from an empty folder
-to a **deployed, database-backed product that one person runs on one server**. That is the promise of
-[the .NET One Person Framework](../one-person-framework.md), and this is the walk-through that proves it.
+to a **deployed, database-backed product on one server** — data, auth, jobs, email, cache, events and
+deploy, all in C#. That is what a full-stack framework should hand you, whether one person builds it or a
+team does ([the philosophy](../one-person-framework.md)), and this is the walk-through that proves it.
 
 We build a small online shop — **Shop** — and grow it one chapter at a time. Every step is a real command
 you type and real code you write. Nothing here is pseudo-code.

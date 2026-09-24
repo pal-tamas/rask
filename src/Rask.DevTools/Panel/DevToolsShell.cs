@@ -1,6 +1,6 @@
+using Rask;
 using Rask.Core;
 using Rask.Core.Components;
-using Rask.Ui;
 
 namespace Rask.DevTools.Panel;
 
@@ -30,7 +30,7 @@ internal sealed partial class DevToolsShell : Component
     ///     follows the developer's light or dark setting the way their browser's own devtools do.
     /// </summary>
     protected override Component Shell(Component head, Component body) =>
-        Html.Lang(HtmlLang).Dir(HtmlDir).Attributes((UiStylesheet.ThemeScopeAttribute, ""))[
+        Document.Lang(HtmlLang).Dir(HtmlDir).Attributes((UiStylesheet.ThemeScopeAttribute, ""))[
             head,
             Body.Class(BodyClass)[body]
         ];

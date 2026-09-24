@@ -14,6 +14,6 @@ public partial class H2Tests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_string_child_is_encoded_as_text() =>
+    public void A_text_child_is_html_encoded() =>
         Assert.Equal("<h2>&lt;x&gt;</h2>", H2["<x>"].ToHtml());
 }

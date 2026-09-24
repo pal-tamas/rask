@@ -61,7 +61,7 @@ public partial class BrowserApiReachTests : global::Rask.Core.RaskMarkup
     {
         var js = new RecordingJSRuntime { Result = "copied" };
 
-        var page = Test.Render(ClipboardIsland.Label("Copy"), Services(js));
+        var page = Page.Render(ClipboardIsland.Label("Copy"), Services(js));
         Assert.Contains("state: idle", page.Html, StringComparison.Ordinal);
 
         await page.On("[data-rask-on-click]").ClickAsync();
@@ -77,9 +77,9 @@ public partial class BrowserApiReachTests : global::Rask.Core.RaskMarkup
         // StaticHtmlRenderer never fires OnAfterRender, so this works only because Rask drives it.
         var js = new RecordingJSRuntime { Result = "dark" };
 
-        Test.Render(AfterRenderIsland.Label("Theme"), Services(js));
+        Page.Render(AfterRenderIsland.Label("Theme"), Services(js));
 
-        // Asserted on the runtime rather than on page.Html: Test.Render captures the markup once,
+        // Asserted on the runtime rather than on page.Html: Page.Render captures the markup once,
         // synchronously, and the repaint the hook asks for lands after that snapshot. What matters here
         // is that a hosted component reached a browser API from a hook StaticHtmlRenderer never fires.
         Assert.Equal("__raskApi.matchMedia", js.LastIdentifier);
@@ -100,7 +100,7 @@ public partial class BrowserApiReachTests : global::Rask.Core.RaskMarkup
         CountingAfterRender.Calls = 0;
         CountingAfterRender.Instances = 0;
 
-        Test.Render(CountingIsland.Label("x"), Services(new RecordingJSRuntime()));
+        Page.Render(CountingIsland.Label("x"), Services(new RecordingJSRuntime()));
 
         // BOUNDED is the contract worth pinning, and it is pinned deliberately rather than for want of
         // a tighter number. The island claims its after-render once, atomically, and this harness still
@@ -118,7 +118,7 @@ public partial class BrowserApiReachTests : global::Rask.Core.RaskMarkup
         // shape a real island would use.
         var js = new RecordingJSRuntime { Result = "dark" };
 
-        var page = Test.Render(ThemeIsland.Label("Theme"), Services(js));
+        var page = Page.Render(ThemeIsland.Label("Theme"), Services(js));
 
         await page.On("[data-rask-on-click]").ClickAsync();
 

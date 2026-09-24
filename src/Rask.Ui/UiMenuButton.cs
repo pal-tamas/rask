@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A control that opens a menu beside it: the trigger, and where the menu sits against it.
@@ -14,10 +14,10 @@ namespace Rask.Ui;
 public abstract partial class UiMenuButton : UiMenuSurface
 {
     /// <summary>Which side of the trigger the menu opens on. Below, unless this says otherwise.</summary>
-    public UiPosition? Position { get; set; }
+    public Ui.Position? Position { get; set; }
 
     /// <summary>Where along that side the menu sits — flush with the trigger's start, centred, or its end.</summary>
-    public UiAlign? Align { get; set; }
+    public Ui.Align? Align { get; set; }
 
     /// <summary>The distance between the trigger and the menu, in pixels. Defaults to 4.</summary>
     public int? Gap { get; set; }
@@ -32,7 +32,7 @@ public abstract partial class UiMenuButton : UiMenuSurface
     private protected virtual string RootClass => "relative inline-block";
 
     /// <summary>Which way the menu opens when the call site did not say.</summary>
-    private protected virtual UiPosition DefaultPosition => UiPosition.Bottom;
+    private protected virtual Ui.Position DefaultPosition => Ui.Position.Bottom;
 
     private protected string TriggerId => Prefix + "-trigger";
 
@@ -71,21 +71,21 @@ public abstract partial class UiMenuButton : UiMenuSurface
 
     // Placement by CSS anchor positioning, in a style attribute: nothing here is scanned by Tailwind, so the
     // values are built freely. An engine without anchor positioning keeps the popover's own default, centred —
-    // still open and usable, the trade UiSelect and UiMegamenu already make.
+    // still open and usable, the trade Ui.Select and Ui.Megamenu already make.
     private string PanelStyle()
     {
         var side = (Position ?? DefaultPosition) switch
         {
-            UiPosition.Top => "block-start",
-            UiPosition.Left => "inline-start",
-            UiPosition.Right => "inline-end",
+            Ui.Position.Top => "block-start",
+            Ui.Position.Left => "inline-start",
+            Ui.Position.Right => "inline-end",
             _ => "block-end",
         };
-        var vertical = (Position ?? DefaultPosition) is UiPosition.Left or UiPosition.Right;
+        var vertical = (Position ?? DefaultPosition) is Ui.Position.Left or Ui.Position.Right;
         var along = Align switch
         {
-            UiAlign.Center => "center",
-            UiAlign.End => vertical ? "span-block-start" : "span-inline-start",
+            Ui.Align.Center => "center",
+            Ui.Align.End => vertical ? "span-block-start" : "span-inline-start",
             _ => vertical ? "span-block-end" : "span-inline-end",
         };
         var gap = (Gap ?? 4).ToString(CultureInfo.InvariantCulture);

@@ -31,7 +31,7 @@ public partial class GeneratorShapeTests : global::Rask.Core.RaskMarkup
         // Types() walked one level of nesting by hand, so a container inside a container was never
         // reached (#949). Containers() already walked to arbitrary depth, so the intent was never
         // one level — the two halves simply disagreed, silently.
-        var html = Test.Render(DeepIsland.Marker("deep"), Services()).Html;
+        var html = Page.Render(DeepIsland.Marker("deep"), Services()).Html;
 
         Assert.Contains("deep", html, StringComparison.Ordinal);
     }
@@ -59,7 +59,7 @@ public partial class GeneratorShapeTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_hosted_parameter_that_shadows_nothing_reaches_the_component()
     {
-        var html = Test.Render(KeyedIsland.Caption("shown"), Services()).Html;
+        var html = Page.Render(KeyedIsland.Caption("shown"), Services()).Html;
 
         Assert.Contains("shown", html, StringComparison.Ordinal);
     }

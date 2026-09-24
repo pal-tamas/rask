@@ -13,7 +13,7 @@ public sealed partial class ComponentTiersDemoTests : global::Rask.Core.RaskMark
     [Fact]
     public void Rendering_shows_all_three_tiers()
     {
-        var page = Test.Render(() => ComponentTiersDemo, TestServices.Default());
+        var page = Page.Render(() => ComponentTiersDemo, TestServices.Default());
 
         var html = page.Render();
 
@@ -30,7 +30,7 @@ public sealed partial class ComponentTiersDemoTests : global::Rask.Core.RaskMark
     [Fact]
     public async Task The_stateful_counter_increments_on_click_without_StateHasChanged()
     {
-        var page = Test.Render(() => ComponentTiersDemo, TestServices.Default());
+        var page = Page.Render(() => ComponentTiersDemo, TestServices.Default());
         var clickId = ClickHandler(page.Render());
 
         await page.InvokeAsync(clickId);

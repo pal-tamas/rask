@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A titled section that opens and closes.
@@ -29,7 +29,7 @@ public sealed partial class UiCollapse : Component
     public Callback<bool>? OnToggle { get; set; }
 
     /// <summary>Draws the arrow or plus marker.</summary>
-    public UiMarker? Marker { get; set; }
+    public Ui.Marker? Marker { get; set; }
 
     public string? Class { get; set; }
 

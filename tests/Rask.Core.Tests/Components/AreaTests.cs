@@ -3,7 +3,7 @@ namespace Rask.Core.Tests.Components;
 public partial class AreaTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Unset_props_render_only_the_self_closing_tag() =>
+    public void Unset_props_render_a_self_closing_tag() =>
         Assert.Equal("<area />", Area.ToHtml());
 
     [Fact]

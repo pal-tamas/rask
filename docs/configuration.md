@@ -140,16 +140,14 @@ A few things to know:
 | `Rask:Litestream` | `LitestreamOptions` | `Rask.SQLite.Litestream` | `ReplicaUrl`, `ConfigPath`, `ExecutablePath`, `Verification`. `DatabasePath` defaults to the file behind `Rask:ConnectionStrings:App`. See [continuous backup](sqlite.md#continuous-backup-with-litestream). |
 | `Rask:Snapshots` | `SqliteSnapshotOptions` | `Rask.SQLite.Snapshots` | `DestinationDirectory`, `Interval`, `Retain`. `DatabasePath` defaults the same way. See [snapshots](sqlite.md#scheduled-snapshots). |
 | `Rask:Cache` | `CacheOptions` | `Rask.Cache` | See [cache](cache.md). |
-| `Rask:ConnectionStrings:Redis` | — | `Rask.Redis` | The Redis server the broadcast backplane publishes through, unless the app registers its own `IConnectionMultiplexer`. |
-| `Rask:Redis` | `RedisOptions` | `Rask.Redis` | `ChannelPrefix`. Read by `AddRaskRedisBackplane()`. See [broadcast across servers](broadcast.md#across-servers). |
-| `Rask:Jobs` | `JobsOptions` | `Rask.Jobs` | Schedules (`Run<T>()`) are code-only; `TimeZone` takes an IANA id. See [jobs](jobs.md). |
+| `Rask:Jobs` | `JobsOptions` | `Rask.Jobs` | `Run<T>()` is code-only. See [jobs](jobs.md). |
 | `Rask:ConnectionStrings:Logs` | — | `Rask.Logging` | The log store's own file. |
 | `Rask:Logging` | `RaskLoggingOptions` | `Rask.Logging` | `ExcludedCategories` is appended to. See [logging](logging.md). |
 | `Rask:Mail` | `MailOptions` | `Rask.Mail` | Any `Rask:Mail:Smtp` key turns SMTP delivery on; put `Rask__Mail__Smtp__Password` in the environment. See [mail](mail.md). |
 | `Rask:Outbox` | `OutboxOptions` | `Rask.Outbox` | See [outbox](outbox.md). |
 | `Rask:WebPush` | `WebPushOptions` | `Rask.WebPush` | `VapidKeys:PublicKey`, `VapidKeys:PrivateKey`, `Subject`, `DefaultTtl`. `rask new` writes a development pair to the gitignored `appsettings.Development.json`; deployed, the keys come from the environment. See [Web Push](webpush.md). |
-| `Rask:Cqrs` | `CqrsOptions` | `Rask.Cqrs` | `HandlerLifetime`, `NotificationPublishStrategy`, `StopOnFirstNotificationException`, `ValidateRequests`. Read at registration (above); behaviors are code-only. See [CQRS](cqrs.md). |
-| `Rask:Cqrs:Server` | `RaskCqrsServerOptions` | `Rask.Cqrs.Server` | `RequireAuthenticatedUser`, `RoutePrefix`, the request and upload limits. |
+| `Rask:Cqrs` | `CqrsOptions` | `Rask.Cqrs` | `HandlerLifetime`, `NotificationPublishStrategy`, `StopOnFirstNotificationException`, `ValidateRequests`, and the subscription knobs `ReplayCapacity`, `SubscriptionBuffer`, `SubscriptionReconnectDelay`, `SubscriptionReconnectCeiling`. Read at registration (above); behaviors are code-only. See [CQRS](cqrs.md). |
+| `Rask:Cqrs:Server` | `RaskCqrsServerOptions` | `Rask.Cqrs.Server` | `RequireAuthenticatedUser`, `RoutePrefix`, the request and upload limits, and `EventKeepAlive` for a [subscription](subscriptions.md#in-a-webassembly-front-end) stream. |
 
 ### Guard the environment like code
 
@@ -456,7 +454,7 @@ public sealed partial class OrdersPage(IPersistentState state) : Component
 {
     private string _filter = "";
 
-    protected override async Task OnMount() => state.TryGet<string>("filter", out _filter!);
+    protected override void OnMount() => state.TryGet<string>("filter", out _filter!);
 
     private void Search(string term)
     {

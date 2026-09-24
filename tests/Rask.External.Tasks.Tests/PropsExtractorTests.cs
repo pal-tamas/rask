@@ -206,7 +206,10 @@ public sealed class PropsExtractorTests : IDisposable
         var item = new TaskItem(name + ".props.json");
         item.SetMetadata("IslandName", name);
         item.SetMetadata("Runtime", runtime);
-        item.SetMetadata("PackageModule", module);
+        // `module#Export` is a shorthand for this list only, split into the two items the scan hands over.
+        var hash = module.IndexOf('#');
+        item.SetMetadata("PackageModule", hash < 0 ? module : module[..hash]);
+        item.SetMetadata("PackageExport", hash < 0 ? "default" : module[(hash + 1)..]);
         return item;
     }
 

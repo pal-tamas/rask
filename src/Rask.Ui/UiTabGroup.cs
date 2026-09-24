@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// Tabs over panels in one page: the state, the keyboard and the ARIA that ties a tab to what it shows.
@@ -9,13 +9,13 @@ namespace Rask.Ui;
 /// <see cref="UiTab.Name" />, then a <see cref="UiTabPanel" /> per name:
 /// </para>
 /// <code>
-/// UiTabGroup.Selected(_tab).OnSelect(t => _tab = t)[
-///     UiTabs[
-///         UiTab.Label("Details").Name("details"),
-///         UiTab.Label("History").Name("history")
+/// Ui.TabGroup.Selected(_tab).OnSelect(t => _tab = t)[
+///     Ui.Tabs[
+///         Ui.Tab.Label("Details").Name("details"),
+///         Ui.Tab.Label("History").Name("history")
 ///     ],
-///     UiTabPanel.Name("details")[ /* … */ ],
-///     UiTabPanel.Name("history")[ /* … */ ]
+///     Ui.TabPanel.Name("details")[ /* … */ ],
+///     Ui.TabPanel.Name("history")[ /* … */ ]
 /// ]
 /// </code>
 /// <para>

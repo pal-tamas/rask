@@ -111,7 +111,7 @@ public sealed class GeneratedInvokerTests
             return Task.CompletedTask;
         }
 
-        public Task PublishAsync(RemoteContract contract, object notification, CancellationToken cancellationToken)
+        public Task Publish(RemoteContract contract, object notification, CancellationToken cancellationToken)
         {
             Contract = contract;
             Message = notification;

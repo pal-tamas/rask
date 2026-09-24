@@ -15,7 +15,7 @@ public sealed class DownloadPageTests
         // docs/http-and-files.md, where the demo is embedded as a live sample.
         var nav = new Navigator(new RouteState { Path = "/" }, new CapturingDownloadSink());
 
-        var html = Test.Render(new DownloadDemo(nav), TestServices.Default()).Html;
+        var html = Page.Render(new DownloadDemo(nav), TestServices.Default()).Html;
 
         Assert.Contains("download-report", html);
         Assert.Contains("Generated 0 time(s)", html);

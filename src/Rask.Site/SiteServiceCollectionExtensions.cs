@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Rask.Core.Authentication;
 using Rask.Cqrs;
+using Rask.Query;
 using Rask.Site.Features;
 
 namespace Rask.Site;
@@ -46,6 +47,12 @@ public static class ExampleServiceCollectionExtensions
         // The Rask.Query showcase's parcels (docs/query.md), scoped for the same reason: each session ships its own.
         services.AddScoped<ParcelStore>();
         services.AddRaskCqrs(o => o.AddOpenBehavior(typeof(DispatchLogBehavior<,>)));
+
+        // The query cache the Rask.Query and subscriptions demos read through QueryClient. In the browser the Rask
+        // package's WASM wiring registers it too (a second call is a no-op); the publish's prerender pass renders this
+        // app as a plain net10.0 process, which gets the package's SERVER build and so none of that wiring — without
+        // this line both guides threw there and shipped to crawlers as the boot shell.
+        services.AddRaskQuery();
 
         // The Todos screen's persistence seam. Transient — a fresh seeded in-memory store per page, so
         // the Server/WASM showcase keeps its original transient behaviour. A host can register a durable

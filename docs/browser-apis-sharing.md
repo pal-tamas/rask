@@ -60,13 +60,13 @@ register on Server too — their JS helpers just ship on the Server client only 
 it hands you the `data-rask-share` attribute to spread onto it:
 
 ```csharp
-Shareable(new ShareData { Title = "Rask", Url = "https://…" },
-    share => Button.Type("button").Class("inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium no-underline transition disabled:cursor-default disabled:opacity-50 bg-violet-600 text-white hover:bg-violet-500").Data(share)["Share"])
+Shareable.Data(new ShareData { Title = "Rask", Url = "https://…" })
+    .Template(share => Button.Type("button").Class("inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium no-underline transition disabled:cursor-default disabled:opacity-50 bg-violet-600 text-white hover:bg-violet-500").Data(share)["Share"])
 ```
 
 The shared client fires `navigator.share` **inside the click gesture** — no round-trip, so the transient
 user activation survives even on the Server transport. Because it's headless, the trigger can be any element
-with a `Data` prop (a link, an icon button, a `BsButton`), not just a `<button>`. Web Share is available on
+with a `Data` prop (a link, an icon button, a `Ui.Button`), not just a `<button>`. Web Share is available on
 mobile Safari / Android Chrome / Edge (not desktop Firefox); an unsupported browser no-ops.
 
 **`IShare`** (`Rask.Wasm.Browser`) is the **imperative** path — share from *code* (a lifecycle hook,
@@ -81,29 +81,32 @@ the **WASM** host.
 ### Gesture bridge — activation-gated APIs on the Server host
 
 `Shareable`'s trick — run the call **inside the click gesture** so the transient user activation survives —
-generalises. **`GestureTrigger`** and its six typed wrappers are headless the same way: they hand your element a
+generalises. **`Trigger.Gesture`** and its six typed wrappers are headless the same way: they hand your element a
 `data-rask-gesture` bundle, and the shared client runs the capability in the gesture. That makes normally-WASM-only,
 activation-gated APIs reachable **declaratively on the Server host** (they're still not injectable there).
 Capabilities that return a value (the eyedropper's hex, the install outcome) post it back to an
 `OnResult` / `OnColor` / `OnOutcome` callback; the two `<video>` triggers target an element via its `ElementRef`.
 
 ```csharp
-FullscreenTrigger(g => Button.Type("button").Data(g)["Full screen"])
-ScreenOrientationTrigger(Orientation: "landscape",
-    g => Button.Type("button").Data(g)["Lock landscape"])
-EyeDropperTrigger(OnColor: hex => { picked = hex; return Task.CompletedTask; },
-    g => Button.Type("button").Data(g)["Pick a colour"])
-InstallTrigger(OnOutcome: o => { outcome = o; return Task.CompletedTask; },
-    g => Button.Type("button").Data(g)["Install app"])
-MediaCaptureTrigger.For(preview).Video(true)
+Trigger.Fullscreen.Template(g => Button.Type("button").Data(g)["Full screen"])
+Trigger.ScreenOrientation.Orientation("landscape")
+    .Template(g => Button.Type("button").Data(g)["Lock landscape"])
+Trigger.EyeDropper.Template(g => Button.Type("button").Data(g)["Pick a colour"])
+    .OnColor(hex => picked = hex)
+Trigger.Install.Template(g => Button.Type("button").Data(g)["Install app"])
+    .OnOutcome(o => outcome = o)
+Trigger.MediaCapture.For(preview).Template(g => Button.Type("button").Data(g)["Start camera"])
+    .Video(true)
     // Keeps the stream reachable from C# — the only way a Server-hosted app can stop it later.
-    .OnStream(id => { camera = id; StateHasChanged(); return Task.CompletedTask; })
-    .Template(g => Button.Type("button").Data(g)["Start camera"])
-PictureInPictureTrigger.For(preview).Template(g => Button.Type("button").Data(g)["Pop out video"])
+    .OnStream(id => camera = id)
+Trigger.PictureInPicture.For(preview).Template(g => Button.Type("button").Data(g)["Pop out video"])
 ```
 
-All six ship: `FullscreenTrigger`, `ScreenOrientationTrigger`, `EyeDropperTrigger`, `InstallTrigger`,
-`MediaCaptureTrigger`, and `PictureInPictureTrigger`. See the [capability matrix](browser-capabilities.md).
+The required steps come first — `Template` on every trigger, plus `Orientation` or the target `For` where
+the capability needs one; the optional ones follow.
+
+All six ship: `Trigger.Fullscreen`, `Trigger.ScreenOrientation`, `Trigger.EyeDropper`, `Trigger.Install`,
+`Trigger.MediaCapture`, and `Trigger.PictureInPicture`. See the [capability matrix](browser-capabilities.md).
 
 ## WASM-only APIs — `Rask.Wasm.Browser`
 

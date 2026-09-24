@@ -6,19 +6,19 @@ Inline, DataAnnotations, FluentValidation, and async validators for Rask forms.
 
 ## Inline validation
 
-The lightest layer. Pass a `Validate:` lambda — per-field or per-form. Both
+The lightest layer. Chain a `.Validate(…)` rule — per-field or per-form. Both
 accept a sync `Func<…, IEnumerable<string>>` or an async
 `Func<…, CancellationToken, ValueTask<IEnumerable<string>>>`; overload resolution picks by arity, no
 cast. An empty sequence means valid.
 
 ```csharp
-Form<LoginModel>(_model,
-    OnSubmit: m => _submission = "Welcome",
-    Validate: m => m.Password == m.Confirm ? [] : ["Passwords do not match."])[   // cross-field, at submit
+Form.Model(_model)
+    .OnSubmit(m => _submission = "Welcome")
+    .Validate(m => m.Password == m.Confirm ? [] : ["Passwords do not match."])[   // cross-field, at submit
     Input.Bind(() => _model.Email)
         .Validate(v => v.Contains('@') ? [] : ["Email looks wrong."]),             // per-field, per-keystroke
-    ValidationMessage.For(() => _model.Email).Template(errs => Div.Class("err")[errs[0]]),
-    ValidationSummary.Template(SummaryAlert),
+    Validation.Message.Template(errs => Div.Class("err")[errs[0]]).For(() => _model.Email),
+    Validation.Summary.Template(SummaryAlert),
     Button.Type("submit")["Sign in"]
 ]
 ```
@@ -27,7 +27,7 @@ Form<LoginModel>(_model,
 
 Per-field `Validate:` produces field-scoped messages and runs on each keystroke after the field is
 touched. Form-level `Validate:` runs at submit and attaches messages to the form-level slot
-(`FieldIdentifier(model, "")`) — they surface in `ValidationSummary`, never against a specific input.
+(`FieldIdentifier(model, "")`) — they surface in `Validation.Summary`, never against a specific input.
 
 An inline `Validate:` can also be async (`Func<…, CancellationToken, ValueTask<IEnumerable<string>>>`);
 the token cancels the in-flight check on the next keystroke:
@@ -49,11 +49,11 @@ public sealed class SignupModel
     [Required, EmailAddress]                        public string Email    { get; set; } = "";
 }
 
-Form<SignupModel>(_model, OnSubmit: m => Console.WriteLine(m.Username))[
+Form.Model(_model).OnSubmit(m => Console.WriteLine(m.Username))[
     Input.Bind(() => _model.Username),
-    ValidationMessage.For(() => _model.Username).Template(errs => Div.Class("err")[errs[0]]),
+    Validation.Message.Template(errs => Div.Class("err")[errs[0]]).For(() => _model.Username),
     Input.Bind(() => _model.Email),
-    ValidationMessage.For(() => _model.Email).Template(errs => Div.Class("err")[errs[0]]),
+    Validation.Message.Template(errs => Div.Class("err")[errs[0]]).For(() => _model.Email),
     Button.Type("submit")["Register"]
 ]
 ```
@@ -67,7 +67,7 @@ exist — so attribute and object-level errors surface together (ASP.NET Core MV
 `ValidationContext` is built with the render-scoped `IServiceProvider`, so custom attributes can call
 `ctx.GetService<T>()`.
 
-A `ValidationResult` with empty `MemberNames` lands on the form-level slot (`ValidationSummary`); a
+A `ValidationResult` with empty `MemberNames` lands on the form-level slot (`Validation.Summary`); a
 populated one tags the named field.
 
 A custom `ValidationAttribute` (with DI via `ctx.GetService<T>()`):
@@ -114,11 +114,11 @@ public sealed class OrderValidator : AbstractValidator<OrderModel>
     }
 }
 
-Form<OrderModel>(_model, m => _submission = "Ordered")[
+Form.Model(_model).OnSubmit(m => _submission = "Ordered")[
     Input.Bind(() => _model.Product),
-    ValidationMessage.For(() => _model.Product).Template(errs => Div.Class("err")[errs[0]]),
+    Validation.Message.Template(errs => Div.Class("err")[errs[0]]).For(() => _model.Product),
     Input.Bind(() => _model.Quantity),
-    ValidationMessage.For(() => _model.Quantity).Template(errs => Div.Class("err")[errs[0]]),
+    Validation.Message.Template(errs => Div.Class("err")[errs[0]]).For(() => _model.Quantity),
     Button.Type("submit")["Order"]
 ]
 ```
@@ -187,20 +187,20 @@ Three ways to validate asynchronously:
 
    _ctx = new EditContext(_model);
    _ctx.AddValidator(new UniqueUsernameValidator());
-   // Form<…>(_model, Context: _ctx)[ … ]
+   // Form.Model(_model).Context(_ctx)[ … ]
    ```
 3. **FluentValidation `MustAsync`** — async rules ride the discovered validator, which is wrapped as an `IAsyncFieldValidator`.
 
-Each `await` in a handler triggers a re-render, so a `ValidatingIndicator` can surface while a
+Each `await` in a handler triggers a re-render, so a `Validation.Indicator` can surface while a
 check is in flight:
 
 ```csharp
-ValidatingIndicator.For(() => _model.Username).Template(() => Span.Class("spinner")["Checking…"])
+Validation.Indicator.Template(() => Span.Class("spinner")["Checking…"]).For(() => _model.Username)
 ```
 
-A bound `Rask.Ui` field (`UiInput`, `UiTextarea`, `UiSelect`) renders this for you, as a small spinner
+A bound `Rask.Ui` field (`Ui.Input`, `Ui.Textarea`, `Ui.Select`) renders this for you, as a small spinner
 with an announced "Checking…" under the control, next to its own validation message. Place a
-`ValidatingIndicator` yourself beside a raw `Input`, or when a kit field opts out with
+`Validation.Indicator` yourself beside a raw `Input`, or when a kit field opts out with
 `ShowValidating(false)`.
 
 An `IAsyncFieldValidator` (the username-uniqueness check above) with the validating indicator:
@@ -214,11 +214,11 @@ Validation can also be driven **programmatically** — `EditContext.Validate()` 
 ### `IsValidating` vs `ShouldShowValidatingIndicator`
 
 - `EditContext.IsValidating(field)` / `IsValidatingAny` — the exact "a validator is in flight right
-  now" answer. Use it for control flow (e.g. `Disabled: _ctx.IsValidatingAny` on a submit button).
+  now" answer. Use it for control flow (e.g. `.Disabled(_ctx.IsValidatingAny)` on a submit button).
 - `ShouldShowValidatingIndicator(field)` — `IsValidating` extended with a short **sticky tail**
   (`EditContext.ValidatingStickyMs`, default 200ms). A sub-second check still reads as "showing" for
   the sticky window so the indicator has a footprint screen-readers and Playwright can observe. This
-  is what `ValidatingIndicator` renders against. The sticky dismissal is a single timer-driven
+  is what `Validation.Indicator` renders against. The sticky dismissal is a single timer-driven
   re-render at window expiry. Set `ValidatingStickyMs = 0` on a context you own to opt out; it does
   not delay submit or validator completion.
 
@@ -231,6 +231,6 @@ generic `"Validation could not be completed."` rather than killing the submit pi
 
 <!-- demo:validation-first-error-wins -->
 
-A **cross-field** rule (form-level `Validate:` feeding the `ValidationSummary`):
+A **cross-field** rule (form-level `.Validate(…)` feeding the `Validation.Summary`):
 
 <!-- demo:validation-cross-field -->

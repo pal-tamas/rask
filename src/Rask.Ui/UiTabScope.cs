@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// What a <see cref="UiTabGroup" /> tells the tabs and panels inside it, and what they tell it back.

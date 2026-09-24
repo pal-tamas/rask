@@ -1,8 +1,8 @@
 # AGENTS.md — contributing to Rask with an AI assistant
 
-Cross-tool guide for AI assistants working **on the Rask framework itself** — Rask is the .NET One Person
-Framework (build, run, and ship a whole product solo, in C#, on one server; see
-`docs/one-person-framework.md`). (The Claude-specific map is `CLAUDE.md`; guidance for an assistant writing an
+Cross-tool guide for AI assistants working **on the Rask framework itself** — Rask is the full-stack .NET web
+framework, for a team of one or fifty (UI, data, auth, background work, realtime and deploy, all in C#; the
+philosophy is `docs/one-person-framework.md`). (The Claude-specific map is `CLAUDE.md`; guidance for an assistant writing an
 app ON Rask is `docs/ai-agents.md` and `llms.txt` — `rask new` scaffolds no `AGENTS.md`, deliberately.)
 GitHub is the source of truth — keep docs, examples, and these guides up to date with every change.
 

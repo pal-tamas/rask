@@ -140,10 +140,83 @@ internal sealed class CountingDispatcher : IDispatcher
             : Task.FromResult((TResult)(object)CommandResult!);
     }
 
+    // Every open subscription, so a publish through this double reaches them the way the real feed would — minus
+    // scopes, policies and replay, which the dispatcher's own tests cover.
+    private readonly List<(Type Type, System.Threading.Channels.ChannelWriter<INotification> Writer)> _subscribers = [];
+
+    /// <summary>How many subscriptions are open right now, so a test can see one close.</summary>
+    public int SubscriberCount
+    {
+        get
+        {
+            lock (_subscribers)
+            {
+                return _subscribers.Count;
+            }
+        }
+    }
+
     public Task Publish<TNotification>(
         TNotification notification,
         CancellationToken cancellationToken = default)
-        where TNotification : INotification => Task.CompletedTask;
+        where TNotification : INotification
+    {
+        lock (_subscribers)
+        {
+            foreach (var (type, writer) in _subscribers)
+            {
+                if (type == notification.GetType())
+                {
+                    writer.TryWrite(notification);
+                }
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public IAsyncEnumerable<TNotification> Subscribe<TNotification>(
+        CancellationToken cancellationToken = default)
+        where TNotification : INotification =>
+        Watch<TNotification>(null, cancellationToken);
+
+    public IAsyncEnumerable<TNotification> Subscribe<TNotification>(
+        ISubscription<TNotification> subscription,
+        CancellationToken cancellationToken = default)
+        where TNotification : INotification =>
+        Watch(subscription, cancellationToken);
+
+    private async IAsyncEnumerable<TNotification> Watch<TNotification>(
+        ISubscription<TNotification>? subscription,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        where TNotification : INotification
+    {
+        var channel = System.Threading.Channels.Channel.CreateUnbounded<INotification>();
+        var entry = (typeof(TNotification), channel.Writer);
+        lock (_subscribers)
+        {
+            _subscribers.Add(entry);
+        }
+
+        try
+        {
+            await foreach (var notification in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+            {
+                var typed = (TNotification)notification;
+                if (subscription is null || subscription.Matches(typed))
+                {
+                    yield return typed;
+                }
+            }
+        }
+        finally
+        {
+            lock (_subscribers)
+            {
+                _subscribers.Remove(entry);
+            }
+        }
+    }
 }
 
 /// <summary>

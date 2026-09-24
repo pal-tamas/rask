@@ -10,7 +10,7 @@ public sealed partial class NavigatorQueryDemo(Navigator nav, RouteState route) 
 {
     protected override Component? Render() =>
         Div[
-            UiCard.Class("shadow-sm mb-3")[
+            Ui.Card.Class("shadow-sm mb-3")[
                     Div.Class("grid grid-cols-12 gap-4")[
                         Div.Class("col-span-12 md:col-span-6")[
                             Span.Class("text-ui-muted text-sm uppercase")["Path"],
@@ -27,19 +27,19 @@ public sealed partial class NavigatorQueryDemo(Navigator nav, RouteState route) 
                     ]
                 ],
             Div.Class("flex-wrap")[
-                UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline)
+                Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
                     .Id("nav-set-page1")
                     .OnClick(() => nav.SetQuery("page", "1"))["SetQuery page=1"],
-                UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline)
+                Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
                     .Id("nav-set-page2")
                     .OnClick(() => nav.SetQuery("page", "2"))["SetQuery page=2"],
-                UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline)
+                Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
                     .Id("nav-set-sort")
                     .OnClick(() => nav.SetQuery("sort", "asc"))["SetQuery sort=asc"],
-                UiButton.Variant(UiVariant.Outline)
+                Ui.Button.Variant(Ui.Variant.Outline)
                     .Id("nav-remove-page")
                     .OnClick(() => nav.RemoveQuery("page"))["RemoveQuery page"],
-                UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline)
+                Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline)
                     .Id("nav-clear")
                     .OnClick(() => nav.ClearQuery())["ClearQuery"]
             ]

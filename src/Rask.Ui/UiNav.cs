@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// The section tab bar: the underlined row that says which part of the console you are in.

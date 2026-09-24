@@ -12,20 +12,20 @@ public sealed partial class BindingMultiDemo : Component
     protected override Component? Render() =>
     [
         Div.Class("mb-3")[
-            UiCheckbox.Bind(() => _model.Subscribe).Text("Subscribe to the newsletter").Id("bind-subscribe")
+            Ui.Checkbox.Bind(() => _model.Subscribe).Text("Subscribe to the newsletter").Id("bind-subscribe")
         ],
         Div.Class("mb-3")[
-            UiInput.Bind(() => _model.Age).Label("Age")
+            Ui.Input.Bind(() => _model.Age).Label("Age")
                 .Id("bind-age")
                 .Min("0")
                 .Max("120")
         ],
         Div.Class("mb-3")[
-            UiInput.Bind(() => _model.StartDate).Label("Start date")
+            Ui.Input.Bind(() => _model.StartDate).Label("Start date")
                 .Id("bind-start")
         ],
         Div.Class("mb-3")[
-            UiSelect.Bind(() => _model.Favorite)
+            Ui.Select.Bind(() => _model.Favorite)
                 .Options(Colors)
                 .Label("Favourite colour")
                 .Id("bind-favorite")

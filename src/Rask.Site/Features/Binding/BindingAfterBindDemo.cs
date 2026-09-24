@@ -18,7 +18,7 @@ public sealed partial class BindingAfterBindDemo : Component
     protected override Component? Render() =>
     [
         Div.Class("mb-3")[
-            UiSelect.Bind(() => _model.Country)
+            Ui.Select.Bind(() => _model.Country)
                 .Options(Countries)
                 .Label("Country")
                 .AfterBind(c =>
@@ -29,7 +29,7 @@ public sealed partial class BindingAfterBindDemo : Component
                 .Id("bind-after-country")
         ],
         Div.Class("mb-3")[
-            UiSelect.Bind(() => _model.City)
+            Ui.Select.Bind(() => _model.City)
                 .Options([.. _cities.Select(c => (c, c))])
                 .Label("City")
                 .Id("bind-after-city")

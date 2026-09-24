@@ -1,6 +1,6 @@
 using Rask.Core.Routing;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>One tab — a link to a view with a URL, or a tab over a panel in the same page.</summary>
 /// <remarks>
@@ -27,7 +27,7 @@ public sealed partial class UiTab : Component
     public string? Name { get; set; }
 
     /// <summary>An icon before the label.</summary>
-    public UiIconName? Icon { get; set; }
+    public Ui.IconName? Icon { get; set; }
 
     /// <summary>
     ///     Whether this tab is the selected one. Inside a <see cref="UiTabGroup" /> the group answers this, and
@@ -108,7 +108,7 @@ public sealed partial class UiTab : Component
 
     private Component Content() =>
     [
-        Icon is { } icon ? UiIcon.Name(icon).Class("size-4 shrink-0") : null,
+        Icon is { } icon ? Ui.Icon.Name(icon).Class("size-4 shrink-0") : null,
         Span[Label],
         Count is null
             ? null

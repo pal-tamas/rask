@@ -1,9 +1,9 @@
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Hosting;
+using Rask;
 using Rask.Core.Routing;
 using Rask.Dashboard.Pages;
 using Rask.Testing;
-using Rask.Ui;
 
 namespace Rask.Dashboard.Tests;
 
@@ -34,7 +34,7 @@ public sealed partial class DashboardStylesheetTests : global::Rask.Core.RaskMar
     public void The_kits_sheet_carries_the_console_frames_reset()
     {
         // The console owns its document and has no other sheet to take a reset from, so the frame's reset
-        // travels in the kit's — keyed to UiShell's .rask-ops, so an application linking the kit is untouched.
+        // travels in the kit's — keyed to Ui.Shell's .rask-ops, so an application linking the kit is untouched.
         Assert.Contains(":where(.rask-ops", UiStylesheet.Css, StringComparison.Ordinal);
         Assert.Contains("body:has(.rask-ops)", UiStylesheet.Css, StringComparison.Ordinal);
     }
@@ -47,7 +47,7 @@ public sealed partial class DashboardStylesheetTests : global::Rask.Core.RaskMar
         await using var h = new DashboardHarness(environment: Environments.Development);
         h.Get<RouteState>().Path = "/_rask";
 
-        var html = Test.RenderDocument(RaskDashboardShell, h.Services).Html;
+        var html = Page.RenderDocument(RaskDashboardShell, h.Services).Html;
 
         Assert.Single(Regex.Matches(html, "<style[\\s>]"));
         Assert.Contains(UiStylesheet.Css, html, StringComparison.Ordinal);

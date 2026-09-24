@@ -36,32 +36,30 @@ public partial class TextareaTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_string_child_is_encoded_as_text() =>
+    public void A_text_child_is_html_encoded() =>
         Assert.Equal("<textarea>&lt;x&gt;</textarea>", Textarea.Of<string>()["<x>"].ToHtml());
 
     [Fact]
-    public void OnInput_outside_a_live_context_emits_no_handler_attribute() =>
+    public void An_input_handler_outside_a_live_context_emits_no_handler_attribute() =>
         Assert.Equal(
             "<textarea></textarea>",
             Textarea.Value<string>(null).OnInput(_ => { }).ToHtml());
 
     [Fact]
-    public void OnInput_and_OnChange_inside_a_live_context_emit_sequential_ids()
+    public void An_input_and_a_change_handler_are_given_sequential_ids()
     {
         var view = new StubComponent(() => Textarea.Value<string>(null).OnInput(_ => { }).OnChange(_ => { }));
-
         Assert.Equal(
             "<textarea data-rask-on-input=\"h0\" data-rask-on-change=\"h1\"></textarea>",
             view.RenderAsLiveRoot());
     }
 
     [Fact]
-    public void Async_OnInput_and_OnChange_inside_a_live_context_emit_sequential_ids()
+    public void Two_async_handlers_are_given_sequential_ids()
     {
         var view = new StubComponent(() => Textarea.Value<string>(null)
             .OnInput(async _ => { await Task.Yield(); })
             .OnChange(async _ => { await Task.Yield(); }));
-
         Assert.Equal(
             "<textarea data-rask-on-input=\"h0\" data-rask-on-change=\"h1\"></textarea>",
             view.RenderAsLiveRoot());

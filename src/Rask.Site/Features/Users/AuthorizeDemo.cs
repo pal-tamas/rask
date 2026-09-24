@@ -15,17 +15,17 @@ public sealed partial class AuthorizeDemo : Component
     protected override Component? Render() =>
         Div.Id("authorize-demo")[
             Div.Class("flex gap-2 flex-wrap items-center mb-3")[
-                UiButton.Tone(UiTone.Primary).OnClick(() => _auth.SignIn("alice", "user"))["Sign in as user"],
-                UiButton.Tone(UiTone.Warning).OnClick(() => _auth.SignIn("rootadmin", "admin"))["Sign in as admin"],
-                UiButton.Variant(UiVariant.Outline).OnClick(_auth.SignOut)["Sign out"]
+                Ui.Button.Tone(Ui.Tone.Primary).OnClick(() => _auth.SignIn("alice", "user"))["Sign in as user"],
+                Ui.Button.Tone(Ui.Tone.Warning).OnClick(() => _auth.SignIn("rootadmin", "admin"))["Sign in as admin"],
+                Ui.Button.Variant(Ui.Variant.Outline).OnClick(_auth.SignOut)["Sign out"]
             ],
             // admin → admin slot; any other signed-in user → inner "authorized" slot; anonymous → inner fallback.
             // The Authorized delegates greet the signed-in user by name straight off the principal.
             Authorize
                 .Roles(["admin"])
-                .Authorized(user => UiAlert.Tone(UiTone.Warning).Variant(UiVariant.Soft).Class("py-2 mb-0")[$"🔑 Admin-only content — welcome, {user.Identity!.Name}."])
+                .Authorized(user => Ui.Alert.Tone(Ui.Tone.Warning).Variant(Ui.Variant.Soft).Class("py-2 mb-0")[$"🔑 Admin-only content — welcome, {user.Identity!.Name}."])
                 .NotAuthorized(Authorize
-                    .Authorized(user => UiAlert.Tone(UiTone.Success).Variant(UiVariant.Soft).Class("py-2 mb-0")[$"✅ Signed in as {user.Identity!.Name} — standard access."])
-                    .NotAuthorized(UiAlert.Variant(UiVariant.Soft).Class("py-2 mb-0")["🔒 Sign in to see member content."]))
+                    .Authorized(user => Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("py-2 mb-0")[$"✅ Signed in as {user.Identity!.Name} — standard access."])
+                    .NotAuthorized(Ui.Alert.Variant(Ui.Variant.Soft).Class("py-2 mb-0")["🔒 Sign in to see member content."]))
         ];
 }

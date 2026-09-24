@@ -199,4 +199,23 @@ static Rask.External.VueChild.implicit operator Rask.External.VueChild(float val
 static Rask.External.VueChild.implicit operator Rask.External.VueChild(int value) -> Rask.External.VueChild
 static Rask.External.VueChild.implicit operator Rask.External.VueChild(long value) -> Rask.External.VueChild
 static Rask.External.VueChild.implicit operator Rask.External.VueChild(string? text) -> Rask.External.VueChild
+virtual Rask.External.ExternalComponent.Export.get -> string?
 virtual Rask.External.ExternalComponent.ManifestUrl.get -> string?
+Rask.External.ReactPackage
+Rask.External.ReactPackage.ReactPackage() -> void
+Rask.External.PreactPackage
+Rask.External.PreactPackage.PreactPackage() -> void
+Rask.External.SolidPackage
+Rask.External.SolidPackage.SolidPackage() -> void
+Rask.External.VuePackage
+Rask.External.VuePackage.VuePackage() -> void
+Rask.External.SveltePackage
+Rask.External.SveltePackage.SveltePackage() -> void
+Rask.External.AngularPackage
+Rask.External.AngularPackage.AngularPackage() -> void
+Rask.External.LitPackage
+Rask.External.LitPackage.LitPackage() -> void
+Rask.External.ExternalPackage
+abstract Rask.External.ExternalPackage.Exports.get -> string![]!
+abstract Rask.External.ExternalPackage.Module.get -> string!
+Rask.External.ExternalPackage.ExternalPackage() -> void

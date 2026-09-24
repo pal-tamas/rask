@@ -97,6 +97,6 @@ public sealed partial class DashboardChromeTests : global::Rask.Core.RaskMarkup
     private Page<RaskDashboardShell> RenderChrome(DashboardHarness h, string path)
     {
         h.Get<RouteState>().Path = path;
-        return Test.RenderDocument(RaskDashboardShell, h.Services);
+        return Page.RenderDocument(RaskDashboardShell, h.Services);
     }
 }

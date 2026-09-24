@@ -47,11 +47,18 @@ Rask.Query.IQueryClient.Query<TInput, TResult>(Rask.Query.QueryKey prefix, Syste
 Rask.Query.IQueryClient.Query<TResult>(Rask.Cqrs.IQuery<TResult>! message, Rask.Query.QueryOptions? options = null, Rask.Query.QueryKey? key = null) -> Rask.Query.Query<TResult>!
 Rask.Query.IQueryClient.Query<TResult>(Rask.Query.QueryKey key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! fetch, Rask.Query.QueryOptions? options = null) -> Rask.Query.Query<TResult>!
 Rask.Query.IQueryClient.Query<TResult>(System.Func<Rask.Cqrs.IQuery<TResult>?>! message, Rask.Query.QueryOptions? options = null) -> Rask.Query.Query<TResult>!
+Rask.Query.IQueryClient.Subscribe<TInput, T>(System.Func<TInput>! input, System.Func<TInput, System.Threading.CancellationToken, System.Collections.Generic.IAsyncEnumerable<T>!>! stream) -> Rask.Query.Subscription<T>!
+Rask.Query.IQueryClient.Subscribe<TNotification>() -> Rask.Query.Subscription<TNotification>!
+Rask.Query.IQueryClient.Subscribe<TNotification>(Rask.Cqrs.ISubscription<TNotification>! subscription) -> Rask.Query.Subscription<TNotification>!
+Rask.Query.IQueryClient.Subscribe<TNotification>(System.Func<Rask.Cqrs.ISubscription<TNotification>?>! subscription) -> Rask.Query.Subscription<TNotification>!
 Rask.Query.InvalidatesAttribute
 Rask.Query.InvalidatesAttribute.InvalidatesAttribute(params System.Type![]! queryTypes) -> void
 Rask.Query.InvalidatesAttribute.InvalidatesAttribute(params string![]! keyPrefix) -> void
 Rask.Query.InvalidatesAttribute.KeyPrefix.get -> System.Collections.Generic.IReadOnlyList<string!>!
 Rask.Query.InvalidatesAttribute.QueryTypes.get -> System.Collections.Generic.IReadOnlyList<System.Type!>!
+Rask.Query.LiveAttribute
+Rask.Query.LiveAttribute.Entities.get -> System.Collections.Generic.IReadOnlyList<System.Type!>!
+Rask.Query.LiveAttribute.LiveAttribute(params System.Type![]! entities) -> void
 Rask.Query.OptimisticEdit
 Rask.Query.Query<TResult>
 Rask.Query.Query<TResult>.Data.get -> TResult?
@@ -102,6 +109,25 @@ Rask.Query.QueryStatus.Error = 1 -> Rask.Query.QueryStatus
 Rask.Query.QueryStatus.Pending = 0 -> Rask.Query.QueryStatus
 Rask.Query.QueryStatus.Success = 2 -> Rask.Query.QueryStatus
 Rask.Query.RaskQueryServiceCollectionExtensions
+Rask.Query.Subscription<T>
+Rask.Query.Subscription<T>.Data.get -> T?
+Rask.Query.Subscription<T>.Dispose() -> void
+Rask.Query.Subscription<T>.Error.get -> System.Exception?
+Rask.Query.Subscription<T>.Into<TResult>(Rask.Query.Query<TResult>! query, System.Func<TResult, T, TResult>! patch) -> Rask.Query.Subscription<T>!
+Rask.Query.Subscription<T>.IsEnded.get -> bool
+Rask.Query.Subscription<T>.IsError.get -> bool
+Rask.Query.Subscription<T>.IsLive.get -> bool
+Rask.Query.Subscription<T>.IsLoading.get -> bool
+Rask.Query.Subscription<T>.IsReconnecting.get -> bool
+Rask.Query.Subscription<T>.Items.get -> System.Collections.Generic.IReadOnlyList<T>!
+Rask.Query.Subscription<T>.Keep(int count) -> Rask.Query.Subscription<T>!
+Rask.Query.Subscription<T>.Status.get -> Rask.Query.SubscriptionStatus
+Rask.Query.SubscriptionStatus
+Rask.Query.SubscriptionStatus.Connecting = 0 -> Rask.Query.SubscriptionStatus
+Rask.Query.SubscriptionStatus.Ended = 3 -> Rask.Query.SubscriptionStatus
+Rask.Query.SubscriptionStatus.Error = 4 -> Rask.Query.SubscriptionStatus
+Rask.Query.SubscriptionStatus.Live = 1 -> Rask.Query.SubscriptionStatus
+Rask.Query.SubscriptionStatus.Reconnecting = 2 -> Rask.Query.SubscriptionStatus
 override Rask.Query.QueryKey.Equals(object? obj) -> bool
 override Rask.Query.QueryKey.GetHashCode() -> int
 override Rask.Query.QueryKey.ToString() -> string!
@@ -123,6 +149,11 @@ static Rask.Query.QueryClient.Query<TInput, TResult>(Rask.Query.QueryKey prefix,
 static Rask.Query.QueryClient.Query<TResult>(Rask.Cqrs.IQuery<TResult>! message, Rask.Query.QueryOptions? options = null, Rask.Query.QueryKey? key = null, string! callerFile = "", int callerLine = 0) -> Rask.Query.Query<TResult>!
 static Rask.Query.QueryClient.Query<TResult>(Rask.Query.QueryKey key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! fetch, Rask.Query.QueryOptions? options = null, string! callerFile = "", int callerLine = 0) -> Rask.Query.Query<TResult>!
 static Rask.Query.QueryClient.Query<TResult>(System.Func<Rask.Cqrs.IQuery<TResult>?>! message, Rask.Query.QueryOptions? options = null) -> Rask.Query.Query<TResult>!
+static Rask.Query.QueryClient.Subscribe<TInput, T>(System.Func<TInput>! input, System.Func<TInput, System.Threading.CancellationToken, System.Collections.Generic.IAsyncEnumerable<T>!>! stream) -> Rask.Query.Subscription<T>!
+static Rask.Query.QueryClient.Subscribe<TInput, T>(TInput input, System.Func<TInput, System.Threading.CancellationToken, System.Collections.Generic.IAsyncEnumerable<T>!>! stream, string! callerFile = "", int callerLine = 0) -> Rask.Query.Subscription<T>!
+static Rask.Query.QueryClient.Subscribe<TNotification>(Rask.Cqrs.ISubscription<TNotification>! subscription, string! callerFile = "", int callerLine = 0) -> Rask.Query.Subscription<TNotification>!
+static Rask.Query.QueryClient.Subscribe<TNotification>(System.Func<Rask.Cqrs.ISubscription<TNotification>?>! subscription) -> Rask.Query.Subscription<TNotification>!
+static Rask.Query.QueryClient.Subscribe<TNotification>(string! callerFile = "", int callerLine = 0) -> Rask.Query.Subscription<TNotification>!
 static Rask.Query.QueryKey.Fields(params (string! Name, object? Value)[]! fields) -> Rask.Query.QueryKeyFields!
 static Rask.Query.QueryKey.For<T>(params object?[]! parts) -> Rask.Query.QueryKey
 static Rask.Query.QueryKey.Of(params object?[]! parts) -> Rask.Query.QueryKey

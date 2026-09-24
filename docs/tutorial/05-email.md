@@ -98,8 +98,8 @@ public sealed class SendOrderReceiptHandler : ICommandHandler<SendOrderReceipt>
 }
 ```
 
-`Order.FindAsync` returns `null` for an order that has been deleted since the job was queued, which is why
-the handler checks before sending.
+The read returns `null` for an order that has been deleted since the job was queued, which is why the handler
+checks before sending.
 
 `Email.To(...)` is a fluent builder — chain `Subject(...)`, `Cc/Bcc`, `Attach(...)`, and `Body(component)`,
 which renders your component to HTML right there. Note `Body(OrderReceipt.OrderId(…).Total(…))` builds the

@@ -192,99 +192,23 @@ converting an existing table means rebuilding it. `rask new` therefore scaffolds
 
 ## Full-text search — FTS5 through EF Core
 
-A search box over your own rows usually starts as `Where(p => p.Title.Contains(q))`, which is a
-`LIKE '%q%'` scan of every row, matches `sql` inside `nosql`, cannot rank, and misses `kérés` when
-someone types `keres`. SQLite ships a real full-text engine, [FTS5](https://sqlite.org/fts5.html) —
-compiled into the SQLite build Rask uses on the server **and** in the browser — but EF Core has no
-support for it at all. Rask adds it: declare the index on the model, and search it from LINQ.
+SQLite ships a real full-text engine, [FTS5](https://sqlite.org/fts5.html) — compiled into the SQLite build
+Rask uses on the server **and** in the browser — but EF Core has no support for it at all. Rask adds it:
+declare the index on the model, and search it from LINQ, ranked, word-aware and diacritic-insensitive.
 
 ```csharp
 builder.HasFullTextSearch(p => new { p.Title, p.Body });   // in the entity's configuration
 
-var hits = await db.Set<Post>().Search(query).Where(p => p.Published).Take(20).ToListAsync();
-var page = await Post.Read.Search(query).Take(20).ToListAsync();      // Rask.Data's read face
+var page = await Post.Read.Search(query).Take(20).ToListAsync();   // best match first
 ```
 
-`Search(text)` returns the rows containing every word of `text`, **best match first** (FTS5's `bm25`
-ranking), as an ordinary query: `Where`, `Skip`/`Take`, `CountAsync` and projections keep composing,
-and a later `OrderBy` replaces the rank order — so a data grid's column sort does the obvious thing.
-The index is scanned first and each match reaches its row by primary key, so the cost follows the
-number of matches, not the size of the table.
+`UseRaskSqlite(...)` registers the migration SQL that builds the FTS5 index and the triggers keeping it
+current, the query translation and the `highlight`/`snippet` functions — inert until an entity declares an
+index, and composing with `STRICT` tables and non-overlapping ranges. A plain `UseSqlite`, such as a browser
+app's, adds search alone with `UseRaskFullTextSearch()`. The same declaration also works on PostgreSQL.
 
-**What the user types is words, not a query language.** Each word must appear (any order, any case,
-diacritics ignored), the last word also matches as a prefix so results narrow while typing, and FTS5's
-own syntax — `OR`, `NOT`, `NEAR(…)`, `column:`, quotes, `*` — is just text. A stray `"` can never
-become a syntax error, and a search box can never become a query someone did not mean to write. Text
-with no word in it (empty, blank, punctuation) filters nothing, so an empty box lists everything.
-
-**Show why each row matched** by projecting the matched terms:
-
-```csharp
-var hits = await Post.Read.Search(query)
-    .Select(p => new { p.Id, Title = FullText.Highlight(p.Title), Excerpt = FullText.Snippet(p.Body, 12) })
-    .ToListAsync();
-
-// in markup
-UiHighlight.Text(hit.Excerpt)
-```
-
-`Highlight` returns the whole value and `Snippet` the best passage of up to `words` words, with each
-match between `FullText.MatchStart` and `FullText.MatchEnd` (two private-use characters) rather than
-HTML — the text is whatever a row holds, and rendering it as markup would let anyone who can write a
-row inject script. `UiHighlight` encodes the text and wraps each match in `<mark>`.
-
-| Option | Effect |
-| --- | --- |
-| `tokenizer: FullTextTokenizer.Unicode` | The default: Unicode word boundaries, case- and diacritic-insensitive. Right for any language. |
-| `tokenizer: FullTextTokenizer.English` | Adds English stemming — `run` finds `running` and `runs`. Makes non-English matches worse. |
-
-Four things worth knowing:
-
-- **The index is kept current by the database.** `AFTER INSERT/UPDATE/DELETE` triggers update it, so
-  raw SQL, `ExecuteUpdate`, a bulk insert and another process are all searchable the moment they commit.
-  The triggers call no function, so they run under the default `trusted_schema=OFF`.
-- **It arrives via migrations — including on an existing table.** Adding, changing or removing
-  `HasFullTextSearch` is a migration of its own, and the migration that creates the index fills it from
-  the rows already there. A database created with `EnsureCreated` does not get it.
-- **Any migration that touches the table rebuilds the index.** SQLite rebuilds a table for most
-  `ALTER`s, which drops its triggers, and a renamed column would leave the triggers writing a column that
-  is gone; Rask re-creates and refills the index rather than guess which case it is in. On a very large
-  table, that is a full read of the table once per such migration.
-- **The index keeps its own copy of the text** (`{Table}_fts`), costing disk roughly the size of the
-  indexed columns. An FTS5 *external content* table would store nothing twice, but it can only forget a
-  row when told its old values — and SQLite fires no `AFTER DELETE` for the row an `INSERT OR REPLACE`
-  replaces, so one raw `REPLACE` would leave it wrong for good. The copy is forgotten by row id, so
-  REPLACE, upserts and key changes all stay correct. A single integer key (including a strongly-typed id
-  stored as one) is the index's row id; any other key — a `Guid`, a string, a composite — goes through a
-  small key map (`{Table}_fts_keys`), because SQLite's implicit rowid can change on `VACUUM`.
-
-Requires `UseRaskSqlite(...)`, which registers the migration SQL, the query translation and the
-`highlight`/`snippet` functions; all of it is inert until an entity declares an index, and it composes
-with `STRICT` tables and non-overlapping ranges.
-
-**In the browser, or anywhere you configure a plain `UseSqlite`,** add `UseRaskFullTextSearch()` instead. It
-registers only what search needs — none of `UseRaskSqlite`'s connection string, pragmas or retry — so a
-WebAssembly app searches its local database the same way:
-
-```csharp
-builder.Services.AddDbContextFactory<AppDbContext>(o => o
-    .UseSqlite(BrowserSqlite.ConnectionString("app"))
-    .UseRaskFullTextSearch());
-```
-
-Apply migrations (`Database.MigrateAsync()`): the index is built by a migration, and `EnsureCreated` creates
-none. Called after `UseRaskSqlite`, it keeps that call's choices, `STRICT` tables included.
-
-**On PostgreSQL** the same `HasFullTextSearch`, `Search(text)`, `FullText.Highlight` and `Snippet` work through
-`UseRaskPostgres`: the index is a stored generated `tsvector` column with a GIN index — no triggers, the database keeps
-it current — and a search is `@@ to_tsquery(…)` ranked by `ts_rank_cd`, with the highlights from `ts_headline` in the
-same markers `UiHighlight` reads. `English` maps to PostgreSQL's `english` configuration; `Unicode` to `rask_unicode`,
-`simple` with `unaccent` in front of it, which the first migration that needs it creates (it runs
-`CREATE EXTENSION IF NOT EXISTS unaccent`, so the migrating role needs that right once). Two differences worth
-knowing: a snippet on PostgreSQL has no `…` at its cut ends, and its word count must be a constant.
-
-On SQL Server, or a plain `UseSqlite` without `UseRaskFullTextSearch()`, `AddRaskData<TContext>` **refuses to
-boot** a context that declares an index rather than letting the first search fail.
+What the user can type, highlighting matches, the tokenizers, how the index stays current and what it costs:
+**[Full-text search](full-text-search.md)**.
 
 ## Indexing a value inside a JSON column
 
@@ -332,9 +256,9 @@ retrying at a **constant 1 ms interval** (not exponential backoff, which has far
 On .NET the *mode* half is already handled for you. Microsoft.Data.Sqlite composes its begin statement as
 `IsolationLevel == Serializable && !deferred ? "BEGIN IMMEDIATE;" : "BEGIN;"`, and ADO.NET's default
 isolation is `Serializable` — so a transaction opened through the driver, or through EF Core (which asks
-for `Unspecified`, normalised to `Serializable`), **already takes the write lock up front**. This is
-where the .NET driver differs from Ruby's `sqlite3` gem, which defaults to deferred and needed Rails 8 to
-change it; nothing in Rask has to ask for the mode. What `Rask.SQLite` adds is the other half — the
+for `Unspecified`, normalised to `Serializable`), **already takes the write lock up front**. Many
+SQLite drivers default to a deferred begin and have to be told otherwise; this one does not, so nothing in
+Rask has to ask for the mode. What `Rask.SQLite` adds is the other half — the
 *waiting*: a busy handler that frees the thread instead of blocking it.
 
 ### Raw ADO.NET — genuinely non-blocking
@@ -887,8 +811,10 @@ work offline or own their data locally — not a way to avoid having a server.
 
 > **It does run, though.** EF Core + `Microsoft.Data.Sqlite` work in the browser — native relink and all —
 > and everything above about *pragmas* still holds, but "it can't work" would be too strong. Two
-> constraints if you try it: the app must be **untrimmed** (`PublishTrimmed=true` breaks EF Core, though
-> raw ADO.NET survives it), and it needs `NoWarn=WASM0001` for the varargs `sqlite3_config` natives, which
+> constraints if you try it: trimming has to leave EF Core whole — either publish untrimmed
+> (`PublishTrimmed=false`), or trim with the EF Core, `Microsoft.Data.Sqlite`, Rask.Data and
+> Rask.SQLite.EntityFrameworkCore assemblies rooted (`TrimmerRootAssembly`), as the rask.sh notes demo does in
+> `src/Rask.Site.DataDemo/Rask.Site.DataDemo.csproj` (the trim warnings it suppresses are tracked in #1132) — and it needs `NoWarn=WASM0001` for the varargs `sqlite3_config` natives, which
 > this repo's warnings-as-errors would otherwise turn into a failed build.
 >
 > What that does *not* solve is durability: a database in the runtime's in-memory filesystem is gone on
@@ -909,7 +835,8 @@ builder.Services.AddDbContextFactory<AppDbContext>(o => o.UseSqlite(BrowserSqlit
 ```
 
 Everything above that line — including [`AddRaskJobs<AppDbContext>()`](jobs.md) — is then the same code you
-would write on a server.
+would write on a server. That includes [full-text search](full-text-search.md#in-the-browser): add
+`.UseRaskFullTextSearch()` after the `UseSqlite`, and `Search(text)` runs on FTS5 in the tab.
 
 Three limits, stated plainly because each one is a silent failure rather than an error:
 
@@ -940,7 +867,8 @@ Three limits, stated plainly because each one is a silent failure rather than an
   boot, so the file cannot be swapped under its live connections, and a tab that started persisting its
   empty database would overwrite the previous owner's good snapshot. Proxying a non-owner's writes to the
   owner is not implemented.
-- **The two build settings above are not optional**: `PublishTrimmed=false`, and publishing *without*
+- **The two build settings above are not optional**: EF Core left whole by the trimmer (`PublishTrimmed=false`,
+  or its assemblies rooted as above), and publishing *without*
   `-p:WasmBuildNative=false` — otherwise SQLite is not linked in and the app boots normally, then fails on
   every database call.
 
@@ -1025,7 +953,7 @@ Assert.Equal("wal", cmd.ExecuteScalar());
 ```
 
 See `tests/Rask.SQLite.Tests` for the unit + integration coverage, and
-`tests/Rask.Site.E2E.Tests/SqliteExampleTests.cs` for the end-to-end concurrent-writes check.
+`tests/Rask.SQLite.Tests/SqliteConcurrencyStressTests.cs` for the concurrent-writes check (and `tests/Rask.SQLite.Limitations.Tests` for what SQLite cannot do).
 
 > **Careful with `SqliteConnection.ClearAllPools()`.** It is process-global and disposes the underlying
 > `sqlite3` handle of connections that are *currently leased and in use*, not just idle ones — so calling

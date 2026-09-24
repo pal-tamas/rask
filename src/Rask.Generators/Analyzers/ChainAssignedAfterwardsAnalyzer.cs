@@ -142,7 +142,10 @@ public sealed class ChainAssignedAfterwardsAnalyzer : DiagnosticAnalyzer
     // `var c = Card.Note("a"); c.Note = "b";` is: a chain that named a step is the shape the rule is
     // actually about, because that is where the two answers disagree.
     private static bool IsEntry(ISymbol property) =>
-        property.ContainingType?.Name.StartsWith("RaskEntries", System.StringComparison.Ordinal) == true;
+        property.ContainingType?.Name.StartsWith("RaskEntries", System.StringComparison.Ordinal) == true
+        || property.ContainingType?.ToDisplayString() == "Rask.Html"
+        || (property is IPropertySymbol { Type: INamedTypeSymbol component }
+            && BuilderEntry.IsGroupedEntry(property, component));
 
     // As Unwrap, but an EXPLICIT cast counts too: a chain closed by its children indexer hands back
     // Component, so reaching a property on it needs one, and ((Card)c).Note = "b" is still a write to

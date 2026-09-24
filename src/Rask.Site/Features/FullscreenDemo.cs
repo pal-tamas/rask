@@ -15,7 +15,7 @@ public sealed partial class FullscreenDemo(IFullscreen fullscreen) : Component
     private string? _status;
 
     protected override Component? Render() =>
-        UiCard.Class("shadow-sm")[
+        Ui.Card.Class("shadow-sm")[
                 Div
                     .Ref(_stage)
                     .Class("border rounded bg-ui-well flex items-center justify-center mb-2")
@@ -23,9 +23,9 @@ public sealed partial class FullscreenDemo(IFullscreen fullscreen) : Component
                     Span.Class("text-ui-muted text-sm")["This box goes fullscreen."]
                 ],
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    UiButton.Tone(UiTone.Primary).Id("fullscreen-enter").OnClick(Enter)["Fullscreen this box"],
-                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline).Id("fullscreen-page").OnClick(EnterPage)["Fullscreen the page"],
-                    UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline).Id("fullscreen-exit").OnClick(Exit)["Exit"]
+                    Ui.Button.Tone(Ui.Tone.Primary).Id("fullscreen-enter").OnClick(Enter)["Fullscreen this box"],
+                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Id("fullscreen-page").OnClick(EnterPage)["Fullscreen the page"],
+                    Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline).Id("fullscreen-exit").OnClick(Exit)["Exit"]
                 ],
                 Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("fullscreen-status")[_status ?? "(idle)"]]
             ];

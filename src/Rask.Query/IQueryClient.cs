@@ -198,6 +198,67 @@ public interface IQueryClient
     Command Command(params QueryKey[] invalidates);
 
     /// <summary>
+    ///     A live view of every <typeparamref name="TNotification" /> published — starting with the last one, when
+    ///     there is one — for as long as a component reads it. tRPC's <c>useSubscription</c>, over a CQRS notification.
+    /// </summary>
+    /// <remarks>
+    ///     <code>
+    ///     var placed = client.Subscribe&lt;OrderPlaced&gt;().Keep(20);   // every order, the last 20 of them
+    ///     </code>
+    ///     <para>
+    ///         In a browser app that is a client of a server, the subscription opens on the server, so it hears what
+    ///         every visitor's command publishes.
+    ///     </para>
+    /// </remarks>
+    /// <typeparam name="TNotification">The notification to watch.</typeparam>
+    Subscription<TNotification> Subscribe<TNotification>()
+        where TNotification : INotification;
+
+    /// <summary>
+    ///     A live view of the <typeparamref name="TNotification" />s <paramref name="subscription" /> asks for —
+    ///     starting with the last matching one, when there is one.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The record says which notifications are its own, and its <see cref="IWatchPolicy{TSubscription}" /> must
+    ///         admit the subscriber, or the subscription settles on <see cref="SubscriptionStatus.Error" />.
+    ///     </para>
+    ///     <code>
+    ///     var shipped = client.Subscribe(new WatchOrder(orderId));   // one order's
+    ///     </code>
+    /// </remarks>
+    /// <typeparam name="TNotification">The notification the subscription carries.</typeparam>
+    /// <param name="subscription">What to watch.</param>
+    Subscription<TNotification> Subscribe<TNotification>(ISubscription<TNotification> subscription)
+        where TNotification : INotification;
+
+    /// <summary>
+    ///     A subscription that follows what it watches: <paramref name="subscription" /> runs at every read, and a
+    ///     different record re-points it — for one held in a field and created before a route parameter is bound.
+    /// </summary>
+    /// <remarks>A null record means the input is not there yet: the subscription waits, opening nothing, until it is.</remarks>
+    /// <typeparam name="TNotification">The notification the subscription carries.</typeparam>
+    /// <param name="subscription">Builds the record from the component's current state, or returns null to wait.</param>
+    Subscription<TNotification> Subscribe<TNotification>(Func<ISubscription<TNotification>?> subscription)
+        where TNotification : INotification;
+
+    /// <summary>
+    ///     A live view of a stream that is a function rather than a notification — a price feed, a progress report —
+    ///     reopened with the new input whenever <paramref name="input" /> reads a different one.
+    /// </summary>
+    /// <remarks>
+    ///     The stream is handed the input it was opened for. It runs where the component runs: on the server for a
+    ///     Server-host page, in the browser for a WebAssembly one. A null input waits.
+    /// </remarks>
+    /// <typeparam name="TInput">What the stream is opened for.</typeparam>
+    /// <typeparam name="T">What it yields.</typeparam>
+    /// <param name="input">Reads the component's current state.</param>
+    /// <param name="stream">Opens the stream for one input.</param>
+    Subscription<T> Subscribe<TInput, T>(
+        Func<TInput> input,
+        Func<TInput, CancellationToken, IAsyncEnumerable<T>> stream);
+
+    /// <summary>
     ///     Marks every entry for a query message type stale. Anything rendering one refetches at once;
     ///     anything not rendered refetches when something next observes it.
     /// </summary>

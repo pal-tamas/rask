@@ -7,9 +7,10 @@ app's own database, with no broker or Redis.
   **`ICommandHandler<TJob>`** — a job *is* a command executed later.
 - A background **`JobProcessor`** polls the `Job` table and runs each due job — **at-least-once**, with
   **exponential-backoff** retries up to `MaxAttempts` (then left as a dead letter for inspection).
-- **Delayed** (`ScheduleAsync(job, delay)`) and durable **interval-recurring** (`AddRecurring<T>(name, every, …)`)
-  jobs — recurring runs are tracked in the DB, so a restart never double-runs them. Read the schedule back
-  from `JobsOptions.RecurringJobs`.
+- **Delayed** (`await Jobs.Enqueue(job).In(24.Hours)`, `.At(when)`) and durable **recurring**
+  (`o.Run<T>().Every(1.Hour)`, `.Daily.At(3, 00)`, `.Weekly.On(DayOfWeek.Monday).At(9, 00)`) jobs — recurring
+  runs are tracked in the DB, so a restart never double-runs them. Read the schedule back from
+  `JobsOptions.RecurringJobs`.
 - **Metrics** on the `Rask.Jobs` meter: processed / failed / **dead-lettered** counters, a duration
   histogram, and pending / dead-letter gauges. `rask.jobs.deadletters` is the one to alert on.
 - A **source generator** registers every `IJob` type for reflection-free rehydration on the run path.
@@ -47,3 +48,9 @@ Several instances is safe: each processor **leases** the batch it claims, so a j
 them. On SQLite you will still usually run one, because SQLite is single-writer, so the processor claims
 work by polling and writing sequentially. Need a job to commit atomically with a business change? Raise a domain event and deliver it with
 [Rask.Outbox](https://www.nuget.org/packages/Rask.Outbox) instead — the two pillars are complementary.
+
+**A job runs as whoever enqueued it.** The row records the signed-in user (`Current.UserId`) and, in a
+multi-tenant app, the tenant; the processor re-enters both before the handler runs, so the handler reads
+`Current.UserId` and filters tenant-scoped tables as the page that enqueued it would have. Upgrading adds the
+`UserId` column: `rask db add AddJobUser && rask db update`. `Job.Read` queries the queue with no context of your
+own.

@@ -80,7 +80,7 @@ public sealed partial class FrontEndsTests : global::Rask.Core.RaskMarkup
         // Qualified: inside a markup host the bare `HomePage` is the chain's Build<HomePage> entry
         // rather than the type, so its static members are not reachable through it.
         var id = global::Rask.Site.Pages.HomePage.FrontEndsSectionId;
-        var html = Test.Render(() => HomePage).Html;
+        var html = Page.Render(() => HomePage).Html;
 
         var start = html.IndexOf($"id=\"{id}\"", StringComparison.Ordinal);
         Assert.True(start >= 0, $"the landing page renders no #{id} section.");

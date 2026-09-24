@@ -358,7 +358,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Delete order" })
             .First.ClickAsync();
 
-        // The ELEMENT, not [role='dialog']: UiModal renders a real <dialog>, which carries that role
+        // The ELEMENT, not [role='dialog']: Ui.Modal renders a real <dialog>, which carries that role
         // implicitly, so stating it again in the markup would be the redundant ARIA guidance warns
         // against — and this selector silently matched nothing once it stopped being a div.
         var dialog = scope.Locator("dialog");

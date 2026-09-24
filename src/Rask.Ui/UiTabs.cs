@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>A row of tabs: links to views with URLs, or — inside a <see cref="UiTabGroup" /> — the tablist.</summary>
 /// <remarks>
@@ -21,22 +21,22 @@ namespace Rask.Ui;
 public sealed partial class UiTabs : Component
 {
     /// <summary>How the row is drawn.</summary>
-    public UiTabStyle? Style { get; set; }
+    public Ui.TabStyle? Style { get; set; }
 
-    public UiSize? Size { get; set; }
+    public Ui.Size? Size { get; set; }
 
     /// <summary>
-    ///     Which side of its panel the row sits on. Only <see cref="UiPosition.Top" /> and
-    ///     <see cref="UiPosition.Bottom" /> mean anything here; anything else draws the default.
+    ///     Which side of its panel the row sits on. Only <see cref="Ui.Position.Top" /> and
+    ///     <see cref="Ui.Position.Bottom" /> mean anything here; anything else draws the default.
     /// </summary>
-    public UiPosition? Position { get; set; }
+    public Ui.Position? Position { get; set; }
 
     public string? Class { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render()
     {
-        // Inside a UiTabGroup this row IS the tablist the panels hang off, and it owns the keyboard. Outside
+        // Inside a Ui.TabGroup this row IS the tablist the panels hang off, and it owns the keyboard. Outside
         // one it is a row of links, which the browser already moves between with Tab.
         //
         // The handler goes on before the children indexer, which is what keeps the receiver an Element: past the

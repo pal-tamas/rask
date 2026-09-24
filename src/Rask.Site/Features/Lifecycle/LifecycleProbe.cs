@@ -15,49 +15,63 @@ namespace Rask.Site.Features;
 public sealed partial class LifecycleProbe : Component
 {
     private int _clicks;
-    private int _mountStarted;
-    private bool _mountSettled;
-    private int _updated;
-    private int _firstRender;
-    private int _rendered;
+    private int _onFirstRendered;
+    private int _onMount;
+    private bool _onMountSettled;
+    private int _onUpdated;
+    private int _onRendered;
     private int _renderCount;
 
-    // One hook, two moments: the line above the await runs before the first paint, the line below it
-    // 450ms later — and the component paints again on its own when it does.
     protected override async Task OnMount()
     {
-        _mountStarted++;
+        // Above the first await, so it still runs before the first render — which is what the
+        // synchronous twin used to be for, back when there were two of these.
+        _onMount++;
         await Task.Delay(450);
 
         // Flips a flag the row already on screen reads. Appending a line here instead is what used to
         // grow the list by an <li> and a <code>, 450ms after the first paint.
-        _mountSettled = true;
+        _onMountSettled = true;
     }
 
-    protected override async Task OnUpdated() => _updated++;
+    protected override Task OnUpdated()
+    {
+        _onUpdated++;
+        return Task.CompletedTask;
+    }
 
-    protected override async Task OnFirstRendered() => _firstRender++;
+    protected override Task OnFirstRendered()
+    {
+        // Counted, not latched: its own hook now, and the count beside OnRendered's is what shows one
+        // fires once per mount while the other fires per render — which a bool could only assert.
+        _onFirstRendered++;
+        return Task.CompletedTask;
+    }
 
-    protected override async Task OnRendered() => _rendered++;
+    protected override Task OnRendered()
+    {
+        _onRendered++;
+        return Task.CompletedTask;
+    }
 
     protected override Component? Render() =>
         [
             Div.Class("flex gap-3 items-center flex-wrap mb-3")[
-                UiBadge.Tone(UiTone.Primary).Variant(UiVariant.Soft).Class("text-base")[$"Render #{++_renderCount}"],
+                Ui.Badge.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Soft).Class("text-base")[$"Render #{++_renderCount}"],
                 // The handler just records the click; Rask re-renders the component that owns the
                 // callback (this probe — the lambda closes over its state) right after it runs, so the
-                // badge repaints with no StateHasChanged (RASK026). Works the same through UiButton,
+                // badge repaints with no StateHasChanged (RASK026). Works the same through Ui.Button,
                 // which forwards the callback down to the native <button>.
-                UiButton.Tone(UiTone.Primary)
-                    .OnClick(() => _clicks++)[UiIcon.Name(UiIconName.Retry), "Trigger re-render"]
+                Ui.Button.Tone(Ui.Tone.Primary)
+                    .OnClick(() => _clicks++)[Ui.Icon.Name(Ui.IconName.Retry), "Trigger re-render"]
             ],
             H3.Class("text-base font-semibold text-ui-muted uppercase text-sm")["Hook log"],
-            UiList.Ordered(true)[
-                Row("OnMount (before its await)", Ran(_mountStarted)),
-                Row("OnMount (after a 450ms await)", _mountSettled ? "resolved" : "awaiting…"),
-                Row("OnUpdated", Ran(_updated)),
-                Row("OnFirstRendered", Ran(_firstRender)),
-                Row("OnRendered", Ran(_rendered)),
+            Ui.List.Ordered(true)[
+                Row("OnMount (before its await)", Ran(_onMount)),
+                Row("OnMount (after a 450ms await)", _onMountSettled ? "resolved" : "awaiting…"),
+                Row("OnUpdated", Ran(_onUpdated)),
+                Row("OnFirstRendered", Ran(_onFirstRendered)),
+                Row("OnRendered", _onRendered == 0 ? "not yet" : Ran(_onRendered)),
                 Row("Button clicks", Ran(_clicks))
             ]
         ];

@@ -37,7 +37,22 @@ var user = await dispatcher.Query(new GetUser(42));   // returns User
 ```
 
 `ICommand` / `ICommand<TResult>` dispatch the same way; `INotification` fans out to every handler
-via `PublishAsync`.
+via `PublishAsync` — and to every open subscription, tRPC-style:
+
+```csharp
+await foreach (var placed in dispatcher.Subscribe<OrderPlaced>(ct))
+    Console.WriteLine(placed.Customer);
+```
+
+To watch the events about one thing, write an `ISubscription<T>` record saying which those are — `dispatcher
+.Subscribe(new WatchOrder(id), ct)` — admitted by its own `IWatchPolicy<WatchOrder>`; none registered means nobody
+may open it.
+
+Publishing from a singleton — a `BackgroundService`, a timer — takes no dispatcher and no scope of its own:
+
+```csharp
+await Notify.Send(new ReportReady(reportId), stoppingToken);
+```
 
 ## Pipeline behaviors
 

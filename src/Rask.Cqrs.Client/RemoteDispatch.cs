@@ -22,8 +22,131 @@ namespace Rask.Cqrs.Client;
 internal sealed class RemoteDispatch(
     HttpClient http,
     RaskCqrsClientOptions options,
-    IRemoteRequestValidator? validator = null) : IRemoteDispatch
+    IRemoteRequestValidator? validator = null) : IRemoteDispatch, IRemoteSubscriptions
 {
+    // Asks the browser's fetch to hand the body over as it arrives. Without it a WebAssembly HttpClient buffers the
+    // whole response — and an event stream's whole response arrives when the subscription ends.
+    private static readonly HttpRequestOptionsKey<bool> StreamingResponse = new("WebAssemblyEnableStreamingResponse");
+
+    public async IAsyncEnumerable<INotification> Subscribe(
+        RemoteContract contract,
+        object? subscription,
+        Action? connected,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(contract);
+
+        // The subscription record travels exactly as a query's message does: its generated JSON, url-encoded.
+        var path = Rask.Core.Live.LiveOptions.PathBase + options.RoutePrefix + "/" + RemoteEndpointDefaults.EventsSegment
+                   + "/" + Uri.EscapeDataString(contract.Name)
+                   + (subscription is null
+                       ? string.Empty
+                       : "?" + RemoteEndpointDefaults.MessageQueryParameter + "="
+                         + Uri.EscapeDataString(
+                             Encoding.UTF8.GetString(NotificationWire.EncodeMessage(contract, subscription))));
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, path);
+        request.Headers.TryAddWithoutValidation(RemoteEndpointDefaults.RequestHeader, RemoteEndpointDefaults.RequestHeaderValue);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
+        request.Options.Set(StreamingResponse, true);
+        if (options.ConfigureRequestAsync is { } configure)
+        {
+            await configure(request, cancellationToken).ConfigureAwait(false);
+        }
+
+        // No per-attempt timeout here: the answer is meant to last as long as the page does. Reaching the server is
+        // bounded by the caller's reconnect loop, which cancels this token when it gives up on it.
+        using var response = await OpenAsync(contract, request, cancellationToken).ConfigureAwait(false);
+        await using var body = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        using var reader = new StreamReader(body, Encoding.UTF8);
+
+        var data = new StringBuilder();
+        string? name = null;
+        while (true)
+        {
+            var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false)
+                       ?? throw new RemoteDispatchException($"The server closed the '{contract.Name}' subscription.")
+                       {
+                           MessageName = contract.Name,
+                       };
+
+            if (line.Length > 0)
+            {
+                ReadField(line, ref name, data);
+                continue;
+            }
+
+            // A blank line ends an event.
+            if (name == RemoteEndpointDefaults.ReadyEvent)
+            {
+                connected?.Invoke();
+            }
+            else if (data.Length > 0)
+            {
+                yield return NotificationWire.DecodeEvent(contract, Encoding.UTF8.GetBytes(data.ToString()));
+            }
+
+            name = null;
+            data.Clear();
+        }
+    }
+
+    // One line of a server-sent event: "field: value", or a ":" comment (the server's keep-alive).
+    private static void ReadField(string line, ref string? name, StringBuilder data)
+    {
+        if (line[0] == ':')
+        {
+            return;
+        }
+
+        var colon = line.IndexOf(':', StringComparison.Ordinal);
+        var field = colon < 0 ? line : line[..colon];
+        var value = colon < 0 ? string.Empty : line[(colon + 1)..];
+        if (value.StartsWith(' '))
+        {
+            value = value[1..];
+        }
+
+        if (field == "event")
+        {
+            name = value;
+        }
+        else if (field == "data")
+        {
+            data.Append(value);
+        }
+    }
+
+    private async Task<HttpResponseMessage> OpenAsync(
+        RemoteContract contract,
+        HttpRequestMessage request,
+        CancellationToken cancellationToken)
+    {
+        HttpResponseMessage response;
+        try
+        {
+            response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (HttpRequestException ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new RemoteDispatchException($"'{contract.Name}' could not reach the server.", ex)
+            {
+                MessageName = contract.Name,
+            };
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            using (response)
+            {
+                throw await FailureAsync(contract, response, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        return response;
+    }
+
     public async Task<TResult> SendAsync<TResult>(
         RemoteContract contract,
         object message,
@@ -61,7 +184,7 @@ internal sealed class RemoteDispatch(
         using var response = await SendCoreAsync(contract, message, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task PublishAsync(
+    public async Task Publish(
         RemoteContract contract,
         object notification,
         CancellationToken cancellationToken)
@@ -84,7 +207,7 @@ internal sealed class RemoteDispatch(
         // This is a convenience, never a control. The server runs the same rules again through
         // ValidationBehavior before any handler sees the request, so a caller that skips this (a
         // hand-written client, a replayed request) gains nothing by it.
-        // Requests only. ValidationBehavior wraps the request pipeline, and PublishAsync does not go
+        // Requests only. ValidationBehavior wraps the request pipeline, and Publish does not go
         // through it — so validating a notification here would reject in the browser something the
         // server and every in-process publish accept, which is a worse failure than not checking.
         if (validator is not null && contract.Kind != RemoteMessageKind.Notification)

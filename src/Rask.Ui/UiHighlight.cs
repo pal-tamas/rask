@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// Search-result text with each matched term wrapped in <c>&lt;mark&gt;</c> — what <c>FullText.Highlight</c> and
@@ -17,7 +17,7 @@ namespace Rask.Ui;
 /// </remarks>
 /// <example>
 /// <code>
-/// UiHighlight.Text(hit.Excerpt)
+/// Ui.Highlight.Text(hit.Excerpt)
 /// </code>
 /// </example>
 public sealed partial class UiHighlight : Component

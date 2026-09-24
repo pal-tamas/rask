@@ -28,11 +28,11 @@ public partial class ScriptTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_string_child_is_encoded_as_text() =>
+    public void A_text_child_is_html_encoded() =>
         Assert.Equal("<script>&lt;x&gt;</script>", Script["<x>"].ToHtml());
 
     [Fact]
-    public void Fetch_priority_and_blocking_emit_after_the_other_script_attributes() =>
+    public void Fetch_priority_and_blocking_come_after_the_other_script_attributes() =>
         // `blocking="render"` is an opt-IN to blocking, which is the reverse of every other loading
         // knob on this element.
         Assert.Equal(

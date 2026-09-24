@@ -4,7 +4,7 @@ Rask ships a few form elements (`Input`/`Select`/`Textarea`), and this guide add
 typed, ready-made controls —
 but the binding system is **public**, so you write exactly the controls your app needs. A custom control gets the same two-way binding, per-field
 validation, and controlled mode as the built-ins by implementing one interface: **`IFormControl<T>`**.
-The factory generator does the rest.
+The generator does the rest.
 
 This is the end-to-end guide. For the wider forms story (binding, `Form<TModel>`, validation layers) see
 [forms.md](forms.md).
@@ -44,20 +44,18 @@ moment the chain's receiver is the control itself. A carrier is not invocable, s
 the step — which is also what lets one step name carry an overload per shape.
 
 You declare those five properties (plus your own display props), implement `Render`, and the generator
-emits **two factories**:
+emits a **chain** whose entry step chooses the mode:
 
-- a **controlled** factory — `MyControl<T>(Value: …, OnChange: …, …display…)`,
-- a **bound** factory — `MyControl(() => model.Field, …)`, where `Validate:` takes either rule shape with
-  no cast.
+- **bound** — `MyControl.Bind(() => model.Field)`, where `.Validate(…)` takes either rule shape with no
+  cast;
+- **controlled** — `MyControl.Value(v).OnChange(…)`, or `MyControl.Of<T>()` when there is no value yet.
 
-…and a **chain** whose entry step chooses the mode: `MyControl.Bind(() => model.Field)` hands back a
-`Build<MyControl<T>, Bound>`, `MyControl.Value(v)` (and `MyControl.Of<T>()`) a
-`Build<MyControl<T>, Controlled>`.
-
-Each mode's members are excluded from the other mode automatically, on both surfaces — no
-`[SkipFactory]`. Bound mode owns the value and the write-back, so `Value` / `OnChange`
-are not parameters of the bound factory and not steps on a bound chain; controlled mode parses no
-expression, so `Bind` / `Validate` / `AfterBind` are absent from its factory and its chain.
+Either opening hands back the control itself (`MyControl<T>`), so every later step is an ordinary setter
+on it. **The openings are mutually exclusive:** `Bind` and `Value` live on the chain's entry and nowhere
+else, so once one is taken the other is not a member of what you hold. Bound mode owns the value and the
+write-back; controlled mode parses no expression. The steps that *follow* an opening are not gated by
+mode — a `Validate` on a controlled control compiles and simply is never read (see
+[building-components.md](building-components.md#bound-and-controlled)).
 
 `Of<T>()` is emitted for **every** generic form control, including one with required props of its own.
 That is not an exception to the ordinary rule (which withholds `Of` where a required step already pins
@@ -82,10 +80,9 @@ body in a `Convert` that `ExpressionAccessor.Parse` strips again. Your `Bind` pr
 throw on a `null`.
 
 The rule is by **name**, which is what lets it reach a prop the interface does not declare. If your
-control has its own `Checked`, `OnInput` or `OnInputAsync` — as the core `Input` and `Textarea` do —
-those are recognized as controlled-mode members too, because bound mode derives the checked state from
-the model and installs its own `oninput` handler and so would never read them. Any *other* property you
-declare is shared and stays reachable in both modes.
+control has its own `Checked` or `OnInput` — as the core `Input` and `Textarea` do — those are recognized
+as controlled-mode members too, because bound mode derives the checked state from the model and installs
+its own `oninput` handler and so would never read them. Any *other* property you declare is shared.
 
 ---
 
@@ -103,8 +100,9 @@ namespace MyApp.Controls;
 public sealed partial class SegmentedControl<TValue> : Component, IFormControl<TValue>
 {
     public required IEnumerable<TValue> Options { get; set; }
-    // A plain delegate, like every callback and template on the surface.
-    public Func<TValue, Component>? OptionLabel { get; set; }
+    // A template is an Fn — a struct, so `.OptionLabel(fn)` stays a step (a delegate-typed
+    // property on the receiver would be read as an invocation, CS1593).
+    public Fn<TValue, Component>? OptionLabel { get; set; }
     public string? Class { get; set; }
 
     // IFormControl<TValue> — controlled mode.
@@ -144,13 +142,13 @@ public sealed partial class SegmentedControl<TValue> : Component, IFormControl<T
         {
             var captured = option;
             var active = current is not null && comparer.Equals(captured, current);
-            buttons.Add(Button.Type("button").Class(active ? "btn btn-primary" : "btn btn-outline-primary").OnClick(() => SelectAsync(acc, ctx, fid, captured)).Key(i++)[OptionLabel is { } label ? label(option) : option?.ToString() ?? ""]);
+            buttons.Add(Button.Type("button").Class(active ? "btn btn-primary" : "btn btn-outline-primary").OnClick(() => SelectAsync(acc, ctx, fid, captured)).Key(i++)[OptionLabel?.Invoke(option) ?? (Component)(option?.ToString() ?? "")]);
         }
 
         var children = new List<Component> { Div.Class("action-group")[buttons] };
         if (Bind is not null)
         {
-            children.Add(ValidationMessage(Bind, msgs => Div.Class("field-error block")[msgs[0]]));
+            children.Add(Validation.Message.Template(msgs => Div.Class("field-error block")[msgs[0]]).For(Bind));
         }
 
         return Div.Class(Class ?? "segmented")[children];
@@ -174,15 +172,15 @@ public sealed partial class SegmentedControl<TValue> : Component, IFormControl<T
 }
 ```
 
-Both shapes now work, with the factories generated for you:
+Both shapes now work, with the chain generated for you:
 
 ```csharp
 // Bound — TValue inferred from the expression; validation rides the field:
-SegmentedControl(() => _model.Plan, Options: plans,
-    Validate: p => p == Plan.None ? ["Pick a plan."] : [])
+SegmentedControl.Bind(() => _model.Plan).Options(plans)
+    .Validate(p => p == Plan.None ? ["Pick a plan."] : [])
 
 // Controlled — the parent owns the value:
-SegmentedControl(Options: plans, Value: _plan, OnChange: p => _plan = p)
+SegmentedControl.Value(_plan).Options(plans).OnChange(p => _plan = p)
 ```
 
 ---
@@ -221,7 +219,7 @@ The helpers are built on the public `Rask.Core.Forms` API you can also use direc
   a bound `ICollection<T>` (what a checkbox group does per toggle).
 - **`BindingHelpers.NotifyAndValidateFieldAsync(ctx, field)`** — commit a change: marks the field
   changed + touched and re-validates (no-op when `ctx` is `null`).
-- **`ValidationMessage(Bind, template)`** — render the field's messages inside your control.
+- **`Validation.Message.Template(template).For(Bind)`** — render the field's messages inside your control.
 
 ---
 
@@ -240,20 +238,20 @@ The helpers are built on the public `Rask.Core.Forms` API you can also use direc
 
 ## 6. Stateless helper vs stateful `Component` — host re-render
 
-A control with **no view state** *can* be a plain **static factory method** returning a `Component` (a single
+A control with **no view state** *can* be a plain **static helper method** returning a `Component` (a single
 element, or a `[...]` collection of siblings): its handlers are owned by the **host** that declared it, so a
 change re-renders the host for free (host-side derived UI just updates). But a static helper isn't a
-`Component` subclass, so the generator can't synthesize a factory for it and it can't implement `IFormControl<T>`.
+`Component` subclass, so the generator can't give it a chain and it can't implement `IFormControl<T>`.
 
 A control written as a **`Component`** (required for `IFormControl<T>`, or because it needs view state like an
 open/closed dropdown) is its own re-render boundary for *arbitrary* state: a plain toggle re-renders *it*, not
-the host. But **two-way binding is not** a boundary — a bound write (`Bind: () => model.Field`, in **or**
+the host. But **two-way binding is not** a boundary — a bound write (`.Bind(() => model.Field)`, in **or**
 outside a `Form`) re-renders the component that authored the binding, so host-side derived UI (a sibling whose
 class/text is computed from the same model property) updates with no `StateHasChanged`. This holds even when
 the bind closed over a loop local (`() => item.Field`): the framework records the control's creating component
 as the binding owner (via `RegisterValidator`), so the authoring host re-renders on change. For **controlled**
 mode (`Value`/`OnChange`, no `Bind`) the same guarantee comes from `OnChange` being auto-wrapped
-(`AutoCallback`) to re-render its owner. Reserve in-control feedback (an embedded `ValidationMessage`, chips)
+(`AutoCallback`) to re-render its owner. Reserve in-control feedback (an embedded `Validation.Message`, chips)
 for state the control *itself* owns.
 
 ---
@@ -267,7 +265,7 @@ for state the control *itself* owns.
    `Value` (controlled).
 3. In your change handler: bound → `Setter` (or `SetCollectionMembership`) + `NotifyAndValidateFieldAsync` +
    `InvokeAfterBindAsync`; controlled → `InvokeOnChangeAsync`.
-4. Surface messages with `ValidationMessage(Bind, …)` (bound mode).
+4. Surface messages with `Validation.Message.Template(…).For(Bind)` (bound mode).
 5. Unit-test both modes (drive the handler, assert the bound model / the emitted `OnChange` value); add an
    E2E if it has a showcase page. Construct via the chain, never `new` (RASK014).
 

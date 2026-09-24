@@ -10,23 +10,21 @@ public partial class DragDropTests : global::Rask.Core.RaskMarkup
     private static JsonElement Empty => JsonDocument.Parse("{}").RootElement;
 
     [Fact]
-    public void The_headless_component_adds_no_DOM_of_its_own_and_emits_only_the_body()
+    public void Being_headless_it_emits_the_body_markup_and_no_dom_of_its_own()
     {
         var view = new StubComponent(() => DragDrop.Body(ctx => Div["x"]));
-
         Assert.Equal("<div>x</div>", view.RenderAsLiveRoot());
     }
 
     [Fact]
-    public void A_null_body_throws()
+    public void A_missing_body_throws()
     {
         var view = new StubComponent(() => DragDrop.Body(null!));
-
         Assert.Throws<InvalidOperationException>(() => view.RenderAsLiveRoot());
     }
 
     [Fact]
-    public async Task A_drop_after_a_drag_start_fires_OnDrop_with_the_move()
+    public async Task Drop_after_drag_start_fires_on_drop_with_move()
     {
         DragDropMove? captured = null;
         var view = new StubComponent(() => DragDrop
@@ -51,7 +49,7 @@ public partial class DragDropTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task A_drop_without_a_drag_start_does_not_fire()
+    public async Task Drop_without_drag_start_does_not_fire()
     {
         var fired = false;
         var view = new StubComponent(() => DragDrop
@@ -59,14 +57,13 @@ public partial class DragDropTests : global::Rask.Core.RaskMarkup
             .OnDrop(_ => fired = true));
 
         var dropId = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-drop");
-
         await view.TryInvokeHandlerAsync(dropId!, Empty);
 
         Assert.False(fired);
     }
 
     [Fact]
-    public async Task A_drag_over_after_a_drag_start_marks_the_drop_target()
+    public async Task Drag_over_after_drag_start_marks_drop_target()
     {
         DragDropContext? captured = null;
         var view = new StubComponent(() => DragDrop
@@ -99,7 +96,7 @@ public partial class DragDropTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task A_drag_over_without_a_drag_start_is_ignored()
+    public async Task Drag_over_without_drag_start_ignored()
     {
         DragDropContext? captured = null;
         var view = new StubComponent(() => DragDrop
@@ -111,7 +108,6 @@ public partial class DragDropTests : global::Rask.Core.RaskMarkup
             .OnDrop(_ => { }));
 
         var overId = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-dragover");
-
         await view.TryInvokeHandlerAsync(overId!, Empty);
         view.RenderAsLiveRoot();
 
@@ -120,7 +116,7 @@ public partial class DragDropTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task A_drag_end_clears_the_drag_state()
+    public async Task Drag_end_clears_drag_state()
     {
         DragDropContext? captured = null;
         var view = new StubComponent(() => DragDrop
@@ -135,7 +131,6 @@ public partial class DragDropTests : global::Rask.Core.RaskMarkup
             .OnDrop(_ => { }));
 
         var html = view.RenderAsLiveRoot();
-
         await view.TryInvokeHandlerAsync(Markup.Attr(html, "data-rask-on-dragstart")!, Empty);
         await view.TryInvokeHandlerAsync(Markup.Attr(html, "data-rask-on-dragend")!, Empty);
         view.RenderAsLiveRoot();
@@ -145,7 +140,7 @@ public partial class DragDropTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task A_drop_with_an_async_handler_is_awaited()
+    public async Task Drop_with_async_handler_awaits()
     {
         DragDropMove? captured = null;
         var view = new StubComponent(() => DragDrop
@@ -160,7 +155,6 @@ public partial class DragDropTests : global::Rask.Core.RaskMarkup
             }));
 
         var html = view.RenderAsLiveRoot();
-
         await view.TryInvokeHandlerAsync(Markup.Attr(html, "data-rask-on-dragstart")!, Empty);
         await view.TryInvokeHandlerAsync(Markup.Attr(html, "data-rask-on-drop")!, Empty);
 

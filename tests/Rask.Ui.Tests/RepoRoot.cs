@@ -1,4 +1,4 @@
-namespace Rask.Ui.Tests;
+namespace Rask.UiTests;
 
 /// <summary>
 ///     The repository root, found by walking up from the test binaries to <c>Rask.slnx</c>.

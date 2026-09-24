@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using Rask.Core.Forms;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A run of menu items of which exactly one is chosen — "Sort by name / date / size".
@@ -48,7 +48,7 @@ public sealed partial class UiMenuRadioGroup<T> : Component, IFormControl<T>
     /// <inheritdoc cref="IFormControl{T}.AfterBind" />
     public Callback<T>? AfterBind { get; set; }
 
-    // Registration happens in Render; see UiMenuItem.
+    // Registration happens in Render; see Ui.MenuItem.
     /// <inheritdoc />
     protected override bool BypassRenderCache => true;
 
@@ -97,7 +97,7 @@ public sealed partial class UiMenuRadioGroup<T> : Component, IFormControl<T>
         button = UiMenuItemMarkup.AsMenuItem(button, level, ordinal, "menuitemradio", aria, KeepOpen == true, chosen);
 
         return Li.Key(option.Text).Role(level is null ? null : "none")[
-            button[global::Rask.Ui.UiMenuItem.Row(icon: null, option.Text, kbd: null, trailing: null, global::Rask.Ui.UiMenuItem.Indicator(chosen))]
+            button[global::Rask.UiMenuItem.Row(icon: null, option.Text, kbd: null, trailing: null, global::Rask.UiMenuItem.Indicator(chosen))]
         ];
     }
 }

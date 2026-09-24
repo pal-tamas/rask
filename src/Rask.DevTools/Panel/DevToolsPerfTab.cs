@@ -1,8 +1,8 @@
 using System.Diagnostics;
 using System.Globalization;
+using Rask;
 using Rask.Core;
 using Rask.DevTools.Probe;
-using Rask.Ui;
 
 namespace Rask.DevTools.Panel;
 
@@ -71,16 +71,16 @@ internal sealed partial class DevToolsPerfTab : Component
                 P.Class("text-xs opacity-60")[
                     "Server is the handler, the render and the diff; patch is the page applying what arrived."
                 ],
-                UiButton.Size(UiSize.Sm).Title("Forget the interactions timed so far").OnClick(Feed.ClearInteractions)["Clear"]
+                Ui.Button.Size(Ui.Size.Sm).Title("Forget the interactions timed so far").OnClick(Feed.ClearInteractions)["Clear"]
             ],
             interactions.Length == 0
-                ? UiAlert["No interactions yet. Use the page, and each event's handler, render, diff and patch are timed here."]
+                ? Ui.Alert["No interactions yet. Use the page, and each event's handler, render, diff and patch are timed here."]
                 : Div.Class("flex flex-col gap-3")[
-                    UiMetricRow[
-                        UiMetric.Label("Interactions").Value(Count(interactions.Length)),
-                        UiMetric.Label("Server p50").Value(Milliseconds(Percentile(interactions, 0.50))),
-                        UiMetric.Label("Server p95").Value(Milliseconds(Percentile(interactions, 0.95))),
-                        UiMetric.Label("Patch p50").Value(PatchPercentile(interactions, 0.50))
+                    Ui.MetricRow[
+                        Ui.Metric.Label("Interactions").Value(Count(interactions.Length)),
+                        Ui.Metric.Label("Server p50").Value(Milliseconds(Percentile(interactions, 0.50))),
+                        Ui.Metric.Label("Server p95").Value(Milliseconds(Percentile(interactions, 0.95))),
+                        Ui.Metric.Label("Patch p50").Value(PatchPercentile(interactions, 0.50))
                     ],
                     InteractionTable(interactions)
                 ],
@@ -124,7 +124,7 @@ internal sealed partial class DevToolsPerfTab : Component
                     ? "Newest first."
                     : $"The newest {Count(shown)} of {Count(interactions.Length)} interactions."
             ],
-            UiTable.Scroll(true)[
+            Ui.Table.Scroll(true)[
                 Thead[Tr[Th["#"], Th["Trigger"], Th["Handler"], Th["Render"], Th["Diff"], Th["Size"], Th["Patch"], Th["Total"]]],
                 Tbody[rows]
             ]
@@ -133,7 +133,7 @@ internal sealed partial class DevToolsPerfTab : Component
 
     private static Component Trigger(DevToolsInteraction item) =>
         Span.Class("flex flex-wrap items-center gap-1")[
-            UiBadge.Size(UiSize.Sm).Mono(true).Tone(item.Faulted ? UiTone.Error : null)[item.Trigger],
+            Ui.Badge.Size(Ui.Size.Sm).Mono(true).Tone(item.Faulted ? Ui.Tone.Error : null)[item.Trigger],
             item.Target is { } target ? Span.Class("font-mono")[target] : null,
             item.Faulted ? Span.Class("text-xs")["threw"] : null
         ];
@@ -182,7 +182,7 @@ internal sealed partial class DevToolsPerfTab : Component
                     item.Key is null
                         ? Span.Class("font-mono")[item.Type]
                         : Span.Class("whitespace-nowrap")[
-                            Span.Class("font-mono")[item.Type], " ", UiBadge.Size(UiSize.Sm).Mono(true)[item.Key]
+                            Span.Class("font-mono")[item.Type], " ", Ui.Badge.Size(Ui.Size.Sm).Mono(true)[item.Key]
                         ]
                 ],
                 Td.Class("tabular-nums")[Count(item.Renders)],
@@ -192,7 +192,7 @@ internal sealed partial class DevToolsPerfTab : Component
             ];
         }
 
-        return UiTable.Scroll(true)[
+        return Ui.Table.Scroll(true)[
             Thead[Tr[Th["Component"], Th["Renders"], Th["Total"], Th["Average"], Th["Slowest"]]],
             Tbody[rows]
         ];

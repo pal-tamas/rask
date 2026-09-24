@@ -15,7 +15,7 @@ public sealed class AppTests
     [Fact]
     public void A_live_render_starts_with_the_doctype_and_an_en_html_lang()
     {
-        var html = Test.RenderDocument(new global::Rask.Site.App(), TestServices.Default()).Html;
+        var html = Page.RenderDocument(new global::Rask.Site.App(), TestServices.Default()).Html;
 
         Assert.StartsWith("<!DOCTYPE html>", html);
         // data-rask-ui turns the kit's theme on for the document; the kit scopes daisyUI's palette to
@@ -27,7 +27,7 @@ public sealed class AppTests
     [Fact]
     public void A_live_render_emits_the_stylesheet_and_meta_in_the_head()
     {
-        var html = Test.RenderDocument(
+        var html = Page.RenderDocument(
             new global::Rask.Site.App(), TestServices.Default(routeState: ShowcaseRoot)).Html;
 
         // Title body content is HTML-encoded: literal "—" → "&#x2014;". GuidesIndexPage
@@ -45,7 +45,7 @@ public sealed class AppTests
     [Fact]
     public void A_live_render_emits_the_router_and_runtime_script_slot_in_the_body()
     {
-        var html = Test.RenderDocument(
+        var html = Page.RenderDocument(
             new global::Rask.Site.App(), TestServices.Default(routeState: ShowcaseRoot)).Html;
 
         // Router rendered the matched chain — ShowcaseLayout contributes the navbar.
@@ -59,7 +59,7 @@ public sealed class AppTests
     {
         var routeState = new RouteState { Path = "/__no_such_path" };
 
-        var html = Test.RenderDocument(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
+        var html = Page.RenderDocument(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
         Assert.StartsWith("<!DOCTYPE html>", html);
         Assert.Contains("<title ", html);

@@ -36,13 +36,13 @@ public sealed partial class QueryParcelsDemo(Navigator nav, RouteState route, Pa
 
         return Div.Id("query-demo").Class("flex flex-col gap-4")[
             Div.Class("flex gap-2 items-center flex-wrap")[
-                UiButton.Id("query-prev").Disabled(PageNumber <= 1).OnClick(() => GoTo(PageNumber - 1))["Previous"],
+                Ui.Button.Id("query-prev").Disabled(PageNumber <= 1).OnClick(() => GoTo(PageNumber - 1))["Previous"],
                 Span.Id("query-page")[$"Page {PageNumber} of {pages}"],
-                UiButton.Id("query-next").Disabled(PageNumber >= pages).OnClick(() => GoTo(PageNumber + 1))["Next"],
+                Ui.Button.Id("query-next").Disabled(PageNumber >= pages).OnClick(() => GoTo(PageNumber + 1))["Next"],
                 Span.Id("query-status").Class("text-ui-muted text-sm")[
                     parcels.IsLoading ? "loading…" : parcels.IsPlaceholderData ? "showing the previous page" : "fresh"]
             ],
-            UiList.Id("query-rows")[(parcels.Data?.Rows ?? []).Select(Row)],
+            Ui.List.Id("query-rows")[(parcels.Data?.Rows ?? []).Select(Row)],
             Div.Class("flex flex-col gap-1")[
                 Strong["Picked parcel"],
                 P.Id("query-picked").Class("mb-0")[Picked.FetchStatus switch
@@ -55,8 +55,8 @@ public sealed partial class QueryParcelsDemo(Navigator nav, RouteState route, Pa
             Div.Class("flex flex-col gap-1")[
                 Div.Class("flex gap-2 items-center flex-wrap")[
                     Strong["Parcels holding"],
-                    UiButton.Id("query-search-books").OnClick(() => _contents = "book")["books"],
-                    UiButton.Id("query-search-tea").OnClick(() => _contents = "tea")["tea"]
+                    Ui.Button.Id("query-search-books").OnClick(() => _contents = "book")["books"],
+                    Ui.Button.Id("query-search-tea").OnClick(() => _contents = "tea")["tea"]
                 ],
                 P.Id("query-search").Class("mb-0")[Search.Data is { } hits
                     ? $"{_contents}: " + string.Join(", ", hits.Select(p => $"#{p.Id}"))
@@ -74,9 +74,9 @@ public sealed partial class QueryParcelsDemo(Navigator nav, RouteState route, Pa
             Span[$"#{parcel.Id} {parcel.Recipient} — {parcel.Contents}"],
             parcel.Shipped
                 ? Span.Class("query-shipped text-ui-ok-ink")["shipped"]
-                : UiButton.Class("query-ship").Disabled(ship.IsPending)
+                : Ui.Button.Class("query-ship").Disabled(ship.IsPending)
                     .OnClick(async () => await ship.Send(new ShipParcel(parcel.Id)))[ship.IsPending ? "shipping…" : "Ship"],
-            UiButton.Class("query-pick").OnClick(() => _picked = parcel.Id)["Details"]
+            Ui.Button.Class("query-pick").OnClick(() => _picked = parcel.Id)["Details"]
         ];
     }
 

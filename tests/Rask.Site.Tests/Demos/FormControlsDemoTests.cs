@@ -15,7 +15,7 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_controlled_Select_updates_the_readout_on_change()
     {
-        var page = Test.Render(() => FormControlsSelectDemo, TestServices.Default());
+        var page = Page.Render(() => FormControlsSelectDemo, TestServices.Default());
         var html = page.Render();
         Assert.Contains("Picked: <strong>Rask</strong>", html);
 
@@ -28,7 +28,7 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_bound_Select_updates_the_readout_on_change()
     {
-        var page = Test.Render(() => FormControlsSelectDemo, TestServices.Default());
+        var page = Page.Render(() => FormControlsSelectDemo, TestServices.Default());
         var html = page.Render();
 
         var id = HandlerIn(html, "id=\"fc-select-bound\"", "data-rask-on-change");
@@ -44,7 +44,7 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_controlled_Input_updates_the_readout_on_change()
     {
-        var page = Test.Render(() => FormControlsInputDemo, TestServices.Default());
+        var page = Page.Render(() => FormControlsInputDemo, TestServices.Default());
         var html = page.Render();
         Assert.Contains("Echo: <strong>(empty)</strong>", html);
 
@@ -57,7 +57,7 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_bound_Input_updates_the_readout_on_input()
     {
-        var page = Test.Render(() => FormControlsInputDemo, TestServices.Default());
+        var page = Page.Render(() => FormControlsInputDemo, TestServices.Default());
         var html = page.Render();
 
         // A bound text Input streams via data-rask-on-input (per keystroke); the change handler only touches.
@@ -72,7 +72,7 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_controlled_Textarea_updates_the_readout_on_change()
     {
-        var page = Test.Render(() => FormControlsTextareaDemo, TestServices.Default());
+        var page = Page.Render(() => FormControlsTextareaDemo, TestServices.Default());
         var html = page.Render();
         Assert.Contains("Length: <strong>0</strong>", html);
 
@@ -85,7 +85,7 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_bound_Textarea_updates_the_readout_on_input()
     {
-        var page = Test.Render(() => FormControlsTextareaDemo, TestServices.Default());
+        var page = Page.Render(() => FormControlsTextareaDemo, TestServices.Default());
         var html = page.Render();
 
         var id = HandlerIn(html, "id=\"fc-textarea-bound\"", "data-rask-on-input");
@@ -118,11 +118,11 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_submit_state_children_render_the_idle_shape_while_no_submit_is_running()
     {
-        var page = Test.Render(() => FormSubmitStateDemo, TestServices.Default());
+        var page = Page.Render(() => FormSubmitStateDemo, TestServices.Default());
 
         var html = page.Render();
 
-        // The label is the button's own child text — UiButton shows its children, and an icon would be a
+        // The label is the button's own child text — Ui.Button shows its children, and an icon would be a
         // sibling of it. The contract is unchanged: the idle button says "Sign up" and the submit is still a
         // submit, which is the part that would break silently (a submit button rendered type="button"
         // does nothing at all, on a form that looks finished).

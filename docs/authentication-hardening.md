@@ -18,6 +18,8 @@ a reverse proxy, Content-Security-Policy, and the pre-ship checklist. For the au
 | **Sign-out invalidation** | Redeem clears the cookie; the WS reconnect re-seeds `SessionUserProvider` to anonymous. `SessionUserProvider.Clear()` is available for explicit invalidation. |
 | **Session expiry → re-auth** | A swept live session pushes `{type:"session",status:"unknown"}`; `rask.js` reloads → fresh GET → route guard challenges to `ChallengePath?returnUrl=…`. |
 | **No token in the browser** | The session is a cookie, `HttpOnly` and never readable from JavaScript, so there is nothing for XSS to exfiltrate and nothing to encrypt at rest. Rask carries no bearer token on the WS URL either — a query string leaks through logs, proxies and `Referer`. |
+| **Account-session rows** | Each signed-in device is a `Session` row the cookie points at; ending it stamps the row rather than deleting it, so a device list can still show it. An hourly sweep (which also runs at startup) removes rows of sessions that ended or expired more than a day ago, so the table does not grow without bound. |
+| **One address in two tenants** | With [multi-tenancy](multi-tenancy.md) an address is unique within a tenant, and sign-in has to look a user up across tenants. When two tenants hold the address, sign-in is refused and logged as an error rather than signing into whichever row the database returns first; the caller sees ordinary invalid credentials, and the password is hashed on that path too, so neither the response nor its timing says which addresses exist. |
 
 ---
 

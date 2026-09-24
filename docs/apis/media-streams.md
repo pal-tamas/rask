@@ -21,7 +21,7 @@ Three things hand you a `MediaStreamId`, and all three produce the same kind:
 
 | Source | Host | How |
 |---|---|---|
-| [`MediaCaptureTrigger`](media-devices.md) | Server + WASM | its `OnStream` callback, from the click gesture |
+| [`Trigger.MediaCapture`](media-devices.md) | Server + WASM | its `OnStream` callback, from the click gesture |
 | [`IMediaDevices`](media-devices.md) | WASM | `IMediaStreamHandle.Id` |
 | [`IWebRtc`](webrtc.md) | every host | `RtcHandlers.OnTrack`, for a peer's remote stream |
 
@@ -39,9 +39,9 @@ public sealed class Camera(IMediaStreams streams) : Component
 
     protected override Component? Render() =>
         Div[
-            MediaCaptureTrigger.For(_video).Video(true)
-                .OnStream(id => { _stream = id; StateHasChanged(); return Task.CompletedTask; })
-                .Template(g => Button.Type("button").Data(g)["Start camera"]),
+            Trigger.MediaCapture.For(_video).Template(g => Button.Type("button").Data(g)["Start camera"])
+                .Video(true)
+                .OnStream(id => { _stream = id; StateHasChanged(); return Task.CompletedTask; }),
             Button.Type("button").Disabled(_stream is null).OnClick(StopAsync)["Stop camera"],
             Video.Ref(_video).Muted(true)
         ];
@@ -65,7 +65,7 @@ disposing the connection deliberately leaves it running.
 
 ## On the Server host this is new
 
-Before this existed, `MediaCaptureTrigger` started the camera and attached it to a `<video>`, and that was
+Before this existed, `Trigger.MediaCapture` started the camera and attached it to a `<video>`, and that was
 the end of it — the stream was unreachable from C#, so a Server-hosted app could not stop it, re-attach it,
 or do anything else with it. `OnStream` plus `IMediaStreams` closes that gap.
 

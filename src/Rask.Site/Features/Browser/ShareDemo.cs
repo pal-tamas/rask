@@ -12,7 +12,7 @@ namespace Rask.Site.Features;
 public sealed partial class ShareDemo : Component
 {
     protected override Component? Render() =>
-        UiCard.Class("shadow-sm")[
+        Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     // Headless: we render our own button; Shareable just supplies the share attribute.
                     Shareable
@@ -22,7 +22,7 @@ public sealed partial class ShareDemo : Component
                             Text = "Build web apps in C# — one component model, server or WebAssembly.",
                             Url = "https://github.com/pal-tamas/rask"
                         })
-                        .Template(share => UiButton.Tone(UiTone.Primary)
+                        .Template(share => Ui.Button.Tone(Ui.Tone.Primary)
                             .Id("share-btn")
                             .Data(share)["Share this page"])
                 ],

@@ -25,11 +25,11 @@ public sealed class AddressModel
 }
 ```
 
-**Sub-object binding** uses the same `Bind: () => …` shape:
+**Sub-object binding** uses the same `.Bind(() => …)` shape:
 
 ```csharp
 Input.Bind(() => _model.Address.Street),
-ValidationMessage.For(() => _model.Address.Street).Template(errs => Div.Class("err")[errs[0]]),
+Validation.Message.Template(errs => Div.Class("err")[errs[0]]).For(() => _model.Address.Street),
 ```
 
 **Collection binding — `foreach` + per-item capture** (the canonical pattern). Each iteration closes
@@ -68,7 +68,7 @@ the slot (`_model.Items[i] = _model.Items[i] with { Field = newValue }`).
 
 **FluentValidation nesting** uses `SetValidator(...)` and `RuleForEach(...).SetValidator(...)`; Rask
 routes the dotted `error.PropertyName` (`Address.Street`, `Lines[0].Quantity`) back to the runtime
-sub-instance so `ValidationMessage(For: () => _model.Address.Street, …)` reads the right slot.
+sub-instance so `Validation.Message.Template(…).For(() => _model.Address.Street)` reads the right slot.
 
 > **Trimming.** Validating a nested graph reflects over every reachable model type. Whatever
 > preserves the root model's public properties (`[DynamicallyAccessedMembers]`, a routed page, or a
@@ -91,71 +91,69 @@ A nested graph with **async** validators and live totals rolling up from the row
 
 ---
 
-## Radio & checkbox groups (example components)
+## Radio & checkbox groups
 
-`RadioGroup<TValue>` binds one value from a set of options; `CheckboxGroup<TItem>` binds an
-`ICollection<TItem>`. Build a typed version of your own as
-a radio group, a checkbox group or a multi-select of your own. The versions below are
-a **copyable worked example** of the binding API of §9 — `IFormControl<T>`
-is the framework primitive; the control is yours to build or take from the package. They're structured exactly like
-`MultiSelect<TItem>`, with **bound** and **controlled** modes (so the generator emits both chains):
+`Ui.RadioGroup` binds one value from a set of options; `Ui.CheckboxGroup` binds an `ICollection<T>`.
+Both come from [the UI kit](ui-kit.md), and both are ordinary `IFormControl<T>` controls — the binding
+API of §9 — so they work **bound** or **controlled**, exactly like `Input`, and you can build a group of
+your own the same way ([building-form-controls.md](building-form-controls.md)):
 
 ```csharp
 // Bound — two-way binds the model, with an optional per-field Validate rule.
 Form.Model(_prefs)[
-    RadioGroup(() => _prefs.Plan,                       // single value
-        new[] { Plan.Free, Plan.Pro, Plan.Team },
-        ItemClass: "form-check-inline"),
+    Ui.RadioGroup.Bind(() => _prefs.Plan)               // single value
+        .Options([(Plan.Free, "Free"), (Plan.Pro, "Pro"), (Plan.Team, "Team")])
+        .Label("Plan"),
 
-    CheckboxGroup<string>(() => _prefs.Interests,       // a collection
-        new[] { "Web", "Mobile", "AI", "Games" },
-        Validate: tags => tags.Count >= 1 ? [] : ["Pick at least one."])
+    Ui.CheckboxGroup.Bind(() => _prefs.Interests)       // a collection
+        .Options([("web", "Web"), ("mobile", "Mobile"), ("ai", "AI")])
+        .Label("Interests")
+        .Validate(tags => tags.Count >= 1 ? [] : ["Pick at least one."])
 ]
 
 // Controlled — the parent owns the value; OnChange (auto-wrapped) re-renders it.
-RadioGroup(plans, Value: _plan, OnChange: v => _plan = v)
-CheckboxGroup<string>(interests, Value: _interests, OnChange: next => _interests = next)
+Ui.RadioGroup.Value(_plan).Options(plans).Label("Plan").OnChange(v => _plan = v)
+Ui.CheckboxGroup.Value(_interests).Options(interests).Label("Interests").OnChange(next => _interests = next)
 ```
 
-- Bound mode takes the `Bind` expression first; `Validate` fans into none/sync/async overloads like
-  `Input` (§9). `RadioGroup` renders the option equal to the current value `checked` and sets the bound
-  property on select; `CheckboxGroup` mutates the bound collection (membership by
-  `EqualityComparer<TItem>.Default`) — you usually need the explicit `CheckboxGroup<string>` when the
-  collection is a concrete `List<T>`. Each change calls `NotifyFieldChanged` + `NotifyFieldTouched` +
+- Bound mode opens with `Bind`; `Validate` takes a synchronous or an asynchronous rule, like `Input`
+  (§9). `Ui.RadioGroup` renders the option equal to the current value `checked` and sets the bound
+  property on select; `Ui.CheckboxGroup` mutates the bound collection (membership by
+  `EqualityComparer<T>.Default`). Each change calls `NotifyFieldChanged` + `NotifyFieldTouched` +
   `ValidateFieldAsync`, so DataAnnotations / FluentValidation rules apply.
-- Each item renders an `<input>` and a `<label>` tied together by `id`/`for`, so the pair is one
-  target for a pointer and one stop for a screen reader. `ItemClass` adds extra classes;
-  `OptionLabel` customizes the label.
-- On a radio or checkbox group of your own, pass a label to give the group an accessible
-  name: the options are then wrapped in a `<fieldset>` titled by a `<legend>`, which is the correct
-  grouping semantics for a set of related radios/checkboxes. Without a `Label` you get the bare per-item
-  fragment (so you can supply your own `<fieldset>`/heading). An unnamed control derives a page-unique
-  fallback `name`, so two on one page are never merged into a single browser radio group.
+- `Options` is a list of `(Value, Text)` pairs — the value bound and the words shown.
+  `OptionDescription` adds a line under an option, `OptionDisabled` greys one out, and `Layout` picks the
+  look (a list, cards, pills, buttons or one segmented strip) while keeping a real
+  `<input type="radio">`/`<input type="checkbox">` inside each label.
+- Give the group a `Label`: it names the group's container for a screen reader (`aria-labelledby`), and
+  `AccessibleLabel` does the same with no visible label. Without a `Name`, the radios share the field's
+  own page-unique id as their `name`, so two groups on one page are never merged into a single browser
+  radio group.
 - They are **Components** (their own re-render boundary), so a toggle re-renders the control itself; for
   host-side derived UI (a live summary) use **controlled** mode — the auto-wrapped `OnChange` re-renders
-  the host. (In bound mode, feedback lives inside the control via the embedded `ValidationMessage`.)
+  the host. (In bound mode, feedback lives inside the control via the embedded `Validation.Message`.)
 - **Reading validation state in a custom control just works.** If you bake feedback straight into your
   own `Render()` — reading `EditContext.GetValidationMessages(field)` / `GetValidationEntries()` /
   `ShouldShowValidatingIndicator(field)` — the framework detects the read and opts that control out of
   its render cache automatically, so a message produced later in the submit pipeline always repaints. No
   `StateHasChanged()`, no `BypassRenderCache` override (the same auto-opt-out `Context.Get` consumers get).
 
-`RadioGroup` (single value) and `CheckboxGroup` (a collection), live:
+`Ui.RadioGroup` (single value) and `Ui.CheckboxGroup` (a collection), live:
 
 **A drawn single-select.** [`UiSelect<T>`](ui-kit.md) binds one `T` and renders the platform's
-`<select>` by default; `Native: false` draws the list itself instead — a `[popover]` `role="listbox"`
+`<select>` by default; `.Native(false)` draws the list itself instead — a `[popover]` `role="listbox"`
 under a `role="combobox"` box, with the arrow keys, Home/End, Enter and a roving
 `aria-activedescendant` cursor that skips unavailable options. Reach for it when the list has to carry
 more than the platform will show (groups, options that are visibly unavailable) or has to escape an
 `overflow: hidden` ancestor. The drawn list needs the runtime; the native one does not.
 
-**A plain `<select multiple>` bound to a collection.** `Select(() => …).Multiple(true)` binds the
+**A plain `<select multiple>` bound to a collection.** `Select.Bind(() => …).Multiple(true)` binds the
 whole selection when `T` is a string collection — `string[]`, `List<string>`, `HashSet<string>`, or the
 `IReadOnlyList<string>` / `IList<string>` / `ICollection<string>` / `IEnumerable<string>` interfaces:
 
 ```csharp
 Select.Bind(() => model.Tags).Multiple(true)[
-    Option("news"), Option("sport"), Option("weather")
+    Option.Value("news")["News"], Option.Value("sport")["Sport"], Option.Value("weather")["Weather"]
 ]
 ```
 
@@ -168,15 +166,15 @@ Two limits worth knowing:
 - **The element type is `string`.** The reflective version that would accept any parsable element needs
   `MakeGenericType` and `Array.CreateInstance`, both of which are AOT-hostile — and
   `src/Rask.Site` has to publish with zero trim warnings. Bind `string[]` and convert.
-- **`Multiple: true` over a scalar property keeps the single-value binding.** That is a model which can
+- **`.Multiple(true)` over a scalar property keeps the single-value binding.** That is a model which can
   only hold one answer; widening it silently would be the more surprising behaviour.
 
-**Taking the picked values yourself.** `OnSelect` / `OnSelectAsync` hand over the raw option values the
-user picked, as `IReadOnlyList<string>` — the whole selection every time, never a delta:
+**Taking the picked values yourself.** `OnSelect` (a synchronous or an asynchronous handler) hands over the
+raw option values the user picked, as `IReadOnlyList<string>` — the whole selection every time, never a delta:
 
 ```csharp
 Select.Of<string>().Multiple(true).OnSelect(picked => _chosen = Map(picked))[
-    Option("news"), Option("sport"), Option("weather")
+    Option.Value("news")["News"], Option.Value("sport")["Sport"], Option.Value("weather")["Weather"]
 ]
 ```
 
@@ -221,5 +219,5 @@ Passwords, file, hidden and one-time-code inputs, and anything with a `cc-*` / `
 The binding system is public: a custom control implementing `IFormControl<T>` gets generator-synthesized
 bound + controlled chains, per-field validation, and the same ergonomics as the built-ins — see the
 dedicated guide **[building-form-controls.md](building-form-controls.md)** (with a complete worked example
-and the `IFormControl<T>` helper reference). `RadioGroup`/`CheckboxGroup` (§8) and the showcase
-`MultiSelect<TItem>` are built entirely on it.
+and the `IFormControl<T>` helper reference). `Ui.RadioGroup`/`Ui.CheckboxGroup` (§8) and
+`Ui.MultiSelect` are built entirely on it.

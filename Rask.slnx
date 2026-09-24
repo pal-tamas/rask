@@ -22,7 +22,6 @@
         <Project Path="src/Rask.Mail/Rask.Mail.csproj" />
         <Project Path="src/Rask.Outbox/Rask.Outbox.csproj" />
         <Project Path="src/Rask.Postgres/Rask.Postgres.csproj" />
-        <Project Path="src/Rask.Redis/Rask.Redis.csproj" />
         <Project Path="src/Rask.SqlServer/Rask.SqlServer.csproj" />
         <Project Path="src/Rask.Blazor/Rask.Blazor.csproj" />
         <Project Path="src/Rask.External/Rask.External.csproj" />
@@ -32,6 +31,7 @@
         <Project Path="src/Rask/Rask.csproj" />
         <Project Path="src/Rask.Server/Rask.Server.csproj" />
         <Project Path="src/Rask.Site/Rask.Site.csproj" />
+        <Project Path="src/Rask.Site.DataDemo/Rask.Site.DataDemo.csproj" />
         <Project Path="src/Rask.Signaling/Rask.Signaling.csproj" />
         <Project Path="src/Rask.Storage/Rask.Storage.csproj" />
         <Project Path="src/Rask.Query/Rask.Query.csproj" />
@@ -89,11 +89,11 @@
         <Project Path="tests/Rask.Mail.Tests/Rask.Mail.Tests.csproj" />
         <Project Path="tests/Rask.Outbox.Tests/Rask.Outbox.Tests.csproj" />
         <Project Path="tests/Rask.Postgres.Tests/Rask.Postgres.Tests.csproj" />
-        <Project Path="tests/Rask.Redis.Tests/Rask.Redis.Tests.csproj" />
         <Project Path="tests/Rask.SqlServer.Tests/Rask.SqlServer.Tests.csproj" />
         <Project Path="tests/Rask.Providers.E2E.Tests/Rask.Providers.E2E.Tests.csproj" />
         <Project Path="tests/Rask.Server.E2E.Tests/Rask.Server.E2E.Tests.csproj" />
         <Project Path="tests/Rask.Site.E2E.Tests/Rask.Site.E2E.Tests.csproj" />
+        <Project Path="tests/Rask.Site.DataDemo.E2E.Tests/Rask.Site.DataDemo.E2E.Tests.csproj" />
     <Project Path="tests/Rask.ScopedAssets.Fixture/Rask.ScopedAssets.Fixture.csproj" />
         <Project Path="tests/Rask.Generators.Tests/Rask.Generators.Tests.csproj" />
         <Project Path="tests/Rask.Server.HotReload.Tests/Rask.Server.HotReload.Tests.csproj" />

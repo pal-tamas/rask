@@ -65,8 +65,8 @@ public sealed partial class CachePage(
 
         if (!cache.IsAvailable)
         {
-            return UiCard[
-                UiEmpty
+            return Ui.Card[
+                Ui.Empty
                     .Heading("Cache isn't registered")
                     .Detail("Call AddRaskCache<TContext>() and modelBuilder.AddRaskCache() to see cache entries here.")
             ];
@@ -74,13 +74,13 @@ public sealed partial class CachePage(
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         return [
-            UiHeader.Heading("Cache").Actions(FlushButton()),
+            Ui.Header.Heading("Cache").Actions(FlushButton()),
             DashboardError.Message(LoadError),
             ConfirmPrompt(),
-            UiMetricRow.Columns(3)[
-                UiMetric.Key("entries").Label("Entries").Value(_stats.Entries.ToString()),
-                UiMetric.Key("stored").Label("Stored").Value(DashboardParts.Bytes(_stats.Bytes)),
-                UiMetric
+            Ui.MetricRow.Columns(3)[
+                Ui.Metric.Key("entries").Label("Entries").Value(_stats.Entries.ToString()),
+                Ui.Metric.Key("stored").Label("Stored").Value(DashboardParts.Bytes(_stats.Bytes)),
+                Ui.Metric
                     .Key("expired")
                     .Label("Expired, not swept")
                     .Value(_stats.Expired.ToString())
@@ -110,7 +110,7 @@ public sealed partial class CachePage(
     // The search lives in the grid's toolbar so it survives an empty result — a search that matched nothing
     // must leave the box that typed it on the screen. The key is the column every width keeps.
     private Component KeyGrid(DateTime now) =>
-        UiDataGrid.Data(_rows)
+        Ui.DataGrid.Data(_rows)
             .RowKey(r => r.Key)
             .Label("Cache keys")
             .PageSize(options.PageSize)
@@ -118,54 +118,54 @@ public sealed partial class CachePage(
             .TotalCount(_total)
             .OnPageChange(GoAsync)
             // An expired key still reads until the sweep takes it; a neutral tint says it is on its way out.
-            .RowTone(r => r.ExpiresAt <= now ? UiTone.Neutral : null)
-            .Toolbar(UiSearch
+            .RowTone(r => r.ExpiresAt <= now ? Ui.Tone.Neutral : null)
+            .Toolbar(Ui.Search
                 .Placeholder("Search keys")
                 .AccessibleLabel("Search cache keys")
                 .Value(Search)
                 .OnSearch(SearchAsync))
-            .Empty(UiEmpty
+            .Empty(Ui.Empty
                 .Heading(Search is { Length: > 0 } ? $"No keys matching \"{Search}\"" : "Cache is empty")
                 .Detail("Entries appear here as soon as something is cached."))[c => [
                 c.Field(r => r.Key).Title("Key").Mono(true),
                 c.Field(r => r.Bytes).Title("Size").Value(r => DashboardParts.Bytes(r.Bytes)),
-                c.Field(r => r.CreatedAt).Title("Written").ShowFrom(UiBreakpoint.Md).Cell(r =>
+                c.Field(r => r.CreatedAt).Title("Written").ShowFrom(Ui.Breakpoint.Md).Cell(r =>
                     Span.Title(r.CreatedAt.ToString("u"))[DashboardParts.Ago(r.CreatedAt, now)]),
                 c.Field(r => r.ExpiresAt).Title("Expires").Cell(r =>
                     r.ExpiresAt <= now
-                        ? UiBadge["expired"]
+                        ? Ui.Badge["expired"]
                         : Span.Title(r.ExpiresAt.ToString("u"))[DashboardParts.Ago(r.ExpiresAt, now)]),
-                c.Field(r => r.SlidingSeconds).Title("Sliding").ShowFrom(UiBreakpoint.Lg).Value(r =>
+                c.Field(r => r.SlidingSeconds).Title("Sliding").ShowFrom(Ui.Breakpoint.Lg).Value(r =>
                     r.SlidingSeconds is { } s ? DashboardParts.Duration(TimeSpan.FromSeconds(s)) : "—"),
                 // Evicting one key is a recompute, not a lost fact, so it sits in the Safe tier and needs no
                 // confirmation. Flushing everything is correctness-safe too, but a cold cache on a busy app
                 // means a stampede — hence the Destructive tier and a confirmation.
                 options.Actions.HasFlag(RaskDashboardActions.Safe)
-                    ? c.Column().Cell(r => UiButton.Size(UiSize.Sm).OnClick(() => EvictAsync(r.Key))["Evict"])
+                    ? c.Column().Cell(r => Ui.Button.Size(Ui.Size.Sm).OnClick(() => EvictAsync(r.Key))["Evict"])
                     : null,
             ]];
 
     private Component? FlushButton() =>
         options.Actions.HasFlag(RaskDashboardActions.Destructive) && _stats.Entries > 0
-            ? UiButton.Tone(UiTone.Error).OnClick(() => Confirm(true))[UiIcon.Name(UiIconName.Trash), "Flush cache"]
+            ? Ui.Button.Tone(Ui.Tone.Error).OnClick(() => Confirm(true))[Ui.Icon.Name(Ui.IconName.Trash), "Flush cache"]
             : null;
 
     private Component? ConfirmPrompt() =>
         _confirmFlush
-            ? UiAlert.Tone(UiTone.Warning)[
+            ? Ui.Alert.Tone(Ui.Tone.Warning)[
                 Span[
                     $"Drop all {_stats.Entries} cache entries? Nothing is lost permanently, but everything is recomputed at once."
                 ],
                 Div[
-                    UiButton.Key("confirm").Tone(UiTone.Error).Size(UiSize.Sm).OnClick(FlushAsync)["Confirm"],
+                    Ui.Button.Key("confirm").Tone(Ui.Tone.Error).Size(Ui.Size.Sm).OnClick(FlushAsync)["Confirm"],
                     " ",
-                    UiButton.Key("cancel").Size(UiSize.Sm).OnClick(() => Confirm(false))["Cancel"]
+                    Ui.Button.Key("cancel").Size(Ui.Size.Sm).OnClick(() => Confirm(false))["Cancel"]
                 ]
             ]
             : null;
 
     private Component? ResultToast() =>
-        _message is { } message ? UiToast.Message(message).OnDismiss(Dismiss) : null;
+        _message is { } message ? Ui.Toast.Message(message).OnDismiss(Dismiss) : null;
 
     private void Confirm(bool pending)
     {

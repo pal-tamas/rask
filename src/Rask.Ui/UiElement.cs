@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// The base of every kit component that IS one HTML element — a button, a badge, an alert, a table, a list.

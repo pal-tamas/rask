@@ -2,29 +2,29 @@ using System.Linq.Expressions;
 
 namespace Rask.Core.Forms;
 
-// The contract a custom form control implements so the factory generator can synthesize its
-// factories — both a bound factory (`Control(() => model.Field, …)`, two-way binding + per-field
-// validation, with the validator fanned into none/sync/async overloads) and a controlled factory
-// (`Control(…, Value: v, OnChange: …)`, parent-owned state). A control declares the value type T
-// once; the generator reads it off the interface and emits the typed surface.
+// The contract a custom form control implements so the generator can give it a chain with two
+// mutually exclusive openings — bound (`Control.Bind(() => model.Field)`, two-way binding + per-field
+// validation) and controlled (`Control.Value(v).OnChange(…)`, or `Control.Of<T>()`, parent-owned
+// state). A control declares the value type T once; the generator reads it off the interface and
+// emits the typed surface.
 //
 // Members use fixed names (Bind/Validate/…/Value/OnChange/…) — the generator recognizes them by
-// name and excludes each mode's members from the OTHER mode's factory (so no [SkipFactory] is
-// needed). The exclusion runs both ways, and it is what makes the two modes mutually exclusive at
-// the call site rather than at render time:
-//   bound factory      — no Value, Checked, OnChange, OnInput
-//   controlled factory — no Bind, Validate, AfterBind
+// name. The openings (`Bind`, `Value`) live only on the chain's entry, so taking one leaves the other
+// unreachable; the steps that FOLLOW an opening are ordinary setters on the control and are not gated
+// by mode (a Validate on a controlled control compiles and is never read). By mode:
+//   bound      — Value, Checked, OnChange, OnInput are never read (the model owns the value)
+//   controlled — Bind, Validate, AfterBind are never read (no expression is parsed)
 // Checked and OnInput are not interface members (only Input and Textarea declare them), but
 // they are recognized by the same name rule wherever they appear on an IFormControl<T>: bound mode
 // derives the checkbox state from the model and installs its own oninput write-back, so a control
-// reads neither. Before the exclusion they were accepted next to Bind and silently dropped.
+// reads neither.
 // `Validate<T>`/`ValidateAsync<T>` (this namespace) are the two shapes a rule can take; a control
 // declares ONE `Validator<T>` property that accepts either, and the generated step has an overload per
 // shape. OnChange and AfterBind are `Callback<T>` for the same reason, and OnChange is auto-wrapped
 // (AutoCallback) so invoking it re-renders the consumer.
 //
-// The framework's own component-style controls (samples MultiSelect/CheckboxGroup/RadioGroup) are
-// the worked examples. In Render, hand the rule to the EditContext through the carrier:
+// The kit's controls (Rask.Ui: Ui.MultiSelect/Ui.CheckboxGroup/Ui.RadioGroup) are the worked
+// examples. In Render, hand the rule to the EditContext through the carrier:
 //   ctx?.RegisterFieldValidator(fid, Validate?.Rule, () => acc.Getter());
 // Non-generic marker every IFormControl<T> carries, so the render machinery can recognise a form
 // control without knowing its value type T (Component.GetOrCreateChild records the control's creating
@@ -35,9 +35,9 @@ public interface IFormControl<T> : IFormControl
 {
     // Bound mode — two-way binds an lvalue of type T and drives the ambient EditContext.
     //
-    // Ordinary delegates. They were briefly carriers — while a chain's receiver was the control itself,
-    // `control.Validate(rule)` bound to the delegate-typed property and failed (CS1593) instead of
-    // reaching the same-named setter. The receiver is `Build<TControl>` now, so nothing is in the way.
+    // Carriers, not delegates: the chain's receiver is the control itself, and a delegate-typed property
+    // there would be invocable — `control.Validate(rule)` would bind to it and fail (CS1593) instead of
+    // reaching the same-named setter. `Validator<T>` and `Callback<T>` are structs, so lookup falls through.
     /// <summary>
     ///     Two-way binds this control to a model property: <c>.Bind(() =&gt; _model.Email)</c>. Pass the
     ///     property itself, as a lambda — the expression is what lets the control read the current value,
@@ -124,7 +124,7 @@ public interface IFormControl<T> : IFormControl
         // the bind expression's root component (`() => _model.Field`); when the bind closed over a loop
         // local (`() => item.Field`, root is a closure, not a component) fall back to the control's creating
         // parent — the component whose Render() authored this control, which is exactly where the derived UI
-        // lives. Without the fallback a wrapper control (BsCheck/BsInput/…) would re-render only itself and a
+        // lives. Without the fallback a wrapper control (Ui.Checkbox/Ui.Input/…) would re-render only itself and a
         // sibling deriving from the same model property would go stale.
         context.TrackBindingOwner(accessor.Field,
             accessor.Owner as Component ?? BindingConsumerRegistry.Resolve(this));

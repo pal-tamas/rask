@@ -16,7 +16,7 @@ public sealed partial class ElementsTextDemo : Component
             ", sample output ", Samp["exit 0"], ", a variable ", Var["x"], Sub["1"], " to the n", Sup["2"], "."
         ],
         P[
-            "Define a term: ", Dfn["Rask"], " is a C# UI framework. Abbreviate it ", Abbr["UI"],
+            "Define a term: ", Dfn["Rask"], " is a full-stack C# web framework. Abbreviate a term: ", Abbr["API"],
             ", cite ", Cite["The Pragmatic Programmer"], ", quote ", Q.Cite("https://example.com")["inline quote"],
             ", machine-readable ", Data.Value("42")["forty-two"], ", and a ", Time.DateTime("2026-06-26")["date"], "."
         ],

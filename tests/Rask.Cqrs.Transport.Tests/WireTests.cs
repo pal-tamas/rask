@@ -74,7 +74,7 @@ public sealed class WireTests
         // server did with it. The client must be happy with either — it reads no body.
         await using var wire = Wire.Connect();
 
-        await wire.PublishAsync(new Announce("deployed"));
+        await wire.Publish(new Announce("deployed"));
 
         Assert.Contains("announced:deployed", wire.Ledger.Entries);
     }

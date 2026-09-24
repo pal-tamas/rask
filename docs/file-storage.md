@@ -114,7 +114,7 @@ public sealed partial class AvatarPicker : Component
 
     protected override Component? Render() =>
         Div[
-            UiFileInput.Value("").Label("Avatar").Accept("image/*").OnFiles(OnFilesAsync),
+            Ui.FileInput.Value("").Label("Avatar").Accept("image/*").OnFiles(OnFilesAsync),
             _avatarUrl is null
                 ? (Component)P.Class("text-sm")[_error ?? "No avatar yet."]
                 : Img.Src(_avatarUrl).Alt("Your avatar")
@@ -146,6 +146,9 @@ var saved = await Files.Save(pdf, "invoice.pdf");
 The returned `StoredFile` carries `Id`, the display `Name` (reduced to a safe leaf), the sniffed
 `ContentType`, `Size`, the `Sha256` of the bytes, the `Provider` and object `Key`, `Public` and `CreatedAt`
 (UTC). Keep the `Id` on your own entity; every other call is addressed by it.
+
+`StoredFile` is a Rask.Data entity with a read face, so listing what has been uploaded is a query like any
+other, with no context of your own: `StoredFile.Read.OrderByDescending(f => f.CreatedAt).Take(50).ToListAsync()`.
 
 **The row is committed on its own `DbContext`, not inside a transaction your handler has open.** The bytes
 are written first and the row second, so a save that fails half way leaves bytes with no row (the
@@ -415,6 +418,19 @@ var deleted = await Files.Delete(fileId);   // false when there was no such file
 The row goes first, then the bytes. Once the row is gone nothing will serve the file, and app-signed
 temporary links stop working at that moment; if removing the bytes then fails, they are orphans the sweep
 collects. A provider-signed temporary URL is the exception described [above](#temporary-urls).
+
+## Files and tenants
+
+In an app with [multi-tenancy](multi-tenancy.md), a file belongs to the tenant that saved it. The row records
+the tenant in flight at the save — the signed-in user's, or a `Tenant.Use` scope — and the places a file is
+reached by its id are scoped to it: looking the row up, opening its bytes, handing out a temporary URL and
+deleting it. One tenant holding another tenant's file id gets the same answer as for an id that does not
+exist. A file saved by the host itself, with no tenant in flight, belongs to nobody, and is reached only with
+no tenant in flight.
+
+The table is deliberately not partitioned with a query filter, the way an app's own tenant-scoped tables are:
+the orphan sweep has to see every tenant's rows to decide which bytes are unreferenced, and a filter would hide
+them — leaving other tenants' files on disk for ever while the sweep reported nothing to do.
 
 ## The orphan sweep
 

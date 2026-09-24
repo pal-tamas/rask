@@ -15,7 +15,7 @@ New to Rask entirely? Start with [getting started](getting-started.md).
 | `RenderFragment` / Razor markup | A chain — `Div.Class("panel")[Span["hi"]]`, children via an indexer |
 | `@onclick="Handler"` | `.OnClick(() => ...)` (a plain delegate, set by a chain step) |
 | `[Parameter] public T X { get; set; }` | `public T X { get; set; }` — becomes a chain step (required if non-nullable) or an optional setter |
-| `EventCallback` / `EventCallback<T>` | **No such type.** A plain delegate prop (`Action`, `Action<T>`, `Func<Task>`, `Func<T,Task>`) |
+| `EventCallback` / `EventCallback<T>` | `Callback` / `Callback<T>` — one property taking a sync (`Action`/`Action<T>`) or async (`Func<Task>`/`Func<T,Task>`) handler |
 | `[CascadingParameter]` / `CascadingValue` | `Context.Provide<T>(value)` / `Context.Get<T>()` / `Context.Required<T>()` |
 | `@key="x"` | `.Key(x)` — an ordinary chain step |
 | `OnInitialized` / `OnInitializedAsync` | `OnMount()` — one hook; the part before its first `await` is the synchronous half |
@@ -71,9 +71,10 @@ Button.OnClick(() => _count++)[$"Count: {_count}"]
 ### Component → parent callback (no `EventCallback`)
 
 This is the biggest API difference. Blazor wraps child events in `EventCallback` so
-the parent re-renders. **Rask has no `Callback`/`EventCallback` type** — the child
-declares a plain delegate prop, and the chain step that sets it wraps it so invoking it
-re-renders the parent that owns the lambda (the lambda's `this`).
+the parent re-renders. Rask's child declares a `Callback<T>` prop instead — a struct that
+takes either a sync or an async handler, with no `InvokeAsync` to thread through — and the
+chain step that sets it wraps it so invoking it re-renders the parent that owns the lambda
+(the lambda's `this`).
 
 ```razor
 @* Blazor: child *@
@@ -82,10 +83,10 @@ re-renders the parent that owns the lambda (the lambda's `this`).
 ```
 
 ```csharp
-// Rask: child declares a plain delegate; parent passes a lambda over its own state
+// Rask: child declares a Callback<int>; parent passes a lambda over its own state
 public sealed partial class RatingStars : Component
 {
-    public Action<int>? OnRate { get; set; }
+    public Callback<int>? OnRate { get; set; }
     protected override Component? Render() =>
         Button.OnClick(() => OnRate?.Invoke(5))["Rate"];
 }
@@ -151,14 +152,14 @@ NavLink.Href(Routes.UserPage(42))["View user"]
 Form.Model(_model).OnSubmit(m => Save(m))[
     // no validator declared -- the attributes on _model are enforced by the Form itself
     Input.Bind(() => _model.Name),              // input type inferred from the CLR type
-    ValidationMessage.For(() => _model.Name).Template(errs => Div.Class("field-error")[errs[0]]),
+    Validation.Message.Template(errs => Div.Class("field-error")[errs[0]]).For(() => _model.Name),
     Button.Type("submit")["Sign up"]
 ]
 ```
 
 `Input`/`Select`/`Textarea` infer their type from the bound property (`string` →
-text, `bool` → checkbox, `int` → number, `DateOnly` → date). `ValidationMessage` and
-`ValidationSummary` are headless — you chain a `.Template(…)` lambda for the markup. See
+text, `bool` → checkbox, `int` → number, `DateOnly` → date). `Validation.Message` and
+`Validation.Summary` are headless — you chain a `.Template(…)` lambda for the markup. See
 [forms](forms.md) for nested models, collections, and async validation.
 
 ### Scoped CSS

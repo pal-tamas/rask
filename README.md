@@ -5,15 +5,23 @@
   <img alt="Rask" src="assets/rask-logo.svg" width="300">
 </picture>
 
-### The .NET One Person Framework — build, run, and ship a whole product solo, in C#, on one server.
+### The full-stack .NET web framework — for a team of one or fifty.
 
 **[Site ↗](https://rask.sh/)** · **[Docs ↗](https://rask.sh/docs/)**
 
 </div>
 
-One developer builds, runs and ships a *complete* product — the UI, the data, the auth, the background
-work and the deployment — from **one C# codebase on one server**, with **SQLite as the production
-database**. Components are plain C# classes that return a tree of HTML from `Render()`: state is a
+UI, data, auth, background work, realtime and deploy — **all in C#, in one codebase**, on standard
+ASP.NET Core and EF Core. [Rask.Data](docs/data.md) and source-generated [CQRS](docs/cqrs.md) with a
+cached [query layer](docs/query.md); accounts, [jobs](docs/jobs.md), [email](docs/mail.md), an
+[outbox](docs/outbox.md), [cache](docs/cache.md) and [file storage](docs/file-storage.md) on your own
+database; [realtime subscriptions](docs/subscriptions.md), [multi-tenancy](docs/multi-tenancy.md) and
+[full-text search](docs/full-text-search.md); the
+[`/_rask` operator console](docs/dashboard.md); and `rask new` → `rask db` → `rask deploy` from the
+[CLI](docs/cli.md). SQLite is the production default; PostgreSQL and SQL Server are a package away.
+Small teams ship like big ones, and one developer can still ship the whole thing alone.
+
+The UI is C# too. Components are plain C# classes that return a tree of HTML from `Render()`: state is a
 field, and an event handler is a delegate.
 
 ```csharp
@@ -88,7 +96,8 @@ public sealed partial class Chart : ReactComponent
 
 public sealed partial class ColorPicker : ReactComponent
 {
-    protected override string Module => "react-colorful#HexColorPicker";   // .Color(…), .OnChange(…)
+    protected override string Module => "react-colorful";
+    protected override string Export => "HexColorPicker";   // .Color(…), .OnChange(…)
 }
 ```
 
@@ -150,9 +159,9 @@ and reset their password with no auth code written.
   off the request thread; bodies are Rask components.
 - **[Outbox](docs/outbox.md)** — domain events committed in the same transaction as your data and
   relayed at-least-once, with no message broker.
-- **[Cache](docs/cache.md)** — the standard `IDistributedCache` plus a typed `ICache` with
-  `Cache.Remember(…).For(…)`.
-- **[Data](docs/data.md)** · **[CQRS](docs/cqrs.md)** — audit stamps, soft delete, optimistic
+- **[Cache](docs/cache.md)** — the standard `IDistributedCache` plus `Cache.Remember(key, load).For(10.Minutes)`
+  and `Cache.Forget(key)`.
+- **[Data](docs/data.md)** · **[CQRS](docs/cqrs.md)** — audit stamps, opt-in soft delete, optimistic
   concurrency and domain events on EF Core, and a source-generated, reflection-free mediator.
 - **[Production SQLite](docs/sqlite.md)** — WAL and busy-timeout pragmas, continuous Litestream backup,
   scheduled snapshots.
@@ -175,7 +184,7 @@ box to operate.
 
 | | |
 |---|---|
-| **[The One Person Framework](docs/one-person-framework.md)** | The doctrine, the batteries, and why one server beats a rented stack |
+| **[Philosophy: the One Person Framework](docs/one-person-framework.md)** | One codebase, one server, the batteries — and why that lets one developer or a whole team ship fast |
 | **[Getting started](docs/getting-started.md)** · **[Tutorial](docs/tutorial/00-overview.md)** | The UI end to end; then a whole product, one pillar per chapter |
 | **[Building components](docs/building-components.md)** · **[Routing](docs/routing.md)** · **[Forms](docs/forms.md)** | How markup is written, the URLs it answers, and the form pipeline |
 | **[The `rask` CLI](docs/cli.md)** · **[Deployment](docs/deployment.md)** | `new` / `dev` / `db` / `deploy`; Docker over SSH, auto-HTTPS, bare-VPS setup |

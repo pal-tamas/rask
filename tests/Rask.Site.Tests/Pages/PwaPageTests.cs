@@ -82,7 +82,7 @@ public sealed class PwaPageTests
         // cannot be newed up and rendered on its own, because CodeSample is DI-constructed.
         var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.PwaPage() };
 
-        var html = Test.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
+        var html = Page.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
         Assert.Contains("On this page", html, StringComparison.Ordinal);
 

@@ -10,13 +10,13 @@ public sealed class Counter : Component
 {
     private int _count;
     protected override Component? Render() =>
-        Button(Type: "button", OnClick: () => _count++)[$"Count: {_count}"];
+        Button.Type("button").OnClick(() => _count++)[$"Count: {_count}"];
 }
 
 [Fact]
 public async Task Clicking_increments()
 {
-    var page = Test.Render(new Counter());
+    var page = Page.Render(new Counter());
     Assert.Contains("Count: 0", page.Html);
 
     await page.ClickAsync();               // dispatch the click handler + re-render
@@ -24,15 +24,42 @@ public async Task Clicking_increments()
 }
 ```
 
+## A feature test
+
+For a test about a feature rather than one component, open the app at a URL instead. `Page.Visit` goes
+through the real router, and the verbs read as what a person does:
+
+```csharp
+[Fact]
+public async Task Saving_a_product_shows_it_in_the_catalogue()
+{
+    var page = Page.Visit("/products/new", services);
+
+    await page.Type("Tea").Into("Name");
+    await page.Click("Save");
+
+    page.Shows("Product saved");     // waits for async work, up to page.Patience (5 s)
+    page.IsAt("/products");
+}
+```
+
+A field is found by the text beside it — its label, then its placeholder, then its `aria-label` — so a
+test fails when the screen breaks, not when the markup is rearranged. `.In("region")` narrows a word that
+appears more than once, and a lookup that finds nothing or too much throws a `PageException` naming what
+it did find.
+
 ## API
 
-- **`Test.Render(component, services?)`** → a `Page`. Renders the component with its
+- **`Page.Visit(url, services?)`** → a `Page` at that URL, routed. Its verbs: `Type(text).Into(field)`,
+  `Pick(option).From(field)`, `Check(label)`/`Uncheck(label)`, `await Click(text)`, `Shows(text)`,
+  `DoesNotShow(text)`, `IsAt(path)`.
+- **`Page.Render(component, services?)`** → a `Page`. Renders the component with its
   event handlers wired; pass an `IServiceProvider` when the component constructor-injects services.
-- **`Test.Render(factory, services?)`** — same, but the factory runs on **every** render, so the tree is
+- **`Page.Render(factory, services?)`** — same, but the factory runs on **every** render, so the tree is
   rebuilt from your current state each time. Use it whenever a re-render should see changed props:
-  `Test.Render(() => Form(model)[Input(() => model.Name)])`. The `component` overload renders one fixed
+  `Page.Render(() => Form(model)[Input(() => model.Name)])`. The `component` overload renders one fixed
   instance, so a tree you build at the call site keeps the values it was built with.
-- **`Test.RenderDocument(app, services?)`** — renders the component the way a host does, with the whole
+- **`Page.RenderDocument(app, services?)`** — renders the component the way a host does, with the whole
   document composed around it, so you can assert on the **page**: the doctype, `<html lang>`, the `<head>`
   every mounted component contributed to, `<body class>`. `Render` adds no markup of its own, which is what
   keeps an assertion about a component from quietly becoming one about a page — reach for this only when
@@ -100,7 +127,7 @@ test keeps passing. `.On(selector)` names the element instead. (It's a handle ra
   release call.
 - **`TestServiceProvider`** — a minimal `IServiceProvider` for handing a component the one or two services it
   resolves: `TestServiceProvider.With<IBrowserFileBackend>(files)`, or `.Add(...).Add(...)` for several. Exists
-  because `Test.Render` takes an `IServiceProvider` and this package depends on no DI container.
+  because `Page.Render` takes an `IServiceProvider` and this package depends on no DI container.
 - **`TestRoute.At("/search?q=hello%20world")`** — a `RouteState` at a URL, query string parsed and
   decoded, repeated keys kept. `TestRoute.NavigatorFor(state, downloads)` wires the `Navigator`.
   Register the `Navigator` in the provider and event dispatch enters its handler scope, so a component

@@ -34,7 +34,7 @@ public sealed class DevToolsTreeTabPickTests
         var feed = new DevToolsFeed();
         feed.RecordTree(Tree());
 #pragma warning disable RASK014 // the tab rendered alone, the way the panel page would chain it, with a feed given by hand
-        return Test.Render(new DevToolsTreeTab { Feed = feed });
+        return Page.Render(new DevToolsTreeTab { Feed = feed });
 #pragma warning restore RASK014
     }
 
@@ -96,7 +96,7 @@ public sealed class DevToolsTreeTabPickTests
         var feed = new DevToolsFeed();
         feed.RecordTree(Tree());
 #pragma warning disable RASK014 // the tab rendered alone, the way the panel page would chain it, with a feed given by hand
-        var page = Test.Render(new DevToolsTreeTab { Feed = feed, Reveal = 99 });
+        var page = Page.Render(new DevToolsTreeTab { Feed = feed, Reveal = 99 });
 #pragma warning restore RASK014
 
         var selected = Assert.Single(page.FindAll("[aria-selected=\"true\"]"));
@@ -114,7 +114,7 @@ public sealed class DevToolsTreeTabPickTests
         feed.RecordTree(new DevToolsComponentNode(1, "App", null, [],
             [new DevToolsComponentNode(2, "Card", null, [], [row, button], At: "|0|1")]));
 #pragma warning disable RASK014 // the tab rendered alone, the way the panel page would chain it, with a feed given by hand
-        var page = Test.Render(new DevToolsTreeTab { Feed = feed });
+        var page = Page.Render(new DevToolsTreeTab { Feed = feed });
 #pragma warning restore RASK014
 
         await page.On("input[type=\"checkbox\"]").ChangeAsync("true");

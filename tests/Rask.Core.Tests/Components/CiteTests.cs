@@ -14,6 +14,6 @@ public partial class CiteTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_string_child_is_encoded_as_text() =>
+    public void A_text_child_is_html_encoded() =>
         Assert.Equal("<cite>&lt;x&gt;</cite>", Cite["<x>"].ToHtml());
 }

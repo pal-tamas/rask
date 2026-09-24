@@ -1,7 +1,7 @@
 using Rask.Core.Live;
 using Rask.Core.Routing;
 
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 [CollectionDefinition(nameof(DeployPathBaseCollection), DisableParallelization = true)]
 public sealed class DeployPathBaseCollection;
@@ -23,8 +23,8 @@ public partial class UiRoutePathBaseTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_routed_button_and_link_carry_the_deploy_path_base() => UnderPathBase("/shop", () =>
     {
-        Assert.Contains("href=\"/shop/orders\"", UiButton.Href(Orders)["Orders"].ToHtml(), StringComparison.Ordinal);
-        Assert.Contains("href=\"/shop/orders\"", UiLink.Href(Orders).Text("Orders").ToHtml(), StringComparison.Ordinal);
+        Assert.Contains("href=\"/shop/orders\"", Ui.Button.Href(Orders)["Orders"].ToHtml(), StringComparison.Ordinal);
+        Assert.Contains("href=\"/shop/orders\"", Ui.Link.Href(Orders).Text("Orders").ToHtml(), StringComparison.Ordinal);
     });
 
     [Fact]
@@ -33,19 +33,19 @@ public partial class UiRoutePathBaseTests : global::Rask.Core.RaskMarkup
         // requests the URL from the host.
         Assert.Contains(
             "href=\"/shop/orders\"",
-            UiButton.Href(Orders).NewTab(true)["Orders"].ToHtml(),
+            Ui.Button.Href(Orders).NewTab(true)["Orders"].ToHtml(),
             StringComparison.Ordinal));
 
     [Fact]
     public void A_string_is_written_as_given() => UnderPathBase("/shop", () =>
     {
-        Assert.Contains("href=\"/orders\"", UiButton.Href("/orders")["Orders"].ToHtml(), StringComparison.Ordinal);
-        Assert.Contains("href=\"/orders\"", UiLink.Href("/orders").Text("Orders").ToHtml(), StringComparison.Ordinal);
+        Assert.Contains("href=\"/orders\"", Ui.Button.Href("/orders")["Orders"].ToHtml(), StringComparison.Ordinal);
+        Assert.Contains("href=\"/orders\"", Ui.Link.Href("/orders").Text("Orders").ToHtml(), StringComparison.Ordinal);
     });
 
-    // #1070: every kit component that takes a RouteUrl follows UiButton and UiLink. A generated route navigates in
+    // #1070: every kit component that takes a RouteUrl follows Ui.Button and Ui.Link. A generated route navigates in
     // place; a string is an ordinary link, and gets neither the path base nor the runtime's interception.
-    public static TheoryData<string> LinkingComponents => ["UiStat", "UiCard", "UiNavTab", "UiBrand"];
+    public static TheoryData<string> LinkingComponents => ["Ui.Stat", "Ui.Card", "Ui.NavTab", "Ui.Brand"];
 
     [Theory]
     [MemberData(nameof(LinkingComponents))]
@@ -72,15 +72,15 @@ public partial class UiRoutePathBaseTests : global::Rask.Core.RaskMarkup
     public void An_active_string_tab_still_says_it_is_the_current_page() => UnderPathBase("/shop", () =>
         Assert.Contains(
             "aria-current=\"page\"",
-            UiNavTab.Label("Status").Href("https://status.example.test").Active(true).ToHtml(),
+            Ui.NavTab.Label("Status").Href("https://status.example.test").Active(true).ToHtml(),
             StringComparison.Ordinal));
 
     private string Render(string component, RouteUrl href) => component switch
     {
-        "UiStat" => UiStat.Value("OK").Label("Status").Href(href).ToHtml(),
-        "UiCard" => UiCard.Heading("Status").Href(href)[Span["body"]].ToHtml(),
-        "UiNavTab" => UiNavTab.Label("Status").Href(href).ToHtml(),
-        "UiBrand" => UiBrand.Label("Status").Href(href).ToHtml(),
+        "Ui.Stat" => Ui.Stat.Value("OK").Label("Status").Href(href).ToHtml(),
+        "Ui.Card" => Ui.Card.Heading("Status").Href(href)[Span["body"]].ToHtml(),
+        "Ui.NavTab" => Ui.NavTab.Label("Status").Href(href).ToHtml(),
+        "Ui.Brand" => Ui.Brand.Label("Status").Href(href).ToHtml(),
         _ => throw new ArgumentOutOfRangeException(nameof(component)),
     };
 

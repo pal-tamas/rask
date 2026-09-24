@@ -1,7 +1,7 @@
 using System.Reflection;
 using System.Text;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// The kit's compiled stylesheet, for a surface to inline.

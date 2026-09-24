@@ -13,12 +13,12 @@ public sealed partial class PermissionsDemo(IPermissions permissions) : Componen
     private string? _status;
 
     protected override Component? Render() =>
-        UiCard.Class("shadow-sm")[
+        Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
-                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline)
+                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
                         .Id("perm-geo")
                         .OnClick(QueryGeo)["Query geolocation"],
-                    UiButton.Tone(UiTone.Primary).Variant(UiVariant.Outline)
+                    Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline)
                         .Id("perm-clip")
                         .OnClick(QueryClipboard)["Query clipboard-read"]
                 ],

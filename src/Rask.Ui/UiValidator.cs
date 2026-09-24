@@ -1,11 +1,11 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// The message a field shows when what was typed is not acceptable.
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Pair it with a field carrying <see cref="UiTone.Error" />. It keeps daisyUI's
+///         Pair it with a field carrying <see cref="Ui.Tone.Error" />. It keeps daisyUI's
 ///         <c>validator-hint</c> box, so the message occupies its space whether or not it is showing
 ///         and the form does not jump as the reader types.
 ///     </para>

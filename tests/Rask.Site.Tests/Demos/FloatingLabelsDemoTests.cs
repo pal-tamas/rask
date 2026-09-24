@@ -13,7 +13,7 @@ public sealed partial class FloatingLabelsDemoTests : global::Rask.Core.RaskMark
     [Fact]
     public async Task A_valid_submit_shows_the_success_alert()
     {
-        var page = Test.Render(() => FloatingLabelsDemo, TestServices.Default());
+        var page = Page.Render(() => FloatingLabelsDemo, TestServices.Default());
         var html = page.Render();
         // Populate the model through the live field handlers (the submit bridge validates/invokes
         // against the live-bound model, not the event payload).
@@ -70,7 +70,7 @@ public sealed partial class FloatingLabelsDemoTests : global::Rask.Core.RaskMark
     [Fact]
     public void The_FloatingLabelsDemo_floats_every_label_over_its_linked_control()
     {
-        var html = Test.Render(() => FloatingLabelsDemo, TestServices.Default()).Html;
+        var html = Page.Render(() => FloatingLabelsDemo, TestServices.Default()).Html;
 
         // All three controls render. The assertion is on the TAGS, which a restyle is not entitled to change.
         Assert.Contains("<input ", html);

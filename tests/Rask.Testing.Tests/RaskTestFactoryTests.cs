@@ -15,7 +15,7 @@ public partial class RaskTestFactoryTests : global::Rask.Core.RaskMarkup
     public void Rendering_a_factory_reruns_it_so_a_rerender_sees_changed_state()
     {
         var model = new Model();
-        var page = Test.Render(() => Div[$"Name: {model.Name}"]);
+        var page = Page.Render(() => Div[$"Name: {model.Name}"]);
 
         Assert.Contains("Name: Ada", page.Html);
 
@@ -31,7 +31,7 @@ public partial class RaskTestFactoryTests : global::Rask.Core.RaskMarkup
         // The contrast that justifies the factory overload: the tree here is built once, at the call site,
         // so re-rendering replays the same baked children.
         var model = new Model();
-        var page = Test.Render(Div[$"Name: {model.Name}"]);
+        var page = Page.Render(Div[$"Name: {model.Name}"]);
 
         model.Name = "Grace";
         page.Render();
@@ -51,7 +51,7 @@ public partial class RaskTestFactoryTests : global::Rask.Core.RaskMarkup
     public void A_rendered_factory_passes_changed_props_to_a_child_component()
     {
         var model = new Model();
-        var page = Test.Render(() => new Greeting { Name = model.Name });
+        var page = Page.Render(() => new Greeting { Name = model.Name });
 
         Assert.Contains("Hi Ada", page.Html);
 
@@ -72,7 +72,7 @@ public partial class RaskTestFactoryTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_rendered_factory_dispatches_handlers_and_rerenders_through_the_factory()
     {
-        var page = Test.Render(() => new Toggle());
+        var page = Page.Render(() => new Toggle());
 
         // A fresh Toggle per render means the handler must still be wired on every frame.
         Assert.Contains("off", page.Html);
@@ -90,7 +90,7 @@ public partial class RaskTestFactoryTests : global::Rask.Core.RaskMarkup
     public void A_factory_returning_null_renders_nothing()
     {
         var mounted = true;
-        var page = Test.Render(() => mounted ? Span["here"] : null);
+        var page = Page.Render(() => mounted ? Span["here"] : null);
 
         Assert.Contains("here", page.Html);
 
@@ -102,7 +102,7 @@ public partial class RaskTestFactoryTests : global::Rask.Core.RaskMarkup
 
     [Fact]
     public void Rendering_a_null_factory_throws() =>
-        Assert.Throws<ArgumentNullException>(() => Test.Render((Func<Component?>)null!));
+        Assert.Throws<ArgumentNullException>(() => Page.Render((Func<Component?>)null!));
 
     // A form control's chain is a Build<T, TMode>, not a Build<T>, so it needs its own Render overload —
     // inference runs before any user-defined conversion, so the chain cannot reach the Component-typed
@@ -113,8 +113,8 @@ public partial class RaskTestFactoryTests : global::Rask.Core.RaskMarkup
     {
         var model = new Model();
 
-        Assert.Contains("value=\"Ada\"", Test.Render(Input.Bind(() => model.Name)).Html,
+        Assert.Contains("value=\"Ada\"", Page.Render(Input.Bind(() => model.Name)).Html,
             StringComparison.Ordinal);
-        Assert.Contains("value=\"Grace\"", Test.Render(Input.Value("Grace")).Html, StringComparison.Ordinal);
+        Assert.Contains("value=\"Grace\"", Page.Render(Input.Value("Grace")).Html, StringComparison.Ordinal);
     }
 }

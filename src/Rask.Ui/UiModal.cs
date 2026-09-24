@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A dialog: the whole story about one thing, without leaving the page it came from.
@@ -66,10 +66,10 @@ public sealed partial class UiModal : Component
     public bool? Open { get; set; }
 
     /// <summary>
-    ///     Where it sits in the viewport. <see cref="UiModalPosition.Start" /> and <see cref="UiModalPosition.End" />
+    ///     Where it sits in the viewport. <see cref="Ui.ModalPosition.Start" /> and <see cref="Ui.ModalPosition.End" />
     ///     make it a full-height flyout from that edge — Flux UI's flyout — rather than a centred box.
     /// </summary>
-    public UiModalPosition? Position { get; set; }
+    public Ui.ModalPosition? Position { get; set; }
 
     /// <summary>
     ///     Runs when it closes. On the state-driven path that is the close button, a click outside and Escape,
@@ -168,7 +168,7 @@ public sealed partial class UiModal : Component
                         .Class("btn btn-ghost btn-sm btn-square")
                         .Attributes(Closes())
                         .Aria(new Dictionary<string, string?> { ["label"] = "Close" })[
-                        UiIcon.Name(UiIconName.Close).Class("size-4 shrink-0")
+                        Ui.Icon.Name(Ui.IconName.Close).Class("size-4 shrink-0")
                     ],
                 // A MODAL dialog has no light-dismiss of its own in most browsers — the viewport-sized `.modal`
                 // is the dialog, so a click on the dimmed area is a click inside it. daisyUI's backdrop button is
@@ -202,10 +202,10 @@ public sealed partial class UiModal : Component
             dialog = dialog.TabIndex(-1).Attributes(("data-rask-focus-trap", null));
         }
 
-        var close = UiButton
+        var close = Ui.Button
             .AccessibleLabel("Close")
-            .Variant(UiVariant.Ghost)
-            .Size(UiSize.Sm)
+            .Variant(Ui.Variant.Ghost)
+            .Size(Ui.Size.Sm)
             .Square(true)
             .OnClick(() => OnClose?.Invoke() ?? Task.CompletedTask);
 
@@ -221,8 +221,8 @@ public sealed partial class UiModal : Component
             Closable == false
                 ? EscapeTarget()
                 : OnCancel is null
-                    ? close[UiIcon.Name(UiIconName.Close)]
-                    : [close[UiIcon.Name(UiIconName.Close)], EscapeTarget()],
+                    ? close[Ui.Icon.Name(Ui.IconName.Close)]
+                    : [close[Ui.Icon.Name(Ui.IconName.Close)], EscapeTarget()],
             // A pointer convenience, not the only way out: the header's close button is the keyboard
             // path, which is why this carries no role and no label of its own.
             backdrop: !HearsDismissal || Dismissible == false
@@ -266,7 +266,7 @@ public sealed partial class UiModal : Component
                 .Attributes(("data-rask-dismiss", null))
                 .OnClick(DismissAsync)["close"];
 
-    private bool IsFlyout => Position is UiModalPosition.Start or UiModalPosition.End;
+    private bool IsFlyout => Position is Ui.ModalPosition.Start or Ui.ModalPosition.End;
 
     private string Classes() =>
         UiClass.Compose(

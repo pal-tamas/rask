@@ -17,18 +17,18 @@ public sealed partial class FloatingLabelsDemo : Component
             // <label>, linked to the control, and each bound field shows its own validation message, fed by
             // the [Required]/[Range]/etc. attributes through the built-in DataAnnotations pass. Every property
             // is nullable — Rask clears to null.
-            UiInput.Bind(() => _model.FullName).Label("Full name").Id("ff-FullName"),
-            UiInput.Bind(() => _model.Email).Label("Email address").Type(InputType.Email).Id("ff-Email"),
-            UiInput.Bind(() => _model.Age).Label("Age").Id("ff-Age"),
-            UiSelect.Bind(() => _model.Plan).Options(Plans).Label("Plan").Placeholder("— choose —").Id("ff-Plan"),
-            UiTextarea.Bind(() => _model.Bio).Label("Short bio").Id("ff-Bio"),
+            Ui.Input.Bind(() => _model.FullName).Label("Full name").Id("ff-FullName"),
+            Ui.Input.Bind(() => _model.Email).Label("Email address").Type(InputType.Email).Id("ff-Email"),
+            Ui.Input.Bind(() => _model.Age).Label("Age").Id("ff-Age"),
+            Ui.Select.Bind(() => _model.Plan).Options(Plans).Label("Plan").Placeholder("— choose —").Id("ff-Plan"),
+            Ui.Textarea.Bind(() => _model.Bio).Label("Short bio").Id("ff-Bio"),
             Div.Class("mt-1")[
-                UiButton.Tone(UiTone.Primary).Type(UiButtonType.Submit)[UiIcon.Name(UiIconName.UserPlus), "Create account"]
+                Ui.Button.Tone(Ui.Tone.Primary).Type(Ui.ButtonType.Submit)[Ui.Icon.Name(Ui.IconName.UserPlus), "Create account"]
             ]
         ],
         _submission is null
             ? null
-            : UiAlert.Tone(UiTone.Success).Variant(UiVariant.Soft).Class("text-sm mt-3 mb-0")[UiIcon.Name(UiIconName.CheckCircle), _submission]
+            : Ui.Alert.Tone(Ui.Tone.Success).Variant(Ui.Variant.Soft).Class("text-sm mt-3 mb-0")[Ui.Icon.Name(Ui.IconName.CheckCircle), _submission]
     ];
 }
 

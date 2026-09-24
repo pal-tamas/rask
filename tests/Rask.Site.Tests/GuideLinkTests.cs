@@ -64,7 +64,7 @@ public sealed partial class GuideLinkTests : global::Rask.Core.RaskMarkup
             $"the page has {blank} target=\"_blank\" link(s) but only {noopener} carry rel=\"noopener\".");
     }
 
-    private static string Render() => Test.Render(() => HomePage).Html;
+    private static string Render() => Page.Render(() => HomePage).Html;
 
     private static List<string> GuideSlugs()
     {

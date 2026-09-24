@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// One key and its value, joined by a dotted leader.
@@ -19,18 +19,18 @@ public sealed partial class UiDetailRow : Component
     public bool? Mono { get; set; }
 
     /// <summary>
-    /// <see cref="UiTone.Error" /> or <see cref="UiTone.Warning" /> to colour the value. Anything else
+    /// <see cref="Ui.Tone.Error" /> or <see cref="Ui.Tone.Warning" /> to colour the value. Anything else
     /// reads as neutral.
     /// </summary>
-    public UiTone? Tone { get; set; }
+    public Ui.Tone? Tone { get; set; }
 
     /// <inheritdoc />
     protected override Component? Render()
     {
         var tone = Tone switch
         {
-            UiTone.Error => "text-error",
-            UiTone.Warning => "text-warning",
+            Ui.Tone.Error => "text-error",
+            Ui.Tone.Warning => "text-warning",
             _ => "text-base-content",
         };
 

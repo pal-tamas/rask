@@ -14,7 +14,7 @@ public partial class BlazorRenderTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Island_renders_the_hosted_components_markup_inside_the_host_element()
     {
-        var html = Test.Render(GreetingIsland.Heading("Hi").Count(3), Services()).Html;
+        var html = Page.Render(GreetingIsland.Heading("Hi").Count(3), Services()).Html;
 
         Assert.Contains("<rask-blazor", html, StringComparison.Ordinal);
         Assert.Contains("<p class=\"greeting\">Hi/3</p>", html, StringComparison.Ordinal);
@@ -23,7 +23,7 @@ public partial class BlazorRenderTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Host_element_names_the_island_and_the_hosted_type()
     {
-        var html = Test.Render(GreetingIsland.Heading("Hi"), Services()).Html;
+        var html = Page.Render(GreetingIsland.Heading("Hi"), Services()).Html;
 
         Assert.Contains($"{BlazorDefaults.NameAttribute}=\"GreetingIsland\"", html, StringComparison.Ordinal);
         Assert.Contains(
@@ -37,7 +37,7 @@ public partial class BlazorRenderTests : global::Rask.Core.RaskMarkup
     {
         // Load-bearing, not cosmetic: FrameDiffer SKIPS an opaque element's children, so an opaque
         // static island would render once on the server and never ship a change again.
-        var html = Test.Render(GreetingIsland.Heading("Hi"), Services()).Html;
+        var html = Page.Render(GreetingIsland.Heading("Hi"), Services()).Html;
 
         Assert.DoesNotContain("data-rask-opaque", html, StringComparison.Ordinal);
     }
@@ -46,7 +46,7 @@ public partial class BlazorRenderTests : global::Rask.Core.RaskMarkup
     public async Task An_awaiting_hosted_component_is_complete_in_the_FIRST_paint()
     {
         // The entire value claim of static hosting, and it has to be asserted on the QUIESCENT path
-        // rather than through Test.Render: that helper renders once, synchronously, so it can
+        // rather than through Page.Render: that helper renders once, synchronously, so it can
         // neither prove nor disprove this. The server renders in waves and sends the settled one.
         QuiescenceScope.ResetSyncForTests();
 
@@ -54,7 +54,7 @@ public partial class BlazorRenderTests : global::Rask.Core.RaskMarkup
         var services = Services();
 
         var result = await QuiescentRender.RunAsync(
-            _ => Test.Render(island, services).Html,
+            _ => Page.Render(island, services).Html,
             TimeSpan.FromSeconds(5));
 
         Assert.Contains("Hello (loaded)", result.Html, StringComparison.Ordinal);
@@ -65,7 +65,7 @@ public partial class BlazorRenderTests : global::Rask.Core.RaskMarkup
     {
         // Nothing is declared on EmptyIsland. Heading and Count are Greeting's own [Parameter]s, and
         // both the property and its chain setter are generated from that one source of truth.
-        var html = Test.Render(EmptyIsland.Heading("Hi").Count(9), Services()).Html;
+        var html = Page.Render(EmptyIsland.Heading("Hi").Count(9), Services()).Html;
 
         Assert.Contains("<p class=\"greeting\">Hi/9</p>", html, StringComparison.Ordinal);
     }
@@ -75,7 +75,7 @@ public partial class BlazorRenderTests : global::Rask.Core.RaskMarkup
     {
         // A non-nullable property with no initializer would be a REQUIRED step (RASK001), which would
         // force every call site to supply every parameter the hosted component happens to declare.
-        var html = Test.Render(EmptyIsland.Count(4), Services()).Html;
+        var html = Page.Render(EmptyIsland.Count(4), Services()).Html;
 
         Assert.Contains("(none)/4", html, StringComparison.Ordinal);
     }
@@ -86,12 +86,12 @@ public partial class BlazorRenderTests : global::Rask.Core.RaskMarkup
         // Blazor already has a word for "mandatory", so it maps onto Rask's own rather than every
         // hosted parameter being optional. Label opens the chain because it is required; Tone, which
         // is not marked, stays an ordinary optional step.
-        var html = Test.Render(BadgeIsland.Label("New").Tone("warn"), Services()).Html;
+        var html = Page.Render(BadgeIsland.Label("New").Tone("warn"), Services()).Html;
 
         Assert.Contains("<span class=\"warn\">New</span>", html, StringComparison.Ordinal);
 
         // And the optional one really is optional — the hosted component keeps its own default.
-        var bare = Test.Render(BadgeIsland.Label("New"), Services()).Html;
+        var bare = Page.Render(BadgeIsland.Label("New"), Services()).Html;
         Assert.Contains("<span class=\"plain\">New</span>", bare, StringComparison.Ordinal);
     }
 
@@ -101,7 +101,7 @@ public partial class BlazorRenderTests : global::Rask.Core.RaskMarkup
         // Blazor assigns a handler id to every @onclick even in a static render; its own HTML writer
         // just drops them. We write Rask's attribute instead, so the click travels the socket that is
         // already open — no circuit, no blazor.web.js, no second connection.
-        var html = Test.Render(ClickerIsland.Rows(["alpha", "beta"]), Services()).Html;
+        var html = Page.Render(ClickerIsland.Rows(["alpha", "beta"]), Services()).Html;
 
         Assert.Contains("data-rask-on-click=", html, StringComparison.Ordinal);
         // One per row: the handler ids are per element, not per component.
@@ -112,7 +112,7 @@ public partial class BlazorRenderTests : global::Rask.Core.RaskMarkup
     public void A_hosted_dialogs_cancel_and_close_are_wired_too()
     {
         // The parameterless-event list is Rask.Core's own now, not a copy that stopped at "reset" (#1116).
-        var html = Test.Render(CloserIsland, Services()).Html;
+        var html = Page.Render(CloserIsland, Services()).Html;
 
         Assert.Contains("data-rask-on-cancel=", html, StringComparison.Ordinal);
         Assert.Contains("data-rask-on-close=", html, StringComparison.Ordinal);
@@ -126,7 +126,7 @@ public partial class BlazorRenderTests : global::Rask.Core.RaskMarkup
         // with no handler id. Those missed the handler branch and fell through to the boolean arm, which
         // writes a true boolean attribute bare, so the page shipped a stray marker that means nothing to
         // any browser (#951).
-        var html = Test.Render(PreventingLinkIsland.OnPick(() => { }), Services()).Html;
+        var html = Page.Render(PreventingLinkIsland.OnPick(() => { }), Services()).Html;
 
         Assert.DoesNotContain("__internal_", html, StringComparison.Ordinal);
 
@@ -154,7 +154,7 @@ public partial class BlazorRenderTests : global::Rask.Core.RaskMarkup
     {
         // The inversion from the islands feature: ParameterView is authoritative, so writing null
         // would CLOBBER the hosted component's default rather than mean "unset".
-        var html = Test.Render(GreetingIsland.Count(7), Services()).Html;
+        var html = Page.Render(GreetingIsland.Count(7), Services()).Html;
 
         Assert.Contains("(none)/7", html, StringComparison.Ordinal);
     }

@@ -59,8 +59,19 @@ public sealed class RaskCqrsServerOptions
     // request that dispatched the query, so there is no token to expire. Naming a lifetime here would
     // describe a second, tokenized fetch path that does not exist.
 
+    /// <summary>
+    ///     How often a quiet subscription stream writes a comment, so a proxy or a load balancer does not close it as
+    ///     idle — and so the server learns promptly when the client has gone. Defaults to fifteen seconds.
+    /// </summary>
+    public TimeSpan EventKeepAlive { get; set; } = TimeSpan.FromSeconds(15);
+
     internal void Validate()
     {
+        if (EventKeepAlive <= TimeSpan.Zero)
+        {
+            throw new InvalidOperationException($"{nameof(EventKeepAlive)} must be positive.");
+        }
+
         if (string.IsNullOrWhiteSpace(RoutePrefix) || RoutePrefix[0] != '/')
         {
             throw new InvalidOperationException(

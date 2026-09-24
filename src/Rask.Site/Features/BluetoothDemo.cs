@@ -18,10 +18,10 @@ public sealed partial class BluetoothDemo(IBluetooth bluetooth) : Component, IAs
     private string _status = "(idle)";
 
     protected override Component? Render() =>
-        UiCard.Class("shadow-sm")[
+        Ui.Card.Class("shadow-sm")[
                 Div.Class("flex gap-2 flex-wrap mb-2")[
-                    UiButton.Tone(UiTone.Primary).Id("bt-request").OnClick(PairAndRead)[UiIcon.Name(UiIconName.Signal), "Pair & read battery"],
-                    UiButton.Tone(UiTone.Error).Variant(UiVariant.Outline)
+                    Ui.Button.Tone(Ui.Tone.Primary).Id("bt-request").OnClick(PairAndRead)[Ui.Icon.Name(Ui.IconName.Signal), "Pair & read battery"],
+                    Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Outline)
                         .Id("bt-disconnect")
                         .Disabled(_device is null)
                         .OnClick(Disconnect)["Disconnect"]

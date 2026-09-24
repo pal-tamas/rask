@@ -16,7 +16,7 @@ public partial class TestFileBackendTests : global::Rask.Core.RaskMarkup
     {
         var files = new TestFileBackend();
         var picked = files.Add("notes.txt", "hello world", "text/plain");
-        var page = Test.Render(UploadProbe, TestServiceProvider.With<IBrowserFileBackend>(files));
+        var page = Page.Render(UploadProbe, TestServiceProvider.With<IBrowserFileBackend>(files));
 
         await page.On("#picker").FilesAsync(picked);
 
@@ -39,7 +39,7 @@ public partial class TestFileBackendTests : global::Rask.Core.RaskMarkup
         // this process-global diagnostic out of a parallel test's window — belt to #750's braces, which fixed
         // the real bug by making the wait there look for its own diagnostic rather than the first to arrive.
         using var diagnostics = CapturingDiagnostics.Install();
-        var page = Test.Render(UploadProbe);
+        var page = Page.Render(UploadProbe);
 
         await page.On("#picker").FilesAsync(picked);
 
@@ -56,7 +56,7 @@ public partial class TestFileBackendTests : global::Rask.Core.RaskMarkup
         var files = new TestFileBackend();
         files.Add("a.txt", "one");
         files.Add("b.txt", "two");
-        var page = Test.Render(UploadProbe, TestServiceProvider.With<IBrowserFileBackend>(files));
+        var page = Page.Render(UploadProbe, TestServiceProvider.With<IBrowserFileBackend>(files));
 
         await page.On("#picker").FilesAsync(files);
 
@@ -69,7 +69,7 @@ public partial class TestFileBackendTests : global::Rask.Core.RaskMarkup
         // The browser hosts drop their client-side references here and the server frees its upload slot, so a
         // component that holds a RaskFile past the handler is holding something already gone.
         var files = new TestFileBackend();
-        var page = Test.Render(UploadProbe, TestServiceProvider.With<IBrowserFileBackend>(files));
+        var page = Page.Render(UploadProbe, TestServiceProvider.With<IBrowserFileBackend>(files));
 
         await page.On("#picker").FilesAsync(files.Add("notes.txt", "hi"));
 
@@ -120,7 +120,7 @@ public partial class TestFileBackendTests : global::Rask.Core.RaskMarkup
     public async Task A_form_payload_delivers_files_under_their_field_name()
     {
         var files = new TestFileBackend();
-        var page = Test.Render(UploadFormProbe, TestServiceProvider.With<IBrowserFileBackend>(files));
+        var page = Page.Render(UploadFormProbe, TestServiceProvider.With<IBrowserFileBackend>(files));
 
         await page.On("#form").SubmitAsync(files.FormPayload("attachment", files.Add("cv.pdf", "x")));
 

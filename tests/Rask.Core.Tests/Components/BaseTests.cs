@@ -3,7 +3,7 @@ namespace Rask.Core.Tests.Components;
 public partial class BaseTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Unset_props_render_only_the_self_closing_tag() => Assert.Equal("<base />", Base.ToHtml());
+    public void Unset_props_render_a_self_closing_tag() => Assert.Equal("<base />", Base.ToHtml());
 
     [Fact]
     public void Setting_every_prop_emits_the_expected_attributes()

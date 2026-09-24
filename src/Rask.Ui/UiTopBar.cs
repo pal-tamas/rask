@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>The breadcrumb bar: what you are looking at, and how to get to a sibling of it.</summary>
 public sealed partial class UiTopBar : Component

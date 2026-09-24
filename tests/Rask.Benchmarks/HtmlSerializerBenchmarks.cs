@@ -105,7 +105,7 @@ public partial class HtmlSerializerBenchmarks : global::Rask.Core.RaskMarkup
 
         return [
             Doctype,
-            Html[
+            Document[
                 Body[Div.Class("list")[rows]]
             ]
         ];

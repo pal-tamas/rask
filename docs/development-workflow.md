@@ -305,9 +305,15 @@ Every change passes this gate before it lands on `main` (the `rask-ship` skill):
   `tests/Rask.SQLite.Browser.Fixture.Wasm` — a plain `UseSqlite(BrowserSqlite.ConnectionString("app"))` plus
   `UseRaskFullTextSearch()` over a table declaring `HasFullTextSearch` — and drives it with Playwright
   (`tests/Rask.SQLite.Browser.E2E.Tests`): a search, its `<mark>`ed highlight and snippet, a prefix match and a miss.
-  It is the only gate that links `e_sqlite3` natively into a WebAssembly bundle, so it needs the `wasm-tools`
-  workload and refuses to start without it; every other browser gate publishes with `WasmBuildNative=false` and so
-  never proves the SQLite a browser app ships. Listed in `run-all-gates.sh`.
+  It and the data demo gate below are the only gates that link `e_sqlite3` natively into a WebAssembly bundle, so
+  they need the `wasm-tools` workload and refuse to start without it; every other browser gate publishes with
+  `WasmBuildNative=false` and so never proves the SQLite a browser app ships. Listed in `run-all-gates.sh`.
+
+- **The rask.sh data demo runs in a real browser by hand.** `scripts/run-data-demo-e2e-local.sh` publishes
+  `src/Rask.Site.DataDemo` — the notes demo served at `/demos/data/` and embedded on the data, query and
+  full-text-search guides: a Rask.Data aggregate in browser SQLite, trimmed with EF Core rooted — and drives it
+  with Playwright (`tests/Rask.Site.DataDemo.E2E.Tests`): add a note and watch the list refresh, search it, reload
+  and find it kept, and a 390px viewport with no sideways scroll. Listed in `run-all-gates.sh`.
 
 - **Every gate says whether it ran.** The path-filtered gates — CLI build, watch hot-reload, deploy,
   install — used to take a silent branch when nothing in the push matched their paths, printing

@@ -30,7 +30,7 @@ internal sealed partial class DisposalDemoLog : Component
             H3.Class("text-base font-semibold text-ui-muted uppercase text-sm mt-4")["Log"],
             Entries.Count == 0
                 ? P.Class("text-ui-muted text-sm mb-0")["Empty — mount and unmount the probe."]
-                : UiList
+                : Ui.List
                     .Ordered(true)
                     .Id(ListId)[Entries.Select((line, i) => Li
                         .Key(i)

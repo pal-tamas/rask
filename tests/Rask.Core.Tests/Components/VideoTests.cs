@@ -33,11 +33,11 @@ public partial class VideoTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_string_child_is_encoded_as_text() =>
+    public void A_text_child_is_html_encoded() =>
         Assert.Equal("<video>&lt;x&gt;</video>", Video["<x>"].ToHtml());
 
     [Fact]
-    public void Playback_restrictions_emit_after_the_video_attributes() =>
+    public void The_playback_restrictions_come_after_the_video_s_own_attributes() =>
         Assert.Equal(
             "<video width=\"640\" playsinline controlslist=\"nodownload nofullscreen\" "
             + "disablepictureinpicture disableremoteplayback loading=\"lazy\"></video>",
@@ -50,7 +50,7 @@ public partial class VideoTests : global::Rask.Core.RaskMarkup
                 .Loading("lazy").ToHtml());
 
     [Fact]
-    public void False_playback_restrictions_emit_nothing() =>
+    public void The_playback_restrictions_emit_nothing_when_they_are_off() =>
         // Bare boolean attributes: presence is the value, so false must render nothing at all.
         Assert.Equal("<video></video>",
             Video.DisablePictureInPicture(false).DisableRemotePlayback(false).ToHtml());

@@ -31,7 +31,7 @@ public sealed class QueueDetailSheetTests
 
         var page = await RenderQueueAsync(h);
 
-        // Open the sheet. Selected as the ELEMENT rather than [role="dialog"]: UiModal renders a real
+        // Open the sheet. Selected as the ELEMENT rather than [role="dialog"]: Ui.Modal renders a real
         // <dialog>, which carries that role implicitly, and stating it again in the markup would be the
         // redundant ARIA that guidance warns against.
         await ClickAsync(page, "Details");
@@ -88,7 +88,7 @@ public sealed class QueueDetailSheetTests
         component.Queue = "jobs";
         component.Show = "failed";
 
-        var page = Test.Render(component, harness.Services);
+        var page = Page.Render(component, harness.Services);
 
         // PollingPanel loads on an asynchronous mount, so the first render is the placeholder.
         await page.WaitForAsync("Details");

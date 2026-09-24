@@ -73,10 +73,6 @@
     <!-- rask:end -->
   </ItemGroup>
 
-  <ItemGroup>
-    <!-- The kit's namespace, project-wide, so a page names Ui* with no per-file using. -->
-    <Using Include="Rask.Ui"/>
-  </ItemGroup>
 
 
   <!-- rask:if islands-blazor -->

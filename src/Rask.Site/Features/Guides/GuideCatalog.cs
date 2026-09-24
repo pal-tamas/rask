@@ -1,5 +1,5 @@
 using System.Reflection;
-using Rask.Ui;
+using Rask;
 
 namespace Rask.Site.Features;
 
@@ -40,17 +40,21 @@ public sealed record GuideEntry(string Slug, string Title, string Blurb, string 
     /// heading said. One per group is the information that was actually there, and a guide added later
     /// cannot forget to pick one.
     /// </remarks>
-    public UiIconName Icon => Group switch
+    public Ui.IconName Icon => Group switch
     {
-        "Start here" => UiIconName.Rocket,
-        "Tutorial" => UiIconName.Book,
-        "One Person Framework" => UiIconName.Bolt,
-        "Core" => UiIconName.Cube,
-        "Integration" => UiIconName.ArrowsRightLeft,
-        "Advanced" => UiIconName.Sparkles,
-        "Mobile & devices" => UiIconName.Phone,
-        "Contributing & internals" => UiIconName.Terminal,
-        _ => UiIconName.Document,
+        "Start here" => Ui.IconName.Rocket,
+        "Tutorial" => Ui.IconName.Book,
+        "Data" => Ui.IconName.Database,
+        "Auth" => Ui.IconName.Lock,
+        "Backend services" => Ui.IconName.Server,
+        "Realtime" => Ui.IconName.Signal,
+        "Frontend" => Ui.IconName.Cube,
+        "Deploy & operate" => Ui.IconName.Globe,
+        "Browser & devices" => Ui.IconName.Phone,
+        "Browser API reference" => Ui.IconName.CodeBracket,
+        "Advanced" => Ui.IconName.Sparkles,
+        "Contributing & internals" => Ui.IconName.Terminal,
+        _ => Ui.IconName.Document,
     };
 }
 
@@ -59,12 +63,6 @@ public static class GuideCatalog
     public static readonly GuideEntry[] All =
     [
         // ---- Start here ----
-        new("one-person-framework", "The One Person Framework",
-            "The doctrine: one dev, one codebase, one server, a whole product.", "Start here")
-        {
-            SearchTitle = "The .NET One Person Framework: one app, one server",
-            Description = "Why one developer can build, run and ship a whole product from one C# codebase on one server: SQLite-first data, built-in batteries and a one-command deploy.",
-        },
         new("installation", "Installing Rask", "One line to the CLI and everything it needs — options, upgrade, uninstall.", "Start here")
         {
             SearchTitle = "Install the CLI and .NET 10 or 11 SDK in one command",
@@ -72,18 +70,8 @@ public static class GuideCatalog
         },
         new("getting-started", "Getting started", "Scaffold a project and build your first component.", "Start here")
         {
-            SearchTitle = "Getting started: C# web UI components in .NET",
+            SearchTitle = "Getting started: a full-stack C# web app in .NET",
             Description = "Scaffold and run your first app, then write a C# component, handle events and add a route. Components render on the server over WebSocket or in WebAssembly.",
-        },
-        new("best-practices", "Best practices", "Production patterns for state, forms, security, and perf.", "Start here")
-        {
-            SearchTitle = "C# web component best practices: security and perf",
-            Description = "Patterns that keep a C# component app correct, secure and fast: keys and encoding, state and callbacks, forms, routing, JS interop, accessibility and testing.",
-        },
-        new("migration-from-blazor", "Migrating from Blazor", "Concept mapping and behavioural differences.", "Start here")
-        {
-            SearchTitle = "Blazor alternative: migrating from Blazor to C#",
-            Description = "Map Blazor concepts to plain C# components: .razor to Render(), [Parameter] to properties, cascading values to Context, lifecycle, routing and forms.",
         },
         new("cheatsheet", "Cheat sheet", "Every CLI command, feature flag, and wiring one-liner on one page.", "Start here")
         {
@@ -95,10 +83,26 @@ public static class GuideCatalog
             SearchTitle = "Recipes: common tasks in a .NET web app",
             Description = "Task-first answers for an existing app: add a CRUD feature, relate entities, require login, run background work, send email, cache queries, deploy and test.",
         },
-        new("roadmap", "Roadmap", "The One Person Framework pillars — shipped and planned.", "Start here")
+        new("best-practices", "Best practices", "Production patterns for state, forms, security, and perf.", "Start here")
+        {
+            SearchTitle = "C# web component best practices: security and perf",
+            Description = "Patterns that keep a C# component app correct, secure and fast: keys and encoding, state and callbacks, forms, routing, JS interop, accessibility and testing.",
+        },
+        new("migration-from-blazor", "Migrating from Blazor", "Concept mapping and behavioural differences.", "Start here")
+        {
+            SearchTitle = "Blazor alternative: migrating from Blazor to C#",
+            Description = "Map Blazor concepts to plain C# components: .razor to Render(), [Parameter] to properties, cascading values to Context, lifecycle, routing and forms.",
+        },
+        new("one-person-framework", "Philosophy: the One Person Framework",
+            "Why one codebase and one server carry a whole product — for one developer or a team.", "Start here")
+        {
+            SearchTitle = "The .NET One Person Framework: one codebase, one app",
+            Description = "The philosophy behind Rask: one C# codebase on one server, SQLite-first data, built-in batteries and a one-command deploy, for one developer or a team.",
+        },
+        new("roadmap", "Roadmap", "The full-stack pillars — shipped and planned.", "Start here")
         {
             SearchTitle = "Roadmap: shipped and planned framework pillars",
-            Description = "What is shipped and what is next for the .NET One Person Framework: UI hosts, CLI, CQRS, data, jobs, mail, cache, outbox and SQLite, plus known gaps.",
+            Description = "What is shipped and what is next for the full-stack .NET web framework: UI hosts, CLI, CQRS, data, jobs, mail, cache, outbox and SQLite, plus known gaps.",
         },
 
         // ---- Tutorial ----
@@ -135,7 +139,7 @@ public static class GuideCatalog
         new("06-cache", "Ch 6 · Cache", "Cache the catalog on your own database.", "Tutorial", "tutorial/06-cache.md")
         {
             SearchTitle = "Tutorial 6: cache database queries in .NET",
-            Description = "Cache the product list in a typed, SQLite-backed cache: write an accessor around Remember, read through it, and invalidate it when the catalog changes.",
+            Description = "Cache the product list in a typed, SQLite-backed cache: write an accessor around Cache.Remember, read through it, and forget it when the catalog changes.",
         },
         new("07-outbox-events", "Ch 7 · Outbox & events", "Domain events with the transactional outbox.", "Tutorial", "tutorial/07-outbox-events.md")
         {
@@ -163,291 +167,316 @@ public static class GuideCatalog
             Description = "Ship the app to one Linux server with rask deploy: a Docker image built over SSH, automatic Let's Encrypt HTTPS via Caddy, health-checked swaps, CI deploys.",
         },
 
-        // ---- One Person Framework (the batteries) ----
-        // No "generate": that command was removed, and a card naming a verb the CLI does not have
-        // is the first thing a reader types. The list is the commands `rask --help` prints.
-        new("cli", "The rask CLI", "Scaffold, run, dev, db, deploy — the front door.",
-            "One Person Framework")
-        {
-            SearchTitle = "A .NET CLI to scaffold, run, migrate and deploy apps",
-            Description = "Reference for the rask .NET tool: rask new to scaffold projects, rask dev for hot reload, rask db for EF Core migrations and backups, rask deploy over SSH.",
-        },
-        new("data", "Rask.Data", "Declare aggregates, write them off the type, query their generated read faces, bind generated form models.", "One Person Framework")
+        // ---- Data ----
+        new("data", "Rask.Data", "Declare aggregates, write them off the type, query their generated read faces, bind generated form models.", "Data")
         {
             SearchTitle = "EF Core aggregates without writing a DbContext in C#",
             Description = "Declare DDD aggregates, entities and value objects in C# with EF Core: query read faces, map value collections to JSON, partition tables by tenant.",
         },
-        new("cqrs", "CQRS", "Source-generated queries, commands, notifications, behaviors.", "One Person Framework")
+        new("data-access", "Data access", "EF Core + SQLite, vertical slices, DDD patterns.", "Data")
+        {
+            SearchTitle = "Data access with EF Core and SQLite",
+            Description = "Wire EF Core and SQLite into a server app: register the DbContext with a factory for long-lived sessions, load data in the lifecycle, seed and test it.",
+        },
+        new("query", "Rask.Query", "The dispatcher wrapped in a cache: dedup, staleness, invalidation.", "Data")
+        {
+            SearchTitle = "TanStack Query-style data caching for C#",
+            Description = "Wrap the CQRS dispatcher in a TanStack Query-style cache for C# components: request dedup, staleness, background refetch, keys, invalidation and commands.",
+        },
+        new("cqrs", "CQRS", "Source-generated queries, commands, notifications, behaviors.", "Data")
         {
             SearchTitle = "CQRS in .NET with source-generated handlers",
             Description = "A source-generated CQRS mediator for .NET: dispatch queries, commands and notifications via IDispatcher with no reflection, plus pipeline behaviors.",
         },
-        new("api-endpoints", "HTTP APIs", "Controllers and minimal APIs, called through a generated typed client.", "One Person Framework")
+        new("sqlite", "Production SQLite", "WAL + busy-timeout pragmas, continuous backup, snapshots.", "Data")
+        {
+            SearchTitle = "SQLite in production for .NET: WAL and pragmas",
+            Description = "Run SQLite as a production database with ADO.NET or EF Core: WAL pragmas, BEGIN IMMEDIATE retries, STRICT tables, FTS5 full-text search and Litestream backup.",
+        },
+        new("multi-tenancy", "Multi-tenancy", "One app, many customers: rows owned by a tenant, filtered on every query.", "Data")
+        {
+            SearchTitle = "Multi-tenant .NET apps with EF Core tenant filters",
+            Description = "Serve many customers from one C# app and one database: a table opts in to a tenant id, every query is filtered to the current tenant, and writes are stamped.",
+        },
+        new("full-text-search", "Full-text search", "Ranked search over your own tables — SQLite FTS5 or PostgreSQL — with highlights.", "Data")
+        {
+            SearchTitle = "Full-text search in EF Core on SQLite or PostgreSQL",
+            Description = "Add ranked full-text search to a C# app on its own database, SQLite FTS5 or PostgreSQL: declare the searched columns, query from EF Core, highlight the matches.",
+        },
+        new("outbox", "Outbox", "Crash-safe domain-event delivery on your database.",
+            "Data")
+        {
+            SearchTitle = "Transactional outbox pattern in .NET, no broker",
+            Description = "Deliver domain events crash-safely with a transactional outbox on your app's database: events commit with the data and relay at-least-once, with no broker.",
+        },
+
+        // ---- Auth ----
+        new("authentication", "Authentication", "Accounts, passkeys, sessions and route guards on Server and WASM.", "Auth")
+        {
+            SearchTitle = "Passkeys and your own accounts in C#",
+            Description = "Add passkeys and accounts to a C# app: WebAuthn verified on the BCL, sign-in pages you own, a session row per device, PBKDF2 or bcrypt, throttling.",
+        },
+        new("authentication-cookie", "Auth — cookie", "Cookie login and session on Server and on a WASM SPA with an API host.", "Auth")
+        {
+            SearchTitle = "Cookie authentication for server and WASM apps",
+            Description = "Wire cookie-based login and sessions by hand, for the server-rendered WebSocket host and for a WebAssembly SPA backed by your own ASP.NET Core API.",
+        },
+        new("authentication-providers", "Auth — providers", "Keycloak, Auth0, and other OIDC providers, or your own Identity store.", "Auth")
+        {
+            SearchTitle = "OpenID Connect and external identity providers",
+            Description = "Sign in through Keycloak, Auth0, AWS Cognito or Duende IdentityServer over OpenID Connect, or bring your own user store with ASP.NET Identity.",
+        },
+        new("authentication-hardening", "Auth — hardening", "Production hardening for cookies, tokens, and sessions.", "Auth")
+        {
+            SearchTitle = "Production security hardening for .NET web apps",
+            Description = "Harden authentication for production: session trust model, CSRF protection, reverse proxy forwarded headers, Content-Security-Policy and a security checklist.",
+        },
+
+        // ---- Backend services ----
+        new("jobs", "Background jobs", "Durable enqueued / delayed / recurring work on your database.", "Backend services")
+        {
+            SearchTitle = "Durable background jobs in .NET on your database",
+            Description = "Run .NET background jobs off the request thread, stored in your app's database with no Redis or broker: enqueued, delayed and recurring, retried with backoff.",
+        },
+        new("mail", "Transactional email", "Durable email queued on your database, delivered over SMTP.", "Backend services")
+        {
+            SearchTitle = "Queued transactional email in .NET over SMTP",
+            Description = "Send transactional email from .NET off the request thread: messages queue in your database, bodies are C# components, and a worker delivers over SMTP.",
+        },
+        new("cache", "Cache", "A database-backed IDistributedCache plus a typed ICache.", "Backend services")
+        {
+            SearchTitle = "Database-backed IDistributedCache for ASP.NET Core",
+            Description = "A cache stored in your app's own database instead of Redis: it implements IDistributedCache and adds Cache.Remember(key, load).For(10.Minutes).",
+        },
+        new("file-storage", "File storage", "Uploads kept on disk, S3 or Azure, with a row per file.", "Backend services")
+        {
+            SearchTitle = "File uploads in ASP.NET Core on disk, S3 or Azure",
+            Description = "Keep user uploads in .NET on disk, S3, R2 or Azure Blob with a row in your database: sniffed content types, size limits, public and signed temporary URLs.",
+        },
+        new("api-endpoints", "HTTP APIs", "Controllers and minimal APIs, called through a generated typed client.", "Backend services")
         {
             SearchTitle = "ASP.NET Core APIs with a generated typed client",
             Description = "Host ASP.NET Core controllers and minimal APIs, and get a typed HTTP client generated from them, with validation from [Required] and AbstractValidator rules.",
         },
-        new("spa", "TypeScript front ends", "React, Vue, Angular and four more, typed from your C# contracts.", "One Person Framework")
+        new("http-and-files", "HTTP & files", "Fetch JSON with a DI'd HttpClient; upload and download files.", "Backend services")
+        {
+            SearchTitle = "HttpClient, file uploads and downloads in C#",
+            Description = "Fetch JSON with a dependency-injected HttpClient, accept uploads through a typed file picker, and send downloads to the browser, on server and WASM hosts.",
+        },
+
+        // ---- Realtime ----
+        new("subscriptions", "Subscriptions", "Keep a page current: a live query, or an event published to every page subscribed to it.", "Realtime")
+        {
+            SearchTitle = "Live queries and real-time subscriptions in C#",
+            Description = "Keep C# pages current: Live() refetches a query when anyone writes, and QueryClient.Subscribe pushes real events to every subscribed component.",
+        },
+        new("webpush", "Web Push (server)", "Send Web Push from your backend — VAPID keys, IWebPush, delivery results.", "Realtime")
+        {
+            SearchTitle = "Send Web Push notifications from .NET",
+            Description = "Send Web Push notifications from an ASP.NET Core backend to subscribed browsers with your own VAPID keys, aes128gcm encryption and zero external dependencies.",
+        },
+        new("webrtc", "IWebRtc", "Typed browser API: IWebRtc.", "Realtime", "apis/webrtc.md")
+        {
+            SearchTitle = "WebRTC Data Channels in C# and .NET (IWebRtc)",
+            Description = "Connect two browsers peer-to-peer from C# with IWebRtc: WebRTC data channels with batched messages plus camera, microphone and screen streams.",
+        },
+        new("signaling", "ISignaling", "Typed browser API: ISignaling.", "Realtime", "apis/signaling.md")
+        {
+            SearchTitle = "WebRTC Signaling Server in C# and .NET (ISignaling)",
+            Description = "Relay WebRTC offers, answers and ICE candidates between browsers with ISignaling and a WebSocket relay on any ASP.NET host. Authentication is on by default.",
+        },
+
+        // ---- Frontend ----
+        new("building-components", "Building components",
+            "Naming a component and chaining onto it; what a component demands before it exists.", "Frontend")
+        {
+            SearchTitle = "Building C# components with the markup chain",
+            Description = "Learn how C# markup chains work: required steps come first, bound versus controlled form controls, callbacks, your own components, and lists of components.",
+        },
+        new("elements", "Elements & the DSL", "Primitives, tag factories, universal props, SVG, the element catalog.", "Frontend")
+        {
+            SearchTitle = "HTML and SVG elements as typed C# components",
+            Description = "Reference for HTML in C#: Text, Raw and Doctype primitives, a typed entry for every HTML and SVG element, universal attributes and the children indexer.",
+        },
+        new("routing", "Routing", "Route attributes, params, nested layouts, type-safe URLs.", "Frontend")
+        {
+            SearchTitle = "Routing and type-safe URLs in C#",
+            Description = "Declare routes with [Route] and navigate with source-generated, type-safe URLs. Covers route and query parameters, nested layouts, Navigator and RouteState.",
+        },
+        new("composition", "Composition", "Children, fragments, callbacks, context, virtualize.", "Frontend")
+        {
+            SearchTitle = "Component composition: children and fragments",
+            Description = "How C# components compose: children and fragments through the indexer, static vs stateless vs stateful components, and hosting components built at runtime.",
+        },
+        new("composition-callbacks-context", "Composition — callbacks & context", "Child→parent callbacks and provide/consume context.", "Frontend")
+        {
+            SearchTitle = "Child-to-parent callbacks and context in C#",
+            Description = "Send events from a child component to its parent with Callback properties that re-render the owner, and pass values down with context, not prop drilling.",
+        },
+        new("composition-lists", "Composition — lists & more", "Virtualize, keyed lists, toasts, drag-and-drop, error boundaries.", "Frontend")
+        {
+            SearchTitle = "Virtualized lists, toasts and drag and drop",
+            Description = "Render windowed lists with Virtualize, keep list identity with keys, and add toast messages, drag-and-drop and error boundaries to C# web components.",
+        },
+        new("lifecycle", "Lifecycle", "Mount, props-changed, rendered, unmount, cancellation.", "Frontend")
+        {
+            SearchTitle = "Component lifecycle hooks in C#",
+            Description = "The lifecycle hooks a component can override, their order and sync vs async rules, plus disposal, cancellation tied to component lifetime and hosted services.",
+        },
+        new("render-modes", "Live pages", "Every page live: WebSocket or HTTP fallback, waiting for async data, status codes, redirects.", "Frontend")
+        {
+            SearchTitle = "Live server-rendered pages without hydration in C#",
+            Description = "Server-rendered HTML with no hydration, a live session per page over a WebSocket or an automatic HTTP fallback, async data, status codes and redirects.",
+        },
+        new("forms", "Forms & validation", "Two-way binding, Form<T>, inline/DataAnnotations/Fluent.", "Frontend")
+        {
+            SearchTitle = "Forms and two-way data binding in C#",
+            Description = "Bind inputs two-way with typed Bind expressions, build forms on an EditContext, track touched and modified fields, and show accessible validation messages.",
+        },
+        new("forms-validation", "Forms — validation", "Inline, DataAnnotations, FluentValidation, and async validators.", "Frontend")
+        {
+            SearchTitle = "Form validation with DataAnnotations in C#",
+            Description = "Validate form input with inline rules, DataAnnotations and FluentValidation, including async validators, a validating indicator and first-error-wins.",
+        },
+        new("forms-advanced", "Forms — advanced", "Nested/complex models, radio & checkbox groups, custom controls.", "Frontend")
+        {
+            SearchTitle = "Nested form models and custom form controls",
+            Description = "Bind and validate nested models and collections, build radio and checkbox groups, keep form state across a redeploy, and write your own form controls in C#.",
+        },
+        new("validation", "Validation", "Built in and on: attributes and AbstractValidator<T>, in forms and on requests.", "Frontend")
+        {
+            SearchTitle = "Model validation for forms and HTTP requests",
+            Description = "Built-in .NET validation: DataAnnotations or FluentValidation rules run in the form as the user types, and again on the server before a request is handled.",
+        },
+        new("js-interop", "JavaScript interop", "Scoped CSS/TypeScript, element refs, IJSRuntime, typed APIs.", "Frontend")
+        {
+            SearchTitle = "Scoped CSS and TypeScript for C# components",
+            Description = "Ship component-scoped CSS and TypeScript with C# components: how scripts are compiled, how assets are delivered and cached, and no style flash on navigation.",
+        },
+        new("js-interop-runtime", "JS interop — runtime", "Calling JS, the typed browser-API layer, element refs, third-party libs.", "Frontend")
+        {
+            SearchTitle = "Calling JavaScript from C# with IJSRuntime",
+            Description = "Call JavaScript from C# with an injected IJSRuntime, use typed browser APIs and element refs, and wrap a third-party JavaScript library with TypeScript types.",
+        },
+        new("islands", "Islands",
+            "A .tsx or Lit file as an ordinary Rask component, with props owned by C#.", "Frontend")
+        {
+            SearchTitle = "React, Vue and Svelte components in a C# app",
+            Description = "Use React, Vue, Svelte, Lit or Angular components in a C# app, from your own files or straight from npm, with typed props, callbacks and hot reload.",
+        },
+        new("spa", "TypeScript front ends", "React, Vue, Angular and four more, typed from your C# contracts.", "Frontend")
         {
             SearchTitle = "TypeScript SPA with an ASP.NET Core backend",
             Description = "Host a React, Vue, Svelte, Solid, Preact, Lit or Angular TypeScript app on ASP.NET Core, with types generated from your C# message records on each build.",
         },
         new("meta", "Meta framework front ends",
-            "Nuxt, Next, SvelteKit and three more owning the whole front end — one container.", "One Person Framework")
+            "Nuxt, Next, SvelteKit and three more owning the whole front end — one container.", "Frontend")
         {
             SearchTitle = "Nuxt, Next.js or SvelteKit with a .NET backend",
             Description = "Run Nuxt, Next.js, SvelteKit, SolidStart, TanStack Start or Analog on a C# backend, shipped as one container on one port, calling into C# with shared sign-in.",
         },
-        new("islands", "Islands",
-            "A .tsx or Lit file as an ordinary Rask component, with props owned by C#.", "One Person Framework")
-        {
-            SearchTitle = "React, Vue and Svelte components in a C# app",
-            Description = "Use a React, Preact, Solid, Vue, Svelte, Angular or Lit file as an ordinary C# component: props declared in C#, callbacks into C#, hydration and hot reload.",
-        },
         new("blazor-components", "Blazor components",
-            "A real Blazor component — MudBlazor, an RCL — hosted in a Rask page, server-rendered.", "One Person Framework")
+            "A real Blazor component — MudBlazor, an RCL — hosted in a Rask page, server-rendered.", "Frontend")
         {
             SearchTitle = "Host MudBlazor and Radzen Blazor components in C#",
             Description = "Render real Blazor components from Razor Class Libraries, MudBlazor or Radzen inside a C# page: in the first response, with parameters, events and @bind.",
         },
-        new("tailwind", "Tailwind CSS", "Tailwind v4 compiled by dotnet build — no npm, no config file.", "One Person Framework")
+        new("tailwind", "Tailwind CSS", "Tailwind v4 compiled by dotnet build — no npm, no config file.", "Frontend")
         {
             SearchTitle = "Tailwind CSS in .NET without npm or Node.js",
             Description = "Compile Tailwind CSS and daisyUI with dotnet build: no package.json, node_modules or PostCSS. The build scans your C# for classes, with knobs and fixes.",
         },
-        new("query", "Rask.Query", "The dispatcher wrapped in a cache: dedup, staleness, invalidation.", "One Person Framework")
-        {
-            SearchTitle = "TanStack Query-style data caching for C#",
-            Description = "Wrap the CQRS dispatcher in a TanStack Query-style cache for C# components: request dedup, staleness, background refetch, keys, invalidation and mutations.",
-        },
-        new("jobs", "Background jobs", "Durable enqueued / delayed / recurring work on your database.", "One Person Framework")
-        {
-            SearchTitle = "Durable background jobs in .NET on your database",
-            Description = "Run .NET background jobs off the request thread, stored in your app's database with no Redis or broker: enqueued, delayed and recurring, retried with backoff.",
-        },
-        new("mail", "Transactional email", "Durable email queued on your database, delivered over SMTP.", "One Person Framework")
-        {
-            SearchTitle = "Queued transactional email in .NET over SMTP",
-            Description = "Send transactional email from .NET off the request thread: messages queue in your database, bodies are C# components, and a worker delivers over SMTP.",
-        },
-        new("cache", "Cache", "A database-backed IDistributedCache plus a typed ICache.", "One Person Framework")
-        {
-            SearchTitle = "Database-backed IDistributedCache for ASP.NET Core",
-            Description = "A cache stored in your app's own database instead of Redis: it implements IDistributedCache and adds a typed ICache with Remember and sliding expiry.",
-        },
-        new("file-storage", "File storage", "Uploads kept on disk, S3 or Azure, with a row per file.", "One Person Framework")
-        {
-            SearchTitle = "File uploads in ASP.NET Core on disk, S3 or Azure",
-            Description = "Keep user uploads in .NET on disk, S3, R2 or Azure Blob with a row in your database: sniffed content types, size limits, public and signed temporary URLs.",
-        },
-        new("outbox", "Outbox", "Crash-safe domain-event delivery on your database.",
-            "One Person Framework")
-        {
-            SearchTitle = "Transactional outbox pattern in .NET, no broker",
-            Description = "Deliver domain events crash-safely with a transactional outbox on your app's database: events commit with the data and relay at-least-once, with no broker.",
-        },
-        new("sqlite", "Production SQLite", "WAL + busy-timeout pragmas, continuous backup, snapshots.", "One Person Framework")
-        {
-            SearchTitle = "SQLite in production for .NET: WAL and pragmas",
-            Description = "Run SQLite as a production database with ADO.NET or EF Core: WAL pragmas, BEGIN IMMEDIATE retries, STRICT tables, FTS5 full-text search and Litestream backup.",
-        },
-        new("deployment", "Deployment", "rask deploy: a bare VPS to a live HTTPS site, zero downtime.", "One Person Framework")
-        {
-            SearchTitle = "Deploy an ASP.NET Core app with Docker and HTTPS",
-            Description = "Ship a .NET app to a single VPS with rask deploy: host setup, Docker builds over SSH, automatic HTTPS, GitHub Actions and backups, plus Dockerfiles.",
-        },
-        new("scaling", "Scaling", "How far one box goes, measured — and where the wall actually is.", "One Person Framework")
-        {
-            SearchTitle = "Scaling a single-server .NET app on SQLite",
-            Description = "How far one server goes: measured live sessions per GiB, what survives a restart, the single SQLite writer as the real wall, and running more instances.",
-        },
-        new("secrets", "Secrets", "Where passwords and API keys live, and how they reach the server.", "One Person Framework")
-        {
-            SearchTitle = "Managing secrets in a deployed ASP.NET Core app",
-            Description = "Keep secrets out of source control: put them in .env.production, deploy with rask deploy --env-file, read them via IConfiguration, and know the limits.",
-        },
-
-        // ---- Core ----
-        new("building-components", "Building components",
-            "Naming a component and chaining onto it; what a component demands before it exists.", "Core")
-        {
-            SearchTitle = "Building C# components with the markup chain",
-            Description = "Learn how C# markup chains work: required steps come first, bound versus controlled form controls, callbacks, your own components, and lists of components.",
-        },
-        new("elements", "Elements & the DSL", "Primitives, tag factories, universal props, SVG, the element catalog.", "Core")
-        {
-            SearchTitle = "HTML and SVG elements as typed C# components",
-            Description = "Reference for HTML in C#: Text, Raw and Doctype primitives, a typed entry for every HTML and SVG element, universal attributes and the children indexer.",
-        },
-        new("routing", "Routing", "Route attributes, params, nested layouts, type-safe URLs.", "Core")
-        {
-            SearchTitle = "Routing and type-safe URLs in C#",
-            Description = "Declare routes with [Route] and navigate with source-generated, type-safe URLs. Covers route and query parameters, nested layouts, Navigator and RouteState.",
-        },
-        new("composition", "Composition", "Children, fragments, callbacks, context, virtualize.", "Core")
-        {
-            SearchTitle = "Component composition: children and fragments",
-            Description = "How C# components compose: children and fragments through the indexer, static vs stateless vs stateful components, and hosting components built at runtime.",
-        },
-        new("composition-callbacks-context", "Composition — callbacks & context", "Child→parent callbacks and provide/consume context.", "Core")
-        {
-            SearchTitle = "Child-to-parent callbacks and context in C#",
-            Description = "Send events from a child component to its parent with Callback properties that re-render the owner, and pass values down with context, not prop drilling.",
-        },
-        new("composition-lists", "Composition — lists & more", "Virtualize, keyed lists, toasts, drag-and-drop, error boundaries.", "Core")
-        {
-            SearchTitle = "Virtualized lists, toasts and drag and drop",
-            Description = "Render windowed lists with Virtualize, keep list identity with keys, and add toast messages, drag-and-drop and error boundaries to C# web components.",
-        },
-        new("broadcast", "Broadcast", "Publish on a topic; every subscribed component, in every open page, re-renders.", "Core")
-        {
-            SearchTitle = "Real-time pub/sub to every open page in C#",
-            Description = "Push a change to every open page with IBroadcast: typed topics, subscriptions that end with the component, and a Redis backplane across servers.",
-        },
-        new("lifecycle", "Lifecycle", "OnMount, OnUpdated, OnFirstRendered, OnRendered, OnUnmount, cancellation.", "Core")
-        {
-            SearchTitle = "Component lifecycle hooks in C#",
-            Description = "The lifecycle hooks a component can override, their order and sync vs async rules, plus disposal, cancellation tied to component lifetime and hosted services.",
-        },
-        new("render-modes", "Live pages", "Every page live: WebSocket or HTTP fallback, waiting for async data, status codes, redirects.", "Core")
-        {
-            SearchTitle = "Live server-rendered pages without hydration in C#",
-            Description = "Server-rendered HTML with no hydration, a live session per page over a WebSocket or an automatic HTTP fallback, async data, status codes and redirects.",
-        },
-        new("forms", "Forms & validation", "Two-way binding, Form<T>, inline/DataAnnotations/Fluent.", "Core")
-        {
-            SearchTitle = "Forms and two-way data binding in C#",
-            Description = "Bind inputs two-way with typed Bind expressions, build forms on an EditContext, track touched and modified fields, and show accessible validation messages.",
-        },
-        new("forms-validation", "Forms — validation", "Inline, DataAnnotations, FluentValidation, and async validators.", "Core")
-        {
-            SearchTitle = "Form validation with DataAnnotations in C#",
-            Description = "Validate form input with inline rules, DataAnnotations and FluentValidation, including async validators, a validating indicator and first-error-wins.",
-        },
-        new("forms-advanced", "Forms — advanced", "Nested/complex models, radio & checkbox groups, custom controls.", "Core")
-        {
-            SearchTitle = "Nested form models and custom form controls",
-            Description = "Bind and validate nested models and collections, build radio and checkbox groups, keep form state across a redeploy, and write your own form controls in C#.",
-        },
-        new("validation", "Validation", "Built in and on: attributes and AbstractValidator<T>, in forms and on requests.", "Core")
-        {
-            SearchTitle = "Model validation for forms and HTTP requests",
-            Description = "Built-in .NET validation: DataAnnotations or FluentValidation rules run in the form as the user types, and again on the server before a request is handled.",
-        },
-        new("js-interop", "JavaScript interop", "Scoped CSS/TypeScript, element refs, IJSRuntime, typed APIs.", "Core")
-        {
-            SearchTitle = "Scoped CSS and TypeScript for C# components",
-            Description = "Ship component-scoped CSS and TypeScript with C# components: how scripts are compiled, how assets are delivered and cached, and no style flash on navigation.",
-        },
-        new("js-interop-runtime", "JS interop — runtime", "Calling JS, the typed browser-API layer, element refs, third-party libs.", "Core")
-        {
-            SearchTitle = "Calling JavaScript from C# with IJSRuntime",
-            Description = "Call JavaScript from C# with an injected IJSRuntime, use typed browser APIs and element refs, and wrap a third-party JavaScript library with TypeScript types.",
-        },
-
-
-        // ---- Integration ----
-        new("authentication", "Authentication", "Accounts, passkeys, sessions and route guards on Server and WASM.", "Integration")
-        {
-            SearchTitle = "Passkeys and your own accounts in C#",
-            Description = "Add passkeys and accounts to a C# app: WebAuthn verified on the BCL, sign-in pages you own, a session row per device, PBKDF2 or bcrypt, throttling.",
-        },
-        new("authentication-cookie", "Auth — cookie", "Cookie login and session on Server and on a WASM SPA with an API host.", "Integration")
-        {
-            SearchTitle = "Cookie authentication for server and WASM apps",
-            Description = "Wire cookie-based login and sessions by hand, for the server-rendered WebSocket host and for a WebAssembly SPA backed by your own ASP.NET Core API.",
-        },
-        new("authentication-providers", "Auth — providers", "Keycloak, Auth0, and other OIDC providers, or your own Identity store.", "Integration")
-        {
-            SearchTitle = "OpenID Connect and external identity providers",
-            Description = "Sign in through Keycloak, Auth0, AWS Cognito or Duende IdentityServer over OpenID Connect, or bring your own user store with ASP.NET Identity.",
-        },
-        new("authentication-hardening", "Auth — hardening", "Production hardening for cookies, tokens, and sessions.", "Integration")
-        {
-            SearchTitle = "Production security hardening for .NET web apps",
-            Description = "Harden authentication for production: session trust model, CSRF protection, reverse proxy forwarded headers, Content-Security-Policy and a security checklist.",
-        },
-        new("http-and-files", "HTTP & files", "Fetch JSON with a DI'd HttpClient; upload and download files.", "Integration")
-        {
-            SearchTitle = "HttpClient, file uploads and downloads in C#",
-            Description = "Fetch JSON with a dependency-injected HttpClient, accept uploads through a typed file picker, and send downloads to the browser, on server and WASM hosts.",
-        },
-        new("data-access", "Data access", "EF Core + SQLite, vertical slices, DDD patterns.", "Integration")
-        {
-            SearchTitle = "Data access with EF Core and SQLite",
-            Description = "Wire EF Core and SQLite into a server app: register the DbContext with a factory for long-lived sessions, load data in the lifecycle, seed and test it.",
-        },
-        new("accessibility", "Accessibility", "ARIA, focus management, the img-alt analyzer.", "Integration")
-        {
-            SearchTitle = "Accessible C# components: ARIA, roles and focus",
-            Description = "Set ARIA attributes, roles, tab order and language on any element, trap focus in overlays, and catch missing image alt text with a compile-time analyzer.",
-        },
-        new("localization", "Localization", "Ship in more than one language: negotiated culture, typed catalogs, plurals.", "Integration")
-        {
-            SearchTitle = "Localization and translation for .NET web apps",
-            Description = "Ship an app in several languages: how the visitor's culture is chosen, translating text with placeholders and plurals, right-to-left layouts and WASM ICU.",
-        },
-        new("dashboard", "Dashboard", "An operator dashboard over every battery's table.", "Integration")
-        {
-            SearchTitle = "Operator dashboard for jobs, outbox and logs",
-            Description = "Mount an operator dashboard over your own database: outbox, background job and mail queues, dead letters, cache, live logs, backups and SQLite status.",
-        },
-        new("ui-kit", "UI kit", "The components the framework's own surfaces are drawn with.", "Integration")
+        new("ui-kit", "UI kit", "The components the framework's own surfaces are drawn with.", "Frontend")
         {
             SearchTitle = "daisyUI components as typed C# components",
             Description = "Every daisyUI 5 component as a typed C# component, no npm or Tailwind config: accessible menus, modals, a sidebar layout, form fields and themes.",
         },
-        new("data-grid", "Data grid", "Sorting, paging, typed selection, grouping and a card layout on a phone.", "Integration")
+        new("data-grid", "Data grid", "Sorting, paging, typed selection, grouping and a card layout on a phone.", "Frontend")
         {
             SearchTitle = "Data grid in C#: sorting, paging and selection",
             Description = "A typed C# data grid with sortable columns, paging, typed row selection, expandable detail rows, grouping, a column chooser and a card layout on phones.",
         },
-        new("tree", "Tree", "Expandable hierarchies with a keyboard, typed selection and virtualization.", "Integration")
+        new("tree", "Tree", "Expandable hierarchies with a keyboard, typed selection and virtualization.", "Frontend")
         {
             SearchTitle = "Tree view in C#: keyboard and virtualization",
             Description = "A typed C# tree view: expand and collapse, single or multiple selection, a keyboard with type-ahead, and virtualization.",
         },
-        new("logging", "Logging", "A durable log store in a database of its own.", "Integration")
+        new("accessibility", "Accessibility", "ARIA, focus management, the img-alt analyzer.", "Frontend")
         {
-            SearchTitle = "Durable .NET log storage in SQLite",
-            Description = "Store application logs in a SQLite file through a standard ILoggerProvider, with batched background writes, retention by age and row count, and scopes.",
+            SearchTitle = "Accessible C# components: ARIA, roles and focus",
+            Description = "Set ARIA attributes, roles, tab order and language on any element, trap focus in overlays, and catch missing image alt text with a compile-time analyzer.",
         },
-        new("observability", "Observability", "Logging, tracing, diagnostics.", "Integration")
+        new("localization", "Localization", "Ship in more than one language: negotiated culture, typed catalogs, plurals.", "Frontend")
         {
-            SearchTitle = ".NET metrics, tracing and health checks",
-            Description = "Monitor a .NET web app in production with structured logging, Meter metrics, ActivitySource tracing and health checks, ready to export via OpenTelemetry.",
+            SearchTitle = "Localization and translation for .NET web apps",
+            Description = "Ship an app in several languages: how the visitor's culture is chosen, translating text with placeholders and plurals, right-to-left layouts and WASM ICU.",
         },
-        new("configuration", "Configuration", "Every setting, under Rask in appsettings.json.", "Integration")
+
+        // ---- Deploy & operate ----
+        // No "generate": that command was removed, and a card naming a verb the CLI does not have
+        // is the first thing a reader types. The list is the commands `rask --help` prints.
+        new("cli", "The rask CLI", "Scaffold, run, dev, db, deploy — the front door.",
+            "Deploy & operate")
+        {
+            SearchTitle = "A .NET CLI to scaffold, run, migrate and deploy apps",
+            Description = "Reference for the rask .NET tool: rask new to scaffold projects, rask dev for hot reload, rask db for EF Core migrations and backups, rask deploy over SSH.",
+        },
+        new("deployment", "Deployment", "rask deploy: a bare VPS to a live HTTPS site, zero downtime.", "Deploy & operate")
+        {
+            SearchTitle = "Deploy an ASP.NET Core app with Docker and HTTPS",
+            Description = "Ship a .NET app to a single VPS with rask deploy: host setup, Docker builds over SSH, automatic HTTPS, GitHub Actions and backups, plus Dockerfiles.",
+        },
+        new("scaling", "Scaling", "How far one box goes, measured — and where the wall actually is.", "Deploy & operate")
+        {
+            SearchTitle = "Scaling a single-server .NET app on SQLite",
+            Description = "How far one server goes: measured live sessions per GiB, what survives a restart, the single SQLite writer as the real wall, and running more instances.",
+        },
+        new("secrets", "Secrets", "Where passwords and API keys live, and how they reach the server.", "Deploy & operate")
+        {
+            SearchTitle = "Managing secrets in a deployed ASP.NET Core app",
+            Description = "Keep secrets out of source control: put them in .env.production, deploy with rask deploy --env-file, read them via IConfiguration, and know the limits.",
+        },
+        new("configuration", "Configuration", "Every setting, under Rask in appsettings.json.", "Deploy & operate")
         {
             SearchTitle = "Configuring a .NET web app from appsettings.json",
             Description = "Configure every Rask package from appsettings.json: the Rask section each one reads, overriding it with environment variables or code, and startup validation.",
         },
+        new("dashboard", "Dashboard", "An operator dashboard over every battery's table.", "Deploy & operate")
+        {
+            SearchTitle = "Operator dashboard for jobs, outbox and logs",
+            Description = "Mount an operator dashboard over your own database: outbox, background job and mail queues, dead letters, cache, live logs, backups and SQLite status.",
+        },
+        new("logging", "Logging", "A durable log store in a database of its own.", "Deploy & operate")
+        {
+            SearchTitle = "Durable .NET log storage in SQLite",
+            Description = "Store application logs in a SQLite file through a standard ILoggerProvider, with batched background writes, retention by age and row count, and scopes.",
+        },
+        new("observability", "Observability", "Logging, tracing, diagnostics.", "Deploy & operate")
+        {
+            SearchTitle = ".NET metrics, tracing and health checks",
+            Description = "Monitor a .NET web app in production with structured logging, Meter metrics, ActivitySource tracing and health checks, ready to export via OpenTelemetry.",
+        },
 
-        // ---- Mobile & devices ----
-        new("browser-apis", "Browser APIs", "The typed wrappers over the platform's browser APIs.", "Mobile & devices")
+        // ---- Browser & devices ----
+        new("browser-apis", "Browser APIs", "The typed wrappers over the platform's browser APIs.", "Browser & devices")
         {
             SearchTitle = "Typed C# wrappers for browser Web APIs",
             Description = "Call browser Web APIs from C# through typed, injectable wrappers instead of raw IJSRuntime calls. A map of the whole surface on server and WASM hosts.",
         },
-        new("browser-apis-sharing", "Browser APIs — sharing model", "Where wrappers live; declarative vs imperative; subscriptions.", "Mobile & devices")
+        new("browser-apis-sharing", "Browser APIs — sharing model", "Where wrappers live; declarative vs imperative; subscriptions.", "Browser & devices")
         {
             SearchTitle = "Web Share, gesture triggers and API subscriptions",
             Description = "Which typed browser APIs run on server and WASM hosts, declarative Web Share and gesture triggers on the server, and subscriptions that push updates into C#.",
         },
-        new("browser-apis-reference", "Browser APIs — reference & demos", "Every typed browser wrapper with a runnable live demo.", "Mobile & devices")
+        new("browser-apis-reference", "Browser APIs — reference & demos", "Every typed browser wrapper with a runnable live demo.", "Browser & devices")
         {
             SearchTitle = "Browser API reference with live C# demos",
             Description = "Runnable demos for every typed browser API wrapper, C# source beside the result: storage, environment, location, sensors, observers, media, crypto and files.",
         },
-        new("pwa", "Mobile & PWA", "Service workers, Web Push, offline, installable apps.", "Mobile & devices")
+        new("pwa", "Mobile & PWA", "Service workers, Web Push, offline, installable apps.", "Browser & devices")
         {
             SearchTitle = "Build a PWA in C#: offline, install and push",
             Description = "Turn a C# WebAssembly app into an installable Progressive Web App: web app manifest, offline service worker, background sync, push notifications, device APIs.",
-        },
-        new("webpush", "Web Push (server)", "Send Web Push from your backend — VAPID keys, IWebPush, delivery results.", "Mobile & devices")
-        {
-            SearchTitle = "Send Web Push notifications from .NET",
-            Description = "Send Web Push notifications from an ASP.NET Core backend to subscribed browsers with your own VAPID keys, aes128gcm encryption and zero external dependencies.",
         },
 
         // ---- Browser API reference ----
@@ -509,7 +538,7 @@ public static class GuideCatalog
         new("eye-dropper", "IEyeDropper", "Typed browser API: IEyeDropper.", "Browser API reference", "apis/eye-dropper.md")
         {
             SearchTitle = "EyeDropper API in C# and .NET (IEyeDropper)",
-            Description = "Pick a colour from anywhere on screen in C# with the EyeDropper API. IEyeDropper is WASM-only; on Server, EyeDropperTrigger posts the colour to OnColor.",
+            Description = "Pick a colour from anywhere on screen in C# with the EyeDropper API. IEyeDropper is WASM-only; on Server, Trigger.EyeDropper posts the colour to OnColor.",
         },
         new("file-system-access", "IFileSystemAccess", "Typed browser API: IFileSystemAccess.", "Browser API reference", "apis/file-system-access.md")
         {
@@ -519,7 +548,7 @@ public static class GuideCatalog
         new("fullscreen", "IFullscreen", "Typed browser API: IFullscreen.", "Browser API reference", "apis/fullscreen.md")
         {
             SearchTitle = "Fullscreen API in C# and .NET (IFullscreen)",
-            Description = "Present an element or the whole page fullscreen from C# with the Fullscreen API. IFullscreen is WASM-only; on Server, FullscreenTrigger runs it in a click.",
+            Description = "Present an element or the whole page fullscreen from C# with the Fullscreen API. IFullscreen is WASM-only; on Server, Trigger.Fullscreen runs it in a click.",
         },
         new("gamepad", "IGamepad", "Typed browser API: IGamepad.", "Browser API reference", "apis/gamepad.md")
         {
@@ -549,7 +578,7 @@ public static class GuideCatalog
         new("install-prompt", "IInstallPrompt", "Typed browser API: IInstallPrompt.", "Browser API reference", "apis/install-prompt.md")
         {
             SearchTitle = "PWA Install Prompt (beforeinstallprompt) in C#",
-            Description = "Capture the beforeinstallprompt event and replay the PWA install prompt from C#. IInstallPrompt is WASM-only; on Server, InstallTrigger reports the outcome.",
+            Description = "Capture the beforeinstallprompt event and replay the PWA install prompt from C#. IInstallPrompt is WASM-only; on Server, Trigger.Install reports the outcome.",
         },
         new("intersection-observer", "IIntersectionObserver", "Typed browser API: IIntersectionObserver.", "Browser API reference", "apis/intersection-observer.md")
         {
@@ -559,7 +588,7 @@ public static class GuideCatalog
         new("media-devices", "IMediaDevices", "Typed browser API: IMediaDevices.", "Browser API reference", "apis/media-devices.md")
         {
             SearchTitle = "getUserMedia Camera Capture in C# (IMediaDevices)",
-            Description = "Capture camera, microphone or screen into a video element from C# with getUserMedia. IMediaDevices is WASM-only; on Server, use MediaCaptureTrigger instead.",
+            Description = "Capture camera, microphone or screen into a video element from C# with getUserMedia. IMediaDevices is WASM-only; on Server, use Trigger.MediaCapture instead.",
         },
         new("media-query", "IMediaQuery", "Typed browser API: IMediaQuery.", "Browser API reference", "apis/media-query.md")
         {
@@ -619,7 +648,7 @@ public static class GuideCatalog
         new("picture-in-picture", "IPictureInPicture", "Typed browser API: IPictureInPicture.", "Browser API reference", "apis/picture-in-picture.md")
         {
             SearchTitle = "Picture-in-Picture API in C# (IPictureInPicture)",
-            Description = "Float a video element into a Picture-in-Picture mini-player from C#: IPictureInPicture on WebAssembly, or the PictureInPictureTrigger component on Server.",
+            Description = "Float a video element into a Picture-in-Picture mini-player from C#: IPictureInPicture on WebAssembly, or the Trigger.PictureInPicture component on Server.",
         },
         new("resize-observer", "IResizeObserver", "Typed browser API: IResizeObserver.", "Browser API reference", "apis/resize-observer.md")
         {
@@ -634,17 +663,12 @@ public static class GuideCatalog
         new("screen-orientation", "IScreenOrientation", "Typed browser API: IScreenOrientation.", "Browser API reference", "apis/screen-orientation.md")
         {
             SearchTitle = "Screen Orientation API in C# (IScreenOrientation)",
-            Description = "Read and lock screen orientation from C#: IScreenOrientation on WebAssembly, ScreenOrientationTrigger on Server. The Screen Orientation lock needs fullscreen.",
+            Description = "Read and lock screen orientation from C#: IScreenOrientation on WebAssembly, Trigger.ScreenOrientation on Server. The Screen Orientation lock needs fullscreen.",
         },
         new("serial", "ISerial", "Typed browser API: ISerial.", "Browser API reference", "apis/serial.md")
         {
             SearchTitle = "Web Serial API in C# and .NET (ISerial)",
             Description = "Talk to a serial device such as an Arduino or GPS from C# with ISerial, a Web Serial API wrapper that pushes incoming data to a callback. WebAssembly only.",
-        },
-        new("signaling", "ISignaling", "Typed browser API: ISignaling.", "Browser API reference", "apis/signaling.md")
-        {
-            SearchTitle = "WebRTC Signaling Server in C# and .NET (ISignaling)",
-            Description = "Relay WebRTC offers, answers and ICE candidates between browsers with ISignaling and a WebSocket relay on any ASP.NET host. Authentication is on by default.",
         },
         new("share", "IShare", "Typed browser API: IShare.", "Browser API reference", "apis/share.md")
         {
@@ -705,11 +729,6 @@ public static class GuideCatalog
         {
             SearchTitle = "WebAuthn Passkeys in C# and .NET (IWebAuthn)",
             Description = "Register and sign in users with passkeys from C# through IWebAuthn, a typed Web Authentication API (WebAuthn) wrapper for Server and WebAssembly hosts.",
-        },
-        new("webrtc", "IWebRtc", "Typed browser API: IWebRtc.", "Browser API reference", "apis/webrtc.md")
-        {
-            SearchTitle = "WebRTC Data Channels in C# and .NET (IWebRtc)",
-            Description = "Connect two browsers peer-to-peer from C# with IWebRtc: WebRTC data channels with batched messages plus camera, microphone and screen streams.",
         },
 
         // ---- Advanced ----
@@ -788,8 +807,8 @@ public static class GuideCatalog
     ];
 
     public static readonly string[] GroupOrder =
-        ["Start here", "Tutorial", "One Person Framework", "Core", "Integration",
-         "Mobile & devices", "Browser API reference", "Advanced", "Contributing & internals"];
+        ["Start here", "Tutorial", "Data", "Auth", "Backend services", "Realtime", "Frontend",
+         "Deploy & operate", "Browser & devices", "Browser API reference", "Advanced", "Contributing & internals"];
 
     /// <summary>The catalog entry for a slug, or <c>null</c> when no guide has that name.</summary>
     /// <remarks>
@@ -797,6 +816,19 @@ public static class GuideCatalog
     ///     the page asks for the entry once rather than for each field by slug. An unknown slug is not in the
     ///     sitemap and is not prerendered, so it only ever reaches a visitor who typed it.
     /// </remarks>
+    /// <summary>
+    ///     Slugs a guide used to answer at, and the slug it answers at now. A crawler and every link elsewhere still
+    ///     hold the old URL, so it keeps rendering the guide — with its canonical naming the new one, which is also
+    ///     what keeps the old URL out of the sitemap.
+    /// </summary>
+    public static IReadOnlyDictionary<string, string> Moved { get; } = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["broadcast"] = "subscriptions",
+    };
+
+    /// <summary>The slug a guide answers at now: <paramref name="slug" /> itself, or where it moved to.</summary>
+    public static string Resolve(string slug) => Moved.TryGetValue(slug, out var moved) ? moved : slug;
+
     public static GuideEntry? Find(string slug)
     {
         foreach (var g in All)

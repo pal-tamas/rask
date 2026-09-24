@@ -139,7 +139,7 @@ public partial class HtmlSerializerTests : global::Rask.Core.RaskMarkup
         // verifies the no-stamp rule alongside the rest of the shell tags.
         "head" => Head,
         "body" => Body[Text.Value("x")],
-        "html" => Html[Text.Value("x")],
+        "html" => Document[Text.Value("x")],
         "title" => Title[Text.Value("x")],
         "meta" => Meta,
         "link" => Link,

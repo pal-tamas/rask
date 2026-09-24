@@ -4,8 +4,8 @@ A **developer-facing cache** for a Rask app — stored in the app's own database
 
 - Implements the standard **`IDistributedCache`**, so it drops straight into ASP.NET session state, output
   caching, and anything else built on the abstraction.
-- A typed cache you reach the way you say it — `await Cache.Remember("rates", LoadRates).For(10.Minutes)` —
-  plus `Set`, `Get` and `Forget`, with nothing injected (JSON under the hood).
+- A typed **`ICache`** convenience layer adds `GetOrAddAsync<T>` read-through, plus `GetAsync<T>` /
+  `SetAsync<T>` / `RemoveAsync` (JSON under the hood).
 - Entries carry **absolute** and **sliding** expirations; a read renews a sliding entry and an expired entry is
   evicted lazily. A background **`CachePurger`** sweeps expired rows on an interval.
 
@@ -20,11 +20,11 @@ builder.Services.AddRaskCache<AppDbContext>();
 ```
 
 ```csharp
-// remember: the loader runs once on a miss, then the value is served from the DB.
-var rates = await Cache.Remember($"rates:{date:yyyyMMdd}", () => exchange.FetchRates(date)).Sliding(10.Minutes);
-
-await Cache.Set("greeting", "hello").For(1.Hour);
-await Cache.Forget("greeting");
+// read-through: the factory runs once on a miss, then the value is served from the DB.
+var rates = await cache.GetOrAddAsync(
+    $"rates:{date:yyyyMMdd}",
+    ct => exchange.FetchRatesAsync(date, ct),
+    new DistributedCacheEntryOptions { SlidingExpiration = TimeSpan.FromMinutes(10) });
 ```
 
 Register your context as an `IDbContextFactory<AppDbContext>` (Rask Server sessions are long-lived) and run
@@ -41,9 +41,15 @@ builder.Services.AddRaskCache();   // no <AppDbContext>
 ```
 
 There is deliberately no `Rask.Cache.Redis` package —
-`Microsoft.Extensions.Caching.StackExchangeRedis` is the standard .NET API for this. Of `CacheOptions` only
-`Json` applies there — the purge and the default expiry belong to the database-backed store.
+`Microsoft.Extensions.Caching.StackExchangeRedis` is the standard .NET API for this. The overload takes no
+`CacheOptions`, because both of them are implemented by the database-backed store and would silently do
+nothing against another one.
 
-> **Trim / AOT:** register your source-generated `JsonSerializerContext` once —
-> `AddRaskCache<AppDbContext>(o => o.Json = AppJson.Default)` — and every call site stays as it is. The
+**Isolated per tenant.** In a multi-tenant app the database-backed store scopes each key to the tenant in
+flight, so every tenant gets its own value under the same name and cannot read another's; with no tenant the
+key is stored as given, which keeps anonymous session and output caching working.
+
+> **Trim / AOT:** the typed `Remember<T>`/`Get<T>`/`Set<T>` surface round-trips values through
+> `System.Text.Json`, which by default means reflection. In a trimmed or AOT app, name a source-generated
+> `JsonSerializerContext` once — `o.Json = AppJson.Default` — and every call stays as it is. The
 > `IDistributedCache` (`byte[]`) surface is fully trim-safe.

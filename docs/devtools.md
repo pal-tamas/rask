@@ -123,7 +123,7 @@ name and size.
 the tree opens to the component that rendered it and selects its row. The click goes to the devtools, not to your app.
 Press **Esc**, or **Pick** again, to stop without choosing.
 
-A pick lands on the nearest component. Some kit components, `UiButton` among them, render an element directly and
+A pick lands on the nearest component. Some kit components, `Ui.Button` among them, render an element directly and
 don't appear in the tree themselves, so pointing at a button picks the component the button sits in. With **Show
 HTML tags** on, a pick lands on the element itself.
 

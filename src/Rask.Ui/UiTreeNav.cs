@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 ///     One visible node of a <see cref="UiTree{T,TKey}" />, with everything its row and the keyboard need.

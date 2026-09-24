@@ -13,19 +13,18 @@ namespace Rask.Core.Tests.Components;
 public partial class ElementDialogEventsTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Dialog_handlers_outside_a_live_context_are_not_emitted() =>
+    public void Dialog_handlers_outside_live_context_not_emitted() =>
         Assert.Equal("<dialog></dialog>", Dialog.OnCancel(() => { }).OnClose(() => { }).ToHtml());
 
     [Fact]
-    public void Only_the_set_dialog_handlers_are_emitted()
+    public void Dialog_handlers_only_non_null_emitted()
     {
         var view = new StubComponent(() => Dialog.OnClose(() => { }));
-
         Assert.Equal("<dialog data-rask-on-close=\"h0\"></dialog>", view.RenderAsLiveRoot());
     }
 
     [Fact]
-    public void The_cancel_handler_leads_because_it_fires_first()
+    public void Cancel_comes_first_among_the_dialog_handlers_because_it_fires_first()
     {
         // Appended after toggle, so no earlier attribute moves; cancel before close, as the browser
         // raises them. The ids follow the emit order, not the order the handlers were wired in.
@@ -33,17 +32,15 @@ public partial class ElementDialogEventsTests : global::Rask.Core.RaskMarkup
             .OnClose(() => Task.CompletedTask)
             .OnToggle(_ => { })
             .OnCancel(() => Task.CompletedTask));
-
         Assert.Equal(
             "<dialog data-rask-on-toggle=\"h0\" data-rask-on-cancel=\"h1\" data-rask-on-close=\"h2\"></dialog>",
             view.RenderAsLiveRoot());
     }
 
     [Fact]
-    public void Unset_dialog_handlers_leave_no_footprint()
+    public void Unset_dialog_handlers_add_no_footprint()
     {
         var dialog = Dialog;
-
         Assert.Null(dialog.OnCancel);
         Assert.Null(dialog.OnClose);
     }

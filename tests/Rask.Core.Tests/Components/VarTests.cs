@@ -17,6 +17,6 @@ public partial class VarTests : global::Rask.Core.RaskMarkup
                 .Data(new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
 
     [Fact]
-    public void A_string_child_is_encoded_as_text() =>
+    public void A_text_child_is_html_encoded() =>
         Assert.Equal("<var>&lt;x&gt;</var>", Var["<x>"].ToHtml());
 }

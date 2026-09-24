@@ -15,7 +15,7 @@ namespace Rask.Core.Tests.Forms;
 // nested chain resolves BindingHelpers.ResolveBindingContext(acc.Target) against the
 // sub-object reference and ends up with a *separate* empty EditContext, so handler-driven
 // NotifyFieldChanged/ValidateField calls land in a different context than the validators
-// (which self-register into EditContextScope.Current during Render) and ValidationMessage
+// (which self-register into EditContextScope.Current during Render) and Validation.Message
 // (which reads EditContextScope.Current). The pre-walk closes that gap.
 public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
 {
@@ -25,7 +25,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
         EditContext? captured = null;
 
-        var page = Test.Render(() => Form.Model(p)[
+        var page = Page.Render(() => Form.Model(p)[
             Input.Bind(() => p.Address.Street)
                 .Validate(v =>
                     string.IsNullOrEmpty(v) ? new[] { "street required" } : Array.Empty<string>()),
@@ -51,7 +51,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
         EditContext? captured = null;
 
-        var page = Test.Render(() => Form.Model(p)[
+        var page = Page.Render(() => Form.Model(p)[
             Input.Bind(() => p.Address.Street)
                 .Validate(v =>
                     v.Length < 3 ? new[] { "too short" } : Array.Empty<string>()),
@@ -81,7 +81,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
         EditContext? captured = null;
 
-        var page = Test.Render(() => Form.Model(p)[
+        var page = Page.Render(() => Form.Model(p)[
             Input.Bind(() => p.Address.Street)
                 .Validate(_ => new[] { "always-fail" }),
             Test.EditContextProbe(ctx => captured = ctx)
@@ -109,10 +109,10 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
         var ctx = new EditContext(p);
 
-        var page = Test.Render(() => Form.Model(p).Context(ctx)[
+        var page = Page.Render(() => Form.Model(p).Context(ctx)[
             Input.Bind(() => p.Address.Street)
                 .Validate(_ => new[] { "model-plus-context" }),
-            ValidationMessage.Template(msgs => [.. msgs.Select((m, i) => Div.Class("err").Key(i)[m])])
+            Validation.Message.Template(msgs => [.. msgs.Select((m, i) => Div.Class("err").Key(i)[m])])
                 .For(() => p.Address.Street)
         ]);
 
@@ -137,7 +137,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
         var ctx = new EditContext(p);
         EditContext? captured = null;
 
-        var page = Test.Render(() => Form.Model(p).Context(ctx)[
+        var page = Page.Render(() => Form.Model(p).Context(ctx)[
             Input.Bind(() => p.Address.Street)
                 .Validate(_ => new[] { "nested-explicit-ctx" }),
             Test.EditContextProbe(c => captured = c)
@@ -159,7 +159,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "Ada", Address = new Address { Street = "old" } };
         EditContext? captured = null;
 
-        var page = Test.Render(() => Form.Model(p)[
+        var page = Page.Render(() => Form.Model(p)[
             Input.Bind(() => p.Address.Street)
                 .Validate(v =>
                     string.IsNullOrEmpty(v) ? new[] { "street required" } : Array.Empty<string>()),
@@ -189,7 +189,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
         // the failure is render-pipeline or Server-WS-pipeline.
         var m = new StorefrontModel { Address = new StorefrontAddress { PostalCode = "" } };
 
-        var page = Test.Render(() => Form.Model(m)[
+        var page = Page.Render(() => Form.Model(m)[
             Input.Bind(() => m.Address.PostalCode)
                 .Validate(async (v, ct) =>
                 {
@@ -206,7 +206,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
                     await Task.Delay(50, ct).ConfigureAwait(false);
                     return v == "99999" ? new[] { "We don't ship to this area." } : Array.Empty<string>();
                 }),
-            ValidationMessage.Template(msgs => [.. msgs.Select((s, i) => Div.Class("err").Key(i)[s])])
+            Validation.Message.Template(msgs => [.. msgs.Select((s, i) => Div.Class("err").Key(i)[s])])
                 .For(() => m.Address.PostalCode)
         ]);
 
@@ -240,7 +240,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
         // see error clear after async settles".
         var m = new StorefrontModel { Address = new StorefrontAddress { PostalCode = "" } };
 
-        var page = Test.Render(() => Form.Model(m)[
+        var page = Page.Render(() => Form.Model(m)[
             Input.Bind(() => m.Address.PostalCode)
                 .Validate(async (v, ct) =>
                 {
@@ -257,7 +257,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
                     await Task.Delay(20, ct).ConfigureAwait(false);
                     return v == "99999" ? new[] { "We don't ship to this area." } : Array.Empty<string>();
                 }),
-            ValidationMessage.Template(msgs => [.. msgs.Select((s, i) => Div.Class("err").Key(i)[s])])
+            Validation.Message.Template(msgs => [.. msgs.Select((s, i) => Div.Class("err").Key(i)[s])])
                 .For(() => m.Address.PostalCode)
         ]);
 
@@ -289,7 +289,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
         var m = new StorefrontModel { CustomerName = "", Address = new StorefrontAddress { PostalCode = "" } };
         string? submitted = null;
 
-        var page = Test.Render(() => Form.Model(m).OnSubmit(mm => submitted = $"Charged to {mm.CustomerName}")[
+        var page = Page.Render(() => Form.Model(m).OnSubmit(mm => submitted = $"Charged to {mm.CustomerName}")[
             Input.Bind(() => m.CustomerName)
                 .Validate(v => string.IsNullOrWhiteSpace(v) ? new[] { "Name required" } : Array.Empty<string>()),
             Input.Bind(() => m.Address.PostalCode)
@@ -326,16 +326,16 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
     {
         // End-to-end coverage: after blur, the post-handler re-render must include the
         // validation message in the produced HTML. ContextCapture-style tests only prove the
-        // form's EditContext has the message; this one proves ValidationMessage's read path
+        // form's EditContext has the message; this one proves Validation.Message's read path
         // (EditContextScope.Current) actually resolves to the same context the handler wrote
         // to during the re-render that follows the event dispatch.
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
 
-        var page = Test.Render(() => Form.Model(p)[
+        var page = Page.Render(() => Form.Model(p)[
             Input.Bind(() => p.Address.Street)
                 .Validate(v =>
                     string.IsNullOrEmpty(v) ? new[] { "street required" } : Array.Empty<string>()),
-            ValidationMessage.Template(msgs => [.. msgs.Select((m, i) => Div.Class("err").Key(i)[m])])
+            Validation.Message.Template(msgs => [.. msgs.Select((m, i) => Div.Class("err").Key(i)[m])])
                 .For(() => p.Address.Street)
         ]);
 
@@ -359,11 +359,11 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
         // makes the value valid must clear the message in the next render's HTML.
         var p = new Person { Name = "Ada", Address = new Address { Street = "" } };
 
-        var page = Test.Render(() => Form.Model(p)[
+        var page = Page.Render(() => Form.Model(p)[
             Input.Bind(() => p.Address.Street)
                 .Validate(v =>
                     v.Length < 3 ? new[] { "too short" } : Array.Empty<string>()),
-            ValidationMessage.Template(msgs => [.. msgs.Select((m, i) => Div.Class("err").Key(i)[m])])
+            Validation.Message.Template(msgs => [.. msgs.Select((m, i) => Div.Class("err").Key(i)[m])])
                 .For(() => p.Address.Street)
         ]);
 
@@ -394,7 +394,7 @@ public partial class NestedBindingValidationTests : global::Rask.Core.RaskMarkup
         };
         EditContext? captured = null;
 
-        var page = Test.Render(() => Form.Model(p)[
+        var page = Page.Render(() => Form.Model(p)[
             Input.Bind(() => p.Address.Postal.Code)
                 .Validate(v =>
                     string.IsNullOrEmpty(v) ? new[] { "postal required" } : Array.Empty<string>()),

@@ -65,13 +65,13 @@ public class DefaultErrorPageTests
     }
 
     [Fact]
-    public void The_aspnetcore_environment_variable_takes_precedence_over_the_dotnet_one()
+    public void The_ASPNETCORE_ENVIRONMENT_variable_wins_over_the_DOTNET_one()
     {
         Assert.False(DefaultErrorPage.ResolveIsDevelopment(null, "Production", "Development"));
     }
 
     [Fact]
-    public void Every_page_shows_the_heading_the_exception_type_and_the_message()
+    public void Always_shows_heading_type_and_message()
     {
         var html = Render(Thrown("boom-msg"), isDevelopment: false);
 
@@ -81,19 +81,18 @@ public class DefaultErrorPageTests
     }
 
     [Fact]
-    public void Every_page_offers_a_reload_button_to_recover()
+    public void Always_offers_a_reload_recovery_button()
     {
         // A user stranded on the fault needs an in-app way back — the runtime wires data-rask-reload to
         // location.reload(). Present in production too (the primary recovery when no stack is shown).
         var html = Render(Thrown("boom"), isDevelopment: false);
-
         Assert.Contains("data-rask-reload", html);
         Assert.Contains("Reload this page", html);
         Assert.Contains("<button", html);
     }
 
     [Fact]
-    public void Development_renders_the_parsed_stack_frames()
+    public void Development_renders_parsed_stack_frames()
     {
         var html = Render(Thrown("dev-boom"), isDevelopment: true);
 
@@ -115,7 +114,7 @@ public class DefaultErrorPageTests
     }
 
     [Fact]
-    public void Development_renders_the_inner_exception_chain()
+    public void Development_renders_inner_exception_chain()
     {
         var ex = new InvalidOperationException("outer-boom", new Exception("inner-secret"));
 
@@ -127,7 +126,7 @@ public class DefaultErrorPageTests
     }
 
     [Fact]
-    public void Production_hides_the_inner_exception_chain()
+    public void Production_hides_inner_exception_chain()
     {
         var ex = new InvalidOperationException("outer-boom", new Exception("inner-secret"));
 
@@ -139,7 +138,7 @@ public class DefaultErrorPageTests
     }
 
     [Fact]
-    public void The_exception_message_is_html_encoded_so_nothing_is_injected()
+    public void Exception_message_is_html_encoded_no_injection()
     {
         var html = Render(new Exception("<script>alert(1)</script>"), isDevelopment: true);
 
@@ -148,7 +147,7 @@ public class DefaultErrorPageTests
     }
 
     [Fact]
-    public void Unwinding_flattens_an_aggregate_exception()
+    public void Unwind_flattens_aggregate_exception()
     {
         var agg = new AggregateException(new Exception("agg-a"), new Exception("agg-b"));
 
@@ -159,7 +158,7 @@ public class DefaultErrorPageTests
     }
 
     [Fact]
-    public void Unwinding_a_deeply_nested_chain_is_depth_bounded()
+    public void Unwind_is_depth_bounded_on_deeply_nested_chain()
     {
         // A pathologically deep chain must not blow the stack or render thousands of blocks.
         Exception ex = new("leaf");
@@ -174,7 +173,7 @@ public class DefaultErrorPageTests
     }
 
     [Fact]
-    public void The_source_excerpt_is_a_window_with_the_throwing_line_marked()
+    public void Read_source_excerpt_returns_window_with_throwing_line_marked()
     {
         var path = Path.GetTempFileName();
         try
@@ -200,19 +199,18 @@ public class DefaultErrorPageTests
     [InlineData("/no/such/file/anywhere.cs", 3)]
     [InlineData("", 3)]
     [InlineData(null, 3)]
-    public void A_missing_or_invalid_file_has_no_source_excerpt(string? file, int line)
+    public void Read_source_excerpt_missing_or_invalid_file_returns_null(string? file, int line)
     {
         Assert.Null(DefaultErrorPage.ReadSourceExcerpt(file, line, radius: 5));
     }
 
     [Fact]
-    public void A_line_out_of_range_has_no_source_excerpt()
+    public void Read_source_excerpt_line_out_of_range_returns_null()
     {
         var path = Path.GetTempFileName();
         try
         {
             File.WriteAllLines(path, ["only", "two", "lines"]);
-
             Assert.Null(DefaultErrorPage.ReadSourceExcerpt(path, line: 99, radius: 5));
             Assert.Null(DefaultErrorPage.ReadSourceExcerpt(path, line: 0, radius: 5));
         }

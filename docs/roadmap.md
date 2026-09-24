@@ -1,7 +1,8 @@
-# Roadmap — the One Person Framework pillars
+# Roadmap — the full-stack pillars
 
-Rask's north star is the [.NET One Person Framework](one-person-framework.md): one developer builds, runs,
-and ships a whole product from a single C# codebase on one server. This page tracks the pillars that serve
+Rask's north star is a full-stack .NET web framework for a team of one or fifty: UI, data, auth, background
+work, realtime and deploy from a single C# codebase, and one developer can still ship it alone on one server
+([the philosophy](one-person-framework.md)). This page tracks the pillars that serve
 that goal — what's shipped and what's next. The through-line for everything stateful is **DB-backed by
 default**: it rides the app's own SQLite database, so adding a capability is a package reference, not a new
 service to operate.
@@ -16,7 +17,11 @@ service to operate.
 | **The `rask` CLI** | ✅ | [`cli.md`](cli.md) — `new` / `dev` / `db` / `deploy`. |
 | **CRUD pattern** | ✅ | A CQRS + EF Core vertical slice — encapsulated entity, validation, pages — documented as code in [tutorial chapter 2](tutorial/02-first-feature.md), with jobs, email and cache following the same shape. |
 | **CQRS / mediator** | ✅ | [`Rask.Cqrs`](cqrs.md) — source-generated, reflection-free. |
-| **Data layer** | ✅ | [`Rask.Data`](data.md) — `Aggregate<TId>` and `Entity<TId>` + interceptors (audit, soft delete, concurrency, domain events). |
+| **Data layer** | ✅ | [`Rask.Data`](data.md) — `Aggregate<TId>` and `Entity<TId>` + interceptors (audit, opt-in soft delete, concurrency, domain events), generated read faces and form models, and `Current` for the signed-in user with nothing injected. |
+| **Query cache** | ✅ | [`Rask.Query`](query.md) — TanStack Query's model over the CQRS dispatcher: dedup, staleness, background refetch, commands through `Command<T>`, and a write through `Rask.Data` refreshing the queries about what it wrote. |
+| **Realtime subscriptions** | ◐ | [`subscriptions.md`](subscriptions.md) — a published CQRS notification re-renders every subscribed page, narrowed by a record and admitted by a watch policy, from WebAssembly over server-sent events. **One process**: events do not yet cross between processes or hosts ([below](#subscriptions--beyond-one-process)). |
+| **Multi-tenancy** | ✅ | [`multi-tenancy.md`](multi-tenancy.md) — one `const` partitions a table by tenant: a `TenantId`, a query filter nothing composes away, tenant-prefixed indexes, the tenant from the signed-in user; jobs, mail, outbox, cache, storage and accounts honour it. |
+| **Full-text search** | ✅ | [`full-text-search.md`](full-text-search.md) — `HasFullTextSearch` + `Search(text)`, ranked and diacritic-insensitive, on SQLite (FTS5), in the browser and on PostgreSQL (`tsvector` + GIN). |
 | **Transactional outbox** | ✅ | [`Rask.Outbox`](outbox.md) — durable, crash-safe domain-event delivery on the app's own database. |
 | **Background jobs** | ✅ | [`Rask.Jobs`](jobs.md) — durable enqueued/delayed/recurring work on the app's own database, at-least-once with backoff. |
 | **Transactional email** | ✅ | [`Rask.Mail`](mail.md) — durable email queued on the app's own database, delivered off the request thread over SMTP; bodies are Rask components. |
@@ -25,7 +30,7 @@ service to operate.
 | **Production SQLite** | ✅ | [`sqlite.md`](sqlite.md) — WAL/busy-timeout pragmas, continuous backup (Litestream), snapshots. |
 | **The door out of one box** | ❌ | Not shipped — the PostgreSQL and SQL Server providers exist, but `rask new` and `rask deploy` wire SQLite only ([below](#another-database)). Jobs, mail and the outbox do **lease** the work they claim ([`scaling.md`](scaling.md#running-more-than-one-instance)), so the claim is safe when several processors race and a lease bounds, but does not eliminate, a duplicate side effect. See [below](#not-shipped). |
 | **Auth — sign-in** | ✅ | [`authentication.md`](authentication.md) — the cookie session, claims, authorization, and hardening guidance. |
-| **Auth — user store** | ✅ | Accounts on the app's own `User` aggregate, with a revocable session row per device, on by default. Register, sign in and sign out work in a fresh app with no auth code; the first account to register is the administrator. Email verification, password reset and MFA are [not shipped](#not-shipped) yet. |
+| **Auth — user store** | ✅ | Accounts on the app's own `User` aggregate, with a revocable session row per device, on by default. Register, sign in and sign out work in a fresh app with no auth code; the first account to register is the administrator. Email confirmation, password reset, passkeys and sign-in throttling ship on; MFA beyond passkeys and external sign-in providers are [not shipped](#not-shipped) yet. |
 | **Web Push (server send)** | ✅ | [`webpush.md`](webpush.md) — `Rask.WebPush`: VAPID (RFC 8292) + aes128gcm (RFC 8291), zero deps. |
 | **Deploy to one box** | ✅ | [`rask deploy`](cli.md) — bare-VPS setup (Docker, deploy login, firewall, SSH hardening), build over SSH, zero-downtime, auto-HTTPS (Caddy), multi-app on one host, GitHub Actions. |
 | **Dead letters & queue health** | ✅ | [`dashboard.md`](dashboard.md) — `Rask.Dashboard` mounts `/_rask` over the outbox, jobs, mail and cache: queue depth, **what has given up**, the error behind it, and one click to retry. Plus the log (a live tail, and searchable history with [`Rask.Logging`](logging.md)) and the live SQLite pragmas. Fail-closed behind an authorization policy. |
@@ -43,10 +48,12 @@ broker, no Redis, no separate infrastructure for a hello-world. Ordered by lever
 The developer-facing cache has [shipped](cache.md). Still planned: a render/fragment cache reusing the
 framework's existing subtree-cache machinery, to memoize a component subtree across sessions by an explicit key.
 
-### Broadcast — across servers
-[Broadcast](broadcast.md) has shipped for one process: publish on a topic and every subscribed component in every
-open session re-renders. Still planned: a backplane that carries a publish to the sessions held by other instances
-behind a load balancer.
+### Subscriptions — beyond one process
+[Subscriptions](subscriptions.md) have shipped: a published notification reaches every subscribed component, scoped by
+key and admitted by a watch policy, and from WebAssembly over server-sent events. They reach the process that published
+them. Still planned: carrying events between processes and hosts — the blue and green containers of a deploy, and the
+instances behind a load balancer — and resuming a dropped stream from the last event it saw rather than from the latest
+value.
 
 ## Not shipped
 
@@ -82,10 +89,11 @@ something Rask does. (Files uploaded *to* the server are a different matter and 
 disk provider are not yet covered by any backup.)
 
 ### Rate limiting
-Nothing in the framework. The docs point you at a reverse-proxy rate limit in several places, and
-`rask deploy` provisions a stock Caddy, which can't do it without a plugin — so today that means adding one
-yourself, or a WAF in front. Worth knowing before you put a login form on the internet: there is **no
-built-in login-attempt throttle**.
+No general request rate limiting in the framework. The accounts battery does throttle what it owns — failed
+sign-ins per address and client (`SignInAttemptsPerMinute`), registrations and reset requests — without ever
+locking an account ([authentication.md](authentication.md#passwords-and-throttling)). Everything else is
+yours: the docs point you at a reverse-proxy rate limit in several places, and `rask deploy` provisions a stock
+Caddy, which can't do it without a plugin — so today that means adding one yourself, or a WAF in front.
 
 ### Secrets beyond environment variables
 See [`secrets.md`](secrets.md) for what does exist and, at the bottom, a blunt list of what doesn't.

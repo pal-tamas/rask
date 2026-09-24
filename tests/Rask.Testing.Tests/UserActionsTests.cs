@@ -65,7 +65,7 @@ public sealed partial class UserActionsTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Typing_into_a_labelled_field_and_submitting_saves_what_was_typed()
     {
-        var page = Test.Render(new ProductForm());
+        var page = Page.Render(new ProductForm());
 
         await page.Type("Tea").Into("Name");
         await page.Click("Save");
@@ -76,7 +76,7 @@ public sealed partial class UserActionsTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Ticking_a_box_and_picking_an_option_are_both_saved()
     {
-        var page = Test.Render(new ProductForm());
+        var page = Page.Render(new ProductForm());
 
         await page.Check("In stock");
         await page.Pick("Green").From("Colour");
@@ -88,7 +88,7 @@ public sealed partial class UserActionsTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_field_can_be_found_by_its_placeholder()
     {
-        var page = Test.Render(new ProductForm());
+        var page = Page.Render(new ProductForm());
 
         var failure = await Record.ExceptionAsync(() => page.Type("tea").Into("Search"));
 
@@ -99,7 +99,7 @@ public sealed partial class UserActionsTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_field_nobody_labelled_so_fails_listing_the_fields_there_are()
     {
-        var page = Test.Render(new ProductForm());
+        var page = Page.Render(new ProductForm());
 
         var failure = await Assert.ThrowsAsync<PageException>(() => page.Type("Tea").Into("Title"));
 
@@ -110,7 +110,7 @@ public sealed partial class UserActionsTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Shows_waits_for_async_work_to_land()
     {
-        var page = Test.Render(new Loader());
+        var page = Page.Render(new Loader());
 
         page.Shows("Loaded");
 
@@ -120,7 +120,7 @@ public sealed partial class UserActionsTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Shows_fails_saying_what_the_page_shows_instead()
     {
-        var page = Test.Render(new Loader());
+        var page = Page.Render(new Loader());
         page.Patience = TimeSpan.FromMilliseconds(200);
 
         var failure = Assert.Throws<PageException>(() => page.Shows("Product saved"));
@@ -132,7 +132,7 @@ public sealed partial class UserActionsTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task An_ambiguous_click_asks_for_a_region_and_In_picks_the_one_meant()
     {
-        var page = Test.Render(new Groceries());
+        var page = Page.Render(new Groceries());
 
         var ambiguous = await Assert.ThrowsAsync<PageException>(async () => await page.Click("Delete"));
         await page.Click("Delete").In("Coffee");
@@ -144,7 +144,7 @@ public sealed partial class UserActionsTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Shows_In_narrows_the_check_to_one_region()
     {
-        var page = Test.Render(new Groceries());
+        var page = Page.Render(new Groceries());
 
         page.Shows("Tea").In("Tea");
 

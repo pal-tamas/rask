@@ -25,7 +25,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
         // Drive HttpFetchDemo directly through LiveHost — its standalone /http page was folded into
         // docs/http-and-files.md. Re-rendering the SAME host preserves the demo instance so the
         // awaited fetch's continuation result is observed.
-        var page = Test.Render(() => HttpFetchDemo, Services(http, TimeProvider.System));
+        var page = Page.Render(() => HttpFetchDemo, Services(http, TimeProvider.System));
         await WaitFor.True(
             () => page.Render().Contains("the body text", StringComparison.Ordinal),
             TimeSpan.FromSeconds(5),
@@ -46,7 +46,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
         var (http, _) = FakeHttp.Throwing(
             new HttpRequestException("boom", null, HttpStatusCode.InternalServerError));
 
-        var page = Test.Render(() => HttpFetchDemo, Services(http, TimeProvider.System));
+        var page = Page.Render(() => HttpFetchDemo, Services(http, TimeProvider.System));
         // Loading shows initially; after the fetch faults the error banner should appear on next render.
         await Task.Delay(120);
         var html = page.Render();
@@ -79,7 +79,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
         // The fetch + retry self-heal lives in HttpFetchDemo (the page just embeds its source).
         // Drive the demo directly through LiveHost so we assert on its rendered RESULT, not the
         // page's source-code pane (which contains the alert's own class names as literal text).
-        var page = Test.Render(() => HttpFetchDemo, Services(http, clock));
+        var page = Page.Render(() => HttpFetchDemo, Services(http, clock));
         await WaitFor.True(
             () => AdvanceAndRender(page, clock).Contains("the body text", StringComparison.Ordinal),
             TimeSpan.FromSeconds(5),
@@ -100,7 +100,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
         var (http, handler) = FakeHttp.Throwing(new HttpRequestException("TypeError: Load failed"));
         var clock = new ManualClock();
 
-        var page = Test.Render(() => HttpFetchDemo, Services(http, clock));
+        var page = Page.Render(() => HttpFetchDemo, Services(http, clock));
 
         // The control. The first attempt fails inside the render, and the loop then parks on a retry delay
         // only this clock can end: however long the test waits here, nothing moves until it moves the clock.
@@ -130,7 +130,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://test.local/") };
         var clock = new ManualClock();
 
-        var page = Test.Render(() => HttpFetchDemo, Services(http, clock));
+        var page = Page.Render(() => HttpFetchDemo, Services(http, clock));
         await WaitFor.True(
             () => AdvanceAndRender(page, clock).Contains("alert-error", StringComparison.Ordinal),
             TimeSpan.FromSeconds(6),
@@ -148,7 +148,7 @@ public sealed partial class HttpPageTests : global::Rask.Core.RaskMarkup
         // never throws out of the lifecycle — the page/guide stays alive around it.
         var (http, _) = FakeHttp.WithStatus(HttpStatusCode.NotFound);
 
-        var page = Test.Render(() => HttpFetchDemo, Services(http, TimeProvider.System));
+        var page = Page.Render(() => HttpFetchDemo, Services(http, TimeProvider.System));
         await Task.Delay(120);
         var html = page.Render();
 

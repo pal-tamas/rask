@@ -24,7 +24,8 @@ public sealed class PackageIslandTargetsTests
     // The override sits on line 5, which is where RASKISLAND006 has to point.
     private const string Island =
         "namespace Shop;\n\npublic sealed partial class MuiButton : Rask.External.ReactComponent\n{\n"
-        + "    protected override string Module => \"@mui/material#Button\";\n}\n";
+        + "    protected override string Module => \"@mui/material\";\n"
+        + "    protected override string Export => \"Button\";\n}\n";
 
     private const string Snapshot =
         "{\n  \"schema\": 1,\n  \"runtime\": \"react\",\n  \"module\": \"@mui/material\",\n  \"export\": \"Button\",\n"
@@ -36,10 +37,10 @@ public sealed class PackageIslandTargetsTests
         var (exit, output) = await Build(packageJson: true, snapshot: true, "-t:ReportPackageIslands");
 
         Assert.True(exit == 0, output);
-        Assert.Contains("PACKAGE=MuiButton|react|@mui/material#Button", output, StringComparison.Ordinal);
+        Assert.Contains("PACKAGE=MuiButton|react|@mui/material|Button", output, StringComparison.Ordinal);
 
         // Joined to @(_RaskExternalFile) as its snapshot, carrying the module the entry imports.
-        Assert.Contains("FILE=MuiButton.props.json|@mui/material#Button", output, StringComparison.Ordinal);
+        Assert.Contains("FILE=MuiButton.props.json|@mui/material|Button", output, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -113,9 +114,9 @@ public sealed class PackageIslandTargetsTests
                    <Target Name="ResolveProjectReferences"/>
                    <Target Name="ReportPackageIslands" DependsOnTargets="_RaskExternalFindPackageIslands">
                      <Message Importance="high" Condition="'%(_RaskExternalPackageIsland.IslandName)' != ''"
-                              Text="PACKAGE=%(_RaskExternalPackageIsland.IslandName)|%(_RaskExternalPackageIsland.Runtime)|%(_RaskExternalPackageIsland.PackageModule)"/>
+                              Text="PACKAGE=%(_RaskExternalPackageIsland.IslandName)|%(_RaskExternalPackageIsland.Runtime)|%(_RaskExternalPackageIsland.PackageModule)|%(_RaskExternalPackageIsland.PackageExport)"/>
                      <Message Importance="high" Condition="'%(_RaskExternalFile.PackageModule)' != ''"
-                              Text="FILE=%(_RaskExternalFile.Filename)%(_RaskExternalFile.Extension)|%(_RaskExternalFile.PackageModule)"/>
+                              Text="FILE=%(_RaskExternalFile.Filename)%(_RaskExternalFile.Extension)|%(_RaskExternalFile.PackageModule)|%(_RaskExternalFile.PackageExport)"/>
                    </Target>
                    <Target Name="ReportAdditionalFiles">
                      <Message Importance="high" Text="ADDITIONAL=@(AdditionalFiles->'%(Filename)%(Extension)', ' ADDITIONAL=')"/>

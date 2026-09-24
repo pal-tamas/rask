@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A table of data, styled by the kit. It IS the <c>&lt;table&gt;</c> element.

@@ -1,6 +1,6 @@
 namespace Rask.Site.Features;
 
-// Children as a FUNCTION of the submit state. `Form.Model(model)[f => [ … ]]` is called on
+// Children as a FUNCTION of the submit state. `Form.Model(model)[submitting => [ … ]]` is called on
 // every render with whether a submit is in flight, so the busy affordance — the disabled input, the
 // button that reads "Saving…" — lives in the markup rather than in a bool this component maintains
 // beside the model. The flag is raised when the handler starts and cleared when it returns, and the
@@ -14,12 +14,12 @@ public sealed partial class FormSubmitStateDemo : Component
         Div.Class("grid grid-cols-12 gap-4")[
             Div.Class("col-span-12 md:col-span-7")[
                 Form.Model(_model).OnSubmit(SaveAsync).Id("fss-form")[f => [
-                    UiInput.Bind(() => _model.Username).Label("Username")
+                    Ui.Input.Bind(() => _model.Username).Label("Username")
                         .Disabled(f.Submitting)
                         .Id("fss-input").Class("mb-2"),
-                    UiButton
-                        .Primary
-                        .Submit
+                    Ui.Button
+                        .Tone(Ui.Tone.Primary)
+                        .Type(Ui.ButtonType.Submit)
                         .Disabled(f.Submitting)
                         .Id("fss-submit")[f.Submitting ? "Saving…" : "Sign up"]
                 ]]

@@ -91,7 +91,7 @@ public abstract partial class SharedSmokeTests
         await TestSidebarNavAsync();
         await WalkUserComponentsGuideAsync();
         await TestCompositionGuideAsync();
-        await WalkBroadcastGuideAsync();
+        await WalkSubscriptionsGuideAsync();
         await WalkLifecycleGuideAsync();
         await WalkRoutingGuideAsync();
         await WalkJsInteropGuideAsync();
@@ -271,9 +271,9 @@ public abstract partial class SharedSmokeTests
         Assert.True(groups >= 6, $"expected the nav split into many collapsible groups, got {groups}");
 
         // Collapse/expand toggle: the guide category groups are open by default (guides-first), so
-        // collapsing one hides its links and re-expanding reveals them. The "Core" guide group is stable
-        // across the whole example→guide migration.
-        var core = Page.Locator(".side-nav .nav-group-toggle:has-text(\"Core\")").First;
+        // collapsing one hides its links and re-expanding reveals them. The "Frontend" guide group (the
+        // old "Core", renamed when the nav regrouped by domain) holds the routing guide.
+        var core = Page.Locator(".side-nav .nav-group-toggle:has-text(\"Frontend\")").First;
         var routingGuide = Page.Locator($".side-nav a.side-nav-link[href=\"{Docs}/guides/routing/\"]");
         await core.ClickAsync(); // collapse
         await Expect(routingGuide).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
@@ -647,26 +647,33 @@ public abstract partial class SharedSmokeTests
         await demo.Locator("button:has-text('Sign out')").ClickAsync();
     }
 
-    // Broadcast guide (#1061): one publish reaches both boards, which share nothing with the button but the topic —
-    // so each board's list changing proves delivery into the session and the re-render after it, in the real browser.
-    protected async Task WalkBroadcastGuideAsync()
+    // Subscriptions guide: one publish through IDispatcher reaches both boards, which share nothing with the button but
+    // the notification type, and the tracker — a WatchOrder record its policy admits — hears that ONE order ship. Each
+    // change proves delivery into the page and the re-render after it, in the real browser.
+    protected async Task WalkSubscriptionsGuideAsync()
     {
         var contains = new LocatorAssertionsToContainTextOptions { Timeout = 10_000 };
-        // The heading, not the label: "Broadcast" also matches the IBroadcastChannel reference in the sidebar filter.
-        await SideAsync("Broadcast", "push a change to every open page", "main .markdown-body h1");
-        await AssertGuideDemosAsync(1, "broadcast");
+        await SideAsync("Subscriptions", "push events to every open page", "main .markdown-body h1");
+        await AssertGuideDemosAsync(1, "subscriptions");
 
-        var demo = Page.Locator("#broadcast-demo");
-        var boards = demo.Locator(".broadcast-board");
+        var demo = Page.Locator("#subscription-demo");
+        var boards = demo.Locator(".subscription-board");
+        var tracked = demo.Locator("#subscription-tracked");
         await Expect(boards).ToHaveCountAsync(2);
         await Expect(boards.Nth(0)).ToContainTextAsync("No orders yet.", contains);
+        await Expect(tracked).ToContainTextAsync("Place an order to track it.", contains);
 
-        await demo.Locator("#broadcast-publish").ClickAsync();
-        await demo.Locator("#broadcast-publish").ClickAsync();
+        await demo.Locator("#subscription-place").ClickAsync();
+        await demo.Locator("#subscription-place").ClickAsync();
 
         await Expect(boards.Nth(0)).ToContainTextAsync("#2 rocket skates", contains);
         await Expect(boards.Nth(1)).ToContainTextAsync("#2 rocket skates", contains);
         await Expect(boards.Nth(1)).ToContainTextAsync("#1 anvil", contains);
+        await Expect(tracked).ToContainTextAsync("Order #2 is waiting to ship.", contains);
+
+        await demo.Locator("#subscription-ship").ClickAsync();
+
+        await Expect(tracked).ToContainTextAsync("Order #2 has shipped.", contains);
     }
 
     // Lifecycle guide: the Lifecycle / Disposal / Cancellation / Background-service example pages were

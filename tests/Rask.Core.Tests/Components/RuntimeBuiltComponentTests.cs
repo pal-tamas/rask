@@ -30,7 +30,7 @@ public sealed partial class RuntimeBuiltComponentTests : global::Rask.Core.RaskM
     public async Task An_instance_placed_in_the_tree_mounts_and_repaints_when_its_hook_completes()
     {
         var loader = NewLoader();
-        var page = Test.Render(() => Div.Class("host")[loader]);
+        var page = Page.Render(() => Div.Class("host")[loader]);
 
         Assert.Equal(1, loader.Mounts);
 
@@ -47,7 +47,7 @@ public sealed partial class RuntimeBuiltComponentTests : global::Rask.Core.RaskM
         // while it was on screen, and the repaint its Mount asked for never came. Gated here so the second
         // render always lands first, instead of only under load.
         var gated = NewGated();
-        var page = Test.Render(() => Div.Class("host")[gated]);
+        var page = Page.Render(() => Div.Class("host")[gated]);
 
         page.Render();
         gated.Release();
@@ -82,7 +82,7 @@ public sealed partial class RuntimeBuiltComponentTests : global::Rask.Core.RaskM
     public void It_mounts_once_however_many_times_its_parent_renders()
     {
         var loader = NewLoader();
-        var page = Test.Render(() => Div[loader]);
+        var page = Page.Render(() => Div[loader]);
 
         page.Render();
         page.Render();
@@ -95,7 +95,7 @@ public sealed partial class RuntimeBuiltComponentTests : global::Rask.Core.RaskM
     {
         var loader = NewLoader();
         var shown = true;
-        var page = Test.Render(() => Div[shown ? loader : null]);
+        var page = Page.Render(() => Div[shown ? loader : null]);
 
         shown = false;
         page.Render();
@@ -109,7 +109,7 @@ public sealed partial class RuntimeBuiltComponentTests : global::Rask.Core.RaskM
         // Adoption used to file every adopted child under one slot per type, which a single wrapper never
         // noticed and a row of plugin widgets would: all but the last would lose their lifecycle.
         var loaders = new[] { NewLoader(), NewLoader(), NewLoader() };
-        Test.Render(() => Div[loaders]);
+        Page.Render(() => Div[loaders]);
 
         Assert.All(loaders, l => Assert.Equal(1, l.Mounts));
     }
@@ -117,7 +117,7 @@ public sealed partial class RuntimeBuiltComponentTests : global::Rask.Core.RaskM
     [Fact]
     public void A_chain_built_child_is_not_adopted_a_second_time()
     {
-        var page = Test.Render(() => Div[Span.Class("a")["x"]]);
+        var page = Page.Render(() => Div[Span.Class("a")["x"]]);
 
         Assert.Contains("<span class=\"a\">x</span>", page.Html, StringComparison.Ordinal);
         Assert.Equal(1, CountOccurrences(page.Html, "<span"));

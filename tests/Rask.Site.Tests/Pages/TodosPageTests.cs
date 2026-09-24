@@ -13,7 +13,7 @@ public sealed class TodosPageTests
     {
         var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.TodosPage() };
 
-        var html = Test.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
+        var html = Page.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
         Assert.Contains("Read the Rask README", html);
         Assert.Contains("Wire up a feature toggle", html);
@@ -25,7 +25,7 @@ public sealed class TodosPageTests
     {
         var routeState = new RouteState { Path = global::Rask.Site.Features.Routes.TodosPage() + "/new" };
 
-        var html = Test.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
+        var html = Page.Render(new global::Rask.Site.App(), TestServices.Default(routeState: routeState)).Html;
 
         Assert.Contains(">Add todo<", html);
         Assert.Contains("todo-title", html);

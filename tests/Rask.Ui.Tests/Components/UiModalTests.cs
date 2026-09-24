@@ -1,4 +1,4 @@
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     The dialog: a real <c>&lt;dialog&gt;</c>, a popover by default.
@@ -11,7 +11,7 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
         // Not a div wearing a role. A <dialog> is the element the platform means, and it is what lets
         // the popover path get a real ::backdrop rather than one painted by the kit.
         Assert.Contains("<dialog", Popover());
-        Assert.Contains("<dialog", UiModal.Title("Delete order").Open(true).ToHtml());
+        Assert.Contains("<dialog", Ui.Modal.Title("Delete order").Open(true).ToHtml());
     }
 
     [Fact]
@@ -39,7 +39,7 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void No_trigger_still_renders_the_dialog_so_something_else_can_open_it()
     {
-        var html = UiModal.Title("Delete order").Id("confirm").ToHtml();
+        var html = Ui.Modal.Title("Delete order").Id("confirm").ToHtml();
 
         Assert.Contains("popover=\"auto\"", html);
         Assert.DoesNotContain("<button class=\"btn\" popovertarget", html);
@@ -50,7 +50,7 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
     {
         // They cannot coexist: a [popover] element is display:none until the browser shows it, so a
         // modal-open class on one would be a class that changes nothing.
-        var html = UiModal.Title("Delete order").Id("confirm").Open(true).ToHtml();
+        var html = Ui.Modal.Title("Delete order").Id("confirm").Open(true).ToHtml();
 
         Assert.DoesNotContain("popover=", html);
         Assert.Contains("modal-open", html);
@@ -59,7 +59,7 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
 
     [Fact]
     public void The_state_driven_path_can_be_kept_mounted_but_hidden() =>
-        Assert.DoesNotContain("modal-open", UiModal.Title("Delete order").Open(false).ToHtml());
+        Assert.DoesNotContain("modal-open", Ui.Modal.Title("Delete order").Open(false).ToHtml());
 
     [Fact]
     public void Without_a_stated_placement_it_is_a_sheet_on_a_phone_and_centred_above_it()
@@ -73,21 +73,21 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
     }
 
     [Theory]
-    [InlineData(UiModalPosition.Top, "modal-top")]
-    [InlineData(UiModalPosition.Middle, "modal-middle")]
-    [InlineData(UiModalPosition.Bottom, "modal-bottom")]
-    [InlineData(UiModalPosition.Start, "modal-start")]
-    [InlineData(UiModalPosition.End, "modal-end")]
-    public void Every_position_writes_its_own_class(UiModalPosition position, string expected) =>
+    [InlineData(Ui.ModalPosition.Top, "modal-top")]
+    [InlineData(Ui.ModalPosition.Middle, "modal-middle")]
+    [InlineData(Ui.ModalPosition.Bottom, "modal-bottom")]
+    [InlineData(Ui.ModalPosition.Start, "modal-start")]
+    [InlineData(Ui.ModalPosition.End, "modal-end")]
+    public void Every_position_writes_its_own_class(Ui.ModalPosition position, string expected) =>
         Assert.Contains(expected,
-            UiModal.Title("Delete order").Id("confirm").Position(position).ToHtml());
+            Ui.Modal.Title("Delete order").Id("confirm").Position(position).ToHtml());
 
     [Fact]
     public void A_stated_position_replaces_the_responsive_default_rather_than_fighting_it()
     {
         // Appending the default would leave `sm:modal-middle` overriding the caller's choice at every
         // width above a phone — the class present, and ignored.
-        var html = UiModal.Title("Delete order").Id("confirm").Position(UiModalPosition.Top).ToHtml();
+        var html = Ui.Modal.Title("Delete order").Id("confirm").Position(Ui.ModalPosition.Top).ToHtml();
 
         Assert.DoesNotContain("sm:modal-middle", html);
         Assert.DoesNotContain("modal-bottom", html);
@@ -100,7 +100,7 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
         // dialog, so a click on the dimmed area lands inside it. daisyUI's backdrop button is what it lands on.
         Assert.Contains("modal-backdrop", Popover());
         Assert.Contains("modal-backdrop",
-            UiModal.Title("Delete order").Open(true).OnClose(() => { }).ToHtml());
+            Ui.Modal.Title("Delete order").Open(true).OnClose(() => { }).ToHtml());
     }
 
     [Fact]
@@ -131,7 +131,7 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Not_dismissible_drops_the_backdrop_and_the_fallbacks_light_dismiss()
     {
-        var html = UiModal.Title("Unsaved work").Id("confirm").Dismissible(false).ToHtml();
+        var html = Ui.Modal.Title("Unsaved work").Id("confirm").Dismissible(false).ToHtml();
 
         Assert.DoesNotContain("modal-backdrop", html);
         Assert.Contains("popover=\"manual\"", html);
@@ -142,7 +142,7 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Not_escapable_asks_the_browser_to_ignore_close_requests()
     {
-        var html = UiModal.Title("Unsaved work").Id("confirm").Escapable(false).ToHtml();
+        var html = Ui.Modal.Title("Unsaved work").Id("confirm").Escapable(false).ToHtml();
 
         Assert.Contains("closedby=\"none\"", html);
         Assert.Contains("popover=\"manual\"", html);
@@ -151,7 +151,7 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Not_closable_drops_the_header_close_button()
     {
-        var html = UiModal.Title("Terms").Id("confirm").Closable(false).ToHtml();
+        var html = Ui.Modal.Title("Terms").Id("confirm").Closable(false).ToHtml();
 
         Assert.DoesNotContain("btn-square", html);
         // Still dismissible by a click outside unless that is turned off too.
@@ -163,11 +163,11 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
     {
         // The runtime's trap gives it containment, Escape and focus handed back; on a dialog kept mounted while
         // closed, the attribute's removal is what hands focus back.
-        var open = UiModal.Title("Delete order").Open(true).OnClose(() => { }).ToHtml();
+        var open = Ui.Modal.Title("Delete order").Open(true).OnClose(() => { }).ToHtml();
         Assert.Contains("data-rask-focus-trap", open);
         Assert.Contains("tabindex=\"-1\"", Tag(open, "<dialog"));
 
-        Assert.DoesNotContain("data-rask-focus-trap", UiModal.Title("Delete order").Open(false).OnClose(() => { }).ToHtml());
+        Assert.DoesNotContain("data-rask-focus-trap", Ui.Modal.Title("Delete order").Open(false).OnClose(() => { }).ToHtml());
     }
 
     [Fact]
@@ -175,14 +175,14 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
     {
         // The trap presses the [data-rask-dismiss] control on Escape, so there must be one — and only when there is
         // a callback for it to run.
-        Assert.Contains("data-rask-dismiss", UiModal.Title("Delete order").Open(true).OnClose(() => { }).ToHtml());
-        Assert.DoesNotContain("data-rask-dismiss", UiModal.Title("Delete order").Open(true).ToHtml());
+        Assert.Contains("data-rask-dismiss", Ui.Modal.Title("Delete order").Open(true).OnClose(() => { }).ToHtml());
+        Assert.DoesNotContain("data-rask-dismiss", Ui.Modal.Title("Delete order").Open(true).ToHtml());
         Assert.DoesNotContain(
             "data-rask-dismiss",
-            UiModal.Title("Delete order").Open(true).OnClose(() => { }).Escapable(false).ToHtml());
+            Ui.Modal.Title("Delete order").Open(true).OnClose(() => { }).Escapable(false).ToHtml());
 
         // With no visible close button, a hidden one still takes the Escape.
-        var unclosable = UiModal.Title("Delete order").Open(true).OnClose(() => { }).Closable(false).ToHtml();
+        var unclosable = Ui.Modal.Title("Delete order").Open(true).OnClose(() => { }).Closable(false).ToHtml();
         Assert.Contains("data-rask-dismiss", unclosable);
         Assert.DoesNotContain("btn-square", unclosable);
     }
@@ -192,7 +192,7 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
     {
         // daisyUI's modal-end is already full height; the centred box's max-h and max-w utilities would win
         // over it and float the flyout back into the middle of the edge.
-        var flyout = UiModal.Title("Filters").Id("filters").Position(UiModalPosition.End).ToHtml();
+        var flyout = Ui.Modal.Title("Filters").Id("filters").Position(Ui.ModalPosition.End).ToHtml();
 
         Assert.Contains("modal-end", flyout);
         Assert.DoesNotContain("max-h-[88vh]", flyout);
@@ -206,10 +206,10 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
         // Handler ids are only written by a live render.
         Assert.Contains(
             "data-rask-on-toggle=",
-            global::Rask.Testing.Test.Render(UiModal.Title("Delete order").Id("confirm").OnClose(() => { })).Html);
+            global::Rask.Testing.Page.Render(Ui.Modal.Title("Delete order").Id("confirm").OnClose(() => { })).Html);
         Assert.DoesNotContain(
             "data-rask-on-toggle=",
-            global::Rask.Testing.Test.Render(UiModal.Title("Delete order").Id("confirm")).Html);
+            global::Rask.Testing.Page.Render(Ui.Modal.Title("Delete order").Id("confirm")).Html);
     }
 
     [Fact]
@@ -218,7 +218,7 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
         // #1116: Escape and the backdrop are dismissals, so a caller can tell "backed out" from "finished" —
         // cancel first, the order the platform uses on the modal path.
         var heard = new List<string>();
-        var page = global::Rask.Testing.Test.Render(UiModal.Title("Edit")
+        var page = global::Rask.Testing.Page.Render(Ui.Modal.Title("Edit")
             .Open(true)
             .OnCancel(() => heard.Add("cancel"))
             .OnClose(() => heard.Add("close")));
@@ -235,7 +235,7 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
     public async Task The_close_button_is_not_a_dismissal()
     {
         var heard = new List<string>();
-        var page = global::Rask.Testing.Test.Render(UiModal.Title("Edit")
+        var page = global::Rask.Testing.Page.Render(Ui.Modal.Title("Edit")
             .Open(true)
             .OnCancel(() => heard.Add("cancel"))
             .OnClose(() => heard.Add("close")));
@@ -249,7 +249,7 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
     public void With_OnCancel_Escape_presses_its_own_control_not_the_close_button()
     {
         // The close button cannot be what Escape presses once the two mean different things.
-        var html = UiModal.Title("Edit").Open(true).OnCancel(() => { }).OnClose(() => { }).ToHtml();
+        var html = Ui.Modal.Title("Edit").Open(true).OnCancel(() => { }).OnClose(() => { }).ToHtml();
 
         Assert.DoesNotContain("data-rask-dismiss", Tag(html, "<button class=\"btn btn-ghost"));
         Assert.Single(System.Text.RegularExpressions.Regex.Matches(html, "data-rask-dismiss"));
@@ -260,7 +260,7 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
     {
         // A page may close the dialog from OnCancel and never set OnClose; the backdrop and Escape must not
         // vanish because only one of the two callbacks is set.
-        var html = UiModal.Title("Edit").Open(true).OnCancel(() => { }).ToHtml();
+        var html = Ui.Modal.Title("Edit").Open(true).OnCancel(() => { }).ToHtml();
 
         Assert.Contains("modal-backdrop", html);
         Assert.Contains("data-rask-dismiss", html);
@@ -270,7 +270,7 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
     public async Task On_the_modal_path_OnCancel_is_the_dialogs_own_cancel_and_the_backdrops_click()
     {
         var cancelled = 0;
-        var page = global::Rask.Testing.Test.Render(UiModal.Title("Edit").Id("edit").OnCancel(() => cancelled++));
+        var page = global::Rask.Testing.Page.Render(Ui.Modal.Title("Edit").Id("edit").OnCancel(() => cancelled++));
 
         Assert.Contains("data-rask-on-cancel=", Tag(page.Html, "<dialog"));
 
@@ -286,7 +286,7 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Without_OnCancel_the_modal_path_registers_no_handler_for_it()
     {
-        var html = global::Rask.Testing.Test.Render(UiModal.Title("Edit").Id("edit")).Html;
+        var html = global::Rask.Testing.Page.Render(Ui.Modal.Title("Edit").Id("edit")).Html;
 
         Assert.DoesNotContain("data-rask-on-cancel", html);
         Assert.DoesNotContain("data-rask-on-click", html);
@@ -314,5 +314,5 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
     }
 
     private static string Popover() =>
-        UiModal.Title("Delete order").Id("confirm").Trigger("Delete").ToHtml();
+        Ui.Modal.Title("Delete order").Id("confirm").Trigger("Delete").ToHtml();
 }

@@ -1,4 +1,4 @@
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A navigation bar whose entries open full panels beneath it.
@@ -26,7 +26,7 @@ namespace Rask.Ui;
 /// </remarks>
 public sealed partial class UiMegamenu : Component
 {
-    public UiSize? Size { get; set; }
+    public Ui.Size? Size { get; set; }
 
     /// <summary>Stretches a panel to the full width of the viewport.</summary>
     public bool? Full { get; set; }

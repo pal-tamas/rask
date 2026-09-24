@@ -5,7 +5,13 @@ product — the UI, the data, the auth, the background work, and the deployment 
 one server.** No PaaS to rent, no stack of services to assemble and glue, no second language to
 context-switch into. That is what "One Person Framework" means here, and every design decision serves it.
 
-This page is the doctrine. The [getting-started guide](getting-started.md) is the hands-on UI path, the
+It is a floor, not a ceiling. Rask is a full-stack .NET web framework, and the same stack that lets one
+developer carry a product lets a team of five or fifty move without a platform group: every feature is a
+C# slice anyone on the team can read end to end, the batteries replace services someone would otherwise
+have to own, and one deploy command replaces a pipeline. Small teams ship like big ones; one developer can
+still ship alone.
+
+This page is the philosophy. The [getting-started guide](getting-started.md) is the hands-on UI path, the
 [zero-to-deploy tutorial](tutorial/00-overview.md) builds a whole product end to end, and the
 [docs index](README.md) is the full map.
 
@@ -14,7 +20,7 @@ This page is the doctrine. The [getting-started guide](getting-started.md) is th
 Shipping a product the conventional way means assembling a stack: a frontend framework in one language, a
 backend in another, a managed database, a queue for background jobs, a cache, and a
 deployment pipeline to tie them together. Each piece is rented, integrated, monitored, and paid for. For a
-team that division of labor pays off. For **one person**, it is mostly overhead — the integration seams,
+large organization that division of labor can pay off. For **one person or a small team**, it is mostly overhead — the integration seams,
 the context-switching, and the monthly bill for capacity you don't yet need.
 
 Rask's answer is to collapse the stack. One language (C#), one codebase, one database file, one server.
@@ -29,7 +35,7 @@ component code runs on two hosts — you pick per project, not per component:
 
 Behind the UI, features are **vertical slices**: [`Rask.Cqrs`](cqrs.md) gives you source-generated
 commands/queries/notifications, and [`Rask.Data`](data.md) gives every aggregate a base with identity,
-audit stamps, soft delete, optimistic concurrency, and domain events — driven by EF Core interceptors, not
+audit stamps, opt-in soft delete, optimistic concurrency, and domain events — driven by EF Core interceptors, not
 boilerplate you copy into each feature. You don't wire a mediator or write a repository; you describe the
 slice and the framework assembles it.
 

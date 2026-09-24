@@ -121,19 +121,19 @@ public sealed partial class CreateProduct(Navigator navigator) : Component
 
         return
         [
-            UiHeader.Heading("New product").Actions(UiButton.Variant(UiVariant.Ghost).Href(Routes.ProductsPage())["Cancel"]),
-            UiCard[
-                save.IsError ? UiAlert.Tone(UiTone.Error)["Something went wrong — please try again."] : null,
-                Form.Model(_model).OnSubmit(async model => await save.Send(async ct =>
+            Ui.Header.Heading("New product").Actions(Ui.Button.Variant(Ui.Variant.Ghost).Href(Routes.ProductsPage())["Cancel"]),
+            Ui.Card[
+                save.IsError ? Ui.Alert.Tone(Ui.Tone.Error)["Something went wrong — please try again."] : null,
+                Form.Model(_model).OnSubmit(model => save.SendAsync(async ct =>
                 {
                     await Product.CreateAsync(model, cancellationToken: ct);
                     navigator.NavigateTo(Routes.ProductsPage());
                 }, CancellationToken))[
-                    UiInput.Bind(() => _model.Name).Label("Name"),
-                    UiInput.Bind(() => _model.Price).Label("Price").Min("0").Step("0.01")
+                    Ui.Input.Bind(() => _model.Name).Label("Name"),
+                    Ui.Input.Bind(() => _model.Price).Label("Price").Min("0").Step("0.01")
                         .Hint("What a customer pays, before tax."),
-                    UiCheckbox.Bind(() => _model.InStock).Text("In stock"),
-                    UiButton.Type(UiButtonType.Submit).Tone(UiTone.Primary).Disabled(save.IsPending)["Save"]
+                    Ui.Checkbox.Bind(() => _model.InStock).Text("In stock"),
+                    Ui.Button.Type(Ui.ButtonType.Submit).Tone(Ui.Tone.Primary).Disabled(save.IsPending)["Save"]
                 ]
             ]
         ];
@@ -144,10 +144,10 @@ public sealed partial class CreateProduct(Navigator navigator) : Component
 `Routes.ProductsPage()` is generated from the `[Route]` on the list page you're about to write — a typed
 URL, so renaming a route breaks the build instead of the link. See [routing](../routing.md).
 
-The page is built from the [Rask.Ui kit](../ui-kit.md), so there isn't a class string in it. `UiInput` is
+The page is built from the [Rask.Ui kit](../ui-kit.md), so there isn't a class string in it. `Ui.Input` is
 a whole field in one line: its label floats inside the box until you type (put guidance in `Hint`, under
 the field, rather than in a placeholder), and the field's own validation message appears under it.
-`UiButton.Type(UiButtonType.Submit)` is the form's submit button, and **Cancel** is a `UiButton` too. Given
+`Ui.Button.Type(Ui.ButtonType.Submit)` is the form's submit button, and **Cancel** is a `Ui.Button` too. Given
 `Href` it renders as a link, and because `Routes.ProductsPage()` is a generated route rather than a string,
 the runtime follows it without reloading the page. See [the UI kit](../ui-kit.md#buttons-and-links-that-go-somewhere).
 
@@ -158,7 +158,7 @@ valid one. See [forms](../forms.md) and [validation](../validation.md).
 The save goes through a **command**: `QueryClient.Command()` hands back the same command every render, and
 sending work through it is what the page reads its state from. `IsPending` greys the button while the row is
 written, so a double click can't create two products, and a failure lands on `IsError` instead of escaping the
-click — `Send` never throws, which is why there is no `try` here. A command also refreshes whatever a
+click — `SendAsync` never throws, which is why there is no `try` here. A command also refreshes whatever a
 save made stale: the product count you'll put on the list page updates by itself once `CreateAsync` commits.
 See [queries and commands](../query.md).
 
@@ -197,13 +197,13 @@ public sealed partial class UpdateProduct(Navigator navigator) : Component
 
         if (product.IsLoading)
         {
-            return UiLoading.Text("Loading…");
+            return Ui.Loading.Text("Loading…");
         }
 
         if (product.Data is not { } loaded)
         {
-            return UiAlert.Tone(UiTone.Warning)[
-                "Product not found. ", UiLink.Href(Routes.ProductsPage()).Text("Back to the list"), "."
+            return Ui.Alert.Tone(Ui.Tone.Warning)[
+                "Product not found. ", Ui.Link.Href(Routes.ProductsPage()).Text("Back to the list"), "."
             ];
         }
 
@@ -216,26 +216,26 @@ public sealed partial class UpdateProduct(Navigator navigator) : Component
 
         return
         [
-            UiHeader.Heading("Edit product").Actions(UiButton.Variant(UiVariant.Ghost).Href(Routes.ProductsPage())["Cancel"]),
-            UiCard[
+            Ui.Header.Heading("Edit product").Actions(Ui.Button.Variant(Ui.Variant.Ghost).Href(Routes.ProductsPage())["Cancel"]),
+            Ui.Card[
                 save.Error switch
                 {
                     null => null,
-                    DbUpdateConcurrencyException => UiAlert.Tone(UiTone.Error)[
+                    DbUpdateConcurrencyException => Ui.Alert.Tone(Ui.Tone.Error)[
                         "Someone else changed this product while you were editing it. Reload to see their changes."],
-                    KeyNotFoundException => UiAlert.Tone(UiTone.Error)["This product has been deleted."],
-                    _ => UiAlert.Tone(UiTone.Error)["Something went wrong — please try again."],
+                    KeyNotFoundException => Ui.Alert.Tone(Ui.Tone.Error)["This product has been deleted."],
+                    _ => Ui.Alert.Tone(Ui.Tone.Error)["Something went wrong — please try again."],
                 },
-                Form.Model(_model).OnSubmit(async model => await save.Send(async ct =>
+                Form.Model(_model).OnSubmit(model => save.SendAsync(async ct =>
                 {
                     await Product.UpdateAsync(Id, model, cancellationToken: ct);
                     navigator.NavigateTo(Routes.ProductsPage());
                 }, CancellationToken))[
-                    UiInput.Bind(() => _model.Name).Label("Name"),
-                    UiInput.Bind(() => _model.Price).Label("Price").Min("0").Step("0.01")
+                    Ui.Input.Bind(() => _model.Name).Label("Name"),
+                    Ui.Input.Bind(() => _model.Price).Label("Price").Min("0").Step("0.01")
                         .Hint("What a customer pays, before tax."),
-                    UiCheckbox.Bind(() => _model.InStock).Text("In stock"),
-                    UiButton.Type(UiButtonType.Submit).Tone(UiTone.Primary).Disabled(save.IsPending)["Save changes"]
+                    Ui.Checkbox.Bind(() => _model.InStock).Text("In stock"),
+                    Ui.Button.Type(Ui.ButtonType.Submit).Tone(Ui.Tone.Primary).Disabled(save.IsPending)["Save changes"]
                 ]
             ]
         ];
@@ -286,13 +286,13 @@ public sealed partial class DeleteProduct : Component
         // One button per row, and each row is its own DeleteProduct, so each has its own pending state.
         var delete = QueryClient.Command();
 
-        return UiButton.Tone(UiTone.Error).Variant(UiVariant.Ghost).Size(UiSize.Sm)
+        return Ui.Button.Tone(Ui.Tone.Error).Variant(Ui.Variant.Ghost).Size(Ui.Size.Sm)
             .Disabled(delete.IsPending)
             .OnClick(async () =>
             {
                 // A row someone edited or deleted first fails here and lands on delete.Error; refreshing the
                 // list below shows the reader what happened either way.
-                await delete.Send(ct => Product.DeleteAsync(Id, Version, cancellationToken: ct), CancellationToken);
+                await delete.SendAsync(ct => Product.DeleteAsync(Id, Version, cancellationToken: ct), CancellationToken);
 
                 // Invoke() hands back the Task for an async handler and null for a synchronous one, which is
                 // what keeps a sync handler off the async path.
@@ -337,15 +337,15 @@ public sealed partial class ProductsPage : Component
 
         return
         [
-        UiHeader.Heading(count.Data is { } n ? $"Products ({n})" : "Products")
-            .Actions(UiButton.Tone(UiTone.Primary).Href(Routes.CreateProduct())["New product"]),
-        UiDataGrid.Data(_products).RowKey(p => p.Id).PageSize(20).Label("Products")[c => [
+        Ui.Header.Heading(count.Data is { } n ? $"Products ({n})" : "Products")
+            .Actions(Ui.Button.Tone(Ui.Tone.Primary).Href(Routes.CreateProduct())["New product"]),
+        Ui.DataGrid.Data(_products).RowKey(p => p.Id).PageSize(20).Label("Products")[c => [
             c.Field(p => p.Name).Title("Name").Sortable(true),
             c.Field(p => p.Price).Title("Price").Sortable(true),
             c.Field(p => p.InStock).Title("In stock"),
             c.Field(p => p.UpdatedAt).Title("Updated").Sortable(true),
             c.Column().Title("Actions").Cell(p => Div[
-                UiButton.Variant(UiVariant.Ghost).Size(UiSize.Sm).Href(Routes.UpdateProduct(p.Id))["Edit"],
+                Ui.Button.Variant(Ui.Variant.Ghost).Size(Ui.Size.Sm).Href(Routes.UpdateProduct(p.Id))["Edit"],
                 // The grid re-runs its query on every render, so asking for one is the whole refresh.
                 DeleteProduct.Id(p.Id).Version(p.Version).OnDeleted(StateHasChanged)
             ]),
@@ -356,7 +356,7 @@ public sealed partial class ProductsPage : Component
 ```
 
 `Product.Read.AsQueryable()` is a standard `IQueryable<ProductRead>` that holds no context, which is the
-shape [`UiDataGrid`](../data-grid.md) wants: clicking a sortable header becomes `ORDER BY`, and the pager
+shape [`Ui.DataGrid`](../data-grid.md) wants: clicking a sortable header becomes `ORDER BY`, and the pager
 becomes `Skip`/`Take`, so the database does the work however large the catalog grows. `RowKey` is required —
 it is what the grid identifies a row by when it redraws. The grid shows read faces, read-only by
 construction; `UpdatedAt` is one of the columns `Aggregate<Guid>` brought, sortable like any other.
@@ -457,7 +457,7 @@ it's on disk in `app.db`.
 
 > **Troubleshooting.** `rask db` can't find the project → make sure you `cd`'d into `Shop` first.
 > `/products` fails with `no such table` → you skipped `rask db update`. The build can't find
-> `Routes.ProductsPage()`, `ProductModel` or `Product.Where` → those are generated; build once and the IDE
+> `Routes.ProductsPage()`, `ProductModel` or `Product.Read` → those are generated; build once and the IDE
 > catches up. For a route, the generator also needs the `[Route]` attribute on the page.
 
 **Learn more:** [Rask.Data](../data.md) · [forms](../forms.md) · [data grid](../data-grid.md) ·

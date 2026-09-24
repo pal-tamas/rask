@@ -74,18 +74,37 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
             return null;
         }
 
+        var compilation = ctx.SemanticModel.Compilation;
+
+        // An ISubscription<T> record — a record struct as readily as a record class, so this comes before the
+        // handler-only filter below.
+        var subscription = GetSubscription(symbol, compilation);
+
         // Handlers must be concrete classes (record classes included). Interfaces, structs and
         // record structs can't be DI-constructed handlers.
         if (symbol.IsAbstract || symbol.TypeKind != TypeKind.Class)
         {
-            return null;
+            return subscription is null ? null : new Candidate(NoHandlers, null, subscription, NoPolicies);
         }
 
+        var policies = new List<PolicyModel>();
         var handlers = new List<HandlerModel>();
         foreach (var iface in symbol.AllInterfaces)
         {
             if (iface.ContainingNamespace?.ToDisplayString() != Namespace || !iface.IsGenericType)
             {
+                continue;
+            }
+
+            if (iface.MetadataName == "IWatchPolicy`1")
+            {
+                // Registered like a handler, and skipped for the same reasons one would be — silently, since a
+                // missing policy already fails closed and says which policy it looked for.
+                if (DescribeRegisterability(symbol, iface.TypeArguments, compilation) is null)
+                {
+                    policies.Add(new PolicyModel(Fqn(iface, compilation), Fqn(symbol, compilation)));
+                }
+
                 continue;
             }
 
@@ -104,7 +123,6 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
             }
 
             var args = iface.TypeArguments;
-            var compilation = ctx.SemanticModel.Compilation;
             var requestFqn = Fqn(args[0], compilation);
             var resultFqn = kind switch
             {
@@ -125,12 +143,41 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
                 registerability?.Remedy));
         }
 
-        if (handlers.Count == 0)
+        if (handlers.Count == 0 && policies.Count == 0 && subscription is null)
         {
             return null;
         }
 
-        return new Candidate(new EquatableArray<HandlerModel>(handlers), LocationInfo.From(symbol));
+        return new Candidate(
+            new EquatableArray<HandlerModel>(handlers),
+            LocationInfo.From(symbol),
+            subscription,
+            new EquatableArray<PolicyModel>(policies));
+    }
+
+    private static readonly EquatableArray<HandlerModel> NoHandlers = new(Array.Empty<HandlerModel>());
+
+    private static readonly EquatableArray<PolicyModel> NoPolicies = new(Array.Empty<PolicyModel>());
+
+    // The record's ISubscription<T>, when it declares one. A subscription is a message like any other, so it is
+    // looked for on records and structs as well as classes — and skipped when the generated file could not name it.
+    private static SubscriptionModel? GetSubscription(INamedTypeSymbol symbol, Compilation compilation)
+    {
+        if (symbol.IsAbstract || symbol.IsGenericType || SymbolRegistration.DescribeUnnameable(symbol) is not null)
+        {
+            return null;
+        }
+
+        foreach (var iface in symbol.AllInterfaces)
+        {
+            if (iface.MetadataName == "ISubscription`1"
+                && iface.ContainingNamespace?.ToDisplayString() == Namespace)
+            {
+                return new SubscriptionModel(Fqn(symbol, compilation), Fqn(iface.TypeArguments[0], compilation));
+            }
+        }
+
+        return null;
     }
 
     // Returns the reason a handler cannot be registered, or null when it is fine. Open generic
@@ -190,6 +237,8 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         // (b) emit duplicate registrations. A genuine second handler has a different type FQN.
         var models = new List<(HandlerModel Model, LocationInfo? Location)>();
         var seen = new HashSet<(string, string)>();
+        var subscriptions = new Dictionary<string, SubscriptionModel>(StringComparer.Ordinal);
+        var policies = new SortedSet<(string ServiceFqn, string ImplementationFqn)>();
         foreach (var candidate in candidates)
         {
             foreach (var handler in candidate.Handlers)
@@ -199,9 +248,19 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
                     models.Add((handler, candidate.Location));
                 }
             }
+
+            if (candidate.Subscription is { } subscription)
+            {
+                subscriptions[subscription.SubscriptionFqn] = subscription;
+            }
+
+            foreach (var policy in candidate.Policies)
+            {
+                policies.Add((policy.ServiceFqn, policy.ImplementationFqn));
+            }
         }
 
-        if (models.Count == 0)
+        if (models.Count == 0 && subscriptions.Count == 0 && policies.Count == 0)
         {
             return;
         }
@@ -268,21 +327,29 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
 
         var distinctImplTypes = registerable
             .Select(e => e.Model.HandlerTypeFqn)
+            .Concat(policies.Select(p => p.ImplementationFqn))
             .Distinct(StringComparer.Ordinal)
             .OrderBy(t => t, StringComparer.Ordinal)
             .ToList();
 
         spc.AddSource("__RaskCqrsRegistry.g.cs", SourceText.From(
-            Build(uniqueRequests, notifications, notificationTypes, handlerImpls, distinctImplTypes),
+            Build(
+                uniqueRequests,
+                notificationTypes,
+                handlerImpls,
+                distinctImplTypes,
+                subscriptions.Values.OrderBy(s => s.SubscriptionFqn, StringComparer.Ordinal).ToList(),
+                policies.ToList()),
             Encoding.UTF8));
     }
 
     private static string Build(
         List<HandlerModel> requests,
-        List<(HandlerModel Model, LocationInfo? Location)> notifications,
         List<string> notificationTypes,
         List<(string ServiceInterfaceFqn, string HandlerTypeFqn, bool IsNotification)> handlerImpls,
-        List<string> distinctImplTypes)
+        List<string> distinctImplTypes,
+        List<SubscriptionModel> subscriptions,
+        List<(string ServiceFqn, string ImplementationFqn)> policies)
     {
         var sb = new StringBuilder();
         sb.AppendLine("// <auto-generated />");
@@ -325,6 +392,18 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
                 .AppendLine("), lifetime)));");
         }
 
+        // A watch policy runs in the subscriber's scope with the handlers' lifetime, so it can read the signed-in user
+        // and a scoped DbContext exactly as a handler does. TryAdd: an app that registers its own keeps it.
+        foreach (var (service, implementation) in policies)
+        {
+            sb.Append("        global::Rask.Cqrs.CqrsRegistry.RegisterServices(static (services, lifetime) => ")
+                .Append("global::Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.")
+                .AppendLine("TryAdd(services,")
+                .Append("            new global::Microsoft.Extensions.DependencyInjection.ServiceDescriptor(typeof(")
+                .Append(service).Append("), typeof(").Append(implementation)
+                .AppendLine("), lifetime)));");
+        }
+
         sb.AppendLine("    }");
         sb.AppendLine();
 
@@ -359,6 +438,34 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         }
 
         sb.AppendLine("        });");
+
+        // Only when there is something to install, so an assembly that declares no subscription makes no call that an
+        // older Rask.Cqrs would not have.
+        if (subscriptions.Count > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine(
+                "        global::Rask.Cqrs.CqrsRegistry.ReplaceSubscriptions(typeof(__RaskCqrsRegistry), " +
+                "new (global::System.Type, global::Rask.Cqrs.SubscriptionRegistration)[]");
+            sb.AppendLine("        {");
+            foreach (var subscription in subscriptions)
+            {
+                // Matches goes through the interface rather than the record: an explicit implementation is still a
+                // legitimate way to write one, and casting to the concrete type would not find it.
+                sb.Append("            (typeof(").Append(subscription.SubscriptionFqn)
+                    .AppendLine("), new global::Rask.Cqrs.SubscriptionRegistration(");
+                sb.Append("                typeof(").Append(subscription.NotificationFqn).AppendLine("),");
+                sb.Append("                static (s, n) => ((global::Rask.Cqrs.ISubscription<")
+                    .Append(subscription.NotificationFqn).Append(">)s).Matches((")
+                    .Append(subscription.NotificationFqn).AppendLine(")n),");
+                sb.Append("                static (sp, s, ct) => global::Rask.Cqrs.CqrsRegistry.CanWatchAsync<")
+                    .Append(subscription.SubscriptionFqn).Append(">(sp, (")
+                    .Append(subscription.SubscriptionFqn).AppendLine(")s, ct))),");
+            }
+
+            sb.AppendLine("        });");
+        }
+
         sb.AppendLine("    }");
         sb.AppendLine();
 
@@ -462,7 +569,15 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         string? RegisterabilityProblem,
         string? RegisterabilityRemedy) : IEquatable<HandlerModel>;
 
-    private sealed record Candidate(EquatableArray<HandlerModel> Handlers, LocationInfo? Location);
+    private sealed record Candidate(
+        EquatableArray<HandlerModel> Handlers,
+        LocationInfo? Location,
+        SubscriptionModel? Subscription,
+        EquatableArray<PolicyModel> Policies);
+
+    private sealed record SubscriptionModel(string SubscriptionFqn, string NotificationFqn);
+
+    private sealed record PolicyModel(string ServiceFqn, string ImplementationFqn);
 
     private sealed record LocationInfo(
         string FilePath, int Start, int Length, int StartLine, int StartChar, int EndLine, int EndChar)

@@ -70,7 +70,7 @@ public sealed partial class FootprintApp : Component
         return
         [
             Doctype,
-            Html[
+            Document[
                 Head,
                 Body[
                     Div.Class("wrap").Id("root")[

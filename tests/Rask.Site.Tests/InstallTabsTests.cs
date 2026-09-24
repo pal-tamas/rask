@@ -17,7 +17,7 @@ public partial class InstallTabsTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Server_tab_is_the_default_and_leads_with_the_installer()
     {
-        var page = Test.Render(() => InstallTabs);
+        var page = Page.Render(() => InstallTabs);
 
         Assert.Contains(Installer, page.Html, StringComparison.Ordinal);
         Assert.Contains("rask new MyApp", page.Html, StringComparison.Ordinal);
@@ -29,7 +29,7 @@ public partial class InstallTabsTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Wasm_tab_shows_the_installer_too()
     {
-        var page = Test.Render(() => InstallTabs);
+        var page = Page.Render(() => InstallTabs);
 
         // Driven through the handler ids rather than a CSS selector: the two tabs differ only by an aria
         // attribute, and the second click handler is unambiguously the WASM tab.
@@ -46,7 +46,7 @@ public partial class InstallTabsTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Windows_gets_its_own_one_liner()
     {
-        var page = Test.Render(() => InstallTabs);
+        var page = Page.Render(() => InstallTabs);
 
         // rask.sh refuses to run under MINGW/MSYS and points here, so the page must actually offer it.
         Assert.Contains(WindowsInstaller, page.Html, StringComparison.Ordinal);
@@ -58,7 +58,7 @@ public partial class InstallTabsTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Neither_terminal_still_leads_with_the_bare_dotnet_tool_install()
     {
-        var page = Test.Render(() => InstallTabs);
+        var page = Page.Render(() => InstallTabs);
 
         Assert.DoesNotContain("dotnet tool install", page.Html, StringComparison.Ordinal);
 
@@ -74,7 +74,7 @@ public partial class InstallTabsTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Only_the_selected_terminal_is_rendered()
     {
-        var page = Test.Render(() => InstallTabs);
+        var page = Page.Render(() => InstallTabs);
 
         Assert.DoesNotContain("browser-WASM SPA", page.Html, StringComparison.Ordinal);
 

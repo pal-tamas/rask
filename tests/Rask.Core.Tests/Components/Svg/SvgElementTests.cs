@@ -10,17 +10,17 @@ namespace Rask.Core.Tests.Components;
 public partial class SvgElementTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void Without_presentation_props_none_are_emitted() =>
+    public void Unset_presentation_props_emit_nothing() =>
         Assert.Equal("<circle></circle>", Circle.ToHtml());
 
     [Fact]
-    public void A_subset_of_presentation_props_emits_hyphenated_attributes() =>
+    public void Presentation_props_emit_hyphenated_attributes() =>
         Assert.Equal(
             "<circle fill=\"red\" stroke=\"black\" stroke-width=\"2\"></circle>",
             Circle.Fill("red").Stroke("black").StrokeWidth("2").ToHtml());
 
     [Fact]
-    public void Every_presentation_prop_emits_in_declared_order_before_the_geometry() =>
+    public void Presentation_props_come_in_declared_order_before_the_geometry() =>
         Assert.Equal(
             "<circle id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" " +
             "fill=\"f\" fill-opacity=\"fo\" fill-rule=\"fr\" stroke=\"st\" stroke-width=\"sw\" " +
@@ -55,39 +55,37 @@ public partial class SvgElementTests : global::Rask.Core.RaskMarkup
                 .Data(new Dictionary<string, string?> { ["k"] = "v" }).ToHtml());
 
     [Fact]
-    public void OnClick_outside_a_live_context_emits_no_handler_attribute() =>
+    public void A_click_handler_outside_a_live_context_emits_no_handler_attribute() =>
         Assert.Equal("<circle></circle>", Circle.OnClick(() => { }).ToHtml());
 
     [Fact]
-    public void OnClick_inside_a_live_context_emits_the_click_handler_id()
+    public void A_click_handler_inside_a_live_context_emits_its_handler_attribute()
     {
         var view = new StubComponent(() => Circle.OnClick(() => { }));
-
         Assert.Equal("<circle data-rask-on-click=\"h0\"></circle>", view.RenderAsLiveRoot());
     }
 
     [Fact]
-    public void An_async_OnClick_inside_a_live_context_emits_the_click_handler_id()
+    public void An_async_click_handler_inside_a_live_context_emits_its_handler_attribute()
     {
         var view = new StubComponent(() => Circle.OnClick(async () => { await Task.Yield(); }));
-
         Assert.Equal("<circle data-rask-on-click=\"h0\"></circle>", view.RenderAsLiveRoot());
     }
 
     [Fact]
-    public void Nested_children_render_inside_the_open_and_close_tags() =>
+    public void Nested_children_render_between_the_open_and_close_tags() =>
         Assert.Equal(
             "<svg viewBox=\"0 0 10 10\"><path d=\"M0 0\"></path><circle r=\"5\"></circle></svg>",
             Svg.ViewBox("0 0 10 10")[SvgPath.D("M0 0"), Circle.R("5")].ToHtml());
 
     [Fact]
-    public void A_shape_may_nest_a_title_child_for_accessibility() =>
+    public void A_shape_can_nest_a_title_child_for_accessibility() =>
         Assert.Equal(
             "<circle r=\"5\"><title>label</title></circle>",
             Circle.R("5")[SvgTitle["label"]].ToHtml());
 
     [Fact]
-    public void A_string_child_is_encoded_as_text() =>
+    public void A_text_child_is_html_encoded() =>
         Assert.Equal("<text>&lt;x&gt;</text>", SvgText["<x>"].ToHtml());
 }
 
@@ -102,12 +100,10 @@ public partial class SvgScopedCssTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void The_scope_id_is_stamped_on_SVG_descendants()
+    public void Serialize_scope_id_stamps_svg_descendants()
     {
         var view = new SvgCssWrapper(Svg[Circle.R("5")]);
-
         var html = view.RenderAsLiveRoot();
-
         var scopeId = CssScoper.ScopeIdFor(typeof(SvgCssWrapper));
         Assert.Contains($"<svg data-{scopeId}>", html);
         Assert.Contains($"<circle r=\"5\" data-{scopeId}></circle>", html);

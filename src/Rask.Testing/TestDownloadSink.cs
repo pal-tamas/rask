@@ -19,7 +19,7 @@ namespace Rask.Testing;
 ///     </para>
 ///     <code>
 ///     var downloads = new TestDownloadSink();
-///     var page = Test.Render(new ExportPage(new Navigator(new RouteState(), downloads)));
+///     var page = Page.Render(new ExportPage(new Navigator(new RouteState(), downloads)));
 ///     await page.ClickAsync("#export");
 ///
 ///     var file = Assert.Single(downloads.Staged);

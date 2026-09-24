@@ -89,7 +89,7 @@ public sealed class StoragePageTests
         await using var h = new DashboardHarness(Batteries.Storage);
         await h.Get<IFiles>().Save(new MemoryStream("x"u8.ToArray()), "report <img src=x onerror=alert(1)>.txt");
 
-        var page = Test.Render(ActivatorUtilities.CreateInstance<StoragePage>(h.Services), h.Services);
+        var page = Page.Render(ActivatorUtilities.CreateInstance<StoragePage>(h.Services), h.Services);
         var html = await page.WaitForAsync("report");
 
         Assert.Contains("report &lt;img", html, StringComparison.Ordinal);
@@ -102,7 +102,7 @@ public sealed class StoragePageTests
     {
         await using var h = new DashboardHarness(Batteries.Cache);
 
-        var page = Test.Render(ActivatorUtilities.CreateInstance<StoragePage>(h.Services), h.Services);
+        var page = Page.Render(ActivatorUtilities.CreateInstance<StoragePage>(h.Services), h.Services);
         // Waited on the call rather than the heading, whose apostrophe the page encodes.
         var html = await page.WaitForAsync("AddRaskStorage");
 

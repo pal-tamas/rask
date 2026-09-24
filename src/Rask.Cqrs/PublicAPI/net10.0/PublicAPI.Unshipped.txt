@@ -7,14 +7,31 @@ Rask.Cqrs.CqrsOptions.HandlerLifetime.get -> Microsoft.Extensions.DependencyInje
 Rask.Cqrs.CqrsOptions.HandlerLifetime.set -> void
 Rask.Cqrs.CqrsOptions.NotificationPublishStrategy.get -> Rask.Cqrs.NotificationPublishStrategy
 Rask.Cqrs.CqrsOptions.NotificationPublishStrategy.set -> void
+Rask.Cqrs.CqrsOptions.ReplayCapacity.get -> int
+Rask.Cqrs.CqrsOptions.ReplayCapacity.set -> void
 Rask.Cqrs.CqrsOptions.StopOnFirstNotificationException.get -> bool
 Rask.Cqrs.CqrsOptions.StopOnFirstNotificationException.set -> void
+Rask.Cqrs.CqrsOptions.SubscriptionBuffer.get -> int
+Rask.Cqrs.CqrsOptions.SubscriptionBuffer.set -> void
+Rask.Cqrs.CqrsOptions.SubscriptionReconnectCeiling.get -> System.TimeSpan
+Rask.Cqrs.CqrsOptions.SubscriptionReconnectCeiling.set -> void
+Rask.Cqrs.CqrsOptions.SubscriptionReconnectDelay.get -> System.TimeSpan
+Rask.Cqrs.CqrsOptions.SubscriptionReconnectDelay.set -> void
 Rask.Cqrs.CqrsOptions.ValidateRequests.get -> bool
 Rask.Cqrs.CqrsOptions.ValidateRequests.set -> void
 Rask.Cqrs.CqrsRegistry
 Rask.Cqrs.CqrsRegistry.NotificationInvoker
 Rask.Cqrs.CqrsRegistry.RequestInvoker
 Rask.Cqrs.CqrsServiceCollectionExtensions
+Rask.Cqrs.DataChanged
+Rask.Cqrs.DataChanged.<Clone>$() -> Rask.Cqrs.DataChanged!
+Rask.Cqrs.DataChanged.At.get -> System.DateTimeOffset
+Rask.Cqrs.DataChanged.At.init -> void
+Rask.Cqrs.DataChanged.DataChanged(string! Entity, System.DateTimeOffset At) -> void
+Rask.Cqrs.DataChanged.Deconstruct(out string! Entity, out System.DateTimeOffset At) -> void
+Rask.Cqrs.DataChanged.Entity.get -> string!
+Rask.Cqrs.DataChanged.Entity.init -> void
+Rask.Cqrs.DataChanged.Equals(Rask.Cqrs.DataChanged? other) -> bool
 Rask.Cqrs.ICommand
 Rask.Cqrs.ICommand<TResult>
 Rask.Cqrs.ICommandHandler<TCommand, TResult>
@@ -26,17 +43,21 @@ Rask.Cqrs.IPipelineBehavior<TRequest, TResult>
 Rask.Cqrs.IQuery<TResult>
 Rask.Cqrs.IQueryHandler<TQuery, TResult>
 Rask.Cqrs.IRemoteDispatch
-Rask.Cqrs.IRemoteDispatch.PublishAsync(Rask.Cqrs.RemoteContract! contract, object! notification, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 Rask.Cqrs.IRemoteDispatch.SendAsync(Rask.Cqrs.RemoteContract! contract, object! message, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 Rask.Cqrs.IRemoteDispatch.SendAsync<TResult>(Rask.Cqrs.RemoteContract! contract, object! message, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<TResult>!
 Rask.Cqrs.IRemoteRequestValidator
 Rask.Cqrs.IRequestValidator<TRequest>
+Rask.Cqrs.ISubscription<TNotification>
+Rask.Cqrs.ISubscription<TNotification>.Matches(TNotification notification) -> bool
+Rask.Cqrs.IWatchPolicy<TSubscription>
+Rask.Cqrs.IWatchPolicy<TSubscription>.CanWatchAsync(TSubscription subscription, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<bool>!
 Rask.Cqrs.LocalOnlyAttribute
 Rask.Cqrs.LocalOnlyAttribute.LocalOnlyAttribute() -> void
 Rask.Cqrs.NotificationDispatch
 Rask.Cqrs.NotificationPublishStrategy
 Rask.Cqrs.NotificationPublishStrategy.Sequential = 0 -> Rask.Cqrs.NotificationPublishStrategy
 Rask.Cqrs.NotificationPublishStrategy.WhenAll = 1 -> Rask.Cqrs.NotificationPublishStrategy
+Rask.Cqrs.Notify
 Rask.Cqrs.RaskCqrsTransportAttribute
 Rask.Cqrs.RaskCqrsTransportAttribute.RaskCqrsTransportAttribute() -> void
 Rask.Cqrs.RaskValidationException
@@ -70,6 +91,14 @@ Rask.Cqrs.RemoteContract.ReturnsFile.get -> bool
 Rask.Cqrs.RemoteContract.ReturnsFile.init -> void
 Rask.Cqrs.RemoteContract.Roles.get -> string?
 Rask.Cqrs.RemoteContract.Roles.init -> void
+Rask.Cqrs.RemoteContract.SubscribeAnonymously.get -> bool
+Rask.Cqrs.RemoteContract.SubscribeAnonymously.init -> void
+Rask.Cqrs.RemoteContract.SubscribeDeclared.get -> bool
+Rask.Cqrs.RemoteContract.SubscribeDeclared.init -> void
+Rask.Cqrs.RemoteContract.SubscribePolicy.get -> string?
+Rask.Cqrs.RemoteContract.SubscribePolicy.init -> void
+Rask.Cqrs.RemoteContract.SubscribeRoles.get -> string?
+Rask.Cqrs.RemoteContract.SubscribeRoles.init -> void
 Rask.Cqrs.RemoteContract.WriteMessage.get -> Rask.Cqrs.RemoteMessageWriter!
 Rask.Cqrs.RemoteContract.WriteMessage.init -> void
 Rask.Cqrs.RemoteContract.WriteResult.get -> Rask.Cqrs.RemoteResultWriter?
@@ -95,6 +124,7 @@ Rask.Cqrs.RemoteMessageKind
 Rask.Cqrs.RemoteMessageKind.Notification = 3 -> Rask.Cqrs.RemoteMessageKind
 Rask.Cqrs.RemoteMessageKind.Query = 0 -> Rask.Cqrs.RemoteMessageKind
 Rask.Cqrs.RemoteMessageKind.ResultCommand = 2 -> Rask.Cqrs.RemoteMessageKind
+Rask.Cqrs.RemoteMessageKind.Subscription = 4 -> Rask.Cqrs.RemoteMessageKind
 Rask.Cqrs.RemoteMessageKind.VoidCommand = 1 -> Rask.Cqrs.RemoteMessageKind
 Rask.Cqrs.RemoteMessageReader
 Rask.Cqrs.RemoteMessageWriter
@@ -110,14 +140,21 @@ Rask.Cqrs.RequestValidationError.Message.get -> string!
 Rask.Cqrs.RequestValidationError.Message.init -> void
 Rask.Cqrs.RequestValidationError.RequestValidationError() -> void
 Rask.Cqrs.RequestValidationError.RequestValidationError(string! Field, string! Message) -> void
+Rask.Cqrs.SubscriptionRegistration
+Rask.Cqrs.SubscriptionRegistration.CanWatch.get -> System.Func<System.IServiceProvider!, object!, System.Threading.CancellationToken, System.Threading.Tasks.Task<bool>!>!
+Rask.Cqrs.SubscriptionRegistration.Matches.get -> System.Func<object!, Rask.Cqrs.INotification!, bool>!
+Rask.Cqrs.SubscriptionRegistration.NotificationType.get -> System.Type!
+Rask.Cqrs.SubscriptionRegistration.SubscriptionRegistration(System.Type! notificationType, System.Func<object!, Rask.Cqrs.INotification!, bool>! matches, System.Func<System.IServiceProvider!, object!, System.Threading.CancellationToken, System.Threading.Tasks.Task<bool>!>! canWatch) -> void
 Rask.Cqrs.Unit
 Rask.Cqrs.Unit.Equals(Rask.Cqrs.Unit other) -> bool
 Rask.Cqrs.Unit.Unit() -> void
 Rask.Cqrs.ValidationBehavior<TRequest, TResult>
 Rask.Cqrs.ValidationBehavior<TRequest, TResult>.ValidationBehavior(System.Collections.Generic.IEnumerable<Rask.Cqrs.IRequestValidator<TRequest>!>! validators) -> void
 const Rask.Cqrs.RemoteEndpointDefaults.ChunkedUploadThreshold = 4194304 -> long
+const Rask.Cqrs.RemoteEndpointDefaults.EventsSegment = "events" -> string!
 const Rask.Cqrs.RemoteEndpointDefaults.MaxQueryUrlLength = 2000 -> int
 const Rask.Cqrs.RemoteEndpointDefaults.MessageQueryParameter = "m" -> string!
+const Rask.Cqrs.RemoteEndpointDefaults.ReadyEvent = "ready" -> string!
 const Rask.Cqrs.RemoteEndpointDefaults.RequestHeader = "X-Rask-Cqrs" -> string!
 const Rask.Cqrs.RemoteEndpointDefaults.RequestHeaderValue = "1" -> string!
 const Rask.Cqrs.RemoteEndpointDefaults.RoutePrefix = "/_rask/cqrs/request" -> string!
@@ -128,18 +165,29 @@ const Rask.Cqrs.RemoteEndpointDefaults.UploadNameHeader = "X-Rask-Upload-Name" -
 const Rask.Cqrs.RemoteEndpointDefaults.UploadOffsetHeader = "X-Rask-Upload-Offset" -> string!
 const Rask.Cqrs.RemoteEndpointDefaults.UploadSegment = "upload" -> string!
 const Rask.Cqrs.RemoteEndpointDefaults.UploadTypeHeader = "X-Rask-Upload-Type" -> string!
+override Rask.Cqrs.DataChanged.Equals(object? obj) -> bool
+override Rask.Cqrs.DataChanged.GetHashCode() -> int
+override Rask.Cqrs.DataChanged.ToString() -> string!
 override Rask.Cqrs.RequestValidationError.GetHashCode() -> int
 override Rask.Cqrs.Unit.Equals(object? obj) -> bool
 override Rask.Cqrs.Unit.GetHashCode() -> int
 override Rask.Cqrs.Unit.ToString() -> string!
+static Rask.Cqrs.CqrsRegistry.CanWatchAsync<TSubscription>(System.IServiceProvider! provider, TSubscription subscription, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<bool>!
 static Rask.Cqrs.CqrsRegistry.FindNotificationInvoker(System.Type! notificationType) -> Rask.Cqrs.CqrsRegistry.NotificationInvoker?
 static Rask.Cqrs.CqrsRegistry.RegisterNotification(System.Type! notificationType, Rask.Cqrs.CqrsRegistry.NotificationInvoker! invoker) -> void
 static Rask.Cqrs.CqrsRegistry.RegisterRequest(System.Type! requestType, Rask.Cqrs.CqrsRegistry.RequestInvoker! invoker) -> void
 static Rask.Cqrs.CqrsRegistry.RegisterServices(System.Action<Microsoft.Extensions.DependencyInjection.IServiceCollection!, Microsoft.Extensions.DependencyInjection.ServiceLifetime>! registration) -> void
 static Rask.Cqrs.CqrsRegistry.ReplaceNotifications(object! groupKey, System.Collections.Generic.IEnumerable<(System.Type! Type, Rask.Cqrs.CqrsRegistry.NotificationInvoker! Invoker)>! registrations) -> void
 static Rask.Cqrs.CqrsRegistry.ReplaceRequests(object! groupKey, System.Collections.Generic.IEnumerable<(System.Type! Type, Rask.Cqrs.CqrsRegistry.RequestInvoker! Invoker)>! registrations) -> void
+static Rask.Cqrs.CqrsRegistry.ReplaceSubscriptions(object! groupKey, System.Collections.Generic.IEnumerable<(System.Type! Type, Rask.Cqrs.SubscriptionRegistration! Registration)>! registrations) -> void
 static Rask.Cqrs.CqrsServiceCollectionExtensions.AddRaskCqrs(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Cqrs.CqrsOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Rask.Cqrs.DataChanged.operator !=(Rask.Cqrs.DataChanged? left, Rask.Cqrs.DataChanged? right) -> bool
+static Rask.Cqrs.DataChanged.operator ==(Rask.Cqrs.DataChanged? left, Rask.Cqrs.DataChanged? right) -> bool
 static Rask.Cqrs.NotificationDispatch.PublishAll<TNotification>(System.IServiceProvider! provider, TNotification notification, System.Collections.Generic.IEnumerable<Rask.Cqrs.INotificationHandler<TNotification>!>! handlers, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+static Rask.Cqrs.Notify.Configure(System.IServiceProvider! services) -> void
+static Rask.Cqrs.Notify.IsConfigured.get -> bool
+static Rask.Cqrs.Notify.Send<TNotification>(TNotification notification, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+static Rask.Cqrs.Notify.UseScope(System.IServiceProvider! scope) -> System.IDisposable!
 static Rask.Cqrs.RemoteContractRegistry.All.get -> System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RemoteContract!>!
 static Rask.Cqrs.RemoteContractRegistry.Replace(object! groupKey, System.Collections.Generic.IEnumerable<Rask.Cqrs.RemoteContract!>! contracts) -> void
 static Rask.Cqrs.RemoteContractRegistry.TryGet(System.Type! messageType, out Rask.Cqrs.RemoteContract? contract) -> bool
@@ -160,20 +208,23 @@ virtual Rask.Cqrs.RemoteResultWriter.Invoke(System.Text.Json.Utf8JsonWriter! wri
 virtual Rask.Cqrs.RequestHandlerDelegate<TResult>.Invoke() -> System.Threading.Tasks.Task<TResult>!
 ~override Rask.Cqrs.RequestValidationError.Equals(object obj) -> bool
 ~override Rask.Cqrs.RequestValidationError.ToString() -> string
+Rask.Cqrs.Dispatcher
 Rask.Cqrs.ICommandHandler<TCommand, TResult>.Handle(TCommand command) -> System.Threading.Tasks.Task<TResult>!
 Rask.Cqrs.ICommandHandler<TCommand>.Handle(TCommand command) -> System.Threading.Tasks.Task!
 Rask.Cqrs.IDispatcher.Publish<TNotification>(TNotification notification, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Cqrs.IDispatcher.Query<TResult>(Rask.Cqrs.IQuery<TResult>! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
 Rask.Cqrs.IDispatcher.Send(Rask.Cqrs.ICommand! command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Cqrs.IDispatcher.Send<TResult>(Rask.Cqrs.ICommand<TResult>! command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
+Rask.Cqrs.IDispatcher.Subscribe<TNotification>(Rask.Cqrs.ISubscription<TNotification>! subscription, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<TNotification>!
+Rask.Cqrs.IDispatcher.Subscribe<TNotification>(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<TNotification>!
 Rask.Cqrs.INotificationHandler<TNotification>.Handle(TNotification notification) -> System.Threading.Tasks.Task!
 Rask.Cqrs.IPipelineBehavior<TRequest, TResult>.Handle(TRequest request, Rask.Cqrs.RequestHandlerDelegate<TResult>! next) -> System.Threading.Tasks.Task<TResult>!
 Rask.Cqrs.IQueryHandler<TQuery, TResult>.Handle(TQuery query) -> System.Threading.Tasks.Task<TResult>!
 Rask.Cqrs.IRemoteRequestValidator.Validate(object! request) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RequestValidationError>!>
 Rask.Cqrs.IRequestValidator<TRequest>.Validate(TRequest request) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RequestValidationError>!>
 Rask.Cqrs.ValidationBehavior<TRequest, TResult>.Handle(TRequest request, Rask.Cqrs.RequestHandlerDelegate<TResult>! next) -> System.Threading.Tasks.Task<TResult>!
-Rask.Cqrs.Dispatcher
 static Rask.Cqrs.Dispatcher.Publish<TNotification>(TNotification notification, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 static Rask.Cqrs.Dispatcher.Query<TResult>(Rask.Cqrs.IQuery<TResult>! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
 static Rask.Cqrs.Dispatcher.Send(Rask.Cqrs.ICommand! command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 static Rask.Cqrs.Dispatcher.Send<TResult>(Rask.Cqrs.ICommand<TResult>! command, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
+Rask.Cqrs.IRemoteDispatch.Publish(Rask.Cqrs.RemoteContract! contract, object! notification, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!

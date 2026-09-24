@@ -1,4 +1,4 @@
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     The swap, which draws its state from a class rather than from a checkbox.
@@ -36,17 +36,17 @@ public partial class UiSwapTests : global::Rask.Core.RaskMarkup
     }
 
     [Theory]
-    [InlineData(UiSwapAnimation.Rotate, "swap-rotate")]
-    [InlineData(UiSwapAnimation.Flip, "swap-flip")]
-    public void Every_animation_writes_its_own_class(UiSwapAnimation animation, string expected) =>
+    [InlineData(Ui.SwapAnimation.Rotate, "swap-rotate")]
+    [InlineData(Ui.SwapAnimation.Flip, "swap-flip")]
+    public void Every_animation_writes_its_own_class(Ui.SwapAnimation animation, string expected) =>
         Assert.Contains(expected,
-            UiSwap.AccessibleLabel("Mute").On(Span["on"]).Off(Span["off"]).Animation(animation).ToHtml());
+            Ui.Swap.AccessibleLabel("Mute").On(Span["on"]).Off(Span["off"]).Animation(animation).ToHtml());
 
     [Fact]
     public void The_default_animation_writes_no_class() =>
         Assert.DoesNotContain("swap-rotate",
-            UiSwap.AccessibleLabel("Mute").On(Span["on"]).Off(Span["off"])
-                .Animation(UiSwapAnimation.Default).ToHtml());
+            Ui.Swap.AccessibleLabel("Mute").On(Span["on"]).Off(Span["off"])
+                .Animation(Ui.SwapAnimation.Default).ToHtml());
 
     [Fact]
     public void It_carries_the_accessible_name_the_faces_cannot_give_it() =>
@@ -62,5 +62,5 @@ public partial class UiSwapTests : global::Rask.Core.RaskMarkup
     }
 
     private string Swap(bool? active) =>
-        UiSwap.AccessibleLabel("Mute").On(Span["on"]).Off(Span["off"]).Active(active).ToHtml();
+        Ui.Swap.AccessibleLabel("Mute").On(Span["on"]).Off(Span["off"]).Active(active).ToHtml();
 }

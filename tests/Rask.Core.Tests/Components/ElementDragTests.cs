@@ -5,18 +5,18 @@ namespace Rask.Core.Tests.Components;
 public partial class ElementDragTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public void A_true_draggable_emits_the_draggable_attribute() =>
+    public void Draggable_true_emits_draggable_attribute() =>
         Assert.Equal("<div draggable=\"true\"></div>", Div.Draggable(true).ToHtml());
 
     [Fact]
-    public void A_null_or_false_draggable_emits_nothing()
+    public void Draggable_null_or_false_emits_nothing()
     {
         Assert.Equal("<div></div>", Div.ToHtml());
         Assert.Equal("<div></div>", Div.Draggable(false).ToHtml());
     }
 
     [Fact]
-    public void The_draggable_getter_round_trips_all_three_states()
+    public void Draggable_getter_round_trips_tri_state()
     {
         // Draggable is backed by two flag bits (present + value) rather than a Nullable<bool> field;
         // the getter must still distinguish unset / false / true faithfully.
@@ -32,17 +32,15 @@ public partial class ElementDragTests : global::Rask.Core.RaskMarkup
         // through the chain. Suppressed narrowly, which is the escape the rule documents.
 #pragma warning disable RASK045 // the property setter is the subject, not a call site completing a component
         var d = Div.Draggable(true);
-
         d.Draggable = false;
         Assert.False(d.Draggable);
-
         d.Draggable = null;
         Assert.Null(d.Draggable);
 #pragma warning restore RASK045
     }
 
     [Fact]
-    public void Drag_handlers_outside_a_live_context_are_not_emitted() =>
+    public void Drag_handlers_outside_live_context_not_emitted() =>
         // No LiveRenderContext (plain ToHtml): handlers can't register, so only the
         // static draggable attribute survives.
         Assert.Equal(
@@ -50,7 +48,7 @@ public partial class ElementDragTests : global::Rask.Core.RaskMarkup
             Div.Draggable(true).OnDragStart(() => { }).OnDrop(() => { }).ToHtml());
 
     [Fact]
-    public void Drag_handlers_inside_a_live_context_emit_their_attributes_in_registration_order()
+    public void Drag_handlers_inside_live_context_emit_data_attributes_in_registration_order()
     {
         var view = new StubComponent(() => Div
             .Id("d")
@@ -71,15 +69,14 @@ public partial class ElementDragTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Only_the_set_drag_handlers_are_emitted()
+    public void Drag_handlers_only_non_null_emitted()
     {
         var view = new StubComponent(() => Div.OnDrop(() => { }));
-
         Assert.Equal("<div data-rask-on-drop=\"h0\"></div>", view.RenderAsLiveRoot());
     }
 
     [Fact]
-    public void Async_drag_handlers_emit_too()
+    public void Drag_handlers_async_siblings_emit()
     {
         // Each drag event ships a Func<Task> async sibling; setting only the async variant still
         // registers the handler and emits the attribute, in dragstart → dragover → drop → dragend
@@ -89,7 +86,6 @@ public partial class ElementDragTests : global::Rask.Core.RaskMarkup
             .OnDragOver(() => Task.CompletedTask)
             .OnDrop(() => Task.CompletedTask)
             .OnDragEnd(() => Task.CompletedTask));
-
         Assert.Equal(
             "<div data-rask-on-dragstart=\"h0\" data-rask-on-dragover=\"h1\" " +
             "data-rask-on-drop=\"h2\" data-rask-on-dragend=\"h3\"></div>",
@@ -97,13 +93,12 @@ public partial class ElementDragTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Unset_drag_handlers_leave_no_footprint()
+    public void Unset_drag_handlers_add_no_footprint()
     {
         // Drag handlers are hoisted into the lazy LiveState (like the keyboard handlers and
         // Ref/Role/Aria), so an element that wires none of them keeps every slot null and pays no
         // per-instance footprint.
         var div = Div;
-
         Assert.Null(div.OnDragStart);
         Assert.Null(div.OnDragOver);
         Assert.Null(div.OnDrop);

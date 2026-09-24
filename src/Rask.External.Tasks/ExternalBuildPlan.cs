@@ -20,11 +20,17 @@ internal sealed class ExternalEntry
     public string Runtime { get; set; } = ExternalRuntime.React.Key;
 
     /// <summary>
-    ///     The package a package island imports, as its <c>Module</c> names it (<c>@mui/material#Button</c>), or
-    ///     null for an island with a front-end file.
+    ///     The package a package island imports, as its <c>Module</c> names it (<c>@mui/material</c>), or null for
+    ///     an island with a front-end file.
     /// </summary>
     /// <remarks>A package island's <see cref="Source" /> is its snapshot, which nothing imports.</remarks>
     public string? Package { get; set; }
+
+    /// <summary>
+    ///     The export of <see cref="Package" /> the island mounts, as its <c>Export</c> names it — <c>default</c> when
+    ///     it names none, a dotted member (<c>Switch.Root</c>), or a Lit element's tag.
+    /// </summary>
+    public string Export { get; set; } = "default";
 
     /// <summary>
     ///     The tag a Lit package island's element registers, as its snapshot records it, or null. Unused when the
@@ -74,7 +80,8 @@ internal static class ExternalBuildPlan
         {
             // A package is imported by its bare specifier as written, never through Specifier(), which would
             // prefix './' and send the bundler looking for a file of that name beside the entry.
-            var (specifier, export) = ExternalPackageSpecifier.Split(package);
+            var specifier = package;
+            var export = island.Export;
             if (!ExternalPackageSpecifier.IsValidExport(export, island.Runtime))
             {
                 throw new InvalidOperationException(
@@ -90,8 +97,8 @@ internal static class ExternalBuildPlan
                 if (!ExternalPackageSpecifier.IsTag(tag))
                 {
                     throw new InvalidOperationException(
-                        $"Island '{island.Name}' is a Lit package island whose tag is not known: name it after the '#' — "
-                        + $"\"{specifier}#my-element\" — or build once with the package installed so its snapshot records it.");
+                        $"Island '{island.Name}' is a Lit package island whose tag is not known: return it from Export — "
+                        + "protected override string Export => \"my-element\"; — or build once with the package installed so its snapshot records it.");
                 }
 
                 return $$"""

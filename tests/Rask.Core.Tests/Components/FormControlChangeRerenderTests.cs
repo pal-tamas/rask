@@ -18,13 +18,12 @@ namespace Rask.Core.Tests.Components;
 public partial class FormControlChangeRerenderTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public async Task A_controlled_selects_change_rerenders_the_consumer_not_just_the_select()
+    public async Task Controlled_select_on_change_rerenders_consumer_not_just_select()
     {
         var sp = RenderHarness.EmptyServices();
         var host = new Host();
 
         var html = host.RenderAsLiveRoot(sp);
-
         Assert.Equal(1, host.Picker.RenderCount);
         Assert.Contains("Picked: rask", html);
 
@@ -33,27 +32,24 @@ public partial class FormControlChangeRerenderTests : global::Rask.Core.RaskMark
 
         using var doc = JsonDocument.Parse("{\"value\":\"blazor\"}");
         var ok = await host.TryInvokeHandlerAsync(changeId!, doc.RootElement);
-
         Assert.True(ok);
 
         // Picker has stable props, so a second render keeps it cached UNLESS the controlled
         // OnChange dirtied it. The regression: the dirty-mark landed on the Select, leaving Picker
         // cached at RenderCount 1 with stale "Picked: rask".
         var updated = host.RenderAsLiveRoot(sp);
-
         Assert.Equal(2, host.Picker.RenderCount);
         Assert.Contains("Picked: blazor", updated);
     }
 
     [Fact]
-    public async Task A_controlled_inputs_change_rerenders_the_consumer()
+    public async Task Controlled_input_on_change_rerenders_consumer()
     {
         // Input<T> shares ControlledChangeHandler with Select/Textarea — the same fix covers it.
         var sp = RenderHarness.EmptyServices();
         var host = new InputHost();
 
         var html = host.RenderAsLiveRoot(sp);
-
         Assert.Equal(1, host.Echo.RenderCount);
         Assert.Contains("Echo: a", html);
 
@@ -64,13 +60,12 @@ public partial class FormControlChangeRerenderTests : global::Rask.Core.RaskMark
         Assert.True(await host.TryInvokeHandlerAsync(changeId!, doc.RootElement));
 
         var updated = host.RenderAsLiveRoot(sp);
-
         Assert.Equal(2, host.Echo.RenderCount);
         Assert.Contains("Echo: z", updated);
     }
 
     [Fact]
-    public async Task A_controlled_inputs_change_that_captures_a_local_still_rerenders_the_consumer()
+    public async Task Controlled_input_on_change_capturing_a_local_still_rerenders_consumer()
     {
         // The closure case the original fix missed. `OnChange: v => _names[i] = v` inside a loop captures a
         // local ALONGSIDE `this`, so Roslyn lowers it to a display class and the delegate's Target is that
@@ -84,7 +79,6 @@ public partial class FormControlChangeRerenderTests : global::Rask.Core.RaskMark
         var host = new ListHost();
 
         var html = host.RenderAsLiveRoot(sp);
-
         Assert.Equal(1, host.Rows.RenderCount);
         Assert.Contains("Names: a,b", html);
 
@@ -97,13 +91,12 @@ public partial class FormControlChangeRerenderTests : global::Rask.Core.RaskMark
         Assert.True(await host.TryInvokeHandlerAsync(ids[1], doc.RootElement));
 
         var updated = host.RenderAsLiveRoot(sp);
-
         Assert.Equal(2, host.Rows.RenderCount);
         Assert.Contains("Names: a,z", updated);
     }
 
     [Fact]
-    public async Task A_bound_selects_change_rerenders_the_consumer()
+    public async Task Bound_select_change_rerenders_consumer()
     {
         // Two-way Bind: the change handler is a BindingHelpers closure (Target is not a Component),
         // so the owner stays the consumer that rendered the control — the model-derived text updates.
@@ -111,7 +104,6 @@ public partial class FormControlChangeRerenderTests : global::Rask.Core.RaskMark
         var host = new BoundHost();
 
         var html = host.RenderAsLiveRoot(sp);
-
         Assert.Equal(1, host.Form.RenderCount);
         Assert.Contains("Bound: red", html);
 
@@ -122,13 +114,12 @@ public partial class FormControlChangeRerenderTests : global::Rask.Core.RaskMark
         Assert.True(await host.TryInvokeHandlerAsync(changeId!, doc.RootElement));
 
         var updated = host.RenderAsLiveRoot(sp);
-
         Assert.Equal(2, host.Form.RenderCount);
         Assert.Contains("Bound: blue", updated);
     }
 
     [Fact]
-    public async Task A_bound_change_rerenders_the_bind_expressions_owner_even_when_another_component_renders_the_control()
+    public async Task Bound_change_rerenders_bind_expression_owner_even_when_another_component_renders_the_control()
     {
         // The control is rendered by a CHILD wrapper, so the DOM handler's owner is the wrapper — not the
         // consumer that authored `() => _model.Name` and shows a derived readout outside the wrapper. The
@@ -139,7 +130,6 @@ public partial class FormControlChangeRerenderTests : global::Rask.Core.RaskMark
         var host = new BindOwnerHost();
 
         var html = host.RenderAsLiveRoot(sp);
-
         Assert.Equal(1, host.Consumer.RenderCount);
         Assert.Contains("Name: rask", html);
 
@@ -150,7 +140,6 @@ public partial class FormControlChangeRerenderTests : global::Rask.Core.RaskMark
         Assert.True(await host.TryInvokeHandlerAsync(inputId!, doc.RootElement));
 
         var updated = host.RenderAsLiveRoot(sp);
-
         Assert.Equal(2, host.Consumer.RenderCount); // consumer re-rendered via the binding owner
         Assert.Contains("Name: neo", updated);
     }

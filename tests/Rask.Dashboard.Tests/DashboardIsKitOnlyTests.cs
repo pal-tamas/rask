@@ -77,7 +77,7 @@ public sealed partial class DashboardIsKitOnlyTests : global::Rask.Core.RaskMark
     [Fact]
     public void The_document_element_carries_the_theme_scope_and_names_the_theme()
     {
-        var page = Test.RenderDocument(RaskDashboardShell).Html;
+        var page = Page.RenderDocument(RaskDashboardShell).Html;
 
         Assert.Contains("data-rask-ui", page, StringComparison.Ordinal);
         Assert.Contains("data-theme=\"light\"", page, StringComparison.Ordinal);
@@ -94,11 +94,11 @@ public sealed partial class DashboardIsKitOnlyTests : global::Rask.Core.RaskMark
         await using var h = new DashboardHarness(environment: Environments.Development);
         h.Get<RouteState>().Path = "/_rask";
 
-        var page = Test.RenderDocument(RaskDashboardShell, h.Services);
+        var page = Page.RenderDocument(RaskDashboardShell, h.Services);
 
         Assert.True(
             page.Exists(".rask-ops[data-rask-ui][data-theme=\"light\"]"),
-            "UiShell renders the kit's theme scope with no theme named, so daisyUI falls back to "
+            "Ui.Shell renders the kit's theme scope with no theme named, so daisyUI falls back to "
             + "prefers-color-scheme for everything inside it.");
     }
 

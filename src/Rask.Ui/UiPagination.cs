@@ -1,6 +1,6 @@
 using Rask.Core.Routing;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// Numbered pages, as a joined row of buttons — or of links, given <see cref="Href" />.

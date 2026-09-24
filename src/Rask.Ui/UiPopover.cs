@@ -1,7 +1,7 @@
 using System.Globalization;
 using Rask.Core.Live;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A button that opens a panel of anything beside it.
@@ -37,28 +37,28 @@ public sealed partial class UiPopover : Component
     public required string Trigger { get; set; }
 
     /// <summary>Which side of the trigger the panel opens on. Below, unless this says otherwise.</summary>
-    public UiPosition? Position { get; set; }
+    public Ui.Position? Position { get; set; }
 
     /// <summary>Where along that side the panel sits.</summary>
-    public UiAlign? Align { get; set; }
+    public Ui.Align? Align { get; set; }
 
     /// <summary>The distance between the trigger and the panel, in pixels. Defaults to 4.</summary>
     public int? Gap { get; set; }
 
     /// <summary>An icon before the trigger's label.</summary>
-    public UiIconName? Icon { get; set; }
+    public Ui.IconName? Icon { get; set; }
 
     /// <summary>An icon after the trigger's label. A chevron unless this says otherwise.</summary>
-    public UiIconName? IconTrailing { get; set; }
+    public Ui.IconName? IconTrailing { get; set; }
 
     /// <summary>How the trigger is drawn — the same axes every button takes.</summary>
-    public UiTone? Tone { get; set; }
+    public Ui.Tone? Tone { get; set; }
 
     /// <inheritdoc cref="UiButton.Variant" />
-    public UiVariant? Variant { get; set; }
+    public Ui.Variant? Variant { get; set; }
 
     /// <inheritdoc cref="UiButton.Size" />
-    public UiSize? Size { get; set; }
+    public Ui.Size? Size { get; set; }
 
     /// <summary>
     ///     Whether the panel is open. Unset, the reader opens and closes it and the page is not asked.
@@ -133,30 +133,30 @@ public sealed partial class UiPopover : Component
 
         return root[
             trigger[
-                Icon is { } icon ? UiIcon.Name(icon).Class("size-4 shrink-0") : null,
+                Icon is { } icon ? Ui.Icon.Name(icon).Class("size-4 shrink-0") : null,
                 Span[Trigger],
-                UiIcon.Name(IconTrailing ?? UiIconName.ChevronDown).Class("size-4 shrink-0 opacity-60")
+                Ui.Icon.Name(IconTrailing ?? Ui.IconName.ChevronDown).Class("size-4 shrink-0 opacity-60")
             ],
             panel[Children ?? []]
         ];
     }
 
-    // The same anchor positioning UiDropdown and UiSelect use. An engine without it keeps the popover's own
+    // The same anchor positioning Ui.Dropdown and Ui.Select use. An engine without it keeps the popover's own
     // default, centred — still open and still usable.
     private string PanelStyle()
     {
-        var side = (Position ?? UiPosition.Bottom) switch
+        var side = (Position ?? Ui.Position.Bottom) switch
         {
-            UiPosition.Top => "block-start",
-            UiPosition.Left => "inline-start",
-            UiPosition.Right => "inline-end",
+            Ui.Position.Top => "block-start",
+            Ui.Position.Left => "inline-start",
+            Ui.Position.Right => "inline-end",
             _ => "block-end",
         };
-        var vertical = (Position ?? UiPosition.Bottom) is UiPosition.Left or UiPosition.Right;
+        var vertical = (Position ?? Ui.Position.Bottom) is Ui.Position.Left or Ui.Position.Right;
         var along = Align switch
         {
-            UiAlign.Center => "center",
-            UiAlign.End => vertical ? "span-block-start" : "span-inline-start",
+            Ui.Align.Center => "center",
+            Ui.Align.End => vertical ? "span-block-start" : "span-inline-start",
             _ => vertical ? "span-block-end" : "span-inline-end",
         };
 

@@ -3,7 +3,7 @@ using System.Linq.Expressions;
 using Rask.Core.DragAndDrop;
 using Rask.Core.Routing;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// A table over a typed row sequence: sortable headers, paging, selection, expandable detail rows,
@@ -12,7 +12,7 @@ namespace Rask.Ui;
 /// <remarks>
 /// <para>
 /// <b>Columns are the chain's children, and they arrive through a factory:</b>
-/// <c>UiDataGrid.Data(_products)[c =&gt; [ c.Field(p =&gt; p.Name).Title("Product").Sortable(true) ]]</c>.
+/// <c>Ui.DataGrid.Data(_products)[c =&gt; [ c.Field(p =&gt; p.Name).Title("Product").Sortable(true) ]]</c>.
 /// The lambda's parameter is the grid, which is what fixes the row type — a column written as a flat
 /// child has nothing to infer its own lambda from and does not compile. See the grid's column indexer.
 /// </para>
@@ -196,7 +196,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     public bool? Hover { get; set; }
 
     /// <summary>How tight the rows are.</summary>
-    public UiSize? Size { get; set; }
+    public Ui.Size? Size { get; set; }
 
     /// <summary>Keeps the header visible while the rows scroll under it.</summary>
     /// <remarks>Needs a <see cref="MaxHeight" /> to scroll within, or there is nothing to scroll past.</remarks>
@@ -217,12 +217,12 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     /// <summary>Extra classes for one row, from the row.</summary>
     public Fn<T, string?>? RowClass { get; set; }
 
-    /// <summary>Tints one row with a tone, from the row — a dead letter in <see cref="UiTone.Error" />.</summary>
+    /// <summary>Tints one row with a tone, from the row — a dead letter in <see cref="Ui.Tone.Error" />.</summary>
     /// <remarks>
     ///     A typed tone rather than a <see cref="RowClass" />, because a class written in a consuming library is
     ///     a class the kit's compiled sheet never saw. The tint here is a complete literal, so it is in the sheet.
     /// </remarks>
-    public Fn<T, UiTone?>? RowTone { get; set; }
+    public Fn<T, Ui.Tone?>? RowTone { get; set; }
 
     /// <summary>Called with the row that was clicked.</summary>
     /// <remarks>
@@ -310,7 +310,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     /// <inheritdoc />
     /// <summary>
     ///     Describes the grid's columns, ending the chain:
-    ///     <c>UiDataGrid.Rows(_rows)[c =&gt; [ c.Field(r =&gt; r.Name), c.Column()[ … ] ]]</c>.
+    ///     <c>Ui.DataGrid.Rows(_rows)[c =&gt; [ c.Field(r =&gt; r.Name), c.Column()[ … ] ]]</c>.
     /// </summary>
     /// <remarks>
     ///     <para>
@@ -321,7 +321,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     ///     </para>
     ///     <para>
     ///         The lambda takes the GRID rather than a row, which is what gives <c>c.Field(…)</c> a type
-    ///         to infer from — a bare <c>UiColumn.Field(…)</c> written as a flat child has nothing.
+    ///         to infer from — a bare <c>Ui.Column.Field(…)</c> written as a flat child has nothing.
     ///     </para>
     ///     <para>
     ///         The factory is stored, not called: it runs on every render, inside the render walk, so a
@@ -341,7 +341,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     // ---- what is controlled, and what the grid is holding itself ---------------------------------
 
     // PageSize is nullable so that it is an OPTIONAL step. A non-nullable int with no initializer is a
-    // REQUIRED chain step (RASK001), which would have made `UiDataGrid.Data(rows)` a pending state
+    // REQUIRED chain step (RASK001), which would have made `Ui.DataGrid.Data(rows)` a pending state
     // rather than a finished chain — every later step then failing to infer its type arguments. Same
     // reason SortDescending is bool? rather than bool.
     private int Paging => PageSize ?? 0;
@@ -600,11 +600,11 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     /// <remarks>
     ///     Reached as <c>c.Field(p =&gt; p.Name)</c> inside the grid's column factory. An instance method
     ///     rather than an entry, and that is the whole point: the grid's own type argument is already
-    ///     fixed here, so <c>p</c> has a type — where <c>UiColumn.Field(p =&gt; p.Name)</c> written as a
+    ///     fixed here, so <c>p</c> has a type — where <c>Ui.Column.Field(p =&gt; p.Name)</c> written as a
     ///     flat child would have nothing to infer one from.
     /// </remarks>
     /// <param name="field">The member this column is about.</param>
-    public UiColumn<T> Field(Expression<Func<T, object?>> field) => UiColumn.Field(field);
+    public UiColumn<T> Field(Expression<Func<T, object?>> field) => Ui.Column.Field(field);
 
     /// <summary>
     ///     Opens a column bound to no member — an actions column, or one computed from the whole row.
@@ -613,7 +613,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     ///     It has no field token, so it can be shown but never sorted, grouped, hidden or reordered by
     ///     name. Give it a <see cref="UiColumn{T}.Cell" /> and a <see cref="UiColumn{T}.Title" />.
     /// </remarks>
-    public UiColumn<T> Column() => UiColumn.Of<T>();
+    public UiColumn<T> Column() => Ui.Column.Of<T>();
 
     // The columns, built once per render. ONCE is load-bearing: each `c.Field(…)` takes the next entry
     // slot under this grid, so calling the factory a second time in one render would hand every column a
@@ -1101,9 +1101,9 @@ public sealed partial class UiDataGrid<T, TKey> : Component
                         .Disabled(Busy)
                         .OnClick(() => ToggleSortAsync(column))[
                         column.Title ?? "",
-                        UiIcon
-                            .Name(!sorted ? UiIconName.ArrowsUpDown
-                                : CurrentSortDescending ? UiIconName.ChevronDown : UiIconName.ChevronUp)
+                        Ui.Icon
+                            .Name(!sorted ? Ui.IconName.ArrowsUpDown
+                                : CurrentSortDescending ? Ui.IconName.ChevronDown : Ui.IconName.ChevronUp)
                             .Class("size-3 shrink-0 opacity-60")
                     ]
                     : (Component)Span[column.Title ?? ""],
@@ -1116,13 +1116,13 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     {
         var token = column.FieldName!;
         var on = CurrentGrouped.Contains(token, StringComparer.Ordinal);
-        return UiButton
+        return Ui.Button
             .AccessibleLabel(on ? "Stop grouping by " + (column.Title ?? token) : "Group by " + (column.Title ?? token))
             .Square(true)
-            .Size(UiSize.Xs)
-            .Variant(on ? UiVariant.Soft : UiVariant.Ghost)
+            .Size(Ui.Size.Xs)
+            .Variant(on ? Ui.Variant.Soft : Ui.Variant.Ghost)
             .Disabled(Busy)
-            .OnClick(() => on ? UngroupAsync(token) : GroupByAsync(token))[UiIcon.Name(UiIconName.Stack)];
+            .OnClick(() => on ? UngroupAsync(token) : GroupByAsync(token))[Ui.Icon.Name(Ui.IconName.Stack)];
     }
 
     private Component SelectAllBox(IReadOnlyList<T> pageRows)
@@ -1131,7 +1131,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
         // keys it has.
         //
         // Of<bool>() rather than a value: the type argument is what makes the input a checkbox and
-        // OnChange a bool, the same way UiCheckbox opens.
+        // OnChange a bool, the same way Ui.Checkbox opens.
         return Input
             .Of<bool>()
             .Checked(AllSelected(pageRows))
@@ -1243,7 +1243,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
         }
 
         // The row-click handler goes on the CELLS rather than the row, so a column can carve itself out
-        // of it — see UiColumn.RowClickable for why a custom cell does so by default.
+        // of it — see Ui.Column.RowClickable for why a custom cell does so by default.
         if (column.IsRowClickable && clickableClass is not null && RowClickHandler(row) is { } click)
         {
             cell = cell.OnClick(click).Class(clickableClass);
@@ -1271,12 +1271,12 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     private Component Expander(T row, object key, bool open) =>
         Detail?.Invoke(row) is null
             ? Span
-            : UiButton
+            : Ui.Button
                 .AccessibleLabel(open ? "Collapse row" : "Expand row")
                 .Square(true)
-                .Size(UiSize.Xs)
-                .Variant(UiVariant.Ghost)
-                .OnClick(() => ToggleExpand(key))[UiIcon.Name(open ? UiIconName.ChevronDown : UiIconName.ChevronRight)];
+                .Size(Ui.Size.Xs)
+                .Variant(Ui.Variant.Ghost)
+                .OnClick(() => ToggleExpand(key))[Ui.Icon.Name(open ? Ui.IconName.ChevronDown : Ui.IconName.ChevronRight)];
 
     // ---- bands ----------------------------------------------------------------------------------
 
@@ -1387,12 +1387,12 @@ public sealed partial class UiDataGrid<T, TKey> : Component
                 Div.Class("flex items-center gap-2").Style("padding-inline-start:" + level + "rem")[
                     GroupCollapsible is false
                         ? null
-                        : UiButton
+                        : Ui.Button
                             .AccessibleLabel(collapsed ? "Expand group" : "Collapse group")
                             .Square(true)
-                            .Size(UiSize.Xs)
-                            .Variant(UiVariant.Ghost)
-                            .OnClick(() => ToggleBand(path))[UiIcon.Name(collapsed ? UiIconName.ChevronRight : UiIconName.ChevronDown)],
+                            .Size(Ui.Size.Xs)
+                            .Variant(Ui.Variant.Ghost)
+                            .OnClick(() => ToggleBand(path))[Ui.Icon.Name(collapsed ? Ui.IconName.ChevronRight : Ui.IconName.ChevronDown)],
                     heading
                 ]
             ]
@@ -1462,10 +1462,10 @@ public sealed partial class UiDataGrid<T, TKey> : Component
 
     private Component ChooserBar(IReadOnlyList<UiColumn<T>> columns, DragDropContext ctx) =>
         Div.Class("relative")[
-            UiButton
-                .Size(UiSize.Sm)
-                .Variant(UiVariant.Outline)
-                .OnClick(() => _chooserOpen = !_chooserOpen)[UiIcon.Name(UiIconName.Menu), "Columns"],
+            Ui.Button
+                .Size(Ui.Size.Sm)
+                .Variant(Ui.Variant.Outline)
+                .OnClick(() => _chooserOpen = !_chooserOpen)[Ui.Icon.Name(Ui.IconName.Menu), "Columns"],
             !_chooserOpen
                 ? null
                 : Div
@@ -1504,7 +1504,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
                 .OnDrop(ctx.Drop(ColumnZone, index))
                 .OnDragEnd(ctx.DragEnd)[
                 column.CanReorder && ReorderEnabled
-                    ? UiIcon.Name(UiIconName.Grip).Class("size-3 shrink-0 opacity-40")
+                    ? Ui.Icon.Name(Ui.IconName.Grip).Class("size-3 shrink-0 opacity-40")
                     : null,
                 // RaskMarkup.Label, not Label: this grid has a Label PROPERTY, and a component's own
                 // member hides the injected entry of the same name — the rule that gives every kit
@@ -1519,9 +1519,9 @@ public sealed partial class UiDataGrid<T, TKey> : Component
                     column.Title ?? token
                 ],
                 MoveButton(column.CanReorder && ReorderEnabled && index > 0, "Move up",
-                    UiIconName.ChevronUp, () => MoveColumnAsync(columns, token, -1)),
+                    Ui.IconName.ChevronUp, () => MoveColumnAsync(columns, token, -1)),
                 MoveButton(column.CanReorder && ReorderEnabled && index < order.Count - 1, "Move down",
-                    UiIconName.ChevronDown, () => MoveColumnAsync(columns, token, 1))
+                    Ui.IconName.ChevronDown, () => MoveColumnAsync(columns, token, 1))
             ];
         }
     }
@@ -1562,26 +1562,26 @@ public sealed partial class UiDataGrid<T, TKey> : Component
                 .OnDragOver(ctx.DragOver(GroupZone, index))
                 .OnDrop(ctx.Drop(GroupZone, index))
                 .OnDragEnd(ctx.DragEnd)[
-                UiIcon.Name(UiIconName.Grip).Class("size-3 shrink-0 opacity-40"),
+                Ui.Icon.Name(Ui.IconName.Grip).Class("size-3 shrink-0 opacity-40"),
                 Span[column.Title ?? token],
-                MoveButton(index > 0, "Move group left", UiIconName.ArrowLeft,
+                MoveButton(index > 0, "Move group left", Ui.IconName.ArrowLeft,
                     () => MoveGroupAsync(token, -1)),
-                MoveButton(index < groups.Count - 1, "Move group right", UiIconName.ArrowRight,
+                MoveButton(index < groups.Count - 1, "Move group right", Ui.IconName.ArrowRight,
                     () => MoveGroupAsync(token, 1)),
-                MoveButton(true, "Stop grouping by " + (column.Title ?? token), UiIconName.Close,
+                MoveButton(true, "Stop grouping by " + (column.Title ?? token), Ui.IconName.Close,
                     () => UngroupAsync(token))
             ];
         }
     }
 
-    private static Component? MoveButton(bool enabled, string label, UiIconName icon, Func<Task> click) =>
-        UiButton
+    private static Component? MoveButton(bool enabled, string label, Ui.IconName icon, Func<Task> click) =>
+        Ui.Button
             .AccessibleLabel(label)
             .Square(true)
-            .Size(UiSize.Xs)
-            .Variant(UiVariant.Ghost)
+            .Size(Ui.Size.Xs)
+            .Variant(Ui.Variant.Ghost)
             .Disabled(!enabled)
-            .OnClick(click)[UiIcon.Name(icon)];
+            .OnClick(click)[Ui.Icon.Name(icon)];
 
     private static UiColumn<T>? Find(IReadOnlyList<UiColumn<T>> columns, string token)
     {
@@ -1646,11 +1646,11 @@ public sealed partial class UiDataGrid<T, TKey> : Component
                 rows.Total.ToString(CultureInfo.InvariantCulture) + " rows"
             ],
             PageHref is { } href
-                ? UiPagination
+                ? Ui.Pagination
                     .Pages(rows.Pages)
                     .Current(current)
                     .Href(page => href.Invoke(page - 1))
-                : UiPagination
+                : Ui.Pagination
                     .Pages(rows.Pages)
                     .Current(current)
                     .OnSelect(page => _ = GoToPageAsync(page - 1, rows.Pages))

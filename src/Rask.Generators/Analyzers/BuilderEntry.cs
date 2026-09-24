@@ -24,6 +24,8 @@ internal static class BuilderEntry
 
     private const string RaskMarkupFullName = "Rask.Core.RaskMarkup";
 
+    private const string HtmlFullName = "Rask.Html";
+
     private const string RaskMarkupAttributeFullName = "Rask.Core.RaskMarkupAttribute";
 
     private const string SkipFactoryFullName = "Rask.Core.SkipFactoryAttribute";
@@ -46,7 +48,12 @@ internal static class BuilderEntry
     {
         if (!IsEntryHost(member.ContainingType, component))
         {
-            return null;
+            // A grouped entry — `Ui.Button` — lives on its group, which is no markup host.
+            return member is IPropertySymbol { IsStatic: true, IsIndexer: false, Type: INamedTypeSymbol grouped }
+                   && DerivesFromComponent(grouped, component)
+                   && IsGroupedEntry(member, grouped)
+                ? grouped
+                : null;
         }
 
         var produced = member switch
@@ -79,6 +86,12 @@ internal static class BuilderEntry
         // in the base chain says this is a host. The attribute is the only trace, and it is a direct one —
         // read off this type, never inherited, exactly as the generator reads it.
         if (type is INamedTypeSymbol named && HasMarkupAttribute(named))
+        {
+            return true;
+        }
+
+        // Rask.Html carries the framework's entries again, for `using static` and the qualified `Html.Div`.
+        if (string.Equals(type?.ToDisplayString(), HtmlFullName, StringComparison.Ordinal))
         {
             return true;
         }
@@ -243,9 +256,15 @@ internal static class BuilderEntry
         // which never has a seed.
         if (property.Type.Name.Length > SeedPrefix.Length
             && property.Type.Name.StartsWith(SeedPrefix, StringComparison.Ordinal)
-            && string.Equals(
-                property.Type.Name.Substring(SeedPrefix.Length), name.Identifier.ValueText,
-                StringComparison.Ordinal))
+            && (string.Equals(
+                    property.Type.Name.Substring(SeedPrefix.Length), name.Identifier.ValueText,
+                    StringComparison.Ordinal)
+                // A grouped seed — `Ui.Select` hands back `RaskSeed_UiSelect` — on the group class.
+                || (property is { IsStatic: true, ContainingType: { } seedGroup }
+                    && string.Equals(
+                        ComponentFactoryGenerator.GroupMemberName(
+                            property.Type.Name.Substring(SeedPrefix.Length), seedGroup.Name),
+                        name.Identifier.ValueText, StringComparison.Ordinal))))
         {
             entry = name;
             built = null;
@@ -260,7 +279,8 @@ internal static class BuilderEntry
         // something that could have taken a key.
         if (property.Type is not INamedTypeSymbol produced
             || !property.IsStatic
-            || !string.Equals(produced.Name, name.Identifier.ValueText, StringComparison.Ordinal)
+            || !(string.Equals(produced.Name, name.Identifier.ValueText, StringComparison.Ordinal)
+                 || IsGroupedEntry(property, produced))
             || model.Compilation.GetTypeByMetadataName(ComponentMetadataName) is not { } component
             || !DerivesFromComponent(produced, component))
         {
@@ -270,6 +290,57 @@ internal static class BuilderEntry
         entry = name;
         built = produced;
         return true;
+    }
+
+    private const string ChainGroupFullName = "Rask.Core.RaskChainGroupAttribute";
+
+    /// <summary>
+    ///     Whether <paramref name="member" /> is <paramref name="component" />'s GROUPED entry: a member of the class
+    ///     its <c>[RaskChainGroup]</c> names, under the name the generator gives it there.
+    /// </summary>
+    public static bool IsGroupedEntry(ISymbol member, INamedTypeSymbol component)
+    {
+        for (var t = component; t is not null; t = t.BaseType)
+        {
+            foreach (var attribute in t.GetAttributes())
+            {
+                if (!string.Equals(attribute.AttributeClass?.ToDisplayString(), ChainGroupFullName, StringComparison.Ordinal)
+                    || attribute.ConstructorArguments.Length == 0
+                    || attribute.ConstructorArguments[0].Value is not INamedTypeSymbol group)
+                {
+                    continue;
+                }
+
+                if (!SymbolEqualityComparer.Default.Equals(group, member.ContainingType))
+                {
+                    return false;
+                }
+
+                var name = attribute.ConstructorArguments.Length > 1
+                           && attribute.ConstructorArguments[1].Value is string explicitName && explicitName.Length > 0
+                    ? explicitName
+                    : ComponentFactoryGenerator.GroupMemberName(component.Name, group.Name);
+                return string.Equals(name, member.Name, StringComparison.Ordinal);
+            }
+        }
+
+        // The assembly-wide form, read the way the generator reads it.
+        foreach (var attribute in component.ContainingAssembly?.GetAttributes() ?? [])
+        {
+            if (string.Equals(attribute.AttributeClass?.ToDisplayString(), ChainGroupFullName, StringComparison.Ordinal)
+                && attribute.ConstructorArguments.Length != 0
+                && attribute.ConstructorArguments[0].Value is INamedTypeSymbol group
+                && SymbolEqualityComparer.Default.Equals(group, member.ContainingType)
+                && string.Equals(
+                    ComponentFactoryGenerator.GroupMemberName(component.Name, group.Name), member.Name,
+                    StringComparison.Ordinal)
+                && !string.Equals(component.Name, member.Name, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>The metadata name of <c>Component</c>, for a one-off <c>GetTypeByMetadataName</c>.</summary>

@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Rask.Ui;
+namespace Rask;
 
 /// <summary>
 /// Joins the parts of a class attribute.

@@ -27,7 +27,7 @@ public sealed partial class DashboardPage : Component
         Div.Class("grid")[
             H1["Revenue"],                 // Rask
             Chart.Series(_points),         // Chart.tsx, hydrated in the browser
-            BsCard[ Table.Rows(_rows) ],   // Rask again
+            Ui.Card[ Table.Rows(_rows) ]   // Rask again
         ];
 }
 ```
@@ -106,13 +106,13 @@ package's own TypeScript instead of being declared here — see
 
 ### It costs the inheritance slot, and that is the trade
 
-A component already extending `BsBlock` or your own base cannot also be a `ReactComponent` — C# gives
+A component already extending a base class of your own cannot also be a `ReactComponent` — C# gives
 every class one base. That is deliberate rather than an oversight: chrome in Rask comes from the
 chain, not from inheritance, so the answer is to compose.
 
 ```csharp
-BsCard[ Chart.Series(points) ]        // ✓ Bootstrap chrome around a React component
-class Themed : BsBlock, ReactComponent // ✗ does not compile, and should not
+Ui.Card[ Chart.Series(points) ]        // ✓ kit chrome around a React component
+class Themed : MyBase, ReactComponent   // ✗ does not compile, and should not
 ```
 
 The alternative — a marker attribute usable on any class — was tried first. It works, but it means
@@ -217,9 +217,52 @@ MuiButton
 ```
 
 A `Module` that names a package rather than a file — anything not starting with `./`, `../`, `/` or `#` — makes
-this a **package island**. A named export is written after a `#`: `"@mui/material#Button"` imports `Button`
-from `@mui/material`, and a specifier without one imports the default export. A library that exports namespaces of
-parts is reached with a dot: `"bits-ui#Switch.Root"` is the `Root` member of the `Switch` export.
+this a **package island**, and it imports the package's default export. A named export goes in `Export`, the other
+half of the same `import`:
+
+```csharp
+// import { HexColorPicker } from "react-colorful"
+public sealed partial class ColorPicker : ReactComponent
+{
+    protected override string Module => "react-colorful";
+    protected override string Export => "HexColorPicker";
+}
+```
+
+A library that exports namespaces of parts is reached with a dot: `Export => "Switch.Root"` is the `Root` member of
+the `Switch` export. Both must be constant strings ([RASK059](diagnostics.md#rask059)) — the build reads them before
+anything compiles.
+
+### Several components from one package
+
+Most libraries are used for more than one component. Declare the package once and list what you use from it:
+
+```csharp
+// Features/Shop/Mui.cs — no .tsx anywhere
+public sealed partial class Mui : ReactPackage
+{
+    protected override string Module => "@mui/material";
+    protected override string[] Exports => ["Button", "Card", "TextField"];
+}
+```
+
+```csharp
+Mui.Card[
+    Mui.TextField.Label("Name").OnChange(v => _name = v),
+    Mui.Button.Variant(MuiButtonVariant.Contained).OnClick(Save)["Save"],
+    Button["a plain <button>"]
+]
+```
+
+Each export is a package island of its own — the class `MuiButton`, its props from `MuiButton.props.json` beside
+`Mui.cs` — reached through the declaration: typing `Mui.` lists everything the package gives you. Nothing it exports
+takes a bare name, so `Button` stays the HTML `<button>`. Every runtime has its package class: `ReactPackage`,
+`PreactPackage`, `SolidPackage`, `VuePackage`, `SveltePackage`, `AngularPackage` and `LitPackage`.
+
+A dotted export reaches a member (`"Switch.Root"` is `Bits.SwitchRoot`), and a Lit package names tags
+(`"sl-switch"` is `Shoelace.SlSwitch`). The declaration must be `partial` ([RASK056](diagnostics.md#rask056)), and
+`Module` and `Exports` must be constants — a collection expression of string literals
+([RASK059](diagnostics.md#rask059)) — because the build reads both before anything compiles.
 
 ### The snapshot is committed
 
@@ -273,7 +316,7 @@ the build instead of being refreshed, so CI proves the committed files are true 
 
 | Code | Severity | When |
 | --- | --- | --- |
-| `RASKISLAND005` | error | The class also has a front-end file beside it, or the export after `#` is not an identifier or a dotted path of them. |
+| `RASKISLAND005` | error | The class also has a front-end file beside it; its `Export` is not an identifier or a dotted path of them; it declares an `Export` but its `Module` names no package; or it still writes the export after a `#` in `Module` (the message gives the two overrides to write instead). |
 | `RASKISLAND006` | error | There is no snapshot, and this build cannot extract one; the message says why. |
 | `RASKISLAND007` | error | The package or the export could not be read, or it is not a component — reported at the `Module` line. |
 | `RASKISLAND008` | error | A locked build found an out-of-date snapshot. |
@@ -292,8 +335,8 @@ Each runtime's declarations are read where they put the props:
   take content. **Svelte 4** typings give their props from `$$prop_def`; their `on:` events cannot be passed as props,
   and the snapshot lists them as `legacy-event` skips.
 - **Lit** — a custom element's public, writable fields, all optional. Its tag is the one `HTMLElementTagNameMap` gives
-  the class; a module that only registers an element exports nothing to name, so name its tag instead:
-  `"@spectrum-web-components/button/sp-button.js#sp-button"`. The entry imports the module for its side effect, so the
+  the class; a module that only registers an element exports nothing to name, so name its tag in `Export` instead:
+  `Module => "@spectrum-web-components/button/sp-button.js"` with `Export => "sp-button"`. The entry imports the module for its side effect, so the
   tag has to be registered by that module or a file it imports directly — a class module that registers nothing is
   refused rather than mounted under a tag some other module defines. Where the package ships a `custom-elements.json`,
   the events it lists become handler props — `sl-change` is `OnSlChange` — which the adapter adds as event listeners.
@@ -565,7 +608,7 @@ and its framework renders them, so a card from one package can hold a button fro
 MuiCard[
     "Revenue ",
     _total,
-    MuiButton.Variant(MuiButtonVariant.Contained).OnClick(Save)["Save"],
+    MuiButton.Variant(MuiButtonVariant.Contained).OnClick(Save)["Save"]
 ]
 
 MuiList[_people.Select(p => MuiListItem.Key(p.Id)[p.Name])]
@@ -599,10 +642,10 @@ When the markup is Rask's, compose the other way round. It costs nothing, and ev
 side stays live:
 
 ```csharp
-BsCard[
+Ui.Card[
     Panel.Heading("Sales"),
     Table.Rows(_rows),
-    BsButton.OnClick(Save)["Save"],
+    Ui.Button.OnClick(Save)["Save"]
 ]
 ```
 

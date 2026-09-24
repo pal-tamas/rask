@@ -1,10 +1,10 @@
 using Rask.Core.Forms;
 
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     The kit's value-type controls binding a NULLABLE property — the shape every property of a generated
-///     form model has, so <c>UiCheckbox.Bind(() =&gt; model.InStock)</c> over a <c>bool?</c> has to compile,
+///     form model has, so <c>Ui.Checkbox.Bind(() =&gt; model.InStock)</c> over a <c>bool?</c> has to compile,
 ///     draw and write back as surely as over a <c>bool</c>.
 /// </summary>
 /// <remarks>
@@ -24,7 +24,7 @@ public partial class UiNullableBindingTests : global::Rask.Core.RaskMarkup
     {
         var model = new Form { InStock = inStock };
 
-        var html = UiCheckbox.Bind(() => model.InStock).Text("In stock").ToHtml();
+        var html = Ui.Checkbox.Bind(() => model.InStock).Text("In stock").ToHtml();
 
         Assert.Equal(isChecked, html.Contains("checked", StringComparison.Ordinal));
     }
@@ -34,8 +34,8 @@ public partial class UiNullableBindingTests : global::Rask.Core.RaskMarkup
     {
         var model = new Form { InStock = true };
 
-        Assert.Contains("checked", UiToggle.Bind(() => model.InStock).Text("In stock").ToHtml());
-        Assert.Contains("checked", UiRadio.Bind(() => model.InStock).Text("In stock").Group("stock").ToHtml());
+        Assert.Contains("checked", Ui.Toggle.Bind(() => model.InStock).Text("In stock").ToHtml());
+        Assert.Contains("checked", Ui.Radio.Bind(() => model.InStock).Text("In stock").Group("stock").ToHtml());
     }
 
     [Fact]
@@ -44,8 +44,8 @@ public partial class UiNullableBindingTests : global::Rask.Core.RaskMarkup
         var set = new Form { Volume = 40 };
         var unset = new Form();
 
-        Assert.Contains("value=\"40\"", UiRange.Bind(() => set.Volume).Label("Volume").ToHtml());
-        Assert.DoesNotContain("value=\"40\"", UiRange.Bind(() => unset.Volume).Label("Volume").ToHtml());
+        Assert.Contains("value=\"40\"", Ui.Range.Bind(() => set.Volume).Label("Volume").ToHtml());
+        Assert.DoesNotContain("value=\"40\"", Ui.Range.Bind(() => unset.Volume).Label("Volume").ToHtml());
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public partial class UiNullableBindingTests : global::Rask.Core.RaskMarkup
     {
         var model = new Form();
 
-        var html = UiRating.Bind(() => model.Stars).Group("score").Label("Rate this").Max(5).ToHtml();
+        var html = Ui.Rating.Bind(() => model.Stars).Group("score").Label("Rate this").Max(5).ToHtml();
 
         Assert.Contains("value=\"0\" checked", html, StringComparison.Ordinal);
     }
@@ -65,9 +65,9 @@ public partial class UiNullableBindingTests : global::Rask.Core.RaskMarkup
         var unset = new Form();
 
         Assert.Contains("aria-pressed=\"true\"",
-            UiCalendar.Bind(() => set.Due).Label("Due").Month(March).ToHtml());
+            Ui.Calendar.Bind(() => set.Due).Label("Due").Month(March).ToHtml());
         Assert.DoesNotContain("aria-pressed=\"true\"",
-            UiCalendar.Bind(() => unset.Due).Label("Due").Month(March).ToHtml());
+            Ui.Calendar.Bind(() => unset.Due).Label("Due").Month(March).ToHtml());
     }
 
     [Fact]
@@ -120,7 +120,7 @@ public partial class UiNullableBindingTests : global::Rask.Core.RaskMarkup
         // so no Convert is added and the bind is exactly what was written.
         var model = new Plain { Agreed = true };
 
-        var control = UiCheckbox.Bind(() => model.Agreed).Text("I agree");
+        var control = Ui.Checkbox.Bind(() => model.Agreed).Text("I agree");
 
         Assert.IsAssignableFrom<System.Linq.Expressions.MemberExpression>(control.Bind!.Body);
     }

@@ -1,6 +1,6 @@
 using Rask.Core.Forms;
 
-namespace Rask.Ui.Tests.Components;
+namespace Rask.UiTests.Components;
 
 /// <summary>
 ///     Every control in the kit's Data input category is an <c>IFormControl&lt;T&gt;</c>, so every one
@@ -21,7 +21,7 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
         var model = new Profile { Email = "ada@example.com" };
 
         Assert.Contains("value=\"ada@example.com\"",
-            UiInput.Bind(() => model.Email).Label("Email").ToHtml());
+            Ui.Input.Bind(() => model.Email).Label("Email").ToHtml());
     }
 
     [Fact]
@@ -30,7 +30,7 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
         // The framework derives it from the expression: a bound control needs no Name of its own.
         var model = new Profile();
 
-        Assert.Contains("name=\"Email\"", UiInput.Bind(() => model.Email).Label("Email").ToHtml());
+        Assert.Contains("name=\"Email\"", Ui.Input.Bind(() => model.Email).Label("Email").ToHtml());
     }
 
     [Fact]
@@ -39,7 +39,7 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
         // T comes off the expression, and the type attribute comes off T — which is the whole point of
         // making these generic rather than string-only.
         var model = new Profile { Age = 36 };
-        var html = UiInput.Bind(() => model.Age).Label("Age").ToHtml();
+        var html = Ui.Input.Bind(() => model.Age).Label("Age").ToHtml();
 
         Assert.Contains("type=\"number\"", html);
         Assert.Contains("value=\"36\"", html);
@@ -50,14 +50,14 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
     {
         var model = new Profile { Notes = "Anything else" };
 
-        Assert.Contains("Anything else", UiTextarea.Bind(() => model.Notes).Label("Notes").ToHtml());
+        Assert.Contains("Anything else", Ui.Textarea.Bind(() => model.Notes).Label("Notes").ToHtml());
     }
 
     [Fact]
     public void A_bound_select_marks_the_models_option_as_the_chosen_one()
     {
         var model = new Profile { Country = "gb" };
-        var html = UiSelect.Bind(() => model.Country)
+        var html = Ui.Select.Bind(() => model.Country)
             .Options([("hu", "Hungary"), ("gb", "United Kingdom")])
             .Label("Country")
             .ToHtml();
@@ -71,7 +71,7 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
     public void A_bound_checkbox_takes_its_checked_state_from_the_model(bool agreed)
     {
         var model = new Profile { Agreed = agreed };
-        var html = UiCheckbox.Bind(() => model.Agreed).Text("I agree").ToHtml();
+        var html = Ui.Checkbox.Bind(() => model.Agreed).Text("I agree").ToHtml();
 
         Assert.Equal(agreed, html.Contains("checked", StringComparison.Ordinal));
     }
@@ -92,7 +92,7 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
         var model = new Profile { Express = true };
 
         Assert.Contains("checked",
-            UiRadio.Bind(() => model.Express).Text("Express").Group("shipping").ToHtml());
+            Ui.Radio.Bind(() => model.Express).Text("Express").Group("shipping").ToHtml());
     }
 
     [Fact]
@@ -100,14 +100,14 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
     {
         var model = new Profile { Volume = 40 };
 
-        Assert.Contains("value=\"40\"", UiRange.Bind(() => model.Volume).Label("Volume").ToHtml());
+        Assert.Contains("value=\"40\"", Ui.Range.Bind(() => model.Volume).Label("Volume").ToHtml());
     }
 
     [Fact]
     public void A_bound_rating_lights_as_many_stars_as_the_model_says()
     {
         var model = new Profile { Stars = 3 };
-        var html = UiRating.Bind(() => model.Stars).Group("score").Label("Rate this").Max(5).ToHtml();
+        var html = Ui.Rating.Bind(() => model.Stars).Group("score").Label("Rate this").Max(5).ToHtml();
 
         // One checked radio, and it is the third star — a rating group is exclusive, so a second one
         // would mean the browser and the model disagree about the value.
@@ -132,7 +132,7 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
         var model = new Profile { Code = "1234" };
 
         Assert.Contains("value=\"1234\"",
-            UiOtp.Bind(() => model.Code).Length(6).Label("Verification code").ToHtml());
+            Ui.Otp.Bind(() => model.Code).Length(6).Label("Verification code").ToHtml());
     }
 
     [Fact]
@@ -142,7 +142,7 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
         // value set, so binding fills the model from the reader's choice and never the other way. A
         // `value` attribute here would be markup the browser drops.
         var model = new Profile { Avatar = "portrait.png" };
-        var html = UiFileInput.Bind(() => model.Avatar).Label("Avatar").ToHtml();
+        var html = Ui.FileInput.Bind(() => model.Avatar).Label("Avatar").ToHtml();
 
         Assert.DoesNotContain("value=", html);
         Assert.DoesNotContain("portrait.png", html);
@@ -170,7 +170,7 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
     public void A_bound_calendar_marks_the_models_day()
     {
         var model = new Profile { Delivery = new DateOnly(2026, 3, 14) };
-        var html = UiCalendar.Bind(() => model.Delivery).Label("Delivery date").Month(March).ToHtml();
+        var html = Ui.Calendar.Bind(() => model.Delivery).Label("Delivery date").Month(March).ToHtml();
 
         Assert.Contains("aria-pressed=\"true\"", html);
         Assert.Equal(1, Occurrences(html, "aria-pressed=\"true\""));
@@ -182,7 +182,7 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
         // default(DateOnly) is 1 January year 1. Letting it choose the view would open the grid on a
         // month nobody meant to look at, so an unset value falls back to today.
         var model = new Profile();
-        var html = UiCalendar.Bind(() => model.Delivery).Label("Delivery date").ToHtml();
+        var html = Ui.Calendar.Bind(() => model.Delivery).Label("Delivery date").ToHtml();
 
         Assert.Contains(
             DateOnly.FromDateTime(DateTime.Today).ToString("MMMM yyyy",
@@ -199,7 +199,7 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
     {
         // Named with AccessibleLabel, not Label: a floating label would BE the placeholder, and this asserts the
         // call site's placeholder reaches a field with no value yet.
-        var html = UiInput.Of<string>().AccessibleLabel("Search").Placeholder("Ghost").ToHtml();
+        var html = Ui.Input.Of<string>().AccessibleLabel("Search").Placeholder("Ghost").ToHtml();
 
         Assert.Contains("placeholder=\"Ghost\"", html);
         Assert.DoesNotContain("value=", html);
@@ -209,7 +209,7 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
     public void Of_opens_controlled_mode_so_the_parent_still_owns_the_value()
     {
         var seen = "";
-        var control = UiInput.Of<string>().Label("Search").OnChange(v => seen = v);
+        var control = Ui.Input.Of<string>().Label("Search").OnChange(v => seen = v);
 
         Assert.Null(control.Bind);
 
@@ -267,18 +267,18 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
     {
         var model = new Profile { Alerts = alerts };
 
-        return UiToggle.Bind(() => model.Alerts).Text("Email alerts").ToHtml();
+        return Ui.Toggle.Bind(() => model.Alerts).Text("Email alerts").ToHtml();
     }
 
     private static string Rating(int stars)
     {
         var model = new Profile { Stars = stars };
 
-        return UiRating.Bind(() => model.Stars).Group("score").Label("Rate this").Max(5).ToHtml();
+        return Ui.Rating.Bind(() => model.Stars).Group("score").Label("Rate this").Max(5).ToHtml();
     }
 
     private static string Filter(Profile model) =>
-        UiFilter.Bind(() => model.Tag!).Group("tags")
+        Ui.Filter.Bind(() => model.Tag!).Group("tags")
             .Options([("bug", "bug"), ("feature", "feature"), ("docs", "docs")])
             .ToHtml();
 

@@ -21,7 +21,7 @@ public sealed class DashboardKitMarkupTests
         var component = ActivatorUtilities.CreateInstance<QueuePage>(h.Services);
         component.Queue = "jobs";
         component.Show = "failed";
-        var page = Test.Render(component, h.Services);
+        var page = Page.Render(component, h.Services);
         await page.WaitForAsync("dead letter");
 
         var row = Assert.Single(page.FindAll("tbody tr"));
@@ -34,7 +34,7 @@ public sealed class DashboardKitMarkupTests
         await using var h = new DashboardHarness(Batteries.Jobs);
 
         var component = ActivatorUtilities.CreateInstance<OverviewPage>(h.Services);
-        var page = Test.Render(component, h.Services);
+        var page = Page.Render(component, h.Services);
         await page.WaitForAsync("Outstanding");
 
         // One link, holding the figures rather than sitting beside them.
@@ -58,7 +58,7 @@ public sealed class DashboardKitMarkupTests
         var component = ActivatorUtilities.CreateInstance<QueuePage>(h.Services);
         component.Queue = "jobs";
         component.Show = "failed";
-        var page = Test.Render(component, h.Services);
+        var page = Page.Render(component, h.Services);
         await page.WaitForAsync("dead letter");
 
         Assert.Contains("</button><button", page.Html, StringComparison.Ordinal);
@@ -72,7 +72,7 @@ public sealed class DashboardKitMarkupTests
             Batteries.None,
             extra: services => services.AddSingleton<IDashboardBackupProbe>(new SnapshotsOnlyProbe()));
 
-        var html = await Test.Render(ActivatorUtilities.CreateInstance<SystemPage>(h.Services), h.Services)
+        var html = await Page.Render(ActivatorUtilities.CreateInstance<SystemPage>(h.Services), h.Services)
             .WaitForAsync("Snapshots");
 
         Assert.DoesNotContain(">Backup<", html, StringComparison.Ordinal);

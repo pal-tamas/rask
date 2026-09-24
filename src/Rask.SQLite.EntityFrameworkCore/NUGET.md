@@ -99,7 +99,28 @@ modelBuilder.Entity<Post>().HasFullTextSearch(p => new { p.Title, p.Body });
 var hits = await db.Set<Post>().Search("keres sqlite").Take(20).ToListAsync();
 ```
 
+**A plain `UseSqlite` — a browser app's, over
+[`Rask.SQLite.Browser`](https://www.nuget.org/packages/Rask.SQLite.Browser) — adds search alone** with
+`UseRaskFullTextSearch()`: the migration SQL and the query translation, none of `UseRaskSqlite`'s connection
+string, pragmas or retry. Called after `UseRaskSqlite` it keeps that call's choices, `STRICT` tables included.
+
+```csharp
+builder.Services.AddDbContextFactory<AppDbContext>(o => o
+    .UseSqlite(BrowserSqlite.ConnectionString("app"))
+    .UseRaskFullTextSearch());
+```
+
+The index is built by a migration, so apply migrations (`Database.MigrateAsync()`); `EnsureCreated` creates none.
+PostgreSQL has the same search through [`Rask.Postgres`](https://www.nuget.org/packages/Rask.Postgres).
+
+## Indexing a value inside a JSON column
+
+`UseRaskSqlite` also creates `Rask.Data`'s `HasJsonIndex(o => o.Meta.Status)`: an expression index spelled
+exactly as EF Core writes the filter on a `ToJson()` column, so the filter is an index search instead of a read
+of every row. Added, changed and removed through migrations.
+
 Not using EF Core? Use `Rask.SQLite` directly: `services.AddRaskSqlite()` + inject
 `ISqlite`.
 
-Full documentation: <https://github.com/pal-tamas/rask/blob/main/docs/sqlite.md>
+Full documentation: <https://github.com/pal-tamas/rask/blob/main/docs/sqlite.md> and
+<https://github.com/pal-tamas/rask/blob/main/docs/full-text-search.md>

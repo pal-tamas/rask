@@ -13,7 +13,7 @@ public partial class InputDelegateValidateTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "" };
         EditContext? captured = null;
 
-        var page = Test.Render(() => Form.Model(p)[
+        var page = Page.Render(() => Form.Model(p)[
             Input.Bind(() => p.Name)
                 .Validate(v =>
                     v.Length < 3 ? new[] { "too short" } : Array.Empty<string>()),
@@ -41,7 +41,7 @@ public partial class InputDelegateValidateTests : global::Rask.Core.RaskMarkup
         var invalidCalled = 0;
         EditContext? captured = null;
 
-        var page = Test.Render(() => Form.Model(p).OnSubmit(_ => validCalled++).OnInvalidSubmit(_ => invalidCalled++)[
+        var page = Page.Render(() => Form.Model(p).OnSubmit(_ => validCalled++).OnInvalidSubmit(_ => invalidCalled++)[
             Input.Bind(() => p.Name)
                 .Validate(_ => new[] { "always-fail" }),
             Test.EditContextProbe(ctx => captured = ctx)
@@ -63,7 +63,7 @@ public partial class InputDelegateValidateTests : global::Rask.Core.RaskMarkup
         var includeValidator = true;
         EditContext? captured = null;
 
-        var page = Test.Render(() => Form.Model(p)[
+        var page = Page.Render(() => Form.Model(p)[
             includeValidator
                 ? Input.Bind(() => p.Name)
                     .Validate(v =>
@@ -96,7 +96,7 @@ public partial class InputDelegateValidateTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "" };
         EditContext? captured = null;
 
-        var page = Test.Render(() => Form.Model(p)[
+        var page = Page.Render(() => Form.Model(p)[
             Input.Bind(() => p.Name)
                 .Validate(async (v, ct) =>
                 {
@@ -124,7 +124,7 @@ public partial class InputDelegateValidateTests : global::Rask.Core.RaskMarkup
         var p = new Person { Name = "abc" };
         EditContext? captured = null;
 
-        var page = Test.Render(() => Form.Model(p)[
+        var page = Page.Render(() => Form.Model(p)[
             Input.Bind(() => p.Name)
                 .Validate(async (v, ct) =>
                 {

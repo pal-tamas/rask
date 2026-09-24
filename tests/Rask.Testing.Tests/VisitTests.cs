@@ -19,13 +19,13 @@ public sealed partial class VisitProductList : Component
     protected override Component? Render() => H1["All products"];
 }
 
-// Test.Visit opens the app at a URL through the real router, so a test walks pages the way a person does.
+// Page.Visit opens the app at a URL through the real router, so a test walks pages the way a person does.
 public sealed class VisitTests
 {
     [Fact]
     public void Visiting_a_url_renders_the_page_registered_for_it()
     {
-        var page = Test.Visit("/visit-tests/new");
+        var page = Page.Visit("/visit-tests/new");
 
         page.Shows("New product");
 
@@ -35,7 +35,7 @@ public sealed class VisitTests
     [Fact]
     public async Task A_click_that_navigates_moves_to_the_next_page()
     {
-        var page = Test.Visit("/visit-tests/new");
+        var page = Page.Visit("/visit-tests/new");
 
         await page.Click("Save");
 
@@ -46,7 +46,7 @@ public sealed class VisitTests
     [Fact]
     public async Task Following_a_link_moves_to_its_page()
     {
-        var page = Test.Visit("/visit-tests/new");
+        var page = Page.Visit("/visit-tests/new");
 
         await page.Click("Back to the list");
 
@@ -56,7 +56,7 @@ public sealed class VisitTests
     [Fact]
     public void IsAt_fails_saying_where_the_page_is()
     {
-        var page = Test.Visit("/visit-tests/new");
+        var page = Page.Visit("/visit-tests/new");
 
         var failure = Assert.Throws<PageException>(() => page.IsAt("/elsewhere"));
 

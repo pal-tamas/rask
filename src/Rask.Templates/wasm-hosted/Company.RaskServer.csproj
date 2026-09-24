@@ -79,10 +79,6 @@
     <!-- rask:end -->
   </ItemGroup>
 
-  <ItemGroup>
-    <!-- The kit's namespace, project-wide, so a page names Ui* with no per-file using. -->
-    <Using Include="Rask.Ui"/>
-  </ItemGroup>
 
   <!--
     The browser app lives in Client/ (and what both halves share in Shared/). Its project is generated
@@ -91,9 +87,9 @@
   -->
   <ItemGroup>
     <RaskClientPackageReference Include="Rask.Ui" Version="{{RaskVersion}}"/>
-    <RaskClientUsing Include="Rask.Ui"/>
     <!-- rask:if cqrs -->
     <RaskClientPackageReference Include="Rask.Cqrs.Client" Version="{{RaskVersion}}"/>
+    <RaskClientPackageReference Include="Rask.Query" Version="{{RaskVersion}}"/>
     <!-- rask:end -->
   </ItemGroup>
 

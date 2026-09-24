@@ -1,7 +1,7 @@
+using Rask;
 using Rask.Core;
 using Rask.Core.Components;
 using Rask.Core.Routing;
-using Rask.Ui;
 
 namespace Rask.DevTools.Panel;
 
@@ -32,12 +32,12 @@ internal sealed partial class DevToolsLayout : Component
         // panel's own shell, which alone provides the root marker, it shows nothing of the session it names.
         if (!Context.Has<DevToolsPanelRoot>())
         {
-            return UiAlert["The Rask DevTools panel opens only in its own frame. Open it from the page's Rask pill."];
+            return Ui.Alert["The Rask DevTools panel opens only in its own frame. Open it from the page's Rask pill."];
         }
 
-        return UiShell[
-            UiTopBar[UiBrand.Label("Rask DevTools").Href("#")],
-            UiMain[Outlet]
+        return Ui.Shell[
+            Ui.TopBar[Ui.Brand.Label("Rask DevTools").Href("#")],
+            Ui.Main[Outlet]
         ];
     }
 }

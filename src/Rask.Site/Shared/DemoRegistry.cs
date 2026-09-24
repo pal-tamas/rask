@@ -54,14 +54,14 @@ public static partial class DemoRegistry
                 .Result(BindingMultiDemo),
             ["binding-textarea"] = () => CodeSample
                 .Files(["BindingTextareaDemo.cs"])
-                .Notes("Textareas always stream — Textarea.Bound wires OnInputAsync for every keystroke so "
+                .Notes("Textareas always stream — a bound Textarea writes the model on OnInput, every keystroke, so "
                 + "the echo updates without blur or submit.")
                 .Result(BindingTextareaDemo),
 
             // --- Forms guide: validation ---
             ["validation-fields"] = () => CodeSample
                 .Files(["ValidationFieldsDemo.cs"])
-                .Notes("Per-field DataAnnotations attributes with a ValidationMessage under each input — the "
+                .Notes("Per-field DataAnnotations attributes with a Validation.Message under each input — the "
                 + "message appears once the field is touched and clears when it becomes valid.")
                 .Result(ValidationFieldsDemo),
             ["validation-inline"] = () => CodeSample
@@ -72,7 +72,7 @@ public static partial class DemoRegistry
             ["validation-fluent"] = () => CodeSample
                 .Files(["FluentValidationDemo.cs"])
                 .Notes("An AbstractValidator<TModel>, discovered at compile time and run by the form with nothing "
-                + "declared — the RuleFor chains drive the same ValidationMessage/ValidationSummary UI.")
+                + "declared — the RuleFor chains drive the same Validation.Message/Validation.Summary UI.")
                 .Result(FluentValidationDemo),
 
             // --- Browser APIs guide: the typed wrappers over the platform, one live demo each (their
@@ -126,8 +126,8 @@ public static partial class DemoRegistry
                 + "inside the click gesture. That makes normally-WASM-only APIs reachable on every host, the "
                 + "Server included — where the imperative IFullscreen / IEyeDropper / … services can't be "
                 + "injected, because a round-trip would lose the transient user activation. Six typed triggers "
-                + "ship: FullscreenTrigger, ScreenOrientationTrigger, EyeDropperTrigger, InstallTrigger, "
-                + "MediaCaptureTrigger, and PictureInPictureTrigger (the last two target a <video> via its "
+                + "ship: Trigger.Fullscreen, Trigger.ScreenOrientation, Trigger.EyeDropper, Trigger.Install, "
+                + "Trigger.MediaCapture, and Trigger.PictureInPicture (the last two target a <video> via its "
                 + "ElementRef). Capabilities that return a value (the eyedropper's hex, the install outcome) "
                 + "post it back to the OnColor / OnResult / OnOutcome callback.")
                 .Result(GestureBridgeDemo),
@@ -185,8 +185,13 @@ public static partial class DemoRegistry
             ["boom-render"] = () => CodeSample.Files(["BoomRenderDemo.cs"]).Result(BoomRenderDemo),
             ["boom-nested"] = () => CodeSample.Files(["BoomNestedDemo.cs"]).Result(BoomNestedDemo),
 
-            // --- Broadcast guide (#1061): a publisher and two subscribers that share only a topic. ---
-            ["broadcast-orders"] = () => CodeSample.Files(["BroadcastDemo.cs", "OrderBoard.cs"]).Result(BroadcastDemo),
+            // --- Subscriptions guide: a publisher, two boards subscribed to every order, and a tracker watching one. ---
+            ["subscription-orders"] = () => CodeSample
+                .Files(["SubscriptionDemo.cs", "OrderBoard.cs", "OrderEvents.cs"])
+                .Notes("The boards know nothing about the buttons: each subscribes to OrderPlaced in Render, and a publish "
+                + "through IDispatcher reaches them — as it would from a command handler or a background job. The tracker "
+                + "above them watches ONE order, through a WatchOrder record its policy admits.")
+                .Result(SubscriptionDemo),
 
             // --- Lifecycle guide: hooks, mount/unmount cycle, disposal, cancellation (their standalone
             //     example pages folded into docs/lifecycle.md). The demos embed the probe source — the
@@ -232,6 +237,10 @@ public static partial class DemoRegistry
                 .Notes("Nothing here loads data by hand: each query follows its input, keeps its cache, and refetches "
                 + "when a Ship command it is named by succeeds.")
                 .Result(QueryParcelsDemo),
+
+            // --- Data, full-text search and query guides: the full stack in the browser. A separate app
+            //     (src/Rask.Site.DataDemo) framed lazily, so EF Core and SQLite stay out of this bundle. ---
+            ["data-notes"] = () => DataNotesDemo,
             ["asset-basic-css"] = () => CodeSample
                 .Files(["BasicScopedCss.cs", "BasicScopedCss.css"])
                 .Result(BasicScopedCss),

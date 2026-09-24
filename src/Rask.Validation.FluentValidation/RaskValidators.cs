@@ -2,7 +2,7 @@ using System.Runtime.CompilerServices;
 using FluentValidation;
 using Rask.Core.Forms;
 
-namespace Rask.Validation.FluentValidation;
+namespace Rask;
 
 // Where the generator puts what it found.
 //
@@ -112,7 +112,7 @@ public static class RaskValidators
             throw new InvalidOperationException(
                 $"A validator needs '{typeof(T)}' from dependency injection, but this form was rendered "
                 + "with no service provider. Render it through a host that has one, or pass a provider "
-                + "to Test.Render(...) in a unit test.");
+                + "to Page.Render(...) in a unit test.");
         }
 
         if (services.GetService(typeof(T)) is not T service)
