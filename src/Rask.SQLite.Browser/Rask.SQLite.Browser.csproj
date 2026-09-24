@@ -23,7 +23,8 @@
   <PropertyGroup Condition="'$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == 'browser'">
     <!-- Run the trim + AOT analysers on every build, as Rask.Core and Rask.Wasm do, so a browser app
          that publishes trimmed keeps working. Microsoft.Data.Sqlite is reflection-free and trim-clean;
-         EF Core is NOT, which is why this package deliberately does not reference it. -->
+         EF Core is NOT (a trimmed app roots its three assemblies — see NUGET.md), which is why this package
+         deliberately does not reference it. -->
     <IsTrimmable>true</IsTrimmable>
     <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>

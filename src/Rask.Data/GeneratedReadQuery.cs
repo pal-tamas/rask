@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Rask.Data;
 
@@ -14,6 +15,6 @@ namespace Rask.Data;
 public static class GeneratedReadQuery
 {
     /// <summary>The whole set of <typeparamref name="TRead" />, as a query that has not run yet.</summary>
-    public static ModelQuery<TRead> Of<TRead>()
+    public static ModelQuery<TRead> Of<[DynamicallyAccessedMembers(DataTrimming.Entity)] TRead>()
         where TRead : class, IReadModel => new();
 }

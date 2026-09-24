@@ -811,11 +811,27 @@ work offline or own their data locally — not a way to avoid having a server.
 
 > **It does run, though.** EF Core + `Microsoft.Data.Sqlite` work in the browser — native relink and all —
 > and everything above about *pragmas* still holds, but "it can't work" would be too strong. Two
-> constraints if you try it: trimming has to leave EF Core whole — either publish untrimmed
-> (`PublishTrimmed=false`), or trim with the EF Core, `Microsoft.Data.Sqlite`, Rask.Data and
-> Rask.SQLite.EntityFrameworkCore assemblies rooted (`TrimmerRootAssembly`), as the rask.sh notes demo does in
-> `src/Rask.Site.DataDemo/Rask.Site.DataDemo.csproj` (the trim warnings it suppresses are tracked in #1132) — and it needs `NoWarn=WASM0001` for the varargs `sqlite3_config` natives, which
-> this repo's warnings-as-errors would otherwise turn into a failed build.
+> constraints if you try it: trimming has to leave EF Core whole, and the native build needs
+> `NoWarn=WASM0001` for the varargs `sqlite3_config` natives, which this repo's warnings-as-errors would
+> otherwise turn into a failed build. A trimmed publish works with EF Core's three assemblies rooted — Rask's own
+> need nothing, since Rask.Data and Rask.SQLite.EntityFrameworkCore are trim-safe and the trim analyzer checks them
+> on every build:
+>
+> ```xml
+> <PublishTrimmed>true</PublishTrimmed>
+> <!-- EF Core's own warnings, about the assemblies rooted below: IL2026 is EF marking the DbContext
+>      constructor [RequiresUnreferencedCode], IL2104 the trim warnings inside EF's assemblies. -->
+> <NoWarn>$(NoWarn);IL2026;IL2104;WASM0001</NoWarn>
+> ...
+> <TrimmerRootAssembly Include="Microsoft.EntityFrameworkCore"/>
+> <TrimmerRootAssembly Include="Microsoft.EntityFrameworkCore.Relational"/>
+> <TrimmerRootAssembly Include="Microsoft.EntityFrameworkCore.Sqlite"/>
+> ```
+>
+> That is exactly what the rask.sh notes demo publishes (`src/Rask.Site.DataDemo/Rask.Site.DataDemo.csproj`).
+> The stack costs about 2 MB brotli of assemblies on top of the app, plus the native SQLite — EF Core and its
+> relational layer are most of it — so a separate small WASM app, loaded only where it is used, is worth
+> considering. `PublishTrimmed=false` works too, at a much larger download.
 >
 > What that does *not* solve is durability: a database in the runtime's in-memory filesystem is gone on
 > reload, which is the right trade for a scratch sandbox and the wrong one for an app.
@@ -867,8 +883,8 @@ Three limits, stated plainly because each one is a silent failure rather than an
   boot, so the file cannot be swapped under its live connections, and a tab that started persisting its
   empty database would overwrite the previous owner's good snapshot. Proxying a non-owner's writes to the
   owner is not implemented.
-- **The two build settings above are not optional**: EF Core left whole by the trimmer (`PublishTrimmed=false`,
-  or its assemblies rooted as above), and publishing *without*
+- **The two build settings above are not optional**: EF Core left whole by the trimmer (its three assemblies
+  rooted as above, or `PublishTrimmed=false`), and publishing *without*
   `-p:WasmBuildNative=false` — otherwise SQLite is not linked in and the app boots normally, then fails on
   every database call.
 

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -30,6 +31,10 @@ internal sealed class FullTextSearchOptionsExtension : IDbContextOptionsExtensio
 
     public DbContextOptionsExtensionInfo Info => _info ??= new ExtensionInfo(this);
 
+    // EF Core's services builder activates both plugins by reflection without a trimming annotation, so their
+    // constructors are kept here; the interceptor's ServiceDescriptor is annotated and needs nothing.
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(FullTextSearchConventionSetPlugin))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(FullTextFunctionTranslatorPlugin))]
     public void ApplyServices(IServiceCollection services)
     {
         new EntityFrameworkRelationalServicesBuilder(services)

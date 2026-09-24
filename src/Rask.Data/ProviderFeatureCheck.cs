@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -51,7 +52,7 @@ internal interface IJsonIndexEnforcer;
 /// </para>
 /// </remarks>
 /// <typeparam name="TContext">The context <c>AddRaskData&lt;TContext&gt;</c> bound.</typeparam>
-internal sealed class ProviderFeatureCheck<TContext>(IServiceProvider services) : IHostedService
+internal sealed class ProviderFeatureCheck<[DynamicallyAccessedMembers(DataTrimming.Context)] TContext>(IServiceProvider services) : IHostedService
     where TContext : DbContext
 {
     public Task StartAsync(CancellationToken cancellationToken)

@@ -29,9 +29,10 @@ scripts/run-data-demo-e2e-local.sh                            # publish + Playwr
   needed): without it `e_sqlite3` is not linked in and every database call fails at runtime.
 - **`<RaskPathBase>/demos/data</RaskPathBase>`** rewrites the published `<base href>`; `.github/workflows/pages.yml`
   copies the publish's `wwwroot` into the site artifact at `demos/data/`.
-- **Trimmed, with EF Core rooted** (`TrimmerRootAssembly` in the csproj). The trim warnings that remain in
-  Rask.Data and Rask.SQLite are suppressed in this project only, pending
-  [#1132](https://github.com/pal-tamas/rask/issues/1132).
+- **Trimmed, with EF Core's three assemblies rooted** (`TrimmerRootAssembly` in the csproj) and only EF Core's own
+  `IL2026`/`IL2104` suppressed. Rask.Data and Rask.SQLite.EntityFrameworkCore are trim-safe
+  ([#1132](https://github.com/pal-tamas/rask/issues/1132)), so they need nothing — the recipe in
+  [docs/sqlite.md](../../docs/sqlite.md#sqlite-in-the-browser-wasm).
 
 ## Wiring a Rask server host does for you
 

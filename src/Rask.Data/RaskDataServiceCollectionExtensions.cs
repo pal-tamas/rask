@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
@@ -87,7 +88,7 @@ public static class RaskDataServiceCollectionExtensions
     /// Db.Configure(app.Services);
     ///     </code>
     /// </remarks>
-    public static IServiceCollection AddRaskData<TContext>(
+    public static IServiceCollection AddRaskData<[DynamicallyAccessedMembers(DataTrimming.Context)] TContext>(
         this IServiceCollection services,
         Action<RaskDataOptions>? configure = null)
         where TContext : DbContext

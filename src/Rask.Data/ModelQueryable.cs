@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
@@ -69,7 +70,7 @@ internal interface IModelQueryProvider : IAsyncQueryProvider
 ///         <c>Count()</c>/<c>ToList()</c> and EF Core's awaited operators both stay trim- and AOT-safe.
 ///     </para>
 /// </remarks>
-internal sealed class ModelQueryProvider<TEntity> : IModelQueryProvider
+internal sealed class ModelQueryProvider<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity> : IModelQueryProvider
     where TEntity : class
 {
     private readonly ModelQuery<TEntity> _query;

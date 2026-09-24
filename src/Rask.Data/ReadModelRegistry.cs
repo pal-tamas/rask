@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -30,12 +31,16 @@ public sealed class ReadColumnMapping(string member, string path, string columnN
 /// <param name="navigation">The navigation's name — <c>ShippedByUser</c>.</param>
 /// <param name="targetReadType">The read face it points at — <c>UserRead</c>.</param>
 /// <param name="foreignKey">The id property it is inferred from — <c>ShippedByUserId</c>.</param>
-public sealed class ReadReferenceMapping(string navigation, Type targetReadType, string foreignKey)
+public sealed class ReadReferenceMapping(
+    string navigation,
+    [DynamicallyAccessedMembers(DataTrimming.Entity)] Type targetReadType,
+    string foreignKey)
 {
     /// <summary>The navigation's name.</summary>
     public string Navigation { get; } = navigation;
 
     /// <summary>The read face it points at.</summary>
+    [DynamicallyAccessedMembers(DataTrimming.Entity)]
     public Type TargetReadType { get; } = targetReadType;
 
     /// <summary>The id property it is inferred from.</summary>
@@ -47,15 +52,21 @@ public sealed class ReadReferenceMapping(string navigation, Type targetReadType,
 /// <param name="childReadType">The child's read face — <c>OrderLineRead</c>.</param>
 /// <param name="childWriteType">The child's write type, for finding the relationship EF built.</param>
 /// <param name="inverse">The navigation back to the root on the child's read face — <c>Order</c>.</param>
-public sealed class ReadChildMapping(string collection, Type childReadType, Type childWriteType, string inverse)
+public sealed class ReadChildMapping(
+    string collection,
+    [DynamicallyAccessedMembers(DataTrimming.Entity)] Type childReadType,
+    [DynamicallyAccessedMembers(DataTrimming.Entity)] Type childWriteType,
+    string inverse)
 {
     /// <summary>The collection on the root's read face.</summary>
     public string Collection { get; } = collection;
 
     /// <summary>The child's read face.</summary>
+    [DynamicallyAccessedMembers(DataTrimming.Entity)]
     public Type ChildReadType { get; } = childReadType;
 
     /// <summary>The child's write type.</summary>
+    [DynamicallyAccessedMembers(DataTrimming.Entity)]
     public Type ChildWriteType { get; } = childWriteType;
 
     /// <summary>The navigation back to the root on the child's read face.</summary>
@@ -67,12 +78,15 @@ public sealed class ReadChildMapping(string collection, Type childReadType, Type
 /// <param name="valueObject">
 ///     The value object the collection holds, which makes the column JSON; null for plain values.
 /// </param>
-public sealed class ReadValueCollectionMapping(string member, Type? valueObject)
+public sealed class ReadValueCollectionMapping(
+    string member,
+    [DynamicallyAccessedMembers(DataTrimming.Entity)] Type? valueObject)
 {
     /// <summary>The member's name.</summary>
     public string Member { get; } = member;
 
     /// <summary>The value object held, or null for a primitive collection.</summary>
+    [DynamicallyAccessedMembers(DataTrimming.Entity)]
     public Type? ValueObject { get; } = valueObject;
 }
 
@@ -86,8 +100,8 @@ public sealed class ReadValueCollectionMapping(string member, Type? valueObject)
 /// <param name="children">Its child collections.</param>
 /// <param name="valueCollections">Its collections of values.</param>
 public sealed class ReadEntityMapping(
-    Type readType,
-    Type writeType,
+    [DynamicallyAccessedMembers(DataTrimming.Entity)] Type readType,
+    [DynamicallyAccessedMembers(DataTrimming.Entity)] Type writeType,
     bool isRoot,
     string tableName,
     IReadOnlyList<ReadColumnMapping> columns,
@@ -96,9 +110,11 @@ public sealed class ReadEntityMapping(
     IReadOnlyList<ReadValueCollectionMapping> valueCollections)
 {
     /// <summary>The generated read face.</summary>
+    [DynamicallyAccessedMembers(DataTrimming.Entity)]
     public Type ReadType { get; } = readType;
 
     /// <summary>The entity it reads.</summary>
+    [DynamicallyAccessedMembers(DataTrimming.Entity)]
     public Type WriteType { get; } = writeType;
 
     /// <summary>Whether the entity is an aggregate root.</summary>

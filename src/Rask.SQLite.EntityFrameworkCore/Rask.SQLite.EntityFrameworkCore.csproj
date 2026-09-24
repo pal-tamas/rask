@@ -5,6 +5,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
+    <!-- Trim-safe (#1132): the SDK runs the trim analyzer on every build, so under warnings-as-errors an
+         unannotated reflection path is a build error here, not a surprise in an app's trimmed publish. -->
+    <IsTrimmable>true</IsTrimmable>
 
     <PackageId>Rask.SQLite.EntityFrameworkCore</PackageId>
     <Title>Rask.SQLite.EntityFrameworkCore — production pragmas for EF Core</Title>

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -86,7 +87,7 @@ public static class Db
     ///     The direct form, for a test or a console app that has a factory in hand and no container worth
     ///     building. <c>Db.Configure(services)</c> is the one an application uses.
     /// </remarks>
-    public static void Configure<TContext>(IDbContextFactory<TContext> factory)
+    public static void Configure<[DynamicallyAccessedMembers(DataTrimming.Context)] TContext>(IDbContextFactory<TContext> factory)
         where TContext : DbContext
     {
         ArgumentNullException.ThrowIfNull(factory);

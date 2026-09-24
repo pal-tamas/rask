@@ -22,14 +22,25 @@
     <IsPackable>false</IsPackable>
     <RaskPublicApiTracked>false</RaskPublicApiTracked>
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
-    <!-- EF Core does not survive the trimmer in a browser build (MissingMethodException at the first EF call), so a
-         browser app on EF ships untrimmed, and so does this one. AOT is off for the same reason. -->
-    <PublishTrimmed>false</PublishTrimmed>
+    <!-- Trimmed exactly as docs/sqlite.md tells a browser app on EF Core to publish (#1132): EF Core's three
+         assemblies rooted, because it builds its model and queries by reflection the trimmer cannot follow, and
+         nothing else — Rask.Data, Rask.SQLite.EntityFrameworkCore and Microsoft.Data.Sqlite are trim-safe. So this
+         gate proves the recipe as well as the search. AOT stays off: EF Core is not AOT-compatible. -->
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>full</TrimMode>
     <RunAOTCompilation Condition=" '$(WasmBuildNative)' != 'false' ">false</RunAOTCompilation>
-    <!-- The SQLite native build reports two varargs functions it cannot call (sqlite3_config, sqlite3_db_config);
-         nothing here reaches them, and the repo builds warnings-as-errors. -->
-    <NoWarn>$(NoWarn);WASM0001;IL2104</NoWarn>
+    <!-- EF Core's own warnings, about the assemblies rooted below: IL2026 is its DbContext constructor's
+         [RequiresUnreferencedCode], IL2104 the trim warnings inside its assemblies. WASM0001: the SQLite native build
+         reports two varargs functions it cannot call (sqlite3_config, sqlite3_db_config); nothing here reaches them,
+         and the repo builds warnings-as-errors. -->
+    <NoWarn>$(NoWarn);IL2026;IL2104;WASM0001</NoWarn>
   </PropertyGroup>
+
+  <ItemGroup>
+    <TrimmerRootAssembly Include="Microsoft.EntityFrameworkCore"/>
+    <TrimmerRootAssembly Include="Microsoft.EntityFrameworkCore.Relational"/>
+    <TrimmerRootAssembly Include="Microsoft.EntityFrameworkCore.Sqlite"/>
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Wasm\Rask.Wasm.csproj"/>
