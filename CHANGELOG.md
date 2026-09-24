@@ -589,6 +589,11 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **The Rask.Query demo on rask.sh no longer jumps when its first page arrives (#1136).** The parcel list was an
+  empty `<ul>` for the half-second its page query takes, then grew four rows at once. It now draws a page of
+  placeholder rows shaped exactly like the real ones — disabled Ship and Details buttons, `data-loading`, and
+  `aria-busy="true"` on the list — so the layout holds still and a screen reader hears that it is loading. The
+  demo-markup golden test no longer depends on which side of the fetch it samples.
 - **`UiThemeDropdown` closes on Escape and on a click outside.** It was a `<details>`, which closes on its own
   summary and nothing else, so the theme list on rask.sh stayed open until the reader found the button again. It
   is now a `UiPopover` around the `UiThemePicker`: Escape, a click outside and the trigger close it, and focus

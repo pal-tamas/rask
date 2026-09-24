@@ -42,7 +42,8 @@ public sealed partial class QueryParcelsDemo(Navigator nav, RouteState route, Pa
                 Span.Id("query-status").Class("text-ui-muted text-sm")[
                     parcels.IsLoading ? "loading…" : parcels.IsPlaceholderData ? "showing the previous page" : "fresh"]
             ],
-            Ui.List.Id("query-rows")[(parcels.Data?.Rows ?? []).Select(Row)],
+            Ui.List.Id("query-rows").Aria("busy", parcels.Data is null ? "true" : "false")[
+                parcels.Data is { } page ? page.Rows.Select(Row) : Enumerable.Range(0, ParcelStore.PageSize).Select(Placeholder)],
             Div.Class("flex flex-col gap-1")[
                 Strong["Picked parcel"],
                 P.Id("query-picked").Class("mb-0")[Picked.FetchStatus switch
@@ -79,6 +80,15 @@ public sealed partial class QueryParcelsDemo(Navigator nav, RouteState route, Pa
             Ui.Button.Class("query-pick").OnClick(() => _picked = parcel.Id)["Details"]
         ];
     }
+
+    // Until the first page arrives, a full page of rows shaped exactly like a waiting parcel's, so the list keeps its
+    // height and its markup when the data lands. Only the text and data-loading change.
+    private static Component Placeholder(int index) =>
+        Li.Key($"placeholder-{index}").Class("query-row flex gap-2 items-center").Data("loading", null)[
+            Span["loading…"],
+            Ui.Button.Class("query-ship").Disabled(true)["Ship"],
+            Ui.Button.Class("query-pick").Disabled(true)["Details"]
+        ];
 
     private void GoTo(int page)
     {

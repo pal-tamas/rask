@@ -134,8 +134,8 @@ public sealed class DemoMarkupGoldenTests
             // Comfortably past a mount-time timer of the scale demos have used (~50 ms) without waiting on
             // a slow inter-tick interval. No demo in the set ticks today — the two that did were removed
             // with the live ticker (#1030) — but the guard is what keeps the next one from being added
-            // silently. Two demos DO settle later than this on purpose (a 450 ms await, a 350 ms fetch);
-            // both keep their skeleton constant across it now, which is what the contract asks.
+            // silently. Three demos DO settle later than this on purpose (a 450 ms await, a 350 ms fetch, a
+            // 500 ms query); each keeps its skeleton constant across it now, which is what the contract asks.
             await Task.Delay(250);
 
             var after = SkeletonOf(page.Render());
@@ -160,12 +160,16 @@ public sealed class DemoMarkupGoldenTests
     // their entries in the golden file used to be a race against the wall clock: the shape recorded
     // there depended on which side of the settle the snapshot landed on, and nothing reported which.
     //
-    // Named individually rather than swept, because the point is precisely that these two are held to a
+    // `query-parcels` joined them (#1136): its page query waits 500 ms, and until it did the list was an empty
+    // <ul> that filled with four rows — so its golden entry depended on which side of the fetch the 250 ms
+    // read landed. It now draws a page of placeholder rows shaped like the real ones.
+    //
+    // Named individually rather than swept, because the point is precisely that these are held to a
     // stricter contract than the set as a whole. A demo that joins them belongs on this list.
     [Fact]
     public async Task TheDemosThatSettleLate_KeepTheirSkeletonAcrossTheSettle()
     {
-        string[] keys = ["lifecycle-hooks", "virtualize-provider"];
+        string[] keys = ["lifecycle-hooks", "virtualize-provider", "query-parcels"];
 
         var pages = keys
             .Select(key => (key, page: RaskTest.Render(() => DemoRegistry.Build(key), TestServices.Default())))
@@ -173,7 +177,7 @@ public sealed class DemoMarkupGoldenTests
 
         var before = pages.ToDictionary(p => p.key, p => SkeletonOf(p.page.Html), StringComparer.Ordinal);
 
-        // Past the longest settle either demo holds (450 ms), with room to spare on a loaded machine.
+        // Past the longest settle any of them holds (500 ms), with room to spare on a loaded machine.
         await Task.Delay(900);
 
         var offenders = pages
