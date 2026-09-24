@@ -25,8 +25,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     private const string ChainEntryFullName = "Rask.Core.RaskChainEntryAttribute";
     private const string ChainGroupFullName = "Rask.Core.RaskChainGroupAttribute";
     private const string FormControlOpenFullName = "Rask.Core.Forms.IFormControl<T>";
-    private const string SubmitAwareFullName = "Rask.Core.Forms.ISubmitAware";
-    private const string ColumnHostFullName = "Rask.Core.IColumnHost";
     private const string ContextFullName = "global::Rask.Core.Live.LiveRenderContext";
 
     // The IFormControl<T> members that belong to BOUND mode: excluded from the synthesized controlled
@@ -4828,8 +4826,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 isPublic,
                 GenericFactory: null,
                 FormControl: null,
-                SubmitAware: false,
-                ColumnHost: false,
                 new EquatableArray<PropInfo>(properties),
                 default,
                 IsPartial: true,
@@ -4943,8 +4939,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             isPublic,
             genericFactory,
             formControl,
-            IsSubmitAware(symbol),
-            ImplementsInterface(symbol, ColumnHostFullName),
             new EquatableArray<PropInfo>(properties),
             new EquatableArray<ForwarderInfo>(forwarders),
             classDecl.Modifiers.Any(SyntaxKind.PartialKeyword),
@@ -5058,27 +5052,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         }
 
         return component;
-    }
-
-    // Whether the component declares ISubmitAware — a relic of the FormBuild<T> chain shape. That shape
-    // is gone (Form declares its submit-state indexer on itself) and nothing implements the interface
-    // any more, so this is always false in practice.
-    private static bool IsSubmitAware(INamedTypeSymbol symbol) =>
-        ImplementsInterface(symbol, SubmitAwareFullName);
-
-    // The same question for any chain-shape marker — ISubmitAware, IColumnHost — by name. Non-generic
-    // markers only: a generic one would need its type arguments compared rather than its display string.
-    private static bool ImplementsInterface(INamedTypeSymbol symbol, string fullName)
-    {
-        foreach (var i in symbol.AllInterfaces)
-        {
-            if (i.ToDisplayString() == fullName)
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     // Detects IFormControl<T> among the component's implemented interfaces and returns the bound value
@@ -6044,14 +6017,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         bool IsPublic,
         GenericFactoryConfig? GenericFactory,
         FormControlInfo? FormControl,
-        // Whether the component implements ISubmitAware — once the marker for the FORM chain shape
-        // (FormBuild<T>, now gone; Form declares its submit-state indexer on itself). Read off the
-        // implemented interfaces, like FormControl above.
-        bool SubmitAware,
-        // Whether the component is a column host (Rask.Core.IColumnHost) — once the marker for the GRID
-        // chain shape (GridBuild<T, TKey>, now gone; the grid declares its column-factory indexer on
-        // itself). The interface no longer exists either, so this is always false in practice.
-        bool ColumnHost,
         EquatableArray<PropInfo> Properties,
         EquatableArray<ForwarderInfo> Forwarders,
         bool IsPartial,

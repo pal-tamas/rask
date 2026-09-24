@@ -299,7 +299,7 @@ Only a form offers the function form. It is an indexer declared on `Form` itself
 `Div[submitting => …]` does not compile — there is no submit state behind a `<div>` to report. It used
 to need a chain type of its own (`FormBuild<T>`) purely because an indexer cannot be constrained;
 declaring it on the component scopes it exactly as well and costs no type parameter. See
-[`ISubmitAware`](../src/Rask.Core/Forms/ISubmitAware.cs).
+[`Form`](../src/Rask.Core/Components/Form.cs).
 
 ### Auto-created vs explicit `Context`
 

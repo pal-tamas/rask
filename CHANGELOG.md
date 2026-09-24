@@ -587,6 +587,12 @@ them until tagged releases begin.
   of every file response, and `Rask.Storage` can be pointed at a `DbContext` carrying none of Rask's
   interceptors.
 
+### Removed
+
+- **`Rask.Core.Forms.ISubmitAware`.** Nothing implemented it: it marked the old `FormBuild<T>` chain shape, and
+  `Form` now declares its submit-state indexer (`Form.Model(m)[submitting => …]`) on itself. The generator's
+  checks for it, and for the long-gone `Rask.Core.IColumnHost`, went with it. Nothing you write changes.
+
 ### Fixed
 
 - **`UiThemeDropdown` closes on Escape and on a click outside.** It was a `<details>`, which closes on its own

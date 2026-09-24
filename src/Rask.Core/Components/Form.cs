@@ -173,8 +173,8 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
     ///         This lived on a chain type of its own (<c>FormBuild&lt;T&gt;</c>) for exactly one reason: an
     ///         indexer cannot be constrained, so offering it on a form and nowhere else meant giving the
     ///         form's chain a different TYPE. The chain receives on the component now, so the indexer can
-    ///         simply be declared on the only component it was ever meant for, and the third chain shape
-    ///         — along with the <c>ISubmitAware</c> constraint that discriminated it — is gone.
+    ///         simply be declared on the only component it was ever meant for, and the third chain shape is
+    ///         gone.
     ///     </para>
     ///     <para>
     ///         The factory is stored, not called: it runs on every render, inside the render walk, so a

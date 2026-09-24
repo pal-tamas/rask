@@ -3175,8 +3175,6 @@ Rask.Core.Forms.IFormControl<T>.Validate.set -> void
 Rask.Core.Forms.IFormControl<T>.Validator.get -> System.Delegate?
 Rask.Core.Forms.IFormControl<T>.Value.get -> T?
 Rask.Core.Forms.IFormControl<T>.Value.set -> void
-Rask.Core.Forms.ISubmitAware
-Rask.Core.Forms.ISubmitAware.SetChildrenFactory(System.Func<bool, System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>! factory) -> void
 Rask.Core.Forms.ModelGraphWalker
 Rask.Core.Forms.RaskBinding
 Rask.Core.Forms.RaskFile
