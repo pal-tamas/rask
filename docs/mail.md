@@ -4,7 +4,7 @@
 
 `Rask.Mail` sends **transactional email off the request thread**, queued in the app's own database — no message
 broker, no Redis. Compose an email whose body is a **Rask component rendered to HTML**, call
-`SendAsync`, and a hosted worker delivers it later over SMTP, **at-least-once**, with exponential-backoff
+`Mail.Send`, and a hosted worker delivers it later over SMTP, **at-least-once**, with exponential-backoff
 retries. It also sends **delayed** email and works with **zero configuration** in development.
 
 > Included in the [`Rask`](../README.md) package — nothing to install. It is **on**; an app that does without it says so:
@@ -70,10 +70,10 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 > lines above, then leaves you with the SMTP config and the migration.
 
 Add a migration for the new table before running — `rask db add AddMail && rask db update`
-(or `dotnet ef migrations add AddMail` directly). Then send from anywhere `IMail` is injected:
+(or `dotnet ef migrations add AddMail` directly). Then send from a handler, a render, a request or a job — nothing injected:
 
 ```csharp
-await mail.Send(Email
+await Mail.Send(Email
     .To(user.Email, user.Name)
     .Subject("Welcome")
     .Body(WelcomeEmail.Name(user.Name)));                      // the chain, not new (RASK014)
@@ -148,11 +148,11 @@ letter. `ShutdownGracePeriod` cannot exceed `HostOptions.ShutdownTimeout`; `Time
 - **Running more than one instance is safe.** Each processor *leases* the batch it claims, so an email is
   sent by exactly one instance. See [running more than one instance](scaling.md#running-more-than-one-instance)
   — in particular, the lease bounds but does not eliminate a duplicate send. On SQLite you will still usually
-  run one instance for the unrelated reason that it is single-writer; because `SendAsync` writes while the
+  run one instance for the unrelated reason that it is single-writer; because `Mail.Send` writes while the
   processor may also be writing, use [`UseRaskSqlite`](sqlite.md) (WAL + a `busy_timeout`) on your context so a
   concurrent send waits for the write lock instead of failing with `SQLITE_BUSY`.
 - **`Attempts` counts attempts *started*, not failures.** The claim increments it, so a send that takes the
   process down with it still counts toward `MaxAttempts`. An email delivered first time shows `Attempts = 1`.
 - **Mail vs. jobs.** `Rask.Mail` is a self-contained queue — you don't need [`Rask.Jobs`](jobs.md). If you
   already run jobs and want email as one step of a larger job, send it inline from the job's handler via a
-  custom `IMailSender`; otherwise `SendAsync` is all you need.
+  custom `IMailSender`; otherwise `Mail.Send` is all you need.

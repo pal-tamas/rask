@@ -48,13 +48,14 @@ Any `Rask:Mail:Smtp` key turns SMTP delivery on. A callback — `AddRaskMail<App
 after the section and wins.
 
 ```csharp
-// send from anywhere IMail is injected — a component, or any class marked [RaskMarkup], where the chain lives:
-await mail.Send(Email
+// send from a handler, a render, a request or a job — nothing injected. The body is a component, so build it
+// where the chain lives: a component, or any class marked [RaskMarkup].
+await Mail.Send(Email
     .To(user.Email, user.Name)
     .Subject("Welcome")
     .Body(WelcomeEmail.Name(user.Name)));   // the chain, not new (RASK014)
 
-await mail.Send(reminder).In(TimeSpan.FromHours(24));
+await Mail.Send(reminder).In(24.Hours);
 ```
 
 Register your context as an `IDbContextFactory<AppDbContext>`. Several instances is safe: each processor

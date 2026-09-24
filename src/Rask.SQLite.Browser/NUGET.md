@@ -34,7 +34,7 @@ Register it **before** anything that opens the database — registration order i
 ```csharp
 builder.Services.AddRaskBrowserSqlite("app", o =>
 {
-    o.SnapshotInterval = TimeSpan.FromSeconds(10);  // the real durability window
+    o.SnapshotInterval = 10.Seconds;  // the real durability window
     o.Retain = 2;                                   // each snapshot costs a full database in quota
 });
 ```

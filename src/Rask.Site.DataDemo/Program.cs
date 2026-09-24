@@ -20,7 +20,7 @@ host.Services.AddLogging(logging => logging.SetMinimumLevel(LogLevel.Warning));
 // persistence prompt at boot: this app runs inside a guide's iframe, which is no moment to ask.
 host.Services.AddRaskBrowserSqlite("notes", o =>
 {
-    o.SnapshotInterval = TimeSpan.FromSeconds(2);
+    o.SnapshotInterval = 2.Seconds;
     o.RequestPersistentStorage = false;
 });
 

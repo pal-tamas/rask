@@ -28,7 +28,7 @@ builder.Services.AddRask();
 
 var app = builder.Build();
 app.MapStaticAssets();
-app.UseRask<App>();   // App is your root component; its Render() returns Router
+app.MapRask<App>();   // App is your root component; its Render() returns Router
 app.Run();
 ```
 
@@ -46,7 +46,7 @@ public sealed partial class Home : Component
 }
 ```
 
-Put `UseAuthentication()` and `UseAuthorization()` before `UseRask<App>()` so the page and its live socket
+Put `UseAuthentication()` and `UseAuthorization()` before `MapRask<App>()` so the page and its live socket
 see the signed-in user.
 
 Guides: [getting started](https://rask.sh/docs/guides/getting-started) ·

@@ -57,8 +57,8 @@ future version — and is re-checked on each in-app navigation, not just the fir
 ```csharp
 builder.Services.AddRaskDashboard<AppDbContext>(o =>
 {
-    o.RefreshInterval = TimeSpan.FromSeconds(2);   // how often an open panel re-reads
-    o.MaxPollDuration = TimeSpan.FromMinutes(5);   // then it parks and offers Resume
+    o.RefreshInterval = 2.Seconds;   // how often an open panel re-reads
+    o.MaxPollDuration = 5.Minutes;   // then it parks and offers Resume
     o.PageSize        = 25;
 
     o.Actions         = RaskDashboardActions.Safe; // default: retry, purge, evict

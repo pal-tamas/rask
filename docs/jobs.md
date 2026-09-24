@@ -28,10 +28,10 @@ work, and the worker dispatches to it.
 ```csharp
 public sealed record SendWelcomeEmail(string Email, string Name) : IJob;
 
-public sealed class SendWelcomeEmailHandler(IMail mail) : ICommandHandler<SendWelcomeEmail>
+public sealed class SendWelcomeEmailHandler : ICommandHandler<SendWelcomeEmail>
 {
-    public Task Handle(SendWelcomeEmail job) =>
-        mail.Send(Email.To(job.Email).Subject("Welcome").Body(new WelcomeEmail(job.Name)), Current.Cancellation);
+    public async Task Handle(SendWelcomeEmail job) =>
+        await Mail.Send(Email.To(job.Email).Subject("Welcome").Body(new WelcomeEmail(job.Name)));
 }
 
 // Program.cs

@@ -8,7 +8,7 @@
 
     <PackageId>Rask.Cache</PackageId>
     <Title>Rask.Cache — a developer-facing cache on your database</Title>
-    <Description>A developer-facing cache for a Rask app, stored in its own database — no broker, no Redis. Implements the standard `IDistributedCache` (so it drops into ASP.NET session and output caching), plus a typed `ICache` convenience layer with `GetOrAddAsync&lt;T&gt;`. With a tenant in flight the key is scoped to it, so each tenant gets its own value under the same name. Entries carry absolute and sliding expirations; a background `CachePurger` sweeps expired rows. Server-side; pairs with EF Core and SQLite.</Description>
+    <Description>A developer-facing cache for a Rask app, stored in its own database — no broker, no Redis. Implements the standard `IDistributedCache` (so it drops into ASP.NET session and output caching), plus a typed surface that reads as a sentence, with nothing injected: `Cache.Remember(key, load).For(10.Minutes)`. With a tenant in flight the key is scoped to it, so each tenant gets its own value under the same name. Entries carry absolute and sliding expirations; a background `CachePurger` sweeps expired rows. Server-side; pairs with EF Core and SQLite.</Description>
     <!-- Override the framework default tags (web/component/wasm) — a standalone server-side cache. -->
     <PackageTags>cache distributed-cache idistributedcache entity-framework-core efcore background-service sqlite dotnet net10 net11</PackageTags>
   </PropertyGroup>
