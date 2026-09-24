@@ -20,6 +20,8 @@
   <ItemGroup>
     <None Include="..\Rask.Core\build\Rask.Core.targets"
           Pack="true" PackagePath="build\" Visible="false"/>
+    <None Include="..\Rask.Core\build\Rask.Core.targets"
+          Pack="true" PackagePath="buildTransitive\Rask.Core.targets" Visible="false"/>
 
     <!--
       The TypeScript compile task, loaded by the <UsingTask> in Rask.Core.targets. It rides along
@@ -34,6 +36,8 @@
     -->
     <None Include="..\Rask.Core\build\Rask.TypeScript.Tasks.dll"
           Pack="true" PackagePath="build\" Visible="false"/>
+    <None Include="..\Rask.Core\build\Rask.TypeScript.Tasks.dll"
+          Pack="true" PackagePath="buildTransitive\Rask.TypeScript.Tasks.dll" Visible="false"/>
 
     <!--
       The ambient declarations for Rask's own browser globals, compiled alongside every consumer's
@@ -42,6 +46,8 @@
     -->
     <None Include="..\Rask.Core\build\rask-globals.d.ts"
           Pack="true" PackagePath="build\" Visible="false"/>
+    <None Include="..\Rask.Core\build\rask-globals.d.ts"
+          Pack="true" PackagePath="buildTransitive\rask-globals.d.ts" Visible="false"/>
   </ItemGroup>
 
   <!--

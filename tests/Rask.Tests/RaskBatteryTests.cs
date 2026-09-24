@@ -1,9 +1,16 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Rask.Auth;
 using Rask.Cache;
+using Rask.Dashboard;
+using Rask.Data;
 using Rask.Jobs;
 using Rask.Mail;
 using Rask.Outbox;
@@ -277,6 +284,65 @@ public sealed class RaskBatteryTests
 
         using var scope = built.Services.CreateScope();
         Assert.NotNull(scope.ServiceProvider.GetService<RaskAppDbContext>());
+    }
+
+    [Fact]
+    public void Migrations_for_Rask_s_context_live_in_the_app_that_called_Create()
+    {
+        // RaskAppDbContext is declared in this package, so EF would look for its migrations here and find
+        // none — on every `rask db update`, and at every start. The app is whoever called Create.
+        var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
+
+        var built = app.Build<TestApp>();
+        using var context = built.Services.GetRequiredService<IDbContextFactory<RaskAppDbContext>>().CreateDbContext();
+
+        Assert.Equal(typeof(RaskBatteryTests).Assembly, context.GetService<IMigrationsAssembly>().Assembly);
+    }
+
+    [Fact]
+    public void The_read_context_is_one_EF_s_tooling_never_sees()
+    {
+        // `dotnet ef` lists every DbContextOptions<T> in the container and refuses to guess between two. The
+        // read context has no migrations to add — it reads the tables the write side owns — so it must not
+        // be one of them, or `rask db add` needs a --context on every app.
+        var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
+
+        var built = app.Build<TestApp>();
+
+        Assert.DoesNotContain(
+            built.Services.GetServices<DbContextOptions>(),
+            options => options.ContextType == typeof(RaskReadDbContext));
+        using var read = built.Services.GetRequiredService<IDbContextFactory<RaskReadDbContext>>().CreateDbContext();
+        Assert.NotNull(read.Database.ProviderName);
+    }
+
+    [Fact]
+    public void The_operator_console_is_gated_on_the_administrator_with_nothing_written()
+    {
+        // The dashboard shows job payloads, stored email bodies and log lines; merely signed-in would open
+        // that to anyone who registered. The scaffold used to write this policy by hand.
+        var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
+
+        var built = app.Build<TestApp>();
+        var policy = built.Services.GetRequiredService<IOptions<AuthorizationOptions>>().Value
+            .GetPolicy(RaskDashboardPolicies.Access);
+
+        var roles = Assert.Single(policy!.Requirements.OfType<RolesAuthorizationRequirement>());
+        Assert.Contains(RaskRoles.Admin, roles.AllowedRoles);
+    }
+
+    [Fact]
+    public void An_app_that_names_the_console_s_policy_itself_is_left_alone()
+    {
+        var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"));
+        app.Services.AddAuthorization(o =>
+            o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireAuthenticatedUser()));
+
+        var built = app.Build<TestApp>();
+        var policy = built.Services.GetRequiredService<IOptions<AuthorizationOptions>>().Value
+            .GetPolicy(RaskDashboardPolicies.Access);
+
+        Assert.Empty(policy!.Requirements.OfType<RolesAuthorizationRequirement>());
     }
 
     [Fact]

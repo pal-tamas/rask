@@ -87,7 +87,8 @@
     <ItemGroup>
       <_RaskUiKitReference Include="@(ProjectReference)"
                            Condition="$([System.String]::Copy('%(Identity)').Contains('Rask.Ui.csproj'))"/>
-      <_RaskUiKitReference Include="@(PackageReference)" Condition="'%(Identity)' == 'Rask.Ui'"/>
+      <!-- Or the `Rask` meta-package, which brings the kit: an app that names only `Rask` still draws with it. -->
+      <_RaskUiKitReference Include="@(PackageReference)" Condition="'%(Identity)' == 'Rask.Ui' OR '%(Identity)' == 'Rask'"/>
     </ItemGroup>
 
     <PropertyGroup>

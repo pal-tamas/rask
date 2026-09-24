@@ -116,6 +116,8 @@
     -->
     <None Include="build\**" Exclude="build\Rask.Wasm.Tasks.dll" Pack="true" PackagePath="build\"/>
     <None Include="build\Rask.Wasm.Tasks.dll" Pack="true" PackagePath="build\"/>
+    <None Include="build\**" Exclude="build\Rask.Wasm.Tasks.dll" Pack="true" PackagePath="buildTransitive\%(RecursiveDir)%(Filename)%(Extension)"/>
+    <None Include="build\Rask.Wasm.Tasks.dll" Pack="true" PackagePath="buildTransitive\Rask.Wasm.Tasks.dll"/>
   </ItemGroup>
 
   <!--

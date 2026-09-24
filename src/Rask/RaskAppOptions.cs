@@ -210,4 +210,7 @@ public sealed class RaskAppOptions
     /// backup fills this in for you when a replica URL is configured.
     /// </remarks>
     public Func<IServiceProvider, Task>? RunBeforeDatabaseOpensAsync { get; set; }
+
+    /// <summary>The assembly that called <see cref="RaskApp.Create"/>: the app, and where its migrations live.</summary>
+    internal System.Reflection.Assembly? AppAssembly { get; set; }
 }

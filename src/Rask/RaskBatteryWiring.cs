@@ -1,9 +1,11 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.Memory;
 using Microsoft.Extensions.DependencyInjection;
@@ -239,6 +241,12 @@ internal static class RaskBatteryWiring
             if (!string.IsNullOrWhiteSpace(builder.Configuration["Rask:Litestream:ReplicaUrl"]))
             {
                 services.AddRaskSqliteLitestream();
+
+                // And the other half of the promise: a fresh box pulls the database back from the replica
+                // before anything opens it. On a box that already has app.db this is a no-op. An app that
+                // set its own pre-open step keeps it.
+                options.RunBeforeDatabaseOpensAsync ??= static async sp =>
+                    await sp.RestoreSqliteFromLitestreamAsync().ConfigureAwait(false);
             }
 
             if (options.Snapshots.Enabled)
@@ -261,7 +269,12 @@ internal static class RaskBatteryWiring
         // table, and an aggregate has no business being reachable from a query surface with no borders. It
         // is pointed at the same database by the same setting, so there is still one place that says where
         // the data is. An app whose read side is somewhere else entirely says so with ReadDb.Configure.
-        services.AddDbContextFactory<RaskReadDbContext>(static (sp, o) => o.UseRaskDatabase(sp));
+        //
+        // Through a factory of its own rather than AddDbContextFactory, so EF's tooling never sees it. `dotnet ef`
+        // lists every DbContextOptions<T> in the container and refuses to guess between two — and this one has no
+        // migrations to add, ever: it reads the tables the write side owns. With it hidden, `rask db add` finds
+        // exactly one context, Rask's or the app's, and needs no --context.
+        services.TryAddSingleton<IDbContextFactory<RaskReadDbContext>>(static sp => new ReadContextFactory(sp));
 
         if (appContext is not null)
         {
@@ -275,12 +288,64 @@ internal static class RaskBatteryWiring
             // generated registry is populated by a module initializer, and an entity living in a class
             // library the app has not yet touched would make "are there entities?" answer differently
             // depending on what ran first.
+            //
+            // Its migrations live in the APP: this context's assembly is Rask itself, where EF would otherwise
+            // look for them and find none, on every `rask db update` and at every start.
+            var app = options.AppAssembly;
             services.AddDbContextFactory<RaskAppDbContext>((sp, o) => o
                 .UseRaskDatabase(sp)
+                .MigrationsIn(app)
                 .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
             WireContextBatteries(services, options, typeof(RaskAppDbContext), provider);
         }
+    }
+
+    /// <summary>
+    /// Points the relational provider at <paramref name="assembly"/> for migrations — whichever provider
+    /// <c>UseRaskDatabase</c> chose, without naming it.
+    /// </summary>
+    /// <remarks>
+    /// The provider's extension derives from <see cref="RelationalOptionsExtension"/>, and the options keep
+    /// extensions by their exact type, so the replacement has to be added under the provider's own type: the
+    /// generic <c>AddOrUpdateExtension&lt;RelationalOptionsExtension&gt;</c> would file a SECOND relational
+    /// extension beside the provider's and EF would refuse the options as naming two providers.
+    /// </remarks>
+    [UnconditionalSuppressMessage("Trimming", "IL2060",
+        Justification = "The extension type is the provider's, rooted by the UseRaskX call that created it.")]
+    private static DbContextOptionsBuilder MigrationsIn(this DbContextOptionsBuilder builder, Assembly? assembly)
+    {
+        if (assembly?.GetName().Name is not { } name
+            || builder.Options.Extensions.OfType<RelationalOptionsExtension>().FirstOrDefault() is not { } relational)
+        {
+            return builder;
+        }
+
+        var updated = relational.WithMigrationsAssembly(name);
+        typeof(IDbContextOptionsBuilderInfrastructure)
+            .GetMethod(nameof(IDbContextOptionsBuilderInfrastructure.AddOrUpdateExtension))!
+            .MakeGenericMethod(updated.GetType())
+            .Invoke(builder, [updated]);
+
+        return builder;
+    }
+
+    /// <summary>
+    /// The read context, built the way <c>AddDbContextFactory</c> would build it, minus the
+    /// <c>DbContextOptions&lt;RaskReadDbContext&gt;</c> registration that EF's tooling enumerates.
+    /// </summary>
+    private sealed class ReadContextFactory(IServiceProvider services) : IDbContextFactory<RaskReadDbContext>
+    {
+        private readonly Lazy<DbContextOptions<RaskReadDbContext>> _options = new(() =>
+            new DbContextOptionsBuilder<RaskReadDbContext>()
+                .UseApplicationServiceProvider(services)
+                .UseRaskDatabase(services)
+                .Options);
+
+        [UnconditionalSuppressMessage("Trimming", "IL2026",
+            Justification = "The read context's constructor carries EF Core's own [RequiresUnreferencedCode]; this "
+                            + "package is the server host, which is never trimmed.")]
+        public RaskReadDbContext CreateDbContext() => new(_options.Value);
     }
 
     /// <summary>
@@ -451,6 +516,22 @@ internal static class RaskBatteryWiring
 
         if (options.Ops.Enabled)
         {
+            // WHO MAY OPERATE THE APP. The dashboard shows job payloads, stored email bodies and log lines, so
+            // with accounts on it is gated on the administrator — the role the first account to register holds.
+            // Merely signed-in would open all of that to anyone who registered, which on an app with open
+            // registration is everyone. An app that names the policy itself is left alone, which is why this is
+            // a PostConfigure that fills a gap rather than a Configure that would run after the app's and win.
+            if (options.Auth.Enabled)
+            {
+                services.PostConfigure<AuthorizationOptions>(static authz =>
+                {
+                    if (authz.GetPolicy(RaskDashboardPolicies.Access) is null)
+                    {
+                        authz.AddPolicy(RaskDashboardPolicies.Access, policy => policy.RequireRole(RaskRoles.Admin));
+                    }
+                });
+            }
+
             // Configured through Rask:Dashboard.
             services.AddRaskDashboard<TContext>();
         }

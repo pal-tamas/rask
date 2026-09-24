@@ -40,6 +40,7 @@
   <!-- Ship the global `using Rask.Auth.Client;` to downstream consumers. -->
   <ItemGroup>
     <None Include="build\**" Pack="true" PackagePath="build\"/>
+    <None Include="build\**" Pack="true" PackagePath="buildTransitive\%(RecursiveDir)%(Filename)%(Extension)"/>
   </ItemGroup>
 
 </Project>

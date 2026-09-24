@@ -28,7 +28,10 @@ internal static class CliBuildE2E
     /// </summary>
     internal static readonly string[] FeedPackages =
     [
-        "Rask.Server",                      // server template
+        "Rask",                             // the server template's one reference: the host and every battery
+        "Rask.Postgres",                    // Rask depends on it — the provider Rask:Database:Provider=postgres picks
+        "Rask.SqlServer",                   // and sqlserver
+        "Rask.Server",                      // the lean host, and wasm-hosted's server half
         "Rask.Wasm",                        // the wasm template, and wasm-hosted's browser half
         "Rask.Cqrs",                        // server template --cqrs, and every generated feature
         "Rask.Wire",                        // Rask.Cqrs depends on it: the wire primitives its codecs call
@@ -39,6 +42,7 @@ internal static class CliBuildE2E
         "Rask.Cqrs.Server",                 // --wasm --cqrs: the endpoint half
         "Rask.Spa.Hosting",                 // react template: the JS-bundle host, and the TypeScript emit
         "Rask.Auth",                        // --data: the scaffolded context maps the account tables
+        "Rask.Auth.Client",                 // Rask's browser half depends on it
         "Rask.Auth.Api",                    // the same, on the lanes with no renderer — and under Rask.Auth
         "Rask.Meta.Hosting",                // the meta templates: the node supervisor, and the same emit
         "Rask.Data",                        // every generated feature

@@ -228,6 +228,70 @@ public sealed class PackagingContractTests
             + "FeedPackages:\n  " + string.Join("\n  ", missing));
     }
 
+    [Fact]
+    public void Every_hook_the_meta_package_brings_is_packed_transitively_too()
+    {
+        // NuGet imports build/ for a DIRECT PackageReference and buildTransitive/ for a package that arrives
+        // through another one. A scaffolded app names only `Rask`, so every build hook its dependencies
+        // ship — the scoped-asset globs, Tailwind, the kit's sheet, each battery's implicit using — reaches
+        // it through buildTransitive/ or not at all. Rask.DevTools already packs both; this pins the rest.
+        //
+        // Structural, like the neighbours: in-repo nothing can see it, because Directory.Build.props/targets
+        // import every hook straight off disk. Only a consumer restoring the real package can, and the
+        // failure is silent — the app builds, and scoped CSS does nothing (#544, the same shape).
+        var projects = SourceProjects();
+        var meta = XDocument.Load(projects["Rask"]);
+        var offenders = new SortedSet<string>(StringComparer.Ordinal);
+
+        var dependencies = meta.Descendants("ProjectReference")
+            .Select(r => Path.GetFileNameWithoutExtension((r.Attribute("Include")?.Value ?? string.Empty).Replace('\\', '/')))
+            .Where(name => name.Length > 0)
+            .Distinct(StringComparer.Ordinal);
+
+        foreach (var package in dependencies)
+        {
+            if (!projects.TryGetValue(package, out var csproj) || !IsPackableProject(csproj))
+            {
+                continue;
+            }
+
+            // The project's own pack items, plus whatever a src/Rask*BuildPack.targets it imports packs for it.
+            var doc = XDocument.Load(csproj);
+            var files = new List<XDocument> { doc };
+            files.AddRange(doc.Descendants("Import")
+                .Select(i => i.Attribute("Project")?.Value ?? string.Empty)
+                .Where(p => p.EndsWith("BuildPack.targets", StringComparison.Ordinal))
+                .Select(p => XDocument.Load(Path.Combine(_repoRoot, "src", Path.GetFileName(p.Replace('\\', '/'))))));
+
+            // One item may name several destinations (`a;b`), the way Rask.DevTools packs its targets.
+            var packed = files.SelectMany(f => f.Descendants("None"))
+                .Where(e => e.Attribute("Pack")?.Value == "true")
+                .SelectMany(e => (e.Attribute("PackagePath")?.Value ?? string.Empty).Split(';')
+                    .Select(path => (
+                        Include: e.Attribute("Include")?.Value ?? string.Empty,
+                        Exclude: e.Attribute("Exclude")?.Value ?? string.Empty,
+                        Path: path.Replace('\\', '/'))))
+                .ToList();
+
+            // The twin names its destination FILE (a folder path would land at buildTransitive//<file>, NU5129),
+            // so only the folder is compared: the same Include and Exclude, packed under buildTransitive/.
+            foreach (var item in packed.Where(p => p.Path.StartsWith("build/", StringComparison.Ordinal)))
+            {
+                if (!packed.Any(p => p.Include == item.Include && p.Exclude == item.Exclude
+                                     && p.Path.StartsWith("buildTransitive/", StringComparison.Ordinal)))
+                {
+                    offenders.Add($"{package}: <None Include=\"{item.Include}\" … PackagePath=\"{item.Path}\"> has no buildTransitive twin");
+                }
+            }
+        }
+
+        Assert.True(
+            offenders.Count == 0,
+            "These hooks reach a direct reference only. An app that names just `Rask` never imports them, so "
+            + "the feature they carry silently does nothing there. Pack each one a second time with "
+            + "PackagePath=\"buildTransitive\\\":\n  " + string.Join("\n  ", offenders));
+    }
+
     private static Dictionary<string, string> SourceProjects() =>
         RepoFiles.EnumerateSourceFiles(Path.Combine(_repoRoot, "src")).Where(f => f.EndsWith(".csproj", StringComparison.Ordinal))
             .ToDictionary(path => Path.GetFileNameWithoutExtension(path), path => path, StringComparer.Ordinal);
@@ -288,13 +352,17 @@ public sealed class PackagingContractTests
     {
         var pack = XDocument.Load(Path.Combine(_repoRoot, "src", "RaskCoreBuildPack.targets"));
 
-        var item = pack.Descendants("None")
-            .SingleOrDefault(e => (e.Attribute("Include")?.Value ?? string.Empty)
-                .EndsWith(@"Rask.Core\build\Rask.Core.targets", StringComparison.Ordinal));
+        var items = pack.Descendants("None")
+            .Where(e => (e.Attribute("Include")?.Value ?? string.Empty)
+                .EndsWith(@"Rask.Core\build\Rask.Core.targets", StringComparison.Ordinal))
+            .ToList();
 
-        Assert.True(item is not null, "RaskCoreBuildPack.targets does not pack Rask.Core.targets.");
-        Assert.Equal("true", item!.Attribute("Pack")?.Value);
-        Assert.Equal(@"build\", item.Attribute("PackagePath")?.Value);
+        Assert.True(items.Count > 0, "RaskCoreBuildPack.targets does not pack Rask.Core.targets.");
+        Assert.All(items, item => Assert.Equal("true", item.Attribute("Pack")?.Value));
+
+        // Once for a direct reference, once for the `Rask` meta-package's transitive consumers.
+        Assert.Contains(items, item => item.Attribute("PackagePath")?.Value == @"build\");
+        Assert.Contains(items, item => item.Attribute("PackagePath")?.Value == @"buildTransitive\Rask.Core.targets");
     }
 
     /// <summary>

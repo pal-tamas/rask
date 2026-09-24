@@ -24,8 +24,12 @@
   <ItemGroup>
     <None Include="..\Rask.Tailwind\build\Rask.Tailwind.props"
           Pack="true" PackagePath="build\" Visible="false"/>
+    <None Include="..\Rask.Tailwind\build\Rask.Tailwind.props"
+          Pack="true" PackagePath="buildTransitive\Rask.Tailwind.props" Visible="false"/>
     <None Include="..\Rask.Tailwind\build\Rask.Tailwind.targets"
           Pack="true" PackagePath="build\" Visible="false"/>
+    <None Include="..\Rask.Tailwind\build\Rask.Tailwind.targets"
+          Pack="true" PackagePath="buildTransitive\Rask.Tailwind.targets" Visible="false"/>
 
     <!--
       The engine-resolution task, loaded by the <UsingTask> in Rask.Tailwind.targets. Named literally
@@ -35,6 +39,8 @@
     -->
     <None Include="..\Rask.Tailwind\build\Rask.Tailwind.Tasks.dll"
           Pack="true" PackagePath="build\" Visible="false"/>
+    <None Include="..\Rask.Tailwind\build\Rask.Tailwind.Tasks.dll"
+          Pack="true" PackagePath="buildTransitive\Rask.Tailwind.Tasks.dll" Visible="false"/>
   </ItemGroup>
 
   <!--

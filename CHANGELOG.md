@@ -9,6 +9,19 @@ them until tagged releases begin.
 
 ### Added
 
+- **An app that names only one Rask package gets every build hook.** Each package's MSBuild hooks — the
+  scoped-CSS/TypeScript globs, Tailwind, the kit's sheet and daisyUI plugin, a battery's implicit `using` —
+  are now packed into `buildTransitive/` beside `build/`, so they reach an app whether the package is named
+  directly or arrives through another one. Before, only a direct reference imported them, and an app built on
+  a package that merely depended on them compiled clean while scoped CSS did nothing (the shape of #544). A
+  contract test now refuses a hook with no transitive twin.
+- **`RaskApp` finishes the wiring the scaffold used to do by hand.** Rask's own `RaskAppDbContext` keeps its
+  migrations in the app that called `RaskApp.Create` — EF looked for them in Rask's assembly and found none, on
+  every `rask db update`. The read context is registered through a factory EF's tooling cannot enumerate, so
+  `dotnet ef` and `rask db add` find exactly one context with no `--context`. With accounts on, the operator
+  console is gated on the administrator role unless the app names the policy itself, and a configured
+  Litestream replica is restored before anything opens the database.
+
 - **A Rask.Data write refreshes the page's queries in a WebAssembly app too, with no app code** ([#1137](https://github.com/pal-tamas/rask/issues/1137)). `host.Services.AddRaskData<AppDbContext>()` beside `AddRaskQuery()` is the whole of it: Rask.Data now has a browser build that points `Db` at the context before the first render, and the browser host enters the same session work scope the server does around its renders and handlers — so `await Note.CreateAsync(note)` refetches every `QueryKey.For<Note>` query on the page. Before, a WASM app wrote its own `IDataChanges`, called `Db.Configure(services)` from a startup service and wrapped each write in `Db.UseScope(services)`; the rask.sh notes demo no longer does any of it.
 - **A scaffolded app reaches every battery by name, with nothing to import.** `rask new` writes a `global using` for each battery it turned on, so `Cache.Remember(key, load).For(5.Minutes)`, `Mail.Send(email)`, `Jobs.Enqueue(job)`, `Files.Save(…)` and `Logs.Search(…)` compile in any file — the line every guide shows. They could not ride on the `using Rask;` that carries `Ui`, because a type named `Cache` cannot share a name with the namespace `Rask.Cache` it would then live in. Nothing scaffolded calls a facade and the tutorial's calls are in elided snippets, so no gate could see this; a scaffold test now asserts each battery's line appears when it is on and not when it is off.
 - **Every value of a small enum is a step of its own.** `Ui.Button.Primary.Outline.Sm["Cancel"]`, `Ui.Alert.Error["…"]`, `Ui.Badge.Success["Paid"]` — generated per member, so a style reads as a word rather than as an argument. The enum setter stays for a value the source does not know: `Ui.Button.Tone(order.IsUrgent ? Ui.Tone.Error : Ui.Tone.Neutral)`. Four kinds of enum deliberately get no steps, each because the step would read as a claim about the component rather than one of its properties: one with more than 8 members (`Ui.IconName` has 78, and `Ui.Button.ChevronRight` says the button *is* a chevron), one a component holds twice (an `Icon` and a `TrailingIcon` have no answer to which `.Search` sets — so neither gets steps), a `[Flags]` enum (`.Top.Bottom` would read as two steps that each replace the other), and any of the BCL's (`Ui.DatePicker.Sunday` says the picker is Sunday, not that its week starts there). A member whose name the component already uses is skipped, and the rest of its enum is unaffected.

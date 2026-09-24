@@ -1,4 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -76,6 +78,7 @@ public sealed class RaskApp
     /// An escape hatch onto the underlying <see cref="WebApplicationBuilder"/>, run before <c>AddRask</c> —
     /// for anything ASP.NET-shaped that has no place on this type.
     /// </param>
+    [MethodImpl(MethodImplOptions.NoInlining)] // GetCallingAssembly must see Program.cs's assembly, not this one's caller's
     public static RaskApp Create(string[] args, Action<WebApplicationBuilder>? configure = null)
     {
         var builder = WebApplication.CreateBuilder(args);
@@ -86,7 +89,13 @@ public sealed class RaskApp
         // list and the render-mode ceiling before Configure had a chance to say anything, and the app
         // would ship with no languages while its Program.cs plainly listed some.
         builder.Services.AddHealthChecks();
-        return new RaskApp(builder);
+
+        // The app is whoever wrote this line. Its migrations live there, and Rask's own context has to be
+        // told so: EF looks for them in the context's assembly by default, which is this package. The entry
+        // assembly would say the same in production and lie under `dotnet ef`, whose entry point is ef.dll.
+        var app = new RaskApp(builder);
+        app._options.AppAssembly = Assembly.GetCallingAssembly();
+        return app;
     }
 
     /// <summary>Says how this app differs from a default one — which batteries it does without, and how the rest are set up.</summary>

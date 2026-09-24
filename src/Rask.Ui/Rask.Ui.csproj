@@ -120,6 +120,7 @@
         EmbeddedResource is only reachable at run time, and the copy has to happen at build time.
       -->
       <None Include="$(RaskTailwindOutput)" Pack="true" PackagePath="build/ui.css" Visible="false"/>
+      <None Include="$(RaskTailwindOutput)" Pack="true" PackagePath="buildTransitive/ui.css" Visible="false"/>
     </ItemGroup>
   </Target>
 
@@ -158,12 +159,14 @@
 
     <ItemGroup>
       <None Include="$(_RaskUiPackStylesheet)" Pack="true" PackagePath="build/ui.css" Visible="false"/>
+      <None Include="$(_RaskUiPackStylesheet)" Pack="true" PackagePath="buildTransitive/ui.css" Visible="false"/>
     </ItemGroup>
   </Target>
 
   <!-- The build hooks a consumer gets from the package: see build/Rask.Ui.targets. -->
   <ItemGroup>
     <None Include="build\**" Pack="true" PackagePath="build\"/>
+    <None Include="build\**" Pack="true" PackagePath="buildTransitive\%(RecursiveDir)%(Filename)%(Extension)"/>
 
     <!--
       The daisyUI plugin bundle itself, so a CONSUMER's Tailwind can compile daisyUI too.
@@ -181,6 +184,7 @@
       Not an EmbeddedResource: the copy has to happen at BUILD time, before Tailwind runs.
     -->
     <None Include="Styles\vendor\daisyui.mjs" Pack="true" PackagePath="build\" Visible="false"/>
+    <None Include="Styles\vendor\daisyui.mjs" Pack="true" PackagePath="buildTransitive\daisyui.mjs" Visible="false"/>
   </ItemGroup>
 
 </Project>
