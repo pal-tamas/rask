@@ -427,9 +427,9 @@ Ui.SidebarToggle.For("app-nav").Collapsible(Ui.Breakpoint.Lg)
       private bool _rail;
 
       // After the first render, because storage lives in the browser. The hook repaints when it completes.
-      protected override async Task OnRenderedAsync(bool first)
+      protected override async Task OnFirstRendered()
       {
-          if (first && await storage.Local.GetAsync("sidebar-rail") == "1")
+          if (await storage.Local.GetAsync("sidebar-rail") == "1")
           {
               _rail = true;
           }

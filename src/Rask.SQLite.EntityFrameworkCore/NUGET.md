@@ -42,7 +42,7 @@ the section and wins:
 ```csharp
 o.UseRaskSqlite(sp, p =>
 {
-    p.BusyTimeout = TimeSpan.FromSeconds(10);
+    p.BusyTimeout = 10.Seconds;
     p.CacheSize = -20_000;   // negative ⇒ KiB, so 20 MB
 });
 ```

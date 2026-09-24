@@ -23,7 +23,7 @@ public sealed record OrderPlaced(Guid Id) : IOutboxEvent;   // raised on your En
 // Program.cs
 builder.Services.AddRaskCqrs();
 builder.Services.AddRaskData();   // AddRaskOutbox below takes delivery of the domain events
-builder.Services.AddRaskOutbox<AppDbContext>(o => o.PollInterval = TimeSpan.FromSeconds(5));
+builder.Services.AddRaskOutbox<AppDbContext>(o => o.PollInterval = 5.Seconds);
 
 builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
     .UseSqlite("Data Source=app.db")

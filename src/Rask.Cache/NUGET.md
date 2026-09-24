@@ -4,8 +4,9 @@ A **developer-facing cache** for a Rask app — stored in the app's own database
 
 - Implements the standard **`IDistributedCache`**, so it drops straight into ASP.NET session state, output
   caching, and anything else built on the abstraction.
-- A typed **`ICache`** convenience layer adds `GetOrAddAsync<T>` read-through, plus `GetAsync<T>` /
-  `SetAsync<T>` / `RemoveAsync` (JSON under the hood).
+- A typed surface that reads as a sentence, with nothing injected: `Cache.Remember(key, load).For(10.Minutes)`
+  read-through, plus `Cache.Get<T>` / `Cache.Set(key, value).For(…)` / `Cache.Forget` (JSON under the hood).
+  `ICache` words the same calls for a hosted service or a timer.
 - Entries carry **absolute** and **sliding** expirations; a read renews a sliding entry and an expired entry is
   evicted lazily. A background **`CachePurger`** sweeps expired rows on an interval.
 
@@ -21,10 +22,8 @@ builder.Services.AddRaskCache<AppDbContext>();
 
 ```csharp
 // read-through: the factory runs once on a miss, then the value is served from the DB.
-var rates = await cache.GetOrAddAsync(
-    $"rates:{date:yyyyMMdd}",
-    ct => exchange.FetchRatesAsync(date, ct),
-    new DistributedCacheEntryOptions { SlidingExpiration = TimeSpan.FromMinutes(10) });
+var rates = await Cache.Remember($"rates:{date:yyyyMMdd}", ct => exchange.FetchRatesAsync(date, ct))
+    .Sliding(10.Minutes);
 ```
 
 Register your context as an `IDbContextFactory<AppDbContext>` (Rask Server sessions are long-lived) and run

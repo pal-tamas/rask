@@ -710,6 +710,7 @@ them until tagged releases begin.
   keeping an outer scope when it is given none, so `Send(cmd)` inside a request or a job still cancels with
   it.
 - **The tutorial taught a name that no longer exists.** Chapter 2's create, edit and delete pages called `save.SendAsync(…)` on Rask.Query's command state, renamed to `Send` in this pass. The solution build never compiles the tutorial, so ~12,000 green unit tests said nothing; the CLI build gate, which types the chapters in and builds them, is what found it.
+- **The package readmes and guides use the new names too.** NuGet pages still showed `UseRask<App>()`, `UseRaskSpa()`, `UseRaskMeta()`, `cache.GetOrAddAsync`, `OnValidSubmit` and `TimeSpan.FromSeconds(…)`. The `Rask.Testing` and `Rask.Cache` package descriptions still showed `RaskTest.Render`/`RenderedComponent` and `GetOrAddAsync`. Handlers in the data and subscription guides still took a `CancellationToken`. `llms.txt` still used the old lifecycle hooks and Rask.Query's `SendAsync`. All of them now show `MapRask<App>()`, `Cache.Remember(…).For(10.Minutes)`, `OnSubmit`, `Handle(command)`, `Page.Visit`/`Page.Render`, `Mail.Send`, `Jobs.Enqueue` and `10.Seconds`.
 
 ## [0.23.0] - 2026-09-18
 

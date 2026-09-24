@@ -37,8 +37,8 @@ or through the optional configure delegate, which runs after the section and win
 ```csharp
 o.UseRaskPostgres(sp, p =>
 {
-    p.StatementTimeout = TimeSpan.FromSeconds(10);
-    p.LockTimeout = TimeSpan.FromSeconds(3);
+    p.StatementTimeout = 10.Seconds;
+    p.LockTimeout = 3.Seconds;
     p.Retry.MaxCount = 3;
 });
 ```

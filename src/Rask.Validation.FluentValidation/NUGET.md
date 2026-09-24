@@ -36,7 +36,7 @@ public sealed class OrderValidator : AbstractValidator<OrderModel>
 ```
 
 ```csharp
-Form.Model(_model).OnValidSubmit(m => _submission = "Ordered")[
+Form.Model(_model).OnSubmit(m => _submission = "Ordered")[
     Input.Bind(() => _model.Product),
     Validation.Message.Template(errors => Span.Class("error")[errors[0]]).For(() => _model.Product),
     Input.Bind(() => _model.Quantity),

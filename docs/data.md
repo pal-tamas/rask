@@ -966,8 +966,9 @@ public sealed record CancelOrder(Guid Id, int Version) : ICommand;
 public sealed class CancelOrderHandler(IDbContextFactory<RaskAppDbContext> contexts, TimeProvider clock)
     : ICommandHandler<CancelOrder>
 {
-    public async Task HandleAsync(CancelOrder command, CancellationToken ct)
+    public async Task Handle(CancelOrder command)
     {
+        var ct = Current.Cancellation;
         await using var db = await contexts.CreateDbContextAsync(ct);
 
         var order = await db.Set<Order>().FindAsync([command.Id], ct)
@@ -988,8 +989,9 @@ Work that has to land together — placing an order and reserving its stock — 
 public sealed class PlaceOrderHandler(IDbContextFactory<RaskAppDbContext> contexts)
     : ICommandHandler<PlaceOrder, Guid>
 {
-    public async Task<Guid> HandleAsync(PlaceOrder command, CancellationToken ct)
+    public async Task<Guid> Handle(PlaceOrder command)
     {
+        var ct = Current.Cancellation;
         await using var db = await contexts.CreateDbContextAsync(ct);
 
         var stock = await db.Set<StockItem>().FirstAsync(s => s.Sku == command.Sku, ct);

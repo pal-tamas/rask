@@ -36,7 +36,7 @@ public async Task Clicking_increments()
 }
 ```
 
-- **`Page.Render(component, services?)`** → a `RenderedComponent`. Pass an `IServiceProvider` when the
+- **`Page.Render(component, services?)`** → a `Page<T>`. Pass an `IServiceProvider` when the
   component constructor-injects framework services or your own registrations.
 - **`Page.Render(factory, services?)`** — renders the component the factory returns, re-running the
   factory on **every** render so the tree is rebuilt from your current state. Reach for this whenever a
@@ -103,7 +103,7 @@ public async Task Clicking_increments()
 
   Re-read the list after every render, for the same reason a single id can't be cached.
 - **`Markup.Attr(html, name)`** / **`Markup.Attrs(html, name)`** — the same lookups over any HTML string you
-  hold, rather than over a `RenderedComponent` (e.g. markup lifted out of a live payload).
+  hold, rather than over a rendered `Page` (e.g. markup lifted out of a live payload).
 
 ### Components that call JavaScript
 
@@ -376,7 +376,7 @@ testing per-keystroke vs blur behaviour:
 
 ```csharp
 [Fact]
-public async Task Submit_InvalidModel_CallsOnInvalidSubmit_NotOnValidSubmit()
+public async Task Submit_InvalidModel_CallsOnInvalidSubmit_NotOnSubmit()
 {
     var p = new Person { Name = "", Age = 0 };
     var validCalled = 0; var invalidCalled = 0;

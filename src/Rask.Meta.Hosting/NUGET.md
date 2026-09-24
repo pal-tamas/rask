@@ -33,9 +33,9 @@ The framework is named once, in the project file:
 builder.Services.AddRaskMeta();
 
 var app = builder.Build();
-// Map your API endpoints FIRST — UseRaskMeta ends the pipeline with a fallback that forwards
+// Map your API endpoints FIRST — MapRaskMeta ends the pipeline with a fallback that forwards
 // everything it has not answered to the framework.
-app.UseRaskMeta();
+app.MapRaskMeta();
 app.Run();
 ```
 

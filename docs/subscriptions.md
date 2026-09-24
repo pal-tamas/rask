@@ -22,10 +22,10 @@ Publish it where it happens, through the dispatcher you already use:
 ```csharp
 public sealed class PlaceOrderHandler(IDispatcher dispatcher) : ICommandHandler<PlaceOrder, Guid>
 {
-    public async Task<Guid> HandleAsync(PlaceOrder command, CancellationToken ct)
+    public async Task<Guid> Handle(PlaceOrder command)
     {
         var order = await Order.Create(command.Customer, command.Total);
-        await dispatcher.PublishAsync(new OrderPlaced(order.Id, order.Customer, order.Total), ct);
+        await dispatcher.Publish(new OrderPlaced(order.Id, order.Customer, order.Total), Current.Cancellation);
         return order.Id;
     }
 }
@@ -171,7 +171,7 @@ out, `Status` is `Ended`; when it throws, the subscription reopens it.
 
 Everything that publishes a notification reaches subscribers, because they are the same notification:
 
-- **A command handler** or any code with `IDispatcher` — `dispatcher.PublishAsync(new OrderShipped(id, "Shipped"))`.
+- **A command handler** or any code with `IDispatcher` — `dispatcher.Publish(new OrderShipped(id, "Shipped"))`.
 - **A background job or a hosted service** — `Notify.Send(new ReportReady(id), ct)`, with nothing injected, so progress
   and "your report is ready" reach the page that is waiting for them:
 
@@ -283,7 +283,7 @@ that must reach every visitor in the database the pages already read.
 | Before | Now |
 |---|---|
 | `public static readonly Topic<OrderPlaced> Orders = new("orders", AppJson.Default.OrderPlaced);` | `public sealed record OrderPlaced(…) : INotification;` — the record is the topic |
-| `await broadcast.PublishAsync(Topics.Orders, order, ct);` | `await dispatcher.PublishAsync(order, ct);` |
+| `await broadcast.PublishAsync(Topics.Orders, order, ct);` | `await dispatcher.Publish(order, ct);` |
 | `broadcast.Subscribe(this, Topics.Orders, o => _orders.Insert(0, o));` in `OnMount` | `var orders = QueryClient.Subscribe<OrderPlaced>().Keep(20);` in `Render` |
 | one tab only in a WebAssembly app | a wasm-hosted app subscribes on the server |
 
