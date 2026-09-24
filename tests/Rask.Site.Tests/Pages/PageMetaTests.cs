@@ -293,6 +293,21 @@ public sealed class PageMetaTests
         Assert.Contains($"\"dateModified\":\"{iso}\"", head, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task A_guide_that_moved_still_answers_at_its_old_slug_and_names_the_new_one_canonical()
+    {
+        var head = await HeadAt((string)Rask.Site.Features.Routes.GuidePage("broadcast"));
+        var moved = GuideCatalog.Find("subscriptions")!;
+
+        // The old URL keeps rendering the guide, so a link from elsewhere still lands — and says where it lives now,
+        // which is also what keeps it out of the sitemap.
+        Assert.Equal(moved.SearchTitle + PageMeta.TitleSuffix, WebUtility.HtmlDecode(TitleOf(head)));
+        Assert.Equal(
+            PageMeta.Origin + PageMeta.LinkTo(Rask.Site.Features.Routes.GuidePage("subscriptions")),
+            CanonicalOf(head));
+        Assert.Contains((string)Rask.Site.Features.Routes.GuidePage("broadcast"), new GuidePrerenderPaths().Paths());
+    }
+
     [Theory]
     [MemberData(nameof(PrerenderableRoutes))]
     public async Task Every_routed_page_declares_one_canonical_on_the_real_origin(string path)
