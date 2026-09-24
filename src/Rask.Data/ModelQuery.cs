@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 
@@ -30,7 +31,7 @@ namespace Rask.Data;
 ///     </para>
 /// </remarks>
 /// <typeparam name="TEntity">The entity being queried.</typeparam>
-public sealed class ModelQuery<TEntity>
+public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>
     where TEntity : class
 {
     private readonly Func<IQueryable<TEntity>, IQueryable<TEntity>>? _compose;
@@ -334,7 +335,7 @@ public sealed class ModelQuery<TEntity>
 /// </remarks>
 /// <typeparam name="TEntity">The entity being read.</typeparam>
 /// <typeparam name="TResult">What each row is projected to.</typeparam>
-public sealed class Projection<TEntity, TResult>
+public sealed class Projection<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity, TResult>
     where TEntity : class
 {
     private readonly Func<IQueryable<TEntity>, IQueryable<TEntity>> _source;

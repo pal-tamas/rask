@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -104,6 +105,10 @@ internal static class FullTextSearchDdl
     /// maps strongly-typed ids), or <see langword="null"/>. EF Core stores it under this core annotation and exposes no
     /// public accessor for it on the read-only metadata.
     /// </summary>
+    [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
+    [UnconditionalSuppressMessage("Trimming", "IL2073:UnrecognizedReflectionPattern",
+        Justification = "The annotation only ever holds a type EF Core stored from HasConversion<TConverter>() or "
+                        + "HasConversion(Type), both of which keep the converter's public parameterless constructor.")]
     public static Type? ValueConverterTypeOf(IReadOnlyAnnotatable property) =>
         property.FindAnnotation("ValueConverterType")?.Value as Type;
 

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -30,7 +31,7 @@ public static class JsonIndexBuilderExtensions
     /// context on another provider that declares one, rather than let the filter scan without saying so.
     /// </para>
     /// </remarks>
-    public static EntityTypeBuilder<TEntity> HasJsonIndex<TEntity>(
+    public static EntityTypeBuilder<TEntity> HasJsonIndex<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         this EntityTypeBuilder<TEntity> builder,
         Expression<Func<TEntity, object?>> path)
         where TEntity : class

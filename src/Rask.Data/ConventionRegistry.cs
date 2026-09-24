@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Rask.Data;
 
@@ -105,7 +106,8 @@ public static class ConventionRegistry
     ///     at runtime whether an element type is a value object would mean a second implementation of a rule
     ///     the generator already applies, free to disagree with it.
     /// </remarks>
-    public static void DeclareCollection(Type entity, string property, string? field, Type? element)
+    public static void DeclareCollection(
+        Type entity, string property, string? field, [DynamicallyAccessedMembers(DataTrimming.Entity)] Type? element)
     {
         ArgumentNullException.ThrowIfNull(entity);
         ArgumentException.ThrowIfNullOrEmpty(property);
@@ -143,4 +145,7 @@ public static class ConventionRegistry
 /// <param name="Property">The property's name.</param>
 /// <param name="Field">The backing field to write through, or null for a writable property.</param>
 /// <param name="Element">The value object's type for a JSON collection; null for a primitive one.</param>
-internal readonly record struct ValueCollection(string Property, string? Field, Type? Element);
+internal readonly record struct ValueCollection(
+    string Property,
+    string? Field,
+    [DynamicallyAccessedMembers(DataTrimming.Entity)][property: DynamicallyAccessedMembers(DataTrimming.Entity)] Type? Element);

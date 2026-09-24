@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 
 namespace Rask.Data;
@@ -35,7 +36,7 @@ public static class GeneratedModelWrites
     ///     <paramref name="db" /> given an integer key is still 0 until the caller saves; a Guid key was
     ///     assigned before the insert and is already there.
     /// </returns>
-    public static Task<TEntity> CreateAsync<TEntity>(
+    public static Task<TEntity> CreateAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         TEntity entity,
         DbContext? db = null,
         CancellationToken cancellationToken = default)
@@ -68,7 +69,7 @@ public static class GeneratedModelWrites
     /// <returns>The updated entity.</returns>
     /// <exception cref="KeyNotFoundException">No row has <paramref name="key" /> (or it is soft-deleted).</exception>
     /// <exception cref="DbUpdateConcurrencyException">The row's version is no longer <paramref name="version" />.</exception>
-    public static Task<TEntity> UpdateAsync<TEntity>(
+    public static Task<TEntity> UpdateAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         object key,
         int? version,
         Action<TEntity> apply,
@@ -107,7 +108,7 @@ public static class GeneratedModelWrites
     /// <exception cref="KeyNotFoundException">No row has <paramref name="key" /> (or it is soft-deleted).</exception>
     /// <exception cref="DbUpdateConcurrencyException">The row's version is no longer <paramref name="version" />.</exception>
     /// <exception cref="InvalidOperationException">The aggregate declares <see cref="Deletion.None" />.</exception>
-    public static Task DeleteAsync<TEntity>(
+    public static Task DeleteAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         object key,
         int? version,
         DbContext? db = null,
@@ -148,7 +149,7 @@ public static class GeneratedModelWrites
     ///     while the read face is flat primitives. This loads the aggregate itself so the generated fill can
     ///     be reused verbatim, which is also why there is exactly one mapping to keep right.
     /// </remarks>
-    public static async Task<TEntity?> ModelSourceAsync<TEntity>(
+    public static async Task<TEntity?> ModelSourceAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         object key,
         DbContext? db = null,
         CancellationToken cancellationToken = default)
@@ -189,7 +190,7 @@ public static class GeneratedModelWrites
     // Tracked, and whole: a write that applied a change to a collection which had not been loaded would see an
     // empty one and sync it away. The read path loads by key the same way, so both halves of "load one root"
     // agree about what a root is.
-    private static async Task<TEntity> LoadAsync<TEntity>(DbContext context, object key, CancellationToken cancellationToken)
+    private static async Task<TEntity> LoadAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(DbContext context, object key, CancellationToken cancellationToken)
         where TEntity : class, IAggregate
     {
         var entity = await context.Set<TEntity>().FindAsync([key], cancellationToken).ConfigureAwait(false)

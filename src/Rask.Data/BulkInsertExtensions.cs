@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 
@@ -50,7 +51,7 @@ public static class BulkInsertExtensions
     /// honestly; or <see cref="BulkInsertOptions.SkipChangeTracking"/> was asked for on a model its writer
     /// cannot map faithfully.
     /// </exception>
-    public static async Task<int> BulkInsertAsync<TEntity>(
+    public static async Task<int> BulkInsertAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         this DbContext context,
         IEnumerable<TEntity> entities,
         Action<BulkInsertOptions>? configure = null,
@@ -120,7 +121,7 @@ public static class BulkInsertExtensions
     /// <param name="configure">Overrides for the defaults.</param>
     /// <param name="cancellationToken">Cancels the load.</param>
     /// <returns>The number of rows written.</returns>
-    public static Task<int> BulkInsertAsync<TEntity>(
+    public static Task<int> BulkInsertAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         this DbSet<TEntity> set,
         IEnumerable<TEntity> entities,
         Action<BulkInsertOptions>? configure = null,
@@ -133,7 +134,7 @@ public static class BulkInsertExtensions
         return context.BulkInsertAsync(entities, configure, cancellationToken);
     }
 
-    private static async Task<int> InsertInOneTransactionAsync<TEntity>(
+    private static async Task<int> InsertInOneTransactionAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         DbContext context,
         IEnumerable<TEntity> entities,
         BulkInsertOptions options,
@@ -192,7 +193,7 @@ public static class BulkInsertExtensions
               "Rask.Outbox, whose messages are written in the same transaction and drained after it commits.");
     }
 
-    private static Task<int> InsertAsync<TEntity>(
+    private static Task<int> InsertAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         DbContext context,
         IEnumerable<TEntity> entities,
         BulkInsertOptions options,
@@ -202,7 +203,7 @@ public static class BulkInsertExtensions
             ? BulkInsertWriter.WriteAsync(context, entities, options, cancellationToken)
             : InsertBatchesAsync(context, entities, options, cancellationToken);
 
-    private static async Task<int> InsertBatchesAsync<TEntity>(
+    private static async Task<int> InsertBatchesAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         DbContext context,
         IEnumerable<TEntity> entities,
         BulkInsertOptions options,

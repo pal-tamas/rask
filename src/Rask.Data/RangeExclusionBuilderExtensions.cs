@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -40,7 +41,7 @@ public static class RangeExclusionBuilderExtensions
     /// <returns>The same builder, for chaining.</returns>
     /// <exception cref="ArgumentNullException">A required argument is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException">An expression does not name plain properties of the entity.</exception>
-    public static EntityTypeBuilder<TEntity> HasNonOverlappingRange<TEntity>(
+    public static EntityTypeBuilder<TEntity> HasNonOverlappingRange<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         this EntityTypeBuilder<TEntity> builder,
         Expression<Func<TEntity, object?>> lo,
         Expression<Func<TEntity, object?>> hi,

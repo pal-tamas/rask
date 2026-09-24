@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -26,12 +27,14 @@ namespace Rask.Data;
 public class RaskReadDbContext : DbContext, ITenantScoped
 {
     /// <summary>Creates the context with the options the host registered.</summary>
+    [RequiresUnreferencedCode(DataTrimming.EfCoreUnreferencedCode)]
     public RaskReadDbContext(DbContextOptions<RaskReadDbContext> options)
         : base(options)
     {
     }
 
     /// <summary>Creates the context for a derived type supplying its own options.</summary>
+    [RequiresUnreferencedCode(DataTrimming.EfCoreUnreferencedCode)]
     protected RaskReadDbContext(DbContextOptions options)
         : base(options)
     {
