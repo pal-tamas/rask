@@ -335,7 +335,7 @@ public abstract partial class SharedSmokeTests
 
         var demo = Page.Locator("#query-demo");
         await Expect(demo.Locator("#query-page")).ToHaveTextAsync("Page 1 of 3", text);
-        await Expect(demo.Locator(".query-row")).ToHaveCountAsync(4, new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        await Expect(demo.Locator(".query-row:not([data-loading])")).ToHaveCountAsync(4, new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
         await Expect(demo.Locator("#query-picked")).ToContainTextAsync("Paused", contains);
         await Expect(demo.Locator("#query-search")).ToHaveTextAsync("book: #6, #12", text);
 
