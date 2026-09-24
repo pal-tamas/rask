@@ -345,7 +345,7 @@ is a `Shell` override. It receives the framework's `<head>` and the app's render
 
 ```csharp
 protected override Component Shell(Component head, Component body) =>
-    Document.Lang("en").Dir("rtl")[head, Body.Class("dark")[body]];
+    Html.Lang("en").Dir("rtl")[head, Body.Class("dark")[body]];
 ```
 
 The doctype is still emitted ahead of whatever `Shell` returns, and the runtime `<script>` still lands
@@ -365,9 +365,9 @@ protected override Component? Head => Title["Welcome — My Rask App"];
 
 > **Already have an app?** Delete the shell from your root's `Render()` and return what was inside
 > `<body>` (usually just `Router()`). Its pieces move to the overrides that own them: the `lang` on
-> `Document(...)` becomes `HtmlLang`, the `Class` on `Body(...)` becomes `BodyClass`, the `Head()` slot just
+> `Html(...)` becomes `HtmlLang`, the `Class` on `Body(...)` becomes `BodyClass`, the `Head()` slot just
 > goes away (your head contributions were already in the `Head` override), and anything left over
-> becomes a `Shell` override. `Doctype`, `Document` (the `<html>` element), `Head`, and `Body` are still ordinary tag components —
+> becomes a `Shell` override. `Doctype`, `Html`, `Head`, and `Body` are still ordinary tag components —
 > they're what you build a document out of by hand (`ToHtml()`, an email body), just not the app's page.
 
 ## 8. Add a route

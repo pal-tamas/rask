@@ -5,32 +5,32 @@ using Xunit;
 namespace Rask.TestSupport;
 
 /// <summary>
-///     Asserting lookups over rendered Rask HTML / live payloads, layered on the shipped
-///     <see cref="Markup" /> scanner in <c>Rask.Testing</c>.
+///     Lookups over rendered Rask HTML / live payloads, on the attribute scanner <c>Rask.Testing</c> keeps internal
+///     (this project compiles its own copy of <c>AttributeScan.cs</c>).
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Plain <c>name="…"</c> lookups live in <see cref="Markup" /> — use <c>Markup.Attr(html, name)</c>
-///         directly. What is left here is what the package deliberately does not ship: helpers that call
+///         What is here is what the package deliberately does not ship: helpers that call
 ///         <c>Assert</c> (<c>Rask.Testing</c> is test-framework-agnostic and must stay so), and helpers
 ///         shaped around the live wire payload, which is below the HTML + handler-dispatch seam that
 ///         <c>Rask.Testing</c> covers.
 ///     </para>
-///     <para>
-///         Named <c>MarkupAssert</c>, not <c>Markup</c>: this and <see cref="Markup" /> are both in scope in
-///         every project that uses them, so sharing a name would make every unqualified <c>Markup.</c>
-///         ambiguous (CS0104).
-///     </para>
-/// </remarks>
+/// /// </remarks>
 public static class MarkupAssert
 {
+    /// <summary>The value of the first <paramref name="name" />=&quot;…&quot; attribute, or <c>null</c>.</summary>
+    public static string? Attr(string html, string name) => AttributeScan.Attr(html, name);
+
+    /// <summary>The value of every <paramref name="name" />=&quot;…&quot; attribute, in document order.</summary>
+    public static IReadOnlyList<string> Attrs(string html, string name) => AttributeScan.Attrs(html, name);
+
     /// <summary>
     ///     Returns the value of <paramref name="name" />=&quot;…&quot;, asserting that the
     ///     attribute is present (fails the test otherwise).
     /// </summary>
     public static string RequireAttr(string html, string name)
     {
-        var value = Markup.Attr(html, name);
+        var value = AttributeScan.Attr(html, name);
         Assert.True(value is not null, $"no {name} attribute found in html: {html}");
         return value!;
     }

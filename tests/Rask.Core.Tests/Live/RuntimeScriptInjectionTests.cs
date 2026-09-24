@@ -15,7 +15,7 @@ public partial class RuntimeScriptInjectionTests : global::Rask.Core.RaskMarkup
             .BuildServiceProvider();
 
     private static Component Shell(params Component[] bodyChildren) =>
-        [Doctype, Document.Lang("en")[Head, Body[bodyChildren]]];
+        [Doctype, Html.Lang("en")[Head, Body[bodyChildren]]];
 
     [Fact]
     public void A_registered_provider_injects_the_script_as_the_last_body_child()

@@ -290,7 +290,7 @@ public partial class Scale_DeepTreeMutationByDepthBenchmarks : ScaleDiffBase
             leaf = Div.Class($"d{i}")[leaf];
         }
 
-        return [Doctype, Document[Body[leaf]]];
+        return [Doctype, Html[Body[leaf]]];
     }
 
     // DeepTreeCounter.BlazorDeepTreeCounter has Depth fixed at 50. Scale_* needs a

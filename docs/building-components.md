@@ -124,7 +124,7 @@ Every name you chain from is reached one of three ways, and each reads the same 
 
 ```csharp
 using Rask;                        // every template's GlobalUsings.cs
-using static Rask.Html;            // the C# templates' too, so the tags are bare in any class
+using static Rask.Markup;            // the C# templates' too, so the tags are bare in any class
 
 Div.Class("panel")[                          // an element: bare
     Ui.Button.Tone(Ui.Tone.Primary)["Save"], // the UI kit: through `Ui`
@@ -136,15 +136,15 @@ Div.Class("panel")[                          // an element: bare
 
 - **Elements and markup primitives are bare** — `Div`, `Span`, `Text`, `Raw`, `Outlet`. A component
   inherits them; any other class (a test, a helper, a static factory) gets them from
-  `global using static Rask.Html;`. The `<html>` element is `Document`, because `Html` is that class.
+  `global using static Rask.Markup;`. The `<html>` element is `Html`, like every other tag.
 - **A family is reached through its group**, so typing the group lists it and nothing in it can shadow an
   element: `Ui.` (the [kit](ui-kit.md)), `Trigger.` (the browser-capability wrappers), `Validation.` (a
   form's feedback), and the class of an [npm package you declared](islands.md#several-components-from-one-package).
 - **When a member of your own takes an element's name** — a `Footer` property, a `Label` — the member wins
-  inside that component, and `Html.Footer` still reaches the element.
+  inside that component, and `Markup.Footer` still reaches the element.
 - **Outside a component, don't also import `Rask.Core.Components`.** That namespace holds the element TYPES, so
-  beside `using static Rask.Html` a bare `P[…]` names both the type and the member (CS0229). Name a type in a
-  signature with `Rask.Core.Components.P`, or write `Html.P` in that file. The templates never import it.
+  beside `using static Rask.Markup` a bare `P[…]` names both the type and the member (CS0229). Name a type in a
+  signature with `Rask.Core.Components.P`, or write `Markup.P` in that file. The templates never import it.
 
 ## Your own components
 

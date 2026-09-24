@@ -18,7 +18,7 @@ public sealed partial class LifecycleProbeTests : global::Rask.Core.RaskMarkup
 
         // The probe's only click handler is the trigger button; that an id exists proves BsButton forwarded
         // the OnClick to the native button.
-        var clickId = Markup.Attrs(page.Render(), "data-rask-on-click")[0];
+        var clickId = MarkupAssert.Attrs(page.Render(), "data-rask-on-click")[0];
 
         // The witness used to be a new line appended to a growing hook log. The probe reports each hook
         // as a FIXED row whose status is text now (#1046 -- a row that appears on a timer makes the

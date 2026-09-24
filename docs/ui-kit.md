@@ -78,7 +78,7 @@ it does not own; that case keeps `UiStylesheet.Css` and inlines it in a `<style>
 
 ```csharp
 protected override Component Shell(Component head, Component body) =>
-    Document.Lang("en").Attributes((UiStylesheet.ThemeScopeAttribute, ""))[head, body];
+    Html.Lang("en").Attributes((UiStylesheet.ThemeScopeAttribute, ""))[head, body];
 ```
 
 The scope exists so that *referencing* this package cannot repaint an application that only wanted a

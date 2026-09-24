@@ -113,7 +113,7 @@ public partial class App : Component
     ///     layout survive, colour does not, and no build or test that only reads class names notices.
     /// </remarks>
     protected override Component Shell(Component head, Component body) =>
-        Document.Lang(HtmlLang).Dir(HtmlDir).Attributes((UiStylesheet.ThemeScopeAttribute, ""))[
+        Html.Lang(HtmlLang).Dir(HtmlDir).Attributes((UiStylesheet.ThemeScopeAttribute, ""))[
             head,
             Body.Class(BodyClass)[body]
         ];

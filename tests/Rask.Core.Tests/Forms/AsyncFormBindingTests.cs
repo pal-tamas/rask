@@ -115,8 +115,8 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
         view.RenderHandle = handle;
 
         var initial = view.RenderAsLiveRoot();
-        var inputId = Markup.Attr(initial, "data-rask-on-input");
-        var changeId = Markup.Attr(initial, "data-rask-on-change");
+        var inputId = MarkupAssert.Attr(initial, "data-rask-on-input");
+        var changeId = MarkupAssert.Attr(initial, "data-rask-on-change");
 
         using var inputDoc = JsonDocument.Parse("{\"value\":\"admin\"}");
         await view.TryInvokeHandlerAsync(inputId!, inputDoc.RootElement);
@@ -154,8 +154,8 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
         view.RenderHandle = handle;
 
         var initial = view.RenderAsLiveRoot(sp);
-        var inputId = Markup.Attr(initial, "data-rask-on-input");
-        var changeId = Markup.Attr(initial, "data-rask-on-change");
+        var inputId = MarkupAssert.Attr(initial, "data-rask-on-input");
+        var changeId = MarkupAssert.Attr(initial, "data-rask-on-change");
         Assert.NotNull(inputId);
         Assert.NotNull(changeId);
 

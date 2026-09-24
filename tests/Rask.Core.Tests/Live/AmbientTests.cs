@@ -26,7 +26,7 @@ public sealed partial class AmbientTests : global::Rask.Core.RaskMarkup
 
         var html = view.RenderAsLiveRoot(sp);
         using var click = JsonDocument.Parse("{}");
-        await view.TryInvokeHandlerAsync(Markup.Attr(html, "data-rask-on-click")!, click.RootElement, sp);
+        await view.TryInvokeHandlerAsync(MarkupAssert.Attr(html, "data-rask-on-click")!, click.RootElement, sp);
 
         Assert.Equal("session", seenServices?.GetService<Marker>()?.Name);
         Assert.True(seenToken.CanBeCanceled);

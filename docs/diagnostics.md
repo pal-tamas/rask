@@ -334,7 +334,7 @@ attributes. Nothing fails, so this warning is the only signal there is.
 ```csharp
 // ✗ RASK021 — the root builds the document
 protected override Component? Render() =>
-    [Doctype, Document.Lang("en")[Head, Body[Router]]];
+    [Doctype, Html.Lang("en")[Head, Body[Router]]];
 
 // ✓ the root renders the body's content
 protected override Component? Render() => Router;
@@ -344,7 +344,7 @@ protected override Component? Render() => Router;
 that own them — `<head>` content to `Head`, `<html lang>` to `HtmlLang`, `<html dir>` to `HtmlDir`, `<body class>` to `BodyClass`,
 and a genuinely custom document to `Shell(head, body)`, which receives the framework's `<head>` and the
 rendered body as parameters. Do **not** add a runtime `<script>`; it's auto-appended to `<body>`.
-`Doctype`/`Document`/`Head`/`Body` stay ordinary tag components for documents you build by hand
+`Doctype`/`Html`/`Head`/`Body` stay ordinary tag components for documents you build by hand
 (`ToHtml()`, an email body) — they have just left the app-authoring path. See
 [the document and the `Head` override](getting-started.md#7-the-document-and-the-head-override).
 
@@ -888,7 +888,7 @@ public sealed partial class ConfirmDialog : Component
 ```
 
 None of these needs a `new`. Inside that component the name is its own member; the element is still one word
-away — **`Html.Footer`**, `Html.Label` — because every tag is also a static member of `Rask.Html`.
+away — **`Markup.Footer`**, `Markup.Label` — because every tag is also a static member of `Rask.Markup`.
 **`RASKSUP001` suppresses CS0108 whenever the hidden member is a builder
 entry** — a member named after the component it builds, declared on the markup surface. There are
 about 170 such names (`Title`, `Label`, `Form`, `Data`, `Filter`, `Marker`, `Address`, `B`…), and a

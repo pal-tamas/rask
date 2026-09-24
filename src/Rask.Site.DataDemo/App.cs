@@ -56,7 +56,7 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
 
     /// <summary>Turns the kit's theme on for the whole document; without the scope every kit colour resolves to nothing.</summary>
     protected override Component Shell(Component head, Component body) =>
-        Document.Lang("en").Attributes((UiStylesheet.ThemeScopeAttribute, ""))[head, Body[body]];
+        Html.Lang("en").Attributes((UiStylesheet.ThemeScopeAttribute, ""))[head, Body[body]];
 
     /// <inheritdoc />
     protected override async Task OnMount() => _owner = await ownership.Resolved;

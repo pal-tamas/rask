@@ -374,9 +374,9 @@ them until tagged releases begin.
   `Build<T>` receiver, the gone `Bs*` components or `On…Async` callbacks that do not exist; samples take required chain
   steps before optional ones (`Validation.Message.Template(...).For(...)`); the diagnostics range is RASK001–091.
 
-- **BREAKING: every element is also a member of `Rask.Html`, and the `<html>` element is `Document`.** Components
+- **BREAKING: every element is also a member of `Rask.Markup`.** Components
   still inherit the tags, so nothing inside a component changes. What is new is that any other class — a test, a
-  helper, a static factory of components — writes them bare too, with the `global using static Rask.Html;` the
+  helper, a static factory of components — writes them bare too, with the `global using static Rask.Markup;` the
   server, wasm and wasm-hosted templates now carry, and that a tag your own member has hidden is one word away:
 
   ```csharp
@@ -384,12 +384,13 @@ them until tagged releases begin.
   static class Empty { public static Component State(string what) => Div.Class("empty")[P[$"No {what} yet"]]; }
 
   // inside a component with a Footer property of its own
-  Html.Footer["© 2026"]          // was: RaskEntriesRask_Core.Footer[...]
+  Markup.Footer["© 2026"]        // was: RaskEntriesRask_Core.Footer[...]
   ```
 
-  `Html` also carries the markup primitives (`Text`, `Raw`, `Outlet`, `NavLink`, `Router`, …). The `<html>`
-  element, which had `Html` for a name, is now `Document`: `Document.Lang(HtmlLang)[Head[…], Body[…]]` in a
-  hand-written `Shell`.
+  `Markup` also carries the markup primitives (`Text`, `Raw`, `Outlet`, `NavLink`, `Router`, …). The `<html>`
+  element keeps its name, like every other tag: `Html.Lang(HtmlLang)[Head[…], Body[…]]` in a hand-written `Shell`.
+  `Rask.Testing`'s own `Markup` class (`Markup.Attr(html, name)`) is gone; read a rendered page with
+  `page.Attr(name)`.
 
 - **BREAKING: the browser-capability triggers and the validation feedback are grouped — `Trigger.Fullscreen`,
   `Validation.Message`.** `FullscreenTrigger` → `Trigger.Fullscreen` (likewise `Install`, `PictureInPicture`,
@@ -418,7 +419,7 @@ them until tagged releases begin.
     The package is still `Rask.Ui`. A bare `Ui` now means the kit from inside any `Rask.*` namespace too, which the
     old namespace shadowed.
   - Every `rask new` template carries a `GlobalUsings.cs` with `global using Rask;` (plus `global using static
-    Rask.Html;` in the three that write C# markup) instead of `<Using>` items in the
+    Rask.Markup;` in the three that write C# markup) instead of `<Using>` items in the
     `.csproj`, so the project's global usings are a file you can read and edit.
   - A component library can group its own entries the same way with `[assembly: RaskChainGroup(typeof(Group))]`.
 

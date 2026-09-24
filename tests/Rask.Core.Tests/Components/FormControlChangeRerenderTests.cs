@@ -27,7 +27,7 @@ public partial class FormControlChangeRerenderTests : global::Rask.Core.RaskMark
         Assert.Equal(1, host.Picker.RenderCount);
         Assert.Contains("Picked: rask", html);
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
+        var changeId = MarkupAssert.Attr(html, "data-rask-on-change");
         Assert.NotNull(changeId);
 
         using var doc = JsonDocument.Parse("{\"value\":\"blazor\"}");
@@ -53,7 +53,7 @@ public partial class FormControlChangeRerenderTests : global::Rask.Core.RaskMark
         Assert.Equal(1, host.Echo.RenderCount);
         Assert.Contains("Echo: a", html);
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
+        var changeId = MarkupAssert.Attr(html, "data-rask-on-change");
         Assert.NotNull(changeId);
 
         using var doc = JsonDocument.Parse("{\"value\":\"z\"}");
@@ -107,7 +107,7 @@ public partial class FormControlChangeRerenderTests : global::Rask.Core.RaskMark
         Assert.Equal(1, host.Form.RenderCount);
         Assert.Contains("Bound: red", html);
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
+        var changeId = MarkupAssert.Attr(html, "data-rask-on-change");
         Assert.NotNull(changeId);
 
         using var doc = JsonDocument.Parse("{\"value\":\"blue\"}");
@@ -133,7 +133,7 @@ public partial class FormControlChangeRerenderTests : global::Rask.Core.RaskMark
         Assert.Equal(1, host.Consumer.RenderCount);
         Assert.Contains("Name: rask", html);
 
-        var inputId = Markup.Attr(html, "data-rask-on-input");
+        var inputId = MarkupAssert.Attr(html, "data-rask-on-input");
         Assert.NotNull(inputId);
 
         using var doc = JsonDocument.Parse("{\"value\":\"neo\"}");

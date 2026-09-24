@@ -451,7 +451,7 @@ public partial class FormBindingTests : global::Rask.Core.RaskMarkup
         async Task SendAsync(string value)
         {
             html = page.Render();
-            changeId = Markup.Attr(html, "data-rask-on-change");
+            changeId = MarkupAssert.Attr(html, "data-rask-on-change");
             await page.InvokeAsync(changeId!, $"{{\"value\":\"{value}\"}}");
         }
 

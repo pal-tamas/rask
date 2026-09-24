@@ -81,26 +81,26 @@ public partial class MarkupTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Markup_reads_attributes_out_of_a_raw_html_string()
     {
-        Assert.Equal("h0", Markup.Attr(Payload, "data-rask-on-click"));
-        Assert.Equal(["h0", "h1"], Markup.Attrs(Payload, "data-rask-on-click"));
-        Assert.Equal("a", Markup.Attr(Payload, "id"));
-        Assert.Null(Markup.Attr(Payload, "class"));
-        Assert.Empty(Markup.Attrs(Payload, "class"));
+        Assert.Equal("h0", AttributeScan.Attr(Payload, "data-rask-on-click"));
+        Assert.Equal(["h0", "h1"], AttributeScan.Attrs(Payload, "data-rask-on-click"));
+        Assert.Equal("a", AttributeScan.Attr(Payload, "id"));
+        Assert.Null(AttributeScan.Attr(Payload, "class"));
+        Assert.Empty(AttributeScan.Attrs(Payload, "class"));
     }
 
     [Fact]
     public void An_unterminated_value_yields_nothing_rather_than_running_on()
     {
-        Assert.Null(Markup.Attr("<div id=\"unclosed", "id"));
-        Assert.Empty(Markup.Attrs("<div id=\"unclosed", "id"));
+        Assert.Null(AttributeScan.Attr("<div id=\"unclosed", "id"));
+        Assert.Empty(AttributeScan.Attrs("<div id=\"unclosed", "id"));
     }
 
     [Fact]
     public void Markup_throws_on_null_arguments()
     {
-        Assert.Throws<ArgumentNullException>(() => Markup.Attr(null!, "id"));
-        Assert.Throws<ArgumentNullException>(() => Markup.Attr("<div>", null!));
-        Assert.Throws<ArgumentNullException>(() => Markup.Attrs(null!, "id"));
-        Assert.Throws<ArgumentNullException>(() => Markup.Attrs("<div>", null!));
+        Assert.Throws<ArgumentNullException>(() => AttributeScan.Attr(null!, "id"));
+        Assert.Throws<ArgumentNullException>(() => AttributeScan.Attr("<div>", null!));
+        Assert.Throws<ArgumentNullException>(() => AttributeScan.Attrs(null!, "id"));
+        Assert.Throws<ArgumentNullException>(() => AttributeScan.Attrs("<div>", null!));
     }
 }

@@ -50,7 +50,7 @@ public partial class ElementDialogEventsTests : global::Rask.Core.RaskMarkup
     {
         var cancelled = 0;
         var view = new StubComponent(() => Dialog.OnCancel(() => cancelled++));
-        var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-cancel")!;
+        var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-cancel")!;
 
         using var payload = JsonDocument.Parse("{\"type\":\"cancel\"}");
         await view.TryInvokeHandlerAsync(id, payload.RootElement);
@@ -67,7 +67,7 @@ public partial class ElementDialogEventsTests : global::Rask.Core.RaskMarkup
             await Task.Yield();
             closed++;
         }));
-        var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-close")!;
+        var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-close")!;
 
         using var payload = JsonDocument.Parse("{\"type\":\"close\"}");
         await view.TryInvokeHandlerAsync(id, payload.RootElement);

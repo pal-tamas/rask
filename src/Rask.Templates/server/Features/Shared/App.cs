@@ -34,7 +34,7 @@ public sealed partial class App : Component
     // Put `data-theme` here too to pick one of daisyUI's 35 themes; the default is light, with
     // dark following the operating system.
     protected override Component Shell(Component head, Component body) =>
-        Document.Lang(HtmlLang).Dir(HtmlDir).Attributes((UiStylesheet.ThemeScopeAttribute, ""))[
+        Html.Lang(HtmlLang).Dir(HtmlDir).Attributes((UiStylesheet.ThemeScopeAttribute, ""))[
             head,
             Body.Class(BodyClass)[body]
         ];

@@ -111,7 +111,7 @@ public partial class HandlerFrameTypeTests : global::Rask.Core.RaskMarkup
         var view = new StubComponent(() => Form.Model(model)[
             Select.Bind(() => model.Tags).Multiple(true)[Option.Value("a"), Option.Value("b"), Option.Value("c")]
         ]);
-        var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-change")!;
+        var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-change")!;
 
         var ok = await view.TryInvokeHandlerAsync(
             id, Frame($$"""{"id":"{{id}}","type":"change","value":"a","values":["a","c"]}"""));
@@ -129,7 +129,7 @@ public partial class HandlerFrameTypeTests : global::Rask.Core.RaskMarkup
         var view = new StubComponent(() => Form.Model(model)[
             Select.Bind(() => model.Tags).Multiple(true)[Option.Value("a"), Option.Value("b")]
         ]);
-        var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-change")!;
+        var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-change")!;
 
         var ok = await view.TryInvokeHandlerAsync(
             id, Frame($$"""{"id":"{{id}}","type":"input","value":"a"}"""));

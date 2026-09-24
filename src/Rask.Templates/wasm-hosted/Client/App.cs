@@ -31,7 +31,7 @@ public sealed partial class App : Component
     // palette to this attribute, so that referencing the package cannot repaint an app that only wanted a
     // button. Without it every Ui* component renders structurally correct and completely grey.
     protected override Component Shell(Component head, Component body) =>
-        Document.Lang(HtmlLang).Dir(HtmlDir).Attributes((UiStylesheet.ThemeScopeAttribute, ""))[
+        Html.Lang(HtmlLang).Dir(HtmlDir).Attributes((UiStylesheet.ThemeScopeAttribute, ""))[
             head,
             Body.Class(BodyClass)[body]
         ];

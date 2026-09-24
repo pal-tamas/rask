@@ -5,9 +5,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace Rask.Generators.Tests;
 
 /// <summary>
-///     Covers <c>Rask.Html</c> as an app sees it — <c>using Rask;</c> and <c>using static Rask.Html;</c>, the two lines
+///     Covers <c>Rask.Markup</c> as an app sees it — <c>using Rask;</c> and <c>using static Rask.Markup;</c>, the two lines
 ///     every template's GlobalUsings.cs carries: elements bare in a class that is not a component, <c>Html.X</c>
-///     reaching an element a member hides, and the <c>&lt;html&gt;</c> element as <c>Document</c>.
+///     reaching an element a member hides, and the <c>&lt;html&gt;</c> element as <c>Html</c>.
 /// </summary>
 public sealed class HtmlClassTests
 {
@@ -15,7 +15,7 @@ public sealed class HtmlClassTests
         """
         using Rask;
         using Rask.Core;
-        using static Rask.Html;
+        using static Rask.Markup;
 
         namespace App;
 
@@ -46,12 +46,12 @@ public sealed class HtmlClassTests
             {
                 public string? Footer { get; set; }
 
-                protected override Component? Render() => Html.Footer[Footer ?? "none"];
+                protected override Component? Render() => Markup.Footer[Footer ?? "none"];
             }
             """);
 
         Assert.Empty(Errors(compilation));
-        Assert.Equal("Rask.Core.Components.Footer", TypeOf(compilation, "Html.Footer"));
+        Assert.Equal("Rask.Core.Components.Footer", TypeOf(compilation, "Markup.Footer"));
     }
 
     [Fact]
@@ -61,12 +61,12 @@ public sealed class HtmlClassTests
             """
             public static class Shells
             {
-                public static Component Root() => Document.Lang("en")[Head, Body["hi"]];
+                public static Component Root() => Html.Lang("en")[Head, Body["hi"]];
             }
             """);
 
         Assert.Empty(Errors(compilation));
-        Assert.Equal("Rask.Core.Components.Document", TypeOf(compilation, "Document"));
+        Assert.Equal("Rask.Core.Components.Html", TypeOf(compilation, "Html"));
     }
 
     private static IEnumerable<string> Errors(Compilation compilation) =>

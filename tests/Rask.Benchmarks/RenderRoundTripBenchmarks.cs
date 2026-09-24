@@ -38,7 +38,7 @@ public partial class RenderRoundTripBenchmarks : global::Rask.Core.RaskMarkup
 
         return [
             Doctype,
-            Document[
+            Html[
                 Body[
                     Div.Class("wrap").Id("root")[
                         Div.Class("header")[Span["Bench"]],

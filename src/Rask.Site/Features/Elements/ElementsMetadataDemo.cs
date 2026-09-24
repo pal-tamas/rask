@@ -9,7 +9,7 @@ public sealed partial class ElementsMetadataDemo : Component
     // why RASK019 normally flags Head()[…] children) — this composes the elements directly just to show
     // them and their serialized output, so the analyzer is suppressed here on purpose.
 #pragma warning disable RASK019
-    private static Component Shell() => Document.Lang("en").Dir("ltr")[
+    private static Component Shell() => Html.Lang("en").Dir("ltr")[
         Head[
             Meta.Charset("utf-8"),
             Meta.Name("viewport").Content("width=device-width, initial-scale=1"),

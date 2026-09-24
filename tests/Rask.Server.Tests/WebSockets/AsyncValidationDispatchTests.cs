@@ -21,8 +21,8 @@ public class AsyncValidationDispatchTests
         var initial = await host.Http.GetAsync("/");
         var initialHtml = await initial.Content.ReadAsStringAsync();
         var sessionId = MarkupAssert.SessionId(initialHtml);
-        var inputId = Markup.Attr(initialHtml, "data-rask-on-input");
-        var changeId = Markup.Attr(initialHtml, "data-rask-on-change");
+        var inputId = MarkupAssert.Attr(initialHtml, "data-rask-on-input");
+        var changeId = MarkupAssert.Attr(initialHtml, "data-rask-on-change");
         Assert.NotNull(inputId);
         Assert.NotNull(changeId);
 

@@ -51,7 +51,7 @@ public partial class ComponentChildrenTests : global::Rask.Core.RaskMarkup
 
     private sealed class MultiRoot : Component
     {
-        protected override Component? Render() => [Doctype, Document];
+        protected override Component? Render() => [Doctype, Html];
     }
 
     private sealed class RendersNothing : Component

@@ -35,8 +35,8 @@ public partial class DragDropTests : global::Rask.Core.RaskMarkup
             .OnDrop(m => captured = m));
 
         var html = view.RenderAsLiveRoot();
-        var startId = Markup.Attr(html, "data-rask-on-dragstart");
-        var dropId = Markup.Attr(html, "data-rask-on-drop");
+        var startId = MarkupAssert.Attr(html, "data-rask-on-dragstart");
+        var dropId = MarkupAssert.Attr(html, "data-rask-on-drop");
 
         await view.TryInvokeHandlerAsync(startId!, Empty);
         await view.TryInvokeHandlerAsync(dropId!, Empty);
@@ -56,7 +56,7 @@ public partial class DragDropTests : global::Rask.Core.RaskMarkup
             .Body(ctx => Div.OnDrop(ctx.Drop("z", 0))["dst"])
             .OnDrop(_ => fired = true));
 
-        var dropId = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-drop");
+        var dropId = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-drop");
         await view.TryInvokeHandlerAsync(dropId!, Empty);
 
         Assert.False(fired);
@@ -78,8 +78,8 @@ public partial class DragDropTests : global::Rask.Core.RaskMarkup
             .OnDrop(_ => { }));
 
         var html = view.RenderAsLiveRoot();
-        var startId = Markup.Attr(html, "data-rask-on-dragstart");
-        var overId = Markup.Attr(html, "data-rask-on-dragover");
+        var startId = MarkupAssert.Attr(html, "data-rask-on-dragstart");
+        var overId = MarkupAssert.Attr(html, "data-rask-on-dragover");
 
         await view.TryInvokeHandlerAsync(startId!, Empty);
         await view.TryInvokeHandlerAsync(overId!, Empty);
@@ -107,7 +107,7 @@ public partial class DragDropTests : global::Rask.Core.RaskMarkup
             })
             .OnDrop(_ => { }));
 
-        var overId = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-dragover");
+        var overId = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-dragover");
         await view.TryInvokeHandlerAsync(overId!, Empty);
         view.RenderAsLiveRoot();
 
@@ -131,8 +131,8 @@ public partial class DragDropTests : global::Rask.Core.RaskMarkup
             .OnDrop(_ => { }));
 
         var html = view.RenderAsLiveRoot();
-        await view.TryInvokeHandlerAsync(Markup.Attr(html, "data-rask-on-dragstart")!, Empty);
-        await view.TryInvokeHandlerAsync(Markup.Attr(html, "data-rask-on-dragend")!, Empty);
+        await view.TryInvokeHandlerAsync(MarkupAssert.Attr(html, "data-rask-on-dragstart")!, Empty);
+        await view.TryInvokeHandlerAsync(MarkupAssert.Attr(html, "data-rask-on-dragend")!, Empty);
         view.RenderAsLiveRoot();
 
         Assert.False(captured!.IsDragging);
@@ -155,8 +155,8 @@ public partial class DragDropTests : global::Rask.Core.RaskMarkup
             }));
 
         var html = view.RenderAsLiveRoot();
-        await view.TryInvokeHandlerAsync(Markup.Attr(html, "data-rask-on-dragstart")!, Empty);
-        await view.TryInvokeHandlerAsync(Markup.Attr(html, "data-rask-on-drop")!, Empty);
+        await view.TryInvokeHandlerAsync(MarkupAssert.Attr(html, "data-rask-on-dragstart")!, Empty);
+        await view.TryInvokeHandlerAsync(MarkupAssert.Attr(html, "data-rask-on-drop")!, Empty);
 
         Assert.NotNull(captured);
         Assert.Equal("a", captured!.FromZone);

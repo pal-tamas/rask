@@ -1,17 +1,13 @@
 namespace Rask.Testing;
 
-/// <summary>
-///     Attribute lookups over rendered Rask markup. <see cref="Page" /> exposes these over its
-///     own <see cref="Page.Html" />; use this class directly for HTML you hold as a string —
-///     for example markup pulled out of a live payload, or captured from an earlier render.
-/// </summary>
+/// <summary>Attribute lookups over rendered Rask markup, behind <see cref="Page.Attr" /> and <see cref="Page.Attrs" />.</summary>
 /// <remarks>
 ///     Deliberately a substring scan rather than an HTML parser: Rask's serializer always emits
 ///     double-quoted attributes and encodes <c>&lt;</c>, <c>&gt;</c> and <c>"</c> in values, so the closing
 ///     quote is an exact delimiter and no dependency is needed. It reads attributes, not structure — it has
 ///     no notion of elements or nesting, so it cannot tell you which element a match came from.
 /// </remarks>
-public static class Markup
+internal static class AttributeScan
 {
     /// <summary>
     ///     The value of the first <c>{name}="…"</c> attribute in <paramref name="html" />, or <c>null</c> if

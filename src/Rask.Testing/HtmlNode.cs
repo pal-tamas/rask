@@ -10,7 +10,7 @@ namespace Rask.Testing;
 /// <remarks>
 ///     <para>
 ///         Deliberately small. This exists so an assertion can say <em>which element</em> a match came
-///         from — the one thing <see cref="Markup" />'s attribute scan cannot do — not to be a DOM. There
+///         from — the one thing <see cref="Page.Attr" />'s attribute scan cannot do — not to be a DOM. There
 ///         is no mutation, no live collection, and no parent pointer beyond <see cref="Parent" />.
 ///     </para>
 ///     <para>

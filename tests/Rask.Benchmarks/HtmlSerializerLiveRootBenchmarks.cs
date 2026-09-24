@@ -60,7 +60,7 @@ public partial class HtmlSerializerLiveRootBenchmarks : global::Rask.Core.RaskMa
         return
         [
             Doctype,
-            Document[
+            Html[
                 // Head content is framework-managed (RASK019); the serializer's <head> branch emits
                 // the head-asset sentinel and resolves IRaskHeadContribution regardless of children.
                 Head,

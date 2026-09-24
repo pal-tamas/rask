@@ -24,7 +24,7 @@ internal static class BuilderEntry
 
     private const string RaskMarkupFullName = "Rask.Core.RaskMarkup";
 
-    private const string HtmlFullName = "Rask.Html";
+    private const string HtmlFullName = "Rask.Markup";
 
     private const string RaskMarkupAttributeFullName = "Rask.Core.RaskMarkupAttribute";
 
@@ -90,7 +90,7 @@ internal static class BuilderEntry
             return true;
         }
 
-        // Rask.Html carries the framework's entries again, for `using static` and the qualified `Html.Div`.
+        // Rask.Markup carries the framework's entries again, for `using static` and the qualified `Markup.Div`.
         if (string.Equals(type?.ToDisplayString(), HtmlFullName, StringComparison.Ordinal))
         {
             return true;

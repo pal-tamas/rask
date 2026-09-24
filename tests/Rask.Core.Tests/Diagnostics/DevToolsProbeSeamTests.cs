@@ -99,7 +99,7 @@ public partial class DevToolsProbeSeamTests : global::Rask.Core.RaskMarkup, IDis
     {
         var clicked = false;
         var view = new StubComponent(() => Div.OnClick(() => clicked = true));
-        var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-click")!;
+        var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-click")!;
 
         using var payload = JsonDocument.Parse("{\"type\":\"click\"}");
         Assert.True(await view.TryInvokeHandlerAsync(id, payload.RootElement));
@@ -127,7 +127,7 @@ public partial class DevToolsProbeSeamTests : global::Rask.Core.RaskMarkup, IDis
         RaskDevToolsHook.Probe = null;
 
         var view = new StubComponent(() => Div.OnClick(() => { }));
-        var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-click")!;
+        var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-click")!;
         using var payload = JsonDocument.Parse("{\"type\":\"click\"}");
         await view.TryInvokeHandlerAsync(id, payload.RootElement);
         view.StateHasChanged();
@@ -159,7 +159,7 @@ public partial class DevToolsProbeSeamTests : global::Rask.Core.RaskMarkup, IDis
         static void Boom() => throw new InvalidOperationException("boom");
 
         var view = new StubComponent(() => Div.OnClick(Boom));
-        var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-click")!;
+        var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-click")!;
         using var payload = JsonDocument.Parse("{\"type\":\"click\"}");
 
         var thrown = await Assert.ThrowsAsync<InvalidOperationException>(
@@ -175,7 +175,7 @@ public partial class DevToolsProbeSeamTests : global::Rask.Core.RaskMarkup, IDis
         static void Boom() => throw new InvalidOperationException("boom");
 
         var view = new StubComponent(() => Div[ErrorBoundary[Div.OnClick(Boom)["go"]]]);
-        var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-click")!;
+        var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-click")!;
         using var payload = JsonDocument.Parse("{\"type\":\"click\"}");
 
         // Caught: the boundary took it, so the dispatch reports it handled rather than throwing.

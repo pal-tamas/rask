@@ -11,6 +11,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\..\src\Rask.Testing\AttributeScan.cs" Link="AttributeScan.cs"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="xunit"/>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
   </ItemGroup>

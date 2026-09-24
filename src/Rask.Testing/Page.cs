@@ -146,13 +146,13 @@ public partial class Page : IRenderHandle
     ///     The value of the first <c>{name}="..."</c> attribute in the current <see cref="Html" />, or
     ///     <c>null</c> if absent. Action ids live in <c>data-rask-on-{event}</c> attributes.
     /// </summary>
-    public string? Attr(string name) => Markup.Attr(Html, name);
+    public string? Attr(string name) => AttributeScan.Attr(Html, name);
 
     /// <summary>
     ///     The value of every <c>{name}="..."</c> attribute in the current <see cref="Html" />, in document
     ///     order. Empty if none match.
     /// </summary>
-    public IReadOnlyList<string> Attrs(string name) => Markup.Attrs(Html, name);
+    public IReadOnlyList<string> Attrs(string name) => AttributeScan.Attrs(Html, name);
 
     /// <summary>
     ///     The handler id for the <b>first</b> element wired to <paramref name="domEvent" /> (e.g.

@@ -75,7 +75,6 @@ it did find.
 - **`.Attr(name)`** — the first `name="…"` attribute value in the current `Html`.
 - **`.HandlerIds(domEvent)`** / **`.Attrs(name)`** — every match, in document order. Index these to target
   one of several same-event elements: `await page.InvokeAsync(page.HandlerIds("click")[1])`.
-- **`Markup.Attr(html, name)`** / **`Markup.Attrs(html, name)`** — the same lookups over any HTML string.
 
 ### Finding elements
 

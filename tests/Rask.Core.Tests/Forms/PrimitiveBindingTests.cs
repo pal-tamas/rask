@@ -113,7 +113,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
         var p = new NumericHolder { B = 1 };
         var page = Page.Render(() => Form.Model(p)[Input.Bind(() => p.B)]);
         var html = page.Html;
-        var changeId = Markup.Attr(html, "data-rask-on-change");
+        var changeId = MarkupAssert.Attr(html, "data-rask-on-change");
 
         await page.InvokeAsync(changeId!, $"{{\"value\":\"{raw}\"}}");
 
@@ -150,7 +150,7 @@ public partial class PrimitiveBindingTests : global::Rask.Core.RaskMarkup
         var p = new IdentityHolder { Token = Guid.Empty };
         var page = Page.Render(() => Form.Model(p)[Input.Bind(() => p.Token)]);
         var html = page.Html;
-        var changeId = Markup.Attr(html, "data-rask-on-change");
+        var changeId = MarkupAssert.Attr(html, "data-rask-on-change");
 
         var fresh = Guid.NewGuid();
         await page.InvokeAsync(changeId!, $"{{\"value\":\"{fresh}\"}}");

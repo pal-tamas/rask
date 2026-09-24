@@ -58,7 +58,7 @@ public partial class ElementToggleTests : global::Rask.Core.RaskMarkup
         // so a caller comparing against "open" is comparing against the spec.
         ToggleEventArgs? seen = null;
         var view = new StubComponent(() => Div.OnToggle(e => seen = e));
-        var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-toggle")!;
+        var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-toggle")!;
 
         using var payload = JsonDocument.Parse("{\"oldState\":\"closed\",\"newState\":\"open\"}");
         await view.TryInvokeHandlerAsync(id, payload.RootElement);
@@ -76,7 +76,7 @@ public partial class ElementToggleTests : global::Rask.Core.RaskMarkup
         // hear about it, or aria-expanded goes on claiming the panel is open.
         ToggleEventArgs? seen = null;
         var view = new StubComponent(() => Div.OnToggle(e => seen = e));
-        var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-toggle")!;
+        var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-toggle")!;
 
         using var payload = JsonDocument.Parse("{\"oldState\":\"open\",\"newState\":\"closed\"}");
         await view.TryInvokeHandlerAsync(id, payload.RootElement);
@@ -93,7 +93,7 @@ public partial class ElementToggleTests : global::Rask.Core.RaskMarkup
             seenState = e.NewState;
             return Task.CompletedTask;
         }));
-        var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-beforetoggle")!;
+        var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-beforetoggle")!;
 
         using var payload = JsonDocument.Parse("{\"oldState\":\"closed\",\"newState\":\"open\"}");
         await view.TryInvokeHandlerAsync(id, payload.RootElement);
@@ -108,7 +108,7 @@ public partial class ElementToggleTests : global::Rask.Core.RaskMarkup
         // empty rather than as an exception on the dispatch path.
         ToggleEventArgs? seen = null;
         var view = new StubComponent(() => Div.OnToggle(e => seen = e));
-        var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-toggle")!;
+        var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-toggle")!;
 
         using var payload = JsonDocument.Parse("{}");
         await view.TryInvokeHandlerAsync(id, payload.RootElement);
@@ -125,7 +125,7 @@ public partial class ElementToggleTests : global::Rask.Core.RaskMarkup
         // mismatch is refused rather than fed an empty KeyboardEventArgs.
         var ran = false;
         var view = new StubComponent(() => Div.OnKeyDown(_ => ran = true));
-        var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-keydown")!;
+        var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-keydown")!;
 
         using var payload = JsonDocument.Parse(
             "{\"type\":\"toggle\",\"oldState\":\"closed\",\"newState\":\"open\"}");

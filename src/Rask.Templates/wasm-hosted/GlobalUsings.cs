@@ -1,6 +1,6 @@
 // Every file sees these — no `using` needed.
 global using Rask;
-global using static Rask.Html;
+global using static Rask.Markup;
 
 // Your batteries, by name: Cache.Remember(…), Mail.Send(…), Jobs.Enqueue(…), Files.Save(…).
 // rask:if cqrs

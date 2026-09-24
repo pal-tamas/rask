@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <Using Include="Xunit"/>
+    <Compile Include="..\..\src\Rask.Testing\AttributeScan.cs" Link="AttributeScan.cs"/>
     <Using Include="Rask.Core"/>
     <Using Include="Rask.Testing"/>
   </ItemGroup>

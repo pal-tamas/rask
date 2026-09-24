@@ -57,7 +57,7 @@ public class ScaffoldedGlobalUsingsTests
         var usings = GlobalUsings(new ServerBatteries());
 
         Assert.Contains("global using Rask;", usings, StringComparison.Ordinal);
-        Assert.Contains("global using static Rask.Html;", usings, StringComparison.Ordinal);
+        Assert.Contains("global using static Rask.Markup;", usings, StringComparison.Ordinal);
         Assert.DoesNotContain("rask:if", usings, StringComparison.Ordinal);
     }
 

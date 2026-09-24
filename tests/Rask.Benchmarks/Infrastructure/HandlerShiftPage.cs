@@ -33,7 +33,7 @@ public sealed partial class HandlerShiftPage : Component
         return
         [
             Doctype,
-            Document[
+            Html[
                 Head,
                 Body[
                     Div.Class("wrap").Id("root")[

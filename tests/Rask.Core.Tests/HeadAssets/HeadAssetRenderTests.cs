@@ -160,7 +160,7 @@ public partial class HeadAssetRenderTests : global::Rask.Core.RaskMarkup
         protected override Component? Render() =>
         [
             Doctype,
-            Document.Lang("en")[
+            Html.Lang("en")[
                 // Head() is framework-managed: the serializer auto-inserts the
                 // head-asset sentinel inside, so contributions splice in without
                 // any explicit placeholder.
@@ -186,7 +186,7 @@ public partial class HeadAssetRenderTests : global::Rask.Core.RaskMarkup
         protected override Component? Render() =>
         [
             Doctype,
-            Document.Lang("en")[
+            Html.Lang("en")[
                 // Head() is framework-managed: the serializer auto-inserts the
                 // head-asset sentinel inside, so contributions splice in without
                 // any explicit placeholder.
@@ -208,7 +208,7 @@ public partial class HeadAssetRenderTests : global::Rask.Core.RaskMarkup
     {
         protected override Component? Render() =>
         [
-            Pre[Code[Document.Lang("en")[Head[Title["Inner"]], Body[P["hi"]]].ToHtml()]],
+            Pre[Code[Html.Lang("en")[Head[Title["Inner"]], Body[P["hi"]]].ToHtml()]],
             Span.Class("marker")["after"]
         ];
     }

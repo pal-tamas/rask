@@ -57,7 +57,7 @@ public partial class ElementDomEventsTests : global::Rask.Core.RaskMarkup
     {
         MouseEventArgs? seen = null;
         var view = new StubComponent(() => Div.OnMouseDown(e => seen = e));
-        var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-mousedown")!;
+        var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-mousedown")!;
 
         using var payload = JsonDocument.Parse(
             "{\"button\":2,\"buttons\":2,\"clientX\":12.5,\"clientY\":24,\"pageX\":12.5,\"pageY\":99," +
@@ -80,7 +80,7 @@ public partial class ElementDomEventsTests : global::Rask.Core.RaskMarkup
     {
         WheelEventArgs? seen = null;
         var view = new StubComponent(() => Div.OnWheel(e => seen = e));
-        var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-wheel")!;
+        var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-wheel")!;
 
         using var payload = JsonDocument.Parse(
             "{\"deltaX\":0,\"deltaY\":120,\"deltaZ\":0,\"deltaMode\":1,\"clientX\":5,\"ctrlKey\":true}");
@@ -98,7 +98,7 @@ public partial class ElementDomEventsTests : global::Rask.Core.RaskMarkup
     {
         PointerEventArgs? seen = null;
         var view = new StubComponent(() => Div.OnPointerDown(e => seen = e));
-        var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-pointerdown")!;
+        var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-pointerdown")!;
 
         using var payload = JsonDocument.Parse(
             "{\"pointerId\":7,\"pressure\":0.5,\"pointerType\":\"pen\",\"isPrimary\":true," +
@@ -119,7 +119,7 @@ public partial class ElementDomEventsTests : global::Rask.Core.RaskMarkup
     {
         TouchEventArgs? seen = null;
         var view = new StubComponent(() => Div.OnTouchStart(e => seen = e));
-        var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-touchstart")!;
+        var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-touchstart")!;
 
         using var payload = JsonDocument.Parse(
             "{\"touchCount\":2,\"clientX\":100,\"clientY\":200,\"pageX\":100,\"pageY\":250,\"altKey\":true}");
@@ -137,7 +137,7 @@ public partial class ElementDomEventsTests : global::Rask.Core.RaskMarkup
     {
         ClipboardEventArgs? seen = null;
         var view = new StubComponent(() => Div.OnPaste(e => seen = e));
-        var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-paste")!;
+        var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-paste")!;
 
         using var payload = JsonDocument.Parse("{\"text\":\"hello world\"}");
         await view.TryInvokeHandlerAsync(id, payload.RootElement);
@@ -151,7 +151,7 @@ public partial class ElementDomEventsTests : global::Rask.Core.RaskMarkup
     {
         var fired = 0;
         var view = new StubComponent(() => Div.OnFocus(() => fired++));
-        var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-focus")!;
+        var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-focus")!;
 
         var ok = await view.TryInvokeHandlerAsync(id, JsonDocument.Parse("{}").RootElement);
 
@@ -176,7 +176,7 @@ public partial class ElementDomEventsTests : global::Rask.Core.RaskMarkup
     {
         string? seen = null;
         var view = new StubComponent(() => Div.OnBeforeInput(s => seen = s));
-        var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-beforeinput")!;
+        var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-beforeinput")!;
 
         using var payload = JsonDocument.Parse("{\"value\":\"x\"}");
         await view.TryInvokeHandlerAsync(id, payload.RootElement);

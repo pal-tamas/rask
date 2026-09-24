@@ -30,7 +30,7 @@ public partial class AsyncCallbackMidAwaitRenderTests : global::Rask.Core.RaskMa
         Assert.Contains("state: idle", html, StringComparison.Ordinal);
 
         // Fire the child's button; the consumer's callback sets "busy" and then awaits the gate.
-        var clickId = Markup.Attr(html, "data-rask-on-click");
+        var clickId = MarkupAssert.Attr(html, "data-rask-on-click");
         using var doc = JsonDocument.Parse("{}");
         var dispatch = host.TryInvokeHandlerAsync(clickId!, doc.RootElement);
 

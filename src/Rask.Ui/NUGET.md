@@ -49,7 +49,7 @@ protected override Component? HeadAssets =>
 
 // Nothing in the kit has a colour until an ancestor carries this.
 protected override Component Shell(Component head, Component body) =>
-    Document.Lang("en").Attributes((UiStylesheet.ThemeScopeAttribute, ""))[head, body];
+    Html.Lang("en").Attributes((UiStylesheet.ThemeScopeAttribute, ""))[head, body];
 ```
 
 ```csharp

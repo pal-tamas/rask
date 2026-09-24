@@ -78,7 +78,7 @@ public partial class ElementKeyboardTests : global::Rask.Core.RaskMarkup
     {
         KeyboardEventArgs? seen = null;
         var view = new StubComponent(() => Div.OnKeyDown(e => seen = e));
-        var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-keydown")!;
+        var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-keydown")!;
 
         using var payload = JsonDocument.Parse(
             "{\"key\":\"Escape\",\"code\":\"Escape\",\"shiftKey\":true,\"ctrlKey\":false," +
@@ -104,7 +104,7 @@ public partial class ElementKeyboardTests : global::Rask.Core.RaskMarkup
             seenKey = e.Key;
             return Task.CompletedTask;
         }));
-        var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-keyup")!;
+        var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-keyup")!;
 
         using var payload = JsonDocument.Parse("{\"key\":\"a\",\"code\":\"KeyA\"}");
         await view.TryInvokeHandlerAsync(id, payload.RootElement);
@@ -122,7 +122,7 @@ public partial class ElementKeyboardTests : global::Rask.Core.RaskMarkup
             seen = e;
             return Task.CompletedTask;
         }));
-        var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-keydown")!;
+        var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-keydown")!;
 
         using var payload = JsonDocument.Parse("{\"key\":\"Enter\",\"code\":\"Enter\"}");
         await view.TryInvokeHandlerAsync(id, payload.RootElement);
@@ -136,7 +136,7 @@ public partial class ElementKeyboardTests : global::Rask.Core.RaskMarkup
     {
         KeyboardEventArgs? seen = null;
         var view = new StubComponent(() => Div.OnKeyDown(e => seen = e));
-        var id = Markup.Attr(view.RenderAsLiveRoot(), "data-rask-on-keydown")!;
+        var id = MarkupAssert.Attr(view.RenderAsLiveRoot(), "data-rask-on-keydown")!;
 
         using var payload = JsonDocument.Parse("{}");
         await view.TryInvokeHandlerAsync(id, payload.RootElement);

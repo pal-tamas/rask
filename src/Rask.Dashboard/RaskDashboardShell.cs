@@ -60,7 +60,7 @@ public sealed partial class RaskDashboardShell : Component
     /// </para>
     /// </remarks>
     protected override Component Shell(Component head, Component body) =>
-        Document.Lang(HtmlLang).Dir(HtmlDir)
+        Html.Lang(HtmlLang).Dir(HtmlDir)
             .Attributes(
                 (UiStylesheet.ThemeScopeAttribute, ""),
                 ("data-theme", UiTheme.Value(DashboardTheme.Name)))[

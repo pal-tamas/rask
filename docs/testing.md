@@ -102,8 +102,6 @@ public async Task Clicking_increments()
   ```
 
   Re-read the list after every render, for the same reason a single id can't be cached.
-- **`Markup.Attr(html, name)`** / **`Markup.Attrs(html, name)`** — the same lookups over any HTML string you
-  hold, rather than over a `RenderedComponent` (e.g. markup lifted out of a live payload).
 
 ### Components that call JavaScript
 
@@ -248,8 +246,8 @@ The handler-id API in section 0 is still there underneath, and the two mix freel
 Tests run on **xUnit**. The `Rask.TestSupport` project (`tests/Rask.TestSupport/`) builds on
 `Rask.Testing` and adds only what the shipped package deliberately doesn't have — helpers that call
 `Assert` (the package is test-framework-agnostic and stays so), and helpers below the HTML +
-handler-dispatch seam it covers. Plain attribute lookups are `Markup.Attr(html, name)` from
-`Rask.Testing` itself; there is one scanner, and it's the shipped one.
+handler-dispatch seam it covers. Attribute lookups over an HTML string are `MarkupAssert.Attr(html, name)`,
+which compiles the same scanner `Rask.Testing`'s `Page.Attr` uses — there is one scanner.
 
 - **`RenderHarness`** — `Render<T>(component, services)` begins a `LiveRenderContext`, resolves the
   component, and fires `NotifyParameters`; `EmptyServices()` builds an empty `IServiceProvider` for
@@ -335,7 +333,7 @@ Event handlers are registered against the live context at render time and surfac
 `data-rask-on-*` attributes whose value is a handler id. To drive one in a test:
 
 1. `RenderAsLiveRoot()` to get the HTML.
-2. Pull the handler id with `Markup.Attr(html, "data-rask-on-click")` (or `-on-input`, `-on-change`,
+2. Pull the handler id with `MarkupAssert.Attr(html, "data-rask-on-click")` (or `-on-input`, `-on-change`,
    `-on-submit`, `-on-files`).
 3. Invoke it with `view.TryInvokeHandlerAsync(id, jsonPayload)`, passing a `JsonElement` payload that
    mirrors what the client sends.
@@ -345,7 +343,7 @@ var p = new Person { Name = "Ada", Age = 30 };
 var view = new StubComponent(() => Form.Model(p)[Input.Bind(() => p.Name)]);
 var html = view.RenderAsLiveRoot();
 
-var inputId = Markup.Attr(html, "data-rask-on-input");
+var inputId = MarkupAssert.Attr(html, "data-rask-on-input");
 Assert.NotNull(inputId);
 
 using var doc = JsonDocument.Parse("{\"value\":\"Bea\"}");
@@ -389,7 +387,7 @@ public async Task Submit_InvalidModel_CallsOnInvalidSubmit_NotOnValidSubmit()
     ]);
     var html = view.RenderAsLiveRoot();
 
-    var submitId = Markup.Attr(html, "data-rask-on-submit");
+    var submitId = MarkupAssert.Attr(html, "data-rask-on-submit");
     using var doc = JsonDocument.Parse("{\"form\":{\"Name\":\"\",\"Age\":\"0\"}}");
     await view.TryInvokeHandlerAsync(submitId!, doc.RootElement);
 
@@ -410,9 +408,9 @@ var view = new StubComponent(() => Form.Model(model).Context(ctx)[Input.Bind(() 
 var html = view.RenderAsLiveRoot();
 
 using var inputDoc  = JsonDocument.Parse("{\"value\":\"admin\"}");
-await view.TryInvokeHandlerAsync(Markup.Attr(html, "data-rask-on-input")!,  inputDoc.RootElement);
+await view.TryInvokeHandlerAsync(MarkupAssert.Attr(html, "data-rask-on-input")!,  inputDoc.RootElement);
 using var changeDoc = JsonDocument.Parse("{\"value\":\"admin\"}");
-await view.TryInvokeHandlerAsync(Markup.Attr(html, "data-rask-on-change")!, changeDoc.RootElement);
+await view.TryInvokeHandlerAsync(MarkupAssert.Attr(html, "data-rask-on-change")!, changeDoc.RootElement);
 
 var fid = new FieldIdentifier(model, "Username");
 Assert.Equal(new[] { "Already taken." }, ctx.GetValidationMessages(fid));

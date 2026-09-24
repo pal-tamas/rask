@@ -7,11 +7,7 @@ namespace Rask.Core.Components;
 ///     here is the single highest-value accessibility attribute on the page.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/html">MDN</see>
 /// </summary>
-/// <remarks>
-///     Named <c>Document</c> rather than after its tag, because <c>Html</c> is the class every tag hangs off —
-///     <c>Html.Div</c>, and <c>global using static Rask.Html;</c> — and one name cannot be both.
-/// </remarks>
-public sealed class Document : Element
+public sealed class Html : Element
 {
     protected override string TagName => "html";
 

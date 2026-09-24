@@ -67,7 +67,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
             InitialClientHeight: 100));
 
         var html = view.RenderAsLiveRoot();
-        var scrollHandlerId = Markup.Attr(html, "data-rask-on-scroll");
+        var scrollHandlerId = MarkupAssert.Attr(html, "data-rask-on-scroll");
         Assert.NotNull(scrollHandlerId);
 
         // Fire a scroll event payload {scrollTop:200, clientHeight:100, scrollHeight:2000}.

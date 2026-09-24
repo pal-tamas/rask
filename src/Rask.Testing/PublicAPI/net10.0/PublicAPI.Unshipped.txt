@@ -43,7 +43,6 @@ Rask.Testing.JSCall.Identifier.get -> string!
 Rask.Testing.JSCall.Identifier.init -> void
 Rask.Testing.JSCall.JSCall() -> void
 Rask.Testing.JSCall.JSCall(string! Identifier, object?[]? Args) -> void
-Rask.Testing.Markup
 Rask.Testing.Test
 Rask.Testing.Page
 Rask.Testing.Page.Attr(string! name) -> string?
@@ -149,8 +148,6 @@ static Rask.Testing.CapturedDiagnostic.operator ==(Rask.Testing.CapturedDiagnost
 static Rask.Testing.CapturingDiagnostics.Install() -> Rask.Testing.CapturingDiagnostics!
 static Rask.Testing.JSCall.operator !=(Rask.Testing.JSCall left, Rask.Testing.JSCall right) -> bool
 static Rask.Testing.JSCall.operator ==(Rask.Testing.JSCall left, Rask.Testing.JSCall right) -> bool
-static Rask.Testing.Markup.Attr(string! html, string! name) -> string?
-static Rask.Testing.Markup.Attrs(string! html, string! name) -> System.Collections.Generic.IReadOnlyList<string!>!
 static Rask.Testing.Test.EditContextProbe(System.Action<Rask.Core.Forms.EditContext!>! capture) -> Rask.Core.Component!
 static Rask.Testing.Page.Render(System.Func<Rask.Core.Component?>! factory, System.IServiceProvider? services = null) -> Rask.Testing.Page!
 static Rask.Testing.Page.Render<T>(T! component, System.IServiceProvider? services = null) -> Rask.Testing.Page<T!>!

@@ -74,7 +74,7 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
             .Context(ctx)[Input.Bind(() => p.Name), Input.Bind(() => p.Age)]);
         var html = view.RenderAsLiveRoot();
 
-        var submitId = Markup.Attr(html, "data-rask-on-submit");
+        var submitId = MarkupAssert.Attr(html, "data-rask-on-submit");
         using var doc = JsonDocument.Parse("{\"form\":{\"Name\":\"Ada\",\"Age\":\"30\"}}");
         await view.TryInvokeHandlerAsync(submitId!, doc.RootElement);
 
@@ -134,7 +134,7 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
         ]);
 
         var html = view.RenderAsLiveRoot();
-        var submitId = Markup.Attr(html, "data-rask-on-submit");
+        var submitId = MarkupAssert.Attr(html, "data-rask-on-submit");
         using var doc = JsonDocument.Parse("{\"form\":{\"Name\":\"Ada\",\"Age\":\"30\"}}");
 
         var pending = view.TryInvokeHandlerAsync(submitId!, doc.RootElement).AsTask();
@@ -164,7 +164,7 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
         ]);
 
         var html = view.RenderAsLiveRoot();
-        var submitId = Markup.Attr(html, "data-rask-on-submit");
+        var submitId = MarkupAssert.Attr(html, "data-rask-on-submit");
         using var doc = JsonDocument.Parse("{\"form\":{\"Name\":\"Ada\",\"Age\":\"30\"}}");
 
         await view.TryInvokeHandlerAsync(submitId!, doc.RootElement);
@@ -191,7 +191,7 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
         ]);
 
         var html = view.RenderAsLiveRoot();
-        var submitId = Markup.Attr(html, "data-rask-on-submit");
+        var submitId = MarkupAssert.Attr(html, "data-rask-on-submit");
         using var doc = JsonDocument.Parse("{\"form\":{\"Name\":\"Ada\",\"Age\":\"30\"}}");
 
         await view.TryInvokeHandlerAsync(submitId!, doc.RootElement);
@@ -218,7 +218,7 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
         ]);
 
         var html = view.RenderAsLiveRoot();
-        var submitId = Markup.Attr(html, "data-rask-on-submit");
+        var submitId = MarkupAssert.Attr(html, "data-rask-on-submit");
         using var doc = JsonDocument.Parse("{\"form\":{\"Name\":\"Ada\",\"Age\":\"30\"}}");
 
         await view.TryInvokeHandlerAsync(submitId!, doc.RootElement);

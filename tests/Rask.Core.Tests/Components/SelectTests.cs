@@ -56,7 +56,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
         ]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
+        var changeId = MarkupAssert.Attr(html, "data-rask-on-change");
         Assert.NotNull(changeId);
 
         using var doc = JsonDocument.Parse("{\"value\":\"\"}");
@@ -75,7 +75,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
         ]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
+        var changeId = MarkupAssert.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"5\"}");
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -92,7 +92,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
         ]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
+        var changeId = MarkupAssert.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"\"}");
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -109,7 +109,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
         ]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
+        var changeId = MarkupAssert.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"Active\"}");
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -126,7 +126,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
         ]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
+        var changeId = MarkupAssert.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"\"}");
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -232,7 +232,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
         ]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
+        var changeId = MarkupAssert.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"a\",\"values\":[\"a\",\"c\"]}");
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -251,7 +251,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
         ]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
+        var changeId = MarkupAssert.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"c\",\"values\":[\"c\"]}");
         await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -267,7 +267,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
         ]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
+        var changeId = MarkupAssert.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"\",\"values\":[]}");
         await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -302,7 +302,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
         ]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
+        var changeId = MarkupAssert.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"b\"}");
         await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -322,7 +322,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
         ]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
+        var changeId = MarkupAssert.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"b\",\"values\":[\"b\",\"c\"]}");
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -341,7 +341,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
         ]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
+        var changeId = MarkupAssert.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"red\",\"values\":[\"red\",\"blue\"]}");
         await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -362,7 +362,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
         ]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
+        var changeId = MarkupAssert.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"a\",\"values\":[\"a\",\"c\"]}");
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -380,7 +380,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
         ]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
+        var changeId = MarkupAssert.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"b\",\"values\":[\"b\",\"c\"]}");
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -399,7 +399,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
         ]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
+        var changeId = MarkupAssert.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"a\",\"values\":[\"a\",\"b\"]}");
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 
@@ -419,7 +419,7 @@ public partial class SelectTests : global::Rask.Core.RaskMarkup
         ]);
         var html = view.RenderAsLiveRoot();
 
-        var changeId = Markup.Attr(html, "data-rask-on-change");
+        var changeId = MarkupAssert.Attr(html, "data-rask-on-change");
         using var doc = JsonDocument.Parse("{\"value\":\"a\",\"values\":[\"a\"]}");
         var ok = await view.TryInvokeHandlerAsync(changeId!, doc.RootElement);
 

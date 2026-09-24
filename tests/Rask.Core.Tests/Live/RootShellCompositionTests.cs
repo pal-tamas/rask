@@ -156,7 +156,7 @@ public partial class RootShellCompositionTests : global::Rask.Core.RaskMarkup
     private sealed class CustomShellApp : Component
     {
         protected override Component Shell(Component head, Component body) =>
-            Document.Lang("en").Dir("rtl")[head, Body.Id("app")[Main[body]]];
+            Html.Lang("en").Dir("rtl")[head, Body.Id("app")[Main[body]]];
 
         protected override Component? Render() => Div["hi"];
     }

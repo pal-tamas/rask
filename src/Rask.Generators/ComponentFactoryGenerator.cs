@@ -1950,15 +1950,15 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         shared.Append("public static class ").AppendLine(EntryHostName(host.AssemblyName));
         shared.AppendLine("{");
 
-        // …and a third time, as Rask.Html: the same entries under a name an author writes, so
-        // `global using static Rask.Html;` makes them bare outside a component, and `Html.Footer` reaches
+        // …and a third time, as Rask.Markup: the same entries under a name an author writes, so
+        // `global using static Rask.Markup;` makes them bare outside a component, and `Markup.Footer` reaches
         // the element where a member of that name hides it. The same loop again, so it cannot drift.
         var html = new StringBuilder();
         EmitGeneratedFileHeader(html);
         html.AppendLine();
         html.AppendLine("namespace Rask;");
         html.AppendLine();
-        html.AppendLine("public static partial class Html");
+        html.AppendLine("public static partial class Markup");
         html.AppendLine("{");
 
         var entries = EntryCandidates(spc, candidates, taken);
@@ -2027,7 +2027,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         spc.AddSource("RaskBuilderEntries.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
 
         html.AppendLine("}");
-        spc.AddSource("RaskHtml.g.cs", SourceText.From(html.ToString(), Encoding.UTF8));
+        spc.AddSource("RaskMarkup.Entries.g.cs", SourceText.From(html.ToString(), Encoding.UTF8));
         EmitGroupedEntries(spc, entries, host.AssemblyName);
 
         shared.AppendLine("}");
