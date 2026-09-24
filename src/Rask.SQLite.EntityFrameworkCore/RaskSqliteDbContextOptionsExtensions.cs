@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -54,6 +55,10 @@ public static class RaskSqliteDbContextOptionsExtensions
     /// <c>AddDbContext</c> does it per scope by default.
     /// </para>
     /// </remarks>
+    // ReplaceService<,> activates its implementation through EF Core's internal container by reflection, and EF does
+    // not annotate it for the trimmer — so the constructors are kept here, or a trimmed app fails at the first query.
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(RaskSqliteStrictRangeExclusionSqlGenerator))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(RaskSqliteRangeExclusionSqlGenerator))]
     public static DbContextOptionsBuilder UseRaskSqlite(
         this DbContextOptionsBuilder optionsBuilder,
         IServiceProvider services,
@@ -164,6 +169,7 @@ public static class RaskSqliteDbContextOptionsExtensions
     /// call's choice, strict tables included, and calling it twice is harmless.
     /// </para>
     /// </remarks>
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(RaskSqliteRangeExclusionSqlGenerator))]
     public static DbContextOptionsBuilder UseRaskFullTextSearch(this DbContextOptionsBuilder optionsBuilder)
     {
         ArgumentNullException.ThrowIfNull(optionsBuilder);
@@ -188,6 +194,7 @@ public static class RaskSqliteDbContextOptionsExtensions
     // The annotation provider reports the declaration on its table so the migrations differ sees it change; EF
     // resolves exactly one, and nothing else in Rask replaces it. The extension carries the query side, and EF keeps
     // one per type, so a second call does not register the rewrite twice.
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(RaskSqliteAnnotationProvider))]
     private static void AddFullTextSearchModelAndQuery(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder.ReplaceService<IRelationalAnnotationProvider, RaskSqliteAnnotationProvider>();

@@ -9,10 +9,11 @@ idiomatic way to wire that into a Rask **Server** app: register the context, loa
 component lifecycle, and run forms against persisted state. The lifetime rules below hold on either
 road — `Rask.Data` follows them for you.
 
-> WASM note: this is a Server-side pattern. EF Core's SQLite provider isn't a fit for the trimmed
-> browser runtime — keep data access behind the server (a Server host, or an API the WASM app calls).
-> EF Core *can* be made to run in the browser, on a deliberately untrimmed, natively relinked build —
-> [here's why that is a sandbox and not an architecture](sqlite.md#sqlite-in-the-browser-wasm).
+> WASM note: this is a Server-side pattern — for most apps, keep data access behind the server (a Server
+> host, or an API the WASM app calls). EF Core *does* run in the browser, on a natively relinked build
+> trimmed with EF Core's own assemblies rooted (Rask.Data and Rask.SQLite.EntityFrameworkCore are
+> trim-safe and need nothing), and [`Rask.SQLite.Browser`](sqlite.md#rasksqlitebrowser--keeping-a-browser-database)
+> keeps its database across reloads — [the recipe, and when it fits](sqlite.md#sqlite-in-the-browser-wasm).
 
 ## Register the DbContext with a factory, not a scope
 

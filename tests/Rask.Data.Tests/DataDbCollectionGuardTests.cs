@@ -12,5 +12,7 @@ public sealed class DataDbCollectionGuardTests
             typeof(DataDbCollectionGuardTests).Assembly,
             DataDbCollection.Name,
             // Ambient values over a stub scope; it never builds a context.
-            nameof(CurrentTests));
+            nameof(CurrentTests),
+            // Reflection over annotations only; it never builds a context.
+            nameof(TrimmingContractTests));
 }

@@ -109,11 +109,12 @@
   <!--
     THE BROWSER HALF, and what it deliberately leaves out.
 
-    Rask.Data, Rask.SQLite.Browser and Rask.Jobs all need EF Core, and EF CORE DOES NOT SURVIVE THE
-    TRIMMER IN THE BROWSER — Rask.SQLite.Browser's own readme says so, and the showcase publishes
-    trimmed at 3.28 MB brotli. Putting them in this group would force PublishTrimmed=false on every WASM
-    app, and the cost would be paid by every visitor on first load, including apps with no database at
-    all. A local-first app references those three itself and accepts the untrimmed build knowingly.
+    Rask.Data, Rask.SQLite.Browser and Rask.Jobs all need EF Core, and EF CORE SURVIVES THE TRIMMER IN
+    THE BROWSER ONLY WITH ITS THREE ASSEMBLIES ROOTED — about 2 MB brotli on top of an app, measured,
+    against the showcase's 3.28 MB for everything. Rask.Data and Rask.SQLite.EntityFrameworkCore are
+    themselves trim-safe (#1132); EF Core is the cost. Putting them in this group would make every WASM
+    app root EF, paid by every visitor on first load, including apps with no database at all. A
+    local-first app references them itself and roots EF knowingly (docs/sqlite.md has the recipe).
 
     What is here is source-generated and reflection-free, so the bundle stays trimmed.
 

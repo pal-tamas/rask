@@ -60,9 +60,13 @@ compiled into the SQLite build that is linked into the WebAssembly app.
 
 ## What to know before you rely on it
 
-- **Entity Framework Core requires `PublishTrimmed=false`.** EF Core does not survive the trimmer in a
-  browser build — it fails with a `MissingMethodException` on a generic instantiation the trimmer removed.
-  `Microsoft.Data.Sqlite` on its own is reflection-free and trims fine.
+- **Entity Framework Core needs its three assemblies rooted in a trimmed build.** EF Core builds its model
+  and queries by reflection, so trimmed without roots it fails with a `MissingMethodException` at the first
+  EF call. Add `<TrimmerRootAssembly Include="…"/>` for `Microsoft.EntityFrameworkCore`,
+  `Microsoft.EntityFrameworkCore.Relational` and `Microsoft.EntityFrameworkCore.Sqlite`, and suppress EF's
+  own `IL2026;IL2104` (plus `WASM0001` for the SQLite natives). `Microsoft.Data.Sqlite`, this package,
+  Rask.Data and Rask.SQLite.EntityFrameworkCore are trim-safe and need nothing. `PublishTrimmed=false` also
+  works, at a much larger download.
 - **The durability window is the snapshot interval, not the page-hide flush.** The browser does not wait
   for a `pagehide` handler, so a force-closed or crashed tab loses whatever changed since the last tick.
 - **Snapshots live in IndexedDB, which is evictable.** The owning tab asks the browser to exempt the

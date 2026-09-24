@@ -62,6 +62,9 @@ public class RaskReadDbContext : DbContext, ITenantScoped
     }
 
     /// <inheritdoc />
+    // ReplaceService<,> activates the key factory through EF Core's internal container by reflection, and EF does not
+    // annotate it for the trimmer — kept here, or a trimmed app fails building the read model.
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(ReadModelCacheKeyFactory))]
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         ArgumentNullException.ThrowIfNull(optionsBuilder);
