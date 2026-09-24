@@ -7,16 +7,15 @@ using Rask.Core.Routing;
 
 namespace Rask.Core.Forms;
 
-// Shared building blocks for the Expression-driven binding factories that live as
-// `[GenerateForwarderFactory] public static` methods on Input / Textarea / Select.
-// The factories run during the parent's Render() — before HtmlSerializer enters the
+// Shared building blocks for the Expression-driven `Bind` on Input / Textarea / Select.
+// A bound control resolves its binding while it renders — before HtmlSerializer enters the
 // Form's EnterChildrenScope — so EditContextScope.Current is still null at that point.
 // ResolveBindingContext falls back to LiveRenderContext.GetOrCreateEditContext (keyed
 // by model reference), which yields the same instance Form will later push, so per-
 // field NotifyFieldChanged / ValidateField from input handlers land in the right context.
 // Public surface: ResolveBindingContext and FormatValue are the two members consumers need to build
-// custom form-bound controls (see the MultiSelect sample). The remaining members are forwarder plumbing
-// shared by the generated Input/Textarea/Select bind factories.
+// custom form-bound controls (see the MultiSelect sample). The remaining members are binding plumbing
+// shared by Input/Textarea/Select.
 public static class BindingHelpers
 {
     // Determines whether an empty form value should round-trip to `null`. Value types use
@@ -183,8 +182,8 @@ public static class BindingHelpers
         await ctx.ValidateFieldAsync(field).ConfigureAwait(false);
     }
 
-    // Collapses the typed AfterBind / AfterBindAsync pair from a `Bound<TProp>` factory into a
-    // single non-generic Func<Task>? closure. Returns null when neither is supplied so the
+    // Collapses a bound control's typed AfterBind callback into a
+    // single non-generic Func<Task>? closure. Returns null when none is supplied so the
     // handler builders can stay on the cheap no-callback path. The closure reads the now-set
     // value back through acc.Getter() (handlers fire afterBind *after* TrySetTyped), so the
     // user's callback always sees the new value.

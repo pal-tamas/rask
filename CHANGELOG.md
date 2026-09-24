@@ -587,6 +587,22 @@ them until tagged releases begin.
   of every file response, and `Rask.Storage` can be pointed at a `DbContext` carrying none of Rask's
   interceptors.
 
+### Removed
+
+- **`Rask.Core.Forms.ISubmitAware`.** Nothing implemented it: it marked the old `FormBuild<T>` chain shape, and
+  `Form` now declares its submit-state indexer (`Form.Model(m)[submitting => …]`) on itself. The generator's
+  checks for it, and for the long-gone `Rask.Core.IColumnHost`, went with it. Nothing you write changes.
+- **`[GenerateForwarderFactory]`, `ValidationMessage.Bound<TProp>` and `ValidatingIndicator.Bound<TProp>`.** The
+  generator parsed the attribute but never emitted a forwarder, so the two `Bound` factories could not be reached
+  from markup. The chain is the one way to write them, required steps first:
+
+  ```csharp
+  // before
+  ValidationMessage.Bound(() => m.Email, t)
+  // after
+  Validation.Message.Template(t).For(() => m.Email)
+  ```
+
 ### Fixed
 
 - **`HasNonOverlappingRange` works on a hard-delete aggregate** (#1131). Since soft delete became opt-in, an

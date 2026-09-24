@@ -21,12 +21,9 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
     private const string ElementFullName = "Rask.Core.Element";
     private const string SkipFactoryFullName = "Rask.Core.SkipFactoryAttribute";
     private const string FactoryGenericFullName = "Rask.Core.FactoryGenericAttribute";
-    private const string GenerateForwarderFactoryFullName = "Rask.Core.GenerateForwarderFactoryAttribute";
     private const string ChainEntryFullName = "Rask.Core.RaskChainEntryAttribute";
     private const string ChainGroupFullName = "Rask.Core.RaskChainGroupAttribute";
     private const string FormControlOpenFullName = "Rask.Core.Forms.IFormControl<T>";
-    private const string SubmitAwareFullName = "Rask.Core.Forms.ISubmitAware";
-    private const string ColumnHostFullName = "Rask.Core.IColumnHost";
     private const string ContextFullName = "global::Rask.Core.Live.LiveRenderContext";
 
     // The IFormControl<T> members that belong to BOUND mode: excluded from the synthesized controlled
@@ -4828,10 +4825,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 isPublic,
                 GenericFactory: null,
                 FormControl: null,
-                SubmitAware: false,
-                ColumnHost: false,
                 new EquatableArray<PropInfo>(properties),
-                default,
                 IsPartial: true,
                 IsNested: false,
                 IsElement: false,
@@ -4929,7 +4923,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             }
         }
 
-        var forwarders = GetForwarderInfos(symbol, ctx.SemanticModel.Compilation);
         return new Candidate(
             ns,
             symbol.Name,
@@ -4943,10 +4936,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
             isPublic,
             genericFactory,
             formControl,
-            IsSubmitAware(symbol),
-            ImplementsInterface(symbol, ColumnHostFullName),
             new EquatableArray<PropInfo>(properties),
-            new EquatableArray<ForwarderInfo>(forwarders),
             classDecl.Modifiers.Any(SyntaxKind.PartialKeyword),
             symbol.ContainingType is not null,
             InheritsFromElement(symbol),
@@ -5060,27 +5050,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         return component;
     }
 
-    // Whether the component declares ISubmitAware — a relic of the FormBuild<T> chain shape. That shape
-    // is gone (Form declares its submit-state indexer on itself) and nothing implements the interface
-    // any more, so this is always false in practice.
-    private static bool IsSubmitAware(INamedTypeSymbol symbol) =>
-        ImplementsInterface(symbol, SubmitAwareFullName);
-
-    // The same question for any chain-shape marker — ISubmitAware, IColumnHost — by name. Non-generic
-    // markers only: a generic one would need its type arguments compared rather than its display string.
-    private static bool ImplementsInterface(INamedTypeSymbol symbol, string fullName)
-    {
-        foreach (var i in symbol.AllInterfaces)
-        {
-            if (i.ToDisplayString() == fullName)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     // Detects IFormControl<T> among the component's implemented interfaces and returns the bound value
     // type T (fully qualified). Null when the component is not a form control.
     private static FormControlInfo? GetFormControlInfo(INamedTypeSymbol symbol, Compilation compilation)
@@ -5106,97 +5075,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         }
 
         return null;
-    }
-
-    private static List<ForwarderInfo> GetForwarderInfos(INamedTypeSymbol symbol, Compilation compilation)
-    {
-        var result = new List<ForwarderInfo>();
-        foreach (var member in symbol.GetMembers())
-        {
-            if (member is not IMethodSymbol method)
-            {
-                continue;
-            }
-
-            if (!method.IsStatic || method.DeclaredAccessibility != Accessibility.Public)
-            {
-                continue;
-            }
-
-            var hasAttr = false;
-            foreach (var attr in method.GetAttributes())
-            {
-                if (attr.AttributeClass?.ToDisplayString() == GenerateForwarderFactoryFullName)
-                {
-                    hasAttr = true;
-                    break;
-                }
-            }
-
-            if (!hasAttr)
-            {
-                continue;
-            }
-
-            var typeParams = method.TypeParameters.Length > 0
-                ? "<" + string.Join(", ", method.TypeParameters.Select(tp => tp.Name)) + ">"
-                : string.Empty;
-            var constraints = BuildConstraintsClause(method.TypeParameters);
-
-            var parameters = new List<ForwarderParamInfo>();
-            foreach (var p in method.Parameters)
-            {
-                var typeFqn = TypeName(p.Type, FullyQualifiedNullable, compilation);
-                var defaultLiteral = string.Empty;
-                if (p.HasExplicitDefaultValue)
-                {
-                    defaultLiteral = TryGetDefaultLiteralFromSyntax(p) ?? FormatDefaultLiteral(p.ExplicitDefaultValue);
-                }
-
-                parameters.Add(new ForwarderParamInfo(typeFqn, p.Name, defaultLiteral, p.IsParams));
-            }
-
-            result.Add(new ForwarderInfo(
-                method.Name,
-                typeParams,
-                constraints,
-                new EquatableArray<ForwarderParamInfo>(parameters)));
-        }
-
-        return result;
-    }
-
-    private static string? TryGetDefaultLiteralFromSyntax(IParameterSymbol p)
-    {
-        if (p.DeclaringSyntaxReferences.Length == 0)
-        {
-            return null;
-        }
-
-        if (p.DeclaringSyntaxReferences[0].GetSyntax() is not ParameterSyntax syntax)
-        {
-            return null;
-        }
-
-        var value = syntax.Default?.Value;
-        return value?.ToString();
-    }
-
-    private static string FormatDefaultLiteral(object? value)
-    {
-        if (value is null)
-        {
-            return "null";
-        }
-
-        return value switch
-        {
-            bool b => b ? "true" : "false",
-            string s => "\"" + s.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"",
-            char c => "'" + c + "'",
-            IFormattable f => f.ToString(null, CultureInfo.InvariantCulture),
-            _ => value.ToString() ?? "default"
-        };
     }
 
     private static GenericFactoryConfig? ParseGenericFactoryConfig(AttributeData attr)
@@ -6044,16 +5922,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         bool IsPublic,
         GenericFactoryConfig? GenericFactory,
         FormControlInfo? FormControl,
-        // Whether the component implements ISubmitAware — once the marker for the FORM chain shape
-        // (FormBuild<T>, now gone; Form declares its submit-state indexer on itself). Read off the
-        // implemented interfaces, like FormControl above.
-        bool SubmitAware,
-        // Whether the component is a column host (Rask.Core.IColumnHost) — once the marker for the GRID
-        // chain shape (GridBuild<T, TKey>, now gone; the grid declares its column-factory indexer on
-        // itself). The interface no longer exists either, so this is always false in practice.
-        bool ColumnHost,
         EquatableArray<PropInfo> Properties,
-        EquatableArray<ForwarderInfo> Forwarders,
         bool IsPartial,
         bool IsNested,
         // Drives which shared reset the builder entry hands to Entry<T>: an Element gets the whole
@@ -6127,17 +5996,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         EquatableArray<string> TypedDelegateProperties,
         string Constraint);
 
-    private readonly record struct ForwarderInfo(
-        string MethodName,
-        string TypeParameters,
-        string TypeParameterConstraints,
-        EquatableArray<ForwarderParamInfo> Parameters);
-
-    private readonly record struct ForwarderParamInfo(
-        string TypeFqn,
-        string Name,
-        string DefaultLiteral,
-        bool IsParams);
 
 
     /// <summary>
