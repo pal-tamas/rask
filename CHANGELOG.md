@@ -610,9 +610,38 @@ them until tagged releases begin.
   of every file response, and `Rask.Storage` can be pointed at a `DbContext` carrying none of Rask's
   interceptors.
 
+### Removed
+
+- **`Rask.Core.Forms.ISubmitAware`.** Nothing implemented it: it marked the old `FormBuild<T>` chain shape, and
+  `Form` now declares its submit-state indexer (`Form.Model(m)[submitting => …]`) on itself. The generator's
+  checks for it, and for the long-gone `Rask.Core.IColumnHost`, went with it. Nothing you write changes.
+- **`[GenerateForwarderFactory]`, `ValidationMessage.Bound<TProp>` and `ValidatingIndicator.Bound<TProp>`.** The
+  generator parsed the attribute but never emitted a forwarder, so the two `Bound` factories could not be reached
+  from markup. The chain is the one way to write them, required steps first:
+
+  ```csharp
+  // before
+  ValidationMessage.Bound(() => m.Email, t)
+  // after
+  Validation.Message.Template(t).For(() => m.Email)
+  ```
+
 ### Fixed
 
 - Error messages and diagnostics no longer name code that does not exist: RASK009/010 and `Route.To<T>()` say "add `[Route("/…")]`" instead of "derive from Page", RASK019/021 name the real `HeadAssets` override, a missing context value points at `Context.Provide<T>(value)[ … ]`, and the `DragDrop`, `VirtualizeModel`, `Navigator` and `Outlet` messages show the chain (`DragDrop.Body(ctx => Div[ … ])`) instead of the retired factory calls.
+- **`HasNonOverlappingRange` works on a hard-delete aggregate** (#1131). Since soft delete became opt-in, an
+  aggregate that says nothing has no `DeletedAt` column, but the rule still decided "soft-deletable" from being an
+  aggregate, so its triggers named the ignored column and the schema — and every migration — failed with
+  `'Booking' declares a non-overlapping range over 'DeletedAt', which is not a mapped property`. The rule now asks
+  the same question `ApplyRaskConventions` does (`Deletes = Deletion.Soft`), so a hard-delete aggregate gets the
+  triggers without a `DeletedAt` clause. `ignoreSoftDeleted: true` on an entity that does not soft delete now
+  throws `ArgumentException` instead of being dropped silently. An existing hard-delete aggregate's rule flips,
+  so its next migration rebuilds the range index and triggers — such an app could not migrate before.
+- **The Rask.Query demo on rask.sh no longer jumps when its first page arrives (#1136).** The parcel list was an
+  empty `<ul>` for the half-second its page query takes, then grew four rows at once. It now draws a page of
+  placeholder rows shaped exactly like the real ones — disabled Ship and Details buttons, `data-loading`, and
+  `aria-busy="true"` on the list — so the layout holds still and a screen reader hears that it is loading. The
+  demo-markup golden test no longer depends on which side of the fetch it samples.
 - **`UiThemeDropdown` closes on Escape and on a click outside.** It was a `<details>`, which closes on its own
   summary and nothing else, so the theme list on rask.sh stayed open until the reader found the button again. It
   is now a `UiPopover` around the `UiThemePicker`: Escape, a click outside and the trigger close it, and focus

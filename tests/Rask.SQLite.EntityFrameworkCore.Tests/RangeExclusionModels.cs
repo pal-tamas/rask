@@ -131,6 +131,44 @@ internal sealed class LeaseContext(DbContextOptions options) : DbContext(options
     }
 }
 
+// The default aggregate: hard delete, so DeletedAt is ignored and the rule has nothing to filter on (#1131).
+internal sealed class Reservation : Aggregate<int>
+{
+    public int DeskId { get; private set; }
+
+    public long StartsAt { get; private set; }
+
+    public long EndsAt { get; private set; }
+
+    public static Reservation For(int id, int deskId, long startsAt, long endsAt) =>
+        new() { Id = id, DeskId = deskId, StartsAt = startsAt, EndsAt = endsAt };
+}
+
+internal sealed class ReservationContext(DbContextOptions options) : DbContext(options)
+{
+    public DbSet<Reservation> Reservations => Set<Reservation>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Reservation>()
+            .HasNonOverlappingRange(x => x.StartsAt, x => x.EndsAt, partitionBy: x => x.DeskId);
+
+        modelBuilder.ApplyRaskConventions();
+    }
+}
+
+// A rule annotation that asks to ignore soft-deleted rows on a table with no DeletedAt — what an older build wrote
+// for a hard-delete aggregate (#1131). The builder refuses the flag now, so the annotation is set by hand.
+internal sealed class StaleSoftDeleteRuleContext(DbContextOptions options) : DbContext(options)
+{
+    public DbSet<Booking> Bookings => Set<Booking>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder) =>
+        modelBuilder.Entity<Booking>().HasAnnotation(
+            RangeExclusionSpec.AnnotationName,
+            new RangeExclusionSpec("StartsAt", "EndsAt", ["RoomId"], IgnoreSoftDeleted: true).Serialize());
+}
+
 internal sealed class Meeting
 {
     // No explicit value on insert: SQLite assigns the rowid.

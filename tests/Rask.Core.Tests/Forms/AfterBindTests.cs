@@ -5,7 +5,7 @@ using Rask.Core.Forms;
 
 namespace Rask.Core.Tests.Forms;
 
-// Covers the post-bind callback wired through Input.Bound / Select.Bound / Textarea.Bound:
+// Covers the post-bind callback wired through Input.Bind / Select.Bind / Textarea.Bind:
 // `AfterBind: Action<TProp>?` and `AfterBindAsync: Func<TProp, Task>?`. Contract:
 //   - Fires *after* TrySetTyped + NotifyFieldChanged, *before* field validators run.
 //   - Receives the typed value the model now holds (read back via the accessor).

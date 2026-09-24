@@ -3339,6 +3339,22 @@ span
 button .btn
 span .text-sm .text-ui-muted
 ul .bg-base-100 .border .border-base-300 .divide-base-300 .divide-y .list .overflow-hidden .rounded-box .ui-list
+li .flex .gap-2 .items-center .query-row
+span
+button .btn .query-ship
+button .btn .query-pick
+li .flex .gap-2 .items-center .query-row
+span
+button .btn .query-ship
+button .btn .query-pick
+li .flex .gap-2 .items-center .query-row
+span
+button .btn .query-ship
+button .btn .query-pick
+li .flex .gap-2 .items-center .query-row
+span
+button .btn .query-ship
+button .btn .query-pick
 div .flex .flex-col .gap-1
 strong
 p .mb-0

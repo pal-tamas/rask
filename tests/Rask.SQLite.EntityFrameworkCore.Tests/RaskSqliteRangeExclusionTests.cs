@@ -174,6 +174,35 @@ public sealed class RaskSqliteRangeExclusionTests : IDisposable
     }
 
     [Fact]
+    public async Task A_hard_delete_aggregate_gets_the_rule_without_a_DeletedAt_clause()
+    {
+        // #1131: soft delete is opt-in, so an aggregate no longer means a DeletedAt column. The rule must not
+        // name a column the model ignored, or the schema (and every migration) fails to build.
+        await using var context = Create<ReservationContext>();
+        CreateSchema(context);
+
+        Assert.Equal(2, TriggerCount(context));
+        Assert.DoesNotContain(Columns.DeletedAt, Ddl(context), StringComparison.Ordinal);
+
+        context.Reservations.Add(Reservation.For(1, 1, 100, 200));
+        await context.SaveChangesAsync();
+
+        context.Reservations.Add(Reservation.For(2, 1, 150, 250));
+        await Assert.ThrowsAsync<RangeOverlapException>(() => context.SaveChangesAsync());
+    }
+
+    [Fact]
+    public async Task A_rule_ignoring_soft_deleted_rows_on_a_table_without_DeletedAt_says_how_to_fix_it()
+    {
+        await using var context = Create<StaleSoftDeleteRuleContext>();
+
+        var error = Assert.Throws<InvalidOperationException>(() => CreateSchema(context));
+
+        Assert.Contains("'Booking'", error.Message, StringComparison.Ordinal);
+        Assert.Contains("Deletes = Deletion.Soft", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Adding_the_rule_to_an_existing_table_is_a_migration_of_its_own()
     {
         // #1113: the rule lived only on the entity type, which the differ never compares, so adding it to a

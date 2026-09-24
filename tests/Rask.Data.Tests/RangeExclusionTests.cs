@@ -4,8 +4,18 @@ using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Rask.Data.Tests;
 
-// Soft-deletable because every aggregate is; the range tests only read the model built for it.
+// Soft-deletable because it asks to be; the range tests only read the model built for it.
 public sealed class RangeLease : Aggregate<int>
+{
+    public const Deletion Deletes = Deletion.Soft;
+
+    public long StartsAt { get; private set; }
+
+    public long EndsAt { get; private set; }
+}
+
+// The default aggregate: hard delete, so it has no DeletedAt column for the rule to filter on (#1131).
+public sealed class RangeDesk : Aggregate<int>
 {
     public long StartsAt { get; private set; }
 
@@ -92,13 +102,42 @@ public sealed class RangeExclusionTests
     [Fact]
     public void An_entity_that_is_not_soft_deletable_never_gets_the_soft_delete_filter()
     {
-        // Asking for it on an entity with no DeletedAt column would emit DDL referencing a column that is
-        // not there, so the flag is ignored rather than trusted.
         var model = BuildModel(builder => builder.Entity<Booking>()
-            .HasNonOverlappingRange(x => x.StartsAt, x => x.EndsAt, ignoreSoftDeleted: true));
+            .HasNonOverlappingRange(x => x.StartsAt, x => x.EndsAt));
 
         Assert.True(RangeExclusionSpec.TryParse(Annotation(model), out var spec));
         Assert.False(spec.IgnoreSoftDeleted);
+    }
+
+    [Fact]
+    public void A_hard_delete_aggregate_never_gets_the_soft_delete_filter()
+    {
+        // #1131: soft delete is opt-in, so being an aggregate no longer means having a DeletedAt column.
+        var model = BuildModel(builder => builder.Entity<RangeDesk>()
+            .HasNonOverlappingRange(x => x.StartsAt, x => x.EndsAt));
+
+        Assert.True(RangeExclusionSpec.TryParse(Annotation(model, typeof(RangeDesk)), out var spec));
+        Assert.False(spec.IgnoreSoftDeleted);
+    }
+
+    [Fact]
+    public void Asking_a_hard_delete_aggregate_to_ignore_soft_deleted_rows_is_refused()
+    {
+        // The DDL would name a column that is not there, so the flag is refused rather than dropped silently.
+        var error = Assert.Throws<ArgumentException>(() => BuildModel(builder => builder.Entity<RangeDesk>()
+            .HasNonOverlappingRange(x => x.StartsAt, x => x.EndsAt, ignoreSoftDeleted: true)));
+
+        Assert.Equal("ignoreSoftDeleted", error.ParamName);
+        Assert.Contains("Deletion.Soft", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Asking_a_plain_entity_to_ignore_soft_deleted_rows_is_refused()
+    {
+        var error = Assert.Throws<ArgumentException>(() => BuildModel(builder => builder.Entity<Booking>()
+            .HasNonOverlappingRange(x => x.StartsAt, x => x.EndsAt, ignoreSoftDeleted: true)));
+
+        Assert.Equal("ignoreSoftDeleted", error.ParamName);
     }
 
     [Fact]

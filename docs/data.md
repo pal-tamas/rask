@@ -1517,7 +1517,7 @@ constraint keeping `lo < hi`; it assumes well-formed ranges and says nothing abo
 | Option | Effect |
 | --- | --- |
 | `partitionBy` | Scopes the rule: `x => x.RoomId`, or `x => new { x.Sku, x.Region }`. Omit for table-wide. |
-| `ignoreSoftDeleted` | Lets a soft-deleted row free its slot. Applies only to an aggregate that declares `Deletes = Deletion.Soft`, where it defaults to on; a hard-deleted row has already freed its slot. |
+| `ignoreSoftDeleted` | Lets a soft-deleted row free its slot. Applies only to an aggregate that declares `Deletes = Deletion.Soft`, where it defaults to on; a hard-deleted row has already freed its slot, so asking for it on any other entity throws. |
 
 Three things worth knowing:
 
