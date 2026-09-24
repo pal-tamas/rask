@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -45,7 +46,7 @@ public static class RangeExclusionBuilderExtensions
     /// An expression does not name plain properties of the entity, or <paramref name="ignoreSoftDeleted"/> is
     /// <see langword="true"/> for an entity that does not soft delete.
     /// </exception>
-    public static EntityTypeBuilder<TEntity> HasNonOverlappingRange<TEntity>(
+    public static EntityTypeBuilder<TEntity> HasNonOverlappingRange<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         this EntityTypeBuilder<TEntity> builder,
         Expression<Func<TEntity, object?>> lo,
         Expression<Func<TEntity, object?>> hi,

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
@@ -78,11 +79,13 @@ public static class ModelBuilderExtensions
         ArgumentNullException.ThrowIfNull(modelBuilder);
 
         // Materialised first: the calls below add properties, and mutating the model while enumerating
-        // its entity types is what makes a complex type get promoted to one.
-        var clrTypes = modelBuilder.Model.GetEntityTypes().Select(static e => e.ClrType).ToList();
+        // its entity types is what makes a complex type get promoted to one. The entity types, not their CLR types:
+        // EF annotates ClrType with what Entity(Type) needs kept by the trimmer, and a List<Type> would drop it.
+        var entityTypes = modelBuilder.Model.GetEntityTypes().ToList();
 
-        foreach (var clrType in clrTypes)
+        foreach (var entityType in entityTypes)
         {
+            var clrType = entityType.ClrType;
             ApplyKeyConvention(modelBuilder, clrType);
 
             var timestamped = typeof(IEntity).IsAssignableFrom(clrType);
@@ -160,8 +163,8 @@ public static class ModelBuilderExtensions
             }
         }
 
-        MapValueCollections(modelBuilder, clrTypes);
-        ApplyTenancy(modelBuilder, clrTypes, context);
+        MapValueCollections(modelBuilder, entityTypes);
+        ApplyTenancy(modelBuilder, entityTypes, context);
         BindChildrenToTheirParents(modelBuilder);
 
         return modelBuilder;
@@ -195,10 +198,11 @@ public static class ModelBuilderExtensions
     /// EF Core maps a real property by its own convention whatever this does.
     /// </para>
     /// </remarks>
-    private static void ApplyTenancy(ModelBuilder modelBuilder, List<Type> clrTypes, DbContext? context)
+    private static void ApplyTenancy(ModelBuilder modelBuilder, List<IMutableEntityType> entityTypes, DbContext? context)
     {
-        foreach (var clrType in clrTypes)
+        foreach (var entityType in entityTypes)
         {
+            var clrType = entityType.ClrType;
             if (!typeof(IEntity).IsAssignableFrom(clrType))
             {
                 continue;
@@ -251,7 +255,7 @@ public static class ModelBuilderExtensions
 
         var current = Expression.Property(
             Expression.Convert(Expression.Constant(context), typeof(ITenantScoped)),
-            nameof(ITenantScoped.CurrentTenant));
+            typeof(ITenantScoped).GetProperty(nameof(ITenantScoped.CurrentTenant))!);
 
         var unrestricted = Expression.Equal(current, Expression.Constant(null, typeof(Guid?)));
 
@@ -306,10 +310,11 @@ public static class ModelBuilderExtensions
     /// mapping over it would silently undo the author's own answer.
     /// </para>
     /// </remarks>
-    private static void MapValueCollections(ModelBuilder modelBuilder, List<Type> clrTypes)
+    private static void MapValueCollections(ModelBuilder modelBuilder, List<IMutableEntityType> entityTypes)
     {
-        foreach (var clrType in clrTypes)
+        foreach (var entityType in entityTypes)
         {
+            var clrType = entityType.ClrType;
             var declared = ConventionRegistry.CollectionsFor(clrType);
             if (declared.Count == 0)
             {
@@ -406,7 +411,8 @@ public static class ModelBuilderExtensions
     // and except where the application already said how its key is generated. An app with a context of its
     // own calls this AFTER its own configuration, so overwriting an explicit ValueGeneratedOnAdd or a database
     // default here would send an empty key straight past the default that was meant to fill it.
-    private static void ApplyKeyConvention(ModelBuilder modelBuilder, Type clrType)
+    private static void ApplyKeyConvention(
+        ModelBuilder modelBuilder, [DynamicallyAccessedMembers(DataTrimming.Entity)] Type clrType)
     {
         if (IdTypeOf(clrType) is not { } idType || IsInteger(idType))
         {
@@ -462,11 +468,13 @@ public static class ModelBuilderExtensions
     internal static LambdaExpression BuildNotDeletedFilter(EntityTypeBuilder builder, Type clrType)
     {
         var parameter = Expression.Parameter(clrType, "e");
-        var isShadow = builder.Metadata.FindProperty(Columns.DeletedAt)?.IsShadowProperty() ?? true;
+        var mapped = builder.Metadata.FindProperty(Columns.DeletedAt);
 
-        Expression deletedAt = isShadow
+        // The member EF mapped, not a lookup by name: Expression.Property(x, "name") reflects over a type the trimmer
+        // cannot see, and the metadata already holds the PropertyInfo (or the backing field) the column reads.
+        Expression deletedAt = mapped is null || mapped.IsShadowProperty()
             ? Expression.Call(EfPropertyNullableDateTime, parameter, Expression.Constant(Columns.DeletedAt))
-            : Expression.Property(parameter, Columns.DeletedAt);
+            : Expression.MakeMemberAccess(parameter, (MemberInfo?)mapped.PropertyInfo ?? mapped.FieldInfo!);
 
         var body = Expression.Equal(deletedAt, Expression.Constant(null, typeof(DateTime?)));
         return Expression.Lambda(body, parameter);

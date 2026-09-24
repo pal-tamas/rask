@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
@@ -141,7 +142,7 @@ internal sealed class FullTextSearchQueryInterceptor : IQueryExpressionIntercept
             List<(LambdaExpression Key, bool Descending)> tieBreakers)
         {
             var entity = index.EntityType.ClrType;
-            var hit = typeof(FullTextHit<>).MakeGenericType(entity);
+            var hit = HitType.For(entity);
 
             Expression hits;
             if (index.KeyEntity is null)
@@ -158,7 +159,7 @@ internal sealed class FullTextSearchQueryInterceptor : IQueryExpressionIntercept
                 hits = Expression.Call(
                     typeof(Queryable),
                     nameof(Queryable.Join),
-                    [entity, typeof(Dictionary<string, object>), key.ClrType, hit],
+                    [entity, typeof(Dictionary<string, object>), key.ClrType, hit.Type],
                     source,
                     matching,
                     Expression.Quote(Expression.Lambda(Property(p, key.Name, key.ClrType), p)),
@@ -176,42 +177,42 @@ internal sealed class FullTextSearchQueryInterceptor : IQueryExpressionIntercept
                 hits = Expression.Call(
                     typeof(Queryable),
                     nameof(Queryable.SelectMany),
-                    [entity, typeof(double), hit],
+                    [entity, typeof(double), hit.Type],
                     source,
                     Expression.Quote(Expression.Lambda(
                         typeof(Func<,>).MakeGenericType(entity, typeof(IEnumerable<double>)), rank, p)),
                     Expression.Quote(Expression.Lambda(Hit(hit, r, s), r, s)));
             }
 
-            var h = Expression.Parameter(hit, "h");
+            var h = Expression.Parameter(hit.Type, "h");
             Expression ordered = Expression.Call(
                 typeof(Queryable),
                 nameof(Queryable.OrderBy),
-                [hit, typeof(double)],
+                [hit.Type, typeof(double)],
                 hits,
-                Expression.Quote(Expression.Lambda(Expression.Property(h, nameof(FullTextHit<object>.Rank)), h)));
+                Expression.Quote(Expression.Lambda(Expression.Property(h, hit.Rank), h)));
 
             foreach (var (key, descending) in tieBreakers)
             {
                 // k(row) becomes k(hit.Item): the same body, with its parameter read out of the hit.
-                var t = Expression.Parameter(hit, "t");
-                var body = new ParameterReplacer(key.Parameters[0], Expression.Property(t, nameof(FullTextHit<object>.Item)))
+                var t = Expression.Parameter(hit.Type, "t");
+                var body = new ParameterReplacer(key.Parameters[0], Expression.Property(t, hit.Item))
                     .Visit(key.Body);
                 ordered = Expression.Call(
                     typeof(Queryable),
                     descending ? nameof(Queryable.ThenByDescending) : nameof(Queryable.ThenBy),
-                    [hit, key.ReturnType],
+                    [hit.Type, key.ReturnType],
                     ordered,
                     Expression.Quote(Expression.Lambda(body, t)));
             }
 
-            var o = Expression.Parameter(hit, "o");
+            var o = Expression.Parameter(hit.Type, "o");
             return Expression.Call(
                 typeof(Queryable),
                 nameof(Queryable.Select),
-                [hit, entity],
+                [hit.Type, entity],
                 ordered,
-                Expression.Quote(Expression.Lambda(Expression.Property(o, nameof(FullTextHit<object>.Item)), o)));
+                Expression.Quote(Expression.Lambda(Expression.Property(o, hit.Item), o)));
         }
 
         // keys.Where(k => k.K1 == p.K1 && …).Join(index.Where(f => f.Match == @match), k => k.rowid, f => f.rowid, (k, f) => f.Rank)
@@ -374,12 +375,14 @@ internal sealed class FullTextSearchQueryInterceptor : IQueryExpressionIntercept
                 Expression.Quote(Expression.Lambda(predicate(row), row)));
         }
 
-        private static Expression Hit(Type hit, Expression item, Expression rank) =>
-            Expression.MemberInit(
-                Expression.New(hit),
-                Expression.Bind(hit.GetProperty(nameof(FullTextHit<object>.Item))!, item),
-                Expression.Bind(hit.GetProperty(nameof(FullTextHit<object>.Rank))!, rank));
+        private static Expression Hit(HitType hit, Expression item, Expression rank) =>
+            Expression.MemberInit(Expression.New(hit.Constructor), Expression.Bind(hit.Item, item), Expression.Bind(hit.Rank, rank));
 
+        // EF.Property<TProperty>(entity, name), closed over a column type read from the model — exactly how EF Core
+        // builds the same call itself (its internal EF.MakePropertyMethod carries this suppression).
+        [UnconditionalSuppressMessage("Trimming", "IL2060:MakeGenericMethod",
+            Justification = "EF.Property<TProperty> declares no DynamicallyAccessedMembers on TProperty, so closing it "
+                            + "over any type needs nothing kept for it; it is a marker EF translates, never invoked.")]
         private static Expression Property(Expression instance, string name, Type type) =>
             Expression.Call(PropertyMethod.MakeGenericMethod(type), instance, Expression.Constant(name));
 
@@ -401,6 +404,28 @@ internal sealed class FullTextSearchQueryInterceptor : IQueryExpressionIntercept
             node == parameter ? replacement : base.VisitParameter(node);
     }
 
+    /// <summary><see cref="FullTextHit{TEntity}" /> closed over the searched entity, with the members the rewrite binds.</summary>
+    private sealed record HitType(Type Type, ConstructorInfo Constructor, PropertyInfo Item, PropertyInfo Rank)
+    {
+        // The only reflection over a type the trimmer cannot see: FullTextHit<> is closed over the searched entity at
+        // runtime. Its members are the generic DEFINITION's, which the DynamicDependency keeps for every entity, so the
+        // lookups below cannot come back empty in a trimmed app.
+        [DynamicDependency(
+            DynamicallyAccessedMemberTypes.PublicParameterlessConstructor | DynamicallyAccessedMemberTypes.PublicProperties,
+            typeof(FullTextHit<>))]
+        [UnconditionalSuppressMessage("Trimming", "IL2070:UnrecognizedReflectionPattern",
+            Justification = "FullTextHit<>'s constructor and properties are kept by the DynamicDependency above.")]
+        public static HitType For(Type entity)
+        {
+            var type = typeof(FullTextHit<>).MakeGenericType(entity);
+            return new HitType(
+                type,
+                type.GetConstructor(Type.EmptyTypes)!,
+                type.GetProperty(nameof(FullTextHit<object>.Item))!,
+                type.GetProperty(nameof(FullTextHit<object>.Rank))!);
+        }
+    }
+
     /// <summary>The searched entity's index, as mapped by <see cref="FullTextSearchEntityConvention"/>.</summary>
     private sealed record Index(
         IEntityType EntityType,
@@ -411,7 +436,7 @@ internal sealed class FullTextSearchQueryInterceptor : IQueryExpressionIntercept
     {
         public static Index For(IModel model, Type type)
         {
-            var entityType = model.FindEntityType(type);
+            var entityType = model.FindEntityTypeOf(type);
 
             // Annotations are not inherited: a derived type in a hierarchy shares its base's table, and so its
             // index, but carries no declaration of its own.

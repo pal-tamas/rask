@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -31,7 +32,7 @@ internal static class AggregateLoad
     /// <param name="context">The context to read through. Not disposed here.</param>
     /// <param name="keyValues">The key's values, in the order the key declares them.</param>
     /// <param name="cancellationToken">Cancels the load.</param>
-    internal static async Task<TEntity?> FindAsync<TEntity>(
+    internal static async Task<TEntity?> FindAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         DbContext context, object?[] keyValues, CancellationToken cancellationToken)
         where TEntity : class, IAggregate
     {

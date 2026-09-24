@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -26,12 +27,14 @@ namespace Rask.Data;
 public class RaskReadDbContext : DbContext, ITenantScoped
 {
     /// <summary>Creates the context with the options the host registered.</summary>
+    [RequiresUnreferencedCode(DataTrimming.EfCoreUnreferencedCode)]
     public RaskReadDbContext(DbContextOptions<RaskReadDbContext> options)
         : base(options)
     {
     }
 
     /// <summary>Creates the context for a derived type supplying its own options.</summary>
+    [RequiresUnreferencedCode(DataTrimming.EfCoreUnreferencedCode)]
     protected RaskReadDbContext(DbContextOptions options)
         : base(options)
     {
@@ -59,6 +62,9 @@ public class RaskReadDbContext : DbContext, ITenantScoped
     }
 
     /// <inheritdoc />
+    // ReplaceService<,> activates the key factory through EF Core's internal container by reflection, and EF does not
+    // annotate it for the trimmer — kept here, or a trimmed app fails building the read model.
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(ReadModelCacheKeyFactory))]
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         ArgumentNullException.ThrowIfNull(optionsBuilder);

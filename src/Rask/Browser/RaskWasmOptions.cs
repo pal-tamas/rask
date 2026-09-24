@@ -10,10 +10,10 @@ namespace Rask;
 /// </para>
 /// <para>
 /// <b>The browser set is smaller than the server's, and deliberately so.</b> The data batteries —
-/// <c>Rask.Data</c>, <c>Rask.SQLite.Browser</c>, <c>Rask.Jobs</c> — all need EF Core, and EF Core does not
-/// survive the trimmer in a browser build. Shipping them by default would force <c>PublishTrimmed=false</c>
-/// on every WebAssembly app and charge every visitor the difference on first load, including apps with no
-/// database at all. A local-first app references those three itself, and takes the untrimmed build knowingly.
+/// <c>Rask.Data</c>, <c>Rask.SQLite.Browser</c>, <c>Rask.Jobs</c> — all need EF Core, and EF Core survives
+/// the trimmer in a browser build only with its assemblies rooted, about 2 MB brotli. Shipping them by
+/// default would charge every visitor that on first load, including apps with no database at all. A
+/// local-first app references those three itself, and roots EF Core knowingly.
 /// </para>
 /// </remarks>
 public sealed class RaskWasmOptions

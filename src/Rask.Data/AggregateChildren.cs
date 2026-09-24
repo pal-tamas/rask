@@ -99,7 +99,7 @@ internal static class AggregateChildren
     private static string[] Build(IModel model, Type clrType)
     {
         var paths = new List<string>();
-        Walk(model.FindEntityType(clrType), prefix: "", depth: 0, paths);
+        Walk(model.FindEntityTypeOf(clrType), prefix: "", depth: 0, paths);
         return [.. paths];
     }
 

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -44,7 +45,7 @@ public static class FullTextSearchBuilderExtensions
     /// <returns>The same builder, for chaining.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="builder"/> or <paramref name="properties"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException"><paramref name="properties"/> does not name plain properties, or names one twice.</exception>
-    public static EntityTypeBuilder<TEntity> HasFullTextSearch<TEntity>(
+    public static EntityTypeBuilder<TEntity> HasFullTextSearch<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         this EntityTypeBuilder<TEntity> builder,
         Expression<Func<TEntity, object?>> properties,
         FullTextTokenizer tokenizer = FullTextTokenizer.Unicode)

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 
 namespace Rask.Data;
@@ -58,7 +59,7 @@ namespace Rask.Data;
 /// </remarks>
 public static class ModelSet
 {
-    extension<TEntity>(TEntity)
+    extension<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(TEntity)
         where TEntity : class, IAggregate
     {
         /// <summary>Inserts an entity the caller built — through its own factory and methods — and saves.</summary>

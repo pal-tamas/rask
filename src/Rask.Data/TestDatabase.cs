@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 
 namespace Rask.Data;
@@ -64,6 +65,7 @@ public sealed class TestDatabase : IAsyncDisposable
     ///     The clock the audit stamps come from. Pass a fake to assert on <c>CreatedAt</c>/<c>UpdatedAt</c>.
     /// </param>
     /// <param name="cancellationToken">Cancels schema creation.</param>
+    [RequiresUnreferencedCode(DataTrimming.EfCoreUnreferencedCode)]
     public static async Task<TestDatabase> StartAsync(
         Action<DbContextOptionsBuilder> configure,
         TimeProvider? timeProvider = null,
@@ -130,7 +132,7 @@ public sealed class TestDatabase : IAsyncDisposable
     /// </remarks>
     /// <param name="key">The aggregate's primary key.</param>
     /// <param name="cancellationToken">Cancels the load.</param>
-    public Task<TEntity?> LoadAsync<TEntity>(object key, CancellationToken cancellationToken = default)
+    public Task<TEntity?> LoadAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(object key, CancellationToken cancellationToken = default)
         where TEntity : class, IAggregate
     {
         ArgumentNullException.ThrowIfNull(key);
@@ -140,7 +142,7 @@ public sealed class TestDatabase : IAsyncDisposable
     /// <summary>Loads one aggregate whole, by composite key.</summary>
     /// <param name="keyValues">The key's values, in the order the key declares them.</param>
     /// <param name="cancellationToken">Cancels the load.</param>
-    public Task<TEntity?> LoadAsync<TEntity>(object?[] keyValues, CancellationToken cancellationToken = default)
+    public Task<TEntity?> LoadAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(object?[] keyValues, CancellationToken cancellationToken = default)
         where TEntity : class, IAggregate
     {
         ArgumentNullException.ThrowIfNull(keyValues);
@@ -162,7 +164,7 @@ public sealed class TestDatabase : IAsyncDisposable
         await _schemaOwner.DisposeAsync().ConfigureAwait(false);
     }
 
-    private static async Task<TEntity?> FindByKeyAsync<TEntity>(
+    private static async Task<TEntity?> FindByKeyAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         Func<DbContext> openContext, object?[] keyValues, CancellationToken cancellationToken)
         where TEntity : class, IAggregate
     {

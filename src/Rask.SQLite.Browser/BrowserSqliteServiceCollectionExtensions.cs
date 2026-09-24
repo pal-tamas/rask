@@ -30,9 +30,10 @@ public static class BrowserSqliteServiceCollectionExtensions
     ///         that later services find a populated file.
     ///     </para>
     ///     <para>
-    ///         An app using Entity Framework Core on top of this must publish with
-    ///         <c>PublishTrimmed=false</c> — EF Core does not survive the trimmer in a browser build.
-    ///         Microsoft.Data.Sqlite on its own does.
+    ///         An app using Entity Framework Core on top of this must root EF Core's three assemblies
+    ///         (<c>TrimmerRootAssembly</c>) in a trimmed publish — EF Core builds its model by reflection the
+    ///         trimmer cannot follow. Microsoft.Data.Sqlite, Rask.Data and Rask.SQLite.EntityFrameworkCore
+    ///         are trim-safe and need nothing; docs/sqlite.md has the recipe.
     ///     </para>
     /// </remarks>
     public static IServiceCollection AddRaskBrowserSqlite(

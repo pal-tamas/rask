@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Data;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
@@ -84,14 +85,14 @@ internal sealed class BulkInsertPlan
     /// <summary>Setters for the audit stamps, when the entity is <see cref="Entity{TId}"/>.</summary>
     internal BulkTimestamps? Timestamps { get; }
 
-    internal static BulkInsertPlan For<TEntity>(DbContext context)
+    internal static BulkInsertPlan For<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(DbContext context)
         where TEntity : class
     {
         var perModel = Cache.GetValue(context.Model, static _ => new ConcurrentDictionary<Type, BulkInsertPlan>());
         return perModel.GetOrAdd(typeof(TEntity), _ => Build<TEntity>(context));
     }
 
-    private static BulkInsertPlan Build<TEntity>(DbContext context)
+    private static BulkInsertPlan Build<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(DbContext context)
         where TEntity : class
     {
         var entityType = context.Model.FindEntityType(typeof(TEntity))
@@ -250,7 +251,7 @@ internal sealed class BulkInsertPlan
             is TypeCode.Byte or TypeCode.SByte or TypeCode.Int16 or TypeCode.UInt16
             or TypeCode.Int32 or TypeCode.UInt32 or TypeCode.Int64 or TypeCode.UInt64;
 
-    private static object? GetDefault(Type type) =>
+    private static object? GetDefault([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type type) =>
         type.IsValueType && Nullable.GetUnderlyingType(type) is null ? Activator.CreateInstance(type) : null;
 
     internal static InvalidOperationException Unsupported(string reason) =>

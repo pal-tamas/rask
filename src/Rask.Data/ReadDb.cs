@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -39,6 +40,11 @@ public static class ReadDb
     ///         Deferring it is also what <see cref="Db" /> does, through its own binding.
     ///     </para>
     /// </remarks>
+    [UnconditionalSuppressMessage("Trimming", "IL2026:RequiresUnreferencedCode",
+        Justification = "IDbContextFactory<RaskReadDbContext> keeps the context's constructors, which carry EF Core's "
+                        + "own [RequiresUnreferencedCode]. Nothing is constructed here unless the app registered that "
+                        + "factory, and the registration (AddDbContextFactory<RaskReadDbContext>) already reports EF's "
+                        + "IL2026 to the app — the same warning, at the line that chose EF.")]
     public static void Configure(IServiceProvider services)
     {
         ArgumentNullException.ThrowIfNull(services);

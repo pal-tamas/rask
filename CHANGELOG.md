@@ -327,6 +327,16 @@ them until tagged releases begin.
 
 ### Changed
 
+- **Rask.Data and Rask.SQLite.EntityFrameworkCore are trim-safe (#1132).** Both build `IsTrimmable`, so the trim
+  analyzer checks them on every build under warnings-as-errors, and a trimmed browser app on EF Core now roots only
+  EF Core's own three assemblies and suppresses only EF's own `IL2026`/`IL2104` — Rask's assemblies need no
+  `TrimmerRootAssembly` and no `NoWarn`. EF Core's reflection requirements are carried through every generic and
+  `Type` path (the generated writes and read faces, `AddRaskData<TContext>`, `HasFullTextSearch`, the read-model
+  mapping), and `RaskDbContext`/`RaskReadDbContext` repeat EF's own `[RequiresUnreferencedCode]` on their
+  constructors, so an app's context gets exactly the warning a plain `DbContext` gets. The docs no longer say EF Core
+  needs `PublishTrimmed=false` in the browser: [SQLite in the browser](docs/sqlite.md#sqlite-in-the-browser-wasm)
+  has the trimmed recipe. The rask.sh notes demo drops its Rask roots and six suppressed warning codes and is 67 KB
+  brotli smaller; the browser SQLite test fixture now publishes trimmed the same way.
 - **rask.sh, the README, the NuGet readmes and `llms.txt` present Rask as the full-stack .NET web framework, for a
   team of one or fifty.** The landing page leads with the whole stack (data and queries, auth, jobs, email, outbox,
   cache, files, realtime subscriptions, multi-tenancy, full-text search, the `/_rask` console, `rask new`/`db`/

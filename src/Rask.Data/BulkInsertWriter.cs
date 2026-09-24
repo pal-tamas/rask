@@ -1,4 +1,5 @@
 using System.Data.Common;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -33,7 +34,7 @@ internal static class BulkInsertWriter
     /// <summary>SQL Server's cap on the rows of one <c>VALUES</c> list; used for every server so they share one shape.</summary>
     internal const int MaxRowsPerStatement = 1_000;
 
-    internal static Task<int> WriteAsync<TEntity>(
+    internal static Task<int> WriteAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         DbContext context,
         IEnumerable<TEntity> entities,
         BulkInsertOptions options,
@@ -50,7 +51,7 @@ internal static class BulkInsertWriter
     /// <see cref="WriteAsync{TEntity}(DbContext, IEnumerable{TEntity}, BulkInsertOptions, CancellationToken)"/> with the
     /// packing stated, so the packed writer can be exercised on SQLite, which never chooses it.
     /// </summary>
-    internal static async Task<int> WriteAsync<TEntity>(
+    internal static async Task<int> WriteAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         DbContext context,
         IEnumerable<TEntity> entities,
         BulkInsertOptions options,
@@ -102,7 +103,7 @@ internal static class BulkInsertWriter
 
     private static int Pack(int maxParameters, int columns) => Math.Clamp(maxParameters / columns, 1, MaxRowsPerStatement);
 
-    private static async Task<int> WriteBatchAsync<TEntity>(
+    private static async Task<int> WriteBatchAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         DbContext context,
         BatchWrite write,
         TEntity[] batch,
@@ -148,7 +149,7 @@ internal static class BulkInsertWriter
         }
     }
 
-    private static async Task<int> WriteRowsAsync<TEntity>(
+    private static async Task<int> WriteRowsAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         DbConnection connection,
         DbTransaction? transaction,
         BatchWrite write,
@@ -193,7 +194,7 @@ internal static class BulkInsertWriter
         return written;
     }
 
-    private static async Task<int> WritePackedAsync<TEntity>(
+    private static async Task<int> WritePackedAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         DbConnection connection,
         DbTransaction? transaction,
         BatchWrite write,

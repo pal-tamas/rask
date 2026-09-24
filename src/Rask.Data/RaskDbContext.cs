@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
@@ -32,12 +33,14 @@ namespace Rask.Data;
 public class RaskDbContext : DbContext, ITenantScoped
 {
     /// <summary>Creates the context with the options the host registered.</summary>
+    [RequiresUnreferencedCode(DataTrimming.EfCoreUnreferencedCode)]
     public RaskDbContext(DbContextOptions<RaskDbContext> options)
         : base(options)
     {
     }
 
     /// <summary>Creates the context for a derived type supplying its own options.</summary>
+    [RequiresUnreferencedCode(DataTrimming.EfCoreUnreferencedCode)]
     protected RaskDbContext(DbContextOptions options)
         : base(options)
     {
