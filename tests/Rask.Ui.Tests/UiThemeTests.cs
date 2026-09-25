@@ -1,5 +1,3 @@
-using Rask;
-
 namespace Rask.UiTests;
 
 /// <summary>

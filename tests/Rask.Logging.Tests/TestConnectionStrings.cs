@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Rask.Logging;
 
 /// <summary>
 /// <c>AddRaskLogging</c> reads its connection string from <c>Rask:ConnectionStrings:Logs</c>. These tests give every

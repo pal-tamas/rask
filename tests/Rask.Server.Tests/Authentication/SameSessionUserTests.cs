@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.Security.Claims;
 using Rask.Core.Diagnostics;
-using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.Authentication;
 

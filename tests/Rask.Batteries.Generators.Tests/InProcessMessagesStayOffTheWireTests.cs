@@ -1,4 +1,6 @@
-namespace Rask.Cqrs.Generators.Tests;
+using Rask.Cqrs;
+
+namespace Rask.Batteries.Generators.Tests;
 
 // A job payload and an outbox event are only ever sent by the server to itself. With a codec, anyone could
 // POST one to /_rask/cqrs and run its handler at once — a welcome-mail job becomes an open mail relay.

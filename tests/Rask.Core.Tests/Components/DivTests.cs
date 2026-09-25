@@ -1,5 +1,3 @@
-using Rask.Core;
-
 namespace Rask.Core.Tests.Components;
 
 // MIGRATED to the builder surface. A test class is not a component, so the entries do not reach it by

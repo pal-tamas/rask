@@ -1,6 +1,5 @@
 using System.Reflection;
 using Rask.Core.Routing;
-using Rask.Site;
 using Rask.Site.Features;
 using Rask.Site.Tests.Infrastructure;
 

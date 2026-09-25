@@ -1,8 +1,6 @@
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Rask.Core.Routing;
-using Rask.Site;
-using Rask.Site.Features;
 using Rask.Site.Tests.Infrastructure;
 
 namespace Rask.Site.Tests.Layout;

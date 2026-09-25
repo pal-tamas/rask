@@ -1,4 +1,3 @@
-using Rask;
 using Rask.Core;
 
 namespace Rask.DevTools.Tests;

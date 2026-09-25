@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 using Rask.Generators.Shared;
 
-namespace Rask.Cqrs.Generators;
+namespace Rask.Batteries.Generators;
 
 /// <summary>
 ///     Emits the reflection-free wire codecs that let a message cross a process boundary, and registers

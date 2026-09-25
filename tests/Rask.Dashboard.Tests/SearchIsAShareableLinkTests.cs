@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Routing;
 using Rask.Dashboard.Pages;
-using Rask.Logging;
 using Rask.Testing;
 
 namespace Rask.Dashboard.Tests;

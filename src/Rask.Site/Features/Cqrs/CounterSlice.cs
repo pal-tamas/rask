@@ -1,5 +1,3 @@
-using Rask.Cqrs;
-
 namespace Rask.Site.Features;
 
 // A tiny vertical slice that shows all four Rask.Cqrs message shapes wired reflection-free by the

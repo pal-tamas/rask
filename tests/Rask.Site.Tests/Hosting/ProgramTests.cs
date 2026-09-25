@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using Rask.Site;
 using Rask.Site.Features;
 
 namespace Rask.Site.Tests.Hosting;

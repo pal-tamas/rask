@@ -1,5 +1,3 @@
-using Rask.Core;
-
 #pragma warning disable RASK014 // directly constructing the component under test, not rendering it
 
 namespace Rask.Core.Tests;

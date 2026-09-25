@@ -12,7 +12,6 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Rask.Batteries;
 using Rask.Hosting.Shared;
-using Rask.Wire;
 
 namespace Rask.Auth;
 

@@ -7,10 +7,9 @@ using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
-using Rask.Cqrs.Generators;
 using Rask.Generators.Shared;
 
-namespace Rask.Data.Generators;
+namespace Rask.Batteries.Generators;
 
 /// <summary>
 /// Builds the EF Core model from the <c>Rask.Data.Entity&lt;TId&gt;</c> types in the compilation, so an app declares

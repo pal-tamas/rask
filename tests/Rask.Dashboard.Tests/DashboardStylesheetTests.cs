@@ -1,6 +1,5 @@
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Hosting;
-using Rask;
 using Rask.Core.Routing;
 using Rask.Dashboard.Pages;
 using Rask.Testing;
