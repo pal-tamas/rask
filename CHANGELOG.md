@@ -9,6 +9,10 @@ them until tagged releases begin.
 
 ### Changed
 
+- **The generator test suites run about 15× faster.** Their harnesses built a fresh Roslyn reference set for every
+  test, so each of ~950 tests re-read every framework assembly's metadata; the set is now built once per process.
+  `Rask.Generators.Tests` went from 67 s to 4 s and `Rask.Batteries.Generators.Tests` from 37 s to 3 s, taking the
+  longest assembly off the unit gate's critical path.
 - **BREAKING: MDN is the source of truth for the HTML elements.** Every element type, its base, its tags and its
   attribute properties are now generated at build time from MDN's own data (`@webref/elements`, `@webref/idl`,
   `@mdn/browser-compat-data`), kept in `src/Rask.Core/Dom/mdn.snapshot.json`. Nothing generated is committed,
