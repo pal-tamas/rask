@@ -9,6 +9,12 @@ them until tagged releases begin.
 
 ### Security
 
+- **Pages can no longer be framed by another site.** Neither a live page nor a hosted SPA sent any
+  anti-framing header, so a hostile page could frame the app and trick a signed-in user (or an admin on
+  `/_rask`) into clicks they did not mean. Every page and SPA response now carries `X-Frame-Options:
+  SAMEORIGIN`, `Content-Security-Policy: frame-ancestors 'self'`, `Referrer-Policy:
+  strict-origin-when-cross-origin` and `X-Content-Type-Options: nosniff`, each added only when the app has not
+  set its own, so an app meant to be embedded sets the header in its own middleware and keeps it.
 - **`rask deploy` no longer leaves its secrets readable in the shared temp directory.** The env file handed to
   `docker --env-file` (SMTP passwords, S3 keys…) was written with the default mode, usually world-readable, and
   the Caddyfile went to a predictable `/tmp/rask-<app>.Caddyfile` another local user could create first. Both
