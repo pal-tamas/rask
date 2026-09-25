@@ -59,13 +59,13 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
     ///     Controlled mode only: a bound control installs its own <c>oninput</c> write-back and never
     ///     reads this. Use <see cref="AfterBind" /> for a side effect on each bound write.
     /// </remarks>
-    public Callback<string>? OnInput { get; set; }
+    public Callback<string> OnInput { get; set; }
 
     /// <summary>
     ///     Called with the parsed value once the user commits a change, in controlled mode. Store it and
     ///     pass it back through <c>Value</c>.
     /// </summary>
-    public Callback<T>? OnChange { get; set; }
+    public Callback<T> OnChange { get; set; }
 
     /// <summary>
     ///     Called with the chosen files when this is a file input. The list is empty when the user cancels
@@ -75,7 +75,7 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
     ///         Re-check them on the server before storing anything.
     ///     </para>
     /// </summary>
-    public Callback<IReadOnlyList<RaskFileType>>? OnFiles { get; set; }
+    public Callback<IReadOnlyList<RaskFileType>> OnFiles { get; set; }
 
     /// <summary>
     ///     The model field this control is bound to, as an expression such as <c>() => model.Email</c>.
@@ -88,7 +88,7 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
     public Validator<T>? Validate { get; set; }
 
     /// <summary>Runs after a successful bind, once the model has the new value.</summary>
-    public Callback<T>? AfterBind { get; set; }
+    public Callback<T> AfterBind { get; set; }
 
     protected override void WriteAttributes(StringBuilder sb)
     {
@@ -203,7 +203,7 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
         else
         {
             // Plain / controlled.
-            var input = OnInput?.Handler;
+            var input = OnInput.Handler;
             if (input is not null)
             {
                 AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(input));
@@ -216,7 +216,7 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
             }
         }
 
-        var files = OnFiles?.Handler;
+        var files = OnFiles.Handler;
         if (files is not null)
         {
             AppendAttr(sb, "data-rask-on-files", ctx.RegisterHandler(files));

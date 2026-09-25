@@ -41,6 +41,28 @@ them until tagged releases begin.
 
 ### Security
 
+- **The live client only follows a navigation to this origin, and logs dev errors as plain text.** A server
+  `location` frame was passed straight to `location.assign`, so a `javascript:` or off-site URL in it would have
+  run or navigated away; it is now resolved and refused unless it is same-origin. The dev-error console line
+  went through `console.error`'s format string, so a title carrying `%c`/`%o` was read as a directive; it is now
+  passed as `%s`. (CodeQL `js/xss`, `js/client-side-unvalidated-url-redirection`, `js/tainted-format-string`.)
+- **Scaffolded front ends no longer lock vulnerable transitive packages.** The analog template locked `uuid`
+  8.3.2, `esbuild` 0.27.7 and `qs` ≤ 6.15.3, and the sveltekit template `cookie` 0.6.0; npm `overrides` now pin
+  the patched releases, and every template lockfile audits clean.
+- **Pages can no longer be framed by another site.** Neither a live page nor a hosted SPA sent any
+  anti-framing header, so a hostile page could frame the app and trick a signed-in user (or an admin on
+  `/_rask`) into clicks they did not mean. Every page and SPA response now carries `X-Frame-Options:
+  SAMEORIGIN`, `Content-Security-Policy: frame-ancestors 'self'`, `Referrer-Policy:
+  strict-origin-when-cross-origin` and `X-Content-Type-Options: nosniff`, each added only when the app has not
+  set its own, so an app meant to be embedded sets the header in its own middleware and keeps it.
+- **`rask deploy` no longer leaves its secrets readable in the shared temp directory.** The env file handed to
+  `docker --env-file` (SMTP passwords, S3 keys…) was written with the default mode, usually world-readable, and
+  the Caddyfile went to a predictable `/tmp/rask-<app>.Caddyfile` another local user could create first. Both
+  are now owner-only (0600), and the Caddyfile's name is unguessable.
+- **A scaffolded app keeps production secrets and data out of git and out of its image.** `.gitignore` covered
+  `.env` but not the `.env.production` the docs tell you to write, nor the `*.files.tgz` `rask db backup` leaves
+  beside its copy; `.dockerignore` excluded none of `.env*`, `*.db` or `storage/`, so `COPY . .` could put them
+  in an image layer and `rask deploy` sent them to the remote daemon as build context. Both lists now do.
 - **A scaffolded front-end app no longer lets anonymous callers run every command.** The 13 SPA and meta
   templates (React, Vue, Angular, Next.js, Nuxt, SvelteKit…) set `Rask:Cqrs:Server:RequireAuthenticatedUser`
   to `false` unconditionally, so the starter greeting could answer an anonymous landing page, and with it any
@@ -81,6 +103,11 @@ them until tagged releases begin.
 
 ### Added
 
+- **A scoped script's tuples and arrow functions reach C# too.** `export function pair(): [number, string]` is
+  `ValueTask<(double, string)> Pair()` (labels name the elements: `[x: number, y: string]` → `(double X, string Y)`),
+  a tuple parameter crosses as the array the script expects, and `export const double = (x: number) => x * 2` is
+  `Double(double x)` like any function. A tuple inside other data, one with an optional or rest element, and a plain
+  value export (`export const PI = 3.14`) are still RASK094, with the reason.
 - **A component calls its scoped TypeScript like its own private methods.** `export function width(el: HTMLElement
   | null): number` in `Card.ts` is `await Width(_box)` on `Card` — no `IJSRuntime` to inject, no
   `"Rask.Card.width"` to spell, and a renamed or retyped export is a compile error. The build's tsgo compile now
@@ -107,6 +134,15 @@ them until tagged releases begin.
 
 ### Changed
 
+- **An event is `Callback<T>`, not `Callback<T>?`, and fires with `await OnRate.Invoke(n)`.** A component declares
+  `public Callback<int> OnRate { get; set; }` and calls it back with one await, where it used to write
+  `if (OnRate?.Invoke(n) is { } t) await t;`. An unset callback is a no-op, and a non-nullable `Callback`,
+  `Callback<T>` or `Callback<T1, T2>` is never a required chain step (never RASK001): `RatingStars.OnRate(…)` and
+  leaving it off both compile, and `.OnRate(null)` still means "no handler". `Invoke` now returns a `ValueTask`
+  instead of `Task?` — already complete, with nothing allocated, for a synchronous or unset handler. Every event the
+  framework declares (the DOM events on `Element`, the media events, `Form`, the form controls, `IFormControl<T>`,
+  the UI kit, package islands and Blazor islands) is non-nullable now, so ask `.HasValue` where you used to ask
+  `is not null`. A `Callback<T>?` of your own still works; its `Invoke` just returns `ValueTask` too.
 - **`rask new` scaffolds onto `RaskApp`.** A server app's `Program.cs` is `RaskApp.Create(args).Run<App>();`, its
   csproj references `Rask.Server` (plus the dev-only `Rask.DevTools`), and there is no `AppDbContext.cs` — RaskApp's
   own context maps your aggregates and every battery's tables. A `--no-<battery>` flag writes `c.Jobs.Off()` into

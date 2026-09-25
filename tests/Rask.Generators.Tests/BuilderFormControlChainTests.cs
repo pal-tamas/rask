@@ -26,10 +26,10 @@ public class BuilderFormControlChainTests
                                   public partial class Widget<T> : Component, IFormControl<T>
                                   {
                                       public T? Value { get; set; }
-                                      public Callback<T>? OnChange { get; set; }
+                                      public Callback<T> OnChange { get; set; }
                                       public Expression<Func<T>>? Bind { get; set; }
                                       public Validator<T>? Validate { get; set; }
-                                      public Callback<T>? AfterBind { get; set; }
+                                      public Callback<T> AfterBind { get; set; }
                                       public bool? Checked { get; set; }
                                       public Callback<string>? OnInput { get; set; }
                                       public string? Label { get; set; }
@@ -67,10 +67,10 @@ public class BuilderFormControlChainTests
                                  {
                                      public required string Label { get; set; }
                                      public T? Value { get; set; }
-                                     public Callback<T>? OnChange { get; set; }
+                                     public Callback<T> OnChange { get; set; }
                                      public Expression<Func<T>>? Bind { get; set; }
                                      public Validator<T>? Validate { get; set; }
-                                     public Callback<T>? AfterBind { get; set; }
+                                     public Callback<T> AfterBind { get; set; }
                                  }
                                  """;
 

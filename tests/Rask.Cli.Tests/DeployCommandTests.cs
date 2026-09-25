@@ -439,6 +439,9 @@ public sealed partial class DeployCommandTests
         Assert.Contains("TOKEN=abc", written, StringComparison.Ordinal);
         Assert.Contains("EXTRA=1", written, StringComparison.Ordinal);
         Assert.DoesNotContain("# comment", written, StringComparison.Ordinal);
+
+        // It carries the secrets, and the temp dir is shared with every user of the machine.
+        Assert.Contains(fs.Written.Keys.Single(k => k.EndsWith(".env", StringComparison.Ordinal) && k.Contains("rask-shop-", StringComparison.Ordinal)), fs.SecretFiles);
     }
 
     [Fact]
@@ -464,11 +467,16 @@ public sealed partial class DeployCommandTests
         var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "demo.example.com", "--name", "demo"], CancellationToken.None);
 
         Assert.Equal(0, exit);
-        var caddyfile = fs.Written.First(f => f.Key.EndsWith("rask-demo.Caddyfile", StringComparison.Ordinal)).Value;
+        var caddyfile = TheCaddyfile(fs);
         Assert.Contains("demo.example.com {", caddyfile);       // the new app
         Assert.Contains("reverse_proxy demo-blue:8080", caddyfile);
         Assert.Contains("shop.example.com {", caddyfile);       // the existing app is preserved
         Assert.Contains("reverse_proxy shop-blue:8080", caddyfile);
+
+        // Unguessable and owner-only, so no other user of the machine can plant one first.
+        var path = fs.Written.Keys.Single(k => k.EndsWith(".Caddyfile", StringComparison.Ordinal));
+        Assert.DoesNotContain("rask-demo.Caddyfile", path, StringComparison.Ordinal);
+        Assert.Contains(path, fs.SecretFiles);
     }
 
     [Fact]

@@ -29,6 +29,20 @@ public class CrossSessionCallbackTests
         Assert.Equal(["#ff8800"], GestureApp.Results.Where(r => r.Session == victimRid).Select(r => r.Value));
     }
 
+    [Fact]
+    public async Task A_page_cannot_be_framed_by_another_site_or_sniffed_into_another_type()
+    {
+        // A framed page is how a signed-in user is clickjacked into an action they did not mean.
+        using var host = RaskTestHost.Create<GestureApp>();
+
+        var response = await host.Http.GetAsync("/");
+
+        Assert.Equal("SAMEORIGIN", response.Headers.GetValues("X-Frame-Options").Single());
+        Assert.Equal("frame-ancestors 'self'", response.Headers.GetValues("Content-Security-Policy").Single());
+        Assert.Equal("strict-origin-when-cross-origin", response.Headers.GetValues("Referrer-Policy").Single());
+        Assert.Equal("nosniff", response.Headers.GetValues("X-Content-Type-Options").Single());
+    }
+
     private static int ResultId(string html) => int.Parse(Regex.Match(html, @"rid&quot;:(\d+)").Groups[1].Value);
 
     private static async Task<System.Net.WebSockets.WebSocket> Connect(RaskTestHost host, string html)

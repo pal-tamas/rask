@@ -130,7 +130,8 @@ dotnet run --project src/Rask.Site
   (RASK001); initializer/`[SkipFactory]`/`Children`→excluded. Inject framework services via the **ctor**, not
   settable non-nullable props (those become required params; `required`+DI ctor→RASK002).
 - **`Key`** — reconciliation identity, a chain step that can go ANYWHERE in the chain (generic components too; #1118, RASK046 retired); enables trusted structural diff; not a reactive prop.
-- **One `Callback`/`Callback<T>` property per event**, taking either handler shape (sync or async) at the
+- **One `Callback`/`Callback<T>` property per event**, declared NON-nullable and fired `await OnX.Invoke(v)`
+  (unset = no-op, never a required step), taking either handler shape (sync or async) at the
   call site — a plain `Func<…>` still types a template or a selector. It is a STRUCT, which is what keeps
   the setter reachable now the component is the receiver (above). Auto-wrapped to re-render the owning parent.
   **Refs**: `ElementRef.New()` in a field, pass to `IJSRuntime`. **Context**: `Context.Provide<T>` /

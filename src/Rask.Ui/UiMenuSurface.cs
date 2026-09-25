@@ -44,7 +44,7 @@ public abstract partial class UiMenuSurface : Component
     public bool? Open { get; set; }
 
     /// <summary>Runs when the reader opens or closes it, with the state it is now in.</summary>
-    public Callback<bool>? OnToggle { get; set; }
+    public Callback<bool> OnToggle { get; set; }
 
     /// <summary>
     ///     Keeps the menu open after an item is picked — for a menu of checkboxes, where choosing three should not
@@ -134,9 +134,9 @@ public abstract partial class UiMenuSurface : Component
 
         // Controlled: tell the page only about a change it did not make itself — the runtime showing the popover
         // because Open became true fires this same event.
-        if (OnToggle is { } onToggle && e.IsOpen != Open)
+        if (e.IsOpen != Open)
         {
-            await (onToggle.Invoke(e.IsOpen) ?? Task.CompletedTask).ConfigureAwait(false);
+            await OnToggle.Invoke(e.IsOpen).ConfigureAwait(false);
         }
     }
 

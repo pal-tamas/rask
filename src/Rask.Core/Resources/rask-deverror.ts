@@ -272,7 +272,8 @@ export function showDevError(info: DevErrorInfo | null | undefined): void {
     var signature = info.kind + " " + (info.title || "") + " " + (info.message || "");
     if (signature !== devErrorLastLogged && typeof console !== "undefined" && console.error) {
         devErrorLastLogged = signature;
-        console.error("[Rask] " + devErrorHeading(info.kind) + ": " + (info.title || "") +
+        // Through "%s", so a title or message carrying %c, %o or %s is printed as written, never read as a format.
+        console.error("%s", "[Rask] " + devErrorHeading(info.kind) + ": " + (info.title || "") +
             (info.message ? ": " + info.message : ""), info.detail || "");
     }
 }

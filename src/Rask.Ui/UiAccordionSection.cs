@@ -37,9 +37,9 @@ public sealed partial class UiAccordionSection : Component
             .Class("collapse-title flex w-full items-center text-left font-semibold")
             .Aria(new Dictionary<string, string?> { ["expanded"] = open ? "true" : "false" });
 
-        if (state.OnOpen is { } onOpen)
+        if (state.OnOpen.HasValue)
         {
-            title = title.OnClick(() => onOpen.Invoke(open ? null : key) ?? Task.CompletedTask);
+            title = title.OnClick(() => state.OnOpen.Invoke(open ? null : key).AsTask());
         }
 
         return Div.Class(UiClass.Compose(

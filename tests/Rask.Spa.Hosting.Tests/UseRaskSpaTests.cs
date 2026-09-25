@@ -105,6 +105,24 @@ public class MapRaskSpaTests
         Assert.Equal("no-cache", response.Headers.CacheControl?.ToString());
     }
 
+    [Theory]
+    [InlineData("/index.html")]
+    [InlineData("/orders/42")]
+    public async Task The_app_cannot_be_framed_by_another_site_or_sniffed_into_another_type(string path)
+    {
+        using var dist = new FakeDistDirectory();
+        await using var host = await SpaTestServer.CreateAsync(dist.Path);
+        using var request = new HttpRequestMessage(HttpMethod.Get, path);
+        request.Headers.Accept.ParseAdd("text/html");
+
+        var response = await host.Http.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("SAMEORIGIN", response.Headers.GetValues("X-Frame-Options").Single());
+        Assert.Equal("frame-ancestors 'self'", response.Headers.GetValues("Content-Security-Policy").Single());
+        Assert.Equal("nosniff", response.Headers.GetValues("X-Content-Type-Options").Single());
+    }
+
     [Fact]
     public async Task A_content_hashed_asset_is_immutable()
     {

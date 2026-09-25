@@ -263,8 +263,20 @@ internal static class DeclarationReader
 
             if (exported && (At("const") || At("let") || At("var")))
             {
+                // `export const double = (x: number) => x * 2` is declared `declare const double: (x: number) =>
+                // number` — a function in all but keyword, so it gets a method like one. A value (`= 3.14`) has
+                // nothing to call.
                 Next();
-                result.NotCallable.Add(Current.Value);
+                var name = Current.Value;
+                Next();
+                if (Accept(":") && ReadType() is TsFunction fn)
+                {
+                    result.Functions.Add(new TsFunctionDecl(name, fn.Parameters, fn.Returns, fn.Generic, doc));
+                    Accept(";");
+                    return;
+                }
+
+                result.NotCallable.Add(name);
                 SkipStatement();
                 return;
             }
@@ -579,8 +591,7 @@ internal static class DeclarationReader
 
             if (At("["))
             {
-                SkipBalanced();
-                return new TsUnsupported("a tuple");
+                return ReadTuple();
             }
 
             if (Current.Kind == TokenKind.Name)
@@ -637,6 +648,54 @@ internal static class DeclarationReader
             }
 
             return p1.Kind == TokenKind.Name && p2.Value == ")" && Peek(3).Value == "=>";
+        }
+
+        // `[number, string]` or `[x: number, y: string]`. An optional (`string?`) or rest (`...string[]`) element
+        // has no fixed C# arity, so it is reported rather than guessed at.
+        private TsType ReadTuple()
+        {
+            Next();
+            var elements = new List<TsTupleElement>();
+            string? unsupported = null;
+            while (!At("]") && !AtEnd)
+            {
+                if (Accept("..."))
+                {
+                    unsupported = "a tuple with a rest element";
+                }
+
+                string? label = null;
+                if (Current.Kind == TokenKind.Name && (Peek(1).Value == ":" || (Peek(1).Value == "?" && Peek(2).Value == ":")))
+                {
+                    label = Next().Value;
+                    if (Accept("?"))
+                    {
+                        unsupported = "a tuple with an optional element";
+                    }
+
+                    Next();
+                }
+
+                var type = ReadType();
+                if (Accept("?"))
+                {
+                    unsupported = "a tuple with an optional element";
+                }
+
+                elements.Add(new TsTupleElement(label, type));
+                if (!Accept(","))
+                {
+                    break;
+                }
+            }
+
+            Accept("]");
+            if (elements.Count < 2)
+            {
+                unsupported ??= "a tuple of fewer than two elements — return the value itself, or an array";
+            }
+
+            return unsupported is null ? new TsTuple(elements) : new TsUnsupported(unsupported);
         }
 
         private TsType ReadParenthesized()
@@ -833,7 +892,7 @@ internal sealed class TsDeclarations
     /// <summary>Interfaces and type aliases, exported or not — what a named type in a signature resolves to.</summary>
     public Dictionary<string, TsType> Aliases { get; } = new(StringComparer.Ordinal);
 
-    /// <summary><c>export const f = …</c> — exported, but the runtime only exposes functions and classes.</summary>
+    /// <summary><c>export const x = …</c> whose type is not a function — exported, but nothing to call.</summary>
     public List<string> NotCallable { get; } = new();
 }
 
@@ -918,6 +977,17 @@ internal sealed class TsObject : TsType
 internal sealed class TsInlineObject(TsObject shape) : TsType
 {
     public TsObject Shape { get; } = shape;
+}
+
+internal sealed class TsTuple(List<TsTupleElement> elements) : TsType
+{
+    public List<TsTupleElement> Elements { get; } = elements;
+}
+
+internal sealed class TsTupleElement(string? label, TsType type)
+{
+    public string? Label { get; } = label;
+    public TsType Type { get; } = type;
 }
 
 internal sealed class TsUnsupported(string description) : TsType

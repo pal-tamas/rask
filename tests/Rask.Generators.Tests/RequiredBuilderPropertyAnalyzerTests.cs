@@ -133,6 +133,29 @@ public class RequiredBuilderPropertyAnalyzerTests
             }
             """));
 
+    // Non-nullable with no initializer, like `Title` — but a callback's default is an unset slot, not a
+    // missing value, so leaving it off the chain is how a call site says "not handled".
+    [Fact]
+    public async Task A_non_nullable_callback_left_off_the_chain_is_never_reported() =>
+        Assert.Empty(await Diagnostics("""
+            using Rask.Core;
+
+            namespace Demo
+            {
+                public sealed class Rater : Component
+                {
+                    public Callback<int> OnRate { get; set; }
+                    public Callback OnClear { get; set; }
+                }
+
+                public sealed class Page : Component
+                {
+                    public Rater Rater => null!;
+                    protected override Component? Render() => Rater;
+                }
+            }
+            """));
+
     private static async Task<ImmutableArray<Diagnostic>> Diagnostics(string source)
     {
         var compilation = CSharpCompilation.Create(

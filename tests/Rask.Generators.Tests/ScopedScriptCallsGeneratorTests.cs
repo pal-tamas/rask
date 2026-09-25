@@ -236,7 +236,7 @@ public class ScopedScriptCallsGeneratorTests
     public void An_unmappable_export_is_skipped_with_RASK094_and_the_rest_still_generate()
     {
         var run = Run("""
-                      export declare function pair(): [number, string];
+                      export declare function pair(): [number, string?];
                       export declare function width(): number;
                       """);
 
@@ -244,7 +244,7 @@ public class ScopedScriptCallsGeneratorTests
 
         var diagnostic = Assert.Single(run.RunResult.Diagnostics, d => d.Id == "RASK094");
         Assert.Contains("'pair'", diagnostic.GetMessage());
-        Assert.Contains("a tuple", diagnostic.GetMessage());
+        Assert.Contains("a tuple with an optional element", diagnostic.GetMessage());
         Assert.DoesNotContain("Pair(", generated);
         Assert.Contains("Width()", generated);
     }
@@ -315,13 +315,92 @@ public class ScopedScriptCallsGeneratorTests
     }
 
     [Fact]
-    public void An_exported_const_is_reported_as_not_callable()
+    public void An_arrow_in_an_exported_const_becomes_a_method_like_a_function()
     {
         var run = Run("export declare const double: (x: number) => number;");
 
+        var generated = run.GeneratedSource("Card.ScopedScript");
+
+        Assert.Contains("private global::System.Threading.Tasks.ValueTask<double> Double(double x)", generated);
+        Assert.Contains("ScopedScript.Call<double>(this, \"Rask.Card.double\", new object?[] { x })", generated);
+        Assert.DoesNotContain(run.RunResult.Diagnostics, d => d.Id == "RASK094");
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
+    public void An_exported_value_is_reported_as_having_nothing_to_call()
+    {
+        var run = Run("export declare const PI = 3.14;");
+
         var diagnostic = Assert.Single(run.RunResult.Diagnostics, d => d.Id == "RASK094");
 
-        Assert.Contains("export function", diagnostic.GetMessage());
+        Assert.Contains("'PI'", diagnostic.GetMessage());
+        Assert.Contains("a value, not a function", diagnostic.GetMessage());
+    }
+
+    [Fact]
+    public void A_tuple_return_becomes_a_CSharp_tuple_read_element_by_element()
+    {
+        var run = Run("export declare function pair(): [number, string];");
+
+        var generated = run.GeneratedSource("Card.ScopedScript");
+
+        Assert.Contains("private global::System.Threading.Tasks.ValueTask<(double, string)> Pair()", generated);
+        Assert.Contains(
+            "ScopedScript.Tuple<(double, string)>(this, \"Rask.Card.pair\", static __r => "
+            + "(global::Rask.Core.ScopedAssets.ScopedScript.Item<double>(__r, 0), "
+            + "global::Rask.Core.ScopedAssets.ScopedScript.Item<string>(__r, 1))",
+            generated);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
+    public void A_labelled_tuple_names_its_elements()
+    {
+        var run = Run("export declare function size(): Promise<[width: number, height: number]>;");
+
+        var generated = run.GeneratedSource("Card.ScopedScript");
+
+        Assert.Contains("ValueTask<(double Width, double Height)> Size()", generated);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
+    public void A_tuple_parameter_crosses_as_the_array_the_script_expects()
+    {
+        var run = Run("export declare function place(at: [number, number]): void;");
+
+        var generated = run.GeneratedSource("Card.ScopedScript");
+
+        Assert.Contains("Place((double, double) at)", generated);
+        Assert.Contains("new object?[] { new object?[] { at.Item1, at.Item2 } }", generated);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
+    public void A_class_method_can_return_a_tuple_too()
+    {
+        var run = Run("""
+                      export declare class Meter {
+                          constructor();
+                          range(): [number, number];
+                      }
+                      """);
+
+        var generated = run.GeneratedSource("Card.ScopedScript");
+
+        Assert.Contains("CallScriptTuple<(double, double)>(\"range\"", generated);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
+    public void A_tuple_inside_other_data_is_reported_with_what_to_do_instead()
+    {
+        var run = Run("export declare function pairs(): [number, string][];");
+
+        var diagnostic = Assert.Single(run.RunResult.Diagnostics, d => d.Id == "RASK094");
+
+        Assert.Contains("a tuple inside other data", diagnostic.GetMessage());
     }
 
     [Fact]

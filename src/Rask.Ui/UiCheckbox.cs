@@ -57,7 +57,7 @@ public sealed partial class UiCheckbox : Component, IFormControl<bool>
     public bool Value { get; set; }
 
     /// <inheritdoc />
-    public Callback<bool>? OnChange { get; set; }
+    public Callback<bool> OnChange { get; set; }
 
 
     /// <inheritdoc />
@@ -68,7 +68,7 @@ public sealed partial class UiCheckbox : Component, IFormControl<bool>
 
 
     /// <inheritdoc />
-    public Callback<bool>? AfterBind { get; set; }
+    public Callback<bool> AfterBind { get; set; }
 
 
     /// <inheritdoc />

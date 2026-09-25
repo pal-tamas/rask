@@ -61,20 +61,36 @@ public static class ScopedScript
         return Adopt(owner, wrap(reference));
     }
 
+    /// <summary>
+    ///     Calls an export that returns a tuple. It arrives as a JSON array, which no serializer reads into a C#
+    ///     tuple, so the generated <paramref name="read" /> takes it apart element by element with <see cref="Item{T}" />.
+    /// </summary>
+    public static async ValueTask<T> Tuple<T>(
+        Component owner, string identifier, Func<JsonElement, T> read, params object?[] args)
+    {
+        var array = await Runtime(owner).InvokeAsync<JsonElement>(identifier, args).ConfigureAwait(false);
+        return read(array);
+    }
+
+    /// <summary>Infrastructure. Reads one element of a tuple a script returned; called by the generated methods.</summary>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    public static T Item<[DynamicallyAccessedMembers(JsonSerialized)] T>(JsonElement tuple, int index) =>
+        Arg<T>(tuple, index, Options);
+
     /// <summary>Hands a parameterless callback to the browser as a JS function.</summary>
     [DynamicDependency(nameof(Invoke), typeof(ScopedScript))]
     public static object Callback(Component owner, Callback callback) =>
-        Register(owner, (_, _) => callback.Invoke());
+        Register(owner, (_, _) => callback.Invoke().AsTask());
 
     /// <summary>Hands a one-argument callback to the browser as a JS function.</summary>
     [DynamicDependency(nameof(Invoke), typeof(ScopedScript))]
     public static object Callback<T>(Component owner, Callback<T> callback) =>
-        Register(owner, (args, options) => callback.Invoke(Arg<T>(args, 0, options)));
+        Register(owner, (args, options) => callback.Invoke(Arg<T>(args, 0, options)).AsTask());
 
     /// <summary>Hands a two-argument callback to the browser as a JS function.</summary>
     [DynamicDependency(nameof(Invoke), typeof(ScopedScript))]
     public static object Callback<T1, T2>(Component owner, Callback<T1, T2> callback) =>
-        Register(owner, (args, options) => callback.Invoke(Arg<T1>(args, 0, options), Arg<T2>(args, 1, options)));
+        Register(owner, (args, options) => callback.Invoke(Arg<T1>(args, 0, options), Arg<T2>(args, 1, options)).AsTask());
 
     /// <summary>Infrastructure. Invoked by the browser when a script calls a callback it was handed; do not call.</summary>
     [JSInvokable("RaskScopedCallback")]
@@ -244,6 +260,14 @@ public abstract class ScriptObject : IAsyncDisposable
     /// <summary>Calls a method and reads its result as <typeparamref name="T" />.</summary>
     protected ValueTask<T> CallScript<[DynamicallyAccessedMembers(ScopedScript.JsonSerialized)] T>(
         string method, params object?[] args) => Reference.InvokeAsync<T>(method, args);
+
+    /// <summary>Calls a method that returns a tuple — see <see cref="ScopedScript.Tuple{T}" />.</summary>
+    protected async ValueTask<T> CallScriptTuple<T>(
+        string method, Func<JsonElement, T> read, params object?[] args)
+    {
+        var array = await Reference.InvokeAsync<JsonElement>(method, args).ConfigureAwait(false);
+        return read(array);
+    }
 
     /// <summary>Calls a method that returns another exported class's instance.</summary>
     protected async ValueTask<T> CallScriptObject<T>(

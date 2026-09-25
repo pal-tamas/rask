@@ -1305,21 +1305,21 @@ Rask.Core.Callback.Callback(System.Action! handler) -> void
 Rask.Core.Callback.Callback(System.Func<System.Threading.Tasks.Task!>! handler) -> void
 Rask.Core.Callback.Handler.get -> System.Delegate?
 Rask.Core.Callback.HasValue.get -> bool
-Rask.Core.Callback.Invoke() -> System.Threading.Tasks.Task?
+Rask.Core.Callback.Invoke() -> System.Threading.Tasks.ValueTask
 Rask.Core.Callback<T1, T2>
 Rask.Core.Callback<T1, T2>.Callback() -> void
 Rask.Core.Callback<T1, T2>.Callback(System.Action<T1, T2>! handler) -> void
 Rask.Core.Callback<T1, T2>.Callback(System.Func<T1, T2, System.Threading.Tasks.Task!>! handler) -> void
 Rask.Core.Callback<T1, T2>.Handler.get -> System.Delegate?
 Rask.Core.Callback<T1, T2>.HasValue.get -> bool
-Rask.Core.Callback<T1, T2>.Invoke(T1 arg1, T2 arg2) -> System.Threading.Tasks.Task?
+Rask.Core.Callback<T1, T2>.Invoke(T1 arg1, T2 arg2) -> System.Threading.Tasks.ValueTask
 Rask.Core.Callback<T>
 Rask.Core.Callback<T>.Callback() -> void
 Rask.Core.Callback<T>.Callback(System.Action<T>! handler) -> void
 Rask.Core.Callback<T>.Callback(System.Func<T, System.Threading.Tasks.Task!>! handler) -> void
 Rask.Core.Callback<T>.Handler.get -> System.Delegate?
 Rask.Core.Callback<T>.HasValue.get -> bool
-Rask.Core.Callback<T>.Invoke(T arg) -> System.Threading.Tasks.Task?
+Rask.Core.Callback<T>.Invoke(T arg) -> System.Threading.Tasks.ValueTask
 Rask.Core.Component
 Rask.Core.Component.CancellationToken.get -> System.Threading.CancellationToken
 Rask.Core.Component.Children.get -> System.Collections.Generic.IEnumerable<Rask.Core.Component?>?
@@ -1391,7 +1391,7 @@ Rask.Core.Components.DragDrop
 Rask.Core.Components.DragDrop.Body.get -> Rask.Core.Fn<Rask.Core.DragAndDrop.DragDropContext!, Rask.Core.Component!>?
 Rask.Core.Components.DragDrop.Body.set -> void
 Rask.Core.Components.DragDrop.DragDrop() -> void
-Rask.Core.Components.DragDrop.OnDrop.get -> Rask.Core.Callback<Rask.Core.DragAndDrop.DragDropMove!>?
+Rask.Core.Components.DragDrop.OnDrop.get -> Rask.Core.Callback<Rask.Core.DragAndDrop.DragDropMove!>
 Rask.Core.Components.DragDrop.OnDrop.set -> void
 Rask.Core.Components.Ellipse
 Rask.Core.Components.Ellipse.Cx.get -> string?
@@ -1412,7 +1412,7 @@ Rask.Core.Components.ErrorBoundary.Fallback.set -> void
 Rask.Core.Components.ErrorBoundary.Recover() -> void
 Rask.Core.Components.EyeDropperTrigger
 Rask.Core.Components.EyeDropperTrigger.EyeDropperTrigger() -> void
-Rask.Core.Components.EyeDropperTrigger.OnColor.get -> Rask.Core.Callback<string?>?
+Rask.Core.Components.EyeDropperTrigger.OnColor.get -> Rask.Core.Callback<string?>
 Rask.Core.Components.EyeDropperTrigger.OnColor.set -> void
 Rask.Core.Components.EyeDropperTrigger.Template.get -> System.Func<System.Collections.Generic.IReadOnlyDictionary<string!, string?>!, Rask.Core.Component!>!
 Rask.Core.Components.EyeDropperTrigger.Template.set -> void
@@ -1541,7 +1541,7 @@ Rask.Core.Components.GestureTrigger
 Rask.Core.Components.GestureTrigger.Capability.get -> string!
 Rask.Core.Components.GestureTrigger.Capability.set -> void
 Rask.Core.Components.GestureTrigger.GestureTrigger() -> void
-Rask.Core.Components.GestureTrigger.OnResult.get -> Rask.Core.Callback<string?>?
+Rask.Core.Components.GestureTrigger.OnResult.get -> Rask.Core.Callback<string?>
 Rask.Core.Components.GestureTrigger.OnResult.set -> void
 Rask.Core.Components.GestureTrigger.Template.get -> System.Func<System.Collections.Generic.IReadOnlyDictionary<string!, string?>!, Rask.Core.Component!>!
 Rask.Core.Components.GestureTrigger.Template.set -> void
@@ -1565,7 +1565,7 @@ Rask.Core.Components.Image.Y.get -> string?
 Rask.Core.Components.Image.Y.set -> void
 Rask.Core.Components.InstallTrigger
 Rask.Core.Components.InstallTrigger.InstallTrigger() -> void
-Rask.Core.Components.InstallTrigger.OnOutcome.get -> Rask.Core.Callback<string?>?
+Rask.Core.Components.InstallTrigger.OnOutcome.get -> Rask.Core.Callback<string?>
 Rask.Core.Components.InstallTrigger.OnOutcome.set -> void
 Rask.Core.Components.InstallTrigger.Template.get -> System.Func<System.Collections.Generic.IReadOnlyDictionary<string!, string?>!, Rask.Core.Component!>!
 Rask.Core.Components.InstallTrigger.Template.set -> void
@@ -1639,9 +1639,9 @@ Rask.Core.Components.MediaCaptureTrigger.FacingMode.set -> void
 Rask.Core.Components.MediaCaptureTrigger.For.get -> Rask.Core.ElementRef!
 Rask.Core.Components.MediaCaptureTrigger.For.set -> void
 Rask.Core.Components.MediaCaptureTrigger.MediaCaptureTrigger() -> void
-Rask.Core.Components.MediaCaptureTrigger.OnResult.get -> Rask.Core.Callback<string?>?
+Rask.Core.Components.MediaCaptureTrigger.OnResult.get -> Rask.Core.Callback<string?>
 Rask.Core.Components.MediaCaptureTrigger.OnResult.set -> void
-Rask.Core.Components.MediaCaptureTrigger.OnStream.get -> Rask.Core.Callback<Rask.Core.Browser.MediaStreamId>?
+Rask.Core.Components.MediaCaptureTrigger.OnStream.get -> Rask.Core.Callback<Rask.Core.Browser.MediaStreamId>
 Rask.Core.Components.MediaCaptureTrigger.OnStream.set -> void
 Rask.Core.Components.MediaCaptureTrigger.Template.get -> System.Func<System.Collections.Generic.IReadOnlyDictionary<string!, string?>!, Rask.Core.Component!>!
 Rask.Core.Components.MediaCaptureTrigger.Template.set -> void
@@ -2147,97 +2147,97 @@ Rask.Core.Element.Inert.get -> bool?
 Rask.Core.Element.Inert.set -> void
 Rask.Core.Element.Lang.get -> string?
 Rask.Core.Element.Lang.set -> void
-Rask.Core.Element.OnBeforeInput.get -> Rask.Core.Callback<string!>?
+Rask.Core.Element.OnBeforeInput.get -> Rask.Core.Callback<string!>
 Rask.Core.Element.OnBeforeInput.set -> void
-Rask.Core.Element.OnBeforeToggle.get -> Rask.Core.Callback<Rask.Core.Live.ToggleEventArgs!>?
+Rask.Core.Element.OnBeforeToggle.get -> Rask.Core.Callback<Rask.Core.Live.ToggleEventArgs!>
 Rask.Core.Element.OnBeforeToggle.set -> void
-Rask.Core.Element.OnBlur.get -> Rask.Core.Callback?
+Rask.Core.Element.OnBlur.get -> Rask.Core.Callback
 Rask.Core.Element.OnBlur.set -> void
-Rask.Core.Element.OnClick.get -> Rask.Core.Callback?
+Rask.Core.Element.OnClick.get -> Rask.Core.Callback
 Rask.Core.Element.OnClick.set -> void
-Rask.Core.Element.OnContextMenu.get -> Rask.Core.Callback<Rask.Core.Live.MouseEventArgs!>?
+Rask.Core.Element.OnContextMenu.get -> Rask.Core.Callback<Rask.Core.Live.MouseEventArgs!>
 Rask.Core.Element.OnContextMenu.set -> void
-Rask.Core.Element.OnCopy.get -> Rask.Core.Callback<Rask.Core.Live.ClipboardEventArgs!>?
+Rask.Core.Element.OnCopy.get -> Rask.Core.Callback<Rask.Core.Live.ClipboardEventArgs!>
 Rask.Core.Element.OnCopy.set -> void
-Rask.Core.Element.OnCut.get -> Rask.Core.Callback<Rask.Core.Live.ClipboardEventArgs!>?
+Rask.Core.Element.OnCut.get -> Rask.Core.Callback<Rask.Core.Live.ClipboardEventArgs!>
 Rask.Core.Element.OnCut.set -> void
-Rask.Core.Element.OnDoubleClick.get -> Rask.Core.Callback<Rask.Core.Live.MouseEventArgs!>?
+Rask.Core.Element.OnDoubleClick.get -> Rask.Core.Callback<Rask.Core.Live.MouseEventArgs!>
 Rask.Core.Element.OnDoubleClick.set -> void
-Rask.Core.Element.OnDrag.get -> Rask.Core.Callback?
+Rask.Core.Element.OnDrag.get -> Rask.Core.Callback
 Rask.Core.Element.OnDrag.set -> void
-Rask.Core.Element.OnDragEnd.get -> Rask.Core.Callback?
+Rask.Core.Element.OnDragEnd.get -> Rask.Core.Callback
 Rask.Core.Element.OnDragEnd.set -> void
-Rask.Core.Element.OnDragEnter.get -> Rask.Core.Callback?
+Rask.Core.Element.OnDragEnter.get -> Rask.Core.Callback
 Rask.Core.Element.OnDragEnter.set -> void
-Rask.Core.Element.OnDragLeave.get -> Rask.Core.Callback?
+Rask.Core.Element.OnDragLeave.get -> Rask.Core.Callback
 Rask.Core.Element.OnDragLeave.set -> void
-Rask.Core.Element.OnDragOver.get -> Rask.Core.Callback?
+Rask.Core.Element.OnDragOver.get -> Rask.Core.Callback
 Rask.Core.Element.OnDragOver.set -> void
-Rask.Core.Element.OnDragStart.get -> Rask.Core.Callback?
+Rask.Core.Element.OnDragStart.get -> Rask.Core.Callback
 Rask.Core.Element.OnDragStart.set -> void
-Rask.Core.Element.OnDrop.get -> Rask.Core.Callback?
+Rask.Core.Element.OnDrop.get -> Rask.Core.Callback
 Rask.Core.Element.OnDrop.set -> void
-Rask.Core.Element.OnFocus.get -> Rask.Core.Callback?
+Rask.Core.Element.OnFocus.get -> Rask.Core.Callback
 Rask.Core.Element.OnFocus.set -> void
-Rask.Core.Element.OnFocusIn.get -> Rask.Core.Callback?
+Rask.Core.Element.OnFocusIn.get -> Rask.Core.Callback
 Rask.Core.Element.OnFocusIn.set -> void
-Rask.Core.Element.OnFocusOut.get -> Rask.Core.Callback?
+Rask.Core.Element.OnFocusOut.get -> Rask.Core.Callback
 Rask.Core.Element.OnFocusOut.set -> void
-Rask.Core.Element.OnInvalid.get -> Rask.Core.Callback?
+Rask.Core.Element.OnInvalid.get -> Rask.Core.Callback
 Rask.Core.Element.OnInvalid.set -> void
-Rask.Core.Element.OnKeyDown.get -> Rask.Core.Callback<Rask.Core.Live.KeyboardEventArgs!>?
+Rask.Core.Element.OnKeyDown.get -> Rask.Core.Callback<Rask.Core.Live.KeyboardEventArgs!>
 Rask.Core.Element.OnKeyDown.set -> void
-Rask.Core.Element.OnKeyUp.get -> Rask.Core.Callback<Rask.Core.Live.KeyboardEventArgs!>?
+Rask.Core.Element.OnKeyUp.get -> Rask.Core.Callback<Rask.Core.Live.KeyboardEventArgs!>
 Rask.Core.Element.OnKeyUp.set -> void
-Rask.Core.Element.OnMouseDown.get -> Rask.Core.Callback<Rask.Core.Live.MouseEventArgs!>?
+Rask.Core.Element.OnMouseDown.get -> Rask.Core.Callback<Rask.Core.Live.MouseEventArgs!>
 Rask.Core.Element.OnMouseDown.set -> void
-Rask.Core.Element.OnMouseEnter.get -> Rask.Core.Callback<Rask.Core.Live.MouseEventArgs!>?
+Rask.Core.Element.OnMouseEnter.get -> Rask.Core.Callback<Rask.Core.Live.MouseEventArgs!>
 Rask.Core.Element.OnMouseEnter.set -> void
-Rask.Core.Element.OnMouseLeave.get -> Rask.Core.Callback<Rask.Core.Live.MouseEventArgs!>?
+Rask.Core.Element.OnMouseLeave.get -> Rask.Core.Callback<Rask.Core.Live.MouseEventArgs!>
 Rask.Core.Element.OnMouseLeave.set -> void
-Rask.Core.Element.OnMouseMove.get -> Rask.Core.Callback<Rask.Core.Live.MouseEventArgs!>?
+Rask.Core.Element.OnMouseMove.get -> Rask.Core.Callback<Rask.Core.Live.MouseEventArgs!>
 Rask.Core.Element.OnMouseMove.set -> void
-Rask.Core.Element.OnMouseOut.get -> Rask.Core.Callback<Rask.Core.Live.MouseEventArgs!>?
+Rask.Core.Element.OnMouseOut.get -> Rask.Core.Callback<Rask.Core.Live.MouseEventArgs!>
 Rask.Core.Element.OnMouseOut.set -> void
-Rask.Core.Element.OnMouseOver.get -> Rask.Core.Callback<Rask.Core.Live.MouseEventArgs!>?
+Rask.Core.Element.OnMouseOver.get -> Rask.Core.Callback<Rask.Core.Live.MouseEventArgs!>
 Rask.Core.Element.OnMouseOver.set -> void
-Rask.Core.Element.OnMouseUp.get -> Rask.Core.Callback<Rask.Core.Live.MouseEventArgs!>?
+Rask.Core.Element.OnMouseUp.get -> Rask.Core.Callback<Rask.Core.Live.MouseEventArgs!>
 Rask.Core.Element.OnMouseUp.set -> void
-Rask.Core.Element.OnPaste.get -> Rask.Core.Callback<Rask.Core.Live.ClipboardEventArgs!>?
+Rask.Core.Element.OnPaste.get -> Rask.Core.Callback<Rask.Core.Live.ClipboardEventArgs!>
 Rask.Core.Element.OnPaste.set -> void
-Rask.Core.Element.OnPointerCancel.get -> Rask.Core.Callback<Rask.Core.Live.PointerEventArgs!>?
+Rask.Core.Element.OnPointerCancel.get -> Rask.Core.Callback<Rask.Core.Live.PointerEventArgs!>
 Rask.Core.Element.OnPointerCancel.set -> void
-Rask.Core.Element.OnPointerDown.get -> Rask.Core.Callback<Rask.Core.Live.PointerEventArgs!>?
+Rask.Core.Element.OnPointerDown.get -> Rask.Core.Callback<Rask.Core.Live.PointerEventArgs!>
 Rask.Core.Element.OnPointerDown.set -> void
-Rask.Core.Element.OnPointerEnter.get -> Rask.Core.Callback<Rask.Core.Live.PointerEventArgs!>?
+Rask.Core.Element.OnPointerEnter.get -> Rask.Core.Callback<Rask.Core.Live.PointerEventArgs!>
 Rask.Core.Element.OnPointerEnter.set -> void
-Rask.Core.Element.OnPointerLeave.get -> Rask.Core.Callback<Rask.Core.Live.PointerEventArgs!>?
+Rask.Core.Element.OnPointerLeave.get -> Rask.Core.Callback<Rask.Core.Live.PointerEventArgs!>
 Rask.Core.Element.OnPointerLeave.set -> void
-Rask.Core.Element.OnPointerMove.get -> Rask.Core.Callback<Rask.Core.Live.PointerEventArgs!>?
+Rask.Core.Element.OnPointerMove.get -> Rask.Core.Callback<Rask.Core.Live.PointerEventArgs!>
 Rask.Core.Element.OnPointerMove.set -> void
-Rask.Core.Element.OnPointerOut.get -> Rask.Core.Callback<Rask.Core.Live.PointerEventArgs!>?
+Rask.Core.Element.OnPointerOut.get -> Rask.Core.Callback<Rask.Core.Live.PointerEventArgs!>
 Rask.Core.Element.OnPointerOut.set -> void
-Rask.Core.Element.OnPointerOver.get -> Rask.Core.Callback<Rask.Core.Live.PointerEventArgs!>?
+Rask.Core.Element.OnPointerOver.get -> Rask.Core.Callback<Rask.Core.Live.PointerEventArgs!>
 Rask.Core.Element.OnPointerOver.set -> void
-Rask.Core.Element.OnPointerUp.get -> Rask.Core.Callback<Rask.Core.Live.PointerEventArgs!>?
+Rask.Core.Element.OnPointerUp.get -> Rask.Core.Callback<Rask.Core.Live.PointerEventArgs!>
 Rask.Core.Element.OnPointerUp.set -> void
-Rask.Core.Element.OnReset.get -> Rask.Core.Callback?
+Rask.Core.Element.OnReset.get -> Rask.Core.Callback
 Rask.Core.Element.OnReset.set -> void
-Rask.Core.Element.OnScroll.get -> Rask.Core.Callback<Rask.Core.Live.ScrollEvent!>?
+Rask.Core.Element.OnScroll.get -> Rask.Core.Callback<Rask.Core.Live.ScrollEvent!>
 Rask.Core.Element.OnScroll.set -> void
-Rask.Core.Element.OnSelect.get -> Rask.Core.Callback?
+Rask.Core.Element.OnSelect.get -> Rask.Core.Callback
 Rask.Core.Element.OnSelect.set -> void
-Rask.Core.Element.OnToggle.get -> Rask.Core.Callback<Rask.Core.Live.ToggleEventArgs!>?
+Rask.Core.Element.OnToggle.get -> Rask.Core.Callback<Rask.Core.Live.ToggleEventArgs!>
 Rask.Core.Element.OnToggle.set -> void
-Rask.Core.Element.OnTouchCancel.get -> Rask.Core.Callback<Rask.Core.Live.TouchEventArgs!>?
+Rask.Core.Element.OnTouchCancel.get -> Rask.Core.Callback<Rask.Core.Live.TouchEventArgs!>
 Rask.Core.Element.OnTouchCancel.set -> void
-Rask.Core.Element.OnTouchEnd.get -> Rask.Core.Callback<Rask.Core.Live.TouchEventArgs!>?
+Rask.Core.Element.OnTouchEnd.get -> Rask.Core.Callback<Rask.Core.Live.TouchEventArgs!>
 Rask.Core.Element.OnTouchEnd.set -> void
-Rask.Core.Element.OnTouchMove.get -> Rask.Core.Callback<Rask.Core.Live.TouchEventArgs!>?
+Rask.Core.Element.OnTouchMove.get -> Rask.Core.Callback<Rask.Core.Live.TouchEventArgs!>
 Rask.Core.Element.OnTouchMove.set -> void
-Rask.Core.Element.OnTouchStart.get -> Rask.Core.Callback<Rask.Core.Live.TouchEventArgs!>?
+Rask.Core.Element.OnTouchStart.get -> Rask.Core.Callback<Rask.Core.Live.TouchEventArgs!>
 Rask.Core.Element.OnTouchStart.set -> void
-Rask.Core.Element.OnWheel.get -> Rask.Core.Callback<Rask.Core.Live.WheelEventArgs!>?
+Rask.Core.Element.OnWheel.get -> Rask.Core.Callback<Rask.Core.Live.WheelEventArgs!>
 Rask.Core.Element.OnWheel.set -> void
 Rask.Core.Element.Popover.get -> string?
 Rask.Core.Element.Popover.set -> void
@@ -2356,14 +2356,14 @@ Rask.Core.Forms.IFieldValidator.Validate(Rask.Core.Forms.EditContext! context) -
 Rask.Core.Forms.IFieldValidator.ValidateField(Rask.Core.Forms.EditContext! context, Rask.Core.Forms.FieldIdentifier field) -> void
 Rask.Core.Forms.IFormControl
 Rask.Core.Forms.IFormControl<T>
-Rask.Core.Forms.IFormControl<T>.AfterBind.get -> Rask.Core.Callback<T>?
+Rask.Core.Forms.IFormControl<T>.AfterBind.get -> Rask.Core.Callback<T>
 Rask.Core.Forms.IFormControl<T>.AfterBind.set -> void
 Rask.Core.Forms.IFormControl<T>.Bind.get -> System.Linq.Expressions.Expression<System.Func<T>!>?
 Rask.Core.Forms.IFormControl<T>.Bind.set -> void
 Rask.Core.Forms.IFormControl<T>.ControlledChangeHandler() -> System.Delegate?
 Rask.Core.Forms.IFormControl<T>.InvokeAfterBindAsync(T value) -> System.Threading.Tasks.Task!
 Rask.Core.Forms.IFormControl<T>.InvokeOnChangeAsync(T value) -> System.Threading.Tasks.Task!
-Rask.Core.Forms.IFormControl<T>.OnChange.get -> Rask.Core.Callback<T>?
+Rask.Core.Forms.IFormControl<T>.OnChange.get -> Rask.Core.Callback<T>
 Rask.Core.Forms.IFormControl<T>.OnChange.set -> void
 Rask.Core.Forms.IFormControl<T>.RegisterValidator(Rask.Core.Forms.ExpressionAccessor.Accessor! accessor, Rask.Core.Forms.EditContext? context) -> void
 Rask.Core.Forms.IFormControl<T>.Validate.get -> Rask.Core.Validator<T>?
@@ -3606,7 +3606,7 @@ static Rask.Core.ElementRefInterop.BlurAsync(this Rask.Core.ElementRef! element,
 static Rask.Core.ElementRefInterop.FocusAsync(this Rask.Core.ElementRef! element, Microsoft.JSInterop.IJSRuntime! js) -> System.Threading.Tasks.ValueTask
 static Rask.Core.ElementRefInterop.ScrollIntoViewAsync(this Rask.Core.ElementRef! element, Microsoft.JSInterop.IJSRuntime! js) -> System.Threading.Tasks.ValueTask
 static Rask.Core.Forms.BindingHelpers.BoolSetHandler(Rask.Core.Forms.ExpressionAccessor.Accessor! acc, Rask.Core.Forms.EditContext? ctx, Rask.Core.Forms.FieldIdentifier fid, System.Func<System.Threading.Tasks.Task!>? afterBind = null) -> System.Func<string!, System.Threading.Tasks.Task!>!
-static Rask.Core.Forms.BindingHelpers.BuildAfterBind<TProp>(Rask.Core.Forms.ExpressionAccessor.Accessor! acc, Rask.Core.Callback<TProp>? hook) -> System.Func<System.Threading.Tasks.Task!>?
+static Rask.Core.Forms.BindingHelpers.BuildAfterBind<TProp>(Rask.Core.Forms.ExpressionAccessor.Accessor! acc, Rask.Core.Callback<TProp> hook) -> System.Func<System.Threading.Tasks.Task!>?
 static Rask.Core.Forms.BindingHelpers.DefaultInputType(System.Type! propType) -> string!
 static Rask.Core.Forms.BindingHelpers.DefaultStep(System.Type! propType) -> string?
 static Rask.Core.Forms.BindingHelpers.FormatValue(object? value) -> string!
@@ -5153,9 +5153,9 @@ virtual Rask.Core.Forms.ValidateAsync<T>.Invoke(T value, System.Threading.Cancel
 ~override Rask.Core.ScopedAssets.ScopedAssetRegistry.AssetBytes.ToString() -> string
 ~override Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry.Equals(object obj) -> bool
 ~override Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry.ToString() -> string
-Rask.Core.Element.OnCancel.get -> Rask.Core.Callback?
+Rask.Core.Element.OnCancel.get -> Rask.Core.Callback
 Rask.Core.Element.OnCancel.set -> void
-Rask.Core.Element.OnClose.get -> Rask.Core.Callback?
+Rask.Core.Element.OnClose.get -> Rask.Core.Callback
 Rask.Core.Element.OnClose.set -> void
 static RaskBuilderSettersRask_Core.OnCancel<T>(this T! __b, Rask.Core.Callback? value) -> T!
 static RaskBuilderSettersRask_Core.OnCancel<T>(this T! __b, System.Action? value) -> T!
@@ -5490,11 +5490,8 @@ Rask.Core.Components.HTMLFormElement<TModel>.Context.set -> void
 Rask.Core.Components.HTMLFormElement<TModel>.HTMLFormElement() -> void
 Rask.Core.Components.HTMLFormElement<TModel>.Model.get -> TModel
 Rask.Core.Components.HTMLFormElement<TModel>.Model.set -> void
-Rask.Core.Components.HTMLFormElement<TModel>.OnAnySubmit.get -> Rask.Core.Callback<Rask.Core.Live.FormData!>?
 Rask.Core.Components.HTMLFormElement<TModel>.OnAnySubmit.set -> void
-Rask.Core.Components.HTMLFormElement<TModel>.OnInvalidSubmit.get -> Rask.Core.Callback<TModel>?
 Rask.Core.Components.HTMLFormElement<TModel>.OnInvalidSubmit.set -> void
-Rask.Core.Components.HTMLFormElement<TModel>.OnSubmit.get -> Rask.Core.Callback<TModel>?
 Rask.Core.Components.HTMLFormElement<TModel>.OnSubmit.set -> void
 Rask.Core.Components.HTMLFormElement<TModel>.Validate.get -> Rask.Core.Validator<TModel>?
 Rask.Core.Components.HTMLFormElement<TModel>.Validate.set -> void
@@ -5620,7 +5617,6 @@ Rask.Core.Components.HTMLInputElement.Webkitdirectory.set -> void
 Rask.Core.Components.HTMLInputElement.Width.get -> int?
 Rask.Core.Components.HTMLInputElement.Width.set -> void
 Rask.Core.Components.HTMLInputElement<T>
-Rask.Core.Components.HTMLInputElement<T>.AfterBind.get -> Rask.Core.Callback<T>?
 Rask.Core.Components.HTMLInputElement<T>.AfterBind.set -> void
 Rask.Core.Components.HTMLInputElement<T>.Bind.get -> System.Linq.Expressions.Expression<System.Func<T>!>?
 Rask.Core.Components.HTMLInputElement<T>.Bind.set -> void
@@ -5629,11 +5625,8 @@ Rask.Core.Components.HTMLInputElement<T>.Checked.set -> void
 Rask.Core.Components.HTMLInputElement<T>.HTMLInputElement() -> void
 Rask.Core.Components.HTMLInputElement<T>.Name.get -> string?
 Rask.Core.Components.HTMLInputElement<T>.Name.set -> void
-Rask.Core.Components.HTMLInputElement<T>.OnChange.get -> Rask.Core.Callback<T>?
 Rask.Core.Components.HTMLInputElement<T>.OnChange.set -> void
-Rask.Core.Components.HTMLInputElement<T>.OnFiles.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.RaskFile!>!>?
 Rask.Core.Components.HTMLInputElement<T>.OnFiles.set -> void
-Rask.Core.Components.HTMLInputElement<T>.OnInput.get -> Rask.Core.Callback<string!>?
 Rask.Core.Components.HTMLInputElement<T>.OnInput.set -> void
 Rask.Core.Components.HTMLInputElement<T>.Step.get -> string?
 Rask.Core.Components.HTMLInputElement<T>.Step.set -> void
@@ -5844,16 +5837,13 @@ Rask.Core.Components.HTMLSelectElement.Required.set -> void
 Rask.Core.Components.HTMLSelectElement.Size.get -> int?
 Rask.Core.Components.HTMLSelectElement.Size.set -> void
 Rask.Core.Components.HTMLSelectElement<T>
-Rask.Core.Components.HTMLSelectElement<T>.AfterBind.get -> Rask.Core.Callback<T>?
 Rask.Core.Components.HTMLSelectElement<T>.AfterBind.set -> void
 Rask.Core.Components.HTMLSelectElement<T>.Bind.get -> System.Linq.Expressions.Expression<System.Func<T>!>?
 Rask.Core.Components.HTMLSelectElement<T>.Bind.set -> void
 Rask.Core.Components.HTMLSelectElement<T>.HTMLSelectElement() -> void
 Rask.Core.Components.HTMLSelectElement<T>.Name.get -> string?
 Rask.Core.Components.HTMLSelectElement<T>.Name.set -> void
-Rask.Core.Components.HTMLSelectElement<T>.OnChange.get -> Rask.Core.Callback<T>?
 Rask.Core.Components.HTMLSelectElement<T>.OnChange.set -> void
-Rask.Core.Components.HTMLSelectElement<T>.OnSelect.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<string!>!>?
 Rask.Core.Components.HTMLSelectElement<T>.OnSelect.set -> void
 Rask.Core.Components.HTMLSelectElement<T>.Validate.get -> Rask.Core.Validator<T>?
 Rask.Core.Components.HTMLSelectElement<T>.Validate.set -> void
@@ -5954,16 +5944,13 @@ Rask.Core.Components.HTMLTextAreaElement.Rows.set -> void
 Rask.Core.Components.HTMLTextAreaElement.Wrap.get -> string?
 Rask.Core.Components.HTMLTextAreaElement.Wrap.set -> void
 Rask.Core.Components.HTMLTextAreaElement<T>
-Rask.Core.Components.HTMLTextAreaElement<T>.AfterBind.get -> Rask.Core.Callback<T>?
 Rask.Core.Components.HTMLTextAreaElement<T>.AfterBind.set -> void
 Rask.Core.Components.HTMLTextAreaElement<T>.Bind.get -> System.Linq.Expressions.Expression<System.Func<T>!>?
 Rask.Core.Components.HTMLTextAreaElement<T>.Bind.set -> void
 Rask.Core.Components.HTMLTextAreaElement<T>.HTMLTextAreaElement() -> void
 Rask.Core.Components.HTMLTextAreaElement<T>.Name.get -> string?
 Rask.Core.Components.HTMLTextAreaElement<T>.Name.set -> void
-Rask.Core.Components.HTMLTextAreaElement<T>.OnChange.get -> Rask.Core.Callback<T>?
 Rask.Core.Components.HTMLTextAreaElement<T>.OnChange.set -> void
-Rask.Core.Components.HTMLTextAreaElement<T>.OnInput.get -> Rask.Core.Callback<string!>?
 Rask.Core.Components.HTMLTextAreaElement<T>.OnInput.set -> void
 Rask.Core.Components.HTMLTextAreaElement<T>.Validate.get -> Rask.Core.Validator<T>?
 Rask.Core.Components.HTMLTextAreaElement<T>.Validate.set -> void
@@ -7410,29 +7397,17 @@ static RaskEntriesRask_Core.Ul.get -> Rask.Core.Components.HTMLUListElement!
 static RaskEntriesRask_Core.Var.get -> Rask.Core.Components.HTMLElement!
 static RaskEntriesRask_Core.Video.get -> Rask.Core.Components.HTMLVideoElement!
 static RaskEntriesRask_Core.Wbr.get -> Rask.Core.Components.HTMLElement!
-Rask.Core.Components.HTMLMediaElement.OnDurationChange.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>?
 Rask.Core.Components.HTMLMediaElement.OnDurationChange.set -> void
-Rask.Core.Components.HTMLMediaElement.OnEnded.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>?
 Rask.Core.Components.HTMLMediaElement.OnEnded.set -> void
-Rask.Core.Components.HTMLMediaElement.OnLoadedMetadata.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>?
 Rask.Core.Components.HTMLMediaElement.OnLoadedMetadata.set -> void
-Rask.Core.Components.HTMLMediaElement.OnPause.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>?
 Rask.Core.Components.HTMLMediaElement.OnPause.set -> void
-Rask.Core.Components.HTMLMediaElement.OnPlay.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>?
 Rask.Core.Components.HTMLMediaElement.OnPlay.set -> void
-Rask.Core.Components.HTMLMediaElement.OnPlaying.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>?
 Rask.Core.Components.HTMLMediaElement.OnPlaying.set -> void
-Rask.Core.Components.HTMLMediaElement.OnRateChange.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>?
 Rask.Core.Components.HTMLMediaElement.OnRateChange.set -> void
-Rask.Core.Components.HTMLMediaElement.OnSeeked.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>?
 Rask.Core.Components.HTMLMediaElement.OnSeeked.set -> void
-Rask.Core.Components.HTMLMediaElement.OnSeeking.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>?
 Rask.Core.Components.HTMLMediaElement.OnSeeking.set -> void
-Rask.Core.Components.HTMLMediaElement.OnTimeUpdate.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>?
 Rask.Core.Components.HTMLMediaElement.OnTimeUpdate.set -> void
-Rask.Core.Components.HTMLMediaElement.OnVolumeChange.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>?
 Rask.Core.Components.HTMLMediaElement.OnVolumeChange.set -> void
-Rask.Core.Components.HTMLMediaElement.OnWaiting.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>?
 Rask.Core.Components.HTMLMediaElement.OnWaiting.set -> void
 static RaskBuilderSettersRask_Core.OnDurationChange(this Rask.Core.Components.HTMLAudioElement! __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Components.HTMLAudioElement!
 static RaskBuilderSettersRask_Core.OnDurationChange(this Rask.Core.Components.HTMLAudioElement! __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Components.HTMLAudioElement!
@@ -7506,3 +7481,31 @@ static RaskBuilderSettersRask_Core.OnWaiting(this Rask.Core.Components.HTMLAudio
 static RaskBuilderSettersRask_Core.OnWaiting(this Rask.Core.Components.HTMLVideoElement! __b, Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Components.HTMLVideoElement!
 static RaskBuilderSettersRask_Core.OnWaiting(this Rask.Core.Components.HTMLVideoElement! __b, System.Action<Rask.Core.Live.MediaEventArgs!>? value) -> Rask.Core.Components.HTMLVideoElement!
 static RaskBuilderSettersRask_Core.OnWaiting(this Rask.Core.Components.HTMLVideoElement! __b, System.Func<Rask.Core.Live.MediaEventArgs!, System.Threading.Tasks.Task!>? value) -> Rask.Core.Components.HTMLVideoElement!
+Rask.Core.ScopedAssets.ScriptObject.CallScriptTuple<T>(string! method, System.Func<System.Text.Json.JsonElement, T>! read, params object?[]! args) -> System.Threading.Tasks.ValueTask<T>
+static Rask.Core.ScopedAssets.ScopedScript.Tuple<T>(Rask.Core.Component! owner, string! identifier, System.Func<System.Text.Json.JsonElement, T>! read, params object?[]! args) -> System.Threading.Tasks.ValueTask<T>
+static Rask.Core.ScopedAssets.ScopedScript.Item<T>(System.Text.Json.JsonElement tuple, int index) -> T
+Rask.Core.Components.HTMLFormElement<TModel>.OnAnySubmit.get -> Rask.Core.Callback<Rask.Core.Live.FormData!>
+Rask.Core.Components.HTMLFormElement<TModel>.OnInvalidSubmit.get -> Rask.Core.Callback<TModel>
+Rask.Core.Components.HTMLFormElement<TModel>.OnSubmit.get -> Rask.Core.Callback<TModel>
+Rask.Core.Components.HTMLInputElement<T>.AfterBind.get -> Rask.Core.Callback<T>
+Rask.Core.Components.HTMLInputElement<T>.OnChange.get -> Rask.Core.Callback<T>
+Rask.Core.Components.HTMLInputElement<T>.OnFiles.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.RaskFile!>!>
+Rask.Core.Components.HTMLInputElement<T>.OnInput.get -> Rask.Core.Callback<string!>
+Rask.Core.Components.HTMLMediaElement.OnDurationChange.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>
+Rask.Core.Components.HTMLMediaElement.OnEnded.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>
+Rask.Core.Components.HTMLMediaElement.OnLoadedMetadata.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>
+Rask.Core.Components.HTMLMediaElement.OnPause.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>
+Rask.Core.Components.HTMLMediaElement.OnPlay.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>
+Rask.Core.Components.HTMLMediaElement.OnPlaying.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>
+Rask.Core.Components.HTMLMediaElement.OnRateChange.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>
+Rask.Core.Components.HTMLMediaElement.OnSeeked.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>
+Rask.Core.Components.HTMLMediaElement.OnSeeking.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>
+Rask.Core.Components.HTMLMediaElement.OnTimeUpdate.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>
+Rask.Core.Components.HTMLMediaElement.OnVolumeChange.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>
+Rask.Core.Components.HTMLMediaElement.OnWaiting.get -> Rask.Core.Callback<Rask.Core.Live.MediaEventArgs!>
+Rask.Core.Components.HTMLSelectElement<T>.AfterBind.get -> Rask.Core.Callback<T>
+Rask.Core.Components.HTMLSelectElement<T>.OnChange.get -> Rask.Core.Callback<T>
+Rask.Core.Components.HTMLSelectElement<T>.OnSelect.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<string!>!>
+Rask.Core.Components.HTMLTextAreaElement<T>.AfterBind.get -> Rask.Core.Callback<T>
+Rask.Core.Components.HTMLTextAreaElement<T>.OnChange.get -> Rask.Core.Callback<T>
+Rask.Core.Components.HTMLTextAreaElement<T>.OnInput.get -> Rask.Core.Callback<string!>

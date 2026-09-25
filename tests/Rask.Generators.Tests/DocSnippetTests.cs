@@ -102,13 +102,13 @@ public sealed class DocSnippetTests
         {
             public required string Title { get; set; }   // a step
             public string? Subtitle { get; set; }        // a setter
-            public Callback? OnPick { get; set; }
+            public Callback OnPick { get; set; }         // a setter too — an event is never required
 
             protected override Component? Render() =>
                 Div.Class("panel")[
                     H2[Title],
                     P[Subtitle ?? ""],
-                    Button.OnClick(() => OnPick?.Invoke())["Pick"]
+                    Button.OnClick(async () => await OnPick.Invoke())["Pick"]
                 ];
         }
 

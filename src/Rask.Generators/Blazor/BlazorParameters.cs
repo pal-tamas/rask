@@ -10,7 +10,9 @@ namespace Rask.Generators.Blazor;
 /// </summary>
 /// <param name="Parameter">The hosted component's own parameter name — the dictionary key.</param>
 /// <param name="Name">What the island calls it, which is the chain step's name.</param>
-/// <param name="ChainTypeFqn">The generated property's type.</param>
+/// <param name="ChainTypeFqn">
+///     The generated property's type — or, for a property the island declares itself, the type it declared.
+/// </param>
 /// <param name="EventArg">For an <c>EventCallback&lt;T&gt;</c>, the fully-qualified <c>T</c>.</param>
 /// <param name="IsEventCallback">Whether the hosted parameter is an <c>EventCallback</c>.</param>
 /// <param name="IsRequired">
@@ -134,6 +136,10 @@ internal static class BlazorParameters
         // silently: no step, no diagnostic, no way to pass a value the component plainly declares.
         var declared = new HashSet<string>(StringComparer.Ordinal);
 
+        // What a hand-declared callback is typed as: `Callback<T>?` and `Callback<T>` are both fine, and the
+        // parameter writer has to reach the carrier the way the island's own declaration allows.
+        var declaredTypes = new Dictionary<string, string>(StringComparer.Ordinal);
+
         // Everything reachable, static included. A generated property whose name matches an inherited
         // entry HIDES it, which is CS0108 and fatal here — so it has to say `new`, exactly as
         // Element does for its own Title.
@@ -154,6 +160,10 @@ internal static class BlazorParameters
                 if (isIsland && !m.IsStatic)
                 {
                     declared.Add(m.Name);
+                    if (m is IPropertySymbol declaredProp)
+                    {
+                        declaredTypes[m.Name] = declaredProp.Type.ToDisplayString(TypeFormat);
+                    }
                 }
 
                 if (!isIsland)
@@ -220,7 +230,9 @@ internal static class BlazorParameters
                 result.Add(new BlazorParam(
                     prop.Name,
                     name,
-                    ChainType(prop.Type, typeFqn, isCallback, eventArg, isRequired),
+                    declaredByUser && declaredTypes.TryGetValue(name, out var own)
+                        ? own
+                        : ChainType(prop.Type, typeFqn, isCallback, eventArg, isRequired),
                     eventArg,
                     isCallback,
                     isRequired,
@@ -259,10 +271,11 @@ internal static class BlazorParameters
             // pointed at the island's call site and mentioning nothing about the island.
             //
             // The carrier also widens what the island accepts: an EventCallback is asynchronous at heart,
-            // and a bare Action could only ever take the synchronous half of it.
+            // and a bare Action could only ever take the synchronous half of it. Non-nullable, like every
+            // Rask event: an unset `Callback` is its default, which is optional and omitted when written.
             return eventArg is null
-                ? "global::Rask.Core.Callback?"
-                : $"global::Rask.Core.Callback<{eventArg}>?";
+                ? "global::Rask.Core.Callback"
+                : $"global::Rask.Core.Callback<{eventArg}>";
         }
 
         if (isRequired)

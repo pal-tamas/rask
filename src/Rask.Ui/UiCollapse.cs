@@ -26,7 +26,7 @@ public sealed partial class UiCollapse : Component
     public bool? Open { get; set; }
 
     /// <summary>Runs when the heading is activated, with the state the reader is asking for.</summary>
-    public Callback<bool>? OnToggle { get; set; }
+    public Callback<bool> OnToggle { get; set; }
 
     /// <summary>Draws the arrow or plus marker.</summary>
     public Ui.Marker? Marker { get; set; }
@@ -41,10 +41,10 @@ public sealed partial class UiCollapse : Component
             .Class("collapse-title flex w-full items-center text-left font-semibold")
             .Aria(new Dictionary<string, string?> { ["expanded"] = Open == true ? "true" : "false" });
 
-        if (OnToggle is { } toggle)
+        if (OnToggle.HasValue)
         {
             var next = Open != true;
-            title = title.OnClick(() => toggle.Invoke(next) ?? Task.CompletedTask);
+            title = title.OnClick(() => OnToggle.Invoke(next).AsTask());
         }
 
         return Div.Class(UiClass.Compose(

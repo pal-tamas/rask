@@ -876,10 +876,12 @@ public sealed class ExternalGenerator : IIncrementalGenerator
         }
 
         // `Callback?` is `Nullable<Callback>` — a struct — so the carrier is one level in.
+        var nullable = false;
         if (named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T
             && named.TypeArguments[0] is INamedTypeSymbol inner)
         {
             named = inner;
+            nullable = true;
         }
 
         var definition = named.OriginalDefinition.ToDisplayString();
@@ -887,8 +889,8 @@ public sealed class ExternalGenerator : IIncrementalGenerator
         // Carriers first: they are not delegates, so the TypeKind guard below would reject them.
         var carrier = definition switch
         {
-            "Rask.Core.Callback" => new CallbackShape(null, true, IsCarrier: true),
-            "Rask.Core.Callback<T>" => new CallbackShape(named.TypeArguments[0], true, IsCarrier: true),
+            "Rask.Core.Callback" => new CallbackShape(null, true, IsCarrier: true, nullable),
+            "Rask.Core.Callback<T>" => new CallbackShape(named.TypeArguments[0], true, IsCarrier: true, nullable),
             _ => null,
         };
 
@@ -956,7 +958,7 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             // holds anything — so the null-forgiving operator is what says "a carrier that reached a
             // prop always came from a setter that refused null".
             var raw = handler.Shape.IsCarrier
-                ? $"this.{handler.ClrName}!.Value.Handler!"
+                ? handler.Shape.Carrier(handler.ClrName) + ".Handler!"
                 : $"this.{handler.ClrName}";
 
             var registered = handler.Shape.Argument is null
@@ -968,14 +970,14 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             if (island.IsPackage)
             {
                 var argIndex = handler.Shape.Argument is null ? -1 : ForwardedArgIndex(island, wire);
-                body.Append(PackageIslandEmitter.WriteCallback(handler.ClrName, wire, argIndex, registered));
+                body.Append(PackageIslandEmitter.WriteCallback(handler.Shape.IsSet(handler.ClrName), wire, argIndex, registered));
                 continue;
             }
 
             // A null callback omits its key entirely rather than writing null, so the front end sees
             // `undefined` and React's optional-prop handling does the right thing. Writing null would
             // also leave a stale key that looks callable in devtools.
-            body.AppendLine($"        if (this.{handler.ClrName} is not null)");
+            body.AppendLine($"        if ({handler.Shape.IsSet(handler.ClrName)})");
             body.AppendLine("        {");
             body.AppendLine($"            writer.WritePropertyName({Literal(wire)});");
             body.AppendLine("            writer.WriteStartObject();");
@@ -996,10 +998,12 @@ public sealed class ExternalGenerator : IIncrementalGenerator
 
                 if (prop.Callback is { } callback)
                 {
+                    // Generated non-nullable: an unset `Callback` is its default, and is omitted just as a null was.
                     var registered = callback.ArgType is null
-                        ? $"this.{prop.ClrName}!.Value.Handler!"
+                        ? $"this.{prop.ClrName}.Handler!"
                         : $"__Arg{prop.ClrName}";
-                    body.Append(PackageIslandEmitter.WriteCallback(prop.ClrName, prop.Wire, callback.ArgIndex, registered));
+                    body.Append(PackageIslandEmitter.WriteCallback(
+                        $"this.{prop.ClrName}.HasValue", prop.Wire, callback.ArgIndex, registered));
                     continue;
                 }
 
@@ -1102,9 +1106,9 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             var read = ScalarRead(handler.Shape.Argument);
             var type = handler.Shape.Argument.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             // A carrier does not say statically which shape it holds, so its bridge is the asynchronous
-            // one either way — `Invoke` hands back null when the handler was synchronous, and
-            // `?? Task.CompletedTask` turns that into the completed task this signature promises. No
-            // state machine is created for a synchronous handler; the null IS the fast path.
+            // one either way — `Invoke` hands back a completed ValueTask when the handler was synchronous,
+            // and `AsTask()` turns that into the cached completed task this signature promises. No state
+            // machine is created for a synchronous handler.
             var invoke = handler.Shape.IsAsync
                 ? "global::System.Func<global::System.Text.Json.JsonElement, global::System.Threading.Tasks.Task>"
                 : "global::System.Action<global::System.Text.Json.JsonElement>";
@@ -1131,8 +1135,7 @@ public sealed class ExternalGenerator : IIncrementalGenerator
             // from a void-returning lambda is CS8030. A carrier is always the async shape (see above)
             // and is invoked through the struct rather than called like a delegate.
             var call = handler.Shape.IsCarrier
-                ? $"this.{handler.ClrName}!.Value.Invoke(__v) "
-                  + "?? global::System.Threading.Tasks.Task.CompletedTask"
+                ? handler.Shape.Carrier(handler.ClrName) + ".Invoke(__v).AsTask()"
                 : $"this.{handler.ClrName}!(__v)";
 
             sb.AppendLine(handler.Shape.IsAsync
@@ -1295,7 +1298,17 @@ public sealed class ExternalGenerator : IIncrementalGenerator
         };
     }
 
-    private sealed record CallbackShape(ITypeSymbol? Argument, bool IsAsync, bool IsCarrier = false);
+    private sealed record CallbackShape(
+        ITypeSymbol? Argument, bool IsAsync, bool IsCarrier = false, bool IsNullableCarrier = false)
+    {
+        /// <summary>The carrier itself, reached through <c>.Value</c> when it is a <c>Callback?</c>.</summary>
+        public string Carrier(string clrName) =>
+            IsNullableCarrier ? $"this.{clrName}!.Value" : $"this.{clrName}";
+
+        /// <summary>Whether a handler was supplied — null for a delegate or a <c>Callback?</c>, unset for a <c>Callback</c>.</summary>
+        public string IsSet(string clrName) =>
+            IsCarrier && !IsNullableCarrier ? $"this.{clrName}.HasValue" : $"this.{clrName} is not null";
+    }
 
     /// <summary>A prop the author declared in C#.</summary>
     /// <param name="ClrName">The property's C# name.</param>

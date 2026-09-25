@@ -1,14 +1,14 @@
 namespace Rask.Site.Features;
 
 // A reusable child component that knows nothing about its parent's state. It renders clickable
-// stars and emits the chosen rating up through a plain Action<int> prop. The child wraps the
-// callback in its own click handler (so the DOM event only dirties the child) and invokes it off
-// that path — yet the parent still re-renders, because the framework auto-wraps the delegate to
-// re-render its owner. No Action type, no StateHasChanged threaded through by hand.
+// stars and emits the chosen rating up through a Callback<int> prop — non-nullable, and still
+// optional: unset, `await OnRate.Invoke(i)` does nothing. The child wraps the call in its own click
+// handler (so the DOM event only dirties the child) — yet the parent still re-renders, because the
+// framework auto-wraps the handler to re-render its owner. No StateHasChanged threaded through by hand.
 public sealed partial class RatingStars : Component
 {
     public int Value { get; set; }
-    public Callback<int>? OnRate { get; set; }
+    public Callback<int> OnRate { get; set; }
 
     protected override Component? Render() =>
         Div.Class("inline-flex gap-1")[
@@ -20,6 +20,6 @@ public sealed partial class RatingStars : Component
             Enumerable.Range(1, 5).Select(i => (Component)Ui.Button.Key(i)
                 .Variant(Ui.Variant.Link)
                 .Class("text-2xl leading-none " + (i <= Value ? "text-ui-warn-ink" : "text-ui-muted"))
-                .OnClick(() => OnRate?.Invoke(i) ?? Task.CompletedTask)[i <= Value ? "★" : "☆"])
+                .OnClick(async () => await OnRate.Invoke(i))[i <= Value ? "★" : "☆"])
         ];
 }

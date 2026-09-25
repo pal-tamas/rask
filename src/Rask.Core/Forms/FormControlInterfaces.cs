@@ -81,7 +81,7 @@ public interface IFormControl<T> : IFormControl
     ///         <see cref="OnChange" />.
     ///     </para>
     /// </summary>
-    Callback<T>? AfterBind { get; set; }
+    Callback<T> AfterBind { get; set; }
 
     // Controlled mode — the parent owns Value and is notified of changes.
 
@@ -101,7 +101,7 @@ public interface IFormControl<T> : IFormControl
     ///     pass it back through <see cref="Value" /> — the re-render is automatic, so no
     ///     <c>StateHasChanged</c> call is needed.
     /// </summary>
-    Callback<T>? OnChange { get; set; }
+    Callback<T> OnChange { get; set; }
 
     // The single delegate the EditContext dispatches — sync or async, whichever the consumer set. The
     // carrier already holds exactly one, so there is nothing left to collapse here; the member stays
@@ -130,12 +130,13 @@ public interface IFormControl<T> : IFormControl
             accessor.Owner as Component ?? BindingConsumerRegistry.Resolve(this));
     }
 
-    // Runs the post-bind hook with the freshly-bound value. `Invoke` hands back null for a synchronous
-    // hook, so the sync path never acquires a Task it did not need.
-    Task InvokeAfterBindAsync(T value) => AfterBind?.Invoke(value) ?? Task.CompletedTask;
+    // Runs the post-bind hook with the freshly-bound value. `Invoke` hands back a completed ValueTask for a
+    // synchronous hook and `AsTask()` makes that the cached completed task, so the sync path never
+    // acquires a Task it did not need.
+    Task InvokeAfterBindAsync(T value) => AfterBind.Invoke(value).AsTask();
 
     // Notifies the controlled-mode consumer of a new value, in whichever shape they wrote it.
-    Task InvokeOnChangeAsync(T value) => OnChange?.Invoke(value) ?? Task.CompletedTask;
+    Task InvokeOnChangeAsync(T value) => OnChange.Invoke(value).AsTask();
 
     // Bridges a DOM string change to the typed OnChange — parse the raw value to T (identity
     // for string; enums / IParsable<T> round-trip via BindingHelpers.TryParseValue), then notify. Shared by
@@ -144,7 +145,7 @@ public interface IFormControl<T> : IFormControl
     // the element's `data-rask-on-change` handler.
     Delegate? ControlledChangeHandler()
     {
-        if (OnChange is null)
+        if (!OnChange.HasValue)
         {
             return null;
         }
@@ -163,7 +164,7 @@ public interface IFormControl<T> : IFormControl
         // closures) to find the defining component, which is the same rule RegisterHandler and
         // AutoCallback already apply. It also refuses to resolve to an Element, so it cannot regress to
         // dirty-marking the control itself.
-        var consumer = DelegateOwner.Resolve(OnChange?.Handler);
+        var consumer = DelegateOwner.Resolve(OnChange.Handler);
 
         return new Func<string, Task>(async raw =>
         {

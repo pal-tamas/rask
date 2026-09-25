@@ -37,7 +37,7 @@ public sealed partial class UiMenuCheckbox : Component, IFormControl<bool>
     public bool Value { get; set; }
 
     /// <inheritdoc cref="IFormControl{T}.OnChange" />
-    public Callback<bool>? OnChange { get; set; }
+    public Callback<bool> OnChange { get; set; }
 
     /// <inheritdoc cref="IFormControl{T}.Bind" />
     public Expression<Func<bool>>? Bind { get; set; }
@@ -46,7 +46,7 @@ public sealed partial class UiMenuCheckbox : Component, IFormControl<bool>
     public Validator<bool>? Validate { get; set; }
 
     /// <inheritdoc cref="IFormControl{T}.AfterBind" />
-    public Callback<bool>? AfterBind { get; set; }
+    public Callback<bool> AfterBind { get; set; }
 
     // Registration happens in Render; see Ui.MenuItem.
     /// <inheritdoc />

@@ -40,7 +40,7 @@ public sealed partial class UiOtp : UiFormField<string>
     ///     On the transition INTO a complete code, not on every keystroke while it is complete: a caller
     ///     that submits from here would otherwise submit on every edit.
     /// </remarks>
-    public Callback<string>? OnComplete { get; set; }
+    public Callback<string> OnComplete { get; set; }
 
     /// <summary>Draws the boxes joined into one block rather than separated.</summary>
     public bool? Joined { get; set; }
@@ -64,11 +64,7 @@ public sealed partial class UiOtp : UiFormField<string>
                 // ran. One slot means one handler, so ours calls theirs.
                 .AfterBind(async value =>
                 {
-                    if (AfterBind?.Invoke(value) is { } hook)
-                    {
-                        await hook.ConfigureAwait(false);
-                    }
-
+                    await AfterBind.Invoke(value).ConfigureAwait(false);
                     await CompleteAsync(value).ConfigureAwait(false);
                 })
                 .Type(InputType.Text)
@@ -83,11 +79,7 @@ public sealed partial class UiOtp : UiFormField<string>
             .Value(Value ?? string.Empty)
             .OnChange(async value =>
             {
-                if (OnChange?.Invoke(value) is { } notify)
-                {
-                    await notify.ConfigureAwait(false);
-                }
-
+                await OnChange.Invoke(value).ConfigureAwait(false);
                 await CompleteAsync(value).ConfigureAwait(false);
             })
             .Type(InputType.Text)
@@ -109,10 +101,7 @@ public sealed partial class UiOtp : UiFormField<string>
             return;
         }
 
-        if (OnComplete?.Invoke(value) is { } complete)
-        {
-            await complete.ConfigureAwait(false);
-        }
+        await OnComplete.Invoke(value).ConfigureAwait(false);
     }
 
     private (string Name, string? Value)[] Hints() =>
