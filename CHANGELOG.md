@@ -9,6 +9,14 @@ them until tagged releases begin.
 
 ### Security
 
+- **`rask deploy` no longer leaves its secrets readable in the shared temp directory.** The env file handed to
+  `docker --env-file` (SMTP passwords, S3 keys…) was written with the default mode, usually world-readable, and
+  the Caddyfile went to a predictable `/tmp/rask-<app>.Caddyfile` another local user could create first. Both
+  are now owner-only (0600), and the Caddyfile's name is unguessable.
+- **A scaffolded app keeps production secrets and data out of git and out of its image.** `.gitignore` covered
+  `.env` but not the `.env.production` the docs tell you to write, nor the `*.files.tgz` `rask db backup` leaves
+  beside its copy; `.dockerignore` excluded none of `.env*`, `*.db` or `storage/`, so `COPY . .` could put them
+  in an image layer and `rask deploy` sent them to the remote daemon as build context. Both lists now do.
 - **A scaffolded front-end app no longer lets anonymous callers run every command.** The 13 SPA and meta
   templates (React, Vue, Angular, Next.js, Nuxt, SvelteKit…) set `Rask:Cqrs:Server:RequireAuthenticatedUser`
   to `false` unconditionally, so the starter greeting could answer an anonymous landing page, and with it any

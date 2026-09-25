@@ -569,8 +569,10 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         // Regenerate the whole Caddyfile from the live routes, forcing this app to its NEW container, then
         // hot-reload — Caddy drains in-flight requests to the old color.
         var routes = BuildRoutingMap(apps, slug, domain, new RouteTarget(newContainer, containerPort));
-        var caddyfilePath = Path.Combine(Path.GetTempPath(), $"rask-{slug}.Caddyfile");
-        _fileSystem.WriteAllText(caddyfilePath, BuildCaddyfile(routes));
+        // Unguessable and owner-only: on a shared machine a predictable name in the temp dir is one another user can
+        // create first, and whatever it held would be copied into the proxy that fronts every app on the box.
+        var caddyfilePath = Path.Combine(Path.GetTempPath(), $"rask-{slug}-{Guid.NewGuid():N}.Caddyfile");
+        _fileSystem.WriteSecretText(caddyfilePath, BuildCaddyfile(routes));
         Console.Out.WriteLine($"Routing {domain} → {newContainer} (auto-HTTPS via Caddy)…");
         await Run(BuildCaddyCopyArguments(host, caddyfilePath), cancellationToken).ConfigureAwait(false);
 
@@ -815,8 +817,9 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             return null;
         }
 
+        // Owner-only: it holds the app's secrets, and the temp dir is shared with every other user of the machine.
         var path = Path.Combine(Path.GetTempPath(), $"rask-{slug}-{Guid.NewGuid():N}.env");
-        _fileSystem.WriteAllText(path, string.Join('\n', carriable) + "\n");
+        _fileSystem.WriteSecretText(path, string.Join('\n', carriable) + "\n");
         return path;
     }
 
