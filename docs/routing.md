@@ -5,7 +5,8 @@ naming the URL it answers; a module initializer (emitted by the `RoutesGenerator
 the current URL against the registry and renders the matching page. The same generator also emits a **type-safe URL
 builder** for every route, so links and navigation never carry stringly-typed paths that rot.
 
-Bring in the routing namespace where you use these APIs:
+These APIs live in `Rask.Core.Routing`, which a `rask new` app already has in `GlobalUsings.cs`. A hand-wired
+project or a component library adds it itself:
 
 ```csharp
 using Rask.Core.Routing;

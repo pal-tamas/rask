@@ -61,6 +61,38 @@ public class ScaffoldedGlobalUsingsTests
         Assert.DoesNotContain("rask:if", usings, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("server")]
+    [InlineData("wasm")]
+    [InlineData("wasm-hosted")]
+    public void A_page_reaches_routing_forms_and_the_browser_with_no_using_of_its_own(string template)
+    {
+        string[] everyday = ["Routing", "Forms", "Browser", "Live", "Authentication"];
+
+        var result = template switch
+        {
+            "wasm" => ProjectGenerator.GenerateWasm(Root, "App", pwa: true, docker: false, "1.0.0", new ServerBatteries()),
+            "wasm-hosted" => ProjectGenerator.GenerateWasmHosted(Root, "App", new ServerBatteries(), "1.0.0"),
+            _ => ProjectGenerator.GenerateServer(Root, "App", new ServerBatteries(), "1.0.0"),
+        };
+        var files = result.Files.Where(f => f.Path.EndsWith(".cs", StringComparison.Ordinal)).ToList();
+
+        // A wasm-hosted app has two: the pages are the client's, so its file is the one they read.
+        var components = files.Single(f => f.Path.EndsWith(
+            template == "wasm-hosted" ? Path.Combine("Client", "GlobalUsings.cs") : "GlobalUsings.cs",
+            StringComparison.Ordinal));
+        foreach (var name in everyday)
+        {
+            Assert.Contains($"global using Rask.Core.{name};", components.Content, StringComparison.Ordinal);
+        }
+
+        var repeats = files
+            .Where(f => everyday.Any(n => f.Content.Contains($"\nusing Rask.Core.{n};", StringComparison.Ordinal)
+                                          || f.Content.StartsWith($"using Rask.Core.{n};", StringComparison.Ordinal)))
+            .Select(f => f.Path);
+        Assert.Empty(repeats);
+    }
+
     private static string GlobalUsings(ServerBatteries batteries)
     {
         var result = ProjectGenerator.GenerateServer(Root, "App", batteries, "1.0.0");

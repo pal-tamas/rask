@@ -4,9 +4,6 @@ using Rask.Wasm;
 using Rask.Cqrs.Client;
 using Rask.Query;
 // rask:end
-// rask:if pwa
-using Rask.Core.Browser;
-// rask:end
 
 // The browser app. It runs in WebAssembly and renders every page itself; the server's Program.cs is the
 // other half — it answers this app's messages and serves the files this folder builds into.

@@ -41,6 +41,9 @@ them until tagged releases begin.
   `Program.cs` instead of dropping a package, and the scaffold's in-memory push store is gone: Web Push is the
   battery. `rask deploy` sets `Rask__BehindProxy=true` behind its Caddy proxy, RaskApp's `/health` reports the
   live-session pool, and its default PWA manifest carries `wwwroot/icon.svg` when the app has one.
+- **A scaffolded page needs no `using` for routing, forms, browser APIs, the live context or the signed-in user.**
+  `rask new`'s `GlobalUsings.cs` (server, wasm and the wasm-hosted client) carries `Rask.Core.Routing`, `.Forms`,
+  `.Browser`, `.Live` and `.Authentication`, so `[Route]`, `IWebPush` and `IAuth` resolve with no import.
 - **`PushSubscription` is one record, in `Rask.Wire`.** The browser API (`IWebPush.SubscribeAsync`) and the server
   sender each declared their own, so a component on the server host could not hand one to the other. An app that named
   `Rask.Core.Browser.PushSubscription` or `Rask.WebPush.PushSubscription` names `Rask.Wire.PushSubscription`; the
@@ -68,6 +71,9 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A React/Vue/… host with `--data` builds again.** Its batteries bring Rask.Core's build hooks, whose scoped CSS
+  and TypeScript globs reached into `client/` and failed on the front end's own `App.css` and `vite.config.ts`
+  (RASK015/017). `Rask.Spa.Hosting` now leaves the client directory out of those globs.
 - **An app that references only `Rask.Server` or `Rask.Wasm` draws with the kit again.** `Rask.Ui`'s build hooks —
   the kit's stylesheet in `wwwroot` and daisyUI's plugin beside `Styles/app.css` — recognised a direct `Rask.Ui`
   reference or the removed meta-package, so an app naming only its host got neither, and Tailwind stopped on

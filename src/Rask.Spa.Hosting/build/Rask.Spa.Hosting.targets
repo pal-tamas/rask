@@ -93,6 +93,11 @@
 
     <_RaskSpaDist Condition="'$(_RaskSpaDir)' != ''">$(_RaskSpaDir)/$(RaskSpaDistDir)</_RaskSpaDist>
 
+    <!-- The front end's own App.css and vite.config.ts are not scoped assets. A host that also carries
+         Rask.Core (any battery brings it) would otherwise pair them with components and fail on RASK015/017. -->
+    <RaskScopedSourceExclude Condition="'$(_RaskSpaDir)' != ''"
+    >$(RaskScopedSourceExclude);$([MSBuild]::MakeRelative('$(MSBuildProjectDirectory)/', '$(_RaskSpaDir)'))/**</RaskScopedSourceExclude>
+
     <!-- `npm ci` needs the lockfile; a client that has never installed does not have one yet. -->
     <_RaskSpaInstallCmd Condition="'$(_RaskSpaDir)' != '' AND Exists('$(_RaskSpaDir)/package-lock.json')"
     >$(RaskSpaInstallCommand)</_RaskSpaInstallCmd>

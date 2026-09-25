@@ -370,8 +370,6 @@ you bring in explicitly). `[RouteParam]` and `[QueryParam]` bind URL pieces to p
 route gets a generated, type-safe URL builder:
 
 ```csharp
-using Rask.Core.Routing;
-
 [Route("/users/{id}")]
 public sealed partial class UserPage : Component
 {
