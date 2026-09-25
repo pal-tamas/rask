@@ -48,6 +48,9 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A React/Vue/… host with `--data` builds again.** Its batteries bring Rask.Core's build hooks, whose scoped CSS
+  and TypeScript globs reached into `client/` and failed on the front end's own `App.css` and `vite.config.ts`
+  (RASK015/017). `Rask.Spa.Hosting` now leaves the client directory out of those globs.
 - **An app that references only `Rask.Server` or `Rask.Wasm` draws with the kit again.** `Rask.Ui`'s build hooks —
   the kit's stylesheet in `wwwroot` and daisyUI's plugin beside `Styles/app.css` — recognised a direct `Rask.Ui`
   reference or the removed meta-package, so an app naming only its host got neither, and Tailwind stopped on
