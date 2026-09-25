@@ -9,6 +9,12 @@ them until tagged releases begin.
 
 ### Security
 
+- **A scaffolded front-end app no longer lets anonymous callers run every command.** The 13 SPA and meta
+  templates (React, Vue, Angular, Next.js, Nuxt, SvelteKit…) set `Rask:Cqrs:Server:RequireAuthenticatedUser`
+  to `false` unconditionally, so the starter greeting could answer an anonymous landing page, and with it any
+  command added later, such as a `DeleteProject`, answered anyone. With `--data` they now keep the secure
+  default and mark only the greeting's two handlers `[AllowAnonymous]`; without a database (no accounts to
+  require) dispatch stays open as before, with a note to delete the key once accounts exist.
 - **A reset link can no longer be pointed at another domain through the `Host` header.** With
   `Rask:Auth:PublicOrigin` unset, emailed links were built from the request, so `POST /api/auth/forgot-password`
   with `Host: evil.example` mailed the victim a working reset token on the attacker's domain. Outside Development
