@@ -530,3 +530,4 @@ Rask.RaskWasmOptions.Query.get -> Rask.Battery!
 Rask.RaskWasmOptions.RaskWasmOptions() -> void
 Rask.WasmHostBuilderExtensions
 static Rask.WasmHostBuilderExtensions.Configure(this Rask.Wasm.WasmHostBuilder! host, System.Action<Rask.RaskWasmOptions!>! configure) -> Rask.Wasm.WasmHostBuilder!
+Rask.RaskWasmOptions.Ui.get -> Rask.Battery!

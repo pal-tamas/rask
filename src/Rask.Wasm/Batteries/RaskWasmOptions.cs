@@ -27,6 +27,16 @@ public sealed class RaskWasmOptions
     /// </summary>
     public Battery Query { get; } = new();
 
+    /// <summary>
+    /// The UI kit, applied to the whole document: its stylesheet first in <c>&lt;head&gt;</c> and its theme
+    /// scope on <c>&lt;html&gt;</c>, so an <c>App</c> is a title and a router.
+    /// </summary>
+    /// <remarks>
+    /// The charset, the viewport and the app's own compiled <c>css/app.css</c> are written either way. Off
+    /// leaves the kit out; an <c>App</c> that overrides <c>Shell</c> writes its own <c>&lt;html&gt;</c> regardless.
+    /// </remarks>
+    public Battery Ui { get; } = new();
+
     // Remote dispatch (Rask.Cqrs.Client) deliberately has NO switch here. It is referenced by this
     // package, but wiring it needs an endpoint to dispatch to, which only the app knows — and registering
     // it without one would replace the local dispatcher with one that cannot reach anything. So it stays

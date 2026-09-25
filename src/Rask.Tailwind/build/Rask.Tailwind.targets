@@ -228,4 +228,18 @@
           IgnoreStandardErrorWarningFormat="true"/>
   </Target>
 
+  <!--
+    Tells the host where the compiled stylesheet is served, so RaskApp and the WASM host link it and the
+    App does not have to. Read at runtime as the app assembly's Rask.Stylesheet metadata, relative to
+    wwwroot; an output outside wwwroot is not served, so it is not announced.
+  -->
+  <Target Name="_RaskTailwindStylesheetMetadata" BeforeTargets="GetAssemblyAttributes"
+          Condition=" Exists('$(_RaskTailwindInput)')
+                      AND $([System.String]::Copy('$(RaskTailwindOutput)').Replace('\','/').StartsWith('wwwroot/')) ">
+    <ItemGroup>
+      <AssemblyMetadata Include="Rask.Stylesheet"
+                        Value="$([System.String]::Copy('$(RaskTailwindOutput)').Replace('\','/').Substring(8))"/>
+    </ItemGroup>
+  </Target>
+
 </Project>

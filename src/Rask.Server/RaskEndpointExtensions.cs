@@ -488,7 +488,11 @@ public static partial class RaskEndpointExtensions
         // through. RASK014's reason to exist is absent here.
 #pragma warning disable RASK014
         Func<IServiceProvider, Component> appFactory =
-            sp => new RootErrorBoundary(ActivatorUtilities.CreateInstance<TApp>(sp));
+            sp => new RootErrorBoundary(ActivatorUtilities.CreateInstance<TApp>(sp))
+            {
+                // RaskApp's document defaults, on the App's own root only — a mounted app below keeps its own.
+                Defaults = sp.GetService<RaskDocumentDefaults>(),
+            };
 #pragma warning restore RASK014
 
         // Applications mounted under their own prefix — the operator console at /_rask is the one that
