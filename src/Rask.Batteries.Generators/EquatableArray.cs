@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Rask.Cqrs.Generators;
+namespace Rask.Batteries.Generators;
 
 // Structural-equality array wrapper used as the incremental-pipeline value type so Collect() stays
 // cache-correct (value equality instead of array reference equality). Mirrors the helper in

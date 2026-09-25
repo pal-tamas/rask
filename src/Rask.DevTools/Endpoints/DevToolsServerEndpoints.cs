@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Rask.Core.Diagnostics;
 using Rask.Core.Diagnostics.DevTools;
 using Rask.DevTools.Probe;
 using Rask.Server;

@@ -5,7 +5,6 @@ using Rask.Core.Authentication;
 using Rask.Core.Globalization;
 using Rask.Core.Live;
 using Rask.Core.Routing;
-using Rask.TestSupport;
 using Rask.Wasm.Files;
 
 #pragma warning disable RASK014 // test-defined Component subclass has no generated factory

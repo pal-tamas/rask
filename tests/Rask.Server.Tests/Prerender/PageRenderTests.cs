@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
-using Rask.Core.Components;
 using Rask.Core.Live;
 using Rask.Core.Routing;
 using Rask.Server.Prerender;

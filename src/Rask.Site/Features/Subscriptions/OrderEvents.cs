@@ -1,5 +1,3 @@
-using Rask.Cqrs;
-
 namespace Rask.Site.Features;
 
 // The two events behind the subscriptions demo. Plain CQRS notifications: publishing one runs its handlers (it has

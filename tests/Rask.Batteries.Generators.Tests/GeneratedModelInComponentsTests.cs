@@ -1,6 +1,6 @@
 using Rask.Generators;
 
-namespace Rask.Data.Generators.Tests;
+namespace Rask.Batteries.Generators.Tests;
 
 /// <summary>
 /// A component whose props are typed as a Rask.Data entity's generated model — the edit form's shape — driven

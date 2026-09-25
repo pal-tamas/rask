@@ -1,5 +1,4 @@
 using System.Diagnostics.Metrics;
-using Microsoft.EntityFrameworkCore;
 
 namespace Rask.Jobs.Tests;
 

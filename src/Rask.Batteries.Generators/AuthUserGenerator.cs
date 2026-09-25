@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using Rask.Generators.Shared;
 
-namespace Rask.Auth.Generators;
+namespace Rask.Batteries.Generators;
 
 /// <summary>
 /// Finds the application's user type — the one class deriving from <c>Rask.Auth.Authenticatable</c> — and emits a

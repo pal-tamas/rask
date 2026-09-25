@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Rask.Core.Authentication;
-using Rask.Cqrs;
 using Rask.Query;
 using Rask.Site.Features;
 

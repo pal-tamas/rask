@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Net.Http.Headers;
 using Rask.Core;
 using Rask.Server.Tests.Infrastructure;

@@ -1,5 +1,3 @@
-using Rask.TestSupport;
-
 namespace Rask.External.Tests;
 
 // The host element is a wire between two languages: C# writes the attributes, rask-external.js reads

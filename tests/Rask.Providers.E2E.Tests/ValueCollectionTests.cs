@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Rask.SqlServer;
 
 namespace Rask.Providers.E2E.Tests;
 

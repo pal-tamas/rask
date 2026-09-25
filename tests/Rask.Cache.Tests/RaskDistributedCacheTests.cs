@@ -1,5 +1,4 @@
 using System.Text;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 
 namespace Rask.Cache.Tests;

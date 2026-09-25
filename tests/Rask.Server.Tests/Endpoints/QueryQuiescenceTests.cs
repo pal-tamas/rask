@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Cqrs;
 using Rask.Query;

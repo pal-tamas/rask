@@ -1,7 +1,4 @@
-using Rask.Auth.Generators;
-using Rask.Data.Generators;
-
-namespace Rask.Data.Generators.Tests;
+namespace Rask.Batteries.Generators.Tests;
 
 /// <summary>Finding the app's user type, and keeping its credentials off the form model.</summary>
 /// <remarks>

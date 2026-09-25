@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
-using Rask.Cli;
 using Rask.Cli.Commands;
 using Rask.Cli.Scaffolding;
 
