@@ -51,7 +51,39 @@ internal sealed class RootErrorBoundary : Component
     /// </remarks>
     internal Exception? FallbackError { get; private set; }
 
+    /// <summary>
+    ///     What the host writes into every document around the App — see <see cref="RaskDocumentDefaults" />.
+    ///     Set by the host on the App's own root only, so a mounted app keeps its own document.
+    /// </summary>
+    internal RaskDocumentDefaults? Defaults { get; init; }
+
     protected override bool BypassRenderCache => true;
+
+    // The root is walked first, so its contribution leads the head — ahead of the App's own title and links,
+    // and deduplicated against them, so an App that still writes one of these emits it once.
+    protected override Component? HeadAssets => Defaults is { } defaults ? DefaultHead(defaults) : null;
+
+    private Component DefaultHead(RaskDocumentDefaults defaults)
+    {
+        var pathBase = LiveOptions.PathBase;
+        List<Component> head =
+        [
+            Meta.Charset("utf-8"),
+            Meta.Name("viewport").Content("width=device-width, initial-scale=1"),
+        ];
+
+        if (defaults.KitStylesheet is { } kit)
+        {
+            head.Add(Link.Rel("stylesheet").Href(kit(pathBase)));
+        }
+
+        if (defaults.AppStylesheet is { } stylesheet)
+        {
+            head.Add(Link.Rel("stylesheet").Href(pathBase + "/" + stylesheet));
+        }
+
+        return [.. head];
+    }
 
     private static LiveRenderContext? Current => LiveRenderContext.Current;
 
@@ -138,6 +170,7 @@ internal sealed class RootErrorBoundary : Component
         // shell cannot be trusted after it has just failed, and the error page needs a document to live
         // in.
         var head = Head;
+        ctx.DocumentAttributes = Defaults?.HtmlAttributes;
         Component document;
         try
         {

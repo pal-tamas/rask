@@ -141,6 +141,13 @@ public sealed class LiveRenderContext : IDisposable
     internal HeadAssetRegistry HeadAssets { get; }
 
     /// <summary>
+    ///     The host's <c>&lt;html&gt;</c> attributes for this render, set by the root before it asks the App
+    ///     for its <see cref="Component.Shell" /> and read by the default one. <c>null</c> when the host
+    ///     registered no <see cref="RaskDocumentDefaults" />.
+    /// </summary>
+    internal IReadOnlyDictionary<string, string?>? DocumentAttributes { get; set; }
+
+    /// <summary>
     ///     Byte offset of the <see cref="HeadAssetRegistry.Sentinel" /> within the freshly
     ///     serialized page, recorded by <c>HtmlSerializer</c> the moment it emits the sentinel
     ///     (the <c>&lt;head&gt;</c> branch). <see cref="Component.RenderAsLiveRoot()" /> reads it

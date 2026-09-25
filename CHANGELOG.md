@@ -75,6 +75,12 @@ them until tagged releases begin.
   `Program.cs` instead of dropping a package, and the scaffold's in-memory push store is gone: Web Push is the
   battery. `rask deploy` sets `Rask__BehindProxy=true` behind its Caddy proxy, RaskApp's `/health` reports the
   live-session pool, and its default PWA manifest carries `wwwroot/icon.svg` when the app has one.
+- **`App.cs` is a title and a router.** `RaskApp` and the WASM host write the document around it: the charset and
+  viewport, the UI kit's stylesheet first (it declares the `@layer` order), the app's `css/app.css` (the build
+  records it as the assembly's `Rask.Stylesheet` metadata) and the kit's theme scope on `<html>` through the default
+  `Shell`. `app.Configure(c => c.Ui.Off())` and `host.Configure(c => c.Ui.Off())` leave the kit out; a hand-wired
+  `MapRask<App>()` host, a mounted app and an App that overrides `Shell` keep writing their own. An App that still
+  links the kit or the charset emits each once.
 - **A scaffolded page needs no `using` for routing, forms, browser APIs, the live context or the signed-in user.**
   `rask new`'s `GlobalUsings.cs` (server, wasm and the wasm-hosted client) carries `Rask.Core.Routing`, `.Forms`,
   `.Browser`, `.Live` and `.Authentication`, so `[Route]`, `IWebPush` and `IAuth` resolve with no import.
