@@ -6,7 +6,7 @@ but the binding system is **public**, so you write exactly the controls your app
 validation, and controlled mode as the built-ins by implementing one interface: **`IFormControl<T>`**.
 The generator does the rest.
 
-This is the end-to-end guide. For the wider forms story (binding, `Form<TModel>`, validation layers) see
+This is the end-to-end guide. For the wider forms story (binding, `HTMLFormElement<TModel>`, validation layers) see
 [forms.md](forms.md).
 
 ---

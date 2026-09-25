@@ -50,7 +50,7 @@ public sealed class HtmlClassTests
             """);
 
         Assert.Empty(Errors(compilation));
-        Assert.Equal("Rask.Core.Components.Footer", TypeOf(compilation, "Markup.Footer"));
+        Assert.Equal("Rask.Core.Components.HTMLElement", TypeOf(compilation, "Markup.Footer"));
     }
 
     [Fact]
@@ -65,7 +65,7 @@ public sealed class HtmlClassTests
             """);
 
         Assert.Empty(Errors(compilation));
-        Assert.Equal("Rask.Core.Components.Html", TypeOf(compilation, "Html"));
+        Assert.Equal("Rask.Core.Components.HTMLHtmlElement", TypeOf(compilation, "Html"));
     }
 
     private static IEnumerable<string> Errors(Compilation compilation) =>

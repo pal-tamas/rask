@@ -88,7 +88,7 @@ public sealed partial class MasterDetailDemo : Component
             if (open)
             {
                 rows.Add(Tr.Key($"detail-{order.Id}").Class("md-detail")[
-                    Td.Colspan(_orderColumns.Length).Class("p-0 bg-ui-well")[
+                    Td.ColSpan(_orderColumns.Length).Class("p-0 bg-ui-well")[
                         Div
                             .Class("p-3")
                             .Data(new Dictionary<string, string?> { ["testid"] = $"inner-{order.Id}" })[

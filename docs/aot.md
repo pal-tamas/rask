@@ -98,7 +98,7 @@ custom type on the interpreter.
 - **Build cost.** AOT publishes are slow and produce larger bundles; keep it for release/perf builds,
   not the inner loop.
 - **Reflection in the DataAnnotations pass.** It reflects over model metadata, which is why
-  `Form<TModel>`'s type parameter is `[DynamicallyAccessedMembers]`-annotated and the generated chain
+  `HTMLFormElement<TModel>`'s type parameter is `[DynamicallyAccessedMembers]`-annotated and the generated chain
   repeats that annotation — without it the trimmer removes the model's properties and the form
   validates nothing, silently. Prefer FluentValidation (source-generated registration, no scan) or
   inline validators when chasing a maximally lean AOT bundle, or turn the pass off with

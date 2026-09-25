@@ -10,7 +10,7 @@ public partial class OptionTests : global::Rask.Core.RaskMarkup
     public void Setting_every_prop_emits_the_expected_attributes()
     {
         Assert.Equal(
-            "<option id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" value=\"v\" selected disabled label=\"L\"></option>",
+            "<option id=\"i\" class=\"c\" style=\"s\" data-k=\"v\" disabled label=\"L\" selected value=\"v\"></option>",
             Option
                 .Value("v")
                 .Selected(true)

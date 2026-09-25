@@ -225,7 +225,7 @@ internal sealed partial class JsRoundTripApp : Component
     public static TaskCompletionSource<string?> LastResult { get; } =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    protected override Component? HeadAssets => new Title()["t"];
+    protected override Component? HeadAssets => Markup.Title["t"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() => Text.Value("ready");
@@ -253,7 +253,7 @@ internal sealed partial class JsClickApp : Component
     public JsClickApp(IJSRuntime js) => _js = js;
     public static TaskCompletionSource Completed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    protected override Component? HeadAssets => new Title()["t"];
+    protected override Component? HeadAssets => Markup.Title["t"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() => Button.OnClick(SetAsync)["set"];
@@ -272,7 +272,7 @@ internal sealed partial class JsRenderStormApp : Component
 
     public JsRenderStormApp(IJSRuntime js) => _js = js;
 
-    protected override Component? HeadAssets => new Title()["t"];
+    protected override Component? HeadAssets => Markup.Title["t"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() => Text.Value("ready");
@@ -293,7 +293,7 @@ internal sealed partial class JsErrorApp : Component
     public static TaskCompletionSource<Exception> Caught { get; } =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    protected override Component? HeadAssets => new Title()["t"];
+    protected override Component? HeadAssets => Markup.Title["t"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() => Text.Value("ready");

@@ -34,8 +34,8 @@ public sealed partial class NavigateInHandlerStateHasChangedApp : Component
         return Task.CompletedTask;
     }
 
-    protected override Component? HeadAssets => new Title()["nav-coalesce"];
+    protected override Component? HeadAssets => Markup.Title["nav-coalesce"];
     protected override string? HtmlLang => null;
 
-    protected override Component? Render() => new H1()[$"path={_routeState.Path}"];
+    protected override Component? Render() => Markup.H1[$"path={_routeState.Path}"];
 }

@@ -21,12 +21,12 @@ public sealed partial class JsInvokeBindingApp(IJSRuntime js) : Component
     protected override async Task OnRendered() =>
         await js.InvokeVoidAsync("test.noop");
 
-    protected override Component? HeadAssets => new Title()["js-invoke-binding"];
+    protected override Component? HeadAssets => Markup.Title["js-invoke-binding"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>
     [
         Input.Value(_typed).OnInput(v => _typed = v),
-        new P()[$"Echo: {_typed}"]
+        Markup.P[$"Echo: {_typed}"]
     ];
 }

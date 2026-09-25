@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      Rask.Core's own build step, not a consumer's: it turns src/Rask.Core/Dom/mdn.snapshot.json into the
+      element types before Rask.Core compiles (see Rask.Core/Dom/Rask.Dom.targets). netstandard2.0 because
+      MSBuild on Windows may still be full-framework MSBuild.exe, like every other Rask.*.Tasks project.
+    -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>Rask.Core.Dom.Build</RootNamespace>
+
+    <!-- Never shipped: only Rask.Core's build loads it, from this project's own output. -->
+    <IsPackable>false</IsPackable>
+    <RaskPublicApiTracked>false</RaskPublicApiTracked>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- ExcludeAssets=runtime: MSBuild provides these to a task at runtime. -->
+    <PackageReference Include="Microsoft.Build.Utilities.Core" ExcludeAssets="runtime" PrivateAssets="all"/>
+    <!-- The generators' never-throwing JSON reader, shared rather than a System.Text.Json dependency. -->
+    <Compile Include="..\Rask.Generators\Json\JsonLite.cs" Link="Json\JsonLite.cs"/>
+    <Compile Include="..\Rask.Generators\Json\JsonScanner.cs" Link="Json\JsonScanner.cs"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Dom.Tasks.Tests"/>
+  </ItemGroup>
+
+</Project>

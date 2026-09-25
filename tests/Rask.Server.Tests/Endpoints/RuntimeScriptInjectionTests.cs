@@ -58,7 +58,7 @@ public sealed class RuntimeScriptInjectionTests
     {
         protected override string? HtmlLang => null;
 
-        protected override Component? Render() => new H1()[$"path={routeState.Path}"];
+        protected override Component? Render() => Markup.H1[$"path={routeState.Path}"];
     }
 
     // Legacy tree that still contains the (now no-op) RaskRuntimeScript().
@@ -66,6 +66,6 @@ public sealed class RuntimeScriptInjectionTests
     {
         protected override string? HtmlLang => null;
 
-        protected override Component? Render() => [new H1()[$"path={routeState.Path}"], RaskRuntimeScript];
+        protected override Component? Render() => [Markup.H1[$"path={routeState.Path}"], RaskRuntimeScript];
     }
 }

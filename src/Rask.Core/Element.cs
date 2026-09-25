@@ -76,7 +76,7 @@ public abstract partial class Element : Component
     /// <summary>
     ///     The ARIA <c>role</c> — what this element *is* to assistive technology, when the tag alone does
     ///     not say it. A <c>div</c> wired up as a tab strip needs <c>.Role("tablist")</c>; a
-    ///     <see cref="Components.Button" /> already reports itself as a button and needs nothing.
+    ///     <see cref="Components.HTMLButtonElement" /> already reports itself as a button and needs nothing.
     ///     <para>
     ///         Prefer the native element over a role every time one exists. A role changes only what is
     ///         announced — it does not bring the keyboard behaviour, focus handling or state the real

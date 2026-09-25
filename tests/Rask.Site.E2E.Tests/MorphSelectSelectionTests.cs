@@ -38,11 +38,11 @@ public sealed class MorphSelectSelectionTests(PlaywrightFixture playwright)
     // matched against an <option>, replaced, and the trailing option dropped and re-created — which
     // resets the selection through the browser rather than through anything under test here.
     private const string SingleHtml = "<!doctype html><html><body><select id=\"s\">"
-        + "<option value=\"a\">A</option><option value=\"b\" selected>B</option>"
+        + "<option value=\"a\">A</option><option selected value=\"b\">B</option>"
         + "<option value=\"c\">C</option></select></body></html>";
 
     private const string MultiHtml = "<!doctype html><html><body><select id=\"s\" multiple>"
-        + "<option value=\"a\" selected>A</option><option value=\"b\">B</option>"
+        + "<option selected value=\"a\">A</option><option value=\"b\">B</option>"
         + "<option value=\"c\">C</option></select></body></html>";
 
     [Fact]

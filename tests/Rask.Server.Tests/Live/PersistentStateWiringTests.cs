@@ -75,7 +75,7 @@ public sealed class PersistentStateWiringTests
         protected override Component? Render()
         {
             state.Persist("rendered", true);
-            return new Span();
+            return Markup.Span;
         }
     }
 }

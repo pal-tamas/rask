@@ -433,7 +433,7 @@ step by step (database, auth, jobs, email, cache, events, and deployment). In sh
 
 Read **[the doctrine](one-person-framework.md)** for the why. Reference guides for the next thing you need:
 
-- **Build a form** → [forms](forms.md) — `Form<T>`, `Input(() => model.X)`, validation.
+- **Build a form** → [forms](forms.md) — `Form.Model(m)`, `Input(() => model.X)`, validation.
 - **Add more routes / layouts** → [routing](routing.md) — nested layouts, route/query params, `Navigator`.
 - **Load or save data** → [Rask.Data](data.md) — declare a model, read and write it off the type; or
   [plain EF Core](data-access.md) with a `DbContext` of your own.

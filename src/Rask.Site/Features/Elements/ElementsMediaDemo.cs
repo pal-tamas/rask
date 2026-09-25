@@ -31,19 +31,19 @@ public sealed partial class ElementsMediaDemo : Component
             Figure.Class("m-0")[
                 Iframe
                     .Srcdoc("<p style='font:13px sans-serif;margin:8px'>An inline iframe document.</p>")
-                    .Width(180)
-                    .Height(96)
+                    .Width("180")
+                    .Height("96")
                     .Class("border rounded"),
                 Figcaption.Class("mt-2 text-sm text-ui-muted")["iframe (srcdoc)"]
             ]
         ],
         Div.Class("flex gap-3 items-start flex-wrap items-center")[
             Figure.Class("m-0")[
-                Embed.Src(Asset("rask-placeholder.svg")).Type("image/svg+xml").Width(96).Height(96),
+                Embed.Src(Asset("rask-placeholder.svg")).Type("image/svg+xml").Width("96").Height("96"),
                 Figcaption.Class("mt-2 text-sm text-ui-muted")["embed"]
             ],
             Figure.Class("m-0")[
-                HtmlObject.DataUrl(Asset("rask-placeholder.svg")).Type("image/svg+xml").Width(96).Height(96),
+                HtmlObject.DataUrl(Asset("rask-placeholder.svg")).Type("image/svg+xml").Width("96").Height("96"),
                 Figcaption.Class("mt-2 text-sm text-ui-muted")["object"]
             ],
             Figure.Class("m-0")[

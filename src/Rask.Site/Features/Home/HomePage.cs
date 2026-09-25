@@ -340,7 +340,7 @@ public sealed partial class HomePage : Component
                 ],
                 Div.Class("grid gap-4 sm:grid-cols-2 lg:grid-cols-3")[
                     Feature(Ui.IconName.Cube, "Components as a chain", "building-components", "A chain surface per component — ", Code["Card.Title(…)"], " — that demands what the component can't do without, plus type-safe ", Code["Routes.*"], " URL builders. Rename a route, break the build — never a dead link."),
-                    Feature(Ui.IconName.Clipboard, "Forms & validation", "forms", Code["Form<T>"], " with two-way binding, plus inline, DataAnnotations, FluentValidation, and async validators — the same rules checked again on the server."),
+                    Feature(Ui.IconName.Clipboard, "Forms & validation", "forms", Code["Form.Model(m)"], " with two-way binding, plus inline, DataAnnotations, FluentValidation, and async validators — the same rules checked again on the server."),
                     Feature(Ui.IconName.PaintBrush, "Scoped CSS & TypeScript", "js-interop", "Drop a sibling ", Code["{Component}.css"], "/", Code[".ts"], ". Auto-scoped, no leaks — a mismatch is a build error. Tailwind v4 compiles from ", Code["dotnet build"], ", with no npm and no config file."),
                     Feature(Ui.IconName.Desktop, "A typed UI kit", "ui-kit", "Every daisyUI component as a C# component — ", Code["Ui.Button"], ", ", Code["Ui.DataGrid"], ", ", Code["Ui.Tree"], " — accessible and themed, with no npm and no Tailwind config."),
                     Feature(Ui.IconName.Phone, $"{BrowserApiCount} typed browser APIs", "browser-apis", "Storage, clipboard, geolocation, passkeys, share, sensors, observers, WebRTC, serial/USB/HID/Bluetooth — one awaitable C# layer, identical on Server & WASM."),

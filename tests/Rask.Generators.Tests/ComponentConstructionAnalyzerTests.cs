@@ -15,7 +15,7 @@ public class ComponentConstructionAnalyzerTests
                   using Rask.Core.Components;
                   class C
                   {
-                      void M() { var x = new Div(); }
+                      void M() { var x = new HTMLDivElement(); }
                   }
                   """;
 
@@ -52,7 +52,7 @@ public class ComponentConstructionAnalyzerTests
                   using Rask.Core.Components;
                   class C
                   {
-                      Div M() { Div d = new(); return d; }
+                      HTMLDivElement M() { HTMLDivElement d = new(); return d; }
                   }
                   """;
 
@@ -87,7 +87,7 @@ public class ComponentConstructionAnalyzerTests
                   using Rask.Core.Components;
                   class C
                   {
-                      void M() { var x = new Div(); }
+                      void M() { var x = new HTMLDivElement(); }
                   }
                   """;
 
@@ -103,7 +103,7 @@ public class ComponentConstructionAnalyzerTests
                   using Rask.Core.Components;
                   class C
                   {
-                      void M() { var x = new Div(); }
+                      void M() { var x = new HTMLDivElement(); }
                   }
                   """;
 
@@ -121,7 +121,7 @@ public class ComponentConstructionAnalyzerTests
                   namespace Demo;
                   public sealed class Page : Component
                   {
-                      protected override Component? Render() => new Div();
+                      protected override Component? Render() => new HTMLDivElement();
                   }
                   """;
 
@@ -138,7 +138,7 @@ public class ComponentConstructionAnalyzerTests
                   using Rask.Core.Components;
                   class C
                   {
-                      void M() { var arr = new[] { new Div(), new Span() }; }
+                      void M() { var arr = new[] { new HTMLDivElement(), new HTMLSpanElement() }; }
                   }
                   """;
 

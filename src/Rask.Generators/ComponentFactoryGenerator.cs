@@ -4214,6 +4214,14 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 continue;
             }
 
+            // An element is never a node of the DevTools component tree (the serializer's devtools hook skips every
+            // Element), so describing its props would be code nobody reads — and, on the one element type that is not
+            // sealed (HTMLElement), a public member that exists in Debug and not in Release.
+            if (c.IsElement)
+            {
+                continue;
+            }
+
             // Its own, once each: the shared Element/Component surface is described by Core's own overrides, and a
             // bound control's interface props are the same property seen twice.
             var props = c.Properties

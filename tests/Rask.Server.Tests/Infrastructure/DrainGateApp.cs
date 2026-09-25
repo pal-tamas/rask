@@ -17,12 +17,12 @@ public sealed partial class DrainGateApp : Component
 
     public int Counter;
 
-    protected override Component? HeadAssets => new Title()["drain"];
+    protected override Component? HeadAssets => Markup.Title["drain"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>
     [
-        new P()[$"count={Counter}"],
+        Markup.P[$"count={Counter}"],
         Button
             .OnClick(async () =>
         {

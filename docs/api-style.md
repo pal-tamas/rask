@@ -179,6 +179,17 @@ progress, the way `Current.UserId` and `QueryClient.Query(…)` already do. Cons
 and reads the same (`cache.Remember(…)`); it is what code outside any work — a hosted service, a timer —
 uses, and what the static's error message tells you to write there.
 
+### 14. The web platform is named by MDN
+
+An element type, and every attribute on it, takes the name MDN gives it — PascalCased, never re-imagined.
+The types are generated from MDN's data (`src/Rask.Core/Dom/mdn.snapshot.json`), so this rule is kept by the
+build rather than by review: `HTMLAnchorElement`, `HTMLTableCellElement.ColSpan`, `HTMLFormElement.NoValidate`.
+What a reader *writes* is the tag (`A`, `Td`, `Form`), because MDN's element pages are titled by tag.
+
+The only departures are the DOM's own JavaScript workarounds — `For` for `htmlFor`, `Class` for
+`className` — and Rask's security and in-process policies (a form offers no `action`), each named in
+`src/Rask.Dom.Tasks/RaskDomTasks.cs` beside its reason.
+
 ## The vocabulary
 
 What the rules above settled, so a new package has one place to look rather than a precedent to guess at.

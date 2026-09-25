@@ -29,13 +29,13 @@ public sealed partial class RouteTitleStructuralNavApp : Component
         return Task.CompletedTask;
     }
 
-    protected override Component? HeadAssets => new Title()[$"t-{_routeState.Path}"];
+    protected override Component? HeadAssets => Markup.Title[$"t-{_routeState.Path}"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>
     [
         _routeState.Path == "/destination"
-            ? new Ul()[new Li()["a"], new Li()["b"], new Li()["c"]]
-            : new Div()["plain"]
+            ? Markup.Ul[Markup.Li["a"], Markup.Li["b"], Markup.Li["c"]]
+            : Markup.Div["plain"]
     ];
 }

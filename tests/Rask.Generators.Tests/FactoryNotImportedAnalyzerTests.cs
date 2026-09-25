@@ -135,7 +135,8 @@ public class FactoryNotImportedAnalyzerTests
             """));
 
     // The real thing, not a stand-in: this is the exact shape the discovery migration produced ~1,700
-    // times, and `Rask.Core.Components.Div` is the type the name loses to.
+    // times. Outside a host `Div` used to lose to the type Div (CS0119); the type is HTMLDivElement now, so the
+    // name resolves to nothing (CS0103), and RASK043 still says why.
     [Fact]
     public async Task The_real_Rask_Core_tags_are_reported_and_the_real_import_silences_it()
     {

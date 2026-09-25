@@ -1149,7 +1149,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
         if (rows.Rows.Count == 0)
         {
             yield return Tr[
-                Td.Colspan(span).Class("py-10 text-center text-base-content/60")[
+                Td.ColSpan(span).Class("py-10 text-center text-base-content/60")[
                     Empty ?? (Component)"Nothing to show."
                 ]
             ];
@@ -1212,7 +1212,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
             if (open && Detail?.Invoke(row) is { } detail)
             {
                 yield return Tr.Key(key.ToString() + "-detail")[
-                    Td.Colspan(span).Class("bg-base-200/50")[detail]
+                    Td.ColSpan(span).Class("bg-base-200/50")[detail]
                 ];
             }
         }
@@ -1383,7 +1383,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
             ];
 
         return Tr.Key("band-" + path)[
-            Td.Colspan(span).Class("bg-base-200")[
+            Td.ColSpan(span).Class("bg-base-200")[
                 Div.Class("flex items-center gap-2").Style("padding-inline-start:" + level + "rem")[
                     GroupCollapsible is false
                         ? null
@@ -1402,7 +1402,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     private Component Subtotal(
         IReadOnlyList<UiColumn<T>> visible, IReadOnlyList<T> band, int level, int span) =>
         Tr.Key("subtotal-" + level + "-" + band.Count)[
-            LeadingCells > 0 ? Td.Colspan(LeadingCells).Class("bg-base-100") : null,
+            LeadingCells > 0 ? Td.ColSpan(LeadingCells).Class("bg-base-100") : null,
             visible.Select(column =>
                 Td.Key(column.FieldName ?? column.Title ?? "")
                     .Class(UiClass.Compose("bg-base-100 font-medium", column.Class))[
@@ -1607,7 +1607,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
 
         return Tfoot.Class(StackedCards ? "max-sm:hidden" : null)[
             Tr[
-                LeadingCells > 0 ? Td.Colspan(LeadingCells) : null,
+                LeadingCells > 0 ? Td.ColSpan(LeadingCells) : null,
                 visible.Select(column =>
                     Td.Key(column.FieldName ?? column.Title ?? "").Class(column.CellClasses)[column.Foot(all)])
             ]

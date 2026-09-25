@@ -60,7 +60,7 @@ internal sealed partial class GestureApp : Component
 {
     public static ConcurrentQueue<(int Session, string? Value)> Results { get; } = new();
 
-    protected override Component? HeadAssets => new Title()["t"];
+    protected override Component? HeadAssets => Markup.Title["t"];
     protected override string? HtmlLang => null;
 
     protected override Component? Render()

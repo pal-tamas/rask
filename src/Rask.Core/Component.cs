@@ -503,7 +503,11 @@ public abstract partial class Component : RaskMarkup
     // Reads go through `_live?.Globals?.X`, so an element that names none pays two null checks and no
     // allocation — and Element.WriteAttributes fetches the object ONCE via GlobalAttrsInternal rather
     // than re-walking it per attribute, which makes the common element cheaper than a field each.
-    internal sealed class GlobalAttrs
+    //
+    // The build adds the rest of MDN's global attributes (accesskey, nonce, slot, …) to this same object, in
+    // a generated partial (Rask.Dom.targets), for the same reason: they are rare, and HTMLElement is the base
+    // of every HTML element.
+    internal sealed partial class GlobalAttrs
     {
         public string? Lang;
         public string? Dir;
@@ -517,6 +521,9 @@ public abstract partial class Component : RaskMarkup
     internal GlobalAttrs? GlobalAttrsInternal => _live?.Globals;
 
     private GlobalAttrs Globals => Live.Globals ??= new GlobalAttrs();
+
+    // For the generated globals' setters: the side object, allocated on first write.
+    internal GlobalAttrs GlobalAttrsForWrite => Globals;
 
     // Each setter mirrors the Role/Aria shape: assigning null to an element that never set one is a
     // no-op, so neither the LiveState nor the side object is forced into existence by a null write.

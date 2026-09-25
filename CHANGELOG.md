@@ -7,6 +7,38 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING: MDN is the source of truth for the HTML elements.** Every element type, its base, its tags and its
+  attribute properties are now generated at build time from MDN's own data (`@webref/elements`, `@webref/idl`,
+  `@mdn/browser-compat-data`), kept in `src/Rask.Core/Dom/mdn.snapshot.json`. Nothing generated is committed,
+  and a local build refreshes the snapshot to MDN's latest stable data at most once a day. What you write is
+  unchanged: the chain entries keep their tag names (`Div`, `A`, `Td`, `Em`, `H1`, `Input`…). What changes:
+  - **Types take MDN's names and are shared the way the DOM shares them.** `A` is `HTMLAnchorElement`, `Img` is
+    `HTMLImageElement`, `em`/`section`/`nav`/… are all `HTMLElement`, `h1`–`h6` are `HTMLHeadingElement`, and
+    `td`/`th` are `HTMLTableCellElement`. The old per-tag types (`Div`, `Td`, `HtmlHeadingElement`, `HtmlObject`,
+    …) are gone. Code that names a type changes (`new Title()` → the `Title` entry, `Meta? probe` →
+    `HTMLMetaElement? probe`); code that only writes the chain does not.
+  - **Typed form controls sit on the MDN type.** `Input<T>` → `HTMLInputElement<T> : HTMLInputElement`, and the same
+    for `Select<T>` → `HTMLSelectElement<T>`, `Textarea<T>` → `HTMLTextAreaElement<T>` and `Form<TModel>` →
+    `HTMLFormElement<TModel>`. `Input.Bind(() => m.Age)` and `Form.Model(m)` read exactly as before.
+  - **Attribute properties are the DOM's names:** `Td.ColSpan(2).RowSpan(3)` (was `Colspan`/`Rowspan`),
+    `Form.NoValidate(true)`, `Button.FormNoValidate(true)`, `Img.IsMap(true)`, `Input.DirName("q.dir")`.
+    `For` and `Class` stay, because the DOM renames them only for JavaScript's sake.
+  - **Attribute types follow the IDL.** `Iframe`, `Embed` and `HtmlObject` take `Width("560")`/`Height("315")` as
+    strings, the way MDN declares them.
+  - **Attributes MDN marks deprecated or single-engine are gone:** `html xmlns`, `object usemap`, `iframe
+    fetchpriority`, `label form`, `meter form`, `link color`, `script charset`, `style type`, `video controlslist`
+    and `video loading`. `meta property` (Open Graph) stays: it comes from RDFa, not HTML, and link previews
+    depend on it.
+  - **New from MDN, with no code written:** the `<selectedcontent>` element (`Selectedcontent`), and every global
+    attribute on every element: `AccessKey`, `Autocapitalize`, `Autocorrect`, `Nonce`, `Part`, `Slot`,
+    `WritingSuggestions`, alongside `Autofocus`, `InputMode` and `EnterKeyHint`, which used to exist on `Input`
+    only.
+  - **Tag-specific attributes render in IDL order** after the globals, and a typed control's derived `type`,
+    `name`, `value`, `checked` and `step` render after those. Each generated member's doc comment gives its
+    browser support and links to MDN and the spec.
+
 ### Security
 
 - **A scaffolded front-end app no longer lets anonymous callers run every command.** The 13 SPA and meta

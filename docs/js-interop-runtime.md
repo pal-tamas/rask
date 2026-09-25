@@ -166,7 +166,7 @@ public sealed partial class FocusDemo : Component
 
     protected override Component? Render() =>
         Div[
-            Input<string>().Type(InputType.Text).Ref(_input),
+            Input.Of<string>().Type(InputType.Text).Ref(_input),
             Div.Ref(_box)["measure me"],
             Button.OnClick(Focus)["Focus"],
             Button.OnClick(Measure)["Measure"]

@@ -98,7 +98,7 @@ public sealed partial class ToastPage : Component
     private bool _sticky;
     private int _dismissed;
 
-    protected override Component? HeadAssets => new Title()["toast"];
+    protected override Component? HeadAssets => Markup.Title["toast"];
 
     protected override string? HtmlLang => "en";
 
