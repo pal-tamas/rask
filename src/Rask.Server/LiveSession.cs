@@ -397,6 +397,19 @@ internal sealed class LiveSession : LiveSessionBase, IDisposable, IAsyncDisposab
         }
     }
 
+    // A scoped script's callback arrives on the socket reader like a dotNetInvoke, not as an event, so it is queued
+    // behind the handlers already on the chain rather than run beside them on whatever thread read it. Its faults
+    // are reported by the component that ran it; the chain is for ordering only.
+    protected override void RunInOrderCore(Func<Task> work) =>
+        EnqueueOnHandlerChain(async previous =>
+        {
+            try { await previous.ConfigureAwait(false); }
+            catch { }
+
+            try { await work().ConfigureAwait(false); }
+            catch { }
+        });
+
     internal bool IsDisposed => _disposed;
 
     /// <summary>Drops a render requested in scope, for a dispatch that has handed the browser to another page.</summary>

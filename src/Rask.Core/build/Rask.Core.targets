@@ -413,7 +413,7 @@
           DependsOnTargets="_RaskResolveTsgo;_RaskStampScopedTsOptions"
           Condition=" '$(_RaskScopedTsDoBuild)' == 'true' AND '@(_RaskScopedTs)' != '' "
           Inputs="@(_RaskScopedTs);@(_RaskScopedTsTypes);$(_RaskScopedTsOptionsStamp)"
-          Outputs="@(_RaskScopedTs->'$(_RaskScopedTsOutDir)%(RecursiveDir)%(Filename).js')">
+          Outputs="@(_RaskScopedTs->'$(_RaskScopedTsOutDir)%(RecursiveDir)%(Filename).js');@(_RaskScopedTs->'$(_RaskScopedTsOutDir)%(RecursiveDir)%(Filename).d.ts')">
     <!--
       _RaskTsgoPath is deliberately NOT in the Condition above, however natural that reads. A
       target's Condition is evaluated BEFORE its DependsOnTargets run, so it would test a property
@@ -428,7 +428,7 @@
     <PropertyGroup>
       <_RaskScopedTsSourceMapArg Condition="'$(RaskScopedTsSourceMap)' == 'true'"> --inlineSourceMap --inlineSources --sourceRoot &quot;$([System.Uri]::new('$([MSBuild]::NormalizeDirectory($(RaskScopedTsRootDir)))').AbsoluteUri)&quot;</_RaskScopedTsSourceMapArg>
     </PropertyGroup>
-    <Exec Command="&quot;$(_RaskTsgoPath)&quot; @(_RaskScopedTs->'&quot;%(FullPath)&quot;', ' ') @(_RaskScopedTsTypes->'&quot;%(FullPath)&quot;', ' ') --rootDir &quot;$(RaskScopedTsRootDir)&quot; --outDir &quot;$(_RaskScopedTsOutDir)&quot; --target $(RaskScopedTsTarget) --module esnext --noCheck$(_RaskScopedTsRemoveCommentsArg)$(_RaskScopedTsSourceMapArg) --ignoreConfig"
+    <Exec Command="&quot;$(_RaskTsgoPath)&quot; @(_RaskScopedTs->'&quot;%(FullPath)&quot;', ' ') @(_RaskScopedTsTypes->'&quot;%(FullPath)&quot;', ' ') --rootDir &quot;$(RaskScopedTsRootDir)&quot; --outDir &quot;$(_RaskScopedTsOutDir)&quot; --target $(RaskScopedTsTarget) --module esnext --noCheck --declaration$(_RaskScopedTsRemoveCommentsArg)$(_RaskScopedTsSourceMapArg) --ignoreConfig"
           WorkingDirectory="$(MSBuildProjectDirectory)"/>
   </Target>
 
@@ -472,6 +472,16 @@
       -->
       <AdditionalFiles Include="@(_RaskCompiledScopedJs)"
                        Condition="Exists('%(_RaskCompiledScopedJs.FullPath)')"/>
+
+      <!--
+        The declarations tsgo writes beside each .js (declaration emit is part of the same compile).
+        The generator reads them to give the owning component a typed private method per export,
+        so `Width(_box)` replaces `InvokeAsync<double>("Rask.X.width", _box)`. Same transform, same
+        on-disk filter, same RaskTsSource tag as the .js.
+      -->
+      <_RaskCompiledScopedDts Include="@(_RaskScopedTsTagged->'$(_RaskScopedTsOutDir)%(RecursiveDir)%(Filename).d.ts')"/>
+      <AdditionalFiles Include="@(_RaskCompiledScopedDts)"
+                       Condition="Exists('%(_RaskCompiledScopedDts.FullPath)')"/>
     </ItemGroup>
 
     <PropertyGroup>

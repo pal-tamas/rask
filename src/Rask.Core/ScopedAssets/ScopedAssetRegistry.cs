@@ -67,10 +67,16 @@ public static class ScopedAssetRegistry
     // Strips the leading `export ` (and an optional `default `) from a declaration so the
     // module body can run inside the IIFE. The lookahead lists `async function` alongside
     // the bare forms — without it an `export async function` keeps its `export` keyword and
-    // throws a SyntaxError inside the (non-module) wrapper.
+    // throws a SyntaxError inside the (non-module) wrapper. `class` for the same reason: an exported
+    // class kept its keyword and took the component's whole script down with it.
     private static readonly Regex _exportStrip =
-        new(@"(^|\n)\s*export\s+(default\s+)?(?=(async\s+function|function|const|let|var)\b)",
+        new(@"(^|\n)\s*export\s+(default\s+)?(?=(async\s+function|function|class|const|let|var)\b)",
             RegexOptions.Compiled);
+
+    // Exported classes, exposed through a factory — `__new_Chart(...)` — because a call from C# can
+    // invoke a function but has no `new`. The generated `NewChart(...)` on the component calls it.
+    private static readonly Regex _exportedClassNames =
+        new(@"(^|\n)\s*export\s+(?:default\s+)?class\s+(\w+)\b", RegexOptions.Compiled);
 
     // Collects the names of exported function declarations (sync or async) so they can be
     // re-exposed on the returned object. The `async` modifier is optional and non-capturing,
@@ -877,6 +883,16 @@ public static class ScopedAssetRegistry
             }
         }
 
+        var exportedClasses = new List<string>();
+        foreach (Match m in _exportedClassNames.Matches(source))
+        {
+            var name = m.Groups[2].Value;
+            if (!exportedClasses.Contains(name, StringComparer.Ordinal))
+            {
+                exportedClasses.Add(name);
+            }
+        }
+
         // With a source map every line and column of the source must stay where the map says it is, so the stripped
         // `export ` becomes blanks, and any newline the match took is kept, rather than being removed.
         var stripped = preserveLayout
@@ -893,19 +909,29 @@ public static class ScopedAssetRegistry
         }
 
         sb.Append("    return {");
-        if (exportedNames.Count == 0)
+        if (exportedNames.Count == 0 && exportedClasses.Count == 0)
         {
             sb.Append("};\n})();\n})();\n");
             return sb.ToString();
         }
 
         sb.Append('\n');
-        for (var i = 0; i < exportedNames.Count; i++)
+        var members = new List<string>(exportedNames.Count + (exportedClasses.Count * 2));
+        foreach (var name in exportedNames)
         {
-            var name = exportedNames[i];
-            sb.Append("        ").Append(name).Append(": typeof ").Append(name)
-                .Append(" === 'function' ? ").Append(name).Append(" : undefined");
-            if (i < exportedNames.Count - 1)
+            members.Add(name + ": typeof " + name + " === 'function' ? " + name + " : undefined");
+        }
+
+        foreach (var name in exportedClasses)
+        {
+            members.Add(name + ": " + name);
+            members.Add("__new_" + name + ": function () { return new " + name + "(...arguments); }");
+        }
+
+        for (var i = 0; i < members.Count; i++)
+        {
+            sb.Append("        ").Append(members[i]);
+            if (i < members.Count - 1)
             {
                 sb.Append(',');
             }

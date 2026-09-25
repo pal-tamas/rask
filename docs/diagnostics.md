@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK093, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK094, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -128,6 +128,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK091](#rask091) | Warning | A child cannot choose its own form writes — its root decides |
 | [RASK092](#rask092) | Warning | A unit reads wrong for its count (`2.Hour`, `1.Hours`) |
 | [RASK093](#rask093) | Error | An awaitable result is dropped, so the call never runs |
+| [RASK094](#rask094) | Warning | A scoped TypeScript export gets no typed method on its component |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -2435,3 +2436,34 @@ var sending = Mail.Send(email).In(24.Hours);
 await sending;
 ```
 
+
+## RASK094
+
+**A scoped TypeScript export gets no typed method** · Warning
+
+Every `export function` and `export class` in a component's scoped `.ts` becomes a typed private member
+of that component — `export function width(el: HTMLElement): number` is `await Width(_box)` — see
+[Calling your script from C#](js-interop.md#calling-your-script-from-c). An export that cannot is left
+out, the rest still generate, and this names it with the reason:
+
+```ts
+export function pair(): [number, string] { … }   // ⚠ RASK094: 'pair' … it returns a tuple
+export const double = (x: number) => x * 2;      // ⚠ RASK094: only 'export function' and 'export class' reach C#
+```
+
+The reasons, and what to write instead:
+
+| Reason | Fix |
+|---|---|
+| The component is not `partial` | `public sealed partial class Card : Component` |
+| A type with no C# counterpart — a tuple, an intersection, a generic, `Map` | Return an exported `interface` instead; it becomes a nested record |
+| An inline object type (`(): { x: number }`) | Name it: `export interface Point { x: number }` |
+| An element (`HTMLElement`) as a return value | Elements only go *in*; return what you need from one (its size, its text) |
+| A callback that returns a value, or takes more than two arguments | A C# callback only runs; pass one object for many values |
+| Overloads | Keep one signature — optional parameters cover most |
+| A name the component already declares, or an interface of the same C# name (`Viewport` / `viewport()`) | Rename one of them |
+
+A name the component only *inherits* is not a clash: `export function stop()` becomes `Stop()` and hides the
+SVG `<stop>` entry inside that component, where `Markup.Stop` still reaches the tag.
+
+The string call still works for anything left out: `js.InvokeAsync<T>("Rask.Card.pair")`.

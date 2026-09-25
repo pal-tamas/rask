@@ -26,6 +26,12 @@ interface RaskDotNetInterop {
      * because no application calls it, and optional because only one host installs it.
      */
     _endInvokeDotNet?(msg: { callId: string; success: boolean; result?: unknown; error?: string }): void;
+
+    /**
+     * Infrastructure. Called by .NET when it disposes an `IJSObjectReference`, so the host lets go of
+     * the object it was holding for that handle.
+     */
+    disposeJSObjectReferenceById?(id: number): void;
 }
 
 interface Window {

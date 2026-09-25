@@ -49,6 +49,20 @@ them until tagged releases begin.
 
 ### Added
 
+- **A component calls its scoped TypeScript like its own private methods.** `export function width(el: HTMLElement
+  | null): number` in `Card.ts` is `await Width(_box)` on `Card` — no `IJSRuntime` to inject, no
+  `"Rask.Card.width"` to spell, and a renamed or retyped export is a compile error. The build's tsgo compile now
+  also writes a `.d.ts`, and a generator turns each export into a typed `private` member. An `export class`
+  becomes a nested proxy created by `NewChart(…)` and released when the component unmounts. An `export interface`
+  becomes a nested record, `any` goes in as `object?` and comes back as `JsonElement`, and `number` is always
+  `double`. A callback parameter (`onTick: (n: number) => void`) takes a sync or an async lambda, re-renders
+  the component after it runs, and is released on unmount. An export with no C# shape is left out with the new
+  **RASK094** warning naming why. A name the component only inherits, such as SVG's `Stop`, is hidden with
+  `new`. The component must be `partial`, as `rask new` writes it. Before:
+  `js.InvokeAsync<double>("Rask.Card.width", _box)`. An `export interface` in a component's script now declares
+  a nested type of that name, so a C# type of the same simple name that the component uses elsewhere needs
+  qualifying.
+
 - **Web Push keeps its subscribers, so a send is one line.** `await Push.Send(WebPushMessage.Text("Order shipped",
   "#1042 is on its way", "/orders/1042"))` reaches every browser that asked, `.To(userId)` one person's devices, and
   a subscription the push service answers 404/410 is dropped as the send finds it. The subscriptions live in a
@@ -103,6 +117,11 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **An `export class` in a scoped `.ts` no longer breaks the component's whole script.** The wrapper stripped
+  `export` from functions and variables but not classes, so the keyword was left inside a non-module wrapper and
+  the script threw a SyntaxError. Classes are now exposed too.
+- **Disposing an `IJSObjectReference` frees the object in the browser.** Neither host defined
+  `DotNet.disposeJSObjectReferenceById`, so every disposed handle stayed in the host's map for the life of the page.
 - **A React/Vue/… host with `--data` builds again.** Its batteries bring Rask.Core's build hooks, whose scoped CSS
   and TypeScript globs reached into `client/` and failed on the front end's own `App.css` and `vite.config.ts`
   (RASK015/017). `Rask.Spa.Hosting` now leaves the client directory out of those globs.

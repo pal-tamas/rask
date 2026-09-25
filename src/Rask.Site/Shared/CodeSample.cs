@@ -1,27 +1,18 @@
 using ColorCode;
-using Microsoft.JSInterop;
 
 namespace Rask.Site;
 
 public sealed partial class CodeSample : Component
 {
-    // Clipboard interop is injected via the ctor (the framework's DI seam) so Source stays
-    // a plain factory parameter — a settable non-nullable service prop would become a
-    // required param and clash with the DI-only ctor (no parameterless ctor → RASK002).
-    // Mirrors ElementRefDemo's IJSRuntime ctor.
-    private readonly IJSRuntime _js;
-
     // A stable ref to the copy button so its scoped JS can flash "Copied!" on the element.
     private readonly ElementRef _copyButton = ElementRef.New();
 
     // Non-nullable + no initializer + no `required` keyword: the factory generator emits
     // Files as the first required positional parameter (no default), preserving the
-    // existing call-site shapes. The CS8618 warnings (here and on the ctor) are intentional —
+    // existing call-site shapes. The CS8618 warning is intentional —
     // Rask's post-render property assignment satisfies Files at runtime. `required` is
     // deliberately omitted to keep `CodeSample(Files: ...)` a plain positional/named argument.
 #pragma warning disable CS8618
-    public CodeSample(IJSRuntime js) => _js = js;
-
     public string? Title { get; set; }
 
     // The demo source files to show, in tab order, as bare embedded-resource leaf names
@@ -63,7 +54,7 @@ public sealed partial class CodeSample : Component
     private async Task CopyAsync()
     {
         var (_, source, _, _) = Pane(_active);
-        await _js.InvokeVoidAsync("Rask.CodeSample.copy", source, _copyButton);
+        await Copy(source, _copyButton);
     }
 
     // The header sits in the row daisyUI's `mockup-code` opens with its three window dots, to their right. The dots
