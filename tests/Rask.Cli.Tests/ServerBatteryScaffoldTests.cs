@@ -4,13 +4,10 @@ using Rask.Cli.Scaffolding;
 namespace Rask.Cli.Tests;
 
 /// <summary>
-/// What each battery flag puts in the scaffolded project — the package reference, the DI registration, and
-/// the <c>OnModelCreating</c> call that gives the pillar its tables.
+/// What each battery flag puts in the scaffolded project. RaskApp wires every battery itself — the
+/// registrations, their tables and the pipeline are tested in Rask.Server.Tests — so a battery the app does
+/// without is one <c>c.X.Off()</c> line in Program.cs, and the pages and settings are what is left here.
 /// </summary>
-/// <remarks>
-/// The ordering assertions here are the valuable ones. A registration in the wrong place doesn't fail to
-/// compile and doesn't throw — it produces an app that looks fine and quietly does the wrong thing.
-/// </remarks>
 public sealed class ServerBatteryScaffoldTests
 {
     private const string Root = "/proj/App";
@@ -32,13 +29,24 @@ public sealed class ServerBatteryScaffoldTests
                 f => f.Content,
                 StringComparer.Ordinal);
 
-    public static TheoryData<string, string, string, string> Pillars => new()
+    // Every flag, so each row can take exactly one battery away from a full app.
+    private static readonly string[] Every =
+    [
+        "data", "cqrs", "jobs", "mail", "cache", "storage", "outbox", "push", "pwa", "snapshots", "logs", "ops",
+    ];
+
+    // The batteries nothing else depends on, with the name Program.cs switches them off by.
+    public static TheoryData<string, string> Leaves => new()
     {
-        { "jobs", "Rask.Jobs", "AddRaskJobs<AppDbContext>()", "modelBuilder.AddRaskJobs();" },
-        { "mail", "Rask.Mail", "AddRaskMail<AppDbContext>(", "modelBuilder.AddRaskMail();" },
-        { "cache", "Rask.Cache", "AddRaskCache<AppDbContext>()", "modelBuilder.AddRaskCache();" },
-        { "storage", "Rask.Storage", "AddRaskStorage<AppDbContext>()", "modelBuilder.AddRaskStorage();" },
-        { "outbox", "Rask.Outbox", "AddRaskOutbox<AppDbContext>()", "modelBuilder.AddRaskOutbox();" },
+        { "outbox", "Outbox" },
+        { "jobs", "Jobs" },
+        { "mail", "Mail" },
+        { "cache", "Cache" },
+        { "storage", "Storage" },
+        { "snapshots", "Snapshots" },
+        { "ops", "Ops" },
+        { "logs", "Logs" },
+        { "push", "Push" },
     };
 
     public static TheoryData<string> AuthPages =>
@@ -103,18 +111,16 @@ public sealed class ServerBatteryScaffoldTests
     }
 
     [Theory]
-    [MemberData(nameof(Pillars))]
-    public void A_database_backed_battery_adds_its_package_registration_and_schema(
-        string flag, string package, string registration, string schemaCall)
+    [MemberData(nameof(Leaves))]
+    public void A_battery_turned_off_is_one_line_in_Program_cs(string flag, string battery)
     {
-        var files = Generate(flag);
+        var without = Every.Where(f => f != flag).ToArray();
 
-        Assert.Contains($"""<PackageReference Include="{package}" Version="{Version}"/>""", files["App.csproj"], StringComparison.Ordinal);
-        Assert.Contains(registration, files["Program.cs"], StringComparison.Ordinal);
+        var off = Generate(without)["Program.cs"];
+        var on = Generate(Every)["Program.cs"];
 
-        // Without the OnModelCreating call the pillar's table never reaches a migration, and its processor
-        // faults on a missing table at startup — which, for a hosted service, stops the whole host.
-        Assert.Contains(schemaCall, files["Features/Shared/AppDbContext.cs"], StringComparison.Ordinal);
+        Assert.Contains($"app.Configure(c => c.{battery}.Off());", off, StringComparison.Ordinal);
+        Assert.DoesNotContain($"c.{battery}.Off();", on, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -133,152 +139,6 @@ public sealed class ServerBatteryScaffoldTests
         Assert.DoesNotContain("Microsoft.AspNetCore.Identity", user, StringComparison.Ordinal);
     }
 
-    [Theory]
-    [InlineData("data")]
-    [InlineData("jobs")]
-    public void The_conventions_are_applied_after_every_battery_maps_its_tables(string flag)
-    {
-        // The ordering the template's own comment always described and the template did not do: the
-        // battery maps were appended AFTER ApplyRaskConventions, so anything they mapped missed the
-        // audit stamps, the soft-delete filter and the concurrency token. Harmless while no battery
-        // entity was stamped — and silently wrong the moment one is.
-        var context = Generate(flag)["Features/Shared/AppDbContext.cs"];
-
-        var conventions = context.IndexOf("ApplyRaskConventions(this)", StringComparison.Ordinal);
-        var accounts = context.IndexOf("AddRaskAuth()", StringComparison.Ordinal);
-
-        Assert.True(conventions >= 0, "the context should apply the Rask conventions");
-        Assert.True(accounts >= 0, "the context should map the account tables");
-        Assert.True(
-            accounts < conventions,
-            "ApplyRaskConventions must come last, or the tables mapped after it miss the conventions");
-    }
-
-    [Theory]
-    [InlineData("data")]
-    [InlineData("jobs")]
-    [InlineData("cache")]
-    public void Every_app_with_a_database_maps_the_account_tables(string flag)
-    {
-        // Not conditional on any flag, unlike the pillars above. The auth battery is ON by default in
-        // the Rask package, and AddRaskAuth reads and writes the user and its sessions through this context —
-        // so an app whose context does not map them boots happily and then fails at the FIRST registration.
-        // Nothing else in the scaffold would say so.
-        var files = Generate(flag);
-
-        Assert.Contains(
-            "modelBuilder.AddRaskAuth();",
-            files["Features/Shared/AppDbContext.cs"],
-            StringComparison.Ordinal);
-
-        Assert.Contains(
-            "using Rask.Auth;",
-            files["Features/Shared/AppDbContext.cs"],
-            StringComparison.Ordinal);
-
-        // And the reference that makes that using compile. Asserting the mapping alone was not enough:
-        // a scaffold test reads generated TEXT, so it cannot see that the text does not build. The
-        // missing package reference got through this test and was caught by the build E2E instead.
-        Assert.Contains(
-            $"""<PackageReference Include="Rask.Auth" Version="{Version}"/>""",
-            files["App.csproj"],
-            StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void The_operator_console_is_gated_on_the_admin_role()
-    {
-        // /_rask shows job payloads, stored email bodies and log lines. Requiring merely a signed-in
-        // user would open all of that to anyone who registered — which, on an app with open
-        // registration, is everyone. The admin role is the one the FIRST account holds.
-        var program = Generate("ops", "data")["Program.cs"];
-
-        Assert.Contains(
-            "o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireRole(RaskRoles.Admin))",
-            program,
-            StringComparison.Ordinal);
-
-        Assert.DoesNotContain("RequireAuthenticatedUser()", program, StringComparison.Ordinal);
-    }
-
-    [Theory]
-    [InlineData("outbox")]
-    [InlineData("data")]
-    public void AddRaskData_is_scaffolded_without_a_domain_event_argument_whether_or_not_the_outbox_is_on(
-        string flag)
-    {
-        // The outbox used to require `o.DispatchDomainEventsInProcess = false` here, and a scaffold that
-        // forgot it silently emptied the outbox: DomainEventInterceptor drained and cleared every entity's
-        // events before OutboxInterceptor could copy them, while every handler still ran, so nothing looked
-        // wrong. The framework now settles that when the container is built (AddRaskOutbox registers an
-        // IDomainEventDeliveryOwner), so the emitter has no OPTIONS argument left to get wrong. Asserting
-        // that absence is the point — this is the line that would regress if the old conditional came back.
-        //
-        // The TYPE argument is a different thing and is required: the generic overload is what binds the
-        // context to the model surface, so Db.Configure has something to point at. This test used to
-        // assert the bare `AddRaskData();`, which read as though the type argument were unwanted too.
-        var program = Generate(flag)["Program.cs"];
-
-        Assert.Contains("builder.Services.AddRaskData<AppDbContext>();", program, StringComparison.Ordinal);
-        Assert.DoesNotContain("DispatchDomainEventsInProcess", program, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Rask_conventions_are_applied_after_the_entity_configurations()
-    {
-        // ApplyRaskConventions walks the model as it stands. Run before the configurations, every entity
-        // added afterwards silently misses the soft-delete filter and the concurrency token.
-        var context = Generate("data")["Features/Shared/AppDbContext.cs"];
-
-        // Anchored on the receiver: the explanatory comment names both methods above the calls, so a bare
-        // name would match the prose instead of the code.
-        Assert.True(
-            context.IndexOf("modelBuilder.ApplyConfigurationsFromAssembly", StringComparison.Ordinal) <
-            context.IndexOf("modelBuilder.ApplyRaskConventions", StringComparison.Ordinal),
-            "ApplyRaskConventions must follow ApplyConfigurationsFromAssembly.");
-    }
-
-    [Fact]
-    public void Storage_maps_its_file_routes_after_UseRask()
-    {
-        var program = Generate("storage")["Program.cs"];
-
-        // After, not before: MapRaskStorage reads the path base MapRask sets, so mapped earlier its routes would
-        // ignore a pathBase the app configures later.
-        Assert.True(
-            program.IndexOf("app.MapRask<App>();", StringComparison.Ordinal) <
-            program.IndexOf("app.MapRaskStorage();", StringComparison.Ordinal),
-            "MapRaskStorage must follow MapRask.");
-        Assert.True(
-            program.IndexOf("app.MapRaskStorage();", StringComparison.Ordinal) <
-            program.IndexOf("app.Run();", StringComparison.Ordinal),
-            "MapRaskStorage must come before app.Run().");
-        Assert.Contains("using Rask.Storage;", program, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void An_app_without_storage_maps_no_file_routes()
-    {
-        var files = Generate("data");
-
-        Assert.DoesNotContain("MapRaskStorage", files["Program.cs"], StringComparison.Ordinal);
-        Assert.DoesNotContain("Rask.Storage", files["App.csproj"], StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void A_pillar_registration_follows_the_DbContext_factory_it_resolves()
-    {
-        var program = Generate("jobs", "mail", "cache")["Program.cs"];
-        var factory = program.IndexOf("AddDbContextFactory<AppDbContext>", StringComparison.Ordinal);
-
-        foreach (var registration in new[] { "AddRaskJobs<AppDbContext>()", "AddRaskMail<AppDbContext>(", "AddRaskCache<AppDbContext>()" })
-        {
-            Assert.True(
-                factory < program.IndexOf(registration, StringComparison.Ordinal),
-                $"{registration} should follow AddDbContextFactory.");
-        }
-    }
-
     [Fact]
     public void A_database_app_does_not_download_the_litestream_binary_at_build_time()
     {
@@ -292,74 +152,36 @@ public sealed class ServerBatteryScaffoldTests
     }
 
     [Fact]
-    public void Push_maps_its_endpoints_before_the_UseRask_catch_all()
+    public void Push_keeps_the_pwa_it_needs_on()
     {
-        // Not a correctness rule — routing matches on precedence, so mapping after MapRask would work
-        // too (RaskAppTests.An_endpoint_mapped_after_UseRask_still_runs pins that). This pins the
-        // scaffold's LAYOUT: endpoints read in one place, above the line that ends the pipeline.
-        var files = Generate("push");
-        var program = files["Program.cs"];
-
-        Assert.True(
-            program.IndexOf("app.MapPushSubscriptions();", StringComparison.Ordinal) <
-            program.IndexOf("app.MapRask<App>();", StringComparison.Ordinal),
-            "Push endpoints must be mapped before MapRask.");
-
-        Assert.Contains("Features/Push/PushSubscriptions.cs", files.Keys);
-
         // --push implies --pwa: subscribing needs the service worker the PWA registration installs.
-        Assert.Contains("AddRaskPwa", program, StringComparison.Ordinal);
-    }
+        var files = Generate("push");
 
-    [Fact]
-    public void The_private_vapid_key_is_never_served_to_the_browser()
-    {
-        var endpoints = Generate("push")["Features/Push/PushSubscriptions.cs"];
-
-        Assert.Contains("publicKey", endpoints, StringComparison.Ordinal);
-        Assert.DoesNotContain("PrivateKey", endpoints, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Every_pillar_composes_into_one_app()
-    {
-        var files = Generate(
-            "data", "cqrs", "jobs", "mail", "cache", "storage", "outbox", "push", "pwa", "snapshots", "logs", "ops",
-            "docker");
         var program = files["Program.cs"];
 
-        foreach (var registration in new[]
-        {
-            "AddRaskCqrs()", "AddRaskData(", "AddRaskOutbox<AppDbContext>()", "AddDbContextFactory<AppDbContext>",
-            "AddRaskJobs<AppDbContext>()", "AddRaskMail<AppDbContext>(", "AddRaskCache<AppDbContext>()",
-            "AddRaskStorage<AppDbContext>()", "app.MapRaskStorage();",
-            "AddRaskSqliteSnapshots(", "AddRaskSqliteLitestream(", "AddRaskWebPush(", "AddRaskPwa(",
-            "AddRaskLogging(", "AddRaskDashboard<AppDbContext>()", "AddRaskAuth<AppDbContext>()",
-        })
-        {
-            Assert.Contains(registration, program, StringComparison.Ordinal);
-        }
+        Assert.DoesNotContain("c.Pwa.Off()", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("c.Push.Off()", program, StringComparison.Ordinal);
+        Assert.Contains("wwwroot/icon.svg", files.Keys);
+    }
 
+    [Fact]
+    public void Every_pillar_composes_into_one_app_with_none_of_its_wiring_in_the_scaffold()
+    {
+        // The context and the push endpoints are RaskApp's now (RaskAppDbContext, /_rask/push), so an app
+        // with every battery on has one line of Program.cs and neither file.
+        var files = Generate([.. Every, "docker"]);
+
+        var program = files["Program.cs"];
+
+        Assert.Contains("RaskApp.Create(args).Run<App>();", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("var app =", program, StringComparison.Ordinal);
         Assert.Contains("Dockerfile", files.Keys);
-        Assert.Contains("Features/Shared/AppDbContext.cs", files.Keys);
-        Assert.Contains("Features/Push/PushSubscriptions.cs", files.Keys);
+        Assert.DoesNotContain("Features/Shared/AppDbContext.cs", files.Keys);
+        Assert.DoesNotContain("Features/Push/PushSubscriptions.cs", files.Keys);
     }
 
     // ── The log store ───────────────────────────────────────────────────────────────────────────────
     // Alone among the batteries it keeps a file of its own, which is why none of the assertions above fit it.
-
-    [Fact]
-    public void The_log_store_adds_its_package_and_registration()
-    {
-        var files = Generate("logs");
-
-        Assert.Contains(
-            $"""<PackageReference Include="Rask.Logging" Version="{Version}"/>""",
-            files["App.csproj"],
-            StringComparison.Ordinal);
-        Assert.Contains("using Rask.Logging;", files["Program.cs"], StringComparison.Ordinal);
-        Assert.Contains("builder.Services.AddRaskLogging(", files["Program.cs"], StringComparison.Ordinal);
-    }
 
     [Fact]
     public void The_log_store_reads_its_own_connection_string()
@@ -369,8 +191,9 @@ public sealed class ServerBatteryScaffoldTests
         // sets this to a path on the mounted volume.
         var files = Generate("logs");
 
-        Assert.Contains("builder.Services.AddRaskLogging();", files["Program.cs"], StringComparison.Ordinal);
-        Assert.Contains("\"Logs\": \"Data Source=logs.db\"", files["appsettings.json"], StringComparison.Ordinal);
+        var settings = files["appsettings.json"];
+
+        Assert.Contains("\"Logs\": \"Data Source=logs.db\"", settings, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -431,31 +254,19 @@ public sealed class ServerBatteryScaffoldTests
     }
 
     /// <summary>
-    /// The one battery that does not drag the database in behind it. An app with no EF Core, no
-    /// <c>AppDbContext</c> and no migrations can still keep its log — and if this regressed, <c>--logs</c>
-    /// would silently scaffold a whole data layer nobody asked for.
+    /// The one battery that does not drag the database in behind it. An app with no EF Core and no
+    /// migrations can still keep its log — and if this regressed, <c>--logs</c> would silently turn on a
+    /// whole data layer nobody asked for.
     /// </summary>
     [Fact]
     public void The_log_store_does_not_imply_a_database()
     {
         var files = Generate("logs");
 
-        Assert.DoesNotContain("Features/Shared/AppDbContext.cs", files.Keys);
-        Assert.DoesNotContain("AddRaskData(", files["Program.cs"], StringComparison.Ordinal);
-        Assert.DoesNotContain("AddDbContextFactory", files["Program.cs"], StringComparison.Ordinal);
-        Assert.DoesNotContain(
-            "<PackageReference Include=\"Rask.Data\"",
-            files["App.csproj"],
-            StringComparison.Ordinal);
-    }
+        var program = files["Program.cs"];
 
-    [Fact]
-    public void The_log_store_says_out_loud_that_its_file_is_not_backed_up()
-    {
-        // The scaffolded comment is the only place a reader learns the trade-off before they need it.
-        var program = Generate("logs")["Program.cs"];
-
-        Assert.Contains("NOT covered by `rask db backup`", program, StringComparison.Ordinal);
+        Assert.Contains("c.Data.Off();", program, StringComparison.Ordinal);
+        Assert.DoesNotContain("c.Logs.Off()", program, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -472,36 +283,6 @@ public sealed class ServerBatteryScaffoldTests
 
         Assert.DoesNotContain("rask db add Init", next, StringComparison.Ordinal);
         Assert.DoesNotContain("exit on a missing table", next, StringComparison.Ordinal);
-    }
-
-    /// <summary>
-    /// The scaffolded context derives from <c>RaskDbContext</c>, which is the only thing that maps the
-    /// models the app declares.
-    /// </summary>
-    /// <remarks>
-    /// No other gate can catch this. Over plain <c>DbContext</c> the file compiles, the app boots and the
-    /// migration succeeds — every model just quietly maps to nothing, and the first
-    /// <c>Product.Read.Where(…)</c> throws at runtime saying the entity type was not found. So the base type is
-    /// asserted here, in text, rather than left to the build E2E.
-    /// </remarks>
-    [Fact]
-    public void The_scaffolded_context_derives_from_RaskDbContext_so_declared_models_are_mapped()
-    {
-        var context = Generate("jobs")["Features/Shared/AppDbContext.cs"];
-
-        Assert.Contains(": RaskDbContext(options)", context, StringComparison.Ordinal);
-
-        // Deriving is only half of it — the override has to chain, or ModelRegistry never runs.
-        Assert.Contains("base.OnModelCreating(modelBuilder);", context, StringComparison.Ordinal);
-
-        // Note there is no DoesNotContain(": DbContext(options)") here on purpose: that string is a
-        // substring of ": RaskDbContext(options)", so the assertion would fail on correct output.
-
-        // The conventions still have to run last, after the models the base just mapped.
-        Assert.True(
-            context.IndexOf("base.OnModelCreating", StringComparison.Ordinal)
-            < context.IndexOf("ApplyRaskConventions", StringComparison.Ordinal),
-            "base.OnModelCreating must precede ApplyRaskConventions, or the models it maps miss their conventions.");
     }
 
     [Fact]

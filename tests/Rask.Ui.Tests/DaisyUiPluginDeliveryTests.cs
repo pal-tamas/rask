@@ -62,6 +62,18 @@ public sealed class DaisyUiPluginDeliveryTests
     }
 
     [Fact]
+    public void An_app_that_names_only_a_host_still_counts_as_drawing_with_the_kit()
+    {
+        // A scaffold references Rask.Server alone, which brings the kit. Recognising only Rask.Ui skipped the
+        // copy, and Tailwind then failed on `@plugin "./vendor/daisyui.mjs"` in every new app.
+        var gate = Regex.Match(_targets, @"<_RaskUiKitReference Include=""@\(PackageReference\)""\s+Condition=""([^""]*)""").Groups[1].Value;
+
+        var named = Regex.Matches(gate, @"== '([^']+)'").Select(m => m.Groups[1].Value).ToArray();
+
+        Assert.Equal(["Rask.Ui", "Rask.Server", "Rask.Wasm"], named);
+    }
+
+    [Fact]
     public void A_missing_bundle_fails_the_build()
     {
         // Same reasoning the stylesheet target records: the project asked for this file by name, so

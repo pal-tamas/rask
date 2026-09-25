@@ -12,9 +12,9 @@ Everything below is code you write. It's longer than the chapters that follow be
 that shows a slice end to end; once you've typed it, the shape is yours and later chapters only show
 what's new.
 
-> **You don't name a database.** Chapter 1's `rask new` already wired one — `AppDbContext` in
-> `Features/Shared/`. Its base, `RaskDbContext`, maps every aggregate you declare, so you never edit it to add
-> one, and an app keeps **one** database and one set of migrations however many features you add.
+> **You don't name a database.** Chapter 1's `rask new` already wired one. Rask's own context,
+> `RaskAppDbContext`, maps every aggregate you declare, so there is no context to edit when you add one, and
+> an app keeps **one** database and one set of migrations however many features you add.
 
 ## 1. The aggregate
 
@@ -373,18 +373,8 @@ could not. See [queries and commands](../query.md).
 
 ## 6. Already registered
 
-Chapter 1's `rask new` wrote everything this slice needs into `Program.cs`, so there's nothing to add. The
-two parts it depends on are worth recognising:
-
-```csharp
-builder.Services.AddRaskCqrs();
-builder.Services.AddRaskData<AppDbContext>();
-builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
-    .UseRaskSqlite(sp)
-    .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
-```
-
-…with the connection string it reads, in `appsettings.json` (a `--no-data` scaffold has none yet):
+There's nothing to register. `RaskApp.Create(args)` in `Program.cs` turned the database on, and it reads
+where the database is from `appsettings.json`:
 
 ```jsonc
 "Rask": {
@@ -394,33 +384,22 @@ builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
 }
 ```
 
-and one line after the container is built:
+What that one line did for this slice:
 
-```csharp
-var app = builder.Build();
-
-Db.Configure(app.Services);
-```
-
-- `AddRaskData<AppDbContext>()` registers the interceptors (timestamps, versions, events, and soft delete for an aggregate that asks for it)
-  **and names the context to the model surface**. The type argument is what makes `Product.Read.Where(…)`
-  and `Product.CreateAsync(…)` know which database to open.
-- `Db.Configure(app.Services)` points the model surface at it, once, after the container exists. Without
-  this pair the app builds and serves, and throws `The model database has not been configured` on the first
-  line of data code.
-- `AddDbContextFactory<AppDbContext>(…)` registers the context **as a factory**, not as a shared context.
-  Rask pages are long-lived and can render concurrently, so every read and every write makes its own
-  short-lived context instead of sharing one. `UseRaskSqlite` is a drop-in for `UseSqlite` that also applies the
-  production pragmas (WAL, `busy_timeout`, `foreign_keys`) — so the app handles concurrent writers (the
-  jobs, email, and outbox you add in later chapters) without hitting `database is locked`. It reads its
-  connection string from `Rask:ConnectionStrings:App` — a local `app.db` in `appsettings.json` — which is
-  why it takes the service provider, and a deploy overrides it with `Rask__ConnectionStrings__App`, which is
-  how it points at a persistent volume.
-- `AddRaskCqrs()` registers the dispatcher that the jobs and domain events of later chapters are handed
-  through.
+- It registered `RaskAppDbContext` **as a factory**, not as a shared context. Rask pages are long-lived and
+  can render concurrently, so every read and every write makes its own short-lived context instead of
+  sharing one. The context opens SQLite with the production pragmas (WAL, `busy_timeout`, `foreign_keys`), so
+  the app handles concurrent writers — the jobs, email and outbox of later chapters — without hitting
+  `database is locked`. A deploy overrides the connection string with `Rask__ConnectionStrings__App`, which
+  is how it points at a persistent volume.
+- It pointed the model surface at that context, which is what lets `Product.Read.Where(…)` and
+  `Product.CreateAsync(…)` open a database with nothing injected.
+- It added the interceptors that fill in timestamps and versions, publish events, and soft-delete an
+  aggregate that asks for it.
 
 That factory is also what a page or a handler injects for work richer than one aggregate's write, such as
-several aggregates changed in one transaction; see [Rask.Data](../data.md#writing-plain-ef-core).
+several aggregates changed in one transaction: `IDbContextFactory<RaskAppDbContext>`. See
+[Rask.Data](../data.md#writing-plain-ef-core).
 
 ## 7. Create the table
 
@@ -450,7 +429,7 @@ it's on disk in `app.db`.
 ## Verify
 
 - `Features/Products/` holds the aggregate and four components — no configuration class, no hand-written form
-  model, and `AppDbContext` is untouched.
+  model, and no context to edit.
 - The app builds with no warnings.
 - After `rask db update`, `/products` renders.
 - Creating a product then restarting the app still shows it (it's persisted, not in-memory).

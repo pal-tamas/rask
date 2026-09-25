@@ -42,14 +42,6 @@
       "cqrs",
       "data"
     ],
-    "Features/Push/PushSubscriptions.cs": [
-      "push",
-      "pwa"
-    ],
-    "Features/Shared/AppDbContext.cs": [
-      "cqrs",
-      "data"
-    ],
     "Features/Shared/User.cs": [
       "cqrs",
       "data"

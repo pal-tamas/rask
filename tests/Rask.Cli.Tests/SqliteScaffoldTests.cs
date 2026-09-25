@@ -4,10 +4,9 @@ using Rask.Cli.Scaffolding;
 namespace Rask.Cli.Tests;
 
 /// <summary>
-/// What the scaffolded project gets for its database. SQLite is the only one Rask wires, so the file-based
-/// machinery — Litestream, snapshots, the restore-on-startup call, the Dockerfile's data volume — is
-/// unconditional, and these pin that it stays that way. The full generated output is pinned elsewhere
-/// (<see cref="ShopProvenanceTests"/>); this is about the database wiring specifically.
+/// What the scaffolded project gets for its database. SQLite is the only one Rask wires, and RaskApp wires it
+/// — Litestream, snapshots, the restore-on-startup call — so what is left here is the settings the scaffold
+/// chooses and the Dockerfile's data volume.
 /// </summary>
 public sealed class SqliteScaffoldTests
 {
@@ -22,34 +21,16 @@ public sealed class SqliteScaffoldTests
                 StringComparer.Ordinal);
 
     [Fact]
-    public void Data_wires_UseRaskSqlite_and_its_package()
+    public void Data_chooses_its_database_file_and_strict_tables_in_appsettings()
     {
         var files = Generate("data");
 
-        Assert.Contains("using Rask.SQLite;", files["Program.cs"], StringComparison.Ordinal);
-        Assert.Contains(".UseRaskSqlite(sp)", files["Program.cs"], StringComparison.Ordinal);
-
         // STRICT is on for a new app: it costs nothing at creation time and is awkward to adopt once
         // there is data, so the scaffold is the one moment to choose it. Both it and the database file are
-        // settings, so they are chosen in appsettings.json.
+        // settings, so they are chosen in appsettings.json; RaskApp wires SQLite itself.
         Assert.Contains("\"StrictTables\": true", files["appsettings.json"], StringComparison.Ordinal);
         Assert.Contains("Data Source=app.db", files["appsettings.json"], StringComparison.Ordinal);
-        Assert.Contains(
-            "<PackageReference Include=\"Rask.SQLite.EntityFrameworkCore\"",
-            files["App.csproj"],
-            StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Sqlite_keeps_all_of_it()
-    {
-        var files = Generate("data", "snapshots");
-        var program = files["Program.cs"];
-
-        Assert.Contains("AddRaskSqliteLitestream", program, StringComparison.Ordinal);
-        Assert.Contains("AddRaskSqliteSnapshots", program, StringComparison.Ordinal);
-        Assert.Contains("RestoreSqliteFromLitestreamAsync", program, StringComparison.Ordinal);
-        Assert.Contains("<PackageReference Include=\"Rask.SQLite.Litestream\"", files["App.csproj"], StringComparison.Ordinal);
+        Assert.DoesNotContain("c.Data.Off()", files["Program.cs"], StringComparison.Ordinal);
     }
 
     [Fact]

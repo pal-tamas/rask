@@ -87,8 +87,10 @@
     <ItemGroup>
       <_RaskUiKitReference Include="@(ProjectReference)"
                            Condition="$([System.String]::Copy('%(Identity)').Contains('Rask.Ui.csproj'))"/>
-      <!-- Or the `Rask` meta-package, which brings the kit: an app that names only `Rask` still draws with it. -->
-      <_RaskUiKitReference Include="@(PackageReference)" Condition="'%(Identity)' == 'Rask.Ui' OR '%(Identity)' == 'Rask'"/>
+      <!-- Or a host, which brings the kit: an app that names only Rask.Server or Rask.Wasm still draws with it.
+           NOT `Rask`, the shared core — a component library that references it alone has no kit. -->
+      <_RaskUiKitReference Include="@(PackageReference)"
+                           Condition="'%(Identity)' == 'Rask.Ui' OR '%(Identity)' == 'Rask.Server' OR '%(Identity)' == 'Rask.Wasm'"/>
     </ItemGroup>
 
     <PropertyGroup>

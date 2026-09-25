@@ -405,7 +405,7 @@ internal sealed class NewCommand(IConsole console, IFileSystem fileSystem, IProc
             {
                 return "--auth is gone: every app with a database has accounts now. Register, sign in and "
                     + "sign out work out of the box, and /login, /register and /logout are already routed. "
-                    + "To do without them, delete the AddRaskAuth line from Program.cs.";
+                    + "To do without them, write app.Configure(c => c.Auth.Off()) in Program.cs.";
             }
 
             if (name.Equals("all-batteries", StringComparison.Ordinal))

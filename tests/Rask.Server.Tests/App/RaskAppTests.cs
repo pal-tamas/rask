@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Rask.Core.Globalization;
 
 
@@ -432,6 +433,69 @@ public sealed class RaskAppTests
         {
             await app.StopAsync();
         }
+    }
+
+    [Fact]
+    public async Task The_setting_rask_deploy_writes_trusts_the_proxy_with_no_code()
+    {
+        // `rask deploy` puts Caddy in front and sets Rask__BehindProxy=true; the scaffold's Program.cs says nothing.
+        string? scheme = null;
+        var app = RaskApp.Create([], b =>
+        {
+            b.WebHost.UseSetting("urls", "http://127.0.0.1:0");
+            b.WebHost.UseSetting("Rask:BehindProxy", "true");
+        });
+        app.MapEndpoints(e => e.MapGet("/scheme", (HttpContext ctx) => scheme = ctx.Request.Scheme));
+        var built = app.Build<MinimalApp>();
+        await built.StartAsync();
+
+        try
+        {
+            using var client = new HttpClient { BaseAddress = new Uri(BaseAddress(built)) };
+            client.DefaultRequestHeaders.Add("X-Forwarded-Proto", "https");
+            await client.GetAsync("/scheme");
+        }
+        finally
+        {
+            await built.StopAsync();
+        }
+
+        Assert.Equal("https", scheme);
+    }
+
+    [Fact]
+    public void The_health_endpoint_reports_the_live_session_pool()
+    {
+        var app = NewApp().Build<MinimalApp>();
+
+        var checks = app.Services
+            .GetRequiredService<Microsoft.Extensions.Options.IOptions<HealthCheckServiceOptions>>()
+            .Value.Registrations.Select(r => r.Name);
+
+        Assert.Contains("rask_live_sessions", checks);
+    }
+
+    [Fact]
+    public async Task An_app_with_an_icon_installs_with_it()
+    {
+        var webRoot = Directory.CreateTempSubdirectory("rask-icon-").FullName;
+        await File.WriteAllTextAsync(Path.Combine(webRoot, "icon.svg"), "<svg xmlns=\"http://www.w3.org/2000/svg\"/>");
+        var app = RaskApp.Create(["--webroot", webRoot], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0"))
+            .Build<MinimalApp>();
+        await app.StartAsync();
+
+        string manifest;
+        try
+        {
+            manifest = await (await GetAsync(app, "/rask/manifest.webmanifest")).Content.ReadAsStringAsync();
+        }
+        finally
+        {
+            await app.StopAsync();
+            Directory.Delete(webRoot, recursive: true);
+        }
+
+        Assert.Contains("icon.svg", manifest, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -68,7 +68,7 @@ public sealed class WasmRemoteDispatchTests
         Assert.Contains("Features/Home/HomePage.cs", files.Keys);
         Assert.Contains("Features/Shared/App.cs", files.Keys);
         Assert.DoesNotContain(files.Keys, k => k.StartsWith("Client/", StringComparison.Ordinal));
-        Assert.Contains("app.MapRask<App>();", files["Program.cs"], StringComparison.Ordinal);
+        Assert.Contains(".Run<App>();", files["Program.cs"], StringComparison.Ordinal);
         Assert.DoesNotContain("Rask.Cqrs.Client", files["App.csproj"], StringComparison.Ordinal);
 
         // Nor the endpoint half of remote dispatch, which answers a browser app this project does not have.

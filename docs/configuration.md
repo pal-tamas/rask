@@ -1,8 +1,8 @@
 # Configuration
 
-**Every Rask setting lives in `appsettings.json`, under `Rask`.** Each registration reads its own section
-when the host builds its options — `AddRask` reads `Rask:Live`, `Rask:Server`, `Rask:Culture` and
-`Rask:Uploads`, `AddRaskMail` reads `Rask:Mail`, and so on — so `Program.cs` says what the app is made of
+**Every Rask setting lives in `appsettings.json`, under `Rask`.** Each part reads its own section when the
+host builds its options — the host reads `Rask:Live`, `Rask:Server`, `Rask:Culture` and `Rask:Uploads`, the
+mail battery reads `Rask:Mail`, and so on — so `Program.cs` says only how the app differs from the default,
 and `appsettings.json` says how it is tuned:
 
 ```jsonc
@@ -24,12 +24,13 @@ and `appsettings.json` says how it is tuned:
 ```
 
 ```csharp
-builder.Services.AddRask();
-builder.Services.AddRaskMail<AppDbContext>();
+// Program.cs — every battery on, each reading its section above
+RaskApp.Create(args).Run<App>();
 ```
 
 Nobody writes `GetSection(...).Bind(...)`. Every option has a production-safe default, so a section appears
-only when the app sets something, and `AddRask()` with no configuration at all is fully functional.
+only when the app sets something, and an app with no configuration at all is fully functional. A host wired
+by hand reads the same sections: `AddRask()` reads the host's, `AddRaskMail<TContext>()` reads `Rask:Mail`.
 
 ## Precedence
 
@@ -119,6 +120,7 @@ A few things to know:
 
 | Section | Options type | Package | Notes |
 | --- | --- | --- | --- |
+| `Rask:BehindProxy` | — | `Rask.Server` | `true` makes `RaskApp` trust `X-Forwarded-For` / `X-Forwarded-Proto`, so `Request.Scheme` and the client IP are the visitor's rather than the proxy's. Off by default, because trusting them from an arbitrary client lets it forge its own IP. `rask deploy --domain` sets `Rask__BehindProxy=true`, since Caddy is in front; port mode leaves it unset. In code: `app.Configure(c => c.BehindProxy = true)`. |
 | `Rask:Live` | `RaskLiveOptions` | `Rask.Server` | `DiffMode`, `MaxSessions`, `MinifyScopedAssets`, `PathBase`. A non-empty `MapRask<App>(pathBase:)` argument wins over `PathBase`. [Details](#live-runtime--rasklive). |
 | `Rask:Server` | `RaskServerOptions` | `Rask.Server` | WebSocket caps, grace periods, resume, shutdown drain, and the initial render's `QuiescenceTimeout`. [Details](#server-host--raskserver). |
 | `Rask:Culture` | `RaskCultureOptions` | `Rask.Server` | `SupportedCultures` (the first is the default; appended to), negotiation switches. See [localization](localization.md). |

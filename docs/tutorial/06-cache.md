@@ -30,8 +30,8 @@ public static class CatalogCache
 
 Static, and nothing injected: `Cache` reaches the cache of whatever work is running — a render, a request,
 a handler, a job — so there is no constructor to thread through and no registration line to remember.
-Chapter 1's `rask new` already wrote `builder.Services.AddRaskCache<AppDbContext>()` and mapped the cache
-table, which the first migration created. That is the whole of the setup.
+The cache battery is on and its table is mapped, and the first migration created it. That is the whole of
+the setup.
 
 ## 2. Cache the product list
 
@@ -104,8 +104,8 @@ serving an answer you know is wrong. The expiry is a backstop for the cases you 
 Now the list is served from cache until it expires *or* someone edits the catalog, whichever comes first.
 
 > **Trimming / AOT.** Cached values round-trip as JSON, which by default means reflection. If you publish
-> trimmed or AOT, name a source-generated context once — `AddRaskCache<AppDbContext>(o => o.Json =
-> AppJson.Default)` — and every `Remember`, `Set` and `Get` stays exactly as written.
+> trimmed or AOT, name a source-generated context once in `Program.cs` —
+> `app.Configure(c => c.Cache.Configure(o => o.Json = AppJson.Default))` — and every `Remember`, `Set` and `Get` stays exactly as written.
 
 ## Verify
 

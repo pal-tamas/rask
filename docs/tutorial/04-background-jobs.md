@@ -59,18 +59,8 @@ returns, which is as right on a background worker as it is on a page.
 
 ## 2. What's already wired
 
-Chapter 1's `rask new` registered jobs for you. Worth reading anyway, because two of these lines are
-the ones you'd have to get right by hand.
-
-In `Program.cs` the scaffold wrote `builder.Services.AddRaskJobs<AppDbContext>();`. To tune the worker, give
-that same line options:
-
-```csharp
-builder.Services.AddRaskJobs<AppDbContext>();
-```
-
-Its tuning has defaults, so there is nothing for it in `appsettings.json` yet. To change one, add a
-`Rask:Jobs` section:
+Nothing to add: the jobs battery is on, and the handler above was found at build time. Its tuning has
+defaults, so there is nothing for it in `appsettings.json` yet. To change one, add a `Rask:Jobs` section:
 
 ```jsonc
 "Rask": {
@@ -81,28 +71,13 @@ Its tuning has defaults, so there is nothing for it in `appsettings.json` yet. T
 }
 ```
 
-Both values are the defaults, so this changes nothing until you edit a number. `AddRaskJobs` resolves
-`IDbContextFactory<AppDbContext>` — never a scoped `DbContext`, because a live session is long-lived over a
-WebSocket and a scoped context would outlive any unit of work. It hands each job to its handler through the
-scaffold's `AddRaskCqrs()` line, which is why that line is there.
+Both values are the defaults, so this changes nothing until you edit a number.
 
-The jobs tables are mapped in `AppDbContext.OnModelCreating`:
-
-```csharp
-protected override void OnModelCreating(ModelBuilder modelBuilder)
-{
-    base.OnModelCreating(modelBuilder);       // every aggregate you declared
-    modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
-    modelBuilder.AddRaskOutbox();
-    modelBuilder.AddRaskJobs();               // ← the Job + RecurringJobState tables
-    modelBuilder.AddRaskMail();
-    modelBuilder.AddRaskCache();
-    modelBuilder.AddRaskAuth();
-    modelBuilder.ApplyRaskConventions(this);  // always last
-}
-```
-
-The first migration `rask new` applied already created those tables, so there is nothing to migrate.
+The jobs live in two tables — `Job` and `RecurringJobState` — in the same `app.db`. `RaskAppDbContext` maps
+them, and the first migration `rask new` applied already created them, so there is nothing to migrate. When a
+handler needs the context itself — to save several things in one transaction — it injects
+`IDbContextFactory<RaskAppDbContext>` and opens one per job. Never a scoped `DbContext`: the worker is
+long-lived, and a scoped context would outlive any unit of work.
 
 ## 3. Enqueue from your code
 
@@ -133,9 +108,20 @@ public sealed partial class CreateOrder(Navigator navigator) : Component
 
 `Order.CreateAsync` hands back the saved order, with the `Id` it was given. The enqueue returns as soon as the
 job row is written — the customer's request finishes immediately, and the worker runs the job moments later.
-Need it *later*? `Jobs.Enqueue(job).In(24.Hours)`, or `.At(aMoment)`. Need it *repeatedly*? Register a
-recurring job in the same `AddRaskJobs` options: `o.Run<PurgeStaleCarts>().Every(1.Hour)`, or on the calendar
-with `o.Run<NightlyBackup>().Daily.At(3, 00)`.
+Need it *later*? `Jobs.Enqueue(job).In(24.Hours)`, or `.At(aMoment)`. Need it *repeatedly*? That one is code,
+in `Program.cs`:
+
+```csharp
+var app = RaskApp.Create(args);
+
+app.Configure(c => c.Jobs.Configure(o =>
+{
+    o.Run<PurgeStaleCarts>().Every(1.Hour);
+    o.Run<NightlyBackup>().Daily.At(3, 00);
+}));
+
+app.Run<App>();
+```
 
 The job row also records who placed the order, and the worker runs the handler as that user — so a handler
 that needs to know whose order it is reads `Current.UserId`, exactly as the page could have, though nobody is
@@ -148,7 +134,7 @@ signed in on the worker's thread ([more](../jobs.md#the-user-and-tenant-a-job-ru
 ## Verify
 
 - Placing an order returns instantly and a row appears in the jobs table.
-- Add a `Console.WriteLine` (or a breakpoint) in `SendOrderReceiptHandler.HandleAsync` — it fires within
+- Add a `Console.WriteLine` (or a breakpoint) in `SendOrderReceiptHandler.Handle` — it fires within
   `PollInterval` of the order being created.
 - Throw from the handler once and watch it retry (up to `MaxAttempts`) rather than losing the work.
 

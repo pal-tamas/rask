@@ -112,10 +112,12 @@ public sealed class RaskAppOptions
     /// </remarks>
     public Battery<ApiOptions> Api { get; } = new();
 
-    /// <summary>Server-sent Web Push (VAPID + RFC 8291).</summary>
+    /// <summary>
+    /// Web Push: the browsers that subscribed, kept on the app's database, and <c>Push.Send(message)</c> to reach them.
+    /// </summary>
     /// <remarks>
-    /// Wired only once a VAPID key pair is configured: sending needs one, and a freshly scaffolded app has
-    /// to run before anybody has generated any keys.
+    /// The table and the <c>/_rask/push</c> endpoints work before any VAPID key pair exists, so a fresh clone
+    /// starts; sending is what needs the keys, and a send without them names the settings.
     /// </remarks>
     public Battery<WebPushOptions> Push { get; } = new();
 
@@ -177,8 +179,9 @@ public sealed class RaskAppOptions
     /// <b>The one host default that stays opt-in.</b> Without it <c>Request.Scheme</c> is <c>http</c>
     /// behind a TLS-terminating proxy, so HSTS never emits and <c>RemoteIpAddress</c> is the proxy rather
     /// than the visitor. But trusting those headers from an arbitrary client lets it forge its own IP, and
-    /// whether a proxy is really in front is a fact about the deployment that no code can check.
-    /// <c>rask deploy</c> puts Caddy in front and turns this on; an app exposed directly must leave it off.
+    /// whether a proxy is really in front is a fact about the deployment that no code can check — so it is
+    /// also read from <c>Rask:BehindProxy</c>, which <c>rask deploy</c> sets when it puts Caddy in front. An
+    /// app exposed directly must leave it off.
     /// </remarks>
     public bool BehindProxy { get; set; }
 

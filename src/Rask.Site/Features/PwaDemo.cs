@@ -13,7 +13,7 @@ namespace Rask.Site.Features;
 public sealed partial class PwaDemo(INotifications notifications, IWebPush push, IBadge badge, HttpClient http) : Component
 {
     // Fallback VAPID public key for the standalone static showcase (no backend to ask). When a backend
-    // is present the key comes from GET /_push/key instead, so the two never drift.
+    // is present the key comes from GET /_rask/push/key instead, so the two never drift.
     private const string DemoVapidPublicKey =
         "BIl5ANiAgh51-r7wwTyN047Hn3FWTCgLl9cGff1qa5vrft1DmS3jSa-JhTf3PfC6qa_G33YNeNVKT-yyP_6Jqik";
 
@@ -37,10 +37,11 @@ public sealed partial class PwaDemo(INotifications notifications, IWebPush push,
         Ui.Card.Class("shadow-sm mb-3")[
                 H6.Class("font-bold")[Ui.Icon.Name(Ui.IconName.Signal).Class("me-2"), "Web Push (IWebPush)"],
                 P.Class("text-sm text-ui-muted")[
-                    "Subscribes with a demo VAPID key and registers with this app's ", Code["Rask.WebPush"],
-                    " backend, then sends a real push that the service worker shows even when the tab is ",
-                    "closed. Run the hosted sample (", Code["Rask.Site.Host"],
-                    ") for the full loop — see ", Code["docs/pwa.md"], "."
+                    "Subscribes, then hands the subscription to a ", Code["RaskApp"],
+                    " host's Web Push battery at ", Code["/_rask/push/subscribe"],
+                    ". The host sends with ", Code["Push.Send(…)"],
+                    ", and the service worker shows it even when the tab is closed. This showcase has no host, ",
+                    "so it stops at the subscription — see ", Code["docs/webpush.md"], "."
                 ],
                 Div.Class("flex gap-2 flex-wrap mb-2")[
                     Ui.Button.Tone(Ui.Tone.Primary).Variant(Ui.Variant.Outline).Id("pwa-push").OnClick(EnablePush)["Enable push (subscribe)"],
@@ -121,21 +122,21 @@ public sealed partial class PwaDemo(INotifications notifications, IWebPush push,
             var sub = await push.GetSubscriptionAsync() ?? await push.SubscribeAsync(vapidKey);
             _subscribed = true;
 
-            // Register the subscription with this app's backend. The flat { endpoint, p256dh, auth }
-            // shape is what the /_push/subscribe endpoint expects; the secrets are never rendered to
-            // the page. On the standalone static showcase there is no backend, so a failure is expected.
+            // Hand the subscription to the host's Web Push battery. The flat { endpoint, p256dh, auth }
+            // shape is what /_rask/push/subscribe expects; the secrets are never rendered to the page.
+            // On the standalone static showcase there is no backend, so a failure is expected.
             try
             {
                 var json = $"{{\"endpoint\":\"{sub.Endpoint}\",\"p256dh\":\"{sub.P256dh}\",\"auth\":\"{sub.Auth}\"}}";
                 using var content = new StringContent(json, Encoding.UTF8, "application/json");
-                var response = await http.PostAsync("_push/subscribe", content);
+                var response = await http.PostAsync("_rask/push/subscribe", content);
                 _pushStatus = response.IsSuccessStatusCode
                     ? "Subscribed and registered with the backend — click \"Send a test push\"."
                     : $"Subscribed, but the backend returned {(int)response.StatusCode}.";
             }
             catch (HttpRequestException)
             {
-                _pushStatus = "Subscribed. No backend here (static showcase) — run Rask.Site.Host for the full loop.";
+                _pushStatus = "Subscribed. No backend here (static showcase), so nothing will send to it.";
             }
         }
         catch (Exception ex)
@@ -148,19 +149,18 @@ public sealed partial class PwaDemo(INotifications notifications, IWebPush push,
     {
         try
         {
-            // Ask the backend to deliver a push to every stored subscription. The browser's service
-            // worker shows the notification — even if this tab is closed. The deep-link URL uses the
-            // type-safe generated route so a renamed page is a compile error, not a dead link.
-            var body = $"{{\"title\":\"Rask push\",\"body\":\"Delivered by Rask.WebPush.\",\"url\":\"{Routes.PwaPage()}\"}}";
-            using var content = new StringContent(body, Encoding.UTF8, "application/json");
-            var response = await http.PostAsync("_push/send", content);
+            // Sending is server code, so a host maps one endpoint of its own for this button:
+            //   app.MapEndpoints(e => e.MapPost("/push/test", async () =>
+            //       await Push.Send(WebPushMessage.Text("Rask push", "Delivered by Rask.WebPush."))));
+            // The browser's service worker shows the notification — even if this tab is closed.
+            var response = await http.PostAsync("push/test", content: null);
             _pushStatus = response.IsSuccessStatusCode
                 ? "Push sent — watch for the notification."
                 : $"Backend returned {(int)response.StatusCode}.";
         }
         catch (HttpRequestException)
         {
-            _pushStatus = "No backend here (static showcase) — run Rask.Site.Host for the full loop.";
+            _pushStatus = "No backend here (static showcase) — a RaskApp host sends with Push.Send(…).";
         }
         catch (Exception ex)
         {
@@ -173,11 +173,14 @@ public sealed partial class PwaDemo(INotifications notifications, IWebPush push,
     {
         try
         {
-            using var doc = JsonDocument.Parse(await http.GetStringAsync("_push/key"));
-            return doc.RootElement.TryGetProperty("publicKey", out var key) ? key.GetString() : null;
+            using var doc = JsonDocument.Parse(await http.GetStringAsync("_rask/push/key"));
+            return doc.RootElement.TryGetProperty("publicKey", out var key) && key.GetString() is { Length: > 0 } value
+                ? value
+                : null;
         }
-        catch (HttpRequestException)
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
+            // No backend, or a static host answering with its HTML fallback.
             return null;
         }
     }

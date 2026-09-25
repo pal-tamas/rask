@@ -17,12 +17,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- The host and every battery. A battery this app does without is switched off in Program.cs. -->
     <PackageReference Include="Rask.Server" Version="{{RaskVersion}}"/>
-    <PackageReference Include="Rask.Ui" Version="{{RaskVersion}}"/>
-    <!-- In-page devtools: present in a Debug build in Development, absent from a Release
-         publish. Named directly rather than reached through the meta-package, because a
-         package's build/ hooks are imported for a DIRECT reference only — and those hooks are
-         what drop it from a Release publish. -->
+    <!-- In-page devtools: present in a Debug build in Development, absent from a Release publish. -->
     <PackageReference Include="Rask.DevTools" Version="{{RaskVersion}}"/>
     <!-- rask:if islands -->
     <!-- Islands: the base classes a .tsx/.vue/.svelte/.ts component derives from, plus the MSBuild
@@ -34,46 +31,7 @@
          compiles the .razor and Rask renders it into the first response. -->
     <PackageReference Include="Rask.Blazor" Version="{{RaskVersion}}"/>
     <!-- rask:end -->
-    <!-- rask:if cqrs -->
-    <PackageReference Include="Rask.Cqrs" Version="{{RaskVersion}}"/>
-    <PackageReference Include="Rask.Query" Version="{{RaskVersion}}"/>
-    <!-- rask:if data -->
-    <PackageReference Include="Rask.Data" Version="{{RaskVersion}}"/>
-    <PackageReference Include="Rask.SQLite.EntityFrameworkCore" Version="{{RaskVersion}}"/>
-    <PackageReference Include="Rask.SQLite.Litestream" Version="{{RaskVersion}}"/>
-    <PackageReference Include="Rask.Auth" Version="{{RaskVersion}}"/>
-    <!-- rask:if outbox -->
-    <PackageReference Include="Rask.Outbox" Version="{{RaskVersion}}"/>
-    <!-- rask:end -->
-    <!-- rask:if jobs -->
-    <PackageReference Include="Rask.Jobs" Version="{{RaskVersion}}"/>
-    <!-- rask:end -->
-    <!-- rask:if mail -->
-    <PackageReference Include="Rask.Mail" Version="{{RaskVersion}}"/>
-    <!-- rask:end -->
-    <!-- rask:if cache -->
-    <PackageReference Include="Rask.Cache" Version="{{RaskVersion}}"/>
-    <!-- rask:end -->
-    <!-- rask:if storage -->
-    <PackageReference Include="Rask.Storage" Version="{{RaskVersion}}"/>
-    <!-- rask:end -->
-    <!-- rask:if snapshots -->
-    <PackageReference Include="Rask.SQLite.Snapshots" Version="{{RaskVersion}}"/>
-    <!-- rask:end -->
-    <!-- rask:end -->
-    <!-- rask:end -->
-    <!-- rask:if logs -->
-    <PackageReference Include="Rask.Logging" Version="{{RaskVersion}}"/>
-    <!-- rask:end -->
-    <!-- rask:if push pwa -->
-    <PackageReference Include="Rask.WebPush" Version="{{RaskVersion}}"/>
-    <!-- rask:end -->
-    <!-- rask:if cqrs data ops -->
-    <PackageReference Include="Rask.Dashboard" Version="{{RaskVersion}}"/>
-    <!-- rask:end -->
   </ItemGroup>
-
-
 
   <!-- rask:if islands-blazor -->
   <ItemGroup>

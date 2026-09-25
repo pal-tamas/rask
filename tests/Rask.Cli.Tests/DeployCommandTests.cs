@@ -57,6 +57,8 @@ public sealed partial class DeployCommandTests
             "--network", "rask", "--label", "rask.managed=true", "--label", "rask.app=shop",
             "--label", "rask.domain=shop.example.com", "--label", "rask.color=green",
             "--label", "rask.port=8080",
+            // Behind Caddy, so the app trusts its forwarded headers — port mode (below) is reached directly.
+            "-e", "Rask__BehindProxy=true",
             // The environment, DB volume and connection string all come before the user env, so --env wins.
             "-e", "ASPNETCORE_ENVIRONMENT=Production",
             "-v", "shop-data:/data", "-e", "Rask__ConnectionStrings__App=Data Source=/data/app.db",
