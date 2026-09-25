@@ -75,8 +75,7 @@ From a page, ask the browser, then keep the answer. `IWebPush` wraps the browser
 battery's:
 
 ```csharp
-using Rask.Core.Browser;   // IWebPush
-using Rask.WebPush;        // Push
+using Rask.WebPush; // Push
 
 namespace Shop.Features.Orders;
 

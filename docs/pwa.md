@@ -56,8 +56,6 @@ pair) wins: the manifest's `ThemeColor` is added only when the page names none, 
 tint never switches colour as the app boots.
 
 ```csharp
-using Rask.Core.Browser;
-
 var host = WasmHostBuilder.CreateDefault();
 host.UsePwa(new WebAppManifest
 {

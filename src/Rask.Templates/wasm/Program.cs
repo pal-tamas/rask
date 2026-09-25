@@ -1,8 +1,6 @@
 using Company.RaskServer.Features.Shared;
 using Rask.Wasm;
-// rask:if pwa
-using Rask.Core.Browser;
-// rask:end
+
 // PathBase is auto-detected at boot from <base href>. For sub-path deploys
 // (e.g. GH Pages at https://<user>.github.io/<repo>/), publish with
 // /p:RaskPathBase=/<repo> — the framework rewrites the published

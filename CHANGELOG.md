@@ -27,6 +27,9 @@ them until tagged releases begin.
   `Program.cs` instead of dropping a package, and the scaffold's in-memory push store is gone: Web Push is the
   battery. `rask deploy` sets `Rask__BehindProxy=true` behind its Caddy proxy, RaskApp's `/health` reports the
   live-session pool, and its default PWA manifest carries `wwwroot/icon.svg` when the app has one.
+- **A scaffolded page needs no `using` for routing, forms, browser APIs, the live context or the signed-in user.**
+  `rask new`'s `GlobalUsings.cs` (server, wasm and the wasm-hosted client) carries `Rask.Core.Routing`, `.Forms`,
+  `.Browser`, `.Live` and `.Authentication`, so `[Route]`, `IWebPush` and `IAuth` resolve with no import.
 - **`PushSubscription` is one record, in `Rask.Wire`.** The browser API (`IWebPush.SubscribeAsync`) and the server
   sender each declared their own, so a component on the server host could not hand one to the other. An app that named
   `Rask.Core.Browser.PushSubscription` or `Rask.WebPush.PushSubscription` names `Rask.Wire.PushSubscription`; the

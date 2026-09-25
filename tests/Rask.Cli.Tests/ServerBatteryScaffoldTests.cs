@@ -68,9 +68,10 @@ public sealed class ServerBatteryScaffoldTests
         Assert.Contains("[Route(\"/", source, StringComparison.Ordinal);
 
         // A build-only gate found the first cut of these missing this: the text looked right and did not compile.
+        // IAuth and IUserProvider now reach every page through the app's global usings.
         if (source.Contains("IAuth", StringComparison.Ordinal) || source.Contains("IUserProvider", StringComparison.Ordinal))
         {
-            Assert.Contains("using Rask.Core.Authentication;", source, StringComparison.Ordinal);
+            Assert.Contains("global using Rask.Core.Authentication;", files["GlobalUsings.cs"], StringComparison.Ordinal);
         }
     }
 
@@ -89,11 +90,8 @@ public sealed class ServerBatteryScaffoldTests
         Assert.Contains("AddPasskeyAsync", devices, StringComparison.Ordinal);
         Assert.Contains("RemovePasskeyAsync", devices, StringComparison.Ordinal);
 
-        // The support check is a browser call, so both pages must name the API they inject it from.
-        foreach (var page in new[] { login, devices })
-        {
-            Assert.Contains("using Rask.Core.Browser;", page, StringComparison.Ordinal);
-        }
+        // The support check is a browser call, so the API they inject it from must be in scope for both pages.
+        Assert.Contains("global using Rask.Core.Browser;", files["GlobalUsings.cs"], StringComparison.Ordinal);
     }
 
     [Fact]

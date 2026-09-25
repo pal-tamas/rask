@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Authorization;
-using Rask.Core.Routing;
 
 // The generated Routes class is per-namespace, and this page lives in Features.Shared while the
 // home page lives in Features.Home — alias it rather than fully qualifying at the call site.
