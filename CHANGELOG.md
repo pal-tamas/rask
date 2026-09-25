@@ -9,6 +9,13 @@ them until tagged releases begin.
 
 ### Security
 
+- **A reset link can no longer be pointed at another domain through the `Host` header.** With
+  `Rask:Auth:PublicOrigin` unset, emailed links were built from the request, so `POST /api/auth/forgot-password`
+  with `Host: evil.example` mailed the victim a working reset token on the attacker's domain. Outside Development
+  the request is no longer consulted: with no `PublicOrigin`, confirm and reset emails are not sent and an error
+  is logged naming the setting (never thrown, so registration still succeeds). `rask deploy --domain` now sets
+  `Rask__Auth__PublicOrigin=https://<domain>`, and a `--port` deploy warns until one is given. **Upgrading:** a
+  production app not deployed with `--domain` must set `Rask:Auth:PublicOrigin` or its auth emails stop.
 - **A password reset takes the account back, passkeys included.** Registering signs you in before the address is
   confirmed, and adding a passkey only needed a session, so someone who registered your address first could add
   their own passkey and keep signing in after you reset the password. A reset now removes every passkey on the

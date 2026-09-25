@@ -1,5 +1,7 @@
 using System.Web;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Rask.Wire;
 
 namespace Rask.Auth.Tests;
@@ -212,6 +214,47 @@ public sealed class AccountRecoveryTests
         // Absolute, and on the origin the operator named — never a forwarded host header, which is
         // attacker-controlled and would send a working token to a domain of their choosing.
         Assert.StartsWith("https://app.example.com/confirm-email?", link, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("Production", null)]
+    [InlineData("Development", "https://evil.example/")]
+    public async Task Outside_development_a_reset_link_is_never_built_from_the_request_s_host(
+        string environment, string? expectedLinkStart)
+    {
+        // Host: evil.example on a reset request would mail the victim a working token on the attacker's domain.
+        var request = new DefaultHttpContext();
+        request.Request.Scheme = "https";
+        request.Request.Host = new HostString("evil.example");
+        await using var harness = new AuthHarness(
+            o => o.PublicOrigin = null,
+            mail: true,
+            extraServices: s =>
+            {
+                s.AddSingleton<IHostEnvironment>(new Environment(environment));
+                s.AddSingleton<IHttpContextAccessor>(new HttpContextAccessor { HttpContext = request });
+            });
+        await harness.StartAsync();
+        await RegisterAsync(harness, Owner, AuthHarness.FirstRunTokenValue);
+
+        await SendResetAsync(harness, Owner);
+
+        if (expectedLinkStart is null)
+        {
+            Assert.Empty(harness.Mail!.Sent);
+        }
+        else
+        {
+            Assert.StartsWith(expectedLinkStart, harness.Mail!.LastTo(Owner)!.Link, StringComparison.Ordinal);
+        }
+    }
+
+    private sealed class Environment(string name) : IHostEnvironment
+    {
+        public string EnvironmentName { get; set; } = name;
+        public string ApplicationName { get; set; } = "Rask.Auth.Tests";
+        public string ContentRootPath { get; set; } = AppContext.BaseDirectory;
+        public Microsoft.Extensions.FileProviders.IFileProvider ContentRootFileProvider { get; set; } = null!;
     }
 
     [Fact]
