@@ -34,6 +34,8 @@ internal sealed class JsCallbacks<T>(int capacity = 0)
 
     public void Unregister(int id) => _entries.TryRemove(id, out _);
 
+    internal int Count => _entries.Count;
+
     public bool TryGet(int id, [NotNullWhen(true)] out T? handler)
     {
         handler = _entries.TryGetValue(id, out var entry) && JsCaller.Owns(entry.Owner) ? entry.Handler : null;

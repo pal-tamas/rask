@@ -46,9 +46,10 @@ C# component framework that ships no script of its own:
 
 ## Wiring it up
 
-> **Every project `rask new` creates arrives wired this way already** — the two properties, the two
-> links in the right order, and the theme scope. This section is for an app that predates it, or one
-> that was not scaffolded.
+> **An app on `RaskApp` or the WASM host needs none of this in its code.** The host links the kit's sheet
+> first and your `css/app.css` after it, and puts the theme scope on `<html>`, so `App.cs` is a title and
+> a router; `app.Configure(c => c.Ui.Off())` leaves the kit out. `rask new` also sets the two properties.
+> This section is for a hand-wired `AddRask()`/`MapRask<App>()` host, or an App that overrides `Shell`.
 
 Two things, and forgetting either produces a page that renders structurally correct components with
 **no colour at all** — so both are worth doing before anything else.

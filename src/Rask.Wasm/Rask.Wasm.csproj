@@ -57,6 +57,7 @@
     <ProjectReference Include="..\Rask.Ui\Rask.Ui.csproj" PrivateAssets="none" ExcludeAssets="build"/>
     <!-- The request validators the mediator runs, on both hosts: the same rules a Form applies, again at dispatch. -->
     <Compile Include="..\Rask.Hosting.Shared\Batteries\RequestValidators.cs" Link="Shared\Batteries\RequestValidators.cs"/>
+    <Compile Include="..\Rask.Hosting.Shared\Batteries\RaskDocument.cs" Link="Shared\Batteries\RaskDocument.cs"/>
     <!--
       Build-order-only dependency on the MSBuild task project. Rask.Wasm.Tasks compiles
       Rask.Wasm.Tasks.dll and (via its CopyTaskAssemblyToRaskWasmBuild target) drops it into

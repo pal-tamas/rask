@@ -833,7 +833,7 @@ public abstract partial class SharedSmokeTests
 
         // ---- hub (docs/js-interop.md) ----
         await SideAsync("JavaScript interop", "JavaScript interop", "main .markdown-body h1");
-        await AssertGuideDemosAsync(5, "js-interop");
+        await AssertGuideDemosAsync(6, "js-interop");
         await Expect(Page.GetByRole(AriaRole.Button, new() { NameString = "Show LazyChild" })).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 45_000 });
 
@@ -878,6 +878,17 @@ public abstract partial class SharedSmokeTests
             "LazyChild's scoped rule (from the bundle) must be applied when the node is inserted (no FOUC)");
         await Page.GetByRole(AriaRole.Button, new() { NameString = "Hide LazyChild" }).ClickAsync();
         await Expect(Page.Locator(".lazy-child")).ToHaveCountAsync(0);
+
+        // Typed calls into the component's own script: a record comes back, a class instance is created
+        // and driven, and its callback re-enters C# and repaints on every tick.
+        var calls = Page.Locator(".guide-demo:has(button:has-text('Count down from 5'))");
+        var status = calls.Locator(".script-calls-status");
+        await calls.Locator("button:has-text('Read the window size')").ClickAsync();
+        await Expect(status).ToContainTextAsync("Window:", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await calls.Locator("button:has-text('Count down from 5')").ClickAsync();
+        await Expect(status).ToContainTextAsync("4 left", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await calls.Locator("button:has-text('Stop')").ClickAsync();
+        await Expect(status).ToContainTextAsync("Stopped", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         Assert.Equal(1, await Page.Locator(cssLinkSel).CountAsync());
 
         // ---- runtime subpage (docs/js-interop-runtime.md) ----

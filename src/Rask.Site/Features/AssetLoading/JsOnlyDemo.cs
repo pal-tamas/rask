@@ -1,5 +1,3 @@
-using Microsoft.JSInterop;
-
 namespace Rask.Site.Features;
 
 /// <summary>
@@ -8,7 +6,7 @@ namespace Rask.Site.Features;
 ///     mounted-set was populated from a CSS-presence gate. Now they emit a
 ///     <c>&lt;script src="/_rask/a/{hash}.js" defer&gt;</c> tag like any other.
 /// </summary>
-public sealed partial class JsOnlyDemo(IJSRuntime js) : Component
+public sealed partial class JsOnlyDemo : Component
 {
     private string _clicks = "0";
 
@@ -20,7 +18,7 @@ public sealed partial class JsOnlyDemo(IJSRuntime js) : Component
 
     private async Task HandleClickAsync()
     {
-        var next = await js.InvokeAsync<int>("Rask.JsOnlyDemo.bump");
+        var next = await Bump();
         _clicks = next.ToString();
     }
 }

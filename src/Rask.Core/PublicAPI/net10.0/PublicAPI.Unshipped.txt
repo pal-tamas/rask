@@ -6882,3 +6882,22 @@ Rask.Core.Routing.MountOnlyRoutesAttribute
 Rask.Core.Routing.MountOnlyRoutesAttribute.MountOnlyRoutesAttribute() -> void
 override Rask.Core.Element.SelfClosing.get -> bool
 override Rask.Core.Element.TagName.get -> string?
+Rask.Core.ScopedAssets.ScopedScript
+Rask.Core.ScopedAssets.ScriptObject
+Rask.Core.ScopedAssets.ScriptObject.DisposeAsync() -> System.Threading.Tasks.ValueTask
+Rask.Core.ScopedAssets.ScriptObject.Reference.get -> Microsoft.JSInterop.IJSObjectReference!
+Rask.Core.ScopedAssets.ScriptObject.ScriptObject(Microsoft.JSInterop.IJSObjectReference! reference) -> void
+static Rask.Core.ScopedAssets.ScopedScript.Call(Rask.Core.Component! owner, string! identifier, params object?[]! args) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ScopedAssets.ScopedScript.Call<T>(Rask.Core.Component! owner, string! identifier, params object?[]! args) -> System.Threading.Tasks.ValueTask<T>
+static Rask.Core.ScopedAssets.ScopedScript.Callback(Rask.Core.Component! owner, Rask.Core.Callback callback) -> object!
+static Rask.Core.ScopedAssets.ScopedScript.Callback<T1, T2>(Rask.Core.Component! owner, Rask.Core.Callback<T1, T2> callback) -> object!
+static Rask.Core.ScopedAssets.ScopedScript.Callback<T>(Rask.Core.Component! owner, Rask.Core.Callback<T> callback) -> object!
+static Rask.Core.ScopedAssets.ScopedScript.Invoke(int id, System.Text.Json.JsonElement args) -> System.Threading.Tasks.Task!
+static Rask.Core.ScopedAssets.ScopedScript.Object<T>(Rask.Core.Component! owner, string! identifier, System.Func<Microsoft.JSInterop.IJSObjectReference!, T!>! wrap, params object?[]! args) -> System.Threading.Tasks.ValueTask<T!>
+Rask.Core.ScopedAssets.ScriptObject.CallScript(string! method, params object?[]! args) -> System.Threading.Tasks.ValueTask
+Rask.Core.ScopedAssets.ScriptObject.CallScript<T>(string! method, params object?[]! args) -> System.Threading.Tasks.ValueTask<T>
+Rask.Core.ScopedAssets.ScriptObject.CallScriptObject<T>(string! method, System.Func<Microsoft.JSInterop.IJSObjectReference!, T!>! wrap, params object?[]! args) -> System.Threading.Tasks.ValueTask<T!>
+Rask.Core.ScopedAssets.ScriptObject.ScriptCallback(Rask.Core.Callback callback) -> object!
+Rask.Core.ScopedAssets.ScriptObject.ScriptCallback<T1, T2>(Rask.Core.Callback<T1, T2> callback) -> object!
+Rask.Core.ScopedAssets.ScriptObject.ScriptCallback<T>(Rask.Core.Callback<T> callback) -> object!
+static Rask.Core.ScopedAssets.ScopedScript.Trim(object?[]! args, int required) -> object?[]!

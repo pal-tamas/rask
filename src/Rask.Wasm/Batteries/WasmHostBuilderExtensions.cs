@@ -40,6 +40,10 @@ public static class WasmHostBuilderExtensions
         return host;
     }
 
+    // Whether the kit is applied to the document — read by RunAsync, which knows the App's assembly.
+    internal static bool UiEnabled(WasmHostBuilder host) =>
+        !Options.TryGetValue(host, out var configured) || configured.Ui.Enabled;
+
     // Applied by the host just before it builds the provider, so everything Program.cs said has been said.
     // An app that never called Configure has no entry here and gets the defaults — every battery on.
     internal static void Wire(WasmHostBuilder host, IServiceCollection services)

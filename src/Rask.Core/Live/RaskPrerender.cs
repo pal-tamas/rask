@@ -99,7 +99,7 @@ public static class RaskPrerender
         // The same wrapper Rask.Server and Rask.Wasm install: it composes the shell from the app's
         // Shell / HtmlLang / BodyClass and catches anything the subtree throws. Going through it rather
         // than reimplementing the composition is the point — this has to be what a browser gets.
-        var root = new RootErrorBoundary(app);
+        var root = new RootErrorBoundary(app) { Defaults = (RaskDocumentDefaults?)services.GetService(typeof(RaskDocumentDefaults)) };
 
         var render = await QuiescentRender.RunAsync(
             publishOnly => root.RenderAsLiveRoot(services, publishOnly),

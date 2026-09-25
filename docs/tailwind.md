@@ -56,7 +56,9 @@ One file and two links — the whole of it, and all of it already there:
      layer that Tailwind's own import does not rank, so left alone it outranks the utilities beside it
      and `class="btn px-8"` gives you `.btn`'s padding, not `px-8`.
 
-2. **Two `<link>`s in the app shell**, in an order that is a contract:
+2. **Two `<link>`s**, in an order that is a contract. `RaskApp` and the WASM host write both into every
+   document — the build records where `css/app.css` is served as the app assembly's `Rask.Stylesheet`
+   metadata — so `App.cs` names neither. A hand-wired `MapRask<App>()` host writes them itself:
 
    ```csharp
    // The kit's sheet, FIRST — it declares the @layer order for the whole document.

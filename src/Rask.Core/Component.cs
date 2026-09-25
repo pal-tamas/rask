@@ -736,7 +736,10 @@ public abstract partial class Component : RaskMarkup
     ///     </para>
     /// </summary>
     protected virtual Component Shell(Component head, Component body) =>
-        Html.Lang(HtmlLang).Dir(HtmlDir)[head, Body.Class(BodyClass)[body]];
+        // The host's own attributes ride on the default shell — RaskApp and the WASM host put the UI kit's
+        // theme scope here, so an app that draws with the kit is not grey. An override writes its own.
+        Html.Lang(HtmlLang).Dir(HtmlDir).Attributes(LiveRenderContext.Current?.DocumentAttributes)[
+            head, Body.Class(BodyClass)[body]];
 
     // The host's entry into the escape hatch above: RootErrorBoundary composes the document around the
     // App, so it needs to reach the App's override. Kept internal because Shell is a user-facing
@@ -1181,6 +1184,57 @@ public abstract partial class Component : RaskMarkup
             "Rask.Lifecycle",
             $"Rask unmount hook on {comp.GetType().Name} threw",
             ex);
+
+    // A scoped-script callback arriving from the browser (ScopedScript.Callback): runs like a lifecycle
+    // hook — a render after each await — and a synchronous one paints once it returns, which a hook does
+    // not need because the render walk that called it is already painting.
+    //
+    // It runs in order with the session's event handlers (IRenderHandle.RunInOrder), so a timer's callback cannot
+    // change state underneath a click being handled.
+    internal void RunFromScript(Func<Task?> invoke)
+    {
+        if (IsTornDown)
+        {
+            return;
+        }
+
+        if (RenderHandle is { } handle)
+        {
+            handle.RunInOrder(() => RunScriptCallback(invoke));
+        }
+        else
+        {
+            _ = RunScriptCallback(invoke);
+        }
+    }
+
+    /// <summary>Unmounted or disposed — what a script-side registration made now would never be released from.</summary>
+    internal bool IsTornDown => _live is { IsUnmounted: true } or { IsDisposed: true };
+
+    private Task RunScriptCallback(Func<Task?> invoke)
+    {
+        if (IsTornDown)
+        {
+            return Task.CompletedTask;
+        }
+
+        Task? running = null;
+        InvokeAsyncLifecycleWithRendering(() =>
+        {
+            try { running = invoke(); }
+            catch (Exception ex) { running = Task.FromException(ex); }
+
+            if (running is null || running.IsCompletedSuccessfully)
+            {
+                StateHasChanged();
+                return Task.CompletedTask;
+            }
+
+            return running;
+        });
+
+        return running ?? Task.CompletedTask;
+    }
 
     private void InvokeAsyncLifecycleWithRendering(Func<Task> invoke)
     {

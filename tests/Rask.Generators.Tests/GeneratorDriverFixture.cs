@@ -77,6 +77,30 @@ internal static class GeneratorDriverFixture
             options);
     }
 
+    /// <summary>
+    ///     Runs the typed-call generator over components and the DECLARATION files tsgo writes beside each
+    ///     scoped script, tagged with the <c>.ts</c> they came from — as <c>Rask.Core.targets</c> hands them over.
+    /// </summary>
+    /// <param name="declarations">The author's <c>.ts</c> paths, with the <c>.d.ts</c> text tsgo emitted for each.</param>
+    public static GeneratorRun RunScopedDeclarations(
+        (string Path, string Source)[] sources,
+        (string Path, string Declarations)[] declarations)
+    {
+        var emitted = declarations
+            .Select(d => (Path: CompiledPathFor(d.Path).Replace(".js", ".d.ts"), d.Declarations, Source: d.Path))
+            .ToArray();
+
+        var options = new ScopedAssetOptions(
+            emitted.ToDictionary(e => e.Path, e => e.Source, StringComparer.Ordinal),
+            null);
+
+        return Run(
+            sources,
+            [new ScopedScripts.ScopedScriptCallsGenerator()],
+            emitted.Select(e => (e.Path, e.Declarations)).ToArray(),
+            options);
+    }
+
     /// <summary>Where the build writes one scoped file's compiled output.</summary>
     private static string CompiledPathFor(string tsPath)
     {
