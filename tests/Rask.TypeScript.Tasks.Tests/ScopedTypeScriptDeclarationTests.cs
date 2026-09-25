@@ -69,4 +69,35 @@ public sealed class ScopedTypeScriptDeclarationTests
             directory.Delete(recursive: true);
         }
     }
+
+    [Fact]
+    public void An_arrow_const_and_a_tuple_return_are_declared_in_the_forms_the_generator_reads()
+    {
+        var directory = Directory.CreateTempSubdirectory("rask-ts-dts-");
+        try
+        {
+            var source = Path.Combine(directory.FullName, "Card.ts");
+            File.WriteAllText(source, """
+                                      export function pair(): [number, string] { return [1, "a"]; }
+                                      export const double = (x: number) => x * 2;
+                                      """);
+
+            var (exitCode, output) = PinnedTools.Run(
+                PinnedTools.Resolve("tsgo"),
+                $"\"{source}\" --rootDir \"{directory.FullName}\" --outDir \"{directory.FullName}/out\" "
+                + "--target es2020 --module esnext --noCheck --declaration --ignoreConfig");
+
+            var declarations = File.ReadAllText(Path.Combine(directory.FullName, "out", "Card.d.ts"));
+            var script = File.ReadAllText(Path.Combine(directory.FullName, "out", "Card.js"));
+            Assert.True(exitCode == 0, output);
+            Assert.Contains("export declare function pair(): [number, string];", declarations);
+            Assert.Contains("export declare const double: (x: number) => number;", declarations);
+            // Inline, so ScopedAssetRegistry's `export const NAME =` pattern finds it.
+            Assert.Contains("export const double = (x) => x * 2;", script);
+        }
+        finally
+        {
+            directory.Delete(recursive: true);
+        }
+    }
 }

@@ -6901,3 +6901,6 @@ Rask.Core.ScopedAssets.ScriptObject.ScriptCallback(Rask.Core.Callback callback) 
 Rask.Core.ScopedAssets.ScriptObject.ScriptCallback<T1, T2>(Rask.Core.Callback<T1, T2> callback) -> object!
 Rask.Core.ScopedAssets.ScriptObject.ScriptCallback<T>(Rask.Core.Callback<T> callback) -> object!
 static Rask.Core.ScopedAssets.ScopedScript.Trim(object?[]! args, int required) -> object?[]!
+Rask.Core.ScopedAssets.ScriptObject.CallScriptTuple<T>(string! method, System.Func<System.Text.Json.JsonElement, T>! read, params object?[]! args) -> System.Threading.Tasks.ValueTask<T>
+static Rask.Core.ScopedAssets.ScopedScript.Tuple<T>(Rask.Core.Component! owner, string! identifier, System.Func<System.Text.Json.JsonElement, T>! read, params object?[]! args) -> System.Threading.Tasks.ValueTask<T>
+static Rask.Core.ScopedAssets.ScopedScript.Item<T>(System.Text.Json.JsonElement tuple, int index) -> T

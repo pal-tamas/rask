@@ -123,11 +123,13 @@ IntelliSense. The component must be `partial`, which `rask new` components alrea
 | `T[]`, `Record<string, T>` | `IReadOnlyList<T>`, `IReadOnlyDictionary<string, T>` |
 | `"a" \| "b"` | `string` |
 | `HTMLElement` and every other element, as a parameter | `ElementRef?` |
+| `[number, string]`, `[x: number, y: string]` — a whole parameter or return | `(double, string)`, `(double X, string Y)` |
 | `void`, `Promise<T>` | `ValueTask`, `ValueTask<T>` |
 | `any` / `unknown` | `object?` in, `JsonElement` out |
 | `(n: number) => void` | a sync *and* an async overload — `OnTick(n => _n = n)` or `OnTick(async n => …)` |
 | `export interface Point { … }` | a nested `record Point`, with `required` members |
 | `export class Chart { … }` | a nested `Chart` proxy with its methods, created by `NewChart(…)` |
+| `export const double = (x: number) => x * 2` | `Double(double x)` — an arrow in a const is a function like any other |
 
 `number` is always `double`: TypeScript has one numeric type, and a value that crosses as JSON keeps no
 trace of being whole.
@@ -154,7 +156,7 @@ await _countdown.Start(left => _status = $"{left} left", () => _status = "Done!"
 
 <!-- demo:js-interop-script-calls -->
 
-An export that has no C# shape — a tuple, a generic, an element returned — is left out with
+An export that has no C# shape — a generic, a tuple inside other data, an element returned, a plain value — is left out with
 [RASK094](diagnostics.md#rask094) naming the reason; the others still generate, and the string call
 reaches it. A name the component only inherits is hidden, not refused: `export function stop()` gives
 `Stop()`, and `Markup.Stop` still writes the SVG tag.

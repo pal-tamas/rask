@@ -2441,14 +2441,15 @@ await sending;
 
 **A scoped TypeScript export gets no typed method** · Warning
 
-Every `export function` and `export class` in a component's scoped `.ts` becomes a typed private member
+Every exported function — `export function`, or an arrow in an `export const` — and every `export class` in a
+component's scoped `.ts` becomes a typed private member
 of that component — `export function width(el: HTMLElement): number` is `await Width(_box)` — see
 [Calling your script from C#](js-interop.md#calling-your-script-from-c). An export that cannot is left
 out, the rest still generate, and this names it with the reason:
 
 ```ts
-export function pair(): [number, string] { … }   // ⚠ RASK094: 'pair' … it returns a tuple
-export const double = (x: number) => x * 2;      // ⚠ RASK094: only 'export function' and 'export class' reach C#
+export function pairs(): [number, string][] { … }   // ⚠ RASK094: 'pairs' … it returns a tuple inside other data
+export const PI = 3.14;                              // ⚠ RASK094: 'PI' … it is a value, not a function
 ```
 
 The reasons, and what to write instead:
@@ -2456,7 +2457,8 @@ The reasons, and what to write instead:
 | Reason | Fix |
 |---|---|
 | The component is not `partial` | `public sealed partial class Card : Component` |
-| A type with no C# counterpart — a tuple, an intersection, a generic, `Map` | Return an exported `interface` instead; it becomes a nested record |
+| A type with no C# counterpart — a tuple inside other data, a tuple with an optional or rest element, an intersection, a generic, `Map` | Return an exported `interface` instead; it becomes a nested record. A tuple on its own (`[number, string]`) is fine: it becomes `(double, string)` |
+| A value (`export const PI = 3.14`) | Nothing to call — export a function that returns it. A function in a const (`export const f = (x: number) => …`) is fine |
 | An inline object type (`(): { x: number }`) | Name it: `export interface Point { x: number }` |
 | An element (`HTMLElement`) as a return value | Elements only go *in*; return what you need from one (its size, its text) |
 | A callback that returns a value, or takes more than two arguments | A C# callback only runs; pass one object for many values |
@@ -2466,4 +2468,4 @@ The reasons, and what to write instead:
 A name the component only *inherits* is not a clash: `export function stop()` becomes `Stop()` and hides the
 SVG `<stop>` entry inside that component, where `Markup.Stop` still reaches the tag.
 
-The string call still works for anything left out: `js.InvokeAsync<T>("Rask.Card.pair")`.
+The string call still works for anything left out: `js.InvokeAsync<T>("Rask.Card.pairs")`.

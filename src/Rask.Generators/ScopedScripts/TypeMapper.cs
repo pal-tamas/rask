@@ -11,6 +11,9 @@ internal enum ReturnKind
     Void,
     Value,
     Object,
+
+    /// <summary>A C# tuple, read element by element from the array the script returns.</summary>
+    Tuple,
 }
 
 internal sealed class MappedParameter
@@ -31,6 +34,9 @@ internal sealed class MappedReturn
 {
     public ReturnKind Kind { get; init; }
     public string? Type { get; init; }
+
+    /// <summary>For <see cref="ReturnKind.Tuple" />: each element's C# type, in order.</summary>
+    public List<string> Elements { get; init; } = new();
     public string? Error { get; init; }
     public List<string> Records { get; init; } = new();
 }
@@ -108,6 +114,29 @@ internal sealed class TypeMapper
             }
         }
 
+        if (type is TsTuple tuple)
+        {
+            if (nullable)
+            {
+                return new MappedParameter { Error = "a tuple that may be missing — make it required" };
+            }
+
+            var tupleType = MapTuple(tuple, records, out _, out var tupleError);
+            if (tupleType is null)
+            {
+                return new MappedParameter { Error = tupleError };
+            }
+
+            // A C# tuple serializes as {} (its items are fields), so it crosses as the array the script expects.
+            var items = string.Join(", ", tuple.Elements.Select((_, i) => "{0}.Item" + (i + 1)));
+            return new MappedParameter
+            {
+                Type = tupleType,
+                ArgFormat = "new object?[] {{ " + items + " }}",
+                Records = records,
+            };
+        }
+
         var data = MapData(type, 0, records, out var error);
         if (data is null)
         {
@@ -163,6 +192,20 @@ internal sealed class TypeMapper
         if (type is TsFunction)
         {
             return new MappedReturn { Error = "a function, which cannot come back to C#" };
+        }
+
+        if (type is TsTuple tuple)
+        {
+            if (nullable)
+            {
+                return new MappedReturn { Error = "a tuple that may be missing — return the tuple, or throw when there is none" };
+            }
+
+            var tupleRecords = new List<string>();
+            var tupleType = MapTuple(tuple, tupleRecords, out var elements, out var tupleError);
+            return tupleType is null
+                ? new MappedReturn { Error = tupleError }
+                : new MappedReturn { Kind = ReturnKind.Tuple, Type = tupleType, Elements = elements, Records = tupleRecords };
         }
 
         var records = new List<string>();
@@ -315,6 +358,10 @@ internal sealed class TypeMapper
                 error = "a function, which cannot travel inside data";
                 return null;
 
+            case TsTuple:
+                error = "a tuple inside other data — a tuple crosses only as a whole parameter or return value; declare an interface instead";
+                return null;
+
             case TsUnsupported unsupported:
                 error = unsupported.Description;
                 return null;
@@ -325,6 +372,32 @@ internal sealed class TypeMapper
         }
 
         return mapped is null ? null : Nullable(mapped, nullable);
+    }
+
+    // `[x: number, y: string]` → `(double X, string Y)`; unlabelled elements stay Item1, Item2.
+    private string? MapTuple(TsTuple tuple, List<string> records, out List<string> elements, out string? error)
+    {
+        elements = new List<string>();
+        var parts = new List<string>();
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var element in tuple.Elements)
+        {
+            var mapped = MapData(element.Type, 1, records, out error);
+            if (mapped is null)
+            {
+                error = "a tuple whose element is " + error;
+                return null;
+            }
+
+            elements.Add(mapped);
+            var name = element.Label is { } label ? Names.Pascal(label) : null;
+            parts.Add(name is not null && names.Add(name) && !name.StartsWith("Item", StringComparison.Ordinal)
+                ? mapped + " " + name
+                : mapped);
+        }
+
+        error = null;
+        return "(" + string.Join(", ", parts) + ")";
     }
 
     private string? MapNamed(string name, int depth, List<string> records, out string? error)

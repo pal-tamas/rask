@@ -9,6 +9,9 @@ export function windowSize(): Viewport {
     return { width: window.innerWidth, height: window.innerHeight };
 }
 
+/** Half the window, as a tuple — an arrow in a const comes back to C# as `(double Width, double Height)`. */
+export const halfSize = (): [width: number, height: number] => [window.innerWidth / 2, window.innerHeight / 2];
+
 /** Counts down once a second, calling back into C# on every tick. */
 export class Countdown {
     private timer = 0;

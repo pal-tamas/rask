@@ -49,6 +49,11 @@ them until tagged releases begin.
 
 ### Added
 
+- **A scoped script's tuples and arrow functions reach C# too.** `export function pair(): [number, string]` is
+  `ValueTask<(double, string)> Pair()` (labels name the elements: `[x: number, y: string]` → `(double X, string Y)`),
+  a tuple parameter crosses as the array the script expects, and `export const double = (x: number) => x * 2` is
+  `Double(double x)` like any function. A tuple inside other data, one with an optional or rest element, and a plain
+  value export (`export const PI = 3.14`) are still RASK094, with the reason.
 - **A component calls its scoped TypeScript like its own private methods.** `export function width(el: HTMLElement
   | null): number` in `Card.ts` is `await Width(_box)` on `Card` — no `IJSRuntime` to inject, no
   `"Rask.Card.width"` to spell, and a renamed or retyped export is a compile error. The build's tsgo compile now

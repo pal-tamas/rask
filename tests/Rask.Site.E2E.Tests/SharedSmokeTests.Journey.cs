@@ -885,6 +885,9 @@ public abstract partial class SharedSmokeTests
         var status = calls.Locator(".script-calls-status");
         await calls.Locator("button:has-text('Read the window size')").ClickAsync();
         await Expect(status).ToContainTextAsync("Window:", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        // An arrow in an `export const`, returning a tuple read element by element.
+        await calls.Locator("button:has-text('Half the window')").ClickAsync();
+        await Expect(status).ToContainTextAsync("Half:", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await calls.Locator("button:has-text('Count down from 5')").ClickAsync();
         await Expect(status).ToContainTextAsync("4 left", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await calls.Locator("button:has-text('Stop')").ClickAsync();

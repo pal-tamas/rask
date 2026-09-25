@@ -81,6 +81,11 @@ public static class ScopedAssetRegistry
     // Collects the names of exported function declarations (sync or async) so they can be
     // re-exposed on the returned object. The `async` modifier is optional and non-capturing,
     // so the name stays in group 2.
+    // `export const double = (x) => x * 2` — a function held in a binding. Collected with the functions, and
+    // exposed only when the value really is one (the same typeof guard), so `export const PI = 3.14` stays private.
+    private static readonly Regex _exportedBindingNames =
+        new(@"(^|\n)\s*export\s+(?:const|let|var)\s+(\w+)\s*[=:]", RegexOptions.Compiled);
+
     private static readonly Regex _exportedFunctionNames =
         new(@"(^|\n)\s*export\s+(?:default\s+)?(?:async\s+)?function\s+(\w+)\s*\(",
             RegexOptions.Compiled);
@@ -875,6 +880,15 @@ public static class ScopedAssetRegistry
     {
         var exportedNames = new List<string>();
         foreach (Match m in _exportedFunctionNames.Matches(source))
+        {
+            var name = m.Groups[2].Value;
+            if (!exportedNames.Contains(name, StringComparer.Ordinal))
+            {
+                exportedNames.Add(name);
+            }
+        }
+
+        foreach (Match m in _exportedBindingNames.Matches(source))
         {
             var name = m.Groups[2].Value;
             if (!exportedNames.Contains(name, StringComparer.Ordinal))

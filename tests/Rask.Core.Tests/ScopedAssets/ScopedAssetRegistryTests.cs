@@ -87,6 +87,24 @@ public partial class ScopedAssetRegistryTests
     }
 
     [Fact]
+    public void An_arrow_in_an_exported_const_is_exposed_like_a_function()
+    {
+        // The typeof guard is what keeps a value export (`export const PI = 3.14`) off the callable surface.
+        ScopedAssetRegistry.RegisterJs(
+            typeof(WidgetA),
+            "export const double = (x) => x * 2;\n" +
+            "export const PI = 3.14;");
+
+        Assert.True(ScopedAssetRegistry.TryGetJs(typeof(WidgetA), out var hash));
+        var content = Encoding.UTF8.GetString(ScopedAssetRegistry.GetByHash(hash, AssetKind.Js)!.Value.Utf8.Span);
+
+        Assert.DoesNotContain("export ", content);
+        Assert.Contains("const double = (x) => x * 2;", content);
+        Assert.Contains("double: typeof double === 'function' ? double : undefined", content);
+        Assert.Contains("PI: typeof PI === 'function' ? PI : undefined", content);
+    }
+
+    [Fact]
     public void An_exported_class_is_exposed_with_a_factory_and_loses_its_export_keyword()
     {
         ScopedAssetRegistry.RegisterJs(

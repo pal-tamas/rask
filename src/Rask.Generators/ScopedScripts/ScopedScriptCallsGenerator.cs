@@ -226,7 +226,7 @@ public sealed class ScopedScriptCallsGenerator : IIncrementalGenerator
 
         foreach (var name in decls.NotCallable)
         {
-            Report(name, "only 'export function' and 'export class' reach C# — write it as a function declaration");
+            Report(name, "it is a value, not a function — only functions (a declaration or an arrow in a const) and classes reach C#");
         }
 
         if (decls.Functions.Count == 0 && decls.Classes.Count == 0)
@@ -548,11 +548,17 @@ public sealed class ScopedScriptCallsGenerator : IIncrementalGenerator
         }
 
         var returnType = ret.Kind == ReturnKind.Void ? ValueTask : ValueTask + "<" + ret.Type + ">";
+        // A tuple arrives as a JSON array; the generated reader takes it apart with each element's own type.
+        var readTuple = ret.Kind == ReturnKind.Tuple
+            ? $"static __r => ({string.Join(", ", ret.Elements.Select((t, i) => $"{Runtime}.Item<{t}>(__r, {i})"))})"
+            : null;
+
         string call;
         if (owner == Owner.Component)
         {
             call = ret.Kind switch
             {
+                ReturnKind.Tuple => $"{Runtime}.Tuple<{ret.Type}>(this, \"{identifier}\", {readTuple}, {argArray})",
                 ReturnKind.Void => $"{Runtime}.Call(this, \"{identifier}\", {argArray})",
                 ReturnKind.Object => $"{Runtime}.Object(this, \"{identifier}\", static __r => new {ret.Type}(__r), {argArray})",
                 _ => $"{Runtime}.Call<{ret.Type}>(this, \"{identifier}\", {argArray})",
@@ -562,6 +568,7 @@ public sealed class ScopedScriptCallsGenerator : IIncrementalGenerator
         {
             call = ret.Kind switch
             {
+                ReturnKind.Tuple => $"CallScriptTuple<{ret.Type}>(\"{identifier}\", {readTuple}, {argArray})",
                 ReturnKind.Void => $"CallScript(\"{identifier}\", {argArray})",
                 ReturnKind.Object => $"CallScriptObject(\"{identifier}\", static __r => new {ret.Type}(__r), {argArray})",
                 _ => $"CallScript<{ret.Type}>(\"{identifier}\", {argArray})",
