@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using Rask.Jobs;
 using Rask.Outbox;
 

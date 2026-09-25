@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using Rask.Core.Forms;
 
 namespace Rask.ValidationTests;
 

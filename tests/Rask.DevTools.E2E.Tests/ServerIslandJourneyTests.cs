@@ -1,4 +1,3 @@
-using Microsoft.Playwright;
 using Rask.DevTools.E2E.Tests.Apps;
 using Rask.DevTools.E2E.Tests.Infrastructure;
 using Rask.Site.E2E.Tests.Infrastructure;

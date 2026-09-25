@@ -1,9 +1,8 @@
-using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Rask.Generators.Shared;
 
-namespace Rask.Cqrs.Generators.Tests;
+namespace Rask.Batteries.Generators.Tests;
 
 /// <summary>
 ///     What the TypeScript emitter produces for each wire shape.

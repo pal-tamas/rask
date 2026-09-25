@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Rask.Generators.Shared;
 
-namespace Rask.Data.Generators.Analyzers;
+namespace Rask.Batteries.Generators.Analyzers;
 
 /// <summary>
 ///     RASK084 — an aggregate, an entity or a value object whose state can be changed from outside the type.

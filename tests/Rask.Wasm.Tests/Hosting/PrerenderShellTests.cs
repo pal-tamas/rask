@@ -1,5 +1,3 @@
-using Rask.Wasm;
-
 namespace Rask.Wasm.Tests.Hosting;
 
 // The splice that keeps a prerendered WASM page able to boot.

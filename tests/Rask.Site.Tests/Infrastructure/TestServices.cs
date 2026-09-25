@@ -3,7 +3,6 @@ using Microsoft.JSInterop;
 using Rask.Core.Browser;
 using Rask.Core.Messaging;
 using Rask.Core.Routing;
-using Rask.Site;
 using Rask.Site.Features;
 using Rask.Wasm.Browser;
 

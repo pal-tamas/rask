@@ -1,6 +1,5 @@
 using System.Text;
 using Rask.Core.Routing;
-using Rask.Cqrs.Client;
 
 namespace Rask.Cqrs.Client.Tests;
 

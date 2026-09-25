@@ -1,5 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using Rask.Core.Forms;
 using Rask.Data;
 using Rask.Query;
 using Rask.SQLite.Browser;

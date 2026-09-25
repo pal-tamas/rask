@@ -1,5 +1,4 @@
 using System.Globalization;
-using Rask.Cli.Scaffolding;
 using Spectre.Console;
 
 namespace Rask.Cli.Commands;

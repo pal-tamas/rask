@@ -40,6 +40,12 @@ them until tagged releases begin.
   rode along: the browser battery-status implementation behind `IBattery` is `BrowserBattery`, so the name
   `Battery` means one thing — the on/off switch on `RaskAppOptions`.
 
+- **Unused usings are gone solution-wide, and the battery generators share one namespace.** About 375 `using`
+  lines that nothing needed are removed across `src/` and `tests/` — the site's source view shows the demos
+  without them. `Rask.Batteries.Generators` still declared the namespaces of the assemblies it replaced
+  (`Rask.Cqrs.Generators`, `Rask.Data.Generators`, …); its types are now in `Rask.Batteries.Generators` (and
+  `.Analyzers`), matching the project. Nothing an app names changes.
+
 ### Fixed
 
 - **An app that carries the operator console without registering it no longer answers `/_rask/…` with a

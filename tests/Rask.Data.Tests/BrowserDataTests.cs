@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Live;
-using Rask.Cqrs;
 using Rask.Query;
 
 namespace Rask.Data.Tests;

@@ -1,5 +1,3 @@
-using System.Collections;
-
 namespace Rask.Logging;
 
 /// <summary>

@@ -1,4 +1,3 @@
-using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Live;
 using Rask.Core.Messaging;

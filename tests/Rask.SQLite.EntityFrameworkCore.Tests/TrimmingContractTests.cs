@@ -1,5 +1,4 @@
 using System.Reflection;
-using Rask.SQLite;
 
 namespace Rask.SQLite.EntityFrameworkCore.Tests;
 

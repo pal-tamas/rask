@@ -1,7 +1,7 @@
 using System;
 using Microsoft.CodeAnalysis;
 
-namespace Rask.Data.Generators;
+namespace Rask.Batteries.Generators;
 
 /// <summary>
 ///     Whether this compilation wants the <b>read faces</b> and nothing else — the

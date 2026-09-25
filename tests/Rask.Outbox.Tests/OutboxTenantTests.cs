@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Rask.Data;
 
 namespace Rask.Outbox.Tests;
 

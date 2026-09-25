@@ -1,5 +1,3 @@
-using Rask.Core.Routing;
-
 namespace Rask;
 
 /// <summary>One tab — a link to a view with a URL, or a tab over a panel in the same page.</summary>

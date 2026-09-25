@@ -1,5 +1,3 @@
-using Rask.Core;
-
 namespace Rask.Core.Tests.Components;
 
 // Guards the DOM-interface base-class layer: related tags must keep deriving from the shared base

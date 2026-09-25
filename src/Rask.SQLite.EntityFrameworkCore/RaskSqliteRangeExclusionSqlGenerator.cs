@@ -7,7 +7,6 @@
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
-using Microsoft.EntityFrameworkCore.Sqlite.Migrations.Internal;
 using Rask.Data;
 
 namespace Rask.SQLite;

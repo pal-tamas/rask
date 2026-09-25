@@ -1,6 +1,5 @@
 using System.Text.Json;
 using BenchmarkDotNet.Attributes;
-using Rask.Core;
 using Rask.Core.Live;
 
 namespace Rask.Benchmarks;

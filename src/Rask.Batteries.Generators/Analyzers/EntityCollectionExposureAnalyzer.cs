@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Rask.Generators.Shared;
 
-namespace Rask.Data.Generators.Analyzers;
+namespace Rask.Batteries.Generators.Analyzers;
 
 /// <summary>
 ///     RASK085 — an entity hands out a mutable collection of other entities.

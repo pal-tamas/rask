@@ -1,6 +1,5 @@
 using System.Net;
 using System.Text;
-using Rask.Site.Features;
 using Rask.Site.Tests.Infrastructure;
 
 namespace Rask.Site.Tests.Pages;

@@ -1,7 +1,6 @@
 #pragma warning disable RASK014 // test-local components have no generated factories
 
 using Microsoft.Extensions.DependencyInjection;
-using Rask.Core;
 using Rask.Core.Routing;
 
 namespace Rask.Testing.Tests;
