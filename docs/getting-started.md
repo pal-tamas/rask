@@ -223,20 +223,21 @@ public sealed partial class Counter : Component
 
 ### Going further: child → parent communication
 
-A child declares a plain delegate property (`Action<int>?`, `Func<Task>?`, …), and the chain step that
-sets it wraps it so invoking it re-renders the **parent** that owns the lambda. There is no
-`EventCallback` type, and the child stays oblivious to the parent:
+A child declares a `Callback<int>` property (`Callback` when the event carries nothing), and the chain step
+that sets it wraps the handler so invoking it re-renders the **parent** that owns the lambda. The caller
+hands it a sync or an async handler through the same step, an unset one does nothing when invoked, and the
+child stays oblivious to the parent:
 
 ```csharp
 public sealed partial class RatingStars : Component
 {
     public int Value { get; set; }
-    public Action<int>? OnRate { get; set; }            // a plain delegate prop
+    public Callback<int> OnRate { get; set; }           // an event: optional, never a required step
 
     protected override Component? Render() =>
         Div[
-            Enumerable.Range(1, 5).Select(i => (Component)Button.OnClick(() => OnRate?.Invoke(i))// child invokes; parent re-renders
-.Key(i)[i <= Value ? "★" : "☆"])
+            Enumerable.Range(1, 5).Select(i => (Component)Button.Key(i)
+                .OnClick(async () => await OnRate.Invoke(i))[i <= Value ? "★" : "☆"])   // child invokes; parent re-renders
         ];
 }
 

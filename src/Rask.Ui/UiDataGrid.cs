@@ -118,7 +118,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     public IReadOnlyList<TKey>? Selected { get; set; }
 
     /// <summary>Called with the selection after the reader changed it.</summary>
-    public Callback<IReadOnlyList<TKey>>? OnSelectionChange { get; set; }
+    public Callback<IReadOnlyList<TKey>> OnSelectionChange { get; set; }
 
     /// <summary>The rows, in memory or as a query.</summary>
     /// <remarks>
@@ -155,7 +155,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     public int? Page { get; set; }
 
     /// <summary>Called with the page the reader asked for.</summary>
-    public Callback<int>? OnPageChange { get; set; }
+    public Callback<int> OnPageChange { get; set; }
 
     /// <summary>Makes each page in the pager a link, from its page number counted from zero.</summary>
     /// <remarks>
@@ -186,7 +186,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     public bool? SortDescending { get; set; }
 
     /// <summary>Called with the sort the reader asked for.</summary>
-    public Callback<UiGridSort>? OnSortChange { get; set; }
+    public Callback<UiGridSort> OnSortChange { get; set; }
 
 
     /// <summary>Shades alternate rows.</summary>
@@ -229,7 +229,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     ///     Only the cells of columns that are <see cref="UiColumn{T}.RowClickable" /> fire it, which by
     ///     default is every column that is not a custom cell — see that property for why.
     /// </remarks>
-    public Callback<T>? OnRowClick { get; set; }
+    public Callback<T> OnRowClick { get; set; }
 
 
     /// <summary>
@@ -261,7 +261,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     public IReadOnlyList<string>? HiddenColumns { get; set; }
 
     /// <summary>Called with the hidden columns after the reader changed them.</summary>
-    public Callback<IReadOnlyList<string>>? OnHiddenColumnsChange { get; set; }
+    public Callback<IReadOnlyList<string>> OnHiddenColumnsChange { get; set; }
 
 
     /// <summary>The column order, by field token. Setting it hands that axis over.</summary>
@@ -269,14 +269,14 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     public IReadOnlyList<string>? ColumnOrder { get; set; }
 
     /// <summary>Called with the column order after the reader changed it.</summary>
-    public Callback<IReadOnlyList<string>>? OnColumnOrderChange { get; set; }
+    public Callback<IReadOnlyList<string>> OnColumnOrderChange { get; set; }
 
 
     /// <summary>The columns grouped by, outermost first. Setting it hands that axis over.</summary>
     public IReadOnlyList<string>? Grouped { get; set; }
 
     /// <summary>Called with the grouping after the reader changed it.</summary>
-    public Callback<IReadOnlyList<string>>? OnGroupedChange { get; set; }
+    public Callback<IReadOnlyList<string>> OnGroupedChange { get; set; }
 
 
     /// <summary>Shows the panel that groups, ungroups and reorders the grouping.</summary>
@@ -349,16 +349,16 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     private bool PageControlled => Page is not null;
 
     private bool SortControlled =>
-        Sort is not null || OnSortChange is not null;
+        Sort is not null || OnSortChange.HasValue;
 
     private bool GroupControlled =>
-        Grouped is not null || OnGroupedChange is not null;
+        Grouped is not null || OnGroupedChange.HasValue;
 
     private bool HideControlled =>
-        HiddenColumns is not null || OnHiddenColumnsChange is not null;
+        HiddenColumns is not null || OnHiddenColumnsChange.HasValue;
 
     private bool OrderControlled =>
-        ColumnOrder is not null || OnColumnOrderChange is not null;
+        ColumnOrder is not null || OnColumnOrderChange.HasValue;
 
     private int CurrentPage => Page ?? _page;
 
@@ -377,7 +377,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
 
     private bool Expandable => Detail is not null;
 
-    private bool SelectionEnabled => Selected is not null || OnSelectionChange is not null;
+    private bool SelectionEnabled => Selected is not null || OnSelectionChange.HasValue;
 
     private bool Busy => Loading is true;
 
@@ -418,10 +418,9 @@ public sealed partial class UiDataGrid<T, TKey> : Component
     // Whichever the caller supplied. Both set would be a call-site bug, and the async one wins because
     // it is the one that does work.
     // One handler, either shape. This used to take the sync and async halves of a pair and decide which
-    // won; the carrier holds exactly one, and `Invoke` hands back null when it was the synchronous one —
-    // so the completed task is supplied here rather than a state machine being created for it.
-    private static Task Raise<TArg>(Callback<TArg>? handler, TArg arg) =>
-        handler?.Invoke(arg) ?? Task.CompletedTask;
+    // won; the carrier holds exactly one, and `Invoke` hands back a completed ValueTask when it was the
+    // synchronous one — `AsTask()` turns that into the cached completed task, no state machine created.
+    private static Task Raise<TArg>(Callback<TArg> handler, TArg arg) => handler.Invoke(arg).AsTask();
 
     // Ascending, descending, then off. The third state is not decoration: it is the only way back to the
     // order the source itself chose, which for a query is whatever the store returns and for a list is
@@ -941,7 +940,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
             }
         }
 
-        return OnSelectionChange?.Invoke(next.ToList()) ?? Task.CompletedTask;
+        return OnSelectionChange.Invoke(next.ToList()).AsTask();
     }
 
     // A row's identity for the live diff. It is the row KEY now, never the index: an index makes two
@@ -1179,7 +1178,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
         // column here rather than once per cell. A polling grid re-renders on every update, and composing per cell
         // was a builder and a string for every cell of every row, every time, for the same few values.
         var classes = new string[visible.Count];
-        var clickable = OnRowClick is null ? null : new string[visible.Count];
+        var clickable = OnRowClick.HasValue ? new string[visible.Count] : null;
         for (var c = 0; c < visible.Count; c++)
         {
             classes[c] = CellClass(visible[c]);
@@ -1199,7 +1198,7 @@ public sealed partial class UiDataGrid<T, TKey> : Component
                 .Key(key)
                 .Class(UiClass.Compose(
                     StackedCards ? "max-sm:block max-sm:border-b max-sm:border-base-300" : "",
-                    Hover ?? OnRowClick is not null
+                    Hover ?? OnRowClick.HasValue
                         ? "hover:bg-base-200"
                         : "",
                     RowTone?.Invoke(row) is { } tone ? UiClassNames.RowTone(tone) : "",
@@ -1252,10 +1251,10 @@ public sealed partial class UiDataGrid<T, TKey> : Component
         return cell[column.Body(row)];
     }
 
-    // One handler either way. `Invoke` returns null for a synchronous one, so the completed task is
-    // supplied here rather than a state machine being created for it.
+    // One handler either way. `Invoke` returns a completed ValueTask for a synchronous one, so `AsTask()`
+    // hands back the cached completed task rather than a state machine being created for it.
     private Func<Task>? RowClickHandler(T row) =>
-        OnRowClick is { } click ? () => click.Invoke(row) ?? Task.CompletedTask : null;
+        OnRowClick.HasValue ? () => OnRowClick.Invoke(row).AsTask() : null;
 
     private Component SelectBox(T row)
     {

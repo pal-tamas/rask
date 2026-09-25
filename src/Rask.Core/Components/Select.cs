@@ -58,7 +58,7 @@ public sealed partial class Select<T> : Element, IFormControl<T>
     // IFormControl<T> — controlled mode.
 
     /// <summary>Called with the new value when the user changes the control, in controlled mode.</summary>
-    public Callback<T>? OnChange { get; set; }
+    public Callback<T> OnChange { get; set; }
 
     /// <summary>
     ///     Runs with every option value the user has picked, for a control that maps those values itself.
@@ -82,7 +82,7 @@ public sealed partial class Select<T> : Element, IFormControl<T>
     ///         one <c>data-rask-on-change</c> attribute, so a control cannot have two.
     ///     </para>
     /// </remarks>
-    public Callback<IReadOnlyList<string>>? OnSelect { get; set; }
+    public Callback<IReadOnlyList<string>> OnSelect { get; set; }
 
 
     /// <summary>
@@ -103,7 +103,7 @@ public sealed partial class Select<T> : Element, IFormControl<T>
 
 
     /// <summary>Runs after a successful bind, once the model has the new value.</summary>
-    public Callback<T>? AfterBind { get; set; }
+    public Callback<T> AfterBind { get; set; }
 
 
     protected override IDisposable? EnterChildrenScope()
@@ -324,5 +324,5 @@ public sealed partial class Select<T> : Element, IFormControl<T>
     // delegate rather than wrapped: HandlerFrameShape.ShapeOf matches Action and Func alike for this
     // shape, and Component's dispatch has an arm for each, so wrapping would only cost an allocation and
     // a frame. The carrier holds exactly one of them, so there is no longer a pair to pick between.
-    private Delegate? SelectionHandler() => OnSelect?.Handler;
+    private Delegate? SelectionHandler() => OnSelect.Handler;
 }

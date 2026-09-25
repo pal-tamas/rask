@@ -574,11 +574,12 @@ internal static class PackageIslandProps
                 }
 
                 var fqn = callback.ArgType is null
-                    ? "global::Rask.Core.Callback?"
-                    : $"global::Rask.Core.Callback<{Spell(callback.ArgType, callback.ArgNullable)}>?";
+                    ? "global::Rask.Core.Callback"
+                    : $"global::Rask.Core.Callback<{Spell(callback.ArgType, callback.ArgNullable)}>";
 
                 // Never required, even when the package's type says so: an unwired callback is simply not
                 // wired, and a chain cannot usefully insist that an event be handled — the Blazor precedent.
+                // Non-nullable all the same: an unset `Callback` is its default, whose Invoke does nothing.
                 _props.Add(new PackageProp(
                     prop.Name, prop.Wire, clrName, fqn, false, false, false, null, callback,
                     summary, prop.Doc, prop.Default));

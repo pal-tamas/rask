@@ -189,9 +189,9 @@ public static class BindingHelpers
     // user's callback always sees the new value.
     public static Func<Task>? BuildAfterBind<TProp>(
         ExpressionAccessor.Accessor acc,
-        Callback<TProp>? hook)
+        Callback<TProp> hook)
     {
-        if (hook is null)
+        if (!hook.HasValue)
         {
             return null;
         }
@@ -199,7 +199,7 @@ public static class BindingHelpers
         return () =>
         {
             var v = (TProp)acc.Getter()!;
-            return hook.Value.Invoke(v) ?? Task.CompletedTask;
+            return hook.Invoke(v).AsTask();
         };
     }
 

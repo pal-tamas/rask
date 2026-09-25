@@ -64,7 +64,7 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
     ///     runs once the form is actually valid.
     /// </summary>
     // Calling it back is `OnAnySubmit?.Invoke(data)`, which hands back null when there is nothing to await.
-    public Callback<FormData>? OnAnySubmit { get; set; }
+    public Callback<FormData> OnAnySubmit { get; set; }
 
     // Pre-registers the form's EditContext with LiveRenderContext (creating it if needed) and
     // walks the model graph so descendant sub-objects also resolve to the same context. Without
@@ -92,11 +92,11 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
 
     /// <summary>Runs on submit when every field passes validation.</summary>
     [AutoCallback]
-    public Callback<TModel>? OnSubmit { get; set; }
+    public Callback<TModel> OnSubmit { get; set; }
 
     /// <summary>Runs on submit when validation fails, so the page can react rather than sit silent.</summary>
     [AutoCallback]
-    public Callback<TModel>? OnInvalidSubmit { get; set; }
+    public Callback<TModel> OnInvalidSubmit { get; set; }
 
     /// <summary>
     ///     Cross-field validation for the form as a whole. Messages attach to the model rather than to a
@@ -339,25 +339,18 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
                 ctx.TouchAllRegisteredFields();
                 var isValid = !ctx.HasValidationMessages();
                 var onModel = isValid ? OnSubmit : OnInvalidSubmit;
-                if (onModel is null)
+                if (!onModel.HasValue)
                 {
                     // No model-shaped handler: fall back to the raw FormData one, which is what a form that
                     // only wants the posted values uses.
-                    if (OnAnySubmit?.Invoke(formData) is { } raw)
-                    {
-                        await raw.ConfigureAwait(false);
-                    }
-
+                    await OnAnySubmit.Invoke(formData).ConfigureAwait(false);
                     return;
                 }
 
                 // Typed, so the model goes straight to the handler — the non-generic Form had to
                 // DynamicInvoke here, because all it held was a Delegate.
                 var model = (TModel)ctx.Model;
-                if (onModel.Value.Invoke(model) is { } pending)
-                {
-                    await pending.ConfigureAwait(false);
-                }
+                await onModel.Invoke(model).ConfigureAwait(false);
             }
 #pragma warning disable CA1031 // Any failure of the app's own save is the page's to render, not the framework's to choose between.
             catch (Exception ex)
@@ -431,7 +424,7 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
         }
         else
         {
-            submit = OnAnySubmit?.Handler;
+            submit = OnAnySubmit.Handler;
         }
 
         if (submit is not null && LiveRenderContext.CurrentSync is { } liveCtx)

@@ -43,7 +43,7 @@ public sealed partial class UiFilter<T> : Component, IFormControl<T>
     public T? Value { get; set; }
 
     /// <inheritdoc />
-    public Callback<T>? OnChange { get; set; }
+    public Callback<T> OnChange { get; set; }
 
 
     /// <inheritdoc />
@@ -54,7 +54,7 @@ public sealed partial class UiFilter<T> : Component, IFormControl<T>
 
 
     /// <inheritdoc />
-    public Callback<T>? AfterBind { get; set; }
+    public Callback<T> AfterBind { get; set; }
 
 
     /// <inheritdoc />

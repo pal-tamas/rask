@@ -157,23 +157,23 @@ internal sealed partial class AllocFragmentEntryProbe : Component
     private Component Row(int i) => Span[i.ToString(System.Globalization.CultureInfo.InvariantCulture)];
 }
 
-// The public READ surface. `OnPing?.Invoke()` is what a component calls its own callback back
+// The public READ surface. `OnPing.Invoke()` is what a component calls its own callback back
 // with, and it sits wherever the component chose to put it — including inside Render(), on the hot
-// path. A null-conditional call on a delegate field is a branch and a call, and must stay that.
+// path. A synchronous handler behind it is a type test and a call, and must stay that.
 // The handlers are STATIC method groups so AutoCallback leaves them alone — the wrapped case has its own
 // probe above, and this one is measuring the call, not the wrap.
 internal sealed partial class AllocInvokeLeaf : Component
 {
-    public Callback? OnPing { get; set; }
-    public Callback<string>? OnNamed { get; set; }
+    public Callback OnPing { get; set; }
+    public Callback<string> OnNamed { get; set; }
 
     protected override Component? Render()
     {
-        // Invoke hands back null when the handler was synchronous, which these are, so nothing is
-        // being dropped here — the discard IS the fast path. A component that admits async handlers
-        // awaits instead: `if (OnPing?.Invoke() is { } t) await t;`.
-        _ = OnPing?.Invoke();
-        _ = OnNamed?.Invoke("x");
+        // Invoke hands back an already-completed ValueTask when the handler was synchronous, which these
+        // are, so nothing is being dropped here — the discard IS the fast path. A component that admits
+        // async handlers awaits instead: `await OnPing.Invoke();`.
+        _ = OnPing.Invoke();
+        _ = OnNamed.Invoke("x");
         return Div;
     }
 }

@@ -22,7 +22,7 @@ public sealed partial class UiSearch : Component
 
     public Ui.Size? Size { get; set; }
 
-    public Callback<string>? OnSearch { get; set; }
+    public Callback<string> OnSearch { get; set; }
 
     public string? Class { get; set; }
 
@@ -36,9 +36,9 @@ public sealed partial class UiSearch : Component
             .Aria(new Dictionary<string, string?> { ["label"] = AccessibleLabel })
             .Class("grow");
 
-        if (OnSearch is { } search)
+        if (OnSearch.HasValue)
         {
-            input = input.OnChange(search);
+            input = input.OnChange(OnSearch);
         }
 
         // daisyUI's `input` is a WRAPPER that lays out whatever sits inside it, so the icon goes in the

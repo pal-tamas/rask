@@ -31,7 +31,7 @@ public sealed partial class UiCalendarRange : Component, IFormControl<UiDateRang
     public DateOnly? Month { get; set; }
 
     /// <inheritdoc cref="UiCalendar.OnMonth" />
-    public Callback<DateOnly>? OnMonth { get; set; }
+    public Callback<DateOnly> OnMonth { get; set; }
 
     /// <inheritdoc cref="UiCalendar.Min" />
     public DateOnly? Min { get; set; }
@@ -49,7 +49,7 @@ public sealed partial class UiCalendarRange : Component, IFormControl<UiDateRang
     public UiDateRange Value { get; set; }
 
     /// <inheritdoc />
-    public Callback<UiDateRange>? OnChange { get; set; }
+    public Callback<UiDateRange> OnChange { get; set; }
 
     /// <inheritdoc />
     public Expression<Func<UiDateRange>>? Bind { get; set; }
@@ -58,7 +58,7 @@ public sealed partial class UiCalendarRange : Component, IFormControl<UiDateRang
     public Validator<UiDateRange>? Validate { get; set; }
 
     /// <inheritdoc />
-    public Callback<UiDateRange>? AfterBind { get; set; }
+    public Callback<UiDateRange> AfterBind { get; set; }
 
     // The half-picked start and the view month are FIELDS, which the render cache cannot see.
     /// <inheritdoc />
@@ -105,6 +105,6 @@ public sealed partial class UiCalendarRange : Component, IFormControl<UiDateRang
     private Task PageAsync(DateOnly month)
     {
         _month = month;
-        return OnMonth?.Invoke(month) ?? Task.CompletedTask;
+        return OnMonth.Invoke(month).AsTask();
     }
 }

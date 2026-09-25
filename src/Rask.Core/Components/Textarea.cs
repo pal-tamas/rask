@@ -80,7 +80,7 @@ public sealed partial class Textarea<T> : Element, IFormControl<T>
     ///     reads this, so it is neither a step on a bound chain nor a parameter of the bound factory. Use
     ///     <see cref="AfterBind" /> for a side effect on each bound write.
     /// </remarks>
-    public Callback<string>? OnInput { get; set; }
+    public Callback<string> OnInput { get; set; }
 
 
     // IFormControl<T> — bound mode.
@@ -95,7 +95,7 @@ public sealed partial class Textarea<T> : Element, IFormControl<T>
 
 
     /// <summary>Runs after a successful bind, once the model has the new value.</summary>
-    public Callback<T>? AfterBind { get; set; }
+    public Callback<T> AfterBind { get; set; }
 
 
     // IFormControl<T> — controlled mode.
@@ -104,7 +104,7 @@ public sealed partial class Textarea<T> : Element, IFormControl<T>
     public T? Value { get; set; }
 
     /// <summary>Called with the new value when the user changes the control, in controlled mode.</summary>
-    public Callback<T>? OnChange { get; set; }
+    public Callback<T> OnChange { get; set; }
 
     // The rendered text content, resolved in WriteAttributes (bound/controlled) and emitted by
     // RenderChildren. Null leaves the plain Children content (indexer) in place.
@@ -219,7 +219,7 @@ public sealed partial class Textarea<T> : Element, IFormControl<T>
         }
 
         // Plain / controlled.
-        var input = OnInput?.Handler;
+        var input = OnInput.Handler;
         if (input is not null)
         {
             AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(input));

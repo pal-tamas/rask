@@ -44,7 +44,7 @@ internal sealed partial class DevToolsRendersTab : Component
     public bool? Flash { get; set; }
 
     /// <summary>Raised when the flash switch is flipped.</summary>
-    public Callback<bool>? OnFlashChange { get; set; }
+    public Callback<bool> OnFlashChange { get; set; }
 
     // The view switch is a field, which the render cache cannot see.
     /// <inheritdoc />

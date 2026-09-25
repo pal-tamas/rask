@@ -38,7 +38,7 @@ public sealed partial class UiSidebar : Component
     public bool? Open { get; set; }
 
     /// <summary>Runs when the sidebar is slid in or out, with the state being asked for.</summary>
-    public Callback<bool>? OnToggle { get; set; }
+    public Callback<bool> OnToggle { get; set; }
 
     /// <summary>
     ///     Lets a DOCKED sidebar be narrowed to a rail of icons, with a <see cref="UiSidebarCollapse" /> to do it.
@@ -61,7 +61,7 @@ public sealed partial class UiSidebar : Component
     public bool? Collapsed { get; set; }
 
     /// <summary>Runs when the reader narrows or widens the docked sidebar, with the state being asked for.</summary>
-    public Callback<bool>? OnCollapse { get; set; }
+    public Callback<bool> OnCollapse { get; set; }
 
     /// <summary>The name of the sidebar landmark. "Sidebar" unless this says otherwise.</summary>
     public string? AccessibleLabel { get; set; }
@@ -91,9 +91,9 @@ public sealed partial class UiSidebar : Component
     protected override Component? Render()
     {
         var toggle = Input.Of<bool>().Checked(Open == true).Id(Id).Class("drawer-toggle");
-        if (OnToggle is { } onToggle)
+        if (OnToggle.HasValue)
         {
-            toggle = toggle.OnChange(onToggle);
+            toggle = toggle.OnChange(OnToggle);
         }
 
         // The rail's own checkbox, beside the drawer's: a sibling of `.drawer-side`, which is what lets the
@@ -104,7 +104,7 @@ public sealed partial class UiSidebar : Component
         {
             var box = Input.Of<bool>().Checked(Collapsed == true).Id(Id + "-rail").Class("ui-sidebar-rail")
                 .Type(InputType.Checkbox);
-            rail = OnCollapse is { } onCollapse ? box.OnChange(onCollapse) : box;
+            rail = OnCollapse.HasValue ? box.OnChange(OnCollapse) : box;
         }
 
         var root = Div.Class(UiClass.Compose(

@@ -55,6 +55,15 @@ them until tagged releases begin.
 
 ### Changed
 
+- **An event is `Callback<T>`, not `Callback<T>?`, and fires with `await OnRate.Invoke(n)`.** A component declares
+  `public Callback<int> OnRate { get; set; }` and calls it back with one await, where it used to write
+  `if (OnRate?.Invoke(n) is { } t) await t;`. An unset callback is a no-op, and a non-nullable `Callback`,
+  `Callback<T>` or `Callback<T1, T2>` is never a required chain step (never RASK001): `RatingStars.OnRate(…)` and
+  leaving it off both compile, and `.OnRate(null)` still means "no handler". `Invoke` now returns a `ValueTask`
+  instead of `Task?` — already complete, with nothing allocated, for a synchronous or unset handler. Every event the
+  framework declares (the DOM events on `Element`, the media events, `Form`, the form controls, `IFormControl<T>`,
+  the UI kit, package islands and Blazor islands) is non-nullable now, so ask `.HasValue` where you used to ask
+  `is not null`. A `Callback<T>?` of your own still works; its `Invoke` just returns `ValueTask` too.
 - **`rask new` scaffolds onto `RaskApp`.** A server app's `Program.cs` is `RaskApp.Create(args).Run<App>();`, its
   csproj references `Rask.Server` (plus the dev-only `Rask.DevTools`), and there is no `AppDbContext.cs` — RaskApp's
   own context maps your aggregates and every battery's tables. A `--no-<battery>` flag writes `c.Jobs.Off()` into

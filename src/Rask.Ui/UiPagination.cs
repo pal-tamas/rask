@@ -34,7 +34,7 @@ public sealed partial class UiPagination : Component
 
     public required int Current { get; set; }
 
-    public Callback<int>? OnSelect { get; set; }
+    public Callback<int> OnSelect { get; set; }
 
     /// <summary>Where each page lives, from its number counted from one. Makes every page a link.</summary>
     public Fn<int, RouteUrl>? Href { get; set; }
@@ -109,9 +109,9 @@ public sealed partial class UiPagination : Component
             .Class(UiClass.Compose("join-item btn", page == Current ? "btn-active" : ""))
             .Disabled(page == Current);
 
-        if (OnSelect is { } select && page != Current)
+        if (OnSelect.HasValue && page != Current)
         {
-            button = button.OnClick(() => select.Invoke(page) ?? Task.CompletedTask);
+            button = button.OnClick(() => OnSelect.Invoke(page).AsTask());
         }
 
         return button[page.ToString(System.Globalization.CultureInfo.InvariantCulture)];

@@ -19,5 +19,5 @@ public sealed partial class LitBadge : Rask.External.LitComponent
     public required string Caption { get; set; }
 
     /// <summary>Runs with the component's running total whenever it changes.</summary>
-    public Callback<int>? OnTotalChanged { get; set; }
+    public Callback<int> OnTotalChanged { get; set; }
 }

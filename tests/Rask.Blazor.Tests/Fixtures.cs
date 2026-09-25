@@ -158,9 +158,10 @@ public sealed partial class ClickerIsland : BlazorComponent<Clicker>
         if (OnPick is not null)
         {
             // The carrier holds either shape, so the bridge is written as the asynchronous one:
-            // Invoke hands back null for a synchronous handler, and that null IS the fast path.
+            // Invoke hands back a completed ValueTask for a synchronous handler, and AsTask() keeps
+            // that on the cached completed task.
             into["OnPick"] = EventCallback.Factory.Create<int>(
-                this, (Func<int, Task>)(v => OnPick.Value.Invoke(v) ?? Task.CompletedTask));
+                this, (Func<int, Task>)(v => OnPick.Value.Invoke(v).AsTask()));
         }
     }
 }
@@ -216,7 +217,7 @@ public sealed partial class PreventingLinkIsland : BlazorComponent<PreventingLin
         if (OnPick is not null)
         {
             into["OnPick"] = EventCallback.Factory.Create(
-                this, (Func<Task>)(() => OnPick.Value.Invoke() ?? Task.CompletedTask));
+                this, (Func<Task>)(() => OnPick.Value.Invoke().AsTask()));
         }
     }
 }

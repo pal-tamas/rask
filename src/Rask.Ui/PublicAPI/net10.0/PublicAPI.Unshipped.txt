@@ -2,7 +2,7 @@
 Rask.UiAccordion
 Rask.UiAccordion.Class.get -> string?
 Rask.UiAccordion.Class.set -> void
-Rask.UiAccordion.OnOpen.get -> Rask.Core.Callback<string?>?
+Rask.UiAccordion.OnOpen.get -> Rask.Core.Callback<string?>
 Rask.UiAccordion.OnOpen.set -> void
 Rask.UiAccordion.Open.get -> string?
 Rask.UiAccordion.Open.set -> void
@@ -17,13 +17,13 @@ Rask.UiAccordionSection.Title.set -> void
 Rask.UiAccordionSection.UiAccordionSection() -> void
 Rask.UiAccordionState
 Rask.UiAccordionState.<Clone>$() -> Rask.UiAccordionState!
-Rask.UiAccordionState.Deconstruct(out string? Open, out Rask.Core.Callback<string?>? OnOpen) -> void
+Rask.UiAccordionState.Deconstruct(out string? Open, out Rask.Core.Callback<string?> OnOpen) -> void
 Rask.UiAccordionState.Equals(Rask.UiAccordionState? other) -> bool
-Rask.UiAccordionState.OnOpen.get -> Rask.Core.Callback<string?>?
+Rask.UiAccordionState.OnOpen.get -> Rask.Core.Callback<string?>
 Rask.UiAccordionState.OnOpen.init -> void
 Rask.UiAccordionState.Open.get -> string?
 Rask.UiAccordionState.Open.init -> void
-Rask.UiAccordionState.UiAccordionState(string? Open, Rask.Core.Callback<string?>? OnOpen) -> void
+Rask.UiAccordionState.UiAccordionState(string? Open, Rask.Core.Callback<string?> OnOpen) -> void
 Rask.UiAlert
 Rask.UiAlert.Tone.get -> Rask.Ui.Tone?
 Rask.UiAlert.Tone.set -> void
@@ -135,7 +135,7 @@ Rask.Ui.ButtonType.Button = 0 -> Rask.Ui.ButtonType
 Rask.Ui.ButtonType.Reset = 2 -> Rask.Ui.ButtonType
 Rask.Ui.ButtonType.Submit = 1 -> Rask.Ui.ButtonType
 Rask.UiCalendar
-Rask.UiCalendar.AfterBind.get -> Rask.Core.Callback<System.DateOnly>?
+Rask.UiCalendar.AfterBind.get -> Rask.Core.Callback<System.DateOnly>
 Rask.UiCalendar.AfterBind.set -> void
 Rask.UiCalendar.Bind.get -> System.Linq.Expressions.Expression<System.Func<System.DateOnly>!>?
 Rask.UiCalendar.Bind.set -> void
@@ -151,9 +151,9 @@ Rask.UiCalendar.Min.get -> System.DateOnly?
 Rask.UiCalendar.Min.set -> void
 Rask.UiCalendar.Month.get -> System.DateOnly?
 Rask.UiCalendar.Month.set -> void
-Rask.UiCalendar.OnChange.get -> Rask.Core.Callback<System.DateOnly>?
+Rask.UiCalendar.OnChange.get -> Rask.Core.Callback<System.DateOnly>
 Rask.UiCalendar.OnChange.set -> void
-Rask.UiCalendar.OnMonth.get -> Rask.Core.Callback<System.DateOnly>?
+Rask.UiCalendar.OnMonth.get -> Rask.Core.Callback<System.DateOnly>
 Rask.UiCalendar.OnMonth.set -> void
 Rask.UiCalendar.UiCalendar() -> void
 Rask.UiCalendar.Validate.get -> Rask.Core.Validator<System.DateOnly>?
@@ -161,7 +161,7 @@ Rask.UiCalendar.Validate.set -> void
 Rask.UiCalendar.Value.get -> System.DateOnly
 Rask.UiCalendar.Value.set -> void
 Rask.UiCalendarMultiple
-Rask.UiCalendarMultiple.AfterBind.get -> Rask.Core.Callback<System.Collections.Generic.ICollection<System.DateOnly>!>?
+Rask.UiCalendarMultiple.AfterBind.get -> Rask.Core.Callback<System.Collections.Generic.ICollection<System.DateOnly>!>
 Rask.UiCalendarMultiple.AfterBind.set -> void
 Rask.UiCalendarMultiple.Bind.get -> System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.ICollection<System.DateOnly>!>!>?
 Rask.UiCalendarMultiple.Bind.set -> void
@@ -177,9 +177,9 @@ Rask.UiCalendarMultiple.Min.get -> System.DateOnly?
 Rask.UiCalendarMultiple.Min.set -> void
 Rask.UiCalendarMultiple.Month.get -> System.DateOnly?
 Rask.UiCalendarMultiple.Month.set -> void
-Rask.UiCalendarMultiple.OnChange.get -> Rask.Core.Callback<System.Collections.Generic.ICollection<System.DateOnly>!>?
+Rask.UiCalendarMultiple.OnChange.get -> Rask.Core.Callback<System.Collections.Generic.ICollection<System.DateOnly>!>
 Rask.UiCalendarMultiple.OnChange.set -> void
-Rask.UiCalendarMultiple.OnMonth.get -> Rask.Core.Callback<System.DateOnly>?
+Rask.UiCalendarMultiple.OnMonth.get -> Rask.Core.Callback<System.DateOnly>
 Rask.UiCalendarMultiple.OnMonth.set -> void
 Rask.UiCalendarMultiple.UiCalendarMultiple() -> void
 Rask.UiCalendarMultiple.Validate.get -> Rask.Core.Validator<System.Collections.Generic.ICollection<System.DateOnly>!>?
@@ -187,7 +187,7 @@ Rask.UiCalendarMultiple.Validate.set -> void
 Rask.UiCalendarMultiple.Value.get -> System.Collections.Generic.ICollection<System.DateOnly>?
 Rask.UiCalendarMultiple.Value.set -> void
 Rask.UiCalendarRange
-Rask.UiCalendarRange.AfterBind.get -> Rask.Core.Callback<Rask.UiDateRange>?
+Rask.UiCalendarRange.AfterBind.get -> Rask.Core.Callback<Rask.UiDateRange>
 Rask.UiCalendarRange.AfterBind.set -> void
 Rask.UiCalendarRange.Bind.get -> System.Linq.Expressions.Expression<System.Func<Rask.UiDateRange>!>?
 Rask.UiCalendarRange.Bind.set -> void
@@ -203,9 +203,9 @@ Rask.UiCalendarRange.Min.get -> System.DateOnly?
 Rask.UiCalendarRange.Min.set -> void
 Rask.UiCalendarRange.Month.get -> System.DateOnly?
 Rask.UiCalendarRange.Month.set -> void
-Rask.UiCalendarRange.OnChange.get -> Rask.Core.Callback<Rask.UiDateRange>?
+Rask.UiCalendarRange.OnChange.get -> Rask.Core.Callback<Rask.UiDateRange>
 Rask.UiCalendarRange.OnChange.set -> void
-Rask.UiCalendarRange.OnMonth.get -> Rask.Core.Callback<System.DateOnly>?
+Rask.UiCalendarRange.OnMonth.get -> Rask.Core.Callback<System.DateOnly>
 Rask.UiCalendarRange.OnMonth.set -> void
 Rask.UiCalendarRange.UiCalendarRange() -> void
 Rask.UiCalendarRange.Validate.get -> Rask.Core.Validator<Rask.UiDateRange>?
@@ -293,7 +293,7 @@ Rask.UiChatBubble.UiChatBubble() -> void
 Rask.UiChatBubble.When.get -> string?
 Rask.UiChatBubble.When.set -> void
 Rask.UiCheckbox
-Rask.UiCheckbox.AfterBind.get -> Rask.Core.Callback<bool>?
+Rask.UiCheckbox.AfterBind.get -> Rask.Core.Callback<bool>
 Rask.UiCheckbox.AfterBind.set -> void
 Rask.UiCheckbox.Bind.get -> System.Linq.Expressions.Expression<System.Func<bool>!>?
 Rask.UiCheckbox.Bind.set -> void
@@ -303,7 +303,7 @@ Rask.UiCheckbox.Disabled.get -> bool?
 Rask.UiCheckbox.Disabled.set -> void
 Rask.UiCheckbox.Id.get -> string?
 Rask.UiCheckbox.Id.set -> void
-Rask.UiCheckbox.OnChange.get -> Rask.Core.Callback<bool>?
+Rask.UiCheckbox.OnChange.get -> Rask.Core.Callback<bool>
 Rask.UiCheckbox.OnChange.set -> void
 Rask.UiCheckbox.Size.get -> Rask.Ui.Size?
 Rask.UiCheckbox.Size.set -> void
@@ -349,7 +349,7 @@ Rask.UiCollapse.Class.get -> string?
 Rask.UiCollapse.Class.set -> void
 Rask.UiCollapse.Marker.get -> Rask.Ui.Marker?
 Rask.UiCollapse.Marker.set -> void
-Rask.UiCollapse.OnToggle.get -> Rask.Core.Callback<bool>?
+Rask.UiCollapse.OnToggle.get -> Rask.Core.Callback<bool>
 Rask.UiCollapse.OnToggle.set -> void
 Rask.UiCollapse.Open.get -> bool?
 Rask.UiCollapse.Open.set -> void
@@ -427,7 +427,7 @@ Rask.UiCrumbSwitcher.Icon.get -> Rask.Ui.IconName?
 Rask.UiCrumbSwitcher.Icon.set -> void
 Rask.UiCrumbSwitcher.Label.get -> string!
 Rask.UiCrumbSwitcher.Label.set -> void
-Rask.UiCrumbSwitcher.OnSelect.get -> Rask.Core.Callback<string!>?
+Rask.UiCrumbSwitcher.OnSelect.get -> Rask.Core.Callback<string!>
 Rask.UiCrumbSwitcher.OnSelect.set -> void
 Rask.UiCrumbSwitcher.UiCrumbSwitcher() -> void
 Rask.UiCrumbSwitcher.Value.get -> string!
@@ -467,19 +467,19 @@ Rask.UiDataGrid<T, TKey>.Loading.get -> bool?
 Rask.UiDataGrid<T, TKey>.Loading.set -> void
 Rask.UiDataGrid<T, TKey>.MaxHeight.get -> string?
 Rask.UiDataGrid<T, TKey>.MaxHeight.set -> void
-Rask.UiDataGrid<T, TKey>.OnColumnOrderChange.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<string!>!>?
+Rask.UiDataGrid<T, TKey>.OnColumnOrderChange.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<string!>!>
 Rask.UiDataGrid<T, TKey>.OnColumnOrderChange.set -> void
-Rask.UiDataGrid<T, TKey>.OnGroupedChange.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<string!>!>?
+Rask.UiDataGrid<T, TKey>.OnGroupedChange.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<string!>!>
 Rask.UiDataGrid<T, TKey>.OnGroupedChange.set -> void
-Rask.UiDataGrid<T, TKey>.OnHiddenColumnsChange.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<string!>!>?
+Rask.UiDataGrid<T, TKey>.OnHiddenColumnsChange.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<string!>!>
 Rask.UiDataGrid<T, TKey>.OnHiddenColumnsChange.set -> void
-Rask.UiDataGrid<T, TKey>.OnPageChange.get -> Rask.Core.Callback<int>?
+Rask.UiDataGrid<T, TKey>.OnPageChange.get -> Rask.Core.Callback<int>
 Rask.UiDataGrid<T, TKey>.OnPageChange.set -> void
-Rask.UiDataGrid<T, TKey>.OnRowClick.get -> Rask.Core.Callback<T>?
+Rask.UiDataGrid<T, TKey>.OnRowClick.get -> Rask.Core.Callback<T>
 Rask.UiDataGrid<T, TKey>.OnRowClick.set -> void
-Rask.UiDataGrid<T, TKey>.OnSelectionChange.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<TKey>!>?
+Rask.UiDataGrid<T, TKey>.OnSelectionChange.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<TKey>!>
 Rask.UiDataGrid<T, TKey>.OnSelectionChange.set -> void
-Rask.UiDataGrid<T, TKey>.OnSortChange.get -> Rask.Core.Callback<Rask.UiGridSort>?
+Rask.UiDataGrid<T, TKey>.OnSortChange.get -> Rask.Core.Callback<Rask.UiGridSort>
 Rask.UiDataGrid<T, TKey>.OnSortChange.set -> void
 Rask.UiDataGrid<T, TKey>.Page.get -> int?
 Rask.UiDataGrid<T, TKey>.Page.set -> void
@@ -604,7 +604,7 @@ Rask.UiDrawer.CloseLabel.get -> string?
 Rask.UiDrawer.CloseLabel.set -> void
 Rask.UiDrawer.Id.get -> string!
 Rask.UiDrawer.Id.set -> void
-Rask.UiDrawer.OnToggle.get -> Rask.Core.Callback<bool>?
+Rask.UiDrawer.OnToggle.get -> Rask.Core.Callback<bool>
 Rask.UiDrawer.OnToggle.set -> void
 Rask.UiDrawer.Open.get -> bool?
 Rask.UiDrawer.Open.set -> void
@@ -662,13 +662,13 @@ Rask.UiFileInput.Heading.get -> string?
 Rask.UiFileInput.Heading.set -> void
 Rask.UiFileInput.Multiple.get -> bool?
 Rask.UiFileInput.Multiple.set -> void
-Rask.UiFileInput.OnFiles.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.RaskFile!>!>?
+Rask.UiFileInput.OnFiles.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<Rask.Core.Forms.RaskFile!>!>
 Rask.UiFileInput.OnFiles.set -> void
 Rask.UiFileInput.Text.get -> string?
 Rask.UiFileInput.Text.set -> void
 Rask.UiFileInput.UiFileInput() -> void
 Rask.UiFilter<T>
-Rask.UiFilter<T>.AfterBind.get -> Rask.Core.Callback<T>?
+Rask.UiFilter<T>.AfterBind.get -> Rask.Core.Callback<T>
 Rask.UiFilter<T>.AfterBind.set -> void
 Rask.UiFilter<T>.Bind.get -> System.Linq.Expressions.Expression<System.Func<T>!>?
 Rask.UiFilter<T>.Bind.set -> void
@@ -676,7 +676,7 @@ Rask.UiFilter<T>.Class.get -> string?
 Rask.UiFilter<T>.Class.set -> void
 Rask.UiFilter<T>.Group.get -> string!
 Rask.UiFilter<T>.Group.set -> void
-Rask.UiFilter<T>.OnChange.get -> Rask.Core.Callback<T>?
+Rask.UiFilter<T>.OnChange.get -> Rask.Core.Callback<T>
 Rask.UiFilter<T>.OnChange.set -> void
 Rask.UiFilter<T>.Options.get -> System.Collections.Generic.IReadOnlyList<(T Value, string! Text)>!
 Rask.UiFilter<T>.Options.set -> void
@@ -696,7 +696,7 @@ Rask.UiFooter.UiFooter() -> void
 Rask.UiFormField<T>
 Rask.UiFormField<T>.AccessibleLabel.get -> string?
 Rask.UiFormField<T>.AccessibleLabel.set -> void
-Rask.UiFormField<T>.AfterBind.get -> Rask.Core.Callback<T>?
+Rask.UiFormField<T>.AfterBind.get -> Rask.Core.Callback<T>
 Rask.UiFormField<T>.AfterBind.set -> void
 Rask.UiFormField<T>.Badge.get -> string?
 Rask.UiFormField<T>.Badge.set -> void
@@ -716,7 +716,7 @@ Rask.UiFormField<T>.Id.get -> string?
 Rask.UiFormField<T>.Id.set -> void
 Rask.UiFormField<T>.Label.get -> string?
 Rask.UiFormField<T>.Label.set -> void
-Rask.UiFormField<T>.OnChange.get -> Rask.Core.Callback<T>?
+Rask.UiFormField<T>.OnChange.get -> Rask.Core.Callback<T>
 Rask.UiFormField<T>.OnChange.set -> void
 Rask.UiFormField<T>.ShowValidating.get -> bool?
 Rask.UiFormField<T>.ShowValidating.set -> void
@@ -922,7 +922,7 @@ Rask.UiInput<T>.Min.get -> string?
 Rask.UiInput<T>.Min.set -> void
 Rask.UiInput<T>.Name.get -> string?
 Rask.UiInput<T>.Name.set -> void
-Rask.UiInput<T>.OnInput.get -> Rask.Core.Callback<string!>?
+Rask.UiInput<T>.OnInput.get -> Rask.Core.Callback<string!>
 Rask.UiInput<T>.OnInput.set -> void
 Rask.UiInput<T>.Placeholder.get -> string?
 Rask.UiInput<T>.Placeholder.set -> void
@@ -1072,7 +1072,7 @@ Rask.UiMenuButton.Position.get -> Rask.Ui.Position?
 Rask.UiMenuButton.Position.set -> void
 Rask.UiMenuButton.UiMenuButton() -> void
 Rask.UiMenuCheckbox
-Rask.UiMenuCheckbox.AfterBind.get -> Rask.Core.Callback<bool>?
+Rask.UiMenuCheckbox.AfterBind.get -> Rask.Core.Callback<bool>
 Rask.UiMenuCheckbox.AfterBind.set -> void
 Rask.UiMenuCheckbox.Bind.get -> System.Linq.Expressions.Expression<System.Func<bool>!>?
 Rask.UiMenuCheckbox.Bind.set -> void
@@ -1086,7 +1086,7 @@ Rask.UiMenuCheckbox.Kbd.get -> string?
 Rask.UiMenuCheckbox.Kbd.set -> void
 Rask.UiMenuCheckbox.KeepOpen.get -> bool?
 Rask.UiMenuCheckbox.KeepOpen.set -> void
-Rask.UiMenuCheckbox.OnChange.get -> Rask.Core.Callback<bool>?
+Rask.UiMenuCheckbox.OnChange.get -> Rask.Core.Callback<bool>
 Rask.UiMenuCheckbox.OnChange.set -> void
 Rask.UiMenuCheckbox.Text.get -> string!
 Rask.UiMenuCheckbox.Text.set -> void
@@ -1118,7 +1118,7 @@ Rask.UiMenuItem.Kbd.get -> string?
 Rask.UiMenuItem.Kbd.set -> void
 Rask.UiMenuItem.KeepOpen.get -> bool?
 Rask.UiMenuItem.KeepOpen.set -> void
-Rask.UiMenuItem.OnClick.get -> Rask.Core.Callback?
+Rask.UiMenuItem.OnClick.get -> Rask.Core.Callback
 Rask.UiMenuItem.OnClick.set -> void
 Rask.UiMenuItem.Text.get -> string!
 Rask.UiMenuItem.Text.set -> void
@@ -1126,7 +1126,7 @@ Rask.UiMenuItem.Tone.get -> Rask.Ui.Tone?
 Rask.UiMenuItem.Tone.set -> void
 Rask.UiMenuItem.UiMenuItem() -> void
 Rask.UiMenuRadioGroup<T>
-Rask.UiMenuRadioGroup<T>.AfterBind.get -> Rask.Core.Callback<T>?
+Rask.UiMenuRadioGroup<T>.AfterBind.get -> Rask.Core.Callback<T>
 Rask.UiMenuRadioGroup<T>.AfterBind.set -> void
 Rask.UiMenuRadioGroup<T>.Bind.get -> System.Linq.Expressions.Expression<System.Func<T>!>?
 Rask.UiMenuRadioGroup<T>.Bind.set -> void
@@ -1136,7 +1136,7 @@ Rask.UiMenuRadioGroup<T>.Heading.get -> string?
 Rask.UiMenuRadioGroup<T>.Heading.set -> void
 Rask.UiMenuRadioGroup<T>.KeepOpen.get -> bool?
 Rask.UiMenuRadioGroup<T>.KeepOpen.set -> void
-Rask.UiMenuRadioGroup<T>.OnChange.get -> Rask.Core.Callback<T>?
+Rask.UiMenuRadioGroup<T>.OnChange.get -> Rask.Core.Callback<T>
 Rask.UiMenuRadioGroup<T>.OnChange.set -> void
 Rask.UiMenuRadioGroup<T>.OptionDisabled.get -> Rask.Core.Fn<T, bool>?
 Rask.UiMenuRadioGroup<T>.OptionDisabled.set -> void
@@ -1164,7 +1164,7 @@ Rask.UiMenuSurface.Class.get -> string?
 Rask.UiMenuSurface.Class.set -> void
 Rask.UiMenuSurface.KeepOpen.get -> bool?
 Rask.UiMenuSurface.KeepOpen.set -> void
-Rask.UiMenuSurface.OnToggle.get -> Rask.Core.Callback<bool>?
+Rask.UiMenuSurface.OnToggle.get -> Rask.Core.Callback<bool>
 Rask.UiMenuSurface.OnToggle.set -> void
 Rask.UiMenuSurface.Open.get -> bool?
 Rask.UiMenuSurface.Open.set -> void
@@ -1220,7 +1220,7 @@ Rask.UiModal.Footer.get -> Rask.Core.Component?
 Rask.UiModal.Footer.set -> void
 Rask.UiModal.Id.get -> string?
 Rask.UiModal.Id.set -> void
-Rask.UiModal.OnClose.get -> Rask.Core.Callback?
+Rask.UiModal.OnClose.get -> Rask.Core.Callback
 Rask.UiModal.OnClose.set -> void
 Rask.UiModal.Open.get -> bool?
 Rask.UiModal.Open.set -> void
@@ -1275,7 +1275,7 @@ Rask.UiNavGroup.Heading.get -> string!
 Rask.UiNavGroup.Heading.set -> void
 Rask.UiNavGroup.Icon.get -> Rask.Ui.IconName?
 Rask.UiNavGroup.Icon.set -> void
-Rask.UiNavGroup.OnToggle.get -> Rask.Core.Callback<bool>?
+Rask.UiNavGroup.OnToggle.get -> Rask.Core.Callback<bool>
 Rask.UiNavGroup.OnToggle.set -> void
 Rask.UiNavGroup.UiNavGroup() -> void
 Rask.UiNavItem
@@ -1346,7 +1346,7 @@ Rask.UiOtp.Joined.get -> bool?
 Rask.UiOtp.Joined.set -> void
 Rask.UiOtp.Length.get -> int
 Rask.UiOtp.Length.set -> void
-Rask.UiOtp.OnComplete.get -> Rask.Core.Callback<string!>?
+Rask.UiOtp.OnComplete.get -> Rask.Core.Callback<string!>
 Rask.UiOtp.OnComplete.set -> void
 Rask.UiOtp.UiOtp() -> void
 Rask.UiPagination
@@ -1356,7 +1356,7 @@ Rask.UiPagination.Current.get -> int
 Rask.UiPagination.Current.set -> void
 Rask.UiPagination.Href.get -> Rask.Core.Fn<int, Rask.Core.Routing.RouteUrl>?
 Rask.UiPagination.Href.set -> void
-Rask.UiPagination.OnSelect.get -> Rask.Core.Callback<int>?
+Rask.UiPagination.OnSelect.get -> Rask.Core.Callback<int>
 Rask.UiPagination.OnSelect.set -> void
 Rask.UiPagination.Pages.get -> int
 Rask.UiPagination.Pages.set -> void
@@ -1372,7 +1372,7 @@ Rask.UiPopover.Icon.get -> Rask.Ui.IconName?
 Rask.UiPopover.Icon.set -> void
 Rask.UiPopover.IconTrailing.get -> Rask.Ui.IconName?
 Rask.UiPopover.IconTrailing.set -> void
-Rask.UiPopover.OnToggle.get -> Rask.Core.Callback<bool>?
+Rask.UiPopover.OnToggle.get -> Rask.Core.Callback<bool>
 Rask.UiPopover.OnToggle.set -> void
 Rask.UiPopover.Open.get -> bool?
 Rask.UiPopover.Open.set -> void
@@ -1428,7 +1428,7 @@ Rask.UiRadialProgress.Percent.get -> int
 Rask.UiRadialProgress.Percent.set -> void
 Rask.UiRadialProgress.UiRadialProgress() -> void
 Rask.UiRadio
-Rask.UiRadio.AfterBind.get -> Rask.Core.Callback<bool>?
+Rask.UiRadio.AfterBind.get -> Rask.Core.Callback<bool>
 Rask.UiRadio.AfterBind.set -> void
 Rask.UiRadio.Bind.get -> System.Linq.Expressions.Expression<System.Func<bool>!>?
 Rask.UiRadio.Bind.set -> void
@@ -1438,7 +1438,7 @@ Rask.UiRadio.Disabled.get -> bool?
 Rask.UiRadio.Disabled.set -> void
 Rask.UiRadio.Group.get -> string!
 Rask.UiRadio.Group.set -> void
-Rask.UiRadio.OnChange.get -> Rask.Core.Callback<bool>?
+Rask.UiRadio.OnChange.get -> Rask.Core.Callback<bool>
 Rask.UiRadio.OnChange.set -> void
 Rask.UiRadio.Size.get -> Rask.Ui.Size?
 Rask.UiRadio.Size.set -> void
@@ -1464,7 +1464,7 @@ Rask.UiRadioGroup<T>.Options.get -> System.Collections.Generic.IReadOnlyList<(T 
 Rask.UiRadioGroup<T>.Options.set -> void
 Rask.UiRadioGroup<T>.UiRadioGroup() -> void
 Rask.UiRange
-Rask.UiRange.AfterBind.get -> Rask.Core.Callback<double>?
+Rask.UiRange.AfterBind.get -> Rask.Core.Callback<double>
 Rask.UiRange.AfterBind.set -> void
 Rask.UiRange.Bind.get -> System.Linq.Expressions.Expression<System.Func<double>!>?
 Rask.UiRange.Bind.set -> void
@@ -1476,7 +1476,7 @@ Rask.UiRange.Max.get -> double?
 Rask.UiRange.Max.set -> void
 Rask.UiRange.Min.get -> double?
 Rask.UiRange.Min.set -> void
-Rask.UiRange.OnChange.get -> Rask.Core.Callback<double>?
+Rask.UiRange.OnChange.get -> Rask.Core.Callback<double>
 Rask.UiRange.OnChange.set -> void
 Rask.UiRange.Size.get -> Rask.Ui.Size?
 Rask.UiRange.Size.set -> void
@@ -1492,7 +1492,7 @@ Rask.UiRange.Value.set -> void
 Rask.UiRange.Vertical.get -> bool?
 Rask.UiRange.Vertical.set -> void
 Rask.UiRating
-Rask.UiRating.AfterBind.get -> Rask.Core.Callback<int>?
+Rask.UiRating.AfterBind.get -> Rask.Core.Callback<int>
 Rask.UiRating.AfterBind.set -> void
 Rask.UiRating.Bind.get -> System.Linq.Expressions.Expression<System.Func<int>!>?
 Rask.UiRating.Bind.set -> void
@@ -1504,7 +1504,7 @@ Rask.UiRating.Label.get -> string!
 Rask.UiRating.Label.set -> void
 Rask.UiRating.Max.get -> int?
 Rask.UiRating.Max.set -> void
-Rask.UiRating.OnChange.get -> Rask.Core.Callback<int>?
+Rask.UiRating.OnChange.get -> Rask.Core.Callback<int>
 Rask.UiRating.OnChange.set -> void
 Rask.UiRating.Size.get -> Rask.Ui.Size?
 Rask.UiRating.Size.set -> void
@@ -1523,7 +1523,7 @@ Rask.UiSearch.AccessibleLabel.get -> string!
 Rask.UiSearch.AccessibleLabel.set -> void
 Rask.UiSearch.Class.get -> string?
 Rask.UiSearch.Class.set -> void
-Rask.UiSearch.OnSearch.get -> Rask.Core.Callback<string!>?
+Rask.UiSearch.OnSearch.get -> Rask.Core.Callback<string!>
 Rask.UiSearch.OnSearch.set -> void
 Rask.UiSearch.Placeholder.get -> string!
 Rask.UiSearch.Placeholder.set -> void
@@ -1549,7 +1549,7 @@ Rask.UiSelect<T>.Name.get -> string?
 Rask.UiSelect<T>.Name.set -> void
 Rask.UiSelect<T>.Native.get -> bool?
 Rask.UiSelect<T>.Native.set -> void
-Rask.UiSelect<T>.OnSearch.get -> Rask.Core.Callback<string!>?
+Rask.UiSelect<T>.OnSearch.get -> Rask.Core.Callback<string!>
 Rask.UiSelect<T>.OnSearch.set -> void
 Rask.UiSelect<T>.OptionDisabled.get -> Rask.Core.Fn<T, bool>?
 Rask.UiSelect<T>.OptionDisabled.set -> void
@@ -1583,9 +1583,9 @@ Rask.UiSidebar.Collapsible.get -> Rask.Ui.Breakpoint?
 Rask.UiSidebar.Collapsible.set -> void
 Rask.UiSidebar.Id.get -> string!
 Rask.UiSidebar.Id.set -> void
-Rask.UiSidebar.OnCollapse.get -> Rask.Core.Callback<bool>?
+Rask.UiSidebar.OnCollapse.get -> Rask.Core.Callback<bool>
 Rask.UiSidebar.OnCollapse.set -> void
-Rask.UiSidebar.OnToggle.get -> Rask.Core.Callback<bool>?
+Rask.UiSidebar.OnToggle.get -> Rask.Core.Callback<bool>
 Rask.UiSidebar.OnToggle.set -> void
 Rask.UiSidebar.Open.get -> bool?
 Rask.UiSidebar.Open.set -> void
@@ -1706,7 +1706,7 @@ Rask.UiSwap.Off.get -> Rask.Core.Component!
 Rask.UiSwap.Off.set -> void
 Rask.UiSwap.On.get -> Rask.Core.Component!
 Rask.UiSwap.On.set -> void
-Rask.UiSwap.OnChange.get -> Rask.Core.Callback<bool>?
+Rask.UiSwap.OnChange.get -> Rask.Core.Callback<bool>
 Rask.UiSwap.OnChange.set -> void
 Rask.UiSwap.UiSwap() -> void
 Rask.Ui.SwapAnimation
@@ -1736,7 +1736,7 @@ Rask.UiTab.UiTab() -> void
 Rask.UiTabGroup
 Rask.UiTabGroup.Class.get -> string?
 Rask.UiTabGroup.Class.set -> void
-Rask.UiTabGroup.OnSelect.get -> Rask.Core.Callback<string!>?
+Rask.UiTabGroup.OnSelect.get -> Rask.Core.Callback<string!>
 Rask.UiTabGroup.OnSelect.set -> void
 Rask.UiTabGroup.Selected.get -> string?
 Rask.UiTabGroup.Selected.set -> void
@@ -1793,7 +1793,7 @@ Rask.UiTextarea<T>.Floating.get -> bool?
 Rask.UiTextarea<T>.Floating.set -> void
 Rask.UiTextarea<T>.Name.get -> string?
 Rask.UiTextarea<T>.Name.set -> void
-Rask.UiTextarea<T>.OnInput.get -> Rask.Core.Callback<string!>?
+Rask.UiTextarea<T>.OnInput.get -> Rask.Core.Callback<string!>
 Rask.UiTextarea<T>.OnInput.set -> void
 Rask.UiTextarea<T>.Placeholder.get -> string?
 Rask.UiTextarea<T>.Placeholder.set -> void
@@ -1810,7 +1810,7 @@ Rask.UiThemeController.Class.get -> string?
 Rask.UiThemeController.Class.set -> void
 Rask.UiThemeController.Label.get -> string!
 Rask.UiThemeController.Label.set -> void
-Rask.UiThemeController.OnChange.get -> Rask.Core.Callback<Rask.Ui.ThemeName>?
+Rask.UiThemeController.OnChange.get -> Rask.Core.Callback<Rask.Ui.ThemeName>
 Rask.UiThemeController.OnChange.set -> void
 Rask.UiThemeController.Size.get -> Rask.Ui.Size?
 Rask.UiThemeController.Size.set -> void
@@ -1909,7 +1909,7 @@ Rask.UiToast.Heading.get -> string?
 Rask.UiToast.Heading.set -> void
 Rask.UiToast.Message.get -> string!
 Rask.UiToast.Message.set -> void
-Rask.UiToast.OnDismiss.get -> Rask.Core.Callback?
+Rask.UiToast.OnDismiss.get -> Rask.Core.Callback
 Rask.UiToast.OnDismiss.set -> void
 Rask.UiToast.Position.get -> Rask.Ui.Position?
 Rask.UiToast.Position.set -> void
@@ -1925,7 +1925,7 @@ Rask.UiToaster.Position.get -> Rask.Ui.Position?
 Rask.UiToaster.Position.set -> void
 Rask.UiToaster.UiToaster() -> void
 Rask.UiToggle
-Rask.UiToggle.AfterBind.get -> Rask.Core.Callback<bool>?
+Rask.UiToggle.AfterBind.get -> Rask.Core.Callback<bool>
 Rask.UiToggle.AfterBind.set -> void
 Rask.UiToggle.Bind.get -> System.Linq.Expressions.Expression<System.Func<bool>!>?
 Rask.UiToggle.Bind.set -> void
@@ -1933,7 +1933,7 @@ Rask.UiToggle.Class.get -> string?
 Rask.UiToggle.Class.set -> void
 Rask.UiToggle.Disabled.get -> bool?
 Rask.UiToggle.Disabled.set -> void
-Rask.UiToggle.OnChange.get -> Rask.Core.Callback<bool>?
+Rask.UiToggle.OnChange.get -> Rask.Core.Callback<bool>
 Rask.UiToggle.OnChange.set -> void
 Rask.UiToggle.Size.get -> Rask.Ui.Size?
 Rask.UiToggle.Size.set -> void
@@ -2006,11 +2006,11 @@ Rask.UiTree<T, TKey>.NodeKey.get -> System.Func<T, TKey>!
 Rask.UiTree<T, TKey>.NodeKey.set -> void
 Rask.UiTree<T, TKey>.NodeText.get -> Rask.Core.Fn<T, string!>?
 Rask.UiTree<T, TKey>.NodeText.set -> void
-Rask.UiTree<T, TKey>.OnExpandedChange.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<TKey>!>?
+Rask.UiTree<T, TKey>.OnExpandedChange.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<TKey>!>
 Rask.UiTree<T, TKey>.OnExpandedChange.set -> void
-Rask.UiTree<T, TKey>.OnHover.get -> Rask.Core.Callback<T?>?
+Rask.UiTree<T, TKey>.OnHover.get -> Rask.Core.Callback<T?>
 Rask.UiTree<T, TKey>.OnHover.set -> void
-Rask.UiTree<T, TKey>.OnSelectionChange.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<TKey>!>?
+Rask.UiTree<T, TKey>.OnSelectionChange.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<TKey>!>
 Rask.UiTree<T, TKey>.OnSelectionChange.set -> void
 Rask.UiTree<T, TKey>.Roots.get -> System.Collections.Generic.IEnumerable<T>?
 Rask.UiTree<T, TKey>.Roots.set -> void
@@ -3171,7 +3171,7 @@ virtual Rask.UiElement.ResolveAria() -> System.Collections.Generic.IReadOnlyDict
 ~override Rask.UiGridRequest.ToString() -> string
 ~override Rask.UiGridSort.Equals(object obj) -> bool
 ~override Rask.UiGridSort.ToString() -> string
-Rask.UiModal.OnCancel.get -> Rask.Core.Callback?
+Rask.UiModal.OnCancel.get -> Rask.Core.Callback
 Rask.UiModal.OnCancel.set -> void
 static RaskBuilderSettersRask_Ui.OnCancel(this Rask.UiModal! __b, Rask.Core.Callback? value) -> Rask.UiModal!
 static RaskBuilderSettersRask_Ui.OnCancel(this Rask.UiModal! __b, System.Action? value) -> Rask.UiModal!

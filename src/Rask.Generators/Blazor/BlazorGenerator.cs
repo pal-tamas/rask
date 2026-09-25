@@ -245,7 +245,7 @@ public sealed class BlazorGenerator : IIncrementalGenerator
 
             // Omit rather than write null: ParameterView is authoritative, so a null would CLOBBER
             // the hosted component's own default rather than mean "not specified".
-            sb.Append("        if (this.").Append(p.Name).AppendLine(" is not null)");
+            sb.Append("        if (").Append(IsSet(p)).AppendLine(")");
             sb.AppendLine("        {");
             sb.Append("            into[\"").Append(p.Parameter).Append("\"] = ")
                 .Append(Value(p)).AppendLine(";");
@@ -274,18 +274,28 @@ public sealed class BlazorGenerator : IIncrementalGenerator
         // overload is public and takes the receiver, so no reflection is involved.
         //
         // Always through the ASYNCHRONOUS factory overload, because a carrier does not say statically
-        // which shape it holds: `Invoke` returns null when the handler was synchronous, and
-        // `?? Task.CompletedTask` makes that the completed task the overload wants. No state machine is
-        // created for a synchronous handler — the null IS the fast path. Blazor awaits the callback
-        // either way, so nothing downstream can tell the difference.
+        // which shape it holds: `Invoke` returns a completed ValueTask when the handler was synchronous,
+        // and `AsTask()` makes that the cached completed task the overload wants. No state machine is
+        // created for a synchronous handler. Blazor awaits the callback either way, so nothing
+        // downstream can tell the difference.
+        var carrier = IsNullableCarrier(p) ? $"this.{p.Name}!.Value" : $"this.{p.Name}";
         return p.EventArg is null
             ? "global::Microsoft.AspNetCore.Components.EventCallback.Factory.Create(this, "
-              + $"(global::System.Func<global::System.Threading.Tasks.Task>)(() => this.{p.Name}!.Value.Invoke() "
-              + "?? global::System.Threading.Tasks.Task.CompletedTask))"
+              + $"(global::System.Func<global::System.Threading.Tasks.Task>)(() => {carrier}.Invoke().AsTask()))"
             : $"global::Microsoft.AspNetCore.Components.EventCallback.Factory.Create<{p.EventArg}>(this, "
               + $"(global::System.Func<{p.EventArg}, global::System.Threading.Tasks.Task>)"
-              + $"(__v => this.{p.Name}!.Value.Invoke(__v) ?? global::System.Threading.Tasks.Task.CompletedTask))";
+              + $"(__v => {carrier}.Invoke(__v).AsTask()))";
     }
+
+    // A generated callback is a non-nullable `Callback`; one the island declares itself may be `Callback?`.
+    private static bool IsNullableCarrier(BlazorParam p) =>
+        p.ChainTypeFqn.EndsWith("?", StringComparison.Ordinal);
+
+    // Omitted unless supplied: null for a value or a `Callback?`, an unset slot for a `Callback`.
+    private static string IsSet(BlazorParam p) =>
+        p.IsEventCallback && !IsNullableCarrier(p)
+            ? "this." + p.Name + ".HasValue"
+            : "this." + p.Name + " is not null";
 
     /// <summary>The types <paramref name="type" /> is nested in, innermost first.</summary>
     private static IEnumerable<INamedTypeSymbol> Containers(INamedTypeSymbol type)

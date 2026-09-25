@@ -18,12 +18,16 @@ namespace Rask.Core;
 ///         lets the chain receive on the COMPONENT rather than on a wrapper over it.
 ///     </para>
 ///     <para>
-///         <see cref="Invoke" /> returns <see langword="null" /> when there is nothing to await, so a
-///         synchronous handler never acquires an asynchronous hop it did not have: no <c>Task</c>, no
-///         closure, no state machine. Call it as
-///         <c>if (OnClick?.Invoke() is { } t) await t;</c>. That is the whole reason it is not modelled on
-///         Blazor's <c>EventCallback</c>, whose <c>InvokeAsync</c> always hands back a <c>Task</c> and puts
-///         the caller on the async path regardless.
+///         Declare an event non-nullable and fire it with a plain await:
+///         <c>public Callback OnClick { get; set; }</c> … <c>await OnClick.Invoke();</c>. An unset slot is
+///         a no-op, and it is never a required chain step — the chain setter stays optional.
+///     </para>
+///     <para>
+///         <see cref="Invoke" /> returns a <see cref="ValueTask" /> that is already complete when there is
+///         nothing to wait for, so a synchronous handler runs inline and never acquires an asynchronous
+///         hop it did not have: no <c>Task</c>, no closure, no state machine. That is the whole reason it
+///         is not modelled on Blazor's <c>EventCallback</c>, whose <c>InvokeAsync</c> always hands back a
+///         <c>Task</c>.
 ///     </para>
 ///     <para>
 ///         The delegate is stored bare rather than adapted, so the runtime's handler dispatch keeps
@@ -56,22 +60,26 @@ public readonly struct Callback
     public bool HasValue => _handler is not null;
 
     /// <summary>
-    ///     Runs the handler, returning the <see cref="Task" /> to await — or <see langword="null" /> when
-    ///     there is nothing to wait for, which is the case for a synchronous handler and for an unset one.
+    ///     Runs the handler and returns what to await: an already-completed <see cref="ValueTask" /> for a
+    ///     synchronous handler (which has run by the time this returns) and for an unset one, and the
+    ///     handler's own task for an asynchronous one.
     /// </summary>
-    public Task? Invoke() => _handler switch
+    public ValueTask Invoke() => _handler switch
     {
         Action sync => Run(sync),
-        Func<Task> async => async(),
-        null => null,
+        Func<Task> async => Await(async()),
+        null => default,
         _ => throw Unexpected(_handler),
     };
 
-    private static Task? Run(Action sync)
+    private static ValueTask Run(Action sync)
     {
         sync();
-        return null;
+        return default;
     }
+
+    // A handler that hands back a null Task has nothing to wait for — the same answer as a synchronous one.
+    internal static ValueTask Await(Task? task) => task is null ? default : new ValueTask(task);
 
     internal static InvalidOperationException Unexpected(Delegate handler) =>
         new($"A callback slot holds an unsupported delegate shape '{handler.GetType()}'.");
@@ -100,18 +108,18 @@ public readonly struct Callback<T>
 
     /// <inheritdoc cref="Callback.Invoke" />
     /// <param name="arg">The argument the event carries.</param>
-    public Task? Invoke(T arg) => _handler switch
+    public ValueTask Invoke(T arg) => _handler switch
     {
         Action<T> sync => Run(sync, arg),
-        Func<T, Task> async => async(arg),
-        null => null,
+        Func<T, Task> async => Callback.Await(async(arg)),
+        null => default,
         _ => throw Callback.Unexpected(_handler),
     };
 
-    private static Task? Run(Action<T> sync, T arg)
+    private static ValueTask Run(Action<T> sync, T arg)
     {
         sync(arg);
-        return null;
+        return default;
     }
 }
 
@@ -146,17 +154,17 @@ public readonly struct Callback<T1, T2>
     /// <inheritdoc cref="Callback.Invoke" />
     /// <param name="arg1">The first argument the event carries.</param>
     /// <param name="arg2">The second argument the event carries.</param>
-    public Task? Invoke(T1 arg1, T2 arg2) => _handler switch
+    public ValueTask Invoke(T1 arg1, T2 arg2) => _handler switch
     {
         Action<T1, T2> sync => Run(sync, arg1, arg2),
-        Func<T1, T2, Task> async => async(arg1, arg2),
-        null => null,
+        Func<T1, T2, Task> async => Callback.Await(async(arg1, arg2)),
+        null => default,
         _ => throw Callback.Unexpected(_handler),
     };
 
-    private static Task? Run(Action<T1, T2> sync, T1 arg1, T2 arg2)
+    private static ValueTask Run(Action<T1, T2> sync, T1 arg1, T2 arg2)
     {
         sync(arg1, arg2);
-        return null;
+        return default;
     }
 }

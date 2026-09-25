@@ -22,11 +22,11 @@ public interface IFormControl<T>
     // Bound mode — two-way binds an lvalue and drives the ambient EditContext.
     Expression<Func<T>>? Bind { get; set; }
     Validator<T>? Validate { get; set; }
-    Callback<T>? AfterBind { get; set; }
+    Callback<T> AfterBind { get; set; }
 
     // Controlled mode — the parent owns Value and is notified of changes.
     T? Value { get; set; }
-    Callback<T>? OnChange { get; set; }
+    Callback<T> OnChange { get; set; }
 }
 ```
 
@@ -36,7 +36,8 @@ public interface IFormControl<T>
 of and no rule about which one wins.
 
 Read them back through `Invoke`: `await Validate?.Invoke(v, ct)` hands back the messages, and
-`OnChange?.Invoke(v)` returns `null` when the handler was synchronous, so there is nothing to await.
+`await OnChange.Invoke(v);` runs the handler — nothing when none is set, and with no `Task` when it was
+synchronous.
 
 Those three are **carriers**, and the reason is the chain. A delegate-typed property is *invocable*, so
 `.Validate(rule)` would bind to the property rather than to the setter of the same name (CS1593) the
@@ -107,12 +108,12 @@ public sealed partial class SegmentedControl<TValue> : Component, IFormControl<T
 
     // IFormControl<TValue> — controlled mode.
     public TValue? Value { get; set; }
-    public Callback<TValue>? OnChange { get; set; }
+    public Callback<TValue> OnChange { get; set; }
 
     // IFormControl<TValue> — bound mode.
     public Expression<Func<TValue>>? Bind { get; set; }
     public Validator<TValue>? Validate { get; set; }
-    public Callback<TValue>? AfterBind { get; set; }
+    public Callback<TValue> AfterBind { get; set; }
 
     protected override Component? Render()
     {
@@ -194,8 +195,8 @@ re-implementing it. Call them **through the interface** (`((IFormControl<T>)this
 |---|---|
 | `Validator` | `Validate?.Rule` — the single delegate the `EditContext` dispatches, whichever shape it is |
 | `RegisterValidator(accessor, ctx)` | `ctx?.RegisterFieldValidator(acc.Field, Validator, () => acc.Getter())` |
-| `InvokeAfterBindAsync(value)` | `await (AfterBind?.Invoke(v) ?? Task.CompletedTask)` — one hook, either shape |
-| `InvokeOnChangeAsync(value)` | `await (OnChange?.Invoke(v) ?? Task.CompletedTask)` — one handler, either shape |
+| `InvokeAfterBindAsync(value)` | `await AfterBind.Invoke(v)` as a `Task` — one hook, either shape |
+| `InvokeOnChangeAsync(value)` | `await OnChange.Invoke(v)` as a `Task` — one handler, either shape |
 | `ControlledChangeHandler()` | an `Action<string>` DOM handler that parses the raw value to `T` (`BindingHelpers.TryParseValue`) and calls `InvokeOnChangeAsync` — for controls that wrap a native `<input>`/`<select>` (identity when `T` is string) |
 
 `RegisterValidator` is safe (and required) to call **every render** — passing the collapsed validator each

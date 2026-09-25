@@ -36,7 +36,7 @@ public sealed partial class UiThemeController : Component
     public Ui.Size? Size { get; set; }
 
     /// <summary>Runs when it is chosen, with the theme the reader asked for.</summary>
-    public Callback<Ui.ThemeName>? OnChange { get; set; }
+    public Callback<Ui.ThemeName> OnChange { get; set; }
 
     public string? Class { get; set; }
 
@@ -52,9 +52,9 @@ public sealed partial class UiThemeController : Component
                 Class))
             .Aria(new Dictionary<string, string?> { ["pressed"] = Active == true ? "true" : "false" });
 
-        if (OnChange is { } change)
+        if (OnChange.HasValue)
         {
-            button = button.OnClick(() => change.Invoke(Theme) ?? Task.CompletedTask);
+            button = button.OnClick(() => OnChange.Invoke(Theme).AsTask());
         }
 
         return button[Span[Label]];

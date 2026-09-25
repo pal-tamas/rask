@@ -31,7 +31,7 @@ public sealed partial class UiCalendarMultiple : Component, IFormControl<ICollec
     public DateOnly? Month { get; set; }
 
     /// <inheritdoc cref="UiCalendar.OnMonth" />
-    public Callback<DateOnly>? OnMonth { get; set; }
+    public Callback<DateOnly> OnMonth { get; set; }
 
     /// <inheritdoc cref="UiCalendar.Min" />
     public DateOnly? Min { get; set; }
@@ -49,7 +49,7 @@ public sealed partial class UiCalendarMultiple : Component, IFormControl<ICollec
     public ICollection<DateOnly>? Value { get; set; }
 
     /// <inheritdoc />
-    public Callback<ICollection<DateOnly>>? OnChange { get; set; }
+    public Callback<ICollection<DateOnly>> OnChange { get; set; }
 
     /// <inheritdoc />
     public Expression<Func<ICollection<DateOnly>>>? Bind { get; set; }
@@ -58,7 +58,7 @@ public sealed partial class UiCalendarMultiple : Component, IFormControl<ICollec
     public Validator<ICollection<DateOnly>>? Validate { get; set; }
 
     /// <inheritdoc />
-    public Callback<ICollection<DateOnly>>? AfterBind { get; set; }
+    public Callback<ICollection<DateOnly>> AfterBind { get; set; }
 
     // The view month is a FIELD when the page leaves it unset, which the render cache cannot see.
     /// <inheritdoc />
@@ -98,6 +98,6 @@ public sealed partial class UiCalendarMultiple : Component, IFormControl<ICollec
     private Task PageAsync(DateOnly month)
     {
         _month = month;
-        return OnMonth?.Invoke(month) ?? Task.CompletedTask;
+        return OnMonth.Invoke(month).AsTask();
     }
 }

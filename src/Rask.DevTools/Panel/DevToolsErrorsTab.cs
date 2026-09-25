@@ -37,7 +37,7 @@ internal sealed partial class DevToolsErrorsTab : Component
     public required DevToolsErrorLog AppErrors { get; set; }
 
     /// <summary>Raised with a component's tree id when the developer asks to see it in the Tree tab.</summary>
-    public Callback<long>? OnShowInTree { get; set; }
+    public Callback<long> OnShowInTree { get; set; }
 
     /// <summary>What a framework bug report says about where the app runs; without it, no error offers one.</summary>
     public DevToolsBugReport.Environment? ReportEnvironment { get; set; }
@@ -156,8 +156,8 @@ internal sealed partial class DevToolsErrorsTab : Component
                         ? null
                         : Div.Class("flex flex-wrap items-center gap-2 text-xs")[
                             Span.Class("font-mono opacity-80")[string.Join(" › ", error.Path)],
-                            error.ComponentId is { } id && OnShowInTree is { } show
-                                ? Ui.Button.Size(Ui.Size.Xs).OnClick(() => show.Invoke(id) ?? Task.CompletedTask)["Show in tree"]
+                            error.ComponentId is { } id && OnShowInTree.HasValue
+                                ? Ui.Button.Size(Ui.Size.Xs).OnClick(() => OnShowInTree.Invoke(id).AsTask())["Show in tree"]
                                 : null
                         ],
                     error.Detail is { } detail

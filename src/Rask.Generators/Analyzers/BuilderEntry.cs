@@ -541,7 +541,8 @@ internal static class BuilderEntry
 
         if (prop.Type.NullableAnnotation == NullableAnnotation.Annotated
             || (prop.Type.IsValueType
-                && prop.Type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T))
+                && prop.Type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
+            || CallbackCarrier.IsNonNullable(prop.Type))
         {
             return false;
         }
