@@ -33,7 +33,12 @@ Thumbs.db
 appsettings.Development.json
 appsettings.Local.json
 .env
+.env.*
 !.env.example
+
+# `rask db backup` copies of a production database: the .db is covered above, its uploaded files are
+# archived beside it. Both hold real users' data.
+*.tgz
 
 # The app's own database, and SQLite's write-ahead log alongside it
 *.db

@@ -9,6 +9,28 @@ them until tagged releases begin.
 
 ### Security
 
+- **The live client only follows a navigation to this origin, and logs dev errors as plain text.** A server
+  `location` frame was passed straight to `location.assign`, so a `javascript:` or off-site URL in it would have
+  run or navigated away; it is now resolved and refused unless it is same-origin. The dev-error console line
+  went through `console.error`'s format string, so a title carrying `%c`/`%o` was read as a directive; it is now
+  passed as `%s`. (CodeQL `js/xss`, `js/client-side-unvalidated-url-redirection`, `js/tainted-format-string`.)
+- **Scaffolded front ends no longer lock vulnerable transitive packages.** The analog template locked `uuid`
+  8.3.2, `esbuild` 0.27.7 and `qs` ≤ 6.15.3, and the sveltekit template `cookie` 0.6.0; npm `overrides` now pin
+  the patched releases, and every template lockfile audits clean.
+- **Pages can no longer be framed by another site.** Neither a live page nor a hosted SPA sent any
+  anti-framing header, so a hostile page could frame the app and trick a signed-in user (or an admin on
+  `/_rask`) into clicks they did not mean. Every page and SPA response now carries `X-Frame-Options:
+  SAMEORIGIN`, `Content-Security-Policy: frame-ancestors 'self'`, `Referrer-Policy:
+  strict-origin-when-cross-origin` and `X-Content-Type-Options: nosniff`, each added only when the app has not
+  set its own, so an app meant to be embedded sets the header in its own middleware and keeps it.
+- **`rask deploy` no longer leaves its secrets readable in the shared temp directory.** The env file handed to
+  `docker --env-file` (SMTP passwords, S3 keys…) was written with the default mode, usually world-readable, and
+  the Caddyfile went to a predictable `/tmp/rask-<app>.Caddyfile` another local user could create first. Both
+  are now owner-only (0600), and the Caddyfile's name is unguessable.
+- **A scaffolded app keeps production secrets and data out of git and out of its image.** `.gitignore` covered
+  `.env` but not the `.env.production` the docs tell you to write, nor the `*.files.tgz` `rask db backup` leaves
+  beside its copy; `.dockerignore` excluded none of `.env*`, `*.db` or `storage/`, so `COPY . .` could put them
+  in an image layer and `rask deploy` sent them to the remote daemon as build context. Both lists now do.
 - **A scaffolded front-end app no longer lets anonymous callers run every command.** The 13 SPA and meta
   templates (React, Vue, Angular, Next.js, Nuxt, SvelteKit…) set `Rask:Cqrs:Server:RequireAuthenticatedUser`
   to `false` unconditionally, so the starter greeting could answer an anonymous landing page, and with it any

@@ -214,6 +214,8 @@ public static class RaskSpaEndpointExtensions
                         ? "public, max-age=31536000, immutable"
                         : "no-cache";
 
+                ApplySecurityHeaders(context.Context.Response.Headers);
+
                 // Last, so an app can override anything decided above.
                 options.OnPrepareResponse?.Invoke(context);
             },
@@ -240,6 +242,7 @@ public static class RaskSpaEndpointExtensions
 
             context.Response.ContentType = "text/html; charset=utf-8";
             context.Response.Headers.CacheControl = "no-cache";
+            ApplySecurityHeaders(context.Response.Headers);
             await context.Response.SendFileAsync(indexPath);
         });
 
@@ -257,6 +260,16 @@ public static class RaskSpaEndpointExtensions
     ///     gate: <c>dotnet run</c> and <c>rask dev --once</c> have none, and without the manifest they would
     ///     serve a stale publish or nothing at all.
     /// </remarks>
+    // The app is never framed by another site (clickjacking a signed-in user) and nothing it serves is sniffed into
+    // another type. TryAdd, so an app whose own middleware set these first keeps its values.
+    private static void ApplySecurityHeaders(IHeaderDictionary headers)
+    {
+        headers.TryAdd("X-Frame-Options", "SAMEORIGIN");
+        headers.TryAdd("Content-Security-Policy", "frame-ancestors 'self'");
+        headers.TryAdd("Referrer-Policy", "strict-origin-when-cross-origin");
+        headers.TryAdd("X-Content-Type-Options", "nosniff");
+    }
+
     private static string? DevManifest(IHostEnvironment? environment, Assembly? entry)
     {
         if (environment?.IsDevelopment() != true)
@@ -379,6 +392,7 @@ public static class RaskSpaEndpointExtensions
             {
                 context.Response.ContentType = "text/html; charset=utf-8";
                 context.Response.Headers.CacheControl = "no-store";
+                ApplySecurityHeaders(context.Response.Headers);
                 await context.Response.WriteAsync(DevelopmentPage(devServer, buildHint, wasmClient is not null));
             });
 
