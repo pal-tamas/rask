@@ -20,6 +20,10 @@ internal sealed class PushStore<TContext>(
     {
         ArgumentNullException.ThrowIfNull(subscription);
         ArgumentException.ThrowIfNullOrWhiteSpace(subscription.Endpoint);
+        if (WebPushSender.Problem(subscription) is { } problem)
+        {
+            throw new ArgumentException(problem, nameof(subscription));
+        }
 
         var now = time.GetUtcNow().UtcDateTime;
         var userId = Current.UserId;
@@ -87,7 +91,24 @@ internal sealed class PushStore<TContext>(
 
         foreach (var subscriber in subscribers)
         {
-            var result = await sender.Send(subscriber.Subscription, message, cancellationToken).ConfigureAwait(false);
+            // One subscriber can never stop the rest: a row stored before subscriptions were validated can never be
+            // sent to, so it goes; a push service that times out is skipped like any other transient failure.
+            WebPushResult result;
+            try
+            {
+                result = await sender.Send(subscriber.Subscription, message, cancellationToken).ConfigureAwait(false);
+            }
+            catch (ArgumentException ex)
+            {
+                logger.LogWarning("A malformed push subscription was removed: {Problem}", ex.Message);
+                gone.Add(subscriber.Id);
+                continue;
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                logger.LogWarning("A push to {Endpoint} timed out.", subscriber.Endpoint);
+                continue;
+            }
 
             if (result.IsSuccess)
             {

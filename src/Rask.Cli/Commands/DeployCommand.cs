@@ -368,6 +368,16 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             Console.Error.WriteLine("    Turn on continuous backup:  rask deploy --env \"Rask__Litestream__ReplicaUrl=s3://your-bucket/app\"  (see docs/sqlite.md)");
         }
 
+        // With --domain the deploy names the public origin itself. On a bare port it cannot know the address people
+        // use (an ssh alias is not one), and the app will not guess it from a request, so emailed links stay off.
+        if (domain is null && !env.Any(e => e.StartsWith("Rask__Auth__PublicOrigin=", StringComparison.Ordinal)))
+        {
+            Console.WriteErrorLine(
+                "  ! No public address set — confirm and reset emails will not be sent until there is one.",
+                ConsoleStyle.Warning);
+            Console.Error.WriteLine("    Name it:  rask deploy --env \"Rask__Auth__PublicOrigin=http://your-host:" + port.ToString(CultureInfo.InvariantCulture) + "\"  (or deploy with --domain)");
+        }
+
         WriteHeading($"Building {slug}:{CurrentTag} on {host}…");
         if (await Run(BuildBuildArguments(host, slug, dockerfile, contextDir), cancellationToken).ConfigureAwait(false) != 0)
         {
@@ -941,6 +951,10 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             // this Request.Scheme is "http", HSTS never emits and every visitor has the proxy's address. Only in
             // this mode: a port-mode container is reached directly, where trusting them lets a client forge its IP.
             args.AddRange(["-e", "Rask__BehindProxy=true"]);
+
+            // The address emailed links (confirm, reset) point at. Outside Development the app will not take it
+            // from the request, whose Host header anyone can set, so without this no such email goes out.
+            args.AddRange(["-e", $"Rask__Auth__PublicOrigin=https://{domain}"]);
         }
 
         // Persist the SQLite database on a per-app named volume so it survives container replacement — every

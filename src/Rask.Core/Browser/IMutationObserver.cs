@@ -1,7 +1,7 @@
-using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.JSInterop;
+using Rask.Core.Live;
 
 namespace Rask.Core.Browser;
 
@@ -77,22 +77,16 @@ public interface IMutationObserver
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class MutationInterop
 {
-    private static int _nextId;
-    private static readonly ConcurrentDictionary<int, Func<MutationEntry, Task>> Handlers = new();
+    private static readonly JsCallbacks<Func<MutationEntry, Task>> Handlers = new();
 
-    internal static int Register(Func<MutationEntry, Task> handler)
-    {
-        var id = Interlocked.Increment(ref _nextId);
-        Handlers[id] = handler;
-        return id;
-    }
+    internal static int Register(IJSRuntime owner, Func<MutationEntry, Task> handler) => Handlers.Register(owner, handler);
 
-    internal static void Unregister(int id) => Handlers.TryRemove(id, out _);
+    internal static void Unregister(int id) => Handlers.Unregister(id);
 
     /// <summary>Infrastructure. Invoked by the JS bridge when an observed element mutates; do not call.</summary>
     [JSInvokable("RaskMutationChanged")]
     public static Task Changed(int id, MutationEntry entry) =>
-        Handlers.TryGetValue(id, out var handler) ? handler(entry) : Task.CompletedTask;
+        Handlers.TryGet(id, out var handler) ? handler(entry) : Task.CompletedTask;
 }
 
 /// <summary>
@@ -118,7 +112,7 @@ public sealed class MutationObserverService : IMutationObserver
         ArgumentNullException.ThrowIfNull(onChange);
 
         options ??= new MutationOptions();
-        var id = MutationInterop.Register(onChange);
+        var id = MutationInterop.Register(_js, onChange);
         try
         {
             await _js.InvokeVoidAsync(

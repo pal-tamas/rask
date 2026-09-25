@@ -49,7 +49,7 @@ public static class RaskPushEndpointExtensions
                 .ReadFromJsonAsync(PushJson.Default.PushSubscription, context.RequestAborted)
                 .ConfigureAwait(false);
 
-            if (subscription is null || string.IsNullOrWhiteSpace(subscription.Endpoint))
+            if (subscription is null || WebPushSender.Problem(subscription) is not null)
             {
                 return Results.BadRequest();
             }

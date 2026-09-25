@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Rask.Mail;
 
@@ -34,37 +35,44 @@ internal sealed class AuthMail(
 
     /// <summary>Sends the "confirm your address" email. Returns false when the app cannot send.</summary>
     public Task<bool> SendConfirmationAsync(
-        string email, string userId, string token, CancellationToken cancellationToken)
-    {
-        var link = Link(options.ConfirmEmailPath, userId, token);
-
-        return SendAsync(
+        string email, string userId, string token, CancellationToken cancellationToken) =>
+        SendAsync(
             email,
             options.ConfirmEmailSubject,
-            bodies.Confirm(link, options.ConfirmEmailSubject),
+            options.ConfirmEmailPath,
+            userId,
+            token,
+            link => bodies.Confirm(link, options.ConfirmEmailSubject),
             cancellationToken);
-    }
 
     /// <summary>Sends the "reset your password" email. Returns false when the app cannot send.</summary>
     public Task<bool> SendPasswordResetAsync(
-        string email, string userId, string token, CancellationToken cancellationToken)
-    {
-        var link = Link(options.ResetPasswordPath, userId, token);
-
-        return SendAsync(
+        string email, string userId, string token, CancellationToken cancellationToken) =>
+        SendAsync(
             email,
             options.ResetPasswordSubject,
-            bodies.Reset(link, options.ResetPasswordSubject, options.TokenLifetime),
+            options.ResetPasswordPath,
+            userId,
+            token,
+            link => bodies.Reset(link, options.ResetPasswordSubject, options.TokenLifetime),
             cancellationToken);
-    }
 
     private async Task<bool> SendAsync(
-        string address, string subject, string body, CancellationToken cancellationToken)
+        string address,
+        string subject,
+        string path,
+        string userId,
+        string token,
+        Func<string, string> body,
+        CancellationToken cancellationToken)
     {
-        if (services.GetService<IMail>() is not { } mail)
+        // The link is only built once there is mail to carry it, so an app with no mail never asks for an origin.
+        if (services.GetService<IMail>() is not { } mail || Origin() is not { } origin)
         {
             return false;
         }
+
+        var link = Link(origin, path, userId, token);
 
         try
         {
@@ -72,7 +80,7 @@ internal sealed class AuthMail(
             // and "the email went out" — which matters here more than anywhere: a lost confirmation is
             // an account nobody can use.
             await mail
-                .Send(Email.To(address).Subject(subject).Html(body), cancellationToken)
+                .Send(Email.To(address).Subject(subject).Html(body(link)), cancellationToken)
                 .ConfigureAwait(false);
 
             return true;
@@ -107,8 +115,8 @@ internal sealed class AuthMail(
     /// <c>/</c>; a <c>+</c> that reaches the query unencoded arrives as a space, and the token then
     /// fails to match in a way that reads as "the link expired" rather than as an encoding bug.
     /// </remarks>
-    private string Link(string path, string userId, string token) =>
-        $"{Origin().TrimEnd('/')}{path}"
+    private static string Link(string origin, string path, string userId, string token) =>
+        $"{origin.TrimEnd('/')}{path}"
         + $"?userId={Uri.EscapeDataString(userId)}&token={Uri.EscapeDataString(token)}";
 
     /// <summary>
@@ -126,11 +134,25 @@ internal sealed class AuthMail(
     /// sets <see cref="AuthOptions.PublicOrigin" /> rather than having it guessed.
     /// </para>
     /// </remarks>
-    private string Origin()
+    private string? Origin()
     {
         if (!string.IsNullOrWhiteSpace(options.PublicOrigin))
         {
             return options.PublicOrigin;
+        }
+
+        // Past this line the origin is guessed, and outside Development nothing is. The request's Host header is
+        // whatever the sender typed: a reset requested with Host: evil.example mails the victim a genuine token on
+        // the attacker's domain. The email is not sent; that is logged, never thrown, because the account it is
+        // about is already committed (see SendAsync).
+        if (services.GetService<IHostEnvironment>() is { } environment && !environment.IsDevelopment())
+        {
+            logger.LogError(
+                "Rask.Auth did not send an emailed link: outside Development it will not take the origin from the "
+                + "request, whose Host header is chosen by whoever sends it. Set Rask:Auth:PublicOrigin "
+                + "(Rask__Auth__PublicOrigin) to this app's public address, e.g. https://app.example.com; "
+                + "`rask deploy --domain` sets it for you.");
+            return null;
         }
 
         if (services.GetService<IHttpContextAccessor>()?.HttpContext?.Request is { } request)
