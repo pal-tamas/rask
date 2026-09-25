@@ -6,10 +6,9 @@ namespace Rask.Core.Components;
 ///     A drop shadow in one primitive — the blur, offset, flood and composite chain done for you.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/feDropShadow">MDN</see>
 /// </summary>
+[Tag("feDropShadow")]
 public sealed partial class FeDropShadow : SvgElement
 {
-    protected override string TagName => "feDropShadow";
-
     /// <summary>The input for this primitive.</summary>
     public string? In { get; set; }
 

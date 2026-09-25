@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     indices.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/sub">MDN</see>
 /// </summary>
+[Tag("sub")]
 public sealed partial class Sub : Element
 {
-    protected override string TagName => "sub";
 }

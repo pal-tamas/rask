@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     name, a phrase in another language, a thought. For emphasis use <c>em</c>.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/i">MDN</see>
 /// </summary>
+[Tag("i")]
 public sealed partial class I : Element
 {
-    protected override string TagName => "i";
 }

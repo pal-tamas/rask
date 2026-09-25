@@ -7,10 +7,9 @@ namespace Rask.Core.Components;
 ///     which is the usual cause of a page that reloads when you did not expect it.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/button">MDN</see>
 /// </summary>
-public sealed class Button : Element
+[Tag("button")]
+public sealed partial class Button : Element
 {
-    protected override string TagName => "button";
-
     /// <summary>
     ///     <c>submit</c> (the default inside a form), <c>reset</c>, or <c>button</c> for a button that does
     ///     nothing on its own.

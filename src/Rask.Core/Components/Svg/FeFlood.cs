@@ -6,10 +6,9 @@ namespace Rask.Core.Components;
 ///     Fills the whole filter region with one colour — the paint source for a shadow or a tint.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/feFlood">MDN</see>
 /// </summary>
+[Tag("feFlood")]
 public sealed partial class FeFlood : SvgElement
 {
-    protected override string TagName => "feFlood";
-
     /// <summary>The colour to fill with.</summary>
     public string? FloodColor { get; set; }
 

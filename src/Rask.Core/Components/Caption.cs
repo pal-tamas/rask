@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     readers announce for it.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/caption">MDN</see>
 /// </summary>
+[Tag("caption")]
 public sealed partial class Caption : Element
 {
-    protected override string TagName => "caption";
 }

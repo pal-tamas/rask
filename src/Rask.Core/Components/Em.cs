@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     emphasis, use <c>strong</c>.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/em">MDN</see>
 /// </summary>
+[Tag("em")]
 public sealed partial class Em : Element
 {
-    protected override string TagName => "em";
 }

@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     of an article.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/header">MDN</see>
 /// </summary>
+[Tag("header")]
 public sealed partial class Header : Element
 {
-    protected override string TagName => "header";
 }

@@ -20,10 +20,9 @@ namespace Rask.Core.Components;
 ///     default — <c>Rows</c> and <c>Cols</c> only set the initial size.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/textarea">MDN</see>
 /// </summary>
+[Tag("textarea")]
 public sealed partial class Textarea<T> : Element, IFormControl<T>
 {
-    protected override string TagName => "textarea";
-
     /// <summary>The name submitted with the form.</summary>
     public string? Name { get; set; }
 

@@ -7,10 +7,9 @@ namespace Rask.Core.Components;
 ///     thing you can do for a data table.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/th">MDN</see>
 /// </summary>
+[Tag("th")]
 public sealed partial class Th : HtmlTableCellElement
 {
-    protected override string TagName => "th";
-
     /// <summary>
     ///     Which cells this header describes: <c>col</c>, <c>row</c>, <c>colgroup</c>, or <c>rowgroup</c>.
     /// </summary>

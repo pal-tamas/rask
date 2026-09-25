@@ -7,10 +7,9 @@ namespace Rask.Core.Components;
 ///     graphic.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/feColorMatrix">MDN</see>
 /// </summary>
+[Tag("feColorMatrix")]
 public sealed partial class FeColorMatrix : SvgElement
 {
-    protected override string TagName => "feColorMatrix";
-
     /// <summary>The input for this primitive.</summary>
     public string? In { get; set; }
 

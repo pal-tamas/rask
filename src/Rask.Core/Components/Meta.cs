@@ -7,11 +7,9 @@ namespace Rask.Core.Components;
 ///     description, Open Graph tags.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meta">MDN</see>
 /// </summary>
-public sealed class Meta : Element
+[Tag("meta")]
+public sealed partial class Meta : Element
 {
-    protected override string TagName => "meta";
-    protected override bool SelfClosing => true;
-
     /// <summary>
     ///     The document's character encoding. Use <c>utf-8</c>, and put it in the first 1024 bytes of the
     ///     document.

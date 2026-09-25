@@ -8,10 +8,9 @@ namespace Rask.Core.Components;
 ///     work whose length is unknown.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/progress">MDN</see>
 /// </summary>
+[Tag("progress")]
 public sealed partial class Progress : Element
 {
-    protected override string TagName => "progress";
-
     /// <summary>How much of the task is done. Omit it entirely for an indeterminate bar.</summary>
     public double? Value { get; set; }
 

@@ -8,10 +8,9 @@ namespace Rask.Core.Components;
 ///     non-modally, without any of that.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/dialog">MDN</see>
 /// </summary>
+[Tag("dialog")]
 public sealed partial class Dialog : Element
 {
-    protected override string TagName => "dialog";
-
     /// <summary>
     ///     Whether the dialog is shown. Shows it non-modally — it does <b>not</b> give you the backdrop and
     ///     focus trap that <c>showModal()</c> does.

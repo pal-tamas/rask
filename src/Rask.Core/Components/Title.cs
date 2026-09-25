@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     reader announces on load. Exactly one, inside <c>head</c>.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/title">MDN</see>
 /// </summary>
-public sealed class Title : Element
+[Tag("title")]
+public sealed partial class Title : Element
 {
-    protected override string TagName => "title";
 }

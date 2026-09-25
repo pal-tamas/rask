@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     several — one per <c>article</c> or <c>section</c>.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/footer">MDN</see>
 /// </summary>
+[Tag("footer")]
 public sealed partial class Footer : Element
 {
-    protected override string TagName => "footer";
 }

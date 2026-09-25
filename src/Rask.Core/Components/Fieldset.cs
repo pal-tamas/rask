@@ -7,10 +7,9 @@ namespace Rask.Core.Components;
 ///     for screen readers.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/fieldset">MDN</see>
 /// </summary>
+[Tag("fieldset")]
 public sealed partial class Fieldset : Element
 {
-    protected override string TagName => "fieldset";
-
     /// <summary>
     ///     Disables every control inside the group at once — except those in its <c>legend</c>.
     /// </summary>

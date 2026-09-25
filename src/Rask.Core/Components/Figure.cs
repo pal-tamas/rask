@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     <c>figcaption</c>. It should be movable elsewhere without breaking the flow of the text.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/figure">MDN</see>
 /// </summary>
+[Tag("figure")]
 public sealed partial class Figure : Element
 {
-    protected override string TagName => "figure";
 }

@@ -7,10 +7,9 @@ namespace Rask.Core.Components;
 ///     with no stroke is invisible.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/line">MDN</see>
 /// </summary>
+[Tag("line")]
 public sealed partial class Line : SvgElement
 {
-    protected override string TagName => "line";
-
     /// <summary>The start point's x coordinate.</summary>
     public string? X1 { get; set; }
 

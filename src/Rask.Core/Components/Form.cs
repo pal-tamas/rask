@@ -29,6 +29,7 @@ namespace Rask.Core.Components;
 ///     no <c>action</c> or <c>method</c> to set: the page reacts rather than navigating away.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/form">MDN</see>
 /// </summary>
+[Tag("form")]
 public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] TModel>
     : Element
 {
@@ -39,8 +40,6 @@ public sealed partial class Form<[DynamicallyAccessedMembers(DynamicallyAccessed
     private Exception? _submitError;
 
     private TModel _model = default!;
-    protected override string TagName => "form";
-
     /// <summary>How the form data is encoded. Only <c>multipart/form-data</c> can carry a file upload.</summary>
     public string? Enctype { get; set; }
 

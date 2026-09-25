@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     <c>ins</c>.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/del">MDN</see>
 /// </summary>
+[Tag("del")]
 public sealed partial class Del : HtmlModElement
 {
-    protected override string TagName => "del";
 }

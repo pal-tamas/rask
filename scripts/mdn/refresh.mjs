@@ -42,6 +42,19 @@ function ships(compat) {
 
 const experimental = compat => compat?.status?.experimental === true || undefined;
 const mdnUrl = compat => compat?.mdn_url;
+const specUrl = compat => [compat?.spec_url].flat()[0];
+// The first unflagged, unprefixed version each engine shipped it in: the doc comment's support line and
+// the targets analyzer's table. Runtime checks never read it; they detect the feature itself.
+function support(compat) {
+  const out = {};
+  for (const browser of ENGINES) {
+    const e = [compat?.support?.[browser]].flat().filter(Boolean).find(x =>
+      typeof x.version_added === "string" && !x.version_removed && !x.flags && !x.prefix && !x.alternative_name);
+    if (e) out[browser] = e.version_added.replace(/^≤/, "");
+  }
+  return out;
+}
+const meta = compat => ({ experimental: experimental(compat), support: support(compat), mdn: mdnUrl(compat), spec: specUrl(compat) });
 
 // ---- IDL: merge partials and mixins -------------------------------------------------------------
 const interfaces = new Map(), mixins = new Map(), includes = [], enums = new Map(), dictionaries = new Map();
@@ -84,8 +97,7 @@ for (const [spec, ns] of Object.entries(SPECS)) {
     const compat = bcd[ns].elements[e.name]?.__compat;
     if (!ships(compat)) continue;
     if (elements.some(x => x.tag === e.name && x.namespace === ns)) continue;
-    elements.push({ tag: e.name, namespace: ns, interface: e.interface, void: VOID.includes(e.name) || undefined,
-      experimental: experimental(compat), mdn: mdnUrl(compat) });
+    elements.push({ tag: e.name, namespace: ns, interface: e.interface, void: VOID.includes(e.name) || undefined, ...meta(compat) });
   }
 }
 elements.sort((a, b) => a.namespace.localeCompare(b.namespace) || a.tag.localeCompare(b.tag));
@@ -112,9 +124,10 @@ function membersOf(name) {
     if (reflect) entry.reflect = extValue(reflect) ?? m.name.toLowerCase();
     const def1 = extValue(ext(m, "ReflectDefault"));
     if (def1 !== undefined) entry.reflectDefault = def1;
+    const range = extValue(ext(m, "ReflectRange"));
+    if (range !== undefined) entry.reflectRange = range.map(Number);
     if (m.mixin) entry.mixin = m.mixin;
-    entry.experimental = experimental(compat);
-    entry.mdn = mdnUrl(compat);
+    Object.assign(entry, meta(compat));
     // Overloads collapse to the first one that ships; the rest are recorded as args variants.
     const prior = members.find(x => x.kind === "operation" && x.name === m.name);
     if (prior) { (prior.overloads ??= []).push(entry.args); continue; }
@@ -140,14 +153,14 @@ for (const name of [...wanted].sort()) {
       if (attributes.some(a => a.attr === attr)) { attributes.find(a => a.attr === attr).tags.push(tag.tag); continue; }
       const idl = findReflecting(name, attr);
       attributes.push({ attr, property: idl?.name, type: idl?.type, readonly: idl?.readonly, reflect: idl?.reflect !== undefined || undefined,
-        on: idl?.on, tags: [tag.tag], experimental: experimental(data.__compat), mdn: mdnUrl(data.__compat) });
+        on: idl?.on, tags: [tag.tag], ...meta(data.__compat) });
     }
   }
   const order = a => { const i = members.findIndex(m => m.name === a.property); return i < 0 ? 1e6 : i; };
   attributes.sort((a, b) => order(a) - order(b) || a.attr.localeCompare(b.attr));
   for (const a of attributes) if (a.tags.length === tags.length) delete a.tags; // on every tag of the interface
   interfaceOut[name] = { parent: def.inheritance, abstract: tags.length === 0 || undefined, namespace: ns,
-    experimental: experimental(compat), mdn: mdnUrl(compat), attributes: attributes.length ? attributes : undefined, members };
+    ...meta(compat), attributes: attributes.length ? attributes : undefined, members };
 }
 
 // The IDL attribute that reflects a content attribute, searched up the interface chain.

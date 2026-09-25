@@ -7,7 +7,7 @@ namespace Rask.Core.Components;
 ///     a hand-built shadow, where the shadow and the original are put back together.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/feMerge">MDN</see>
 /// </summary>
+[Tag("feMerge")]
 public sealed partial class FeMerge : SvgElement
 {
-    protected override string TagName => "feMerge";
 }

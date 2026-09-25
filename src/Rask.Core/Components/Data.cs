@@ -7,10 +7,9 @@ namespace Rask.Core.Components;
 ///     times, use <c>time</c> instead.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/data">MDN</see>
 /// </summary>
+[Tag("data")]
 public sealed partial class Data : Element
 {
-    protected override string TagName => "data";
-
     /// <summary>The machine-readable form of the element's text.</summary>
     public string? Value { get; set; }
 

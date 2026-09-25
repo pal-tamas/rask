@@ -7,11 +7,9 @@ namespace Rask.Core.Components;
 ///     a preload hint. Rask emits its own scoped stylesheets as link elements; these are yours.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/link">MDN</see>
 /// </summary>
+[Tag("link")]
 public sealed partial class Link : Element
 {
-    protected override string TagName => "link";
-    protected override bool SelfClosing => true;
-
     /// <summary>The linked resource's URL. Required.</summary>
     public string? Href { get; set; }
 

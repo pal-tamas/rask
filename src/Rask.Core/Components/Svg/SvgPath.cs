@@ -11,10 +11,9 @@ namespace Rask.Core.Components;
 ///     still renders as <c>path</c>.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/path">MDN</see>
 /// </summary>
+[Tag("path", Entry = "SvgPath")]
 public sealed partial class SvgPath : SvgElement
 {
-    protected override string TagName => "path";
-
     /// <summary>
     ///     The path data: move, line, curve and arc commands (<c>M</c>, <c>L</c>, <c>C</c>, <c>A</c>,
     ///     <c>Z</c>, …). Uppercase commands are absolute, lowercase relative.

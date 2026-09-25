@@ -5,7 +5,7 @@ namespace Rask.Core.Components;
 ///     to screen readers as data.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/table">MDN</see>
 /// </summary>
+[Tag("table")]
 public sealed partial class Table : Element
 {
-    protected override string TagName => "table";
 }

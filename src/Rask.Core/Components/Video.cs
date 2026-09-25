@@ -8,10 +8,9 @@ namespace Rask.Core.Components;
 ///     inaccessible one.
 ///     <see href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/video">MDN</see>
 /// </summary>
+[Tag("video")]
 public sealed partial class Video : HtmlMediaElement
 {
-    protected override string TagName => "video";
-
     /// <summary>
     ///     A still image shown until the first frame is available. Without it the player shows the first
     ///     frame, which is often black.
